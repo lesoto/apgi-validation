@@ -720,8 +720,586 @@ class PhaseTransitionDetector:
 
 
 # =============================================================================
-# PART 4: COMPREHENSIVE PHASE TRANSITION ANALYSIS
+# PART 3.5: FINITE-SIZE SCALING AND CRITICAL EXPONENT ANALYSIS
 # =============================================================================
+
+class FiniteSizeScalingAnalysis:
+    """
+    Finite-size scaling analysis to identify critical points and estimate exponents
+    
+    Based on Binder cumulant method and critical exponent estimation
+    """
+    
+    def __init__(self):
+        pass
+    
+    def finite_size_scaling_analysis(
+        self,
+        system_sizes: List[int],
+        parameter_range: np.ndarray,
+        parameter_name: str = 'theta_0'
+    ) -> Dict:
+        """
+        Proper finite-size scaling to identify critical point
+        Essential for phase transition claims
+        
+        Based on Binder cumulant method (Binder, 1981)
+        
+        Args:
+            system_sizes: List of system sizes (durations)
+            parameter_range: Range of parameter values to test
+            parameter_name: Name of parameter to vary
+        
+        Returns:
+            Dictionary with scaling analysis results
+        """
+        results = {
+            'sizes': system_sizes,
+            'order_parameters': {},
+            'susceptibilities': {},
+            'binder_cumulants': {},
+            'critical_point_estimate': None,
+            'parameter_values': parameter_range
+        }
+        
+        for size in system_sizes:
+            order_params = []
+            suscepts = []
+            binder_vals = []
+            
+            for param in parameter_range:
+                # Create system with this parameter value
+                system_params = {'tau': 0.2, 'theta_0': 0.55, 'alpha': 5.0, 'dt': 0.01}
+                system_params[parameter_name] = param
+                
+                system = APGIDynamicalSystem(**system_params)
+                
+                # Input generator for this simulation
+                def input_gen(t):
+                    return {
+                        'Pi_e': 1.0 + 0.3 * np.sin(2 * np.pi * t / 15),
+                        'eps_e': np.random.normal(0.4, 0.2),
+                        'beta': 1.15,
+                        'Pi_i': 1.0 + 0.5 * np.sin(2 * np.pi * t / 25),
+                        'eps_i': np.random.normal(0.2, 0.15),
+                        'M': 1.0,
+                        'c': 0.5,
+                        'a': 0.3
+                    }
+                
+                # Simulate system at this size and parameter value
+                timeseries = system.simulate(duration=size, input_generator=input_gen, theta_noise_sd=0.05)
+                
+                # Order parameter (mean ignition rate)
+                m = np.mean(timeseries['B'])
+                order_params.append(m)
+                
+                # Susceptibility (variance of order parameter)
+                chi = np.var(timeseries['B']) * size
+                suscepts.append(chi)
+                
+                # Binder cumulant: U = 1 - <m^4>/(3<m^2>^2)
+                m2 = np.mean(timeseries['B']**2)
+                m4 = np.mean(timeseries['B']**4)
+                U = 1 - m4 / (3 * m2**2) if m2 > 0 else 0
+                binder_vals.append(U)
+            
+            results['order_parameters'][size] = order_params
+            results['susceptibilities'][size] = suscepts
+            results['binder_cumulants'][size] = binder_vals
+        
+        # Find crossing point of Binder cumulants (identifies critical point)
+        # At criticality, Binder cumulant becomes size-independent
+        crossing_point = self._find_binder_crossing(results['binder_cumulants'], parameter_range)
+        results['critical_point_estimate'] = crossing_point
+        
+        return results
+    
+    def estimate_critical_exponents(
+        self,
+        data: Dict,
+        critical_point: float
+    ) -> Dict:
+        """
+        Estimate critical exponents β, γ, ν
+        These characterize the universality class of the transition
+        
+        Near criticality:
+        - Order parameter: m ~ |T - Tc|^β
+        - Susceptibility: χ ~ |T - Tc|^(-γ)
+        - Correlation length: ξ ~ |T - Tc|^(-ν)
+        
+        Args:
+            data: Data from finite-size scaling analysis
+            critical_point: Estimated critical parameter value
+        
+        Returns:
+            Dictionary with critical exponents and universality class
+        """
+        # Extract data near critical point
+        parameter_values = data['parameter_values']
+        
+        # Use largest system size for exponent estimation
+        largest_size = max(data['order_parameters'].keys())
+        order_param = np.array(data['order_parameters'][largest_size])
+        susceptibility = np.array(data['susceptibilities'][largest_size])
+        
+        # Focus on region near critical point
+        mask = np.abs(parameter_values - critical_point) < 0.1
+        if np.sum(mask) < 5:
+            mask = np.abs(parameter_values - critical_point) < 0.2
+        
+        param_near_crit = parameter_values[mask]
+        order_param_near = order_param[mask]
+        susceptibility_near = susceptibility[mask]
+        
+        exponents = {}
+        
+        # Log-log fit for exponent β
+        # log(m) = β * log(|T - Tc|) + const
+        if len(param_near_crit) > 3:
+            reduced_param = np.abs(param_near_crit - critical_point)
+            # Avoid log(0)
+            reduced_param = np.maximum(reduced_param, 1e-10)
+            order_param_safe = np.maximum(order_param_near, 1e-10)
+            
+            log_reduced = np.log(reduced_param)
+            log_order = np.log(order_param_safe)
+            
+            # Linear fit in log-log space
+            try:
+                beta_fit = np.polyfit(log_reduced, log_order, 1)
+                beta = beta_fit[0]
+                exponents['beta'] = beta
+            except:
+                exponents['beta'] = np.nan
+        else:
+            exponents['beta'] = np.nan
+        
+        # Same for susceptibility exponent γ
+        if len(param_near_crit) > 3:
+            susceptibility_safe = np.maximum(susceptibility_near, 1e-10)
+            log_suscept = np.log(susceptibility_safe)
+            
+            try:
+                gamma_fit = np.polyfit(log_reduced, log_suscept, 1)
+                gamma = -gamma_fit[0]  # Negative slope
+                exponents['gamma'] = gamma
+            except:
+                exponents['gamma'] = np.nan
+        else:
+            exponents['gamma'] = np.nan
+        
+        # Add confidence intervals (simplified bootstrap)
+        exponents['beta_ci'] = self._bootstrap_exponent(
+            param_near_crit, order_param_near, critical_point, 'beta'
+        )
+        exponents['gamma_ci'] = self._bootstrap_exponent(
+            param_near_crit, susceptibility_near, critical_point, 'gamma'
+        )
+        
+        # Check against known universality classes
+        universality_class = self._classify_universality_class(exponents)
+        
+        return {
+            'exponents': exponents,
+            'universality_class': universality_class,
+            'critical_point': critical_point
+        }
+    
+    def analyze_autocorrelation_functions(
+        self,
+        timeseries: Dict,
+        max_lag: int = 100
+    ) -> Dict:
+        """
+        Compute autocorrelation functions to measure temporal correlations
+        At criticality, should show power-law decay
+        
+        Args:
+            timeseries: Time series data
+            max_lag: Maximum lag to compute
+        
+        Returns:
+            Dictionary with ACF analysis results
+        """
+        from scipy.optimize import curve_fit
+        
+        acf_results = {}
+        
+        for variable in ['S', 'B', 'Pi_i']:
+            if variable in timeseries:
+                # Compute ACF
+                data = timeseries[variable]
+                acf_data = []
+                for lag in range(max_lag):
+                    if lag < len(data):
+                        corr = np.corrcoef(data[:-lag if lag > 0 else None], 
+                                         data[lag:])[0, 1] if lag < len(data)//2 else 0
+                        acf_data.append(corr)
+                
+                acf_data = np.array(acf_data)
+                lags = np.arange(len(acf_data))
+                
+                # Fit to exponential decay: A(τ) ~ exp(-τ/τ_corr)
+                # At criticality, becomes power-law: A(τ) ~ τ^(-α)
+                
+                # Fit exponential (only to positive correlations)
+                positive_mask = acf_data > 0.01
+                if np.sum(positive_mask) > 3:
+                    try:
+                        popt_exp, _ = curve_fit(
+                            lambda t, tau: np.exp(-t/tau),
+                            lags[positive_mask],
+                            acf_data[positive_mask],
+                            p0=[50],
+                            maxfev=1000
+                        )
+                        tau_corr = popt_exp[0]
+                    except:
+                        tau_corr = np.nan
+                else:
+                    tau_corr = np.nan
+                
+                # Fit power-law (in log-log space, exclude lag=0)
+                if len(lags) > 2:
+                    log_lags = np.log(lags[1:])
+                    log_acf = np.log(np.abs(acf_data[1:]) + 1e-10)
+                    
+                    try:
+                        alpha_fit = np.polyfit(log_lags, log_acf, 1)
+                        alpha = -alpha_fit[0]
+                    except:
+                        alpha = np.nan
+                else:
+                    alpha = np.nan
+                
+                acf_results[variable] = {
+                    'lags': lags,
+                    'acf': acf_data,
+                    'correlation_time': tau_corr,
+                    'power_law_exponent': alpha,
+                    'is_power_law': alpha > 0.5 if not np.isnan(alpha) else False
+                }
+        
+        return acf_results
+    
+    def compute_mutual_information_matrix(
+        self,
+        timeseries: Dict,
+        n_bins: int = 20
+    ) -> Tuple[np.ndarray, plt.Figure]:
+        """
+        Compute MI between all variable pairs
+        Shows information integration structure
+        
+        Args:
+            timeseries: Time series data
+            n_bins: Number of bins for discretization
+        
+        Returns:
+            MI matrix and figure
+        """
+        variables = ['S', 'theta', 'B', 'Pi_e', 'Pi_i', 'eps_e', 'eps_i']
+        available_vars = [v for v in variables if v in timeseries]
+        
+        n_vars = len(available_vars)
+        mi_matrix = np.zeros((n_vars, n_vars))
+        
+        for i, var1 in enumerate(available_vars):
+            for j, var2 in enumerate(available_vars):
+                if i <= j:
+                    # Discretize for MI estimation
+                    x = self._discretize(timeseries[var1], n_bins)
+                    y = self._discretize(timeseries[var2], n_bins)
+                    
+                    mi = mutual_info_score(x, y)
+                    mi_matrix[i, j] = mi
+                    mi_matrix[j, i] = mi
+        
+        # Visualize
+        fig, ax = plt.subplots(figsize=(10, 8))
+        im = ax.imshow(mi_matrix, cmap='viridis')
+        ax.set_xticks(range(n_vars))
+        ax.set_yticks(range(n_vars))
+        ax.set_xticklabels(available_vars, rotation=45)
+        ax.set_yticklabels(available_vars)
+        
+        # Add values
+        for i in range(n_vars):
+            for j in range(n_vars):
+                text = ax.text(j, i, f'{mi_matrix[i, j]:.2f}',
+                              ha="center", va="center", color="w")
+        
+        ax.set_title('Mutual Information Matrix')
+        plt.colorbar(im, ax=ax)
+        
+        return mi_matrix, fig
+    
+    def compute_permutation_entropy(
+        self,
+        timeseries: Dict,
+        embedding_dim: int = 3,
+        delay: int = 1
+    ) -> Dict:
+        """
+        Permutation entropy: model-free complexity measure
+        Captures ordinal patterns in time series
+        
+        Reference: Bandt & Pompe (2002), PRL
+        
+        Args:
+            timeseries: Time series data
+            embedding_dim: Embedding dimension
+            delay: Time delay
+        
+        Returns:
+            Dictionary with PE results
+        """
+        import math
+        from collections import Counter
+        
+        results = {}
+        
+        for variable in ['S', 'B']:
+            if variable in timeseries:
+                # Embed
+                embedded = self._embed_sequence(timeseries[variable], embedding_dim, delay)
+                
+                # Get patterns
+                patterns = self._ordinal_patterns(embedded)
+                
+                # Count pattern frequencies
+                pattern_counts = Counter(patterns)
+                total = len(patterns)
+                probabilities = np.array([count/total for count in pattern_counts.values()])
+                
+                # Compute entropy
+                H = -np.sum(probabilities * np.log2(probabilities + 1e-10))
+                
+                # Normalized entropy (0-1)
+                H_max = np.log2(math.factorial(embedding_dim))
+                H_normalized = H / H_max
+                
+                results[variable] = {
+                    'entropy': H,
+                    'normalized_entropy': H_normalized,
+                    'n_patterns': len(pattern_counts),
+                    'max_patterns': math.factorial(embedding_dim)
+                }
+        
+        return results
+    
+    def detrended_fluctuation_analysis(
+        self,
+        timeseries: Dict,
+        min_window: int = 10,
+        max_window: Optional[int] = None
+    ) -> Tuple[Dict, plt.Figure]:
+        """
+        DFA to quantify long-range correlations
+        α > 0.5 indicates long-range correlations (critical-like behavior)
+        α = 0.5 is uncorrelated (white noise)
+        α = 1.0 is 1/f noise (scale-free)
+        
+        Reference: Peng et al. (1994)
+        
+        Args:
+            timeseries: Time series data
+            min_window: Minimum window size
+            max_window: Maximum window size
+        
+        Returns:
+            Dictionary with DFA results and figure
+        """
+        data = timeseries['B']  # Analyze ignition probability
+        n = len(data)
+        
+        # Integrate the signal
+        y = np.cumsum(data - np.mean(data))
+        
+        if max_window is None:
+            max_window = n // 4
+        
+        # Window sizes (logarithmically spaced)
+        windows = np.unique(np.logspace(
+            np.log10(min_window),
+            np.log10(max_window),
+            num=20
+        ).astype(int))
+        
+        fluctuations = []
+        
+        for window in windows:
+            # Divide into non-overlapping segments
+            n_segments = n // window
+            
+            if n_segments < 2:
+                continue
+            
+            F_sum = 0
+            for segment in range(n_segments):
+                # Extract segment
+                start = segment * window
+                end = start + window
+                segment_data = y[start:end]
+                
+                # Fit polynomial trend
+                x = np.arange(len(segment_data))
+                poly = np.polyfit(x, segment_data, 1)  # Linear detrending
+                trend = np.polyval(poly, x)
+                
+                # Detrend and compute fluctuation
+                detrended = segment_data - trend
+                F_sum += np.mean(detrended**2)
+            
+            # Average fluctuation for this window size
+            F = np.sqrt(F_sum / n_segments)
+            fluctuations.append(F)
+        
+        # Log-log plot should be linear with slope = α
+        if len(fluctuations) > 2:
+            log_windows = np.log10(windows[:len(fluctuations)])
+            log_fluctuations = np.log10(fluctuations)
+            
+            # Fit to get scaling exponent
+            alpha = np.polyfit(log_windows, log_fluctuations, 1)[0]
+        else:
+            alpha = 0.5
+        
+        # Interpret
+        interpretation = {
+            'alpha': alpha,
+            'correlation_type': (
+                'Anti-correlated' if alpha < 0.5 else
+                'Uncorrelated (white noise)' if abs(alpha - 0.5) < 0.05 else
+                'Long-range correlated' if alpha < 1.0 else
+                '1/f noise' if abs(alpha - 1.0) < 0.1 else
+                'Non-stationary'
+            )
+        }
+        
+        # Plot
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.loglog(windows[:len(fluctuations)], fluctuations, 'o-', label=f'α = {alpha:.3f}')
+        ax.set_xlabel('Window size')
+        ax.set_ylabel('Fluctuation F(n)')
+        ax.set_title(f'Detrended Fluctuation Analysis\n{interpretation["correlation_type"]}')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        return interpretation, fig
+    
+    # =====================================================================
+    # Helper methods
+    # =====================================================================
+    
+    def _find_binder_crossing(
+        self,
+        binder_data: Dict[int, List[float]],
+        parameter_values: np.ndarray
+    ) -> Optional[float]:
+        """Find crossing point of Binder cumulants for different system sizes"""
+        sizes = sorted(binder_data.keys())
+        
+        if len(sizes) < 2:
+            return None
+        
+        # Find crossing between largest and second-largest systems
+        size1, size2 = sizes[-2], sizes[-1]
+        binder1 = np.array(binder_data[size1])
+        binder2 = np.array(binder_data[size2])
+        
+        # Find minimum difference
+        diff = np.abs(binder1 - binder2)
+        min_idx = np.argmin(diff)
+        
+        return float(parameter_values[min_idx])
+    
+    def _bootstrap_exponent(
+        self,
+        params: np.ndarray,
+        data: np.ndarray,
+        critical_point: float,
+        exponent_type: str,
+        n_bootstrap: int = 100
+    ) -> Tuple[float, float]:
+        """Bootstrap confidence interval for exponent estimation"""
+        exponents = []
+        
+        for _ in range(n_bootstrap):
+            # Resample with replacement
+            indices = np.random.choice(len(params), len(params), replace=True)
+            params_boot = params[indices]
+            data_boot = data[indices]
+            
+            # Estimate exponent
+            reduced_param = np.abs(params_boot - critical_point)
+            reduced_param = np.maximum(reduced_param, 1e-10)
+            data_safe = np.maximum(data_boot, 1e-10)
+            
+            try:
+                if exponent_type == 'beta':
+                    fit = np.polyfit(np.log(reduced_param), np.log(data_safe), 1)
+                    exponents.append(fit[0])
+                elif exponent_type == 'gamma':
+                    fit = np.polyfit(np.log(reduced_param), np.log(data_safe), 1)
+                    exponents.append(-fit[0])
+            except:
+                continue
+        
+        if len(exponents) > 0:
+            return (np.percentile(exponents, 2.5), np.percentile(exponents, 97.5))
+        else:
+            return (np.nan, np.nan)
+    
+    def _classify_universality_class(self, exponents: Dict) -> str:
+        """Classify universality class based on critical exponents"""
+        beta = exponents.get('beta', np.nan)
+        gamma = exponents.get('gamma', np.nan)
+        
+        if np.isnan(beta) or np.isnan(gamma):
+            return 'Unknown'
+        
+        # Check against known universality classes
+        # Mean-field: β=0.5, γ=1.0
+        # 2D Ising: β=0.125, γ=1.75
+        # 3D Ising: β=0.326, γ=1.237
+        
+        tolerance = 0.1
+        
+        if (abs(beta - 0.5) < tolerance and abs(gamma - 1.0) < tolerance):
+            return 'Mean-field'
+        elif (abs(beta - 0.125) < tolerance and abs(gamma - 1.75) < tolerance):
+            return '2D Ising'
+        elif (abs(beta - 0.326) < tolerance and abs(gamma - 1.237) < tolerance):
+            return '3D Ising'
+        else:
+            return f'Custom (β={beta:.3f}, γ={gamma:.3f})'
+    
+    def _discretize(self, data: np.ndarray, n_bins: int) -> np.ndarray:
+        """Discretize continuous data into bins"""
+        data = data.reshape(-1, 1)
+        discretizer = KBinsDiscretizer(
+            n_bins=n_bins,
+            encode='ordinal',
+            strategy='uniform'
+        )
+        return discretizer.fit_transform(data).astype(int).flatten()
+    
+    def _embed_sequence(self, data: np.ndarray, dim: int, tau: int) -> np.ndarray:
+        """Create delay embedding"""
+        n = len(data)
+        embedded = np.array([data[i:i+dim*tau:tau] for i in range(n - dim*tau + 1)])
+        return embedded
+    
+    def _ordinal_patterns(self, embedded: np.ndarray) -> List[Tuple]:
+        """Extract ordinal patterns (permutations)"""
+        patterns = []
+        for row in embedded:
+            pattern = tuple(np.argsort(row))
+            patterns.append(pattern)
+        return patterns
 
 class ComprehensivePhaseTransitionAnalysis:
     """
@@ -731,6 +1309,7 @@ class ComprehensivePhaseTransitionAnalysis:
     def __init__(self):
         self.info_analyzer = InformationTheoreticAnalysis(n_bins=20)
         self.phase_detector = PhaseTransitionDetector()
+        self.scaling_analyzer = FiniteSizeScalingAnalysis()
     
     def analyze_simulation(
         self,

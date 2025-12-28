@@ -1409,7 +1409,281 @@ def print_falsification_report(report: Dict):
 
 
 # =============================================================================
-# PART 7: MAIN EXECUTION PIPELINE
+# PART 7: MODEL DIAGNOSTICS & VALIDATION
+# =============================================================================
+
+def enhanced_model_diagnostics(trace, model_name):
+    """
+    Add comprehensive MCMC diagnostics
+    - Rhat (Gelman-Rubin) convergence
+    - Effective sample size
+    - Divergences
+    - Energy plots
+    """
+    import arviz as az
+    
+    diagnostics = {
+        'rhat': az.rhat(trace),
+        'ess_bulk': az.ess(trace, method='bulk'),
+        'ess_tail': az.ess(trace, method='tail'),
+        'mcse': az.mcse(trace),
+        'divergences': trace.sample_stats.diverging.sum().item(),
+        'tree_depth': trace.sample_stats.tree_depth.max().item()
+    }
+    
+    # Check for problems
+    problems = []
+    if (diagnostics['rhat'] > 1.01).any():
+        problems.append("Poor convergence (Rhat > 1.01)")
+    if diagnostics['divergences'] > 0:
+        problems.append(f"{diagnostics['divergences']} divergent transitions")
+    if (diagnostics['ess_bulk'] < 100).any():
+        problems.append("Low effective sample size")
+    
+    diagnostics['problems'] = problems
+    
+    # Generate diagnostic plots
+    fig = az.plot_trace(trace, compact=True)
+    fig.suptitle(f"{model_name} - Trace Plots")
+    
+    return diagnostics, fig
+
+
+def prior_predictive_check(model, n_samples=1000):
+    """
+    Sample from prior and check if it produces reasonable data
+    Prevents overly informative or pathological priors
+    """
+    with model:
+        prior_predictive = pm.sample_prior_predictive(samples=n_samples)
+    
+    # Check if prior predictions are in reasonable range
+    prior_p_seen = prior_predictive['conscious_report'].mean(axis=1)
+    
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    
+    # Distribution of prior-predicted detection rates
+    axes[0].hist(prior_p_seen, bins=30, alpha=0.7)
+    axes[0].axvline(0.5, color='r', linestyle='--', label='Chance')
+    axes[0].set_xlabel('Prior Predicted Detection Rate')
+    axes[0].set_ylabel('Frequency')
+    axes[0].set_title('Prior Predictive Distribution')
+    axes[0].legend()
+    
+    # Prior-predicted psychometric functions
+    for i in range(min(50, n_samples)):
+        # Plot sample psychometric curves from prior
+        pass
+    
+    return prior_predictive, fig
+
+
+def posterior_predictive_check(trace, data, model):
+    """
+    Generate data from fitted model and compare to observed data
+    Key test of model adequacy
+    """
+    with model:
+        ppc = pm.sample_posterior_predictive(trace, samples=500)
+    
+    # Compare observed vs predicted distributions
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    
+    # 1. Detection rates by stimulus level
+    data_df = pd.DataFrame({
+        'stimulus_strength': data.stimulus_strength,
+        'conscious_report': data.conscious_report
+    })
+    observed_rates = data_df.groupby('stimulus_strength')['conscious_report'].mean()
+    predicted_rates = ppc['conscious_report'].mean(axis=0)
+    predicted_rates_grouped = pd.DataFrame({
+        'stimulus': data.stimulus_strength,
+        'predicted': predicted_rates
+    }).groupby('stimulus')['predicted'].mean()
+    
+    axes[0, 0].scatter(observed_rates.index, observed_rates.values, label='Observed', alpha=0.7)
+    axes[0, 0].plot(predicted_rates_grouped.index, predicted_rates_grouped.values, 
+                    'r-', label='Predicted', linewidth=2)
+    axes[0, 0].set_xlabel('Stimulus Strength')
+    axes[0, 0].set_ylabel('Detection Rate')
+    axes[0, 0].legend()
+    
+    # 2. P3b amplitude distributions
+    if data.P3b_amplitude is not None:
+        axes[0, 1].hist(data.P3b_amplitude, bins=30, alpha=0.5, label='Observed', density=True)
+        axes[0, 1].hist(ppc['P3b_amplitude'].flatten(), bins=30, alpha=0.5, 
+                       label='Predicted', density=True)
+        axes[0, 1].legend()
+    
+    # 3. Residual analysis
+    residuals = data.conscious_report - predicted_rates
+    axes[1, 0].scatter(predicted_rates, residuals, alpha=0.3)
+    axes[1, 0].axhline(0, color='r', linestyle='--')
+    axes[1, 0].set_xlabel('Predicted')
+    axes[1, 0].set_ylabel('Residuals')
+    
+    # 4. Q-Q plot for normality of residuals
+    stats.probplot(residuals, dist="norm", plot=axes[1, 1])
+    
+    plt.tight_layout()
+    
+    # Compute quantitative PPC metrics
+    ppc_metrics = {
+        'mean_absolute_error': np.mean(np.abs(residuals)),
+        'bayesian_p_value': np.mean(ppc['conscious_report'].var(axis=1) > data.conscious_report.var())
+    }
+    
+    return ppc, ppc_metrics, fig
+
+
+def compute_all_ic_metrics(trace, model, data):
+    """
+    Compute multiple information criteria for robustness
+    - WAIC (already implemented)
+    - LOO (Leave-One-Out CV)
+    - DIC (Deviance Information Criterion)
+    """
+    import arviz as az
+    
+    # WAIC
+    waic = az.waic(trace, pointwise=True)
+    
+    # LOO with Pareto-k diagnostics
+    loo = az.loo(trace, pointwise=True)
+    
+    # Check for problematic observations (high Pareto k)
+    high_pareto_k = (loo.pareto_k > 0.7).sum().item()
+    
+    results = {
+        'waic': waic.waic,
+        'waic_se': waic.waic_se,
+        'loo': loo.loo,
+        'loo_se': loo.loo_se,
+        'p_loo': loo.p_loo,  # Effective number of parameters
+        'high_pareto_k_count': high_pareto_k,
+        'pareto_k_values': loo.pareto_k.values
+    }
+    
+    # Flag if LOO is unreliable
+    if high_pareto_k > 0:
+        results['warning'] = f"{high_pareto_k} observations with Pareto k > 0.7 (unreliable LOO)"
+    
+    return results
+
+
+def bayesian_model_averaging(models_dict, weights='stacking'):
+    """
+    Combine predictions from multiple models weighted by their evidence
+    More robust than selecting single best model
+    """
+    import arviz as az
+    
+    # Compute stacking weights (optimal for prediction)
+    if weights == 'stacking':
+        weight_dict = az.compare({
+            name: trace for name, trace in models_dict.items()
+        }, ic='loo', method='stacking')
+        weights = weight_dict['weight'].to_dict()
+    
+    elif weights == 'pseudo-bma':
+        # Pseudo-BMA weights based on WAIC
+        weight_dict = az.compare(models_dict, ic='waic', method='pseudo-bma')
+        weights = weight_dict['weight'].to_dict()
+    
+    # Generate weighted predictions
+    averaged_predictions = None
+    for model_name, weight in weights.items():
+        if weight > 0:
+            model_pred = models_dict[model_name]['predictions']
+            if averaged_predictions is None:
+                averaged_predictions = weight * model_pred
+            else:
+                averaged_predictions += weight * model_pred
+    
+    return averaged_predictions, weights
+
+
+def prior_sensitivity_analysis(data, prior_configs):
+    """
+    Test how results change with different prior specifications
+    Critical for ensuring conclusions aren't prior-dependent
+    """
+    results = {}
+    
+    for config_name, priors in prior_configs.items():
+        # Fit model with different priors
+        model = APGIGenerativeModel()
+        model_instance = model.build_model(data)
+        with model_instance:
+            trace = pm.sample(2000, tune=1000, target_accept=0.95)
+        
+        # Extract key parameters
+        results[config_name] = {
+            'theta_0_mean': trace.posterior['theta_0'].mean().item(),
+            'beta_mean': trace.posterior['beta'].mean().item(),
+            'waic': az.waic(trace).waic
+        }
+    
+    # Check if conclusions are stable across priors
+    stability_check = {
+        'theta_0_range': np.ptp([r['theta_0_mean'] for r in results.values()]),
+        'beta_range': np.ptp([r['beta_mean'] for r in results.values()]),
+        'ranking_stable': None  # Check if model ranking is preserved
+    }
+    
+    return results, stability_check
+
+
+def parameter_recovery_simulation(true_params, n_simulations=100):
+    """
+    Simulate data with known parameters and check if we can recover them
+    Tests whether model is identifiable
+    """
+    recovery_results = {
+        'theta_0': {'true': [], 'recovered': [], 'error': []},
+        'beta': {'true': [], 'recovered': [], 'error': []},
+        'Pi_i': {'true': [], 'recovered': [], 'error': []}
+    }
+    
+    generator = SyntheticConsciousnessDataGenerator(seed=42)
+    
+    for sim in range(n_simulations):
+        # Generate synthetic data with known parameters
+        true_theta_0 = np.random.uniform(0.3, 0.7)
+        true_beta = np.random.uniform(0.8, 1.5)
+        true_Pi_i = np.random.uniform(0.8, 1.8)
+        
+        # Create synthetic data with these parameters
+        data = generator.generate_melloni_style_data(n_subjects=10, trials_per_subject=100)
+        
+        # Fit model
+        model = APGIGenerativeModel()
+        model_instance = model.build_model(data)
+        with model_instance:
+            trace = pm.sample(1000, tune=500)
+        
+        # Compare recovered to true
+        recovered_theta_0 = trace.posterior['theta_0'].mean().item()
+        recovery_results['theta_0']['true'].append(true_theta_0)
+        recovery_results['theta_0']['recovered'].append(recovered_theta_0)
+        recovery_results['theta_0']['error'].append(abs(recovered_theta_0 - true_theta_0))
+    
+    # Compute recovery statistics
+    for param in recovery_results:
+        true_vals = np.array(recovery_results[param]['true'])
+        recovered_vals = np.array(recovery_results[param]['recovered'])
+        
+        # Correlation between true and recovered (should be high)
+        recovery_results[param]['correlation'] = np.corrcoef(true_vals, recovered_vals)[0, 1]
+        
+        # Mean absolute error
+        recovery_results[param]['mae'] = np.mean(recovery_results[param]['error'])
+    
+    return recovery_results
+
+
+# =============================================================================
+# PART 8: MAIN EXECUTION PIPELINE
 # =============================================================================
 
 def main():

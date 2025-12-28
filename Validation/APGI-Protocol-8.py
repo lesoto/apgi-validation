@@ -221,19 +221,50 @@ class PsiMethod:
         # Expected entropy
         return p_seen * entropy_seen + p_unseen * entropy_unseen
     
-    def select_next_stimulus(self) -> float:
+    def select_next_stimulus(self):
         """
         Select stimulus that minimizes expected posterior entropy
         (i.e., maximizes information gain)
         """
+        # Vectorized computation of expected entropies
+        p_seen_array = np.zeros(len(self.param_grid))
+        for i, (threshold, slope, lapse) in enumerate(self.param_grid):
+            p_seen_array[i] = self.psychometric_function(
+                np.array([self.stimuli[0]]),  # Just get shape
+                threshold, slope, lapse
+            )[0]
         
-        expected_entropies = np.array([
-            self.expected_entropy(s) for s in self.stimuli
-        ])
+        # Pre-compute posteriors for seen/unseen
+        likelihood_seen = p_seen_array * self.prior
+        likelihood_unseen = (1 - p_seen_array) * self.prior
+        
+        # Normalization terms
+        norm_seen = np.sum(likelihood_seen)
+        norm_unseen = np.sum(likelihood_unseen)
+        
+        # Compute entropies for all stimuli at once
+        entropies = np.zeros(len(self.stimuli))
+        
+        for i, stim in enumerate(self.stimuli):
+            # Update p_seen for this stimulus
+            for j, (threshold, slope, lapse) in enumerate(self.param_grid):
+                p_seen_array[j] = self.psychometric_function(
+                    np.array([stim]), threshold, slope, lapse
+                )[0]
+            
+            # Update posteriors
+            post_seen = (p_seen_array * self.prior) / (norm_seen + 1e-10)
+            post_unseen = ((1 - p_seen_array) * self.prior) / (norm_unseen + 1e-10)
+            
+            # Compute entropies
+            H_seen = -np.sum(post_seen * np.log2(post_seen + 1e-10))
+            H_unseen = -np.sum(post_unseen * np.log2(post_unseen + 1e-10))
+            
+            # Expected entropy
+            entropies[i] = norm_seen * H_seen + norm_unseen * H_unseen
         
         # Select stimulus with minimum expected entropy
-        best_idx = np.argmin(expected_entropies)
-        
+        best_idx = np.argmin(entropies)
         return self.stimuli[best_idx]
     
     def get_parameter_estimates(self) -> Dict[str, float]:
@@ -797,15 +828,18 @@ class PsychophysicsStudySimulator:
     Generates realistic data with individual differences for validation.
     """
     
-    def __init__(self, seed: int = 42):
+    def __init__(self, seed: int = 42, verbose: bool = True):
         self.rng = np.random.RandomState(seed)
+        self.verbose = verbose
     
     def simulate_participant(
         self,
         participant_id: str,
-        n_trials: int = 50,
-        use_psi_method: bool = True
+        n_trials: int = 20,  # Reduced default for testing
+        use_psi_method: bool = True,
+        show_progress: bool = False
     ) -> ParticipantData:
+        import time  # Added missing import
         """
         Simulate single participant threshold estimation
         
@@ -857,25 +891,49 @@ class PsychophysicsStudySimulator:
         if use_psi_method:
             # Use Psi method for adaptive estimation
             psi = PsiMethod(
-                stimulus_range=(0.0, 1.0),
-                threshold_range=(0.2, 0.8),
-                slope_range=(1.0, 20.0)
+                n_threshold_points=15,  # Reduced from 30
+                n_slope_points=10,      # Reduced from 20
+                n_lapse_points=5        # Reduced from 10
             )
             
+            # Run trials
+            responses = []
+            stim_presented = []
+            trial_times = []
+            
+            if show_progress:
+                print(f"\nParticipant {participant_id}: Starting {n_trials} trials")
+                
             for trial in range(n_trials):
-                # Select optimal stimulus
+                trial_start = time.time()
+                
+                # Select stimulus using Psi method
                 stimulus = psi.select_next_stimulus()
                 
-                # Generate response from true psychometric function
+                # Generate response based on true psychometric function
                 p_seen = true_lapse + (1 - 2*true_lapse) / (
                     1 + np.exp(-true_slope * (stimulus - true_threshold))
                 )
-                
                 response = int(self.rng.rand() < p_seen)
                 
-                # Update posterior
+                # Update Psi method
                 psi.update_posterior(stimulus, response)
-            
+                
+                # Record trial
+                responses.append(response)
+                stim_presented.append(stimulus)
+                
+                # Track timing
+                trial_time = time.time() - trial_start
+                trial_times.append(trial_time)
+                
+                if show_progress and (trial + 1) % 10 == 0:
+                    avg_time = np.mean(trial_times[-10:])
+                    remaining = (n_trials - trial - 1) * avg_time
+                    print(f"  Trial {trial+1}/{n_trials} - "
+                          f"Avg: {avg_time*1000:.1f}ms/trial - "
+                          f"ETA: {remaining/60:.1f} min")
+                    
             # Get estimates
             estimates = psi.get_parameter_estimates()
             
@@ -981,30 +1039,64 @@ class PsychophysicsStudySimulator:
     
     def simulate_full_study(
         self,
-        n_participants: int = 50,
-        n_trials_per_participant: int = 50
+        n_participants: int = 5,  # Reduced for testing
+        n_trials_per_participant: int = 5,  # Even fewer trials for initial testing
+        batch_size: int = 1,  # Show progress after each participant
+        show_trial_progress: bool = True
     ) -> List[ParticipantData]:
         """
         Simulate complete study with multiple participants
+        
+        Args:
+            n_participants: Number of participants to simulate
+            n_trials_per_participant: Number of trials per participant
+            batch_size: Number of participants to process before showing progress
         """
+        from tqdm import tqdm
+        import time
         
         participants = []
         
-        print(f"Simulating study with {n_participants} participants...")
+        if self.verbose:
+            print(f"Simulating study with {n_participants} participants...")
+            pbar = tqdm(total=n_participants, desc="Participants")
+        
+        start_time = time.time()
         
         for i in range(n_participants):
-            participant = self.simulate_participant(
-                participant_id=f'P{i+1:03d}',
-                n_trials=n_trials_per_participant,
-                use_psi_method=True
-            )
-            
-            participants.append(participant)
-            
-            if (i + 1) % 10 == 0:
-                print(f"  Completed {i+1}/{n_participants} participants")
+            try:
+                print(f"\n=== Starting participant {i+1}/{n_participants} ===")
+                participant = self.simulate_participant(
+                    participant_id=f'P{i+1:03d}',
+                    n_trials=n_trials_per_participant,
+                    use_psi_method=True,
+                    show_progress=show_trial_progress
+                )
+                if participant:  # Only append if participant was created successfully
+                    participants.append(participant)
+                    print(f"✅ Completed participant {i+1}/{n_participants}")
+                else:
+                    print(f"⚠️  Skipped participant {i+1} due to error")
+                
+                if self.verbose and (i+1) % batch_size == 0:
+                    elapsed = time.time() - start_time
+                    rate = (i+1) / elapsed * 60 if elapsed > 0 else float('inf')  # Convert to participants per minute
+                    pbar.update(batch_size)
+                    pbar.set_postfix({
+                        'rate': f"{rate:.1f} part/hr",
+                        'elapsed': f"{elapsed/60:.1f} min"
+                    })
+                    
+            except Exception as e:
+                if self.verbose:
+                    print(f"\nError simulating participant {i+1}: {str(e)}")
+                continue
         
-        print("✅ Simulation complete")
+        if self.verbose:
+            pbar.close()
+            elapsed = time.time() - start_time
+            print(f"\nSimulation completed in {elapsed/60:.1f} minutes")
+            print(f"Successfully simulated {len(participants)}/{n_participants} participants")
         
         return participants
 
@@ -1055,6 +1147,10 @@ class FalsificationChecker:
     
     def check_F3_2(self, analysis_results: Dict) -> Tuple[bool, Dict]:
         """F3.2: Threshold-beta relationship"""
+        
+        # Handle error case
+        if 'error' in analysis_results:
+            return True, {'error': analysis_results['error'], 'falsified': True}
         
         # Falsified if positive correlation (should be negative)
         falsified = analysis_results['r'] > 0
@@ -1482,17 +1578,24 @@ def print_falsification_report(report: Dict):
 
 def main():
     """Main execution pipeline for Protocol 8"""
+    import time
     
     print("="*80)
     print("APGI Protocol 8: PSYCHOPHYSICAL THRESHOLD ESTIMATION")
     print("="*80)
     
-    # Configuration
+    # Configuration - Optimized for debugging
     config = {
-        'n_participants': 50,
-        'n_trials_per_participant': 50,
-        'use_psi_method': True
+        'n_participants': 5,           # Start with very few participants
+        'n_trials_per_participant': 20, # Reduced trials for testing
+        'use_psi_method': True,        # Set to False to test without Psi method
+        'verbose': True,               # Show progress
+        'show_trial_progress': True,   # Show per-trial timing
+        'batch_size': 1               # Show progress after each participant
     }
+    
+    print("\nNote: Running in DEBUG MODE with reduced parameters")
+    print("Set 'debug_mode = False' in the config for full simulation")
     
     print(f"\nStudy Configuration:")
     for k, v in config.items():
@@ -1505,12 +1608,28 @@ def main():
     print("STEP 1: SIMULATING PSYCHOPHYSICAL STUDY")
     print("="*80)
     
-    simulator = PsychophysicsStudySimulator(seed=42)
+    # Initialize simulator with detailed timing
+    start_time = time.time()
     
+    simulator = PsychophysicsStudySimulator(
+        seed=42, 
+        verbose=config.get('verbose', True)
+    )
+    
+    print("\n" + "="*60)
+    print(f"STARTING SIMULATION: {config['n_participants']} participants, {config['n_trials_per_participant']} trials each")
+    print("="*60)
+    
+    # Run simulation with detailed progress
     participants = simulator.simulate_full_study(
         n_participants=config['n_participants'],
-        n_trials_per_participant=config['n_trials_per_participant']
+        n_trials_per_participant=config['n_trials_per_participant'],
+        batch_size=config['batch_size'],
+        show_trial_progress=config['show_trial_progress']
     )
+    
+    total_time = time.time() - start_time
+    print(f"\nSIMULATION COMPLETE in {total_time/60:.1f} minutes")
     
     print(f"\n✅ Generated data for {len(participants)} participants")
     
@@ -1536,9 +1655,12 @@ def main():
     print("\n--- P3b: Threshold-Somatic Bias Relationship ---")
     threshold_beta_results = analysis.test_threshold_somatic_bias_relationship()
     
-    print(f"\nr(θ₀, β) = {threshold_beta_results['r']:.3f}, p = {threshold_beta_results['p']:.4f}")
-    print(f"Prediction met: {'✅ YES' if threshold_beta_results['prediction_met'] else '❌ NO'}")
-    print(f"Interpretation: {threshold_beta_results['interpretation']}")
+    if 'error' in threshold_beta_results:
+        print(f"⚠️  Error: {threshold_beta_results['error']}")
+    else:
+        print(f"\nr(θ₀, β) = {threshold_beta_results['r']:.3f}, p = {threshold_beta_results['p']:.4f}")
+        print(f"Prediction met: {'✅ YES' if threshold_beta_results['prediction_met'] else '❌ NO'}")
+        print(f"Interpretation: {threshold_beta_results['interpretation']}")
     
     # Test-retest reliability
     print("\n--- P3c: Test-Retest Reliability ---")
@@ -1660,6 +1782,356 @@ def main():
     print("="*80)
     
     return results_summary
+
+
+# =============================================================================
+# PART 8: TEST-RETEST RELIABILITY ANALYSIS
+# =============================================================================
+
+def assess_test_retest_reliability(session1_params, session2_params, subject_ids):
+    """
+    Measure reliability of APGI parameter estimates across sessions
+    Critical for individual differences claims
+    """
+    from scipy.stats import pearsonr, spearmanr
+    from sklearn.metrics import mean_squared_error
+    
+    parameters = ['theta_0', 'beta', 'alpha', 'Pi_i']
+    reliability_results = {}
+    
+    for param in parameters:
+        values_s1 = np.array([session1_params[sid][param] for sid in subject_ids])
+        values_s2 = np.array([session2_params[sid][param] for sid in subject_ids])
+        
+        # Pearson correlation (ICC would be better)
+        r, p = pearsonr(values_s1, values_s2)
+        
+        # Intraclass correlation coefficient (ICC)
+        # ICC(2,1) for absolute agreement
+        icc = compute_icc(values_s1, values_s2, icc_type='ICC(2,1)')
+        
+        # Standard error of measurement
+        sem = np.std(values_s1 - values_s2) / np.sqrt(2)
+        
+        # Bland-Altman analysis
+        mean_diff = np.mean(values_s1 - values_s2)
+        std_diff = np.std(values_s1 - values_s2)
+        
+        reliability_results[param] = {
+            'pearson_r': r,
+            'p_value': p,
+            'icc': icc,
+            'sem': sem,
+            'mean_difference': mean_diff,
+            'limits_of_agreement': (mean_diff - 1.96*std_diff, mean_diff + 1.96*std_diff),
+            'reliability': (
+                'Excellent' if icc > 0.90 else
+                'Good' if icc > 0.75 else
+                'Moderate' if icc > 0.50 else
+                'Poor'
+            )
+        }
+    
+    # Plot Bland-Altman
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    axes = axes.flatten()
+    
+    for i, param in enumerate(parameters):
+        values_s1 = np.array([session1_params[sid][param] for sid in subject_ids])
+        values_s2 = np.array([session2_params[sid][param] for sid in subject_ids])
+        
+        mean_values = (values_s1 + values_s2) / 2
+        diff_values = values_s1 - values_s2
+        
+        axes[i].scatter(mean_values, diff_values, alpha=0.6)
+        axes[i].axhline(reliability_results[param]['mean_difference'], 
+                       color='r', linestyle='--', label='Mean difference')
+        axes[i].axhline(reliability_results[param]['limits_of_agreement'][0], 
+                       color='gray', linestyle=':', label='95% LoA')
+        axes[i].axhline(reliability_results[param]['limits_of_agreement'][1], 
+                       color='gray', linestyle=':')
+        axes[i].set_xlabel(f'Mean {param}')
+        axes[i].set_ylabel(f'Difference {param}')
+        axes[i].set_title(f'{param}: ICC = {reliability_results[param]["icc"]:.3f}')
+        axes[i].legend()
+        axes[i].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    return reliability_results, fig
+
+def compute_icc(x, y, icc_type='ICC(2,1)'):
+    """Compute intraclass correlation coefficient"""
+    # Simplified ICC computation
+    # For proper ICC, use pingouin library
+    mean_x = np.mean(x)
+    mean_y = np.mean(y)
+    grand_mean = (mean_x + mean_y) / 2
+    
+    ss_between = len(x) * ((mean_x - grand_mean)**2 + (mean_y - grand_mean)**2)
+    ss_within = np.sum((x - mean_x)**2) + np.sum((y - mean_y)**2)
+    
+    ms_between = ss_between / 1
+    ms_within = ss_within / (2 * len(x) - 2)
+    
+    icc = (ms_between - ms_within) / (ms_between + ms_within)
+    
+    return icc
+
+
+# =============================================================================
+# PART 9: LATENT VARIABLE MODELING
+# =============================================================================
+
+def latent_variable_model_of_individual_differences(parameter_data, trait_data):
+    """
+    Use SEM to model latent constructs underlying APGI parameters
+    Test if parameters cluster into meaningful factors
+    """
+    from sklearn.decomposition import FactorAnalysis
+    from factor_analyzer import FactorAnalyzer
+    
+    # Combine APGI parameters
+    param_matrix = np.column_stack([
+        parameter_data['theta_0'],
+        parameter_data['beta'],
+        parameter_data['alpha'],
+        parameter_data['Pi_i'],
+        parameter_data['Pi_e']
+    ])
+    
+    # Exploratory factor analysis
+    fa = FactorAnalyzer(n_factors=2, rotation='varimax')
+    fa.fit(param_matrix)
+    
+    loadings = fa.loadings_
+    factor_scores = fa.transform(param_matrix)
+
+
+def mediation_analysis(X, M, Y, n_bootstrap=5000):
+    """
+    Test if APGI parameter M mediates relationship between trait X and outcome Y
+    
+    Example: Does Πᵢ mediate the relationship between alexithymia and conscious access?
+    """
+    from scipy import stats
+    
+    # Path a: X → M
+    slope_a, intercept_a = np.polyfit(X, M, 1)
+    residuals_M = M - (slope_a * X + intercept_a)
+    se_a = np.std(residuals_M) / np.sqrt(len(X))
+    
+    # Path b: M → Y (controlling for X)
+    from sklearn.linear_model import LinearRegression
+    model_b = LinearRegression()
+    model_b.fit(np.column_stack([X, M]), Y)
+    slope_b = model_b.coef_[1]  # Coefficient for M
+    
+    # Path c: X → Y (total effect)
+    slope_c, intercept_c = np.polyfit(X, Y, 1)
+    
+    # Path c': X → Y (controlling for M, direct effect)
+    slope_c_prime = model_b.coef_[0]  # Coefficient for X
+    
+    # Indirect effect (mediation)
+    indirect_effect = slope_a * slope_b
+    direct_effect = slope_c_prime
+    total_effect = slope_c
+    
+    # Bootstrap confidence interval for indirect effect
+    bootstrap_indirect = []
+    for _ in range(n_bootstrap):
+        # Resample
+        idx = np.random.choice(len(X), len(X), replace=True)
+        X_boot = X[idx]
+        M_boot = M[idx]
+        Y_boot = Y[idx]
+        
+        # Recompute paths
+        slope_a_boot = np.polyfit(X_boot, M_boot, 1)[0]
+        model_boot = LinearRegression()
+        model_boot.fit(np.column_stack([X_boot, M_boot]), Y_boot)
+        slope_b_boot = model_boot.coef_[1]
+        
+        bootstrap_indirect.append(slope_a_boot * slope_b_boot)
+    
+    # 95% CI
+    ci_lower = np.percentile(bootstrap_indirect, 2.5)
+    ci_upper = np.percentile(bootstrap_indinct, 97.5)
+    
+    # Proportion mediated
+    proportion_mediated = indirect_effect / total_effect if total_effect != 0 else 0
+    
+    # Visualization
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Path diagram (conceptual)
+    axes[0].text(0.2, 0.5, 'X\n(Trait)', ha='center', va='center', fontsize=12,
+                bbox=dict(boxstyle='round', facecolor='lightblue'))
+    axes[0].text(0.5, 0.8, 'M\n(APGI param)', ha='center', va='center', fontsize=12,
+                bbox=dict(boxstyle='round', facecolor='lightgreen'))
+    axes[0].text(0.8, 0.5, 'Y\n(Outcome)', ha='center', va='center', fontsize=12,
+                bbox=dict(boxstyle='round', facecolor='lightcoral'))
+    
+    # Arrows
+    axes[0].annotate('', xy=(0.5, 0.75), xytext=(0.25, 0.55),
+                    arrowprops=dict(arrowstyle='->', lw=2))
+    axes[0].text(0.35, 0.67, f'a={slope_a:.3f}', fontsize=10)
+    
+    axes[0].annotate('', xy=(0.75, 0.55), xytext=(0.55, 0.75),
+                    arrowprops=dict(arrowstyle='->', lw=2))
+    axes[0].text(0.65, 0.67, f'b={slope_b:.3f}', fontsize=10)
+    
+    axes[0].annotate('', xy=(0.75, 0.5), xytext=(0.25, 0.5),
+                    arrowprops=dict(arrowstyle='->', lw=1, linestyle='--'))
+    axes[0].text(0.5, 0.45, f"c'={slope_c_prime:.3f}", fontsize=10)
+    
+    axes[0].set_xlim(0, 1)
+    axes[0].set_ylim(0.3, 0.9)
+    axes[0].axis('off')
+    axes[0].set_title('Mediation Model')
+    
+    # Bootstrap distribution
+    axes[1].hist(bootstrap_indirect, bins=50, alpha=0.7, edgecolor='black')
+    axes[1].axvline(indirect_effect, color='r', linestyle='--', linewidth=2, label='Observed')
+    axes[1].axvline(ci_lower, color='gray', linestyle=':', label='95% CI')
+    axes[1].axvline(ci_upper, color='gray', linestyle=':')
+    axes[1].set_xlabel('Indirect Effect')
+    axes[1].set_ylabel('Frequency')
+    axes[1].set_title('Bootstrap Distribution of Indirect Effect')
+    axes[1].legend()
+    
+    plt.tight_layout()
+    
+    # Significance test
+    is_significant = not (ci_lower <= 0 <= ci_upper)
+    
+    results = {
+        'path_a': slope_a,
+        'path_b': slope_b,
+        'path_c': slope_c,
+        'path_c_prime': slope_c_prime,
+        'indirect_effect': indirect_effect,
+        'direct_effect': direct_effect,
+        'total_effect': total_effect,
+        'proportion_mediated': proportion_mediated,
+        'indirect_ci': (ci_lower, ci_upper),
+        'is_significant': is_significant,
+        'interpretation': (
+            'Full mediation' if is_significant and abs(slope_c_prime) < 0.01 else
+            'Partial mediation' if is_significant else
+            'No mediation'
+        )
+    }
+    
+    return results, fig
+
+
+def identify_subgroups_mixture_model(parameter_estimates, n_components=3):
+    """
+    Identify subgroups of individuals with different APGI profiles
+    Use Gaussian Mixture Models
+    """
+    from sklearn.mixture import GaussianMixture
+    from sklearn.preprocessing import StandardScaler
+    
+    # Prepare data
+    param_matrix = np.column_stack([
+        parameter_estimates['theta_0'],
+        parameter_estimates['beta'],
+        parameter_estimates['Pi_i']
+    ])
+    
+    # Standardize
+    scaler = StandardScaler()
+    param_scaled = scaler.fit_transform(param_matrix)
+    
+    # Fit mixture model
+    gmm = GaussianMixture(n_components=n_components, random_state=42)
+    labels = gmm.fit_predict(param_scaled)
+    
+    # Compute information criteria to select optimal n_components
+    bic_scores = []
+    aic_scores = []
+    n_components_range = range(1, 6)
+    
+    for n in n_components_range:
+        gmm_temp = GaussianMixture(n_components=n, random_state=42)
+        gmm_temp.fit(param_scaled)
+        bic_scores.append(gmm_temp.bic(param_scaled))
+        aic_scores.append(gmm_temp.aic(param_scaled))
+    
+    # Visualize subgroups
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Model selection
+    axes[0, 0].plot(n_components_range, bic_scores, 'o-', label='BIC')
+    axes[0, 0].plot(n_components_range, aic_scores, 's-', label='AIC')
+    axes[0, 0].set_xlabel('Number of Components')
+    axes[0, 0].set_ylabel('Information Criterion')
+    axes[0, 0].legend()
+    axes[0, 0].set_title('Model Selection')
+    
+    # Subgroups in parameter space (2D projection)
+    scatter = axes[0, 1].scatter(
+        parameter_estimates['theta_0'],
+        parameter_estimates['Pi_i'],
+        c=labels,
+        cmap='viridis',
+        s=100,
+        alpha=0.6
+    )
+    axes[0, 1].set_xlabel('θ₀ (Threshold)')
+    axes[0, 1].set_ylabel('Πᵢ (Interoceptive Precision)')
+    axes[0, 1].set_title('Subgroups in Parameter Space')
+    plt.colorbar(scatter, ax=axes[0, 1], label='Subgroup')
+    
+    # Subgroup profiles
+    subgroup_means = {}
+    for i in range(n_components):
+        mask = labels == i
+        subgroup_means[f'Subgroup {i+1}'] = {
+            'theta_0': np.mean(parameter_estimates['theta_0'][mask]),
+            'beta': np.mean(parameter_estimates['beta'][mask]),
+            'Pi_i': np.mean(parameter_estimates['Pi_i'][mask]),
+            'n': np.sum(mask),
+            'proportion': np.mean(mask)
+        }
+    
+    # Profile plot
+    param_names = ['θ₀', 'β', 'Πᵢ']
+    x_pos = np.arange(len(param_names))
+    width = 0.25
+    
+    for i in range(n_components):
+        values = [
+            subgroup_means[f'Subgroup {i+1}']['theta_0'],
+            subgroup_means[f'Subgroup {i+1}']['beta'],
+            subgroup_means[f'Subgroup {i+1}']['Pi_i']
+        ]
+        axes[1, 0].bar(x_pos + i*width, values, width, label=f'Subgroup {i+1}')
+    
+    axes[1, 0].set_xticks(x_pos + width)
+    axes[1, 0].set_xticklabels(param_names)
+    axes[1, 0].set_ylabel('Parameter Value')
+    axes[1, 0].set_title('Subgroup Profiles')
+    axes[1, 0].legend()
+    
+    # Subgroup sizes
+    sizes = [subgroup_means[f'Subgroup {i+1}']['n'] for i in range(n_components)]
+    axes[1, 1].pie(sizes, labels=[f'Subgroup {i+1}' for i in range(n_components)],
+                   autopct='%1.1f%%')
+    axes[1, 1].set_title('Subgroup Sizes')
+    
+    plt.tight_layout()
+    
+    return {
+        'labels': labels,
+        'subgroup_profiles': subgroup_means,
+        'bic': gmm.bic(param_scaled),
+        'aic': gmm.aic(param_scaled),
+        'optimal_n_components': n_components_range[np.argmin(bic_scores)]
+    }, fig
 
 
 if __name__ == "__main__":

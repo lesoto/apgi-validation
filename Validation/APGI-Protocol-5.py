@@ -32,6 +32,11 @@ import json
 from pathlib import Path
 from collections import defaultdict
 import copy
+import networkx as nx
+from scipy.cluster import hierarchy
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from scipy.stats import binomtest
 
 warnings.filterwarnings('ignore')
 
@@ -1472,7 +1477,288 @@ def print_falsification_report(report: Dict):
 
 
 # =============================================================================
-# PART 7: MAIN EXECUTION PIPELINE
+# PART 7: ADVANCED EVOLUTIONARY ANALYSIS
+# =============================================================================
+
+def phylogenetic_tree_analysis(evolution_history):
+    """
+    Build phylogenetic tree showing how APGI components emerged
+    Track when threshold, interoception, somatic markers appeared
+    """
+    # Extract lineages
+    lineages = []
+    for generation in evolution_history:
+        for agent in generation['agents']:
+            lineage = {
+                'generation': generation['number'],
+                'fitness': agent.fitness,
+                'has_threshold': agent.genome.has_threshold,
+                'has_intero': agent.genome.has_intero_weighting,
+                'has_somatic': agent.genome.has_somatic_markers,
+                'has_precision': agent.genome.has_precision_weighting,
+                'parent_id': agent.parent_id
+            }
+            lineages.append(lineage)
+    
+    # Build tree
+    G = nx.DiGraph()
+    for lineage in lineages:
+        G.add_node(lineage['agent_id'], **lineage)
+        if lineage['parent_id'] is not None:
+            G.add_edge(lineage['parent_id'], lineage['agent_id'])
+    
+    # Analyze when components emerged
+    emergence_times = {
+        'threshold': None,
+        'interoception': None,
+        'somatic_markers': None,
+        'precision': None
+    }
+    
+    for gen_num in range(len(evolution_history)):
+        agents = evolution_history[gen_num]['agents']
+        if emergence_times['threshold'] is None:
+            if any(a.genome.has_threshold for a in agents):
+                emergence_times['threshold'] = gen_num
+        if emergence_times['interoception'] is None:
+            if any(a.genome.has_intero_weighting for a in agents):
+                emergence_times['interoception'] = gen_num
+        if emergence_times['somatic_markers'] is None:
+            if any(a.genome.has_somatic_markers for a in agents):
+                emergence_times['somatic_markers'] = gen_num
+        if emergence_times['precision'] is None:
+            if any(a.genome.has_precision_weighting for a in agents):
+                emergence_times['precision'] = gen_num
+    
+    return G, emergence_times
+
+
+def test_across_environmental_gradients():
+    """
+    Evolve agents across different environmental conditions
+    Test which environments favor APGI components
+    """
+    environmental_gradients = {
+        'stability': np.linspace(0.1, 0.9, 5),  # Reward stability
+        'uncertainty': np.linspace(0.1, 0.9, 5),  # Noise level
+        'metabolic_cost': np.linspace(0.0, 0.3, 5),  # Cost of computation
+        'interoceptive_relevance': np.linspace(0.1, 0.9, 5)  # How much internal states matter
+    }
+    
+    results = {}
+    
+    for gradient_name, values in environmental_gradients.items():
+        gradient_results = []
+        
+        for value in values:
+            # Create environment with this parameter
+            env = create_environment_with_parameter(gradient_name, value)
+            
+            # Run evolution
+            final_population = run_evolution(env, generations=200)
+            
+            # Measure prevalence of APGI components
+            prevalence = {
+                'threshold': np.mean([a.genome.has_threshold for a in final_population]),
+                'intero': np.mean([a.genome.has_intero_weighting for a in final_population]),
+                'somatic': np.mean([a.genome.has_somatic_markers for a in final_population]),
+                'precision': np.mean([a.genome.has_precision_weighting for a in final_population])
+            }
+            
+            gradient_results.append({
+                'parameter_value': value,
+                'prevalence': prevalence,
+                'mean_fitness': np.mean([a.fitness for a in final_population])
+            })
+        
+        results[gradient_name] = gradient_results
+    
+    # Visualize
+    fig = plot_environmental_gradient_results(results)
+    
+    return results, fig
+
+
+def test_convergent_evolution(n_independent_runs=10):
+    """
+    Run multiple independent evolutionary simulations
+    Check if APGI components emerge repeatedly (convergent evolution)
+    Strong evidence if components consistently emerge
+    """
+    convergence_results = {
+        'threshold_emergence_rate': 0,
+        'intero_emergence_rate': 0,
+        'somatic_emergence_rate': 0,
+        'precision_emergence_rate': 0,
+        'full_apgi_emergence_rate': 0,
+        'emergence_generation': []
+    }
+    
+    for run in range(n_independent_runs):
+        # Independent evolution with different random seed
+        np.random.seed(run)
+        final_population = run_evolution(generations=300)
+        
+        # Check if components emerged
+        has_any_threshold = any(a.genome.has_threshold for a in final_population)
+        has_any_intero = any(a.genome.has_intero_weighting for a in final_population)
+        has_any_somatic = any(a.genome.has_somatic_markers for a in final_population)
+        has_any_precision = any(a.genome.has_precision_weighting for a in final_population)
+        
+        convergence_results['threshold_emergence_rate'] += has_any_threshold
+        convergence_results['intero_emergence_rate'] += has_any_intero
+        convergence_results['somatic_emergence_rate'] += has_any_somatic
+        convergence_results['precision_emergence_rate'] += has_any_precision
+        
+        # Full APGI (all components)
+        has_full_apgi = any(
+            a.genome.has_threshold and 
+            a.genome.has_intero_weighting and
+            a.genome.has_somatic_markers and
+            a.genome.has_precision_weighting
+            for a in final_population
+        )
+        convergence_results['full_apgi_emergence_rate'] += has_full_apgi
+    
+    # Convert counts to rates
+    for key in convergence_results:
+        if 'rate' in key:
+            convergence_results[key] /= n_independent_runs
+    
+    # Statistical test: Is emergence rate > chance?
+    # Binomial test
+    for component in ['threshold', 'intero', 'somatic', 'precision', 'full_apgi']:
+        key = f'{component}_emergence_rate'
+        n_successes = int(convergence_results[key] * n_independent_runs)
+        result = binomtest(n_successes, n_independent_runs, 0.5, alternative='greater')
+        convergence_results[f'{component}_p_value'] = result.pvalue
+    
+    return convergence_results
+
+
+def analyze_fitness_landscape(genome_space_sample, environment):
+    """
+    Sample fitness across genome space
+    Visualize fitness landscape and identify peaks
+    """
+    # Sample genomes
+    sampled_genomes = []
+    fitnesses = []
+    
+    for _ in range(1000):
+        genome = AgentGenome.random()
+        agent = EvolvableAgent(genome)
+        fitness = evaluate_agent(agent, environment)
+        
+        sampled_genomes.append(genome.to_dict())
+        fitnesses.append(fitness)
+    
+    # Convert to dataframe
+    df = pd.DataFrame(sampled_genomes)
+    df['fitness'] = fitnesses
+    
+    # Visualize using PCA
+    # Encode genomes numerically
+    X = df.drop('fitness', axis=1).values
+    X_scaled = StandardScaler().fit_transform(X)
+    
+    # PCA to 2D
+    pca = PCA(n_components=2)
+    X_pca = pca.fit_transform(X_scaled)
+    
+    # Plot fitness landscape
+    fig, ax = plt.subplots(figsize=(10, 8))
+    scatter = ax.scatter(X_pca[:, 0], X_pca[:, 1], c=fitnesses, 
+                        cmap='viridis', s=50, alpha=0.6)
+    plt.colorbar(scatter, ax=ax, label='Fitness')
+    ax.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.1%} var)')
+    ax.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.1%} var)')
+    ax.set_title('Fitness Landscape in Genome Space')
+    
+    # Identify fitness peaks
+    top_genomes = df.nlargest(10, 'fitness')
+    
+    return df, fig, top_genomes
+
+
+# Helper functions for the advanced analyses
+
+def create_environment_with_parameter(parameter_name, value):
+    """Create environment with specific parameter value"""
+    # This is a placeholder - would need to implement actual environment modification
+    env = IowaGamblingTask()  # Default environment
+    
+    if parameter_name == 'stability':
+        # Modify reward stability
+        pass
+    elif parameter_name == 'uncertainty':
+        # Modify noise level
+        pass
+    elif parameter_name == 'metabolic_cost':
+        # Modify metabolic costs
+        pass
+    elif parameter_name == 'interoceptive_relevance':
+        # Modify interoceptive relevance
+        pass
+    
+    return env
+
+
+def run_evolution(environment, generations=200):
+    """Run evolution for specified generations"""
+    # This is a placeholder - would use the actual EvolutionaryOptimizer
+    optimizer = EvolutionaryOptimizer(n_generations=generations)
+    optimizer.environments = [environment]
+    history = optimizer.run_evolution()
+    
+    # Return final population
+    final_population = [EvolvableAgent(genome) for genome in optimizer.population]
+    
+    # Assign fitness values
+    for i, agent in enumerate(final_population):
+        agent.fitness = optimizer.evaluate_fitness(agent.genome)
+    
+    return final_population
+
+
+def evaluate_agent(agent, environment):
+    """Evaluate single agent fitness"""
+    optimizer = EvolutionaryOptimizer()
+    return optimizer.evaluate_fitness(agent.genome)
+
+
+def plot_environmental_gradient_results(results):
+    """Plot environmental gradient analysis results"""
+    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    axes = axes.flatten()
+    
+    for idx, (gradient_name, gradient_results) in enumerate(results.items()):
+        ax = axes[idx]
+        
+        values = [r['parameter_value'] for r in gradient_results]
+        threshold_prevalence = [r['prevalence']['threshold'] for r in gradient_results]
+        intero_prevalence = [r['prevalence']['intero'] for r in gradient_results]
+        somatic_prevalence = [r['prevalence']['somatic'] for r in gradient_results]
+        precision_prevalence = [r['prevalence']['precision'] for r in gradient_results]
+        
+        ax.plot(values, threshold_prevalence, 'r-', label='Threshold', linewidth=2)
+        ax.plot(values, intero_prevalence, 'b-', label='Interoceptive', linewidth=2)
+        ax.plot(values, somatic_prevalence, 'g-', label='Somatic', linewidth=2)
+        ax.plot(values, precision_prevalence, 'purple', label='Precision', linewidth=2)
+        
+        ax.set_xlabel(gradient_name.replace('_', ' ').title())
+        ax.set_ylabel('Component Prevalence')
+        ax.set_title(f'APGI Components vs {gradient_name.replace("_", " ").title()}')
+        ax.legend()
+        ax.grid(alpha=0.3)
+        ax.set_ylim([0, 1])
+    
+    plt.tight_layout()
+    return fig
+
+
+# =============================================================================
+# PART 8: MAIN EXECUTION PIPELINE
 # =============================================================================
 
 def main():

@@ -1134,7 +1134,352 @@ def _interpret_effect_size(d: float) -> str:
 
 
 # =============================================================================
-# PART 7: MAIN EXECUTION PIPELINE
+# PART 6: ADVANCED STATISTICAL TOOLS
+# =============================================================================
+
+def interactive_power_analysis_tool():
+    """
+    Interactive tool for researchers to compute required sample size
+    for their specific intervention study
+    """
+    def compute_sample_size(
+        effect_size: float,
+        alpha: float = 0.05,
+        power: float = 0.80,
+        test_type: str = 'two-sided',
+        design: str = 'between'
+    ):
+        """
+        Compute required sample size
+        """
+        from statsmodels.stats.power import tt_ind_solve_power, tt_solve_power
+        
+        if design == 'between':
+            n = tt_ind_solve_power(
+                effect_size=effect_size,
+                alpha=alpha,
+                power=power,
+                alternative=test_type
+            )
+        elif design == 'within':
+            # Paired t-test
+            n = tt_solve_power(
+                effect_size=effect_size,
+                alpha=alpha,
+                power=power,
+                alternative=test_type
+            )
+        
+        # Add dropout compensation
+        n_with_dropout = n / (1 - 0.15)  # Assume 15% dropout
+        
+        return {
+            'n_per_group': np.ceil(n),
+            'n_total': np.ceil(n * 2) if design == 'between' else np.ceil(n),
+            'n_with_dropout': np.ceil(n_with_dropout * 2) if design == 'between' else np.ceil(n_with_dropout)
+        }
+    
+    # Example usage with APGI predictions
+    interventions = {
+        'Propranolol_Pi_i': {'effect_size': -0.6},
+        'Insula_TMS_Pi_i': {'effect_size': 0.7},
+        'dlPFC_TMS_Pi_e': {'effect_size': 0.5}
+    }
+    
+    sample_sizes = {}
+    for intervention, params in interventions.items():
+        sample_sizes[intervention] = compute_sample_size(**params)
+    
+    return sample_sizes
+
+
+def correct_for_multiple_comparisons(p_values, method='holm'):
+    """
+    Apply appropriate correction for multiple hypothesis testing
+    """
+    from statsmodels.stats.multitest import multipletests
+    
+    # Methods: 'bonferroni', 'holm', 'fdr_bh' (Benjamini-Hochberg)
+    reject, p_corrected, alpha_sidak, alpha_bonf = multipletests(
+        p_values,
+        alpha=0.05,
+        method=method
+    )
+    
+    results = pd.DataFrame({
+        'original_p': p_values,
+        'corrected_p': p_corrected,
+        'significant': reject,
+        'method': method
+    })
+    
+    # Report number of significant findings
+    n_significant_original = np.sum(np.array(p_values) < 0.05)
+    n_significant_corrected = np.sum(reject)
+    
+    print(f"Significant findings before correction: {n_significant_original}")
+    print(f"Significant findings after {method} correction: {n_significant_corrected}")
+    
+    return results
+
+
+def model_dose_response_relationship(doses, responses):
+    """
+    Fit Hill equation (sigmoid) to dose-response data
+    Estimate EC50 (half-maximal effective concentration)
+    """
+    from scipy.optimize import curve_fit
+    
+    def hill_equation(dose, EC50, hill_coef, baseline, max_effect):
+        """
+        4-parameter Hill equation
+        """
+        return baseline + (max_effect - baseline) / (1 + (EC50/dose)**hill_coef)
+    
+    # Fit
+    try:
+        popt, pcov = curve_fit(
+            hill_equation,
+            doses,
+            responses,
+            p0=[np.median(doses), 1.0, min(responses), max(responses)],
+            bounds=([0, 0.1, -np.inf, -np.inf], 
+                   [np.inf, 10, np.inf, np.inf])
+        )
+        
+        EC50, hill_coef, baseline, max_effect = popt
+        
+        # Generate smooth curve
+        dose_range = np.logspace(np.log10(min(doses)), np.log10(max(doses)), 100)
+        fitted_response = hill_equation(dose_range, *popt)
+        
+        # Plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.scatter(doses, responses, s=100, alpha=0.6, label='Data')
+        ax.plot(dose_range, fitted_response, 'r-', linewidth=2, label='Hill fit')
+        ax.axvline(EC50, color='k', linestyle='--', alpha=0.5, label=f'EC50 = {EC50:.2f}')
+        ax.set_xscale('log')
+        ax.set_xlabel('Dose (log scale)')
+        ax.set_ylabel('Response')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        results = {
+            'EC50': EC50,
+            'hill_coefficient': hill_coef,
+            'baseline': baseline,
+            'max_effect': max_effect,
+            'params_se': np.sqrt(np.diag(pcov))
+        }
+        
+        return results, fig
+        
+    except Exception as e:
+        print(f"Fitting failed: {e}")
+        return None, None
+
+
+def bayesian_equivalence_test(control_data, treatment_data, rope_width=0.1):
+    """
+    Test if intervention effect is practically equivalent to zero
+    Uses Region of Practical Equivalence (ROPE)
+    
+    More informative than null hypothesis testing
+    """
+    try:
+        import pymc as pm
+        import arviz as az
+        
+        with pm.Model() as model:
+            # Priors
+            mu_control = pm.Normal('mu_control', mu=0, sigma=10)
+            mu_treatment = pm.Normal('mu_treatment', mu=0, sigma=10)
+            sigma = pm.HalfNormal('sigma', sigma=5)
+            
+            # Likelihood
+            pm.Normal('control_obs', mu=mu_control, sigma=sigma, observed=control_data)
+            pm.Normal('treatment_obs', mu=mu_treatment, sigma=sigma, observed=treatment_data)
+            
+            # Effect size
+            effect = pm.Deterministic('effect', mu_treatment - mu_control)
+            
+            # Sample
+            trace = pm.sample(2000, tune=1000, return_inferencedata=True)
+        
+        # Analyze effect with ROPE
+        effect_samples = trace.posterior['effect'].values.flatten()
+        
+        # ROPE = [-rope_width, rope_width]
+        in_rope = np.sum((effect_samples > -rope_width) & (effect_samples < rope_width))
+        prob_in_rope = in_rope / len(effect_samples)
+        
+        below_rope = np.sum(effect_samples < -rope_width) / len(effect_samples)
+        above_rope = np.sum(effect_samples > rope_width) / len(effect_samples)
+        
+        # Decision
+        if prob_in_rope > 0.95:
+            decision = "Practically equivalent (effect negligible)"
+        elif above_rope > 0.95:
+            decision = "Clearly beneficial"
+        elif below_rope > 0.95:
+            decision = "Clearly harmful"
+        else:
+            decision = "Uncertain (collect more data)"
+        
+        # Plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.hist(effect_samples, bins=50, density=True, alpha=0.6)
+        ax.axvline(0, color='k', linestyle='--', linewidth=2, label='Null')
+        ax.axvspan(-rope_width, rope_width, alpha=0.2, color='gray', label='ROPE')
+        ax.set_xlabel('Effect Size')
+        ax.set_ylabel('Density')
+        ax.set_title(f'Bayesian Equivalence Test\n{decision}')
+        ax.legend()
+        
+        results = {
+            'prob_in_rope': prob_in_rope,
+            'prob_beneficial': above_rope,
+            'prob_harmful': below_rope,
+            'decision': decision,
+            'effect_mean': np.mean(effect_samples),
+            'effect_hdi_95': az.hdi(trace, var_names=['effect'], hdi_prob=0.95)
+        }
+        
+        return results, fig
+        
+    except ImportError:
+        print("Warning: pymc and arviz not available. Using frequentist approximation.")
+        # Frequentist fallback
+        effect = np.mean(treatment_data) - np.mean(control_data)
+        pooled_se = np.sqrt(np.var(control_data)/len(control_data) + np.var(treatment_data)/len(treatment_data))
+        
+        # Simple approximation
+        if abs(effect) < rope_width:
+            decision = "Likely equivalent (frequentist approximation)"
+        else:
+            decision = "Likely different (frequentist approximation)"
+        
+        return {
+            'effect_mean': effect,
+            'effect_se': pooled_se,
+            'decision': decision,
+            'note': 'Frequentist approximation - install pymc for full Bayesian analysis'
+        }, None
+
+
+def meta_analysis_of_interventions(studies_data):
+    """
+    Meta-analyze multiple intervention studies
+    Combine evidence across studies
+    """
+    try:
+        import pymc as pm
+        import arviz as az
+        
+        # studies_data: list of dicts with 'effect_size', 'se', 'n', 'study_name'
+        
+        n_studies = len(studies_data)
+        effect_sizes = np.array([s['effect_size'] for s in studies_data])
+        se = np.array([s['se'] for s in studies_data])
+        
+        with pm.Model() as meta_model:
+            # Hyperpriors
+            mu = pm.Normal('mu', mu=0, sigma=10)  # Overall effect
+            tau = pm.HalfNormal('tau', sigma=1)   # Between-study heterogeneity
+            
+            # Study-specific effects
+            theta = pm.Normal('theta', mu=mu, sigma=tau, shape=n_studies)
+            
+            # Likelihood (observed effect sizes)
+            pm.Normal('obs', mu=theta, sigma=se, observed=effect_sizes)
+            
+            # Sample
+            trace = pm.sample(2000, tune=1000, return_inferencedata=True)
+        
+        # Extract results
+        overall_effect = trace.posterior['mu'].values.flatten()
+        heterogeneity = trace.posterior['tau'].values.flatten()
+        
+        # I² statistic (heterogeneity)
+        Q = np.sum((effect_sizes - np.mean(effect_sizes))**2 / se**2)
+        df = len(effect_sizes) - 1
+        I_squared = max(0, (Q - df) / Q)
+        
+        # Forest plot
+        fig, ax = plt.subplots(figsize=(10, 8))
+        
+        y_pos = np.arange(n_studies)
+        ax.scatter(effect_sizes, y_pos, s=100, zorder=3)
+        ax.errorbar(effect_sizes, y_pos, xerr=1.96*se, fmt='none', zorder=2)
+        
+        # Overall effect
+        overall_mean = np.mean(overall_effect)
+        overall_hdi = az.hdi(trace, var_names=['mu'], hdi_prob=0.95)['mu']
+        
+        ax.scatter([overall_mean], [-1], s=200, marker='D', c='red', zorder=4, label='Overall effect')
+        ax.errorbar([overall_mean], [-1], xerr=[[overall_mean - overall_hdi[0]], 
+                                                [overall_hdi[1] - overall_mean]], 
+                    fmt='none', c='red', linewidth=2, zorder=3)
+        
+        ax.axvline(0, color='k', linestyle='--', alpha=0.5)
+        ax.set_yticks(list(range(-1, n_studies)))
+        ax.set_yticklabels(['Overall'] + [s['study_name'] for s in studies_data])
+        ax.set_xlabel('Effect Size (Cohen\'s d)')
+        ax.set_title(f'Meta-Analysis Forest Plot\nI² = {I_squared:.1%} (heterogeneity)')
+        ax.legend()
+        ax.grid(True, alpha=0.3, axis='x')
+        
+        results = {
+            'overall_effect_mean': overall_mean,
+            'overall_effect_hdi': overall_hdi,
+            'heterogeneity_tau': np.mean(heterogeneity),
+            'I_squared': I_squared,
+            'interpretation': (
+                'Low heterogeneity' if I_squared < 0.25 else
+                'Moderate heterogeneity' if I_squared < 0.75 else
+                'High heterogeneity'
+            )
+        }
+        
+        return results, fig
+        
+    except ImportError:
+        print("Warning: pymc and arviz not available. Using frequentist meta-analysis.")
+        # Frequentist fallback - simple random effects meta-analysis
+        effect_sizes = np.array([s['effect_size'] for s in studies_data])
+        se = np.array([s['se'] for s in studies_data])
+        
+        # Fixed effect weighted average
+        weights = 1 / se**2
+        overall_effect_fixed = np.sum(weights * effect_sizes) / np.sum(weights)
+        se_fixed = np.sqrt(1 / np.sum(weights))
+        
+        # Simple heterogeneity estimate
+        Q = np.sum(weights * (effect_sizes - overall_effect_fixed)**2)
+        df = len(effect_sizes) - 1
+        tau_squared = max(0, (Q - df) / (np.sum(weights) - np.sum(weights**2)/np.sum(weights)))
+        
+        # Random effects weights
+        weights_re = 1 / (se**2 + tau_squared)
+        overall_effect_re = np.sum(weights_re * effect_sizes) / np.sum(weights_re)
+        se_re = np.sqrt(1 / np.sum(weights_re))
+        
+        # I²
+        I_squared = tau_squared / (tau_squared + np.var(effect_sizes))
+        
+        return {
+            'overall_effect_fixed': overall_effect_fixed,
+            'overall_effect_random': overall_effect_re,
+            'se_fixed': se_fixed,
+            'se_random': se_re,
+            'I_squared': I_squared,
+            'tau_squared': tau_squared,
+            'note': 'Frequentist approximation - install pymc for full Bayesian meta-analysis'
+        }, None
+
+
+# =============================================================================
+# PART 7: MAIN EXECUTION
 # =============================================================================
 
 def main():

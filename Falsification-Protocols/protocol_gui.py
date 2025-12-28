@@ -149,7 +149,7 @@ class ProtocolRunnerGUI:
                 self.log_message(f"=== Running {protocol_info['file']} ===")
                 
                 # Load the protocol module
-                file_path = os.path.join(os.path.dirname(__file__), 'falsification', protocol_info['file'])
+                file_path = os.path.join(os.path.dirname(__file__), protocol_info['file'])
                 spec = importlib.util.spec_from_file_location(protocol_info['file'], file_path)
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
@@ -186,19 +186,10 @@ class ProtocolRunnerGUI:
                     
                 elif hasattr(cls, 'run_phase_transition_analysis'):
                     # Protocol 4 - Create analysis with surprise system
-                    try:
-                        spec4 = importlib.util.spec_from_file_location('Protocol_4', 'falsification/Protocol-4.py')
-                        protocol4 = importlib.util.module_from_spec(spec4)
-                        spec4.loader.exec_module(protocol4)
-                        apgi_system = protocol4.SurpriseIgnitionSystem()
-                        instance = cls(apgi_system)
-                        result = instance.run_phase_transition_analysis()
-                        self.log_message(f"Phase transition analysis completed: {type(result)}")
-                    except Exception as e:
-                        self.log_message(f"Error in Protocol-4 setup: {str(e)}")
-                        # Try without the apgi_system argument
-                        instance = cls()
-                        self.log_message("Created InformationTheoreticAnalysis without arguments")
+                    surprise_system = module.SurpriseIgnitionSystem()
+                    instance = cls(surprise_system)
+                    result = instance.run_phase_transition_analysis()
+                    self.log_message(f"Phase transition analysis completed: {type(result)}")
                     
                 elif hasattr(cls, 'run_evolution'):
                     # Protocol 5 - Add timeout handling
