@@ -1493,7 +1493,70 @@ def print_falsification_report(falsification: Dict):
 
 
 # =============================================================================
-# PART 8: MAIN EXECUTION
+# PART 8: GO/NO-GO GATE FUNCTIONS
+# =============================================================================
+
+def is_critical_protocol():
+    """
+    Check if this is a critical protocol that requires gate validation.
+    Protocol 3 is critical as it tests core agent simulations.
+    """
+    return True
+
+def check_go_no_go_criteria(results):
+    """
+    Check Go/No-Go criteria for Protocol 3.
+    
+    Args:
+        results: Results from the experiment
+        
+    Returns:
+        'GO' if criteria met, 'NO_GO' if critical failures
+    """
+    if not results:
+        return 'NO_GO'
+    
+    # Check for critical failures in falsification analysis
+    if 'falsification' in results:
+        falsification = results['falsification']
+        
+        # Check if core predictions are falsified
+        critical_failures = []
+        
+        # P3a: APGI convergence must be reasonable
+        if 'P3a_convergence' in falsification:
+            for task, result in falsification['P3a_convergence'].items():
+                if result['falsified']:
+                    critical_failures.append(f"P3a convergence in {task}")
+        
+        # P3b: Interoceptive dominance must be observed
+        if 'P3b_intero_dominance' in falsification:
+            if falsification['P3b_intero_dominance']['falsified']:
+                critical_failures.append("P3b interoceptive dominance")
+        
+        # P3d: Foraging adaptation must show advantage
+        if 'P3d_adaptation' in falsification:
+            if falsification['P3d_adaptation']['falsified']:
+                critical_failures.append("P3d foraging adaptation")
+        
+        # If more than 2 critical failures, NO_GO
+        if len(critical_failures) >= 2:
+            return 'NO_GO'
+    
+    # Check basic experimental validity
+    if 'analysis' in results:
+        analysis = results['analysis']
+        
+        # Check if APGI agents performed at all
+        if 'P3a_convergence' in analysis:
+            convergence = analysis['P3a_convergence']
+            if 'IGT' in convergence and convergence['IGT']['APGI'] > 1000:  # Too slow to converge
+                return 'NO_GO'
+    
+    return 'GO'
+
+# =============================================================================
+# PART 9: MAIN EXECUTION
 # =============================================================================
 
 def main():
@@ -1545,6 +1608,40 @@ def main():
     
     falsification = experiment.check_falsification(results, analysis)
     print_falsification_report(falsification)
+    
+    # Prepare results for gate check
+    summary_for_gate = {
+        'config': config,
+        'analysis': {k: v for k, v in analysis.items() 
+                    if not isinstance(v, dict) or 'raw_results' not in str(v)},
+        'falsification': falsification
+    }
+    
+    # GO/NO-GO GATE CHECK
+    if is_critical_protocol():
+        gate_status = check_go_no_go_criteria(summary_for_gate)
+        
+        if gate_status == 'NO_GO':
+            print("\n" + "="*80)
+            print("⛔ CRITICAL FAILURE: GO/NO-GO GATE NOT PASSED")
+            print("="*80)
+            print("\nFramework falsified at primary test level.")
+            print("RECOMMENDATION: Do not proceed with downstream protocols.")
+            print("="*80)
+            
+            # Save failure report
+            failure_report = {
+                'status': 'FAILED',
+                'gate': 'PRIMARY',
+                'results': summary_for_gate,
+                'recommendation': 'Framework requires fundamental revision'
+            }
+            
+            with open('protocol3_FAILED.json', 'w') as f:
+                json.dump(failure_report, f, indent=2)
+            
+            print("\n🚨 Failure report saved to: protocol3_FAILED.json")
+            return None
     
     # Visualize
     print("\n" + "="*80)

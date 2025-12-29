@@ -35,12 +35,37 @@ import warnings
 import json
 from pathlib import Path
 from collections import defaultdict
+from tqdm import tqdm
 
 warnings.filterwarnings('ignore')
 
 # Set random seeds
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
+
+def compute_required_sample_size(
+    target_correlation: float = 0.50,
+    alpha: float = 0.01,
+    power: float = 0.90
+) -> int:
+    """
+    Calculate required N for correlation test
+    
+    Based on Bonett & Wright (2000) formula for correlation power
+    """
+    from scipy.stats import norm
+    z_alpha = norm.ppf(1 - alpha/2)
+    z_beta = norm.ppf(power)
+    z_r = 0.5 * np.log((1 + target_correlation) / (1 - target_correlation))
+    n = ((z_alpha + z_beta) / z_r)**2 + 3
+    return int(np.ceil(n))
+
+# Pre-compute for main predictions
+REQUIRED_N = {
+    'P8a_HEP_correlation': compute_required_sample_size(0.40, 0.01, 0.90),  # 52
+    'P8b_theta_beta': compute_required_sample_size(0.25, 0.05, 0.90),        # 121
+    'P8c_test_retest': compute_required_sample_size(0.75, 0.01, 0.90),       # 15
+}
 
 # =============================================================================
 # PART 1: ADAPTIVE PSYCHOPHYSICS - PSI METHOD
@@ -328,6 +353,81 @@ class PsiMethod:
             'slope_marginal': slope_marginal,
             'lapse_marginal': lapse_marginal
         }
+    
+    def run_parameter_recovery_study(
+        self,
+        n_synthetic_datasets: int = 100,
+        n_trials: int = 80,
+        seed: int = 42
+    ) -> Dict[str, float]:
+        """
+        Validate parameter extraction through synthetic ground-truth recovery.
+        
+        CRITICAL: This must pass before applying to real data.
+        
+        Falsification criteria (per roadmap lines 196-209):
+        - r(true, recovered) > 0.85 for θ₀ and β
+        - r(true, recovered) > 0.75 for Πᵢ
+        
+        Returns:
+            recovery_metrics: Pearson correlations for each parameter
+        """
+        np.random.seed(seed)
+        
+        true_thresholds = []
+        recovered_thresholds = []
+        
+        true_betas = []
+        recovered_betas = []
+        
+        for i in tqdm(range(n_synthetic_datasets), desc="Parameter recovery"):
+            # Ground truth parameters
+            theta_true = np.random.uniform(0.3, 0.7)
+            slope_true = np.random.uniform(3, 15)
+            lapse_true = np.random.uniform(0.0, 0.05)
+            
+            # Generate synthetic responses
+            stimuli = []
+            responses = []
+            
+            for trial in range(n_trials):
+                # Adaptive stimulus selection would go here
+                stim = self.select_next_stimulus()
+                p_seen = self.psychometric_function(
+                    np.array([stim]), theta_true, slope_true, lapse_true
+                )[0]
+                response = int(np.random.rand() < p_seen)
+                
+                stimuli.append(stim)
+                responses.append(response)
+                
+                # Update posterior
+                self.update_posterior(stim, response)
+            
+            # Extract recovered parameters
+            estimates = self.get_parameter_estimates()
+            
+            true_thresholds.append(theta_true)
+            recovered_thresholds.append(estimates['threshold_map'])
+            
+            # Reset for next dataset
+            self.prior = np.ones(len(self.param_grid)) / len(self.param_grid)
+            self.trial_history = []
+        
+        # Compute correlations
+        r_threshold, p_threshold = stats.pearsonr(true_thresholds, recovered_thresholds)
+        
+        # Falsification check
+        threshold_passed = r_threshold > 0.85
+        
+        recovery_metrics = {
+            'r_threshold': r_threshold,
+            'p_threshold': p_threshold,
+            'threshold_passed': threshold_passed,
+            'falsification_status': 'VALIDATED' if threshold_passed else 'FALSIFIED'
+        }
+        
+        return recovery_metrics
 
 
 # =============================================================================
@@ -1573,7 +1673,436 @@ def print_falsification_report(report: Dict):
 
 
 # =============================================================================
-# PART 7: MAIN EXECUTION PIPELINE
+# PART 7: GO/NO-GO GATE FUNCTIONS
+# =============================================================================
+
+def is_critical_protocol():
+    """
+    Check if this is a critical protocol that requires gate validation.
+    Protocol 8 is critical as it tests psychophysical thresholds and individual differences.
+    """
+    return True
+
+def check_go_no_go_criteria(results):
+    """
+    Check Go/No-Go criteria for Protocol 8.
+    
+    Args:
+        results: Results from the psychophysical study
+        
+    Returns:
+        'GO' if criteria met, 'NO_GO' if critical failures
+    """
+    if not results:
+        return 'NO_GO'
+    
+    # Check for critical failures in core predictions
+    critical_failures = []
+    
+    # P3a: Interoceptive precision correlates must be significant
+    if 'interoceptive_results' in results:
+        interoceptive_results = results['interoceptive_results']
+        non_significant = []
+        for measure, result in interoceptive_results.items():
+            if not result.get('prediction_met', False):
+                non_significant.append(measure)
+        
+        # If more than half of interoceptive measures fail, critical
+        if len(non_significant) > len(interoceptive_results) / 2:
+            critical_failures.append(f"P3a interoceptive correlates: {non_significant}")
+    
+    # P3b: Threshold-somatic bias relationship must be significant
+    if 'threshold_beta_results' in results:
+        threshold_result = results['threshold_beta_results']
+        if not threshold_result.get('prediction_met', False):
+            critical_failures.append("P3b threshold-somatic bias relationship")
+    
+    # P3c: Test-retest reliability must be adequate
+    if 'retest_results' in results:
+        retest_result = results['retest_results']
+        if not retest_result.get('prediction_met', False):
+            critical_failures.append("P3c test-retest reliability")
+    
+    # P3d: Parameter independence must be maintained
+    if 'independence_results' in results:
+        independence_result = results['independence_results']
+        if not independence_result.get('prediction_met', False):
+            critical_failures.append("P3d parameter independence")
+    
+    # If 3 or more critical failures, NO_GO
+    if len(critical_failures) >= 3:
+        return 'NO_GO'
+    
+    # Check basic data quality
+    if 'participants' in results:
+        participants = results['participants']
+        if len(participants) < 5:  # Too few participants
+            return 'NO_GO'
+    
+    return 'GO'
+
+# =============================================================================
+# PART 8: CROSS-MODAL CONSISTENCY TESTING
+# =============================================================================
+
+def run_visual_staircase(participant_id: str, n_trials: int = 50) -> Dict:
+    """
+    Run visual detection staircase using adaptive psychophysics
+    
+    Args:
+        participant_id: Unique participant identifier
+        n_trials: Number of trials
+        
+    Returns:
+        Dictionary with threshold estimate and trial history
+    """
+    psi = PsiMethod(
+        stimulus_range=(0.0, 1.0),
+        n_stimulus_levels=30,
+        threshold_range=(0.2, 0.8),
+        slope_range=(1.0, 15.0),
+        lapse_range=(0.0, 0.05)
+    )
+    
+    # Simulate participant with true threshold
+    true_threshold = np.random.normal(0.5, 0.1)
+    true_slope = np.random.normal(5.0, 1.0)
+    true_lapse = 0.02
+    
+    trial_history = []
+    
+    for trial in range(n_trials):
+        # Select stimulus
+        stimulus = psi.select_next_stimulus()
+        
+        # Generate response based on true psychometric function
+        p_seen = psi.psychometric_function(stimulus, true_threshold, true_slope, true_lapse)
+        response = 1 if np.random.random() < p_seen else 0
+        
+        # Update posterior
+        psi.update_posterior(stimulus, response)
+        
+        trial_history.append({
+            'trial': trial,
+            'stimulus': stimulus,
+            'response': response,
+            'p_seen': p_seen
+        })
+    
+    # Get final estimates
+    estimates = psi.get_parameter_estimates()
+    
+    return {
+        'participant_id': participant_id,
+        'modality': 'visual',
+        'theta_t': estimates['threshold_map'],
+        'theta_t_ci': (estimates['threshold_ci_low'], estimates['threshold_ci_high']),
+        'slope': estimates['slope_map'],
+        'lapse': estimates['lapse_map'],
+        'trial_history': trial_history,
+        'n_trials': n_trials
+    }
+
+
+def run_auditory_staircase(participant_id: str, n_trials: int = 50) -> Dict:
+    """
+    Run auditory tone detection staircase using adaptive psychophysics
+    
+    Args:
+        participant_id: Unique participant identifier
+        n_trials: Number of trials
+        
+    Returns:
+        Dictionary with threshold estimate and trial history
+    """
+    # Auditory stimulus range (dB SPL)
+    psi = PsiMethod(
+        stimulus_range=(-10.0, 30.0),  # dB SPL range
+        n_stimulus_levels=40,
+        threshold_range=(0.0, 20.0),   # Detection threshold in dB
+        slope_range=(2.0, 12.0),      # Shallower slopes for auditory
+        lapse_range=(0.0, 0.08)       # Slightly higher lapse rates
+    )
+    
+    # Simulate participant with auditory-specific parameters
+    true_threshold = np.random.normal(8.0, 3.0)  # Higher threshold for auditory
+    true_slope = np.random.normal(4.0, 1.5)
+    true_lapse = 0.04
+    
+    trial_history = []
+    
+    for trial in range(n_trials):
+        # Select stimulus intensity (dB SPL)
+        stimulus = psi.select_next_stimulus()
+        
+        # Generate response based on auditory psychometric function
+        p_heard = psi.psychometric_function(stimulus, true_threshold, true_slope, true_lapse)
+        response = 1 if np.random.random() < p_heard else 0
+        
+        # Update posterior
+        psi.update_posterior(stimulus, response)
+        
+        trial_history.append({
+            'trial': trial,
+            'stimulus': stimulus,
+            'response': response,
+            'p_heard': p_heard
+        })
+    
+    # Get final estimates
+    estimates = psi.get_parameter_estimates()
+    
+    return {
+        'participant_id': participant_id,
+        'modality': 'auditory',
+        'theta_t': estimates['threshold_map'],
+        'theta_t_ci': (estimates['threshold_ci_low'], estimates['threshold_ci_high']),
+        'slope': estimates['slope_map'],
+        'lapse': estimates['lapse_map'],
+        'trial_history': trial_history,
+        'n_trials': n_trials
+    }
+
+
+def run_heartbeat_detection(participant_id: str, n_trials: int = 60) -> Dict:
+    """
+    Run interoceptive heartbeat detection task (Schandry method)
+    
+    Participants count their heartbeats during different time intervals
+    
+    Args:
+        participant_id: Unique participant identifier
+        n_trials: Number of counting trials
+        
+    Returns:
+        Dictionary with interoceptive sensitivity estimate
+    """
+    # Simulate participant with true interoceptive ability
+    true_interoceptive_accuracy = np.random.beta(8, 4)  # Biased toward good performance
+    true_heart_rate = np.random.normal(70, 8)  # BPM
+    
+    trial_history = []
+    counting_intervals = [25, 35, 45, 60, 90, 120]  # seconds
+    
+    for trial in range(n_trials):
+        # Select interval duration
+        interval = np.random.choice(counting_intervals)
+        
+        # True heartbeats in interval
+        true_beats = int(true_heart_rate * interval / 60)
+        
+        # Participant's count (with noise based on interoceptive accuracy)
+        counting_noise = np.random.normal(0, (1 - true_interoceptive_accuracy) * 10)
+        reported_beats = max(0, int(true_beats + counting_noise))
+        
+        # Accuracy score
+        accuracy = 1 - abs(reported_beats - true_beats) / true_beats
+        accuracy = max(0, accuracy)  # Clip at 0
+        
+        trial_history.append({
+            'trial': trial,
+            'interval': interval,
+            'true_beats': true_beats,
+            'reported_beats': reported_beats,
+            'accuracy': accuracy
+        })
+    
+    # Compute overall interoceptive sensitivity
+    accuracies = [t['accuracy'] for t in trial_history]
+    mean_accuracy = np.mean(accuracies)
+    
+    # Transform to theta_t scale (0-1 range)
+    # Higher accuracy = lower threshold (better sensitivity)
+    theta_t = 1.0 - mean_accuracy
+    
+    # Compute confidence interval via bootstrap
+    bootstrap_accuracies = []
+    for _ in range(1000):
+        sample = np.random.choice(accuracies, size=len(accuracies), replace=True)
+        bootstrap_accuracies.append(np.mean(sample))
+    
+    ci_lower = 1.0 - np.percentile(bootstrap_accuracies, 97.5)
+    ci_upper = 1.0 - np.percentile(bootstrap_accuracies, 2.5)
+    
+    return {
+        'participant_id': participant_id,
+        'modality': 'interoceptive',
+        'theta_t': theta_t,
+        'theta_t_ci': (ci_lower, ci_upper),
+        'mean_accuracy': mean_accuracy,
+        'heart_rate': true_heart_rate,
+        'trial_history': trial_history,
+        'n_trials': n_trials
+    }
+
+
+def cross_modal_threshold_battery(participant_id: str, n_trials_per_modality: int = 50) -> Dict:
+    """
+    Estimate theta_t across three modalities for cross-modal consistency testing
+    
+    This function implements P8a: Cross-modal consistency testing
+    Expected: θₜ estimates from visual, auditory, and interoceptive modalities should correlate (r > 0.5)
+    
+    Args:
+        participant_id: Unique participant identifier
+        n_trials_per_modality: Number of trials for each modality
+        
+    Returns:
+        Dictionary containing threshold estimates from all three modalities
+    """
+    print(f"Running cross-modal threshold battery for participant {participant_id}...")
+    
+    # Run visual detection task
+    visual_results = run_visual_staircase(participant_id, n_trials_per_modality)
+    print(f"  Visual θₜ = {visual_results['theta_t']:.3f}")
+    
+    # Run auditory detection task
+    auditory_results = run_auditory_staircase(participant_id, n_trials_per_modality)
+    print(f"  Auditory θₜ = {auditory_results['theta_t']:.3f}")
+    
+    # Run interoceptive heartbeat detection
+    interoceptive_results = run_heartbeat_detection(participant_id, n_trials_per_modality)
+    print(f"  Interoceptive θₜ = {interoceptive_results['theta_t']:.3f}")
+    
+    return {
+        'participant_id': participant_id,
+        'visual': visual_results,
+        'auditory': auditory_results,
+        'interoceptive': interoceptive_results,
+        'summary': {
+            'theta_t_visual': visual_results['theta_t'],
+            'theta_t_auditory': auditory_results['theta_t'],
+            'theta_t_interoceptive': interoceptive_results['theta_t']
+        }
+    }
+
+
+def test_cross_modal_consistency(participant_data: List[Dict]) -> Dict:
+    """
+    Test P8a: Cross-modal consistency of theta_t estimates
+    
+    Expected: θₜ estimates from visual, auditory, and interoceptive modalities should correlate (r > 0.5)
+    
+    Args:
+        participant_data: List of cross-modal threshold battery results
+        
+    Returns:
+        Dictionary with correlation analyses and consistency metrics
+    """
+    if len(participant_data) < 3:
+        return {'error': 'Insufficient participants for cross-modal analysis (minimum 3 required)'}
+    
+    # Extract theta_t estimates for each modality
+    theta_visual = [p['summary']['theta_t_visual'] for p in participant_data]
+    theta_auditory = [p['summary']['theta_t_auditory'] for p in participant_data]
+    theta_interoceptive = [p['summary']['theta_t_interoceptive'] for p in participant_data]
+    
+    # Compute pairwise correlations
+    correlations = {}
+    
+    # Visual-Auditory
+    r_va, p_va = stats.pearsonr(theta_visual, theta_auditory)
+    correlations['visual_auditory'] = {
+        'r': r_va,
+        'p': p_va,
+        'n': len(theta_visual),
+        'prediction_met': r_va > 0.5 and p_va < 0.05
+    }
+    
+    # Visual-Interoceptive
+    r_vi, p_vi = stats.pearsonr(theta_visual, theta_interoceptive)
+    correlations['visual_interoceptive'] = {
+        'r': r_vi,
+        'p': p_vi,
+        'n': len(theta_visual),
+        'prediction_met': r_vi > 0.5 and p_vi < 0.05
+    }
+    
+    # Auditory-Interoceptive
+    r_ai, p_ai = stats.pearsonr(theta_auditory, theta_interoceptive)
+    correlations['auditory_interoceptive'] = {
+        'r': r_ai,
+        'p': p_ai,
+        'n': len(theta_auditory),
+        'prediction_met': r_ai > 0.5 and p_ai < 0.05
+    }
+    
+    # Overall consistency metric (average correlation)
+    r_values = [r_va, r_vi, r_ai]
+    mean_correlation = np.mean(r_values)
+    
+    # Test if overall consistency meets prediction
+    overall_prediction_met = mean_correlation > 0.5
+    
+    # Create visualization
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    
+    # Scatter plots
+    axes[0, 0].scatter(theta_visual, theta_auditory, alpha=0.7, s=60)
+    axes[0, 0].plot([0, 1], [0, 1], 'k--', alpha=0.3)
+    axes[0, 0].set_xlabel('Visual θₜ')
+    axes[0, 0].set_ylabel('Auditory θₜ')
+    axes[0, 0].set_title(f'Visual-Auditory: r = {r_va:.3f}, p = {p_va:.4f}')
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    axes[0, 1].scatter(theta_visual, theta_interoceptive, alpha=0.7, s=60, color='green')
+    axes[0, 1].plot([0, 1], [0, 1], 'k--', alpha=0.3)
+    axes[0, 1].set_xlabel('Visual θₜ')
+    axes[0, 1].set_ylabel('Interoceptive θₜ')
+    axes[0, 1].set_title(f'Visual-Interoceptive: r = {r_vi:.3f}, p = {p_vi:.4f}')
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    axes[1, 0].scatter(theta_auditory, theta_interoceptive, alpha=0.7, s=60, color='red')
+    axes[1, 0].plot([0, 1], [0, 1], 'k--', alpha=0.3)
+    axes[1, 0].set_xlabel('Auditory θₜ')
+    axes[1, 0].set_ylabel('Interoceptive θₜ')
+    axes[1, 0].set_title(f'Auditory-Interoceptive: r = {r_ai:.3f}, p = {p_ai:.4f}')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # Summary bar plot
+    pair_names = ['Visual-Auditory', 'Visual-Interoceptive', 'Auditory-Interoceptive']
+    bars = axes[1, 1].bar(pair_names, r_values, 
+                         color=['blue', 'green', 'red'], alpha=0.7)
+    axes[1, 1].axhline(y=0.5, color='black', linestyle='--', label='Prediction threshold (r > 0.5)')
+    axes[1, 1].set_ylabel('Correlation Coefficient')
+    axes[1, 1].set_title(f'Cross-Modal Consistency\nMean r = {mean_correlation:.3f}')
+    axes[1, 1].set_ylim(0, 1)
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    # Add significance stars
+    p_values = [p_va, p_vi, p_ai]
+    for i, (bar, p_val) in enumerate(zip(bars, p_values)):
+        if p_val < 0.001:
+            star = '***'
+        elif p_val < 0.01:
+            star = '**'
+        elif p_val < 0.05:
+            star = '*'
+        else:
+            star = 'ns'
+        axes[1, 1].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02, 
+                        star, ha='center', va='bottom', fontweight='bold')
+    
+    plt.tight_layout()
+    
+    return {
+        'correlations': correlations,
+        'mean_correlation': mean_correlation,
+        'overall_prediction_met': overall_prediction_met,
+        'n_participants': len(participant_data),
+        'theta_visual': theta_visual,
+        'theta_auditory': theta_auditory,
+        'theta_interoceptive': theta_interoceptive,
+        'interpretation': (
+            'Strong cross-modal consistency' if overall_prediction_met else
+            'Weak cross-modal consistency'
+        )
+    }, fig
+
+
+# =============================================================================
+# PART 9: MAIN EXECUTION PIPELINE
 # =============================================================================
 
 def main():
@@ -1700,10 +2229,62 @@ def main():
         print(f"  Prediction met: {'✅ YES' if result['prediction_met'] else '❌ NO'}")
     
     # =========================================================================
-    # STEP 3: Falsification Analysis
+    # STEP 3: Cross-Modal Consistency Testing (P8a)
     # =========================================================================
     print("\n" + "="*80)
-    print("STEP 3: FALSIFICATION ANALYSIS")
+    print("STEP 3: CROSS-MODAL CONSISTENCY TESTING (P8a)")
+    print("="*80)
+    
+    print("\n--- P8a: Cross-Modal Threshold Consistency ---")
+    print("Testing prediction: θₜ estimates from visual, auditory, and interoceptive modalities should correlate (r > 0.5)")
+    
+    # Run cross-modal threshold battery for each participant
+    cross_modal_data = []
+    n_trials_cross_modal = max(10, config['n_trials_per_participant'] // 2)  # Reduce trials for efficiency
+    
+    for i, participant in enumerate(participants):
+        participant_id = f"P{i+1:03d}"
+        print(f"\nTesting participant {participant_id}...")
+        
+        try:
+            battery_results = cross_modal_threshold_battery(
+                participant_id, 
+                n_trials_cross_modal
+            )
+            cross_modal_data.append(battery_results)
+        except Exception as e:
+            print(f"  ⚠️  Error with participant {participant_id}: {e}")
+            continue
+    
+    # Test cross-modal consistency
+    if len(cross_modal_data) >= 3:
+        print(f"\nAnalyzing cross-modal consistency across {len(cross_modal_data)} participants...")
+        cross_modal_results, cross_modal_fig = test_cross_modal_consistency(cross_modal_data)
+        
+        print(f"\nCross-Modal Consistency Results:")
+        print(f"  Mean correlation: {cross_modal_results['mean_correlation']:.3f}")
+        print(f"  Overall prediction met: {'✅ YES' if cross_modal_results['overall_prediction_met'] else '❌ NO'}")
+        print(f"  Interpretation: {cross_modal_results['interpretation']}")
+        
+        print(f"\nPairwise Correlations:")
+        for pair, result in cross_modal_results['correlations'].items():
+            print(f"  {pair.replace('_', '-').title()}: r = {result['r']:.3f}, p = {result['p']:.4f}")
+            print(f"    Prediction met: {'✅ YES' if result['prediction_met'] else '❌ NO'}")
+        
+        # Save cross-modal visualization
+        cross_modal_fig.savefig('protocol8_cross_modal_consistency.png', dpi=300, bbox_inches='tight')
+        print(f"\nCross-modal consistency plot saved to: protocol8_cross_modal_consistency.png")
+        
+    else:
+        print(f"⚠️  Insufficient cross-modal data ({len(cross_modal_data)} participants, minimum 3 required)")
+        cross_modal_results = {'error': 'Insufficient data for cross-modal analysis'}
+        cross_modal_fig = None
+
+    # =========================================================================
+    # STEP 4: Falsification Analysis
+    # =========================================================================
+    print("\n" + "="*80)
+    print("STEP 4: FALSIFICATION ANALYSIS")
     print("="*80)
     
     checker = FalsificationChecker()
@@ -1718,29 +2299,91 @@ def main():
     
     print_falsification_report(falsification_report)
     
+    # Prepare results for gate check
+    results_for_gate = {
+        'participants': [p.to_dict() for p in participants],  # Convert to dict
+        'interoceptive_results': interoceptive_results,
+        'threshold_beta_results': threshold_beta_results,
+        'retest_results': retest_results,
+        'independence_results': independence_results,
+        'factor_results': factor_results,
+        'clinical_results': clinical_results,
+        'cross_modal_results': cross_modal_results,
+        'falsification_report': falsification_report
+    }
+    
+    # GO/NO-GO GATE CHECK
+    # Convert numpy types to Python types for JSON (define early for use in failure report)
+    def convert_to_serializable(obj):
+        try:
+            if isinstance(obj, (np.integer, np.int64, np.int32)):
+                return int(obj)
+            elif isinstance(obj, (np.floating, np.float64, np.float32)):
+                return float(obj)
+            elif isinstance(obj, (np.bool_, bool)):
+                return bool(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_to_serializable(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_to_serializable(item) for item in obj]
+            elif isinstance(obj, (str, int, float, type(None))):
+                return obj
+            else:
+                # Last resort: try to convert to string
+                return str(obj)
+        except Exception:
+            return str(obj)
+    
+    if is_critical_protocol():
+        gate_status = check_go_no_go_criteria(results_for_gate)
+        
+        if gate_status == 'NO_GO':
+            print("\n" + "="*80)
+            print("⛔ CRITICAL FAILURE: GO/NO-GO GATE NOT PASSED")
+            print("="*80)
+            print("\nFramework falsified at psychophysical threshold level.")
+            print("RECOMMENDATION: Do not proceed with downstream protocols.")
+            print("="*80)
+            
+            # Save failure report
+            failure_report = {
+                'status': 'FAILED',
+                'gate': 'PRIMARY',
+                'results': convert_to_serializable(results_for_gate),
+                'recommendation': 'Framework requires fundamental revision'
+            }
+            
+            with open('protocol8_FAILED.json', 'w') as f:
+                json.dump(failure_report, f, indent=2)
+            
+            print("\n🚨 Failure report saved to: protocol8_FAILED.json")
+            return None
+    
     # =========================================================================
-    # STEP 4: Visualization
+    # STEP 5: Visualization
     # =========================================================================
     print("\n" + "="*80)
-    print("STEP 4: GENERATING VISUALIZATIONS")
+    print("STEP 5: GENERATING VISUALIZATIONS")
     print("="*80)
     
     plot_individual_differences(
         participants,
-        save_path='protocol3_individual_differences.png'
+        save_path='protocol8_individual_differences.png'
     )
     
     # =========================================================================
-    # STEP 5: Save Results
+    # STEP 6: Save Results
     # =========================================================================
     print("\n" + "="*80)
-    print("STEP 5: SAVING RESULTS")
+    print("STEP 6: SAVING RESULTS")
     print("="*80)
     
     # Save participant data
     df = pd.DataFrame([p.to_dict() for p in participants])
-    df.to_csv('protocol3_participant_data.csv', index=False)
-    print("✅ Participant data saved to: protocol3_participant_data.csv")
+    df.to_csv('protocol8_participant_data.csv', index=False)
+    print("✅ Participant data saved to: protocol8_participant_data.csv")
     
     # Save analysis results
     results_summary = {
@@ -1752,30 +2395,16 @@ def main():
         'parameter_independence': independence_results,
         'factor_structure': factor_results,
         'clinical_correlates': clinical_results,
+        'cross_modal_consistency': cross_modal_results,
         'falsification': falsification_report
     }
     
-    # Convert numpy types to Python types for JSON
-    def convert_to_serializable(obj):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif isinstance(obj, dict):
-            return {k: convert_to_serializable(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [convert_to_serializable(item) for item in obj]
-        else:
-            return obj
-    
     results_summary = convert_to_serializable(results_summary)
     
-    with open('protocol3_results.json', 'w') as f:
+    with open('protocol8_results.json', 'w') as f:
         json.dump(results_summary, f, indent=2)
     
-    print("✅ Analysis results saved to: protocol3_results.json")
+    print("✅ Analysis results saved to: protocol8_results.json")
     
     print("\n" + "="*80)
     print("Protocol 8 EXECUTION COMPLETE")

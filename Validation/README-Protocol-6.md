@@ -571,30 +571,3 @@ FALSIFICATION ANALYSIS
 OVERALL: ✓ MODEL VALIDATED (0/4 criteria falsified)
 ```
 
----
-
-## License
-
-MIT License - Free for academic and commercial use
-
----
-
-## Contact & Support
-
-For questions, bug reports, or contributions:
-- **Issues:** GitHub repository issues page
-- **Email:** apgi-research@example.org
-- **Documentation:** Full API docs at https://apgi-framework.org/protocol6
-
----
-
-## Acknowledgments
-
-This implementation builds on:
-- **Free Energy Principle** (Friston et al.)
-- **Global Neuronal Workspace Theory** (Dehaene & Changeux)
-- **Interoceptive Predictive Processing** (Seth & Friston)
-- **Somatic Marker Hypothesis** (Damasio)
-
-Special thanks to the consciousness science community for theoretical foundations.
-
