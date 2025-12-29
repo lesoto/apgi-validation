@@ -257,7 +257,7 @@ class SyntheticConsciousnessDataGenerator:
             reaction_time[trial] = max(220, self.rng.wald(RT_base, 45000))
         
         return ConsciousnessDataset(
-            name="Canales_Johnson_synthetic",
+            name="Canales-Johnson_synthetic",
             n_subjects=n_subjects,
             n_trials=n_trials,
             subject_idx=subject_idx,
@@ -265,11 +265,65 @@ class SyntheticConsciousnessDataGenerator:
             prediction_error=prediction_error,
             conscious_report=conscious_report,
             P3b_amplitude=P3b_amplitude,
-            reaction_time=reaction_time,
             HEP_amplitude=HEP_amplitude,
-            paradigm="Perceptual rivalry + interoception",
-            citation="Canales-Johnson et al., Cortex, 2015 (synthetic)"
+            reaction_time=reaction_time,
+            paradigm="Perceptual rivalry with interoception",
+            citation="Canales-Johnson et al., Cereb Cortex, 2015 (synthetic)"
         )
+
+
+def validate_parameter_recovery(n_simulations: int = 100):
+    """
+    Mandatory pre-empirical validation: Can we recover known parameters?
+    
+    Generates synthetic data with known θ₀, Πᵢ, β and tests if
+    Bayesian fitting recovers them with r > 0.85 (θ₀, β) and r > 0.75 (Πᵢ)
+    """
+    true_params = []
+    recovered_params = []
+    
+    for sim in range(n_simulations):
+        # Generate with known parameters
+        theta_0_true = np.random.uniform(0.4, 0.7)
+        Pi_i_true = np.random.uniform(0.8, 2.0)
+        beta_true = np.random.uniform(1.0, 1.5)
+        
+        # Simulate data with these parameters
+        dataset = generate_synthetic_data(
+            theta_0=theta_0_true,
+            Pi_i=Pi_i_true,
+            beta=beta_true,
+            n_subjects=30,
+            trials_per_subject=200
+        )
+        
+        # Fit model
+        fitted = fit_apgi_model(dataset)
+        theta_0_recovered = fitted['theta_0'].mean()
+        Pi_i_recovered = fitted['Pi_i'].mean()
+        beta_recovered = fitted['beta'].mean()
+        
+        true_params.append([theta_0_true, Pi_i_true, beta_true])
+        recovered_params.append([theta_0_recovered, Pi_i_recovered, beta_recovered])
+    
+    true_params = np.array(true_params)
+    recovered_params = np.array(recovered_params)
+    
+    # Compute correlations
+    r_theta = np.corrcoef(true_params[:, 0], recovered_params[:, 0])[0, 1]
+    r_Pi_i = np.corrcoef(true_params[:, 1], recovered_params[:, 1])[0, 1]
+    r_beta = np.corrcoef(true_params[:, 2], recovered_params[:, 2])[0, 1]
+    
+    # Check against thresholds
+    validation_passed = (r_theta > 0.85) and (r_beta > 0.85) and (r_Pi_i > 0.75)
+    
+    print(f"Parameter Recovery Validation:")
+    print(f"  θ₀: r = {r_theta:.3f} {'✅' if r_theta > 0.85 else '❌'}")
+    print(f"  Πᵢ: r = {r_Pi_i:.3f} {'✅' if r_Pi_i > 0.75 else '❌'}")
+    print(f"  β:  r = {r_beta:.3f} {'✅' if r_beta > 0.85 else '❌'}")
+    print(f"\nOVERALL: {'VALIDATED ✅' if validation_passed else 'FAILED ❌'}")
+    
+    return validation_passed, {'r_theta': r_theta, 'r_Pi_i': r_Pi_i, 'r_beta': r_beta}
 
 
 # =============================================================================
