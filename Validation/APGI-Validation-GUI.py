@@ -24,8 +24,13 @@ try:
     APGI_Master_Validation = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(APGI_Master_Validation)
     APGIMasterValidator = APGI_Master_Validation.APGIMasterValidator
-except ImportError:
+except ImportError as e:
     # Fallback if import fails
+    print(f"Warning: Could not import APGI_Master_Validation: {e}")
+    print("Troubleshooting:")
+    print("1. Ensure APGI-Master-Validation.py exists in the Validation directory")
+    print("2. Check that the file has proper syntax and no import errors")
+    print("3. Verify all dependencies are installed (pip install -r requirements.txt)")
     APGIMasterValidator = None
 
 class APGIValidationGUI:
@@ -188,16 +193,50 @@ class APGIValidationGUI:
                 self.update_results(f"=== Protocol {protocol_num} ===\n")
                 
                 try:
-                    # Simulate protocol execution (replace with actual protocol calls)
-                    import time
-                    time.sleep(1)  # Simulate work
+                    # Execute actual protocol
+                    protocol_file = f"APGI-Protocol-{protocol_num}.py"
+                    protocol_path = Path(__file__).parent / protocol_file
                     
-                    # Mock result for demonstration
+                    if not protocol_path.exists():
+                        raise FileNotFoundError(f"Protocol file {protocol_file} not found")
+                    
+                    # Import protocol module dynamically
+                    import importlib.util
+                    spec = importlib.util.spec_from_file_location(f"APGI_Protocol_{protocol_num}", protocol_path)
+                    protocol_module = importlib.util.module_from_spec(spec)
+                    
+                    # Capture stdout to get results
+                    import io
+                    import contextlib
+                    
+                    captured_output = io.StringIO()
+                    with contextlib.redirect_stdout(captured_output):
+                        spec.loader.exec_module(protocol_module)
+                        
+                        # Run the protocol's main function if it exists
+                        if hasattr(protocol_module, 'main'):
+                            protocol_result = protocol_module.main()
+                        else:
+                            # If no main function, consider it completed
+                            protocol_result = {'status': 'COMPLETED', 'message': 'Protocol executed successfully'}
+                    
+                    # Parse captured output for results
+                    output_text = captured_output.getvalue()
+                    
+                    # Create result based on protocol execution
                     result = {
                         'status': 'COMPLETED',
-                        'passed': protocol_num % 3 != 0,  # Some pass, some fail
-                        'timestamp': datetime.now().isoformat()
+                        'passed': True,  # Default to passed unless error occurs
+                        'timestamp': datetime.now().isoformat(),
+                        'output': output_text,
+                        'protocol_result': protocol_result if protocol_result else {}
                     }
+                    
+                    # Check for error indicators in output
+                    error_indicators = ['ERROR', 'FAILED', 'Exception', 'Traceback', 'Error:']
+                    if any(indicator in output_text for indicator in error_indicators):
+                        result['passed'] = False
+                        result['status'] = 'COMPLETED_WITH_ERRORS'
                     
                     self.validator.protocol_results[f'protocol_{protocol_num}'] = result
                     
@@ -216,7 +255,9 @@ class APGIValidationGUI:
                     error_result = {
                         'status': 'EXECUTION_ERROR',
                         'error': str(e),
-                        'passed': False
+                        'error_type': type(e).__name__,
+                        'timestamp': datetime.now().isoformat(),
+                        'troubleshooting': self._get_error_troubleshooting(e, protocol_num)
                     }
                     
                     self.validator.protocol_results[f'protocol_{protocol_num}'] = error_result
@@ -226,6 +267,10 @@ class APGIValidationGUI:
                         'passed': False,
                         'result': error_result
                     })
+                    
+                    error_msg = f"Protocol {protocol_num} failed: {type(e).__name__}: {e}"
+                    self.update_results(f"ERROR: {error_msg}\n")
+                    self.update_results(f"Troubleshooting: {error_result['troubleshooting']}\n\n")
                     
                     self.update_results(f"ERROR: {e}\n\n")
                 
@@ -246,8 +291,14 @@ class APGIValidationGUI:
                 self.update_status("Validation completed")
                 
         except Exception as e:
-            self.update_status(f"Validation error: {e}")
-            self.update_results(f"ERROR: {e}\n")
+            error_msg = f"Validation failed: {type(e).__name__}: {e}"
+            self.update_status(error_msg)
+            self.update_results(f"CRITICAL ERROR: {error_msg}\n")
+            self.update_results(f"\nTroubleshooting steps:\n")
+            self.update_results(f"1. Check that all protocol files exist and are readable\n")
+            self.update_results(f"2. Verify all dependencies are installed\n")
+            self.update_results(f"3. Check file permissions in the Validation directory\n")
+            self.update_results(f"4. Try running individual protocols separately\n")
             
         finally:
             self.is_running = False
@@ -278,7 +329,12 @@ class APGIValidationGUI:
                     json.dump(report, f, indent=2, default=str)
                 messagebox.showinfo("Success", f"Results saved to {filename}")
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to save results: {e}")
+                error_msg = f"Failed to save results: {type(e).__name__}: {e}"
+                messagebox.showerror("Save Error", f"{error_msg}\n\nTroubleshooting:\n"
+                                   f"1. Check file permissions for the target directory\n"
+                                   f"2. Ensure disk space is available\n"
+                                   f"3. Try saving to a different location\n"
+                                   f"4. Check that the filename is valid")
                 
     def update_status(self, message):
         """Update status label"""
@@ -289,16 +345,51 @@ class APGIValidationGUI:
         self.root.after(0, lambda: self.progress_var.set(value))
         
     def update_results(self, message):
-        """Update results text area"""
+        """Update results text widget"""
         self.root.after(0, lambda: self.results_text.insert(tk.END, message))
         self.root.after(0, lambda: self.results_text.see(tk.END))
         
+    def _get_error_troubleshooting(self, error: Exception, protocol_num: int) -> str:
+        """Get troubleshooting hints based on error type and protocol"""
+        error_str = str(error).lower()
+        error_type = type(error).__name__
+        
+        # Common issues
+        if "module not found" in error_str or "modulenotfounderror" in error_str:
+            return ("Missing dependency detected. Install with: pip install -r requirements.txt\n"
+                   f"Specifically check: {error_str.split('no module named')[-1] if 'no module named' in error_str else 'unknown module'}")
+        
+        elif "file not found" in error_str or "filenotfounderror" in error_str:
+            return f"Protocol file missing. Check that APGI-Protocol-{protocol_num}.py exists in Validation directory"
+        
+        elif "permission" in error_str:
+            return "File permission error. Check read/write permissions for the Validation directory"
+        
+        elif "memory" in error_str or "ram" in error_str:
+            return "Memory error. Try reducing protocol parameters or closing other applications"
+        
+        elif "timeout" in error_str:
+            return "Protocol timed out. Try running with debug mode enabled or reduce complexity"
+        
+        # Protocol-specific issues
+        if protocol_num == 3:
+            if "broadcast" in error_str:
+                return "Observation dimension mismatch. This should be fixed with the latest updates"
+        
+        elif protocol_num in [2, 8]:
+            if "pymc" in error_str or "arviz" in error_str:
+                return "Bayesian modeling library issue. Install with: pip install pymc arviz"
+        
+        # Generic fallback
+        return (f"Error type: {error_type}. "
+                "Check the protocol file for syntax issues and ensure all dependencies are installed. "
+                "Try running the protocol individually to isolate the problem.")
+        
     def update_summary(self, report):
         """Update summary label"""
-        summary_text = f"Overall Decision: {report['overall_decision']}\n"
-        
+        summary_text = "Summary:\n"
         for tier, results in report['falsification_status'].items():
-            failures = len([r for r in results if not r['passed']])
+            failures = sum(1 for r in results if not r['passed'])
             total = len(results)
             summary_text += f"{tier.capitalize()} tier: {failures}/{total} failed\n"
             

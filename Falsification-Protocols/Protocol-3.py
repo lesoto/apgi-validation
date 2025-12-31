@@ -33,14 +33,32 @@ class StandardPPAgent:
         self.policy_weights = np.random.normal(0, 0.1, (4, 48))  # 4 actions, 48 state dims
         
     def step(self, observation: Dict, dt: float = 0.05) -> int:
-        # Ensure consistent state dimensions
-        extero_dim = min(len(observation['extero']), 32)
-        intero_dim = min(len(observation['intero']), 16)
-        state = np.concatenate([observation['extero'][:extero_dim], observation['intero'][:intero_dim]])
+        # Standardize observation dimensions to match expected sizes
+        extero_obs = observation['extero']
+        intero_obs = observation['intero']
         
-        # Handle dimension mismatch
+        # Standardize exteroceptive to 32 dimensions
+        if len(extero_obs) < 32:
+            extero_standard = np.zeros(32)
+            extero_standard[:len(extero_obs)] = extero_obs
+        elif len(extero_obs) > 32:
+            extero_standard = extero_obs[:32]
+        else:
+            extero_standard = extero_obs
+            
+        # Standardize interoceptive to 16 dimensions  
+        if len(intero_obs) < 16:
+            intero_standard = np.zeros(16)
+            intero_standard[:len(intero_obs)] = intero_obs
+        elif len(intero_obs) > 16:
+            intero_standard = intero_obs[:16]
+        else:
+            intero_standard = intero_obs
+            
+        state = np.concatenate([extero_standard, intero_standard])
+        
+        # Handle dimension mismatch with policy weights
         if state.shape[0] != self.policy_weights.shape[1]:
-            # Pad or truncate to match
             if state.shape[0] < self.policy_weights.shape[1]:
                 state = np.pad(state, (0, self.policy_weights.shape[1] - state.shape[0]))
             else:
@@ -65,12 +83,31 @@ class GWTOnlyAgent:
         self.ignition_history = []
         
     def step(self, observation: Dict, dt: float = 0.05) -> int:
-        # Ensure consistent state dimensions
-        extero_dim = min(len(observation['extero']), 32)
-        intero_dim = min(len(observation['intero']), 16)
-        state = np.concatenate([observation['extero'][:extero_dim], observation['intero'][:intero_dim]])
+        # Standardize observation dimensions to match expected sizes
+        extero_obs = observation['extero']
+        intero_obs = observation['intero']
         
-        # Handle dimension mismatch
+        # Standardize exteroceptive to 32 dimensions
+        if len(extero_obs) < 32:
+            extero_standard = np.zeros(32)
+            extero_standard[:len(extero_obs)] = extero_obs
+        elif len(extero_obs) > 32:
+            extero_standard = extero_obs[:32]
+        else:
+            extero_standard = extero_obs
+            
+        # Standardize interoceptive to 16 dimensions  
+        if len(intero_obs) < 16:
+            intero_standard = np.zeros(16)
+            intero_standard[:len(intero_obs)] = intero_obs
+        elif len(intero_obs) > 16:
+            intero_standard = intero_obs[:16]
+        else:
+            intero_standard = intero_obs
+            
+        state = np.concatenate([extero_standard, intero_standard])
+        
+        # Handle dimension mismatch with policy weights
         if state.shape[0] != self.policy_weights.shape[1]:
             if state.shape[0] < self.policy_weights.shape[1]:
                 state = np.pad(state, (0, self.policy_weights.shape[1] - state.shape[0]))
@@ -78,7 +115,7 @@ class GWTOnlyAgent:
                 state = state[:self.policy_weights.shape[1]]
         
         # Simple ignition based on exteroceptive surprise
-        surprise = np.linalg.norm(observation['extero'])
+        surprise = np.linalg.norm(extero_standard)
         self.conscious_access = surprise > 0.5
         
         if self.conscious_access:
@@ -102,12 +139,31 @@ class StandardActorCriticAgent:
         self.critic_weights = np.random.normal(0, 0.1, (48,))
         
     def step(self, observation: Dict, dt: float = 0.05) -> int:
-        # Ensure consistent state dimensions
-        extero_dim = min(len(observation['extero']), 32)
-        intero_dim = min(len(observation['intero']), 16)
-        state = np.concatenate([observation['extero'][:extero_dim], observation['intero'][:intero_dim]])
+        # Standardize observation dimensions to match expected sizes
+        extero_obs = observation['extero']
+        intero_obs = observation['intero']
         
-        # Handle dimension mismatch
+        # Standardize exteroceptive to 32 dimensions
+        if len(extero_obs) < 32:
+            extero_standard = np.zeros(32)
+            extero_standard[:len(extero_obs)] = extero_obs
+        elif len(extero_obs) > 32:
+            extero_standard = extero_obs[:32]
+        else:
+            extero_standard = extero_obs
+            
+        # Standardize interoceptive to 16 dimensions  
+        if len(intero_obs) < 16:
+            intero_standard = np.zeros(16)
+            intero_standard[:len(intero_obs)] = intero_obs
+        elif len(intero_obs) > 16:
+            intero_standard = intero_obs[:16]
+        else:
+            intero_standard = intero_obs
+            
+        state = np.concatenate([extero_standard, intero_standard])
+        
+        # Handle dimension mismatch with actor weights
         if state.shape[0] != self.actor_weights.shape[1]:
             if state.shape[0] < self.actor_weights.shape[1]:
                 state = np.pad(state, (0, self.actor_weights.shape[1] - state.shape[0]))

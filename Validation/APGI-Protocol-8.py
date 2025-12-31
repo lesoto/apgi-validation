@@ -2113,18 +2113,34 @@ def main():
     print("APGI Protocol 8: PSYCHOPHYSICAL THRESHOLD ESTIMATION")
     print("="*80)
     
-    # Configuration - Optimized for debugging
-    config = {
-        'n_participants': 5,           # Start with very few participants
-        'n_trials_per_participant': 20, # Reduced trials for testing
-        'use_psi_method': True,        # Set to False to test without Psi method
-        'verbose': True,               # Show progress
-        'show_trial_progress': True,   # Show per-trial timing
-        'batch_size': 1               # Show progress after each participant
+    # Configuration with debug mode toggle
+    debug_mode = True  # Set to False for full simulation
+    
+    # Base configuration
+    base_config = {
+        'use_psi_method': True,
+        'verbose': True,
+        'show_trial_progress': True,
+        'batch_size': 1
     }
     
-    print("\nNote: Running in DEBUG MODE with reduced parameters")
-    print("Set 'debug_mode = False' in the config for full simulation")
+    # Debug vs production parameters
+    if debug_mode:
+        config = {
+            **base_config,
+            'n_participants': 5,           # Start with very few participants
+            'n_trials_per_participant': 20, # Reduced trials for testing
+        }
+        print("\nNote: Running in DEBUG MODE with reduced parameters")
+        print("Set 'debug_mode = False' for full simulation")
+    else:
+        config = {
+            **base_config,
+            'n_participants': 100,        # Full study size
+            'n_trials_per_participant': 200, # Full trial count
+        }
+        print("\nRunning in PRODUCTION MODE with full parameters")
+        print("Set 'debug_mode = True' for faster testing")
     
     print(f"\nStudy Configuration:")
     for k, v in config.items():
