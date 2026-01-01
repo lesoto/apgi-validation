@@ -213,11 +213,139 @@ class APGILogger:
         """Get summary of error occurrences."""
         return self.error_counts.copy()
     
-    def export_logs(self, output_file: str, start_time: Optional[datetime] = None, end_time: Optional[datetime] = None):
-        """Export logs to a file for analysis."""
-        # This is a placeholder for log export functionality
-        # In a full implementation, this would parse log files and export to desired format
-        logger.info(f"Exporting logs to {output_file}")
+    def export_logs(self, output_file: str, start_time: Optional[datetime] = None, end_time: Optional[datetime] = None, 
+                   format_type: str = "json", log_level: Optional[str] = None):
+        """Export logs to a file for analysis.
+        
+        Args:
+            output_file: Path to output file
+            start_time: Optional start time for filtering
+            end_time: Optional end time for filtering
+            format_type: Export format ('json', 'csv', 'txt')
+            log_level: Optional log level filter ('DEBUG', 'INFO', 'WARNING', 'ERROR')
+        """
+        import re
+        import csv
+        from datetime import datetime
+        
+        logger.info(f"Exporting logs to {output_file} (format: {format_type})")
+        
+        # Find all log files
+        log_files = list(LOGS_DIR.glob("*.log"))
+        if not log_files:
+            logger.warning("No log files found to export")
+            return False
+        
+        # Parse log entries
+        log_entries = []
+        
+        for log_file in log_files:
+            try:
+                with open(log_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        
+                        # Parse log line format - handle multiple patterns with flexible spacing
+                        patterns = [
+                            # Standard format with newlines: "2025-12-31 19:22:13.802 | INFO     | \n config_manager:_load_config:208 - message"
+                            r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| (\w+)\s+\| ?\s*([^-]+) - (.+)',
+                            # Alternative format: "2025-12-31 19:22:13.802 | INFO | module:function - message"
+                            r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| (\w+)\s+\| ([^-]+) - (.+)',
+                            # Simple format: "2025-12-31 19:22:13.802 | INFO | message"
+                            r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| (\w+)\s+\| (.+)'
+                        ]
+                        
+                        match = None
+                        for pattern in patterns:
+                            match = re.match(pattern, line, re.DOTALL)
+                            if match:
+                                break
+                        
+                        if match:
+                            if len(match.groups()) == 4:
+                                timestamp_str, level, location, message = match.groups()
+                            elif len(match.groups()) == 3:
+                                timestamp_str, level, message = match.groups()
+                                location = "unknown"
+                            else:
+                                continue
+                            
+                            try:
+                                timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S.%f')
+                            except ValueError:
+                                continue
+                            
+                            # Apply filters
+                            if start_time and timestamp < start_time:
+                                continue
+                            if end_time and timestamp > end_time:
+                                continue
+                            if log_level and level != log_level.upper():
+                                continue
+                            
+                            log_entry = {
+                                'timestamp': timestamp_str,
+                                'datetime': timestamp,
+                                'level': level,
+                                'location': location.strip(),
+                                'message': message.strip(),
+                                'file': str(log_file)
+                            }
+                            log_entries.append(log_entry)
+                            
+            except Exception as e:
+                logger.warning(f"Error reading log file {log_file}: {e}")
+        
+        if not log_entries:
+            logger.warning("No log entries found matching the criteria")
+            return False
+        
+        # Sort by timestamp
+        log_entries.sort(key=lambda x: x['datetime'])
+        
+        # Export based on format
+        try:
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            if format_type.lower() == 'json':
+                # JSON format
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    json.dump(log_entries, f, indent=2, default=str)
+                    
+            elif format_type.lower() == 'csv':
+                # CSV format
+                with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                    fieldnames = ['timestamp', 'level', 'location', 'message', 'file']
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    writer.writeheader()
+                    for entry in log_entries:
+                        writer.writerow({k: v for k, v in entry.items() if k in fieldnames})
+                        
+            elif format_type.lower() == 'txt':
+                # Plain text format
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    f.write(f"APGI Framework Log Export\n")
+                    f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"Total entries: {len(log_entries)}\n")
+                    f.write(f"Time range: {log_entries[0]['timestamp']} to {log_entries[-1]['timestamp']}\n")
+                    f.write("=" * 80 + "\n\n")
+                    
+                    for entry in log_entries:
+                        f.write(f"{entry['timestamp']} | {entry['level']:8} | {entry['location']} | {entry['message']}\n")
+                        
+            else:
+                logger.error(f"Unsupported export format: {format_type}")
+                return False
+            
+            logger.info(f"Successfully exported {len(log_entries)} log entries to {output_file}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error exporting logs: {e}")
+            return False
     
     def cleanup_old_logs(self, days_to_keep: int = 30):
         """Clean up old log files."""

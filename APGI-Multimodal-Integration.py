@@ -23,8 +23,9 @@ Alternative Script Names:
 """
 import numpy as np
 import pandas as pd
-from scipy import stats, signal
-from scipy.signal import windows
+from scipy import signal
+from scipy.signal import welch, windows
+from scipy import stats
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -76,11 +77,8 @@ class APGINormalizer:
         self.norms = {
             'gamma_power': {'mean': None, 'std': None, 'median': None, 'mad': None},
             'HEP_amplitude': {'mean': None, 'std': None, 'median': None, 'mad': None},
-            'pupil_diameter': {'mean': None, 'std': None, 'median': None, 'mad': None},
             'P3b_amplitude': {'mean': None, 'std': None, 'median': None, 'mad': None},
-            'N200_amplitude': {'mean': None, 'std': None, 'median': None, 'mad': None},
-            'alpha_power': {'mean': None, 'std': None, 'median': None, 'mad': None},
-            'vmPFC_connectivity': {'mean': None, 'std': None, 'median': None, 'mad': None},
+            'pupil_diameter': {'mean': None, 'std': None, 'median': None, 'mad': None},
             'SCR': {'mean': None, 'std': None, 'median': None, 'mad': None},
             'heart_rate': {'mean': None, 'std': None, 'median': None, 'mad': None},
             'eeg': {'mean': None, 'std': None, 'median': None, 'mad': None},
@@ -202,7 +200,17 @@ class APGINormalizer:
         return 0.6745 * (value - med) / mad if mad > 0 else 0
     
     def save(self, filepath: str):
-        """Save normative statistics to file"""
+        """Save normalizer statistics"""
+        import json
+        with open(filepath, 'w') as f:
+            json.dump(self.norms, f, indent=2)
+    
+    def is_fitted(self) -> bool:
+        """Check if normalizer has been fitted"""
+        return len(self.norms) > 0
+    
+    def save_csv(self, filepath: str):
+        """Save normative statistics to CSV"""
         norms_data = []
         for var_name, stats_dict in self.norms.items():
             norms_data.append({
@@ -1909,10 +1917,10 @@ class APGIQualityControl:
         return True
     
     @staticmethod
-    def compute_snr(signal: np.ndarray, noise_band: Tuple[float, float] = (45, 55),
+    def compute_snr(data_signal: np.ndarray, noise_band: Tuple[float, float] = (45, 55),
                    fs: float = 250) -> float:
         """Compute signal-to-noise ratio"""
-        f, Pxx = signal.welch(signal, fs)
+        f, Pxx = welch(data_signal, fs)
         signal_mask = (f >= 1) & (f <= 40)  # Typical EEG bands
         noise_mask = (f >= noise_band[0]) & (f <= noise_band[1])
         
@@ -2742,7 +2750,33 @@ class APGIBatchProcessor:
         results['features'] = features
         
         # 3. Z-scoring
-        results['z_scores'] = self.normalizer.transform(features)
+        # Fit normalizer if not already fitted for these features
+        if not self.normalizer.is_fitted():
+            # Fit with the raw data directly
+            self.normalizer.fit(subject_data)
+            # Debug: Check if fitting worked
+            print(f"Normalizer fitted for: {list(self.normalizer.norms.keys())}")
+            for key, stats in self.normalizer.norms.items():
+                print(f"  {key}: mean={stats['mean']}, std={stats['std']}")
+        
+        # Transform features, handling unfitted variables gracefully
+        z_scores = {}
+        for var_name, value in features.items():
+            try:
+                z_scores[var_name] = self.normalizer.transform({var_name: value})[var_name]
+            except RuntimeError:
+                # If not fitted, compute simple z-score from the data itself
+                if var_name in subject_data:
+                    data = subject_data[var_name]
+                    mean_val = np.mean(data)
+                    std_val = np.std(data)
+                    if std_val > 0:
+                        z_scores[var_name] = (value - mean_val) / std_val
+                    else:
+                        z_scores[var_name] = 0.0
+                else:
+                    z_scores[var_name] = 0.0
+        results['z_scores'] = z_scores
         
         # 4. APGI parameter computation
         results['apgi_params'] = self._compute_apgi_parameters(results['z_scores'], results['preprocessed'])
@@ -2765,7 +2799,30 @@ class APGIBatchProcessor:
                 gamma_band = self.config['gamma_band']
                 features['gamma_power'] = self._compute_band_power(eeg_data, gamma_band)
         
-        # Extract other features...
+        # Handle P3b amplitude (exteroceptive)
+        if 'P3b_amplitude' in preprocessed_data:
+            p3b_data = preprocessed_data['P3b_amplitude']
+            # Use mean amplitude as feature
+            features['P3b_amplitude'] = np.mean(p3b_data)
+        
+        # Handle pupil diameter (interoceptive)
+        if 'pupil_diameter' in preprocessed_data:
+            pupil_data = preprocessed_data['pupil_diameter']
+            # Use mean pupil size as feature
+            features['pupil_diameter'] = np.mean(pupil_data)
+        
+        # Handle SCR (interoceptive)
+        if 'SCR' in preprocessed_data:
+            scr_data = preprocessed_data['SCR']
+            # Use mean SCR as feature
+            features['SCR'] = np.mean(scr_data)
+        
+        # Handle heart rate (interoceptive)
+        if 'heart_rate' in preprocessed_data:
+            hr_data = preprocessed_data['heart_rate']
+            # Use mean heart rate as feature
+            features['heart_rate'] = np.mean(hr_data)
+        
         return features
     
     def _apply_filters(self, data: np.ndarray, modality: str) -> np.ndarray:
