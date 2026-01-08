@@ -780,7 +780,7 @@ class NetworkTrainer:
         # AUC using ignition probability as confidence
         try:
             auc = roc_auc_score(all_targets, all_ignition_probs)
-        except:
+        except (ValueError, RuntimeError):
             auc = 0.5
         
         return {
@@ -1691,6 +1691,16 @@ def main():
           f"{results['Conscious_Classification']['APGI']['test_auc'] - max([results['Conscious_Classification'][net]['test_auc'] for net in ['MLP', 'LSTM', 'Attention']]):.3f}")
     
     return results_summary
+
+
+def run_validation():
+    """Entry point for CLI validation."""
+    try:
+        print("Running APGI Validation Protocol 6: Real-Time Implementation and Performance")
+        return main()
+    except Exception as e:
+        print(f"Error in validation protocol 6: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 if __name__ == "__main__":

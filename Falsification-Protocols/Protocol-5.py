@@ -369,3 +369,26 @@ if __name__ == "__main__":
     results = simulator.run_evolution()
     print("Evolution completed:", type(results))
     print("=== Protocol completed successfully ===")
+
+
+def run_falsification():
+    """Entry point for CLI falsification testing."""
+    try:
+        print("Running APGI Falsification Protocol 5: Evolutionary APGI Emergence")
+        simulator = EvolutionaryAPGIEmergence()
+        results = simulator.run_evolution()
+        print("Evolution completed:", type(results))
+        print("=== Protocol completed successfully ===")
+        return {"status": "success", "results": results}
+    except Exception as e:
+        print(f"Error in falsification protocol 5: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+# Main execution
+if __name__ == "__main__":
+    print("Starting evolutionary simulation (this may take time)...")
+    simulator = EvolutionaryAPGIEmergence()
+    results = simulator.run_evolution()
+    print("Evolution completed:", type(results))
+    print("=== Protocol completed successfully ===")

@@ -524,3 +524,43 @@ if __name__ == "__main__":
     results = experiment.run_full_experiment()
     
     print("=== Protocol completed successfully ===")
+
+
+def run_falsification():
+    """Entry point for CLI falsification testing."""
+    try:
+        print("Running APGI Falsification Protocol 6: Network Comparison Experiment")
+        config = {
+            'n_agents': 10,
+            'n_trials': 100,
+            'extero_dim': 32,
+            'intero_dim': 16,
+            'action_dim': 4,
+            'context_dim': 8
+        }
+        
+        experiment = NetworkComparisonExperiment(config)
+        results = experiment.run_full_experiment()
+        
+        print("=== Protocol completed successfully ===")
+        return {"status": "success", "results": results}
+    except Exception as e:
+        print(f"Error in falsification protocol 6: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+# Main execution
+if __name__ == "__main__":
+    config = {
+        'n_agents': 10,
+        'n_trials': 100,
+        'extero_dim': 32,
+        'intero_dim': 16,
+        'action_dim': 4,
+        'context_dim': 8
+    }
+    
+    experiment = NetworkComparisonExperiment(config)
+    results = experiment.run_full_experiment()
+    
+    print("=== Protocol completed successfully ===")

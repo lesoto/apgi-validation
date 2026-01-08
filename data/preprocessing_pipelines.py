@@ -182,7 +182,7 @@ class EEGPreprocessor:
                 time_diff = signal_data.index[1] - signal_data.index[0]
                 if hasattr(time_diff, 'total_seconds'):
                     return 1.0 / time_diff.total_seconds()
-            except:
+            except (IndexError, AttributeError, TypeError):
                 pass
         
         # Default assumption if we can't determine
@@ -365,7 +365,7 @@ class EDAPreprocessor:
             time_diff = signal_data.index[1] - signal_data.index[0]
             if hasattr(time_diff, 'total_seconds'):
                 return 1.0 / time_diff.total_seconds()
-        except:
+        except (IndexError, AttributeError, TypeError):
             pass
         
         return 1000.0  # Default assumption

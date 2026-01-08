@@ -496,3 +496,30 @@ if __name__ == "__main__":
     falsification = experiment.check_falsification(analysis)
     
     print("=== Protocol completed successfully ===")
+
+
+def run_falsification():
+    """Entry point for CLI falsification testing."""
+    try:
+        print("Running APGI Falsification Protocol 3: Agent Comparison Experiment")
+        experiment = AgentComparisonExperiment(n_agents=10, n_trials=50)
+        results = experiment.run_full_experiment()
+        analysis = experiment.analyze_predictions(results)
+        falsification = experiment.check_falsification(analysis)
+        
+        print("=== Protocol completed successfully ===")
+        return {"status": "success", "results": results, "analysis": analysis, "falsification": falsification}
+    except Exception as e:
+        print(f"Error in falsification protocol 3: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+# Main execution
+if __name__ == "__main__":
+    print("Running Agent Comparison Experiment...")
+    experiment = AgentComparisonExperiment(n_agents=10, n_trials=50)
+    results = experiment.run_full_experiment()
+    analysis = experiment.analyze_predictions(results)
+    falsification = experiment.check_falsification(analysis)
+    
+    print("=== Protocol completed successfully ===")

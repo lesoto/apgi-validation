@@ -1930,5 +1930,15 @@ def main():
     return results_summary
 
 
+def run_validation():
+    """Entry point for CLI validation."""
+    try:
+        print("Running APGI Validation Protocol 5: Computational Falsification Framework")
+        return main()
+    except Exception as e:
+        print(f"Error in validation protocol 5: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 if __name__ == "__main__":
     main()

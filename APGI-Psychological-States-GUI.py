@@ -70,12 +70,13 @@ except ImportError:
 # Try to import tkinterweb for HTML rendering, fallback to built-in approach
 try:
     try:
-        from tkinterweb import HtmlFrame
+        from tkinterweb import HTMLFrame
         TKINTERWEB_AVAILABLE = True
     except ImportError:
         TKINTERWEB_AVAILABLE = False
-except:
+except Exception as e:
     TKINTERWEB_AVAILABLE = False
+    print(f"Warning: Could not import tkinterweb: {e}")
 
 # No external browser dependencies or save options needed - all visualizations are embedded
 
@@ -1158,8 +1159,8 @@ class EmbeddedDisplayPanel(ttk.Frame):
         if self.display_method == "tkinterweb":
             try:
                 self.html_frame.load_html("<html><body><h2>Cleared</h2></body></html>")
-            except:
-                pass
+            except (AttributeError, Exception):
+                pass  # HTML frame not available or error loading
         else:
             # Clear matplotlib canvas
             if hasattr(self, 'matplotlib_canvas') and self.matplotlib_canvas:

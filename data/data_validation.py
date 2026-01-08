@@ -74,14 +74,14 @@ class DataValidator:
                 if not pd.api.types.is_datetime64_any_dtype(df[col]):
                     try:
                         pd.to_datetime(df[col])
-                    except:
+                    except (ValueError, TypeError):
                         results['errors'].append(f"Column {col} cannot be converted to datetime")
                         return False
             else:
                 if not pd.api.types.is_numeric_dtype(df[col]):
                     try:
                         pd.to_numeric(df[col], errors='coerce')
-                    except:
+                    except (ValueError, TypeError):
                         results['errors'].append(f"Column {col} cannot be converted to numeric")
                         return False
         

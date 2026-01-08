@@ -2779,5 +2779,15 @@ def identify_subgroups_mixture_model(parameter_estimates, n_components=3):
     }, fig
 
 
+def run_validation():
+    """Entry point for CLI validation."""
+    try:
+        print("Running APGI Validation Protocol 8: Educational Implementation and Validation")
+        return main()
+    except Exception as e:
+        print(f"Error in validation protocol 8: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 if __name__ == "__main__":
     main()

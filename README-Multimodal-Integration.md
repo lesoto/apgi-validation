@@ -4,8 +4,6 @@
 
 The APGI framework implements **Active Posterior Global Integration** for conscious access prediction using precision-weighted multimodal integration. This comprehensive computational tool integrates EEG, fMRI, ECG, pupillometry, and other physiological signals to estimate precision-weighted belief updating parameters.
 
-### 🆕 **NEWLY IMPLEMENTED FEATURES**
-
 - **✅ Threshold Integration** - Proper computation using raw pupil/alpha values
 - **✅ Beta Parameter Estimation** - Individualized somatic influence (anxiety/alexithymia)  
 - **✅ Protocol 1 Adaptive Windowing** - Statistical optimization of window lengths

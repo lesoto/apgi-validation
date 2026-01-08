@@ -31,8 +31,16 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from logging_config import apgi_logger, log_performance, log_error, log_simulation
 from config_manager import config_manager, get_config, set_parameter
 
-# Initialize rich console
-console = Console()
+# Initialize rich console with better width handling
+console = Console(
+    width=None,  # Auto-detect terminal width
+    file=None,   # Use stdout
+    force_terminal=True,  # Force terminal mode
+    force_interactive=False,  # Don't force interactive mode
+    legacy_windows=False,  # Use modern Windows handling
+    color_system="auto",  # Auto-detect color support
+    no_color=False  # Enable colors
+)
 
 # Global configuration
 CONFIG = {
@@ -177,6 +185,35 @@ def formal_model(ctx, simulation_steps, dt, output_file, params, plot):
                 'sigma_S': config.model.sigma_S,
                 'sigma_theta': config.model.sigma_theta
             }
+            
+            # Load custom parameters if provided
+            if params:
+                try:
+                    import json
+                    with open(params, 'r') as f:
+                        custom_params = json.load(f)
+                    console.print(f"[green]✓[/green] Loaded custom parameters from {params}")
+                    
+                    # Update model parameters with custom values
+                    for key, value in custom_params.items():
+                        if key in model_params:
+                            model_params[key] = float(value)
+                        else:
+                            console.print(f"[yellow]Warning: Unknown parameter '{key}' ignored[/yellow]")
+                            
+                except FileNotFoundError:
+                    console.print(f"[red]Error: Parameter file not found: {params}[/red]")
+                    console.print(f"[yellow]File path checked: {Path(params).absolute()}[/yellow]")
+                    console.print("[yellow]Using default parameters instead[/yellow]")
+                    console.print("[blue]Tip: Create a JSON file with parameters like: {\"tau_S\": 0.5, \"alpha\": 10.0}[/blue]")
+                except json.JSONDecodeError as e:
+                    console.print(f"[red]Error: Invalid JSON in parameter file: {params}[/red]")
+                    console.print(f"[yellow]JSON error: {str(e)}[/yellow]")
+                    console.print("[yellow]Using default parameters instead[/yellow]")
+                    console.print("[blue]Tip: Check for missing commas, quotes, or brackets in your JSON file[/blue]")
+                except Exception as e:
+                    console.print(f"[red]Error loading parameter file: {e}[/red]")
+                    console.print("[yellow]Using default parameters instead[/yellow]")
             
             system = SurpriseIgnitionSystem(params=model_params)
             
@@ -383,7 +420,7 @@ def multimodal(ctx, input_data, output_file, modalities):
                 import numpy as np
                 import pandas as pd
                 
-                # Generate synthetic data
+                # Generate synthetic data with proper APGI format
                 n_samples = 100
                 synthetic_data = pd.DataFrame({
                     'EEG': np.random.normal(0, 1, n_samples),
@@ -391,27 +428,47 @@ def multimodal(ctx, input_data, output_file, modalities):
                     'EDA': np.random.normal(0, 1, n_samples)
                 })
                 
-                # Process synthetic data
+                # Process synthetic data with correct APGI modalities
                 synthetic_subject_data = {
-                    'exteroceptive': synthetic_data['EEG'].values,
-                    'interoceptive': synthetic_data['Pupil'].values
+                    'P3b_amplitude': synthetic_data['EEG'].values,  # Exteroceptive
+                    'pupil_diameter': synthetic_data['Pupil'].values,  # Also exteroceptive
+                    'SCR': synthetic_data['EDA'].values,  # Interoceptive
+                    'heart_rate': np.random.normal(70, 5, n_samples)  # Additional interoceptive
                 }
+                
+                console.print(f"[blue]Generated synthetic data with {len(synthetic_subject_data)} modalities[/blue]")
+                console.print(f"[blue]Sample sizes: {[(k, len(v)) for k, v in synthetic_subject_data.items()]}[/blue]")
                 
                 try:
                     results = processor.process_subject(synthetic_subject_data)
                     console.print("[green]✓[/green] Demo integration completed")
-                    console.print(f"Accumulated surprise: {results.get('S_t', 'N/A')}")
-                    console.print(f"Ignition probability: {results.get('P_ignition', 'N/A')}")
+                    
+                    # Display results in a nice format
+                    if isinstance(results, dict):
+                        console.print("[bold]Integration Results:[/bold]")
+                        for key, value in results.items():
+                            if isinstance(value, (int, float)):
+                                console.print(f"  {key}: {value:.4f}")
+                            else:
+                                console.print(f"  {key}: {value}")
+                    else:
+                        console.print(f"[blue]Integration result: {results}[/blue]")
+                        
                 except Exception as e:
                     console.print(f"[yellow]Demo integration limited: {e}[/yellow]")
                     console.print("[yellow]Note: Full integration requires specific data format[/yellow]")
+                    
+                    # Fallback: show basic statistics
+                    console.print("[blue]Synthetic Data Statistics:[/blue]")
+                    for modality, data in synthetic_subject_data.items():
+                        console.print(f"  {modality}: mean={np.mean(data):.3f}, std={np.std(data):.3f}")
         else:
-            # Demo mode with synthetic data
+            # Demo mode with synthetic data (when no input file provided)
             console.print("[yellow]Running demo with synthetic data...[/yellow]")
             import numpy as np
             import pandas as pd
             
-            # Generate synthetic data
+            # Generate synthetic data with proper APGI format
             n_samples = 100
             synthetic_data = pd.DataFrame({
                 'EEG': np.random.normal(0, 1, n_samples),
@@ -419,34 +476,70 @@ def multimodal(ctx, input_data, output_file, modalities):
                 'EDA': np.random.normal(0, 1, n_samples)
             })
             
-            # Process synthetic data
+            # Process synthetic data with correct APGI modalities
             synthetic_subject_data = {
-                'exteroceptive': synthetic_data['EEG'].values,
-                'interoceptive': synthetic_data['Pupil'].values
+                'P3b_amplitude': synthetic_data['EEG'].values,  # Exteroceptive
+                'pupil_diameter': synthetic_data['Pupil'].values,  # Also exteroceptive 
+                'SCR': synthetic_data['EDA'].values,  # Interoceptive
+                'heart_rate': np.random.normal(70, 5, n_samples)  # Additional interoceptive
             }
+            
+            console.print(f"[blue]Generated synthetic data with {len(synthetic_subject_data)} modalities[/blue]")
+            console.print(f"[blue]Sample sizes: {[(k, len(v)) for k, v in synthetic_subject_data.items()]}[/blue]")
             
             try:
                 results = processor.process_subject(synthetic_subject_data)
                 console.print("[green]✓[/green] Demo integration completed")
-                console.print(f"Accumulated surprise: {results.get('S_t', 'N/A')}")
-                console.print(f"Ignition probability: {results.get('P_ignition', 'N/A')}")
+                
+                # Display results in a nice format
+                if isinstance(results, dict):
+                    console.print("[bold]Integration Results:[/bold]")
+                    for key, value in results.items():
+                        if isinstance(value, (int, float)):
+                            console.print(f"  {key}: {value:.4f}")
+                        else:
+                            console.print(f"  {key}: {value}")
+                else:
+                    console.print(f"[blue]Integration result: {results}[/blue]")
+                    
             except Exception as e:
                 console.print(f"[yellow]Demo integration limited: {e}[/yellow]")
                 console.print("[yellow]Note: Full integration requires specific data format[/yellow]")
+                
+                # Fallback: show basic statistics
+                console.print("[blue]Synthetic Data Statistics:[/blue]")
+                for modality, data in synthetic_subject_data.items():
+                    console.print(f"  {modality}: mean={np.mean(data):.3f}, std={np.std(data):.3f}")
     
     except Exception as e:
         console.print(f"[red]Error in multimodal integration: {e}[/red]")
         apgi_logger.logger.error(f"Multimodal integration error: {e}")
 
 
-@click.command()
+@cli.command()
 @click.option('--data-file', help='Experimental data file for parameter estimation')
 @click.option('--method', default='mcmc', help='Estimation method (mcmc, map, gradient)')
 @click.option('--iterations', default=1000, help='Number of iterations for MCMC')
 @click.option('--output-file', help='Output file for parameter estimates')
 @click.pass_context
 def estimate_params(ctx, data_file, method, iterations, output_file):
-    """Perform Bayesian parameter estimation."""
+    """Perform Bayesian parameter estimation for APGI framework.
+    
+    This command estimates the core APGI parameters (θ₀, Πᵢ, β, α) using
+    Bayesian inference methods. Supports both synthetic data (demo mode)
+    and experimental data files.
+    
+    Examples:
+        main.py estimate-params                           # Run demo mode
+        main.py estimate-params --data-file data.csv      # Use experimental data
+        main.py estimate-params --method map --iterations 500  # Use MAP estimation
+        main.py estimate-params --output-file results.json  # Save results
+    
+    Methods:
+        - mcmc: Markov Chain Monte Carlo (default, most robust)
+        - map: Maximum A Posteriori (faster, point estimates)
+        - gradient: Gradient-based optimization (experimental)
+    """
     console.print(Panel.fit("📊 Parameter Estimation", style="bold yellow"))
     
     module_info = module_loader.get_module('parameter_estimation')
@@ -522,13 +615,21 @@ def estimate_params(ctx, data_file, method, iterations, output_file):
             
             # Generate synthetic neural signals
             sampling_rate = 1000
-            duration = 2.0
-            t = np.arange(0, duration, 1/sampling_rate)
-            
-            # Generate synthetic HEP and P3b waveforms
             Pi_i_demo = 1.2  # Interoceptive precision
-            hep_signal = NeuralSignalGenerator.generate_hep_waveform(Pi_i_demo, sampling_rate, 0.6)
-            p3b_signal = NeuralSignalGenerator.generate_p3b_waveform(1.0, sampling_rate, 0.8)
+            
+            # Generate synthetic HEP and P3b waveforms with same duration
+            signal_duration = 1.0  # Use 1 second for both signals
+            hep_signal = NeuralSignalGenerator.generate_hep_waveform(Pi_i_demo, sampling_rate, signal_duration)
+            p3b_signal = NeuralSignalGenerator.generate_p3b_waveform(1.0, sampling_rate, signal_duration)
+            
+            # Create common time vector
+            t = np.arange(0, signal_duration, 1/sampling_rate)
+            
+            # Ensure signals have same length as time vector
+            min_length = min(len(t), len(hep_signal), len(p3b_signal))
+            t = t[:min_length]
+            hep_signal = hep_signal[:min_length]
+            p3b_signal = p3b_signal[:min_length]
             
             # Create synthetic data
             synthetic_data = pd.DataFrame({
@@ -538,14 +639,15 @@ def estimate_params(ctx, data_file, method, iterations, output_file):
             })
             
             console.print("[green]✓[/green] Synthetic neural signals generated")
-            console.print(f"Signal duration: {duration}s, Sampling rate: {sampling_rate}Hz")
+            console.print(f"Signal duration: {signal_duration}s, Sampling rate: {sampling_rate}Hz")
             
             # Run APGI dynamics
-            surprise_accumulated = APGIDynamics.compute_surprise_accumulation(
-                Pi_e=1.0, Pi_i=Pi_i_demo, z_e=1.5, z_i=1.2
+            surprise_trajectory = APGIDynamics.simulate_surprise_accumulation(
+                epsilon_e=1.5, epsilon_i=1.2, Pi_e=1.0, Pi_i=Pi_i_demo, beta=1.0
             )
+            surprise_accumulated = surprise_trajectory[-1]  # Get final value
             ignition_prob = APGIDynamics.compute_ignition_probability(
-                surprise_accumulated, theta_threshold=2.0
+                surprise_accumulated, theta_t=0.5
             )
             
             console.print(f"[blue]Accumulated Surprise: {surprise_accumulated:.3f}[/blue]")
@@ -577,9 +679,9 @@ def validate(ctx, protocol, all_protocols, output_dir, parallel):
         protocols.append(file_path.name)
     
     if protocols:
-        table = Table(title="Available Validation Protocols")
-        table.add_column("Protocol", style="cyan")
-        table.add_column("Description", style="white")
+        table = Table(title="Available Validation Protocols", show_header=True, header_style="bold magenta")
+        table.add_column("Protocol", style="cyan", width=20)
+        table.add_column("Description", style="white", width=50)
         
         for protocol_file in protocols:
             protocol_num = protocol_file.split('-')[-1].replace('.py', '')
@@ -667,7 +769,10 @@ def validate(ctx, protocol, all_protocols, output_dir, parallel):
                     console.print(f"Protocol {protocol_num}: {result}")
                     
         elif protocol:
-            if protocol in [p.split('-')[-1].replace('.py', '') for p in protocols]:
+            if protocol == 'all':
+                console.print("[blue]Running all validation protocols...[/blue]")
+                all_protocols = True
+            elif protocol in [p.split('-')[-1].replace('.py', '') for p in protocols]:
                 console.print(f"[blue]Running protocol: {protocol}[/blue]")
                 protocol_file = f"APGI-Protocol-{protocol}.py"
                 protocol_path = validation_dir / protocol_file
@@ -688,6 +793,8 @@ def validate(ctx, protocol, all_protocols, output_dir, parallel):
                     console.print(f"[red]Error in Protocol {protocol}: {e}[/red]")
             else:
                 console.print(f"[red]Error: Protocol {protocol} not found[/red]")
+                console.print(f"[yellow]Available protocols: {[p.split('-')[-1].replace('.py', '') for p in protocols]}[/yellow]")
+                console.print("[yellow]Use 'all' to run all protocols or --all-protocols flag[/yellow]")
         else:
             console.print("[yellow]Specify a protocol or use --all-protocols[/yellow]")
             
@@ -717,9 +824,9 @@ def falsify(ctx, protocol, output_file):
             protocols.append(i)
     
     if protocols:
-        table = Table(title="Available Falsification Protocols")
-        table.add_column("Protocol", style="red")
-        table.add_column("Description", style="white")
+        table = Table(title="Available Falsification Protocols", show_header=True, header_style="bold red")
+        table.add_column("Protocol", style="red", width=20)
+        table.add_column("Description", style="white", width=50)
         
         for protocol_num in protocols:
             table.add_row(str(protocol_num), f"Falsification Protocol {protocol_num}")
@@ -792,7 +899,30 @@ def falsify(ctx, protocol, output_file):
 @click.option('--reset', is_flag=True, help='Reset to default configuration')
 @click.pass_context
 def config(ctx, show, set, reset):
-    """Manage configuration settings."""
+    """Manage configuration settings for APGI framework.
+    
+    This command allows you to view, modify, and reset configuration parameters
+    for all components of the APGI framework. Configuration is stored in YAML
+    format and supports runtime updates.
+    
+    Examples:
+        main.py config --show                                    # Show all settings
+        main.py config --set model.tau_S=0.5                     # Set parameter
+        main.py config --set simulation.enable_plots=true       # Enable plots
+        main.py config --reset                                   # Reset to defaults
+        main.py config --reset model                             # Reset section only
+    
+    Configuration Sections:
+        - model: Core APGI model parameters (tau_S, theta_0, alpha, etc.)
+        - simulation: Simulation settings (steps, plots, output formats)
+        - logging: Logging configuration (level, format, rotation)
+        - data: Data processing settings (formats, caching, directories)
+        - validation: Validation protocol settings (cross-validation, etc.)
+    
+    Parameter Validation:
+        All parameters are validated against defined schemas. Invalid values
+        will be rejected with descriptive error messages.
+    """
     console.print(Panel.fit("⚙️ Configuration Management", style="bold magenta"))
     
     try:
@@ -807,10 +937,10 @@ def config(ctx, show, set, reset):
                 current_config = get_config()
                 
                 # Display configuration in a nice table
-                config_table = Table(title="Current Configuration")
-                config_table.add_column("Section", style="cyan")
-                config_table.add_column("Parameter", style="white")
-                config_table.add_column("Value", style="green")
+                config_table = Table(title="Current Configuration", show_header=True, header_style="bold green")
+                config_table.add_column("Section", style="cyan", width=15)
+                config_table.add_column("Parameter", style="white", width=25)
+                config_table.add_column("Value", style="green", width=30)
                 
                 # Display main configuration sections
                 if hasattr(current_config, 'simulation'):
@@ -844,20 +974,40 @@ def config(ctx, show, set, reset):
         
         if set:
             try:
-                key, value = set.split('=', 1)
-                console.print(f"[blue]Setting {key} = {value}[/blue]")
+                if '=' not in set:
+                    raise ValueError("Parameter must contain '=' separator")
                 
-                # Try to set the configuration
-                success = set_parameter(key.split('.')[0], key.split('.')[-1] if '.' in key else key, value)
+                key, value = set.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+                
+                if not key:
+                    raise ValueError("Parameter key cannot be empty")
+                if not value:
+                    raise ValueError("Parameter value cannot be empty")
+                
+                # Validate key format (should be section.parameter or just parameter)
+                if '.' in key:
+                    section, param = key.split('.', 1)
+                    if not section or not param:
+                        raise ValueError("Invalid key format. Use 'section.parameter' or 'parameter'")
+                    console.print(f"[blue]Setting {section}.{param} = {value}[/blue]")
+                    success = set_parameter(section, param, value)
+                else:
+                    console.print(f"[blue]Setting {key} = {value}[/blue]")
+                    success = set_parameter(key.split('.')[0], key.split('.')[-1] if '.' in key else key, value)
                 
                 if success:
                     console.print(f"[green]✓[/green] Configuration updated successfully")
                     apgi_logger.logger.info(f"Configuration updated: {key} = {value}")
                 else:
                     console.print(f"[red]✗[/red] Failed to update configuration")
+                    console.print("[yellow]Hint: Use 'section.parameter' format (e.g., 'model.tau_S=0.5')[/yellow]")
                     
-            except ValueError:
-                console.print("[red]Error: Use format key=value[/red]")
+            except ValueError as e:
+                console.print(f"[red]Error: {e}[/red]")
+                console.print("[yellow]Usage: --set section.parameter=value[/yellow]")
+                console.print("[yellow]Examples: --set model.tau_S=0.5 or --set simulation.default_steps=1000[/yellow]")
             except Exception as e:
                 console.print(f"[red]Error setting configuration: {e}[/red]")
         
@@ -897,12 +1047,16 @@ def gui(ctx, gui_type, port, host):
             gui_path = PROJECT_ROOT / 'Validation' / 'APGI-Validation-GUI.py'
             if gui_path.exists():
                 console.print("[blue]Launching Validation GUI...[/blue]")
+                console.print("[yellow]Note: GUI will run in foreground. Press Ctrl+C to exit.[/yellow]")
+                
                 spec = importlib.util.spec_from_file_location('validation_gui', gui_path)
                 gui_module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(gui_module)
                 
                 if hasattr(gui_module, 'main'):
+                    console.print("[green]✓[/green] Validation GUI started successfully")
                     gui_module.main()
+                    console.print("[blue]Validation GUI closed[/blue]")
                 else:
                     console.print("[yellow]Validation GUI has no main function[/yellow]")
             else:
@@ -913,12 +1067,16 @@ def gui(ctx, gui_type, port, host):
             gui_path = PROJECT_ROOT / 'APGI-Psychological-States-GUI.py'
             if gui_path.exists():
                 console.print("[blue]Launching Psychological States GUI...[/blue]")
+                console.print("[yellow]Note: GUI will run in foreground. Press Ctrl+C to exit.[/yellow]")
+                
                 spec = importlib.util.spec_from_file_location('psychological_gui', gui_path)
                 gui_module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(gui_module)
                 
                 if hasattr(gui_module, 'main'):
+                    console.print("[green]✓[/green] Psychological States GUI started successfully")
                     gui_module.main()
+                    console.print("[blue]Psychological States GUI closed[/blue]")
                 else:
                     console.print("[yellow]Psychological States GUI has no main function[/yellow]")
             else:
@@ -927,11 +1085,14 @@ def gui(ctx, gui_type, port, host):
         elif gui_type == 'analysis':
             # Launch web-based analysis interface
             console.print(f"[blue]Starting web-based analysis interface on http://{host}:{port}[/blue]")
+            console.print("[yellow]Note: Web server will run in background. Use Ctrl+C to stop.[/yellow]")
             
             # Create a simple web interface
             from flask import Flask, render_template_string, request, jsonify
             import threading
             import webbrowser
+            import signal
+            import sys
             
             app = Flask(__name__)
             
@@ -1037,20 +1198,44 @@ def gui(ctx, gui_type, port, host):
                 return jsonify(result)
             
             def run_app():
-                app.run(host=host, port=port, debug=False)
+                app.run(host=host, port=port, debug=False, use_reloader=False)
+            
+            # Set up signal handler for graceful shutdown
+            def signal_handler(sig, frame):
+                console.print("\n[yellow]Shutting down web server...[/yellow]")
+                sys.exit(0)
+            
+            signal.signal(signal.SIGINT, signal_handler)
             
             # Run in a separate thread
-            thread = threading.Thread(target=run_app)
-            thread.daemon = True
+            thread = threading.Thread(target=run_app, daemon=True)
             thread.start()
             
             # Give the server a moment to start
             import time
-            time.sleep(1)
+            console.print("[blue]Starting web server...[/blue]")
+            time.sleep(2)
             
-            # Open browser
-            webbrowser.open(f'http://{host}:{port}')
-            console.print(f"[green]✓[/green] Web interface launched at http://{host}:{port}")
+            # Check if server is running
+            if thread.is_alive():
+                console.print(f"[green]✓[/green] Web interface launched successfully at http://{host}:{port}")
+                console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
+                
+                # Open browser
+                try:
+                    webbrowser.open(f'http://{host}:{port}')
+                    console.print("[blue]Browser opened automatically[/blue]")
+                except Exception:
+                    console.print(f"[yellow]Could not open browser automatically. Please visit http://{host}:{port}[/yellow]")
+                
+                # Keep the main thread alive
+                try:
+                    while thread.is_alive():
+                        time.sleep(1)
+                except KeyboardInterrupt:
+                    console.print("\n[yellow]Stopping web server...[/yellow]")
+            else:
+                console.print("[red]Failed to start web server[/red]")
             
         else:
             console.print(f"[yellow]Unknown GUI type: {gui_type}[/yellow]")
@@ -1153,6 +1338,53 @@ def logs(ctx, tail, follow, level, export):
 
 
 @cli.command()
+@click.option('--detailed', is_flag=True, help='Show detailed performance metrics')
+def performance(detailed):
+    """Show performance metrics and statistics."""
+    console.print(Panel.fit("📊 Performance Metrics", style="bold cyan"))
+    
+    try:
+        summary = apgi_logger.get_performance_summary()
+        
+        if not summary:
+            console.print("[yellow]No performance metrics recorded yet[/yellow]")
+            console.print("[blue]Run some commands to generate performance data[/blue]")
+            return
+        
+        # Create performance table
+        perf_table = Table(title="Performance Summary", show_header=True, header_style="bold cyan")
+        perf_table.add_column("Metric", style="cyan", width=25)
+        perf_table.add_column("Count", style="white", width=10)
+        perf_table.add_column("Mean", style="green", width=12)
+        perf_table.add_column("Min", style="yellow", width=12)
+        perf_table.add_column("Max", style="red", width=12)
+        perf_table.add_column("Unit", style="blue", width=8)
+        
+        for metric_name, stats in summary.items():
+            perf_table.add_row(
+                metric_name,
+                str(stats['count']),
+                f"{stats['mean']:.3f}",
+                f"{stats['min']:.3f}",
+                f"{stats['max']:.3f}",
+                stats['unit']
+            )
+        
+        console.print(perf_table)
+        
+        if detailed:
+            console.print("\n[bold]Detailed Metrics:[/bold]")
+            for metric_name, stats in summary.items():
+                console.print(f"\n[cyan]{metric_name}:[/cyan]")
+                console.print(f"  Latest: {stats['latest']:.3f} {stats['unit']} at {stats['latest_timestamp']}")
+                console.print(f"  Range: {stats['min']:.3f} - {stats['max']:.3f} {stats['unit']}")
+                console.print(f"  Average: {stats['mean']:.3f} {stats['unit']} over {stats['count']} measurements")
+        
+    except Exception as e:
+        console.print(f"[red]Error getting performance metrics: {e}[/red]")
+
+
+@cli.command()
 @click.option('--input-file', required=True, help='Input data file for visualization')
 @click.option('--output-file', help='Output file for visualization')
 @click.option('--plot-type', default='auto', help='Type of plot (auto, time_series, heatmap, scatter, distribution)')
@@ -1170,7 +1402,37 @@ def visualize(ctx, input_file, output_file, plot_type, interactive):
         
         # Load data
         console.print(f"[blue]Loading data from {input_file}...[/blue]")
-        data = pd.read_csv(input_file)
+        try:
+            data = pd.read_csv(input_file)
+        except FileNotFoundError:
+            console.print(f"[red]Error: File not found: {input_file}[/red]")
+            console.print(f"[yellow]File path checked: {Path(input_file).absolute()}[/yellow]")
+            console.print(f"[yellow]Available data files:[/yellow]")
+            
+            # List available CSV files in data directory
+            data_dir = PROJECT_ROOT / 'data'
+            if data_dir.exists():
+                csv_files = list(data_dir.glob('**/*.csv'))
+                if csv_files:
+                    console.print("[blue]Found these data files:[/blue]")
+                    for csv_file in csv_files[:5]:  # Show first 5
+                        console.print(f"  - {csv_file.relative_to(PROJECT_ROOT)}")
+                    if len(csv_files) > 5:
+                        console.print(f"  ... and {len(csv_files) - 5} more files")
+                else:
+                    console.print("[yellow]No CSV files found in data directory[/yellow]")
+            else:
+                console.print("[yellow]Data directory not found[/yellow]")
+                
+            console.print("[yellow]Usage example: python main.py visualize --input-file data/sample.csv[/yellow]")
+            return
+        except Exception as e:
+            console.print(f"[red]Error reading file {input_file}: {e}[/red]")
+            console.print(f"[yellow]File type: {Path(input_file).suffix}[/yellow]")
+            console.print("[yellow]Supported formats: .csv, .json, .xlsx, .xls[/yellow]")
+            console.print("[blue]Tip: Check if the file is corrupted or in the correct format[/blue]")
+            return
+            
         console.print(f"[green]✓[/green] Loaded data with shape: {data.shape}")
         
         # Determine plot type
@@ -1287,8 +1549,12 @@ def export_data(ctx, input_file, output_file, format, compress):
             # Try to auto-detect
             try:
                 data = pd.read_csv(input_file)
-            except:
-                data = pd.read_json(input_file)
+            except (pd.errors.EmptyDataError, pd.errors.ParserError, FileNotFoundError):
+                try:
+                    data = pd.read_json(input_file)
+                except (ValueError, FileNotFoundError, json.JSONDecodeError):
+                    console.print(f"[red]Error: Could not read data file {input_file}. Supported formats: CSV, JSON[/red]")
+                    return
         
         console.print(f"[green]✓[/green] Loaded data with shape: {data.shape}")
         
@@ -1479,6 +1745,21 @@ def info():
         commands_table.add_row(cmd, desc)
     
     console.print(commands_table)
+
+
+# Add all commands to CLI
+cli.add_command(formal_model)
+cli.add_command(multimodal)
+cli.add_command(estimate_params)
+cli.add_command(validate)
+cli.add_command(falsify)
+cli.add_command(config)
+cli.add_command(logs)
+cli.add_command(gui)
+cli.add_command(visualize)
+cli.add_command(export_data)
+cli.add_command(import_data)
+cli.add_command(info)
 
 
 if __name__ == '__main__':

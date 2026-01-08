@@ -134,7 +134,8 @@ class APGILogger:
     
     def log_performance_metric(self, metric_name: str, value: float, unit: str = "seconds"):
         """Log performance metrics."""
-        logger.bind(metric=metric_name, value=value, unit=unit).info("")
+        logger.info(f"Performance: {metric_name} = {value:.3f} {unit}")
+        logger.bind(metric=metric_name, value=value, unit=unit).debug("Performance metric details")
         
         # Track metrics for analysis
         if metric_name not in self.performance_metrics:
@@ -144,6 +145,23 @@ class APGILogger:
             'unit': unit,
             'timestamp': datetime.now().isoformat()
         })
+    
+    def get_performance_summary(self) -> Dict[str, Dict[str, Any]]:
+        """Get summary of all performance metrics."""
+        summary = {}
+        for metric_name, values in self.performance_metrics.items():
+            if values:
+                numeric_values = [v['value'] for v in values]
+                summary[metric_name] = {
+                    'count': len(values),
+                    'mean': sum(numeric_values) / len(numeric_values),
+                    'min': min(numeric_values),
+                    'max': max(numeric_values),
+                    'unit': values[0]['unit'],
+                    'latest': values[-1]['value'],
+                    'latest_timestamp': values[-1]['timestamp']
+                }
+        return summary
     
     def log_error_with_context(self, error: Exception, context: Dict[str, Any]):
         """Log errors with additional context information."""

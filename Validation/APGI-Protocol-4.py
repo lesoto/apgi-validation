@@ -871,7 +871,7 @@ class FiniteSizeScalingAnalysis:
                 beta_fit = np.polyfit(log_reduced, log_order, 1)
                 beta = beta_fit[0]
                 exponents['beta'] = beta
-            except:
+            except (ValueError, np.linalg.LinAlgError):
                 exponents['beta'] = np.nan
         else:
             exponents['beta'] = np.nan
@@ -885,7 +885,7 @@ class FiniteSizeScalingAnalysis:
                 gamma_fit = np.polyfit(log_reduced, log_suscept, 1)
                 gamma = -gamma_fit[0]  # Negative slope
                 exponents['gamma'] = gamma
-            except:
+            except (ValueError, np.linalg.LinAlgError):
                 exponents['gamma'] = np.nan
         else:
             exponents['gamma'] = np.nan
@@ -948,15 +948,15 @@ class FiniteSizeScalingAnalysis:
                 positive_mask = acf_data > 0.01
                 if np.sum(positive_mask) > 3:
                     try:
-                        popt_exp, _ = curve_fit(
+                        popt_exp, _ = scipy.optimize.curve_fit(
                             lambda t, tau: np.exp(-t/tau),
                             lags[positive_mask],
                             acf_data[positive_mask],
-                            p0=[50],
+                            p0=[1.0],
                             maxfev=1000
                         )
                         tau_corr = popt_exp[0]
-                    except:
+                    except (ValueError, RuntimeError, scipy.optimize.OptimizeWarning):
                         tau_corr = np.nan
                 else:
                     tau_corr = np.nan
@@ -969,7 +969,7 @@ class FiniteSizeScalingAnalysis:
                     try:
                         alpha_fit = np.polyfit(log_lags, log_acf, 1)
                         alpha = -alpha_fit[0]
-                    except:
+                    except (ValueError, np.linalg.LinAlgError):
                         alpha = np.nan
                 else:
                     alpha = np.nan
@@ -1245,7 +1245,7 @@ class FiniteSizeScalingAnalysis:
                 elif exponent_type == 'gamma':
                     fit = np.polyfit(np.log(reduced_param), np.log(data_safe), 1)
                     exponents.append(-fit[0])
-            except:
+            except (ValueError, np.linalg.LinAlgError, RuntimeError):
                 continue
         
         if len(exponents) > 0:
@@ -2210,6 +2210,16 @@ def main():
     print("="*80)
     
     return results_summary
+
+
+def run_validation():
+    """Entry point for CLI validation."""
+    try:
+        print("Running APGI Validation Protocol 4: Cross-Modal Replication and Meta-Analysis")
+        return main()
+    except Exception as e:
+        print(f"Error in validation protocol 4: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 if __name__ == "__main__":

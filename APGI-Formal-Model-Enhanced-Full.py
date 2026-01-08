@@ -2023,8 +2023,8 @@ def verify_all_fixes():
         try:
             modified = library.apply_psychiatric_profile('flow', profile)
             print(f"   {profile} profile: ✓")
-        except:
-            print(f"   {profile} profile: ❌")
+        except (ValueError, KeyError, AttributeError) as e:
+            print(f"   {profile} profile: ❌ ({e})")
             all_passed = False
     
     print("\n" + "=" * 50)

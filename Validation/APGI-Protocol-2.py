@@ -1971,5 +1971,15 @@ def main():
     return results_summary
 
 
+def run_validation():
+    """Entry point for CLI validation."""
+    try:
+        print("Running APGI Validation Protocol 2: Bayesian Model Comparison on Existing Consciousness Datasets")
+        return main()
+    except Exception as e:
+        print(f"Error in validation protocol 2: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 if __name__ == "__main__":
     main()

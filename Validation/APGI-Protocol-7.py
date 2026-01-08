@@ -355,10 +355,13 @@ class PsychometricCurve:
                     ) / (4 * eps**2)
             
             # Covariance from inverse Hessian
-            cov = np.linalg.inv(hessian)
-            se = np.sqrt(np.diag(cov))
-            
-        except:
+            try:
+                cov = np.linalg.inv(hessian)
+                se = np.sqrt(np.diag(cov))
+            except (np.linalg.LinAlgError, ValueError):
+                se = [0.1, 1.0, 0.01]
+        
+        except (ValueError, RuntimeError, np.linalg.LinAlgError):
             se = [0.1, 1.0, 0.01]
         
         return {
@@ -658,7 +661,7 @@ class PowerAnalysis:
                 # Power = P(|t| > t_crit | H1)
                 power[i] = 1 - stats.nct.cdf(t_crit, df, ncp) + stats.nct.cdf(-t_crit, df, ncp)
                 
-            except:
+            except (ValueError, RuntimeError):
                 power[i] = np.nan
         
         return power
@@ -1737,6 +1740,16 @@ def main():
     print("="*80)
     
     return results_summary
+
+
+def run_validation():
+    """Entry point for CLI validation."""
+    try:
+        print("Running APGI Validation Protocol 7: Clinical Translation and Validation")
+        return main()
+    except Exception as e:
+        print(f"Error in validation protocol 7: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 if __name__ == "__main__":

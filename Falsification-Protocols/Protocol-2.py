@@ -321,3 +321,41 @@ if __name__ == "__main__":
     
     print(f"Demo completed. Total reward: {total_reward:.2f}")
     print("=== Protocol completed successfully ===")
+
+
+def run_falsification():
+    """Entry point for CLI falsification testing."""
+    try:
+        print("Running APGI Falsification Protocol 2: Iowa Gambling Task Environment")
+        # Run the main demo
+        env = IowaGamblingTaskEnvironment()
+        
+        total_reward = 0
+        for trial in range(1, 6):
+            action = np.random.choice(4)  # Random action
+            reward, intero_cost, obs, done = env.step(action)
+            total_reward += reward
+            print(f"Trial {trial}: Action={action}, Reward={reward:.2f}, InteroCost={intero_cost:.2f}")
+        
+        print(f"Demo completed. Total reward: {total_reward:.2f}")
+        return {"status": "success", "total_reward": total_reward}
+    except Exception as e:
+        print(f"Error in falsification protocol 2: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+# Main execution
+if __name__ == "__main__":
+    print("Iowa Gambling Task Environment created")
+    env = IowaGamblingTaskEnvironment()
+    
+    # Run a few demo trials
+    total_reward = 0
+    for trial in range(1, 6):
+        action = np.random.choice(4)  # Random action
+        reward, intero_cost, obs, done = env.step(action)
+        total_reward += reward
+        print(f"Trial {trial}: Action={action}, Reward={reward:.2f}, InteroCost={intero_cost:.2f}")
+    
+    print(f"Demo completed. Total reward: {total_reward:.2f}")
+    print("=== Protocol completed successfully ===")

@@ -369,3 +369,28 @@ if __name__ == "__main__":
     results = analyzer.run_phase_transition_analysis()
     print("Phase transition analysis completed:", type(results))
     print("=== Protocol completed successfully ===")
+
+
+def run_falsification():
+    """Entry point for CLI falsification testing."""
+    try:
+        print("Running APGI Falsification Protocol 4: Phase Transition Analysis")
+        apgi_system = SurpriseIgnitionSystem()
+        analyzer = InformationTheoreticAnalysis(apgi_system)
+        results = analyzer.run_phase_transition_analysis()
+        print("Phase transition analysis completed:", type(results))
+        print("=== Protocol completed successfully ===")
+        return {"status": "success", "results": results}
+    except Exception as e:
+        print(f"Error in falsification protocol 4: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+# Main execution
+if __name__ == "__main__":
+    print("Running phase transition analysis...")
+    apgi_system = SurpriseIgnitionSystem()
+    analyzer = InformationTheoreticAnalysis(apgi_system)
+    results = analyzer.run_phase_transition_analysis()
+    print("Phase transition analysis completed:", type(results))
+    print("=== Protocol completed successfully ===")

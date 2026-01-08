@@ -268,11 +268,41 @@ class ConfigManager:
         if not hasattr(section_obj, parameter):
             raise ValueError(f"Unknown parameter: {parameter} in section: {section}")
         
-        # Validate parameter value
-        self._validate_parameter(section, parameter, value)
+        # Convert string values to appropriate types
+        converted_value = self._convert_parameter_value(section, parameter, value)
         
-        setattr(section_obj, parameter, value)
-        apgi_logger.logger.info(f"Updated {section}.{parameter} = {value}")
+        # Validate parameter value
+        self._validate_parameter(section, parameter, converted_value)
+        
+        setattr(section_obj, parameter, converted_value)
+        apgi_logger.logger.info(f"Updated {section}.{parameter} = {converted_value}")
+    
+    def _convert_parameter_value(self, section: str, parameter: str, value: Any) -> Any:
+        """Convert parameter value to appropriate type."""
+        # Get current value to determine target type
+        section_obj = getattr(self.config, section)
+        current_value = getattr(section_obj, parameter)
+        
+        # If value is already the correct type, return as-is
+        if isinstance(value, type(current_value)):
+            return value
+        
+        # Convert string values
+        if isinstance(value, str):
+            # Boolean conversion
+            if isinstance(current_value, bool):
+                return value.lower() in ['true', '1', 'yes', 'on']
+            # Integer conversion
+            elif isinstance(current_value, int):
+                return int(value)
+            # Float conversion
+            elif isinstance(current_value, float):
+                return float(value)
+            # List conversion (comma-separated)
+            elif isinstance(current_value, list):
+                return [item.strip() for item in value.split(',')]
+        
+        return value
     
     def _validate_parameter(self, section: str, parameter: str, value: Any):
         """Validate individual parameter value."""
@@ -438,7 +468,11 @@ def get_config(section: Optional[str] = None):
 
 def set_parameter(section: str, parameter: str, value: Any):
     """Set a specific configuration parameter."""
-    config_manager.set_parameter(section, parameter, value)
+    try:
+        config_manager.set_parameter(section, parameter, value)
+        return True
+    except Exception as e:
+        return False
 
 def reset_config(section: Optional[str] = None):
     """Reset configuration to defaults."""

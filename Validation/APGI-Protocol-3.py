@@ -1995,6 +1995,17 @@ def test_agent_generalization(trained_agent, test_environments):
     
     return generalization_results
 
+
+def run_validation():
+    """Entry point for CLI validation."""
+    try:
+        print("Running APGI Validation Protocol 3: Active Inference Agent Simulations")
+        return main()
+    except Exception as e:
+        print(f"Error in validation protocol 3: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 # =============================================================================
 # MAIN EXECUTION
 # =============================================================================
