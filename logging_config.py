@@ -212,21 +212,6 @@ class APGILogger:
         
         logger.bind(system_info=system_info).info("System information")
     
-    def get_performance_summary(self) -> Dict[str, Any]:
-        """Get summary of performance metrics."""
-        summary = {}
-        for metric_name, measurements in self.performance_metrics.items():
-            if measurements:
-                values = [m['value'] for m in measurements]
-                summary[metric_name] = {
-                    'count': len(values),
-                    'mean': sum(values) / len(values),
-                    'min': min(values),
-                    'max': max(values),
-                    'unit': measurements[0]['unit']
-                }
-        return summary
-    
     def get_error_summary(self) -> Dict[str, int]:
         """Get summary of error occurrences."""
         return self.error_counts.copy()

@@ -19,6 +19,7 @@ arviz>=0.12.0
 # Data visualization
 matplotlib>=3.4.0
 seaborn>=0.11.0
+plotly>=5.0.0
 
 # Progress bars and utilities
 tqdm>=4.62.0

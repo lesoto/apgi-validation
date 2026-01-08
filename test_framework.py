@@ -11,6 +11,7 @@ Tests all major components including:
 - Validation protocols
 - Configuration management
 - Logging system
+- GUI components integration testing
 """
 
 import sys
@@ -291,6 +292,101 @@ def run_integration_tests():
         return False
 
 
+class TestGUIIntegration(unittest.TestCase):
+    """Test GUI components integration."""
+    
+    def setUp(self):
+        """Set up GUI test environment."""
+        self.temp_dir = tempfile.mkdtemp()
+        # Set environment variable to prevent actual GUI display during tests
+        os.environ['DISPLAY'] = ':99'  # Virtual display
+    
+    def tearDown(self):
+        """Clean up GUI test environment."""
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+    
+    def test_validation_gui_import(self):
+        """Test that Validation GUI can be imported without errors."""
+        try:
+            # Test import without actually launching GUI
+            import subprocess
+            result = subprocess.run([
+                sys.executable, '-c', 
+                """
+import sys
+sys.path.insert(0, '.')
+try:
+    from Validation.APGI-Validation-GUI import APGIValidationGUI
+    print('SUCCESS: Validation GUI imported successfully')
+except ImportError as e:
+    print(f'FAILED: Could not import Validation GUI: {e}')
+    sys.exit(1)
+except Exception as e:
+    print(f'FAILED: Error importing Validation GUI: {e}')
+    sys.exit(1)
+                """
+            ], capture_output=True, text=True, cwd=PROJECT_ROOT)
+            
+            self.assertEqual(result.returncode, 0, "Validation GUI import failed")
+            self.assertIn('SUCCESS', result.stdout)
+            
+        except Exception as e:
+            self.fail(f"Validation GUI import test failed: {e}")
+    
+    def test_psychological_gui_import(self):
+        """Test that Psychological States GUI can be imported without errors."""
+        try:
+            import subprocess
+            result = subprocess.run([
+                sys.executable, '-c', 
+                """
+import sys
+sys.path.insert(0, '.')
+try:
+    from APGI-Psychological-States-GUI import main as gui_main
+    print('SUCCESS: Psychological States GUI imported successfully')
+except ImportError as e:
+    print(f'FAILED: Could not import Psychological States GUI: {e}')
+    sys.exit(1)
+except Exception as e:
+    print(f'FAILED: Error importing Psychological States GUI: {e}')
+    sys.exit(1)
+                """
+            ], capture_output=True, text=True, cwd=PROJECT_ROOT)
+            
+            self.assertEqual(result.returncode, 0, "Psychological States GUI import failed")
+            self.assertIn('SUCCESS', result.stdout)
+            
+        except Exception as e:
+            self.fail(f"Psychological States GUI import test failed: {e}")
+    
+    def test_gui_dependencies(self):
+        """Test that GUI dependencies are available."""
+        required_modules = ['tkinter', 'matplotlib', 'numpy']
+        
+        for module_name in required_modules:
+            try:
+                if module_name == 'tkinter':
+                    import tkinter
+                elif module_name == 'matplotlib':
+                    import matplotlib
+                elif module_name == 'numpy':
+                    import numpy
+            except ImportError:
+                self.fail(f"Required GUI dependency '{module_name}' not available")
+    
+    def test_gui_file_paths(self):
+        """Test that GUI files exist and are accessible."""
+        gui_files = [
+            PROJECT_ROOT / 'Validation' / 'APGI-Validation-GUI.py',
+            PROJECT_ROOT / 'APGI-Psychological-States-GUI.py'
+        ]
+        
+        for gui_file in gui_files:
+            self.assertTrue(gui_file.exists(), f"GUI file not found: {gui_file}")
+            self.assertGreater(gui_file.stat().st_size, 0, f"GUI file is empty: {gui_file}")
+
+
 def main():
     """Main test runner."""
     print("APGI Theory Framework Test Suite")
@@ -309,7 +405,8 @@ def main():
         TestLogging,
         TestModuleLoading,
         TestBasicFunctionality,
-        TestDependencies
+        TestDependencies,
+        TestGUIIntegration
     ]
     
     for test_class in test_classes:

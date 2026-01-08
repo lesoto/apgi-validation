@@ -46,7 +46,7 @@ python main.py validate --protocol all
 
 ## 📁 Project Structure
 
-```
+```text
 apgi-theory/
 ├── main.py                           # Unified CLI entry point
 ├── config/                           # Configuration files
@@ -64,42 +64,53 @@ apgi-theory/
 ## 🔬 Core Components
 
 ### 1. Formal Model (`APGI-Formal-Model.py`)
-Implements the dynamical system for accumulated surprise and ignition:
-- Surprise accumulation with timescale τ_S
-- Threshold adaptation with timescale τ_θ
-- Ignition cascades and reset dynamics
-- Metabolic and arousal modulation
+
+Implements dynamical system for accumulated surprise and ignition:
+
+  • Surprise accumulation with timescale τ_S
+  • Threshold adaptation with timescale τ_θ
+  • Ignition cascades and reset dynamics
+  • Metabolic and arousal modulation
 
 ### 2. Multimodal Integration (`APGI-Multimodal-Integration.py`)
+
 Integrates multiple data modalities:
-- Physiological signals (HRV, GSR, EEG)
-- Behavioral metrics
-- Self-report measures
-- Real-time state estimation
+
+  • Physiological signals (HRV, GSR, EEG)
+  • Behavioral metrics
+  • Self-report measures
+  • Real-time state estimation
 
 ### 3. Parameter Estimation (`APGI-Parameter-Estimation-Protocol.py`)
+
 Bayesian parameter inference:
-- Markov Chain Monte Carlo (MCMC) sampling
-- Posterior distribution analysis
-- Model comparison metrics
-- Uncertainty quantification
+
+  • Markov Chain Monte Carlo (MCMC) sampling
+  • Posterior distribution analysis
+  • Model comparison metrics
+  • Uncertainty quantification
 
 ### 4. Validation Protocols (`Validation/`)
+
 Comprehensive testing suite:
-- Cross-validation procedures
-- Predictive validity tests
-- Sensitivity analysis
-- Robustness checks
+
+  • Cross-validation procedures
+  • Predictive validity tests
+  • Sensitivity analysis
+  • Robustness checks
 
 ## 🛠️ Installation Requirements
 
 ### System Requirements
+
 - Python 3.8+
 - 8GB+ RAM recommended
 - 2GB+ disk space
 
 ### Dependencies
+
 See `requirements.txt` for complete list. Key dependencies include:
+
 - `numpy`, `scipy`, `pandas` - Scientific computing
 - `torch`, `scikit-learn` - Machine learning
 - `pymc`, `arviz` - Bayesian modeling
@@ -127,6 +138,7 @@ Commands:
 ### Configuration Management
 
 Configuration files in `config/` allow customization of:
+
 - Model parameters
 - Simulation settings
 - Data paths
@@ -136,6 +148,7 @@ Configuration files in `config/` allow customization of:
 ### Logging Framework
 
 Comprehensive logging system with:
+
 - Multiple log levels (DEBUG, INFO, WARNING, ERROR)
 - Rotating log files
 - Structured output formats
@@ -144,6 +157,7 @@ Comprehensive logging system with:
 ## 🧪 Validation and Testing
 
 ### Running Validation
+
 ```bash
 # Run all validation protocols
 python main.py validate --protocol all
@@ -153,6 +167,7 @@ python main.py validate --protocol cross-validation
 ```
 
 ### Falsification Testing
+
 ```bash
 # Execute falsification protocols
 python main.py falsify --protocol 1
@@ -161,6 +176,7 @@ python main.py falsify --protocol 1
 ## 📊 Example Workflows
 
 ### 1. Basic Simulation
+
 ```python
 from APGIFormalModel import SurpriseIgnitionSystem
 
@@ -172,6 +188,7 @@ results = system.simulate(steps=1000, dt=0.01)
 ```
 
 ### 2. Parameter Estimation
+
 ```python
 from APGIParameterEstimation import ParameterEstimator
 
@@ -184,6 +201,7 @@ results = estimator.estimate_parameters(data)
 ```
 
 ### 3. Multimodal Integration
+
 ```python
 from APGIMultimodalIntegration import MultimodalIntegrator
 
@@ -208,7 +226,31 @@ state_estimates = integrator.integrate_data(
 
 ## 📄 License
 
-[Add license information here]
+This project is licensed under the MIT License - see the details below:
+
+```text
+MIT License
+
+Copyright (c) 2024 APGI Theory Framework
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ## 📚 References
 
@@ -219,6 +261,7 @@ state_estimates = integrator.integrate_data(
 ## 🆘 Support
 
 For issues and questions:
+
 1. Check the logs directory for error messages
 2. Review validation protocol outputs
 3. Consult the troubleshooting section in documentation

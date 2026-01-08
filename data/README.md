@@ -4,7 +4,7 @@ This directory contains sample datasets, data validation utilities, preprocessin
 
 ## Directory Structure
 
-```
+```text
 data/
 ├── sample_data_generator.py      # Generate realistic multimodal datasets
 ├── data_validation.py            # Data validation and quality assessment
@@ -121,7 +121,7 @@ result = pipeline.run_complete_pipeline('data/demo_demo.csv')
 - **Validation Cache**: Protocol validation results
 - **General Cache**: Arbitrary data caching
 
-### Usage
+### Cache Usage
 
 ```python
 from data.cache_manager import CacheManager, DataCache

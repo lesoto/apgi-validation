@@ -361,9 +361,9 @@ class APGIVisualizer:
             data.append(row)
         
         df = pd.DataFrame(data)
-        df['precision_ratio'] = df['Pi_i_eff'] / df['Pi_e']
-        df['somatic_engagement'] = df['M_ca'] * df['beta']
-        df['prediction_error_total'] = df['z_e'] + df['z_i']
+        df.loc[:, 'precision_ratio'] = df['Pi_i_eff'] / df['Pi_e']
+        df.loc[:, 'somatic_engagement'] = df['M_ca'] * df['beta']
+        df.loc[:, 'prediction_error_total'] = df['z_e'] + df['z_i']
         
         return df
     

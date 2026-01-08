@@ -18,12 +18,14 @@
 ### Virtual Environment Problems
 
 **Problem:** Cannot activate virtual environment
+
 ```bash
 # Error
 source: No such file 'venv/bin/activate'
 ```
 
 **Solution:**
+
 ```bash
 # Create virtual environment
 python3 -m venv venv
@@ -39,12 +41,14 @@ which python  # Should show venv path
 ```
 
 **Problem:** Dependencies not installing
+
 ```bash
 # Error
 ERROR: Could not install packages due to EnvironmentError
 ```
 
 **Solution:**
+
 ```bash
 # Upgrade pip first
 pip install --upgrade pip
@@ -64,12 +68,14 @@ conda install <package-name>
 ### Module Import Errors
 
 **Problem:** ModuleNotFoundError for specific modules
+
 ```python
 # Error
 ModuleNotFoundError: No module named 'click'
 ```
 
 **Solution:**
+
 ```bash
 # Install missing dependency
 pip install click
@@ -82,12 +88,14 @@ python -c "import click; print(click.__version__)"
 ```
 
 **Problem:** Import errors for APGI modules
+
 ```python
 # Error
 ModuleNotFoundError: No module named 'config_manager'
 ```
 
 **Solution:**
+
 ```bash
 # Check current directory
 pwd
@@ -106,12 +114,14 @@ sys.path.append('/path/to/apgi-theory')
 ### Configuration File Issues
 
 **Problem:** Configuration file not found
+
 ```bash
 # Error
 FileNotFoundError: [Errno 2] No such file or directory: 'config/default.yaml'
 ```
 
 **Solution:**
+
 ```bash
 # Create config directory
 mkdir -p config
@@ -124,12 +134,14 @@ python main.py config --show
 ```
 
 **Problem:** Invalid configuration values
+
 ```python
 # Error
 ValueError: Invalid value for simulation.default_steps: '500' is not of type 'integer'
 ```
 
 **Solution:**
+
 ```bash
 # Set correct type
 python main.py config --set simulation.default_steps=500
@@ -141,12 +153,14 @@ nano config/default.yaml
 ### Parameter Validation Errors
 
 **Problem:** Parameter validation fails
+
 ```python
 # Error
 jsonschema.exceptions.ValidationError: 'invalid_value' is not of type 'number'
 ```
 
 **Solution:**
+
 ```python
 # Check valid parameter ranges
 from config_manager import get_config
@@ -162,12 +176,14 @@ set_parameter('simulation', 'default_steps', 500)  # integer, not string
 ### Simulation Errors
 
 **Problem:** Simulation crashes with NaN values
+
 ```python
 # Error
 RuntimeWarning: invalid value encountered in divide
 ```
 
 **Solution:**
+
 ```python
 # Check input data for invalid values
 import numpy as np
@@ -183,12 +199,14 @@ system.step(dt=0.001, inputs=inputs)  # Smaller dt
 ```
 
 **Problem:** Model parameters out of range
+
 ```python
 # Error
 ValueError: tau_S must be positive
 ```
 
 **Solution:**
+
 ```python
 # Check parameter constraints
 valid_params = {
@@ -205,12 +223,14 @@ system = SurpriseIgnitionSystem(params=valid_params)
 ### Integration Errors
 
 **Problem:** Multimodal integration fails
+
 ```python
 # Error
 KeyError: 'exteroceptive' not found in data
 ```
 
 **Solution:**
+
 ```python
 # Check data structure
 required_keys = ['exteroceptive', 'interoceptive', 'somatic']
@@ -231,6 +251,7 @@ mapped_data = {key_mapping.get(k, k): v for k, v in data.items()}
 ### Slow Performance
 
 **Problem:** Simulations running very slowly
+
 ```python
 # Symptoms
 - 1000 steps taking > 10 seconds
@@ -239,6 +260,7 @@ mapped_data = {key_mapping.get(k, k): v for k, v in data.items()}
 ```
 
 **Solution:**
+
 ```python
 # Use vectorized operations
 import numpy as np
@@ -258,6 +280,7 @@ processor = APGIBatchProcessor(normalizer, config, batch_size=1000)
 ```
 
 **Problem:** Memory usage too high
+
 ```python
 # Symptoms
 - Out of memory errors
@@ -266,6 +289,7 @@ processor = APGIBatchProcessor(normalizer, config, batch_size=1000)
 ```
 
 **Solution:**
+
 ```python
 # Process data in chunks
 chunk_size = 1000
@@ -290,6 +314,7 @@ print(f"Memory usage: {psutil.virtual_memory().percent}%")
 ### GPU Acceleration Issues
 
 **Problem:** GPU not being used despite availability
+
 ```python
 # Symptoms
 - torch.cuda.is_available() returns False
@@ -297,6 +322,7 @@ print(f"Memory usage: {psutil.virtual_memory().percent}%")
 ```
 
 **Solution:**
+
 ```python
 # Check PyTorch GPU availability
 import torch
@@ -316,12 +342,14 @@ tensor = tensor.to(device)
 ### Data Loading Problems
 
 **Problem:** Cannot read data files
+
 ```python
 # Error
 FileNotFoundError: [Errno 2] No such file or directory: 'data.csv'
 ```
 
 **Solution:**
+
 ```bash
 # Check file exists
 ls -la data.csv
@@ -334,12 +362,14 @@ pwd
 ```
 
 **Problem:** Data format issues
+
 ```python
 # Error
 pandas.errors.ParserError: Error tokenizing data
 ```
 
 **Solution:**
+
 ```python
 # Check file format
 import pandas as pd
@@ -360,6 +390,7 @@ data = pd.read_csv('data.csv', delimiter=',', quotechar='"', escapechar='\\')
 ### Data Quality Issues
 
 **Problem:** Missing or invalid data
+
 ```python
 # Symptoms
 - NaN values in results
@@ -368,6 +399,7 @@ data = pd.read_csv('data.csv', delimiter=',', quotechar='"', escapechar='\\')
 ```
 
 **Solution:**
+
 ```python
 # Check data quality
 import pandas as pd
@@ -404,12 +436,14 @@ data_filled = data.fillna(method='ffill')  # Forward fill
 ### GUI Not Starting
 
 **Problem:** GUI fails to launch
+
 ```bash
 # Error
 tkinter.TclError: no display name and no $DISPLAY environment variable
 ```
 
 **Solution:**
+
 ```bash
 # For headless systems, use web interface
 python main.py gui --gui-type analysis --host 0.0.0.0 --port 8080
@@ -423,12 +457,14 @@ ssh -X user@server
 ```
 
 **Problem:** Flask not available for web interface
+
 ```bash
 # Error
 ImportError: No module named 'flask'
 ```
 
 **Solution:**
+
 ```bash
 # Install Flask
 pip install flask
@@ -440,6 +476,7 @@ pip install fastapi uvicorn
 ### GUI Display Issues
 
 **Problem:** GUI windows not rendering properly
+
 ```python
 # Symptoms
 - Blank windows
@@ -448,6 +485,7 @@ pip install fastapi uvicorn
 ```
 
 **Solution:**
+
 ```python
 # Check matplotlib backend
 import matplotlib
@@ -465,12 +503,14 @@ pip install --upgrade matplotlib PyQt5
 ### Protocol Execution Failures
 
 **Problem:** Validation protocols not running
+
 ```python
 # Error
 AttributeError: module has no attribute 'run_validation'
 ```
 
 **Solution:**
+
 ```python
 # Check protocol structure
 # Each protocol should have:
@@ -488,6 +528,7 @@ python Validation/APGI-Protocol-1.py
 ```
 
 **Problem:** Validation results inconsistent
+
 ```python
 # Symptoms
 - Different results on multiple runs
@@ -496,6 +537,7 @@ python Validation/APGI-Protocol-1.py
 ```
 
 **Solution:**
+
 ```python
 # Set random seeds
 import numpy as np
@@ -522,12 +564,14 @@ std_result = np.std(results, axis=0)
 ### Out of Memory Errors
 
 **Problem:** System runs out of memory
+
 ```bash
 # Error
 MemoryError: Unable to allocate array
 ```
 
 **Solution:**
+
 ```python
 # Reduce batch size
 batch_size = 100  # Instead of 1000
@@ -564,12 +608,14 @@ gc.collect()
 ### File Handle Limits
 
 **Problem:** Too many open files
+
 ```bash
 # Error
 OSError: [Errno 24] Too many open files
 ```
 
 **Solution:**
+
 ```python
 # Close files explicitly
 with open('file.txt', 'r') as f:
@@ -595,6 +641,7 @@ ulimit -n 4096  # Temporary
 **Problem:** Need more detailed error information
 
 **Solution:**
+
 ```bash
 # Set debug log level
 python main.py --log-level DEBUG formal-model --simulation-steps 100
@@ -611,6 +658,7 @@ python main.py logs --tail 50 --level DEBUG
 **Problem:** Need to debug specific component
 
 **Solution:**
+
 ```python
 # Add debug prints
 import logging
@@ -633,6 +681,7 @@ import ipdb; ipdb.set_trace()
 **Problem:** Need to identify performance bottlenecks
 
 **Solution:**
+
 ```python
 # Use cProfile
 python -m cProfile -o profile.stats main.py formal-model --simulation-steps 1000
@@ -660,62 +709,72 @@ kernprof -l -v your_script.py
 
 ### Import Errors
 
-```
+```text
 ModuleNotFoundError: No module named 'X'
 ```
+
 **Solution:** Install missing module with `pip install X`
 
-```
+```text
 ImportError: cannot import name 'Y' from 'X'
 ```
+
 **Solution:** Check module version or use correct import name
 
 ### Configuration Errors
 
-```
+```text
 ValueError: Invalid value for parameter
 ```
+
 **Solution:** Check parameter type and range constraints
 
-```
+```text
 FileNotFoundError: Configuration file not found
 ```
+
 **Solution:** Run `python main.py config --reset` to create default config
 
-### Runtime Errors
+### Runtime Issues
 
-```
+```text
 RuntimeWarning: invalid value encountered in divide
 ```
+
 **Solution:** Check for division by zero or NaN values
 
-```
+```text
 MemoryError: Unable to allocate array
 ```
+
 **Solution:** Reduce data size or process in chunks
 
 ### Data Errors
 
-```
+```text
 pandas.errors.ParserError: Error tokenizing data
 ```
+
 **Solution:** Check file format and encoding
 
-```
+```text
 KeyError: 'required_column' not found
 ```
+
 **Solution:** Verify column names in data file
 
 ### Validation Errors
 
-```
+```text
 AttributeError: module has no attribute 'run_validation'
 ```
+
 **Solution:** Ensure validation protocol has required functions
 
-```
+```text
 AssertionError: Validation failed
 ```
+
 **Solution:** Check validation logic and input data
 
 ## Getting Additional Help
@@ -738,6 +797,7 @@ python main.py logs --tail 50 --level ERROR
 When reporting issues, include:
 
 1. **System Information**
+
    ```bash
    python --version
    pip list | grep -E "(numpy|scipy|pandas|pymc)"
@@ -750,11 +810,13 @@ When reporting issues, include:
    - Input data (if applicable)
 
 3. **Configuration**
+
    ```bash
    python main.py config --show > config.txt
    ```
 
 4. **Logs**
+
    ```bash
    python main.py logs --export debug_logs.json
    ```

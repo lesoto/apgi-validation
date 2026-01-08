@@ -6,7 +6,7 @@ The APGI Theory Framework is designed as a modular, extensible system for comput
 
 ## High-Level Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    APGI Theory Framework                        │
 ├─────────────────────────────────────────────────────────────────┤
@@ -38,7 +38,7 @@ The APGI Theory Framework is designed as a modular, extensible system for comput
 
 ### 1. CLI Interface Layer
 
-```
+```text
 CLI Interface (main.py)
 ├── Commands
 │   ├── formal-model → FormalModelCommand
@@ -64,7 +64,8 @@ CLI Interface (main.py)
 ### 2. Core Components
 
 #### Formal Model Component
-```
+
+```text
 SurpriseIgnitionSystem
 ├── State Variables
 │   ├── S (Surprise accumulation)
@@ -87,7 +88,8 @@ SurpriseIgnitionSystem
 ```
 
 #### Multimodal Integration Component
-```
+
+```text
 APGI Multimodal Integration
 ├── APGINormalizer
 │   ├── Z-score normalization
@@ -108,7 +110,8 @@ APGI Multimodal Integration
 ```
 
 #### Parameter Estimation Component
-```
+
+```text
 Parameter Estimation System
 ├── NeuralSignalGenerator
 │   ├── HEP waveform generation
@@ -127,7 +130,8 @@ Parameter Estimation System
 ### 3. Infrastructure Layer
 
 #### Configuration Management
-```
+
+```text
 ConfigManager
 ├── Configuration Loading
 │   ├── YAML file parsing
@@ -148,7 +152,8 @@ ConfigManager
 ```
 
 #### Logging System
-```
+
+```text
 APGILogger
 ├── Log Output
 │   ├── Console logging
@@ -172,7 +177,7 @@ APGILogger
 
 ### 1. Simulation Data Flow
 
-```
+```text
 Input Data → Normalization → Integration → Model → Results → Visualization
      │              │            │        │         │           │
      ▼              ▼            ▼        ▼         ▼           ▼
@@ -185,7 +190,7 @@ Input Data → Normalization → Integration → Model → Results → Visualiza
 
 ### 2. Parameter Estimation Flow
 
-```
+```text
 Experimental Data → Feature Extraction → Model Fitting → Parameter Inference → Validation
          │                   │                │                │              │
          ▼                   ▼                ▼                ▼              ▼
@@ -198,7 +203,7 @@ Experimental Data → Feature Extraction → Model Fitting → Parameter Inferen
 
 ### 3. Validation Protocol Flow
 
-```
+```text
 Test Data → Protocol Execution → Result Collection → Analysis → Report
     │            │                  │              │          │
     ▼            ▼                  ▼              ▼          ▼
@@ -212,7 +217,7 @@ Test Data → Protocol Execution → Result Collection → Analysis → Report
 
 ### Dependency Graph
 
-```
+```text
 main.py
 ├── click (CLI framework)
 ├── rich (Terminal UI)
@@ -243,7 +248,7 @@ main.py
 
 ### 1. Input Validation
 
-```
+```text
 User Input → Type Checking → Range Validation → Sanitization → Processing
       │            │              │              │           │
       ▼            ▼              ▼              ▼           ▼
@@ -256,7 +261,7 @@ User Input → Type Checking → Range Validation → Sanitization → Processin
 
 ### 2. File System Security
 
-```
+```text
 File Operations → Path Validation → Permission Check → Access Control → File I/O
         │               │                │               │           │
         ▼               ▼                ▼               ▼           ▼
@@ -271,7 +276,7 @@ File Operations → Path Validation → Permission Check → Access Control → 
 
 ### 1. Parallel Processing
 
-```
+```text
 Task Queue → Worker Pool → Parallel Execution → Result Aggregation → Output
      │           │              │                  │               │
      ▼           ▼              ▼                  ▼               ▼
@@ -283,7 +288,7 @@ Task Queue → Worker Pool → Parallel Execution → Result Aggregation → Out
 
 ### 2. Memory Management
 
-```
+```text
 Data Input → Chunking → Processing → Cleanup → Next Chunk
      │          │           │          │           │
      ▼          ▼           ▼          ▼           ▼
@@ -297,7 +302,7 @@ Data Input → Chunking → Processing → Cleanup → Next Chunk
 
 ### 1. Plugin System
 
-```
+```text
 Plugin Discovery → Loading → Registration → Execution → Cleanup
         │            │          │           │          │
         ▼            ▼          ▼           ▼          ▼
@@ -309,7 +314,7 @@ Plugin Discovery → Loading → Registration → Execution → Cleanup
 
 ### 2. Custom Model Integration
 
-```
+```text
 Custom Model → Interface Compliance → Registration → Integration → Usage
       │                │                  │           │          │
       ▼                ▼                  ▼           ▼          ▼
@@ -323,7 +328,7 @@ Custom Model → Interface Compliance → Registration → Integration → Usage
 
 ### 1. Development Environment
 
-```
+```text
 Developer Machine → Git Repository → Local Testing → CI/CD → Staging
          │                │              │          │        │
          ▼                ▼              ▼          ▼        ▼
@@ -335,7 +340,7 @@ Developer Machine → Git Repository → Local Testing → CI/CD → Staging
 
 ### 2. Production Deployment
 
-```
+```text
 Staging → Container Build → Registry → Production Deployment → Monitoring
     │          │               │          │                    │
     ▼          ▼               ▼          ▼                    ▼
@@ -349,7 +354,7 @@ Staging → Container Build → Registry → Production Deployment → Monitorin
 
 ### 1. Testing Framework
 
-```
+```text
 Test Suite → Unit Tests → Integration Tests → Validation Tests → Release
      │           │              │                  │             │
      ▼           ▼              ▼                  ▼             ▼
@@ -361,7 +366,7 @@ Test Suite → Unit Tests → Integration Tests → Validation Tests → Release
 
 ### 2. Continuous Integration
 
-```
+```text
 Code Commit → Build → Test → Quality Check → Deploy
       │         │       │          │           │
       ▼         ▼       ▼          ▼           ▼
@@ -375,7 +380,7 @@ Code Commit → Build → Test → Quality Check → Deploy
 
 ### 1. Microservices Architecture
 
-```
+```text
 API Gateway → Service Mesh → Individual Services → Data Layer → External APIs
       │            │              │                │           │
       ▼            ▼              ▼                ▼           ▼
@@ -387,7 +392,7 @@ API Gateway → Service Mesh → Individual Services → Data Layer → External
 
 ### 2. Cloud-Native Architecture
 
-```
+```text
 Load Balancer → Auto Scaling → Container Orchestration → Cloud Storage → Monitoring
        │            │              │                      │           │
        ▼            ▼              ▼                      ▼           ▼

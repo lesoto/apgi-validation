@@ -27,10 +27,12 @@ model_config = config.model
 ```
 
 **Key Classes:**
+
 - `ConfigManager`: Main configuration manager
 - `Config`: Configuration data container
 
 **Configuration Sections:**
+
 - `simulation`: Simulation parameters (steps, dt, plots, etc.)
 - `model`: Model parameters (tau_S, tau_theta, alpha, etc.)
 - `logging`: Logging configuration (level, format, file, etc.)
@@ -60,10 +62,12 @@ apgi_logger.export_logs("output.json", format_type="json", log_level="INFO")
 ```
 
 **Key Classes:**
+
 - `APGILogger`: Main logger class
 - `PerformanceTracker`: Performance metrics tracking
 
 **Log Levels:**
+
 - DEBUG: Detailed debugging information
 - INFO: General information messages
 - WARNING: Warning messages
@@ -106,11 +110,13 @@ ignition = system.B      # Ignition state
 ```
 
 **Key Methods:**
+
 - `step(dt, inputs)`: Advance simulation by one time step
 - `reset()`: Reset model to initial conditions
 - `get_state()`: Get current state dictionary
 
 **State Variables:**
+
 - `S`: Surprise accumulation
 - `theta`: Ignition threshold
 - `B`: Ignition state (binary)
@@ -219,7 +225,53 @@ P_ignition = APGIDynamics.compute_ignition_probability(
 )
 ```
 
-### 6. Validation Protocols
+### 6. Psychological States
+
+#### `APGI-Psychological-States-CLI`
+
+Command-line interface for psychological state analysis.
+
+```python
+from APGI-Psychological-States-CLI import PsychologicalStatesAnalyzer
+
+# Initialize analyzer
+analyzer = PsychologicalStatesAnalyzer()
+
+# Analyze psychological states
+results = analyzer.analyze_states(
+    data_file='psychological_data.csv',
+    model_type='apgi'
+)
+```
+
+#### `APGI-Psychological-States-GUI`
+
+Graphical interface for psychological state visualization and analysis.
+
+```python
+from APGI-Psychological-States-GUI import main as gui_main
+
+# Launch GUI (blocking call)
+gui_main()
+```
+
+### 7. GUI Components
+
+#### `APGIValidationGUI`
+
+Validation protocol GUI with real-time progress tracking.
+
+```python
+from Validation.APGI-Validation-GUI import APGIValidationGUI
+
+# Initialize GUI
+gui = APGIValidationGUI()
+
+# Run specific protocols
+gui.run_protocols(['protocol_1', 'protocol_2'])
+```
+
+### 8. Validation Protocols
 
 Validation protocols are located in the `Validation/` directory and follow a standard interface:
 
@@ -237,6 +289,7 @@ def main():
 ```
 
 **Available Protocols:**
+
 - Protocol 1: Basic validation
 - Protocol 2: Cross-modal validation
 - Protocol 3: Temporal validation
@@ -264,6 +317,7 @@ def main():
 ```
 
 **Available Protocols:**
+
 - Protocol 1: Surprise accumulation falsification
 - Protocol 2: Precision-weighted integration falsification
 - Protocol 3: Cross-modal validation falsification
@@ -335,6 +389,7 @@ except Exception as e:
 ```
 
 **Custom Exceptions:**
+
 - `APGIError`: Base exception for APGI framework
 - `ConfigurationError`: Configuration-related errors
 - `ValidationError`: Validation protocol errors
@@ -378,26 +433,31 @@ def expensive_computation(params):
 ## Best Practices
 
 1. **Configuration Management**
+
    - Always use the configuration manager for parameters
    - Validate configuration values before use
    - Document custom configuration options
 
 2. **Logging**
+
    - Use appropriate log levels
    - Include context in log messages
    - Export logs for analysis
 
 3. **Error Handling**
+
    - Handle exceptions gracefully
    - Provide meaningful error messages
    - Log errors with context
 
 4. **Performance**
+
    - Use batch processing for large datasets
    - Enable parallel processing when possible
    - Monitor performance metrics
 
 5. **Testing**
+
    - Run the test suite before deployment
    - Validate results with known datasets
    - Use validation protocols regularly
@@ -407,16 +467,19 @@ def expensive_computation(params):
 The framework is designed to be extensible:
 
 1. **Custom Models**
+
    - Inherit from `SurpriseIgnitionSystem`
    - Implement required methods
    - Register with module loader
 
 2. **Custom Protocols**
+
    - Follow the standard interface
    - Place in appropriate directory
    - Update CLI commands if needed
 
 3. **Custom GUI Components**
+
    - Follow the GUI interface patterns
    - Integrate with main CLI
    - Document usage
@@ -424,6 +487,7 @@ The framework is designed to be extensible:
 ## Dependencies
 
 Core dependencies:
+
 - Python >= 3.8
 - NumPy, SciPy, Pandas
 - PyMC, ArviZ (Bayesian modeling)
@@ -432,6 +496,7 @@ Core dependencies:
 - Loguru (Logging)
 
 Optional dependencies:
+
 - Flask (Web interface)
 - Jupyter (Notebook support)
 - PyTorch (Neural networks)
@@ -443,6 +508,7 @@ This framework is provided under the MIT License. See LICENSE file for details.
 ## Support
 
 For support and questions:
+
 1. Check the troubleshooting guide
 2. Run validation protocols
 3. Check log files for errors

@@ -316,6 +316,11 @@ class ConfigManager:
             except jsonschema.ValidationError as e:
                 raise ValueError(f"Invalid value for {section}.{parameter}: {e.message}")
     
+    def _reset_to_defaults(self):
+        """Reset configuration to defaults (private method for CLI)."""
+        self.config = APGIConfig()
+        apgi_logger.logger.info("Reset all configuration to defaults")
+    
     def reset_to_defaults(self, section: Optional[str] = None):
         """Reset configuration to defaults."""
         if section is None:

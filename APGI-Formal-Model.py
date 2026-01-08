@@ -1,5 +1,55 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import hashlib
+import pickle
+from pathlib import Path
+from functools import wraps
+
+# Cache directory for simulation results
+CACHE_DIR = Path(__file__).parent / 'cache'
+CACHE_DIR.mkdir(exist_ok=True)
+
+def cache_simulation(func):
+    """Decorator to cache simulation results."""
+    @wraps(func)
+    def wrapper(self, steps, dt=0.01, inputs=None, use_cache=True):
+        if not use_cache:
+            return func(self, steps, dt, inputs)
+        
+        # Create cache key from parameters and inputs
+        cache_key = {
+            'params': self.p,
+            'steps': steps,
+            'dt': dt,
+            'inputs': inputs or {}
+        }
+        cache_hash = hashlib.md5(str(cache_key).encode()).hexdigest()
+        cache_file = CACHE_DIR / f"simulation_{cache_hash}.pkl"
+        
+        # Check if cached result exists
+        if cache_file.exists():
+            try:
+                with open(cache_file, 'rb') as f:
+                    cached_result = pickle.load(f)
+                print(f"Loaded simulation from cache: {cache_file.name}")
+                return cached_result
+            except Exception:
+                # Cache corrupted, regenerate
+                cache_file.unlink(missing_ok=True)
+        
+        # Run simulation and cache result
+        result = func(self, steps, dt, inputs)
+        
+        try:
+            with open(cache_file, 'wb') as f:
+                pickle.dump(result, f)
+            print(f"Cached simulation result: {cache_file.name}")
+        except Exception as e:
+            print(f"Warning: Could not cache simulation result: {e}")
+        
+        return result
+    
+    return wrapper
 
 class SurpriseIgnitionSystem:
     """
@@ -118,6 +168,69 @@ class SurpriseIgnitionSystem:
             'B': self.B,
             'prob': ignition_prob
         }
+
+    @cache_simulation
+    def simulate(self, steps, dt=0.01, inputs=None):
+        """
+        Run simulation for specified number of steps with caching support.
+        
+        Args:
+            steps (int): Number of simulation steps
+            dt (float): Time step size in seconds
+            inputs (dict or list): Input parameters. Can be:
+                - dict: Single set of inputs for all steps
+                - list: List of input dictionaries, one per step
+        
+        Returns:
+            dict: Simulation results containing time series data
+        """
+        # Reset state for new simulation
+        self.reset_state()
+        
+        # Prepare inputs
+        if inputs is None:
+            inputs = {}
+        if isinstance(inputs, dict):
+            # Repeat same inputs for all steps
+            input_sequence = [inputs] * steps
+        else:
+            # Assume list of inputs
+            input_sequence = inputs
+            if len(input_sequence) != steps:
+                raise ValueError(f"Length of inputs ({len(input_sequence)}) must match steps ({steps})")
+        
+        # Storage for results
+        results = {
+            'time': np.arange(steps) * dt,
+            'S': np.zeros(steps),
+            'theta': np.zeros(steps),
+            'B': np.zeros(steps),
+            'prob': np.zeros(steps)
+        }
+        
+        # Run simulation
+        for i in range(steps):
+            state = self.step(dt, input_sequence[i])
+            results['S'][i] = state['S']
+            results['theta'][i] = state['theta']
+            results['B'][i] = state['B']
+            results['prob'][i] = state['prob']
+        
+        return results
+    
+    def reset_state(self):
+        """Reset system to initial conditions."""
+        self.S = 0.0
+        self.theta = self.p['theta_0']
+        self.B = 0
+    
+    def clear_cache(self):
+        """Clear all cached simulation results."""
+        import glob
+        cache_files = glob.glob(str(CACHE_DIR / "simulation_*.pkl"))
+        for cache_file in cache_files:
+            Path(cache_file).unlink(missing_ok=True)
+        print(f"Cleared {len(cache_files)} cached simulation files")
 
 def run_simulation():
     # --- Simulation Configuration ---

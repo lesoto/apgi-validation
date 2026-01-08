@@ -32,7 +32,9 @@ pip install numpy pandas scipy torch torch-audio matplotlib seaborn
 ```
 
 ### Python Version
+
 - Python 3.8+ recommended
+
 - PyTorch 1.9+ for neural network models
 
 ---
@@ -126,6 +128,7 @@ python a-2.py
 ```
 
 This executes a comprehensive demonstration showcasing:
+
 - ✅ Beta parameter individualization (anxiety/alexithymia profiles)
 - ✅ Threshold integration with proper raw value handling
 - ✅ Protocol 1 adaptive windowing optimization
@@ -188,11 +191,9 @@ normalizer = APGINormalizer(
 normalizer.fit(normative_data)
 
 # Transform new measurements
-z_scores = normalizer.transform(raw_measurements)
 
-# Save/load normative statistics
-normalizer.save('apgi_norms.csv')
-loaded_normalizer = APGINormalizer.load('apgi_norms.csv')
+```python
+z_scores = normalizer.transform(raw_measurements)
 ```
 
 #### Supported Modalities
@@ -208,6 +209,13 @@ loaded_normalizer = APGINormalizer.load('apgi_norms.csv')
 | `N200_amplitude` | N200 ERP component | -30 to 5 μV |
 | `alpha_power` | EEG alpha band power (8-13 Hz) | 1e-6 to 1e-2 V²/Hz |
 | `vmPFC_connectivity` | vmPFC functional connectivity | -1.0 to 1.0 (Pearson r) |
+
+### Save/load normative statistics
+
+```python
+normalizer.save('apgi_norms.csv')
+loaded_normalizer = APGINormalizer.load('apgi_norms.csv')
+```
 
 ### 3. APGITemporalDynamics (ENHANCED)
 
@@ -286,6 +294,7 @@ beta = integrator.estimate_beta_from_profile()
 ### 1. Double Normalization Bug Fix ✅
 
 **Problem**: Threshold computation was passing z-scores to function expecting raw values
+
 ```python
 # BEFORE (Buggy):
 pupil_mm = z_scores.get('pupil_diameter', None)  # Got z-score!
@@ -301,6 +310,7 @@ theta_t = compute_threshold_composite(pupil_mm, alpha_power, self.normalizer)  #
 ### 2. Beta Parameter Individualization ✅
 
 **Problem**: Fixed β = 0.5 for all individuals
+
 ```python
 # BEFORE (Fixed):
 beta = self.beta_default  # Always 0.5
@@ -322,6 +332,7 @@ def estimate_beta_from_profile(self) -> float:
 ### 3. Protocol 1 Implementation ✅
 
 **Problem**: No systematic window length validation
+
 ```python
 # NEW: Protocol 1 statistical optimization
 def protocol_1_validate_window_length(self, signal, modality, 
@@ -426,7 +437,7 @@ for modality, data in normative_data.items():
 | Pupil | 2.00s | 2.83s | +41.5% |
 | Alpha | 2.00s | 4.00s | +100% |
 | Gamma | 2.00s | 4.00s | +100% |
-| **Recommended** | 2.00s | **3.69s** | **+84.7%** |
+| **Recommended** | 2.00s | **3.69s** | **+84.7%** | |
 
 ---
 
@@ -435,16 +446,19 @@ for modality, data in normative_data.items():
 ### 🆕 **New Common Issues & Solutions**
 
 1. **Double Normalization Error**
+
    - **Symptom**: θ_t always equals 0.0
    - **Cause**: Passing z-scores instead of raw values
    - **Solution**: Ensure raw_signals contains pupil_diameter and alpha_power arrays
 
 2. **Beta Parameter Fixed at 0.5**
+
    - **Symptom**: No individual differences in somatic gain
    - **Cause**: Missing individual_profile parameter
    - **Solution**: Pass individual_profile={'anxiety': 0.7, 'alexithymia': 0.3}
 
 3. **Window Size Inefficiency**
+
    - **Symptom**: Suboptimal temporal resolution
    - **Cause**: Using default 2.0s window
    - **Solution**: Run Protocol 1 optimization for data-specific window sizes
@@ -505,6 +519,7 @@ If you use this software in research, please cite:
 ### Bug Reports
 
 Please report issues via GitHub Issues with:
+
 - Python version and package versions
 - Minimal reproducible example
 - Error messages and traceback
@@ -513,6 +528,7 @@ Please report issues via GitHub Issues with:
 ### 🆕 **Feature Contributions**
 
 Welcome contributions for:
+
 - ✅ Additional optimization criteria for Protocol 1
 - ✅ New individual difference parameters
 - ✅ Enhanced artifact detection algorithms

@@ -686,6 +686,7 @@ def create_dashboard(data):
 ### Common Issues
 
 1. **Import Errors**
+
    ```bash
    # Check virtual environment
    which python
@@ -696,6 +697,7 @@ def create_dashboard(data):
    ```
 
 2. **Configuration Issues**
+
    ```python
    # Reset configuration
    python main.py config --reset
@@ -705,6 +707,7 @@ def create_dashboard(data):
    ```
 
 3. **Memory Issues**
+
    ```python
    # Use batch processing for large datasets
    processor = APGIBatchProcessor(normalizer, config, batch_size=1000)
@@ -715,6 +718,7 @@ def create_dashboard(data):
    ```
 
 4. **Performance Issues**
+
    ```python
    # Enable parallel processing
    python main.py validate --all-protocols --parallel

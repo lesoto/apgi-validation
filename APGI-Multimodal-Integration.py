@@ -202,8 +202,24 @@ class APGINormalizer:
     def save(self, filepath: str):
         """Save normalizer statistics"""
         import json
+        import numpy as np
+        
+        # Convert numpy arrays to Python native types for JSON serialization
+        serializable_norms = {}
+        for var_name, stats_dict in self.norms.items():
+            serializable_norms[var_name] = {}
+            for key, value in stats_dict.items():
+                if isinstance(value, np.ndarray):
+                    serializable_norms[var_name][key] = value.tolist()
+                elif isinstance(value, (np.integer, np.floating)):
+                    serializable_norms[var_name][key] = float(value)
+                elif isinstance(value, np.bool_):
+                    serializable_norms[var_name][key] = bool(value)
+                else:
+                    serializable_norms[var_name][key] = value
+        
         with open(filepath, 'w') as f:
-            json.dump(self.norms, f, indent=2)
+            json.dump(serializable_norms, f, indent=2)
     
     def is_fitted(self) -> bool:
         """Check if normalizer has been fitted"""
@@ -2119,9 +2135,23 @@ def compute_threshold_composite(pupil_mm: float, alpha_power: float,
     # Validate inputs
     APGIQualityControl.validate_measurement('pupil_diameter', pupil_mm)
     
+    # Check if normalizer is fitted for required variables
+    if not normalizer.is_fitted():
+        print("Warning: Normalizer not fitted, using default threshold")
+        return 0.0
+    
+    if 'pupil_diameter' not in normalizer.norms or 'alpha_power' not in normalizer.norms:
+        print("Warning: Required variables not fitted in normalizer, using default threshold")
+        return 0.0
+    
     # Z-score individual components
     z_pupil = normalizer.transform({'pupil_diameter': pupil_mm})
     z_alpha = normalizer.transform({'alpha_power': alpha_power})
+    
+    # Check if transformation succeeded
+    if 'pupil_diameter' not in z_pupil or 'alpha_power' not in z_alpha:
+        print("Warning: Transformation failed, using default threshold")
+        return 0.0
     
     # Weighted composite
     z_threshold = 0.6 * z_alpha['alpha_power'] - 0.4 * z_pupil['pupil_diameter']
@@ -2134,6 +2164,15 @@ def compute_surprise_zscore(erp_waveform: np.ndarray, normalizer: APGINormalizer
     """
     Compute composite surprise z-score from ERP components
     """
+    # Check if normalizer is fitted for required variables
+    if not normalizer.is_fitted():
+        print("Warning: Normalizer not fitted for surprise computation, using default")
+        return 0.0
+    
+    if 'N200_amplitude' not in normalizer.norms or 'P3b_amplitude' not in normalizer.norms:
+        print("Warning: Required ERP variables not fitted in normalizer, using default")
+        return 0.0
+    
     # Time windows
     n100_n200_start = int(0.1 * fs)
     n100_n200_end = int(0.25 * fs)
@@ -2155,6 +2194,12 @@ def compute_surprise_zscore(erp_waveform: np.ndarray, normalizer: APGINormalizer
     # Z-score and combine
     z_early = normalizer.transform({'N200_amplitude': early_surprise})
     z_late = normalizer.transform({'P3b_amplitude': late_surprise})
+    
+    # Check if transformation succeeded
+    if 'N200_amplitude' not in z_early or 'P3b_amplitude' not in z_late:
+        print("Warning: ERP transformation failed, using default surprise")
+        return 0.0
+    
     z_total_surprise = z_early['N200_amplitude'] + z_late['P3b_amplitude']
     
     return z_total_surprise
@@ -2996,7 +3041,7 @@ if __name__ == "__main__":
             np.random.randn(600),  # Mock ERP waveform
             normalizer
         ),
-        'M(c,a)': z_scores['vmPFC_connectivity']
+        'M(c,a)': z_scores.get('vmPFC_connectivity', 0.0)
     }
     
     # 12. Differential diagnosis

@@ -3,11 +3,13 @@
 ## Quick Start
 
 ### Option 1: Automated Setup (Recommended)
+
 ```bash
 python setup.py
 ```
 
 ### Option 2: Manual Setup
+
 ```bash
 # Create virtual environment
 python3 -m venv venv
@@ -25,6 +27,7 @@ python main.py --help
 ## Troubleshooting
 
 ### Issue: "externally-managed-environment" Error
+
 This occurs on systems with managed Python installations. Solution:
 
 ```bash
@@ -38,6 +41,7 @@ pip install --break-system-packages -r requirements.txt
 ```
 
 ### Issue: Missing Dependencies
+
 If some packages fail to install, you can install them individually:
 
 ```bash
@@ -55,6 +59,7 @@ pip install pytest black flake8
 ```
 
 ### Issue: Python Version Compatibility
+
 The framework requires Python 3.8+. Some packages may have version restrictions:
 
 - **PyMC**: Works best with Python 3.9-3.11
@@ -66,16 +71,19 @@ If you encounter compatibility issues, consider using Python 3.10 or 3.11.
 ## Verification
 
 ### Basic Test (No Dependencies Required)
+
 ```bash
 python minimal_test.py
 ```
 
 ### Full Test (Dependencies Required)
+
 ```bash
 python test_framework.py
 ```
 
 ### CLI Test
+
 ```bash
 python main.py --help
 python main.py info
@@ -84,7 +92,7 @@ python main.py formal-model --simulation-steps 100
 
 ## Project Structure After Installation
 
-```
+```text
 apgi-theory/
 ├── README.md                    # Main documentation
 ├── INSTALL.md                   # This installation guide
