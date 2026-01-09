@@ -5,7 +5,6 @@ import shutil
 import sys
 from typing import Iterable, List, Optional
 
-
 DEFAULT_DIR_NAMES = {
     "__pycache__",
     ".pytest_cache",
@@ -89,9 +88,13 @@ def delete_temporary_items(
     stats = {"dirs_removed": 0, "files_removed": 0, "errors": 0}
     default_dir_names = set(DEFAULT_DIR_NAMES) | set(DEFAULT_EXTRA_DIR_NAMES)
     default_dir_patterns = list(DEFAULT_DIR_PATTERNS)
-    default_file_patterns = list(DEFAULT_FILE_PATTERNS) + list(DEFAULT_EXTRA_FILE_PATTERNS)
+    default_file_patterns = list(DEFAULT_FILE_PATTERNS) + list(
+        DEFAULT_EXTRA_FILE_PATTERNS
+    )
 
-    for dirpath, dirnames, filenames in os.walk(root_dir, topdown=True, followlinks=follow_links):
+    for dirpath, dirnames, filenames in os.walk(
+        root_dir, topdown=True, followlinks=follow_links
+    ):
         if max_depth is not None:
             rel = os.path.relpath(dirpath, root_dir)
             depth = 0 if rel == "." else rel.count(os.sep) + 1
@@ -102,7 +105,7 @@ def delete_temporary_items(
         # copy list because we may modify dirnames
         for d in list(dirnames):
             full_d = os.path.join(dirpath, d)
-            
+
             # Skip version control and other protected directories
             if d in DEFAULT_SKIP_TRAVERSE_DIRS or matches_any(d, exclude_dir_patterns):
                 dirnames.remove(d)
@@ -139,9 +142,8 @@ def delete_temporary_items(
             if matches_any(f, exclude_file_patterns):
                 continue
 
-            if (
-                matches_any(f, default_file_patterns)
-                or matches_any(f, include_file_patterns)
+            if matches_any(f, default_file_patterns) or matches_any(
+                f, include_file_patterns
             ):
                 if dry_run:
                     if verbose:
@@ -155,7 +157,7 @@ def delete_temporary_items(
                     except Exception as e:
                         stats["errors"] += 1
                         print(f"Error removing file {full_f}: {e}")
-    
+
     return stats
 
 
@@ -177,7 +179,12 @@ def prune_empty_dirs(root_dir: str, dry_run: bool = False, verbose: bool = True)
             print(f"Error pruning directory {dirpath}: {e}")
 
 
-def clear_log_files(root_dir: str, delete_logs_dir: bool = False, dry_run: bool = False, verbose: bool = True):
+def clear_log_files(
+    root_dir: str,
+    delete_logs_dir: bool = False,
+    dry_run: bool = False,
+    verbose: bool = True,
+):
     """Either truncate files under a `logs` dir, or delete the logs directory entirely.
 
     - If delete_logs_dir is True, the whole logs directory is removed.
@@ -221,24 +228,85 @@ def clear_log_files(root_dir: str, delete_logs_dir: bool = False, dry_run: bool 
 
 
 def parse_args(argv: List[str] = None):
-    p = argparse.ArgumentParser(description="Remove temporary files and folders from a project tree")
-    p.add_argument("root", nargs="?", default=None, help="Root directory to clean (defaults to script dir)")
-    p.add_argument("--dry-run", action="store_true", help="Show what would be removed without deleting")
+    p = argparse.ArgumentParser(
+        description="Remove temporary files and folders from a project tree"
+    )
+    p.add_argument(
+        "root",
+        nargs="?",
+        default=None,
+        help="Root directory to clean (defaults to script dir)",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be removed without deleting",
+    )
     p.add_argument("--yes", action="store_true", help="Don't prompt for confirmation")
-    p.add_argument("--delete-logs", action="store_true", help="Remove the entire logs directory instead of truncating files")
+    p.add_argument(
+        "--delete-logs",
+        action="store_true",
+        help="Remove the entire logs directory instead of truncating files",
+    )
     p.add_argument("--quiet", action="store_true", help="Reduce output")
 
     # Advanced controls
-    p.add_argument("--include-dir", action="append", default=[], help="Additional directory patterns to remove (glob). Can be passed multiple times.")
-    p.add_argument("--include-file", action="append", default=[], help="Additional file patterns to remove (glob). Can be passed multiple times.")
-    p.add_argument("--exclude-dir", action="append", default=[], help="Directory patterns to exclude from deletion (glob). Can be passed multiple times.")
-    p.add_argument("--exclude-file", action="append", default=[], help="File patterns to exclude from deletion (glob). Can be passed multiple times.")
-    p.add_argument("--remove-node-modules", action="store_true", help="Also remove node_modules directories")
-    p.add_argument("--remove-venvs", action="store_true", help="Also remove common virtualenv directories (.venv, venv, .env, env)")
-    p.add_argument("--venv-names", nargs="*", default=None, help="Override names considered virtualenvs (space-separated)")
-    p.add_argument("--follow-links", action="store_true", help="Follow symbolic links during traversal (use with caution)")
-    p.add_argument("--max-depth", type=int, default=None, help="Limit traversal depth relative to root (1 = only root level)")
-    p.add_argument("--prune-empty-dirs", action="store_true", help="Remove now-empty directories after cleanup")
+    p.add_argument(
+        "--include-dir",
+        action="append",
+        default=[],
+        help="Additional directory patterns to remove (glob). Can be passed multiple times.",
+    )
+    p.add_argument(
+        "--include-file",
+        action="append",
+        default=[],
+        help="Additional file patterns to remove (glob). Can be passed multiple times.",
+    )
+    p.add_argument(
+        "--exclude-dir",
+        action="append",
+        default=[],
+        help="Directory patterns to exclude from deletion (glob). Can be passed multiple times.",
+    )
+    p.add_argument(
+        "--exclude-file",
+        action="append",
+        default=[],
+        help="File patterns to exclude from deletion (glob). Can be passed multiple times.",
+    )
+    p.add_argument(
+        "--remove-node-modules",
+        action="store_true",
+        help="Also remove node_modules directories",
+    )
+    p.add_argument(
+        "--remove-venvs",
+        action="store_true",
+        help="Also remove common virtualenv directories (.venv, venv, .env, env)",
+    )
+    p.add_argument(
+        "--venv-names",
+        nargs="*",
+        default=None,
+        help="Override names considered virtualenvs (space-separated)",
+    )
+    p.add_argument(
+        "--follow-links",
+        action="store_true",
+        help="Follow symbolic links during traversal (use with caution)",
+    )
+    p.add_argument(
+        "--max-depth",
+        type=int,
+        default=None,
+        help="Limit traversal depth relative to root (1 = only root level)",
+    )
+    p.add_argument(
+        "--prune-empty-dirs",
+        action="store_true",
+        help="Remove now-empty directories after cleanup",
+    )
     return p.parse_args(argv)
 
 
@@ -246,12 +314,12 @@ def main(argv: List[str] = None):
     args = parse_args(argv)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     root_directory = os.path.abspath(args.root) if args.root else current_dir
-    
+
     # Validate root directory exists
     if not os.path.exists(root_directory):
         print(f"Error: Root directory does not exist: {root_directory}")
         return 1
-    
+
     if not os.path.isdir(root_directory):
         print(f"Error: Root path is not a directory: {root_directory}")
         return 1
@@ -269,7 +337,11 @@ def main(argv: List[str] = None):
     if verbose:
         print("Starting cleanup process...")
 
-    venv_names = args.venv_names if args.venv_names is not None else (".venv", "venv", ".env", "env")
+    venv_names = (
+        args.venv_names
+        if args.venv_names is not None
+        else (".venv", "venv", ".env", "env")
+    )
     stats = delete_temporary_items(
         root_directory,
         dry_run=dry_run,
@@ -284,7 +356,12 @@ def main(argv: List[str] = None):
         follow_links=args.follow_links,
         max_depth=args.max_depth,
     )
-    clear_log_files(root_directory, delete_logs_dir=args.delete_logs, dry_run=dry_run, verbose=verbose)
+    clear_log_files(
+        root_directory,
+        delete_logs_dir=args.delete_logs,
+        dry_run=dry_run,
+        verbose=verbose,
+    )
 
     if args.prune_empty_dirs:
         prune_empty_dirs(root_directory, dry_run=dry_run, verbose=verbose)
@@ -293,7 +370,7 @@ def main(argv: List[str] = None):
         print(f"\nCleanup completed")
         print(f"Directories removed: {stats['dirs_removed']}")
         print(f"Files removed: {stats['files_removed']}")
-        if stats['errors'] > 0:
+        if stats["errors"] > 0:
             print(f"Errors encountered: {stats['errors']}")
     return 0
 

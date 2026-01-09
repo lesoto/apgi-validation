@@ -2,7 +2,7 @@
 APGI Theory Package
 ===================
 
-A comprehensive framework for testing and validating the APGI (Attention, 
+A comprehensive framework for testing and validating the APGI (Attention,
 Phenomenal consciousness, Global workspace, Ignition) theory of consciousness.
 
 This package contains protocols, validation tools, and implementations for
@@ -15,4 +15,4 @@ __author__ = "APGI Research Team"
 # Import main classes for convenience
 from .Validation.APGI_Master_Validation import APGIMasterValidator
 
-__all__ = ['APGIMasterValidator']
+__all__ = ["APGIMasterValidator"]
