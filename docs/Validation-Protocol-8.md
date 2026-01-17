@@ -1,14 +1,8 @@
-
 # APGI Protocol 8: Psychophysical Threshold Estimation & Individual Differences
-
-
-
 
 ## Overview
 
-
-
-Protocol 8 implements **adaptive psychophysical methods** and **individual differences analysis** to validate the APGI framework's predictions about individual variability in conscious perception. This protocol bridges synthetic validation (Protocol 1) and real-data Bayesian comparison (Protocol 2) by providing tools for:
+Protocol 8 implements **adaptive psychophysical methods** and **individual differences analysis** to validate APGI framework's predictions about individual variability in conscious perception. This protocol bridges synthetic validation (Protocol 1) and real-data Bayesian comparison (Protocol 2) by providing tools for:
 
 1. **Efficient threshold estimation** using Bayesian adaptive psychophysics (Psi method)
 2. **APGI parameter estimation** from psychometric curve data
@@ -17,15 +11,11 @@ Protocol 8 implements **adaptive psychophysical methods** and **individual diffe
 5. **Factor analysis** of parameter structure
 6. **Falsifiable predictions** about parameter relationships
 
-
 ## Key Innovation
-
-
 
 Unlike standard psychophysics that only estimates threshold and slope, Protocol 8 extracts **all four APGI parameters** (θ₀, Π_i, β, α) from behavioral and physiological data, enabling systematic investigation of individual differences in conscious access mechanisms.
 
 ---
-
 
 ## Installation
 

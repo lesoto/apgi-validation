@@ -45,6 +45,7 @@ python APGI-Protocol-1-Complete.py
 ```
 
 The script will:
+
 1. Generate 20,000 synthetic trials (5,000 per model)
 2. Train and evaluate classifiers
 3. Check falsification criteria
@@ -76,7 +77,7 @@ The script will:
 
 ### Console Output
 
-```
+```text
 ================================================================================
 APGI PROTOCOL 1: SYNTHETIC DATA GENERATION & ML CLASSIFICATION
 ================================================================================
@@ -105,11 +106,13 @@ OVERALL STATUS: ✅ MODEL VALIDATED
 ### APGI Dynamical System
 
 Core equation implemented:
-```
+
+```python
 dS/dt = -S/τ + Π_e·|ε_e| + β·Π_i·|ε_i|
 ```
 
 Where:
+
 - S(t): Accumulated surprise
 - Π_e, Π_i: Extero/interoceptive precision
 - ε_e, ε_i: Prediction errors
@@ -118,14 +121,16 @@ Where:
 
 ### Neural Network Architectures
 
-**Ignition Classifier (Task 1A)**
+### Ignition Classifier (Task 1A)
+
 - Input: 64 × 1000 EEG
 - Multi-scale 1D convolutions (kernels: 25, 15, 7)
 - Temporal attention mechanism
 - Output: Binary (ignition vs no ignition)
 - Parameters: ~2.5M
 
-**Multi-Modal Fusion (Task 1B)**
+### Multi-Modal Fusion (Task 1B)
+
 - Inputs: EEG (64×1000) + HEP (600) + Pupil (3000)
 - Separate encoders per modality
 - Late fusion with learned weights
@@ -137,12 +142,13 @@ Where:
 Based on APGI theory, we predict:
 
 | Metric | APGI | StandardPP | GWTOnly | Continuous |
-|--------|------|------------|---------|------------|
+|---|---|---|---|---|
 | Accuracy (Task 1A) | 85-92% | 60-70% | 75-82% | 55-65% |
 | F1 Score | 0.85-0.90 | 0.58-0.68 | 0.73-0.80 | 0.50-0.62 |
 | AUC-ROC | 0.90-0.95 | 0.65-0.75 | 0.80-0.87 | 0.55-0.68 |
 
-**Confusion Matrix (Task 1B)**
+### Confusion Matrix (Task 1B)
+
 - APGI correctly identified: 80-88%
 - APGI ↔ GWT confusion: 12-18% (both have ignition)
 - APGI ↔ StandardPP: < 5% (clearly distinct)
@@ -262,15 +268,21 @@ eeg = generator.generate_multi_channel_eeg(
 ### Memory
 
 - **Dataset generation**: ~4 GB RAM
+
 - **Training Task 1A**: ~6 GB GPU / 12 GB CPU
+
 - **Training Task 1B**: ~8 GB GPU / 16 GB CPU
 
 ### Time
 
 On NVIDIA RTX 3090:
+
 - Dataset generation (20K trials): ~15 minutes
+
 - Task 1A training (all models): ~2 hours
+
 - Task 1B training: ~1.5 hours
+
 - **Total**: ~4 hours
 
 On CPU (16-core):
@@ -308,7 +320,7 @@ classifier = IgnitionClassifier(dropout=0.3)
 
 Blinks create NaN values - this is intentional and realistic:
 
-```python
+```text
 # Already handled in network with:
 pupil = torch.nan_to_num(pupil, nan=0.0)
 ```
@@ -316,19 +328,27 @@ pupil = torch.nan_to_num(pupil, nan=0.0)
 ## Scientific Interpretation
 
 ### If F1.1 Falsified (APGI accuracy < 75%)
+
 **Implication**: The P3b measurement equation doesn't capture ignition signatures.
+
 **Action**: Revise how EEG relates to surprise accumulation.
 
 ### If F1.2 Falsified (APGI-GWT confusion > 40%)
+
 **Implication**: Interoceptive precision doesn't distinguish APGI from GWT.
+
 **Action**: HEP amplitude may not be a valid proxy for Π_i.
 
 ### If F1.3 Falsified (Real data accuracy < 55%)
+
 **Implication**: Synthetic signals don't match real neural dynamics.
+
 **Action**: Measurement equations need empirical calibration.
 
 ### If F1.4 Falsified (StandardPP ≥ APGI)
+
 **Implication**: Ignition threshold provides no computational advantage.
+
 **Action**: Core APGI mechanism may be incorrect.
 
 ## Integration with Other Protocols
@@ -358,8 +378,11 @@ This implementation is provided for scientific research purposes.
 ## Contact
 
 For questions about implementation details or theoretical aspects:
+
 - Check the inline documentation
+
 - Review the comprehensive comments
+
 - Examine the example usage sections
 
 ---
