@@ -33,10 +33,11 @@ Usage:
 =============================================================================
 """
 
-import numpy as np
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
 from enum import Enum, auto
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 
 @dataclass
@@ -59,9 +60,7 @@ class APGIParameters:
         assert (
             0.1 <= self.Pi_i_baseline <= 10.0
         ), f"Pi_i_baseline must be in [0.1, 10], got {self.Pi_i_baseline}"
-        assert (
-            0.1 <= self.Pi_i_eff <= 10.0
-        ), f"Pi_i_eff must be in [0.1, 10], got {self.Pi_i_eff}"
+        assert 0.1 <= self.Pi_i_eff <= 10.0, f"Pi_i_eff must be in [0.1, 10], got {self.Pi_i_eff}"
         assert -2.0 <= self.M_ca <= 2.0, f"M_ca must be in [-2, 2], got {self.M_ca}"
         assert 0.3 <= self.beta <= 0.8, f"beta must be in [0.3, 0.8], got {self.beta}"
 
@@ -861,9 +860,7 @@ STATE_CATEGORIES: Dict[str, StateCategory] = {
 def get_state(name: str) -> APGIParameters:
     """Retrieve parameters for a named psychological state"""
     if name not in PSYCHOLOGICAL_STATES:
-        raise KeyError(
-            f"Unknown state: {name}. Available: {list(PSYCHOLOGICAL_STATES.keys())}"
-        )
+        raise KeyError(f"Unknown state: {name}. Available: {list(PSYCHOLOGICAL_STATES.keys())}")
     return PSYCHOLOGICAL_STATES[name]
 
 
@@ -1002,8 +999,7 @@ def get_transition_pathway(from_state: str, to_state: str) -> List[str]:
     for alpha in [0.33, 0.66]:
         interpolated = create_apgi_params(
             Pi_e=p1.Pi_e + alpha * (p2.Pi_e - p1.Pi_e),
-            Pi_i_baseline=p1.Pi_i_baseline
-            + alpha * (p2.Pi_i_baseline - p1.Pi_i_baseline),
+            Pi_i_baseline=p1.Pi_i_baseline + alpha * (p2.Pi_i_baseline - p1.Pi_i_baseline),
             M_ca=p1.M_ca + alpha * (p2.M_ca - p1.M_ca),
             beta=np.clip(p1.beta + alpha * (p2.beta - p1.beta), 0.3, 0.8),
             z_e=p1.z_e + alpha * (p2.z_e - p1.z_e),
@@ -1051,7 +1047,7 @@ DERIVED VALUES
 ────────────────────────────────────────────────────────────────────
   Accumulated surprise (S_t): {params.S_t:6.2f}
   Ignition probability:       {ignition_prob:6.2%}
-  
+
 Formula verification:
   Π_i_eff = Π_i_baseline · exp(β·M):  {"✓" if params.verify_Pi_i_eff() else "✗"}
   S_t = Π_e·|z_e| + Π_i_eff·|z_i|:    {"✓" if params.verify_S_t() else "✗"}
@@ -1095,24 +1091,19 @@ def generate_state_comparison_table(states: List[str]) -> str:
 
     # Format table
     col_widths = [
-        max(len(str(row[i])) for row in [headers] + rows) + 2
-        for i in range(len(headers))
+        max(len(str(row[i])) for row in [headers] + rows) + 2 for i in range(len(headers))
     ]
 
     lines = []
     lines.append("┌" + "┬".join("─" * w for w in col_widths) + "┐")
     lines.append(
-        "│"
-        + "│".join(headers[i].center(col_widths[i]) for i in range(len(headers)))
-        + "│"
+        "│" + "│".join(headers[i].center(col_widths[i]) for i in range(len(headers))) + "│"
     )
     lines.append("├" + "┼".join("─" * w for w in col_widths) + "┤")
 
     for row in rows:
         lines.append(
-            "│"
-            + "│".join(str(row[i]).center(col_widths[i]) for i in range(len(row)))
-            + "│"
+            "│" + "│".join(str(row[i]).center(col_widths[i]) for i in range(len(row))) + "│"
         )
 
     lines.append("└" + "┴".join("─" * w for w in col_widths) + "┘")
@@ -1234,9 +1225,7 @@ if __name__ == "__main__":
     print("-" * 40)
     costs = compute_transition_cost("anxiety", "calm")
     print(f"Cost to transition from 'anxiety' to 'calm':")
-    for param, cost in sorted(
-        costs.items(), key=lambda x: -x[1] if x[0] != "total" else 0
-    ):
+    for param, cost in sorted(costs.items(), key=lambda x: -x[1] if x[0] != "total" else 0):
         if param != "total":
             print(f"  {param:<15}: {cost:.2f}")
     print(f"  {'TOTAL':<15}: {costs['total']:.2f}")
@@ -1252,14 +1241,10 @@ if __name__ == "__main__":
     all_pi_e = [p.Pi_e for p in PSYCHOLOGICAL_STATES.values()]
     all_theta = [p.theta_t for p in PSYCHOLOGICAL_STATES.values()]
     all_m_ca = [p.M_ca for p in PSYCHOLOGICAL_STATES.values()]
-    all_ignition = [
-        p.compute_ignition_probability() for p in PSYCHOLOGICAL_STATES.values()
-    ]
+    all_ignition = [p.compute_ignition_probability() for p in PSYCHOLOGICAL_STATES.values()]
 
     print(f"Total states: {len(PSYCHOLOGICAL_STATES)}")
-    print(
-        f"\nΠ_e range: {min(all_pi_e):.1f} - {max(all_pi_e):.1f} (mean: {np.mean(all_pi_e):.2f})"
-    )
+    print(f"\nΠ_e range: {min(all_pi_e):.1f} - {max(all_pi_e):.1f} (mean: {np.mean(all_pi_e):.2f})")
     print(
         f"θ_t range: {min(all_theta):+.1f} - {max(all_theta):+.1f} (mean: {np.mean(all_theta):+.2f})"
     )

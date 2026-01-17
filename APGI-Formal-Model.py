@@ -1,9 +1,10 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import hashlib
 import pickle
-from pathlib import Path
 from functools import wraps
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Cache directory for simulation results
 CACHE_DIR = Path(__file__).parent / "cache"
@@ -30,7 +31,7 @@ def cache_simulation(func):
                     cached_result = pickle.load(f)
                 print(f"Loaded simulation from cache: {cache_file.name}")
                 return cached_result
-            except Exception:
+            except (pickle.PickleError, EOFError, FileNotFoundError, PermissionError):
                 # Cache corrupted, regenerate
                 cache_file.unlink(missing_ok=True)
 
@@ -41,7 +42,7 @@ def cache_simulation(func):
             with open(cache_file, "wb") as f:
                 pickle.dump(result, f)
             print(f"Cached simulation result: {cache_file.name}")
-        except Exception as e:
+        except (pickle.PickleError, FileNotFoundError, PermissionError, IOError) as e:
             print(f"Warning: Could not cache simulation result: {e}")
 
         return result
@@ -133,9 +134,7 @@ class SurpriseIgnitionSystem:
 
         # 4. Update Threshold (theta_t)
         # dTheta = ((theta_0 - theta)/tau_theta + Modulators)dt + sigma * dW
-        modulation = self.p["gamma_M"] * (M_t - self.M0) + self.p["gamma_A"] * (
-            A_t - self.A0
-        )
+        modulation = self.p["gamma_M"] * (M_t - self.M0) + self.p["gamma_A"] * (A_t - self.A0)
         dTheta = (
             (self.p["theta_0"] - self.theta) / self.p["tau_theta"] + modulation
         ) * dt + self.p["sigma_theta"] * xi_theta
@@ -252,9 +251,7 @@ def run_simulation():
     # 3. Event: A burst of internal somatic error at t=80s
     somatic_start = int(80.0 / dt)
     somatic_end = int(85.0 / dt)
-    eps_i[somatic_start:somatic_end] += np.random.normal(
-        1.5, 0.5, somatic_end - somatic_start
-    )
+    eps_i[somatic_start:somatic_end] += np.random.normal(1.5, 0.5, somatic_end - somatic_start)
 
     # 4. Metabolic Oscillation (slow sine wave)
     # This affects the threshold
@@ -279,9 +276,7 @@ def run_simulation():
 
         # Log input drive for visualization
         drive = (current_inputs["Pi_e"] * abs(current_inputs["eps_e"])) + (
-            current_inputs["beta"]
-            * current_inputs["Pi_i"]
-            * abs(current_inputs["eps_i"])
+            current_inputs["beta"] * current_inputs["Pi_i"] * abs(current_inputs["eps_i"])
         )
         history["input_drive"].append(drive)
 
@@ -354,9 +349,7 @@ def run_simulation():
     ax2_twin = ax2.twinx()
 
     ln1 = ax2.plot(time, history["prob"], color="purple", label="$P(Ignition)$")
-    ln2 = ax2_twin.plot(
-        time, M_signal, color="brown", linestyle=":", label="Metabolism ($M_t$)"
-    )
+    ln2 = ax2_twin.plot(time, M_signal, color="brown", linestyle=":", label="Metabolism ($M_t$)")
 
     ax2.set_ylabel("Probability")
     ax2.set_ylim(-0.1, 1.1)
@@ -364,7 +357,7 @@ def run_simulation():
 
     # Combined legend
     lns = ln1 + ln2
-    labs = [l.get_label() for l in lns]
+    labs = [line.get_label() for line in lns]
     ax2.legend(lns, labs, loc="upper right")
 
     ax2.set_xlabel("Time (seconds)")

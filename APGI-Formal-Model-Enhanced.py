@@ -21,23 +21,24 @@ Features:
 ===============================================================================
 """
 
-import numpy as np
+import json
+import warnings
+from dataclasses import dataclass, field
+from enum import Enum
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import signal
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any, Union
-from enum import Enum, auto
-import warnings
-import json
-import os
-from pathlib import Path
 
 # Check for optional visualization packages
 try:
     import plotly.graph_objects as go
-    import plotly.express as px
-    from plotly.subplots import make_subplots
+
+    # import plotly.express as px  # Commented out - unused
+    # from plotly.subplots import make_subplots  # Commented out - unused
     import plotly.io as pio
 
     PLOTLY_AVAILABLE = True
@@ -47,8 +48,8 @@ except ImportError:
     warnings.warn("Plotly not available. Install with: pip install plotly")
 
 try:
-    from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib.animation import FuncAnimation, PillowWriter
+    # from mpl_toolkits.mplot3d import Axes3D  # Commented out - unused
+    # from matplotlib.animation import FuncAnimation, PillowWriter  # Commented out - unused
 
     MATPLOTLIB_3D = True
 except ImportError:
@@ -230,12 +231,10 @@ class SurpriseIgnitionSystem:
         S_new = max(0.0, S_new)  # Enforce non-negativity
 
         # Compute θ_t dynamics
-        modulation = self.params.gamma_M * (
-            M - self.params.M_0
-        ) + self.params.gamma_A * (A - self.params.A_0)
-        dtheta_dt = (
-            self.params.theta_0 - self.theta
-        ) / self.params.tau_theta + modulation
+        modulation = self.params.gamma_M * (M - self.params.M_0) + self.params.gamma_A * (
+            A - self.params.A_0
+        )
+        dtheta_dt = (self.params.theta_0 - self.theta) / self.params.tau_theta + modulation
         theta_new = self.theta + dtheta_dt * dt + self.params.sigma_theta * dW_theta
         theta_new = max(0.01, theta_new)  # Enforce positivity
 
@@ -513,9 +512,7 @@ class PsychologicalState:
     arousal_level: float = 0.5  # 0-1 scale
     metabolic_cost: float = 1.0  # Relative metabolic demand
     stability: float = 0.7  # State stability metric
-    transition_ease: Dict[str, float] = field(
-        default_factory=dict
-    )  # Ease to other states
+    transition_ease: Dict[str, float] = field(default_factory=dict)  # Ease to other states
 
     def __post_init__(self):
         """Compute derived parameters"""
@@ -536,7 +533,8 @@ class PsychologicalState:
         Includes time-dependent modulations to make simulations more realistic.
         """
         # Add small oscillations to mimic natural variability
-        t_mod = 0.1 * np.sin(2 * np.pi * time / 10.0) if time > 0 else 0.0
+        # t_mod = 0.1 * np.sin(2 * np.pi * time / 10.0) if time > 0 else 0.0
+        # Note: t_mod not currently used but kept for future implementation
 
         return {
             "Pi_e": self.Pi_e * (1 + 0.05 * np.sin(2 * np.pi * time / 3.0)),
@@ -876,24 +874,14 @@ class APGIStateLibrary:
     def get_state(self, name: str) -> PsychologicalState:
         """Get state by name"""
         if name not in self.states:
-            raise KeyError(
-                f"Unknown state: {name}. Available: {list(self.states.keys())}"
-            )
+            raise KeyError(f"Unknown state: {name}. Available: {list(self.states.keys())}")
         return self.states[name]
 
-    def get_states_by_category(
-        self, category: StateCategory
-    ) -> Dict[str, PsychologicalState]:
+    def get_states_by_category(self, category: StateCategory) -> Dict[str, PsychologicalState]:
         """Get all states in a category"""
-        return {
-            name: state
-            for name, state in self.states.items()
-            if state.category == category
-        }
+        return {name: state for name, state in self.states.items() if state.category == category}
 
-    def find_similar_states(
-        self, state_name: str, n: int = 5
-    ) -> List[Tuple[str, float]]:
+    def find_similar_states(self, state_name: str, n: int = 5) -> List[Tuple[str, float]]:
         """Find n most similar states"""
         state = self.get_state(state_name)
         similarities = []
@@ -1032,9 +1020,7 @@ class APGIVisualizer:
         # Plot 1: Core Dynamics
         ax = axes[0]
         ax.plot(time, S, "b-", linewidth=2, label=r"$S_t$ (Surprise)", alpha=0.8)
-        ax.plot(
-            time, theta, "r--", linewidth=2, label=r"$\theta_t$ (Threshold)", alpha=0.8
-        )
+        ax.plot(time, theta, "r--", linewidth=2, label=r"$\theta_t$ (Threshold)", alpha=0.8)
 
         # Highlight ignitions
         ignition_indices = np.where(B > 0.5)[0]
@@ -1196,9 +1182,7 @@ class APGIVisualizer:
 
         return fig
 
-    def plot_3d_state_landscape(
-        self, states_to_plot: Optional[List[str]] = None
-    ) -> plt.Figure:
+    def plot_3d_state_landscape(self, states_to_plot: Optional[List[str]] = None) -> plt.Figure:
         """
         Create 3D visualization of psychological state landscape.
 
@@ -1233,7 +1217,7 @@ class APGIVisualizer:
             labels.append(state_name)
 
         # Create scatter plot
-        scatter = ax.scatter(
+        ax.scatter(
             x_vals,
             y_vals,
             z_vals,
@@ -1343,9 +1327,7 @@ class APGIVisualizer:
             state = self.library.get_state(highlight_state)
 
             # Find most similar states
-            similar_states = self.library.find_similar_states(
-                highlight_state, n_neighbors
-            )
+            similar_states = self.library.find_similar_states(highlight_state, n_neighbors)
 
             # Get positions
             from_idx = states.index(highlight_state)
@@ -1399,7 +1381,7 @@ class APGIVisualizer:
             sorted_labels = np.array(state_labels)[sorted_indices]
 
             # Create bar plot
-            bars = ax2.barh(
+            ax2.barh(
                 range(len(sorted_probs)),
                 sorted_probs,
                 color=self.CUSTOM_CMAPS["ignition"](sorted_probs),
@@ -1408,9 +1390,7 @@ class APGIVisualizer:
             ax2.set_yticks(range(len(sorted_probs)))
             ax2.set_yticklabels(sorted_labels, fontsize=9)
             ax2.set_xlabel("Transition Ease (Higher = Easier)")
-            ax2.set_title(
-                f"Transitions from {highlight_state}", fontsize=14, fontweight="bold"
-            )
+            ax2.set_title(f"Transitions from {highlight_state}", fontsize=14, fontweight="bold")
             ax2.invert_yaxis()  # Highest at top
 
         plt.suptitle("APGI State Transition Analysis", fontsize=16, fontweight="bold")
@@ -1449,9 +1429,7 @@ class APGIVisualizer:
 
         ax1.set_xlabel(param_name)
         ax1.set_ylabel("Steady-State Surprise ($S_t$)")
-        ax1.set_title(
-            f"Bifurcation Diagram: {param_name}", fontsize=14, fontweight="bold"
-        )
+        ax1.set_title(f"Bifurcation Diagram: {param_name}", fontsize=14, fontweight="bold")
         ax1.grid(True, alpha=0.3)
 
         # Compute and plot Lyapunov exponents
@@ -1496,9 +1474,7 @@ class APGIVisualizer:
         ax2.legend()
         ax2.grid(True, alpha=0.3)
 
-        plt.suptitle(
-            f"Nonlinear Dynamics Analysis: {param_name}", fontsize=16, fontweight="bold"
-        )
+        plt.suptitle(f"Nonlinear Dynamics Analysis: {param_name}", fontsize=16, fontweight="bold")
         plt.tight_layout()
 
         return fig
@@ -1516,7 +1492,7 @@ class APGIVisualizer:
 
         # Prepare data for visualization
         states = list(self.library.states.keys())
-        categories = [self.library.categories[s].display_name for s in states]
+        # categories = [self.library.categories[s].display_name for s in states]  # Not used
         colors = [self.library.categories[s].color for s in states]
 
         # Extract parameters for parallel coordinates
@@ -1532,15 +1508,11 @@ class APGIVisualizer:
         fig = go.Figure(
             data=go.Parcoords(
                 line=dict(color=colors),
-                dimensions=[
-                    dict(label=param, values=param_data[param]) for param in param_names
-                ],
+                dimensions=[dict(label=param, values=param_data[param]) for param in param_names],
             )
         )
 
-        fig.update_layout(
-            title="APGI State Parameter Space (Parallel Coordinates)", height=600
-        )
+        fig.update_layout(title="APGI State Parameter Space (Parallel Coordinates)", height=600)
 
         # Save to HTML
         fig.write_html(save_path)
@@ -1552,14 +1524,8 @@ class APGIVisualizer:
 # =============================================================================
 
 
-def run_comprehensive_demo():
-    """Run comprehensive demonstration of the APGI system"""
-
-    print("=" * 70)
-    print("COMPLETE APGI SYSTEM DEMONSTRATION")
-    print("=" * 70)
-
-    # 1. Initialize systems
+def _initialize_system():
+    """Initialize APGI systems and parameters"""
     print("\n1. Initializing APGI Systems...")
 
     # Create dynamical system with validated parameters
@@ -1583,8 +1549,11 @@ def run_comprehensive_demo():
         print("  ✅ Parameters validated against A.2 constraints")
 
     system = SurpriseIgnitionSystem(system_params)
+    return system, system_params
 
-    # 2. Initialize state library
+
+def _initialize_library():
+    """Initialize state library"""
     print("\n2. Loading Psychological State Library...")
     library = APGIStateLibrary()
     print(f"  ✅ Loaded {len(library.states)} psychological states")
@@ -1595,30 +1564,24 @@ def run_comprehensive_demo():
         if states_in_cat:
             print(f"    • {category.display_name}: {len(states_in_cat)} states")
 
-    # 3. Create visualizer
-    print("\n3. Initializing Visualization Engine...")
-    visualizer = APGIVisualizer(library)
-    print("  ✅ Visualization engine ready")
+    return library
 
-    # 4. Run dynamical simulation
+
+def _run_simulation(system, library):
+    """Run dynamical simulation"""
     print("\n4. Running Dynamical Simulation...")
 
     # Define input generator with state transitions
     def complex_input_generator(t: float) -> Dict[str, float]:
         """Generate inputs that transition between states"""
-
         # Time-based state selection
         if t < 20.0:
-            # Start with flow state
             state = library.get_state("flow")
         elif t < 40.0:
-            # Transition to anxiety
             state = library.get_state("anxiety")
         elif t < 60.0:
-            # Transition to creativity
             state = library.get_state("creativity")
         else:
-            # End with calm state
             state = library.get_state("mindfulness")
 
         # Add noise and oscillations
@@ -1641,12 +1604,12 @@ def run_comprehensive_demo():
     n_ignitions = np.sum(history["B"])
     print(f"  ✅ Simulation complete: {n_ignitions} ignitions detected")
 
-    # 5. Generate visualizations
-    print("\n5. Generating Visualizations...")
+    return history
 
-    # Create output directory
-    output_dir = Path("apgi_output")
-    output_dir.mkdir(exist_ok=True)
+
+def _generate_visualizations(visualizer, library, system, history, output_dir):
+    """Generate all visualizations"""
+    print("\n5. Generating Visualizations...")
 
     # 5.1 Dynamical simulation plot
     print("  • Creating dynamical simulation plot...")
@@ -1670,15 +1633,11 @@ def run_comprehensive_demo():
                 "depression",
             ]
         )
-        fig2.savefig(
-            output_dir / "state_landscape_3d.png", dpi=150, bbox_inches="tight"
-        )
+        fig2.savefig(output_dir / "state_landscape_3d.png", dpi=150, bbox_inches="tight")
 
     # 5.3 State transition network
     print("  • Creating state transition network...")
-    fig3 = visualizer.plot_state_transition_network(
-        highlight_state="flow", n_neighbors=8
-    )
+    fig3 = visualizer.plot_state_transition_network(highlight_state="flow", n_neighbors=8)
     fig3.savefig(output_dir / "transition_network.png", dpi=150, bbox_inches="tight")
 
     # 5.4 Bifurcation analysis
@@ -1691,11 +1650,11 @@ def run_comprehensive_demo():
     # 5.5 Interactive dashboard
     if PLOTLY_AVAILABLE:
         print("  • Creating interactive dashboard...")
-        visualizer.create_interactive_dashboard(
-            output_dir / "interactive_dashboard.html"
-        )
+        visualizer.create_interactive_dashboard(output_dir / "interactive_dashboard.html")
 
-    # 6. Advanced analyses
+
+def _run_advanced_analyses(system, library):
+    """Run advanced analyses"""
     print("\n6. Running Advanced Analyses...")
 
     # 6.1 Lyapunov exponent
@@ -1718,7 +1677,9 @@ def run_comprehensive_demo():
             f"      • {state_name}: similarity={similarity:.3f}, category={state.category.display_name}"
         )
 
-    # 7. Export data
+
+def _export_data(system_params, history, output_dir):
+    """Export data to files"""
     print("\n7. Exporting Data...")
 
     # Save parameters
@@ -1736,11 +1697,43 @@ def run_comprehensive_demo():
         P_ignition=history["P_ignition"],
     )
 
-    print(f"\n✅ Demonstration complete!")
+
+def run_comprehensive_demo():
+    """Run comprehensive demonstration of the APGI system"""
+    print("=" * 70)
+    print("COMPLETE APGI SYSTEM DEMONSTRATION")
+    print("=" * 70)
+
+    # Initialize systems
+    system, system_params = _initialize_system()
+    library = _initialize_library()
+
+    # Create visualizer
+    print("\n3. Initializing Visualization Engine...")
+    visualizer = APGIVisualizer(library)
+    print("  ✅ Visualization engine ready")
+
+    # Run simulation
+    history = _run_simulation(system, library)
+
+    # Create output directory
+    output_dir = Path("apgi_output")
+    output_dir.mkdir(exist_ok=True)
+
+    # Generate visualizations
+    _generate_visualizations(visualizer, library, system, history, output_dir)
+
+    # Run advanced analyses
+    _run_advanced_analyses(system, library)
+
+    # Export data
+    _export_data(system_params, history, output_dir)
+
+    print("\n✅ Demonstration complete!")
     print(f"📁 Output saved to: {output_dir.absolute()}")
-    print(f"📊 Visualizations: dynamical_simulation.png, state_landscape_3d.png, etc.")
+    print("📊 Visualizations: dynamical_simulation.png, state_landscape_3d.png, etc.")
     if PLOTLY_AVAILABLE:
-        print(f"🖥️  Interactive: interactive_dashboard.html")
+        print("🖥️  Interactive: interactive_dashboard.html")
 
     # Show one of the plots
     plt.show()
@@ -1786,9 +1779,7 @@ def quick_example():
 
     plt.subplot(2, 1, 2)
     plt.plot(history["time"], history["P_ignition"], "purple")
-    plt.fill_between(
-        history["time"], 0, history["P_ignition"], color="purple", alpha=0.3
-    )
+    plt.fill_between(history["time"], 0, history["P_ignition"], color="purple", alpha=0.3)
     plt.xlabel("Time (s)")
     plt.ylabel("Ignition Probability")
     plt.title("Probability of Ignition")
@@ -1808,9 +1799,7 @@ if __name__ == "__main__":
     print("COMPLETE APGI SYSTEM - STANDALONE IMPLEMENTATION")
     print("=" * 70)
     print("\nThis script implements the complete APGI mathematical specification")
-    print(
-        "including dynamical system, psychological state library, and visualizations."
-    )
+    print("including dynamical system, psychological state library, and visualizations.")
     print("\nOptions:")
     print("1. Run comprehensive demonstration (recommended)")
     print("2. Run quick example")
@@ -1831,7 +1820,7 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user.")
-    except Exception as e:
+    except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"\nError: {e}")
         import traceback
 

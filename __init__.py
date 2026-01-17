@@ -13,6 +13,10 @@ __version__ = "1.0.0"
 __author__ = "APGI Research Team"
 
 # Import main classes for convenience
-from .Validation.APGI_Master_Validation import APGIMasterValidator
+try:
+    from .Validation.APGI_Master_Validation import APGIMasterValidator
 
-__all__ = ["APGIMasterValidator"]
+    __all__ = ["APGIMasterValidator"]
+except ImportError:
+    # If imports fail, provide minimal package
+    __all__ = []

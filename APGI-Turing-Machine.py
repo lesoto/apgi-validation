@@ -22,13 +22,14 @@ Date: December 2024
 =============================================================================
 """
 
-import numpy as np
-from typing import Dict, List, Tuple, Optional, Any
+import warnings
+from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from typing import Any, Dict, List, Optional, Tuple
+
 import matplotlib.pyplot as plt
-from collections import deque
-import warnings
+import numpy as np
 
 # =============================================================================
 # ENUMERATIONS - Discrete State Space
@@ -313,9 +314,7 @@ class APGITuringMachine:
     # PRECISION-WEIGHTED PREDICTION ERROR
     # =========================================================================
 
-    def compute_weighted_prediction_error(
-        self, signal: SignalModality, raw_error: float
-    ) -> float:
+    def compute_weighted_prediction_error(self, signal: SignalModality, raw_error: float) -> float:
         """
         Compute precision-weighted prediction error
 
@@ -367,9 +366,7 @@ class APGITuringMachine:
             return
 
         # 1. Compute precision-weighted prediction error
-        weighted_pe = self.compute_weighted_prediction_error(
-            signal, raw_prediction_error
-        )
+        weighted_pe = self.compute_weighted_prediction_error(signal, raw_prediction_error)
 
         # 2. Update running buffers for precision estimation
         if self.is_interoceptive(signal):
@@ -569,15 +566,11 @@ class APGITuringMachine:
             (0.3, 0.0),
             (0.1, -1.0),
         ]  # Positive, Neutral, Negative
-        valence = np.random.choice(
-            [v for _, v in valence_probs], p=[p for p, _ in valence_probs]
-        )
+        valence = np.random.choice([v for _, v in valence_probs], p=[p for p, _ in valence_probs])
 
         # Update with learning rate
         learning_rate = 0.3
-        new_marker = (
-            1 - learning_rate
-        ) * self.state.somatic_marker + learning_rate * valence
+        new_marker = (1 - learning_rate) * self.state.somatic_marker + learning_rate * valence
 
         return np.clip(new_marker, -2.0, 2.0)
 
@@ -720,9 +713,7 @@ class APGITuringMachine:
 
         # Threshold dynamics: dθ = ((θ_0 - θ)/τ_θ) dt + σ dW
         current_theta_target = self.compute_dynamic_threshold()
-        dTheta = (
-            (current_theta_target - self.state.theta_continuous) / self.params.tau_theta
-        ) * dt
+        dTheta = ((current_theta_target - self.state.theta_continuous) / self.params.tau_theta) * dt
         dTheta += self.params.sigma_theta * xi_theta
         self.state.theta_continuous = max(0.1, self.state.theta_continuous + dTheta)
 
@@ -861,9 +852,7 @@ class APGIVisualizer:
     """Visualization tools for APGI Turing Machine"""
 
     @staticmethod
-    def plot_simulation(
-        machine: APGITuringMachine, title: str = "APGI Turing Machine Simulation"
-    ):
+    def plot_simulation(machine: APGITuringMachine, title: str = "APGI Turing Machine Simulation"):
         """
         Create comprehensive visualization of simulation
         """
@@ -873,9 +862,7 @@ class APGIVisualizer:
 
         # Plot 1: Surprise and Threshold
         ax0 = axes[0]
-        ax0.plot(
-            df["time"], df["S"], label="$S_t$ (Surprise)", color="blue", linewidth=1.5
-        )
+        ax0.plot(df["time"], df["S"], label="$S_t$ (Surprise)", color="blue", linewidth=1.5)
         ax0.plot(
             df["time"],
             df["theta"],
@@ -1043,9 +1030,7 @@ def run_baseline_simulation(duration: float = 120.0, dt: float = 0.05):
     time = np.linspace(0, duration, steps)
 
     print(f"Duration: {duration}s | Time step: {dt}s | Steps: {steps}")
-    print(
-        f"Parameters: Π_e={params.Pi_e:.2f}, Π_i={params.Pi_i:.2f}, β={params.beta:.2f}"
-    )
+    print(f"Parameters: Π_e={params.Pi_e:.2f}, Π_i={params.Pi_i:.2f}, β={params.beta:.2f}")
     print()
 
     # Generate synthetic input sequence
@@ -1058,30 +1043,21 @@ def run_baseline_simulation(duration: float = 120.0, dt: float = 0.05):
     # Event 1: External surprise burst (t=30s)
     event1_start = int(30.0 / dt)
     event1_end = int(35.0 / dt)
-    eps_e[event1_start:event1_end] += np.random.normal(
-        2.0, 0.5, event1_end - event1_start
-    )
+    eps_e[event1_start:event1_end] += np.random.normal(2.0, 0.5, event1_end - event1_start)
 
     # Event 2: Internal somatic burst (t=80s)
     event2_start = int(80.0 / dt)
     event2_end = int(85.0 / dt)
-    eps_i[event2_start:event2_end] += np.random.normal(
-        1.5, 0.5, event2_end - event2_start
-    )
+    eps_i[event2_start:event2_end] += np.random.normal(1.5, 0.5, event2_end - event2_start)
 
     # Context transitions
     contexts = [TaskContext.REST] * steps
-    contexts[event1_start:event1_end] = [TaskContext.THREAT] * (
-        event1_end - event1_start
-    )
-    contexts[event2_start:event2_end] = [TaskContext.ATTENTION] * (
-        event2_end - event2_start
-    )
+    contexts[event1_start:event1_end] = [TaskContext.THREAT] * (event1_end - event1_start)
+    contexts[event2_start:event2_end] = [TaskContext.ATTENTION] * (event2_end - event2_start)
 
     # Signal modalities
     signals = [
-        SignalModality.VISUAL if t < steps // 2 else SignalModality.HEARTBEAT
-        for t in range(steps)
+        SignalModality.VISUAL if t < steps // 2 else SignalModality.HEARTBEAT for t in range(steps)
     ]
 
     # Run simulation
@@ -1153,14 +1129,10 @@ def run_anxiety_comparison(duration: float = 60.0):
     eps_threat = np.random.normal(0, 0.1, steps)
     threat_start = int(20.0 / dt)
     threat_end = int(25.0 / dt)
-    eps_threat[threat_start:threat_end] += np.random.normal(
-        1.2, 0.3, threat_end - threat_start
-    )
+    eps_threat[threat_start:threat_end] += np.random.normal(1.2, 0.3, threat_end - threat_start)
 
     contexts = [TaskContext.REST] * steps
-    contexts[threat_start:threat_end] = [TaskContext.THREAT] * (
-        threat_end - threat_start
-    )
+    contexts[threat_start:threat_end] = [TaskContext.THREAT] * (threat_end - threat_start)
 
     # Run both
     for t_idx in range(steps):
@@ -1207,12 +1179,8 @@ if __name__ == "__main__":
     machine_neutral, machine_anxiety = run_anxiety_comparison(duration=60.0)
 
     # Compare visualizations
-    fig3 = APGIVisualizer.plot_simulation(
-        machine_neutral, title="APGI - Neutral Individual"
-    )
-    fig4 = APGIVisualizer.plot_simulation(
-        machine_anxiety, title="APGI - High Anxiety Individual"
-    )
+    fig3 = APGIVisualizer.plot_simulation(machine_neutral, title="APGI - Neutral Individual")
+    fig4 = APGIVisualizer.plot_simulation(machine_anxiety, title="APGI - High Anxiety Individual")
 
     plt.show()
 

@@ -12,24 +12,25 @@ with no external browser dependencies, save options, or display capabilities.
 =============================================================================
 """
 
-import numpy as np
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any, Union
-from enum import Enum, auto
-import warnings
-from math import pi
 import datetime
+import json
 import os
 import tempfile
-import json
+import warnings
+from dataclasses import dataclass, field
+from enum import Enum, auto
+from math import pi
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 
 # Visualization imports with graceful fallbacks
 try:
-    import plotly.graph_objects as go
     import plotly.express as px
-    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
     import plotly.io as pio
+    from plotly.subplots import make_subplots
 
     PLOTLY_AVAILABLE = True
     pio.templates.default = "plotly_white"
@@ -38,15 +39,12 @@ except ImportError:
     warnings.warn("Plotly not available. Install with: pip install plotly")
 
 try:
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import LinearSegmentedColormap, to_hex
-    from matplotlib.patches import Circle, Wedge, Polygon
     import matplotlib.cm as cm
-    from matplotlib.backends.backend_tkagg import (
-        FigureCanvasTkAgg,
-        NavigationToolbar2Tk,
-    )
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+    from matplotlib.colors import LinearSegmentedColormap, to_hex
     from matplotlib.figure import Figure
+    from matplotlib.patches import Circle, Polygon, Wedge
 
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
@@ -63,10 +61,10 @@ except ImportError:
 
 # GUI imports with graceful fallbacks
 try:
-    import tkinter as tk
-    from tkinter import ttk, messagebox
-    from tkinter.scrolledtext import ScrolledText
     import threading
+    import tkinter as tk
+    from tkinter import messagebox, ttk
+    from tkinter.scrolledtext import ScrolledText
     from traceback import format_exc
 
     TKINTER_AVAILABLE = True
@@ -109,9 +107,7 @@ class APGIParameters:
         assert (
             0.1 <= self.Pi_i_baseline <= 10.0
         ), f"Pi_i_baseline must be in [0.1, 10], got {self.Pi_i_baseline}"
-        assert (
-            0.1 <= self.Pi_i_eff <= 10.0
-        ), f"Pi_i_eff must be in [0.1, 10], got {self.Pi_i_eff}"
+        assert 0.1 <= self.Pi_i_eff <= 10.0, f"Pi_i_eff must be in [0.1, 10], got {self.Pi_i_eff}"
         assert -2.0 <= self.M_ca <= 2.0, f"M_ca must be in [-2, 2], got {self.M_ca}"
         assert 0.3 <= self.beta <= 0.8, f"beta must be in [0.3, 0.8], got {self.beta}"
 
@@ -196,9 +192,7 @@ class EmbeddedVisualizationRenderer:
 
         self.current_file = None
 
-    def render_figure_to_html(
-        self, fig: go.Figure, filename: str = "current.html"
-    ) -> str:
+    def render_figure_to_html(self, fig: go.Figure, filename: str = "current.html") -> str:
         """
         Render a Plotly figure to HTML with embedded resources.
 
@@ -261,22 +255,22 @@ class EmbeddedVisualizationRenderer:
 <body>
     <div id="plot" class="loading">Loading visualization...</div>
     <div class="info-panel" id="info-panel"></div>
-    
+
     <script>
         let plotData = null;
         let layout = null;
-        
+
         // Function to initialize plot
         function initPlot() {{
             const plotJson = {json.dumps(fig.to_json())};
             const figure = JSON.parse(plotJson);
-            
+
             // Ensure responsive sizing
             figure.layout.autosize = true;
             figure.layout.margin = {{l: 50, r: 50, b: 50, t: 50, pad: 4}};
             figure.layout.paper_bgcolor = '#f8f9fa';
             figure.layout.plot_bgcolor = 'white';
-            
+
             // Create the plot with responsive config
             Plotly.newPlot('plot', figure.data, figure.layout, {{
                 responsive: true,
@@ -284,26 +278,26 @@ class EmbeddedVisualizationRenderer:
                 displaylogo: false,
                 modeBarButtonsToRemove: ['lasso2d', 'select2d']
             }});
-            
+
             // Handle window resizing
             window.addEventListener('resize', function() {{
                 Plotly.Plots.resize('plot');
             }});
-            
+
             // Remove loading message
             const plotDiv = document.getElementById('plot');
             if (plotDiv.classList.contains('loading')) {{
                 plotDiv.classList.remove('loading');
             }}
         }}
-        
+
         // Initialize on load
         if (document.readyState === 'loading') {{
             document.addEventListener('DOMContentLoaded', initPlot);
         }} else {{
             initPlot();
         }}
-        
+
         // Hover info handler
         document.getElementById('plot').addEventListener('plotly_hover', function(data) {{
             const infoPanel = document.getElementById('info-panel');
@@ -321,7 +315,7 @@ class EmbeddedVisualizationRenderer:
                 infoPanel.classList.add('show');
             }}
         }});
-        
+
         document.getElementById('plot').addEventListener('plotly_unhover', function() {{
             document.getElementById('info-panel').classList.remove('show');
         }});
@@ -399,9 +393,7 @@ class APGIVisualizer:
             row["category_display"] = self.categories.get(
                 name, StateCategory.UNELABORATED
             ).display_name
-            row["category_color"] = self.categories.get(
-                name, StateCategory.UNELABORATED
-            ).color
+            row["category_color"] = self.categories.get(name, StateCategory.UNELABORATED).color
             data.append(row)
 
         df = pd.DataFrame(data)
@@ -514,7 +506,7 @@ class APGIVisualizer:
                             "project": {"z": True},
                         }
                     },
-                    hoverongaps=False,
+                    connectgaps=False,
                     hovertemplate="%{x:.2f} vs %{y:.2f}<br>P(ignition): %{z:.3f}<extra></extra>",
                 )
             ]
@@ -553,8 +545,7 @@ class APGIVisualizer:
                 textposition="top center",
                 hoverinfo="text",
                 hovertext=[
-                    f"{name}<br>P(ignition)={z:.2%}"
-                    for name, z in zip(scatter_names, scatter_z)
+                    f"{name}<br>P(ignition)={z:.2%}" for name, z in zip(scatter_names, scatter_z)
                 ],
                 name="Psychological States",
             )
@@ -600,9 +591,7 @@ class APGIVisualizer:
                 if normalize:
                     all_values = self.df[param]
                     if param in ["theta_t", "M_ca"]:
-                        value = (value - all_values.min()) / (
-                            all_values.max() - all_values.min()
-                        )
+                        value = (value - all_values.min()) / (all_values.max() - all_values.min())
                     else:
                         value = value / all_values.max()
 
@@ -636,9 +625,7 @@ class APGIVisualizer:
             )
 
         fig.update_layout(
-            polar=dict(
-                radialaxis=dict(visible=True, range=[0, 1.1] if normalize else None)
-            ),
+            polar=dict(radialaxis=dict(visible=True, range=[0, 1.1] if normalize else None)),
             showlegend=True,
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=1.05),
             title="State Comparison Radar Chart",
@@ -682,7 +669,7 @@ class APGIVisualizer:
                 text=corr_matrix.round(2).values,
                 texttemplate="%{text}",
                 textfont={"size": 10},
-                hoverongaps=False,
+                connectgaps=False,
                 hovertemplate="%{x} vs %{y}<br>Correlation: %{z:.3f}<extra></extra>",
             )
         )
@@ -718,7 +705,7 @@ class APGIVisualizer:
             ),
             specs=[
                 [{"type": "bar"}, {"type": "scatter"}],
-                [{"type": "radar"}, {"type": "histogram"}],
+                [{"type": "scatterpolar"}, {"type": "histogram"}],
             ],
         )
 
@@ -760,7 +747,7 @@ class APGIVisualizer:
                 line=dict(color=category.color, width=3),
                 name="Ignition Probability",
                 fill="tozeroy",
-                fillcolor=category.color + "20",
+                fillcolor=f"rgba{tuple(int(category.color[i:i+2], 16) for i in (1, 3, 5)) + (0.13,)}",
             ),
             row=1,
             col=2,
@@ -781,9 +768,7 @@ class APGIVisualizer:
 
         # 3. Category Comparison
         category_states = [
-            name
-            for name, cat in self.categories.items()
-            if cat == category and name != state_name
+            name for name, cat in self.categories.items() if cat == category and name != state_name
         ][:4]
         if category_states:
             for comp_state in [state_name] + category_states:
@@ -854,9 +839,7 @@ class APGIVisualizer:
 
         return fig
 
-    def _create_hover_text(
-        self, state_name: str, row: Optional["pd.Series"] = None
-    ) -> str:
+    def _create_hover_text(self, state_name: str, row: Optional["pd.Series"] = None) -> str:
         """Create hover text for state visualization"""
         params = self.states[state_name]
 
@@ -958,14 +941,12 @@ class APGIVisualizerGUI:
 
         # Control Panel (Left) - Enhanced
         control_frame = ttk.LabelFrame(main_frame, text="Controls", padding="12")
-        control_frame.grid(
-            row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10)
-        )
+        control_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))
 
         # Visualization Type
-        ttk.Label(
-            control_frame, text="Visualization Type:", font=("Arial", 10, "bold")
-        ).grid(row=0, column=0, sticky=tk.W, pady=(5, 2))
+        ttk.Label(control_frame, text="Visualization Type:", font=("Arial", 10, "bold")).grid(
+            row=0, column=0, sticky=tk.W, pady=(5, 2)
+        )
         self.viz_type = ttk.Combobox(
             control_frame,
             values=[
@@ -1000,9 +981,7 @@ class APGIVisualizerGUI:
             text="States to Compare\n(comma-separated):",
             font=("Arial", 9, "bold"),
         ).grid(row=4, column=0, sticky=tk.W, pady=(5, 2))
-        self.states_text = tk.Text(
-            control_frame, height=3, width=25, font=("Courier", 8)
-        )
+        self.states_text = tk.Text(control_frame, height=3, width=25, font=("Courier", 8))
         self.states_text.grid(row=5, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
         self.states_text.insert("1.0", "flow\nanxiety\ncalm")
 
@@ -1011,17 +990,79 @@ class APGIVisualizerGUI:
             row=6, column=0, sticky=(tk.W, tk.E), pady=10
         )
 
+        # Parameter Input Section
+        ttk.Label(control_frame, text="Simulation Parameters:", font=("Arial", 10, "bold")).grid(
+            row=7, column=0, sticky=tk.W, pady=(5, 2)
+        )
+
+        # tau_S parameter
+        ttk.Label(control_frame, text="τ_S (surprise timescale):").grid(
+            row=8, column=0, sticky=tk.W, pady=(2, 0)
+        )
+        self.tau_S_var = tk.StringVar(value="0.5")
+        self.tau_S_entry = ttk.Entry(control_frame, textvariable=self.tau_S_var, width=15)
+        self.tau_S_entry.grid(row=9, column=0, sticky=tk.W, pady=(0, 5))
+
+        # tau_theta parameter
+        ttk.Label(control_frame, text="τ_θ (threshold timescale):").grid(
+            row=10, column=0, sticky=tk.W, pady=(2, 0)
+        )
+        self.tau_theta_var = tk.StringVar(value="30.0")
+        self.tau_theta_entry = ttk.Entry(control_frame, textvariable=self.tau_theta_var, width=15)
+        self.tau_theta_entry.grid(row=11, column=0, sticky=tk.W, pady=(0, 5))
+
+        # theta_0 parameter
+        ttk.Label(control_frame, text="θ₀ (baseline threshold):").grid(
+            row=12, column=0, sticky=tk.W, pady=(2, 0)
+        )
+        self.theta_0_var = tk.StringVar(value="0.5")
+        self.theta_0_entry = ttk.Entry(control_frame, textvariable=self.theta_0_var, width=15)
+        self.theta_0_entry.grid(row=13, column=0, sticky=tk.W, pady=(0, 5))
+
+        # alpha parameter
+        ttk.Label(control_frame, text="α (sigmoid steepness):").grid(
+            row=14, column=0, sticky=tk.W, pady=(2, 0)
+        )
+        self.alpha_var = tk.StringVar(value="10.0")
+        self.alpha_entry = ttk.Entry(control_frame, textvariable=self.alpha_var, width=15)
+        self.alpha_entry.grid(row=15, column=0, sticky=tk.W, pady=(0, 10))
+
+        # Validation status
+        self.validation_status = tk.StringVar(value="✓ Parameters valid")
+        self.validation_label = ttk.Label(
+            control_frame, textvariable=self.validation_status, foreground="green"
+        )
+        self.validation_label.grid(row=16, column=0, sticky=tk.W, pady=(0, 10))
+
+        # Bind validation to entry changes
+        self.tau_S_var.trace_add("write", lambda *args: self.validate_parameters())
+        self.tau_theta_var.trace_add("write", lambda *args: self.validate_parameters())
+        self.theta_0_var.trace_add("write", lambda *args: self.validate_parameters())
+        self.alpha_var.trace_add("write", lambda *args: self.validate_parameters())
+
+        # Separator
+        ttk.Separator(control_frame, orient="horizontal").grid(
+            row=17, column=0, sticky=(tk.W, tk.E), pady=10
+        )
+
         # Buttons with better styling
         button_style = {"width": 20}
+
+        self.generate_button = ttk.Button(
+            control_frame,
+            text="Run Simulation",
+            command=self.run_simulation_with_validation,
+        )
+        self.generate_button.grid(row=18, column=0, sticky=(tk.W, tk.E), pady=5)
 
         ttk.Button(
             control_frame,
             text="Generate Visualization",
             command=self.generate_visualization,
-        ).grid(row=7, column=0, sticky=(tk.W, tk.E), pady=5)
-        ttk.Button(
-            control_frame, text="Clear Display", command=self.clear_display
-        ).grid(row=8, column=0, sticky=(tk.W, tk.E), pady=5)
+        ).grid(row=19, column=0, sticky=(tk.W, tk.E), pady=5)
+        ttk.Button(control_frame, text="Clear Display", command=self.clear_display).grid(
+            row=20, column=0, sticky=(tk.W, tk.E), pady=5
+        )
 
         control_frame.columnconfigure(0, weight=1)
 
@@ -1043,14 +1084,10 @@ class APGIVisualizerGUI:
         info_frame.columnconfigure(0, weight=1)
         info_frame.rowconfigure(0, weight=1)
 
-        self.info_text = tk.Text(
-            info_frame, height=4, width=80, wrap=tk.WORD, font=("Arial", 9)
-        )
+        self.info_text = tk.Text(info_frame, height=4, width=80, wrap=tk.WORD, font=("Arial", 9))
         self.info_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
-        scrollbar = ttk.Scrollbar(
-            info_frame, orient=tk.VERTICAL, command=self.info_text.yview
-        )
+        scrollbar = ttk.Scrollbar(info_frame, orient=tk.VERTICAL, command=self.info_text.yview)
         scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         self.info_text["yscrollcommand"] = scrollbar.set
 
@@ -1062,9 +1099,7 @@ class APGIVisualizerGUI:
             relief=tk.SUNKEN,
             font=("Arial", 9),
         )
-        status_bar.grid(
-            row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0)
-        )
+        status_bar.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0))
 
     def populate_state_dropdowns(self):
         """Populate state selection dropdowns"""
@@ -1151,9 +1186,235 @@ class APGIVisualizerGUI:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate visualization: {str(e)}")
             self.status_var.set(f"Error: {str(e)}")
-            self.update_info(
-                f"Error generating visualization:\n{str(e)}\n\n{format_exc()}"
+            self.update_info(f"Error generating visualization:\n{str(e)}\n\n{format_exc()}")
+
+    def validate_parameters(self):
+        """Validate parameter input fields and update status"""
+        try:
+            # Get parameter values
+            tau_S = float(self.tau_S_var.get())
+            tau_theta = float(self.tau_theta_var.get())
+            theta_0 = float(self.theta_0_var.get())
+            alpha = float(self.alpha_var.get())
+
+            # Define validation ranges
+            validation_rules = {
+                "tau_S": (tau_S, 0.1, 1.0, "τ_S must be between 0.1 and 1.0 seconds"),
+                "tau_theta": (
+                    tau_theta,
+                    5.0,
+                    60.0,
+                    "τ_θ must be between 5 and 60 seconds",
+                ),
+                "theta_0": (theta_0, 0.1, 0.9, "θ₀ must be between 0.1 and 0.9"),
+                "alpha": (alpha, 2.0, 20.0, "α must be between 2 and 20"),
+            }
+
+            # Check each parameter
+            for param_name, (
+                value,
+                min_val,
+                max_val,
+                error_msg,
+            ) in validation_rules.items():
+                if not (min_val <= value <= max_val):
+                    self.validation_status.set(f"✗ {error_msg}")
+                    self.validation_label.config(foreground="red")
+                    self.generate_button.config(state="disabled")
+                    return False
+
+            # All validations passed
+            self.validation_status.set("✓ Parameters valid")
+            self.validation_label.config(foreground="green")
+            self.generate_button.config(state="normal")
+            return True
+
+        except ValueError as e:
+            self.validation_status.set("✗ Invalid numeric input")
+            self.validation_label.config(foreground="red")
+            self.generate_button.config(state="disabled")
+            return False
+        except Exception as e:
+            self.validation_status.set(f"✗ Validation error: {str(e)}")
+            self.validation_label.config(foreground="red")
+            self.generate_button.config(state="disabled")
+            return False
+
+    def run_simulation_with_validation(self):
+        """Run simulation with parameter validation"""
+        if not self.validate_parameters():
+            messagebox.showerror(
+                "Invalid Parameters",
+                "Please correct the parameter values before running simulation.",
             )
+            return
+
+        try:
+            # Get validated parameters
+            params = {
+                "tau_S": float(self.tau_S_var.get()),
+                "tau_theta": float(self.tau_theta_var.get()),
+                "theta_0": float(self.theta_0_var.get()),
+                "alpha": float(self.alpha_var.get()),
+            }
+
+            self.status_var.set("Running simulation...")
+            self.root.update()
+
+            # Import simulation components
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location(
+                "APGI_Formal_Model_Enhanced", "APGI-Formal-Model-Enhanced.py"
+            )
+            APGI_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(APGI_module)
+
+            SurpriseIgnitionSystem = APGI_module.SurpriseIgnitionSystem
+            APGIParameters = APGI_module.APGIParameters
+            import numpy as np
+
+            # Create system with user parameters
+            system_params = APGIParameters(
+                tau_S=params["tau_S"],
+                tau_theta=params["tau_theta"],
+                theta_0=params["theta_0"],
+                alpha=params["alpha"],
+            )
+
+            system = SurpriseIgnitionSystem(params=system_params)
+
+            # Define simple input generator
+            def input_generator(t):
+                return {
+                    "Pi_e": 1.0 + 0.5 * np.sin(2 * np.pi * 0.1 * t),  # 0.1 Hz oscillation
+                    "Pi_i": 1.0,
+                    "eps_e": 0.5,
+                    "eps_i": 0.3,
+                    "beta": 1.0,
+                }
+
+            # Run simulation
+            duration = 30.0  # 30 seconds
+            dt = 0.05  # 50 ms timestep
+            history = system.simulate(duration, dt, input_generator)
+
+            # Generate visualization of results
+            self.generate_simulation_visualization(history, params)
+
+            self.status_var.set("✓ Simulation completed successfully")
+            self.update_info(
+                f"Simulation completed with parameters:\n"
+                f"τ_S = {params['tau_S']:.2f}s\n"
+                f"τ_θ = {params['tau_theta']:.1f}s\n"
+                f"θ₀ = {params['theta_0']:.2f}\n"
+                f"α = {params['alpha']:.1f}\n\n"
+                f"Duration: {duration}s, Timestep: {dt}s\n"
+                f"Ignitions detected: {len([i for i in history['P_ignition'] if i > 0.5])}"
+            )
+
+        except ImportError as e:
+            messagebox.showerror(
+                "Import Error",
+                f"Required simulation module not found: {str(e)}\n"
+                "Please ensure APGI-Formal-Model-Enhanced.py is available.",
+            )
+            self.status_var.set("Error: Missing simulation module")
+        except Exception as e:
+            messagebox.showerror("Simulation Error", f"Failed to run simulation: {str(e)}")
+            self.status_var.set(f"Error: {str(e)}")
+            self.update_info(f"Simulation error:\n{str(e)}")
+
+    def generate_simulation_visualization(self, history, params):
+        """Generate visualization of simulation results"""
+        try:
+            if PLOTLY_AVAILABLE:
+                import plotly.graph_objects as go
+                from plotly.subplots import make_subplots
+
+                # Create subplots
+                fig = make_subplots(
+                    rows=3,
+                    cols=1,
+                    subplot_titles=(
+                        "Surprise Accumulation",
+                        "Threshold Dynamics",
+                        "Ignition Events",
+                    ),
+                    vertical_spacing=0.08,
+                )
+
+                time = history["time"]
+
+                # Plot surprise
+                fig.add_trace(
+                    go.Scatter(
+                        x=time,
+                        y=history["S"],
+                        name="Surprise (S_t)",
+                        line=dict(color="blue"),
+                    ),
+                    row=1,
+                    col=1,
+                )
+
+                # Plot threshold
+                fig.add_trace(
+                    go.Scatter(
+                        x=time,
+                        y=history["theta"],
+                        name="Threshold (θ_t)",
+                        line=dict(color="red"),
+                    ),
+                    row=2,
+                    col=1,
+                )
+
+                # Plot ignition
+                fig.add_trace(
+                    go.Scatter(
+                        x=time,
+                        y=history["P_ignition"],
+                        name="Ignition",
+                        line=dict(color="green"),
+                    ),
+                    row=3,
+                    col=1,
+                )
+
+                # Update layout
+                fig.update_layout(
+                    title=f"APGI Simulation Results (τ_S={params['tau_S']:.2f}s, α={params['alpha']:.1f})",
+                    height=600,
+                    showlegend=True,
+                )
+
+                fig.update_xaxes(title_text="Time (s)", row=3, col=1)
+                fig.update_yaxes(title_text="Surprise", row=1, col=1)
+                fig.update_yaxes(title_text="Threshold", row=2, col=1)
+                fig.update_yaxes(title_text="Ignition", row=3, col=1)
+
+                # Display in embedded panel
+                self.embedded_display.display_plotly_figure(fig)
+
+            else:
+                # Fallback to text display
+                self.update_info(
+                    f"Simulation completed successfully!\n\n"
+                    f"Parameters used:\n"
+                    f"τ_S = {params['tau_S']:.2f}s\n"
+                    f"τ_θ = {params['tau_theta']:.1f}s\n"
+                    f"θ₀ = {params['theta_0']:.2f}\n"
+                    f"α = {params['alpha']:.1f}\n\n"
+                    f"Results:\n"
+                    f"Final surprise: {history['S'][-1]:.3f}\n"
+                    f"Final threshold: {history['theta'][-1]:.3f}\n"
+                    f"Ignitions: {len([i for i in history['P_ignition'] if i > 0.5])}\n\n"
+                    f"Install plotly for graphical visualization."
+                )
+
+        except Exception as e:
+            self.update_info(f"Visualization error: {str(e)}")
 
     def clear_display(self):
         """Clear the visualization panel"""
@@ -1253,33 +1514,21 @@ class EmbeddedDisplayPanel(ttk.Frame):
                     # Extract data from first trace
                     trace = fig.data[0]
 
-                    if (
-                        hasattr(trace, "x")
-                        and hasattr(trace, "y")
-                        and trace.x is not None
-                    ):
+                    if hasattr(trace, "x") and hasattr(trace, "y") and trace.x is not None:
                         # 2D scatter plot
                         ax.scatter(trace.x, trace.y, alpha=0.7, s=50)
                         ax.set_xlabel("X")
                         ax.set_ylabel("Y")
                         ax.set_title("APGI Visualization (Static Version)")
                         ax.grid(True, alpha=0.3)
-                    elif (
-                        hasattr(trace, "z")
-                        and hasattr(trace, "x")
-                        and hasattr(trace, "y")
-                    ):
+                    elif hasattr(trace, "z") and hasattr(trace, "x") and hasattr(trace, "y"):
                         # 3D scatter plot - project to 2D
-                        ax.scatter(
-                            trace.x, trace.y, c=trace.z, alpha=0.7, s=50, cmap="viridis"
-                        )
+                        ax.scatter(trace.x, trace.y, c=trace.z, alpha=0.7, s=50, cmap="viridis")
                         ax.set_xlabel("X")
                         ax.set_ylabel("Y")
                         ax.set_title("APGI 3D Visualization (2D Projection)")
                         ax.grid(True, alpha=0.3)
-                        plt.colorbar(
-                            mpl_fig.gca().collections[0], ax=ax, label="Z value"
-                        )
+                        plt.colorbar(mpl_fig.gca().collections[0], ax=ax, label="Z value")
                     else:
                         # Generic visualization info
                         ax.text(
@@ -1339,9 +1588,7 @@ class EmbeddedDisplayPanel(ttk.Frame):
 
             # Create canvas and toolbar
             self.matplotlib_canvas = FigureCanvasTkAgg(mpl_fig, self.canvas_frame)
-            self.toolbar = NavigationToolbar2Tk(
-                self.matplotlib_canvas, self.canvas_frame
-            )
+            self.toolbar = NavigationToolbar2Tk(self.matplotlib_canvas, self.canvas_frame)
 
             # Pack toolbar and canvas
             self.toolbar.update()
@@ -1381,7 +1628,7 @@ class EmbeddedDisplayPanel(ttk.Frame):
 
         if self.display_method == "tkinterweb":
             try:
-                with open(filepath, "r", encoding="utf-8") as f:
+                with open(filepath, encoding="utf-8") as f:
                     html_content = f.read()
                 self.html_frame.load_html(html_content)
             except Exception as e:

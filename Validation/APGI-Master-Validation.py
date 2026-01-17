@@ -11,17 +11,22 @@ Falsification Logic:
 - Tertiary tests (3+ failures): Scope restriction
 """
 
+import importlib
 import json
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class APGIMasterValidator:
-    def __init__(self):
-        self.protocol_results = {}
-        self.falsification_status = {"primary": [], "secondary": [], "tertiary": []}
+    def __init__(self) -> None:
+        self.protocol_results: Dict[int, Any] = {}
+        self.falsification_status: Dict[str, List[int]] = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": [],
+        }
 
-    def run_all_protocols(self):
+    def run_all_protocols(self) -> Dict[str, Any]:
         """Execute all 8 protocols in sequence"""
         # Protocol tier classification
         protocol_tiers = {
@@ -39,7 +44,7 @@ class APGIMasterValidator:
             try:
                 # Import protocol module
                 module_name = f"APGI-Protocol-{protocol_num}"
-                protocol_module = __import__(module_name)
+                protocol_module = importlib.import_module(module_name)
 
                 # Run protocol validation
                 if hasattr(protocol_module, "run_validation"):
@@ -51,8 +56,7 @@ class APGIMasterValidator:
                     validation_functions = [
                         attr
                         for attr in dir(protocol_module)
-                        if callable(getattr(protocol_module, attr))
-                        and "validation" in attr.lower()
+                        if callable(getattr(protocol_module, attr)) and "validation" in attr.lower()
                     ]
                     if validation_functions:
                         result = getattr(protocol_module, validation_functions[0])()
@@ -63,9 +67,7 @@ class APGIMasterValidator:
                 self.protocol_results[f"protocol_{protocol_num}"] = result
 
                 # Determine if protocol passed
-                passed = (
-                    result.get("passed", True) if isinstance(result, dict) else True
-                )
+                passed = result.get("passed", True) if isinstance(result, dict) else True
                 tier = protocol_tiers[protocol_num]
 
                 self.falsification_status[tier].append(
@@ -74,11 +76,42 @@ class APGIMasterValidator:
 
                 print(f"Protocol {protocol_num}: {'PASSED' if passed else 'FAILED'}")
 
-            except Exception as e:
-                # Protocol execution failed
+            except ImportError as e:
+                # Protocol module not found
                 error_result = {
-                    "status": "EXECUTION_ERROR",
-                    "error": str(e),
+                    "status": "IMPORT_ERROR",
+                    "error": f"Module not found: {e}",
+                    "passed": False,
+                }
+            except AttributeError as e:
+                # Missing required functions
+                error_result = {
+                    "status": "INTERFACE_ERROR",
+                    "error": f"Missing required function: {e}",
+                    "passed": False,
+                }
+            except (ValueError, TypeError) as e:
+                # Parameter or data type errors
+                error_result = {
+                    "status": "PARAMETER_ERROR",
+                    "error": f"Invalid parameter or data: {e}",
+                    "passed": False,
+                }
+            except RuntimeError as e:
+                # Runtime errors during execution
+                error_result = {
+                    "status": "RUNTIME_ERROR",
+                    "error": f"Runtime error: {e}",
+                    "passed": False,
+                }
+            except (ImportError, AttributeError, KeyError, TypeError, ValueError) as e:
+                # Catch-all for unexpected errors
+                import traceback
+
+                error_result = {
+                    "status": "UNEXPECTED_ERROR",
+                    "error": f"Unexpected error: {e}",
+                    "traceback": traceback.format_exc(),
                     "passed": False,
                 }
 
@@ -98,9 +131,7 @@ class APGIMasterValidator:
             'VALIDATED', 'MAJOR_REVISION', 'SCOPE_RESTRICTION', or 'REJECTED'
         """
         # Count failures at each tier
-        primary_failures = len(
-            [r for r in self.falsification_status["primary"] if not r["passed"]]
-        )
+        primary_failures = len([r for r in self.falsification_status["primary"] if not r["passed"]])
         secondary_failures = len(
             [r for r in self.falsification_status["secondary"] if not r["passed"]]
         )

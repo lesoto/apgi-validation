@@ -239,7 +239,7 @@ data = {'EEG': [...], 'Pupil': [...], 'EDA': [...]}
 # Map keys correctly
 key_mapping = {
     'EEG': 'exteroceptive',
-    'Pupil': 'interoceptive', 
+    'Pupil': 'interoceptive',
     'EDA': 'somatic'
 }
 
@@ -296,7 +296,7 @@ chunk_size = 1000
 for i in range(0, len(data), chunk_size):
     chunk = data[i:i+chunk_size]
     process_chunk(chunk)
-    
+
     # Clean up memory
     import gc
     gc.collect()

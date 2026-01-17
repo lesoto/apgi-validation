@@ -15,20 +15,21 @@ This enhanced version includes:
 =============================================================================
 """
 
-import numpy as np
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any, Union
-from enum import Enum, auto
-import warnings
-from math import pi
 import datetime
+import warnings
+from dataclasses import dataclass, field
+from enum import Enum, auto
+from math import pi
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 
 # Visualization imports with graceful fallbacks
 try:
-    import plotly.graph_objects as go
     import plotly.express as px
-    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
     import plotly.io as pio
+    from plotly.subplots import make_subplots
 
     PLOTLY_AVAILABLE = True
     # Set modern theme
@@ -38,10 +39,10 @@ except ImportError:
     warnings.warn("Plotly not available. Install with: pip install plotly")
 
 try:
+    import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     from matplotlib.colors import LinearSegmentedColormap, to_hex
-    from matplotlib.patches import Circle, Wedge, Polygon
-    import matplotlib.cm as cm
+    from matplotlib.patches import Circle, Polygon, Wedge
 
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
@@ -58,15 +59,15 @@ except ImportError:
 
 # GUI imports with graceful fallbacks
 try:
-    import tkinter as tk
-    from tkinter import ttk, messagebox, filedialog
-    from tkinter.scrolledtext import ScrolledText
-    from traceback import format_exc
-    import warnings
     import os
     import tempfile
     import threading
-    from typing import Dict, List, Optional, Tuple, Union, Any
+    import tkinter as tk
+    import warnings
+    from tkinter import filedialog, messagebox, ttk
+    from tkinter.scrolledtext import ScrolledText
+    from traceback import format_exc
+    from typing import Any, Dict, List, Optional, Tuple, Union
 
     TKINTER_AVAILABLE = True
 except ImportError:
@@ -94,9 +95,7 @@ class APGIParameters:
         assert (
             0.1 <= self.Pi_i_baseline <= 10.0
         ), f"Pi_i_baseline must be in [0.1, 10], got {self.Pi_i_baseline}"
-        assert (
-            0.1 <= self.Pi_i_eff <= 10.0
-        ), f"Pi_i_eff must be in [0.1, 10], got {self.Pi_i_eff}"
+        assert 0.1 <= self.Pi_i_eff <= 10.0, f"Pi_i_eff must be in [0.1, 10], got {self.Pi_i_eff}"
         assert -2.0 <= self.M_ca <= 2.0, f"M_ca must be in [-2, 2], got {self.M_ca}"
         assert 0.3 <= self.beta <= 0.8, f"beta must be in [0.3, 0.8], got {self.beta}"
 
@@ -236,9 +235,7 @@ class APGIVisualizer:
             row["category_display"] = self.categories.get(
                 name, StateCategory.UNELABORATED
             ).display_name
-            row["category_color"] = self.categories.get(
-                name, StateCategory.UNELABORATED
-            ).color
+            row["category_color"] = self.categories.get(name, StateCategory.UNELABORATED).color
             data.append(row)
 
         df = pd.DataFrame(data)
@@ -285,9 +282,7 @@ class APGIVisualizer:
         # Add nodes (states)
         for idx, row in self.df.iterrows():
             state_name = row["name"]
-            x, y, z = positions.get(
-                state_name, (row[dimension1], row[dimension2], row[dimension3])
-            )
+            x, y, z = positions.get(state_name, (row[dimension1], row[dimension2], row[dimension3]))
 
             # Node properties
             size = 15 + (row["S_t"] * 2)  # Scale by surprise
@@ -336,7 +331,7 @@ class APGIVisualizer:
                             mode="lines",
                             line=dict(
                                 width=width,
-                                color="rgba(150, 150, 150, {})".format(opacity),
+                                color=f"rgba(150, 150, 150, {opacity})",
                                 dash="dot" if cost > 3 else "solid",
                             ),
                             hoverinfo="none",
@@ -469,8 +464,7 @@ class APGIVisualizer:
                 textposition="top center",
                 hoverinfo="text",
                 hovertext=[
-                    f"{name}<br>P(ignition)={z:.2%}"
-                    for name, z in zip(scatter_names, scatter_z)
+                    f"{name}<br>P(ignition)={z:.2%}" for name, z in zip(scatter_names, scatter_z)
                 ],
                 name="Psychological States",
             )
@@ -578,10 +572,7 @@ class APGIVisualizer:
             )
 
         # Colors for states in pathway
-        colors = [
-            self.categories.get(state, StateCategory.UNELABORATED).color
-            for state in pathway
-        ]
+        colors = [self.categories.get(state, StateCategory.UNELABORATED).color for state in pathway]
 
         fig = go.Figure(
             data=go.Parcoords(
@@ -613,9 +604,7 @@ class APGIVisualizer:
                     x=[x],
                     y=[y],
                     mode="markers+text",
-                    marker=dict(
-                        size=30, color=color, line=dict(width=2, color="white")
-                    ),
+                    marker=dict(size=30, color=color, line=dict(width=2, color="white")),
                     text=[state.replace("_", " ").title()],
                     textposition="top center",
                     name=state,
@@ -721,9 +710,7 @@ class APGIVisualizer:
                     # Normalize based on all states' ranges
                     all_values = self.df[param]
                     if param in ["theta_t", "M_ca"]:  # These can be negative
-                        value = (value - all_values.min()) / (
-                            all_values.max() - all_values.min()
-                        )
+                        value = (value - all_values.min()) / (all_values.max() - all_values.min())
                     else:
                         value = value / all_values.max()
 
@@ -743,14 +730,10 @@ class APGIVisualizer:
                     fill_color = f"rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, {int(color[7:9], 16)/255:.2f})"
                     line_color = f"#{color[1:7]}"  # Remove alpha for line color
                 else:
-                    fill_color = (
-                        f"rgba(128, 128, 128, 0.25)"  # Fallback gray with transparency
-                    )
+                    fill_color = f"rgba(128, 128, 128, 0.25)"  # Fallback gray with transparency
                     line_color = "#808080"
             else:
-                fill_color = (
-                    f"rgba(128, 128, 128, 0.25)"  # Fallback gray with transparency
-                )
+                fill_color = f"rgba(128, 128, 128, 0.25)"  # Fallback gray with transparency
                 line_color = "#808080"
 
             fig.add_trace(
@@ -767,9 +750,7 @@ class APGIVisualizer:
             )
 
         fig.update_layout(
-            polar=dict(
-                radialaxis=dict(visible=True, range=[0, 1.1] if normalize else None)
-            ),
+            polar=dict(radialaxis=dict(visible=True, range=[0, 1.1] if normalize else None)),
             showlegend=True,
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=1.1),
             title="State Comparison Radar",
@@ -937,9 +918,7 @@ class APGIVisualizer:
 
         # 3. Category Comparison (Radar)
         category_states = [
-            name
-            for name, cat in self.categories.items()
-            if cat == category and name != state_name
+            name for name, cat in self.categories.items() if cat == category and name != state_name
         ][:4]
         if category_states:
             radar_data = []
@@ -1055,12 +1034,8 @@ class APGIVisualizer:
 
         fig.update_polars(radialaxis_range=[0, 1], row=2, col=1)
 
-        fig.update_xaxes(
-            showgrid=False, zeroline=False, showticklabels=False, row=2, col=2
-        )
-        fig.update_yaxes(
-            showgrid=False, zeroline=False, showticklabels=False, row=2, col=2
-        )
+        fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False, row=2, col=2)
+        fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False, row=2, col=2)
 
         if save_path:
             fig.write_html(save_path)
@@ -1087,9 +1062,7 @@ class APGIVisualizer:
 
         return positions
 
-    def _compute_transition_edges(
-        self, max_cost: float = 5.0
-    ) -> List[Tuple[str, str, float]]:
+    def _compute_transition_edges(self, max_cost: float = 5.0) -> List[Tuple[str, str, float]]:
         """Compute transition edges between states"""
         edges = []
         state_names = list(self.states.keys())
@@ -1105,9 +1078,7 @@ class APGIVisualizer:
 
         return edges
 
-    def _create_hover_text(
-        self, state_name: str, row: Optional[pd.Series] = None
-    ) -> str:
+    def _create_hover_text(self, state_name: str, row: Optional[pd.Series] = None) -> str:
         """Create hover text for state visualization"""
         params = self.states[state_name]
 
@@ -1204,9 +1175,7 @@ class APGIVisualizer:
 
         return report_files
 
-    def _create_report_index(
-        self, output_dir: str, report_files: Dict[str, str]
-    ) -> None:
+    def _create_report_index(self, output_dir: str, report_files: Dict[str, str]) -> None:
         """Create an HTML index page for the visualization report"""
         index_file = os.path.join(output_dir, "index.html")
 
@@ -1277,7 +1246,7 @@ class APGIVisualizer:
 <body>
     <div class="container">
         <h1>📊 APGI Psychological States Visualization Report</h1>
-        
+
         <div class="stats-box">
             <h2>📈 Library Statistics</h2>
             <p><strong>Total States:</strong> {len(self.states)}</p>
@@ -1285,7 +1254,7 @@ class APGIVisualizer:
             <p><strong>Visualizations Generated:</strong> {len(report_files)}</p>
             <p><strong>Generated:</strong> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
         </div>
-        
+
         <h2>🎨 Interactive Visualizations</h2>
         <div class="visualization-grid">
             <div class="viz-card">
@@ -1293,38 +1262,38 @@ class APGIVisualizer:
                 <p>Interactive network showing all 51 psychological states positioned by their parameters. States are colored by category and sized by surprise accumulation.</p>
                 <a href="{os.path.basename(report_files['network'])}" target="_blank">Open Visualization</a>
             </div>
-            
+
             <div class="viz-card">
                 <h3>🏔️ Ignition Landscape</h3>
                 <p>3D surface showing ignition probability as a function of key parameters. States are plotted on the landscape showing their current position.</p>
                 <a href="{os.path.basename(report_files['landscape'])}" target="_blank">Open Visualization</a>
             </div>
-            
+
             <div class="viz-card">
                 <h3>📊 Parameter Correlations</h3>
                 <p>Heatmap showing correlations between all APGI parameters. Reveals underlying relationships in the psychological state space.</p>
                 <a href="{os.path.basename(report_files['correlations'])}" target="_blank">Open Visualization</a>
             </div>
-            
+
             <div class="viz-card">
                 <h3>🔄 Transition Pathways</h3>
                 <p>Visualization of state transitions from anxiety to calm, showing parameter evolution and suggested intermediate states.</p>
                 <a href="{os.path.basename(report_files['transitions'])}" target="_blank">Open Visualization</a>
             </div>
-            
+
             <div class="viz-card">
                 <h3>🎯 Category Radar</h3>
                 <p>Radar chart comparing representative states from each category across key parameters (normalized for comparison).</p>
                 <a href="{os.path.basename(report_files['radar'])}" target="_blank">Open Visualization</a>
             </div>
-            
+
             <div class="viz-card">
                 <h3>📱 State Dashboard</h3>
                 <p>Comprehensive dashboard for the "flow" state showing parameter profile, ignition dynamics, category comparison, and transitions.</p>
                 <a href="{os.path.basename(report_files['dashboard'])}" target="_blank">Open Visualization</a>
             </div>
         </div>
-        
+
         <div style="margin-top: 40px; padding: 20px; background: #f1f2f6; border-radius: 10px;">
             <h3>📝 How to Use These Visualizations</h3>
             <ol>
@@ -1334,7 +1303,7 @@ class APGIVisualizer:
                 <li><strong>Export:</strong> Click the camera icon in Plotly visualizations to export as PNG</li>
                 <li><strong>Embedding:</strong> HTML files can be embedded in presentations or web pages</li>
             </ol>
-            
+
             <h3>🔧 Python API Usage</h3>
             <pre style="background: #2c3e50; color: white; padding: 15px; border-radius: 5px;">
 # Create visualizer instance
@@ -1426,9 +1395,7 @@ class APGIVisualizerGUI:
 
         # Control Panel (Left)
         control_frame = ttk.LabelFrame(main_frame, text="Controls", padding="10")
-        control_frame.grid(
-            row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10)
-        )
+        control_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))
 
         # Visualization Type
         ttk.Label(control_frame, text="Visualization Type:").grid(
@@ -1450,9 +1417,7 @@ class APGIVisualizerGUI:
         self.viz_type.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
 
         # State Selection
-        ttk.Label(control_frame, text="Select State:").grid(
-            row=2, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(control_frame, text="Select State:").grid(row=2, column=0, sticky=tk.W, pady=5)
         self.state_var = tk.StringVar()
         self.state_combo = ttk.Combobox(
             control_frame, textvariable=self.state_var, state="readonly"
@@ -1468,18 +1433,14 @@ class APGIVisualizerGUI:
         self.states_text.insert("1.0", "flow, anxiety, calm, focus")
 
         # Transition States
-        ttk.Label(control_frame, text="From State:").grid(
-            row=6, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(control_frame, text="From State:").grid(row=6, column=0, sticky=tk.W, pady=5)
         self.from_state_var = tk.StringVar()
         self.from_state_combo = ttk.Combobox(
             control_frame, textvariable=self.from_state_var, state="readonly"
         )
         self.from_state_combo.grid(row=7, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
 
-        ttk.Label(control_frame, text="To State:").grid(
-            row=8, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(control_frame, text="To State:").grid(row=8, column=0, sticky=tk.W, pady=5)
         self.to_state_var = tk.StringVar()
         self.to_state_combo = ttk.Combobox(
             control_frame, textvariable=self.to_state_var, state="readonly"
@@ -1492,9 +1453,9 @@ class APGIVisualizerGUI:
             text="Generate Visualization",
             command=self.generate_visualization,
         ).grid(row=10, column=0, sticky=(tk.W, tk.E), pady=5)
-        ttk.Button(
-            control_frame, text="Save Visualization", command=self.save_visualization
-        ).grid(row=11, column=0, sticky=(tk.W, tk.E), pady=5)
+        ttk.Button(control_frame, text="Save Visualization", command=self.save_visualization).grid(
+            row=11, column=0, sticky=(tk.W, tk.E), pady=5
+        )
         ttk.Button(
             control_frame,
             text="Generate Full Report",
@@ -1503,29 +1464,19 @@ class APGIVisualizerGUI:
 
         # Status Bar
         self.status_var = tk.StringVar(value="Initializing...")
-        status_bar = ttk.Label(
-            main_frame, textvariable=self.status_var, relief=tk.SUNKEN
-        )
-        status_bar.grid(
-            row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0)
-        )
+        status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN)
+        status_bar.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0))
 
         # Preview Area (Right)
-        preview_frame = ttk.LabelFrame(
-            main_frame, text="Visualization Preview", padding="10"
-        )
-        preview_frame.grid(
-            row=1, column=1, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S)
-        )
+        preview_frame = ttk.LabelFrame(main_frame, text="Visualization Preview", padding="10")
+        preview_frame.grid(row=1, column=1, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Info text
         self.info_text = tk.Text(preview_frame, height=20, width=60, wrap=tk.WORD)
         self.info_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Scrollbar for info text
-        scrollbar = ttk.Scrollbar(
-            preview_frame, orient=tk.VERTICAL, command=self.info_text.yview
-        )
+        scrollbar = ttk.Scrollbar(preview_frame, orient=tk.VERTICAL, command=self.info_text.yview)
         scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         self.info_text["yscrollcommand"] = scrollbar.set
 
@@ -1628,9 +1579,7 @@ class APGIVisualizerGUI:
                 from_state = self.from_state_var.get()
                 to_state = self.to_state_var.get()
                 if not from_state or not to_state:
-                    messagebox.showerror(
-                        "Error", "Please select both 'From' and 'To' states"
-                    )
+                    messagebox.showerror("Error", "Please select both 'From' and 'To' states")
                     return
                 fig = self.visualizer.plot_transition_pathways(from_state, to_state)
                 title = f"Transition: {from_state} → {to_state}"
@@ -1672,14 +1621,14 @@ class APGIVisualizerGUI:
                     <script>
                         var plotData = {plot_data};
                         var layout = {plot_layout};
-                        
+
                         // Make the plot responsive
                         layout.autosize = true;
                         layout.margin = {{l: 50, r: 50, b: 50, t: 50, pad: 4}};
-                        
+
                         // Create the plot
                         Plotly.newPlot('plot', plotData, layout, {{responsive: true}});
-                        
+
                         // Handle window resizing
                         window.addEventListener('resize', function() {{
                             Plotly.Plots.resize('plot');
@@ -1709,9 +1658,7 @@ class APGIVisualizerGUI:
                 except ImportError:
                     # Fallback message if embedded display fails
                     state_count = len(self.states) if hasattr(self, "states") else 0
-                    self.status_var.set(
-                        "Visualization generated (embedded display unavailable)"
-                    )
+                    self.status_var.set("Visualization generated (embedded display unavailable)")
                     self.update_info(
                         f"Generated {title} successfully!\n\n"
                         f"Visualization Type: {viz_type}\n"
@@ -1723,16 +1670,12 @@ class APGIVisualizerGUI:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate visualization: {str(e)}")
             self.status_var.set(f"Error: {str(e)}")
-            self.update_info(
-                f"Error generating visualization: {str(e)}\n\n{format_exc()}"
-            )
+            self.update_info(f"Error generating visualization: {str(e)}\n\n{format_exc()}")
 
     def save_visualization(self):
         """Save the current visualization"""
         if not self.current_visualization:
-            messagebox.showwarning(
-                "Warning", "No visualization to save. Generate one first."
-            )
+            messagebox.showwarning("Warning", "No visualization to save. Generate one first.")
             return
 
         filename = filedialog.asksaveasfilename(
@@ -1758,13 +1701,9 @@ class APGIVisualizerGUI:
 
         def generate():
             try:
-                report_dir = filedialog.askdirectory(
-                    title="Select directory for report"
-                )
+                report_dir = filedialog.askdirectory(title="Select directory for report")
                 if report_dir:
-                    report_files = self.visualizer.export_visualization_report(
-                        report_dir
-                    )
+                    report_files = self.visualizer.export_visualization_report(report_dir)
 
                     # Update GUI in main thread
                     self.root.after(
@@ -1793,13 +1732,9 @@ class APGIVisualizerGUI:
             except Exception as e:
                 self.root.after(
                     0,
-                    lambda: messagebox.showerror(
-                        "Error", f"Failed to generate report: {str(e)}"
-                    ),
+                    lambda: messagebox.showerror("Error", f"Failed to generate report: {str(e)}"),
                 )
-                self.root.after(
-                    0, lambda: self.status_var.set("Error generating report")
-                )
+                self.root.after(0, lambda: self.status_var.set("Error generating report"))
 
         # Run in background thread
         thread = threading.Thread(target=generate, daemon=True)
@@ -2564,9 +2499,7 @@ STATE_CATEGORIES: Dict[str, StateCategory] = {
 def get_state(name: str) -> APGIParameters:
     """Retrieve parameters for a named psychological state"""
     if name not in PSYCHOLOGICAL_STATES:
-        raise KeyError(
-            f"Unknown state: {name}. Available: {list(PSYCHOLOGICAL_STATES.keys())}"
-        )
+        raise KeyError(f"Unknown state: {name}. Available: {list(PSYCHOLOGICAL_STATES.keys())}")
     return PSYCHOLOGICAL_STATES[name]
 
 
@@ -2705,8 +2638,7 @@ def get_transition_pathway(from_state: str, to_state: str) -> List[str]:
     for alpha in [0.33, 0.66]:
         interpolated = create_apgi_params(
             Pi_e=p1.Pi_e + alpha * (p2.Pi_e - p1.Pi_e),
-            Pi_i_baseline=p1.Pi_i_baseline
-            + alpha * (p2.Pi_i_baseline - p1.Pi_i_baseline),
+            Pi_i_baseline=p1.Pi_i_baseline + alpha * (p2.Pi_i_baseline - p1.Pi_i_baseline),
             M_ca=p1.M_ca + alpha * (p2.M_ca - p1.M_ca),
             beta=np.clip(p1.beta + alpha * (p2.beta - p1.beta), 0.3, 0.8),
             z_e=p1.z_e + alpha * (p2.z_e - p1.z_e),
@@ -2754,7 +2686,7 @@ DERIVED VALUES
 ────────────────────────────────────────────────────────────────────
   Accumulated surprise (S_t): {params.S_t:6.2f}
   Ignition probability:       {ignition_prob:6.2%}
-  
+
 Formula verification:
   Π_i_eff = Π_i_baseline · exp(β·M):  {"✓" if params.verify_Pi_i_eff() else "✗"}
   S_t = Π_e·|z_e| + Π_i_eff·|z_i|:    {"✓" if params.verify_S_t() else "✗"}
@@ -2798,24 +2730,19 @@ def generate_state_comparison_table(states: List[str]) -> str:
 
     # Format table
     col_widths = [
-        max(len(str(row[i])) for row in [headers] + rows) + 2
-        for i in range(len(headers))
+        max(len(str(row[i])) for row in [headers] + rows) + 2 for i in range(len(headers))
     ]
 
     lines = []
     lines.append("┌" + "┬".join("─" * w for w in col_widths) + "┐")
     lines.append(
-        "│"
-        + "│".join(headers[i].center(col_widths[i]) for i in range(len(headers)))
-        + "│"
+        "│" + "│".join(headers[i].center(col_widths[i]) for i in range(len(headers))) + "│"
     )
     lines.append("├" + "┼".join("─" * w for w in col_widths) + "┤")
 
     for row in rows:
         lines.append(
-            "│"
-            + "│".join(str(row[i]).center(col_widths[i]) for i in range(len(row)))
-            + "│"
+            "│" + "│".join(str(row[i]).center(col_widths[i]) for i in range(len(row))) + "│"
         )
 
     lines.append("└" + "┴".join("─" * w for w in col_widths) + "┘")
@@ -2912,9 +2839,7 @@ def run_enhanced_demo():
     print("-" * 40)
     costs = compute_transition_cost("anxiety", "calm")
     print(f"Cost to transition from 'anxiety' to 'calm':")
-    for param, cost in sorted(
-        costs.items(), key=lambda x: -x[1] if x[0] != "total" else 0
-    ):
+    for param, cost in sorted(costs.items(), key=lambda x: -x[1] if x[0] != "total" else 0):
         if param != "total":
             print(f"  {param:<15}: {cost:.2f}")
     print(f"  {'TOTAL':<15}: {costs['total']:.2f}")
@@ -2955,14 +2880,10 @@ def run_enhanced_demo():
     all_pi_e = [p.Pi_e for p in PSYCHOLOGICAL_STATES.values()]
     all_theta = [p.theta_t for p in PSYCHOLOGICAL_STATES.values()]
     all_m_ca = [p.M_ca for p in PSYCHOLOGICAL_STATES.values()]
-    all_ignition = [
-        p.compute_ignition_probability() for p in PSYCHOLOGICAL_STATES.values()
-    ]
+    all_ignition = [p.compute_ignition_probability() for p in PSYCHOLOGICAL_STATES.values()]
 
     print(f"Total states: {len(PSYCHOLOGICAL_STATES)}")
-    print(
-        f"\nΠ_e range: {min(all_pi_e):.1f} - {max(all_pi_e):.1f} (mean: {np.mean(all_pi_e):.2f})"
-    )
+    print(f"\nΠ_e range: {min(all_pi_e):.1f} - {max(all_pi_e):.1f} (mean: {np.mean(all_pi_e):.2f})")
     print(
         f"θ_t range: {min(all_theta):+.1f} - {max(all_theta):+.1f} (mean: {np.mean(all_theta):+.2f})"
     )
@@ -3048,9 +2969,7 @@ def main():
             results[name] = {
                 "Pi_i_eff_valid": params.verify_Pi_i_eff(),
                 "S_t_valid": params.verify_S_t(),
-                "ignition_prob_valid": 0.0
-                <= params.compute_ignition_probability()
-                <= 1.0,
+                "ignition_prob_valid": 0.0 <= params.compute_ignition_probability() <= 1.0,
                 "bounds_valid": True,  # Already checked in __post_init__
             }
 
@@ -3084,9 +3003,7 @@ def main():
                     quick_start()
                 elif choice == "3":
                     if PLOTLY_AVAILABLE and PANDAS_AVAILABLE:
-                        visualizer = APGIVisualizer(
-                            PSYCHOLOGICAL_STATES, STATE_CATEGORIES
-                        )
+                        visualizer = APGIVisualizer(PSYCHOLOGICAL_STATES, STATE_CATEGORIES)
                         report = visualizer.export_visualization_report()
                         print(f"\n✅ Report generated with {len(report)} files")
                         print(f"📂 Report generated in './apgi_report/' directory")
