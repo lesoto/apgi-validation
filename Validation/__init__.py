@@ -1,5 +1,5 @@
 """
-APGI Validation Package
+APGI Validation Package.
 ======================
 
 Contains validation protocols and GUI tools for testing APGI theory predictions.

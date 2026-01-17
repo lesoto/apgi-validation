@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-APGI Theory Framework - Unified CLI Entry Point
+APGI Theory Framework - Unified CLI Entry Point.
 ================================================
 
 Provides command-line interface to all APGI framework components including:
