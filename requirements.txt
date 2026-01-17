@@ -28,6 +28,10 @@ tqdm>=4.62.0
 click>=8.0.0
 rich>=12.0.0
 
+# Web GUI components
+flask>=2.0.0
+dash>=2.0.0
+
 # Configuration management
 pyyaml>=6.0
 configparser>=5.2.0

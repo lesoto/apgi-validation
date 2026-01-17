@@ -1,0 +1,56 @@
+author: APGI Framework
+category: test
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-01-17T14:44:30.104349'
+dependencies: []
+description: Test 1
+metadata: {}
+name: profile1
+parameters:
+  data:
+    cache_dir: cache
+    default_data_dir: data
+    enable_caching: true
+    max_file_size_mb: 100
+    supported_formats:
+    - csv
+    - json
+    - xlsx
+    - pkl
+  logging:
+    enable_console: true
+    enable_performance_logging: true
+    enable_structured_logging: true
+    level: INFO
+    log_retention: 30 days
+    log_rotation: 10 MB
+  model:
+    alpha: 10.0
+    gamma_A: 0.1
+    gamma_M: -0.3
+    rho: 0.7
+    sigma_S: 0.05
+    sigma_theta: 0.02
+    tau_S: 0.5
+    tau_theta: 30.0
+    theta_0: 0.5
+  simulation:
+    default_dt: 0.01
+    default_steps: 1000
+    enable_plots: true
+    max_steps: 100000
+    plot_dpi: 150
+    plot_format: png
+    results_format: csv
+    save_results: true
+  validation:
+    cv_folds: 5
+    enable_cross_validation: true
+    enable_robustness_tests: true
+    enable_sensitivity_analysis: true
+    sensitivity_samples: 100
+    significance_level: 0.05
+tags: []
+version: '1.0'

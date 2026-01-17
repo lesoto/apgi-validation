@@ -17,25 +17,19 @@ A 100% complete implementation of the APGI framework including:
 ===============================================================================
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap, to_rgba
-from scipy import signal, stats
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any, Union
-from enum import Enum, auto
-import warnings
 import json
-import os
-from pathlib import Path
-from abc import ABC, abstractmethod
+import warnings
 from collections import defaultdict
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+from typing import Dict, List, Optional
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Check for optional visualization packages
 try:
-    import plotly.graph_objects as go
-    import plotly.express as px
-    from plotly.subplots import make_subplots
     import plotly.io as pio
 
     PLOTLY_AVAILABLE = True
@@ -45,9 +39,6 @@ except ImportError:
     warnings.warn("Plotly not available. Install with: pip install plotly")
 
 try:
-    from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib.animation import FuncAnimation, PillowWriter
-
     MATPLOTLIB_3D = True
 except ImportError:
     MATPLOTLIB_3D = False
@@ -108,57 +99,61 @@ class APGIParameters:
     HEP_amplitude: float = 0.0  # Heartbeat-evoked potential
     P3b_latency: float = 0.0  # P3b component latency
 
-    def validate(self) -> List[str]:
-        """Validate parameters against CORRECTED A.2 constraints"""
-        violations = []
-
-        # ========== CRITICAL: CORRECTED τ_S RANGE ==========
+    def _validate_time_ranges(self, violations: List[str]) -> None:
+        """Validate time-related parameters"""
+        # τ_S
         if not (0.2 <= self.tau_S <= 0.5):
-            violations.append(
-                f"τ_S = {self.tau_S:.3f}s not in [0.2, 0.5]s (P3b latency)"
-            )
-
-        # ========== CRITICAL: CORRECTED α RANGE ==========
-        if not (3.0 <= self.alpha <= 8.0):
-            violations.append(
-                f"α = {self.alpha:.1f} not in [3.0, 8.0] (optimal sigmoid)"
-            )
-
-        # ========== CRITICAL: CORRECTED β RANGE ==========
-        if not (0.5 <= self.beta <= 2.5):
-            violations.append(
-                f"β = {self.beta:.2f} not in [0.5, 2.5] (physiological range)"
-            )
+            violations.append(f"τ_S = {self.tau_S:.3f}s not in [0.2, 0.5]s (P3b latency)")
 
         # Check tau_theta (5-60 s)
         if not (5.0 <= self.tau_theta <= 60.0):
             violations.append(f"tau_theta = {self.tau_theta:.1f}s not in [5.0, 60.0]s")
 
-        # Check theta_0 (0.1-1.0 AU)
+    def _validate_threshold_parameters(self, violations: List[str]) -> None:
+        """Validate threshold and sigmoid parameters"""
+        # theta_0 (0.1-1.0 AU)
         if not (0.1 <= self.theta_0 <= 1.0):
             violations.append(f"theta_0 = {self.theta_0:.2f} not in [0.1, 1.0] AU")
 
-        # Check gamma_M (-0.5 to 0.5)
-        if not (-0.5 <= self.gamma_M <= 0.5):
-            violations.append(f"gamma_M = {self.gamma_M:.2f} not in [-0.5, 0.5]")
+        # α
+        if not (3.0 <= self.alpha <= 8.0):
+            violations.append(f"α = {self.alpha:.1f} not in [3.0, 8.0] (optimal sigmoid)")
 
-        # Check gamma_A (-0.3 to 0.3)
-        if not (-0.3 <= self.gamma_A <= 0.3):
-            violations.append(f"gamma_A = {self.gamma_A:.2f} not in [-0.3, 0.3]")
+        # β
+        if not (0.5 <= self.beta <= 2.5):
+            violations.append(f"β = {self.beta:.2f} not in [0.5, 2.5] (physiological range)")
 
-        # Check rho (0.3-0.9)
+        # rho (0.3-0.9)
         if not (0.3 <= self.rho <= 0.9):
             violations.append(f"rho = {self.rho:.2f} not in [0.3, 0.9]")
 
+    def _validate_sensitivity_parameters(self, violations: List[str]) -> None:
+        """Validate sensitivity parameters"""
+        # gamma_M (-0.5 to 0.5)
+        if not (-0.5 <= self.gamma_M <= 0.5):
+            violations.append(f"gamma_M = {self.gamma_M:.2f} not in [-0.5, 0.5]")
+
+        # gamma_A (-0.3 to 0.3)
+        if not (-0.3 <= self.gamma_A <= 0.3):
+            violations.append(f"gamma_A = {self.gamma_A:.2f} not in [-0.3, 0.3]")
+
+    def _validate_domain_thresholds(self, violations: List[str]) -> None:
+        """Validate domain-specific thresholds"""
         # Check domain-specific thresholds
         if not (0.1 <= self.theta_survival <= 0.5):
-            violations.append(
-                f"theta_survival = {self.theta_survival:.2f} not in [0.1, 0.5]"
-            )
+            violations.append(f"theta_survival = {self.theta_survival:.2f} not in [0.1, 0.5]")
         if not (0.5 <= self.theta_neutral <= 1.5):
-            violations.append(
-                f"theta_neutral = {self.theta_neutral:.2f} not in [0.5, 1.5]"
-            )
+            violations.append(f"theta_neutral = {self.theta_neutral:.2f} not in [0.5, 1.5]")
+
+    def validate(self) -> List[str]:
+        """Validate parameters against CORRECTED A.2 constraints"""
+        violations = []
+
+        # Validate different parameter groups
+        self._validate_time_ranges(violations)
+        self._validate_threshold_parameters(violations)
+        self._validate_sensitivity_parameters(violations)
+        self._validate_domain_thresholds(violations)
 
         return violations
 
@@ -193,9 +188,7 @@ class APGIParameters:
             "Pi_i_mod": Pi_i_mod,
         }
 
-    def compute_precision_expectation_gap(
-        self, Pi_e_actual: float, Pi_i_actual: float
-    ) -> float:
+    def compute_precision_expectation_gap(self, Pi_e_actual: float, Pi_i_actual: float) -> float:
         """Compute Π̂ - Π gap (critical for anxiety)"""
         # In anxiety: Π̂ > Π (overestimation of precision needed)
         expected_precision = self.ACh * 0.5 + self.NE * 0.3  # Neuromodulator influence
@@ -232,9 +225,7 @@ class PsychologicalState:
 
     # ========== DERIVED PARAMETERS ==========
     Pi_i_eff_actual: Optional[float] = None  # Actual effective interoceptive precision
-    Pi_i_eff_expected: Optional[float] = (
-        None  # Expected effective interoceptive precision
-    )
+    Pi_i_eff_expected: Optional[float] = None  # Expected effective interoceptive precision
     S_t: Optional[float] = None  # Accumulated surprise
 
     # ========== ADDITIONAL METADATA ==========
@@ -254,9 +245,7 @@ class PsychologicalState:
 
         # ========== VALIDATE β RANGE ==========
         if not (0.5 <= self.beta <= 2.5):
-            warnings.warn(
-                f"β={self.beta} outside valid range [0.5, 2.5] for state {self.name}"
-            )
+            warnings.warn(f"β={self.beta} outside valid range [0.5, 2.5] for state {self.name}")
             self.beta = np.clip(self.beta, 0.5, 2.5)
 
         # ========== SET EXPECTED PRECISION IF NOT PROVIDED ==========
@@ -277,9 +266,7 @@ class PsychologicalState:
 
         # ========== COMPUTE ACCUMULATED SURPRISE ==========
         # Using ACTUAL precision
-        self.S_t = self.Pi_e_actual * abs(self.z_e) + self.Pi_i_eff_actual * abs(
-            self.z_i
-        )
+        self.S_t = self.Pi_e_actual * abs(self.z_e) + self.Pi_i_eff_actual * abs(self.z_i)
 
         # ========== COMPUTE PRECISION EXPECTATION GAP ==========
         self.precision_expectation_gap = (
@@ -315,9 +302,6 @@ class PsychologicalState:
             # Use ACTUAL precision
             Pi_e = self.Pi_e_actual
             Pi_i = self.Pi_i_eff_actual
-
-        # Add natural oscillations
-        t_mod = 0.1 * np.sin(2 * np.pi * time / 10.0) if time > 0 else 0.0
 
         return {
             "Pi_e": Pi_e * (1 + 0.05 * np.sin(2 * np.pi * time / 3.0)),
@@ -1352,9 +1336,7 @@ class APGIStateLibrary:
             },
         }
 
-    def apply_psychiatric_profile(
-        self, state_name: str, profile: str
-    ) -> PsychologicalState:
+    def apply_psychiatric_profile(self, state_name: str, profile: str) -> PsychologicalState:
         """Apply psychiatric profile to a state"""
         if state_name not in self.states:
             raise ValueError(f"Unknown state: {state_name}")
@@ -1451,9 +1433,7 @@ class MeasurementEquations:
             return 600 + np.random.normal(0, 50)
 
         # Latency reduction with surprise excess and precision
-        latency_reduction = (
-            200 * (1.0 / (1.0 + np.exp(-surprise_excess))) * (Pi_e / 10.0)
-        )
+        latency_reduction = 200 * (1.0 / (1.0 + np.exp(-surprise_excess))) * (Pi_e / 10.0)
 
         P3b_latency = baseline_latency - latency_reduction
 
@@ -1491,9 +1471,7 @@ class MeasurementEquations:
             neuromod_multiplier += 0.15 * (neuromodulators.get("ACh", 1.0) - 1.0)
 
         # Compute d' (higher θ_t → lower d')
-        d_prime = (
-            d_prime_baseline * domain_multiplier * neuromod_multiplier / (theta_t + 0.5)
-        )
+        d_prime = d_prime_baseline * domain_multiplier * neuromod_multiplier / (theta_t + 0.5)
 
         # Add measurement noise
         d_prime += np.random.normal(0, 0.1)
@@ -1709,7 +1687,7 @@ class EnhancedSurpriseIgnitionSystem:
         # ========== VALIDATE CORRECTED PARAMETERS ==========
         violations = self.params.validate()
         if violations:
-            print(f"⚠️  Parameter violations:")
+            print("⚠️  Parameter violations:")
             for v in violations:
                 print(f"   - {v}")
             print("Applying corrections...")
@@ -1816,12 +1794,10 @@ class EnhancedSurpriseIgnitionSystem:
         S_new = max(0.0, S_new)
 
         # ========== THRESHOLD DYNAMICS ==========
-        modulation = self.params.gamma_M * (
-            M - self.params.M_0
-        ) + self.params.gamma_A * (A - self.params.A_0)
-        dtheta_dt = (
-            self.params.theta_0 - self.theta
-        ) / self.params.tau_theta + modulation
+        modulation = self.params.gamma_M * (M - self.params.M_0) + self.params.gamma_A * (
+            A - self.params.A_0
+        )
+        dtheta_dt = (self.params.theta_0 - self.theta) / self.params.tau_theta + modulation
         theta_new = self.theta + dtheta_dt * dt + self.params.sigma_theta * dW_theta
         theta_new = max(0.01, theta_new)
 
@@ -1930,9 +1906,7 @@ class CompleteAPGIVisualizer:
         plt.style.use("seaborn-v0_8-darkgrid")
         self.figsize = (16, 12)
 
-    def plot_comprehensive_dashboard(
-        self, history: Dict[str, np.ndarray]
-    ) -> plt.Figure:
+    def plot_comprehensive_dashboard(self, history: Dict[str, np.ndarray]) -> plt.Figure:
         """Create comprehensive dashboard visualization"""
 
         fig = plt.figure(figsize=(20, 16))
@@ -2006,9 +1980,7 @@ class CompleteAPGIVisualizer:
         time = history["time"]
 
         if "HEP_amplitude" in history:
-            ax.plot(
-                time, history["HEP_amplitude"], "g-", label="HEP Amplitude", alpha=0.7
-            )
+            ax.plot(time, history["HEP_amplitude"], "g-", label="HEP Amplitude", alpha=0.7)
 
         if "P3b_latency" in history:
             ax_twin = ax.twinx()
@@ -2139,7 +2111,7 @@ class CompleteAPGIVisualizer:
                     color=color,
                     alpha=0.7,
                 )
-            except Exception as e:
+            except (ValueError, TypeError, KeyError, IndexError) as e:
                 print(f"Error plotting {profile}: {e}")
 
         ax.set_xlabel("Parameters")
@@ -2154,9 +2126,7 @@ class CompleteAPGIVisualizer:
         """Plot state space trajectory"""
         S = history["S"]
         theta = history["theta"]
-        P_ignition = (
-            history["P_ignition"] if "P_ignition" in history else np.zeros_like(S)
-        )
+        P_ignition = history["P_ignition"] if "P_ignition" in history else np.zeros_like(S)
 
         scatter = ax.scatter(
             S, theta, c=P_ignition, cmap="viridis", s=20, alpha=0.6, edgecolors="none"
@@ -2256,7 +2226,7 @@ def run_complete_demo():
 
     violations = params.validate()
     if violations:
-        print(f"❌ Parameter violations found:")
+        print("❌ Parameter violations found:")
         for v in violations:
             print(f"   - {v}")
     else:
@@ -2281,9 +2251,7 @@ def run_complete_demo():
     print(f"     Gap: {anxiety_state.precision_expectation_gap:.2f} (Π̂ > Π → Anxiety)")
 
     flow_state = library.get_state("flow")
-    print(
-        f"   • Flow: Π̂_e={flow_state.Pi_e_expected:.1f} vs Π_e={flow_state.Pi_e_actual:.1f}"
-    )
+    print(f"   • Flow: Π̂_e={flow_state.Pi_e_expected:.1f} vs Π_e={flow_state.Pi_e_actual:.1f}")
     print(f"     Gap: {flow_state.precision_expectation_gap:.2f} (Π̂ ≈ Π → Optimal)")
 
     # ========== 3. INITIALIZE ENHANCED SYSTEM ==========
@@ -2304,9 +2272,7 @@ def run_complete_demo():
 
     # Test measurements for anxiety state
     neuromodulators = neuromod_system.get_summary()
-    measurements = measurement_system.compute_all_measurements(
-        anxiety_state, neuromodulators
-    )
+    measurements = measurement_system.compute_all_measurements(anxiety_state, neuromodulators)
 
     print("   MEASUREMENTS FOR ANXIETY STATE:")
     print(f"   • HEP Amplitude: {measurements['HEP_amplitude']:.2f} μV")
@@ -2432,17 +2398,10 @@ def run_complete_demo():
 # =============================================================================
 
 
-def verify_all_fixes():
-    """Quick verification that all critical fixes are implemented"""
-
-    print("VERIFYING ALL CRITICAL FIXES...")
-    print("-" * 50)
-
-    all_passed = True
-
-    # 1. Check parameter ranges
+def _check_parameter_ranges(params):
+    """Check parameter ranges"""
     print("\n1. PARAMETER RANGES:")
-    params = APGIParameters()
+    all_passed = True
 
     # τ_S
     if 0.2 <= params.tau_S <= 0.5:
@@ -2465,68 +2424,107 @@ def verify_all_fixes():
         print(f"   β = {params.beta:.2f} ❌ NOT IN [0.5, 2.5]")
         all_passed = False
 
-    # 2. Check state library
+    return all_passed
+
+
+def _check_state_library():
+    """Check state library"""
     print("\n2. STATE LIBRARY:")
     library = APGIStateLibrary()
     if len(library.states) >= 51:
         print(f"   {len(library.states)}/51 states implemented ✓")
+        return True
     else:
         print(f"   {len(library.states)}/51 states ❌ INCOMPLETE")
-        all_passed = False
+        return False
 
-    # 3. Check Π vs Π̂ distinction
+
+def _check_precision_distinction(library):
+    """Check Π vs Π̂ distinction"""
     print("\n3. Π vs Π̂ DISTINCTION:")
     anxiety_state = library.get_state("anxiety")
-    if hasattr(anxiety_state, "Pi_e_expected") and hasattr(
-        anxiety_state, "Pi_e_actual"
-    ):
+    if hasattr(anxiety_state, "Pi_e_expected") and hasattr(anxiety_state, "Pi_e_actual"):
         gap = anxiety_state.precision_expectation_gap
         print(
             f"   Anxiety: Π̂_e={anxiety_state.Pi_e_expected:.1f}, Π_e={anxiety_state.Pi_e_actual:.1f}"
         )
         print(f"   Gap = {gap:.2f} (Π̂ > Π for anxiety) ✓")
+        return True
     else:
         print("   ❌ Π vs Π̂ fields missing")
-        all_passed = False
+        return False
 
-    # 4. Check measurement equations
+
+def _check_measurement_equations():
+    """Check measurement equations"""
     print("\n4. MEASUREMENT EQUATIONS:")
     meas = MeasurementEquations()
     hep = meas.compute_HEP(3.0, 1.0, 1.5)
     p3b = meas.compute_P3b_latency(5.0, 2.0, 4.0)
     print(f"   HEP amplitude: {hep:.2f} μV ✓")
     print(f"   P3b latency: {p3b:.1f} ms ✓")
+    return True
 
-    # 5. Check neuromodulator mapping
+
+def _check_neuromodulator_mapping():
+    """Check neuromodulator mapping"""
     print("\n5. NEUROMODULATOR MAPPING:")
     neuro = NeuromodulatorSystem()
     mods = neuro.compute_parameter_modifications()
     if len(mods) > 0:
         print(f"   {len(mods)} parameter mappings implemented ✓")
         print(f"   Sample: ACh → Π_e mod = {mods.get('Pi_e', 0):.3f}")
+        return True
     else:
         print("   ❌ No neuromodulator mappings")
-        all_passed = False
+        return False
 
-    # 6. Check domain-specific thresholds
+
+def _check_domain_thresholds(params):
+    """Check domain-specific thresholds"""
     print("\n6. DOMAIN-SPECIFIC THRESHOLDS:")
     if hasattr(params, "theta_survival") and hasattr(params, "theta_neutral"):
         print(f"   θ_survival = {params.theta_survival:.2f} (lower)")
         print(f"   θ_neutral = {params.theta_neutral:.2f} (higher) ✓")
+        return True
     else:
         print("   ❌ Domain-specific thresholds missing")
-        all_passed = False
+        return False
 
-    # 7. Check psychiatric profiles
+
+def _check_psychiatric_profiles(library):
+    """Check psychiatric profiles"""
     print("\n7. PSYCHIATRIC PROFILES:")
     profiles = ["GAD", "MDD", "Psychosis"]
+    all_passed = True
     for profile in profiles:
         try:
-            modified = library.apply_psychiatric_profile("flow", profile)
+            library.apply_psychiatric_profile("flow", profile)
             print(f"   {profile} profile: ✓")
         except (ValueError, KeyError, AttributeError) as e:
             print(f"   {profile} profile: ❌ ({e})")
             all_passed = False
+    return all_passed
+
+
+def verify_all_fixes():
+    """Quick verification that all critical fixes are implemented"""
+
+    print("VERIFYING ALL CRITICAL FIXES...")
+    print("-" * 50)
+
+    all_passed = True
+    params = APGIParameters()
+    library = APGIStateLibrary()
+
+    # Run all checks
+    all_passed &= _check_parameter_ranges(params)
+    all_passed &= _check_state_library()
+    all_passed &= _check_precision_distinction(library)
+    all_passed &= _check_measurement_equations()
+    all_passed &= _check_neuromodulator_mapping()
+    all_passed &= _check_domain_thresholds(params)
+    all_passed &= _check_psychiatric_profiles(library)
 
     print("\n" + "=" * 50)
     if all_passed:
@@ -2577,7 +2575,7 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user.")
-    except Exception as e:
+    except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"\nError: {e}")
         import traceback
 

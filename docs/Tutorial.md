@@ -122,10 +122,10 @@ for step in range(steps):
         'metabolic': 1.0,
         'arousal': 0.5
     }
-    
+
     # Step the system
     system.step(dt, inputs)
-    
+
     # Store results
     results['time'].append(step * dt)
     results['surprise'].append(system.S)
@@ -181,9 +181,9 @@ for i, surprise_input in enumerate(surprise_inputs):
         'metabolic': eeg_data['heart_rate'].iloc[i] if i < len(eeg_data) else 1.0,
         'arousal': eeg_data['skin_conductance'].iloc[i] if i < len(eeg_data) else 0.5
     }
-    
+
     system.step(0.01, inputs)
-    
+
     results['time'].append(i * 0.01)
     results['surprise'].append(system.S)
     results['threshold'].append(system.theta)
@@ -273,7 +273,7 @@ for i in range(len(multimodal_data)):
         'interoceptive': pupil_normalized[i],
         'somatic': eda_normalized[i]
     })
-    
+
     results.append({
         'time': multimodal_data['time'].iloc[i],
         'surprise_total': result['S_t'],
@@ -328,14 +328,14 @@ with pm.Model() as param_model:
     Pi_i = pm.Normal('Pi_i', mu=1.0, sigma=0.5)
     theta = pm.Normal('theta', mu=2.0, sigma=0.5)
     beta = pm.Beta('beta', alpha=2, beta=2)
-    
+
     # Likelihood based on observed signals
     sigma = pm.HalfNormal('sigma', sigma=1.0)
-    
+
     # Simplified likelihood (replace with actual signal model)
     predicted_hep = NeuralSignalGenerator.generate_hep_waveform(Pi_i, 1000, 0.6)
     observed_hep = pm.Normal('observed_hep', mu=predicted_hep, sigma=sigma, observed=hep_signal)
-    
+
     # Run MCMC
     trace = pm.sample(1000, tune=500, cores=1)
 
@@ -365,19 +365,19 @@ with pm.Model() as real_data_model:
     Pi_i = pm.Normal('Pi_i', mu=1.0, sigma=0.5)
     theta = pm.Normal('theta', mu=2.0, sigma=0.5)
     beta = pm.Beta('beta', alpha=2, beta=2)
-    
+
     # Link parameters to observables
     # This is a simplified example - actual model would be more complex
     eeg_pred = Pi_e * theta  # Simplified relationship
     pupil_pred = Pi_i * theta * beta  # Simplified relationship
-    
+
     # Likelihood
     sigma_eeg = pm.HalfNormal('sigma_eeg', sigma=1.0)
     sigma_pupil = pm.HalfNormal('sigma_pupil', sigma=1.0)
-    
+
     obs_eeg = pm.Normal('obs_eeg', mu=eeg_pred, sigma=sigma_eeg, observed=eeg_features['P300_amplitude'])
     obs_pupil = pm.Normal('obs_pupil', mu=pupil_pred, sigma=sigma_pupil, observed=pupil_features['pupil_diameter'])
-    
+
     # Sample
     trace = pm.sample(2000, tune=1000, cores=1)
 
@@ -419,37 +419,37 @@ def run_validation():
     """Custom validation protocol for specific hypothesis."""
     import numpy as np
     from APGI-Formal-Model import SurpriseIgnitionSystem
-    
+
     # Test hypothesis: Higher precision leads to faster ignition
     precision_values = [0.5, 1.0, 1.5, 2.0]
     ignition_times = []
-    
+
     for Pi in precision_values:
         system = SurpriseIgnitionSystem()
         system.theta_0 = 2.0  # Fixed threshold
-        
+
         # Run simulation until ignition
         dt = 0.01
         max_steps = 10000
-        
+
         for step in range(max_steps):
             inputs = {
                 'surprise_input': np.random.normal(0, 1/Pi),  # Precision affects input
                 'metabolic': 1.0,
                 'arousal': 0.5
             }
-            
+
             system.step(dt, inputs)
-            
+
             if system.B > 0.5:  # Ignition threshold
                 ignition_times.append(step * dt)
                 break
         else:
             ignition_times.append(None)  # No ignition
-    
+
     # Analyze results
     valid_results = [t for t in ignition_times if t is not None]
-    
+
     return {
         'precision_values': precision_values,
         'ignition_times': ignition_times,
@@ -586,19 +586,19 @@ class CustomSurpriseSystem(SurpriseIgnitionSystem):
     def __init__(self, params=None):
         super().__init__(params)
         self.custom_parameter = params.get('custom_param', 1.0) if params else 1.0
-    
+
     def step(self, dt, inputs):
         # Custom dynamics
         dS_dt = (-self.S + self.custom_parameter * inputs['surprise_input']) / self.tau_S
         dtheta_dt = (self.theta_0 - self.theta + self.alpha * self.S) / self.tau_theta
-        
+
         # Update state
         self.S += dS_dt * dt
         self.theta += dtheta_dt * dt
-        
+
         # Custom ignition rule
         self.B = 1.0 / (1.0 + np.exp(-(self.S - self.theta) * self.custom_parameter))
-        
+
         return self.get_state()
 ```
 
@@ -613,29 +613,29 @@ def process_batch_chunk(args):
     """Process a chunk of data in parallel."""
     data_chunk, params = args
     results = []
-    
+
     system = SurpriseIgnitionSystem(params)
-    
+
     for _, row in data_chunk.iterrows():
         inputs = {
             'surprise_input': row['surprise'],
             'metabolic': row['metabolic'],
             'arousal': row['arousal']
         }
-        
+
         system.step(0.01, inputs)
         results.append(system.get_state())
-    
+
     return results
 
 # Parallel processing
 def parallel_process(data, params, n_processes=4):
     chunk_size = len(data) // n_processes
     chunks = [data.iloc[i:i+chunk_size] for i in range(0, len(data), chunk_size)]
-    
+
     with Pool(n_processes) as pool:
         results = pool.map(process_batch_chunk, [(chunk, params) for chunk in chunks])
-    
+
     # Flatten results
     return [item for sublist in results for item in sublist]
 ```
@@ -651,28 +651,28 @@ from IPython.display import HTML, display
 def create_dashboard(data):
     import ipywidgets as widgets
     from IPython.display import display
-    
+
     # Create widgets
     time_slider = widgets.IntSlider(min=0, max=len(data)-1, value=0, description='Time:')
-    
+
     def update_plot(time_idx):
         plt.figure(figsize=(12, 4))
-        
+
         plt.subplot(1, 3, 1)
         plt.plot(data['surprise'][:time_idx+1])
         plt.title('Surprise')
-        
+
         plt.subplot(1, 3, 2)
         plt.plot(data['threshold'][:time_idx+1])
         plt.title('Threshold')
-        
+
         plt.subplot(1, 3, 3)
         plt.plot(data['ignition'][:time_idx+1])
         plt.title('Ignition')
-        
+
         plt.tight_layout()
         plt.show()
-    
+
     # Link widgets
     widgets.interactive(update_plot, time_idx=time_slider)
     display(time_slider)
@@ -691,7 +691,7 @@ def create_dashboard(data):
    # Check virtual environment
    which python
    pip list | grep -i apgi
-   
+
    # Reinstall if needed
    pip install -e .
    ```
@@ -701,7 +701,7 @@ def create_dashboard(data):
    ```python
    # Reset configuration
    python main.py config --reset
-   
+
    # Check configuration
    python main.py config --show
    ```
@@ -711,7 +711,7 @@ def create_dashboard(data):
    ```python
    # Use batch processing for large datasets
    processor = APGIBatchProcessor(normalizer, config, batch_size=1000)
-   
+
    # Clean up resources
    import gc
    gc.collect()
@@ -722,7 +722,7 @@ def create_dashboard(data):
    ```python
    # Enable parallel processing
    python main.py validate --all-protocols --parallel
-   
+
    # Use progress tracking
    from rich.progress import Progress
    ```

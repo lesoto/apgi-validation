@@ -22,18 +22,21 @@ Alternative Script Names:
 =============================================================================
 """
 
+import warnings
+
+# from typing import Union  # Commented out - unused
+from collections import defaultdict, deque
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from scipy import signal
-from scipy.signal import welch, windows
-from scipy import stats
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
-from typing import Dict, List, Optional, Union, Callable, Tuple, Any
-from collections import defaultdict, deque
-import warnings
-from dataclasses import dataclass
+
+# from scipy.signal import welch, windows  # Commented out - unused
+from scipy import signal, stats
+from torch.utils.data import DataLoader, Dataset
 
 
 @dataclass
@@ -115,9 +118,7 @@ class APGINormalizer:
 
             # Apply transformation if needed
             if var_name in self.transforms:
-                transformed_data = np.array(
-                    [self._apply_transform(var_name, x) for x in data]
-                )
+                transformed_data = np.array([self._apply_transform(var_name, x) for x in data])
             else:
                 transformed_data = data
 
@@ -150,9 +151,7 @@ class APGINormalizer:
                 self.norms[var_name]["mean"] = np.mean(transformed_data)
                 self.norms[var_name]["std"] = np.std(transformed_data, ddof=1)
                 self.norms[var_name]["median"] = np.median(transformed_data)
-                self.norms[var_name]["mad"] = stats.median_abs_deviation(
-                    transformed_data
-                )
+                self.norms[var_name]["mad"] = stats.median_abs_deviation(transformed_data)
 
             # Check normality
             if len(transformed_data) < 5000:
@@ -227,6 +226,7 @@ class APGINormalizer:
     def save(self, filepath: str):
         """Save normalizer statistics"""
         import json
+
         import numpy as np
 
         # Convert numpy arrays to Python native types for JSON serialization
@@ -368,9 +368,7 @@ class APGICoreIntegration:
         # Enforce physiological bounds
         return np.clip(beta, 0.3, 0.8)
 
-    def compute_precision(
-        self, signal: np.ndarray, method: str = "inverse_variance"
-    ) -> float:
+    def compute_precision(self, signal: np.ndarray, method: str = "inverse_variance") -> float:
         """
         Compute precision as inverse variance (reliability measure)
 
@@ -426,9 +424,7 @@ class APGICoreIntegration:
 
         return self.compute_precision(np.array(buffer))
 
-    def compute_somatic_modulation(
-        self, Pi_i_baseline: float, M_ca: float, beta: float
-    ) -> float:
+    def compute_somatic_modulation(self, Pi_i_baseline: float, M_ca: float, beta: float) -> float:
         """
         Apply somatic marker modulation to interoceptive precision
 
@@ -526,9 +522,7 @@ class APGICoreIntegration:
             Complete APGI parameter set
         """
         # 1. Categorize and aggregate z-scores
-        z_extero_list = [
-            z_scores[m] for m in self.EXTEROCEPTIVE_MODALITIES if m in z_scores
-        ]
+        z_extero_list = [z_scores[m] for m in self.EXTEROCEPTIVE_MODALITIES if m in z_scores]
         z_intero_list = [
             z_scores[m]
             for m in self.INTEROCEPTIVE_MODALITIES
@@ -543,9 +537,7 @@ class APGICoreIntegration:
         z_i = np.mean(z_intero_list)
 
         # 2. Compute precision for each category
-        extero_signals = [
-            raw_signals[m] for m in self.EXTEROCEPTIVE_MODALITIES if m in raw_signals
-        ]
+        extero_signals = [raw_signals[m] for m in self.EXTEROCEPTIVE_MODALITIES if m in raw_signals]
         intero_signals = [
             raw_signals[m]
             for m in self.INTEROCEPTIVE_MODALITIES
@@ -553,12 +545,8 @@ class APGICoreIntegration:
         ]
 
         # Concatenate signals within category for variance estimation
-        extero_concat = (
-            np.concatenate(extero_signals) if extero_signals else np.array([1.0])
-        )
-        intero_concat = (
-            np.concatenate(intero_signals) if intero_signals else np.array([1.0])
-        )
+        extero_concat = np.concatenate(extero_signals) if extero_signals else np.array([1.0])
+        intero_concat = np.concatenate(intero_signals) if intero_signals else np.array([1.0])
 
         Pi_e = self.compute_precision(extero_concat)
         Pi_i_baseline = self.compute_precision(intero_concat)
@@ -581,12 +569,8 @@ class APGICoreIntegration:
             self.normalizer = APGINormalizer(use_robust_stats=True)
             # Fit with basic normative data if not already fitted
             normative_data = {
-                "pupil_diameter": np.array(
-                    [3.0, 4.0, 5.0, 4.5, 3.5]
-                ),  # Typical pupil sizes (mm)
-                "alpha_power": np.array(
-                    [0.5, 0.8, 1.0, 0.7, 0.6]
-                ),  # Typical alpha power
+                "pupil_diameter": np.array([3.0, 4.0, 5.0, 4.5, 3.5]),  # Typical pupil sizes (mm)
+                "alpha_power": np.array([0.5, 0.8, 1.0, 0.7, 0.6]),  # Typical alpha power
             }
             self.normalizer.fit(normative_data)
 
@@ -608,10 +592,8 @@ class APGICoreIntegration:
         # Compute threshold if we have raw data
         if pupil_mm is not None and alpha_power is not None:
             try:
-                theta_t = compute_threshold_composite(
-                    pupil_mm, alpha_power, self.normalizer
-                )
-            except Exception as e:
+                theta_t = compute_threshold_composite(pupil_mm, alpha_power, self.normalizer)
+            except (ValueError, TypeError, KeyError, AttributeError) as e:
                 print(f"Warning: Threshold computation failed: {e}, using default")
                 theta_t = 0.0
         else:
@@ -683,7 +665,7 @@ def compare_implementations():
             print(f"   Πⁱ_eff: {params.Pi_i_eff:.3f}")
             print(f"   Sₜ: {params.S_t:.3f}")
             print(f"   θₜ: {params.theta_t:.3f}")
-        except Exception as e:
+        except (ValueError, TypeError, KeyError, AttributeError, RuntimeError) as e:
             print(f"   Error: {e}")
 
     # INCORRECT (Current code at lines 2114-2133)
@@ -694,16 +676,12 @@ def compare_implementations():
         "Π_i": z_scores.get("HEP_amplitude", 0),  # WRONG: z-score, not precision
         "M(c,a)": z_scores.get("vmPFC_connectivity", 0),
     }
-    incorrect_signal = (
-        incorrect_params["Π_e"] + incorrect_params["Π_i"]  # Actually adding z-scores
-    )
+    incorrect_signal = incorrect_params["Π_e"] + incorrect_params["Π_i"]  # Actually adding z-scores
     print(f"Π_e = {incorrect_params['Π_e']:.3f} (WRONG: this is a z-score!)")
     print(f"Π_i = {incorrect_params['Π_i']:.3f} (WRONG: this is a z-score!)")
     print(f"Signal = Π_e + Π_i = {incorrect_signal:.3f}")
-    print(
-        f"\nPROBLEM: Treating z-scores AS precision values is mathematically incorrect"
-    )
-    print(f"         Z-scores measure MAGNITUDE, precision measures RELIABILITY")
+    print("\nPROBLEM: Treating z-scores AS precision values is mathematically incorrect")
+    print("         Z-scores measure MAGNITUDE, precision measures RELIABILITY")
 
     # CORRECT (New implementation)
     print("\n✅ CORRECTED Implementation:")
@@ -711,28 +689,28 @@ def compare_implementations():
     integrator = APGICoreIntegration()
     params = integrator.integrate_multimodal_zscores(z_scores, raw_signals)
 
-    print(f"Exteroceptive:")
+    print("Exteroceptive:")
     print(f"  z_e = {params.z_e:.3f} (magnitude)")
     print(f"  Π_e = {params.Pi_e:.3f} (reliability = 1/variance)")
-    print(f"  Contribution: {params.Pi_e * np.abs(params.z_e):.3f}")
+    print(f"  Contribution = {params.Pi_e * np.abs(params.z_e):.3f}")
 
-    print(f"\nInteroceptive:")
+    print("\nInteroceptive:")
     print(f"  z_i = {params.z_i:.3f} (magnitude)")
     print(f"  Π_i_baseline = {params.Pi_i_baseline:.3f} (baseline reliability)")
     print(f"  M(c,a) = {params.M_ca:.3f} (somatic marker)")
     print(f"  β = {params.beta:.3f} (somatic gain)")
     print(f"  Π_i_eff = {params.Pi_i_eff:.3f} (modulated: Π_i × exp(β·M))")
-    print(f"  Contribution: {params.Pi_i_eff * np.abs(params.z_i):.3f}")
+    print(f"  Contribution = {params.Pi_i_eff * np.abs(params.z_i):.3f}")
 
-    print(f"\nAccumulated Signal:")
-    print(f"  S_t = Π_e·|z_e| + Π_i_eff·|z_i|")
+    print("\nAccumulated Signal:")
+    print("  S_t = Π_e·|z_e| + Π_i_eff·|z_i|")
     print(f"  S_t = {params.S_t:.3f}")
 
-    print(f"\nKey Differences:")
-    print(f"  1. Precision (Π) computed as 1/variance, NOT copied from z-score")
-    print(f"  2. Somatic modulation applied: Π_i_eff = Π_i × exp(β·M)")
-    print(f"  3. Formula uses multiplication: Π·|z|, not addition")
-    print(f"  4. Separate magnitude (z) and reliability (Π) terms")
+    print("\nKey Differences:")
+    print("  1. Precision (Π) computed as 1/variance, NOT copied from z-score")
+    print("  2. Somatic modulation applied: Π_i_eff = Π_i × exp(β·M)")
+    print("  3. Formula uses multiplication: Π·|z|, not addition")
+    print("  4. Separate magnitude (z) and reliability (Π) terms")
 
     print("\n" + "=" * 70)
     print("Score Impact: 62/100 → 92/100 with corrected formulas")
@@ -832,24 +810,17 @@ class APGIArtifactRejection:
 
         # 4. Flat-line detection (electrode disconnection)
         flat_threshold = 0.5  # μV
-        flatline_artifacts = np.all(
-            np.abs(np.diff(eeg, axis=1)) < flat_threshold, axis=0
-        )
+        flatline_artifacts = np.all(np.abs(np.diff(eeg, axis=1)) < flat_threshold, axis=0)
         flatline_artifacts = np.concatenate([[False], flatline_artifacts])
 
         # Combine all artifact types
         clean_mask = ~(
-            amplitude_artifacts
-            | gradient_artifacts
-            | noise_artifacts
-            | flatline_artifacts
+            amplitude_artifacts | gradient_artifacts | noise_artifacts | flatline_artifacts
         )
 
         return clean_mask
 
-    def detect_ecg_artifacts(
-        self, ecg: np.ndarray, fs: int = 250
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def detect_ecg_artifacts(self, ecg: np.ndarray, fs: int = 250) -> Tuple[np.ndarray, np.ndarray]:
         """
         Detect R-peaks and identify ectopic beats
 
@@ -896,15 +867,11 @@ class APGIArtifactRejection:
 
         # 4. Moving window integration
         window_size = int(0.150 * fs)  # 150ms integration window
-        ecg_integrated = np.convolve(
-            ecg_squared, np.ones(window_size) / window_size, mode="same"
-        )
+        ecg_integrated = np.convolve(ecg_squared, np.ones(window_size) / window_size, mode="same")
 
         # 5. Adaptive thresholding
         threshold = 0.6 * np.max(ecg_integrated)
-        peaks, _ = signal.find_peaks(
-            ecg_integrated, height=threshold, distance=int(0.6 * fs)
-        )
+        peaks, _ = signal.find_peaks(ecg_integrated, height=threshold, distance=int(0.6 * fs))
 
         return peaks
 
@@ -970,7 +937,11 @@ class APGIArtifactRejection:
 
             interpolator = PchipInterpolator(clean_indices, data[clean_mask])
         else:  # linear
-            interpolator = lambda x: np.interp(x, clean_indices, data[clean_mask])
+
+            def linear_interpolator(x):
+                return np.interp(x, clean_indices, data[clean_mask])
+
+            interpolator = linear_interpolator
 
         data_clean = data.copy()
         data_clean[artifact_indices] = interpolator(artifact_indices)
@@ -1039,22 +1010,22 @@ class APGISpectralAnalysis:
 
         return np.mean(power)
 
-    def _multitaper_psd(
-        self, eeg: np.ndarray, freq_range: Tuple[float, float]
-    ) -> np.ndarray:
+    def _multitaper_psd(self, eeg: np.ndarray, freq_range: Tuple[float, float]) -> np.ndarray:
         """
         Multitaper spectral estimation (superior to Welch for short segments)
 
         Reference: Thomson (1982) IEEE Proc
         """
-        from scipy.signal import windows
+        # from scipy.signal import windows  # Commented out - unused
 
         n_samples = eeg.shape[1]
         n_tapers = 5  # Standard for 4 Hz bandwidth
         nw = 2.5  # Time-bandwidth product
 
         # Generate Slepian (DPSS) tapers
-        tapers = windows.dpss(n_samples, nw, n_tapers)
+        from scipy.signal import windows as signal_windows
+
+        tapers = signal_windows.dpss(n_samples, nw, n_tapers)
 
         # Compute PSD for each taper and average
         psds = []
@@ -1072,17 +1043,13 @@ class APGISpectralAnalysis:
 
         return psd_avg[:, mask].mean(axis=1)
 
-    def _welch_psd(
-        self, eeg: np.ndarray, freq_range: Tuple[float, float]
-    ) -> np.ndarray:
+    def _welch_psd(self, eeg: np.ndarray, freq_range: Tuple[float, float]) -> np.ndarray:
         """Welch's method for PSD estimation"""
         f, Pxx = signal.welch(eeg, fs=self.fs, nperseg=min(256, eeg.shape[1]))
         mask = (f >= freq_range[0]) & (f <= freq_range[1])
         return Pxx[:, mask].mean(axis=1)
 
-    def _wavelet_power(
-        self, eeg: np.ndarray, freq_range: Tuple[float, float]
-    ) -> np.ndarray:
+    def _wavelet_power(self, eeg: np.ndarray, freq_range: Tuple[float, float]) -> np.ndarray:
         """
         Time-frequency power using Morlet wavelets
 
@@ -1091,7 +1058,7 @@ class APGISpectralAnalysis:
         from scipy.signal import morlet2
 
         center_freq = np.mean(freq_range)
-        bandwidth = freq_range[1] - freq_range[0]
+        # bandwidth = freq_range[1] - freq_range[0]  # Commented out - unused
 
         # Morlet wavelet parameters
         w = 5  # Omega parameter (balance time/freq resolution)
@@ -1102,9 +1069,7 @@ class APGISpectralAnalysis:
 
         return power.mean(axis=(1, 2))
 
-    def compute_relative_power(
-        self, eeg: np.ndarray, target_band: str = "gamma_low"
-    ) -> float:
+    def compute_relative_power(self, eeg: np.ndarray, target_band: str = "gamma_low") -> float:
         """
         Compute band power relative to total power (normalization)
 
@@ -1113,9 +1078,7 @@ class APGISpectralAnalysis:
         target_power = self.compute_band_power(eeg, target_band)
 
         # Compute total power across all bands
-        total_power = sum(
-            [self.compute_band_power(eeg, band) for band in self.BANDS.keys()]
-        )
+        total_power = sum([self.compute_band_power(eeg, band) for band in self.BANDS.keys()])
 
         return target_power / (total_power + 1e-12)
 
@@ -1167,9 +1130,7 @@ class APGISpectralAnalysis:
                 mean_amp_per_bin[i] = np.mean(amplitude_flat[mask])
 
         # Handle empty bins
-        mean_amp_per_bin[mean_amp_per_bin == 0] = np.mean(
-            mean_amp_per_bin[mean_amp_per_bin > 0]
-        )
+        mean_amp_per_bin[mean_amp_per_bin == 0] = np.mean(mean_amp_per_bin[mean_amp_per_bin > 0])
 
         # Normalize to create probability distribution
         p = mean_amp_per_bin / mean_amp_per_bin.sum()
@@ -1264,9 +1225,9 @@ class APGIStatisticalValidation:
             sample = np.random.choice(data, size=len(data), replace=True)
 
             # Compute z-score
-            z = (
-                np.mean(sample) - self.normalizer.norms[modality]["mean"]
-            ) / self.normalizer.norms[modality]["std"]
+            z = (np.mean(sample) - self.normalizer.norms[modality]["mean"]) / self.normalizer.norms[
+                modality
+            ]["std"]
             bootstrap_zscores.append(z)
 
         bootstrap_zscores = np.array(bootstrap_zscores)
@@ -1333,9 +1294,7 @@ class APGIStatisticalValidation:
                     "expected_correlation": expected_r,
                 }
 
-        overall_consistency = np.mean(
-            [v["consistent"] for v in consistency_scores.values()]
-        )
+        overall_consistency = np.mean([v["consistent"] for v in consistency_scores.values()])
 
         return {
             "overall_consistency": overall_consistency,
@@ -1396,8 +1355,9 @@ class APGITemporalDynamics:
         Returns:
             Dictionary with optimal window size and validation metrics
         """
-        from scipy.signal import welch
         import warnings
+
+        from scipy.signal import welch
 
         # Generate window sizes to test
         min_samples = int(window_range[0] * self.fs)
@@ -1426,24 +1386,22 @@ class APGITemporalDynamics:
                 warnings.warn(f"Window size {window_size} too large for signal length")
                 continue
 
-            # Extract windows
-            windows = []
+            # Extract signal_windows
+            signal_windows = []
             for i in range(n_windows):
                 start = i * window_size
                 end = start + window_size
                 if end <= len(signal):
-                    windows.append(signal[start:end])
+                    signal_windows.append(signal[start:end])
 
-            windows = np.array(windows)
+            windows = np.array(signal_windows)
 
             # 1. Stability criterion: minimize within-window variance
             if modality in ["eeg", "alpha", "gamma"]:
                 # For oscillatory signals, use spectral stability
                 window_powers = []
                 for window in windows:
-                    f, Pxx = welch(
-                        window, fs=self.fs, nperseg=min(256, window_size // 4)
-                    )
+                    f, Pxx = welch(window, fs=self.fs, nperseg=min(256, window_size // 4))
                     # Power in relevant band
                     if modality == "gamma":
                         band_mask = (f >= 30) & (f <= 80)
@@ -1455,15 +1413,13 @@ class APGITemporalDynamics:
                 stability_score = 1.0 / (np.var(window_powers) + 1e-8)
             else:
                 # For non-oscillatory signals, use variance stability
-                window_means = np.mean(windows, axis=1)
+                # window_means = np.mean(windows, axis=1)  # Commented out - unused
                 window_vars = np.var(windows, axis=1)
                 stability_score = 1.0 / (np.var(window_vars) + 1e-8)
 
             # 2. SNR criterion: maximize signal-to-noise ratio
             signal_power = np.mean(np.var(windows, axis=1))
-            noise_estimate = np.mean(
-                [self._estimate_noise(window) for window in windows]
-            )
+            noise_estimate = np.mean([self._estimate_noise(window) for window in windows])
             snr_score = signal_power / (noise_estimate + 1e-8)
 
             # 3. AIC/BIC criteria for model selection
@@ -1506,9 +1462,7 @@ class APGITemporalDynamics:
         """
         from scipy.signal import welch
 
-        f, Pxx = welch(
-            signal_segment, fs=self.fs, nperseg=min(128, len(signal_segment) // 4)
-        )
+        f, Pxx = welch(signal_segment, fs=self.fs, nperseg=min(128, len(signal_segment) // 4))
         # Use high-frequency power as noise estimate
         noise_freq_mask = f > (self.fs * 0.4)  # Above 40% of Nyquist
         if np.any(noise_freq_mask):
@@ -1553,15 +1507,22 @@ class APGITemporalDynamics:
 
         # Cross-validate with secondary modalities
         secondary_results = {}
-        for modality, signal in multimodal_data.items():
+        for modality, modality_signal in multimodal_data.items():
             if modality != primary_modality:
                 try:
-                    secondary_results[modality] = (
-                        self.protocol_1_validate_window_length(
-                            signal, modality, window_range=(0.5, 4.0), n_windows_test=10
-                        )
+                    secondary_results[modality] = self.protocol_1_validate_window_length(
+                        modality_signal,
+                        modality,
+                        window_range=(0.5, 4.0),
+                        n_windows_test=10,
                     )
-                except Exception as e:
+                except (
+                    ValueError,
+                    TypeError,
+                    KeyError,
+                    AttributeError,
+                    RuntimeError,
+                ) as e:
                     print(f"Warning: Could not validate {modality}: {e}")
 
         # Compile recommendations
@@ -1580,28 +1541,24 @@ class APGITemporalDynamics:
 
         # Final recommendation (weighted average)
         if recommendations["secondary_windows"]:
-            windows = [recommendations["primary_optimal_window"]]
+            optimal_windows = [recommendations["primary_optimal_window"]]
             weights = [0.6]  # Primary modality gets 60% weight
 
             for sec_window in recommendations["secondary_windows"].values():
-                windows.append(sec_window)
+                optimal_windows.append(sec_window)
                 weights.append(0.4 / len(recommendations["secondary_windows"]))
 
-            recommended_window = np.average(windows, weights=weights)
+            recommended_window = np.average(optimal_windows, weights=weights)
             recommendations["recommended_window_sec"] = recommended_window
-            recommendations["recommended_window_samples"] = int(
-                recommended_window * self.fs
-            )
+            recommendations["recommended_window_samples"] = int(recommended_window * self.fs)
         else:
-            recommendations["recommended_window_sec"] = recommendations[
-                "primary_optimal_window"
-            ]
+            recommendations["recommended_window_sec"] = recommendations["primary_optimal_window"]
             recommendations["recommended_window_samples"] = int(
                 recommendations["primary_optimal_window"] * self.fs
             )
 
         # Print summary
-        print(f"\n📊 OPTIMIZATION RESULTS:")
+        print("\n📊 OPTIMIZATION RESULTS:")
         print(
             f"   Primary modality ({primary_modality}): {validation_results['optimal_window_sec']:.2f}s"
         )
@@ -1640,9 +1597,7 @@ class APGITemporalDynamics:
             gamma_power = spectral.compute_band_power(window_eeg, band)
 
             # Z-score
-            precision_z[i] = self.normalizer.transform({"gamma_power": gamma_power})[
-                "gamma_power"
-            ]
+            precision_z[i] = self.normalizer.transform({"gamma_power": gamma_power})["gamma_power"]
 
         return times, precision_z
 
@@ -1675,9 +1630,7 @@ class APGITemporalDynamics:
             alpha_mean = np.mean(alpha_power[start:end])
 
             # Compute composite threshold
-            threshold_z[i] = compute_threshold_composite(
-                pupil_mean, alpha_mean, self.normalizer
-            )
+            threshold_z[i] = compute_threshold_composite(pupil_mean, alpha_mean, self.normalizer)
 
         return times, threshold_z
 
@@ -1796,9 +1749,7 @@ class PsychiatricProfile:
                 mu, sigma = getattr(self, profile_key)
                 z = observed_params[param_key]
                 # Gaussian log-likelihood
-                log_prob += -0.5 * ((z - mu) / sigma) ** 2 - np.log(
-                    sigma * np.sqrt(2 * np.pi)
-                )
+                log_prob += -0.5 * ((z - mu) / sigma) ** 2 - np.log(sigma * np.sqrt(2 * np.pi))
 
         return np.exp(log_prob)
 
@@ -1879,9 +1830,7 @@ class EnhancedClinicalInterpreter:
         else:
             return f"Markedly enhanced {modality}"
 
-    def generate_report(
-        self, z_scores: Dict[str, float], patient_id: str = "Unknown"
-    ) -> str:
+    def generate_report(self, z_scores: Dict[str, float], patient_id: str = "Unknown") -> str:
         """Generate comprehensive clinical interpretation report"""
         report = []
         report.append(f"APGI Clinical Report - Patient: {patient_id}")
@@ -1958,18 +1907,14 @@ class EnhancedClinicalInterpreter:
         total_evidence = sum(likelihoods[d] * priors[d] for d in likelihoods)
 
         for disorder in likelihoods:
-            posteriors[disorder] = (
-                likelihoods[disorder] * priors[disorder]
-            ) / total_evidence
+            posteriors[disorder] = (likelihoods[disorder] * priors[disorder]) / total_evidence
 
         # Sort by posterior probability
         ranked = sorted(posteriors.items(), key=lambda x: x[1], reverse=True)
 
         return ranked[:top_k]
 
-    def treatment_recommendations(
-        self, diagnosis: str, apgi_params: Dict[str, float]
-    ) -> List[str]:
+    def treatment_recommendations(self, diagnosis: str, apgi_params: Dict[str, float]) -> List[str]:
         """
         Generate targeted treatment recommendations based on APGI profile
         """
@@ -1977,26 +1922,16 @@ class EnhancedClinicalInterpreter:
 
         if diagnosis == "GAD":
             if apgi_params.get("Π_i", 0) > 2.0:
-                recommendations.append(
-                    "Interoceptive exposure therapy to recalibrate precision"
-                )
+                recommendations.append("Interoceptive exposure therapy to recalibrate precision")
             if apgi_params.get("θ_t", 0) < -1.0:
-                recommendations.append(
-                    "SSRIs (e.g., escitalopram) to raise ignition threshold"
-                )
-                recommendations.append(
-                    "Mindfulness meditation to reduce noradrenergic tone"
-                )
+                recommendations.append("SSRIs (e.g., escitalopram) to raise ignition threshold")
+                recommendations.append("Mindfulness meditation to reduce noradrenergic tone")
             recommendations.append("CBT targeting threat overestimation")
 
         elif diagnosis == "MDD":
             if apgi_params.get("θ_t", 0) > 1.5:
-                recommendations.append(
-                    "Behavioral activation to lower ignition threshold"
-                )
-                recommendations.append(
-                    "Consider ketamine (NMDA antagonist) to facilitate ignition"
-                )
+                recommendations.append("Behavioral activation to lower ignition threshold")
+                recommendations.append("Consider ketamine (NMDA antagonist) to facilitate ignition")
             if apgi_params.get("Π_e", 0) < -1.0:
                 recommendations.append(
                     "Dopaminergic augmentation (e.g., bupropion) for precision restoration"
@@ -2011,18 +1946,12 @@ class EnhancedClinicalInterpreter:
                     "Antipsychotic medication (D2 antagonist) to restore precision"
                 )
             if apgi_params.get("S_t", 0) > 2.0:
-                recommendations.append(
-                    "Cognitive remediation to reduce surprise amplification"
-                )
-            recommendations.append(
-                "Social cognition training to calibrate interoceptive inference"
-            )
+                recommendations.append("Cognitive remediation to reduce surprise amplification")
+            recommendations.append("Social cognition training to calibrate interoceptive inference")
 
         elif diagnosis == "Addiction":
             if apgi_params.get("Π_i", 0) > 2.0:
-                recommendations.append(
-                    "Naltrexone to dampen hijacked interoceptive signals"
-                )
+                recommendations.append("Naltrexone to dampen hijacked interoceptive signals")
             if apgi_params.get("M(c,a)", 0) > 2.0:
                 recommendations.append(
                     "Contingency management to reshape somatic marker associations"
@@ -2098,8 +2027,7 @@ class APGIQualityControl:
 
         if value < min_val or value > max_val:
             raise ValueError(
-                f"{modality} value {value} outside plausible range "
-                f"[{min_val}, {max_val}]"
+                f"{modality} value {value} outside plausible range " f"[{min_val}, {max_val}]"
             )
 
         # Modality-specific checks
@@ -2118,6 +2046,8 @@ class APGIQualityControl:
         fs: float = 250,
     ) -> float:
         """Compute signal-to-noise ratio"""
+        from scipy.signal import welch
+
         f, Pxx = welch(data_signal, fs)
         signal_mask = (f >= 1) & (f <= 40)  # Typical EEG bands
         noise_mask = (f >= noise_band[0]) & (f <= noise_band[1])
@@ -2226,9 +2156,7 @@ def compute_HEP_zscore(
     if ecg.ndim != 1:
         raise ValueError(f"ECG must be 1D array, got shape {ecg.shape}")
     if eeg.ndim != 2:
-        raise ValueError(
-            f"EEG must be 2D array (channels x time), got shape {eeg.shape}"
-        )
+        raise ValueError(f"EEG must be 2D array (channels x time), got shape {eeg.shape}")
     if len(ecg) != eeg.shape[1]:
         raise ValueError(f"ECG and EEG length mismatch: {len(ecg)} vs {eeg.shape[1]}")
 
@@ -2290,9 +2218,7 @@ def compute_HEP_zscore(
         )
         return 0.0
     elif epochs.shape[0] < 5:
-        warnings.warn(
-            f"Very few valid epochs: {epochs.shape[0]} - HEP may be unreliable"
-        )
+        warnings.warn(f"Very few valid epochs: {epochs.shape[0]} - HEP may be unreliable")
 
     # 3. Average across heartbeats with outlier detection
     # Remove epochs with extreme amplitudes (likely artifacts)
@@ -2341,13 +2267,8 @@ def compute_threshold_composite(
         print("Warning: Normalizer not fitted, using default threshold")
         return 0.0
 
-    if (
-        "pupil_diameter" not in normalizer.norms
-        or "alpha_power" not in normalizer.norms
-    ):
-        print(
-            "Warning: Required variables not fitted in normalizer, using default threshold"
-        )
+    if "pupil_diameter" not in normalizer.norms or "alpha_power" not in normalizer.norms:
+        print("Warning: Required variables not fitted in normalizer, using default threshold")
         return 0.0
 
     # Z-score individual components
@@ -2376,10 +2297,7 @@ def compute_surprise_zscore(
         print("Warning: Normalizer not fitted for surprise computation, using default")
         return 0.0
 
-    if (
-        "N200_amplitude" not in normalizer.norms
-        or "P3b_amplitude" not in normalizer.norms
-    ):
+    if "N200_amplitude" not in normalizer.norms or "P3b_amplitude" not in normalizer.norms:
         print("Warning: Required ERP variables not fitted in normalizer, using default")
         return 0.0
 
@@ -2588,7 +2506,7 @@ class RobustAPGINetwork(nn.Module):
         modality_mask: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Impute missing modalities using available ones"""
-        batch_size = eeg_z.shape[0]
+        # batch_size = eeg_z.shape[0]  # Commented out - unused
 
         # Create imputed versions
         eeg_imputed = eeg_z.clone()
@@ -2599,9 +2517,7 @@ class RobustAPGINetwork(nn.Module):
         missing_eeg = modality_mask[:, 0] == 0
         if torch.any(missing_eeg):
             other_features = torch.cat([fmri_z, peripheral_z], dim=1)
-            eeg_imputed[missing_eeg] = self.imputation_networks["eeg"](
-                other_features[missing_eeg]
-            )
+            eeg_imputed[missing_eeg] = self.imputation_networks["eeg"](other_features[missing_eeg])
 
         # Impute fMRI if missing
         missing_fmri = modality_mask[:, 1] == 0
@@ -2615,9 +2531,9 @@ class RobustAPGINetwork(nn.Module):
         missing_peripheral = modality_mask[:, 2] == 0
         if torch.any(missing_peripheral):
             other_features = torch.cat([eeg_z, fmri_z], dim=1)
-            peripheral_imputed[missing_peripheral] = self.imputation_networks[
-                "peripheral"
-            ](other_features[missing_peripheral])
+            peripheral_imputed[missing_peripheral] = self.imputation_networks["peripheral"](
+                other_features[missing_peripheral]
+            )
 
         return eeg_imputed, fmri_imputed, peripheral_imputed
 
@@ -2634,15 +2550,11 @@ class RobustAPGINetwork(nn.Module):
         )
 
         # Apply mask to original inputs
-        eeg_masked = eeg_z * modality_mask[:, 0:1] + eeg_imputed * (
-            1 - modality_mask[:, 0:1]
+        eeg_masked = eeg_z * modality_mask[:, 0:1] + eeg_imputed * (1 - modality_mask[:, 0:1])
+        fmri_masked = fmri_z * modality_mask[:, 1:2] + fmri_imputed * (1 - modality_mask[:, 1:2])
+        peripheral_masked = peripheral_z * modality_mask[:, 2:3] + peripheral_imputed * (
+            1 - modality_mask[:, 2:3]
         )
-        fmri_masked = fmri_z * modality_mask[:, 1:2] + fmri_imputed * (
-            1 - modality_mask[:, 1:2]
-        )
-        peripheral_masked = peripheral_z * modality_mask[
-            :, 2:3
-        ] + peripheral_imputed * (1 - modality_mask[:, 2:3])
 
         # Pass through base network
         outputs = self.base_net(eeg_masked, fmri_masked, peripheral_masked)
@@ -2713,18 +2625,14 @@ class APGIDataset(Dataset):
                     f"All data arrays must have same length. {key} has {len(raw_data[key])}, expected {n_samples}"
                 )
 
-    def _batch_standardize(
-        self, raw_data: Dict[str, np.ndarray]
-    ) -> Dict[str, np.ndarray]:
+    def _batch_standardize(self, raw_data: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         """Apply z-scoring to batch data"""
         standardized = {}
 
         # Standardize each modality
         standardized["eeg"] = self._standardize_array(raw_data["eeg"], "eeg")
         standardized["fmri"] = self._standardize_array(raw_data["fmri"], "fmri")
-        standardized["pupil"] = self._standardize_array(
-            raw_data["pupil"], "pupil_diameter"
-        )
+        standardized["pupil"] = self._standardize_array(raw_data["pupil"], "pupil_diameter")
         standardized["scr"] = self._standardize_array(raw_data["scr"], "SCR")
         standardized["hr"] = self._standardize_array(raw_data["hr"], "heart_rate")
 
@@ -2778,9 +2686,7 @@ class APGIDataset(Dataset):
             warnings.warn(f"Standardization error for {modality_key}: {str(e)}")
             return 0.0
 
-    def _decorrelate_features(
-        self, z_data: Dict[str, np.ndarray]
-    ) -> Dict[str, np.ndarray]:
+    def _decorrelate_features(self, z_data: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         """Remove shared variance between modalities"""
         n_samples = len(z_data["eeg"])
         decorrelated = {
@@ -2806,16 +2712,12 @@ class APGIDataset(Dataset):
 
             # Apply decorrelation factor to full feature vectors
             for j, key in enumerate(["eeg", "fmri", "peripheral"]):
-                factor = decorrelated_features[f"{key}_mean"] / (
-                    features[f"{key}_mean"] + 1e-8
-                )
+                factor = decorrelated_features[f"{key}_mean"] / (features[f"{key}_mean"] + 1e-8)
                 decorrelated[key][i] = z_data[key][i] * factor
 
         return decorrelated
 
-    def _extract_labels(
-        self, labels_dict: Dict[str, np.ndarray]
-    ) -> Dict[str, np.ndarray]:
+    def _extract_labels(self, labels_dict: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         """Extract and validate labels"""
         labels = {}
         for key in self.label_keys:
@@ -2893,8 +2795,7 @@ def train_apgi_model(
                 "peripheral": batch["peripheral"].to(device),
             }
             labels = {
-                k: batch[k].to(device)
-                for k in ["precision", "threshold", "surprise", "ignition"]
+                k: batch[k].to(device) for k in ["precision", "threshold", "surprise", "ignition"]
             }
 
             # Forward pass
@@ -3079,9 +2980,7 @@ class APGIBatchProcessor:
         z_scores = {}
         for var_name, value in features.items():
             try:
-                z_scores[var_name] = self.normalizer.transform({var_name: value})[
-                    var_name
-                ]
+                z_scores[var_name] = self.normalizer.transform({var_name: value})[var_name]
             except RuntimeError:
                 # If not fitted, compute simple z-score from the data itself
                 if var_name in subject_data:
@@ -3102,15 +3001,11 @@ class APGIBatchProcessor:
         )
 
         # 5. Ignition probability
-        results["ignition_probability"] = self._compute_ignition_probability(
-            results["apgi_params"]
-        )
+        results["ignition_probability"] = self._compute_ignition_probability(results["apgi_params"])
 
         return results
 
-    def _extract_features(
-        self, preprocessed_data: Dict[str, np.ndarray]
-    ) -> Dict[str, float]:
+    def _extract_features(self, preprocessed_data: Dict[str, np.ndarray]) -> Dict[str, float]:
         """Extract features from preprocessed data"""
         features = {}
 
@@ -3157,9 +3052,7 @@ class APGIBatchProcessor:
             return filtfilt(b, a, data)
         return data
 
-    def _compute_band_power(
-        self, signal: np.ndarray, freq_range: Tuple[float, float]
-    ) -> float:
+    def _compute_band_power(self, signal: np.ndarray, freq_range: Tuple[float, float]) -> float:
         """Compute power in frequency band"""
         f, Pxx = signal.welch(signal, fs=self.config.get("fs", 250))
         mask = (f >= freq_range[0]) & (f <= freq_range[1])
@@ -3285,15 +3178,9 @@ if __name__ == "__main__":
         "eeg": np.sin(2 * np.pi * 10 * t)
         + 0.5 * np.sin(2 * np.pi * 40 * t)
         + 0.1 * np.random.randn(len(t)),
-        "pupil": 3.0
-        + 0.5 * np.sin(2 * np.pi * 0.5 * t)
-        + 0.1 * np.random.randn(len(t)),
-        "alpha": 0.8
-        + 0.3 * np.sin(2 * np.pi * 10 * t)
-        + 0.05 * np.random.randn(len(t)),
-        "gamma": 0.5
-        + 0.2 * np.sin(2 * np.pi * 40 * t)
-        + 0.05 * np.random.randn(len(t)),
+        "pupil": 3.0 + 0.5 * np.sin(2 * np.pi * 0.5 * t) + 0.1 * np.random.randn(len(t)),
+        "alpha": 0.8 + 0.3 * np.sin(2 * np.pi * 10 * t) + 0.05 * np.random.randn(len(t)),
+        "gamma": 0.5 + 0.2 * np.sin(2 * np.pi * 40 * t) + 0.05 * np.random.randn(len(t)),
     }
 
     # Initialize temporal dynamics with default window
@@ -3304,8 +3191,8 @@ if __name__ == "__main__":
         multimodal_test_data, primary_modality="eeg"
     )
 
-    print(f"\n🔬 PROTOCOL 1 VALIDATION SUMMARY:")
-    print(f"   Default window: 2.00s")
+    print("\n🔬 PROTOCOL 1 VALIDATION SUMMARY:")
+    print("   Default window: 2.00s")
     print(f"   Optimized window: {optimization_results['recommended_window_sec']:.2f}s")
     print(
         f"   Improvement: {((optimization_results['recommended_window_sec'] - 2.0) / 2.0 * 100):+.1f}%"
@@ -3314,11 +3201,13 @@ if __name__ == "__main__":
     # Show validation details
     details = optimization_results["validation_details"]
     if details["optimal_window_sec"]:
-        print(f"\n📈 VALIDATION METRICS:")
-        print(f"   Stability criterion: {details['optimal_criterion']}")
-        print(f"   Optimal score: {details.get('optimal_score', 0):.3f}")
+        print("\n📈 VALIDATION METRICS:")
+        print("   Stability criterion: {}".format(details["optimal_criterion"]))
+        print("   Optimal score: {:.3f}".format(details.get("optimal_score", 0)))
         print(
-            f"   Window range tested: {details['window_sizes_sec'][0]:.1f}s - {details['window_sizes_sec'][-1]:.1f}s"
+            "   Window range tested: {:.1f}s - {:.1f}s".format(
+                details["window_sizes_sec"][0], details["window_sizes_sec"][-1]
+            )
         )
 
     # 11. Compute APGI parameters
@@ -3328,9 +3217,7 @@ if __name__ == "__main__":
         "θ_t": compute_threshold_composite(
             new_subject["pupil_diameter"], new_subject["alpha_power"], normalizer
         ),
-        "S_t": compute_surprise_zscore(
-            np.random.randn(600), normalizer  # Mock ERP waveform
-        ),
+        "S_t": compute_surprise_zscore(np.random.randn(600), normalizer),  # Mock ERP waveform
         "M(c,a)": z_scores.get("vmPFC_connectivity", 0.0),
     }
 
@@ -3365,10 +3252,14 @@ if __name__ == "__main__":
     processor = APGIBatchProcessor(normalizer, config)
     ignition_prob = processor._compute_ignition_probability(apgi_params)
 
-    print(f"\nIgnition Analysis:")
+    print("\nIgnition Analysis:")
     print(f"  Probability: {ignition_prob:.3f}")
     print(
-        f"  Interpretation: {'High probability of conscious access' if ignition_prob > 0.5 else 'Low probability of conscious access'}"
+        "  Interpretation: {}".format(
+            "High probability of conscious access"
+            if ignition_prob > 0.5
+            else "Low probability of conscious access"
+        )
     )
 
     # 15. Create mock dataset for training
@@ -3399,9 +3290,7 @@ if __name__ == "__main__":
     )
 
     # 18. Initialize network
-    model = RobustAPGINetwork(
-        n_eeg_features=64, n_fmri_features=1000, n_peripheral_features=3
-    )
+    model = RobustAPGINetwork(n_eeg_features=64, n_fmri_features=1000, n_peripheral_features=3)
 
     print(f"\nDataset and model initialized successfully.")
     print(f"Dataset size: {len(dataset)} samples")

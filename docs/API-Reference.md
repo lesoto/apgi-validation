@@ -4,6 +4,13 @@
 
 The APGI Framework provides a comprehensive computational framework for modeling conscious access, multimodal integration, and psychological state dynamics.
 
+## Documentation Structure
+
+- **Core Components**: Configuration, logging, formal models
+- **Error Handling**: Standardized error management system
+- **Falsification Protocols**: Comprehensive testing suite
+- **Validation System**: Master validation framework
+
 ## Core Components
 
 ### 1. Configuration Management
@@ -37,7 +44,91 @@ model_config = config.model
 - `model`: Model parameters (tau_S, tau_theta, alpha, etc.)
 - `logging`: Logging configuration (level, format, file, etc.)
 
-### 2. Logging System
+### 2. Error Handling System
+
+#### `utils.error_handling`
+
+Comprehensive error handling with standardized messages and exception types.
+
+```python
+from utils.error_handling import (
+    APGIError,
+    ValidationError,
+    ConfigurationError,
+    ProtocolError,
+    handle_error,
+    safe_execute
+)
+
+# Raise standardized errors
+raise ValidationError(
+    message="Invalid parameter value",
+    data_field="threshold",
+    context={"value": 1.5, "valid_range": [0.0, 1.0]},
+    suggestion="Use a value between 0.0 and 1.0"
+)
+
+# Safe execution
+result = safe_execute(
+    func=risky_function,
+    error_message="Operation failed",
+    default_return=None,
+    logger=logger
+)
+```
+
+**Key Classes:**
+
+- `APGIError`: Base exception class
+- `ValidationError`: Data validation errors
+- `ConfigurationError`: Configuration errors
+- `ProtocolError`: Protocol execution errors
+- `DataError`: Data loading/processing errors
+
+**Documentation:** See [Error Handling Reference](Error-Handling-Reference.md)
+
+### 3. Falsification Protocols
+
+#### `utils.falsification_protocols`
+
+Comprehensive suite of protocols for testing APGI theory predictions.
+
+```python
+import importlib.util
+from pathlib import Path
+
+# Load the package
+spec = importlib.util.spec_from_file_location(
+    "falsification_protocols",
+    Path("Falsification/__init__.py")
+)
+falsification_protocols = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(falsification_protocols)
+
+# Import specific components
+from falsification_protocols import (
+    HierarchicalGenerativeModel,
+    IowaGamblingTaskEnvironment,
+    APGIActiveInferenceAgent,
+    run_falsification_protocol_1
+)
+
+# Run protocols
+results = run_falsification_protocol_1()
+```
+
+**Available Protocols:**
+
+1. **Protocol 1**: Active Inference Agent Testing
+2. **Protocol 2**: Iowa Gambling Task Environment
+3. **Protocol 3**: Agent Comparison Experiment
+4. **Protocol 4**: Phase Transition Analysis
+5. **Protocol 5**: Evolutionary APGI Emergence
+6. **Protocol 6**: Network Comparison Experiment
+
+**Documentation:** See [Falsification Protocols Reference](Falsification-Protocols-Reference.md)
+
+### 4. Logging System
 
 #### `apgi_logger`
 
@@ -73,7 +164,7 @@ apgi_logger.export_logs("output.json", format_type="json", log_level="INFO")
 - WARNING: Warning messages
 - ERROR: Error messages
 
-### 3. Formal Model
+### 5. Formal Model
 
 #### `SurpriseIgnitionSystem`
 

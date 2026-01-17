@@ -8,20 +8,20 @@ model:
   # Timescales (in seconds)
   tau_S: 0.5      # Surprise accumulation timescale (100-1000ms)
   tau_theta: 30.0 # Threshold adaptation timescale (5-60s)
-  
+
   # Threshold parameters
   theta_0: 0.5    # Baseline threshold (0.1-1.0 AU)
-  
+
   # Sigmoid parameters
   alpha: 10.0     # Sigmoid sharpness (1-15)
-  
+
   # Sensitivities
   gamma_M: -0.3   # Metabolic sensitivity (-0.5 to 0.5)
   gamma_A: 0.1    # Arousal sensitivity (-0.3 to 0.3)
-  
+
   # Reset dynamics
   rho: 0.7        # Reset fraction (0.3-0.9)
-  
+
   # Noise strengths
   sigma_S: 0.05
   sigma_theta: 0.02

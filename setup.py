@@ -7,9 +7,8 @@ This script helps set up the APGI framework environment.
 It creates a virtual environment and installs dependencies.
 """
 
-import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent
@@ -51,9 +50,7 @@ def install_dependencies(venv_python):
         return False
 
     try:
-        subprocess.run(
-            [str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True
-        )
+        subprocess.run([str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True)
         subprocess.run(
             [str(venv_python), "-m", "pip", "install", "-r", str(requirements_file)],
             check=True,
