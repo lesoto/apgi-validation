@@ -144,10 +144,7 @@ P(conscious) = σ(α·(S_t - θ_t))  (Ignition probability)
 
 ---
 
-
 ### Prediction P3b: Threshold-Somatic Bias Relationship
-
-
 
 **Claim:** Higher somatic bias (β) should predict lower threshold (θ₀)
 

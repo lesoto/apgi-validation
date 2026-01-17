@@ -468,6 +468,11 @@ def get_recovery_suggestions(error_code: str) -> list:
     return RECOVERY_SUGGESTIONS.get(error_code, ["Contact support if issue persists"])
 
 
+def get_error_summary() -> Dict[str, Any]:
+    """Get error summary from global error handler."""
+    return error_handler.get_error_summary()
+
+
 if __name__ == "__main__":
     # Test error handling system
     print("Testing APGI Error Handler")

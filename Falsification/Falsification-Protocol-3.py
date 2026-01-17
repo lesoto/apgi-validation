@@ -9,14 +9,14 @@ import numpy as np
 from scipy import stats
 from sklearn.linear_model import LogisticRegression
 
-protocol1_path = os.path.join(os.path.dirname(__file__), "Protocol-1.py")
+protocol1_path = os.path.join(os.path.dirname(__file__), "Falsification-Protocol-1.py")
 spec1 = importlib.util.spec_from_file_location("Protocol_1", protocol1_path)
 protocol1 = importlib.util.module_from_spec(spec1)
 spec1.loader.exec_module(protocol1)
 APGIActiveInferenceAgent = protocol1.APGIActiveInferenceAgent
 
 # Import environments from Protocol-2
-protocol2_path = os.path.join(os.path.dirname(__file__), "Protocol-2.py")
+protocol2_path = os.path.join(os.path.dirname(__file__), "Falsification-Protocol-2.py")
 spec2 = importlib.util.spec_from_file_location("Protocol_2", protocol2_path)
 protocol2 = importlib.util.module_from_spec(spec2)
 spec2.loader.exec_module(protocol2)

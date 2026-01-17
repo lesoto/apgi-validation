@@ -46,34 +46,34 @@ python APGI-Protocol-1-Complete.py
 
 The script will:
 
-1. Generate 20,000 synthetic trials (5,000 per model)
-2. Train and evaluate classifiers
-3. Check falsification criteria
-4. Generate comprehensive visualizations
-5. Save all results
+- Generate 20,000 synthetic trials (5,000 per model)
+- Train and evaluate classifiers
+- Check falsification criteria
+- Generate comprehensive visualizations
+- Save all results
 
 ## Expected Outputs
 
 ### Files Created
 
-1. **apgi_protocol1_dataset.npz**
-   - Compressed dataset with all synthetic neural signals
-   - ~500 MB for 20,000 trials
+- **apgi_protocol1_dataset.npz**
+  - Compressed dataset with all synthetic neural signals
+  - ~500 MB for 20,000 trials
 
-2. **protocol1_results.json**
-   - Quantitative metrics for all tasks
-   - Falsification criterion values
-   - Per-model performance
+- **protocol1_results.json**
+  - Quantitative metrics for all tasks
+  - Falsification criterion values
+  - Per-model performance
 
-3. **protocol1_results.png**
-   - Comprehensive visualization dashboard
-   - Accuracy comparisons
-   - Confusion matrices
-   - ROC curves
+- **protocol1_results.png**
+  - Comprehensive visualization dashboard
+  - Accuracy comparisons
+  - Confusion matrices
+  - ROC curves
 
-4. **best_apgi_model_epoch*.pth**
-   - Trained model checkpoints
-   - Can be loaded for inference
+- **best_apgi_model_epoch*.pth**
+  - Trained model checkpoints
+  - Can be loaded for inference
 
 ### Console Output
 
@@ -95,10 +95,10 @@ STEP 3: TASK 1B - MULTI-MODAL MODEL IDENTIFICATION
   Overall Accuracy: 0.823
 
 STEP 4: FALSIFICATION ANALYSIS
-  ✅ F1.1 PASSED: APGI accuracy = 0.898 (threshold: 0.75)
-  ✅ F1.2 PASSED: APGI-GWT confusion = 0.14 (threshold: 0.40)
+  F1.1 PASSED: APGI accuracy = 0.898 (threshold: 0.75)
+  F1.2 PASSED: APGI-GWT confusion = 0.14 (threshold: 0.40)
 
-OVERALL STATUS: ✅ MODEL VALIDATED
+OVERALL STATUS: MODEL VALIDATED
 ```
 
 ## Architecture Details
@@ -121,7 +121,7 @@ Where:
 
 ### Neural Network Architectures
 
-### Ignition Classifier (Task 1A)
+#### Ignition Classifier (Task 1A)
 
 - Input: 64 × 1000 EEG
 - Multi-scale 1D convolutions (kernels: 25, 15, 7)
@@ -129,7 +129,7 @@ Where:
 - Output: Binary (ignition vs no ignition)
 - Parameters: ~2.5M
 
-### Multi-Modal Fusion (Task 1B)
+#### Multi-Modal Fusion (Task 1B)
 
 - Inputs: EEG (64×1000) + HEP (600) + Pupil (3000)
 - Separate encoders per modality
@@ -141,11 +141,11 @@ Where:
 
 Based on APGI theory, we predict:
 
-| Metric | APGI | StandardPP | GWTOnly | Continuous |
-|---|---|---|---|---|
-| Accuracy (Task 1A) | 85-92% | 60-70% | 75-82% | 55-65% |
-| F1 Score | 0.85-0.90 | 0.58-0.68 | 0.73-0.80 | 0.50-0.62 |
-| AUC-ROC | 0.90-0.95 | 0.65-0.75 | 0.80-0.87 | 0.55-0.68 |
+| Metric     | APGI       | StandardPP   | GWTOnly    | Continuous    |
+|-------------|-------------|-------------|-------------|-------------|-------------|
+| Accuracy (Task 1A) | 85-92%      | 60-70%      | 75-82%      | 55-65%      |
+| F1 Score    | 0.85-0.90   | 0.58-0.68   | 0.73-0.80   | 0.50-0.62   |
+| AUC-ROC     | 0.90-0.95   | 0.65-0.75   | 0.80-0.87   | 0.55-0.68   |
 
 ### Confusion Matrix (Task 1B)
 
@@ -268,9 +268,7 @@ eeg = generator.generate_multi_channel_eeg(
 ### Memory
 
 - **Dataset generation**: ~4 GB RAM
-
 - **Training Task 1A**: ~6 GB GPU / 12 GB CPU
-
 - **Training Task 1B**: ~8 GB GPU / 16 GB CPU
 
 ### Time
@@ -278,14 +276,12 @@ eeg = generator.generate_multi_channel_eeg(
 On NVIDIA RTX 3090:
 
 - Dataset generation (20K trials): ~15 minutes
-
 - Task 1A training (all models): ~2 hours
-
 - Task 1B training: ~1.5 hours
-
 - **Total**: ~4 hours
 
 On CPU (16-core):
+
 - Dataset generation: ~25 minutes
 - Task 1A training: ~8 hours
 - Task 1B training: ~6 hours
@@ -355,10 +351,10 @@ pupil = torch.nan_to_num(pupil, nan=0.0)
 
 This implementation provides the foundation for:
 
-- **Protocol 2**: Psychometric parameter estimation (see `APGI-Parameter-Estimation-Protocol.py`)
-- **Protocol 3**: Clinical diagnostic markers
-- **Protocol 4**: Pharmacological interventions
-- **Protocol 5**: Cross-species validation
+* **Protocol 2**: Psychometric parameter estimation (see `APGI-Parameter-Estimation-Protocol.py`)
+* **Protocol 3**: Clinical diagnostic markers
+* **Protocol 4**: Pharmacological interventions
+* **Protocol 5**: Cross-species validation
 
 ## Citation
 

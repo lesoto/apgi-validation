@@ -42,9 +42,24 @@ class APGIMasterValidator:
 
         for protocol_num in range(1, 9):
             try:
-                # Import protocol module
-                module_name = f"APGI-Protocol-{protocol_num}"
-                protocol_module = importlib.import_module(module_name)
+                # Import protocol module using correct file name
+                import importlib.util
+                from pathlib import Path
+
+                protocol_file = f"Validation-Protocol-{protocol_num}.py"
+                protocol_path = Path(__file__).parent / protocol_file
+
+                if not protocol_path.exists():
+                    raise ImportError(f"Protocol file {protocol_file} not found")
+
+                spec = importlib.util.spec_from_file_location(
+                    f"Validation_Protocol_{protocol_num}", protocol_path
+                )
+                if spec is None or spec.loader is None:
+                    raise ImportError(f"Could not create spec for {protocol_file}")
+
+                protocol_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(protocol_module)
 
                 # Run protocol validation
                 if hasattr(protocol_module, "run_validation"):
@@ -83,6 +98,12 @@ class APGIMasterValidator:
                     "error": f"Module not found: {e}",
                     "passed": False,
                 }
+                self.protocol_results[f"protocol_{protocol_num}"] = error_result
+                tier = protocol_tiers[protocol_num]
+                self.falsification_status[tier].append(
+                    {"protocol": protocol_num, "passed": False, "result": error_result}
+                )
+                print(f"Protocol {protocol_num}: ERROR - {e}")
             except AttributeError as e:
                 # Missing required functions
                 error_result = {
@@ -90,6 +111,12 @@ class APGIMasterValidator:
                     "error": f"Missing required function: {e}",
                     "passed": False,
                 }
+                self.protocol_results[f"protocol_{protocol_num}"] = error_result
+                tier = protocol_tiers[protocol_num]
+                self.falsification_status[tier].append(
+                    {"protocol": protocol_num, "passed": False, "result": error_result}
+                )
+                print(f"Protocol {protocol_num}: ERROR - {e}")
             except (ValueError, TypeError) as e:
                 # Parameter or data type errors
                 error_result = {
@@ -97,6 +124,12 @@ class APGIMasterValidator:
                     "error": f"Invalid parameter or data: {e}",
                     "passed": False,
                 }
+                self.protocol_results[f"protocol_{protocol_num}"] = error_result
+                tier = protocol_tiers[protocol_num]
+                self.falsification_status[tier].append(
+                    {"protocol": protocol_num, "passed": False, "result": error_result}
+                )
+                print(f"Protocol {protocol_num}: ERROR - {e}")
             except RuntimeError as e:
                 # Runtime errors during execution
                 error_result = {
@@ -104,7 +137,13 @@ class APGIMasterValidator:
                     "error": f"Runtime error: {e}",
                     "passed": False,
                 }
-            except (ImportError, AttributeError, KeyError, TypeError, ValueError) as e:
+                self.protocol_results[f"protocol_{protocol_num}"] = error_result
+                tier = protocol_tiers[protocol_num]
+                self.falsification_status[tier].append(
+                    {"protocol": protocol_num, "passed": False, "result": error_result}
+                )
+                print(f"Protocol {protocol_num}: ERROR - {e}")
+            except Exception as e:
                 # Catch-all for unexpected errors
                 import traceback
 

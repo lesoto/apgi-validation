@@ -44,21 +44,30 @@ python main.py estimate-parameters --data-file data/experimental.csv
 python main.py validate --protocol all
 ```
 
-# Backup and Restore
+## Backup and Restore
+
+```bash
 python main.py backup --components "config,logs" --description "My backup"
 python main.py restore --backup-id backup_20240117_120000
 python main.py backups --limit 10
 python main.py delete-backup --cleanup-all
+```
 
-# Configuration Versioning
+## Configuration Versioning
+
+```bash
 python main.py config-version --description "Updated parameters" --author "User"
 python main.py config-versions --limit 15
 python main.py config-restore --version-id v20240117_120000
 python main.py config-diff
+```
 
-# Error Management
+## Error Management
+
+```bash
 python main.py errors --category CONFIGURATION --severity HIGH
 python main.py test-errors --test-config --test-validation
+```
 
 ## 🔬 Core Components
 
@@ -99,19 +108,11 @@ Comprehensive testing suite:
 - Sensitivity analysis
 - Robustness checks
 
-## 🛠️ Installation Requirements
-
-## 🛠️ Installation Requirements
-
 ### System Requirements
 
 - Python 3.8+
 - 8GB+ RAM recommended
 - 2GB+ disk space
-
-### Dependencies
-
-### Dependencies
 
 See `requirements.txt` for complete list. Key dependencies include:
 

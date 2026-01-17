@@ -59,6 +59,7 @@ model.update(error_signal)
 ```
 
 **Parameters:**
+
 - `levels` (List[Dict]): Hierarchical levels with name and dimension
 - `learning_rate` (float): Learning rate for weight updates (default: 0.01)
 - `model_type` (str): Model type - "extero" or "intero" (default: "extero")
@@ -141,6 +142,7 @@ print(f"Available decks: {list(env.decks.keys())}")
 ```
 
 **Deck Characteristics:**
+
 - Deck A: High reward variance, net negative, high interoceptive cost
 - Deck B: High reward variance, net negative, moderate interoceptive cost
 - Deck C: Low reward variance, net positive, low interoceptive cost
@@ -175,7 +177,7 @@ for threat_level in [0.1, 0.5, 0.9]:
     # Run trials with this threat level
 ```
 
-### Protocol Execution
+### Protocol Execution - Protocol 2
 
 ```python
 from falsification_protocols import run_falsification_protocol_2
@@ -254,7 +256,7 @@ results = experiment.run_comparison()
 report = experiment.get_falsification_report()
 ```
 
-### Protocol Execution
+### Protocol Execution - Protocol 3
 
 ```python
 from falsification_protocols import run_falsification_protocol_3
@@ -265,7 +267,7 @@ results = run_falsification_protocol_3()
 
 ## Protocol 4: Phase Transition Analysis
 
-### Core Classes
+### System Components
 
 #### `SurpriseIgnitionSystem`
 
@@ -306,7 +308,7 @@ phase_transition_detected = results['phase_transition_detected']
 critical_point = results['critical_point']
 ```
 
-### Protocol Execution
+### Protocol Execution - Protocol 4
 
 ```python
 from falsification_protocols import run_falsification_protocol_4
@@ -361,7 +363,7 @@ results = evolution.run_evolution()
 emergence_report = evolution.analyze_emergence()
 ```
 
-### Protocol Execution
+### Protocol Execution - Protocol 5
 
 ```python
 from falsification_protocols import run_falsification_protocol_5
@@ -431,7 +433,7 @@ results = experiment.run_comparison()
 metrics = experiment.get_performance_metrics()
 ```
 
-### Protocol Execution
+### Protocol Execution - Protocol 6
 
 ```python
 from falsification_protocols import run_falsification_protocol_6
@@ -459,6 +461,7 @@ root.mainloop()
 ```
 
 **GUI Features:**
+
 - Protocol selection and configuration
 - Progress tracking with real-time updates
 - Result visualization

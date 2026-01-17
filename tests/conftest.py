@@ -166,22 +166,6 @@ def performance_data():
     }
 
 
-@pytest.fixture(autouse=True)
-def cleanup_test_data():
-    """Clean up test data after each test."""
-    yield
-
-    # Clean up any test files that might have been created
-    import glob
-
-    test_files = glob.glob("**/test_*", recursive=True)
-    for file_path in test_files:
-        try:
-            Path(file_path).unlink()
-        except (FileNotFoundError, PermissionError):
-            pass
-
-
 @pytest.fixture
 def mock_environment():
     """Provide mock environment variables."""

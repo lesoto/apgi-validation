@@ -26,32 +26,32 @@ class ProtocolRunnerGUI:
         # Protocol definitions
         self.protocols = {
             "Protocol 1: APGI Agent": {
-                "file": "Protocol-1.py",
+                "file": "Falsification-Protocol-1.py",
                 "class": "APGIActiveInferenceAgent",
                 "description": "Complete APGI-based active inference agent",
             },
             "Protocol 2: Iowa Gambling": {
-                "file": "Protocol-2.py",
+                "file": "Falsification-Protocol-2.py",
                 "class": "IowaGamblingTaskEnvironment",
                 "description": "IGT variant with simulated interoceptive costs",
             },
             "Protocol 3: Agent Comparison": {
-                "file": "Protocol-3.py",
+                "file": "Falsification-Protocol-3.py",
                 "class": "AgentComparisonExperiment",
                 "description": "Run complete agent comparison experiment",
             },
             "Protocol 4: Phase Transition": {
-                "file": "Protocol-4.py",
+                "file": "Falsification-Protocol-4.py",
                 "class": "InformationTheoreticAnalysis",
                 "description": "Test APGI ignition phase transition signatures",
             },
             "Protocol 5: Evolutionary": {
-                "file": "Protocol-5.py",
+                "file": "Falsification-Protocol-5.py",
                 "class": "EvolutionaryAPGIEmergence",
                 "description": "Test APGI emergence under selection pressure",
             },
             "Protocol 6: Network Comparison": {
-                "file": "Protocol-6.py",
+                "file": "Falsification-Protocol-6.py",
                 "class": "NetworkComparisonExperiment",
                 "description": "Compare APGI-inspired vs standard architectures",
             },

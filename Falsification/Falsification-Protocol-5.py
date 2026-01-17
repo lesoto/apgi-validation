@@ -1,3 +1,4 @@
+import os
 import signal
 import time
 from typing import Dict, List
@@ -222,7 +223,10 @@ class EvolutionaryAPGIEmergence:
         try:
             import importlib.util
 
-            spec2 = importlib.util.spec_from_file_location("Protocol_2", "Protocol-2.py")
+            spec2 = importlib.util.spec_from_file_location(
+                "Protocol_2",
+                os.path.join(os.path.dirname(__file__), "Falsification-Protocol-2.py"),
+            )
             protocol2 = importlib.util.module_from_spec(spec2)
             spec2.loader.exec_module(protocol2)
 

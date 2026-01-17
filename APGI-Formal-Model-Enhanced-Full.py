@@ -206,7 +206,7 @@ class PsychologicalState:
     """Enhanced state with Π vs Π̂ distinction for anxiety modeling"""
 
     name: str
-    category: "StateCategory"
+    category: StateCategory
     description: str
     phenomenology: List[str]
 
@@ -2246,7 +2246,8 @@ def run_complete_demo():
     print("\n   KEY STATES WITH Π vs Π̂ DISTINCTION:")
     anxiety_state = library.get_state("anxiety")
     print(
-        f"   • Anxiety: Π̂_e={anxiety_state.Pi_e_expected:.1f} vs Π_e={anxiety_state.Pi_e_actual:.1f}"
+        f"   • Anxiety: Π̂_e={anxiety_state.Pi_e_expected:.1f} vs "
+        f"Π_e={anxiety_state.Pi_e_actual:.1f}"
     )
     print(f"     Gap: {anxiety_state.precision_expectation_gap:.2f} (Π̂ > Π → Anxiety)")
 
@@ -2446,7 +2447,8 @@ def _check_precision_distinction(library):
     if hasattr(anxiety_state, "Pi_e_expected") and hasattr(anxiety_state, "Pi_e_actual"):
         gap = anxiety_state.precision_expectation_gap
         print(
-            f"   Anxiety: Π̂_e={anxiety_state.Pi_e_expected:.1f}, Π_e={anxiety_state.Pi_e_actual:.1f}"
+            f"   Anxiety: Π̂_e={anxiety_state.Pi_e_expected:.1f}, "
+            f"Π_e={anxiety_state.Pi_e_actual:.1f}"
         )
         print(f"   Gap = {gap:.2f} (Π̂ > Π for anxiety) ✓")
         return True
@@ -2561,7 +2563,7 @@ if __name__ == "__main__":
     print("3. Exit")
 
     try:
-        choice = input("\nEnter choice (1-3): ").strip()
+        choice = input("Enter choice (1-3): ").strip()
 
         if choice == "1":
             run_complete_demo()

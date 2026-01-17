@@ -69,9 +69,14 @@ else:
 
 # Try to import individual protocols
 protocol_files = [
-    ("APGI_Protocol_1", "APGI-Protocol-1.py"),
-    ("APGI_Protocol_2", "APGI-Protocol-2.py"),
-    ("APGI_Protocol_3", "APGI-Protocol-3.py"),
+    ("APGI_Protocol_1", "Validation-Protocol-1.py"),
+    ("APGI_Protocol_2", "Validation-Protocol-2.py"),
+    ("APGI_Protocol_3", "Validation-Protocol-3.py"),
+    ("APGI_Protocol_4", "Validation-Protocol-4.py"),
+    ("APGI_Protocol_5", "Validation-Protocol-5.py"),
+    ("APGI_Protocol_6", "Validation-Protocol-6.py"),
+    ("APGI_Protocol_7", "Validation-Protocol-7.py"),
+    ("APGI_Protocol_8", "Validation-Protocol-8.py"),
 ]
 
 for protocol_name, filename in protocol_files:
@@ -97,9 +102,9 @@ class APGIValidationGUI:
         # Create GUI elements
         self.create_widgets()
 
-        # Show import status if there are issues
-        if IMPORT_STATUS["errors"] or not IMPORT_STATUS["master_validation"]:
-            self.show_import_status()
+        # Import status popup disabled - GUI works without all protocols
+        # if IMPORT_STATUS["errors"] or not IMPORT_STATUS["master_validation"]:
+        #     self.show_import_status()
 
         # Validation thread
         self.validation_thread = None
@@ -333,7 +338,7 @@ class APGIValidationGUI:
 
                 try:
                     # Execute actual protocol
-                    protocol_file = f"APGI-Protocol-{protocol_num}.py"
+                    protocol_file = f"Validation-Protocol-{protocol_num}.py"
                     protocol_path = Path(__file__).parent / protocol_file
 
                     if not protocol_path.exists():
@@ -345,6 +350,9 @@ class APGIValidationGUI:
                     spec = importlib.util.spec_from_file_location(
                         f"APGI_Protocol_{protocol_num}", protocol_path
                     )
+                    if spec is None or spec.loader is None:
+                        raise ImportError(f"Could not create spec for protocol {protocol_num}")
+
                     protocol_module = importlib.util.module_from_spec(spec)
 
                     # Capture stdout to get results
@@ -408,6 +416,19 @@ class APGIValidationGUI:
                         "timestamp": datetime.now().isoformat(),
                         "troubleshooting": "Check that protocol file exists and is importable",
                     }
+                    self.validator.protocol_results[f"protocol_{protocol_num}"] = error_result
+                    tier = protocol_tiers[protocol_num]
+                    self.validator.falsification_status[tier].append(
+                        {
+                            "protocol": protocol_num,
+                            "passed": False,
+                            "result": error_result,
+                        }
+                    )
+
+                    error_msg = f"Protocol {protocol_num} failed: {type(e).__name__}: {e}"
+                    self.update_results(f"ERROR: {error_msg}\n")
+                    self.update_results(f"Troubleshooting: {error_result['troubleshooting']}\n\n")
                 except AttributeError as e:
                     error_result = {
                         "status": "INTERFACE_ERROR",
@@ -416,6 +437,19 @@ class APGIValidationGUI:
                         "timestamp": datetime.now().isoformat(),
                         "troubleshooting": "Check that protocol has required validation functions",
                     }
+                    self.validator.protocol_results[f"protocol_{protocol_num}"] = error_result
+                    tier = protocol_tiers[protocol_num]
+                    self.validator.falsification_status[tier].append(
+                        {
+                            "protocol": protocol_num,
+                            "passed": False,
+                            "result": error_result,
+                        }
+                    )
+
+                    error_msg = f"Protocol {protocol_num} failed: {type(e).__name__}: {e}"
+                    self.update_results(f"ERROR: {error_msg}\n")
+                    self.update_results(f"Troubleshooting: {error_result['troubleshooting']}\n\n")
                 except (ValueError, TypeError) as e:
                     error_result = {
                         "status": "PARAMETER_ERROR",
@@ -424,6 +458,19 @@ class APGIValidationGUI:
                         "timestamp": datetime.now().isoformat(),
                         "troubleshooting": "Check parameter values and data types",
                     }
+                    self.validator.protocol_results[f"protocol_{protocol_num}"] = error_result
+                    tier = protocol_tiers[protocol_num]
+                    self.validator.falsification_status[tier].append(
+                        {
+                            "protocol": protocol_num,
+                            "passed": False,
+                            "result": error_result,
+                        }
+                    )
+
+                    error_msg = f"Protocol {protocol_num} failed: {type(e).__name__}: {e}"
+                    self.update_results(f"ERROR: {error_msg}\n")
+                    self.update_results(f"Troubleshooting: {error_result['troubleshooting']}\n\n")
                 except MemoryError as e:
                     error_result = {
                         "status": "MEMORY_ERROR",
@@ -432,6 +479,19 @@ class APGIValidationGUI:
                         "timestamp": datetime.now().isoformat(),
                         "troubleshooting": "Try reducing data size or closing other applications",
                     }
+                    self.validator.protocol_results[f"protocol_{protocol_num}"] = error_result
+                    tier = protocol_tiers[protocol_num]
+                    self.validator.falsification_status[tier].append(
+                        {
+                            "protocol": protocol_num,
+                            "passed": False,
+                            "result": error_result,
+                        }
+                    )
+
+                    error_msg = f"Protocol {protocol_num} failed: {type(e).__name__}: {e}"
+                    self.update_results(f"ERROR: {error_msg}\n")
+                    self.update_results(f"Troubleshooting: {error_result['troubleshooting']}\n\n")
                 except TimeoutError as e:
                     error_result = {
                         "status": "TIMEOUT_ERROR",
@@ -440,6 +500,19 @@ class APGIValidationGUI:
                         "timestamp": datetime.now().isoformat(),
                         "troubleshooting": "Protocol may be too complex, try with debug mode",
                     }
+                    self.validator.protocol_results[f"protocol_{protocol_num}"] = error_result
+                    tier = protocol_tiers[protocol_num]
+                    self.validator.falsification_status[tier].append(
+                        {
+                            "protocol": protocol_num,
+                            "passed": False,
+                            "result": error_result,
+                        }
+                    )
+
+                    error_msg = f"Protocol {protocol_num} failed: {type(e).__name__}: {e}"
+                    self.update_results(f"ERROR: {error_msg}\n")
+                    self.update_results(f"Troubleshooting: {error_result['troubleshooting']}\n\n")
                 except (
                     ValueError,
                     RuntimeError,

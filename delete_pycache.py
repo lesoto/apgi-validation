@@ -95,7 +95,6 @@ DEFAULT_FILE_PATTERNS = [
     "*.xdv",
     "*.run.xml",
     "debug_*.py",
-    "test_*.py",
     "temp_*.py",
     "*_temp.py",
     "*_debug.py",
@@ -586,7 +585,6 @@ def main(argv: List[str] = None):
             [
                 "apgi_*",
                 "debug_*",
-                "test_*",
                 "temp_*",
                 "*_temp.*",
                 "*_debug.*",
