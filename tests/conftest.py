@@ -1,5 +1,5 @@
 """
-Pytest configuration and fixtures for APGI test suite
+Pytest configuration and fixtures for APGI test suite.
 ======================================================
 
 Provides common test fixtures and configuration:

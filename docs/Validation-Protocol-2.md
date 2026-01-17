@@ -1,8 +1,4 @@
-
 # APGI Protocol 2: Complete Implementation Guide
-
-
-
 
 ## Overview
 
