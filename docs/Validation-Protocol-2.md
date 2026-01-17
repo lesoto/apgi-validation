@@ -2,14 +2,9 @@
 
 ## Overview
 
-
-
 This is a **production-ready** implementation of Protocol 2 from the APGI framework. The protocol uses **Bayesian model comparison** to test APGI predictions against published consciousness datasets without collecting new human data.
 
-
 ## Core Approach
-
-
 
 Instead of generating synthetic data, Protocol 2:
 1. Fits hierarchical Bayesian models to **real empirical data** from published studies
@@ -17,25 +12,22 @@ Instead of generating synthetic data, Protocol 2:
 3. Uses rigorous Bayesian metrics (WAIC, LOO-CV, Bayes factors)
 4. Tests 5 specific falsification criteria
 
-
 ## What This Script Does
-
-
-
 
 ### 1. Implements Full Generative Models
 
-
-
 **APGI Model** (Complete Framework)
-```
+
+```python
 S_t = Π_e·|ε_e| + β·Π_i·|ε_i|
 P(conscious) = σ(α·(S_t - θ_t))
 ```
+
 - Hierarchical structure with population and subject-level parameters
 - Predicts conscious reports, P3b amplitude, reaction time, HEP
 
 **Competing Models:**
+
 - **StandardSDT**: Classical signal detection (no dynamics)
 - **GlobalWorkspace**: Ignition without interoception
 - **Continuous**: Graded consciousness without threshold
@@ -43,16 +35,16 @@ P(conscious) = σ(α·(S_t - θ_t))
 
 ### 2. Bayesian Model Comparison
 
-
-
 Computes three key metrics:
 
 **WAIC** (Widely Applicable Information Criterion)
+
 - Balances fit quality against model complexity
 - Lower values = better model
 - Asymptotically equivalent to Bayesian cross-validation
 
 **LOO-CV** (Leave-One-Out Cross-Validation)
+
 - Estimates out-of-sample prediction accuracy
 - More robust than WAIC for small samples
 - Uses Pareto-smoothed importance sampling

@@ -705,7 +705,7 @@ class APGIVisualizer:
             ),
             specs=[
                 [{"type": "bar"}, {"type": "scatter"}],
-                [{"type": "scatterpolar"}, {"type": "histogram"}],
+                [{"type": "polar"}, {"type": "histogram"}],
             ],
         )
 
@@ -824,8 +824,6 @@ class APGIVisualizer:
 
         fig.update_xaxes(title_text="Accumulated Surprise (S_t)", row=1, col=2)
         fig.update_yaxes(title_text="Ignition Probability", range=[0, 1], row=1, col=2)
-
-        fig.update_polars(radialaxis_range=[0, 1], row=2, col=1)
 
         fig.update_xaxes(title_text="P(ignition)", row=2, col=2)
         fig.update_yaxes(title_text="Frequency", row=2, col=2)

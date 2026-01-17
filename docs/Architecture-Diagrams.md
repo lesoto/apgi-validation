@@ -312,11 +312,17 @@ graph TB
 ## Key Design Patterns
 
 ### 1. **Strategy Pattern**: Different validation protocols
+
 ### 2. **Factory Pattern**: Agent and environment creation
+
 ### 3. **Observer Pattern**: GUI progress updates
+
 ### 4. **Command Pattern**: CLI command structure
+
 ### 5. **Template Method**: Common validation workflow
+
 ### 6. **Decorator Pattern**: Logging and caching
+
 ### 7. **State Pattern**: Psychological state transitions
 
 ## Security & Error Handling

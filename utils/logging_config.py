@@ -724,7 +724,13 @@ class APGILogger:
             logger.info(f"Successfully exported {len(parsed_entries)} log entries to {output_file}")
             return True
 
-        except (FileNotFoundError, PermissionError, ValueError, json.JSONEncodeError, OSError) as e:
+        except (
+            FileNotFoundError,
+            PermissionError,
+            ValueError,
+            json.JSONEncodeError,
+            OSError,
+        ) as e:
             logger.error(f"Error exporting logs: {e}")
             return False
 
