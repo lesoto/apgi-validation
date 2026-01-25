@@ -61,6 +61,7 @@ ipykernel>=6.0.0
 
 # GUI components (usually comes with Python, but explicit for some environments)
 # Note: tkinter is typically included with Python installations
+tkinterweb>=3.0
 
 # Additional utilities
 python-dateutil>=2.8.0

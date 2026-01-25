@@ -97,7 +97,7 @@ class ModelParameters:
     theta_0: float = 0.5  # Baseline threshold (Range: 0.1-1.0 AU)
 
     # Sigmoid parameters
-    alpha: float = 10.0  # Sharpness (Range: 1-15)
+    alpha: float = 5.0  # Sharpness (Range: 3.0-8.0)
 
     # Sensitivities
     gamma_M: float = -0.3  # Metabolic sensitivity (Range: -0.5 to 0.5)

@@ -199,7 +199,7 @@ z_scores = normalizer.transform(raw_measurements)
 #### Supported Modalities
 
 | Modality | Description | Typical Range |
-|----------|-------------|---------------|
+| --- | --- | --- |
 | `gamma_power` | EEG gamma band power (30-80 Hz) | 1e-6 to 1e-2 V²/Hz |
 | `HEP_amplitude` | Heartbeat Evoked Potential amplitude | -50 to 50 μV |
 | `pupil_diameter` | Pupil size measurement | 2.0 to 8.0 mm |
@@ -267,7 +267,7 @@ print(f"Recommended: {optimization['recommended_window_sec']:.2f}s")
 #### Supported Disorders
 
 | Disorder | Profile | Key Features |
-|----------|---------|---------------|
+| --- | --- | --- |
 | **GAD** (Generalized Anxiety) | High precision, low threshold | Hypervigilance, somatic amplification |
 | **MDD** (Major Depression) | Low precision, high threshold | Anhedonia, reduced interoception |
 | **Psychosis** | Severely impaired precision | Delusions, hallucinations |
@@ -423,7 +423,7 @@ for modality, data in normative_data.items():
 ### Individual Profiles Comparison
 
 | Profile | β (Somatic Gain) | θ_t (Threshold) | S_t (Surprise) | Clinical Interpretation |
-|---------|-------------------|------------------|------------------|---------------------|
+| --- | --- | --- | --- | --- |
 | Neutral | 0.500 | 0.284 | 21.44 | Baseline functioning |
 | High Anxiety | 0.620 | 0.284 | 21.46 | Heightened somatic sensitivity |
 | High Alexithymia | 0.380 | 0.284 | 21.42 | Reduced somatic awareness |
@@ -432,12 +432,12 @@ for modality, data in normative_data.items():
 ### Protocol 1 Optimization Results
 
 | Modality | Default Window | Optimized Window | Improvement |
-|----------|----------------|------------------|------------|
+| --- | --- | --- | --- |
 | EEG | 2.00s | 3.75s | +87.5% |
 | Pupil | 2.00s | 2.83s | +41.5% |
 | Alpha | 2.00s | 4.00s | +100% |
 | Gamma | 2.00s | 4.00s | +100% |
-| **Recommended** | 2.00s | **3.69s** | **+84.7%** | |
+| **Recommended** | 2.00s | **3.69s** | **+84.7%** |
 
 ---
 
@@ -466,7 +466,7 @@ for modality, data in normative_data.items():
 ### Warning Messages
 
 | Warning | Cause | Solution |
-|---------|-------|----------|
+| --- | --- | --- |
 | "Threshold computation failed" | Missing raw data | Provide pupil_diameter and alpha_power in raw_signals |
 | "Non-Gaussian distribution" | Skewed data | Add appropriate transformation |
 | "Window size too large" | Insufficient data | Reduce window_range or increase data length |

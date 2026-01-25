@@ -141,8 +141,8 @@ Where:
 
 Based on APGI theory, we predict:
 
-| Metric     | APGI       | StandardPP   | GWTOnly    | Continuous    |
-|-------------|-------------|-------------|-------------|-------------|-------------|
+| Metric | APGI | StandardPP | GWTOnly | Continuous |
+| --- | --- | --- | --- | --- |
 | Accuracy (Task 1A) | 85-92%      | 60-70%      | 75-82%      | 55-65%      |
 | F1 Score    | 0.85-0.90   | 0.58-0.68   | 0.73-0.80   | 0.50-0.62   |
 | AUC-ROC     | 0.90-0.95   | 0.65-0.75   | 0.80-0.87   | 0.55-0.68   |
@@ -351,16 +351,16 @@ pupil = torch.nan_to_num(pupil, nan=0.0)
 
 This implementation provides the foundation for:
 
-* **Protocol 2**: Psychometric parameter estimation (see `APGI-Parameter-Estimation-Protocol.py`)
-* **Protocol 3**: Clinical diagnostic markers
-* **Protocol 4**: Pharmacological interventions
-* **Protocol 5**: Cross-species validation
+- **Protocol 2**: Psychometric parameter estimation (see `APGI-Parameter-Estimation-Protocol.py`)
+- **Protocol 3**: Clinical diagnostic markers
+- **Protocol 4**: Pharmacological interventions
+- **Protocol 5**: Cross-species validation
 
 ## Citation
 
 If you use this code, please cite:
 
-```
+```text
 APGI Framework: Allostatic Precision-Gated Ignition
 Protocol 1: Synthetic Neural Data Generation and Machine Learning Classification
 Implementation Version 1.0
@@ -383,5 +383,6 @@ For questions about implementation details or theoretical aspects:
 
 ---
 
-**Note**: This is synthetic data for testing theoretical predictions.
+### Note: This is synthetic data for testing theoretical predictions
+
 Always validate with empirical data before drawing neuroscientific conclusions.

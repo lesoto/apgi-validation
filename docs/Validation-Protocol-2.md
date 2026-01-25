@@ -7,6 +7,7 @@ This is a **production-ready** implementation of Protocol 2 from the APGI framew
 ## Core Approach
 
 Instead of generating synthetic data, Protocol 2:
+
 1. Fits hierarchical Bayesian models to **real empirical data** from published studies
 2. Compares APGI against 3 competing theoretical frameworks
 3. Uses rigorous Bayesian metrics (WAIC, LOO-CV, Bayes factors)

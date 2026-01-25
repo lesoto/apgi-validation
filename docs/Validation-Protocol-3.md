@@ -76,20 +76,24 @@ The complete APGI agent implements:
    - Adaptive adjustment based on reliability
 
 3. **Somatic Marker System**
+
    - Learns M(context, action) → predicted interoceptive outcome
    - Influences action selection via somatic bias β = 1.2
    - Updated via prediction error: actual_intero - predicted_intero
 
 4. **Global Workspace Ignition**
+
    - Surprise accumulation: dS/dt = -S/τ + Πᵉ|εᵉ| + β·Πⁱ|εⁱ|
    - Ignition probability: P(ignition) = σ(α(S_t - θ_t))
    - Threshold adaptation: balances metabolic cost vs information value
 
 5. **Dual Policy System**
+
    - Explicit policy: Workspace-based deliberation (when ignited)
    - Implicit policy: Habitual sensorimotor mapping (default)
 
 6. **Memory Systems**
+
    - Working memory: Limited capacity (7 items)
    - Episodic memory: Emotional tagging for retrieval
 
@@ -234,11 +238,13 @@ for trial in range(100):
    - No threshold mechanism
 
 3. **GWTOnlyAgent**
+
    - Ignition based only on external surprise
    - No interoceptive precision weighting
    - No somatic markers
 
 4. **ActorCriticAgent**
+
    - Standard reinforcement learning baseline
    - No predictive processing
    - Simple policy gradient
@@ -463,7 +469,7 @@ Overall: ✅ MODEL VALIDATED
 Expected performance metrics (based on specification):
 
 | Metric | APGI | StandardPP | GWTOnly | ActorCritic | Human |
-|--------|------|------------|---------|-------------|-------|
+| --- | --- | --- | --- | --- | --- |
 | IGT Convergence (trials) | 50-80 | 150+ | 100-120 | ~100 | 60-80 |
 | Final Performance (% optimal) | 75-85% | 50-60% | 65-75% | 60-70% | 70-80% |
 | Volatile Foraging Adaptation | 20-30% faster | baseline | 10-15% faster | baseline | - |
