@@ -17,8 +17,6 @@ Integrates:
 - Metabolic cost regulation
 - Global workspace broadcast theory
 
-Author: Based on APGI computational psychiatry framework
-Date: December 2024
 =============================================================================
 """
 
@@ -164,7 +162,7 @@ class APGIParameters:
     # Continuous dynamics parameters
     tau_S: float = 0.5  # Surprise timescale (s)
     tau_theta: float = 30.0  # Threshold timescale (s)
-    alpha_sigmoid: float = 10.0  # Ignition sigmoid sharpness
+    alpha_sigmoid: float = 5.0  # Ignition sigmoid sharpness
     rho_reset: float = 0.7  # Post-ignition reset fraction
 
     # Noise strengths
@@ -929,7 +927,7 @@ class APGIVisualizer:
             "ACETYLCHOLINE": 2,
             "5HT": 3,
         }
-        df["neuromod_numeric"] = df["neuromod"].map(neuromod_map)
+        df.loc[:, "neuromod_numeric"] = df["neuromod"].map(neuromod_map)
 
         ax2.step(
             df["time"],

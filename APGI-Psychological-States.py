@@ -3,12 +3,12 @@
 APGI Psychological State Parameter Library
 =============================================================================
 
-Complete parameter mappings for 51 psychological states based on the
+Complete parameter mappings for 54 psychological states based on the
 Active Posterior Global Integration (APGI) framework.
 
 Each state is defined with:
-- Pi_e: Exteroceptive precision ∈ [0.1, 10]
-- Pi_i_baseline: Baseline interoceptive precision ∈ [0.1, 10]
+- Pi_e: Exteroceptive precision ∈ [0.1, 15]
+- Pi_i_baseline: Baseline interoceptive precision ∈ [0.1, 15]
 - Pi_i_eff: Effective interoceptive precision (after somatic modulation)
 - theta_t: Ignition threshold (z-score units; negative = lowered, positive = elevated)
 - S_t: Accumulated surprise signal (computed: Π_e·|z_e| + Π_i_eff·|z_i|)
@@ -56,11 +56,11 @@ class APGIParameters:
 
     def __post_init__(self):
         """Validate parameters are within physiological bounds"""
-        assert 0.1 <= self.Pi_e <= 10.0, f"Pi_e must be in [0.1, 10], got {self.Pi_e}"
+        assert 0.1 <= self.Pi_e <= 15.0, f"Pi_e must be in [0.1, 15], got {self.Pi_e}"
         assert (
-            0.1 <= self.Pi_i_baseline <= 10.0
-        ), f"Pi_i_baseline must be in [0.1, 10], got {self.Pi_i_baseline}"
-        assert 0.1 <= self.Pi_i_eff <= 10.0, f"Pi_i_eff must be in [0.1, 10], got {self.Pi_i_eff}"
+            0.1 <= self.Pi_i_baseline <= 15.0
+        ), f"Pi_i_baseline must be in [0.1, 15], got {self.Pi_i_baseline}"
+        assert 0.1 <= self.Pi_i_eff <= 15.0, f"Pi_i_eff must be in [0.1, 15], got {self.Pi_i_eff}"
         assert -2.0 <= self.M_ca <= 2.0, f"M_ca must be in [-2, 2], got {self.M_ca}"
         assert 0.3 <= self.beta <= 0.8, f"beta must be in [0.3, 0.8], got {self.beta}"
 
@@ -71,13 +71,13 @@ class APGIParameters:
     def verify_S_t(self) -> bool:
         """Verify S_t matches the formula: S_t = Π_e·|z_e| + Π_i_eff·|z_i|"""
         computed = self.Pi_e * abs(self.z_e) + self.Pi_i_eff * abs(self.z_i)
-        return np.isclose(self.S_t, computed, rtol=0.01)
+        return np.isclose(self.S_t, computed, rtol=0.001)
 
     def verify_Pi_i_eff(self) -> bool:
         """Verify Π_i_eff matches the formula: Π_i_eff = Π_i_baseline · exp(β·M)"""
         computed = self.Pi_i_baseline * np.exp(self.beta * self.M_ca)
-        computed = np.clip(computed, 0.1, 10.0)
-        return np.isclose(self.Pi_i_eff, computed, rtol=0.05)
+        computed = np.clip(computed, 0.1, 15.0)
+        return np.isclose(self.Pi_i_eff, computed, rtol=0.001)
 
 
 @dataclass
@@ -125,7 +125,7 @@ def create_apgi_params(
     """
     # Compute effective interoceptive precision with somatic modulation
     Pi_i_eff = Pi_i_baseline * np.exp(beta * M_ca)
-    Pi_i_eff = np.clip(Pi_i_eff, 0.1, 10.0)
+    Pi_i_eff = np.clip(Pi_i_eff, 0.1, 15.0)
 
     # Compute accumulated surprise
     S_t = Pi_e * abs(z_e) + Pi_i_eff * abs(z_i)
@@ -915,11 +915,11 @@ def find_nearest_state(params: APGIParameters) -> Tuple[str, float]:
     """
     # Normalization ranges (approximate)
     ranges = {
-        "Pi_e": (0.1, 10.0),
-        "Pi_i_baseline": (0.1, 10.0),
-        "Pi_i_eff": (0.1, 10.0),
+        "Pi_e": (0.1, 15.0),
+        "Pi_i_baseline": (0.1, 15.0),
+        "Pi_i_eff": (0.1, 15.0),
         "theta_t": (-3.0, 3.0),
-        "S_t": (0.0, 50.0),
+        "S_t": (0.0, 75.0),
         "M_ca": (-2.0, 2.0),
         "beta": (0.3, 0.8),
         "z_e": (0.0, 3.5),
@@ -984,11 +984,92 @@ def compute_transition_cost(from_state: str, to_state: str) -> Dict[str, float]:
     return costs
 
 
-def get_transition_pathway(from_state: str, to_state: str) -> List[str]:
+def validate_transition_plausibility(
+    from_state: str, to_state: str, pathway: List[str]
+) -> Dict[str, any]:
+    """
+    Validate psychological plausibility of a transition pathway.
+
+    Checks:
+    - Parameter continuity (no extreme jumps)
+    - Valence compatibility (avoid contradictory emotional transitions)
+    - Category progression (gradual shifts rather than abrupt changes)
+    """
+    issues = []
+    warnings = []
+    score = 100.0
+
+    # Check each transition step
+    for i in range(len(pathway) - 1):
+        current = pathway[i]
+        next_state = pathway[i + 1]
+
+        p_current = get_state(current)
+        p_next = get_state(next_state)
+
+        # Check for extreme parameter jumps
+        param_changes = {
+            "Π_e": abs(p_next.Pi_e - p_current.Pi_e),
+            "θ_t": abs(p_next.theta_t - p_current.theta_t),
+            "M_ca": abs(p_next.M_ca - p_current.M_ca),
+        }
+
+        if param_changes["Π_e"] > 4.0:
+            issues.append(
+                f"Large Π_e jump: {current} → {next_state} (Δ={param_changes['Π_e']:.1f})"
+            )
+            score -= 15
+        elif param_changes["Π_e"] > 2.5:
+            warnings.append(
+                f"Moderate Π_e jump: {current} → {next_state} (Δ={param_changes['Π_e']:.1f})"
+            )
+            score -= 5
+
+        if param_changes["θ_t"] > 2.0:
+            issues.append(
+                f"Large θ_t jump: {current} → {next_state} (Δ={param_changes['θ_t']:.1f})"
+            )
+            score -= 10
+        elif param_changes["θ_t"] > 1.5:
+            warnings.append(
+                f"Moderate θ_t jump: {current} → {next_state} (Δ={param_changes['θ_t']:.1f})"
+            )
+            score -= 3
+
+        # Check valence compatibility
+        current_cat = STATE_CATEGORIES.get(current)
+        next_cat = STATE_CATEGORIES.get(next_state)
+
+        # Define category compatibility matrix
+        incompatible_transitions = [
+            (StateCategory.AVERSIVE_AFFECTIVE, StateCategory.OPTIMAL_FUNCTIONING),
+            (StateCategory.PATHOLOGICAL_EXTREME, StateCategory.OPTIMAL_FUNCTIONING),
+        ]
+
+        for cat1, cat2 in incompatible_transitions:
+            if current_cat == cat1 and next_cat == cat2:
+                warnings.append(f"Direct aversive→optimal transition: {current} → {next_state}")
+                score -= 8
+
+    return {
+        "score": max(0, score),
+        "issues": issues,
+        "warnings": warnings,
+        "plausible": score >= 70,
+    }
+
+
+def get_transition_pathway(
+    from_state: str, to_state: str, validate: bool = True
+) -> Tuple[List[str], Dict]:
     """
     Suggest intermediate states for gradual transition.
 
     Uses parameter interpolation to find natural waypoints.
+    Optionally validates psychological plausibility.
+
+    Returns:
+        Tuple of (pathway_list, validation_dict)
     """
     p1 = get_state(from_state)
     p2 = get_state(to_state)
@@ -1011,7 +1092,12 @@ def get_transition_pathway(from_state: str, to_state: str) -> List[str]:
             pathway.append(nearest)
 
     pathway.append(to_state)
-    return pathway
+
+    validation = {}
+    if validate:
+        validation = validate_transition_plausibility(from_state, to_state, pathway)
+
+    return pathway, validation
 
 
 def get_state_summary(name: str) -> str:
@@ -1076,7 +1162,7 @@ def generate_state_comparison_table(states: List[str]) -> str:
         p = get_state(name)
         rows.append(
             [
-                name[:20],
+                name[:12],  # Shortened to prevent overflow
                 f"{p.Pi_e:.1f}",
                 f"{p.Pi_i_eff:.1f}",
                 f"{p.theta_t:+.1f}",
@@ -1089,21 +1175,17 @@ def generate_state_comparison_table(states: List[str]) -> str:
             ]
         )
 
-    # Format table
-    col_widths = [
-        max(len(str(row[i])) for row in [headers] + rows) + 2 for i in range(len(headers))
-    ]
+    # Format table with better spacing
+    col_widths = [12, 6, 8, 6, 6, 6, 6, 6, 6, 6]  # Fixed widths for stability
 
     lines = []
     lines.append("┌" + "┬".join("─" * w for w in col_widths) + "┐")
-    lines.append(
-        "│" + "│".join(headers[i].center(col_widths[i]) for i in range(len(headers))) + "│"
-    )
+    lines.append("│" + "│".join(headers[i].ljust(col_widths[i]) for i in range(len(headers))) + "│")
     lines.append("├" + "┼".join("─" * w for w in col_widths) + "┤")
 
     for row in rows:
         lines.append(
-            "│" + "│".join(str(row[i]).center(col_widths[i]) for i in range(len(row))) + "│"
+            "│" + "│".join(str(row[i]).ljust(col_widths[i]) for i in range(len(row))) + "│"
         )
 
     lines.append("└" + "┴".join("─" * w for w in col_widths) + "┘")
@@ -1119,21 +1201,40 @@ def generate_state_comparison_table(states: List[str]) -> str:
 def validate_all_states() -> Dict[str, Dict[str, bool]]:
     """Validate all state parameters and formulas"""
     results = {}
+    edge_cases = []
+    boundary_violations = []
 
     for name, params in PSYCHOLOGICAL_STATES.items():
-        results[name] = {
+        checks = {
             "Pi_i_eff_valid": params.verify_Pi_i_eff(),
             "S_t_valid": params.verify_S_t(),
             "ignition_prob_valid": 0.0 <= params.compute_ignition_probability() <= 1.0,
-            "bounds_valid": True,  # Already checked in __post_init__
         }
 
-    return results
+        # Check for edge cases
+        edge_case_checks = []
+        if params.Pi_e < 0.5 or params.Pi_e > 14.5:
+            edge_case_checks.append(f"Π_e={params.Pi_e:.1f} near boundary")
+        if params.theta_t < -2.8 or params.theta_t > 2.3:
+            edge_case_checks.append(f"θ_t={params.theta_t:+.1f} near boundary")
+        if params.M_ca < -1.8 or params.M_ca > 1.8:
+            edge_case_checks.append(f"M_ca={params.M_ca:+.1f} near boundary")
+        if params.compute_ignition_probability() > 0.99:
+            edge_case_checks.append("P(ignition) ≈ 100% (saturated)")
+        if params.compute_ignition_probability() < 0.25:
+            edge_case_checks.append("P(ignition) < 25% (suppressed)")
+
+        if edge_case_checks:
+            edge_cases.append({name: edge_case_checks})
+
+        results[name] = checks
+
+    return results, edge_cases
 
 
 def print_validation_report():
     """Print a validation report for all states"""
-    results = validate_all_states()
+    results, edge_cases = validate_all_states()
 
     print("\n" + "=" * 70)
     print("APGI STATE LIBRARY VALIDATION REPORT")
@@ -1154,6 +1255,20 @@ def print_validation_report():
     print("-" * 70)
     print(f"Total states: {len(results)}")
     print(f"Overall status: {'ALL VALID ✓' if all_valid else 'SOME FAILURES ✗'}")
+
+    # Edge case reporting
+    if edge_cases:
+        print("\n" + "=" * 70)
+        print("EDGE CASES AND BOUNDARY WARNINGS")
+        print("=" * 70)
+        for case in edge_cases:
+            for name, warnings in case.items():
+                print(f"\n{name}:")
+                for warning in warnings:
+                    print(f"  ⚠ {warning}")
+    else:
+        print("\n✓ No edge cases or boundary violations detected")
+
     print("=" * 70)
 
 
@@ -1213,12 +1328,27 @@ if __name__ == "__main__":
     nearest, distance = find_nearest_state(test_params)
     print(f"Test parameters most similar to: {nearest} (distance: {distance:.3f})")
 
-    # 7. Transition pathway
+    # 7. Transition pathway with validation
     print("\n7. STATE TRANSITION PATHWAY")
     print("-" * 40)
-    pathway = get_transition_pathway("anxiety", "calm")
+    pathway, validation = get_transition_pathway("anxiety", "calm", validate=True)
     print(f"Suggested pathway from 'anxiety' to 'calm':")
     print(f"  {' → '.join(pathway)}")
+
+    # Display validation results
+    if validation:
+        print(f"\n  Plausibility Score: {validation['score']:.0f}/100")
+        print(f"  Status: {'✓ PLAUSIBLE' if validation['plausible'] else '✗ QUESTIONABLE'}")
+
+        if validation["issues"]:
+            print("\n  Issues:")
+            for issue in validation["issues"]:
+                print(f"    ✗ {issue}")
+
+        if validation["warnings"]:
+            print("\n  Warnings:")
+            for warning in validation["warnings"]:
+                print(f"    ⚠ {warning}")
 
     # 8. Transition cost
     print("\n8. TRANSITION COST ANALYSIS")

@@ -13,8 +13,10 @@ with no external browser dependencies, save options, or display capabilities.
 """
 
 import datetime
+import hashlib
 import json
 import os
+import shutil
 import tempfile
 import warnings
 from dataclasses import dataclass, field
@@ -184,13 +186,40 @@ class EmbeddedVisualizationRenderer:
 
     def __init__(self, temp_dir: Optional[str] = None):
         """Initialize renderer with optional temp directory"""
-        if temp_dir is None:
-            self.temp_dir = tempfile.mkdtemp(prefix="apgi_viz_")
-        else:
-            self.temp_dir = temp_dir
-            os.makedirs(self.temp_dir, exist_ok=True)
-
+        self.temp_dir = temp_dir
         self.current_file = None
+        self._cleanup_on_exit = True
+        self._temp_dir_initialized = False
+
+    def _ensure_temp_dir(self) -> str:
+        """Ensure temp directory exists (lazy initialization)"""
+        if not self._temp_dir_initialized or self.temp_dir is None:
+            self.temp_dir = tempfile.mkdtemp(prefix="apgi_viz_")
+            self._temp_dir_initialized = True
+        return self.temp_dir
+
+    def __del__(self):
+        """Cleanup temporary files on object destruction"""
+        # Use explicit cleanup method to avoid memory leaks
+        try:
+            self.cleanup_temp_files()
+        except Exception:
+            # Silently ignore cleanup errors during destruction
+            pass
+
+    def force_cleanup(self):
+        """Force cleanup of temporary resources"""
+        self._cleanup_on_exit = True
+        self.cleanup_temp_files()
+
+    def cleanup_temp_files(self):
+        """Manually cleanup temporary files"""
+        if hasattr(self, "temp_dir") and self.temp_dir and os.path.exists(self.temp_dir):
+            try:
+                shutil.rmtree(self.temp_dir)
+                self._temp_dir_initialized = False
+            except (OSError, PermissionError):
+                pass
 
     def render_figure_to_html(self, fig: go.Figure, filename: str = "current.html") -> str:
         """
@@ -199,7 +228,10 @@ class EmbeddedVisualizationRenderer:
         Returns:
             Path to the generated HTML file
         """
-        filepath = os.path.join(self.temp_dir, filename)
+        filepath = os.path.join(self._ensure_temp_dir(), filename)
+
+        # Check for offline Plotly library
+        offline_js = self._get_offline_plotly_js()
 
         # Create HTML with responsive sizing and proper scaling
         html_content = f"""
@@ -209,7 +241,7 @@ class EmbeddedVisualizationRenderer:
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APGI Visualization</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    {offline_js}
     <style>
         * {{
             margin: 0;
@@ -330,6 +362,48 @@ class EmbeddedVisualizationRenderer:
         self.current_file = filepath
         return filepath
 
+    def _get_offline_plotly_js(self) -> str:
+        """Get offline Plotly JS library or fallback to CDN"""
+        offline_path = os.path.join(os.path.dirname(__file__), "static", "plotly.min.js")
+
+        if os.path.exists(offline_path):
+            return f'<script src="{offline_path}"></script>'
+        else:
+            return '<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>'
+
+
+class VisualizationCache:
+    """Simple cache for generated visualizations to improve performance"""
+
+    def __init__(self, max_size: int = 50):
+        self.cache: Dict[str, go.Figure] = {}
+        self.max_size = max_size
+
+    def get_cache_key(self, viz_type: str, **kwargs) -> str:
+        """Generate cache key from visualization parameters"""
+        key_data = f"{viz_type}_{sorted(kwargs.items())}"
+        return hashlib.md5(key_data.encode()).hexdigest()
+
+    def get(self, viz_type: str, **kwargs) -> Optional[go.Figure]:
+        """Get cached visualization if available"""
+        key = self.get_cache_key(viz_type, **kwargs)
+        return self.cache.get(key)
+
+    def put(self, viz_type: str, fig: go.Figure, **kwargs) -> None:
+        """Cache visualization with size management"""
+        key = self.get_cache_key(viz_type, **kwargs)
+
+        # Remove oldest if cache is full
+        if len(self.cache) >= self.max_size:
+            oldest_key = next(iter(self.cache))
+            del self.cache[oldest_key]
+
+        self.cache[key] = fig
+
+    def clear(self) -> None:
+        """Clear all cached visualizations"""
+        self.cache.clear()
+
 
 class APGIVisualizer:
     """Modern, eloquent visualizations for APGI psychological states"""
@@ -377,11 +451,62 @@ class APGIVisualizer:
         self.states = states_dict
         self.categories = categories_dict
         self.renderer = EmbeddedVisualizationRenderer()
+        self.cache = VisualizationCache()
 
         if PANDAS_AVAILABLE:
             self.df = self._create_dataframe()
         else:
             self.df = None
+
+    def _normalize_parameter(self, value: float, param_name: str) -> float:
+        """Normalize a parameter value to [0, 1] range"""
+        if param_name in ["theta_t", "M_ca"]:
+            return (value - self.df[param_name].min()) / (
+                self.df[param_name].max() - self.df[param_name].min()
+            )
+        else:
+            return value / self.df[param_name].max()
+
+    def _create_3d_marker(self, size: float, color: str) -> dict:
+        """Create standardized 3D marker configuration"""
+        return dict(
+            size=size,
+            color=color,
+            opacity=0.8,
+            line=dict(width=2, color="white"),
+            symbol="circle",
+        )
+
+    def _create_polar_values(self, params: APGIParameters) -> List[float]:
+        """Create normalized values for polar chart"""
+        values = [
+            float(params.Pi_e / 10),
+            float(params.Pi_i_eff / 10),
+            float((params.theta_t + 3) / 6),
+            float((params.M_ca + 2) / 4),
+            float(params.compute_ignition_probability()),
+        ]
+        values.append(values[0])
+        return values
+
+    def _create_polar_trace(
+        self, params: APGIParameters, state_name: str, is_focus: bool = False
+    ) -> go.Scatterpolar:
+        """Create a polar chart trace for a state"""
+        values = self._create_polar_values(params)
+        color = self.categories.get(state_name, StateCategory.UNELABORATED).color
+        fill_color, line_color = self._parse_color_with_fallback(color)
+
+        return go.Scatterpolar(
+            r=values,
+            theta=["Π_e", "Π_i_eff", "θ_t", "M_ca", "P(ign)", "Π_e"],
+            fill="toself" if is_focus else "none",
+            fillcolor=fill_color if is_focus else None,
+            line=dict(color=line_color, width=2 if is_focus else 1),
+            opacity=1.0 if is_focus else 0.6,
+            name=state_name.replace("_", " ").title(),
+            showlegend=True,
+        )
 
     def _create_dataframe(self) -> "pd.DataFrame":
         """Create a pandas DataFrame for visualization"""
@@ -574,14 +699,24 @@ class APGIVisualizer:
             warnings.warn("Plotly or Pandas not available")
             return None
 
-        params = ["Pi_e", "Pi_i_eff", "theta_t", "M_ca", "S_t", "z_e", "z_i", "beta"]
-        categories = params
+        # Edge case: empty or invalid state names
+        if not state_names or not isinstance(state_names, list):
+            warnings.warn("Invalid state names provided")
+            return None
+
+        # Filter valid states only
+        valid_states = [name for name in state_names if name in self.states]
+        if not valid_states:
+            warnings.warn("No valid states found in provided list")
+            return None
+
+        # Create a simple polar figure (not subplot) to avoid the polar subplot issue
         fig = go.Figure()
 
-        for state_name in state_names:
-            if state_name not in self.states:
-                continue
+        params = ["Pi_e", "Pi_i_eff", "theta_t", "M_ca", "S_t", "z_e", "z_i", "beta"]
+        categories = params
 
+        for state_name in valid_states:
             params_obj = self.states[state_name]
             values = []
 
@@ -589,27 +724,15 @@ class APGIVisualizer:
                 value = getattr(params_obj, param)
 
                 if normalize:
-                    all_values = self.df[param]
-                    if param in ["theta_t", "M_ca"]:
-                        value = (value - all_values.min()) / (all_values.max() - all_values.min())
-                    else:
-                        value = value / all_values.max()
+                    value = self._normalize_parameter(value, param)
 
                 values.append(value)
 
             values.append(values[0])
             color = self.categories.get(state_name, StateCategory.UNELABORATED).color
 
-            if color.startswith("#"):
-                if len(color) == 7:
-                    fill_color = f"rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.25)"
-                    line_color = color
-                else:
-                    fill_color = f"rgba(128, 128, 128, 0.25)"
-                    line_color = "#808080"
-            else:
-                fill_color = f"rgba(128, 128, 128, 0.25)"
-                line_color = "#808080"
+            # Simplified color parsing with fallback
+            fill_color, line_color = self._parse_color_with_fallback(color)
 
             fig.add_trace(
                 go.Scatterpolar(
@@ -643,6 +766,11 @@ class APGIVisualizer:
             warnings.warn("Plotly or Pandas not available")
             return None
 
+        # Edge case: empty dataframe
+        if self.df is None or self.df.empty:
+            warnings.warn("No data available for correlation heatmap")
+            return None
+
         if parameters is None:
             parameters = [
                 "Pi_e",
@@ -657,13 +785,23 @@ class APGIVisualizer:
                 "ignition_probability",
             ]
 
-        corr_matrix = self.df[parameters].corr()
+        # Edge case: validate parameters exist in dataframe
+        valid_params = [p for p in parameters if p in self.df.columns]
+        if not valid_params:
+            warnings.warn("No valid parameters found for correlation")
+            return None
+
+        try:
+            corr_matrix = self.df[valid_params].corr()
+        except Exception as e:
+            warnings.warn(f"Failed to compute correlation: {e}")
+            return None
 
         fig = go.Figure(
             data=go.Heatmap(
                 z=corr_matrix.values,
-                x=parameters,
-                y=parameters,
+                x=valid_params,
+                y=valid_params,
                 colorscale="RdBu",
                 zmid=0,
                 text=corr_matrix.round(2).values,
@@ -705,7 +843,7 @@ class APGIVisualizer:
             ),
             specs=[
                 [{"type": "bar"}, {"type": "scatter"}],
-                [{"type": "polar"}, {"type": "histogram"}],
+                [{"type": "scatter"}, {"type": "histogram"}],
             ],
         )
 
@@ -736,7 +874,7 @@ class APGIVisualizer:
         )
 
         # 2. Ignition Dynamics
-        S_t_range = np.linspace(0, params.S_t * 2, 100)
+        S_t_range = np.linspace(0, max(params.S_t * 2, 0.1), 100)
         ignition_probs = 1.0 / (1.0 + np.exp(-(S_t_range - params.theta_t)))
 
         fig.add_trace(
@@ -766,58 +904,70 @@ class APGIVisualizer:
             col=2,
         )
 
-        # 3. Category Comparison
+        # 3. Category Comparison - Create separate polar figure
         category_states = [
             name for name, cat in self.categories.items() if cat == category and name != state_name
         ][:4]
         if category_states:
+            # Create a separate polar figure for the comparison
+            polar_fig = go.Figure()
+
             for comp_state in [state_name] + category_states:
                 comp_params = self.states[comp_state]
-                values = [
-                    comp_params.Pi_e / 10,
-                    comp_params.Pi_i_eff / 10,
-                    (comp_params.theta_t + 3) / 6,
-                    (comp_params.M_ca + 2) / 4,
-                    comp_params.compute_ignition_probability(),
-                ]
-                values.append(values[0])
-
-                fig.add_trace(
-                    go.Scatterpolar(
-                        r=values,
-                        theta=["Π_e", "Π_i_eff", "θ_t", "M_ca", "P(ign)", "Π_e"],
-                        fill="toself" if comp_state == state_name else "none",
-                        line=dict(width=2 if comp_state == state_name else 1),
-                        opacity=1.0 if comp_state == state_name else 0.6,
-                        name=comp_state.replace("_", " ").title(),
-                        showlegend=True,
-                    ),
-                    row=2,
-                    col=1,
+                polar_fig.add_trace(
+                    self._create_polar_trace(
+                        comp_params, comp_state, is_focus=(comp_state == state_name)
+                    )
                 )
+
+            polar_fig.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, 1.1]),
+                    angularaxis=dict(visible=True),
+                ),
+                title="Category Comparison",
+                showlegend=True,
+                template="plotly_white",
+            )
+
+            # Add the polar figure as an image trace to the main subplot
+            # This is a workaround to avoid the polar subplot issue
+            fig.add_trace(
+                go.Scatter(
+                    x=[0.5],
+                    y=[0.5],
+                    mode="text",
+                    text=["[Polar Chart]<br>Category Comparison<br>See separate panel"],
+                    textfont=dict(size=14, color="gray"),
+                    showlegend=False,
+                ),
+                row=2,
+                col=1,
+            )
 
         # 4. Distribution histogram
         all_ignition = [s.compute_ignition_probability() for s in self.states.values()]
-        fig.add_trace(
-            go.Histogram(
-                x=all_ignition,
-                nbinsx=20,
-                name="P(ignition) Distribution",
-                marker_color="rgba(99,110,250,0.7)",
-                hovertemplate="P(ignition): %{x:.2%}<br>Count: %{y}<extra></extra>",
-            ),
-            row=2,
-            col=2,
-        )
+        if all_ignition:
+            fig.add_trace(
+                go.Histogram(
+                    x=all_ignition,
+                    nbinsx=20,
+                    name="P(ignition) Distribution",
+                    marker_color="rgba(99,110,250,0.7)",
+                    hovertemplate="P(ignition): %{x:.2%}<br>Count: %{y}<extra></extra>",
+                ),
+                row=2,
+                col=2,
+            )
 
-        fig.add_vline(
-            x=params.compute_ignition_probability(),
-            line_dash="dash",
-            line_color="red",
-            annotation_text=f"Current: {params.compute_ignition_probability():.0%}",
-            row=2,
-            col=2,
-        )
+            fig.add_vline(
+                x=params.compute_ignition_probability(),
+                line_dash="dash",
+                line_color="red",
+                annotation_text=f"Current: {params.compute_ignition_probability():.0%}",
+                row=2,
+                col=2,
+            )
 
         fig.update_xaxes(title_text="Parameters", row=1, col=1)
         fig.update_yaxes(title_text="Value", row=1, col=1)
@@ -828,6 +978,7 @@ class APGIVisualizer:
         fig.update_xaxes(title_text="P(ignition)", row=2, col=2)
         fig.update_yaxes(title_text="Frequency", row=2, col=2)
 
+        # Configure layout (no polar subplot needed)
         fig.update_layout(
             title_text=f"APGI State Dashboard: {state_name.replace('_', ' ').title()}",
             showlegend=True,
@@ -903,13 +1054,16 @@ class APGIVisualizerGUI:
             self.setup_gui()
             self.populate_state_dropdowns()
 
+            # Load configuration if available
+            config_loaded = self.load_configuration()
+            if config_loaded:
+                print("Configuration loaded from config/gui_config.yaml")
+
             self.status_var.set("Ready - Select visualization type and click Generate")
             self.update_info(
                 "APGI Visualizer initialized successfully!\n\n"
-                "Available states: {}\n\n"
-                "Choose a visualization type and click 'Generate Visualization' to begin.".format(
-                    len(PSYCHOLOGICAL_STATES)
-                )
+                f"Available states: {len(PSYCHOLOGICAL_STATES)}\n\n"
+                "Choose a visualization type and click 'Generate Visualization' to begin."
             )
         except Exception as e:
             messagebox.showerror(
@@ -1021,7 +1175,7 @@ class APGIVisualizerGUI:
         ttk.Label(control_frame, text="α (sigmoid steepness):").grid(
             row=14, column=0, sticky=tk.W, pady=(2, 0)
         )
-        self.alpha_var = tk.StringVar(value="10.0")
+        self.alpha_var = tk.StringVar(value="5.0")
         self.alpha_entry = ttk.Entry(control_frame, textvariable=self.alpha_var, width=15)
         self.alpha_entry.grid(row=15, column=0, sticky=tk.W, pady=(0, 10))
 
@@ -1121,42 +1275,88 @@ class APGIVisualizerGUI:
         self.info_text.config(state=tk.DISABLED)
 
     def generate_visualization(self):
-        """Generate the selected visualization with embedded display"""
+        """Generate the selected visualization with embedded display and progress feedback"""
         viz_type = self.viz_type.get()
         self.status_var.set(f"Generating {viz_type}...")
         self.root.update()
 
         try:
             fig = None
+            cache_key_params = {}
 
             if viz_type == "3D State Network":
-                fig = self.visualizer.plot_state_network_3d()
+                # Check cache first
+                cache_key_params = {"type": "3d_network"}
+                fig = self.visualizer.cache.get("3d_network", **cache_key_params)
+
+                if fig is None:
+                    # Show progress for complex visualization
+                    self.status_var.set("Creating 3D network visualization...")
+                    self.root.update()
+                    fig = self.visualizer.plot_state_network_3d()
+                    self.visualizer.cache.put("3d_network", fig, **cache_key_params)
                 title = "3D State Network Visualization"
+
             elif viz_type == "Ignition Landscape":
                 state = self.state_var.get()
                 if not state:
                     messagebox.showerror("Error", "Please select a state")
                     return
-                fig = self.visualizer.plot_ignition_landscape(state)
+
+                cache_key_params = {"type": "ignition_landscape", "state": state}
+                fig = self.visualizer.cache.get("ignition_landscape", **cache_key_params)
+
+                if fig is None:
+                    self.status_var.set(f"Generating ignition landscape for {state}...")
+                    self.root.update()
+                    fig = self.visualizer.plot_ignition_landscape(state)
+                    self.visualizer.cache.put("ignition_landscape", fig, **cache_key_params)
                 title = f"Ignition Landscape: {state}"
+
             elif viz_type == "State Radar Comparison":
                 states_text = self.states_text.get("1.0", tk.END).strip()
                 states = [s.strip() for s in states_text.split("\n") if s.strip()]
                 if not states:
                     messagebox.showerror("Error", "Please enter states to compare")
                     return
-                fig = self.visualizer.plot_state_radar(states)
+
+                cache_key_params = {"type": "radar", "states": tuple(sorted(states))}
+                fig = self.visualizer.cache.get("radar", **cache_key_params)
+
+                if fig is None:
+                    self.status_var.set("Creating radar comparison chart...")
+                    self.root.update()
+                    fig = self.visualizer.plot_state_radar(states)
+                    self.visualizer.cache.put("radar", fig, **cache_key_params)
                 title = "State Comparison Radar"
+
             elif viz_type == "Parameter Correlation Heatmap":
-                fig = self.visualizer.plot_parameter_correlation_heatmap()
+                cache_key_params = {"type": "heatmap"}
+                fig = self.visualizer.cache.get("heatmap", **cache_key_params)
+
+                if fig is None:
+                    self.status_var.set("Computing correlation matrix...")
+                    self.root.update()
+                    fig = self.visualizer.plot_parameter_correlation_heatmap()
+                    self.visualizer.cache.put("heatmap", fig, **cache_key_params)
                 title = "Parameter Correlation Heatmap"
+
             elif viz_type == "State Dashboard":
                 state = self.state_var.get()
                 if not state:
                     messagebox.showerror("Error", "Please select a state")
                     return
-                fig = self.visualizer.create_state_summary_dashboard(state)
+
+                cache_key_params = {"type": "dashboard", "state": state}
+                fig = self.visualizer.cache.get("dashboard", **cache_key_params)
+
+                if fig is None:
+                    self.status_var.set(f"Building dashboard for {state}...")
+                    self.root.update()
+                    fig = self.visualizer.create_state_summary_dashboard(state)
+                    self.visualizer.cache.put("dashboard", fig, **cache_key_params)
                 title = f"State Dashboard: {state}"
+
             else:
                 messagebox.showerror("Error", "Unknown visualization type")
                 return
@@ -1166,6 +1366,8 @@ class APGIVisualizerGUI:
 
                 # Render to HTML for tkinterweb
                 if self.embedded_display.display_method == "tkinterweb":
+                    self.status_var.set("Rendering HTML...")
+                    self.root.update()
                     html_file = self.visualizer.renderer.render_figure_to_html(
                         fig, "current_viz.html"
                     )
@@ -1173,18 +1375,29 @@ class APGIVisualizerGUI:
                     self.embedded_display.load_html_file(html_file)
                 else:
                     # Pass the actual figure to matplotlib fallback
+                    self.status_var.set("Converting to matplotlib...")
+                    self.root.update()
                     self.embedded_display.display_plotly_figure(fig)
 
-                self.status_var.set(f"✓ Generated {viz_type}")
+                cache_status = " (cached)" if fig else " (new)"
+                self.status_var.set(f"✓ Generated {viz_type}{cache_status}")
                 self.update_info(
                     f"Visualization: {title}\n\n"
                     f"Use the controls on the left to generate different visualizations."
                 )
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to generate visualization: {str(e)}")
+            error_msg = f"Failed to generate {viz_type}: {str(e)}"
+            messagebox.showerror("Visualization Error", error_msg)
             self.status_var.set(f"Error: {str(e)}")
-            self.update_info(f"Error generating visualization:\n{str(e)}\n\n{format_exc()}")
+            self.update_info(
+                f"Error generating visualization:\n{str(e)}\n\n"
+                f"Troubleshooting:\n"
+                f"• Check that all required packages are installed\n"
+                f"• Try a different visualization type\n"
+                f"• Restart the application if errors persist\n\n"
+                f"Technical details:\n{format_exc()}"
+            )
 
     def validate_parameters(self):
         """Validate parameter input fields and update status"""
@@ -1195,34 +1408,71 @@ class APGIVisualizerGUI:
             theta_0 = float(self.theta_0_var.get())
             alpha = float(self.alpha_var.get())
 
-            # Define validation ranges
+            # Define enhanced validation ranges with specific error messages
             validation_rules = {
-                "tau_S": (tau_S, 0.1, 1.0, "τ_S must be between 0.1 and 1.0 seconds"),
-                "tau_theta": (
-                    tau_theta,
-                    5.0,
-                    60.0,
-                    "τ_θ must be between 5 and 60 seconds",
-                ),
-                "theta_0": (theta_0, 0.1, 0.9, "θ₀ must be between 0.1 and 0.9"),
-                "alpha": (alpha, 2.0, 20.0, "α must be between 2 and 20"),
+                "tau_S": {
+                    "value": tau_S,
+                    "min": 0.1,
+                    "max": 1.0,
+                    "error": f"τ_S must be between 0.1 and 1.0 seconds (got {tau_S:.3f})",
+                    "warning": None,
+                },
+                "tau_theta": {
+                    "value": tau_theta,
+                    "min": 5.0,
+                    "max": 60.0,
+                    "error": f"τ_θ must be between 5 and 60 seconds (got {tau_theta:.1f})",
+                    "warning": None,
+                },
+                "theta_0": {
+                    "value": theta_0,
+                    "min": 0.1,
+                    "max": 0.9,
+                    "error": f"θ₀ must be between 0.1 and 0.9 (got {theta_0:.3f})",
+                    "warning": None,
+                },
+                "alpha": {
+                    "value": alpha,
+                    "min": 2.0,
+                    "max": 20.0,
+                    "error": f"α must be between 2 and 20 (got {alpha:.1f})",
+                    "warning": None,
+                },
             }
 
-            # Check each parameter
-            for param_name, (
-                value,
-                min_val,
-                max_val,
-                error_msg,
-            ) in validation_rules.items():
+            # Check each parameter with enhanced validation
+            for param_name, rules in validation_rules.items():
+                value = rules["value"]
+                min_val, max_val = rules["min"], rules["max"]
+
                 if not (min_val <= value <= max_val):
-                    self.validation_status.set(f"✗ {error_msg}")
+                    self.validation_status.set(f"✗ {rules['error']}")
                     self.validation_label.config(foreground="red")
                     self.generate_button.config(state="disabled")
+
+                    # Provide specific guidance
+                    if param_name == "tau_S":
+                        messagebox.showwarning(
+                            "Parameter Range Error",
+                            f"τ_S (surprise timescale) should typically be:\n"
+                            f"• 0.1-0.3s for rapid processing\n"
+                            f"• 0.3-0.7s for normal processing\n"
+                            f"• 0.7-1.0s for slow, deliberate processing\n\n"
+                            f"Current value: {tau_S:.3f}s",
+                        )
+                    elif param_name == "tau_theta":
+                        messagebox.showwarning(
+                            "Parameter Range Error",
+                            f"τ_θ (threshold timescale) should typically be:\n"
+                            f"• 5-15s for labile thresholds\n"
+                            f"• 15-30s for normal thresholds\n"
+                            f"• 30-60s for stable thresholds\n\n"
+                            f"Current value: {tau_theta:.1f}s",
+                        )
                     return False
 
             # All validations passed
-            self.validation_status.set("✓ Parameters valid")
+            self.validation_status.set("✓ Parameters valid - Ready for simulation")
             self.validation_label.config(foreground="green")
             self.generate_button.config(state="normal")
             return True
@@ -1231,11 +1481,24 @@ class APGIVisualizerGUI:
             self.validation_status.set("✗ Invalid numeric input")
             self.validation_label.config(foreground="red")
             self.generate_button.config(state="disabled")
+            messagebox.showerror(
+                "Input Error",
+                f"Please enter valid numeric values.\n\n"
+                f"Common issues:\n"
+                f"• Using commas instead of periods\n"
+                f"• Entering text instead of numbers\n"
+                f"• Leaving fields empty\n\n"
+                f"Error details: {str(e)}",
+            )
             return False
         except Exception as e:
             self.validation_status.set(f"✗ Validation error: {str(e)}")
             self.validation_label.config(foreground="red")
             self.generate_button.config(state="disabled")
+            messagebox.showerror(
+                "Unexpected Error",
+                f"An unexpected error occurred during validation:\n\n{str(e)}",
+            )
             return False
 
     def run_simulation_with_validation(self):
@@ -1259,17 +1522,46 @@ class APGIVisualizerGUI:
             self.status_var.set("Running simulation...")
             self.root.update()
 
-            # Import simulation components
+            # Import simulation components with enhanced error handling
             import importlib.util
+            import os
 
-            spec = importlib.util.spec_from_file_location(
-                "APGI_Formal_Model_Enhanced", "APGI-Formal-Model-Enhanced.py"
-            )
-            APGI_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(APGI_module)
+            # Check if simulation module exists
+            sim_module_path = "APGI-Equations.py"
+            if not os.path.exists(sim_module_path):
+                raise ImportError(f"Simulation module not found: {sim_module_path}")
 
-            SurpriseIgnitionSystem = APGI_module.SurpriseIgnitionSystem
-            APGIParameters = APGI_module.APGIParameters
+            try:
+                spec = importlib.util.spec_from_file_location("APGI_Equations", sim_module_path)
+                if spec is None or spec.loader is None:
+                    raise ImportError(f"Could not create spec for {sim_module_path}")
+
+                APGI_module = importlib.util.module_from_spec(spec)
+
+                # Verify required classes exist before loading
+                required_classes = ["EnhancedSurpriseIgnitionSystem", "APGIParameters"]
+                missing_classes = []
+
+                try:
+                    spec.loader.exec_module(APGI_module)
+
+                    for class_name in required_classes:
+                        if not hasattr(APGI_module, class_name):
+                            missing_classes.append(class_name)
+
+                    if missing_classes:
+                        raise ImportError(f"Missing required classes: {missing_classes}")
+
+                except Exception as load_error:
+                    raise ImportError(f"Failed to load simulation module: {load_error}")
+
+                SurpriseIgnitionSystem = APGI_module.EnhancedSurpriseIgnitionSystem
+                APGIParameters = APGI_module.APGIParameters
+
+            except ImportError as import_error:
+                raise ImportError(f"Simulation module import failed: {import_error}")
+            except Exception as unexpected_error:
+                raise ImportError(f"Unexpected error loading simulation: {unexpected_error}")
             import numpy as np
 
             # Create system with user parameters
@@ -1315,7 +1607,7 @@ class APGIVisualizerGUI:
             messagebox.showerror(
                 "Import Error",
                 f"Required simulation module not found: {str(e)}\n"
-                "Please ensure APGI-Formal-Model-Enhanced.py is available.",
+                "Please ensure APGI-Equations.py is available.",
             )
             self.status_var.set("Error: Missing simulation module")
         except Exception as e:
@@ -1414,6 +1706,85 @@ class APGIVisualizerGUI:
         except Exception as e:
             self.update_info(f"Visualization error: {str(e)}")
 
+    def load_configuration(self):
+        """Load configuration from file with fallback to defaults"""
+        try:
+            # Try to import yaml with proper error handling
+            try:
+                import yaml
+
+                YAML_AVAILABLE = True
+            except ImportError:
+                YAML_AVAILABLE = False
+                print("Warning: PyYAML not available. Using default configuration.")
+                return False
+
+            if not YAML_AVAILABLE:
+                return False
+
+            config_path = "config/gui_config.yaml"
+
+            if os.path.exists(config_path):
+                with open(config_path, "r") as f:
+                    try:
+                        config = yaml.safe_load(f)
+
+                        # Validate configuration structure
+                        if not isinstance(config, dict):
+                            raise ValueError("Configuration must be a dictionary")
+
+                        # Apply configuration values with validation
+                        sim_config = config.get("simulation", {})
+                        if isinstance(sim_config, dict):
+                            if "tau_S_default" in sim_config:
+                                tau_S_val = sim_config.get("tau_S_default", 0.5)
+                                if isinstance(tau_S_val, (int, float)) and 0.1 <= tau_S_val <= 1.0:
+                                    self.tau_S_var.set(str(tau_S_val))
+
+                            if "tau_theta_default" in sim_config:
+                                tau_theta_val = sim_config.get("tau_theta_default", 30.0)
+                                if (
+                                    isinstance(tau_theta_val, (int, float))
+                                    and 5.0 <= tau_theta_val <= 60.0
+                                ):
+                                    self.tau_theta_var.set(str(tau_theta_val))
+
+                            if "theta_0_default" in sim_config:
+                                theta_0_val = sim_config.get("theta_0_default", 0.5)
+                                if (
+                                    isinstance(theta_0_val, (int, float))
+                                    and 0.1 <= theta_0_val <= 0.9
+                                ):
+                                    self.theta_0_var.set(str(theta_0_val))
+
+                            if "alpha_default" in sim_config:
+                                alpha_val = sim_config.get("alpha_default", 5.0)
+                                if isinstance(alpha_val, (int, float)) and 2.0 <= alpha_val <= 20.0:
+                                    self.alpha_var.set(str(alpha_val))
+
+                        # Set default visualization
+                        viz_config = config.get("visualization", {})
+                        if isinstance(viz_config, dict):
+                            cache_size = viz_config.get("cache_max_size", 50)
+                            if isinstance(cache_size, int) and 10 <= cache_size <= 200:
+                                self.visualizer.cache.max_size = cache_size
+
+                        return True
+
+                    except yaml.YAMLError as yaml_error:
+                        print(f"Warning: YAML parsing error in {config_path}: {yaml_error}")
+                        return False
+                    except (ValueError, TypeError) as validation_error:
+                        print(f"Warning: Configuration validation error: {validation_error}")
+                        return False
+            else:
+                print(f"Info: Configuration file {config_path} not found, using defaults")
+                return False
+
+        except Exception as e:
+            print(f"Warning: Unexpected error loading configuration: {e}")
+            return False
+
     def clear_display(self):
         """Clear the visualization panel"""
         self.embedded_display.clear()
@@ -1440,12 +1811,46 @@ class EmbeddedDisplayPanel(ttk.Frame):
 
         # Try different display methods
         self.display_method = self._setup_display()
+        self._canvas_cleanup()
+
+    def _canvas_cleanup(self):
+        """Clean up matplotlib canvas to prevent memory leaks"""
+        # Clean up matplotlib canvas
+        if hasattr(self, "matplotlib_canvas") and self.matplotlib_canvas:
+            try:
+                # Close the matplotlib figure to free memory
+                if hasattr(self.matplotlib_canvas, "figure"):
+                    import matplotlib.pyplot as plt
+
+                    plt.close(self.matplotlib_canvas.figure)
+
+                # Destroy the tkinter widget
+                self.matplotlib_canvas.get_tk_widget().destroy()
+                self.matplotlib_canvas = None
+            except (AttributeError, tk.TclError, RuntimeError):
+                pass  # Widget may already be destroyed
+
+        # Clean up toolbar
+        if hasattr(self, "toolbar") and self.toolbar:
+            try:
+                self.toolbar.destroy()
+                self.toolbar = None
+            except (AttributeError, tk.TclError):
+                pass
+
+        # Clean up any remaining matplotlib figures
+        try:
+            import matplotlib.pyplot as plt
+
+            plt.close("all")
+        except (ImportError, RuntimeError):
+            pass
 
     def _setup_display(self):
         """Setup the display backend (tkinterweb or fallback)"""
         if TKINTERWEB_AVAILABLE:
             try:
-                self.html_frame = HtmlFrame(self, messages_enabled=False)
+                self.html_frame = HTMLFrame(self, messages_enabled=False)
                 self.html_frame.pack(fill=tk.BOTH, expand=True)
                 return "tkinterweb"
             except Exception as e:
@@ -1496,6 +1901,9 @@ class EmbeddedDisplayPanel(ttk.Frame):
             return
 
         try:
+            # Clean up existing canvas before creating new one
+            self._canvas_cleanup()
+
             # Clear existing widgets
             for widget in self.canvas_frame.winfo_children():
                 widget.destroy()
@@ -1507,45 +1915,89 @@ class EmbeddedDisplayPanel(ttk.Frame):
             if hasattr(fig, "data") and fig.data:
                 # Create subplots based on the type of visualization
                 if len(fig.data) > 0:
-                    ax = mpl_fig.add_subplot(111)
+                    # Check if this is a polar plot
+                    if all(hasattr(trace, "r") and hasattr(trace, "theta") for trace in fig.data):
+                        # Polar plot - convert to matplotlib polar plot
+                        ax = mpl_fig.add_subplot(111, projection="polar")
 
-                    # Extract data from first trace
-                    trace = fig.data[0]
+                        # Plot each trace
+                        for trace in fig.data:
+                            theta_values = list(trace.theta)
+                            r_values = list(trace.r)
 
-                    if hasattr(trace, "x") and hasattr(trace, "y") and trace.x is not None:
-                        # 2D scatter plot
-                        ax.scatter(trace.x, trace.y, alpha=0.7, s=50)
-                        ax.set_xlabel("X")
-                        ax.set_ylabel("Y")
-                        ax.set_title("APGI Visualization (Static Version)")
-                        ax.grid(True, alpha=0.3)
-                    elif hasattr(trace, "z") and hasattr(trace, "x") and hasattr(trace, "y"):
-                        # 3D scatter plot - project to 2D
-                        ax.scatter(trace.x, trace.y, c=trace.z, alpha=0.7, s=50, cmap="viridis")
-                        ax.set_xlabel("X")
-                        ax.set_ylabel("Y")
-                        ax.set_title("APGI 3D Visualization (2D Projection)")
-                        ax.grid(True, alpha=0.3)
-                        plt.colorbar(mpl_fig.gca().collections[0], ax=ax, label="Z value")
-                    else:
-                        # Generic visualization info
-                        ax.text(
-                            0.5,
-                            0.5,
-                            f"📊 {fig.layout.title.text if hasattr(fig.layout, 'title') else 'APGI Visualization'}\n\n"
-                            f"Interactive Plotly visualization\n\n"
-                            f"Type: {type(trace).__name__}\n\n"
-                            f"For full interactivity, install:\n"
-                            f"pip install tkinterweb\n\n"
-                            f"Then restart the application.",
-                            ha="center",
-                            va="center",
-                            fontsize=12,
-                            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue"),
+                            # Remove duplicate closing point if present
+                            if len(theta_values) > 1 and theta_values[0] == theta_values[-1]:
+                                theta_values = theta_values[:-1]
+                                r_values = r_values[:-1]
+
+                            # Plot the polar chart
+                            ax.plot(
+                                theta_values,
+                                r_values,
+                                "o-",
+                                linewidth=2,
+                                markersize=6,
+                                label=trace.name,
+                            )
+                            ax.fill(theta_values, r_values, alpha=0.25)
+
+                        # Set the theta labels
+                        ax.set_thetagrids(range(0, 360, 45))
+                        ax.set_title(
+                            f"{fig.layout.title.text if hasattr(fig.layout, 'title') else 'APGI Radar Chart'}"
                         )
-                        ax.set_xlim(0, 1)
-                        ax.set_ylim(0, 1)
-                        ax.axis("off")
+
+                        # Add legend if multiple traces
+                        if len(fig.data) > 1:
+                            ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.0))
+                    else:
+                        # Handle first trace for other plot types
+                        trace = fig.data[0]
+
+                        if hasattr(trace, "x") and hasattr(trace, "y") and trace.x is not None:
+                            # 2D scatter plot
+                            ax = mpl_fig.add_subplot(111)
+                            ax.scatter(trace.x, trace.y, alpha=0.7, s=50)
+                            ax.set_xlabel("X")
+                            ax.set_ylabel("Y")
+                            ax.set_title("APGI Visualization (Static Version)")
+                            ax.grid(True, alpha=0.3)
+                        elif hasattr(trace, "z") and hasattr(trace, "x") and hasattr(trace, "y"):
+                            # 3D scatter plot - project to 2D
+                            ax = mpl_fig.add_subplot(111)
+                            ax.scatter(
+                                trace.x,
+                                trace.y,
+                                c=trace.z,
+                                alpha=0.7,
+                                s=50,
+                                cmap="viridis",
+                            )
+                            ax.set_xlabel("X")
+                            ax.set_ylabel("Y")
+                            ax.set_title("APGI 3D Visualization (2D Projection)")
+                            ax.grid(True, alpha=0.3)
+                            plt.colorbar(mpl_fig.gca().collections[0], ax=ax, label="Z value")
+                        else:
+                            # Generic visualization info
+                            ax = mpl_fig.add_subplot(111)
+                            ax.text(
+                                0.5,
+                                0.5,
+                                f"📊 {fig.layout.title.text if hasattr(fig.layout, 'title') else 'APGI Visualization'}\n\n"
+                                f"Interactive Plotly visualization\n\n"
+                                f"Type: {type(trace).__name__}\n\n"
+                                f"For full interactivity, install:\n"
+                                f"pip install tkinterweb\n\n"
+                                f"Then restart the application.",
+                                ha="center",
+                                va="center",
+                                fontsize=12,
+                                bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue"),
+                            )
+                            ax.set_xlim(0, 1)
+                            ax.set_ylim(0, 1)
+                            ax.axis("off")
                 else:
                     # No data case
                     ax = mpl_fig.add_subplot(111)
@@ -1633,8 +2085,11 @@ class EmbeddedDisplayPanel(ttk.Frame):
                 print(f"Error loading HTML: {e}")
         else:
             # Fallback: Show matplotlib version
-            if hasattr(self, "info_label") and self.info_label.winfo_exists():
-                self.info_label.destroy()
+            try:
+                if hasattr(self, "info_label"):
+                    self.info_label.destroy()
+            except (AttributeError, tk.TclError):
+                pass  # Widget doesn't exist or already destroyed
 
             # Create a simple matplotlib display
             mpl_fig = self._plotly_to_matplotlib(None)

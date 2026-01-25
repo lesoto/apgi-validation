@@ -137,7 +137,7 @@ Implements a probabilistic model in PyMC with:
 ## Model Parameters
 
 | Parameter | Description | Constraints |
-|-----------|-------------|-------------|
+| --- | --- | --- |
 | θ₀ | Perceptual threshold | [0.25, 0.85] |
 | Πᵢ | Interoceptive precision | [0.4, 2.8] |
 | β | Interoceptive bias | [0.6, 2.3] |
