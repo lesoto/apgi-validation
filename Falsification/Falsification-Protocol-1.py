@@ -24,8 +24,8 @@ class HierarchicalGenerativeModel:
             name = level["name"]
             dim = level["dim"]
             self.states[name] = np.zeros(dim)
-            # Simple weight matrix for predictions
-            self.weights[name] = np.random.normal(0, 0.1, (dim, dim))
+            # Initialize weights with smaller variance for stability
+            self.weights[name] = np.random.normal(0, 0.01, (dim, dim))
 
     def predict(self) -> np.ndarray:
         """Generate prediction from top level"""
@@ -71,22 +71,34 @@ class SomaticMarkerNetwork:
         self.action_dim = action_dim
         self.learning_rate = learning_rate
 
-        # Simple neural network weights
-        self.W1 = np.random.normal(0, 0.1, (hidden_dim, context_dim))
-        self.W2 = np.random.normal(0, 0.1, (action_dim, hidden_dim))
+        # Initialize weights with smaller variance for stability
+        self.W1 = np.random.normal(0, 0.01, (hidden_dim, context_dim))
+        self.W2 = np.random.normal(0, 0.01, (action_dim, hidden_dim))
         self.b1 = np.zeros(hidden_dim)
         self.b2 = np.zeros(action_dim)
 
     def predict(self, context: np.ndarray) -> np.ndarray:
         """Predict interoceptive outcomes for all actions"""
-        h = np.tanh(self.W1 @ context + self.b1)
-        return self.W2 @ h + self.b2
+        if not np.all(np.isfinite(context)):
+            return np.zeros(self.action_dim)
+
+        try:
+            h = np.tanh(np.clip(self.W1 @ context + self.b1, -10, 10))
+            return np.clip(self.W2 @ h + self.b2, -10, 10)
+        except (RuntimeWarning, FloatingPointError):
+            return np.zeros(self.action_dim)
 
     def update(self, context: np.ndarray, action: int, error: float):
         """Update network based on somatic prediction error"""
-        # Forward pass
-        h = np.tanh(self.W1 @ context + self.b1)
-        pred = self.W2 @ h + self.b2
+        if not np.all(np.isfinite(context)) or not np.isfinite(error):
+            return
+
+        # Forward pass with stability checks
+        try:
+            h = np.tanh(np.clip(self.W1 @ context + self.b1, -10, 10))
+            pred = np.clip(self.W2 @ h + self.b2, -10, 10)
+        except (RuntimeWarning, FloatingPointError):
+            return
 
         # Backward pass (simplified)
         output_grad = np.zeros(self.action_dim)
@@ -109,11 +121,14 @@ class PolicyNetwork:
         self.state_dim = state_dim
         self.action_dim = action_dim
 
-        # Simple neural network weights
-        self.W1 = np.random.normal(0, 0.1, (hidden_dim, state_dim))
-        self.W2 = np.random.normal(0, 0.1, (action_dim, hidden_dim))
+        # Initialize weights with smaller variance for stability
+        self.W1 = np.random.normal(0, 0.01, (hidden_dim, state_dim))
+        self.W2 = np.random.normal(0, 0.01, (action_dim, hidden_dim))
         self.b1 = np.zeros(hidden_dim)
         self.b2 = np.zeros(action_dim)
+
+        # Add gradient clipping threshold
+        self.grad_clip = 1.0
 
     def __call__(self, state: np.ndarray) -> np.ndarray:
         """Get action probabilities"""
@@ -121,8 +136,15 @@ class PolicyNetwork:
         if not np.all(np.isfinite(state)):
             return np.ones(self.action_dim) / self.action_dim
 
-        h = np.tanh(self.W1 @ state + self.b1)
-        logits = self.W2 @ h + self.b2
+        # Add small epsilon to prevent division by zero
+        epsilon = 1e-8
+
+        # Forward pass with numerical stability checks
+        try:
+            h = np.tanh(np.clip(self.W1 @ state + self.b1, -10, 10))
+            logits = np.clip(self.W2 @ h + self.b2, -10, 10)
+        except (RuntimeWarning, FloatingPointError):
+            return np.ones(self.action_dim) / self.action_dim
 
         # Check for valid logits
         if not np.all(np.isfinite(logits)):
@@ -133,7 +155,11 @@ class PolicyNetwork:
         if not np.all(np.isfinite(exp_logits)):
             return np.ones(self.action_dim) / self.action_dim
 
-        return exp_logits / np.sum(exp_logits)
+        sum_exp = np.sum(exp_logits)
+        if sum_exp < epsilon:
+            return np.ones(self.action_dim) / self.action_dim
+
+        return exp_logits / sum_exp
 
     def update(self, value: float):
         """Update policy based on value signal (simplified REINFORCE)"""
@@ -148,14 +174,31 @@ class HabitualPolicy:
         self.state_dim = state_dim
         self.action_dim = action_dim
 
-        # Simple habit weights
-        self.W = np.random.normal(0, 0.1, (action_dim, state_dim))
+        # Initialize habit weights with smaller variance for stability
+        self.W = np.random.normal(0, 0.01, (action_dim, state_dim))
 
     def __call__(self, state: np.ndarray) -> np.ndarray:
         """Get action probabilities"""
-        logits = self.W @ state
-        exp_logits = np.exp(logits - np.max(logits))
-        return exp_logits / np.sum(exp_logits)
+        # Add numerical stability checks
+        if not np.all(np.isfinite(state)):
+            return np.ones(self.action_dim) / self.action_dim
+
+        epsilon = 1e-8
+
+        try:
+            logits = np.clip(self.W @ state, -10, 10)
+            exp_logits = np.exp(logits - np.max(logits))
+
+            if not np.all(np.isfinite(exp_logits)):
+                return np.ones(self.action_dim) / self.action_dim
+
+            sum_exp = np.sum(exp_logits)
+            if sum_exp < epsilon:
+                return np.ones(self.action_dim) / self.action_dim
+
+            return exp_logits / sum_exp
+        except (RuntimeWarning, FloatingPointError):
+            return np.ones(self.action_dim) / self.action_dim
 
     def update(self, value: float):
         """Update habits based on value"""
