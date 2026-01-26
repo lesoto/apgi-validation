@@ -143,9 +143,9 @@ Based on APGI theory, we predict:
 
 | Metric | APGI | StandardPP | GWTOnly | Continuous |
 | --- | --- | --- | --- | --- |
-| Accuracy (Task 1A) | 85-92%      | 60-70%      | 75-82%      | 55-65%      |
-| F1 Score    | 0.85-0.90   | 0.58-0.68   | 0.73-0.80   | 0.50-0.62   |
-| AUC-ROC     | 0.90-0.95   | 0.65-0.75   | 0.80-0.87   | 0.55-0.68   |
+| Accuracy (Task 1A) | 85-92% | 60-70% | 75-82% | 55-65% |
+| F1 Score | 0.85-0.90 | 0.58-0.68 | 0.73-0.80 | 0.50-0.62 |
+| AUC-ROC | 0.90-0.95 | 0.65-0.75 | 0.80-0.87 | 0.55-0.68 |
 
 ### Confusion Matrix (Task 1B)
 

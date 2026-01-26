@@ -67,7 +67,7 @@ class ProtocolRunnerGUI:
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=1)
+        main_frame.columnconfigure(0, weight=1)
         main_frame.rowconfigure(2, weight=1)
 
         # Title
@@ -109,14 +109,17 @@ class ProtocolRunnerGUI:
         console_frame.columnconfigure(0, weight=1)
         console_frame.rowconfigure(0, weight=1)
 
-        # Status bar
-        self.status_var = tk.StringVar(value="Ready")
-        status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN)
-        status_bar.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
+        # Status bar and clear console button frame
+        status_frame = ttk.Frame(main_frame)
+        status_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
+        status_frame.columnconfigure(0, weight=1)
 
-        # Clear console button
-        clear_btn = ttk.Button(main_frame, text="Clear Console", command=self.clear_console)
-        clear_btn.grid(row=3, column=1, sticky=tk.E, pady=(10, 0))
+        self.status_var = tk.StringVar(value="Ready")
+        status_bar = ttk.Label(status_frame, textvariable=self.status_var, relief=tk.SUNKEN)
+        status_bar.grid(row=0, column=0, sticky=(tk.W, tk.E))
+
+        clear_btn = ttk.Button(status_frame, text="Clear Console", command=self.clear_console)
+        clear_btn.grid(row=0, column=1)
 
     def create_tooltip(self, widget, text):
         """Create tooltip for widget"""
@@ -147,18 +150,29 @@ class ProtocolRunnerGUI:
         """Clear the output console"""
         self.output_console.delete(1.0, tk.END)
 
+    def set_status(self, message):
+        """Set status bar message (thread-safe)"""
+
+        def _update():
+            self.status_var.set(message)
+
+        self.root.after(0, _update)
+
     def log_message(self, message):
-        """Add message to output console"""
-        self.output_console.insert(tk.END, message + "\n")
-        self.output_console.see(tk.END)
-        self.root.update_idletasks()
+        """Add message to output console (thread-safe)"""
+
+        def _update():
+            self.output_console.insert(tk.END, message + "\n")
+            self.output_console.see(tk.END)
+
+        self.root.after(0, _update)
 
     def run_protocol(self, protocol_info):
         """Run selected protocol in separate thread"""
 
         def protocol_thread():
             try:
-                self.status_var.set(f"Running {protocol_info['file']}...")
+                self.set_status(f"Running {protocol_info['file']}...")
                 self.log_message(f"=== Running {protocol_info['file']} ===")
 
                 # Load the protocol module
@@ -197,7 +211,7 @@ class ProtocolRunnerGUI:
                             )
                             self.log_message("Protocol-3 needs observation size alignment")
                         else:
-                            raise ve
+                            raise
 
                 elif hasattr(cls, "run_phase_transition_analysis"):
                     # Protocol 4 - Create analysis with surprise system
@@ -223,7 +237,7 @@ class ProtocolRunnerGUI:
                         KeyError,
                     ) as e:
                         self.log_message(f"Error in evolution: {str(e)}")
-                        self.log_message("Created EvolutionaryAPGIEmergence instance")
+                        self.log_message("EvolutionaryAPGIEmergence instance creation failed")
 
                 elif protocol_info["class"] == "APGIActiveInferenceAgent":
                     # Protocol 1 - Create agent and run demo
@@ -268,7 +282,7 @@ class ProtocolRunnerGUI:
                     self.log_message(f"Created {protocol_info['class']} instance")
 
                 self.log_message("=== Protocol completed successfully ===")
-                self.status_var.set("Ready")
+                self.set_status("Ready")
 
             except (
                 ImportError,
@@ -281,7 +295,7 @@ class ProtocolRunnerGUI:
                 error_msg = f"Error running {protocol_info['file']}: {str(e)}"
                 self.log_message(error_msg)
                 messagebox.showerror("Error", error_msg)
-                self.status_var.set("Error")
+                self.set_status("Error")
 
         # Run in separate thread to avoid blocking GUI
         thread = threading.Thread(target=protocol_thread)

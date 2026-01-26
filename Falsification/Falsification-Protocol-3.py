@@ -6,23 +6,35 @@ import os
 from typing import Dict, List
 
 import numpy as np
-from scipy import stats
-from sklearn.linear_model import LogisticRegression
 
-protocol1_path = os.path.join(os.path.dirname(__file__), "Falsification-Protocol-1.py")
-spec1 = importlib.util.spec_from_file_location("Protocol_1", protocol1_path)
-protocol1 = importlib.util.module_from_spec(spec1)
-spec1.loader.exec_module(protocol1)
-APGIActiveInferenceAgent = protocol1.APGIActiveInferenceAgent
 
-# Import environments from Protocol-2
-protocol2_path = os.path.join(os.path.dirname(__file__), "Falsification-Protocol-2.py")
-spec2 = importlib.util.spec_from_file_location("Protocol_2", protocol2_path)
-protocol2 = importlib.util.module_from_spec(spec2)
-spec2.loader.exec_module(protocol2)
-IowaGamblingTaskEnvironment = protocol2.IowaGamblingTaskEnvironment
-VolatileForagingEnvironment = protocol2.VolatileForagingEnvironment
-ThreatRewardTradeoffEnvironment = protocol2.ThreatRewardTradeoffEnvironment
+# Lazy imports to speed up module loading
+def _get_protocol1():
+    protocol1_path = os.path.join(os.path.dirname(__file__), "Falsification-Protocol-1.py")
+    spec1 = importlib.util.spec_from_file_location("Protocol_1", protocol1_path)
+    protocol1 = importlib.util.module_from_spec(spec1)
+    spec1.loader.exec_module(protocol1)
+    return protocol1
+
+
+def _get_protocol2():
+    protocol2_path = os.path.join(os.path.dirname(__file__), "Falsification-Protocol-2.py")
+    spec2 = importlib.util.spec_from_file_location("Protocol_2", protocol2_path)
+    protocol2 = importlib.util.module_from_spec(spec2)
+    spec2.loader.exec_module(protocol2)
+    return protocol2
+
+
+def _get_stats():
+    from scipy import stats
+
+    return stats
+
+
+def _get_logistic_regression():
+    from sklearn.linear_model import LogisticRegression
+
+    return LogisticRegression
 
 
 class StandardPPAgent:
@@ -30,8 +42,8 @@ class StandardPPAgent:
 
     def __init__(self, config: Dict):
         self.config = config
-        # Simple policy network - ensure dimensions match observations
-        self.policy_weights = np.random.normal(0, 0.1, (4, 48))  # 4 actions, 48 state dims
+        # Simple policy network with smaller variance for stability
+        self.policy_weights = np.random.normal(0, 0.01, (4, 48))  # 4 actions, 48 state dims
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
         # Standardize observation dimensions to match expected sizes
@@ -79,7 +91,7 @@ class GWTOnlyAgent:
 
     def __init__(self, config: Dict):
         self.config = config
-        self.policy_weights = np.random.normal(0, 0.1, (4, 48))
+        self.policy_weights = np.random.normal(0, 0.01, (4, 48))
         self.conscious_access = False
         self.ignition_history = []
 
@@ -136,8 +148,8 @@ class StandardActorCriticAgent:
 
     def __init__(self, config: Dict):
         self.config = config
-        self.actor_weights = np.random.normal(0, 0.1, (4, 48))
-        self.critic_weights = np.random.normal(0, 0.1, (48,))
+        self.actor_weights = np.random.normal(0, 0.01, (4, 48))
+        self.critic_weights = np.random.normal(0, 0.01, (48,))
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
         # Standardize observation dimensions to match expected sizes
@@ -187,17 +199,18 @@ class AgentComparisonExperiment:
         self.n_agents = n_agents
         self.n_trials = n_trials
 
+        # Lazy loading of agent types and environments
         self.agent_types = {
-            "APGI": APGIActiveInferenceAgent,
+            "APGI": lambda config: _get_protocol1().APGIActiveInferenceAgent(config),
             "StandardPP": StandardPPAgent,
             "GWTOnly": GWTOnlyAgent,
             "ActorCritic": StandardActorCriticAgent,
         }
 
         self.environments = {
-            "IGT": IowaGamblingTaskEnvironment,
-            "Foraging": VolatileForagingEnvironment,
-            "ThreatReward": ThreatRewardTradeoffEnvironment,
+            "IGT": lambda: _get_protocol2().IowaGamblingTaskEnvironment(),
+            "Foraging": lambda: _get_protocol2().VolatileForagingEnvironment(),
+            "ThreatReward": lambda: _get_protocol2().ThreatRewardTradeoffEnvironment(),
         }
 
     def run_full_experiment(self) -> Dict:
@@ -205,18 +218,22 @@ class AgentComparisonExperiment:
 
         results = {}
 
-        for env_name, EnvClass in self.environments.items():
+        for env_name, EnvFunc in self.environments.items():
             results[env_name] = {}
 
-            for agent_name, AgentClass in self.agent_types.items():
+            for agent_name, AgentFunc in self.agent_types.items():
                 print(f"Running {agent_name} on {env_name}...")
 
                 agent_results = []
 
                 for agent_idx in range(self.n_agents):
-                    # Create fresh agent and environment
-                    agent = AgentClass(self._get_config())
-                    env = EnvClass()  # VolatileForagingEnvironment doesn't accept n_trials
+                    # Create fresh agent and environment using lazy loading
+                    agent = (
+                        AgentFunc(self._get_config())
+                        if callable(AgentFunc)
+                        else AgentFunc(self._get_config())
+                    )
+                    env = EnvFunc()  # Environment factory function
 
                     # Run episode
                     episode_data = self._run_episode(agent, env)
@@ -338,8 +355,8 @@ class AgentComparisonExperiment:
 
         Regression: P(strategy_change) ~ ignition + |ε| + controls
         """
-        from scipy import stats
-        from sklearn.linear_model import LogisticRegression
+        stats = _get_stats()
+        LogisticRegression = _get_logistic_regression()
 
         # Collect data from APGI agents
         X_data = []
@@ -369,7 +386,7 @@ class AgentComparisonExperiment:
 
         for _ in range(n_bootstrap):
             idx = np.random.choice(len(X), len(X), replace=True)
-            model_boot = LogisticRegression()
+            model_boot = _get_logistic_regression()()  # Lazy import
             model_boot.fit(X[idx], y[idx])
             coef_samples.append(model_boot.coef_[0])
 

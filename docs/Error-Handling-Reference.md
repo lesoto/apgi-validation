@@ -11,7 +11,7 @@ The APGI Framework includes a comprehensive error handling system that provides 
 Base exception class for all APGI framework errors.
 
 ```python
-from utils.error_handling import APGIError, ErrorSeverity
+from utils.error_handler import APGIError, ErrorSeverity
 
 # Basic usage
 raise APGIError(
@@ -37,7 +37,7 @@ raise APGIError(
 For data validation related errors.
 
 ```python
-from utils.error_handling import ValidationError
+from utils.error_handler import ValidationError
 
 raise ValidationError(
     message="Value out of range",
@@ -67,7 +67,7 @@ raise ConfigurationError(
 For falsification protocol related errors.
 
 ```python
-from utils.error_handling import ProtocolError
+from utils.error_handler import ProtocolError
 
 raise ProtocolError(
     message="Protocol execution failed",
@@ -82,7 +82,7 @@ raise ProtocolError(
 For data loading/processing related errors.
 
 ```python
-from utils.error_handling import DataError
+from utils.error_handler import DataError
 
 raise DataError(
     message="Failed to load data file",
@@ -97,7 +97,7 @@ raise DataError(
 For import/dependency related warnings.
 
 ```python
-from utils.error_handling import ImportWarning
+from utils.error_handler import ImportWarning
 
 raise ImportWarning(
     message="Optional dependency not available",
@@ -113,7 +113,7 @@ raise ImportWarning(
 Standardized error handling utility.
 
 ```python
-from utils.error_handling import handle_error, ErrorSeverity
+from utils.error_handler import handle_error, ErrorSeverity
 import logging
 
 logger = logging.getLogger(__name__)
@@ -136,7 +136,7 @@ except Exception as e:
 Safely execute a function with standardized error handling.
 
 ```python
-from utils.error_handling import safe_execute
+from utils.error_handler import safe_execute
 
 def divide_numbers(a, b):
     return a / b
@@ -168,7 +168,7 @@ except ValidationError as e:
 Format standardized error messages.
 
 ```python
-from utils.error_handling import format_error_message
+from utils.error_handler import format_error_message
 
 # Use predefined templates
 msg = format_error_message(
@@ -187,7 +187,7 @@ msg = format_error_message(
 ## Error Severity Levels
 
 ```python
-from utils.error_handling import ErrorSeverity
+from utils.error_handler import ErrorSeverity
 
 # Available severity levels
 ErrorSeverity.LOW      # Minor issues, warnings
@@ -305,7 +305,7 @@ def load_config(file_path):
         return None
 
 # After
-from utils.error_handling import ConfigurationError, safe_execute
+from utils.error_handler import ConfigurationError, safe_execute
 
 def load_config(file_path):
     def _load_config():

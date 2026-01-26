@@ -12,155 +12,170 @@ Falsification Logic:
 """
 
 import importlib
+import importlib.util
 import json
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
 class APGIMasterValidator:
-    def __init__(self) -> None:
-        self.protocol_results: Dict[int, Any] = {}
-        self.falsification_status: Dict[str, List[int]] = {
+    # Protocol tier classification - class constant for consistency
+    PROTOCOL_TIERS = {
+        1: "primary",  # Primary tests: Failure → Framework rejected
+        2: "secondary",  # Secondary tests: 2+ failures → Major revision
+        3: "primary",  # Primary tests: Failure → Framework rejected
+        4: "secondary",  # Secondary tests: 2+ failures → Major revision
+        5: "tertiary",  # Tertiary tests: 3+ failures → Scope restriction
+        6: "tertiary",  # Tertiary tests: 3+ failures → Scope restriction
+        7: "tertiary",  # Tertiary tests: 3+ failures → Scope restriction
+        8: "secondary",  # Secondary tests: 2+ failures → Major revision
+    }
+
+    def __init__(self, timeout_seconds: int = 300) -> None:
+        """Initialize validator with configurable timeout."""
+        self.timeout_seconds = timeout_seconds
+        self.protocol_results: Dict[str, Any] = {}
+        self.falsification_status: Dict[str, List[Dict[str, Any]]] = {
             "primary": [],
             "secondary": [],
             "tertiary": [],
         }
 
-    def run_all_protocols(self) -> Dict[str, Any]:
-        """Execute all 8 protocols in sequence"""
-        # Protocol tier classification
-        protocol_tiers = {
-            1: "primary",  # Primary tests: Failure → Framework rejected
-            2: "secondary",  # Secondary tests: 2+ failures → Major revision
-            3: "primary",  # Primary tests: Failure → Framework rejected
-            4: "secondary",  # Secondary tests: 2+ failures → Major revision
-            5: "tertiary",  # Tertiary tests: 3+ failures → Scope restriction
-            6: "tertiary",  # Tertiary tests: 3+ failures → Scope restriction
-            7: "tertiary",  # Tertiary tests: 3+ failures → Scope restriction
-            8: "secondary",  # Secondary tests: 2+ failures → Major revision
+    def run_all_protocols(self) -> None:
+        """Execute all 8 protocols in sequence."""
+        for protocol_num in range(1, 9):
+            self._run_protocol(protocol_num)
+
+    def _run_protocol(self, protocol_num: int) -> None:
+        """Execute a single protocol with comprehensive error handling and timeout."""
+        # Validate protocol number before accessing PROTOCOL_TIERS
+        if not isinstance(protocol_num, int) or protocol_num < 1 or protocol_num > 8:
+            self._handle_protocol_error(
+                protocol_num,
+                "INVALID_PROTOCOL",
+                f"Protocol number must be between 1 and 8, got {protocol_num}",
+            )
+            return
+
+        try:
+            protocol_file = f"Validation-Protocol-{protocol_num}.py"
+            protocol_path = Path(__file__).parent / protocol_file
+
+            if not protocol_path.exists():
+                raise ImportError(f"Protocol file {protocol_file} not found")
+
+            spec = importlib.util.spec_from_file_location(
+                f"Validation_Protocol_{protocol_num}", protocol_path
+            )
+            if spec is None or spec.loader is None:
+                raise ImportError(f"Could not create spec for {protocol_file}")
+
+            protocol_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(protocol_module)
+
+            # Execute protocol with timeout
+            result = self._execute_protocol_with_timeout(protocol_module)
+            passed = result.get("passed", False) if isinstance(result, dict) else False
+            tier = self.PROTOCOL_TIERS[protocol_num]
+
+            self.protocol_results[f"protocol_{protocol_num}"] = result
+            self.falsification_status[tier].append(
+                {"protocol": protocol_num, "passed": passed, "result": result}
+            )
+
+            print(f"Protocol {protocol_num}: {'PASSED' if passed else 'FAILED'}")
+
+        except KeyError as e:
+            self._handle_protocol_error(
+                protocol_num, "PROTOCOL_KEY_ERROR", f"Invalid protocol tier lookup: {e}"
+            )
+        except ImportError as e:
+            self._handle_protocol_error(protocol_num, "IMPORT_ERROR", str(e))
+        except AttributeError as e:
+            self._handle_protocol_error(protocol_num, "INTERFACE_ERROR", str(e))
+        except (ValueError, TypeError) as e:
+            self._handle_protocol_error(protocol_num, "PARAMETER_ERROR", str(e))
+        except RuntimeError as e:
+            self._handle_protocol_error(protocol_num, "RUNTIME_ERROR", str(e))
+        except Exception as e:
+            import traceback
+
+            error_result = {
+                "status": "UNEXPECTED_ERROR",
+                "error": f"Unexpected error: {e}",
+                "traceback": traceback.format_exc(),
+                "passed": False,
+            }
+            # Validate protocol number before accessing PROTOCOL_TIERS
+            if isinstance(protocol_num, int) and 1 <= protocol_num <= 8:
+                tier = self.PROTOCOL_TIERS[protocol_num]
+                self.protocol_results[f"protocol_{protocol_num}"] = error_result
+                self.falsification_status[tier].append(
+                    {"protocol": protocol_num, "passed": False, "result": error_result}
+                )
+            else:
+                # Handle invalid protocol number
+                self.protocol_results[f"protocol_{protocol_num}"] = error_result
+            print(f"Protocol {protocol_num}: ERROR - {e}")
+
+    def _execute_protocol_validation(self, protocol_module: Any) -> Dict[str, Any]:
+        """Execute validation function from protocol module with strict interface detection."""
+        # Primary validation functions - strict interface
+        validation_functions = [
+            "run_validation",
+            "validate",
+        ]
+
+        for func_name in validation_functions:
+            if hasattr(protocol_module, func_name):
+                func = getattr(protocol_module, func_name)
+                if callable(func):
+                    try:
+                        result = func()
+                        if self._validate_protocol_result(result):
+                            return result
+                    except Exception as e:
+                        return {
+                            "status": "EXECUTION_ERROR",
+                            "error": f"Error executing {func_name}: {e}",
+                            "passed": False,
+                        }
+
+        # Secondary functions with explicit validation in name
+        secondary_functions = ["main", "execute", "run"]
+
+        for func_name in secondary_functions:
+            if hasattr(protocol_module, func_name):
+                func = getattr(protocol_module, func_name)
+                if callable(func):
+                    try:
+                        result = func()
+                        if self._validate_protocol_result(result):
+                            return result
+                    except Exception as e:
+                        return {
+                            "status": "EXECUTION_ERROR",
+                            "error": f"Error executing {func_name}: {e}",
+                            "passed": False,
+                        }
+
+        return {
+            "status": "NO_VALIDATION_FUNCTION",
+            "error": "No suitable validation function found. Protocol must implement run_validation, validate, main, or execute",
+            "passed": False,
         }
 
-        for protocol_num in range(1, 9):
-            try:
-                # Import protocol module using correct file name
-                import importlib.util
-                from pathlib import Path
-
-                protocol_file = f"Validation-Protocol-{protocol_num}.py"
-                protocol_path = Path(__file__).parent / protocol_file
-
-                if not protocol_path.exists():
-                    raise ImportError(f"Protocol file {protocol_file} not found")
-
-                spec = importlib.util.spec_from_file_location(
-                    f"Validation_Protocol_{protocol_num}", protocol_path
-                )
-                if spec is None or spec.loader is None:
-                    raise ImportError(f"Could not create spec for {protocol_file}")
-
-                protocol_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(protocol_module)
-
-                # Run protocol validation
-                if hasattr(protocol_module, "run_validation"):
-                    result = protocol_module.run_validation()
-                elif hasattr(protocol_module, "main"):
-                    result = protocol_module.main()
-                else:
-                    # Try to find main validation function
-                    validation_functions = [
-                        attr
-                        for attr in dir(protocol_module)
-                        if callable(getattr(protocol_module, attr)) and "validation" in attr.lower()
-                    ]
-                    if validation_functions:
-                        result = getattr(protocol_module, validation_functions[0])()
-                    else:
-                        result = {"status": "NO_VALIDATION_FUNCTION", "passed": False}
-
-                # Store result
-                self.protocol_results[f"protocol_{protocol_num}"] = result
-
-                # Determine if protocol passed
-                passed = result.get("passed", True) if isinstance(result, dict) else True
-                tier = protocol_tiers[protocol_num]
-
-                self.falsification_status[tier].append(
-                    {"protocol": protocol_num, "passed": passed, "result": result}
-                )
-
-                print(f"Protocol {protocol_num}: {'PASSED' if passed else 'FAILED'}")
-
-            except ImportError as e:
-                # Protocol module not found
-                error_result = {
-                    "status": "IMPORT_ERROR",
-                    "error": f"Module not found: {e}",
-                    "passed": False,
-                }
-                self.protocol_results[f"protocol_{protocol_num}"] = error_result
-                tier = protocol_tiers[protocol_num]
-                self.falsification_status[tier].append(
-                    {"protocol": protocol_num, "passed": False, "result": error_result}
-                )
-                print(f"Protocol {protocol_num}: ERROR - {e}")
-            except AttributeError as e:
-                # Missing required functions
-                error_result = {
-                    "status": "INTERFACE_ERROR",
-                    "error": f"Missing required function: {e}",
-                    "passed": False,
-                }
-                self.protocol_results[f"protocol_{protocol_num}"] = error_result
-                tier = protocol_tiers[protocol_num]
-                self.falsification_status[tier].append(
-                    {"protocol": protocol_num, "passed": False, "result": error_result}
-                )
-                print(f"Protocol {protocol_num}: ERROR - {e}")
-            except (ValueError, TypeError) as e:
-                # Parameter or data type errors
-                error_result = {
-                    "status": "PARAMETER_ERROR",
-                    "error": f"Invalid parameter or data: {e}",
-                    "passed": False,
-                }
-                self.protocol_results[f"protocol_{protocol_num}"] = error_result
-                tier = protocol_tiers[protocol_num]
-                self.falsification_status[tier].append(
-                    {"protocol": protocol_num, "passed": False, "result": error_result}
-                )
-                print(f"Protocol {protocol_num}: ERROR - {e}")
-            except RuntimeError as e:
-                # Runtime errors during execution
-                error_result = {
-                    "status": "RUNTIME_ERROR",
-                    "error": f"Runtime error: {e}",
-                    "passed": False,
-                }
-                self.protocol_results[f"protocol_{protocol_num}"] = error_result
-                tier = protocol_tiers[protocol_num]
-                self.falsification_status[tier].append(
-                    {"protocol": protocol_num, "passed": False, "result": error_result}
-                )
-                print(f"Protocol {protocol_num}: ERROR - {e}")
-            except Exception as e:
-                # Catch-all for unexpected errors
-                import traceback
-
-                error_result = {
-                    "status": "UNEXPECTED_ERROR",
-                    "error": f"Unexpected error: {e}",
-                    "traceback": traceback.format_exc(),
-                    "passed": False,
-                }
-
-                self.protocol_results[f"protocol_{protocol_num}"] = error_result
-                tier = protocol_tiers[protocol_num]
-                self.falsification_status[tier].append(
-                    {"protocol": protocol_num, "passed": False, "result": error_result}
-                )
-
-                print(f"Protocol {protocol_num}: ERROR - {e}")
+    def _handle_protocol_error(self, protocol_num: int, status: str, error: str) -> None:
+        """Handle protocol errors consistently."""
+        error_result = {"status": status, "error": error, "passed": False}
+        tier = self.PROTOCOL_TIERS[protocol_num]
+        self.protocol_results[f"protocol_{protocol_num}"] = error_result
+        self.falsification_status[tier].append(
+            {"protocol": protocol_num, "passed": False, "result": error_result}
+        )
+        print(f"Protocol {protocol_num}: ERROR - {error}")
 
     def apply_decision_tree(self) -> str:
         """
@@ -196,10 +211,59 @@ class APGIMasterValidator:
             "overall_decision": self.apply_decision_tree(),
         }
 
+    def _execute_protocol_with_timeout(self, protocol_module: Any) -> Dict[str, Any]:
+        """Execute protocol with timeout protection."""
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(self._execute_protocol_validation, protocol_module)
+                try:
+                    result = future.result(timeout=self.timeout_seconds)
+                    return result
+                except FutureTimeoutError:
+                    return {
+                        "status": "TIMEOUT_ERROR",
+                        "error": f"Protocol timed out after {self.timeout_seconds} seconds",
+                        "passed": False,
+                    }
+        except Exception as e:
+            return {
+                "status": "EXECUTION_ERROR",
+                "error": f"Failed to execute protocol: {e}",
+                "passed": False,
+            }
+
+    def _validate_protocol_result(self, result: Any) -> bool:
+        """Validate that protocol result is properly structured with strict checking."""
+        if result is None:
+            return False
+
+        if isinstance(result, dict):
+            # Require explicit 'passed' key - no defaults
+            if "passed" not in result:
+                return False
+
+            # Validate passed is boolean
+            if not isinstance(result["passed"], bool):
+                return False
+
+            # Ensure status key exists
+            if "status" not in result:
+                return False
+
+            return True
+
+        return False
+
 
 if __name__ == "__main__":
-    # Run master validation
-    validator = APGIMasterValidator()
+    # Run master validation with configurable timeout
+    import argparse
+
+    parser = argparse.ArgumentParser(description="APGI Master Validation Pipeline")
+    parser.add_argument("--timeout", type=int, default=300, help="Protocol timeout in seconds")
+    args = parser.parse_args()
+
+    validator = APGIMasterValidator(timeout_seconds=args.timeout)
 
     print("Starting APGI Master Validation Pipeline...")
     print("=" * 50)

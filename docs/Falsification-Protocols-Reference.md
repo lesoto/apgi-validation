@@ -525,7 +525,7 @@ if result["status"] == "failed":
 ### 3. Error Handling
 
 ```python
-from utils.error_handling import ProtocolError, safe_execute
+from utils.error_handler import ProtocolError, safe_execute
 
 def run_protocol_safely(protocol_func):
     return safe_execute(

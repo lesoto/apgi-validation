@@ -23,27 +23,37 @@ import pandas as pd
 from tqdm import tqdm
 
 # Add project root to Python path
-PROJECT_ROOT = Path(__file__).parent
+PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # Load modules with hyphens using importlib
 formal_model_spec = importlib.util.spec_from_file_location(
-    "APGI_Formal_Model", PROJECT_ROOT / "APGI-Formal-Model.py"
+    "SurpriseIgnitionSystem",
+    PROJECT_ROOT / "Falsification" / "Falsification-Protocol-4.py",
 )
 formal_model_module = importlib.util.module_from_spec(formal_model_spec)
 formal_model_spec.loader.exec_module(formal_model_module)
 SurpriseIgnitionSystem = formal_model_module.SurpriseIgnitionSystem
 
-from config_manager import get_config
-from logging_config import apgi_logger
+try:
+    from .config_manager import get_config
+    from .logging_config import apgi_logger
+except ImportError:
+    from utils.config_manager import get_config
+    from utils.logging_config import apgi_logger
 
 
 def load_validation_module(protocol):
     """Load validation module by name."""
     module_map = {
-        "protocol_1": "Validation/APGI-Protocol-1.py",
-        "protocol_2": "Validation/APGI-Protocol-2.py",
-        "protocol_3": "Validation/APGI-Protocol-3.py",
+        "protocol_1": "Validation/Validation-Protocol-1.py",
+        "protocol_2": "Validation/Validation-Protocol-2.py",
+        "protocol_3": "Validation/Validation-Protocol-3.py",
+        "protocol_4": "Validation/Validation-Protocol-4.py",
+        "protocol_5": "Validation/Validation-Protocol-5.py",
+        "protocol_6": "Validation/Validation-Protocol-6.py",
+        "protocol_7": "Validation/Validation-Protocol-7.py",
+        "protocol_8": "Validation/Validation-Protocol-8.py",
     }
 
     if protocol not in module_map:
@@ -185,11 +195,28 @@ class BatchProcessor:
         steps = job.parameters["steps"]
         dt = job.parameters["dt"]
 
-        # Initialize system
-        system = SurpriseIgnitionSystem(params)
+        # Initialize system (no params in constructor)
+        system = SurpriseIgnitionSystem()
+
+        # Apply parameters to system if needed
+        if hasattr(system, "__dict__"):
+            for key, value in params.items():
+                if hasattr(system, key):
+                    setattr(system, key, value)
+
+        # Create a simple input generator
+        def input_generator(t):
+            return {
+                "Pi_e": np.random.normal(0, 1),
+                "Pi_i": np.random.normal(0, 1),
+                "eps_e": np.random.normal(0, 0.1),
+                "eps_i": np.random.normal(0, 0.1),
+                "beta": params.get("beta", 1.2),
+            }
 
         # Run simulation
-        results = system.simulate(steps=steps, dt=dt, use_cache=True)
+        duration = steps * dt
+        results = system.simulate(duration=duration, dt=dt, input_generator=input_generator)
 
         return {
             "job_id": job.job_id,

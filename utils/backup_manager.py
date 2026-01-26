@@ -26,7 +26,24 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from utils.logging_config import apgi_logger
+# Add project root to Python path for direct execution
+if __name__ == "__main__":
+    import sys
+    from pathlib import Path
+
+    PROJECT_ROOT = Path(__file__).parent.parent
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+try:
+    from .logging_config import apgi_logger
+except ImportError:
+    try:
+        from utils.logging_config import apgi_logger
+    except ImportError:
+        # When running directly from utils directory
+        import logging_config
+
+        apgi_logger = logging_config.apgi_logger
 
 
 @dataclass

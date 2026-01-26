@@ -46,12 +46,12 @@ model_config = config.model
 
 ### 2. Error Handling System
 
-#### `utils.error_handling`
+#### `utils.error_handler`
 
 Comprehensive error handling with standardized messages and exception types.
 
 ```python
-from utils.error_handling import (
+from utils.error_handler import (
     APGIError,
     ValidationError,
     ConfigurationError,

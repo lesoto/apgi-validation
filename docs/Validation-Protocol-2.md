@@ -27,12 +27,11 @@ P(conscious) = σ(α·(S_t - θ_t))
 - Hierarchical structure with population and subject-level parameters
 - Predicts conscious reports, P3b amplitude, reaction time, HEP
 
-**Competing Models:**
+- **Competing Models:**
 
 - **StandardSDT**: Classical signal detection (no dynamics)
 - **GlobalWorkspace**: Ignition without interoception
 - **Continuous**: Graded consciousness without threshold
-
 
 ### 2. Bayesian Model Comparison
 
@@ -51,15 +50,13 @@ Computes three key metrics:
 - Uses Pareto-smoothed importance sampling
 
 **Bayes Factors**
+
 - Direct comparison of model evidence
 - BF > 3: Weak evidence
 - BF > 10: Strong evidence
 - BF > 30: Very strong evidence
 
-
 ### 3. Tests Falsification Criteria
-
-
 
 **F2.1**: APGI LOO worse than competitors by >10 points → Falsified
 **F2.2**: Interoceptive precision (Π_i) posterior includes zero → Falsified
@@ -67,50 +64,34 @@ Computes three key metrics:
 **F2.4**: No RT threshold-proximity effect → Falsified
 **F2.5**: Bayes factor APGI vs GWT < 3 → Falsified
 
-
 ## Installation
 
-
-
 ```bash
-
 # Core dependencies
-
-
 pip install numpy pandas scipy pymc arviz
 
-
 # Visualization
-
-
 pip install matplotlib seaborn
 
-
 # Utilities
-
-
 pip install tqdm
 ```
 
 **Important**: PyMC requires specific versions. Recommended:
+
 ```bash
 pip install pymc==5.10.0 arviz==0.17.0
 ```
 
-
 ## Quick Start
 
-
-
 ```python
-
 # Run the complete pipeline
-
-
 python APGI-Protocol-2-Complete.py
 ```
 
 The script will:
+
 1. Generate synthetic datasets mimicking Melloni et al. and Canales-Johnson et al.
 2. Fit 4 models to each dataset (APGI, SDT, GWT, Continuous)
 3. Compute comparison metrics
@@ -118,30 +99,22 @@ The script will:
 5. Generate comprehensive visualizations
 
 **Expected Runtime:**
+
 - Dataset generation: ~1 minute
 - Model fitting (all models, both datasets): ~4-6 hours on 4-core CPU
 - Model comparison: ~5 minutes
 - **Total**: ~5-7 hours
 
-
 ## Using Real Data
 
-
-
-
 ### Data Format
-
-
 
 To use published datasets, create a `ConsciousnessDataset` object:
 
 ```python
 from APGI_Protocol_2_Complete import ConsciousnessDataset
 
-
 # Load your data
-
-
 real_data = ConsciousnessDataset(
     name="Your_Study",
     n_subjects=24,
@@ -158,59 +131,40 @@ real_data = ConsciousnessDataset(
 )
 ```
 
-
 ### Required Variables
 
-
-
 **Mandatory:**
+
 - `subject_idx`: Subject ID for each trial (0-indexed)
 - `stimulus_strength`: Perceptual strength (0-1 range)
 - `prediction_error`: Mismatch magnitude (0-1 range)
 - `conscious_report`: Binary awareness (0=unseen, 1=seen)
 
 **Optional but Recommended:**
+
 - `P3b_amplitude`: ERP amplitude 300-600ms (μV)
 - `reaction_time`: Response time (milliseconds)
 - `HEP_amplitude`: Heartbeat-evoked potential (μV)
 
-
 ### Example: Loading Melloni et al. (2007)
-
-
 
 ```python
 import numpy as np
 import scipy.io
 
-
 # Load .mat file from published data
-
-
 mat_data = scipy.io.loadmat('melloni_2007_data.mat')
 
-
 # Extract arrays
-
-
 subject_idx = mat_data['subject_id'].flatten() - 1  # MATLAB 1-indexed
 stimulus_strength = mat_data['soa_normalized'].flatten()
 conscious_report = mat_data['seen_trials'].flatten().astype(int)
 
-
 # Compute prediction error from stimulus characteristics
-
-
-
 # (domain-specific - depends on paradigm)
-
-
 prediction_error = np.abs(mat_data['mask_contrast'] - 0.5)
 
-
 # Extract EEG features
-
-
 P3b_amplitude = mat_data['p3b_pz'].flatten()
 
 real_dataset = ConsciousnessDataset(
@@ -235,8 +189,6 @@ real_dataset = ConsciousnessDataset(
 
 ### Predicted ΔLOO Values
 
-
-
 Based on APGI theory, we predict:
 
 | Dataset | APGI | StandardSDT | GlobalWorkspace | Continuous |
@@ -246,6 +198,7 @@ Based on APGI theory, we predict:
 | Canales-Johnson | 0 (ref) | +30 to +55 | +3 to +10 | +40 to +80 |
 
 **Interpretation:**
+
 - ΔLOO = 0: Best model (reference)
 - ΔLOO < 10: Weak preference
 - ΔLOO > 10: Strong preference
@@ -254,9 +207,7 @@ Based on APGI theory, we predict:
 
 ### Bayes Factor Interpretation
 
-
-
-```
+```text
 BF_APGI_vs_GWT > 10: Strong evidence for APGI
 BF_APGI_vs_GWT 3-10: Moderate evidence for APGI
 BF_APGI_vs_GWT 1-3: Weak evidence for APGI

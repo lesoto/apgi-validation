@@ -26,7 +26,17 @@ import jsonschema
 import yaml
 from dotenv import load_dotenv
 
-from utils.logging_config import apgi_logger, log_error
+try:
+    from .logging_config import apgi_logger, log_error
+except ImportError:
+    try:
+        from utils.logging_config import apgi_logger, log_error
+    except ImportError:
+        # When running directly from utils directory
+        import logging_config
+
+        apgi_logger = logging_config.apgi_logger
+        log_error = logging_config.log_error
 
 # Project root directory
 PROJECT_ROOT = Path(__file__).parent

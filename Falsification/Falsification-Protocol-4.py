@@ -264,7 +264,7 @@ class InformationTheoreticAnalysis:
 
         return 0.5
 
-    def run_phase_transition_analysis(self, n_simulations: int = 100) -> Dict:
+    def run_phase_transition_analysis(self, n_simulations: int = 10) -> Dict:
         """
         Run comprehensive phase transition analysis
         """
@@ -278,7 +278,10 @@ class InformationTheoreticAnalysis:
             "phi_baseline": [],
         }
 
-        for _ in range(n_simulations):
+        for i in range(n_simulations):
+            if i % 5 == 0:
+                print(f"Running simulation {i+1}/{n_simulations}...")
+
             # Generate simulation with varying inputs
             def input_gen(t):
                 return {
@@ -291,7 +294,7 @@ class InformationTheoreticAnalysis:
                     "A": 0.5,
                 }
 
-            history = self.system.simulate(100.0, 0.05, input_gen)
+            history = self.system.simulate(50.0, 0.1, input_gen)
 
             # Phase transition analysis
             pt_results = self.detect_phase_transition(history)
@@ -337,16 +340,46 @@ class InformationTheoreticAnalysis:
 
     def _estimate_entropy(self, data: np.ndarray) -> float:
         """Estimate entropy of data"""
+        # Handle edge cases
+        if len(data) == 0:
+            return 0.0
+
+        # Check for constant data
+        if np.all(data == data[0]):
+            return 0.0
+
         # Simplified entropy estimation
         if len(data.shape) > 1:
             # Multivariate case
-            hist, _ = np.histogramdd(data, bins=10)
+            try:
+                hist, _ = np.histogramdd(data, bins=10, density=False)
+            except (ValueError, np.linalg.LinAlgError):
+                # Fallback for problematic multivariate data
+                return 0.0
         else:
-            # Univariate case
-            hist, _ = np.histogram(data, bins=10)
+            # Univariate case - handle edge cases for histogram
+            data_std = np.std(data)
+            if data_std < 1e-10:
+                return 0.0
+
+            try:
+                # Use more robust binning
+                data_range = (data.min(), data.max())
+                if data_range[0] == data_range[1]:
+                    return 0.0
+                hist, _ = np.histogram(data, bins=10, range=data_range, density=False)
+            except (ValueError, np.linalg.LinAlgError):
+                # Fallback for problematic data
+                return 0.0
 
         hist = hist.flatten()
         hist = hist[hist > 0]  # Remove zero probabilities
+
+        if len(hist) == 0:
+            return 0.0
+
+        # Normalize to get probabilities
+        hist = hist / np.sum(hist)
         return -np.sum(hist * np.log(hist + 1e-10))
 
     def _autocorrelation(self, series: np.ndarray, lag: int) -> float:

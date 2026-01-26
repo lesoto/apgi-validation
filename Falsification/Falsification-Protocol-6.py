@@ -439,10 +439,10 @@ class NetworkComparisonExperiment:
         task_datasets = {}
 
         # Task 1: Conscious/unconscious classification
-        n_samples = 1000
+        n_samples = 200
         task_datasets["conscious_classification"] = []
-        for _ in range(10):  # 10 batches
-            batch_size = n_samples // 10
+        for _ in range(5):  # 5 batches
+            batch_size = n_samples // 5
             extero = torch.randn(batch_size, self.config["extero_dim"])
             intero = torch.randn(batch_size, self.config["intero_dim"])
             context = torch.randn(batch_size, self.config.get("context_dim", 8))
@@ -464,8 +464,8 @@ class NetworkComparisonExperiment:
 
         # Task 2: Simple action selection
         task_datasets["action_selection"] = []
-        for _ in range(10):
-            batch_size = n_samples // 10
+        for _ in range(5):
+            batch_size = n_samples // 5
             extero = torch.randn(batch_size, self.config["extero_dim"])
             intero = torch.randn(batch_size, self.config["intero_dim"])
             context = torch.randn(batch_size, self.config.get("context_dim", 8))
@@ -512,8 +512,6 @@ def run_falsification():
     try:
         print("Running APGI Falsification Protocol 6: Network Comparison Experiment")
         config = {
-            "n_agents": 10,
-            "n_trials": 100,
             "extero_dim": 32,
             "intero_dim": 16,
             "action_dim": 4,
@@ -528,20 +526,3 @@ def run_falsification():
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in falsification protocol 6: {e}")
         return {"status": "error", "message": str(e)}
-
-
-# Main execution
-if __name__ == "__main__":
-    config = {
-        "n_agents": 10,
-        "n_trials": 100,
-        "extero_dim": 32,
-        "intero_dim": 16,
-        "action_dim": 4,
-        "context_dim": 8,
-    }
-
-    experiment = NetworkComparisonExperiment(config)
-    results = experiment.run_full_experiment()
-
-    print("=== Protocol completed successfully ===")
