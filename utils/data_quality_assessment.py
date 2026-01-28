@@ -482,7 +482,7 @@ class DataQualityAssessment:
 
         try:
             # Convert timestamp column
-            data[timestamp_col] = pd.to_datetime(data[timestamp_col])
+            data.loc[:, timestamp_col] = pd.to_datetime(data[timestamp_col])
             data_sorted = data.sort_values(timestamp_col)
 
             # Check for gaps in time series

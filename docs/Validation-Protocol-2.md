@@ -51,6 +51,8 @@ Computes three key metrics:
 
 **Bayes Factors**
 
+#### Bayes Factors
+
 - Direct comparison of model evidence
 - BF > 3: Weak evidence
 - BF > 10: Strong evidence
@@ -217,14 +219,12 @@ BF_APGI_vs_GWT < 1: Evidence against APGI
 
 ## Output Files
 
-
-
-
 ### 1. Model Comparison Tables
 
-
-
 **protocol2_results.json**
+
+#### protocol2_results.json
+
 ```json
 {
   "melloni": {
@@ -244,9 +244,10 @@ BF_APGI_vs_GWT < 1: Evidence against APGI
 
 ### 2. Visualizations
 
-
-
 **protocol2_melloni_comparison.png**
+
+#### protocol2_melloni_comparison.png
+
 - LOO comparison bar chart
 - ΔLOO from best model
 - Effective parameters (p_LOO)
@@ -255,20 +256,22 @@ BF_APGI_vs_GWT < 1: Evidence against APGI
 - Summary table
 
 **protocol2_melloni_posteriors.png**
+
+#### protocol2_melloni_posteriors.png
+
 - Posterior distributions for APGI parameters
 - Population-level hyperparameters
 - 95% credible intervals
 - KDE overlays
 
-
 ### 3. Trace Files
 
-
-
 **protocol2_melloni_apgi_trace.nc**
+
+#### protocol2_melloni_apgi_trace.nc
+
 - Complete posterior samples
 - Can be loaded for further analysis:
-
 
 ```python
 import arviz as az

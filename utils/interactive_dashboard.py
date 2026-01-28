@@ -26,10 +26,24 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from utils.logging_config import apgi_logger
+try:
+    from utils.logging_config import apgi_logger
+except ImportError:
+    # Fallback if running as standalone script
+    import logging
+
+    class MockAPGILogger:
+        def __init__(self):
+            self.logger = logging.getLogger(__name__)
+
+    apgi_logger = MockAPGILogger()
 
 # APGI imports
-from utils.performance_profiler import performance_profiler
+try:
+    from utils.performance_profiler import performance_profiler
+except ImportError:
+    # Fallback if performance_profiler is not available
+    performance_profiler = None
 
 
 class DashboardData:
@@ -92,7 +106,7 @@ class DashboardData:
                 time.sleep(self.update_interval)
 
             except Exception as e:
-                apgi_logger.logger.warning(f"Error in dashboard data collection: {e}")
+                apgi_logger.warning(f"Error in dashboard data collection: {e}")
                 time.sleep(5)
 
     def _check_alerts(self, system_metrics: Dict[str, Any]):
@@ -147,7 +161,7 @@ class DashboardData:
 
         df = pd.DataFrame(list(self.system_metrics))
         if "dashboard_timestamp" in df.columns:
-            df["timestamp"] = pd.to_datetime(df["dashboard_timestamp"])
+            df.loc[:, "timestamp"] = pd.to_datetime(df["dashboard_timestamp"])
         return df
 
     def get_performance_metrics_df(self) -> pd.DataFrame:
@@ -157,7 +171,7 @@ class DashboardData:
 
         df = pd.DataFrame(list(self.performance_metrics))
         if "timestamp" in df.columns:
-            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            df.loc[:, "timestamp"] = pd.to_datetime(df["timestamp"])
         return df
 
     def get_recent_alerts(self, limit: int = 10) -> List[Dict[str, Any]]:
@@ -660,8 +674,8 @@ def run_dashboard(host: str = "127.0.0.1", port: int = 8050, debug: bool = False
         print("To install: pip install dash")
         return False
 
-    apgi_logger.logger.info(f"Starting APGI dashboard on http://{host}:{port}")
-    app.run_server(host=host, port=port, debug=debug)
+    apgi_logger.info(f"Starting APGI dashboard on http://{host}:{port}")
+    app.run(host=host, port=port, debug=debug)
     return True
 
 

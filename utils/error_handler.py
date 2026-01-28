@@ -15,7 +15,17 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
-from utils.logging_config import apgi_logger
+try:
+    from utils.logging_config import apgi_logger
+except ImportError:
+    # Fallback if running as standalone script
+    import logging
+
+    class MockAPGILogger:
+        def __init__(self):
+            self.logger = logging.getLogger(__name__)
+
+    apgi_logger = MockAPGILogger()
 
 
 class ErrorSeverity(Enum):

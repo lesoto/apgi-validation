@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -58,6 +58,9 @@ class IowaGamblingTaskEnvironment:
             observation: Next state
             done: Episode complete
         """
+        if not 0 <= action < 4:
+            raise ValueError(f"Action must be 0-3, got {action}")
+
         deck_name = ["A", "B", "C", "D"][action]
         deck = self.decks[deck_name]
 
@@ -83,7 +86,17 @@ class IowaGamblingTaskEnvironment:
         return reward, intero_cost, observation, done
 
     def _generate_intero_signal(self, cost: float) -> np.ndarray:
-        """Generate realistic interoceptive signal"""
+        """Generate realistic interoceptive signal
+
+        Args:
+            cost: Physiological cost factor
+
+        Returns:
+            Combined interoceptive signal (16-dim)
+        """
+        if cost < 0:
+            cost = 0.0
+
         # Heart rate variability
         hrv = np.random.normal(0, 0.1 + cost * 0.3, size=8)
 
@@ -96,7 +109,14 @@ class IowaGamblingTaskEnvironment:
         return np.concatenate([hrv, scr, gastric])
 
     def _encode_reward_feedback(self, reward: float) -> np.ndarray:
-        """Encode reward feedback as exteroceptive signal"""
+        """Encode reward feedback as exteroceptive signal
+
+        Args:
+            reward: Monetary reward value
+
+        Returns:
+            Encoded reward feedback (32-dim)
+        """
         # Create a vector representation of reward
         encoding = np.zeros(32)
 
@@ -115,7 +135,7 @@ class IowaGamblingTaskEnvironment:
         elif reward > -100:
             encoding[2:4] = [0.0, 0.0]  # Small loss
         else:
-            encoding[2:4] = [0.0, 1.0]  # Large loss
+            encoding[2:4] = [1.0, 0.0]  # Large loss
 
         # Add noise for realism
         encoding[4:] = np.random.normal(0, 0.1, 28)
@@ -136,6 +156,11 @@ class VolatileForagingEnvironment:
     """
 
     def __init__(self, grid_size: int = 10, volatility: float = 0.1):
+        if grid_size <= 0:
+            raise ValueError("grid_size must be positive")
+        if not 0 <= volatility <= 1:
+            raise ValueError("volatility must be between 0 and 1")
+
         self.grid_size = grid_size
         self.volatility = volatility
 
@@ -164,7 +189,15 @@ class VolatileForagingEnvironment:
     def step(self, action: int) -> Tuple[float, float, Dict, bool]:
         """
         Actions: 0=up, 1=down, 2=left, 3=right, 4=forage
+
+        Returns:
+            reward: Reward obtained
+            intero_cost: Physiological cost
+            observation: Environmental state
+            done: Always False for this environment
         """
+        if not 0 <= action <= 4:
+            raise ValueError(f"Action must be 0-4, got {action}")
         # Movement
         if action < 4:
             moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -223,7 +256,17 @@ class VolatileForagingEnvironment:
         return visual
 
     def _get_intero_signal(self, cost: float) -> np.ndarray:
-        """Get interoceptive signal"""
+        """Get interoceptive signal
+
+        Args:
+            cost: Physiological cost factor
+
+        Returns:
+            Combined interoceptive signal (16-dim)
+        """
+        if cost < 0:
+            cost = 0.0
+
         hrv = np.random.normal(0, 0.1 + cost * 0.3, size=8)
         scr = np.random.exponential(cost, size=4)
         gastric = np.random.normal(-cost, 0.2, size=4)
@@ -259,6 +302,20 @@ class ThreatRewardTradeoffEnvironment:
         self.threat_decay = 0.9
 
     def step(self, action: int) -> Tuple[float, float, Dict, bool]:
+        """Execute action and return results
+
+        Args:
+            action: Option choice (0-3)
+
+        Returns:
+            reward: Monetary reward
+            intero_cost: Physiological cost
+            observation: Environmental state
+            done: Always False for this environment
+        """
+        if not 0 <= action < 4:
+            raise ValueError(f"Action must be 0-3, got {action}")
+
         opt = self.options[action]
 
         # Reward with variance
@@ -299,7 +356,17 @@ class ThreatRewardTradeoffEnvironment:
         return encoding
 
     def _generate_threat_response(self, cost: float) -> np.ndarray:
-        """Generate threat-related interoceptive response"""
+        """Generate threat-related interoceptive response
+
+        Args:
+            cost: Threat cost factor
+
+        Returns:
+            Threat response signal (16-dim)
+        """
+        if cost < 0:
+            cost = 0.0
+
         # Heart rate and stress indicators
         hrv = np.random.normal(0, 0.2 + cost * 0.5, size=8)
 
@@ -355,20 +422,3 @@ def run_falsification():
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in falsification protocol 2: {e}")
         return {"status": "error", "message": str(e)}
-
-
-# Main execution
-if __name__ == "__main__":
-    print("Iowa Gambling Task Environment created")
-    env = IowaGamblingTaskEnvironment()
-
-    # Run a few demo trials
-    total_reward = 0
-    for trial in range(1, 6):
-        action = np.random.choice(4)  # Random action
-        reward, intero_cost, obs, done = env.step(action)
-        total_reward += reward
-        print(f"Trial {trial}: Action={action}, Reward={reward:.2f}, InteroCost={intero_cost:.2f}")
-
-    print(f"Demo completed. Total reward: {total_reward:.2f}")
-    print("=== Protocol completed successfully ===")

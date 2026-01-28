@@ -26,7 +26,17 @@ import psutil
 import seaborn as sns
 
 # Project imports
-from utils.logging_config import apgi_logger
+try:
+    from utils.logging_config import apgi_logger
+except ImportError:
+    # Fallback if running as standalone script
+    import logging
+
+    class MockAPGILogger:
+        def __init__(self):
+            self.logger = logging.getLogger(__name__)
+
+    apgi_logger = MockAPGILogger()
 
 # Suppress matplotlib warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
@@ -291,7 +301,7 @@ class PerformanceProfiler:
         self.custom_metrics.append(metric)
 
         # Also log to the main logger
-        apgi_logger.log_performance_metric(name, value, unit)
+        apgi_logger.logger.log_performance_metric(name, value, unit)
 
     def get_top_functions(
         self, metric: str = "total_time", limit: int = 10
@@ -594,7 +604,7 @@ class PerformanceProfiler:
         ax3 = fig.add_subplot(gs[1, :])
         if self.system_monitor.metrics_history:
             metrics_df = pd.DataFrame(list(self.system_monitor.metrics_history))
-            metrics_df["timestamp"] = pd.to_datetime(metrics_df["timestamp"])
+            metrics_df.loc[:, "timestamp"] = pd.to_datetime(metrics_df["timestamp"])
 
             # Plot CPU and Memory
             ax3_twin = ax3.twinx()

@@ -14,15 +14,54 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .error_handling import (
-    APGIError,
-    ConfigurationError,
-    DataError,
-    ErrorSeverity,
-    format_error_message,
-    handle_error,
-    safe_execute,
-)
+try:
+    from .error_handling import (
+        APGIError,
+        ConfigurationError,
+        DataError,
+        ErrorSeverity,
+        format_error_message,
+        handle_error,
+        safe_execute,
+    )
+except ImportError:
+    # Fallback for standalone execution
+    try:
+        from error_handler import (
+            APGIError,
+            ConfigurationError,
+            DataError,
+            ErrorSeverity,
+            format_error_message,
+            handle_error,
+            safe_execute,
+        )
+    except ImportError:
+        # Minimal fallback if error_handler is not available
+        class APGIError(Exception):
+            pass
+
+        class ConfigurationError(APGIError):
+            pass
+
+        class DataError(APGIError):
+            pass
+
+        class ErrorSeverity:
+            CRITICAL = "CRITICAL"
+            HIGH = "HIGH"
+            MEDIUM = "MEDIUM"
+            LOW = "LOW"
+            INFO = "INFO"
+
+        def format_error_message(error, context=None):
+            return str(error)
+
+        def handle_error(error, context=None):
+            print(f"Error: {format_error_message(error, context)}")
+
+        def safe_execute(func, *args, **kwargs):
+            return func(*args, **kwargs)
 
 
 def run_command(command, description):
@@ -70,22 +109,32 @@ def check_python_version():
 
 def install_core_dependencies():
     """Install core dependencies from requirements.txt."""
-    requirements_path = Path(__file__).parent / "requirements.txt"
+    requirements_path = Path(__file__).parent.parent / "requirements.txt"
 
     if not requirements_path.exists():
         error = DataError(
             message=format_error_message("file_not_found", file_path=str(requirements_path)),
-            suggestion="Ensure requirements.txt exists in the utils directory",
+            suggestion="Ensure requirements.txt exists in the project root directory",
         )
         print(f"❌ {error}")
         return False
 
+    print("📦 Note: This script uses --break-system-packages flag to install dependencies.")
+    print("💡 For production use, consider creating a virtual environment:")
+    print("   python3 -m venv venv")
+    print("   source venv/bin/activate  # On Windows: venv\\Scripts\\activate")
+    print("   pip install -r requirements.txt")
+    print()
+
     # Upgrade pip first
-    run_command(f"{sys.executable} -m pip install --upgrade pip", "Upgrading pip")
+    run_command(
+        f"{sys.executable} -m pip install --upgrade pip --break-system-packages",
+        "Upgrading pip",
+    )
 
     # Install core requirements
     success = run_command(
-        f"{sys.executable} -m pip install -r {requirements_path}",
+        f"{sys.executable} -m pip install -r {requirements_path} --break-system-packages",
         "Installing core dependencies",
     )
 
@@ -102,7 +151,10 @@ def install_optional_dependencies():
     ]
 
     for package in optional_packages:
-        run_command(f"{sys.executable} -m pip install {package}", f"Installing {package}")
+        run_command(
+            f"{sys.executable} -m pip install {package} --break-system-packages",
+            f"Installing {package}",
+        )
 
 
 def verify_installation():

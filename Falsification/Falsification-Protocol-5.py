@@ -1,5 +1,4 @@
 import os
-import signal
 import time
 from typing import Dict, List
 
@@ -31,7 +30,6 @@ class EvolvableAgent:
         # Simple policy network
         state_dim = 32 + 16  # extero + intero
         action_dim = 4
-        hidden_dim = genome["hidden_dim"]
 
         self.policy_weights = np.random.normal(0, 0.1, (action_dim, state_dim))
 
@@ -39,12 +37,9 @@ class EvolvableAgent:
             self.somatic_weights = np.random.normal(0, 0.1, (action_dim, state_dim))
 
         # Precision weights
-        if self.has_precision_weighting:
-            self.Pi_e = 1.0
-            self.Pi_i = 1.0
-        else:
-            self.Pi_e = 1.0
-            self.Pi_i = 1.0
+        self.Pi_e = 1.0
+        self.Pi_i = 1.0
+        self.pi_lr = genome["Pi_e_lr"] if self.has_precision_weighting else 0.0
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
         """Execute one step"""
@@ -98,9 +93,10 @@ class EvolvableAgent:
 
         # Update precision if enabled
         if self.has_precision_weighting:
-            # Simple precision adaptation
-            self.Pi_e = 0.99 * self.Pi_e + 0.01
-            self.Pi_i = 0.99 * self.Pi_i + 0.01
+            # Simple precision adaptation based on interoceptive cost
+            adjustment = self.pi_lr * (1.0 - intero_cost)
+            self.Pi_e = 0.99 * self.Pi_e + 0.01 * adjustment
+            self.Pi_i = 0.99 * self.Pi_i + 0.01 * adjustment
 
 
 class EvolutionaryAPGIEmergence:
@@ -178,11 +174,11 @@ class EvolutionaryAPGIEmergence:
             env_fitness = (
                 cumulative_reward / 50  # Reward seeking (adjusted)
                 + survival_time / 100  # Survival (adjusted)
-                + -homeostatic_violations / 50  # Homeostatic maintenance (adjusted)
+                - homeostatic_violations / 50  # Homeostatic maintenance (adjusted)
             )
             total_fitness += env_fitness
 
-        return total_fitness / len(environments) if environments else 0
+        return total_fitness / len(environments) if environments else 0.0
 
     def crossover(self, parent1: Dict, parent2: Dict) -> Dict:
         """Single-point crossover"""
@@ -240,6 +236,15 @@ class EvolutionaryAPGIEmergence:
             # Use dummy environments for testing
             environments = []
 
+        if not environments:
+            print("Error: No environments available for evaluation")
+            return {
+                "best_fitness": [],
+                "mean_fitness": [],
+                "architecture_frequencies": [],
+                "best_genome": [],
+            }
+
         # Initialize population
         population = [self.create_genome() for _ in range(self.pop_size)]
 
@@ -288,8 +293,8 @@ class EvolutionaryAPGIEmergence:
                 winner_idx = tournament[np.argmax(fitness_scores[tournament])]
                 new_population.append(population[winner_idx].copy())
 
-            # Crossover and mutation
-            for i in range(0, self.pop_size - 1, 2):
+            # Crossover and mutation (handle odd population sizes)
+            for i in range(0, len(new_population) - 1, 2):
                 if np.random.random() < 0.7:  # Crossover rate
                     child1 = self.crossover(new_population[i], new_population[i + 1])
                     child2 = self.crossover(new_population[i + 1], new_population[i])
@@ -382,6 +387,15 @@ if __name__ == "__main__":
     print("Starting evolutionary simulation (this may take time)...")
     simulator = EvolutionaryAPGIEmergence()
     results = simulator.run_evolution()
+
+    if results and results.get("best_fitness"):
+        analysis = simulator.analyze_emergence(results)
+        print("\n=== Emergence Analysis ===")
+        print(f"APGI Emerged: {analysis['apgi_emerged']}")
+        print(f"Final Frequencies: {analysis['final_frequencies']}")
+        print(f"Selection Coefficients: {analysis['selection_coefficients']}")
+        print(f"Generations to Fixation: {analysis['generations_to_fixation']}")
+
     print("Evolution completed:", type(results))
     print("=== Protocol completed successfully ===")
 
@@ -398,12 +412,3 @@ def run_falsification():
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in falsification protocol 5: {e}")
         return {"status": "error", "message": str(e)}
-
-
-# Main execution
-if __name__ == "__main__":
-    print("Starting evolutionary simulation (this may take time)...")
-    simulator = EvolutionaryAPGIEmergence()
-    results = simulator.run_evolution()
-    print("Evolution completed:", type(results))
-    print("=== Protocol completed successfully ===")

@@ -80,7 +80,6 @@ class APGIInspiredNetwork(nn.Module):
         # =====================
         # Gated broadcast layer
         self.workspace = nn.Linear(32 + 16, 64)  # Combined pathways
-        self.workspace_gate = nn.Linear(16, 1)  # From surprise accumulator
 
         # =====================
         # SOMATIC MARKER MODULE
@@ -126,8 +125,11 @@ class APGIInspiredNetwork(nn.Module):
         batch_size = extero_input.shape[0]
 
         # Initialize hidden state if needed
+        device = extero_input.device
         if self.surprise_hidden is None:
-            self.surprise_hidden = torch.zeros(batch_size, 16)
+            self.surprise_hidden = torch.zeros(batch_size, 16, device=device)
+        elif self.surprise_hidden.device != device:
+            self.surprise_hidden = self.surprise_hidden.to(device)
 
         # =====================
         # 1. ENCODE PATHWAYS
@@ -187,7 +189,9 @@ class APGIInspiredNetwork(nn.Module):
         # 8. SOMATIC MARKERS
         # =====================
         if prev_action is not None:
-            action_onehot = F.one_hot(prev_action, num_classes=self.config["action_dim"]).float()
+            action_onehot = F.one_hot(
+                prev_action.long(), num_classes=self.config["action_dim"]
+            ).float()
             somatic_input = torch.cat([gated_workspace, action_onehot], dim=-1)
             somatic_values = self.somatic_network(somatic_input)
         else:
@@ -421,9 +425,15 @@ class NetworkComparisonExperiment:
 
                 # Compute metrics
                 if task_name == "conscious_classification":
-                    from sklearn.metrics import roc_auc_score
-
-                    auc = roc_auc_score(targets.numpy(), predictions.numpy())
+                    try:
+                        # Check if we have both classes for valid AUC
+                        unique_targets = torch.unique(targets)
+                        if len(unique_targets) > 1:
+                            auc = roc_auc_score(targets.numpy(), predictions.numpy())
+                        else:
+                            auc = float("nan")  # Cannot compute AUC with single class
+                    except ValueError:
+                        auc = float("nan")
                     task_results[task_name][net_name] = {"auc": auc}
                 else:
                     accuracy = (predictions == targets).float().mean().item()
@@ -448,7 +458,10 @@ class NetworkComparisonExperiment:
             context = torch.randn(batch_size, self.config.get("context_dim", 8))
 
             # Target: high surprise = conscious (1), low surprise = unconscious (0)
-            target = (torch.norm(extero, dim=1) > 1.0).float()
+            # Use median to create balanced classes
+            surprise = torch.norm(extero, dim=1)
+            median_surprise = torch.median(surprise)
+            target = (surprise > median_surprise).float()
 
             # For APGI network, also provide ignition targets
             target_ignition = target
@@ -496,8 +509,6 @@ class NetworkComparisonExperiment:
 
 # Main execution
 if __name__ == "__main__":
-    print("Starting Network Comparison Experiment...")
-
     # Default configuration
     config = {"extero_dim": 32, "intero_dim": 16, "action_dim": 4, "context_dim": 8}
 
