@@ -34,6 +34,10 @@ class UtilsRunnerGUI:
 
         self.setup_ui()
 
+        # Add keyboard shortcut for quitting (Ctrl+Q or Cmd+Q)
+        self.root.bind("<Control-q>", lambda e: self.quit_application())
+        self.root.bind("<Command-q>", lambda e: self.quit_application())
+
     def get_script_list(self) -> List[Path]:
         """Get all Python scripts in utils directory."""
         scripts = []
@@ -106,6 +110,9 @@ class UtilsRunnerGUI:
             control_frame, text="Clear Output", command=self.clear_output
         )
         self.clear_button.pack(pady=5, fill=tk.X)
+
+        self.quit_button = ttk.Button(control_frame, text="Quit", command=self.quit_application)
+        self.quit_button.pack(pady=5, fill=tk.X)
 
         # Status frame
         status_frame = ttk.LabelFrame(control_frame, text="Status", padding="5")
@@ -276,6 +283,30 @@ class UtilsRunnerGUI:
         """Clear the output text area."""
         self.output_text.delete(1.0, tk.END)
         self.log_output("Output cleared", "info")
+
+    def quit_application(self):
+        """Quit the application safely."""
+        # Stop all running processes
+        for script_name, process in self.running_processes.items():
+            try:
+                if process.poll() is None:  # Process is still running
+                    process.terminate()
+                    self.log_output(f"Terminated process: {script_name}", "warning")
+            except Exception as e:
+                self.log_output(f"Error terminating process {script_name}: {e}", "error")
+
+        # Clear running processes
+        self.running_processes.clear()
+
+        # Log quit message
+        self.log_output("Quitting application...", "info")
+
+        # Wait a moment for messages to be processed
+        self.root.update_idletasks()
+
+        # Quit the application
+        self.root.quit()
+        self.root.destroy()
 
 
 def main():

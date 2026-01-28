@@ -26,10 +26,24 @@ except ImportError:
     WEASYPRINT_AVAILABLE = False
     warnings.warn("WeasyPrint not available. PDF generation disabled.")
 
-from logging_config import apgi_logger
+try:
+    from utils.logging_config import apgi_logger
+except ImportError:
+    # Fallback if running as standalone script
+    import logging
+
+    class MockAPGILogger:
+        def __init__(self):
+            self.logger = logging.getLogger(__name__)
+
+    apgi_logger = MockAPGILogger()
 
 # APGI imports
-from performance_profiler import performance_profiler
+try:
+    from utils.performance_profiler import performance_profiler
+except ImportError:
+    # Fallback if performance_profiler is not available
+    performance_profiler = None
 
 
 class ReportGenerator:

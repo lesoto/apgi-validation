@@ -642,7 +642,7 @@ class DataPreprocessor:
 
         # Convert timestamp if present
         if "timestamp" in df.columns:
-            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            df.loc[:, "timestamp"] = pd.to_datetime(df["timestamp"])
 
         return df
 
