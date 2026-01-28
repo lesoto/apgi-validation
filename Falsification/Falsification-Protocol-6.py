@@ -62,7 +62,9 @@ class APGIInspiredNetwork(nn.Module):
         # =====================
         # SURPRISE ACCUMULATOR
         # =====================
-        self.surprise_rnn = nn.GRUCell(input_size=2, hidden_size=16)  # Precision-weighted errors
+        self.surprise_rnn = nn.GRUCell(
+            input_size=2, hidden_size=16
+        )  # Precision-weighted errors
 
         # =====================
         # THRESHOLD NETWORK
@@ -364,7 +366,9 @@ class NetworkComparisonExperiment:
 
                 with torch.no_grad():
                     for batch in val_loader:
-                        outputs = network(batch["extero"], batch["intero"], batch["context"])
+                        outputs = network(
+                            batch["extero"], batch["intero"], batch["context"]
+                        )
 
                         pred = outputs["policy"].argmax(dim=-1)
                         correct += (pred == batch["target_action"]).sum().item()
@@ -403,7 +407,9 @@ class NetworkComparisonExperiment:
 
                 with torch.no_grad():
                     for batch in dataset:
-                        outputs = network(batch["extero"], batch["intero"], batch["context"])
+                        outputs = network(
+                            batch["extero"], batch["intero"], batch["context"]
+                        )
 
                         if task_name == "conscious_classification":
                             # Use ignition probability as prediction

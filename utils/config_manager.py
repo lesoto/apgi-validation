@@ -319,10 +319,14 @@ class ConfigManager:
                 apgi_logger.log_error_with_context(
                     e, {"operation": "load_config", "file": str(self.config_file)}
                 )
-                apgi_logger.logger.warning(f"Using default configuration due to error: {e}")
+                apgi_logger.logger.warning(
+                    f"Using default configuration due to error: {e}"
+                )
         else:
             self._save_default_config()
-            apgi_logger.logger.info(f"Created default configuration at {self.config_file}")
+            apgi_logger.logger.info(
+                f"Created default configuration at {self.config_file}"
+            )
 
     def _validate_config(self, config_data: Dict[str, Any]):
         """Validate configuration against schema."""
@@ -358,7 +362,9 @@ class ConfigManager:
             else:
                 apgi_logger.logger.warning(f"Unknown field {key} in configuration")
 
-    def _validate_field_value(self, dataclass_instance, field_name: str, value: Any) -> bool:
+    def _validate_field_value(
+        self, dataclass_instance, field_name: str, value: Any
+    ) -> bool:
         """Validate a field value against the schema."""
         try:
             # Get the class name to find the right schema section
@@ -378,10 +384,14 @@ class ConfigManager:
             }
 
             schema_section = schema_mapping.get(class_name)
-            if not schema_section or schema_section not in self.schema.get("properties", {}):
+            if not schema_section or schema_section not in self.schema.get(
+                "properties", {}
+            ):
                 return True  # No validation available, allow
 
-            field_schema = self.schema["properties"][schema_section]["properties"].get(field_name)
+            field_schema = self.schema["properties"][schema_section]["properties"].get(
+                field_name
+            )
             if not field_schema:
                 return True  # No schema for this field, allow
 
@@ -497,7 +507,9 @@ class ConfigManager:
             try:
                 jsonschema.validate(value, param_schema)
             except jsonschema.ValidationError as e:
-                raise ValueError(f"Invalid value for {section}.{parameter}: {e.message}")
+                raise ValueError(
+                    f"Invalid value for {section}.{parameter}: {e.message}"
+                )
 
     def reset_to_defaults(self, section: Optional[str] = None):
         """Reset configuration to defaults."""
@@ -693,7 +705,9 @@ class ConfigManager:
             apgi_logger.logger.error(f"Error restoring version {version_id}: {e}")
             return False
 
-    def compare_configs(self, config1: Dict[str, Any], config2: Dict[str, Any]) -> Dict[str, Any]:
+    def compare_configs(
+        self, config1: Dict[str, Any], config2: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Compare two configurations and return differences."""
         differences = {"added": [], "removed": [], "modified": []}
 
@@ -779,7 +793,9 @@ class ConfigManager:
                 with open(profile_file, "w") as f:
                     yaml.dump(asdict(profile), f, default_flow_style=False, indent=2)
 
-                apgi_logger.logger.info(f"Created default profile: {profile_data['name']}")
+                apgi_logger.logger.info(
+                    f"Created default profile: {profile_data['name']}"
+                )
 
     def export_config_template(self, file_path: str, format: str = "yaml"):
         """Export configuration template with comments."""
@@ -1005,7 +1021,9 @@ class EnhancedConfigManager(ConfigManager):
 
         return profiles
 
-    def compare_profiles(self, profile1_name: str, profile2_name: str) -> Dict[str, Any]:
+    def compare_profiles(
+        self, profile1_name: str, profile2_name: str
+    ) -> Dict[str, Any]:
         """Compare two configuration profiles."""
         profile1_path = PROFILES_DIR / f"{profile1_name}.yaml"
         profile2_path = PROFILES_DIR / f"{profile2_name}.yaml"
@@ -1043,7 +1061,9 @@ class EnhancedConfigManager(ConfigManager):
         ) as e:
             return {"error": f"Error comparing profiles: {e}"}
 
-    def _compare_dicts(self, dict1: Dict, dict2: Dict, path: str = "") -> List[Dict[str, Any]]:
+    def _compare_dicts(
+        self, dict1: Dict, dict2: Dict, path: str = ""
+    ) -> List[Dict[str, Any]]:
         """Recursively compare two dictionaries."""
         differences = []
 
@@ -1053,12 +1073,18 @@ class EnhancedConfigManager(ConfigManager):
             current_path = f"{path}.{key}" if path else key
 
             if key not in dict1:
-                differences.append({"path": current_path, "type": "added", "value": dict2[key]})
+                differences.append(
+                    {"path": current_path, "type": "added", "value": dict2[key]}
+                )
             elif key not in dict2:
-                differences.append({"path": current_path, "type": "removed", "value": dict1[key]})
+                differences.append(
+                    {"path": current_path, "type": "removed", "value": dict1[key]}
+                )
             elif dict1[key] != dict2[key]:
                 if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
-                    differences.extend(self._compare_dicts(dict1[key], dict2[key], current_path))
+                    differences.extend(
+                        self._compare_dicts(dict1[key], dict2[key], current_path)
+                    )
                 else:
                     differences.append(
                         {
@@ -1256,7 +1282,9 @@ class EnhancedConfigManager(ConfigManager):
             "total_profiles": len(profiles),
             "categories": {},
             "total_versions": len(list(VERSIONS_DIR.glob("*.json"))),
-            "current_profile": (self.current_profile.name if self.current_profile else None),
+            "current_profile": (
+                self.current_profile.name if self.current_profile else None
+            ),
             "history_length": len(self.profile_history),
         }
 
@@ -1274,7 +1302,9 @@ enhanced_config_manager = EnhancedConfigManager()
 
 
 # Convenience functions for enhanced features
-def create_config_profile(name: str, description: str, category: str = "custom") -> bool:
+def create_config_profile(
+    name: str, description: str, category: str = "custom"
+) -> bool:
     """Create a new configuration profile."""
     try:
         enhanced_config_manager.create_profile(name, description, category)

@@ -379,7 +379,9 @@ class LTCNeuron(nn.Module):
         config: APGI configuration
     """
 
-    def __init__(self, input_size: int, hidden_size: int, tau_base: float, config: APGIConfig):
+    def __init__(
+        self, input_size: int, hidden_size: int, tau_base: float, config: APGIConfig
+    ):
         super().__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -387,11 +389,15 @@ class LTCNeuron(nn.Module):
         self.config = config
 
         # Initialize weights with Xavier initialization for stability
-        self.W = nn.Parameter(torch.randn(hidden_size, input_size) * np.sqrt(2.0 / input_size))
+        self.W = nn.Parameter(
+            torch.randn(hidden_size, input_size) * np.sqrt(2.0 / input_size)
+        )
         self.b = nn.Parameter(torch.zeros(hidden_size))
 
         # Recurrent connections (reservoir-style, sparse)
-        self.W_rec = nn.Parameter(torch.randn(hidden_size, hidden_size) * config.reservoir_scaling)
+        self.W_rec = nn.Parameter(
+            torch.randn(hidden_size, hidden_size) * config.reservoir_scaling
+        )
         # Apply sparsity during initialization only
         with torch.no_grad():
             mask = torch.rand_like(self.W_rec) > config.reservoir_sparsity
@@ -445,7 +451,9 @@ class HierarchicalPredictiveLayer(nn.Module):
     error signals when predictions fail.
     """
 
-    def __init__(self, input_size: int, hidden_size: int, level: int, config: APGIConfig):
+    def __init__(
+        self, input_size: int, hidden_size: int, level: int, config: APGIConfig
+    ):
         super().__init__()
         self.level = level
         self.hidden_size = hidden_size
@@ -595,10 +603,18 @@ class PrecisionEstimator(nn.Module):
         # Pack context into tensor
         context_vec = torch.stack(
             [
-                context.get("metabolic", torch.zeros(batch_size, device=intero_input.device)),
-                context.get("cognitive", torch.zeros(batch_size, device=intero_input.device)),
-                context.get("affective", torch.zeros(batch_size, device=intero_input.device)),
-                context.get("arousal", torch.zeros(batch_size, device=intero_input.device)),
+                context.get(
+                    "metabolic", torch.zeros(batch_size, device=intero_input.device)
+                ),
+                context.get(
+                    "cognitive", torch.zeros(batch_size, device=intero_input.device)
+                ),
+                context.get(
+                    "affective", torch.zeros(batch_size, device=intero_input.device)
+                ),
+                context.get(
+                    "arousal", torch.zeros(batch_size, device=intero_input.device)
+                ),
             ],
             dim=-1,
         )
@@ -614,8 +630,12 @@ class PrecisionEstimator(nn.Module):
         Pi_extero = self.fc_Pi_extero(precision_features)
 
         # Estimate time constants
-        tau_intero = self.fc_tau_intero(precision_features) + self.config.tau_intero_baseline
-        tau_extero = self.fc_tau_extero(precision_features) + self.config.tau_extero_baseline
+        tau_intero = (
+            self.fc_tau_intero(precision_features) + self.config.tau_intero_baseline
+        )
+        tau_extero = (
+            self.fc_tau_extero(precision_features) + self.config.tau_extero_baseline
+        )
 
         # Volatility estimation (second-order uncertainty)
         # Clear buffer if batch size changes
@@ -666,7 +686,9 @@ class PredictionErrorModule(nn.Module):
     fail to match incoming signals.
     """
 
-    def __init__(self, input_size: int, state_size: int, num_levels: int, config: APGIConfig):
+    def __init__(
+        self, input_size: int, state_size: int, num_levels: int, config: APGIConfig
+    ):
         super().__init__()
         self.input_size = input_size
         self.state_size = state_size
@@ -697,9 +719,13 @@ class PredictionErrorModule(nn.Module):
         )
 
         # Additional predictors to map inputs to state space for comparison
-        self.intero_input_projector = nn.Sequential(nn.Linear(input_size, state_size), nn.Tanh())
+        self.intero_input_projector = nn.Sequential(
+            nn.Linear(input_size, state_size), nn.Tanh()
+        )
 
-        self.extero_input_projector = nn.Sequential(nn.Linear(input_size, state_size), nn.Tanh())
+        self.extero_input_projector = nn.Sequential(
+            nn.Linear(input_size, state_size), nn.Tanh()
+        )
 
     def forward(
         self,
@@ -748,10 +774,16 @@ class PredictionErrorModule(nn.Module):
             pred_extero_list.append(pred_extero)
 
         # Aggregate errors across hierarchy (weighted by level)
-        level_weights = torch.softmax(torch.arange(self.num_levels, dtype=torch.float32), dim=0)
+        level_weights = torch.softmax(
+            torch.arange(self.num_levels, dtype=torch.float32), dim=0
+        )
 
-        epsilon_intero = sum(w * eps for w, eps in zip(level_weights, epsilon_intero_list))
-        epsilon_extero = sum(w * eps for w, eps in zip(level_weights, epsilon_extero_list))
+        epsilon_intero = sum(
+            w * eps for w, eps in zip(level_weights, epsilon_intero_list)
+        )
+        epsilon_extero = sum(
+            w * eps for w, eps in zip(level_weights, epsilon_extero_list)
+        )
 
         return PredictionOutput(
             epsilon_intero=epsilon_intero,
@@ -811,9 +843,15 @@ class MetabolicCostModule(nn.Module):
         sync_cost = self.config.beta_maintenance * synchronization.pow(2)
         return activity_cost + sync_cost
 
-    def compute_maintenance_cost(self, state: torch.Tensor, duration: float) -> torch.Tensor:
+    def compute_maintenance_cost(
+        self, state: torch.Tensor, duration: float
+    ) -> torch.Tensor:
         """Cost of maintaining conscious state over time"""
-        return self.config.beta_maintenance * state.pow(2).sum(dim=-1, keepdim=True) * duration
+        return (
+            self.config.beta_maintenance
+            * state.pow(2).sum(dim=-1, keepdim=True)
+            * duration
+        )
 
     def compute_benefit(
         self, current_error: torch.Tensor, predicted_error_reduction: torch.Tensor
@@ -854,11 +892,15 @@ class MetabolicCostModule(nn.Module):
 
         # Add base ignition-dependent cost to ensure proper scaling
         # This cost is purely based on ignition probability, independent of workspace activity
-        ignition_base_cost = 0.01 * ignition_active  # Base cost proportional to ignition prob
+        ignition_base_cost = (
+            0.01 * ignition_active
+        )  # Base cost proportional to ignition prob
 
         # Scale broadcast cost with ignition probability (not binary gating)
         # Higher ignition probability → higher metabolic cost (strong scaling)
-        ignition_scaled_cost = broadcast_cost * (0.1 + 3.0 * ignition_active) + ignition_base_cost
+        ignition_scaled_cost = (
+            broadcast_cost * (0.1 + 3.0 * ignition_active) + ignition_base_cost
+        )
         total_cost = ignition_scaled_cost + maintenance_cost
 
         # Benefits (estimated error reduction from conscious processing)
@@ -962,7 +1004,9 @@ class AdaptiveThreshold(nn.Module):
             else allostatic_load.unsqueeze(-1)
         )
 
-        metabolic_state = torch.cat([energy_reserves_flat, allostatic_load_flat], dim=-1)
+        metabolic_state = torch.cat(
+            [energy_reserves_flat, allostatic_load_flat], dim=-1
+        )
         metabolic_adjustment = self.metabolic_modulator(metabolic_state)
 
         # COST-BENEFIT GATING (NEW)
@@ -975,18 +1019,26 @@ class AdaptiveThreshold(nn.Module):
                 min=self.config.cost_benefit_clamp_min,
                 max=self.config.cost_benefit_clamp_max,
             )
-            cost_benefit_term = self.config.cost_benefit_scaling * cost_benefit_adjustment
+            cost_benefit_term = (
+                self.config.cost_benefit_scaling * cost_benefit_adjustment
+            )
         else:
             cost_benefit_term = torch.zeros_like(cost)
 
         # Combine all terms
         dtheta_dt = (
-            homeostasis + refractoriness + urgency + metabolic_adjustment - cost_benefit_term
+            homeostasis
+            + refractoriness
+            + urgency
+            + metabolic_adjustment
+            - cost_benefit_term
         )
         new_theta = current_theta + dt * dtheta_dt
 
         # Clamp to reasonable range
-        new_theta = torch.clamp(new_theta, min=self.config.theta_min, max=self.config.theta_max)
+        new_theta = torch.clamp(
+            new_theta, min=self.config.theta_min, max=self.config.theta_max
+        )
 
         return new_theta
 
@@ -1094,7 +1146,9 @@ class GlobalWorkspace(nn.Module):
         )
 
         # Competition network: winner-take-all dynamics
-        self.competition = nn.Sequential(nn.Linear(state_size, state_size), nn.Softmax(dim=-1))
+        self.competition = nn.Sequential(
+            nn.Linear(state_size, state_size), nn.Softmax(dim=-1)
+        )
 
         # Sustained activity network (recurrent maintenance)
         self.sustain = nn.Linear(state_size, state_size)
@@ -1112,7 +1166,9 @@ class GlobalWorkspace(nn.Module):
         theta_effective = theta - prev_ignition * self.config.hysteresis
 
         # Sigmoid transition
-        ignition_prob = torch.sigmoid(self.config.beta_transition * (S - theta_effective))
+        ignition_prob = torch.sigmoid(
+            self.config.beta_transition * (S - theta_effective)
+        )
 
         return ignition_prob
 
@@ -1220,7 +1276,9 @@ class RefractoryPeriodModule(nn.Module):
         )
 
         # Suppression factor: 0 during refractory, 1 when recovered
-        suppression = 1.0 - torch.sigmoid(10 * (new_timer / self.config.max_refractory_ms - 0.5))
+        suppression = 1.0 - torch.sigmoid(
+            10 * (new_timer / self.config.max_refractory_ms - 0.5)
+        )
 
         return new_timer, suppression
 
@@ -1247,7 +1305,9 @@ class TemporalIntegrationModule(nn.Module):
             nn.Softmax(dim=-1),
         )
 
-    def forward(self, temporal_buffer: List[torch.Tensor], precision: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, temporal_buffer: List[torch.Tensor], precision: torch.Tensor
+    ) -> torch.Tensor:
         """
         Integrate signals over temporal window.
 
@@ -1259,7 +1319,9 @@ class TemporalIntegrationModule(nn.Module):
             integrated: Temporally integrated signal [batch, state_size]
         """
         if len(temporal_buffer) == 0:
-            return torch.zeros(precision.shape[0], self.state_size, device=precision.device)
+            return torch.zeros(
+                precision.shape[0], self.state_size, device=precision.device
+            )
 
         # Stack buffer into tensor [batch, buffer_size, state_size]
         buffer_tensor = torch.stack(temporal_buffer, dim=1)
@@ -1362,7 +1424,9 @@ class PrecisionLearningModule(nn.Module):
         context = hidden[-1]  # Take last layer's final hidden state
 
         # Compute precision adjustment
-        adjustment = self.precision_adjuster(context) * self.config.precision_learning_rate
+        adjustment = (
+            self.precision_adjuster(context) * self.config.precision_learning_rate
+        )
 
         # Apply adjustment (avoid in-place operation)
         adjustment_factor = 1.0 + adjustment
@@ -1447,7 +1511,9 @@ class PerformanceBenchmark:
             mem_reserved = torch.cuda.memory_reserved(device) / 1024**2
         else:
             # Estimate memory for CPU (approximate based on parameters)
-            mem_allocated = num_params * 4 / (1024**2)  # 4 bytes per parameter (float32)
+            mem_allocated = (
+                num_params * 4 / (1024**2)
+            )  # 4 bytes per parameter (float32)
             mem_reserved = mem_allocated
 
         metrics = PerformanceMetrics(
@@ -1516,7 +1582,9 @@ class APGILiquidNetwork(nn.Module):
         self.intero_hierarchy = nn.ModuleList(
             [
                 HierarchicalPredictiveLayer(
-                    input_size=(self.config.input_size if i == 0 else self.config.hidden_size),
+                    input_size=(
+                        self.config.input_size if i == 0 else self.config.hidden_size
+                    ),
                     hidden_size=self.config.hidden_size,
                     level=i,
                     config=self.config,
@@ -1528,7 +1596,9 @@ class APGILiquidNetwork(nn.Module):
         self.extero_hierarchy = nn.ModuleList(
             [
                 HierarchicalPredictiveLayer(
-                    input_size=(self.config.input_size if i == 0 else self.config.hidden_size),
+                    input_size=(
+                        self.config.input_size if i == 0 else self.config.hidden_size
+                    ),
                     hidden_size=self.config.hidden_size,
                     level=i,
                     config=self.config,
@@ -1552,14 +1622,24 @@ class APGILiquidNetwork(nn.Module):
         self.global_workspace = GlobalWorkspace(self.config.hidden_size, self.config)
 
         # Additional modules
-        self.neuromodulation = NeuromodulationModule(self.config.hidden_size, self.config)
+        self.neuromodulation = NeuromodulationModule(
+            self.config.hidden_size, self.config
+        )
         self.refractory = RefractoryPeriodModule(self.config)
-        self.temporal_integration = TemporalIntegrationModule(self.config.hidden_size, self.config)
-        self.precision_learning = PrecisionLearningModule(self.config.hidden_size, self.config)
+        self.temporal_integration = TemporalIntegrationModule(
+            self.config.hidden_size, self.config
+        )
+        self.precision_learning = PrecisionLearningModule(
+            self.config.hidden_size, self.config
+        )
 
         # Input projection layers
-        self.intero_projection = nn.Linear(self.config.input_size, self.config.input_size)
-        self.extero_projection = nn.Linear(self.config.input_size, self.config.input_size)
+        self.intero_projection = nn.Linear(
+            self.config.input_size, self.config.input_size
+        )
+        self.extero_projection = nn.Linear(
+            self.config.input_size, self.config.input_size
+        )
 
         # Gradient monitoring
         self.gradient_monitor = GradientMonitor(self.config)
@@ -1600,7 +1680,9 @@ class APGILiquidNetwork(nn.Module):
                 torch.zeros(batch_size, self.config.hidden_size, device=device)
                 for _ in range(self.config.num_levels)
             ],
-            workspace_state=torch.zeros(batch_size, self.config.hidden_size, device=device),
+            workspace_state=torch.zeros(
+                batch_size, self.config.hidden_size, device=device
+            ),
             # Predictions
             intero_predictions=[
                 torch.zeros(batch_size, self.config.hidden_size, device=device)
@@ -1675,7 +1757,9 @@ class APGILiquidNetwork(nn.Module):
         extero_projected = self.extero_projection(extero_input)
 
         # ==== Step 1: Estimate Precision ====
-        avg_state = sum(state.intero_states + state.extero_states) / (2 * self.config.num_levels)
+        avg_state = sum(state.intero_states + state.extero_states) / (
+            2 * self.config.num_levels
+        )
 
         precision_output = self.precision_estimator(
             intero_projected, extero_projected, avg_state, context
@@ -1737,10 +1821,12 @@ class APGILiquidNetwork(nn.Module):
 
         # Modulate precision with ACh
         Pi_intero_modulated = precision_output.Pi_intero * (
-            self.config.neuromod_ach_baseline + self.config.neuromod_ach_scaling * acetylcholine
+            self.config.neuromod_ach_baseline
+            + self.config.neuromod_ach_scaling * acetylcholine
         )
         Pi_extero_modulated = precision_output.Pi_extero * (
-            self.config.neuromod_ach_baseline + self.config.neuromod_ach_scaling * acetylcholine
+            self.config.neuromod_ach_baseline
+            + self.config.neuromod_ach_scaling * acetylcholine
         )
 
         # Recompute surprise using modulated precision
@@ -1811,11 +1897,15 @@ class APGILiquidNetwork(nn.Module):
 
         # ==== Step 11: Full Precision Learning ====
         # Create new list to avoid in-place modification
-        new_precision_history = list(state.precision_history) if state.precision_history else []
+        new_precision_history = (
+            list(state.precision_history) if state.precision_history else []
+        )
 
         if len(new_precision_history) > 0:
             # Build histories for learning
-            error_magnitude_intero = pred_output.epsilon_intero.mean(dim=-1, keepdim=True)
+            error_magnitude_intero = pred_output.epsilon_intero.mean(
+                dim=-1, keepdim=True
+            )
             # error_magnitude_extero = pred_output.epsilon_extero.mean(
             #     dim=-1, keepdim=True
             # )  # Commented out - unused
@@ -1855,11 +1945,15 @@ class APGILiquidNetwork(nn.Module):
             Pi_intero_learned = Pi_intero_modulated
             Pi_extero_learned = Pi_extero_modulated
             new_lstm_hidden = None
-            new_precision_history = [pred_output.epsilon_intero.mean(dim=-1, keepdim=True).detach()]
+            new_precision_history = [
+                pred_output.epsilon_intero.mean(dim=-1, keepdim=True).detach()
+            ]
 
         # ==== Step 12: Update Energy and Allostatic State ====
         # Energy depletion with more visible impact
-        energy_depletion = metabolic_output.broadcast_cost * self.config.energy_depletion_rate
+        energy_depletion = (
+            metabolic_output.broadcast_cost * self.config.energy_depletion_rate
+        )
         new_energy = torch.clamp(
             state.energy_reserves - energy_depletion,
             min=self.config.energy_min,
@@ -2026,9 +2120,9 @@ class APGIValidator:
             _, _, state, _ = network(intero_input, extero_input, state)
 
             # Track state magnitude
-            avg_magnitude = sum(s.abs().mean().item() for s in state.intero_states) / len(
-                state.intero_states
-            )
+            avg_magnitude = sum(
+                s.abs().mean().item() for s in state.intero_states
+            ) / len(state.intero_states)
             states_magnitude.append(avg_magnitude)
 
         # Check stability
@@ -2096,7 +2190,8 @@ class APGIValidator:
 
         # Check for smooth transition (not abrupt jump)
         diffs = [
-            abs(ignition_probs[i + 1] - ignition_probs[i]) for i in range(len(ignition_probs) - 1)
+            abs(ignition_probs[i + 1] - ignition_probs[i])
+            for i in range(len(ignition_probs) - 1)
         ]
         max_jump = max(diffs)
         is_smooth = max_jump < 0.5
@@ -2134,7 +2229,9 @@ class APGIValidator:
 
         # Cost should be higher with higher ignition probability
         # (accounting for probabilistic ignition, not binary)
-        cost_increases = diag_high["broadcast_cost"].mean() > diag_low["broadcast_cost"].mean()
+        cost_increases = (
+            diag_high["broadcast_cost"].mean() > diag_low["broadcast_cost"].mean()
+        )
 
         return {
             "cost_scales_with_ignition": cost_increases,
@@ -2163,8 +2260,12 @@ class APGIValidator:
         costs = []
 
         for step in range(20):
-            intero_input = torch.randn(batch_size, network.input_size) * (1.0 + step * 0.1)
-            extero_input = torch.randn(batch_size, network.input_size) * (1.0 + step * 0.1)
+            intero_input = torch.randn(batch_size, network.input_size) * (
+                1.0 + step * 0.1
+            )
+            extero_input = torch.randn(batch_size, network.input_size) * (
+                1.0 + step * 0.1
+            )
 
             _, _, state, diagnostics = network(intero_input, extero_input, state)
 
@@ -2188,7 +2289,9 @@ class APGIValidator:
         }
 
     @staticmethod
-    def validate_gradient_flow(network: APGILiquidNetwork, num_steps: int = 5) -> Dict[str, float]:
+    def validate_gradient_flow(
+        network: APGILiquidNetwork, num_steps: int = 5
+    ) -> Dict[str, float]:
         """
         Validate gradient flow through the network.
 
@@ -2212,7 +2315,9 @@ class APGIValidator:
                 intero_input = torch.randn(batch_size, network.input_size)
                 extero_input = torch.randn(batch_size, network.input_size)
 
-                broadcast, _, new_state, diagnostics = network(intero_input, extero_input, state)
+                broadcast, _, new_state, diagnostics = network(
+                    intero_input, extero_input, state
+                )
 
                 # Compute dummy loss
                 loss = diagnostics["free_energy"].mean()
@@ -2271,7 +2376,9 @@ if __name__ == "__main__":
     network = APGILiquidNetwork(config)
 
     print(f"\nNetwork Parameters: {sum(p.numel() for p in network.parameters()):,}")
-    print(f"Configuration: {config.num_levels} hierarchical levels, dt={config.dt_ms}ms")
+    print(
+        f"Configuration: {config.num_levels} hierarchical levels, dt={config.dt_ms}ms"
+    )
     print(f"Cost-benefit gating: {config.cost_benefit_gating_enabled}")
     print(f"Gradient monitoring: {config.gradient_monitoring_enabled}")
 
@@ -2369,7 +2476,9 @@ if __name__ == "__main__":
     print("Performance Benchmark")
     print("=" * 80)
 
-    perf_metrics = network.benchmark_performance(batch_size=4, num_steps=100, device=device)
+    perf_metrics = network.benchmark_performance(
+        batch_size=4, num_steps=100, device=device
+    )
     print(f"\n{perf_metrics}")
 
     print("\n" + "=" * 80)

@@ -107,7 +107,9 @@ class APGIConfig:
     energy_max: float = 1.0  # Maximum energy reserves
 
     # Physical constants for thermodynamics
-    boltzmann_constant: float = 1.380649e-23  # J/K (for reference, not used in normalized units)
+    boltzmann_constant: float = (
+        1.380649e-23  # J/K (for reference, not used in normalized units)
+    )
     temperature_kelvin: float = 310.0  # Body temperature ~37°C
     temperature_normalized: float = 1.0  # Normalized temperature for computation
     # NEW: Physical temperature scaling for true thermodynamics
@@ -308,7 +310,9 @@ class APGIState:
     entropy_history: List[EntropyOutput]  # Recent entropy calculations
 
     # NEW: Physical state tracking for thermodynamics (Optional fields at end)
-    prev_state: Optional[torch.Tensor] = None  # Previous neural state for entropy production
+    prev_state: Optional[torch.Tensor] = (
+        None  # Previous neural state for entropy production
+    )
     prev_energies: Optional[torch.Tensor] = None  # Previous energy levels
     cumulative_entropy_production: torch.Tensor = None  # Cumulative dS/dt
 
@@ -395,7 +399,9 @@ class ThermodynamicEntropyCalculator(nn.Module):
         # Clamp energies to prevent overflow
         max_energy = 50.0 * self.kB_T * self.energy_scale  # Maximum safe energy
         clamped_energies = torch.clamp(energies, min=-max_energy, max=max_energy)
-        boltzmann_factors = torch.exp(-clamped_energies / (self.kB_T * self.energy_scale))
+        boltzmann_factors = torch.exp(
+            -clamped_energies / (self.kB_T * self.energy_scale)
+        )
 
         # Sum over all accessible states
         Z = boltzmann_factors.sum(dim=-1, keepdim=True)
@@ -438,7 +444,9 @@ class ThermodynamicEntropyCalculator(nn.Module):
         information_flux = torch.abs(dx_dt).sum(dim=-1, keepdim=True)
 
         # Total entropy production (always non-negative by Second Law)
-        entropy_production = (heat_dissipation + 0.1 * information_flux) * self.entropy_scale.item()
+        entropy_production = (
+            heat_dissipation + 0.1 * information_flux
+        ) * self.entropy_scale.item()
 
         # Update previous states
         self.prev_state = current_state.detach().clone()
@@ -478,7 +486,9 @@ class ThermodynamicEntropyCalculator(nn.Module):
                 )
             )
             # Helmholtz free energy: F = -kT ln(Z)
-            F_thermo = -self.config.boltzmann_constant * self.config.temperature_kelvin * log_Z
+            F_thermo = (
+                -self.config.boltzmann_constant * self.config.temperature_kelvin * log_Z
+            )
         else:
             # Normalized version with stability
             log_Z = torch.log(torch.clamp(Z, max=1e10))
@@ -491,7 +501,9 @@ class ThermodynamicEntropyCalculator(nn.Module):
         mean_energy = energy_samples.mean(dim=-1, keepdim=True)
 
         # True entropy production rate from state transitions
-        entropy_production_rate = self.compute_entropy_production_rate(state, total_energy, dt)
+        entropy_production_rate = self.compute_entropy_production_rate(
+            state, total_energy, dt
+        )
 
         return {
             "S_thermodynamic": S_thermo,
@@ -576,7 +588,9 @@ class ShannonEntropyCalculator(nn.Module):
         var_after = 1.0 / (precision_after + self.config.eps)
 
         # Information gain (always non-negative)
-        IG = 0.5 * torch.log((var_before + self.config.eps) / (var_after + self.config.eps))
+        IG = 0.5 * torch.log(
+            (var_before + self.config.eps) / (var_after + self.config.eps)
+        )
         IG = torch.clamp(IG, min=0.0)  # Ensure non-negative
 
         return IG
@@ -683,7 +697,9 @@ class VariationalFreeEnergyCalculator(nn.Module):
         )
 
         self.q_mean_net = nn.Linear(32, state_size)  # Reduced from 64
-        self.q_var_net = nn.Sequential(nn.Linear(32, state_size), nn.Softplus())  # Reduced
+        self.q_var_net = nn.Sequential(
+            nn.Linear(32, state_size), nn.Softplus()
+        )  # Reduced
 
         # Prior p(s): typically learned or fixed
         self.p_mean = nn.Parameter(torch.zeros(state_size), requires_grad=True)
@@ -694,9 +710,13 @@ class VariationalFreeEnergyCalculator(nn.Module):
             nn.Linear(state_size, 32), nn.ReLU(), nn.Linear(32, state_size)  # Reduced
         )
 
-        self.likelihood_var_net = nn.Sequential(nn.Linear(state_size, 32), nn.Softplus())  # Reduced
+        self.likelihood_var_net = nn.Sequential(
+            nn.Linear(state_size, 32), nn.Softplus()
+        )  # Reduced
 
-    def encode_recognition(self, observation: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def encode_recognition(
+        self, observation: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Encode q(s|o): approximate posterior.
 
@@ -712,7 +732,9 @@ class VariationalFreeEnergyCalculator(nn.Module):
         q_var = self.q_var_net(features) + self.config.eps
         return q_mean, q_var
 
-    def decode_generative(self, latent: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def decode_generative(
+        self, latent: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Decode p(o|s): generative model.
 
@@ -989,7 +1011,9 @@ class MultiLevelEntropyModule(nn.Module):
             complexity=variational_results["complexity"],
         )
 
-    def validate_cross_level_consistency(self, entropy_output: EntropyOutput) -> Dict[str, bool]:
+    def validate_cross_level_consistency(
+        self, entropy_output: EntropyOutput
+    ) -> Dict[str, bool]:
         """
         Validate consistency across entropy levels.
 
@@ -1001,13 +1025,17 @@ class MultiLevelEntropyModule(nn.Module):
         checks = {}
 
         # Check 1: Thermodynamic entropy is non-negative
-        checks["S_thermodynamic_positive"] = bool((entropy_output.S_thermodynamic >= 0).all())
+        checks["S_thermodynamic_positive"] = bool(
+            (entropy_output.S_thermodynamic >= 0).all()
+        )
 
         # Check 2: Mutual information is non-negative
         checks["MI_non_negative"] = bool((entropy_output.mutual_information >= 0).all())
 
         # Check 3: KL divergence is non-negative
-        checks["KL_non_negative"] = bool((entropy_output.kl_divergence >= -self.config.eps).all())
+        checks["KL_non_negative"] = bool(
+            (entropy_output.kl_divergence >= -self.config.eps).all()
+        )
 
         # Check 4: Information gain is non-negative
         checks["IG_non_negative"] = bool(
@@ -1072,7 +1100,9 @@ class LTCNeuron(nn.Module):
             self.W_rec.weight *= mask.float()
             self.W_rec.weight *= self.config.reservoir_scaling
 
-    def forward(self, input: torch.Tensor, state: torch.Tensor, dt: float = 0.01) -> torch.Tensor:
+    def forward(
+        self, input: torch.Tensor, state: torch.Tensor, dt: float = 0.01
+    ) -> torch.Tensor:
         """
         Update neuron state via ODE integration.
 
@@ -1097,7 +1127,9 @@ class LTCNeuron(nn.Module):
         # Compute adaptive time constant
         combined = torch.cat([input, state], dim=-1)
         tau_normalized = self.tau_net(combined)
-        tau = self.config.tau_min + tau_normalized * (self.config.tau_max - self.config.tau_min)
+        tau = self.config.tau_min + tau_normalized * (
+            self.config.tau_max - self.config.tau_min
+        )
 
         # Compute target value
         h = self.W_in(input) + self.W_rec(state) + self.bias
@@ -1209,8 +1241,12 @@ class HierarchicalPredictiveCodingLayer(nn.Module):
                         combined.device
                     )
                     self.precision_final = nn.Linear(64, 1).to(combined.device)
-                precision = torch.nn.functional.relu(self.precision_projection(combined))
-                precision = torch.nn.functional.softplus(self.precision_final(precision))
+                precision = torch.nn.functional.relu(
+                    self.precision_projection(combined)
+                )
+                precision = torch.nn.functional.softplus(
+                    self.precision_final(precision)
+                )
         else:
             precision = self.precision_net(combined)
 
@@ -1219,10 +1255,18 @@ class HierarchicalPredictiveCodingLayer(nn.Module):
         if combined.shape[-1] != expected_variance_size:
             with torch.no_grad():
                 if not hasattr(self, "variance_projection"):
-                    self.variance_projection = nn.Linear(combined.shape[-1], 32).to(combined.device)
-                    self.variance_final = nn.Linear(32, self.input_size).to(combined.device)
-                variance_hidden = torch.nn.functional.relu(self.variance_projection(combined))
-                variance = torch.nn.functional.softplus(self.variance_final(variance_hidden))
+                    self.variance_projection = nn.Linear(combined.shape[-1], 32).to(
+                        combined.device
+                    )
+                    self.variance_final = nn.Linear(32, self.input_size).to(
+                        combined.device
+                    )
+                variance_hidden = torch.nn.functional.relu(
+                    self.variance_projection(combined)
+                )
+                variance = torch.nn.functional.softplus(
+                    self.variance_final(variance_hidden)
+                )
         else:
             variance = self.variance_net(combined)
 
@@ -1270,8 +1314,12 @@ class PrecisionEstimator(nn.Module):
         )
 
         # Time constant outputs - fixed input size
-        self.fc_tau_intero = nn.Sequential(nn.Linear(32, 1), nn.Softplus())  # Fixed from 64
-        self.fc_tau_extero = nn.Sequential(nn.Linear(32, 1), nn.Softplus())  # Fixed from 64
+        self.fc_tau_intero = nn.Sequential(
+            nn.Linear(32, 1), nn.Softplus()
+        )  # Fixed from 64
+        self.fc_tau_extero = nn.Sequential(
+            nn.Linear(32, 1), nn.Softplus()
+        )  # Fixed from 64
 
         # Second-order: volatility estimation - fixed input size
         self.volatility_net = nn.Sequential(
@@ -1323,10 +1371,18 @@ class PrecisionEstimator(nn.Module):
         # Pack context into tensor
         context_vec = torch.stack(
             [
-                context.get("metabolic", torch.zeros(batch_size, device=intero_input.device)),
-                context.get("cognitive", torch.zeros(batch_size, device=intero_input.device)),
-                context.get("affective", torch.zeros(batch_size, device=intero_input.device)),
-                context.get("arousal", torch.zeros(batch_size, device=intero_input.device)),
+                context.get(
+                    "metabolic", torch.zeros(batch_size, device=intero_input.device)
+                ),
+                context.get(
+                    "cognitive", torch.zeros(batch_size, device=intero_input.device)
+                ),
+                context.get(
+                    "affective", torch.zeros(batch_size, device=intero_input.device)
+                ),
+                context.get(
+                    "arousal", torch.zeros(batch_size, device=intero_input.device)
+                ),
             ],
             dim=-1,
         )
@@ -1361,7 +1417,9 @@ class PrecisionEstimator(nn.Module):
                     accuracy_features = accuracy_features[:10]
 
                 # Expand to match batch size
-                accuracy_features = accuracy_features.unsqueeze(0).expand(batch_size, -1)
+                accuracy_features = accuracy_features.unsqueeze(0).expand(
+                    batch_size, -1
+                )
 
                 # Meta-learning input
                 meta_input = torch.cat([precision_features, accuracy_features], dim=-1)
@@ -1383,8 +1441,12 @@ class PrecisionEstimator(nn.Module):
             Pi_extero = Pi_extero_base
 
         # Estimate time constants
-        tau_intero = self.fc_tau_intero(precision_features) + self.config.tau_intero_baseline
-        tau_extero = self.fc_tau_extero(precision_features) + self.config.tau_extero_baseline
+        tau_intero = (
+            self.fc_tau_intero(precision_features) + self.config.tau_intero_baseline
+        )
+        tau_extero = (
+            self.fc_tau_extero(precision_features) + self.config.tau_extero_baseline
+        )
 
         # Volatility estimation (second-order uncertainty)
         if (
@@ -1442,7 +1504,9 @@ class PredictionErrorModule(nn.Module):
     Enhanced with variance estimates for rigorous VFE calculations.
     """
 
-    def __init__(self, input_size: int, state_size: int, num_levels: int, config: APGIConfig):
+    def __init__(
+        self, input_size: int, state_size: int, num_levels: int, config: APGIConfig
+    ):
         super().__init__()
         self.input_size = input_size
         self.state_size = state_size
@@ -1498,7 +1562,9 @@ class PredictionErrorModule(nn.Module):
         intero_current = intero_input
         for i, layer in enumerate(self.layers):
             top_down = None  # Simplified for now
-            intero_states[i], error, _, _ = layer(intero_current, top_down, intero_states[i], dt)
+            intero_states[i], error, _, _ = layer(
+                intero_current, top_down, intero_states[i], dt
+            )
             hierarchical_errors.append(error)
             intero_current = intero_states[i]
 
@@ -1579,9 +1645,15 @@ class EnhancedMetabolicCostModule(nn.Module):
         sync_cost = self.config.beta_maintenance * synchronization.pow(2)
         return activity_cost + sync_cost
 
-    def compute_maintenance_cost(self, state: torch.Tensor, duration: float) -> torch.Tensor:
+    def compute_maintenance_cost(
+        self, state: torch.Tensor, duration: float
+    ) -> torch.Tensor:
         """Cost of maintaining conscious state"""
-        return self.config.beta_maintenance * state.pow(2).sum(dim=-1, keepdim=True) * duration
+        return (
+            self.config.beta_maintenance
+            * state.pow(2).sum(dim=-1, keepdim=True)
+            * duration
+        )
 
     def compute_benefit(
         self, current_error: torch.Tensor, predicted_error_reduction: torch.Tensor
@@ -1673,7 +1745,9 @@ class AdaptiveThreshold(nn.Module):
         self.theta0 = nn.Parameter(torch.tensor(config.theta0), requires_grad=False)
 
         # Learnable metabolic modulation
-        self.metabolic_modulator = nn.Sequential(nn.Linear(2, 8), nn.Tanh(), nn.Linear(8, 1))
+        self.metabolic_modulator = nn.Sequential(
+            nn.Linear(2, 8), nn.Tanh(), nn.Linear(8, 1)
+        )
 
     def forward(
         self,
@@ -1711,18 +1785,26 @@ class AdaptiveThreshold(nn.Module):
                 min=self.config.cost_benefit_clamp_min,
                 max=self.config.cost_benefit_clamp_max,
             )
-            cost_benefit_term = self.config.cost_benefit_scaling * cost_benefit_adjustment
+            cost_benefit_term = (
+                self.config.cost_benefit_scaling * cost_benefit_adjustment
+            )
         else:
             cost_benefit_term = torch.zeros_like(cost)
 
         # Combine all terms
         dtheta_dt = (
-            homeostasis + refractoriness + urgency + metabolic_adjustment - cost_benefit_term
+            homeostasis
+            + refractoriness
+            + urgency
+            + metabolic_adjustment
+            - cost_benefit_term
         )
         new_theta = current_theta + dt * dtheta_dt
 
         # Clamp to reasonable range
-        new_theta = torch.clamp(new_theta, min=self.config.theta_min, max=self.config.theta_max)
+        new_theta = torch.clamp(
+            new_theta, min=self.config.theta_min, max=self.config.theta_max
+        )
 
         return new_theta
 
@@ -1834,7 +1916,10 @@ class GlobalWorkspaceModule(nn.Module):
         sustained_scaled = self.config.workspace_sustained_scaling * sustained
 
         # Update workspace
-        workspace = ignition_active * broadcast_signal + (1 - ignition_active) * sustained_scaled
+        workspace = (
+            ignition_active * broadcast_signal
+            + (1 - ignition_active) * sustained_scaled
+        )
 
         return workspace
 
@@ -1864,11 +1949,15 @@ class APGILiquidNetwork(nn.Module):
         self.num_levels = config.num_levels
 
         # Core modules
-        self.precision_estimator = PrecisionEstimator(config.input_size, config.hidden_size, config)
+        self.precision_estimator = PrecisionEstimator(
+            config.input_size, config.hidden_size, config
+        )
         self.prediction_error_module = PredictionErrorModule(
             config.input_size, config.hidden_size, config.num_levels, config
         )
-        self.metabolic_cost_module = EnhancedMetabolicCostModule(config.hidden_size, config)
+        self.metabolic_cost_module = EnhancedMetabolicCostModule(
+            config.hidden_size, config
+        )
         self.adaptive_threshold = AdaptiveThreshold(config)
         self.neuromodulation = NeuromodulationModule(config.hidden_size, config)
         self.global_workspace = GlobalWorkspaceModule(config.hidden_size, config)
@@ -1884,19 +1973,23 @@ class APGILiquidNetwork(nn.Module):
         Initialize complete network state with probabilistic representations.
         """
         intero_states = [
-            torch.zeros(batch_size, self.hidden_size, device=device) for _ in range(self.num_levels)
+            torch.zeros(batch_size, self.hidden_size, device=device)
+            for _ in range(self.num_levels)
         ]
         extero_states = [
-            torch.zeros(batch_size, self.hidden_size, device=device) for _ in range(self.num_levels)
+            torch.zeros(batch_size, self.hidden_size, device=device)
+            for _ in range(self.num_levels)
         ]
         workspace_state = torch.zeros(batch_size, self.hidden_size, device=device)
 
         # Initialize predictions
         intero_predictions = [
-            torch.zeros(batch_size, self.input_size, device=device) for _ in range(self.num_levels)
+            torch.zeros(batch_size, self.input_size, device=device)
+            for _ in range(self.num_levels)
         ]
         extero_predictions = [
-            torch.zeros(batch_size, self.input_size, device=device) for _ in range(self.num_levels)
+            torch.zeros(batch_size, self.input_size, device=device)
+            for _ in range(self.num_levels)
         ]
 
         # NEW: Initialize probabilistic representations
@@ -2007,7 +2100,9 @@ class APGILiquidNetwork(nn.Module):
         Pi_extero_before = state.Pi_extero.clone()
 
         # Compute prediction accuracy for meta-learning
-        prediction_accuracy = 1.0 / (1.0 + state.prev_S)  # Higher accuracy = lower surprise
+        prediction_accuracy = 1.0 / (
+            1.0 + state.prev_S
+        )  # Higher accuracy = lower surprise
 
         # Precision estimation with meta-learning
         precision_output = self.precision_estimator(
@@ -2024,12 +2119,12 @@ class APGILiquidNetwork(nn.Module):
         )
 
         # Compute precision-weighted surprise
-        S_intero = precision_output.Pi_intero * torch.abs(prediction_output.epsilon_intero).sum(
-            dim=-1, keepdim=True
-        )
-        S_extero = precision_output.Pi_extero * torch.abs(prediction_output.epsilon_extero).sum(
-            dim=-1, keepdim=True
-        )
+        S_intero = precision_output.Pi_intero * torch.abs(
+            prediction_output.epsilon_intero
+        ).sum(dim=-1, keepdim=True)
+        S_extero = precision_output.Pi_extero * torch.abs(
+            prediction_output.epsilon_extero
+        ).sum(dim=-1, keepdim=True)
         S_total = S_intero + S_extero
 
         return (
@@ -2064,14 +2159,18 @@ class APGILiquidNetwork(nn.Module):
         )
 
         # Ignition decision with hysteresis
-        ignition_prob = torch.sigmoid(self.config.beta_transition * (S_total - theta_new))
+        ignition_prob = torch.sigmoid(
+            self.config.beta_transition * (S_total - theta_new)
+        )
 
         # Hysteresis
         was_ignited = state.ignition_history > 0.5
         threshold_off = theta_new + self.config.hysteresis
         threshold_on = theta_new - self.config.hysteresis
 
-        should_ignite = torch.where(was_ignited, S_total > threshold_off, S_total > threshold_on)
+        should_ignite = torch.where(
+            was_ignited, S_total > threshold_off, S_total > threshold_on
+        )
 
         ignition_active = should_ignite.float()
 
@@ -2118,7 +2217,8 @@ class APGILiquidNetwork(nn.Module):
                 state.intero_states[-1],
                 state.extero_states[-1],
                 observation,
-                (precision_before[0] + precision_before[1]) / 2,  # Average precision before
+                (precision_before[0] + precision_before[1])
+                / 2,  # Average precision before
                 (precision_output.Pi_intero + precision_output.Pi_extero)
                 / 2,  # Average precision after
                 dt,  # Pass dt for entropy production calculations
@@ -2126,8 +2226,8 @@ class APGILiquidNetwork(nn.Module):
 
             # Validate cross-level consistency
             if self.config.cross_level_validation_enabled:
-                consistency_checks = self.entropy_module.validate_cross_level_consistency(
-                    entropy_output
+                consistency_checks = (
+                    self.entropy_module.validate_cross_level_consistency(entropy_output)
                 )
             else:
                 consistency_checks = {}
@@ -2203,7 +2303,9 @@ class APGILiquidNetwork(nn.Module):
             state.benefit_history.pop(0)
 
         # Update precision history
-        state.precision_history.append((precision_output.Pi_intero, precision_output.Pi_extero))
+        state.precision_history.append(
+            (precision_output.Pi_intero, precision_output.Pi_extero)
+        )
         if len(state.precision_history) > self.config.precision_history_max:
             state.precision_history.pop(0)
 
@@ -2306,7 +2408,9 @@ class APGILiquidNetwork(nn.Module):
         dt = self.config.dt_ms / 1000.0  # Convert to seconds
 
         # Setup context and get basic info
-        batch_size, device, context = self._setup_context_and_state(intero_input, context)
+        batch_size, device, context = self._setup_context_and_state(
+            intero_input, context
+        )
 
         # Compute surprise and precision
         (
@@ -2317,7 +2421,9 @@ class APGILiquidNetwork(nn.Module):
             precision_output,
             prediction_output,
             prediction_accuracy,
-        ) = self._compute_surprise_and_precision(intero_input, extero_input, state, context, dt)
+        ) = self._compute_surprise_and_precision(
+            intero_input, extero_input, state, context, dt
+        )
 
         # Metabolic costs and benefits
         metabolic_output = self.metabolic_cost_module(
@@ -2331,8 +2437,8 @@ class APGILiquidNetwork(nn.Module):
         )
 
         # Compute ignition decision
-        ignition_state, ignition_active, theta_new, ignition_prob = self._compute_ignition_decision(
-            S_total, state, metabolic_output, dt
+        ignition_state, ignition_active, theta_new, ignition_prob = (
+            self._compute_ignition_decision(S_total, state, metabolic_output, dt)
         )
 
         # Global workspace update
@@ -2377,7 +2483,9 @@ class APGILiquidNetwork(nn.Module):
         # Update refractory timer
         refractory_new = torch.where(
             ignition_active > 0.5,
-            torch.ones_like(state.refractory_timer) * self.config.max_refractory_ms / 1000.0,
+            torch.ones_like(state.refractory_timer)
+            * self.config.max_refractory_ms
+            / 1000.0,
             torch.clamp(state.refractory_timer - dt, min=0.0),
         )
 
@@ -2490,8 +2598,12 @@ class EnhancedAPGIValidator:
         state = network.initialize_state(batch_size, device)
 
         # Run forward pass
-        intero_input = torch.randn(batch_size, network.input_size)  # Use network.input_size
-        extero_input = torch.randn(batch_size, network.input_size)  # Use network.input_size
+        intero_input = torch.randn(
+            batch_size, network.input_size
+        )  # Use network.input_size
+        extero_input = torch.randn(
+            batch_size, network.input_size
+        )  # Use network.input_size
 
         _, _, state, diagnostics = network(intero_input, extero_input, state)
 
@@ -2531,13 +2643,22 @@ class EnhancedAPGIValidator:
         all_passed = []
 
         for _ in range(num_steps):
-            intero_input = torch.randn(batch_size, network.input_size)  # Use network.input_size
-            extero_input = torch.randn(batch_size, network.input_size)  # Use network.input_size
+            intero_input = torch.randn(
+                batch_size, network.input_size
+            )  # Use network.input_size
+            extero_input = torch.randn(
+                batch_size, network.input_size
+            )  # Use network.input_size
 
             _, _, state, diagnostics = network(intero_input, extero_input, state)
 
-            if "consistency_checks" in diagnostics and diagnostics["consistency_checks"]:
-                all_passed.append(diagnostics["consistency_checks"].get("all_passed", False))
+            if (
+                "consistency_checks" in diagnostics
+                and diagnostics["consistency_checks"]
+            ):
+                all_passed.append(
+                    diagnostics["consistency_checks"].get("all_passed", False)
+                )
 
         return {
             "consistency_maintained": all(all_passed) if all_passed else False,
@@ -2559,8 +2680,12 @@ class EnhancedAPGIValidator:
         ig_values = []
 
         for _ in range(num_steps):
-            intero_input = torch.randn(batch_size, network.input_size)  # Use network.input_size
-            extero_input = torch.randn(batch_size, network.input_size)  # Use network.input_size
+            intero_input = torch.randn(
+                batch_size, network.input_size
+            )  # Use network.input_size
+            extero_input = torch.randn(
+                batch_size, network.input_size
+            )  # Use network.input_size
 
             _, _, state, diagnostics = network(intero_input, extero_input, state)
 
@@ -2612,7 +2737,9 @@ if __name__ == "__main__":
     print("NETWORK ARCHITECTURE")
     print(f"{'=' * 80}")
     print(f"Total Parameters: {sum(p.numel() for p in network.parameters()):,}")
-    print(f"Configuration: {config.num_levels} hierarchical levels, dt={config.dt_ms}ms")
+    print(
+        f"Configuration: {config.num_levels} hierarchical levels, dt={config.dt_ms}ms"
+    )
     print("\nEntropy Framework:")
     print(f"  ✓ Level 1 (Thermodynamic): {config.use_rigorous_thermodynamic_entropy}")
     print(f"  ✓ Level 2 (Shannon): {config.use_shannon_entropy}")
@@ -2630,8 +2757,12 @@ if __name__ == "__main__":
 
     for step in range(10):
         # Random inputs - updated for smaller network
-        intero_input = torch.randn(batch_size, 32) * (0.5 + step * 0.1)  # Reduced from 64
-        extero_input = torch.randn(batch_size, 32) * (0.5 + step * 0.1)  # Reduced from 64
+        intero_input = torch.randn(batch_size, 32) * (
+            0.5 + step * 0.1
+        )  # Reduced from 64
+        extero_input = torch.randn(batch_size, 32) * (
+            0.5 + step * 0.1
+        )  # Reduced from 64
 
         # Context
         context = {
@@ -2692,7 +2823,9 @@ if __name__ == "__main__":
         print(f"   {status} {key}: {value}")
 
     print("\n2. Cross-Level Consistency:")
-    consistency_results = validator.validate_cross_level_consistency(network, num_steps=10)
+    consistency_results = validator.validate_cross_level_consistency(
+        network, num_steps=10
+    )
     for key, value in consistency_results.items():
         print(f"   {key}: {value}")
 

@@ -72,4 +72,6 @@ def test_temp_dir_fixture(temp_dir):
     """Test that temp_dir fixture provides a valid temporary directory."""
     assert temp_dir.exists()
     assert temp_dir.is_dir()
-    assert temp_dir.name.startswith("tmp")  # Temporary directories typically start with 'tmp'
+    assert temp_dir.name.startswith(
+        "tmp"
+    )  # Temporary directories typically start with 'tmp'

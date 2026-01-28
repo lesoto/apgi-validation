@@ -68,7 +68,9 @@ def run_command(command, description):
     """Run a command and handle errors gracefully."""
     print(f"\n📦 {description}...")
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        result = subprocess.run(
+            command, shell=True, check=True, capture_output=True, text=True
+        )
         print(f"✅ {description} completed successfully")
         return True
     except subprocess.CalledProcessError as e:
@@ -103,7 +105,9 @@ def check_python_version():
         )
         print(f"❌ {error}")
         return False
-    print(f"✅ Python version {version.major}.{version.minor}.{version.micro} is compatible")
+    print(
+        f"✅ Python version {version.major}.{version.minor}.{version.micro} is compatible"
+    )
     return True
 
 
@@ -113,13 +117,17 @@ def install_core_dependencies():
 
     if not requirements_path.exists():
         error = DataError(
-            message=format_error_message("file_not_found", file_path=str(requirements_path)),
+            message=format_error_message(
+                "file_not_found", file_path=str(requirements_path)
+            ),
             suggestion="Ensure requirements.txt exists in the project root directory",
         )
         print(f"❌ {error}")
         return False
 
-    print("📦 Note: This script uses --break-system-packages flag to install dependencies.")
+    print(
+        "📦 Note: This script uses --break-system-packages flag to install dependencies."
+    )
     print("💡 For production use, consider creating a virtual environment:")
     print("   python3 -m venv venv")
     print("   source venv/bin/activate  # On Windows: venv\\Scripts\\activate")

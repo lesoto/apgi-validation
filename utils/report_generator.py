@@ -312,7 +312,9 @@ class ReportGenerator:
                 chart_data = base64.b64encode(buffer.getvalue()).decode()
                 plt.close()
 
-                charts.append({"title": "Function Performance Overview", "data": chart_data})
+                charts.append(
+                    {"title": "Function Performance Overview", "data": chart_data}
+                )
 
             # System metrics chart
             system_metrics = performance_profiler.system_monitor.get_metrics_summary()
@@ -359,7 +361,9 @@ class ReportGenerator:
 
         return charts
 
-    def _analyze_validation_data(self, validation_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_validation_data(
+        self, validation_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze validation data and extract insights."""
         summary = {
             "total_protocols": len(validation_data.get("protocols", {})),
@@ -418,9 +422,17 @@ class ReportGenerator:
 
                     # Determine status
                     if "cpu" in key.lower():
-                        status = "good" if value < 70 else "warning" if value < 90 else "critical"
+                        status = (
+                            "good"
+                            if value < 70
+                            else "warning" if value < 90 else "critical"
+                        )
                     elif "memory" in key.lower():
-                        status = "good" if value < 70 else "warning" if value < 90 else "critical"
+                        status = (
+                            "good"
+                            if value < 70
+                            else "warning" if value < 90 else "critical"
+                        )
                     else:
                         status = "good"
 
@@ -436,8 +448,12 @@ class ReportGenerator:
         # Function performance metrics
         if performance_profiler.function_profiles:
             total_functions = len(performance_profiler.function_profiles)
-            total_calls = sum(p.call_count for p in performance_profiler.function_profiles.values())
-            total_time = sum(p.total_time for p in performance_profiler.function_profiles.values())
+            total_calls = sum(
+                p.call_count for p in performance_profiler.function_profiles.values()
+            )
+            total_time = sum(
+                p.total_time for p in performance_profiler.function_profiles.values()
+            )
             avg_time = total_time / max(total_functions, 1)
 
             metrics.extend(
@@ -469,7 +485,9 @@ class ReportGenerator:
 
         return metrics
 
-    def _generate_recommendations(self, validation_summary: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _generate_recommendations(
+        self, validation_summary: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Generate recommendations based on analysis."""
         recommendations = []
 
@@ -565,13 +583,17 @@ class ReportGenerator:
         # Prepare validation results for template
         validation_results = []
         if validation_data:
-            for protocol_name, protocol_data in validation_data.get("protocols", {}).items():
+            for protocol_name, protocol_data in validation_data.get(
+                "protocols", {}
+            ).items():
                 validation_results.append(
                     {
                         "name": protocol_name,
                         "passed": protocol_data.get("status") == "passed",
                         "duration": protocol_data.get("duration", 0),
-                        "key_metrics": list(protocol_data.get("metrics", {}).keys())[:3],
+                        "key_metrics": list(protocol_data.get("metrics", {}).keys())[
+                            :3
+                        ],
                         "issues": protocol_data.get("errors", []),
                     }
                 )
@@ -614,12 +636,16 @@ class ReportGenerator:
         """Generate PDF report (requires WeasyPrint)."""
 
         if not WEASYPRINT_AVAILABLE:
-            apgi_logger.logger.warning("WeasyPrint not available. Cannot generate PDF report.")
+            apgi_logger.logger.warning(
+                "WeasyPrint not available. Cannot generate PDF report."
+            )
             return None
 
         try:
             # Generate HTML first
-            html_path = self.generate_html_report(validation_data, title, include_charts=True)
+            html_path = self.generate_html_report(
+                validation_data, title, include_charts=True
+            )
 
             # Convert to PDF
             report_id = html_path.stem
@@ -631,15 +657,13 @@ class ReportGenerator:
 
             # Generate PDF
             html_doc = HTML(string=html_content)
-            css = CSS(
-                string="""
+            css = CSS(string="""
                 @page { margin: 2cm; size: A4; }
                 body { font-size: 10pt; }
                 .metric-card { page-break-inside: avoid; }
                 .chart-container { page-break-inside: avoid; }
                 table { page-break-inside: avoid; }
-            """
-            )
+            """)
 
             html_doc.write_pdf(pdf_path, stylesheets=[css])
 
@@ -708,7 +732,9 @@ class ReportGenerator:
             reports["pdf"] = pdf_path
 
         # Generate summary report
-        reports["summary"] = self.generate_summary_report(validation_data, f"{title} - Summary")
+        reports["summary"] = self.generate_summary_report(
+            validation_data, f"{title} - Summary"
+        )
 
         # Save raw data
         report_id = f"apgi_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -730,7 +756,9 @@ class ReportGenerator:
 
         reports["data"] = data_path
 
-        apgi_logger.logger.info(f"Comprehensive report generated with {len(reports)} formats")
+        apgi_logger.logger.info(
+            f"Comprehensive report generated with {len(reports)} formats"
+        )
         return reports
 
 

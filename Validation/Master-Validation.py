@@ -14,10 +14,17 @@ Falsification Logic:
 import importlib
 import importlib.util
 import json
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 class APGIMasterValidator:
@@ -35,6 +42,8 @@ class APGIMasterValidator:
 
     def __init__(self, timeout_seconds: int = 300) -> None:
         """Initialize validator with configurable timeout."""
+        if timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be positive")
         self.timeout_seconds = timeout_seconds
         self.protocol_results: Dict[str, Any] = {}
         self.falsification_status: Dict[str, List[Dict[str, Any]]] = {
@@ -45,13 +54,16 @@ class APGIMasterValidator:
 
     def run_all_protocols(self) -> None:
         """Execute all 8 protocols in sequence."""
-        for protocol_num in range(1, 9):
+        for protocol_num in self.PROTOCOL_TIERS.keys():
             self._run_protocol(protocol_num)
+
+    def _validate_protocol_number(self, protocol_num: int) -> bool:
+        """Validate protocol number is within valid range."""
+        return isinstance(protocol_num, int) and protocol_num in self.PROTOCOL_TIERS
 
     def _run_protocol(self, protocol_num: int) -> None:
         """Execute a single protocol with comprehensive error handling and timeout."""
-        # Validate protocol number before accessing PROTOCOL_TIERS
-        if not isinstance(protocol_num, int) or protocol_num < 1 or protocol_num > 8:
+        if not self._validate_protocol_number(protocol_num):
             self._handle_protocol_error(
                 protocol_num,
                 "INVALID_PROTOCOL",
@@ -85,7 +97,7 @@ class APGIMasterValidator:
                 {"protocol": protocol_num, "passed": passed, "result": result}
             )
 
-            print(f"Protocol {protocol_num}: {'PASSED' if passed else 'FAILED'}")
+            logger.info(f"Protocol {protocol_num}: {'PASSED' if passed else 'FAILED'}")
 
         except KeyError as e:
             self._handle_protocol_error(
@@ -109,16 +121,16 @@ class APGIMasterValidator:
                 "passed": False,
             }
             # Validate protocol number before accessing PROTOCOL_TIERS
-            if isinstance(protocol_num, int) and 1 <= protocol_num <= 8:
+            if self._validate_protocol_number(protocol_num):
                 tier = self.PROTOCOL_TIERS[protocol_num]
                 self.protocol_results[f"protocol_{protocol_num}"] = error_result
                 self.falsification_status[tier].append(
                     {"protocol": protocol_num, "passed": False, "result": error_result}
                 )
+                logger.error(f"Protocol {protocol_num}: Unexpected error - {e}")
             else:
-                # Handle invalid protocol number
                 self.protocol_results[f"protocol_{protocol_num}"] = error_result
-            print(f"Protocol {protocol_num}: ERROR - {e}")
+                logger.error(f"Protocol {protocol_num}: Unexpected error - {e}")
 
     def _execute_protocol_validation(self, protocol_module: Any) -> Dict[str, Any]:
         """Execute validation function from protocol module with strict interface detection."""
@@ -167,15 +179,22 @@ class APGIMasterValidator:
             "passed": False,
         }
 
-    def _handle_protocol_error(self, protocol_num: int, status: str, error: str) -> None:
+    def _handle_protocol_error(
+        self, protocol_num: int, status: str, error: str
+    ) -> None:
         """Handle protocol errors consistently."""
         error_result = {"status": status, "error": error, "passed": False}
-        tier = self.PROTOCOL_TIERS[protocol_num]
-        self.protocol_results[f"protocol_{protocol_num}"] = error_result
-        self.falsification_status[tier].append(
-            {"protocol": protocol_num, "passed": False, "result": error_result}
-        )
-        print(f"Protocol {protocol_num}: ERROR - {error}")
+
+        if self._validate_protocol_number(protocol_num):
+            tier = self.PROTOCOL_TIERS[protocol_num]
+            self.protocol_results[f"protocol_{protocol_num}"] = error_result
+            self.falsification_status[tier].append(
+                {"protocol": protocol_num, "passed": False, "result": error_result}
+            )
+        else:
+            self.protocol_results[f"protocol_{protocol_num}"] = error_result
+
+        logger.error(f"Protocol {protocol_num}: {status} - {error}")
 
     def apply_decision_tree(self) -> str:
         """
@@ -185,7 +204,9 @@ class APGIMasterValidator:
             'VALIDATED', 'MAJOR_REVISION', 'SCOPE_RESTRICTION', or 'REJECTED'
         """
         # Count failures at each tier
-        primary_failures = len([r for r in self.falsification_status["primary"] if not r["passed"]])
+        primary_failures = len(
+            [r for r in self.falsification_status["primary"] if not r["passed"]]
+        )
         secondary_failures = len(
             [r for r in self.falsification_status["secondary"] if not r["passed"]]
         )
@@ -203,34 +224,59 @@ class APGIMasterValidator:
         else:
             return "VALIDATED"
 
-    def generate_master_report(self) -> Dict:
-        """Comprehensive validation report"""
+    def generate_master_report(self) -> Dict[str, Any]:
+        """Comprehensive validation report."""
         return {
             "protocol_results": self.protocol_results,
             "falsification_status": self.falsification_status,
             "overall_decision": self.apply_decision_tree(),
         }
 
+    def _convert_to_serializable(self, obj: Any) -> Any:
+        """Convert numpy and other non-serializable types to Python types."""
+        import numpy as np
+
+        if obj is None:
+            return None
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {k: self._convert_to_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self._convert_to_serializable(item) for item in obj]
+        elif hasattr(obj, "__dict__"):
+            return self._convert_to_serializable(obj.__dict__)
+        else:
+            return obj
+
     def _execute_protocol_with_timeout(self, protocol_module: Any) -> Dict[str, Any]:
         """Execute protocol with timeout protection."""
+        executor = ThreadPoolExecutor(max_workers=1)
         try:
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(self._execute_protocol_validation, protocol_module)
-                try:
-                    result = future.result(timeout=self.timeout_seconds)
-                    return result
-                except FutureTimeoutError:
-                    return {
-                        "status": "TIMEOUT_ERROR",
-                        "error": f"Protocol timed out after {self.timeout_seconds} seconds",
-                        "passed": False,
-                    }
+            future = executor.submit(self._execute_protocol_validation, protocol_module)
+            try:
+                result = future.result(timeout=self.timeout_seconds)
+                return result
+            except FutureTimeoutError:
+                return {
+                    "status": "TIMEOUT_ERROR",
+                    "error": f"Protocol timed out after {self.timeout_seconds} seconds",
+                    "passed": False,
+                }
         except Exception as e:
             return {
                 "status": "EXECUTION_ERROR",
                 "error": f"Failed to execute protocol: {e}",
                 "passed": False,
             }
+        finally:
+            executor.shutdown(wait=False)
 
     def _validate_protocol_result(self, result: Any) -> bool:
         """Validate that protocol result is properly structured with strict checking."""
@@ -260,34 +306,37 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="APGI Master Validation Pipeline")
-    parser.add_argument("--timeout", type=int, default=300, help="Protocol timeout in seconds")
+    parser.add_argument(
+        "--timeout", type=int, default=300, help="Protocol timeout in seconds"
+    )
     args = parser.parse_args()
 
     validator = APGIMasterValidator(timeout_seconds=args.timeout)
 
-    print("Starting APGI Master Validation Pipeline...")
-    print("=" * 50)
+    logger.info("Starting APGI Master Validation Pipeline...")
+    logger.info("=" * 50)
 
     # Execute all protocols
     validator.run_all_protocols()
 
-    print("\n" + "=" * 50)
-    print("VALIDATION SUMMARY")
-    print("=" * 50)
+    logger.info("=" * 50)
+    logger.info("VALIDATION SUMMARY")
+    logger.info("=" * 50)
 
     # Generate and display report
     report = validator.generate_master_report()
 
-    print(f"Overall Decision: {report['overall_decision']}")
+    logger.info(f"Overall Decision: {report['overall_decision']}")
 
     # Print tier summaries
     for tier, results in report["falsification_status"].items():
         failures = len([r for r in results if not r["passed"]])
         total = len(results)
-        print(f"{tier.capitalize()} tier: {failures}/{total} failed")
+        logger.info(f"{tier.capitalize()} tier: {failures}/{total} failed")
 
     # Save detailed report
+    report_serializable = validator._convert_to_serializable(report)
     with open("APGI-Master-Validation-Report.json", "w") as f:
-        json.dump(report, f, indent=2, default=str)
+        json.dump(report_serializable, f, indent=2)
 
-    print(f"\nDetailed report saved to: APGI-Master-Validation-Report.json")
+    logger.info(f"Detailed report saved to: APGI-Master-Validation-Report.json")

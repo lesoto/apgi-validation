@@ -75,7 +75,9 @@ class HierarchicalGenerativeModel:
         """Update model with prediction error"""
         # Simple gradient descent update
         for level_name in self.states.keys():
-            self.states[level_name] += self.learning_rate * error[: len(self.states[level_name])]
+            self.states[level_name] += (
+                self.learning_rate * error[: len(self.states[level_name])]
+            )
 
     def get_level(self, level_name: str) -> np.ndarray:
         """Get state of specific level"""
@@ -89,7 +91,9 @@ class HierarchicalGenerativeModel:
 class SomaticMarkerNetwork:
     """Somatic marker network for interoceptive predictions"""
 
-    def __init__(self, context_dim: int, action_dim: int, hidden_dim: int, learning_rate: float):
+    def __init__(
+        self, context_dim: int, action_dim: int, hidden_dim: int, learning_rate: float
+    ):
         self.context_dim = context_dim
         self.action_dim = action_dim
         self.learning_rate = learning_rate
@@ -169,10 +173,14 @@ class SomaticMarkerNetwork:
 
         # Update weights with clipping
         W2_grad = np.outer(output_grad, h)
-        W2_grad = np.clip(W2_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE)  # Gradient clipping
+        W2_grad = np.clip(
+            W2_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE
+        )  # Gradient clipping
 
         self.W2 = self.W2.astype(np.float64) + self.learning_rate * W2_grad
-        self.W2 = np.clip(self.W2, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE)  # Weight clipping
+        self.W2 = np.clip(
+            self.W2, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE
+        )  # Weight clipping
         self.W2 = self.W2.astype(np.float32)
 
         self.b2 = self.b2.astype(np.float64) + self.learning_rate * output_grad
@@ -184,10 +192,14 @@ class SomaticMarkerNetwork:
         h_grad = np.clip(h_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE)  # Gradient clipping
 
         W1_grad = np.outer(h_grad, context_dp)
-        W1_grad = np.clip(W1_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE)  # Gradient clipping
+        W1_grad = np.clip(
+            W1_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE
+        )  # Gradient clipping
 
         self.W1 = self.W1.astype(np.float64) + self.learning_rate * W1_grad
-        self.W1 = np.clip(self.W1, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE)  # Weight clipping
+        self.W1 = np.clip(
+            self.W1, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE
+        )  # Weight clipping
         self.W1 = self.W1.astype(np.float32)
 
         self.b1 = self.b1.astype(np.float64) + self.learning_rate * h_grad
@@ -497,7 +509,8 @@ class APGIActiveInferenceAgent:
 
         # M(context, action) → expected interoceptive outcome
         self.somatic_markers = SomaticMarkerNetwork(
-            context_dim=CONTEXT_DIM + HOMEOSTATIC_DIM,  # extero_context + intero_homeostatic
+            context_dim=CONTEXT_DIM
+            + HOMEOSTATIC_DIM,  # extero_context + intero_homeostatic
             action_dim=config.get("n_actions", 4),
             hidden_dim=SOMATIC_HIDDEN_DIM,
             learning_rate=config.get("lr_somatic", 0.1),
@@ -530,7 +543,9 @@ class APGIActiveInferenceAgent:
         # =====================
 
         self.policy_network = PolicyNetwork(
-            state_dim=CONTEXT_DIM + HOMEOSTATIC_DIM + WORKSPACE_DIM,  # extero + intero + workspace
+            state_dim=CONTEXT_DIM
+            + HOMEOSTATIC_DIM
+            + WORKSPACE_DIM,  # extero + intero + workspace
             action_dim=config.get("n_actions", 4),
             hidden_dim=HIDDEN_DIM_DEFAULT,
         )
@@ -579,7 +594,9 @@ class APGIActiveInferenceAgent:
         intero_actual = observation["intero"]
 
         # Validate observations before processing
-        if not (np.all(np.isfinite(extero_actual)) and np.all(np.isfinite(intero_actual))):
+        if not (
+            np.all(np.isfinite(extero_actual)) and np.all(np.isfinite(intero_actual))
+        ):
             # Return safe default action if observations are invalid
             return 0
 
@@ -624,9 +641,9 @@ class APGIActiveInferenceAgent:
         # =====================
 
         # APGI core equation
-        input_drive = self.Pi_e * np.linalg.norm(eps_e) + self.beta * self.Pi_i * np.linalg.norm(
-            eps_i
-        )
+        input_drive = self.Pi_e * np.linalg.norm(
+            eps_e
+        ) + self.beta * self.Pi_i * np.linalg.norm(eps_i)
 
         # Dynamical update
         dS_dt = -self.S_t / self.tau_S + input_drive
@@ -687,12 +704,14 @@ class APGIActiveInferenceAgent:
             self.ignition_history.append(
                 {
                     "time": self.time,
-                    "S_t": self.S_t + self.config.get("rho", 0.7) * self.S_t,  # Pre-reset
+                    "S_t": self.S_t
+                    + self.config.get("rho", 0.7) * self.S_t,  # Pre-reset
                     "theta_t": self.theta_t,
                     "Pi_e_eps_e": self.Pi_e * np.linalg.norm(eps_e),
                     "Pi_i_eps_i": self.Pi_i * np.linalg.norm(eps_i),
                     "intero_dominant": (
-                        self.Pi_i * np.linalg.norm(eps_i) > self.Pi_e * np.linalg.norm(eps_e)
+                        self.Pi_i * np.linalg.norm(eps_i)
+                        > self.Pi_e * np.linalg.norm(eps_e)
                     ),
                 }
             )
@@ -756,7 +775,9 @@ class APGIActiveInferenceAgent:
             ]
         )
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ):
         """
         Process outcome and update somatic markers
 
@@ -881,7 +902,9 @@ class StandardPPAgent:
 
         # Continuous processing - no threshold
         self.policy_network = PolicyNetwork(
-            state_dim=CONTEXT_DIM + HOMEOSTATIC_DIM + WORKSPACE_DIM,  # extero + intero + combined
+            state_dim=CONTEXT_DIM
+            + HOMEOSTATIC_DIM
+            + WORKSPACE_DIM,  # extero + intero + combined
             action_dim=config.get("n_actions", 4),
             hidden_dim=HIDDEN_DIM_DEFAULT,
         )
@@ -952,7 +975,9 @@ class StandardPPAgent:
 
         return action
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ):
         """Process outcome (simplified for standard PP)"""
         # Standard PP doesn't have somatic markers, so simple value update
         total_value = reward - 0.5 * intero_cost  # Reduced interoceptive weighting
@@ -996,7 +1021,9 @@ class GWTOnlyAgent:
 
         # No somatic markers
         self.policy_network = PolicyNetwork(
-            state_dim=CONTEXT_DIM + HOMEOSTATIC_DIM + WORKSPACE_DIM,  # extero + intero + workspace
+            state_dim=CONTEXT_DIM
+            + HOMEOSTATIC_DIM
+            + WORKSPACE_DIM,  # extero + intero + workspace
             action_dim=config.get("n_actions", 4),
             hidden_dim=HIDDEN_DIM_DEFAULT,
         )
@@ -1127,7 +1154,9 @@ class GWTOnlyAgent:
             ]
         )
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ):
         """Process outcome (without somatic marker updates)"""
         # Simple value update (no somatic learning)
         total_value = reward - 0.3 * intero_cost  # Minimal interoceptive weighting
@@ -1161,7 +1190,9 @@ def run_falsification():
     """Entry point for CLI falsification testing."""
     try:
         print("Running APGI Falsification Protocol 1...")
-        print("Protocol 1 falsifies APGI predictions through active inference agent simulations.")
+        print(
+            "Protocol 1 falsifies APGI predictions through active inference agent simulations."
+        )
 
         # Create test configuration
         config = {

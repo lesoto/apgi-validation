@@ -74,6 +74,10 @@ class InterventionEffect:
         k = 2.0
         theta_param = (self.peak_time - self.onset_time) / k
 
+        # Avoid division by zero or negative scale
+        if theta_param <= 0:
+            theta_param = 0.001
+
         t_shifted = t - self.onset_time
         t_shifted[t_shifted < 0] = 0
 
@@ -262,6 +266,13 @@ class PharmacologicalInterventions:
 # =============================================================================
 
 
+def logistic_psychometric(
+    x: np.ndarray, threshold: float, slope: float, lapse: float
+) -> np.ndarray:
+    """Logistic psychometric function with lapse rate"""
+    return lapse + (1 - 2 * lapse) / (1 + np.exp(-slope * (x - threshold)))
+
+
 class PsychometricCurve:
     """
     Fit and compare psychometric curves before/after intervention
@@ -288,7 +299,7 @@ class PsychometricCurve:
 
         def logistic(x, threshold, slope, lapse):
             """Logistic psychometric function with lapse rate"""
-            return lapse + (1 - 2 * lapse) / (1 + np.exp(-slope * (x - threshold)))
+            return logistic_psychometric(x, threshold, slope, lapse)
 
         def negative_log_likelihood(params):
             """Negative log-likelihood for optimization"""
@@ -305,7 +316,9 @@ class PsychometricCurve:
             p_pred = np.clip(p_pred, 1e-10, 1 - 1e-10)
 
             # Binomial log-likelihood
-            ll = np.sum(n_correct * np.log(p_pred) + (n_trials - n_correct) * np.log(1 - p_pred))
+            ll = np.sum(
+                n_correct * np.log(p_pred) + (n_trials - n_correct) * np.log(1 - p_pred)
+            )
 
             return -ll
 
@@ -385,10 +398,13 @@ class PsychometricCurve:
         """
 
         # Threshold shift
-        threshold_shift = intervention_params["threshold"] - baseline_params["threshold"]
+        threshold_shift = (
+            intervention_params["threshold"] - baseline_params["threshold"]
+        )
 
         threshold_shift_se = np.sqrt(
-            baseline_params["threshold_se"] ** 2 + intervention_params["threshold_se"] ** 2
+            baseline_params["threshold_se"] ** 2
+            + intervention_params["threshold_se"] ** 2
         )
 
         threshold_z = threshold_shift / (threshold_shift_se + 1e-10)
@@ -469,18 +485,16 @@ class InterventionStudySimulator:
                 effect_magnitude = effect.compute_time_course(np.array([time_point]))[0]
 
                 # Apply intervention effect to parameters
+                theta = baseline_theta[subj_id]
+                Pi_i = baseline_Pi_i[subj_id]
+                alpha = baseline_alpha[subj_id]
+
                 if effect.target_parameter == "theta":
                     theta = baseline_theta[subj_id] + effect_magnitude
                 elif effect.target_parameter == "Pi_i":
-                    theta = baseline_theta[subj_id]
                     Pi_i = baseline_Pi_i[subj_id] * (1 + effect_magnitude)
                 elif effect.target_parameter == "alpha":
-                    theta = baseline_theta[subj_id]
                     alpha = baseline_alpha[subj_id] * (1 + effect_magnitude)
-                else:
-                    theta = baseline_theta[subj_id]
-
-                alpha = baseline_alpha[subj_id]
 
                 # Generate trials at each stimulus level
                 for stim_level in stimulus_levels:
@@ -654,7 +668,9 @@ class PowerAnalysis:
                 t_crit = stats.t.ppf(1 - alpha / 2, df)
 
                 # Power = P(|t| > t_crit | H1)
-                power[i] = 1 - stats.nct.cdf(t_crit, df, ncp) + stats.nct.cdf(-t_crit, df, ncp)
+                power[i] = (
+                    1 - stats.nct.cdf(t_crit, df, ncp) + stats.nct.cdf(-t_crit, df, ncp)
+                )
 
             except (ValueError, RuntimeError):
                 power[i] = np.nan
@@ -662,7 +678,9 @@ class PowerAnalysis:
         return power
 
     @staticmethod
-    def minimum_detectable_effect(n: int, alpha: float = 0.05, power: float = 0.80) -> float:
+    def minimum_detectable_effect(
+        n: int, alpha: float = 0.05, power: float = 0.80
+    ) -> float:
         """
         Minimum effect size detectable with given N and power
         """
@@ -750,7 +768,9 @@ class InterventionFalsificationChecker:
             "significant": p_value < 0.05,
         }
 
-    def check_F3_3(self, predicted_direction: str, observed_effect: float) -> Tuple[bool, Dict]:
+    def check_F3_3(
+        self, predicted_direction: str, observed_effect: float
+    ) -> Tuple[bool, Dict]:
         """F3.3: Direction of effect"""
 
         if predicted_direction == "increase":
@@ -766,7 +786,9 @@ class InterventionFalsificationChecker:
         if expected_sign != 0:
             falsified = observed_sign != expected_sign
         else:
-            falsified = abs(observed_effect) > 0.3  # Significant effect when null predicted
+            falsified = (
+                abs(observed_effect) > 0.3
+            )  # Significant effect when null predicted
 
         return falsified, {
             "predicted_direction": predicted_direction,
@@ -862,7 +884,7 @@ class InterventionFalsificationChecker:
 def plot_intervention_results(
     results_df: pd.DataFrame,
     intervention_name: str,
-    save_path: str = "protocol3_intervention_results.png",
+    save_path: str = "protocol7_intervention_results.png",
 ):
     """Generate comprehensive intervention results visualization"""
 
@@ -879,13 +901,17 @@ def plot_intervention_results(
     intervention = results_df[results_df["condition"] == "intervention"]
 
     # Group by stimulus level
-    baseline_grouped = baseline.groupby("stimulus_level").agg({"n_seen": "sum", "n_trials": "sum"})
+    baseline_grouped = baseline.groupby("stimulus_level").agg(
+        {"n_seen": "sum", "n_trials": "sum"}
+    )
 
     intervention_grouped = intervention.groupby("stimulus_level").agg(
         {"n_seen": "sum", "n_trials": "sum"}
     )
 
-    baseline_grouped["p_seen"] = baseline_grouped["n_seen"] / baseline_grouped["n_trials"]
+    baseline_grouped["p_seen"] = (
+        baseline_grouped["n_seen"] / baseline_grouped["n_trials"]
+    )
     intervention_grouped["p_seen"] = (
         intervention_grouped["n_seen"] / intervention_grouped["n_trials"]
     )
@@ -928,16 +954,13 @@ def plot_intervention_results(
     # Plot fitted curves
     x_fine = np.linspace(0.1, 0.9, 200)
 
-    def logistic(x, threshold, slope, lapse):
-        return lapse + (1 - 2 * lapse) / (1 + np.exp(-slope * (x - threshold)))
-
-    y_baseline = logistic(
+    y_baseline = logistic_psychometric(
         x_fine,
         baseline_params["threshold"],
         baseline_params["slope"],
         baseline_params["lapse"],
     )
-    y_intervention = logistic(
+    y_intervention = logistic_psychometric(
         x_fine,
         intervention_params["threshold"],
         intervention_params["slope"],
@@ -965,7 +988,9 @@ def plot_intervention_results(
 
     ax1.set_xlabel("Stimulus Intensity", fontsize=13, fontweight="bold")
     ax1.set_ylabel("P(Seen)", fontsize=13, fontweight="bold")
-    ax1.set_title(f"Psychometric Functions - {intervention_name}", fontsize=14, fontweight="bold")
+    ax1.set_title(
+        f"Psychometric Functions - {intervention_name}", fontsize=14, fontweight="bold"
+    )
     ax1.legend(fontsize=11)
     ax1.grid(alpha=0.3)
     ax1.set_xlim([0, 1])
@@ -1014,6 +1039,7 @@ def plot_intervention_results(
     ax3 = fig.add_subplot(gs[1, :])
 
     # Extract subject-level thresholds
+    psychometric = PsychometricCurve()
     subject_thresholds = (
         results_df.groupby(["subject_id", "condition"])
         .apply(
@@ -1108,11 +1134,21 @@ def plot_intervention_results(
     ax5 = fig.add_subplot(gs[2, 1])
     ax5.axis("off")
 
-    # Compute statistics
-    t_stat, p_value = stats.ttest_rel(baseline_thresholds, intervention_thresholds)
-    cohens_d = (np.nanmean(intervention_thresholds) - np.nanmean(baseline_thresholds)) / np.nanstd(
-        individual_effects
-    )
+    # Compute statistics (handle NaN values)
+    valid_mask = ~(np.isnan(baseline_thresholds) | np.isnan(intervention_thresholds))
+    baseline_thresholds_valid = baseline_thresholds[valid_mask]
+    intervention_thresholds_valid = intervention_thresholds[valid_mask]
+
+    if len(baseline_thresholds_valid) < 2:
+        t_stat, p_value = np.nan, np.nan
+    else:
+        t_stat, p_value = stats.ttest_rel(
+            baseline_thresholds_valid, intervention_thresholds_valid
+        )
+
+    cohens_d = (
+        np.nanmean(intervention_thresholds) - np.nanmean(baseline_thresholds)
+    ) / np.nanstd(individual_effects)
 
     ci_low, ci_high = stats.t.interval(
         0.95,
@@ -1238,7 +1274,9 @@ def interactive_power_analysis_tool():
             "n_per_group": np.ceil(n),
             "n_total": np.ceil(n * 2) if design == "between" else np.ceil(n),
             "n_with_dropout": (
-                np.ceil(n_with_dropout * 2) if design == "between" else np.ceil(n_with_dropout)
+                np.ceil(n_with_dropout * 2)
+                if design == "between"
+                else np.ceil(n_with_dropout)
             ),
         }
 
@@ -1319,7 +1357,9 @@ def model_dose_response_relationship(doses, responses):
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.scatter(doses, responses, s=100, alpha=0.6, label="Data")
         ax.plot(dose_range, fitted_response, "r-", linewidth=2, label="Hill fit")
-        ax.axvline(EC50, color="k", linestyle="--", alpha=0.5, label=f"EC50 = {EC50:.2f}")
+        ax.axvline(
+            EC50, color="k", linestyle="--", alpha=0.5, label=f"EC50 = {EC50:.2f}"
+        )
         ax.set_xscale("log")
         ax.set_xlabel("Dose (log scale)")
         ax.set_ylabel("Response")
@@ -1360,7 +1400,9 @@ def bayesian_equivalence_test(control_data, treatment_data, rope_width=0.1):
 
             # Likelihood
             pm.Normal("control_obs", mu=mu_control, sigma=sigma, observed=control_data)
-            pm.Normal("treatment_obs", mu=mu_treatment, sigma=sigma, observed=treatment_data)
+            pm.Normal(
+                "treatment_obs", mu=mu_treatment, sigma=sigma, observed=treatment_data
+            )
 
             # Effect size
             effect = pm.Deterministic("effect", mu_treatment - mu_control)
@@ -1414,7 +1456,8 @@ def bayesian_equivalence_test(control_data, treatment_data, rope_width=0.1):
         # Frequentist fallback
         effect = np.mean(treatment_data) - np.mean(control_data)
         pooled_se = np.sqrt(
-            np.var(control_data) / len(control_data) + np.var(treatment_data) / len(treatment_data)
+            np.var(control_data) / len(control_data)
+            + np.var(treatment_data) / len(treatment_data)
         )
 
         # Simple approximation
@@ -1467,7 +1510,10 @@ def meta_analysis_of_interventions(studies_data):
         # I² statistic (heterogeneity)
         Q = np.sum((effect_sizes - np.mean(effect_sizes)) ** 2 / se**2)
         df = len(effect_sizes) - 1
-        I_squared = max(0, (Q - df) / Q)
+        if Q > 0:
+            I_squared = max(0, (Q - df) / Q)
+        else:
+            I_squared = 0
 
         # Forest plot
         fig, ax = plt.subplots(figsize=(10, 8))
@@ -1515,15 +1561,20 @@ def meta_analysis_of_interventions(studies_data):
             "interpretation": (
                 "Low heterogeneity"
                 if I_squared < 0.25
-                else ("Moderate heterogeneity" if I_squared < 0.75 else "High heterogeneity")
+                else (
+                    "Moderate heterogeneity"
+                    if I_squared < 0.75
+                    else "High heterogeneity"
+                )
             ),
         }
 
         return results, fig
 
-    except ImportError:
-        print("Warning: pymc and arviz not available. Using frequentist meta-analysis.")
-        # Frequentist fallback - simple random effects meta-analysis
+    except (RuntimeError, ValueError, TypeError, KeyError) as e:
+        print(f"Bayesian meta-analysis failed: {e}")
+        print("Falling back to frequentist approximation.")
+        # Frequentist fallback
         effect_sizes = np.array([s["effect_size"] for s in studies_data])
         se = np.array([s["se"] for s in studies_data])
 
@@ -1533,9 +1584,16 @@ def meta_analysis_of_interventions(studies_data):
         se_fixed = np.sqrt(1 / np.sum(weights))
 
         # Simple heterogeneity estimate
-        Q = np.sum(weights * (effect_sizes - overall_effect_fixed) ** 2)
-        df = len(effect_sizes) - 1
-        tau_squared = max(0, (Q - df) / (np.sum(weights) - np.sum(weights**2) / np.sum(weights)))
+        if len(effect_sizes) > 1:
+            Q = np.sum(weights * (effect_sizes - overall_effect_fixed) ** 2)
+            df = len(effect_sizes) - 1
+            tau_squared = max(
+                0, (Q - df) / (np.sum(weights) - np.sum(weights**2) / np.sum(weights))
+            )
+        else:
+            Q = 0
+            df = 0
+            tau_squared = 0
 
         # Random effects weights
         weights_re = 1 / (se**2 + tau_squared)
@@ -1543,7 +1601,10 @@ def meta_analysis_of_interventions(studies_data):
         se_re = np.sqrt(1 / np.sum(weights_re))
 
         # I²
-        I_squared = tau_squared / (tau_squared + np.var(effect_sizes))
+        if Q > 0:
+            I_squared = tau_squared / (tau_squared + np.var(effect_sizes))
+        else:
+            I_squared = 0
 
         return {
             "overall_effect_fixed": overall_effect_fixed,
@@ -1552,7 +1613,7 @@ def meta_analysis_of_interventions(studies_data):
             "se_random": se_re,
             "I_squared": I_squared,
             "tau_squared": tau_squared,
-            "note": "Frequentist approximation - install pymc for full Bayesian meta-analysis",
+            "note": "Frequentist approximation - Bayesian analysis failed",
         }, None
 
 
@@ -1723,13 +1784,15 @@ def main():
         "name": "dlPFC_TMS",
         "baseline_threshold": baseline_params["threshold"],
         "intervention_threshold": intervention_params["threshold"],
-        "threshold_se": comparison["threshold_shift_se"],
+        "threshold_se": intervention_params["threshold_se"],
     }
 
     dlpfc_report = checker.generate_report(dlpfc_results)
 
     print("\ndlPFC TMS Falsification Report:")
-    print(f"  Overall: {'❌ FALSIFIED' if dlpfc_report['overall_falsified'] else '✅ VALIDATED'}")
+    print(
+        f"  Overall: {'❌ FALSIFIED' if dlpfc_report['overall_falsified'] else '✅ VALIDATED'}"
+    )
     print(f"  Passed: {len(dlpfc_report['passed_criteria'])}")
     print(f"  Failed: {len(dlpfc_report['falsified_criteria'])}")
 
@@ -1749,10 +1812,12 @@ def main():
     print("STEP 7: GENERATING VISUALIZATIONS")
     print("=" * 80)
 
-    plot_intervention_results(dlpfc_data, "dlPFC TMS", save_path="protocol3_dlpfc_results.png")
+    plot_intervention_results(
+        dlpfc_data, "dlPFC TMS", save_path="protocol7_dlpfc_results.png"
+    )
 
     plot_intervention_results(
-        propranolol_data, "Propranolol", save_path="protocol3_propranolol_results.png"
+        propranolol_data, "Propranolol", save_path="protocol7_propranolol_results.png"
     )
 
     # =========================================================================
@@ -1798,14 +1863,14 @@ def main():
 
     results_summary = convert_to_serializable(results_summary)
 
-    with open("protocol3_results.json", "w") as f:
+    with open("protocol7_results.json", "w") as f:
         json.dump(results_summary, f, indent=2)
 
-    print("✅ Results saved to: protocol3_results.json")
+    print("✅ Results saved to: protocol7_results.json")
 
     # Save data
-    dlpfc_data.to_csv("protocol3_dlpfc_data.csv", index=False)
-    propranolol_data.to_csv("protocol3_propranolol_data.csv", index=False)
+    dlpfc_data.to_csv("protocol7_dlpfc_data.csv", index=False)
+    propranolol_data.to_csv("protocol7_propranolol_data.csv", index=False)
 
     print("✅ Data saved to CSV files")
 
@@ -1819,7 +1884,9 @@ def main():
 def run_validation():
     """Entry point for CLI validation."""
     try:
-        print("Running APGI Validation Protocol 7: Clinical Translation and Validation")
+        print(
+            "Running APGI Validation Protocol 7: TMS/Pharmacological Intervention Predictions"
+        )
         return main()
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in validation protocol 7: {e}")

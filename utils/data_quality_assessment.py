@@ -106,7 +106,9 @@ class DataQualityAssessment:
                 "missing_cells": missing_cells,
                 "total_cells": total_cells,
                 "missing_by_column": missing_by_column,
-                "columns_with_missing": [col for col, pct in missing_by_column.items() if pct > 0],
+                "columns_with_missing": [
+                    col for col, pct in missing_by_column.items() if pct > 0
+                ],
             },
         )
 
@@ -169,7 +171,9 @@ class DataQualityAssessment:
                 total_checks += 1
 
                 # Check for negative values where inappropriate
-                if col.lower().startswith(("count", "amount", "size", "duration", "age")):
+                if col.lower().startswith(
+                    ("count", "amount", "size", "duration", "age")
+                ):
                     negative_count = (col_data < 0).sum()
                     if negative_count > 0:
                         validity_issues += negative_count
@@ -261,7 +265,9 @@ class DataQualityAssessment:
 
                     if len(unique_cases) > 1:
                         consistency_issues += len(non_null_values)
-                        consistency_details[f"{col}_case_inconsistency"] = list(unique_cases)
+                        consistency_details[f"{col}_case_inconsistency"] = list(
+                            unique_cases
+                        )
 
             # Check for inconsistent date formats
             elif "date" in col.lower() or "time" in col.lower():
@@ -270,7 +276,9 @@ class DataQualityAssessment:
                     pd.to_datetime(col_data, errors="raise")
                 except:
                     consistency_issues += col_data.notna().sum()
-                    consistency_details[f"{col}_date_format"] = "Inconsistent date formats"
+                    consistency_details[f"{col}_date_format"] = (
+                        "Inconsistent date formats"
+                    )
 
         # Calculate consistency score
         if total_checks > 0:
@@ -328,7 +336,9 @@ class DataQualityAssessment:
                     invalid_percentages = ((col_data < 0) | (col_data > 100)).sum()
                     if invalid_percentages > 0:
                         accuracy_score -= (invalid_percentages / len(col_data)) * 0.1
-                        accuracy_details[f"{col}_invalid_percentage"] = invalid_percentations
+                        accuracy_details[f"{col}_invalid_percentage"] = (
+                            invalid_percentations
+                        )
 
                 # Check for statistical outliers
                 if len(col_data) > 10 and col_data.std() > 0:
@@ -359,7 +369,9 @@ class DataQualityAssessment:
             details=accuracy_details,
         )
 
-    def detect_statistical_anomalies(self, data: pd.DataFrame) -> List[AnomalyDetection]:
+    def detect_statistical_anomalies(
+        self, data: pd.DataFrame
+    ) -> List[AnomalyDetection]:
         """Detect statistical anomalies using multiple methods."""
         anomalies = []
 
@@ -473,7 +485,9 @@ class DataQualityAssessment:
             # Try to find timestamp column
             timestamp_col = None
             for col in data.columns:
-                if any(keyword in col.lower() for keyword in ["time", "date", "timestamp"]):
+                if any(
+                    keyword in col.lower() for keyword in ["time", "date", "timestamp"]
+                ):
                     timestamp_col = col
                     break
 
@@ -534,7 +548,9 @@ class DataQualityAssessment:
 
         return anomalies
 
-    def calculate_overall_score(self, metrics: List[DataQualityMetric]) -> Tuple[float, str]:
+    def calculate_overall_score(
+        self, metrics: List[DataQualityMetric]
+    ) -> Tuple[float, str]:
         """Calculate overall data quality score and grade."""
         if not metrics:
             return 0.0, "F"
@@ -636,7 +652,9 @@ class DataQualityAssessment:
 
         # General recommendations
         if overall_score < 0.70:
-            recommendations.append("Consider comprehensive data cleaning and validation procedures")
+            recommendations.append(
+                "Consider comprehensive data cleaning and validation procedures"
+            )
         elif overall_score < 0.85:
             recommendations.append("Implement automated data quality monitoring")
 
@@ -688,14 +706,20 @@ class DataQualityAssessment:
         ax1.set_xlabel("Quality Score")
         ax1.set_title(f"Overall Score: {report.overall_score:.2f} ({report.grade})")
         ax1.set_yticks([])
-        ax1.axvline(x=report.overall_score, color="darkblue", linestyle="--", linewidth=2)
+        ax1.axvline(
+            x=report.overall_score, color="darkblue", linestyle="--", linewidth=2
+        )
 
         # 2. Metrics breakdown
         ax2 = axes[0, 1]
         metric_names = [m.name.title() for m in report.metrics]
         metric_values = [m.value for m in report.metrics]
         metric_colors = [
-            ("green" if m.status == "good" else "orange" if m.status == "warning" else "red")
+            (
+                "green"
+                if m.status == "good"
+                else "orange" if m.status == "warning" else "red"
+            )
             for m in report.metrics
         ]
 
@@ -774,7 +798,9 @@ class DataQualityAssessment:
 
         # 5. Missing values heatmap (if applicable)
         ax5 = axes[1, 1]
-        completeness_metric = next((m for m in report.metrics if m.name == "completeness"), None)
+        completeness_metric = next(
+            (m for m in report.metrics if m.name == "completeness"), None
+        )
         if completeness_metric and completeness_metric.details.get("missing_by_column"):
             missing_data = completeness_metric.details["missing_by_column"]
             if missing_data:
@@ -860,7 +886,9 @@ data_quality_assessor = DataQualityAssessment()
 
 
 # Convenience functions
-def assess_data_quality(data: pd.DataFrame, dataset_name: str = "dataset") -> DataQualityReport:
+def assess_data_quality(
+    data: pd.DataFrame, dataset_name: str = "dataset"
+) -> DataQualityReport:
     """Quick data quality assessment."""
     return data_quality_assessor.generate_quality_report(data, dataset_name)
 

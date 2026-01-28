@@ -133,7 +133,9 @@ class BackupManager:
                     hash_sha256.update(chunk)
             return hash_sha256.hexdigest()
         except (FileNotFoundError, PermissionError) as e:
-            apgi_logger.logger.warning(f"Error calculating checksum for {file_path}: {e}")
+            apgi_logger.logger.warning(
+                f"Error calculating checksum for {file_path}: {e}"
+            )
             return ""
 
     def _get_directory_size(self, path: Path) -> int:
@@ -203,7 +205,9 @@ class BackupManager:
             if components is None:
                 components = list(self.backup_components.keys())
 
-            apgi_logger.logger.info(f"Creating backup {backup_id} with components: {components}")
+            apgi_logger.logger.info(
+                f"Creating backup {backup_id} with components: {components}"
+            )
 
             # Collect files to backup
             files_to_backup = self._collect_files(components)
@@ -219,10 +223,14 @@ class BackupManager:
             # Create backup file
             if compress:
                 backup_file = self.backup_dir / f"{backup_id}.zip"
-                self._create_zip_backup(backup_file, files_to_backup, backup_id, include_metadata)
+                self._create_zip_backup(
+                    backup_file, files_to_backup, backup_id, include_metadata
+                )
             else:
                 backup_file = self.backup_dir / f"{backup_id}.tar"
-                self._create_tar_backup(backup_file, files_to_backup, backup_id, include_metadata)
+                self._create_tar_backup(
+                    backup_file, files_to_backup, backup_id, include_metadata
+                )
 
             # Calculate checksum
             checksum = self._calculate_checksum(backup_file)
@@ -271,7 +279,9 @@ class BackupManager:
                     relative_path = file_path.relative_to(self.project_root)
                     zipf.write(file_path, relative_path)
                 except (ValueError, OSError) as e:
-                    apgi_logger.logger.warning(f"Error adding {file_path} to backup: {e}")
+                    apgi_logger.logger.warning(
+                        f"Error adding {file_path} to backup: {e}"
+                    )
 
             # Add backup metadata
             if include_metadata:
@@ -279,7 +289,9 @@ class BackupManager:
                     "backup_id": backup_id,
                     "created_at": datetime.now().isoformat(),
                     "created_by": "APGI Backup Manager",
-                    "file_list": [str(f.relative_to(self.project_root)) for f in files_to_backup],
+                    "file_list": [
+                        str(f.relative_to(self.project_root)) for f in files_to_backup
+                    ],
                 }
                 zipf.writestr("backup_info.json", json.dumps(backup_info, indent=2))
 
@@ -297,7 +309,9 @@ class BackupManager:
                     relative_path = file_path.relative_to(self.project_root)
                     tarf.add(file_path, relative_path)
                 except (ValueError, OSError) as e:
-                    apgi_logger.logger.warning(f"Error adding {file_path} to backup: {e}")
+                    apgi_logger.logger.warning(
+                        f"Error adding {file_path} to backup: {e}"
+                    )
 
             # Add backup metadata
             if include_metadata:
@@ -305,13 +319,17 @@ class BackupManager:
                     "backup_id": backup_id,
                     "created_at": datetime.now().isoformat(),
                     "created_by": "APGI Backup Manager",
-                    "file_list": [str(f.relative_to(self.project_root)) for f in files_to_backup],
+                    "file_list": [
+                        str(f.relative_to(self.project_root)) for f in files_to_backup
+                    ],
                 }
 
                 # Create temporary metadata file
                 import tempfile
 
-                with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as tmp:
                     json.dump(backup_info, tmp, indent=2)
                     tmp_path = Path(tmp.name)
 
@@ -332,7 +350,9 @@ class BackupManager:
                         metadata = json.load(f)
                     backups.append(metadata)
                 except (json.JSONDecodeError, FileNotFoundError) as e:
-                    apgi_logger.logger.warning(f"Error reading metadata for {backup_id}: {e}")
+                    apgi_logger.logger.warning(
+                        f"Error reading metadata for {backup_id}: {e}"
+                    )
 
         # Sort by timestamp (newest first)
         backups.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
@@ -426,7 +446,9 @@ class BackupManager:
 
                     # Check if file exists
                     if target_path.exists() and not overwrite:
-                        apgi_logger.logger.warning(f"Skipping existing file: {target_path}")
+                        apgi_logger.logger.warning(
+                            f"Skipping existing file: {target_path}"
+                        )
                         continue
 
                     # Create parent directories
@@ -470,7 +492,9 @@ class BackupManager:
                     # Check overwrite condition
                     target_path = target_dir / file_path
                     if target_path.exists() and not overwrite:
-                        apgi_logger.logger.warning(f"Skipping existing file: {target_path}")
+                        apgi_logger.logger.warning(
+                            f"Skipping existing file: {target_path}"
+                        )
                         target_path.unlink()
 
                 except (OSError, PermissionError) as e:
@@ -479,7 +503,9 @@ class BackupManager:
 
         return True
 
-    def _filter_files_by_components(self, file_list: List[str], components: List[str]) -> List[str]:
+    def _filter_files_by_components(
+        self, file_list: List[str], components: List[str]
+    ) -> List[str]:
         """Filter file list by specified components."""
         filtered_files = []
 
@@ -509,7 +535,9 @@ class BackupManager:
                     backup_file.unlink()
                     apgi_logger.logger.info(f"Deleted backup file: {backup_file}")
                 except OSError as e:
-                    apgi_logger.logger.error(f"Error deleting backup file {backup_file}: {e}")
+                    apgi_logger.logger.error(
+                        f"Error deleting backup file {backup_file}: {e}"
+                    )
                     success = False
 
         # Delete metadata file
@@ -519,7 +547,9 @@ class BackupManager:
                 metadata_file.unlink()
                 apgi_logger.logger.info(f"Deleted metadata file: {metadata_file}")
             except OSError as e:
-                apgi_logger.logger.error(f"Error deleting metadata file {metadata_file}: {e}")
+                apgi_logger.logger.error(
+                    f"Error deleting metadata file {metadata_file}: {e}"
+                )
                 success = False
 
         # Update history
@@ -591,7 +621,9 @@ class BackupManager:
                 with tarfile.open(backup_file, "r") as tarf:
                     tarf.getmembers()
         except (zipfile.BadZipFile, tarfile.ReadError) as e:
-            apgi_logger.logger.error(f"Backup file corruption detected for {backup_id}: {e}")
+            apgi_logger.logger.error(
+                f"Backup file corruption detected for {backup_id}: {e}"
+            )
             return False
 
         return True

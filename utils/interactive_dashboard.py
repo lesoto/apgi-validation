@@ -81,13 +81,17 @@ class DashboardData:
         while self.running:
             try:
                 # Collect system metrics
-                current_system = performance_profiler.system_monitor.get_current_metrics()
+                current_system = (
+                    performance_profiler.system_monitor.get_current_metrics()
+                )
                 if current_system:
                     current_system["dashboard_timestamp"] = datetime.now()
                     self.system_metrics.append(current_system)
 
                 # Collect performance metrics
-                recent_metrics = performance_profiler.custom_metrics[-10:]  # Last 10 metrics
+                recent_metrics = performance_profiler.custom_metrics[
+                    -10:
+                ]  # Last 10 metrics
                 for metric in recent_metrics:
                     self.performance_metrics.append(
                         {
@@ -123,7 +127,9 @@ class DashboardData:
                     "type": "warning",
                     "message": f"High CPU usage: {system_metrics['cpu_percent']:.1f}%",
                     "timestamp": datetime.now(),
-                    "severity": ("high" if system_metrics["cpu_percent"] > 95 else "medium"),
+                    "severity": (
+                        "high" if system_metrics["cpu_percent"] > 95 else "medium"
+                    ),
                 }
             )
 
@@ -134,7 +140,9 @@ class DashboardData:
                     "type": "warning",
                     "message": f"High memory usage: {system_metrics['memory_percent']:.1f}%",
                     "timestamp": datetime.now(),
-                    "severity": ("high" if system_metrics["memory_percent"] > 95 else "medium"),
+                    "severity": (
+                        "high" if system_metrics["memory_percent"] > 95 else "medium"
+                    ),
                 }
             )
 
@@ -208,22 +216,32 @@ if DASH_AVAILABLE:
                         [
                             html.Div(
                                 [
-                                    html.H3("System Status", style={"color": "#34495e"}),
-                                    html.Div(id="system-status", style={"fontSize": "18px"}),
+                                    html.H3(
+                                        "System Status", style={"color": "#34495e"}
+                                    ),
+                                    html.Div(
+                                        id="system-status", style={"fontSize": "18px"}
+                                    ),
                                 ],
                                 className="four columns",
                             ),
                             html.Div(
                                 [
                                     html.H3("Last Update", style={"color": "#34495e"}),
-                                    html.Div(id="last-update", style={"fontSize": "16px"}),
+                                    html.Div(
+                                        id="last-update", style={"fontSize": "16px"}
+                                    ),
                                 ],
                                 className="four columns",
                             ),
                             html.Div(
                                 [
-                                    html.H3("Active Alerts", style={"color": "#34495e"}),
-                                    html.Div(id="alert-count", style={"fontSize": "18px"}),
+                                    html.H3(
+                                        "Active Alerts", style={"color": "#34495e"}
+                                    ),
+                                    html.Div(
+                                        id="alert-count", style={"fontSize": "18px"}
+                                    ),
                                 ],
                                 className="four columns",
                             ),
@@ -334,17 +352,27 @@ def update_status_info(n):
             cpu_status = (
                 "🟢 Normal"
                 if current_system.get("cpu_percent", 0) < 80
-                else ("🟡 High" if current_system.get("cpu_percent", 0) < 95 else "🔴 Critical")
+                else (
+                    "🟡 High"
+                    if current_system.get("cpu_percent", 0) < 95
+                    else "🔴 Critical"
+                )
             )
             memory_status = (
                 "🟢 Normal"
                 if current_system.get("memory_percent", 0) < 80
-                else ("🟡 High" if current_system.get("memory_percent", 0) < 95 else "🔴 Critical")
+                else (
+                    "🟡 High"
+                    if current_system.get("memory_percent", 0) < 95
+                    else "🔴 Critical"
+                )
             )
 
             system_status = html.Div(
                 [
-                    html.P(f"CPU: {cpu_status} ({current_system.get('cpu_percent', 0):.1f}%)"),
+                    html.P(
+                        f"CPU: {cpu_status} ({current_system.get('cpu_percent', 0):.1f}%)"
+                    ),
                     html.P(
                         f"Memory: {memory_status} ({current_system.get('memory_percent', 0):.1f}%)"
                     ),
@@ -374,7 +402,9 @@ def update_status_info(n):
                 alerts_html.append(
                     html.Div(
                         [
-                            html.Strong(f"{alert['timestamp'].strftime('%H:%M:%S')} - "),
+                            html.Strong(
+                                f"{alert['timestamp'].strftime('%H:%M:%S')} - "
+                            ),
                             html.Span(alert["message"], style={"color": color}),
                         ],
                         style={
@@ -599,7 +629,9 @@ def update_function_performance(n):
         return error_fig, error_fig
 
 
-@app.callback(Output("memory-usage-graph", "figure"), [Input("interval-component", "n_intervals")])
+@app.callback(
+    Output("memory-usage-graph", "figure"), [Input("interval-component", "n_intervals")]
+)
 def update_memory_usage(n):
     """Update memory usage graph."""
     try:

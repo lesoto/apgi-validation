@@ -30,11 +30,13 @@ from typing import Callable, Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import psutil
 import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from scipy import stats
+from sklearn.linear_model import LogisticRegression
 from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
@@ -79,7 +81,9 @@ class HierarchicalGenerativeModel(nn.Module):
             self.level_networks.append(network)
 
         # State representations at each level
-        self.states = [torch.zeros(level["dim"]) for level in levels]
+        self.states = [
+            torch.zeros(level["dim"], dtype=torch.float32) for level in levels
+        ]
 
         # Time constants for each level
         self.taus = torch.tensor([level["tau"] for level in levels])
@@ -102,7 +106,10 @@ class HierarchicalGenerativeModel(nn.Module):
         # Bottom-up message (prediction error)
         if level < self.n_levels - 1:
             # Update current level state (non-in-place)
-            self.states[level] = self.states[level] + dt * prediction_error / self.taus[level]
+            with torch.no_grad():
+                self.states[level] = (
+                    self.states[level] + dt * prediction_error / self.taus[level]
+                )
 
             # Propagate error upward (no gradient for recursive calls)
             if level < self.n_levels - 2:
@@ -114,7 +121,9 @@ class HierarchicalGenerativeModel(nn.Module):
                         upper_error = self.states[level + 1] - upper_prediction
                     else:
                         # If dimensions don't match, create a scaled error
-                        scale_factor = self.states[level + 1].shape[0] / prediction_error.shape[0]
+                        scale_factor = (
+                            self.states[level + 1].shape[0] / prediction_error.shape[0]
+                        )
                         upper_error = (
                             torch.mean(prediction_error)
                             * torch.ones_like(self.states[level + 1])
@@ -228,7 +237,9 @@ class PolicyNetwork(nn.Module):
             nn.Linear(state_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 1)
         )
 
-        self.value_optimizer = torch.optim.Adam(self.value_network.parameters(), lr=learning_rate)
+        self.value_optimizer = torch.optim.Adam(
+            self.value_network.parameters(), lr=learning_rate
+        )
 
         # Store for policy gradient update
         self.saved_log_probs = []
@@ -248,7 +259,8 @@ class PolicyNetwork(nn.Module):
         value = self.value_network(state_tensor)
 
         # Ensure we only have valid actions (0-3)
-        probs = probs[:4] if probs.size(0) > 4 else probs
+        if probs.size(0) > 4:
+            probs = probs[:4]
         probs = F.softmax(probs, dim=-1)
 
         # Sample action
@@ -256,7 +268,7 @@ class PolicyNetwork(nn.Module):
         action = action_dist.sample()
 
         # Ensure action is within valid range
-        action = torch.clamp(action, 0, 3)
+        action = torch.clamp(action, 0, min(3, probs.size(0) - 1))
 
         # Store for update
         self.saved_log_probs.append(action_dist.log_prob(action))
@@ -290,7 +302,9 @@ class PolicyNetwork(nn.Module):
         for log_prob, value, R in zip(self.saved_log_probs, self.saved_values, returns):
             advantage = R - value.item()
             policy_losses.append(-log_prob * advantage)
-            value_losses.append(F.mse_loss(value, torch.tensor([R], dtype=torch.float32)))
+            value_losses.append(
+                F.mse_loss(value, torch.tensor([R], dtype=torch.float32))
+            )
 
         # Update
         if len(policy_losses) > 0:
@@ -317,7 +331,9 @@ class HabitualPolicy(nn.Module):
     def __init__(self, state_dim: int, action_dim: int):
         super().__init__()
 
-        self.network = nn.Sequential(nn.Linear(state_dim, 32), nn.Tanh(), nn.Linear(32, action_dim))
+        self.network = nn.Sequential(
+            nn.Linear(state_dim, 32), nn.Tanh(), nn.Linear(32, action_dim)
+        )
 
         self.optimizer = torch.optim.SGD(self.parameters(), lr=0.01)
 
@@ -473,7 +489,9 @@ class APGIActiveInferenceAgent:
             state_dim=20, action_dim=config.get("n_actions", 4)  # Simplified state
         )
 
-        self.implicit_policy = HabitualPolicy(state_dim=32, action_dim=config.get("n_actions", 4))
+        self.implicit_policy = HabitualPolicy(
+            state_dim=32, action_dim=config.get("n_actions", 4)
+        )
 
         # Memory
         self.episodic_memory = EpisodicMemory(capacity=1000)
@@ -506,7 +524,8 @@ class APGIActiveInferenceAgent:
 
         # 3. Surprise accumulation
         input_drive = (
-            self.Pi_e * torch.norm(eps_e).item() + self.beta * self.Pi_i * torch.norm(eps_i).item()
+            self.Pi_e * torch.norm(eps_e).item()
+            + self.beta * self.Pi_i * torch.norm(eps_i).item()
         )
 
         dS_dt = -self.S_t / self.tau_S + input_drive
@@ -555,7 +574,8 @@ class APGIActiveInferenceAgent:
                     "Pi_e_eps_e": self.Pi_e * torch.norm(eps_e).item(),
                     "Pi_i_eps_i": self.Pi_i * torch.norm(eps_i).item(),
                     "intero_dominant": (
-                        self.Pi_i * torch.norm(eps_i).item() > self.Pi_e * torch.norm(eps_e).item()
+                        self.Pi_i * torch.norm(eps_i).item()
+                        > self.Pi_e * torch.norm(eps_e).item()
                     ),
                 }
             )
@@ -578,12 +598,23 @@ class APGIActiveInferenceAgent:
             )
             somatic_values = self.somatic_markers.predict(context)
 
+            # Ensure somatic_values has at least 4 elements
+            if len(somatic_values) < 4:
+                somatic_values = np.pad(somatic_values, (0, 4 - len(somatic_values)))
+
             # Modulate probabilities
             action_probs = action_probs.numpy() * np.exp(somatic_values[:4] * 0.5)
-            action_probs /= action_probs.sum()
+            action_probs = action_probs + 1e-8  # Add small epsilon
+            action_probs_sum = action_probs.sum()
+            if action_probs_sum > 0:
+                action_probs /= action_probs_sum
             # Ensure valid action range and normalize
             valid_probs = action_probs[: min(len(action_probs), 4)]
-            valid_probs /= valid_probs.sum()
+            valid_probs_sum = valid_probs.sum()
+            if valid_probs_sum > 0:
+                valid_probs /= valid_probs_sum
+            else:
+                valid_probs = np.ones(len(valid_probs)) / len(valid_probs)
             action = np.random.choice(len(valid_probs), p=valid_probs)
 
         else:
@@ -592,7 +623,12 @@ class APGIActiveInferenceAgent:
             action_probs = self.implicit_policy(sensory_state)
             # Ensure valid action range and normalize
             valid_probs = action_probs[: min(len(action_probs), 4)]
-            valid_probs /= valid_probs.sum()
+            valid_probs = valid_probs + 1e-8  # Add small epsilon
+            valid_probs_sum = valid_probs.sum()
+            if valid_probs_sum > 0:
+                valid_probs /= valid_probs_sum
+            else:
+                valid_probs = np.ones(len(valid_probs)) / len(valid_probs)
             action = np.random.choice(len(valid_probs), p=valid_probs)
 
         # 7. Update models
@@ -604,7 +640,9 @@ class APGIActiveInferenceAgent:
 
         return action
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ):
         """Process outcome and learn"""
 
         # Update somatic markers
@@ -633,9 +671,13 @@ class APGIActiveInferenceAgent:
         self._eps_e_buffer.append(torch.norm(eps_e).item())
         self._eps_i_buffer.append(torch.norm(eps_i).item())
 
-        if len(self._eps_e_buffer) > 10:
+        if len(self._eps_e_buffer) > 10 and len(self._eps_i_buffer) > 10:
             var_e = np.var(list(self._eps_e_buffer)) + 0.01
             var_i = np.var(list(self._eps_i_buffer)) + 0.01
+
+            # Guard against numerical issues
+            var_e = max(var_e, 0.01)
+            var_i = max(var_i, 0.01)
 
             target_Pi_e = 1.0 / var_e
             target_Pi_i = 1.0 / var_i
@@ -712,15 +754,22 @@ class StandardPPAgent:
             ]
         )
 
-        self.policy_network = PolicyNetwork(state_dim=60, action_dim=config.get("n_actions", 4))
+        self.policy_network = PolicyNetwork(
+            state_dim=60, action_dim=config.get("n_actions", 4)
+        )
 
         self.last_action = None
         self.conscious_access = True  # Always "conscious"
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
         # Compute prediction errors
-        eps_e = torch.FloatTensor(observation["extero"]) - self.extero_model.predict(0)
-        eps_i = torch.FloatTensor(observation["intero"]) - self.intero_model.predict(0)
+        with torch.no_grad():
+            eps_e = torch.FloatTensor(
+                observation["extero"]
+            ) - self.extero_model.predict(0)
+            eps_i = torch.FloatTensor(
+                observation["intero"]
+            ) - self.intero_model.predict(0)
 
         # Update models
         self.extero_model.update(eps_e, 0, dt)
@@ -736,7 +785,9 @@ class StandardPPAgent:
 
         return action
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ):
         self.policy_network.update(reward - intero_cost)
 
 
@@ -763,13 +814,20 @@ class GWTOnlyAgent:
         self.conscious_access = False
         self.ignition_history = []
 
-        self.policy_network = PolicyNetwork(state_dim=20, action_dim=config.get("n_actions", 4))
-        self.implicit_policy = HabitualPolicy(state_dim=32, action_dim=config.get("n_actions", 4))
+        self.policy_network = PolicyNetwork(
+            state_dim=20, action_dim=config.get("n_actions", 4)
+        )
+        self.implicit_policy = HabitualPolicy(
+            state_dim=32, action_dim=config.get("n_actions", 4)
+        )
 
         self.last_action = None
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
-        eps_e = torch.FloatTensor(observation["extero"]) - self.extero_model.predict(0)
+        with torch.no_grad():
+            eps_e = torch.FloatTensor(
+                observation["extero"]
+            ) - self.extero_model.predict(0)
 
         # Surprise from external only
         self.S_t = torch.norm(eps_e).item()
@@ -780,13 +838,20 @@ class GWTOnlyAgent:
 
         if self.conscious_access:
             self.ignition_history.append({"time": self.time, "S_t": self.S_t})
-            state = np.concatenate([self.extero_model.get_level("context"), np.zeros(12)])
+            state = np.concatenate(
+                [self.extero_model.get_level("context"), np.zeros(12)]
+            )
             action, _ = self.policy_network.select_action(state)
         else:
             action_probs = self.implicit_policy(observation["extero"])
             # Ensure valid action range and normalize
             valid_probs = action_probs[: min(len(action_probs), 4)]
-            valid_probs /= valid_probs.sum()
+            valid_probs = valid_probs + 1e-8  # Add small epsilon
+            valid_probs_sum = valid_probs.sum()
+            if valid_probs_sum > 0:
+                valid_probs /= valid_probs_sum
+            else:
+                valid_probs = np.ones(len(valid_probs)) / len(valid_probs)
             action = np.random.choice(len(valid_probs), p=valid_probs)
 
         self.extero_model.update(eps_e, 0, dt)
@@ -795,7 +860,9 @@ class GWTOnlyAgent:
 
         return action
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ):
         self.policy_network.update(reward)
 
 
@@ -805,19 +872,24 @@ class ActorCriticAgent:
     def __init__(self, config: Dict):
         self.config = config
 
-        self.policy_network = PolicyNetwork(state_dim=48, action_dim=config.get("n_actions", 4))
+        self.policy_network = PolicyNetwork(
+            state_dim=48, action_dim=config.get("n_actions", 4)
+        )
 
         self.last_action = None
         self.conscious_access = False
         self.ignition_history = []
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
-        state = np.concatenate([observation["extero"], observation["intero"]])
-        action, _ = self.policy_network.select_action(state)
+        with torch.no_grad():
+            state = np.concatenate([observation["extero"], observation["intero"]])
+            action, _ = self.policy_network.select_action(state)
         self.last_action = action
         return action
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ):
         self.policy_network.update(reward - 0.5 * intero_cost)
 
 
@@ -875,13 +947,16 @@ class IowaGamblingTaskEnvironment:
 
         # Reward
         reward = np.random.normal(deck["reward_mean"], deck["reward_std"])
+        reward = float(reward)  # Ensure Python float
         if np.random.random() < deck["loss_prob"]:
-            reward -= np.random.exponential(deck["loss_mean"])
+            loss = np.random.exponential(deck["loss_mean"])
+            reward -= float(loss)
 
         # Interoceptive cost
-        intero_cost = deck["intero_cost"]
+        intero_cost = float(deck["intero_cost"])
         if reward < 0:
             intero_cost *= 1.5
+        intero_cost = float(intero_cost)
 
         observation = self._get_observation(action, reward, intero_cost)
 
@@ -890,7 +965,9 @@ class IowaGamblingTaskEnvironment:
 
         return reward, intero_cost, observation, done
 
-    def _get_observation(self, action: int = 0, reward: float = 0, intero_cost: float = 0) -> Dict:
+    def _get_observation(
+        self, action: int = 0, reward: float = 0, intero_cost: float = 0
+    ) -> Dict:
         # External: reward feedback
         extero = np.zeros(32)
         extero[action] = 1.0
@@ -910,7 +987,9 @@ class IowaGamblingTaskEnvironment:
 class VolatileForagingEnvironment:
     """Foraging with shifting reward statistics"""
 
-    def __init__(self, grid_size: int = 10, volatility: float = 0.1, n_trials: int = 200):
+    def __init__(
+        self, grid_size: int = 10, volatility: float = 0.1, n_trials: int = 200
+    ):
         self.grid_size = grid_size
         self.volatility = volatility
         self.n_trials = n_trials
@@ -946,8 +1025,8 @@ class VolatileForagingEnvironment:
             self.position = new_pos
 
         x, y = self.position
-        reward = self.reward_map[x, y] if action == 4 else 0
-        intero_cost = self.cost_map[x, y]
+        reward = float(self.reward_map[x, y] if action == 4 else 0)
+        intero_cost = float(self.cost_map[x, y])
 
         if action == 4:
             self.reward_map[x, y] *= 0.8
@@ -1015,13 +1094,15 @@ class ThreatRewardTradeoffEnvironment:
         opt = self.options[action]
 
         reward = np.random.normal(opt["reward"], opt["reward"] * 0.2)
+        reward = float(reward)
         threat = opt["threat"]
 
         self.threat_accumulator = self.threat_decay * self.threat_accumulator + threat
-        intero_cost = threat + 0.3 * self.threat_accumulator
+        intero_cost = float(threat + 0.3 * self.threat_accumulator)
 
         if self.threat_accumulator > 2.0:
-            intero_cost += np.random.exponential(1.0)
+            extra_cost = np.random.exponential(1.0)
+            intero_cost += float(extra_cost)
             self.threat_accumulator *= 0.5
 
         observation = self._get_observation(action, reward, intero_cost)
@@ -1031,7 +1112,9 @@ class ThreatRewardTradeoffEnvironment:
 
         return reward, intero_cost, observation, done
 
-    def _get_observation(self, action: int = 0, reward: float = 0, intero_cost: float = 0) -> Dict:
+    def _get_observation(
+        self, action: int = 0, reward: float = 0, intero_cost: float = 0
+    ) -> Dict:
         extero = np.zeros(32)
         extero[action] = 1.0
         extero[4:8] = np.clip(reward / 50, 0, 2) * np.array([1, 0.8, 0.6, 0.4])
@@ -1169,8 +1252,12 @@ class AgentComparisonExperiment:
         """Aggregate results across agents"""
 
         aggregated = {
-            "mean_cumulative_reward": np.mean([r["cumulative_reward"][-1] for r in agent_results]),
-            "std_cumulative_reward": np.std([r["cumulative_reward"][-1] for r in agent_results]),
+            "mean_cumulative_reward": np.mean(
+                [r["cumulative_reward"][-1] for r in agent_results]
+            ),
+            "std_cumulative_reward": np.std(
+                [r["cumulative_reward"][-1] for r in agent_results]
+            ),
             "mean_convergence_trial": np.mean(
                 [
                     r["convergence_trial"]
@@ -1182,7 +1269,11 @@ class AgentComparisonExperiment:
                 [r["convergence_trial"] is not None for r in agent_results]
             ),
             "mean_ignition_rate": np.mean(
-                [np.mean(r["ignitions"]) for r in agent_results if len(r["ignitions"]) > 0]
+                [
+                    np.mean(r["ignitions"])
+                    for r in agent_results
+                    if len(r["ignitions"]) > 0
+                ]
             ),
             "intero_dominance_rate": np.mean(
                 [
@@ -1245,8 +1336,6 @@ class AgentComparisonExperiment:
 
         if "APGI" not in results["IGT"]:
             return {"error": "No APGI data"}
-
-        from sklearn.linear_model import LogisticRegression
 
         X_data = []
         y_data = []
@@ -1446,7 +1535,9 @@ def plot_experiment_results(
 
         ax.set_ylabel("Proportion of Ignitions", fontsize=11, fontweight="bold")
         ax.set_title("APGI Ignition Sources (IGT)", fontsize=12, fontweight="bold")
-        ax.axhline(y=0.70, color="green", linestyle="--", linewidth=2, label="Prediction range")
+        ax.axhline(
+            y=0.70, color="green", linestyle="--", linewidth=2, label="Prediction range"
+        )
         ax.axhline(y=0.85, color="green", linestyle="--", linewidth=2)
         ax.legend(fontsize=9)
         ax.grid(axis="y", alpha=0.3)
@@ -1471,7 +1562,9 @@ def plot_experiment_results(
             )
 
             ax.axvline(x=0, color="black", linestyle="-", linewidth=1)
-            ax.set_xlabel("Logistic Regression Coefficient", fontsize=10, fontweight="bold")
+            ax.set_xlabel(
+                "Logistic Regression Coefficient", fontsize=10, fontweight="bold"
+            )
             ax.set_title("Ignition → Strategy Change", fontsize=11, fontweight="bold")
             ax.grid(axis="x", alpha=0.3)
 
@@ -1513,25 +1606,64 @@ def plot_experiment_results(
     ax = fig.add_subplot(gs[2, 3])
     ax.axis("off")
 
-    summary_text = f"""
+    # Safely extract values with defaults
+    try:
+        igt_apgi_mean = (
+            results.get("IGT", {}).get("APGI", {}).get("mean_cumulative_reward", 0)
+        )
+        igt_apgi_std = (
+            results.get("IGT", {}).get("APGI", {}).get("std_cumulative_reward", 0)
+        )
+        igt_stdpp_mean = (
+            results.get("IGT", {})
+            .get("StandardPP", {})
+            .get("mean_cumulative_reward", 0)
+        )
+        igt_stdpp_std = (
+            results.get("IGT", {}).get("StandardPP", {}).get("std_cumulative_reward", 0)
+        )
+
+        p3a_apgi = analysis.get("P3a_convergence", {}).get("IGT", {}).get("APGI", 0)
+        p3a_stdpp = (
+            analysis.get("P3a_convergence", {}).get("IGT", {}).get("StandardPP", 0)
+        )
+
+        p3b_rate = analysis.get("P3b_intero_dominance", {}).get("rate", 0)
+        p3b_met = analysis.get("P3b_intero_dominance", {}).get("prediction_met", False)
+
+        p3d_improvement = analysis.get("P3d_adaptation", {}).get(
+            "relative_improvement", 0
+        )
+        p3d_met = analysis.get("P3d_adaptation", {}).get("prediction_met", False)
+
+        summary_text = f"""
     SUMMARY STATISTICS
     {'='*35}
 
     IGT Performance:
-      APGI: {results['IGT']['APGI']['mean_cumulative_reward']:.0f} Â± {results['IGT']['APGI']['std_cumulative_reward']:.0f}
-      StandardPP: {results['IGT']['StandardPP']['mean_cumulative_reward']:.0f} Â± {results['IGT']['StandardPP']['std_cumulative_reward']:.0f}
+      APGI: {igt_apgi_mean:.0f} ± {igt_apgi_std:.0f}
+      StandardPP: {igt_stdpp_mean:.0f} ± {igt_stdpp_std:.0f}
 
     Convergence (trials):
-      APGI: {analysis['P3a_convergence']['IGT']['APGI']:.1f}
-      StandardPP: {analysis['P3a_convergence']['IGT']['StandardPP']:.1f}
+      APGI: {p3a_apgi:.1f}
+      StandardPP: {p3a_stdpp:.1f}
 
     Intero Dominance (APGI):
-      {analysis['P3b_intero_dominance']['rate']:.2%}
-      {'âœ… Met' if analysis['P3b_intero_dominance']['prediction_met'] else 'âŒ Not met'}
+      {p3b_rate:.2%}
+      {'✓ Met' if p3b_met else '✗ Not met'}
 
     Adaptation (Foraging):
-      Improvement: {analysis['P3d_adaptation']['relative_improvement']:.1%}
-      {'âœ… Met' if analysis['P3d_adaptation']['prediction_met'] else 'âŒ Not met'}
+      Improvement: {p3d_improvement:.1%}
+      {'✓ Met' if p3d_met else '✗ Not met'}
+    """
+    except Exception as e:
+        summary_text = f"""
+    SUMMARY STATISTICS
+    {'='*35}
+
+    Error generating summary: {str(e)}
+
+    See detailed results in JSON output.
     """
 
     ax.text(
@@ -1560,16 +1692,16 @@ def print_falsification_report(falsification: Dict):
 
     print(f"\nOVERALL STATUS: ", end="")
     if n_falsified > 0:
-        print("âŒ MODEL FALSIFIED")
+        print("❌ MODEL FALSIFIED")
     else:
-        print("âœ… MODEL VALIDATED")
+        print("✅ MODEL VALIDATED")
 
     print(f"\nCriteria Passed: {n_total - n_falsified}/{n_total}")
     print(f"Criteria Failed: {n_falsified}/{n_total}")
 
     for code, result in falsification.items():
         print(f"\n{code}:")
-        print(f"  Falsified: {'âŒ YES' if result['falsified'] else 'âœ… NO'}")
+        print(f"  Falsified: {'❌ YES' if result['falsified'] else '✅ NO'}")
         for k, v in result.items():
             if k != "falsified":
                 if isinstance(v, float):
@@ -1640,7 +1772,9 @@ def check_go_no_go_criteria(results):
         # Check if APGI agents performed at all
         if "P3a_convergence" in analysis:
             convergence = analysis["P3a_convergence"]
-            if "IGT" in convergence and convergence["IGT"]["APGI"] > 1000:  # Too slow to converge
+            if (
+                "IGT" in convergence and convergence["IGT"]["APGI"] > 1000
+            ):  # Too slow to converge
                 return "NO_GO"
 
     return "GO"
@@ -1669,7 +1803,9 @@ def main():
     print("RUNNING EXPERIMENTS")
     print("=" * 80)
 
-    experiment = AgentComparisonExperiment(n_agents=config["n_agents"], n_trials=config["n_trials"])
+    experiment = AgentComparisonExperiment(
+        n_agents=config["n_agents"], n_trials=config["n_trials"]
+    )
 
     results = experiment.run_full_experiment()
 
@@ -1681,9 +1817,13 @@ def main():
     analysis = experiment.analyze_predictions(results)
 
     print("\nKey Findings:")
-    print(f"  P3a - APGI convergence: {analysis['P3a_convergence']['IGT']['APGI']:.1f} trials")
+    print(
+        f"  P3a - APGI convergence: {analysis['P3a_convergence']['IGT']['APGI']:.1f} trials"
+    )
     if "P3b_intero_dominance" in analysis:
-        print(f"  P3b - Intero dominance: {analysis['P3b_intero_dominance']['rate']:.2%}")
+        print(
+            f"  P3b - Intero dominance: {analysis['P3b_intero_dominance']['rate']:.2%}"
+        )
     if "P3d_adaptation" in analysis:
         print(
             f"  P3d - Foraging advantage: {analysis['P3d_adaptation']['relative_improvement']:.1%}"
@@ -1775,7 +1915,7 @@ def main():
     with open("protocol3_results.json", "w") as f:
         json.dump(summary, f, indent=2)
 
-    print("âœ… Results saved to: protocol3_results.json")
+    print("✅ Results saved to: protocol3_results.json")
 
     print("\n" + "=" * 80)
     print("PROTOCOL 3 EXECUTION COMPLETE")
@@ -1842,7 +1982,8 @@ def compare_agent_to_human_baseline(agent_performance, task_name):
                 "agent": agent_value,
                 "human": human_value,
                 "difference": abs(agent_value - human_value),
-                "relative_error": abs(agent_value - human_value) / (human_value + 1e-10),
+                "relative_error": abs(agent_value - human_value)
+                / (human_value + 1e-10),
                 "z_score": (agent_value - human_value)
                 / (np.std([agent_value, human_value]) + 1e-10),
             }
@@ -1897,8 +2038,8 @@ class SystematicAblationStudy:
 
                 while not done:
                     action = agent.step(obs)
-                    next_obs, reward, done = env.step(action)
-                    agent.receive_outcome(reward, 0, next_obs)
+                    reward, intero_cost, next_obs, done = env.step(action)
+                    agent.receive_outcome(reward, intero_cost, next_obs)
                     total_reward += reward
                     obs = next_obs
 
@@ -1928,8 +2069,6 @@ def analyze_computational_cost(agent, env, n_trials=1000):
     import os
     import time
 
-    import psutil
-
     def get_process_memory():
         process = psutil.Process(os.getpid())
         return process.memory_info().rss / 1024 / 1024  # MB
@@ -1952,13 +2091,15 @@ def analyze_computational_cost(agent, env, n_trials=1000):
 
         while not done:
             action = agent.step(obs)
-            next_obs, reward, done = env.step(action)
-            agent.receive_outcome(reward, 0, next_obs)
+            reward, intero_cost, next_obs, done = env.step(action)
+            agent.receive_outcome(reward, intero_cost, next_obs)
 
             # Update metrics
             costs["forward_passes"] += 1
             if hasattr(agent, "precision_update_count"):
-                costs["precision_updates"] += getattr(agent, "precision_update_count", 0)
+                costs["precision_updates"] += getattr(
+                    agent, "precision_update_count", 0
+                )
             if hasattr(agent, "somatic_update_count"):
                 costs["somatic_updates"] += getattr(agent, "somatic_update_count", 0)
             if getattr(agent, "last_ignition_occurred", False):
@@ -1990,9 +2131,6 @@ def visualize_agent_internal_states(agent, environment, n_steps=200):
     Returns:
         matplotlib Figure with the visualization
     """
-    import matplotlib.pyplot as plt
-
-    # Initialize tracking
     time_steps = []
     S_trajectory = []
     theta_trajectory = []
@@ -2006,7 +2144,8 @@ def visualize_agent_internal_states(agent, environment, n_steps=200):
     obs = environment.reset()
     for step in range(n_steps):
         action = agent.step(obs)
-        next_obs, reward, done = environment.step(action)
+        reward, intero_cost, next_obs, done = environment.step(action)
+        agent.receive_outcome(reward, intero_cost, next_obs)
 
         # Record internal states
         time_steps.append(step)
@@ -2020,7 +2159,6 @@ def visualize_agent_internal_states(agent, environment, n_steps=200):
         if getattr(agent, "last_ignition_occurred", False):
             ignition_events.append(step)
 
-        agent.receive_outcome(reward, 0, next_obs)
         obs = next_obs
 
         if done:
@@ -2082,8 +2220,8 @@ def test_agent_generalization(trained_agent, test_environments):
 
             while not done:
                 action = trained_agent.step(obs)
-                next_obs, reward, done = env.step(action)
-                trained_agent.receive_outcome(reward, 0, next_obs)
+                reward, intero_cost, next_obs, done = env.step(action)
+                trained_agent.receive_outcome(reward, intero_cost, next_obs)
                 total_reward += reward
                 obs = next_obs
 

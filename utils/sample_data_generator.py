@@ -52,7 +52,9 @@ class SampleDataGenerator:
                 p300_template = self._generate_p300_waveform()
                 p300_start = event_idx
                 p300_end = min(p300_start + len(p300_template), self.n_samples)
-                eeg_signal[p300_start:p300_end] += p300_template[: p300_end - p300_start]
+                eeg_signal[p300_start:p300_end] += p300_template[
+                    : p300_end - p300_start
+                ]
                 p300_events.append(event_time)
 
                 # Next event after random interval
@@ -65,7 +67,9 @@ class SampleDataGenerator:
                 blink_idx = np.random.randint(0, self.n_samples - 100)
                 blink_template = self._generate_blink_waveform()
                 blink_end = min(blink_idx + len(blink_template), self.n_samples)
-                eeg_signal[blink_idx:blink_end] += blink_template[: blink_end - blink_idx]
+                eeg_signal[blink_idx:blink_end] += blink_template[
+                    : blink_end - blink_idx
+                ]
 
             # Muscle artifacts
             for _ in range(np.random.randint(3, 8)):
@@ -87,13 +91,17 @@ class SampleDataGenerator:
         # Task-related dilation
         if task_related:
             # Dilation events (similar timing to P300)
-            for event_time in np.arange(10, self.duration - 5, np.random.uniform(10, 15)):
+            for event_time in np.arange(
+                10, self.duration - 5, np.random.uniform(10, 15)
+            ):
                 event_idx = int(event_time * self.sampling_rate)
                 if event_idx < self.n_samples - 1000:
                     # Pupil dilation response (peaks around 1-2 seconds)
                     dilation_template = self._generate_pupil_dilation()
                     dilation_start = event_idx
-                    dilation_end = min(dilation_start + len(dilation_template), self.n_samples)
+                    dilation_end = min(
+                        dilation_start + len(dilation_template), self.n_samples
+                    )
                     pupil_signal[dilation_start:dilation_end] += dilation_template[
                         : dilation_end - dilation_start
                     ]
@@ -127,7 +135,9 @@ class SampleDataGenerator:
         # Phasic responses (SCR - skin conductance responses)
         if responsive:
             # SCR events (peaks around 1-4 seconds after stimulus)
-            for event_time in np.arange(15, self.duration - 5, np.random.uniform(12, 20)):
+            for event_time in np.arange(
+                15, self.duration - 5, np.random.uniform(12, 20)
+            ):
                 event_idx = int(event_time * self.sampling_rate)
                 if event_idx < self.n_samples - 4000:
                     scr_template = self._generate_scr_waveform()
@@ -152,7 +162,9 @@ class SampleDataGenerator:
 
         # Respiratory sinus arrhythmia
         respiratory_freq = 0.25  # 15 breaths per minute
-        respiratory_variation = 5.0 * np.sin(2 * np.pi * respiratory_freq * self.time_vector)
+        respiratory_variation = 5.0 * np.sin(
+            2 * np.pi * respiratory_freq * self.time_vector
+        )
         hr_signal += respiratory_variation
 
         # Task-related increases
