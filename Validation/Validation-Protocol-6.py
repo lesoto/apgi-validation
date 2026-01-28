@@ -47,9 +47,6 @@ from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
 
-# Set default tensor type to float32
-torch.set_default_dtype(torch.float32)
-
 # Set random seeds
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
@@ -122,7 +119,9 @@ class APGIInspiredNetwork(nn.Module):
         # =====================
         # SURPRISE ACCUMULATOR
         # =====================
-        self.surprise_rnn = nn.GRUCell(input_size=2, hidden_size=16)  # Precision-weighted errors
+        self.surprise_rnn = nn.GRUCell(
+            input_size=2, hidden_size=16
+        )  # Precision-weighted errors
 
         # =====================
         # THRESHOLD NETWORK
@@ -166,7 +165,9 @@ class APGIInspiredNetwork(nn.Module):
 
         # Learnable parameters - explicitly set to float32
         self.beta = nn.Parameter(torch.tensor(1.2, dtype=torch.float32))  # Somatic bias
-        self.alpha = nn.Parameter(torch.tensor(5.0, dtype=torch.float32))  # Sigmoid steepness
+        self.alpha = nn.Parameter(
+            torch.tensor(5.0, dtype=torch.float32)
+        )  # Sigmoid steepness
 
         # State
         self.surprise_hidden = None
@@ -229,7 +230,9 @@ class APGIInspiredNetwork(nn.Module):
         # Update surprise accumulator - ensure hidden state is float32
         if self.surprise_hidden is not None:
             self.surprise_hidden = self.surprise_hidden.float()
-        self.surprise_hidden = self.surprise_rnn(surprise_input.float(), self.surprise_hidden)
+        self.surprise_hidden = self.surprise_rnn(
+            surprise_input.float(), self.surprise_hidden
+        )
 
         S_t = torch.norm(self.surprise_hidden, dim=-1, keepdim=True)
 
@@ -311,7 +314,9 @@ class StandardMLPNetwork(nn.Module):
             nn.ReLU(),
         )
 
-        self.policy_head = nn.Sequential(nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1))
+        self.policy_head = nn.Sequential(
+            nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1)
+        )
 
         self.value_head = nn.Linear(32, 1)
 
@@ -322,7 +327,8 @@ class StandardMLPNetwork(nn.Module):
         return {
             "policy": self.policy_head(features),
             "value": self.value_head(features),
-            "ignition_prob": torch.ones(extero_input.shape[0], 1) * 0.5,  # Dummy
+            "ignition_prob": torch.ones(extero_input.shape[0], 1, dtype=torch.float32)
+            * 0.5,  # Dummy
         }
 
     def reset(self):
@@ -367,7 +373,8 @@ class LSTMNetwork(nn.Module):
         return {
             "policy": self.policy_head(features),
             "value": self.value_head(features),
-            "ignition_prob": torch.ones(batch_size, 1) * 0.5,  # Dummy
+            "ignition_prob": torch.ones(batch_size, 1, dtype=torch.float32)
+            * 0.5,  # Dummy
         }
 
     def reset(self):
@@ -385,7 +392,9 @@ class AttentionNetwork(nn.Module):
 
         self.attention = nn.MultiheadAttention(32, 4, batch_first=True)
 
-        self.policy_head = nn.Sequential(nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1))
+        self.policy_head = nn.Sequential(
+            nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1)
+        )
 
         self.value_head = nn.Linear(32, 1)
 
@@ -400,7 +409,8 @@ class AttentionNetwork(nn.Module):
         return {
             "policy": self.policy_head(features),
             "value": self.value_head(features),
-            "ignition_prob": torch.ones(extero_input.shape[0], 1) * 0.5,  # Dummy
+            "ignition_prob": torch.ones(extero_input.shape[0], 1, dtype=torch.float32)
+            * 0.5,  # Dummy
         }
 
     def reset(self):
@@ -710,11 +720,11 @@ class NetworkTrainer:
                 self.network.reset()
 
             # Ensure all inputs are float32 and on the correct device
-            extero = batch["extero"].to(device=self.device, dtype=torch.float32)
-            intero = batch["intero"].to(device=self.device, dtype=torch.float32)
-            context = batch["context"].to(device=self.device, dtype=torch.float32)
+            extero = batch["extero"].to(self.device)
+            intero = batch["intero"].to(self.device)
+            context = batch["context"].to(self.device)
             target = batch["target"].to(
-                device=self.device, dtype=torch.long
+                self.device, dtype=torch.long
             )  # Ensure target is long for cross_entropy
 
             self.optimizer.zero_grad()
@@ -757,11 +767,11 @@ class NetworkTrainer:
                     self.network.reset()
 
                 # Ensure all inputs are float32 and on the correct device
-                extero = batch["extero"].to(device=self.device, dtype=torch.float32)
-                intero = batch["intero"].to(device=self.device, dtype=torch.float32)
-                context = batch["context"].to(device=self.device, dtype=torch.float32)
+                extero = batch["extero"].to(self.device)
+                intero = batch["intero"].to(self.device)
+                context = batch["context"].to(self.device)
                 target = batch["target"].to(
-                    device=self.device, dtype=torch.long
+                    self.device, dtype=torch.long
                 )  # Ensure target is long
 
                 outputs = self.network(extero, intero, context)
@@ -770,7 +780,9 @@ class NetworkTrainer:
 
                 all_preds.extend(preds.cpu().numpy())
                 all_targets.extend(target.cpu().numpy())
-                all_ignition_probs.extend(outputs["ignition_prob"].squeeze().cpu().numpy())
+                all_ignition_probs.extend(
+                    outputs["ignition_prob"].squeeze().cpu().numpy()
+                )
 
         all_preds = np.array(all_preds)
         all_targets = np.array(all_targets)
@@ -792,7 +804,9 @@ class NetworkTrainer:
             "ignition_probs": all_ignition_probs,
         }
 
-    def train(self, train_loader: DataLoader, val_loader: DataLoader, n_epochs: int = 100) -> Dict:
+    def train(
+        self, train_loader: DataLoader, val_loader: DataLoader, n_epochs: int = 100
+    ) -> Dict:
         """Full training loop"""
 
         history = {"train_losses": [], "val_accuracies": [], "val_aucs": []}
@@ -862,12 +876,15 @@ class NetworkComparison:
         }
 
         self.trainers = {
-            name: NetworkTrainer(net, name, self.device) for name, net in self.networks.items()
+            name: NetworkTrainer(net, name, self.device)
+            for name, net in self.networks.items()
         }
 
         self.results = {}
 
-    def train_all_on_task(self, task_name: str, dataset_class, n_epochs: int = 100) -> Dict:
+    def train_all_on_task(
+        self, task_name: str, dataset_class, n_epochs: int = 100
+    ) -> Dict:
         """Train all networks on a specific task"""
 
         print(f"\n{'=' * 60}")
@@ -909,7 +926,10 @@ class NetworkComparison:
             print(f"\n  {name} Results:")
             print(f"    Test Accuracy: {test_results['accuracy']:.3f}")
             print(f"    Test AUC: {test_results['auc']:.3f}")
-            print(f"    Converged in: {task_results[name]['convergence_epoch']} epochs")
+            conv_epoch = task_results[name].get(
+                "convergence_epoch", len(history["train_losses"])
+            )
+            print(f"    Converged in: {conv_epoch} epochs")
 
         return task_results
 
@@ -926,7 +946,9 @@ class NetworkComparison:
         all_results = {}
 
         for task_name, dataset_class in tasks.items():
-            all_results[task_name] = self.train_all_on_task(task_name, dataset_class, n_epochs=100)
+            all_results[task_name] = self.train_all_on_task(
+                task_name, dataset_class, n_epochs=100
+            )
 
         return all_results
 
@@ -1177,7 +1199,9 @@ def plot_comprehensive_results(
         linewidth=2,
     )
 
-    ax1.axhline(y=0.85, color="red", linestyle="--", linewidth=2, label="P6a Threshold (0.85)")
+    ax1.axhline(
+        y=0.85, color="red", linestyle="--", linewidth=2, label="P6a Threshold (0.85)"
+    )
 
     ax1.set_ylabel("AUC-ROC", fontsize=12, fontweight="bold")
     ax1.set_title("Conscious Classification AUC", fontsize=13, fontweight="bold")
@@ -1357,9 +1381,12 @@ def plot_comprehensive_results(
     P6a (AUC > 0.85): {'✅ MET' if conscious_task['APGI']['test_auc'] > 0.85 else '❌ NOT MET'}
 
     P6b (Faster Convergence):
-      APGI: {conscious_task['APGI']['convergence_epoch']} epochs
-      LSTM: {conscious_task['LSTM']['convergence_epoch']} epochs
-      Speedup: {100 * (1 - conscious_task['APGI']['convergence_epoch'] / conscious_task['LSTM']['convergence_epoch']):.1f}%
+      APGI: {conscious_task['APGI'].get('convergence_epoch', 100)} epochs
+      LSTM: {conscious_task['LSTM'].get('convergence_epoch', 100)} epochs
+      lstm_conv = conscious_task['LSTM'].get('convergence_epoch', 100)
+      apgi_conv = conscious_task['APGI'].get('convergence_epoch', 100)
+      speedup = 100 * (1 - apgi_conv / lstm_conv) if lstm_conv > 0 else 0
+      Speedup: {speedup:.1f}%
     """
 
     ax7.text(
@@ -1424,47 +1451,33 @@ def print_falsification_report(report: Dict):
     print("\n" + "=" * 80)
 
 
-def visualize_attention_patterns(model, test_batch, return_attention=False):
+def visualize_attention_patterns(model, test_loader, return_attention=False):
     """
     Visualize which features the network attends to
     Check if attention aligns with APGI predictions
+
+    Note: This is a placeholder function. Full implementation requires
+    model modification to return attention weights and precision histories.
     """
-    model.eval()
-    with torch.no_grad():
-        extero, intero, context = test_batch
+    print("Warning: visualize_attention_patterns is a placeholder.")
+    print(
+        "Full implementation requires model modification to return attention weights."
+    )
 
-        # Get attention weights (need to modify model to return these)
-        outputs = model(extero, intero, context, return_attention=True)
-        attention_weights = outputs["attention"]
+    # Create placeholder figure
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    for ax in axes.flat:
+        ax.text(
+            0.5,
+            0.5,
+            "Placeholder - Model modification required",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+        )
+        ax.set_axis_off()
 
-        # Visualize attention over time
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-
-        # Exteroceptive attention
-        axes[0, 0].imshow(attention_weights["extero"].cpu().numpy(), aspect="auto", cmap="hot")
-        axes[0, 0].set_title("Exteroceptive Attention")
-        axes[0, 0].set_xlabel("Time")
-        axes[0, 0].set_ylabel("Sample")
-
-        # Interoceptive attention
-        axes[0, 1].imshow(attention_weights["intero"].cpu().numpy(), aspect="auto", cmap="hot")
-        axes[0, 1].set_title("Interoceptive Attention")
-
-        # Precision weights over time
-        axes[1, 0].plot(outputs["Pi_e_history"].cpu().numpy().T, alpha=0.3)
-        axes[1, 0].set_title("External Precision Evolution")
-        axes[1, 0].set_xlabel("Time Step")
-        axes[1, 0].set_ylabel("Πₑ")
-
-        axes[1, 1].plot(outputs["Pi_i_history"].cpu().numpy().T, alpha=0.3)
-        axes[1, 1].set_title("Internal Precision Evolution")
-        axes[1, 1].set_xlabel("Time Step")
-        axes[1, 1].set_ylabel("Πᵢ")
-
-        plt.tight_layout()
-
-    if return_attention:
-        return fig, attention_weights
+    plt.tight_layout()
     return fig
 
 
@@ -1536,54 +1549,74 @@ def compute_lrp_attribution(model, input_batch, target_class):
     Shows which input features caused the prediction
 
     Reference: Bach et al. (2015), PLOS ONE
-    """
-    from captum.attr import LayerLRP
 
-    lrp = LayerLRP(model)
+    Note: This function requires captum library. Install with: pip install captum
+    """
+    try:
+        from captum.attr import LayerLRP
+    except ImportError:
+        print("Warning: captum library not installed. Install with: pip install captum")
+        return None
+
+    try:
+        lrp = LayerLRP(model)
+    except Exception as e:
+        print(f"Warning: Could not initialize LayerLRP: {e}")
+        return None
 
     extero, intero, context = input_batch
 
-    # Compute relevance scores
-    relevance_extero = lrp.attribute(extero, target=target_class, attribute_to_layer_input=True)
+    try:
+        # Compute relevance scores
+        relevance_extero = lrp.attribute(
+            extero, target=target_class, attribute_to_layer_input=True
+        )
+        relevance_intero = lrp.attribute(
+            intero, target=target_class, attribute_to_layer_input=True
+        )
 
-    relevance_intero = lrp.attribute(intero, target=target_class, attribute_to_layer_input=True)
+        # Visualize
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-    # Visualize
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+        # Exteroceptive relevance
+        axes[0].imshow(
+            relevance_extero[0].detach().cpu().numpy(),
+            aspect="auto",
+            cmap="RdBu_r",
+            center=0,
+        )
+        axes[0].set_title("Exteroceptive Input Relevance")
+        axes[0].set_xlabel("Feature Dimension")
+        axes[0].set_ylabel("Time")
 
-    # Exteroceptive relevance
-    axes[0].imshow(
-        relevance_extero[0].detach().cpu().numpy(),
-        aspect="auto",
-        cmap="RdBu_r",
-        center=0,
-    )
-    axes[0].set_title("Exteroceptive Input Relevance")
-    axes[0].set_xlabel("Feature Dimension")
-    axes[0].set_ylabel("Time")
+        # Interoceptive relevance
+        axes[1].imshow(
+            relevance_intero[0].detach().cpu().numpy(),
+            aspect="auto",
+            cmap="RdBu_r",
+            center=0,
+        )
+        axes[1].set_title("Interoceptive Input Relevance")
 
-    # Interoceptive relevance
-    axes[1].imshow(
-        relevance_intero[0].detach().cpu().numpy(),
-        aspect="auto",
-        cmap="RdBu_r",
-        center=0,
-    )
-    axes[1].set_title("Interoceptive Input Relevance")
+        plt.tight_layout()
 
-    plt.tight_layout()
-
-    return {
-        "extero_relevance": relevance_extero,
-        "intero_relevance": relevance_intero,
-        "fig": fig,
-    }
+        return {
+            "extero_relevance": relevance_extero,
+            "intero_relevance": relevance_intero,
+            "fig": fig,
+        }
+    except Exception as e:
+        print(f"Warning: Could not compute LRP attribution: {e}")
+        return None
 
 
-def analyze_gradient_flow(model, loss_history):
+def analyze_gradient_flow(model, optimizer):
     """
     Check for vanishing/exploding gradients
     Ensure training is stable
+
+    Note: This should be called during training, not after.
+    Returns gradient norms for the current backward pass.
     """
     gradient_norms = {
         "extero_pathway": [],
@@ -1592,37 +1625,47 @@ def analyze_gradient_flow(model, loss_history):
         "output": [],
     }
 
-    for epoch in range(len(loss_history)):
-        # Get gradients for each module
-        for name, param in model.named_parameters():
-            if param.grad is not None:
-                grad_norm = param.grad.norm().item()
+    # Get gradients for each module (must be called after backward())
+    for name, param in model.named_parameters():
+        if param.grad is not None:
+            grad_norm = param.grad.norm().item()
 
-                if "extero" in name:
-                    gradient_norms["extero_pathway"].append(grad_norm)
-                elif "intero" in name:
-                    gradient_norms["intero_pathway"].append(grad_norm)
-                elif "workspace" in name:
-                    gradient_norms["workspace"].append(grad_norm)
-                elif "policy" in name or "value" in name:
-                    gradient_norms["output"].append(grad_norm)
+            if "extero" in name:
+                gradient_norms["extero_pathway"].append(grad_norm)
+            elif "intero" in name:
+                gradient_norms["intero_pathway"].append(grad_norm)
+            elif "workspace" in name:
+                gradient_norms["workspace"].append(grad_norm)
+            elif "policy" in name or "value" in name:
+                gradient_norms["output"].append(grad_norm)
 
-    # Plot gradient flow
-    fig, ax = plt.subplots(figsize=(12, 6))
+    # Plot gradient flow if we have data
+    if any(gradient_norms.values()):
+        fig, ax = plt.subplots(figsize=(12, 6))
 
-    for pathway, norms in gradient_norms.items():
-        ax.plot(norms, label=pathway, alpha=0.7)
+        for pathway, norms in gradient_norms.items():
+            if norms:
+                ax.plot(norms, label=pathway, alpha=0.7)
 
-    ax.set_yscale("log")
-    ax.set_xlabel("Training Step")
-    ax.set_ylabel("Gradient Norm (log scale)")
-    ax.set_title("Gradient Flow Analysis")
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+        ax.set_yscale("log")
+        ax.set_xlabel("Parameter")
+        ax.set_ylabel("Gradient Norm (log scale)")
+        ax.set_title("Gradient Flow Analysis")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
 
-    # Add warning lines
-    ax.axhline(1e-4, color="r", linestyle="--", alpha=0.5, label="Vanishing threshold")
-    ax.axhline(1e2, color="r", linestyle="--", alpha=0.5, label="Exploding threshold")
+        # Add warning lines
+        ax.axhline(
+            1e-4, color="r", linestyle="--", alpha=0.5, label="Vanishing threshold"
+        )
+        ax.axhline(
+            1e2, color="r", linestyle="--", alpha=0.5, label="Exploding threshold"
+        )
+    else:
+        print(
+            "Warning: No gradients found. Call analyze_gradient_flow after backward()."
+        )
+        fig = None
 
     return gradient_norms, fig
 
@@ -1769,7 +1812,9 @@ def main():
 def run_validation():
     """Entry point for CLI validation."""
     try:
-        print("Running APGI Validation Protocol 6: Real-Time Implementation and Performance")
+        print(
+            "Running APGI Validation Protocol 6: Real-Time Implementation and Performance"
+        )
         return main()
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in validation protocol 6: {e}")

@@ -293,7 +293,9 @@ class APGIScreenshotDocumentation:
 
                     # Verify it's the right app
                     if self._is_likely_app_screenshot(test_screenshot):
-                        print("✅ Screenshot appears to be the correct APGI application")
+                        print(
+                            "✅ Screenshot appears to be the correct APGI application"
+                        )
                     else:
                         print("⚠️ Screenshot might not be the APGI application")
 
@@ -369,7 +371,9 @@ class APGIScreenshotDocumentation:
             if self.gui_window:
                 print(f"✅ Window found: {self.gui_window.title}")
                 print(f"   📐 Size: {self.gui_window.width}x{self.gui_window.height}")
-                print(f"   📍 Position: ({self.gui_window.left}, {self.gui_window.top})")
+                print(
+                    f"   📍 Position: ({self.gui_window.left}, {self.gui_window.top})"
+                )
                 break
             else:
                 print(f"⚠️ Window not found, retrying in 2 seconds...")
@@ -462,7 +466,9 @@ class APGIScreenshotDocumentation:
             self._discover_menu_items()
 
             total_elements = (
-                len(self.button_locations) + len(self.tab_locations) + len(self.slider_locations)
+                len(self.button_locations)
+                + len(self.tab_locations)
+                + len(self.slider_locations)
             )
             print(f"\n📊 DISCOVERY SUMMARY:")
             print(f"   Buttons found: {len(self.button_locations)}")
@@ -498,7 +504,9 @@ class APGIScreenshotDocumentation:
             nonlocal current_phase
             current_phase += 1
             progress = (current_phase / total_phases) * 100
-            print(f"\n📋 [{current_phase}/{total_phases}] {phase_name} ({progress:.1f}% complete)")
+            print(
+                f"\n📋 [{current_phase}/{total_phases}] {phase_name} ({progress:.1f}% complete)"
+            )
             print("-" * 60)
 
         try:
@@ -558,9 +566,13 @@ class APGIScreenshotDocumentation:
 
             # Phase 11: Final state
             log_phase("Final Application State")
-            self._take_screenshot("18_final_state", "Final GUI state - after all documentation")
+            self._take_screenshot(
+                "18_final_state", "Final GUI state - after all documentation"
+            )
 
-            print(f"\n✅ SCREEN DOCUMENTATION COMPLETE ({current_phase}/{total_phases} phases)")
+            print(
+                f"\n✅ SCREEN DOCUMENTATION COMPLETE ({current_phase}/{total_phases} phases)"
+            )
 
         except Exception as e:
             print(f"\n❌ Error during screen documentation: {e}")
@@ -809,7 +821,9 @@ class APGIScreenshotDocumentation:
                         selected_gui = available_gui_files[choice_num - 1][1]
                         print(f"✅ Selected: {selected_gui}")
                     else:
-                        print(f"❌ Invalid choice. Please enter 1-{len(available_gui_files)}")
+                        print(
+                            f"❌ Invalid choice. Please enter 1-{len(available_gui_files)}"
+                        )
                         return self._show_gui_selection_interface()
                 except ValueError:
                     print(f"❌ Invalid input. Please enter a number or press Enter.")
@@ -952,7 +966,9 @@ class APGIScreenshotDocumentation:
         self._discover_menu_items()
 
         total_elements = (
-            len(self.button_locations) + len(self.tab_locations) + len(self.slider_locations)
+            len(self.button_locations)
+            + len(self.tab_locations)
+            + len(self.slider_locations)
         )
         print(
             f"✅ Found {len(self.button_locations)} buttons, {len(self.tab_locations)} tabs, {len(self.slider_locations)} sliders"
@@ -1108,7 +1124,9 @@ class APGIScreenshotDocumentation:
                     windows = gw.getWindowsWithTitle(title)
                     if windows:
                         # Filter out IDE windows
-                        non_ide_windows = [w for w in windows if not self._is_ide_window(w)]
+                        non_ide_windows = [
+                            w for w in windows if not self._is_ide_window(w)
+                        ]
                         if non_ide_windows:
                             print(f"    🎯 Found exact match: {title}")
                             return non_ide_windows[0]
@@ -1139,7 +1157,9 @@ class APGIScreenshotDocumentation:
                         windows = gw.getWindowsWithTitle(title)
                         if windows:
                             # Filter out IDE windows
-                            non_ide_windows = [w for w in windows if not self._is_ide_window(w)]
+                            non_ide_windows = [
+                                w for w in windows if not self._is_ide_window(w)
+                            ]
                             if non_ide_windows:
                                 print(
                                     f"    🎯 Found variation: '{title}' -> {non_ide_windows[0].title}"
@@ -1162,7 +1182,9 @@ class APGIScreenshotDocumentation:
                 candidates = []
                 for window in all_windows:
                     if not (
-                        hasattr(window, "title") and window.title and len(window.title.strip()) > 0
+                        hasattr(window, "title")
+                        and window.title
+                        and len(window.title.strip()) > 0
                     ):
                         continue
 
@@ -1444,7 +1466,10 @@ class APGIScreenshotDocumentation:
 
             # Quick title-based verification
             title_lower = window.title.lower()
-            if any(keyword in title_lower for keyword in ["apgi", "consciousness", "modeling"]):
+            if any(
+                keyword in title_lower
+                for keyword in ["apgi", "consciousness", "modeling"]
+            ):
                 return True
 
             # For windows without clear title indicators, try to activate and verify
@@ -1526,7 +1551,9 @@ class APGIScreenshotDocumentation:
                 mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
                 mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
 
-                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                contours, _ = cv2.findContours(
+                    mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+                )
 
                 for contour in contours:
                     area = cv2.contourArea(contour)
@@ -1551,12 +1578,16 @@ class APGIScreenshotDocumentation:
             gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
             edges = cv2.Canny(gray, 50, 150)
 
-            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(
+                edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
 
             for contour in contours:
                 area = cv2.contourArea(contour)
                 if 500 < area < 8000:
-                    approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
+                    approx = cv2.approxPolyDP(
+                        contour, 0.02 * cv2.arcLength(contour, True), True
+                    )
 
                     # Check if it's roughly rectangular (4-6 corners)
                     if 4 <= len(approx) <= 6:
@@ -1568,13 +1599,18 @@ class APGIScreenshotDocumentation:
                             is_duplicate = False
                             for existing in button_detections:
                                 ex, ey = existing["x"], existing["y"]
-                                if abs(ex - (x + w // 2)) < 20 and abs(ey - (y + h // 2)) < 20:
+                                if (
+                                    abs(ex - (x + w // 2)) < 20
+                                    and abs(ey - (y + h // 2)) < 20
+                                ):
                                     is_duplicate = True
                                     break
 
                             if not is_duplicate:
                                 # Determine button type based on position
-                                button_name = self._classify_button_by_position(x, y, w, h)
+                                button_name = self._classify_button_by_position(
+                                    x, y, w, h
+                                )
                                 button_detections.append(
                                     {
                                         "name": button_name,
@@ -1668,7 +1704,9 @@ class APGIScreenshotDocumentation:
             kernel = np.ones((2, 2), np.uint8)
             edges = cv2.dilate(edges, kernel, iterations=1)
 
-            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(
+                edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
 
             tab_candidates = []
             for contour in contours:
@@ -1709,7 +1747,9 @@ class APGIScreenshotDocumentation:
                     "y": tab_candidate["y"],
                     "rect": tab_candidate["rect"],
                 }
-                print(f"    Found tab '{tab_name}' at ({tab_candidate['x']}, {tab_candidate['y']})")
+                print(
+                    f"    Found tab '{tab_name}' at ({tab_candidate['x']}, {tab_candidate['y']})"
+                )
 
             # Fallback: if no tabs detected, use estimated positions
             if not self.tab_locations and self.gui_window:
@@ -1758,7 +1798,9 @@ class APGIScreenshotDocumentation:
 
             # Detect horizontal lines (slider tracks)
             horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 1))
-            horizontal_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, horizontal_kernel)
+            horizontal_lines = cv2.morphologyEx(
+                thresh, cv2.MORPH_OPEN, horizontal_kernel
+            )
 
             contours, _ = cv2.findContours(
                 horizontal_lines, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
@@ -1798,7 +1840,9 @@ class APGIScreenshotDocumentation:
             ]
 
             # Assign slider names to discovered positions
-            for i, slider_candidate in enumerate(slider_candidates[: len(slider_names)]):
+            for i, slider_candidate in enumerate(
+                slider_candidates[: len(slider_names)]
+            ):
                 slider_name = slider_names[i]
                 x, y, w, h = slider_candidate["rect"]
                 self.slider_locations[slider_name] = {
@@ -1917,7 +1961,9 @@ class APGIScreenshotDocumentation:
             },
         }
 
-        total_menu_items = sum(len(menu.get("items", [])) for menu in self.menu_items.values())
+        total_menu_items = sum(
+            len(menu.get("items", [])) for menu in self.menu_items.values()
+        )
         print(
             f"    Found {len(self.menu_items)} menu categories with {total_menu_items} total items"
         )
@@ -1972,7 +2018,9 @@ class APGIScreenshotDocumentation:
             self._document_status_bar_and_log()
 
             # 11. Final state
-            self._take_screenshot("18_final_state", "Final GUI state - after all documentation")
+            self._take_screenshot(
+                "18_final_state", "Final GUI state - after all documentation"
+            )
 
         except Exception as e:
             print(f"❌ Error during screen documentation: {e}")
@@ -2031,7 +2079,9 @@ class APGIScreenshotDocumentation:
             try:
                 # Move slider to minimum
                 pyautogui.moveTo(slider_info["min_x"], slider_info["y"])
-                pyautogui.dragTo(slider_info["min_x"] + 20, slider_info["y"], duration=0.5)
+                pyautogui.dragTo(
+                    slider_info["min_x"] + 20, slider_info["y"], duration=0.5
+                )
                 time.sleep(0.5)
 
                 self._take_screenshot(
@@ -2077,7 +2127,9 @@ class APGIScreenshotDocumentation:
                 # Document each submenu item
                 if "items" in menu_info:
                     for i, item in enumerate(menu_info["items"]):
-                        item_name = item["name"].replace(" ", "_").replace("/", "_").lower()
+                        item_name = (
+                            item["name"].replace(" ", "_").replace("/", "_").lower()
+                        )
 
                         # Press down arrow to navigate to item
                         for _ in range(i + 1):
@@ -2116,7 +2168,9 @@ class APGIScreenshotDocumentation:
                 )
                 time.sleep(3)
 
-                self._take_screenshot("06_simulation_running", "Simulation running - active state")
+                self._take_screenshot(
+                    "06_simulation_running", "Simulation running - active state"
+                )
 
             # Pause simulation - check if button exists
             if "pause" in self.button_locations:
@@ -2126,7 +2180,9 @@ class APGIScreenshotDocumentation:
                 )
                 time.sleep(2)
 
-                self._take_screenshot("07_simulation_paused", "Simulation paused - inactive state")
+                self._take_screenshot(
+                    "07_simulation_paused", "Simulation paused - inactive state"
+                )
 
             # Resume if possible
             if "pause" in self.button_locations:
@@ -2136,7 +2192,9 @@ class APGIScreenshotDocumentation:
                 )
                 time.sleep(2)
 
-                self._take_screenshot("08_simulation_resumed", "Simulation resumed - active state")
+                self._take_screenshot(
+                    "08_simulation_resumed", "Simulation resumed - active state"
+                )
 
             # Stop simulation
             if "stop" in self.button_locations:
@@ -2158,7 +2216,9 @@ class APGIScreenshotDocumentation:
                 )
                 time.sleep(2)
 
-                self._take_screenshot("10_simulation_reset", "Simulation reset - initial state")
+                self._take_screenshot(
+                    "10_simulation_reset", "Simulation reset - initial state"
+                )
 
         except Exception as e:
             print(f"    ❌ Error documenting simulation states: {e}")
@@ -2224,7 +2284,9 @@ class APGIScreenshotDocumentation:
                 time.sleep(1.5)  # Wait for dialog to open
 
                 # Take screenshot of dialog
-                dialog_filename = f"11_dialog_{menu_name}_{dialog_name.replace(' ', '_').lower()}"
+                dialog_filename = (
+                    f"11_dialog_{menu_name}_{dialog_name.replace(' ', '_').lower()}"
+                )
                 self._take_screenshot(
                     dialog_filename,
                     f"Dialog: {dialog_name} (from {menu_name.title()} menu)",
@@ -2318,7 +2380,9 @@ class APGIScreenshotDocumentation:
                         time.sleep(0.5)
 
                     except Exception as e:
-                        print(f"    ⚠️ Could not document view toggle '{toggle_name}': {e}")
+                        print(
+                            f"    ⚠️ Could not document view toggle '{toggle_name}': {e}"
+                        )
                         pyautogui.press("escape")
                         time.sleep(0.5)
                         continue
@@ -2346,13 +2410,17 @@ class APGIScreenshotDocumentation:
                         pyautogui.drag(speed_x, y, speed_x - 50, y, duration=0.5)
                         time.sleep(0.5)
 
-                        self._take_screenshot("14_speed_minimum", "Speed Control - Minimum (0.1x)")
+                        self._take_screenshot(
+                            "14_speed_minimum", "Speed Control - Minimum (0.1x)"
+                        )
 
                         # Drag to maximum
                         pyautogui.drag(speed_x - 50, y, speed_x + 50, y, duration=0.5)
                         time.sleep(0.5)
 
-                        self._take_screenshot("15_speed_maximum", "Speed Control - Maximum (10.0x)")
+                        self._take_screenshot(
+                            "15_speed_maximum", "Speed Control - Maximum (10.0x)"
+                        )
 
                         # Reset to default
                         pyautogui.click(speed_x, y)
@@ -2428,7 +2496,9 @@ class APGIScreenshotDocumentation:
                             capture_method = "window_region"
                             print(f"    ✅ Window capture successful: {region}")
                         else:
-                            print("    ⚠️ Invalid window coordinates, trying full screen")
+                            print(
+                                "    ⚠️ Invalid window coordinates, trying full screen"
+                            )
                     except Exception as e:
                         print(f"    ⚠️ Window region capture failed: {e}")
                 else:
@@ -2449,7 +2519,9 @@ class APGIScreenshotDocumentation:
                                 region = self._calculate_safe_region(active_window)
                                 screenshot = pyautogui.screenshot(region=region)
                                 capture_method = "active_window"
-                                print(f"    ✅ Active window capture successful: {region}")
+                                print(
+                                    f"    ✅ Active window capture successful: {region}"
+                                )
                             else:
                                 print("    ⚠️ Active window has invalid coordinates")
                         else:
@@ -2480,7 +2552,9 @@ class APGIScreenshotDocumentation:
                         # Use full screen as last resort
                         screenshot = full_screenshot
                         capture_method = "fullscreen"
-                        print("    ⚠️ Using full screen (could not identify app window)")
+                        print(
+                            "    ⚠️ Using full screen (could not identify app window)"
+                        )
 
                 except Exception as e:
                     print(f"    ⚠️ Full screen capture failed: {e}")
@@ -2512,7 +2586,9 @@ class APGIScreenshotDocumentation:
                     "capture_method": capture_method,
                     "window_info": (
                         {
-                            "title": (self.gui_window.title if self.gui_window else "Unknown"),
+                            "title": (
+                                self.gui_window.title if self.gui_window else "Unknown"
+                            ),
                             "geometry": (
                                 f"{self.gui_window.width}x{self.gui_window.height}"
                                 if self.gui_window
@@ -2618,7 +2694,9 @@ class APGIScreenshotDocumentation:
             print(f"    ❌ Manual positioning failed: {e}")
             return None
 
-    def _crop_app_from_fullscreen(self, full_screenshot: Image.Image) -> Optional[Image.Image]:
+    def _crop_app_from_fullscreen(
+        self, full_screenshot: Image.Image
+    ) -> Optional[Image.Image]:
         """Try to identify and crop the app window from a full screenshot."""
         try:
             # Convert to numpy array for analysis
@@ -2628,14 +2706,18 @@ class APGIScreenshotDocumentation:
             gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
             edges = cv2.Canny(gray, 50, 150)
 
-            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(
+                edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
 
             # Find large rectangular contours that could be our app window
             window_candidates = []
             for contour in contours:
                 area = cv2.contourArea(contour)
                 if area > 100000:  # Reasonable minimum window size
-                    approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
+                    approx = cv2.approxPolyDP(
+                        contour, 0.02 * cv2.arcLength(contour, True), True
+                    )
 
                     if len(approx) >= 4:  # Roughly rectangular
                         x, y, w, h = cv2.boundingRect(contour)
@@ -2684,7 +2766,9 @@ class APGIScreenshotDocumentation:
             unique_colors = len(np.unique(img_array.reshape(-1, 3), axis=0))
 
             if unique_colors < 3:
-                print(f"    ⚠️ Screenshot appears to be blank (only {unique_colors} colors)")
+                print(
+                    f"    ⚠️ Screenshot appears to be blank (only {unique_colors} colors)"
+                )
                 return False
 
             # Check for typical IDE characteristics (which we want to avoid)
@@ -2735,7 +2819,9 @@ class APGIScreenshotDocumentation:
 
             # Check 5: Text region detection using OCR-like heuristics
             # Look for small, high-contrast rectangular regions (text characters)
-            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(
+                edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
             text_like_regions = 0
 
             for contour in contours:
@@ -2786,7 +2872,9 @@ class APGIScreenshotDocumentation:
                         and active.title == self.gui_window.title
                         and not self._is_ide_window(active)
                     ):
-                        print(f"    ✅ Standard activation successful: {self.gui_window.title}")
+                        print(
+                            f"    ✅ Standard activation successful: {self.gui_window.title}"
+                        )
                         return True
                     else:
                         print(
@@ -2797,7 +2885,9 @@ class APGIScreenshotDocumentation:
 
                 # Method 2: Click-to-focus with IDE verification
                 try:
-                    if hasattr(self.gui_window, "left") and hasattr(self.gui_window, "top"):
+                    if hasattr(self.gui_window, "left") and hasattr(
+                        self.gui_window, "top"
+                    ):
                         center_x = self.gui_window.left + self.gui_window.width // 2
                         center_y = self.gui_window.top + self.gui_window.height // 2
 
@@ -2815,7 +2905,9 @@ class APGIScreenshotDocumentation:
                             and active.title == self.gui_window.title
                             and not self._is_ide_window(active)
                         ):
-                            print(f"    ✅ Click-to-focus successful: {self.gui_window.title}")
+                            print(
+                                f"    ✅ Click-to-focus successful: {self.gui_window.title}"
+                            )
                             return True
                         else:
                             print(
@@ -3043,7 +3135,9 @@ class APGIScreenshotDocumentation:
                 for idx, candidate in enumerate(candidates[:10]):  # Show top 10
                     confidence_score = self._calculate_window_confidence(candidate)
                     confidence_emoji = (
-                        "🟢" if confidence_score > 70 else "🟡" if confidence_score > 40 else "🔴"
+                        "🟢"
+                        if confidence_score > 70
+                        else "🟡" if confidence_score > 40 else "🔴"
                     )
 
                     print(f"  {idx + 1:2d}. {confidence_emoji} {candidate['title']}")
@@ -3070,7 +3164,9 @@ class APGIScreenshotDocumentation:
                 # Interactive selection with better guidance
                 print("\n🎮 Window Selection:")
                 print(
-                    "  • Enter a number (1-{}) to select a window".format(min(len(candidates), 10))
+                    "  • Enter a number (1-{}) to select a window".format(
+                        min(len(candidates), 10)
+                    )
                 )
                 if development_windows:
                     print(
@@ -3090,7 +3186,9 @@ class APGIScreenshotDocumentation:
                             # Select highest confidence window
                             if candidates:
                                 selected = candidates[0]["window"]
-                                print(f"\n✅ Auto-selected highest confidence: {selected.title}")
+                                print(
+                                    f"\n✅ Auto-selected highest confidence: {selected.title}"
+                                )
                                 return self._confirm_window_selection(selected)
                             else:
                                 print("\n❌ No candidates available for auto-selection")
@@ -3113,7 +3211,9 @@ class APGIScreenshotDocumentation:
                                 dev_index = int(choice[1:]) - 1
                                 if 0 <= dev_index < len(development_windows):
                                     selected = development_windows[dev_index]["window"]
-                                    print(f"\n✅ Selected development window: {selected.title}")
+                                    print(
+                                        f"\n✅ Selected development window: {selected.title}"
+                                    )
                                     return self._confirm_window_selection(selected)
                                 else:
                                     print(
@@ -3134,7 +3234,9 @@ class APGIScreenshotDocumentation:
                                 print(f"❌ Invalid selection. Use 1-{len(candidates)}")
 
                     except (ValueError, KeyboardInterrupt):
-                        print("\n❌ Invalid input. Try again or type 'skip' to continue.")
+                        print(
+                            "\n❌ Invalid input. Try again or type 'skip' to continue."
+                        )
                         continue
 
             return None
@@ -3240,7 +3342,9 @@ class APGIScreenshotDocumentation:
                         return window
                     else:
                         print("⚠️ Window doesn't appear to be the APGI application")
-                        print("    But proceeding anyway as you selected it manually...")
+                        print(
+                            "    But proceeding anyway as you selected it manually..."
+                        )
                         return window
                 else:
                     print("⚠️ Cannot verify window coordinates, but proceeding...")
@@ -3284,7 +3388,9 @@ class APGIScreenshotDocumentation:
         screenshots_by_type = {}
         for screenshot in self.doc_structure["screenshots"]:
             screenshot_type = screenshot.get("type", "unknown")
-            screenshots_by_type[screenshot_type] = screenshots_by_type.get(screenshot_type, 0) + 1
+            screenshots_by_type[screenshot_type] = (
+                screenshots_by_type.get(screenshot_type, 0) + 1
+            )
 
         # Element discovery statistics
         element_stats = {
@@ -3301,10 +3407,14 @@ class APGIScreenshotDocumentation:
         }
 
         # Calculate total menu items across all menus
-        total_menu_items = sum(len(menu.get("items", [])) for menu in self.menu_items.values())
+        total_menu_items = sum(
+            len(menu.get("items", [])) for menu in self.menu_items.values()
+        )
 
         # Success rate calculations
-        total_expected_elements = 4 + 6 + 8 + 7  # Expected buttons, tabs, sliders, menu categories
+        total_expected_elements = (
+            4 + 6 + 8 + 7
+        )  # Expected buttons, tabs, sliders, menu categories
         discovered_elements = (
             element_stats["buttons"]
             + element_stats["tabs"]
@@ -3546,8 +3656,12 @@ class APGIScreenshotDocumentation:
         # Add all screenshots with enhanced metadata
         for screenshot in self.doc_structure["screenshots"]:
             window_info = screenshot.get("window_info", {})
-            window_title = window_info.get("title", "Unknown") if window_info else "Unknown"
-            window_geometry = window_info.get("geometry", "Unknown") if window_info else "Unknown"
+            window_title = (
+                window_info.get("title", "Unknown") if window_info else "Unknown"
+            )
+            window_geometry = (
+                window_info.get("geometry", "Unknown") if window_info else "Unknown"
+            )
 
             html += f"""
                     <div class="screenshot">
@@ -3784,7 +3898,9 @@ class APGIScreenshotDocumentation:
 
                 for i, window in enumerate(all_windows):
                     if not (
-                        hasattr(window, "title") and window.title and len(window.title.strip()) > 0
+                        hasattr(window, "title")
+                        and window.title
+                        and len(window.title.strip()) > 0
                     ):
                         continue
 
@@ -3794,7 +3910,8 @@ class APGIScreenshotDocumentation:
                     if self._is_ide_window(window):
                         ide_windows.append((i, window))
                     elif any(
-                        keyword in title_lower for keyword in ["apgi", "consciousness", "modeling"]
+                        keyword in title_lower
+                        for keyword in ["apgi", "consciousness", "modeling"]
                     ):
                         apgi_windows.append((i, window))
                     elif any(
@@ -3845,7 +3962,9 @@ class APGIScreenshotDocumentation:
 
                 if other_windows:
                     print("⚪ OTHER APPLICATIONS:")
-                    for i, (idx, window) in enumerate(other_windows[:10]):  # Limit to 10
+                    for i, (idx, window) in enumerate(
+                        other_windows[:10]
+                    ):  # Limit to 10
                         size = (
                             f"{window.width}x{window.height}"
                             if hasattr(window, "width")
@@ -3860,10 +3979,14 @@ class APGIScreenshotDocumentation:
                 if apgi_windows:
                     print("✅ APGI application windows found - script should work well")
                 else:
-                    print("⚠️ No APGI windows found - make sure the application is running")
+                    print(
+                        "⚠️ No APGI windows found - make sure the application is running"
+                    )
 
                 if ide_windows:
-                    print(f"⚠️ Found {len(ide_windows)} IDE windows - script will avoid these")
+                    print(
+                        f"⚠️ Found {len(ide_windows)} IDE windows - script will avoid these"
+                    )
                     print("   Consider closing IDEs for best results")
 
             else:

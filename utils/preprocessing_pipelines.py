@@ -104,7 +104,9 @@ class EEGPreprocessor:
                 df_processed[col] = self._apply_ica_artifact_removal(df_processed[col])
 
                 # Step 5: Detect and correct artifacts
-                df_processed[col] = self._detect_and_correct_artifacts(df_processed[col])
+                df_processed[col] = self._detect_and_correct_artifacts(
+                    df_processed[col]
+                )
 
                 if show_progress:
                     pbar.update(1)
@@ -131,7 +133,9 @@ class EEGPreprocessor:
         high = self.config.eeg_bandpass_high / nyquist
 
         if low >= high:
-            self.preprocessing_log.append(f"Invalid filter frequencies: {low} >= {high}")
+            self.preprocessing_log.append(
+                f"Invalid filter frequencies: {low} >= {high}"
+            )
             return signal_data
 
         try:
@@ -194,7 +198,9 @@ class EEGPreprocessor:
             signal.SignalError,
             IndexError,
         ) as e:
-            self.preprocessing_log.append(f"Error applying notch filter: {type(e).__name__}: {e}")
+            self.preprocessing_log.append(
+                f"Error applying notch filter: {type(e).__name__}: {e}"
+            )
             return signal_data
 
     def _detect_and_correct_artifacts(self, signal_data: pd.Series) -> pd.Series:
@@ -292,7 +298,9 @@ class EEGPreprocessor:
                     ica_components = ica.fit_transform(windows)
 
                     # Advanced artifact detection
-                    artifact_mask = self._detect_artifact_components(ica_components, windows)
+                    artifact_mask = self._detect_artifact_components(
+                        ica_components, windows
+                    )
 
                     # Reconstruct data without artifact components
                     cleaned_windows = ica.inverse_transform(
@@ -346,7 +354,9 @@ class EEGPreprocessor:
                 return signal_data
 
         except (ValueError, MemoryError, RuntimeError, ImportError) as e:
-            self.preprocessing_log.append(f"ICA processing failed for {signal_data.name}: {e}")
+            self.preprocessing_log.append(
+                f"ICA processing failed for {signal_data.name}: {e}"
+            )
             return signal_data
 
     def _detect_artifact_components(
@@ -498,7 +508,11 @@ class PupilPreprocessor:
             ("Smoothing signal", self._smooth_pupil_signal, "series_method"),
         ]
 
-        pbar = tqdm(total=len(steps), desc="Processing pupil data") if show_progress else None
+        pbar = (
+            tqdm(total=len(steps), desc="Processing pupil data")
+            if show_progress
+            else None
+        )
 
         # Execute steps based on their method type
         for i, (step_name, step_func, method_type) in enumerate(steps):
@@ -549,10 +563,14 @@ class PupilPreprocessor:
 
         if len(blink_indices) > 0:
             # Interpolate over blink periods
-            df_processed[pupil_column] = df_processed[pupil_column].interpolate(method="linear")
+            df_processed[pupil_column] = df_processed[pupil_column].interpolate(
+                method="linear"
+            )
 
             # Log interpolation
-            self.preprocessing_log.append(f"Interpolated {len(blink_indices)} blink samples")
+            self.preprocessing_log.append(
+                f"Interpolated {len(blink_indices)} blink samples"
+            )
 
         return df_processed
 
@@ -571,7 +589,9 @@ class PupilPreprocessor:
             # Interpolate over blinks
             result = result.interpolate(method=self.config.pupil_interpolation_method)
 
-            self.preprocessing_log.append(f"Detected and interpolated {blink_mask.sum()} blinks")
+            self.preprocessing_log.append(
+                f"Detected and interpolated {blink_mask.sum()} blinks"
+            )
             return result
 
         return pupil_data
@@ -586,11 +606,15 @@ class PupilPreprocessor:
             # Fill NaN values at edges with original data
             smoothed_data = smoothed_data.fillna(pupil_data)
 
-            self.preprocessing_log.append(f"Applied smoothing with window size {window_size}")
+            self.preprocessing_log.append(
+                f"Applied smoothing with window size {window_size}"
+            )
             return smoothed_data
 
         except (ValueError, TypeError, IndexError, MemoryError) as e:
-            self.preprocessing_log.append(f"Error smoothing pupil signal: {type(e).__name__}: {e}")
+            self.preprocessing_log.append(
+                f"Error smoothing pupil signal: {type(e).__name__}: {e}"
+            )
             return pupil_data
 
     def _normalize_pupil_diameter(self, pupil_data: pd.Series) -> pd.Series:
@@ -642,14 +666,18 @@ class EDAPreprocessor:
         # Step 1: Apply lowpass filter
         if show_progress:
             pbar.set_description(steps[0])
-        df_processed.loc[:, eda_column] = self._apply_lowpass_filter(df_processed[eda_column])
+        df_processed.loc[:, eda_column] = self._apply_lowpass_filter(
+            df_processed[eda_column]
+        )
         if show_progress:
             pbar.update(1)
 
         # Step 2: Smoothing
         if show_progress:
             pbar.set_description(steps[1])
-        df_processed.loc[:, eda_column] = self._smooth_eda_signal(df_processed[eda_column])
+        df_processed.loc[:, eda_column] = self._smooth_eda_signal(
+            df_processed[eda_column]
+        )
         if show_progress:
             pbar.update(1)
 
@@ -695,7 +723,9 @@ class EDAPreprocessor:
             signal.SignalError,
             IndexError,
         ) as e:
-            self.preprocessing_log.append(f"Error applying lowpass filter: {type(e).__name__}: {e}")
+            self.preprocessing_log.append(
+                f"Error applying lowpass filter: {type(e).__name__}: {e}"
+            )
             return eda_data
 
     def _smooth_eda_signal(self, eda_data: pd.Series) -> pd.Series:
@@ -705,11 +735,15 @@ class EDAPreprocessor:
             smoothed_data = eda_data.rolling(window=window_size, center=True).mean()
             smoothed_data = smoothed_data.fillna(eda_data)
 
-            self.preprocessing_log.append(f"Applied EDA smoothing with window size {window_size}")
+            self.preprocessing_log.append(
+                f"Applied EDA smoothing with window size {window_size}"
+            )
             return smoothed_data
 
         except (ValueError, TypeError, IndexError, MemoryError) as e:
-            self.preprocessing_log.append(f"Error smoothing EDA signal: {type(e).__name__}: {e}")
+            self.preprocessing_log.append(
+                f"Error smoothing EDA signal: {type(e).__name__}: {e}"
+            )
             return eda_data
 
     def _extract_phasic_tonic(self, df: pd.DataFrame, eda_column: str) -> pd.DataFrame:
@@ -720,7 +754,9 @@ class EDAPreprocessor:
             # Tonic component (slow varying)
             tonic_window = 30  # 30 second window
             tonic = eda_data.rolling(
-                window=int(tonic_window * self._estimate_sampling_rate(eda_data) or 1000),
+                window=int(
+                    tonic_window * self._estimate_sampling_rate(eda_data) or 1000
+                ),
                 center=True,
                 min_periods=1,
             ).mean()
@@ -799,14 +835,18 @@ class HeartRatePreprocessor:
         # Step 2: Interpolate missing values
         if show_progress:
             pbar.set_description(steps[1])
-        df_processed.loc[:, hr_column] = self._interpolate_missing_values(df_processed[hr_column])
+        df_processed.loc[:, hr_column] = self._interpolate_missing_values(
+            df_processed[hr_column]
+        )
         if show_progress:
             pbar.update(1)
 
         # Step 3: Smoothing
         if show_progress:
             pbar.set_description(steps[2])
-        df_processed.loc[:, hr_column] = self._smooth_heart_rate(df_processed[hr_column])
+        df_processed.loc[:, hr_column] = self._smooth_heart_rate(
+            df_processed[hr_column]
+        )
         if show_progress:
             pbar.update(1)
 
@@ -847,7 +887,9 @@ class HeartRatePreprocessor:
             polyorder = 3
 
             if len(hr_data.dropna()) > window_length:
-                smoothed_data = signal.savgol_filter(hr_data.dropna(), window_length, polyorder)
+                smoothed_data = signal.savgol_filter(
+                    hr_data.dropna(), window_length, polyorder
+                )
                 result = hr_data.copy()
                 result.loc[hr_data.dropna().index] = smoothed_data
 
@@ -857,7 +899,9 @@ class HeartRatePreprocessor:
                 return result
 
         except (ValueError, TypeError, IndexError, MemoryError) as e:
-            self.preprocessing_log.append(f"Error smoothing heart rate: {type(e).__name__}: {e}")
+            self.preprocessing_log.append(
+                f"Error smoothing heart rate: {type(e).__name__}: {e}"
+            )
 
         return hr_data
 
@@ -930,13 +974,17 @@ class MultimodalPreprocessingPipeline:
             df_processed = self.eeg_processor.preprocess_eeg(df_processed, "eeg")
 
         if "pupil_diameter" in df.columns:
-            df_processed = self.pupil_processor.preprocess_pupil(df_processed, "pupil_diameter")
+            df_processed = self.pupil_processor.preprocess_pupil(
+                df_processed, "pupil_diameter"
+            )
 
         if "eda" in df.columns:
             df_processed = self.eda_processor.preprocess_eda(df_processed, "eda")
 
         if "heart_rate" in df.columns:
-            df_processed = self.hr_processor.preprocess_heart_rate(df_processed, "heart_rate")
+            df_processed = self.hr_processor.preprocess_heart_rate(
+                df_processed, "heart_rate"
+            )
 
         return df_processed
 
@@ -963,12 +1011,18 @@ class MultimodalPreprocessingPipeline:
 
         return df_processed
 
-    def _resample_data_if_needed(self, df: pd.DataFrame, pbar, step_name: str) -> pd.DataFrame:
+    def _resample_data_if_needed(
+        self, df: pd.DataFrame, pbar, step_name: str
+    ) -> pd.DataFrame:
         """Resample data if timestamp column exists and sufficient data."""
         self._update_progress(pbar, step_name)
         if "timestamp" in df.columns and len(df) > 100:
-            df_resampled = self.preprocessor.resample_data(df, self.config.target_sampling_rate)
-            self.pipeline_log.append(f"Resampled to {self.config.target_sampling_rate} Hz")
+            df_resampled = self.preprocessor.resample_data(
+                df, self.config.target_sampling_rate
+            )
+            self.pipeline_log.append(
+                f"Resampled to {self.config.target_sampling_rate} Hz"
+            )
             return df_resampled
         return df
 
@@ -1009,7 +1063,9 @@ class MultimodalPreprocessingPipeline:
             ("Saving results", "save"),
         ]
 
-        pbar = self._setup_progress_bar(steps, f"Processing {input_path.name}", show_progress)
+        pbar = self._setup_progress_bar(
+            steps, f"Processing {input_path.name}", show_progress
+        )
 
         try:
             validation_report = self._validate_input_data(input_path, pbar, steps[0][0])
@@ -1021,7 +1077,9 @@ class MultimodalPreprocessingPipeline:
             df_processed = self._apply_general_preprocessing(df_processed)
             self._update_progress(pbar, steps[3][0])
 
-            df_processed = self._resample_data_if_needed(df_processed, pbar, steps[4][0])
+            df_processed = self._resample_data_if_needed(
+                df_processed, pbar, steps[4][0]
+            )
 
             output_file = self._save_processed_data(
                 df_processed, input_path, output_path, pbar, steps[5][0]

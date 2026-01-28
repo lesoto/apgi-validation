@@ -66,7 +66,9 @@ class EvolvableAgent:
 
         # Check ignition
         if self.has_threshold:
-            ignition_prob = 1.0 / (1.0 + np.exp(-self.alpha * (self.surprise - self.threshold)))
+            ignition_prob = 1.0 / (
+                1.0 + np.exp(-self.alpha * (self.surprise - self.threshold))
+            )
             self.conscious_access = np.random.random() < ignition_prob
         else:
             self.conscious_access = True  # Always conscious
@@ -84,7 +86,9 @@ class EvolvableAgent:
 
         return np.random.choice(len(action_probs), p=action_probs)
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict):
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ):
         """Process outcome"""
         # Simple learning update
         if reward > 0:
@@ -278,8 +282,12 @@ class EvolutionaryAPGIEmergence:
             # Track architecture frequencies
             arch_freq = {
                 "has_threshold": np.mean([g["has_threshold"] for g in population]),
-                "has_intero_weighting": np.mean([g["has_intero_weighting"] for g in population]),
-                "has_somatic_markers": np.mean([g["has_somatic_markers"] for g in population]),
+                "has_intero_weighting": np.mean(
+                    [g["has_intero_weighting"] for g in population]
+                ),
+                "has_somatic_markers": np.mean(
+                    [g["has_somatic_markers"] for g in population]
+                ),
                 "has_precision_weighting": np.mean(
                     [g["has_precision_weighting"] for g in population]
                 ),

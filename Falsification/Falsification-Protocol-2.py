@@ -395,7 +395,9 @@ if __name__ == "__main__":
         action = np.random.choice(4)  # Random action
         reward, intero_cost, obs, done = env.step(action)
         total_reward += reward
-        print(f"Trial {trial}: Action={action}, Reward={reward:.2f}, InteroCost={intero_cost:.2f}")
+        print(
+            f"Trial {trial}: Action={action}, Reward={reward:.2f}, InteroCost={intero_cost:.2f}"
+        )
 
     print(f"Demo completed. Total reward: {total_reward:.2f}")
     print("=== Protocol completed successfully ===")

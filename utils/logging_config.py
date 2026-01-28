@@ -107,7 +107,10 @@ class LogStreamer:
             # Apply filters
             if subscriber["level_filter"] and entry.level != subscriber["level_filter"]:
                 continue
-            if subscriber["module_filter"] and entry.module != subscriber["module_filter"]:
+            if (
+                subscriber["module_filter"]
+                and entry.module != subscriber["module_filter"]
+            ):
                 continue
 
             try:
@@ -163,7 +166,9 @@ class APGILogger:
         self._setup_logging()
         self.streamer.start_streaming()
 
-    def _validate_logging_config(self, log_level: str, enable_console: bool, queue_size: int):
+    def _validate_logging_config(
+        self, log_level: str, enable_console: bool, queue_size: int
+    ):
         """Validate logging configuration parameters with default fallbacks."""
         # Validate and fallback log level
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -189,7 +194,9 @@ class APGILogger:
             )
             queue_size = 10000
         elif queue_size > 100000:
-            logger.warning(f"Large queue_size ({queue_size}) may cause memory issues. Using 100000")
+            logger.warning(
+                f"Large queue_size ({queue_size}) may cause memory issues. Using 100000"
+            )
             queue_size = 100000
 
         # Apply validated/fallback values
@@ -347,20 +354,28 @@ class APGILogger:
     ):
         """Log parameter estimation results."""
         logger.info(f"Parameter estimation using {method} method")
-        logger.bind(method=method, parameters=parameters, log_likelihood=log_likelihood).info(
-            "Estimation results"
-        )
+        logger.bind(
+            method=method, parameters=parameters, log_likelihood=log_likelihood
+        ).info("Estimation results")
 
-    def log_validation_result(self, protocol: str, passed: bool, metrics: Dict[str, float]):
+    def log_validation_result(
+        self, protocol: str, passed: bool, metrics: Dict[str, float]
+    ):
         """Log validation protocol results."""
         status = "PASSED" if passed else "FAILED"
         logger.info(f"Validation protocol {protocol}: {status}")
-        logger.bind(protocol=protocol, passed=passed, metrics=metrics).debug("Validation metrics")
+        logger.bind(protocol=protocol, passed=passed, metrics=metrics).debug(
+            "Validation metrics"
+        )
 
-    def log_performance_metric(self, metric_name: str, value: float, unit: str = "seconds"):
+    def log_performance_metric(
+        self, metric_name: str, value: float, unit: str = "seconds"
+    ):
         """Log performance metrics."""
         logger.info(f"Performance: {metric_name} = {value:.3f} {unit}")
-        logger.bind(metric=metric_name, value=value, unit=unit).debug("Performance metric details")
+        logger.bind(metric=metric_name, value=value, unit=unit).debug(
+            "Performance metric details"
+        )
 
         # Track metrics for analysis
         if metric_name not in self.performance_metrics:
@@ -396,7 +411,9 @@ class APGILogger:
             self.error_counts[error_type] = 0
         self.error_counts[error_type] += 1
 
-        logger.error(f"Error in {context.get('operation', 'unknown operation')}: {error_message}")
+        logger.error(
+            f"Error in {context.get('operation', 'unknown operation')}: {error_message}"
+        )
         logger.bind(
             error_type=error_type,
             error_message=error_message,
@@ -422,7 +439,9 @@ class APGILogger:
     def log_model_configuration(self, model_name: str, config: Dict[str, Any]):
         """Log model configuration details."""
         logger.info(f"Configuring {model_name} model")
-        logger.bind(model_name=model_name, configuration=config).debug("Model configuration")
+        logger.bind(model_name=model_name, configuration=config).debug(
+            "Model configuration"
+        )
 
     def log_system_info(self):
         """Log system information for debugging."""
@@ -448,11 +467,15 @@ class APGILogger:
         """Check if line starts with a timestamp."""
         import re
 
-        return re.match(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})", line) is not None
+        return (
+            re.match(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})", line) is not None
+        )
 
     def _is_multiline_continuation(self, line: str) -> bool:
         """Check if line is a continuation of a multiline entry."""
-        return line.strip().startswith(("  ", "\t", "    ", "Traceback", "File ", "    "))
+        return line.strip().startswith(
+            ("  ", "\t", "    ", "Traceback", "File ", "    ")
+        )
 
     def _process_log_line(
         self,
@@ -643,10 +666,14 @@ class APGILogger:
             f.write("=" * 80 + "\n\n")
 
             for entry in parsed_entries:
-                f.write(f"[{entry['timestamp']}] {entry['level']} - {entry['message']}\n")
+                f.write(
+                    f"[{entry['timestamp']}] {entry['level']} - {entry['message']}\n"
+                )
                 if entry["location"] != "unknown":
                     f.write(f"  Location: {entry['location']}\n")
-                if entry.get("full_message") and len(entry["full_message"]) > len(entry["message"]):
+                if entry.get("full_message") and len(entry["full_message"]) > len(
+                    entry["message"]
+                ):
                     f.write(f"  Details: {entry['full_message']}\n")
                 f.write("\n")
 
@@ -665,7 +692,9 @@ class APGILogger:
         parsed_entries = []
         for entry in log_entries:
             try:
-                parsed_entry = self._parse_log_entry(entry, log_level, start_time, end_time)
+                parsed_entry = self._parse_log_entry(
+                    entry, log_level, start_time, end_time
+                )
                 if parsed_entry:
                     parsed_entries.append(parsed_entry)
             except (ValueError, TypeError, KeyError) as e:
@@ -721,7 +750,9 @@ class APGILogger:
                 logger.error(f"Unsupported format: {format_type}")
                 return False
 
-            logger.info(f"Successfully exported {len(parsed_entries)} log entries to {output_file}")
+            logger.info(
+                f"Successfully exported {len(parsed_entries)} log entries to {output_file}"
+            )
             return True
 
         except (
@@ -942,7 +973,9 @@ class APGILogger:
         """Set up log alerts for error monitoring."""
         # This would implement alerting logic
         # For now, just log that alerts are configured
-        self.logger.info(f"Log alerts configured: {error_threshold} errors in {time_window}s")
+        self.logger.info(
+            f"Log alerts configured: {error_threshold} errors in {time_window}s"
+        )
 
     def __del__(self):
         """Cleanup when logger is destroyed."""
@@ -1010,10 +1043,14 @@ def log_function_call(level: str = "DEBUG"):
             )
             try:
                 result = func(*args, **kwargs)
-                logger.bind(function=func.__name__).log(level, f"Completed {func.__name__}")
+                logger.bind(function=func.__name__).log(
+                    level, f"Completed {func.__name__}"
+                )
                 return result
             except (ValueError, TypeError, RuntimeError, AttributeError, KeyError) as e:
-                logger.bind(function=func.__name__).error(f"Error in {func.__name__}: {e}")
+                logger.bind(function=func.__name__).error(
+                    f"Error in {func.__name__}: {e}"
+                )
                 raise
 
         return wrapper
@@ -1038,11 +1075,15 @@ if __name__ == "__main__":
     try:
         raise ValueError("Test error for logging")
     except Exception as e:
-        apgi_logger.log_error_with_context(e, {"operation": "test", "user": "test_user"})
+        apgi_logger.log_error_with_context(
+            e, {"operation": "test", "user": "test_user"}
+        )
 
     # Test simulation logging
     apgi_logger.log_simulation_start("test_simulation", {"param1": 1.0, "param2": 2.0})
-    apgi_logger.log_simulation_end("test_simulation", 5.5, {"result1": 10, "result2": 20})
+    apgi_logger.log_simulation_end(
+        "test_simulation", 5.5, {"result1": 10, "result2": 20}
+    )
 
     print(f"Log files created in: {LOGS_DIR}")
     print("Performance summary:", apgi_logger.get_performance_summary())

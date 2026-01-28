@@ -13,32 +13,44 @@ from pathlib import Path
 _dir = Path(__file__).parent
 
 # Protocol 1: Active Inference Agent Testing
-_spec1 = importlib.util.spec_from_file_location("Protocol_1", _dir / "Falsification-Protocol-1.py")
+_spec1 = importlib.util.spec_from_file_location(
+    "Protocol_1", _dir / "Falsification-Protocol-1.py"
+)
 Protocol_1 = importlib.util.module_from_spec(_spec1)
 _spec1.loader.exec_module(Protocol_1)
 
 # Protocol 2: Iowa Gambling Task Environment
-_spec2 = importlib.util.spec_from_file_location("Protocol_2", _dir / "Falsification-Protocol-2.py")
+_spec2 = importlib.util.spec_from_file_location(
+    "Protocol_2", _dir / "Falsification-Protocol-2.py"
+)
 Protocol_2 = importlib.util.module_from_spec(_spec2)
 _spec2.loader.exec_module(Protocol_2)
 
 # Protocol 3: Agent Comparison Experiment
-_spec3 = importlib.util.spec_from_file_location("Protocol_3", _dir / "Falsification-Protocol-3.py")
+_spec3 = importlib.util.spec_from_file_location(
+    "Protocol_3", _dir / "Falsification-Protocol-3.py"
+)
 Protocol_3 = importlib.util.module_from_spec(_spec3)
 _spec3.loader.exec_module(Protocol_3)
 
 # Protocol 4: Phase Transition Analysis
-_spec4 = importlib.util.spec_from_file_location("Protocol_4", _dir / "Falsification-Protocol-4.py")
+_spec4 = importlib.util.spec_from_file_location(
+    "Protocol_4", _dir / "Falsification-Protocol-4.py"
+)
 Protocol_4 = importlib.util.module_from_spec(_spec4)
 _spec4.loader.exec_module(Protocol_4)
 
 # Protocol 5: Evolutionary APGI Emergence
-_spec5 = importlib.util.spec_from_file_location("Protocol_5", _dir / "Falsification-Protocol-5.py")
+_spec5 = importlib.util.spec_from_file_location(
+    "Protocol_5", _dir / "Falsification-Protocol-5.py"
+)
 Protocol_5 = importlib.util.module_from_spec(_spec5)
 _spec5.loader.exec_module(Protocol_5)
 
 # Protocol 6: Network Comparison Experiment
-_spec6 = importlib.util.spec_from_file_location("Protocol_6", _dir / "Falsification-Protocol-6.py")
+_spec6 = importlib.util.spec_from_file_location(
+    "Protocol_6", _dir / "Falsification-Protocol-6.py"
+)
 Protocol_6 = importlib.util.module_from_spec(_spec6)
 _spec6.loader.exec_module(Protocol_6)
 

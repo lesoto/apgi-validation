@@ -50,7 +50,9 @@ def install_dependencies(venv_python):
         return False
 
     try:
-        subprocess.run([str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True)
+        subprocess.run(
+            [str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True
+        )
         subprocess.run(
             [str(venv_python), "-m", "pip", "install", "-r", str(requirements_file)],
             check=True,

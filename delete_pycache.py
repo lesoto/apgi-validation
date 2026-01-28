@@ -290,12 +290,16 @@ def _process_files(
         if matches_any(f, exclude_file_patterns):
             continue
 
-        if matches_any(f, default_file_patterns) or matches_any(f, include_file_patterns):
+        if matches_any(f, default_file_patterns) or matches_any(
+            f, include_file_patterns
+        ):
             full_f = os.path.join(dirpath, f)
             _remove_file(full_f, dry_run, verbose, stats)
 
 
-def _should_skip_directory(dirpath: str, root_dir: str, max_depth: Optional[int]) -> bool:
+def _should_skip_directory(
+    dirpath: str, root_dir: str, max_depth: Optional[int]
+) -> bool:
     """Check if directory should be skipped based on depth."""
     if max_depth is None:
         return False
@@ -333,9 +337,13 @@ def delete_temporary_items(
     stats = {"dirs_removed": 0, "files_removed": 0, "errors": 0}
     default_dir_names = set(DEFAULT_DIR_NAMES) | set(DEFAULT_EXTRA_DIR_NAMES)
     default_dir_patterns = list(DEFAULT_DIR_PATTERNS)
-    default_file_patterns = list(DEFAULT_FILE_PATTERNS) + list(DEFAULT_EXTRA_FILE_PATTERNS)
+    default_file_patterns = list(DEFAULT_FILE_PATTERNS) + list(
+        DEFAULT_EXTRA_FILE_PATTERNS
+    )
 
-    for dirpath, dirnames, filenames in os.walk(root_dir, topdown=True, followlinks=follow_links):
+    for dirpath, dirnames, filenames in os.walk(
+        root_dir, topdown=True, followlinks=follow_links
+    ):
         if _should_skip_directory(dirpath, root_dir, max_depth):
             dirnames[:] = []
             continue
@@ -645,7 +653,9 @@ def main(argv: List[str] = None):
         print("Starting cleanup process...")
 
     venv_names = (
-        args.venv_names if args.venv_names is not None else (".venv", "venv", ".env", "env")
+        args.venv_names
+        if args.venv_names is not None
+        else (".venv", "venv", ".env", "env")
     )
     stats = delete_temporary_items(
         root_directory,

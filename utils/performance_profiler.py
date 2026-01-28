@@ -156,7 +156,9 @@ class SystemMonitor:
     def get_metrics_summary(self, minutes: int = 5) -> Dict[str, Any]:
         """Get summary of metrics for the last N minutes."""
         cutoff_time = datetime.now() - timedelta(minutes=minutes)
-        recent_metrics = [m for m in self.metrics_history if m["timestamp"] > cutoff_time]
+        recent_metrics = [
+            m for m in self.metrics_history if m["timestamp"] > cutoff_time
+        ]
 
         if not recent_metrics:
             return {}
@@ -214,7 +216,9 @@ class PerformanceProfiler:
 
                     # Update function profile
                     if func_name not in self.function_profiles:
-                        self.function_profiles[func_name] = FunctionProfile(name=func_name)
+                        self.function_profiles[func_name] = FunctionProfile(
+                            name=func_name
+                        )
 
                     profile = self.function_profiles[func_name]
                     profile.call_count += 1
@@ -344,9 +348,13 @@ class PerformanceProfiler:
                     "std_time": profile.std_time,
                     "errors": profile.errors,
                     "error_rate": (
-                        profile.errors / profile.call_count if profile.call_count > 0 else 0
+                        profile.errors / profile.call_count
+                        if profile.call_count > 0
+                        else 0
                     ),
-                    "avg_memory_mb": (np.mean(profile.memory_usage) if profile.memory_usage else 0),
+                    "avg_memory_mb": (
+                        np.mean(profile.memory_usage) if profile.memory_usage else 0
+                    ),
                 }
 
         # Custom metrics summary
@@ -431,7 +439,9 @@ class PerformanceProfiler:
                 recommendations.append(
                     {
                         "type": "optimization",
-                        "priority": ("high" if bottleneck["severity"] == "high" else "medium"),
+                        "priority": (
+                            "high" if bottleneck["severity"] == "high" else "medium"
+                        ),
                         "message": f"Consider optimizing {bottleneck['name']} (avg: {bottleneck['value']:.2f}s)",
                         "suggestions": [
                             "Add caching for expensive computations",
@@ -445,7 +455,9 @@ class PerformanceProfiler:
                 recommendations.append(
                     {
                         "type": "memory_optimization",
-                        "priority": ("high" if bottleneck["severity"] == "high" else "medium"),
+                        "priority": (
+                            "high" if bottleneck["severity"] == "high" else "medium"
+                        ),
                         "message": f"Consider memory optimization for {bottleneck['name']} (avg: {bottleneck['value']:.1f}MB)",
                         "suggestions": [
                             "Use generators instead of lists",
@@ -477,7 +489,9 @@ class PerformanceProfiler:
     def save_profile(self, filename: Optional[str] = None):
         """Save performance profile to file."""
         if filename is None:
-            filename = f"performance_profile_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            filename = (
+                f"performance_profile_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            )
 
         filepath = self.save_dir / filename
 
@@ -534,7 +548,9 @@ class PerformanceProfiler:
                 profile.max_time = data["max_time"]
                 profile.std_time = data["std_time"]
                 profile.last_called = (
-                    datetime.fromisoformat(data["last_called"]) if data["last_called"] else None
+                    datetime.fromisoformat(data["last_called"])
+                    if data["last_called"]
+                    else None
                 )
                 profile.memory_usage = data["memory_usage"]
                 profile.errors = data["errors"]
@@ -641,7 +657,9 @@ class PerformanceProfiler:
         # 4. Performance Distribution
         ax4 = fig.add_subplot(gs[2, 0:2])
         if self.function_profiles:
-            avg_times = [f.avg_time for f in self.function_profiles.values() if f.avg_time > 0]
+            avg_times = [
+                f.avg_time for f in self.function_profiles.values() if f.avg_time > 0
+            ]
             if avg_times:
                 ax4.hist(avg_times, bins=20, alpha=0.7, edgecolor="black")
                 ax4.set_xlabel("Average Execution Time (s)")
@@ -691,7 +709,9 @@ class PerformanceProfiler:
                 cat_means = [np.mean(categories[cat]) for cat in cat_names]
                 cat_stds = [np.std(categories[cat]) for cat in cat_names]
 
-                bars = ax6.bar(cat_names, cat_means, yerr=cat_stds, capsize=5, alpha=0.7)
+                bars = ax6.bar(
+                    cat_names, cat_means, yerr=cat_stds, capsize=5, alpha=0.7
+                )
                 ax6.set_ylabel("Average Value")
                 ax6.set_title("Performance by Category")
                 ax6.tick_params(axis="x", rotation=45)

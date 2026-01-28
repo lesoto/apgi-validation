@@ -99,7 +99,9 @@ class BatchProcessor:
         self.results: Dict[str, Any] = {}
 
         # Choose executor type
-        self.executor_class = ProcessPoolExecutor if use_processes else ThreadPoolExecutor
+        self.executor_class = (
+            ProcessPoolExecutor if use_processes else ThreadPoolExecutor
+        )
 
     def add_simulation_job(
         self,
@@ -216,7 +218,9 @@ class BatchProcessor:
 
         # Run simulation
         duration = steps * dt
-        results = system.simulate(duration=duration, dt=dt, input_generator=input_generator)
+        results = system.simulate(
+            duration=duration, dt=dt, input_generator=input_generator
+        )
 
         return {
             "job_id": job.job_id,
@@ -347,7 +351,10 @@ class BatchProcessor:
         regular_jobs = []
 
         for job in self.jobs:
-            if job.job_type == "validation" and job.parameters.get("protocol") == "protocol_2":
+            if (
+                job.job_type == "validation"
+                and job.parameters.get("protocol") == "protocol_2"
+            ):
                 memory_intensive_jobs.append(job)
             else:
                 regular_jobs.append(job)
@@ -387,7 +394,9 @@ class BatchProcessor:
 
         # Run memory-intensive jobs sequentially with threading
         if memory_intensive_jobs:
-            print(f"Running {len(memory_intensive_jobs)} memory-intensive jobs sequentially...")
+            print(
+                f"Running {len(memory_intensive_jobs)} memory-intensive jobs sequentially..."
+            )
             for job in memory_intensive_jobs:
                 try:
                     print(f"Running {job.job_id} (memory-intensive)...")
@@ -405,7 +414,9 @@ class BatchProcessor:
         # Try to run any remaining failed jobs sequentially
         if failed_jobs:
             print(f"Attempting to run {len(failed_jobs)} failed jobs sequentially...")
-            for job in failed_jobs[:]:  # Copy list to allow modification during iteration
+            for job in failed_jobs[
+                :
+            ]:  # Copy list to allow modification during iteration
                 try:
                     print(f"Running {job.job_id} sequentially...")
                     completed_job = self.run_job(job)

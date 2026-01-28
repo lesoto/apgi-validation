@@ -60,4 +60,6 @@ def test_sample_data_fixture_structure(sample_data):
     # Check data consistency
     data_length = len(sample_data["timestamps"])
     for key in required_keys:
-        assert len(sample_data[key]) == data_length, f"Sample data {key} length mismatch"
+        assert (
+            len(sample_data[key]) == data_length
+        ), f"Sample data {key} length mismatch"
