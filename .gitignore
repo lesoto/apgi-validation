@@ -138,6 +138,7 @@ output/
 logs/
 figures/
 plots/
+cache/
 
 # Temporary files
 *.tmp
