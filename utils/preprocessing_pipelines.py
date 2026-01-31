@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 from data_validation import DataPreprocessor, DataValidator
 from scipy import signal, stats
+from sklearn import exceptions
 from sklearn.decomposition import FastICA
 from tqdm import tqdm
 

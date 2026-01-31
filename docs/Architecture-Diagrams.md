@@ -158,7 +158,7 @@ graph TB
     end
 
     subgraph "Core Modules"
-        FORMAL[APGI-Formal-Model.py]
+        FORMAL[APGI-Equations.py]
         LIQUID[APGI-Liquid-Network.py]
         MULTIMODAL[APGI-Multimodal-Integration.py]
         TURING[APGI-Turing-Machine.py]

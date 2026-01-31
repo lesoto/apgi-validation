@@ -10,6 +10,7 @@ Comprehensive logging system using loguru with:
 - Error reporting and alerts
 """
 
+import json
 import queue
 import re
 import sys

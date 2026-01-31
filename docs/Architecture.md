@@ -227,7 +227,7 @@ main.py
 │   └── dotenv (Environment variables)
 ├── logging_config
 │   └── loguru (Logging)
-├── APGI-Formal-Model
+├── APGI-Equations
 │   ├── numpy (Numerical computing)
 │   └── scipy (Scientific computing)
 ├── APGI-Multimodal-Integration

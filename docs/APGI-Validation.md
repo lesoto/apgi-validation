@@ -32,46 +32,100 @@ python main.py --help
 
 ```bash
 # Run formal model simulation
-python main.py formal-model --simulation-steps 1000
+python main.py formal_model --simulation-steps 1000
 
 # Execute multimodal integration
 python main.py multimodal --input-data data/sample.csv
 
 # Estimate parameters from data
-python main.py estimate-parameters --data-file data/experimental.csv
+python main.py estimate-params --data-file data/experimental.csv
 
 # Run validation protocols
-python main.py validate --protocol all
+python main.py validate --protocol 3
+
+# Run falsification protocols
+python main.py falsify --protocol 1
+
+# View framework information
+python main.py info
 ```
 
-## Backup and Restore
+## CLI Commands Reference
 
-```bash
-python main.py backup --components "config,logs" --description "My backup"
-python main.py restore --backup-id backup_20240117_120000
-python main.py backups --limit 10
-python main.py delete-backup --cleanup-all
-```
+### Core Commands
 
-## Configuration Versioning
+| Command | Description | Status |
+| :--- | :--- | :--- |
+| `python main.py formal_model` | Run formal model simulations | WORKING |
+| `python main.py multimodal` | Execute multimodal integration | WORKING |
+| `python main.py estimate-params` | Perform parameter estimation | WORKING |
+| `python main.py validate` | Run validation protocols | WORKING |
+| `python main.py falsify` | Execute falsification tests | WORKING |
 
-```bash
-python main.py config-version --description "Updated parameters" --author "User"
-python main.py config-versions --limit 15
-python main.py config-restore --version-id v20240117_120000
-python main.py config-diff
-```
+### Protocol Commands
 
-## Error Management
+| Command | Description | Status |
+| :--- | :--- | :--- |
+| `python main.py validate --protocol N` | Run specific validation protocol (1-8) | WORKING |
+| `python main.py validate --all-protocols` | Run all validation protocols | WORKING |
+| `python main.py falsify --protocol N` | Run specific falsification protocol (1-6) | WORKING |
 
-```bash
-python main.py errors --category CONFIGURATION --severity HIGH
-python main.py test-errors --test-config --test-validation
-```
+### Utility Commands
+
+| Command | Description | Status |
+| :--- | :--- | :--- |
+| `python main.py info` | Show framework information | WORKING |
+| `python main.py config --show` | Show current configuration | WORKING |
+| `python main.py config --set key=value` | Set configuration value | WORKING |
+| `python main.py logs --tail 20` | View recent log entries | WORKING |
+| `python main.py logs --follow` | Follow logs in real-time | WORKING |
+| `python main.py performance` | Show performance metrics | WORKING |
+
+### Data Management
+
+| Command | Description | Status |
+| :--- | :--- | :--- |
+| `python main.py export --input-file X --output-file Y` | Export data | WORKING |
+| `python main.py import --input-file X --output-file Y` | Import data | WORKING |
+| `python main.py visualize --input-file X` | Generate visualizations | WORKING |
+| `python main.py cache --action clear` | Clear cache | WORKING |
+| `python main.py dashboard` | Generate dashboards | WORKING |
+
+### Backup & Restore
+
+| Command | Description | Status |
+| :--- | :--- | :--- |
+| `python main.py backup --components "config,logs"` | Create backup | WORKING |
+| `python main.py restore --backup-id X` | Restore from backup | WORKING |
+| `python main.py backups --limit 10` | List backups | WORKING |
+| `python main.py delete-backup --backup-id X` | Delete backup | WORKING |
+
+### Configuration Versioning
+
+| Command | Description | Status |
+| :--- | :--- | :--- |
+| `python main.py config-version --description "X"` | Create config version | WORKING |
+| `python main.py config-versions --limit 10` | List config versions | WORKING |
+| `python main.py config-restore --version-id X` | Restore config version | WORKING |
+| `python main.py config-diff` | Compare config with last version | WORKING |
+
+### Error Management
+
+| Command | Description | Status |
+| :--- | :--- | :--- |
+| `python main.py errors --category CONFIGURATION` | View errors | WORKING |
+| `python main.py test-errors --test-config` | Test error handling | WORKING |
+
+### GUI
+
+| Command | Description | Status |
+| :--- | :--- | :--- |
+| `python main.py gui --gui-type validation` | Launch validation GUI | WORKING |
+| `python main.py gui --gui-type falsification` | Launch falsification GUI | WORKING |
 
 ## 🔬 Core Components
 
-### 1. Formal Model (`APGI-Formal-Model.py`)
+### 1. Formal Model (`APGI-Equations.py`)
 
 Implements dynamical system for accumulated surprise and ignition:
 
@@ -131,13 +185,17 @@ The unified CLI provides access to all framework components:
 python main.py [COMMAND] [OPTIONS]
 
 Commands:
-  formal-model      Run formal model simulations
+  formal_model      Run formal model simulations
   multimodal        Execute multimodal integration
   estimate-params   Perform parameter estimation
   validate          Run validation protocols
   falsify          Execute falsification tests
-  config          Manage configuration settings
-  logs            View log files
+  config           Manage configuration settings
+  logs             View log files
+  info             Show framework information
+  backup           Create backups
+  restore          Restore from backups
+  gui              Launch GUI interfaces
 ```
 
 ### Configuration Management
@@ -165,17 +223,26 @@ Comprehensive logging system with:
 
 ```bash
 # Run all validation protocols
-python main.py validate --protocol all
+python main.py validate --all-protocols
 
-# Run specific validation
-python main.py validate --protocol cross-validation
+# Run specific validation protocol (1-8)
+python main.py validate --protocol 3
+
+# Run validation with output directory
+python main.py validate --protocol 1 --output-dir results/
 ```
 
 ### Falsification Testing
 
 ```bash
-# Execute falsification protocols
+# List available falsification protocols
+python main.py falsify
+
+# Execute specific falsification protocol (1-6)
 python main.py falsify --protocol 1
+
+# Run falsification with output file
+python main.py falsify --protocol 2 --output-file results.json
 ```
 
 ## 📊 Example Workflows

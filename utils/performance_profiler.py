@@ -91,7 +91,7 @@ class SystemMonitor:
     def stop_monitoring(self):
         """Stop system monitoring."""
         self.monitoring = False
-        if self.thread:
+        if self.thread is not None:
             self.thread.join(timeout=2)
             apgi_logger.logger.info("System monitoring stopped")
 

@@ -83,6 +83,11 @@ class UtilsRunnerGUI:
         for script in self.scripts:
             self.scripts_listbox.insert(tk.END, script.name)
 
+        # Bind selection change to update stop button state
+        self.scripts_listbox.bind(
+            "<<ListboxSelect>>", lambda e: self.update_stop_button_state()
+        )
+
         # Control buttons frame
         control_frame = ttk.Frame(main_frame)
         control_frame.grid(row=1, column=1, sticky=(tk.W, tk.E, tk.N), padx=(0, 10))
@@ -164,6 +169,14 @@ class UtilsRunnerGUI:
             return self.scripts[index]
         return None
 
+    def update_stop_button_state(self):
+        """Update stop button state based on selected script running status."""
+        script = self.get_selected_script()
+        if script and script.name in self.running_processes:
+            self.stop_button.config(state=tk.NORMAL)
+        else:
+            self.stop_button.config(state=tk.DISABLED)
+
     def run_selected_script(self):
         """Run the selected script in a separate thread."""
         script = self.get_selected_script()
@@ -222,6 +235,7 @@ class UtilsRunnerGUI:
             )
 
             self.running_processes[script.name] = process
+            self.update_stop_button_state()
 
             # Read output in real-time
             def read_output():
@@ -250,6 +264,7 @@ class UtilsRunnerGUI:
 
                 self.progress.stop()
                 self.update_status("Ready")
+                self.update_stop_button_state()
 
             # Start output reading thread
             output_thread = threading.Thread(target=read_output, daemon=True)
@@ -282,6 +297,7 @@ class UtilsRunnerGUI:
                 del self.running_processes[script.name]
                 self.progress.stop()
                 self.update_status("Ready")
+                self.update_stop_button_state()
             except Exception as e:
                 self.log_output(f"Error stopping {script.name}: {str(e)}", "error")
         else:
@@ -319,20 +335,41 @@ class UtilsRunnerGUI:
         self.root.destroy()
 
 
-def main():
-    """Main function to run the GUI."""
-    root = tk.Tk()
-    app = UtilsRunnerGUI(root)
+def main() -> None:
+    """Launch the utils runner GUI."""
+    try:
+        # Import tkinter
+        import tkinter as tk
 
-    # Center window on screen
-    root.update_idletasks()
-    width = root.winfo_width()
-    height = root.winfo_height()
-    x = (root.winfo_screenwidth() // 2) - (width // 2)
-    y = (root.winfo_screenheight() // 2) - (height // 2)
-    root.geometry(f"{width}x{height}+{x}+{y}")
+        # Create and run the GUI
+        root = tk.Tk()
+        app = UtilsRunnerGUI(root)
 
-    root.mainloop()
+        # Center window on screen - wait for window to be properly rendered
+        root.update_idletasks()
+        root.withdraw()  # Hide window during positioning
+        root.update_idletasks()
+
+        width = root.winfo_width()
+        height = root.winfo_height()
+        x = (root.winfo_screenwidth() // 2) - (width // 2)
+        y = (root.winfo_screenheight() // 2) - (height // 2)
+        root.geometry(f"{width}x{height}+{x}+{y}")
+
+        root.deiconify()  # Show window after positioning
+        root.mainloop()
+
+    except ImportError as e:
+        print(f"❌ Import Error: {e}")
+        print("This script requires tkinter, which should come with Python.")
+        sys.exit(1)
+    except tk.TclError as e:
+        print(f"❌ Tkinter Error: {e}")
+        print("There was an error initializing the GUI.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -10,9 +10,9 @@ import os
 import sys
 from pathlib import Path
 
-# Import APGI-Master-Validation.py using importlib (needed for hyphenated filename)
+# Import Master-Validation.py using importlib (needed for hyphenated filename)
 validation_dir = Path(__file__).parent
-master_validation_path = validation_dir / "APGI-Master-Validation.py"
+master_validation_path = validation_dir / "Master-Validation.py"
 
 spec = importlib.util.spec_from_file_location(
     "APGI_Master_Validation", master_validation_path

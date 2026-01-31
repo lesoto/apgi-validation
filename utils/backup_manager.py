@@ -40,10 +40,13 @@ except ImportError:
     try:
         from utils.logging_config import apgi_logger
     except ImportError:
-        # When running directly from utils directory
-        import logging_config
+        # Fallback to standard logging when running standalone
+        import logging
 
-        apgi_logger = logging_config.apgi_logger
+        class APGILogger:
+            logger = logging.getLogger(__name__)
+
+        apgi_logger = APGILogger()
 
 
 @dataclass

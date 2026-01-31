@@ -171,7 +171,7 @@ apgi_logger.export_logs("output.json", format_type="json", log_level="INFO")
 Core formal model for surprise accumulation and ignition dynamics.
 
 ```python
-from APGI-Formal-Model import SurpriseIgnitionSystem
+from APGI-Equations import SurpriseIgnitionSystem
 
 # Initialize model
 system = SurpriseIgnitionSystem(params={

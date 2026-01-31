@@ -204,7 +204,7 @@ class APGIModuleLoader:
         """Load all available APGI modules."""
         module_configs = {
             "formal_model": {
-                "file": "APGI-Formal-Model.py",
+                "file": "Falsification/Falsification-Protocol-4.py",
                 "class": "SurpriseIgnitionSystem",
                 "description": "Formal model simulations",
             },
@@ -219,7 +219,7 @@ class APGIModuleLoader:
                 "description": "Bayesian parameter estimation",
             },
             "psychological_states": {
-                "file": "APGI-Psychological-States-CLI.py",
+                "file": "APGI-Psychological-States.py",
                 "class": None,
                 "description": "Psychological states analysis",
             },
@@ -451,6 +451,7 @@ def formal_model(
 
             # Set up signal handler for cancellation
             def handle_cancel(signum, frame):
+                """Handle SIGINT signal to cancel simulation gracefully."""
                 cancel_flag.set()
                 console.print(
                     "\n[yellow]⚠️  Simulation cancellation requested...[/yellow]"
@@ -633,6 +634,8 @@ def multimodal(
         # Import APGI Multimodal Integration classes
         module = module_info["module"]
         APGINormalizer = module.APGINormalizer
+        APGICoreIntegration = module.APGICoreIntegration
+        APGIBatchProcessor = module.APGIBatchProcessor
 
         console.print("[blue]Initializing APGI Multimodal Integration...[/blue]")
 
@@ -644,10 +647,10 @@ def multimodal(
         }
 
         # Initialize core integration
-        # integration = APGICoreIntegration(normalizer)
+        integration = APGICoreIntegration()
 
         # Initialize batch processor
-        # processor = APGIBatchProcessor(config)
+        processor = APGIBatchProcessor(integration, config)
 
         console.print("[green]✓[/green] APGI Integration initialized")
         console.print(f"Input data: {input_data or 'Demo mode'}")
@@ -1246,7 +1249,7 @@ def validate(
 
     # List available protocols
     protocols = []
-    for file_path in validation_dir.glob("APGI-Protocol-*.py"):
+    for file_path in validation_dir.glob("Validation-Protocol-*.py"):
         protocols.append(file_path.name)
 
     if protocols:
@@ -1274,6 +1277,7 @@ def validate(
                 import concurrent.futures
 
                 def run_single_protocol(protocol_file):
+                    """Run a single validation protocol and return results."""
                     protocol_path = validation_dir / protocol_file
                     protocol_num = protocol_file.split("-")[-1].replace(".py", "")
 
@@ -1395,7 +1399,7 @@ def validate(
                 all_protocols = True
             elif protocol in [p.split("-")[-1].replace(".py", "") for p in protocols]:
                 console.print(f"[blue]Running protocol: {protocol}[/blue]")
-                protocol_file = f"APGI-Protocol-{protocol}.py"
+                protocol_file = f"Validation-Protocol-{protocol}.py"
                 protocol_path = validation_dir / protocol_file
 
                 try:
@@ -1472,7 +1476,7 @@ def falsify(
     """Execute falsification testing protocols."""
     console.print(Panel.fit("🧪 Falsification Testing", style="bold red"))
 
-    falsification_dir = PROJECT_ROOT / "Falsification-Protocols"
+    falsification_dir = PROJECT_ROOT / "Falsification"
     if not falsification_dir.exists():
         console.print("[red]Error: Falsification protocols directory not found[/red]")
         return
@@ -1480,7 +1484,7 @@ def falsify(
     # List available protocols
     protocols = []
     for i in range(1, 7):
-        protocol_file = falsification_dir / f"Protocol-{i}.py"
+        protocol_file = falsification_dir / f"Falsification-Protocol-{i}.py"
         if protocol_file.exists():
             protocols.append(i)
 
@@ -1502,7 +1506,9 @@ def falsify(
         if protocol:
             if protocol in protocols:
                 console.print(f"[blue]Running falsification protocol {protocol}[/blue]")
-                protocol_file = falsification_dir / f"Protocol-{protocol}.py"
+                protocol_file = (
+                    falsification_dir / f"Falsification-Protocol-{protocol}.py"
+                )
 
                 try:
                     # Import and run falsification protocol
@@ -2281,10 +2287,12 @@ def gui(ctx, gui_type, port, host, debug):
                     FLASK_AVAILABLE = False
 
                 def run_app():
+                    """Run the Flask web application."""
                     app.run(host=host, port=port, debug=True, use_reloader=False)
 
                 # Set up signal handler for graceful shutdown
                 def signal_handler(sig, frame):
+                    """Handle shutdown signals gracefully."""
                     console.print("\n[yellow]Shutting down web server...[/yellow]")
                     sys.exit(0)
 

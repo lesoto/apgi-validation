@@ -9,7 +9,7 @@ This package contains protocols, validation tools, and implementations for
 testing APGI predictions against empirical data.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.3.0"
 __author__ = "APGI Research Team"
 
 # Import main classes for convenience

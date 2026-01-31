@@ -106,7 +106,9 @@ def _standardize_observation(observation: Dict) -> np.ndarray:
         else:
             intero_standard = intero_obs.flatten()[:INTEROCEPTIVE_DIM]
 
-        return np.concatenate([extero_standard, intero_standard])
+        # Concatenate and ensure 1D array to prevent broadcasting errors
+        result = np.concatenate([extero_standard, intero_standard])
+        return result.flatten()  # Ensure 1D array
 
     except Exception as e:
         # Return zero array as fallback
@@ -1429,6 +1431,8 @@ class AgentComparisonExperiment:
         self, foraging_results: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Analyze adaptation speed in volatile foraging with proper statistics"""
+        from scipy import stats
+
         adaptation_scores = {}
 
         for agent_name, results in foraging_results.items():

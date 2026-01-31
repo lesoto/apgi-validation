@@ -337,7 +337,7 @@ class DataQualityAssessment:
                     if invalid_percentages > 0:
                         accuracy_score -= (invalid_percentages / len(col_data)) * 0.1
                         accuracy_details[f"{col}_invalid_percentage"] = (
-                            invalid_percentations
+                            invalid_percentages
                         )
 
                 # Check for statistical outliers
