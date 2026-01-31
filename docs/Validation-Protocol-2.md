@@ -17,12 +17,12 @@ Instead of generating synthetic data, Protocol 2:
 
 ### 1. Implements Full Generative Models
 
-**APGI Model** (Complete Framework)
+### APGI Model
 
 ```python
-S_t = Π_e·|ε_e| + β·Π_i·|ε_i|
+ S_t = Π_e· | ε_e | + β·Π_i· | ε_i |
 P(conscious) = σ(α·(S_t - θ_t))
-```
+```text
 
 - Hierarchical structure with population and subject-level parameters
 - Predicts conscious reports, P3b amplitude, reaction time, HEP
@@ -49,7 +49,7 @@ Computes three key metrics:
 - More robust than WAIC for small samples
 - Uses Pareto-smoothed importance sampling
 
-**Bayes Factors**
+### Bayes Factors
 
 #### Bayes Factors
 
@@ -77,20 +77,20 @@ pip install matplotlib seaborn
 
 # Utilities
 pip install tqdm
-```
+```text
 
 **Important**: PyMC requires specific versions. Recommended:
 
 ```bash
 pip install pymc==5.10.0 arviz==0.17.0
-```
+```text
 
 ## Quick Start
 
 ```python
 # Run the complete pipeline
 python APGI-Protocol-2-Complete.py
-```
+```text
 
 The script will:
 
@@ -100,7 +100,7 @@ The script will:
 4. Check falsification criteria
 5. Generate comprehensive visualizations
 
-**Expected Runtime:**
+### Expected Runtime:
 
 - Dataset generation: ~1 minute
 - Model fitting (all models, both datasets): ~4-6 hours on 4-core CPU
@@ -131,18 +131,18 @@ real_data = ConsciousnessDataset(
     paradigm="Attentional blink",
     citation="Your et al., 2024"
 )
-```
+```text
 
 ### Required Variables
 
-**Mandatory:**
+### Mandatory:
 
 - `subject_idx`: Subject ID for each trial (0-indexed)
 - `stimulus_strength`: Perceptual strength (0-1 range)
 - `prediction_error`: Mismatch magnitude (0-1 range)
 - `conscious_report`: Binary awareness (0=unseen, 1=seen)
 
-**Optional but Recommended:**
+### Optional but Recommended:
 
 - `P3b_amplitude`: ERP amplitude 300-600ms (μV)
 - `reaction_time`: Response time (milliseconds)
@@ -181,12 +181,10 @@ real_dataset = ConsciousnessDataset(
     paradigm="Visual masking",
     citation="Melloni et al., Neuron, 2007"
 )
-```
+```text
 
 
 ## Expected Results
-
-
 
 
 ### Predicted ΔLOO Values
@@ -194,12 +192,12 @@ real_dataset = ConsciousnessDataset(
 Based on APGI theory, we predict:
 
 | Dataset | APGI | StandardSDT | GlobalWorkspace | Continuous |
-|---------|------|-------------|-----------------|------------|
+| --------- | ------ | ------------- | ----------------- | ------------ |
 | Melloni | 0 (ref) | +15 to +30 | +5 to +15 | +25 to +50 |
 | Sergent | 0 (ref) | +20 to +40 | +8 to +18 | +30 to +60 |
 | Canales-Johnson | 0 (ref) | +30 to +55 | +3 to +10 | +40 to +80 |
 
-**Interpretation:**
+### Interpretation:
 
 - ΔLOO = 0: Best model (reference)
 - ΔLOO < 10: Weak preference
@@ -214,14 +212,14 @@ BF_APGI_vs_GWT > 10: Strong evidence for APGI
 BF_APGI_vs_GWT 3-10: Moderate evidence for APGI
 BF_APGI_vs_GWT 1-3: Weak evidence for APGI
 BF_APGI_vs_GWT < 1: Evidence against APGI
-```
+```text
 
 
 ## Output Files
 
 ### 1. Model Comparison Tables
 
-**protocol2_results.json**
+### protocol2_results.json
 
 #### protocol2_results.json
 
@@ -239,12 +237,12 @@ BF_APGI_vs_GWT < 1: Evidence against APGI
     ]
   }
 }
-```
+```text
 
 
 ### 2. Visualizations
 
-**protocol2_melloni_comparison.png**
+### protocol2_melloni_comparison.png
 
 #### protocol2_melloni_comparison.png
 
@@ -255,7 +253,7 @@ BF_APGI_vs_GWT < 1: Evidence against APGI
 - Bayes factors
 - Summary table
 
-**protocol2_melloni_posteriors.png**
+### protocol2_melloni_posteriors.png
 
 #### protocol2_melloni_posteriors.png
 
@@ -266,7 +264,7 @@ BF_APGI_vs_GWT < 1: Evidence against APGI
 
 ### 3. Trace Files
 
-**protocol2_melloni_apgi_trace.nc**
+### protocol2_melloni_apgi_trace.nc
 
 #### protocol2_melloni_apgi_trace.nc
 
@@ -283,14 +281,13 @@ trace = az.from_netcdf('protocol2_melloni_apgi_trace.nc')
 
 
 theta_samples = trace.posterior['theta_0'].values
-```
+```text
 
 
 ## Console Output
 
 
-
-```
+```text
 ================================================================================
 APGI PROTOCOL 2: BAYESIAN MODEL COMPARISON
 ================================================================================
@@ -328,16 +325,13 @@ FALSIFICATION ANALYSIS
 ✅ F2.5 PASSED: BF vs GWT = 403.4
 
 OVERALL STATUS: ✅ MODEL VALIDATED
-```
+```text
 
 
 ## Advanced Usage
 
 
-
-
 ### Custom Prior Specifications
-
 
 
 ```python
@@ -355,11 +349,10 @@ class CustomAPGIModel(APGIGenerativeModel):
             # ... rest of model
 
         return model
-```
+```text
 
 
 ### Posterior Analysis
-
 
 
 ```python
@@ -395,11 +388,10 @@ az.plot_pair(trace, var_names=['mu_theta', 'mu_Pi_i', 'mu_beta'])
 
 
 az.plot_trace(trace, var_names=['mu_theta', 'mu_Pi_i'])
-```
+```text
 
 
 ### Model Comparison Across Multiple Datasets
-
 
 
 ```python
@@ -418,11 +410,10 @@ for dataset in datasets:
 
 
 combined = pd.concat(results_all, keys=[d.name for d in datasets])
-```
+```text
 
 
 ### Extract Individual Subject Parameters
-
 
 
 ```python
@@ -446,16 +437,13 @@ Pi_i_subjects = trace.posterior['Pi_i'].mean(dim=['chain', 'draw']).values
 
 import scipy.stats as stats
 r, p = stats.pearsonr(Pi_i_subjects, anxiety_scores)
-```
+```text
 
 
 ## Troubleshooting
 
 
-
-
 ### Poor Convergence (High R-hat)
-
 
 
 **Problem**: R-hat > 1.05, indicating chains haven't converged
@@ -478,15 +466,13 @@ comparison.fit_all_models(data, target_accept=0.98)
 # Check for parameter identifiability
 
 
-
 # Some parameters may be poorly identified by data
 
 
-```
+```text
 
 
 ### Many Divergences
-
 
 
 **Problem**: >100 divergent transitions
@@ -508,10 +494,7 @@ comparison.fit_all_models(data, target_accept=0.99)
 # Use more informative priors
 
 
-
 # (if justified by domain knowledge)
-
-
 
 
 # Check prior predictive distributions
@@ -519,11 +502,10 @@ comparison.fit_all_models(data, target_accept=0.99)
 
 with model:
     prior_pred = pm.sample_prior_predictive(samples=1000)
-```
+```text
 
 
 ### High Pareto k Values
-
 
 
 **Problem**: LOO warns about high Pareto k (>0.7)
@@ -546,11 +528,10 @@ cv_results = comparison.cross_validation_comparison(data, n_folds=10)
 
 
 loo = az.loo(trace, pointwise=True, moment_match=True)
-```
+```text
 
 
 ### Out of Memory
-
 
 
 **Problem**: Not enough RAM for large datasets
@@ -576,16 +557,13 @@ subset_data = comparison._subset_data(data, subset_mask)
 
 import pymc as pm
 pm.set_backend('jax')  # More memory efficient
-```
+```text
 
 
 ## Scientific Interpretation
 
 
-
-
 ### If F2.1 Falsified (APGI worse than SDT/GWT)
-
 
 
 **Implication**: The additional complexity of APGI (interoceptive precision, somatic bias) doesn't improve predictions.
@@ -601,7 +579,6 @@ pm.set_backend('jax')  # More memory efficient
 ### If F2.2 Falsified (Π_i includes zero)
 
 
-
 **Implication**: No evidence that interoceptive precision contributes to conscious access.
 
 **Possible explanations**:
@@ -613,7 +590,6 @@ pm.set_backend('jax')  # More memory efficient
 
 
 ### If F2.3 Falsified (P3b predicted by stimulus)
-
 
 
 **Implication**: P3b doesn't track supra-threshold surprise as APGI predicts.
@@ -629,7 +605,6 @@ pm.set_backend('jax')  # More memory efficient
 ### If F2.4 Falsified (No RT threshold effect)
 
 
-
 **Implication**: RT doesn't slow near threshold.
 
 **Possible explanations**:
@@ -641,7 +616,6 @@ pm.set_backend('jax')  # More memory efficient
 
 
 ### If F2.5 Falsified (BF vs GWT < 3)
-
 
 
 **Implication**: APGI and GWT explain data equally well.
@@ -657,10 +631,7 @@ pm.set_backend('jax')  # More memory efficient
 ## Computational Requirements
 
 
-
-
 ### Memory
-
 
 
 - **Model fitting**: ~8 GB RAM per model
@@ -669,7 +640,6 @@ pm.set_backend('jax')  # More memory efficient
 
 
 ### Time
-
 
 
 On 4-core Intel i7:
@@ -684,7 +654,6 @@ On 16-core server:
 
 
 ### GPU Acceleration
-
 
 
 PyMC supports JAX backend for GPU:
@@ -707,11 +676,10 @@ pm.set_backend('jax')
 # 5-10x speedup for large models
 
 
-```
+```text
 
 
 ## Integration with Protocol 1
-
 
 
 Protocol 2 complements Protocol 1:
@@ -735,38 +703,35 @@ real_theta = real_trace.posterior['mu_theta'].mean()
 print(f"Synthetic: {synthetic_theta:.3f}")
 print(f"Real: {real_theta:.3f}")
 print(f"Difference: {abs(synthetic_theta - real_theta):.3f}")
-```
+```text
 
 
 ## Citation
 
 
-
 If you use this implementation, please cite:
 
-```
+```text
 APGI Framework: Allostatic Precision-Gated Ignition
 Protocol 2: Bayesian Model Comparison on Existing Consciousness Datasets
 Implementation Version 1.0
 2025
-```
+```text
 
 
 ## References
 
 
-
-**Bayesian Model Comparison:**
+### Bayesian Model Comparison:
 - Vehtari et al. (2017). "Practical Bayesian model evaluation using leave-one-out cross-validation and WAIC." *Statistics and Computing*.
 - Gelman et al. (2013). *Bayesian Data Analysis*, 3rd edition.
 
-**Target Datasets:**
+### Target Datasets:
 - Melloni et al. (2007). "Synchronization of neural activity across cortical areas correlates with conscious perception." *Neuron*.
 - Canales-Johnson et al. (2015). "Auditory feedback differentially modulates behavioral and neural markers of objective and subjective performance when tapping to your heartbeat." *Cortex*.
 
 
 ## License
-
 
 
 This implementation is provided for scientific research purposes.

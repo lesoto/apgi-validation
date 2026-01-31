@@ -9,7 +9,7 @@
 ### Parameter 1a: Exteroceptive Precision ($\Pi^e$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Inverse variance of exteroceptive prediction error distribution: $\Pi^e = 1/\sigma_\varepsilon^e$ |
 | **Units** | [1/error²] |
 | **Meaning** | Confidence in sensory predictions. High $\Pi^e$ = tight, clustered errors (reliable sensory channel). Low $\Pi^e$ = scattered errors (noisy sensory channel). |
@@ -28,12 +28,12 @@
 ### Parameter 1b: Interoceptive Precision (Baseline) ($\Pi^i_{\text{baseline}}$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Inverse variance of interoceptive (bodily) prediction error distribution: $\Pi^i = 1/\sigma_\varepsilon^i$ before modulation by somatic markers. |
 | **Units** | [1/error²] where error is measured in physiological units (beats/min, cmH₂O, etc.) |
 | **Meaning** | Confidence in predicting one's own body state. High $\Pi^i$ = body state well-predicted (stable autonomic state, low variability). Low $\Pi^i$ = body state unpredictable (dysautonomia, high variability). |
 | **Biological Implementation** | **Primary:** Insular cortex integrates vagal/afferent interoceptive signals and compares to predictions from anterior cingulate/vmPFC. Gain of this comparison = Π^i. **Molecular:** GABA, serotonin, and opioids modulate insula responsiveness. **Circuit:** Vagus nerve → nucleus tractus solitarius → dorsal insula (primary interoceptive cortex) → anterior insula (emotion integration) → vmPFC/amygdala. Precision precision = signal/noise at each stage. **State-dependent:** Parasympathetic tone increases Π^i (slow, predictable body state); sympathetic activation decreases Π^i (variable, unpredictable arousal). |
-| **How to Measure** | **Method 1 (Heartbeat detection task):** Subject detects their own heartbeat by tapping in synchrony with pulse. Measure accuracy: Number correct / Number trials. Accuracy ≈ √Π^i (higher accuracy = higher precision). **Method 2 (Interoceptive sensitivity):** Heartbeat counting task. Subject counts heartbeats over 25s without taking pulse. Measure error: |counted - actual|. Lower error = higher Π^i. **Method 3 (Physiological variability):** Measure heart rate variability (HRV) over 5 min resting. HRV = standard deviation of inter-beat intervals. Lower HRV = more predictable heartbeat = higher Π^i. **Method 4 (HEP amplitude):** Electrocardiogram (ECG) synchronized to EEG. Measure heartbeat-evoked potential (HEP) latency and amplitude (100-300 ms post R-wave). Higher HEP amplitude → stronger interoceptive signal → higher Π^i. |
+| **How to Measure** | **Method 1 (Heartbeat detection task):** Subject detects their own heartbeat by tapping in synchrony with pulse. Measure accuracy: Number correct / Number trials. Accuracy ≈ √Π^i (higher accuracy = higher precision). **Method 2 (Interoceptive sensitivity):** Heartbeat counting task. Subject counts heartbeats over 25s without taking pulse. Measure error: \|counted - actual\|. Lower error = higher Π^i. **Method 3 (Physiological variability):** Measure heart rate variability (HRV) over 5 min resting. HRV = standard deviation of inter-beat intervals. Lower HRV = more predictable heartbeat = higher Π^i. **Method 4 (HEP amplitude):** Electrocardiogram (ECG) synchronized to EEG. Measure heartbeat-evoked potential (HEP) latency and amplitude (100-300 ms post R-wave). Higher HEP amplitude → stronger interoceptive signal → higher Π^i. |
 | **Measurement Protocol** | **Heartbeat detection (10 min):** Resting seated. No external stimuli. ECG electrode on chest. Subject taps finger in response to felt heartbeat. Computer times taps vs. ECG R-waves. Accuracy = #(tap within ±250ms of R-wave) / N trials. Repeat 100 trials. **Heartbeat counting (5 min):** Present time intervals (25s, 35s, 45s, randomized). Subject counts beats silently without touching pulse. At interval end, verbal report number. Compute absolute error for each trial. Mean error ≈ √(1/Π^i). **HRV (5 min):** Resting state, ECG. Extract beat-to-beat interval series. Compute RMSSD (root mean square of successive differences). RMSSD ≈ inverse Π^i (higher RMSSD = lower precision). **HEP (20 min):** Resting EEG + ECG. Segment EEG around each R-wave (±500ms). Average waveform. Measure peak-to-peak amplitude in 100-300 ms window at Cz electrode. Higher amplitude → higher Π^i. |
 | **Typical Population Values** | **Heartbeat detection accuracy:** 40-70% (chance = 50% from random timing; above 60% = significantly precise). **Heartbeat counting error:** 5-20 beats/25s; σ ≈ ±3 beats. **HRV (RMSSD):** Healthy resting: 20-60 ms; σ ≈ ±15 ms. **HEP amplitude:** 0.5-3.0 μV; σ ≈ ±0.8 μV. |
 | **Pathological Ranges** | **Very low Π^i (<30% detection; RMSSD >100ms; HEP <0.3μV):** Severe interoceptive insensitivity (alexithymia, some autism spectrum, dissociative disorders). **Very high Π^i (>80% detection; RMSSD <10ms; HEP >3μV):** Interoceptive hypersensitivity (anxiety, panic disorder, some PTSD). |
@@ -48,7 +48,7 @@
 ### Parameter 1c: Somatic Bias Weight ($\beta$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Strength of interoceptive modulation of precision weighting. $\Pi^i_{\text{eff}} = \Pi^i_{\text{baseline}} \cdot [1 + \beta \sigma(M - M_0)]$. Dimensionless. |
 | **Units** | [dimensionless]; typical range [0, 2]; can be negative (rare). |
 | **Meaning** | How much does predicted homeostatic cost (somatic marker M) change the weighting of interoceptive signals? **β > 0:** Threatened body state increases interoceptive precision (safer interpretation: "My body signals are worth listening to"). **β < 0:** Threatened body state decreases interoceptive precision (avoidant interpretation: "Ignore body signals"). |
@@ -67,7 +67,7 @@
 ### Parameter 1d: Noise Amplitude ($\sigma$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Standard deviation of sensory noise in detection task: $\sigma_{\text{noise}}$ |
 | **Units** | [nats] (standard deviation) |
 | **Meaning** | Amount of intrinsic neural noise in sensory processing. High σ = noisy perception (high variability, low precision). Low σ = clean perception (low variability, high precision). |
@@ -86,7 +86,7 @@
 ### Parameter 1e: Composite Interoceptive Parameter ($\beta_{\Pi^i}$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Structurally identifiable composite parameter: $\beta_{\Pi^i} = \beta \cdot \Pi^i_{\text{baseline}}$. Combines somatic gain (β) with interoceptive precision (Π^i) to solve identifiability. |
 | **Units** | [dimensionless] (product of gain × precision) |
 | **Meaning** | Overall sensitivity to interoceptive signals. High β_Π^i = strong body signal processing (high gain × high precision). Low β_Π^i = weak body signal processing (low gain × low precision). |
@@ -107,7 +107,7 @@
 ### Parameter 2a: Signal Integration Time Constant ($\tau_S$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Time constant for decay of accumulated surprise signal: $dS/dt = -\tau_S^{-1} S + \text{input}$. |
 | **Units** | [seconds]; typical range [0.08, 2.2] s. |
 | **Meaning** | How long does accumulated evidence persist in consciousness? **Short τ_S** (100-200 ms): Fast forgetting; only immediate evidence counts (sensory-dominated, brief conscious window). **Long τ_S** (1-2 s): Slow forgetting; accumulated evidence persists (working memory-like, integrates multiple evidence). |
@@ -126,10 +126,10 @@
 ### Parameter 2b: Threshold Adaptation Time Constant ($\tau_\theta$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Time constant for relaxation of threshold toward baseline: $d\theta/dt = -\tau_\theta^{-1}(\theta - \theta_0) + \ldots$. |
 | **Units** | [seconds]; typical range [0.5, 5.0] s. |
-| **Meaning** | How quickly does the ignition threshold recover to baseline after a perturbation? **Short τ_θ** (0.5-1 s): Rapid recovery; threshold resets quickly between events (enables rapid successive ignitions). **Long τ_θ** (5-10 s): Slow recovery; threshold remains elevated after event (refractory period, prevents "attentional blink"). |
+| **Meaning** | How quickly does the ignition threshold recover to baseline after a perturbation? **Short τ\_θ** (0.5-1 s): Rapid recovery; threshold resets quickly between events (enables rapid successive ignitions). **Long τ\_θ** (5-10 s): Slow recovery; threshold remains elevated after event (refractory period, prevents "attentional blink"). |
 | **Biological Implementation** | **Primary:** Thalamic reticular nucleus (TRN) implements threshold gating. Intrinsic TRN bursting (T-type calcium channel kinetics) has ~1-5 s timescale. **Neuromodulatory:** Norepinephrine (LC-NA) and acetylcholine (basal forebrain) modulate TRN responsiveness. **Global mechanism:** After ignition, frontoparietal network broadcasts broadly. As this subsides (decays with τ_S), threshold has time to recover (τ_θ). If τ_θ >> τ_S, threshold stays high even as signal decays (refractory period). |
 | **How to Measure** | **Method 1 (Attentional blink - recovery kinetics):** RSVP task (as in backward masking). Measure T2 detection as function of lag from T1. Plot shows dip (blink) at lag 2-4 (200-400 ms) then recovery to baseline at lag 8+ (800+ ms). Recovery curve → τ_θ. Fit exponential recovery: P(T2 detect) = 1 - A*exp(-lag/τ_θ). τ_θ ≈ lag at 63% recovery. **Method 2 (Response inhibition refractory period):** Stop-signal task with varying stop-signal delay (SSD). Measure probability of inhibition vs. SSD. Inhibition fails for short SSD (refractory), improves with longer SSD. Rate of improvement → τ_θ. **Method 3 (EEG: P3b refractory period):** Oddball with paired deviants (D1-D2 at varied intervals: 500, 1000, 2000, 5000 ms). Measure P3b amplitude to D2 as function of D1-D2 interval. Early intervals: reduced P3b (refractory). Late intervals: normal P3b (recovered). Recovery curve → τ_θ. **Method 4 (fMRI: Frontoparietal desactivation):** Event-related fMRI. Present task event (button press, decision). Measure time for frontoparietal activation to return to baseline. Return time ≈ τ_θ. Fit exponential decay of BOLD activation. |
 | **Measurement Protocol** | **Attentional blink recovery (10 min):** RSVP task (as described in τ_S protocol). Specifically measure lags 2-8 with finer resolution (lag 2, 2.5, 3, 4, 5, 6, 8). Extract P(T2 detect) for each lag. Fit recovery curve. τ_θ ≈ lag at which detection returns to >90% baseline (T1-absent condition). **Stop-signal task (15 min):** Go-signal (visual cue) requiring button press. On 25% of trials, stop-signal (beep) at variable SSD (100-400 ms relative to go-signal). Subject inhibits response when stop-signal sounds. Measure probability of successful inhibition vs. SSD. Fit: P(inhibit) = 1 - exp(-SSD/τ_θ). Typical SSRT (stop-signal reaction time) ≈ 150-250 ms; relates to threshold refractory period. **EEG paired-deviant task (15 min):** Tone stream with occasional paired deviants (D1 at random interval, D2 at fixed lag: 500, 1000, 2000, 5000 ms). Extract P3b amplitude to D2 for each lag. Fit recovery: P3b(lag) = P3b_max * (1 - exp(-lag/τ_θ)). τ_θ ≈ lag at 63% recovery. |
@@ -145,7 +145,7 @@
 ### Parameter 2c: Somatic Marker Time Constant ($\tau_M$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Time constant for vmPFC to track predicted homeostatic cost: $dM/dt = -\tau_M^{-1}(M - M^*(\varepsilon^i)) + \ldots$. |
 | **Units** | [seconds]; typical range [0.5, 5.0] s. |
 | **Meaning** | How quickly does vmPFC update its prediction of homeostatic cost when body state changes? **Short τ_M** (0.5-1 s): Rapid response (detect body state changes quickly). **Long τ_M** (2-5 s): Slow response (integrates body state over longer period, smooths fluctuations). |
@@ -164,7 +164,7 @@
 ### Parameter 2d: Arousal Time Constant ($\tau_A$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Time constant for arousal state (A) to track target arousal (A_target): $dA/dt = -\tau_A^{-1}(A - A_{\text{target}}) + \ldots$. |
 | **Units** | [seconds]; typical range [0.1, 30] s (bimodal: fast phasic ~0.1-0.5 s; slow tonic ~10-30 s). |
 | **Meaning** | How quickly does global alertness respond to stimuli/state changes? **Short τ_A (fast, 0.1-0.5 s):** Phasic component; rapid pupil dilation, heart rate spike to sudden stimuli (reactive arousal). **Long τ_A (slow, 10-30 s):** Tonic component; slow drift in background alertness over minutes (homeostatic baseline shift). |
@@ -183,7 +183,7 @@
 ### Parameter 2e: Surprise Decay Constant ($\tau$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Time constant for decay of accumulated surprise signal: $dS/dt = -\tau^{-1} S + \text{input}$. |
 | **Units** | [seconds]; typical range [0.15, 0.30] s |
 | **Meaning** | How quickly does accumulated surprise decay? Short τ (150-200 ms): Fast forgetting; brief conscious window. Long τ (250-300 ms): Slower forgetting; extended conscious access. |
@@ -204,7 +204,7 @@
 ### Parameter 3a: Baseline Threshold ($\theta_0$) and Arousal Modulation
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Baseline ignition threshold (resting state); varies as function of arousal (A) via: $\theta_0(A) = \theta_0^{\text{sleep}} + (1 - A)(\theta_0^{\text{alert}} - \theta_0^{\text{sleep}})$. |
 | **Units** | [nats] = [dimensionless]; typical range [1.0, 5.5] nats. |
 | **Meaning** | How much evidence (surprise) is needed to trigger conscious access at different arousal levels? **Low arousal (sleeping):** $\theta_0^{\text{sleep}}$ low (easy to ignite for survival threats). **High arousal (alert vigilance):** $\theta_0^{\text{alert}}$ high (conservative broadcast, filter noise). |
@@ -223,7 +223,7 @@
 ### Parameter 3b: Metabolic Coupling Strength ($\lambda$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Strength of feedback from accumulated signal (S) to threshold: $d\theta/dt = ... + \lambda S(t) + ...$. Implements metabolic cost regulation. |
 | **Units** | [1/time]; typical range [0.001, 0.12] s⁻¹. |
 | **Meaning** | How strongly does metabolic cost (reflected in accumulated signal S) regulate threshold? **High λ:** Strong feedback; accumulated signals quickly raise threshold (prevent wasteful broadcast). **Low λ:** Weak feedback; threshold insensitive to accumulated signal (ignore metabolic cost). |
@@ -244,13 +244,13 @@
 ### Parameter 4a: Logistic Steepness ($\alpha$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Steepness of logistic ignition function: $B = \sigma(\alpha(S - \theta)) = 1/(1 + \exp(-\alpha(S-\theta)))$. Controls graded vs. all-or-none ignition. |
 | **Units** | [1/surprise units] = [dimensionless/nats]; typical range [0.5, 12.0] nats⁻¹. |
 | **Meaning** | **High α:** Sharp transition (nearly all-or-none ignition; small changes in S near threshold cause large changes in B). **Low α:** Gradual transition (graded ignition; broad range of S values produce intermediate probabilities). |
 | **Biological Implementation** | **Primary:** Stochastic noise in neural circuits (ion channel noise, synaptic variability) sets the transition steepness. **Equation:** α = 1/σ_noise, where σ_noise is effective noise. Low noise → high α (sharp). High noise → low α (gradual). **Molecular sources of noise:** Stochastic ion channel opening (Poisson), neurotransmitter release variability (binomial), background synaptic bombardment. **Circuit:** Thalamic relay neurons must reach threshold to fire. Variability in subthreshold inputs → variability in threshold crossing → gradual transition. More synchronized/structured input → sharper transition. |
 | **How to Measure** | **Method 1 (Psychometric function slope):** Detection task with varying stimulus strength (contrast: 5%, 10%, 25%, 50%, 100%). Measure detection probability P(detect) at each contrast. Plot psychometric curve: P(detect) vs. log(contrast). Fit logistic: P = 1 / (1 + exp(-α*(log(contrast) - log(threshold)))). Slope at 50% point ≈ α/2.3 (convert from log scale). Steeper slope → larger α. **Method 2 (ROC curve):** Signal detection task. Present noise-alone vs. signal+noise trials. Vary signal strength. Plot detection sensitivity (d-prime) vs. criterion. Calculate slope of ROC curve at operating point. Slope ≈ α. **Method 3 (Response latency distribution):** Detection task with reaction time measured. Collect RT distribution at threshold signal strength. Analyze RT distribution: **Sharp threshold (high α):** Bimodal RT (either quick "hit" or slow "miss"). **Gradual threshold (low α):** Unimodal RT (intermediate values common). Characterize bimodality → α (higher bimodality → higher α). **Method 4 (Neural response variability):** Single-unit recording from thalamic relay neuron. Present stimulus at varying strengths. Measure whether neuron fires (spike/no-spike) on each trial. At threshold stimulus, compute probability of firing across trials. Plot P(fire) vs. stimulus strength. Fit logistic → α. **Method 5 (EEG amplitude distribution):** Extract P3b amplitudes at near-threshold stimulus strength. If α high: bimodal distribution (large P3b on "seen" trials, small on "unseen"). If α low: unimodal distribution. Fit mixture model to amplitude distribution. |
-| **Measurement Protocol** | **Psychometric function (20 min):** Visual detection task. Present Gabor patches at varying contrasts (5%, 10%, 25%, 50%, 100%). 20 trials per contrast, randomized. Subject reports "seen" or "unseen." Compute P(seen) for each contrast. Fit cumulative Gaussian (or logistic): P(seen) = Φ((log(contrast) - log(threshold))/σ). σ parameter relates to α: α ≈ 1/(σ*ln(10)) (converts from log to linear scale). Plot logistic curve. **ROC analysis (15 min):** Signal detection task. Variable contrast stimulus (50 levels: 1-100%) or signal+noise (SNR: 0-10 dB). 10 trials per level. Subject rates confidence in 5-point scale (certainly unseen, probably unseen, neutral, probably seen, certainly seen). Plot true positive rate (hits) vs. false positive rate (false alarms) for each confidence level. Fit ROC. Slope at iso-discrimination point ≈ α. **Latency variability (20 min):** Reaction time detection task. Stimulus at near-threshold contrast (estimated from preliminary staircase procedure). 100 trials. Measure RT. Analyze RT distribution: **Bimodality test (using dip test):** If multimodal (two peaks), bimodality exists, suggesting high α. If unimodal, suggests low α. Quantify bimodality index. **EEG amplitude distribution (20 min):** Threshold detection task with simultaneous EEG. Extract P3b amplitudes on each trial. Fit mixture model: P(amplitude) = pf * N(μ_seen, σ_seen) + (1-pf) * N(μ_unseen, σ_unseen), where pf = proportion of "seen" trials (≈50% for threshold stimulus). Separation between μ_seen and μ_unseen indicates α (larger separation → larger effective α). |
+| **Measurement Protocol** | **Psychometric function (20 min):** Visual detection task. Present Gabor patches at varying contrasts (5%, 10%, 25%, 50%, 100%). 20 trials per contrast, randomized. Subject reports "seen" or "unseen." Compute P(seen) for each contrast. Fit cumulative Gaussian (or logistic): P(seen) = Φ((log(contrast) - log(threshold))/σ). σ parameter relates to α: α ≈ 1/(σ*ln(10)) (converts from log to linear scale). Plot logistic curve. **ROC analysis (15 min):** Signal detection task. Variable contrast stimulus (50 levels: 1-100%) or signal+noise (SNR: 0-10 dB). 10 trials per level. Subject rates confidence in 5-point scale (certainly unseen, probably unseen, neutral, probably seen, certainly seen). Plot true positive rate (hits) vs. false positive rate (false alarms) for each confidence level. Fit ROC. Slope at iso-discrimination point ≈ α. **Latency variability (20 min):** Reaction time detection task. Stimulus at near-threshold contrast (estimated from preliminary staircase procedure). 100 trials. Measure RT... Analyze RT distribution: **Bimodality test (using dip test):** If multimodal (two peaks), bimodality exists, suggesting high α. If unimodal, suggests low α. Quantify bimodality index... **EEG amplitude distribution (20 min):** Threshold detection task with simultaneous EEG. Extract P3b amplitudes on each trial. Fit mixture model: P(amplitude) = pf* N(μ_seen, σ_seen) + (1-pf) * N(μ_unseen, σ_unseen), where pf = proportion of "seen" trials (≈50% for threshold stimulus). Separation between μ_seen and μ_unseen indicates α (larger separation → larger effective α). |
 | **Typical Population Values** | **From psychometric function:** Slope parameter σ ≈ 0.1-0.3 (log units); converts to α ≈ 1-3 nats⁻¹. **From ROC:** Slope ≈ 1-3. **From latency:** For high α (bimodal RT): RT_seen ≈ 300-400 ms, RT_unseen ≈ 600-800 ms. For low α (unimodal RT): RT distributed 300-800 ms. **From EEG:** P3b separation (seen vs. unseen): μ_seen - μ_unseen ≈ 2-4 μV (well-separated, high α) vs. ≈ 0.5-1 μV (overlapping, low α). |
 | **Pathological Ranges** | **Very high α (>5):** All-or-none ignition (abrupt access). Seen in: acute psychosis (abrupt thought insertions), seizures (abrupt loss of consciousness). **Very low α (<0.5):** Extremely gradual threshold; consciousness very probabilistic. Seen in: severe intoxication (unstable consciousness), some sleep disorders (shallow sleep). |
 | **Individual Differences** | **Genetic:** Noise-related genes (ion channel genes, synaptic vesicle genes) → affect neural stochasticity → modulate α. **Developmental:** Children: α lower (more noise, less mature circuits). Aging: α decreases (~5-10%/decade) (increased noise in aging brain). **Lifestyle:** Meditation/training: α may increase (refined circuits, less noise). Sleep deprivation: α decreases (noise increases). **Psychiatric/Neurological:** Schizophrenia: α variable/reduced (noisy perception). Autism: possibly higher α (more structured processing). Depression: possibly lower α (flat affect). |
@@ -263,7 +263,7 @@
 ### Parameter 4b: Somatic Marker Sensitivity ($\beta_M$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Sensitivity of somatic marker target to interoceptive errors: $M^*(\varepsilon^i) = \tanh(\beta_M \varepsilon^i)$. |
 | **Units** | [dimensionless]; typical range [0.08, 11.0]. |
 | **Meaning** | How much does body state mismatch (ε^i) contribute to predicted homeostatic cost (M)? **High β_M:** Small body state changes produce large cost predictions (body signals are highly salient). **Low β_M:** Large body state changes produce small cost predictions (body signals are dampened). |
@@ -284,7 +284,7 @@
 ### Parameter 5a: Homeostatic Recovery Rate ($\gamma$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Rate constant for post-ignition threshold recovery: $\theta(t) = \theta_0 (1 - e^{-\gamma t})$ |
 | **Units** | [1/second]; typical range [0.015, 0.085] |
 | **Meaning** | How quickly does threshold return to baseline after ignition? High γ = fast recovery (quick reset). Low γ = slow recovery (prolonged refractory). |
@@ -303,7 +303,7 @@
 ### Parameter 5b: Post-Ignition Elevation ($\delta$)
 
 | Aspect | Details |
-|---|---|
+| --- | --- |
 | **Definition** | Immediate threshold elevation after ignition: $\theta_{\text{post}} = \theta_0 (1 + \delta)$. Fractional increase. |
 | **Units** | [dimensionless]; typical range [0.08, 0.35] |
 | **Meaning** | How much does threshold rise immediately after ignition? High δ = large elevation (strong refractory). Low δ = minimal elevation (weak refractory). |
@@ -321,45 +321,45 @@
 
 ## PART 6: PARAMETER MEASUREMENT SUMMARY TABLE
 
-| **Parameter** | **Symbol** | **Units** | **Typical Value** | **Measurement Method** | **Timeline** |
-|---|---|---|---|---|---|
-| **Exteroceptive Precision** | $\Pi^e$ | [1/error²] | 0.4-4.5 | Perceptual discrimination task (staircase; EEG N1; pupil) | 30 min |
-| **Interoceptive Precision** | $\Pi^i$ | [1/error²] | Heartbeat detection 50-70% accuracy; HRV 20-60 ms | Heartbeat detection; HRV; HEP amplitude | 30 min |
-| **Somatic Bias Weight** | $\beta$ | [dimensionless] | 0.05-2.2 | Threat + interoceptive task (HEP); fMRI connectivity (vmPFC-AI) | 45 min |
-| **Signal Integration Tau** | $\tau_S$ | [seconds] | 0.08-2.2 | Backward masking; attentional blink; P3b decay | 30 min |
-| **Threshold Adaptation Tau** | $\tau_\theta$ | [seconds] | 0.45-5.5 | Attentional blink recovery; stop-signal task; EEG paired-deviant | 30 min |
-| **Somatic Marker Tau** | $\tau_M$ | [seconds] | 0.45-5.5 | fMRI threat prediction; Iowa Gambling; anticipatory HR; EEG SPN | 45 min |
-| **Arousal Tau (phasic)** | $\tau_A^{\text{phasic}}$ | [seconds] | 0.08-0.55 | Pupil dilation to novel stimulus | 20 min |
-| **Arousal Tau (tonic)** | $\tau_A^{\text{tonic}}$ | [seconds] | 280-1900 s (5-30 min) | Pupil baseline drift over 30 min | 30 min |
-| **Baseline Threshold** | $\theta_0$ | [nats] | 1-5 nats (varies with A) | Detection thresholds at different arousal levels | 1 hour (multi-day) |
-| **Metabolic Coupling Strength** | $\lambda_{\text{coupling}}$ | [1/time] | 0.001-0.12 s⁻¹ | Dual-task interference; caffeine manipulation | 45 min |
-| **Logistic Steepness** | $\alpha$ | [1/nats] | 0.5-12.0 | Psychometric function slope; ROC; RT bimodality; EEG amplitude distribution | 45 min |
-| **Somatic Marker Sensitivity** | $\beta_M$ | [dimensionless] | 0.08-11.0 | Orthostatic/pain + fMRI; insula-vmPFC connectivity | 45 min |
-| **Noise Amplitude** | $\sigma$ | [nats] | 0.15-2.5 | Trial-to-trial variability; psychometric slope; neural recording | 20 min |
-| **Composite Interoceptive Parameter** | $\beta_{\Pi^i}$ | [dimensionless] | 0.25-3.5 | Multi-measure composite; P3b ratio; heartbeat detection | 90 min |
-| **Surprise Decay Constant** | $\tau$ | [seconds] | 0.15-0.30 | Backward masking; attentional blink; P3b decay | 15 min |
-| **Homeostatic Recovery Rate** | $\gamma$ | [1/second] | 0.015-0.085 | Threshold recovery; P3b amplitude vs. ISI | 20 min |
-| **Post-Ignition Elevation** | $\delta$ | [dimensionless] | 0.08-0.35 | Threshold measurement; RT distribution | 20 min |
+| **Parameter** | **Symbol** | **Units** | **Typical Value** | **Measurement Method** |
+| --- | --- | --- | --- | --- |
+| **Exteroceptive Precision** | $\Pi^e$ | [1/error²] | 0.4-4.5 | Perceptual discrimination task (staircase; EEG N1; pupil) |
+| **Interoceptive Precision** | $\Pi^i$ | [1/error²] | Heartbeat detection 50-70% accuracy; HRV 20-60 ms | Heartbeat detection; HRV; HEP amplitude |
+| **Somatic Bias Weight** | $\beta$ | [dimensionless] | 0.05-2.2 | Threat + interoceptive task (HEP); fMRI connectivity (vmPFC-AI) |
+| **Signal Integration Tau** | $\tau_S$ | [seconds] | 0.08-2.2 | Backward masking; attentional blink; P3b decay |
+| **Threshold Adaptation Tau** | $\tau_\theta$ | [seconds] | 0.45-5.5 | Attentional blink recovery; stop-signal task; EEG paired-deviant |
+| **Somatic Marker Tau** | $\tau_M$ | [seconds] | 0.45-5.5 | fMRI threat prediction; Iowa Gambling; anticipatory HR; EEG SPN |
+| **Arousal Tau (phasic)** | $\tau_A^{\text{phasic}}$ | [seconds] | 0.08-0.55 | Pupil dilation to novel stimulus |
+| **Arousal Tau (tonic)** | $\tau_A^{\text{tonic}}$ | [seconds] | 280-1900 s (5-30 min) | Pupil baseline drift over 30 min |
+| **Baseline Threshold** | $\theta_0$ | [nats] | 1-5 nats (varies with A) | Detection thresholds at different arousal levels |
+| **Metabolic Coupling Strength** | $\lambda_{\text{coupling}}$ | [1/time] | 0.001-0.12 s⁻¹ | Dual-task interference; caffeine manipulation |
+| **Logistic Steepness** | $\alpha$ | [1/nats] | 0.5-12.0 | Psychometric function slope; ROC; RT bimodality; EEG amplitude distribution |
+| **Somatic Marker Sensitivity** | $\beta_M$ | [dimensionless] | 0.08-11.0 | Orthostatic/pain + fMRI; insula-vmPFC connectivity |
+| **Noise Amplitude** | $\sigma$ | [nats] | 0.15-2.5 | Trial-to-trial variability; psychometric slope; neural recording |
+| **Composite Interoceptive Parameter** | $\beta_{\Pi^i}$ | [dimensionless] | 0.25-3.5 | Multi-measure composite; P3b ratio; heartbeat detection |
+| **Surprise Decay Constant** | $\tau$ | [seconds] | 0.15-0.30 | Backward masking; attentional blink; P3b decay |
+| **Homeostatic Recovery Rate** | $\gamma$ | [1/second] | 0.015-0.085 | Threshold recovery; P3b amplitude vs. ISI |
+| **Post-Ignition Elevation** | $\delta$ | [dimensionless] | 0.08-0.35 | Threshold measurement; RT distribution |
 
 ---
 
 ## PART 6: IMPLEMENTATION RECOMMENDATIONS
 
-### For Research Teams (Multi-Site Studies):
+### For Research Teams (Multi-Site Studies)
 
 1. **Standardize measurement protocols** across sites (use template above)
 2. **Quality control:** Repeat 10% of measurements (test-retest reliability; ICC > 0.7)
 3. **Data sharing:** Upload anonymized data to open repository (OSF, BioStudies) for transparency
 4. **Cross-validation:** Fit APGI model to behavioral data; test predictions on held-out data
 
-### For Individual Researchers:
+### For Individual Researchers
 
 1. **Start with easy parameters** (Π^e, τ_S via psychophysics; pupil via simple eye-tracking)
 2. **Add neuroimaging gradually** (P3b via EEG if available; fMRI if needing deeper investigation)
 3. **Focus on individual differences:** Which parameters vary most across your sample?
 4. **Link to clinical outcomes:** How do parameter values predict symptoms, treatment response, prognosis?
 
-### For Clinicians:
+### For Clinicians
 
 1. **Simple screening battery** (~30 min):
    - Heartbeat detection (Π^i)

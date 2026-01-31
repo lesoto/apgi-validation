@@ -19,20 +19,13 @@ Unlike standard psychophysics that only estimates threshold and slope, Protocol 
 
 ## Installation
 
-
-
-
 ### Dependencies
-
-
 
 ```bash
 pip install numpy scipy pandas matplotlib seaborn scikit-learn statsmodels
-```
-
+```text
 
 ### Versions Tested
-
 
 - Python 3.8+
 - NumPy 1.21+
@@ -45,19 +38,13 @@ pip install numpy scipy pandas matplotlib seaborn scikit-learn statsmodels
 
 ---
 
-
 ## Quick Start
-
-
-
 
 ### Run Complete Protocol
 
-
-
 ```bash
 python APGI-Protocol-3.py
-```
+```text
 
 This executes the full pipeline:
 1. Simulates 50 participants with individual differences
@@ -72,51 +59,40 @@ This executes the full pipeline:
 
 ### Expected Output Files
 
-
-
 1. **protocol3_participant_data.csv** - Individual participant parameters and measures
 2. **protocol3_results.json** - Complete analysis results and statistics
 3. **protocol3_individual_differences.png** - Comprehensive visualization (20×14 inches)
 
 ---
 
-
 ## Theoretical Framework
-
-
-
 
 ### APGI Parameters
 
-
-
 The framework models conscious access as threshold-crossing in a dynamical system:
 
-```
-S_t = Π_e·|ε_e| + β·Π_i·|ε_i|  (Surprise accumulation)
+```text
+ S_t = Π_e· | ε_e | + β·Π_i· | ε_i | (Surprise accumulation)
 
 P(conscious) = σ(α·(S_t - θ_t))  (Ignition probability)
-```
+```text
 
-**Four core parameters:**
+### Four core parameters:
 
 | Parameter | Description | Typical Range | Meaning |
-|-----------|-------------|---------------|---------|
+| --- | --- | --- | --- |
 | **θ₀** | Baseline threshold | 0.25-0.75 | How much surprise needed for ignition |
 | **Π_i** | Interoceptive precision | 0.5-2.5 | Weight on bodily signals |
 | **β** | Somatic bias | 0.7-1.8 | Facilitation by interoception |
 | **α** | Sigmoid steepness | 2.0-15.0 | Sharpness of ignition transition |
 
-
 ### Parameter Estimation Logic
 
-
-
-**Direct mappings:**
+### Direct mappings:
 - θ₀ ≈ psychometric threshold (50% detection point)
 - α ≈ psychometric slope (steepness)
 
-**Inferred mappings:**
+### Inferred mappings:
 - Π_i ← interoceptive measures (HEP amplitude, heartbeat detection, HRV)
 - β ← relationship between Π_i and threshold modulation
 
@@ -126,16 +102,13 @@ P(conscious) = σ(α·(S_t - θ_t))  (Ignition probability)
 ## Key Predictions & Falsification Criteria
 
 
-
-
 ### Prediction P3a: Interoceptive Precision Correlates
-
 
 
 **Claim:** Π_i should correlate with physiological interoceptive measures
 
 | Measure | Predicted r | Threshold |
-|---------|-------------|-----------|
+| --------- | ------------- | ----------- |
 | HEP amplitude | > 0.40 | p < 0.01 |
 | Heartbeat detection accuracy | > 0.35 | p < 0.01 |
 | Heart rate variability (RMSSD) | > 0.30 | p < 0.05 |
@@ -148,9 +121,9 @@ P(conscious) = σ(α·(S_t - θ_t))  (Ignition probability)
 
 **Claim:** Higher somatic bias (β) should predict lower threshold (θ₀)
 
-```
+```text
 r(θ₀, β) < -0.25, p < 0.05
-```
+```text
 
 **Rationale:** Somatic facilitation lowers the barrier for conscious access
 
@@ -162,11 +135,10 @@ r(θ₀, β) < -0.25, p < 0.05
 ### Prediction P3c: Test-Retest Reliability
 
 
-
 **Claim:** Parameters should show good temporal stability
 
 | Parameter | Minimum ICC |
-|-----------|-------------|
+| ----------- | ------------- |
 | Threshold (θ₀) | 0.75 |
 | Sigmoid steepness (α) | 0.70 |
 | Interoceptive precision (Π_i) | 0.65 |
@@ -179,14 +151,13 @@ r(θ₀, β) < -0.25, p < 0.05
 ### Prediction P3d: Parameter Independence
 
 
-
 **Claim:** APGI parameters measure distinct constructs
 
-- Correlation between different parameters: |r| < 0.6
+ - Correlation between different parameters: | r | < 0.6
 - At least 2 factors emerge in factor analysis
 - Parameters don't collapse into single dimension
 
-**Falsification F3.4:** If only 1 factor or all |r| > 0.7, parameters are redundant.
+ **Falsification F3.4:** If only 1 factor or all | r | > 0.7, parameters are redundant.
 
 ---
 
@@ -194,8 +165,7 @@ r(θ₀, β) < -0.25, p < 0.05
 ### Prediction P3e: Factor Structure
 
 
-
-**Expected structure:**
+### Expected structure:
 - **Factor 1 (Threshold):** θ₀, α
 - **Factor 2 (Interoceptive):** Π_i, β
 - **Factor 3 (Cognitive):** attention, working memory
@@ -208,20 +178,23 @@ r(θ₀, β) < -0.25, p < 0.05
 ### Prediction P3f: Clinical Correlates
 
 
+### Anxiety & Interoception:
 
-**Anxiety & Interoception:**
-```
+```text
 r(Π_i, anxiety) < -0.25, p < 0.05
-```
+```text
+
 *Higher anxiety → reduced interoceptive precision*
 
-**Depression & Threshold:**
-```
+### Depression & Threshold:
+
+```text
 r(θ₀, depression) > 0.25, p < 0.05
-```
+```text
+
 *Higher depression → elevated conscious access threshold*
 
-**Falsification F3.5:** If all |r| < 0.20, APGI parameters have no clinical relevance.
+ **Falsification F3.5:** If all | r | < 0.20, APGI parameters have no clinical relevance.
 
 ---
 
@@ -229,10 +202,7 @@ r(θ₀, depression) > 0.25, p < 0.05
 ## Usage Examples
 
 
-
-
 ### Example 1: Simulate Single Participant
-
 
 
 ```python
@@ -249,11 +219,10 @@ participant = simulator.simulate_participant(
 print(f"Estimated threshold: {participant.threshold:.3f}")
 print(f"Interoceptive precision: {participant.Pi_i:.3f}")
 print(f"Somatic bias: {participant.beta:.3f}")
-```
+```text
 
 
 ### Example 2: Adaptive Staircase (Psi Method)
-
 
 
 ```python
@@ -290,11 +259,10 @@ for trial in range(50):
 estimates = psi.get_parameter_estimates()
 print(f"Threshold: {estimates['threshold_mean']:.3f}")
 print(f"95% CI: [{estimates['threshold_ci_low']:.3f}, {estimates['threshold_ci_high']:.3f}]")
-```
+```text
 
 
 ### Example 3: Estimate APGI Parameters
-
 
 
 ```python
@@ -317,11 +285,10 @@ print(f"θ₀: {apgi_params['theta_0']:.3f}")
 print(f"Π_i: {apgi_params['Pi_i']:.3f}")
 print(f"β: {apgi_params['beta']:.3f}")
 print(f"α: {apgi_params['alpha']:.3f}")
-```
+```text
 
 
 ### Example 4: Individual Differences Analysis
-
 
 
 ```python
@@ -368,7 +335,7 @@ factors = analysis.factor_analysis()
 
 
 clinical = analysis.clinical_correlates()
-```
+```text
 
 ---
 
@@ -376,13 +343,10 @@ clinical = analysis.clinical_correlates()
 ## Interpreting Results
 
 
-
-
 ### Participant Data CSV
 
 
-
-**Columns:**
+### Columns:
 - `participant_id`: Unique identifier
 - `age`, `sex`: Demographics
 - `threshold`, `slope`, `lapse`: Psychometric parameters
@@ -396,7 +360,6 @@ clinical = analysis.clinical_correlates()
 
 
 ### Results JSON Structure
-
 
 
 ```json
@@ -426,28 +389,27 @@ clinical = analysis.clinical_correlates()
     "falsified_criteria": []
   }
 }
-```
+```text
 
 
 ### Visualization Panels
 
 
-
-**Row 1: Parameter Distributions**
+### Row 1: Parameter Distributions
 - Histograms with overlaid normal distributions
 - Mean and SD for each parameter
 
-**Row 2: Key Correlations**
+### Row 2: Key Correlations
 - Π_i vs HEP amplitude
 - Π_i vs Heartbeat detection
 - θ₀ vs β (somatic bias)
 - Test-retest scatter
 
-**Row 3: Clinical Correlates**
+### Row 3: Clinical Correlates
 - Anxiety vs Π_i
 - Depression vs θ₀
 
-**Row 4: Summary**
+### Row 4: Summary
 - Parameter correlation heatmap
 - Descriptive statistics table
 
@@ -457,14 +419,11 @@ clinical = analysis.clinical_correlates()
 ## Statistical Power
 
 
-
-
 ### Required Sample Sizes (80% power, α=0.05)
 
 
-
 | Effect | Expected r | Required N |
-|--------|-----------|------------|
+| -------- | ----------- | ------------ |
 | Π_i vs HEP | 0.45 | 36 |
 | θ₀ vs β | -0.30 | 64 |
 | Test-retest | 0.75 ICC | 15 |
@@ -477,10 +436,7 @@ clinical = analysis.clinical_correlates()
 ## Extending Protocol 8
 
 
-
-
 ### Add New Interoceptive Measures
-
 
 
 ```python
@@ -495,11 +451,10 @@ class ParticipantData:
     # Add new measure
     respiratory_sinus_arrhythmia: Optional[float] = None
     skin_conductance: Optional[float] = None
-```
+```text
 
 
 ### Implement Custom Psychometric Function
-
 
 
 ```python
@@ -508,17 +463,15 @@ class CustomPsychometric(PsiMethod):
         # Implement your function
         # E.g., Weibull instead of logistic
         return ...
-```
+```text
 
 
 ### Add New Factor Analysis Variables
 
 
-
 ```python
 
 # In IndividualDifferencesAnalysis.factor_analysis()
-
 
 
 var_cols = ['theta_0', 'Pi_i', 'beta', 'alpha']
@@ -528,7 +481,7 @@ var_cols = ['theta_0', 'Pi_i', 'beta', 'alpha']
 
 
 var_cols.extend(['your_measure_1', 'your_measure_2'])
-```
+```text
 
 ---
 
@@ -536,25 +489,22 @@ var_cols.extend(['your_measure_1', 'your_measure_2'])
 ## Troubleshooting
 
 
-
-
 ### Common Issues
 
 
-
-**1. "Insufficient data" errors**
+### 1. "Insufficient data" errors
 - **Cause:** Too few participants or missing measures
 - **Solution:** Increase n_participants or reduce analysis scope
 
-**2. Psi method convergence slow**
+### 2. Psi method convergence slow
 - **Cause:** Poor prior specification or noisy responses
 - **Solution:** Adjust threshold_range based on pilot data
 
-**3. Factor analysis fails**
+### 3. Factor analysis fails
 - **Cause:** Multicollinearity or insufficient variance
 - **Solution:** Check parameter correlations, remove redundant variables
 
-**4. Negative ICC values**
+### 4. Negative ICC values
 - **Cause:** Session differences > individual differences
 - **Solution:** Control experimental conditions better, increase trials
 
@@ -562,7 +512,6 @@ var_cols.extend(['your_measure_1', 'your_measure_2'])
 
 
 ## Citation
-
 
 
 If you use this protocol, please cite:
@@ -574,9 +523,9 @@ If you use this protocol, please cite:
   year={2025},
   url={https://github.com/apgi-framework/protocols}
 }
-```
+```text
 
-**Related Publications:**
+### Related Publications:
 - Kontsevich & Tyler (1999). "Bayesian adaptive estimation of psychometric slope and threshold." *Vision Research*, 39(16), 2729-2737.
 - Prins (2012). "The psi-marginal adaptive method: How to give nuisance parameters the attention they deserve." *Journal of Vision*, 12(6):3.
 
@@ -586,24 +535,23 @@ If you use this protocol, please cite:
 ## FAQ
 
 
-
-**Q: Can I use Protocol 8 with real human data?**
+### Q: Can I use Protocol 8 with real human data?
 
 A: Yes! Replace `simulate_participant()` with actual psychophysical data collection. The Psi method can be implemented in PsychoPy or MATLAB.
 
-**Q: What's the difference between θ₀ and psychometric threshold?**
+### Q: What's the difference between θ₀ and psychometric threshold?
 
 A: They're approximately equal in APGI. θ₀ is the theoretical ignition threshold; psychometric threshold is its behavioral manifestation.
 
-**Q: Why estimate Π_i from HEP instead of measuring directly?**
+### Q: Why estimate Π_i from HEP instead of measuring directly?
 
 A: Π_i is a computational construct (precision weight). HEP amplitude is its neural correlate. We use convergent validity across multiple measures.
 
-**Q: Can parameters change over time?**
+### Q: Can parameters change over time?
 
 A: Yes, especially Π_i (interoceptive precision) which fluctuates with arousal, attention, and clinical state. θ₀ and α are more trait-like.
 
-**Q: What if test-retest reliability is low?**
+### Q: What if test-retest reliability is low?
 
 A: Could indicate: (1) true state changes, (2) measurement noise, or (3) context dependence. Increase trials per session or control experimental conditions.
 
@@ -613,10 +561,7 @@ A: Could indicate: (1) true state changes, (2) measurement noise, or (3) context
 ## Future Directions
 
 
-
-
 ### Planned Enhancements
-
 
 
 1. **Hierarchical Bayesian Estimation**
@@ -645,14 +590,12 @@ A: Could indicate: (1) true state changes, (2) measurement noise, or (3) context
 ## License
 
 
-
 MIT License - See LICENSE file for details
 
 ---
 
 
 ## Contact
-
 
 
 For questions, issues, or contributions:
@@ -663,7 +606,6 @@ For questions, issues, or contributions:
 
 
 ## Acknowledgments
-
 
 
 - **Psi Method:** Kontsevich & Tyler (1999)

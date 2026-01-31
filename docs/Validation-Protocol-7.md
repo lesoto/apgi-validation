@@ -1,58 +1,44 @@
 
 # APGI Protocol 7: Complete Implementation Guide
 
-
-
-
 ## Overview
-
-
 
 This is a complete implementation of Protocol 7 from the APGI framework. The protocol tests **causal predictions** about how perturbing APGI parameters affects conscious access through TMS, pharmacological interventions, or other experimental manipulations.
 
-
 ## Core Approach
 
-
-
 Protocol 7 tests interventional predictions:
+
 1. Defines how each intervention (TMS target, drug) affects specific APGI parameters
 2. Simulates intervention studies with realistic noise and individual differences
 3. Analyzes psychometric curves before/after intervention
 4. Tests 5 falsification criteria about predicted effects
 
-
 ## What This Script Does
-
-
-
 
 ### 1. Intervention Models
 
+### TMS Interventions
 
-
-**TMS Interventions:**
 - `dlPFC_TMS`: Increases external precision (Π_e) via attentional modulation
 - `Insula_TMS`: Increases interoceptive precision (Π_i)
 - `V1_TMS`: Decreases threshold (direct cortical excitation)
 - `Vertex_TMS`: Control condition (null effect)
 
-**Pharmacological Interventions:**
+### Pharmacological Interventions
+
 - `Propranolol`: Decreases Π_i (blocks peripheral β-receptors)
 - `Methylphenidate`: Increases Π_e (dopamine/NE enhancement)
 - `Ketamine`: Decreases threshold (NMDA antagonism)
 - `Placebo`: Control condition
 
-
 ### 2. Time Course Modeling
-
-
 
 Each intervention has realistic pharmacokinetics/pharmacodynamics:
 
 ```python
 effect(t) = Gamma_pdf(t - onset, k, θ) × effect_size × direction
-```
+```text
 
 Parameters:
 - **onset_time**: When effect begins (min)
@@ -61,7 +47,6 @@ Parameters:
 
 
 ### 3. Study Designs
-
 
 
 **Crossover Design** (within-subject):
@@ -79,12 +64,11 @@ Parameters:
 ### 4. Psychometric Analysis
 
 
-
 Fits logistic curves to detection data:
 
-```
+```text
 P(seen) = λ + (1 - 2λ) / (1 + exp(-β(x - α)))
-```
+```text
 
 Where:
 - α = threshold (50% detection point)
@@ -95,18 +79,16 @@ Where:
 ### 5. Power Analysis
 
 
-
 Computes required sample size for detecting predicted effects:
 
-```
+```text
 N = f(effect_size, α, power)
-```
+```text
 
 Helps determine feasibility before running expensive experiments.
 
 
 ## Installation
-
 
 
 ```bash
@@ -121,11 +103,10 @@ pip install numpy pandas scipy matplotlib seaborn statsmodels
 
 
 pip install pingouin
-```
+```text
 
 
 ## Quick Start
-
 
 
 ```python
@@ -134,7 +115,7 @@ pip install pingouin
 
 
 python APGI-Protocol-3-Complete.py
-```
+```text
 
 The script will:
 1. Define 8 interventions (4 TMS, 4 pharmacological)
@@ -145,7 +126,7 @@ The script will:
 6. Test falsification criteria
 7. Generate comprehensive visualizations
 
-**Expected Runtime:**
+### Expected Runtime:
 - Intervention definition: <1 second
 - Power analysis: ~5 seconds
 - Study simulation: ~10 seconds per study
@@ -157,10 +138,7 @@ The script will:
 ## Defining Custom Interventions
 
 
-
-
 ### Example: rTMS to Dorsal ACC
-
 
 
 ```python
@@ -196,11 +174,10 @@ data = simulator.simulate_crossover_study(
     control=TMSInterventions.vertex_tms(),
     n_subjects=20
 )
-```
+```text
 
 
 ### Example: Oxytocin Nasal Spray
-
 
 
 ```python
@@ -221,16 +198,13 @@ def oxytocin_intervention() -> InterventionEffect:
         duration=180.0,       # 3 hours
         effect_se=0.20
     )
-```
+```text
 
 
 ## Analyzing Real Data
 
 
-
-
 ### Data Format
-
 
 
 Your intervention data should have this structure:
@@ -245,11 +219,10 @@ real_data = pd.DataFrame({
     'n_trials': [25, 25, 25, ...],
     'n_seen': [8, 15, 22, ...]  # Number detected
 })
-```
+```text
 
 
 ### Fit Psychometric Curves
-
 
 
 ```python
@@ -285,8 +258,6 @@ baseline_params = psychometric.fit_curve(
 # Same for intervention...
 
 
-
-
 # Compare
 
 
@@ -294,20 +265,17 @@ comparison = psychometric.compare_curves(baseline_params, intervention_params)
 
 print(f"Threshold shift: {comparison['threshold_shift']:.3f}")
 print(f"P-value: {comparison['threshold_p']:.4f}")
-```
+```text
 
 
 ## Expected Results
 
 
-
-
 ### Predicted Effect Sizes (Cohen's d)
 
 
-
 | Intervention | Parameter | Effect | Predicted d |
-|--------------|-----------|--------|-------------|
+| -------------- | ----------- | -------- | ------------- |
 | dlPFC TMS | Π_e | Increase | +0.5 |
 | Insula TMS | Π_i | Increase | +0.7 |
 | V1 TMS | θ | Decrease | -0.4 |
@@ -319,32 +287,30 @@ print(f"P-value: {comparison['threshold_p']:.4f}")
 ### Threshold Shifts
 
 
-
 Based on APGI theory:
 
-**Threshold-Reducing Interventions:**
+### Threshold-Reducing Interventions:
 - V1 TMS: -0.08 to -0.12 (threshold units)
 - Ketamine: -0.15 to -0.25
 
-**Precision-Enhancing Interventions:**
+### Precision-Enhancing Interventions:
 - dlPFC TMS: Threshold shift -0.05 to -0.10 (indirect via Π_e)
 - Methylphenidate: Threshold shift -0.08 to -0.15
 
-**Precision-Reducing Interventions:**
+### Precision-Reducing Interventions:
 - Propranolol: Threshold shift +0.06 to +0.12 (raises threshold)
 
 
 ### Statistical Power
 
 
-
 Required sample sizes for 80% power (α = 0.05, two-tailed):
 
-```
+```text
 Small effect (d = 0.3):   N ≈ 90 per group
 Medium effect (d = 0.5):  N ≈ 34 per group
 Large effect (d = 0.8):   N ≈ 15 per group
-```
+```text
 
 For crossover designs (within-subject), divide by ~2.
 
@@ -352,13 +318,10 @@ For crossover designs (within-subject), divide by ~2.
 ## Output Files
 
 
-
-
 ### 1. Results JSON
 
 
-
-**protocol3_results.json**
+### protocol3_results.json
 ```json
 {
   "interventions": {
@@ -385,28 +348,26 @@ For crossover designs (within-subject), divide by ~2.
     }
   }
 }
-```
+```text
 
 
 ### 2. Data CSVs
 
 
-
-**protocol3_dlpfc_data.csv**
-```
+### protocol3_dlpfc_data.csv
+```text
 subject_id,session,condition,stimulus_level,n_trials,n_seen,p_seen
 0,0,control,0.3,12,3,0.25
 0,0,control,0.5,13,8,0.62
 0,1,intervention,0.3,12,5,0.42
 ...
-```
+```text
 
 
 ### 3. Visualizations
 
 
-
-**protocol3_dlpfc_results.png**
+### protocol3_dlpfc_results.png
 
 6-panel figure showing:
 1. **Psychometric curves**: Baseline vs intervention
@@ -420,8 +381,7 @@ subject_id,session,condition,stimulus_level,n_trials,n_seen,p_seen
 ## Console Output
 
 
-
-```
+```text
 ================================================================================
 APGI Protocol 7: TMS/PHARMACOLOGICAL INTERVENTION PREDICTIONS
 ================================================================================
@@ -473,16 +433,13 @@ dlPFC TMS Falsification Report:
      magnitude_sufficient: True
 
 Protocol 7 EXECUTION COMPLETE
-```
+```text
 
 
 ## Advanced Usage
 
 
-
-
 ### Time-Resolved Analysis
-
 
 
 Track intervention effects over time:
@@ -519,11 +476,10 @@ for t, effect in zip(time_points, effects):
 plt.plot(time_points, threshold_shifts)
 plt.xlabel('Time (min)')
 plt.ylabel('Threshold Shift')
-```
+```text
 
 
 ### Dose-Response Curves
-
 
 
 Test multiple doses:
@@ -550,11 +506,10 @@ for dose in doses:
 
 slope, intercept, r, p, se = stats.linregress(doses, effects)
 print(f"Dose-response slope: {slope:.3f} (r²={r**2:.3f}, p={p:.4f})")
-```
+```text
 
 
 ### Interaction Effects
-
 
 
 Test if interventions interact:
@@ -583,11 +538,10 @@ if observed_combined > (effect_tms + effect_drug):
     print("Synergistic interaction detected")
 elif observed_combined < (effect_tms + effect_drug):
     print("Antagonistic interaction detected")
-```
+```text
 
 
 ### Individual Differences Analysis
-
 
 
 Correlate intervention effects with baseline traits:
@@ -615,16 +569,13 @@ r, p = stats.pearsonr(baseline_thresholds, intervention_effects)
 
 if p < 0.05 and r < -0.3:
     print("Subjects with higher baseline thresholds show larger reductions")
-```
+```text
 
 
 ## Troubleshooting
 
 
-
-
 ### Psychometric Curve Won't Fit
-
 
 
 **Problem**: Optimization fails or returns implausible parameters
@@ -663,11 +614,10 @@ def constrained_fit(x, n_trials, n_correct):
     ...
 
 result = minimize(nll, [0.5, 5.0], bounds=[(0.1, 0.9), (0.5, 20)])
-```
+```text
 
 
 ### Effect Not Significant
-
 
 
 **Problem**: Predicted effect not detected (p > 0.05)
@@ -701,11 +651,10 @@ if achieved_power < 0.50:
     print("Study severely underpowered")
     required_n = power_analyzer.compute_required_n(observed_d, power=0.80)
     print(f"Need N={required_n} for adequate power")
-```
+```text
 
 
 ### Simulated Data Too Clean
-
 
 
 **Problem**: Simulated effects are unrealistically large/consistent
@@ -733,16 +682,13 @@ class RealisticSimulator(InterventionStudySimulator):
         total_effect = intervention_effect + session_effect + practice_effect + fatigue_effect
 
         return data
-```
+```text
 
 
 ## Scientific Interpretation
 
 
-
-
 ### If F3.1 Falsified (Threshold shift too small)
-
 
 
 **Implication**: TMS to dlPFC doesn't causally reduce ignition threshold as predicted.
@@ -762,7 +708,6 @@ class RealisticSimulator(InterventionStudySimulator):
 ### If F3.2 Falsified (Propranolol doesn't reduce interoceptive influence)
 
 
-
 **Implication**: Peripheral β-blockade doesn't affect interoceptive precision weighting.
 
 **Possible explanations**:
@@ -778,7 +723,6 @@ class RealisticSimulator(InterventionStudySimulator):
 
 
 ### If F3.3 Falsified (Wrong direction)
-
 
 
 **Implication**: Intervention has opposite effect than predicted.
@@ -798,7 +742,6 @@ class RealisticSimulator(InterventionStudySimulator):
 ### If F3.4 Falsified (No dose-response)
 
 
-
 **Implication**: Effect doesn't scale with intervention intensity.
 
 **Possible explanations**:
@@ -814,7 +757,6 @@ class RealisticSimulator(InterventionStudySimulator):
 
 
 ### If F3.5 Falsified (Placebo = Active)
-
 
 
 **Implication**: Observed effects are placebo-driven, not mechanism-specific.
@@ -835,8 +777,6 @@ class RealisticSimulator(InterventionStudySimulator):
 ## Computational Requirements
 
 
-
-
 ### Memory
 
 
@@ -855,7 +795,6 @@ class RealisticSimulator(InterventionStudySimulator):
 ### Parallelization
 
 
-
 For large parameter sweeps:
 
 ```python
@@ -872,24 +811,23 @@ def simulate_one_condition(params):
 
 with Pool(8) as pool:
     results = pool.map(simulate_one_condition, parameter_combinations)
-```
+```text
 
 
 ## Integration with Other Protocols
 
 
-
 Protocol 7 complements other protocols:
 
-**Protocol 1 → Protocol 7:**
+### Protocol 1 → Protocol 7:
 - Use Protocol 1 to generate neural signatures
 - Use Protocol 7 to predict how interventions alter signatures
 
-**Protocol 2 → Protocol 7:**
+### Protocol 2 → Protocol 7:
 - Use Protocol 2 to estimate baseline APGI parameters
 - Use Protocol 7 to predict intervention effects on those parameters
 
-**Protocol 7 → Clinical Translation:**
+### Protocol 7 → Clinical Translation:
 - Use Protocol 7 to identify effective interventions
 - Design clinical trials based on power analyses
 - Optimize dosing and timing
@@ -898,36 +836,33 @@ Protocol 7 complements other protocols:
 ## Citation
 
 
-
 If you use this implementation, please cite:
 
-```
+```text
 APGI Framework: Allostatic Precision-Gated Ignition
 Protocol 7: TMS/Pharmacological Intervention Predictions
 Implementation Version 1.0
 2025
-```
+```text
 
 
 ## References
 
 
-
-**TMS Literature:**
+### TMS Literature:
 - Thut & Pascual-Leone (2010). "A review of combined TMS-EEG studies to characterize lasting effects of repetitive TMS." *Brain Topography*.
 - Romei et al. (2016). "Information-based approaches of noninvasive transcranial brain stimulation." *Trends in Neurosciences*.
 
-**Pharmacology:**
+### Pharmacology:
 - Lane & Green (2014). "Systematic review of propranolol." *Anxiety Disorders Review*.
 - Faraone (2018). "The pharmacology of amphetamine and methylphenidate." *Neuropharmacology*.
 
-**Psychophysics:**
+### Psychophysics:
 - Wichmann & Hill (2001). "The psychometric function: I. Fitting, sampling, and goodness of fit." *Perception & Psychophysics*.
 - Treutwein (1995). "Adaptive psychophysical procedures." *Vision Research*.
 
 
 ## License
-
 
 
 This implementation is provided for scientific research purposes.

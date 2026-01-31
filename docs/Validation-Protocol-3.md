@@ -1,30 +1,19 @@
 
 # APGI Protocol 3: Active Inference Agent Simulations
 
-
-
-
 ## Overview
-
-
 
 Protocol 3 implements complete active inference agents to test whether APGI's integration of interoceptive precision weighting and global workspace ignition produces measurable adaptive advantages in decision-making tasks.
 
 **Core Question**: Does the APGI architecture (hierarchical generative models + precision-weighted interoception + ignition gate) outperform alternative architectures in tasks requiring integration of external and internal information?
 
-
 ## Architecture
-
-
-
 
 ### APGI Active Inference Agent
 
-
-
 The complete APGI agent implements:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    APGI AGENT ARCHITECTURE                   │
 ├─────────────────────────────────────────────────────────────┤
@@ -46,7 +35,7 @@ The complete APGI agent implements:
 │                      │                                      │
 │                      ▼                                      │
 │           Surprise Accumulator                              │
-│           S_t = Πᵉ|εᵉ| + β·Πⁱ|εⁱ|                          │
+│           S_t = Πᵉ | εᵉ | + β·Πⁱ | εⁱ | │
 │                      │                                      │
 │                      ▼                                      │
 │           Global Workspace Ignition                         │
@@ -60,10 +49,7 @@ The complete APGI agent implements:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-
 ### Key Features
-
-
 
 1. **Hierarchical Generative Models**
    - Exteroceptive: Sensory → Objects → Context
@@ -83,7 +69,7 @@ The complete APGI agent implements:
 
 4. **Global Workspace Ignition**
 
-   - Surprise accumulation: dS/dt = -S/τ + Πᵉ|εᵉ| + β·Πⁱ|εⁱ|
+   - Surprise accumulation: dS/dt = -S/τ + Πᵉ | εᵉ | + β·Πⁱ | εⁱ |
    - Ignition probability: P(ignition) = σ(α(S_t - θ_t))
    - Threshold adaptation: balances metabolic cost vs information value
 
@@ -97,53 +83,34 @@ The complete APGI agent implements:
    - Working memory: Limited capacity (7 items)
    - Episodic memory: Emotional tagging for retrieval
 
-
 ## Installation
 
-
-
-
 ### Dependencies
-
-
 
 ```bash
 pip install numpy scipy torch matplotlib seaborn pandas tqdm
 ```
 
-
 ### Required Versions
-
 
 - Python 3.8+
 - PyTorch 1.9+
 - NumPy 1.20+
 - SciPy 1.7+
 
-
 ## Usage
 
-
-
-
 ### Quick Start
-
-
 
 ```python
 from APGI_Protocol_3 import main
 
-
 # Run complete experiment (default: 20 agents × 4 types × 3 environments)
-
 
 results = main()
 ```
 
-
 ### Custom Configuration
-
-
 
 ```python
 from APGI_Protocol_3 import AgentComparisonExperiment
@@ -174,11 +141,10 @@ analysis = experiment.analyze_predictions(results)
 
 
 falsification = experiment.check_falsification(results, analysis)
-```
+```text
 
 
 ### Individual Agent Testing
-
 
 
 ```python
@@ -214,16 +180,13 @@ for trial in range(100):
     reward, intero_cost, next_obs, done = env.step(action)
     agent.receive_outcome(reward, intero_cost, next_obs)
     observation = next_obs
-```
+```text
 
 
 ## Components
 
 
-
-
 ### Agent Types
-
 
 
 1. **APGIActiveInferenceAgent**
@@ -253,10 +216,7 @@ for trial in range(100):
 ### Task Environments
 
 
-
-
 #### 1. Iowa Gambling Task (IGT)
-
 
 
 Simulates Bechara et al.'s classic decision-making paradigm with interoceptive costs:
@@ -272,11 +232,10 @@ Simulates Bechara et al.'s classic decision-making paradigm with interoceptive c
 from APGI_Protocol_3 import IowaGamblingTaskEnvironment
 
 env = IowaGamblingTaskEnvironment(n_trials=100)
-```
+```text
 
 
 #### 2. Volatile Foraging Environment
-
 
 
 10×10 grid world with:
@@ -288,11 +247,10 @@ env = IowaGamblingTaskEnvironment(n_trials=100)
 from APGI_Protocol_3 import VolatileForagingEnvironment
 
 env = VolatileForagingEnvironment(grid_size=10, volatility=0.1)
-```
+```text
 
 
 #### 3. Threat-Reward Tradeoff
-
 
 
 Four options with varying risk profiles:
@@ -304,16 +262,13 @@ Four options with varying risk profiles:
 from APGI_Protocol_3 import ThreatRewardTradeoffEnvironment
 
 env = ThreatRewardTradeoffEnvironment()
-```
+```text
 
 
 ## Predictions
 
 
-
-
 ### P3a: Convergence Speed in IGT
-
 
 
 **Prediction**: APGI converges to advantageous deck selection in 50-80 trials (matching human performance), significantly faster than StandardPP (150+ trials).
@@ -324,14 +279,12 @@ env = ThreatRewardTradeoffEnvironment()
 ### P3b: Interoceptive Dominance in Ignitions
 
 
-
-**Prediction**: 70-85% of ignition events are dominated by interoceptive precision-weighted signals (β·Πⁱ|εⁱ| > Πᵉ|εᵉ|).
+ **Prediction**: 70-85% of ignition events are dominated by interoceptive precision-weighted signals (β·Πⁱ | εⁱ | > Πᵉ | εᵉ | ).
 
 **Mechanism**: Body-based surprise is inherently more alarming/behaviorally relevant.
 
 
 ### P3c: Ignition Predicts Strategy Change
-
 
 
 **Prediction**: Logistic regression shows ignition significantly predicts strategy changes beyond external prediction error alone (p < 0.01).
@@ -342,7 +295,6 @@ env = ThreatRewardTradeoffEnvironment()
 ### P3d: Adaptation Speed in Volatile Foraging
 
 
-
 **Prediction**: APGI adapts 20-30% faster than StandardPP when reward statistics shift.
 
 **Mechanism**: Selective ignition allocates computational resources efficiently.
@@ -351,10 +303,7 @@ env = ThreatRewardTradeoffEnvironment()
 ## Falsification Criteria
 
 
-
-
 ### F3.1: No Performance Advantage
-
 
 
 **Falsification**: APGI shows <5% performance advantage over best alternative in IGT.
@@ -365,14 +314,12 @@ env = ThreatRewardTradeoffEnvironment()
 ### F3.2: Ignition Uncorrelated with Adaptive Behavior
 
 
-
 **Falsification**: Ignition coefficient in logistic regression not significantly positive (p > 0.30).
 
 **Implication**: Conscious access is epiphenomenal, not functional.
 
 
 ### F3.3: StandardPP Outperforms APGI
-
 
 
 **Falsification**: Pure predictive processing (always conscious) achieves higher cumulative reward than APGI in IGT.
@@ -383,13 +330,10 @@ env = ThreatRewardTradeoffEnvironment()
 ## Expected Outputs
 
 
-
-
 ### Console Output
 
 
-
-```
+```text
 ================================================================================
 PROTOCOL 3: ACTIVE INFERENCE AGENT SIMULATIONS
 ================================================================================
@@ -403,8 +347,8 @@ Configuration:
 RUNNING EXPERIMENTS
 ================================================================================
 
-IGT - APGI: 100%|██████████| 20/20
-IGT - StandardPP: 100%|██████████| 20/20
+ IGT - APGI: 100% | ██████████ | 20/20
+ IGT - StandardPP: 100% | ██████████ | 20/20
 ...
 
 ================================================================================
@@ -425,11 +369,10 @@ FALSIFICATION ANALYSIS
 ✅ F3.3: APGI outperforms StandardPP (PASSED)
 
 Overall: ✅ MODEL VALIDATED
-```
+```text
 
 
 ### Generated Files
-
 
 
 1. **protocol3_results.png**
@@ -459,11 +402,10 @@ Overall: ✅ MODEL VALIDATED
        "overall_falsified": false
      }
    }
-   ```
+   ```text
 
 
 ## Performance Benchmarks
-
 
 
 Expected performance metrics (based on specification):
@@ -479,10 +421,7 @@ Expected performance metrics (based on specification):
 ## Advanced Usage
 
 
-
-
 ### Analyzing Ignition Patterns
-
 
 
 ```python
@@ -506,11 +445,10 @@ plt.xlabel('Trial Number')
 plt.ylabel('Ignition Frequency')
 plt.title('Temporal Distribution of Ignitions')
 plt.show()
-```
+```text
 
 
 ### Custom Environment Creation
-
 
 
 ```python
@@ -555,11 +493,10 @@ class CustomEnvironment:
             'extero': np.random.randn(32),  # Sensory input
             'intero': np.random.randn(16)   # Visceral input
         }
-```
+```text
 
 
 ### Parameter Sensitivity Analysis
-
 
 
 ```python
@@ -584,11 +521,10 @@ plt.plot(beta_values, [results_by_beta[b] for b in beta_values])
 plt.xlabel('Somatic Bias (β)')
 plt.ylabel('Performance')
 plt.title('Sensitivity to Somatic Bias Parameter')
-```
+```text
 
 
 ## Computational Requirements
-
 
 
 - **Memory**: ~2GB RAM (for default configuration)
@@ -599,39 +535,35 @@ plt.title('Sensitivity to Somatic Bias Parameter')
 ### Optimization Tips
 
 
-
 1. **Reduce agent count** for quick testing:
    ```python
    experiment = AgentComparisonExperiment(n_agents=5, n_trials=50)
-   ```
+   ```text
 
 2. **Parallel execution** (not implemented but possible):
    ```python
    from multiprocessing import Pool
    # Run agents in parallel
-   ```
+   ```text
 
 3. **Use GPU** if available:
    ```python
    # PyTorch automatically uses CUDA if available
    # No code changes needed
-   ```
+   ```text
 
 
 ## Theoretical Background
 
 
-
-
 ### APGI Framework
-
 
 
 The APGI framework proposes that consciousness functions as an "emergency broadcast system" triggered when precision-weighted surprise exceeds an adaptive threshold:
 
 **Core Equation**:
-```
-S_t = Πᵉ·|εᵉ| + β·Πⁱ·|εⁱ|
+```text
+ S_t = Πᵉ· | εᵉ | + β·Πⁱ· | εⁱ |
 
 where:
   S_t: Accumulated surprise
@@ -640,19 +572,18 @@ where:
   εᵉ: Exteroceptive prediction error
   εⁱ: Interoceptive prediction error
   β: Somatic bias (typically 1.2)
-```
+```text
 
 **Ignition Criterion**:
-```
+```text
 if S_t > θ_t:
     Broadcast to global workspace
     Enable conscious access
     Update explicit policies
-```
+```text
 
 
 ### Key Innovations
-
 
 
 1. **Precision Weighting**: Not all surprise is equal; reliability determines influence
@@ -664,10 +595,7 @@ if S_t > θ_t:
 ## Troubleshooting
 
 
-
-
 ### Common Issues
-
 
 
 **Issue**: `RuntimeError: CUDA out of memory`
@@ -686,7 +614,6 @@ if S_t > θ_t:
 ## Citation
 
 
-
 If using this implementation in research:
 
 ```bibtex
@@ -697,11 +624,10 @@ If using this implementation in research:
   version = {1.0},
   url = {https://github.com/apgi-framework/protocols}
 }
-```
+```text
 
 
 ## License
-
 
 
 MIT License - See LICENSE file for details
@@ -710,14 +636,12 @@ MIT License - See LICENSE file for details
 ## Contact
 
 
-
 For questions, bug reports, or contributions:
 - GitHub Issues: [github.com/apgi-framework/protocols/issues]
 - Email: research@apgi-framework.org
 
 
 ## Acknowledgments
-
 
 
 This implementation builds on:
