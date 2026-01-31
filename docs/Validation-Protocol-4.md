@@ -1,33 +1,20 @@
 
 # APGI Protocol 4: Information-Theoretic Phase Transition Analysis
 
-
-
-
 ## Overview
-
-
 
 Protocol 4 tests one of APGI's most distinctive predictions: that **conscious ignition represents a genuine computational phase transition**, not merely a continuous increase in processing. This protocol uses information-theoretic measures and critical phenomena analysis to test whether ignition exhibits the characteristic signatures of phase transitions found in physical and computational systems.
 
-
 ## Theoretical Background
-
-
-
 
 ### The Phase Transition Hypothesis
 
-
-
 The APGI framework proposes that when accumulated surprise S(t) crosses the threshold θ(t), the system undergoes a qualitative state change analogous to physical phase transitions (e.g., water → ice, paramagnet → ferromagnet). This makes specific, falsifiable predictions about the **information-theoretic signatures** that should appear at ignition.
-
 
 ### Why This Matters
 
-
-
 If conscious access were merely a **continuous amplification** of sensory signals (as some theories propose), we would NOT expect:
+
 - Discontinuous jumps in information flow
 - Diverging variance near threshold
 - Critical slowing down
@@ -35,60 +22,41 @@ If conscious access were merely a **continuous amplification** of sensory signal
 
 But APGI predicts ALL of these should occur at ignition, providing a **computational fingerprint** of the phase transition.
 
-
 ## What Protocol 4 Tests
-
-
-
 
 ### Five Core Predictions
 
-
-
-
 #### P4a: Discontinuity in Surprise Dynamics
-
 
 **Prediction:** The first derivative of surprise S(t) should show a sharp discontinuity at ignition, with effect size **d > 0.8** compared to random timepoints.
 
 **Why:** Phase transitions involve sudden reorganization of system dynamics, creating observable jumps in state variables.
 
-
 #### P4b: Diverging Susceptibility
-
 
 **Prediction:** Variance of S near threshold should be **>2× higher** than variance far from threshold.
 
 **Why:** At critical points, systems become highly sensitive to perturbations (susceptibility χ → ∞), manifesting as increased variance.
 
-
 #### P4c: Critical Slowing Down
-
 
 **Prediction:** Autocorrelation should be **>1.5× higher** near threshold than far from it.
 
 **Why:** Near phase transitions, relaxation time diverges, causing the system to "slow down" (increased temporal correlations).
 
-
 #### P4d: Integrated Information Spike
-
 
 **Prediction:** Φ (a measure of integrated information) should be **>2× higher** at ignition than baseline.
 
 **Why:** Phase transitions create system-wide integration; information in the whole exceeds sum of parts.
 
-
 #### P4e: Long-Range Correlations
-
 
 **Prediction:** Hurst exponent H near threshold should be **>0.6** (indicating long-range correlations), while H far from threshold ≈ 0.5 (random walk).
 
 **Why:** Critical systems exhibit power-law correlations across timescales, detectable via Hurst analysis.
 
-
 ### Falsification Criteria
-
-
 
 The framework is **falsified** if:
 
@@ -98,27 +66,21 @@ The framework is **falsified** if:
 - **F4.4:** Discontinuity effect size d < 0.5 (gradual transition)
 - **F4.5:** Hurst exponent near threshold < 0.55 (no long-range correlations)
 
-
 ## Implementation Structure
 
-
-
-
 ### Part 1: APGI Dynamical System
-
 
 ```python
 class APGIDynamicalSystem
 ```
-Simulates the core APGI equations with time-varying inputs, generating realistic surprise accumulation and ignition events.
 
+Simulates the core APGI equations with time-varying inputs, generating realistic surprise accumulation and ignition events.
 
 ### Part 2: Information-Theoretic Measures
 
-
 ```python
 class InformationTheoreticAnalysis
-```
+```text
 Computes:
 - **Transfer Entropy (TE):** Directed information flow between variables
 - **Integrated Information (Φ):** System-level integration measure
@@ -131,7 +93,7 @@ Computes:
 
 ```python
 class PhaseTransitionDetector
-```
+```text
 Analyzes:
 - **Discontinuities:** Jumps in derivatives at threshold crossing
 - **Susceptibility:** Variance scaling near critical points
@@ -144,7 +106,7 @@ Analyzes:
 
 ```python
 class ComprehensivePhaseTransitionAnalysis
-```
+```text
 Integrates all measures, runs Monte Carlo simulations, and generates aggregate statistics.
 
 
@@ -153,7 +115,7 @@ Integrates all measures, runs Monte Carlo simulations, and generates aggregate s
 
 ```python
 class FalsificationChecker
-```
+```text
 Systematically tests all five criteria against thresholds, generates comprehensive report.
 
 
@@ -170,15 +132,12 @@ Multi-panel plots showing:
 ## Usage
 
 
-
-
 ### Basic Execution
-
 
 
 ```python
 python APGI-Protocol-4.py
-```
+```text
 
 This runs the full pipeline:
 1. Example simulation (100s duration)
@@ -189,7 +148,6 @@ This runs the full pipeline:
 
 
 ### Custom Parameters
-
 
 
 ```python
@@ -235,11 +193,10 @@ history = system.simulate(
 
 analyzer = ComprehensivePhaseTransitionAnalysis()
 results = analyzer.analyze_simulation(history)
-```
+```text
 
 
 ### Monte Carlo Analysis
-
 
 
 ```python
@@ -262,12 +219,10 @@ results_df = analyzer.run_monte_carlo(
 checker = FalsificationChecker()
 report = checker.check_all_criteria(results_df)
 print_falsification_report(report)
-```
+```text
 
 
 ## Output Files
-
-
 
 
 ### 1. `protocol4_monte_carlo_results.csv`
@@ -298,7 +253,7 @@ Summary statistics and falsification report:
     "falsified_criteria": []
   }
 }
-```
+```text
 
 
 ### 3. `protocol4_results.png`
@@ -314,10 +269,7 @@ Comprehensive 16-panel visualization:
 ## Interpreting Results
 
 
-
-
 ### Evidence for Phase Transition
-
 
 
 The framework is **strongly supported** if:
@@ -332,7 +284,6 @@ The framework is **strongly supported** if:
 ### Evidence Against Phase Transition
 
 
-
 The framework is **challenged** if:
 
 ❌ **Φ ratio < 1.3:** No integration spike (continuous processing)
@@ -345,10 +296,9 @@ The framework is **challenged** if:
 ### Typical Expected Results
 
 
-
 Based on APGI's theoretical predictions, you should observe:
 
-```
+```text
 Information-Theoretic:
   Φ Ratio:              2.2-2.8× (strong integration)
   TE (S→B):             0.15-0.25 (directed flow)
@@ -360,24 +310,21 @@ Phase Transition Signatures:
   Critical Slowing:     1.8-2.4× (slowing down)
   Hurst (near):         0.62-0.72 (long-range)
   Hurst (far):          0.48-0.52 (random walk)
-```
+```text
 
 
 ## Technical Details
 
 
-
-
 ### Transfer Entropy Calculation
-
 
 
 Transfer entropy quantifies **directed information flow**:
 
-```
+```text
 TE(X→Y) = I(Y_t; X_{t-τ} | Y_{t-τ})
-        = H(Y_t | Y_{t-τ}) - H(Y_t | Y_{t-τ}, X_{t-τ})
-```
+ = H(Y_t | Y_{t-τ}) - H(Y_t | Y_{t-τ}, X_{t-τ})
+```text
 
 Implementation uses:
 - K-bins discretization (n_bins=20)
@@ -388,12 +335,11 @@ Implementation uses:
 ### Integrated Information (Φ)
 
 
-
 Φ-like measure based on **mutual information**:
 
-```
+```text
 Φ ≈ Σ H(Xᵢ) - H(X₁, X₂, ..., Xₙ)
-```
+```text
 
 Where:
 - H(Xᵢ) = marginal entropy of variable i
@@ -404,12 +350,11 @@ Where:
 ### Hurst Exponent via R/S Analysis
 
 
-
 Rescaled range (R/S) analysis:
 
-```
+```text
 R/S ∝ n^H
-```
+```text
 
 Where:
 - R = Range of cumulative deviations
@@ -423,8 +368,6 @@ Interpretation:
 
 
 ## Computational Requirements
-
-
 
 
 ### Memory
@@ -446,7 +389,7 @@ Interpretation:
 ### Dependencies
 
 
-```
+```text
 numpy >= 1.20.0
 scipy >= 1.7.0
 pandas >= 1.3.0
@@ -454,17 +397,15 @@ matplotlib >= 3.4.0
 seaborn >= 0.11.0
 scikit-learn >= 0.24.0
 tqdm >= 4.62.0
-```
+```text
 
 Install via:
 ```bash
 pip install numpy scipy pandas matplotlib seaborn scikit-learn tqdm
-```
+```text
 
 
 ## Relation to Other Protocols
-
-
 
 
 ### Protocol 1 (Synthetic Neural Data)
@@ -497,10 +438,7 @@ Together, these span multiple **levels of analysis** (Marr's hierarchy): computa
 ## Advanced Usage
 
 
-
-
 ### Custom Information Measures
-
 
 
 ```python
@@ -520,11 +458,10 @@ class CustomInfoAnalyzer(InformationTheoreticAnalysis):
             return -np.sum(probs * np.log(probs))  # Shannon
         else:
             return (1/(1-alpha)) * np.log(np.sum(probs**alpha))
-```
+```text
 
 
 ### Real Data Application
-
 
 
 ```python
@@ -560,11 +497,10 @@ detector = PhaseTransitionDetector()
 results = detector.detect_discontinuity(
     S_empirical, theta_empirical, time, ignition_events
 )
-```
+```text
 
 
 ### Sensitivity Analysis
-
 
 
 ```python
@@ -595,19 +531,17 @@ for param_name, param_values in param_ranges.items():
         results = analyzer.analyze_simulation(history)
 
         sensitivity_results[param_name].append(results)
-```
+```text
 
 
 ## Troubleshooting
-
-
 
 
 ### Issue: Low ignition rate
 
 
 **Symptom:** Few or no ignition events in simulations
-**Solution:**
+### Solution:
 - Increase input magnitude (higher ε_e, ε_i)
 - Decrease threshold θ₀
 - Increase β (somatic bias)
@@ -617,7 +551,7 @@ for param_name, param_values in param_ranges.items():
 
 
 **Symptom:** System always above threshold
-**Solution:**
+### Solution:
 - Decrease input magnitude
 - Increase threshold θ₀
 - Increase decay rate (lower τ)
@@ -627,7 +561,7 @@ for param_name, param_values in param_ranges.items():
 
 
 **Symptom:** Hurst calculation returns NaN
-**Solution:**
+### Solution:
 - Ensure sufficient data points (>50)
 - Check for constant segments (add noise)
 - Increase simulation duration
@@ -637,7 +571,7 @@ for param_name, param_values in param_ranges.items():
 
 
 **Symptom:** Integrated information near zero
-**Solution:**
+### Solution:
 - Increase coupling between variables
 - Use longer integration windows
 - Verify variables aren't independent
@@ -646,18 +580,15 @@ for param_name, param_values in param_ranges.items():
 ## Citation
 
 
-
 If you use Protocol 4 in your research, please cite:
 
-```
+```text
 APGI Research Team (2025). Protocol 4: Information-Theoretic
 Phase Transition Analysis. APGI Framework Testing Suite.
-```
+```text
 
 
 ## References
-
-
 
 
 ### Information Theory
@@ -694,7 +625,6 @@ Phase Transition Analysis. APGI Framework Testing Suite.
 ## Support
 
 
-
 For questions, issues, or contributions:
 - GitHub: [APGI Framework Repository]
 - Email: apgi-research@anthropic.com
@@ -702,7 +632,6 @@ For questions, issues, or contributions:
 
 
 ## License
-
 
 
 MIT License - see LICENSE file for details.

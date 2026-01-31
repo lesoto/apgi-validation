@@ -1,12 +1,7 @@
 
 # APGI Protocol 6: RNN Architectures with APGI Inductive Biases
 
-
-
-
 ## Overview
-
-
 
 Protocol 6 implements and tests neural network architectures with APGI-inspired inductive biases against standard architectures on consciousness-relevant tasks. This protocol validates whether incorporating mechanistic constraints from the APGI framework provides computational advantages for tasks involving conscious access.
 
@@ -16,12 +11,10 @@ Protocol 6 implements and tests neural network architectures with APGI-inspired 
 
 ---
 
-
 ## Scientific Rationale
 
-
-
 The APGI framework proposes specific computational mechanisms for conscious access:
+
 - **Dual pathway processing** (exteroceptive + interoceptive)
 - **Precision-weighted prediction errors** (Πₑ, Πᵢ)
 - **Threshold-gated ignition** (S_t > θ_t)
@@ -31,17 +24,11 @@ Protocol 6 tests whether neural networks implementing these architectural constr
 
 ---
 
-
 ## Architecture
-
-
-
 
 ### 1. APGI-Inspired Network
 
-
-
-```
+```text
 Input: [extero_features, intero_features]
   ↓
 ┌─────────────────────┬─────────────────────┐
@@ -83,9 +70,9 @@ Input: [extero_features, intero_features]
     │Somatic  │           │Classification│
     │Marker   │           │Head (2)      │
     └─────────┘           └──────────────┘
-```
+```text
 
-**Learnable Parameters:**
+### Learnable Parameters:
 - β (somatic bias): initialized to 1.2
 - α (sigmoid steepness): initialized to 5.0
 - Precision networks: Πₑ, Πᵢ
@@ -95,16 +82,15 @@ Input: [extero_features, intero_features]
 ### 2. Comparison Architectures
 
 
-
-**StandardMLPNetwork:**
+### StandardMLPNetwork:
 - Feedforward: 128 → 64 → 32 → 2
 - No dual pathways, no precision weighting
 
-**LSTMNetwork:**
+### LSTMNetwork:
 - LSTM(hidden=64) with sequential processing
 - Standard recurrent architecture
 
-**AttentionNetwork:**
+### AttentionNetwork:
 - Multi-head attention (4 heads)
 - No explicit ignition mechanism
 
@@ -112,8 +98,6 @@ Input: [extero_features, intero_features]
 
 
 ## Tasks
-
-
 
 
 ### Task 1: Conscious Classification
@@ -154,17 +138,14 @@ Input: [extero_features, intero_features]
 ## Installation
 
 
-
-
 ### Requirements
-
 
 
 ```bash
 pip install torch numpy scipy matplotlib seaborn pandas scikit-learn tqdm
-```
+```text
 
-**Minimum versions:**
+### Minimum versions:
 - Python ≥ 3.8
 - PyTorch ≥ 1.10
 - NumPy ≥ 1.21
@@ -172,7 +153,6 @@ pip install torch numpy scipy matplotlib seaborn pandas scikit-learn tqdm
 
 
 ### Hardware
-
 
 
 - **CPU:** Works on CPU (slower training)
@@ -185,10 +165,7 @@ pip install torch numpy scipy matplotlib seaborn pandas scikit-learn tqdm
 ## Usage
 
 
-
-
 ### Quick Start
-
 
 
 ```python
@@ -197,7 +174,7 @@ pip install torch numpy scipy matplotlib seaborn pandas scikit-learn tqdm
 
 
 python APGI-Protocol-6.py
-```
+```text
 
 This executes the full pipeline:
 1. Initializes all 4 network architectures
@@ -211,7 +188,6 @@ This executes the full pipeline:
 
 
 ### Custom Configuration
-
 
 
 ```python
@@ -240,11 +216,10 @@ model = APGIInspiredNetwork(config)
 
 trainer = NetworkTrainer(model)
 trainer.train(train_loader, val_loader, epochs=100)
-```
+```text
 
 
 ### Training Parameters
-
 
 
 Default settings optimized for consciousness tasks:
@@ -259,7 +234,7 @@ Default settings optimized for consciousness tasks:
     'early_stopping_patience': 15,
     'scheduler': 'ReduceLROnPlateau'
 }
-```
+```text
 
 ---
 
@@ -267,13 +242,10 @@ Default settings optimized for consciousness tasks:
 ## Output Files
 
 
-
-
 ### 1. Model Checkpoints
 
 
-
-**protocol6_apgi_model.pth**
+### protocol6_apgi_model.pth
 - Trained APGI network state dictionary
 - Can be loaded for inference or continued training
 
@@ -281,14 +253,13 @@ Default settings optimized for consciousness tasks:
 model = APGIInspiredNetwork(config)
 model.load_state_dict(torch.load('protocol6_apgi_model.pth'))
 model.eval()
-```
+```text
 
 
 ### 2. Results JSON
 
 
-
-**protocol6_results.json**
+### protocol6_results.json
 ```json
 {
   "config": {...},
@@ -310,11 +281,10 @@ model.eval()
     ...
   }
 }
-```
+```text
 
 
 ### 3. Visualizations
-
 
 
 **protocol6_results.png** (20×14 inches, 300 DPI)
@@ -331,10 +301,7 @@ Comprehensive 4×4 grid visualization:
 ## Performance Metrics
 
 
-
-
 ### Primary Metrics
-
 
 
 1. **Accuracy:** Classification accuracy on test set
@@ -346,9 +313,8 @@ Comprehensive 4×4 grid visualization:
 ### Expected Results
 
 
-
 | Task | APGI AUC | LSTM AUC | Advantage |
-|------|----------|----------|-----------|
+| ------ | ---------- | ---------- | ----------- |
 | Conscious Classification | 0.88-0.92 | 0.82-0.86 | +6-10% |
 | Masking Threshold | 0.85-0.90 | 0.78-0.83 | +7-9% |
 | Attentional Blink | 0.80-0.86 | 0.74-0.79 | +6-8% |
@@ -358,7 +324,6 @@ Comprehensive 4×4 grid visualization:
 
 
 ## Falsification Criteria
-
 
 
 Protocol 6 includes 4 explicit falsification criteria:
@@ -375,8 +340,8 @@ Protocol 6 includes 4 explicit falsification criteria:
 ### F6.2: Somatic Bias Learning
 
 
-**Criterion:** |β - 1.2| < 0.1 (no interoceptive weighting learned)
-**Threshold:** |β_learned - β_init| < 0.1
+ **Criterion:** | β - 1.2 | < 0.1 (no interoceptive weighting learned)
+ **Threshold:** | β_learned - β_init | < 0.1
 **Status:** Check `falsification['F6.2']` in results
 
 
@@ -403,13 +368,10 @@ Protocol 6 includes 4 explicit falsification criteria:
 ## Code Structure
 
 
-
-
 ### Main Components
 
 
-
-```
+```text
 APGI-Protocol-6.py (1,461 lines)
 ├── Part 1: APGI Network Architecture (lines 52-253)
 │   ├── APGIInspiredNetwork
@@ -448,26 +410,25 @@ APGI-Protocol-6.py (1,461 lines)
 │
 └── Part 8: Main Pipeline (lines 1337-1461)
     └── main() execution
-```
+```text
 
 
 ### Key Classes
 
 
-
-**APGIInspiredNetwork(nn.Module)**
+### APGIInspiredNetwork(nn.Module)
 - Implements full APGI architecture
 - Methods: `forward()`, `compute_ignition_prob()`, `get_learned_params()`
 
-**NetworkTrainer**
+### NetworkTrainer
 - Handles training loop with early stopping
 - Methods: `train()`, `validate()`, `evaluate()`
 
-**NetworkComparison**
+### NetworkComparison
 - Orchestrates multi-network, multi-task experiments
 - Methods: `run_all_experiments()`, `analyze_convergence()`
 
-**FalsificationChecker**
+### FalsificationChecker
 - Tests all 4 falsification criteria
 - Methods: `check_F6_1()`, ..., `generate_report()`
 
@@ -475,8 +436,6 @@ APGI-Protocol-6.py (1,461 lines)
 
 
 ## Predictions Tested
-
-
 
 
 ### P6a: Performance Superiority
@@ -512,42 +471,38 @@ APGI-Protocol-6.py (1,461 lines)
 ## Troubleshooting
 
 
-
-
 ### Common Issues
 
 
-
-**1. CUDA out of memory**
+### 1. CUDA out of memory
 ```python
 
 # Reduce batch size in config
 
 
 config['batch_size'] = 32  # or 16
-```
+```text
 
-**2. Slow training on CPU**
+### 2. Slow training on CPU
 - Expected: ~30-45 minutes per task on CPU
 - Solution: Use GPU or reduce dataset sizes
 
-**3. Poor convergence**
+### 3. Poor convergence
 ```python
 
 # Try lower learning rate
 
 
 trainer = NetworkTrainer(model, lr=5e-4)
-```
+```text
 
-**4. NaN losses**
+### 4. NaN losses
 - Usually due to gradient explosion
 - Gradient clipping is enabled by default (clip=1.0)
 - Check input normalization
 
 
 ### Debug Mode
-
 
 
 ```python
@@ -564,13 +519,12 @@ trainer.train(train_loader, val_loader, verbose=True)
 params = model.get_learned_params()
 print(f"Beta: {params['beta']:.3f}")
 print(f"Alpha: {params['alpha']:.3f}")
-```
+```text
 
 ---
 
 
 ## Citation
-
 
 
 If you use this implementation, please cite:
@@ -583,7 +537,7 @@ If you use this implementation, please cite:
   version={1.0},
   url={https://github.com/apgi-framework/protocols}
 }
-```
+```text
 
 ---
 
@@ -591,31 +545,27 @@ If you use this implementation, please cite:
 ## Theoretical Background
 
 
-
-
 ### APGI Core Equations
 
 
+### Surprise Accumulation:
+```text
+ S_t = Πₑ· | εₑ | + β·Πᵢ· | εᵢ |
+```text
 
-**Surprise Accumulation:**
-```
-S_t = Πₑ·|εₑ| + β·Πᵢ·|εᵢ|
-```
-
-**Ignition Probability:**
-```
+### Ignition Probability:
+```text
 P(ignition) = σ(α·(S_t - θ_t))
-```
+```text
 
-**Global Workspace Gating:**
-```
+### Global Workspace Gating:
+```text
 h_workspace = g_t ⊙ h_content
 where g_t = σ(α·(S_t - θ_t))
-```
+```text
 
 
 ### Network Implementation
-
 
 
 The neural network implements these equations through:
@@ -631,10 +581,7 @@ The neural network implements these equations through:
 ## Advanced Usage
 
 
-
-
 ### Custom Tasks
-
 
 
 ```python
@@ -656,11 +603,10 @@ class CustomConsciousnessTask(Dataset):
 
     def __len__(self):
         return len(self.labels)
-```
+```text
 
 
 ### Parameter Analysis
-
 
 
 ```python
@@ -685,11 +631,10 @@ plt.legend()
 plt.xlabel('Epoch')
 plt.ylabel('Parameter Value')
 plt.show()
-```
+```text
 
 
 ### Transfer Learning
-
 
 
 ```python
@@ -713,7 +658,7 @@ for param in model.extero_encoder.parameters():
 
 trainer = NetworkTrainer(model, lr=1e-4)
 trainer.train(new_task_loader, val_loader)
-```
+```text
 
 ---
 
@@ -721,10 +666,9 @@ trainer.train(new_task_loader, val_loader)
 ## Validation Results
 
 
-
 When run with default parameters, expected console output:
 
-```
+```text
 ================================================================================
 APGI PROTOCOL 6: RNN ARCHITECTURES WITH APGI INDUCTIVE BIASES
 ================================================================================
@@ -739,11 +683,11 @@ TASK 1: CONSCIOUS CLASSIFICATION
 ================================================================================
 
 Training APGI...
-Epoch 50/100 | Train Loss: 0.284 | Val AUC: 0.897 | Best: 0.902
+ Epoch 50/100 | Train Loss: 0.284 | Val AUC: 0.897 | Best: 0.902
 ✓ APGI completed
 
 Training StandardMLP...
-Epoch 50/100 | Train Loss: 0.321 | Val AUC: 0.841 | Best: 0.845
+ Epoch 50/100 | Train Loss: 0.321 | Val AUC: 0.841 | Best: 0.845
 ✓ StandardMLP completed
 
 ...
@@ -758,4 +702,4 @@ FALSIFICATION ANALYSIS
 ✓ F6.4 PASSED: APGI AUC (0.902) > Attention AUC (0.876)
 
 OVERALL: ✓ MODEL VALIDATED (0/4 criteria falsified)
-```
+```text

@@ -56,6 +56,38 @@ python main.py gui --gui-type analysis
 
 ## Basic Usage
 
+### Commands Tested Successfully
+
+```text
+✓ python main.py --help
+✓ python main.py info
+✗ python main.py formal-model --simulation-steps 10 --plot (CRITICAL BUG)
+✓ python main.py multimodal --help
+✓ python main.py config --help
+✓ python main.py validate --help
+✓ python main.py dashboard --help
+✓ python main.py visualize --help
+✓ python main.py logs --help
+✓ python main.py cache --help
+✓ python main.py export-data --help
+✓ python main.py falsify --help
+✓ python main.py estimate-params --help
+✓ python main.py import-data --help
+✓ python main.py performance --help
+✓ python main.py backup --help
+✓ python main.py backups --help
+✓ python main.py restore --help
+✓ python main.py delete-backup --help
+✓ python main.py errors --help
+✓ python main.py test-errors --help
+✓ python main.py test-errors --test-config
+✓ python main.py config-diff --help
+✓ python main.py config-restore --help
+✓ python main.py config-version --help
+✓ python main.py config-versions --help
+✓ python Utils-GUI.py
+```
+
 ### Configuration Management
 
 ```python
