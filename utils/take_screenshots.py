@@ -714,9 +714,9 @@ class APGIScreenshotDocumentation:
         # List available GUI files
         gui_files = [
             "APGI-Psychological-States-GUI.py",
-            "APGI-Formal-Model.py",
-            "APGI-Formal-Model-Enhanced.py",
-            "APGI-Formal-Model-Enhanced-Full.py",
+            "APGI-Equations.py",
+            "APGI-Equations-Enhanced.py",
+            "APGI-Equations-Enhanced-Full.py",
             "APGI-Entropy-Implementation.py",
             "APGI-Liquid-Network-Implementation.py",
             "APGI-Multimodal-Integration.py",
@@ -733,9 +733,9 @@ class APGIScreenshotDocumentation:
 
         gui_descriptions = {
             "APGI-Psychological-States-GUI.py": "🧠 Psychological States GUI - Main APGI consciousness modeling interface",
-            "APGI-Formal-Model.py": "📐 Formal Model - Core APGI mathematical framework",
-            "APGI-Formal-Model-Enhanced.py": "⚡ Enhanced Formal Model - Extended APGI framework with additional features",
-            "APGI-Formal-Model-Enhanced-Full.py": "🌟 Full Enhanced Model - Complete APGI implementation with all features",
+            "APGI-Equations.py": "📐 Formal Model - Core APGI mathematical framework",
+            "APGI-Equations-Enhanced.py": "⚡ Enhanced Formal Model - Extended APGI framework with additional features",
+            "APGI-Equations-Enhanced-Full.py": "🌟 Full Enhanced Model - Complete APGI implementation with all features",
             "APGI-Entropy-Implementation.py": "🔀 Entropy Implementation - APGI entropy-based consciousness model",
             "APGI-Liquid-Network-Implementation.py": "💧 Liquid Network - APGI liquid neural network implementation",
             "APGI-Multimodal-Integration.py": "🔗 Multimodal Integration - APGI multi-sensory integration system",

@@ -10,11 +10,12 @@ It creates a virtual environment and installs dependencies.
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 PROJECT_ROOT = Path(__file__).parent
 
 
-def create_virtual_environment():
+def create_virtual_environment() -> Optional[Path]:
     """Create a virtual environment if it doesn't exist."""
     venv_path = PROJECT_ROOT / "venv"
 
@@ -32,7 +33,7 @@ def create_virtual_environment():
         return None
 
 
-def get_venv_python(venv_path):
+def get_venv_python(venv_path: Path) -> Path:
     """Get the Python executable from the virtual environment."""
     if sys.platform == "win32":
         return venv_path / "Scripts" / "python.exe"
@@ -40,7 +41,7 @@ def get_venv_python(venv_path):
         return venv_path / "bin" / "python"
 
 
-def install_dependencies(venv_python):
+def install_dependencies(venv_python: Path) -> bool:
     """Install dependencies in the virtual environment."""
     print("Installing dependencies...")
 
@@ -64,7 +65,7 @@ def install_dependencies(venv_python):
         return False
 
 
-def create_activation_script():
+def create_activation_script() -> None:
     """Create activation scripts for convenience."""
     venv_path = PROJECT_ROOT / "venv"
 
@@ -81,7 +82,7 @@ def create_activation_script():
     print(f"✓ Activation script created: {activate_script}")
 
 
-def test_installation(venv_python):
+def test_installation(venv_python: Path) -> bool:
     """Test the installation by running the test script."""
     print("Testing installation...")
 

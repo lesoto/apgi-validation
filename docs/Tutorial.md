@@ -98,7 +98,7 @@ python main.py logs --export logs.json
 
 ```python
 # Python API
-from APGI-Formal-Model import SurpriseIgnitionSystem
+from APGI-Equations import SurpriseIgnitionSystem
 
 # Initialize model with default parameters
 system = SurpriseIgnitionSystem()
@@ -418,7 +418,7 @@ python main.py validate --all-protocols --parallel
 def run_validation():
     """Custom validation protocol for specific hypothesis."""
     import numpy as np
-    from APGI-Formal-Model import SurpriseIgnitionSystem
+    from APGI-Equations import SurpriseIgnitionSystem
 
     # Test hypothesis: Higher precision leads to faster ignition
     precision_values = [0.5, 1.0, 1.5, 2.0]
@@ -580,7 +580,7 @@ python main.py visualize --input-file results.csv --interactive
 
 ```python
 # Create custom model extending SurpriseIgnitionSystem
-from APGI-Formal-Model import SurpriseIgnitionSystem
+from APGI-Equations import SurpriseIgnitionSystem
 
 class CustomSurpriseSystem(SurpriseIgnitionSystem):
     def __init__(self, params=None):

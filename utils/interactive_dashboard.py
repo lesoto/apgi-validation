@@ -36,6 +36,18 @@ except ImportError:
         def __init__(self):
             self.logger = logging.getLogger(__name__)
 
+        def warning(self, msg):
+            self.logger.warning(msg)
+
+        def info(self, msg):
+            self.logger.info(msg)
+
+        def error(self, msg):
+            self.logger.error(msg)
+
+        def debug(self, msg):
+            self.logger.debug(msg)
+
     apgi_logger = MockAPGILogger()
 
 # APGI imports
@@ -81,17 +93,27 @@ class DashboardData:
         while self.running:
             try:
                 # Collect system metrics
-                current_system = (
-                    performance_profiler.system_monitor.get_current_metrics()
-                )
+                if performance_profiler and hasattr(
+                    performance_profiler, "system_monitor"
+                ):
+                    current_system = (
+                        performance_profiler.system_monitor.get_current_metrics()
+                    )
+                else:
+                    current_system = None
                 if current_system:
                     current_system["dashboard_timestamp"] = datetime.now()
                     self.system_metrics.append(current_system)
 
                 # Collect performance metrics
-                recent_metrics = performance_profiler.custom_metrics[
-                    -10:
-                ]  # Last 10 metrics
+                if performance_profiler and hasattr(
+                    performance_profiler, "custom_metrics"
+                ):
+                    recent_metrics = performance_profiler.custom_metrics[
+                        -10:
+                    ]  # Last 10 metrics
+                else:
+                    recent_metrics = []
                 for metric in recent_metrics:
                     self.performance_metrics.append(
                         {

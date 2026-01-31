@@ -73,13 +73,13 @@ If you encounter compatibility issues, consider using Python 3.10 or 3.11.
 ### Basic Test (No Dependencies Required)
 
 ```bash
-python minimal_test.py
+python -m pytest tests/test_basic.py -v
 ```
 
 ### Full Test (Dependencies Required)
 
 ```bash
-python test_framework.py
+python -m pytest tests/ -v
 ```
 
 ### CLI Test
@@ -95,7 +95,7 @@ python main.py formal-model --simulation-steps 100
 ```text
 apgi-theory/
 ├── README.md                    # Main documentation
-├── INSTALL.md                   # This installation guide
+├── docs/Install.md              # This installation guide
 ├── requirements.txt             # Dependencies list
 ├── setup.py                     # Automated setup script
 ├── main.py                      # Unified CLI interface

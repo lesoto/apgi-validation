@@ -164,7 +164,7 @@ class SomaticMarkerNetwork:
             pred = W2_dp @ h + b2_dp
             pred = np.clip(pred, -MAX_CLIP_VALUE, MAX_CLIP_VALUE)
 
-        except (RuntimeWarning, FloatingPointError, OverflowError, UnderflowError):
+        except (RuntimeWarning, FloatingPointError, OverflowError, ValueError):
             return
 
         # Backward pass with gradient clipping

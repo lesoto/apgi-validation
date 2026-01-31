@@ -14,11 +14,14 @@ import threading
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import joblib
 import numpy as np
 import pandas as pd
+from rich.console import Console
+
+console = Console()
 
 
 class CacheManager:
