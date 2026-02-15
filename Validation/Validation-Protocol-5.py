@@ -138,19 +138,27 @@ class AgentGenome:
 
         # Parameter mutations (Gaussian perturbation)
         if np.random.random() < mutation_rate:
-            mutated.theta_0 = np.clip(mutated.theta_0 + np.random.normal(0, 0.1), 0.1, 0.9)
+            mutated.theta_0 = np.clip(
+                mutated.theta_0 + np.random.normal(0, 0.1), 0.1, 0.9
+            )
 
         if np.random.random() < mutation_rate:
-            mutated.alpha = np.clip(mutated.alpha * np.random.uniform(0.8, 1.2), 1.0, 15.0)
+            mutated.alpha = np.clip(
+                mutated.alpha * np.random.uniform(0.8, 1.2), 1.0, 15.0
+            )
 
         if np.random.random() < mutation_rate:
             mutated.beta = np.clip(mutated.beta * np.random.uniform(0.8, 1.2), 0.3, 2.5)
 
         if np.random.random() < mutation_rate:
-            mutated.Pi_e_lr = np.clip(mutated.Pi_e_lr * np.random.uniform(0.8, 1.2), 0.005, 0.3)
+            mutated.Pi_e_lr = np.clip(
+                mutated.Pi_e_lr * np.random.uniform(0.8, 1.2), 0.005, 0.3
+            )
 
         if np.random.random() < mutation_rate:
-            mutated.Pi_i_lr = np.clip(mutated.Pi_i_lr * np.random.uniform(0.8, 1.2), 0.005, 0.3)
+            mutated.Pi_i_lr = np.clip(
+                mutated.Pi_i_lr * np.random.uniform(0.8, 1.2), 0.005, 0.3
+            )
 
         if np.random.random() < mutation_rate:
             mutated.somatic_lr = np.clip(
@@ -257,7 +265,9 @@ class EvolvableAgent:
         # Apply threshold mechanism (if present)
         if self.genome.has_threshold:
             # Ignition probability
-            P_ignition = 1.0 / (1.0 + np.exp(-self.genome.alpha * (S_t - self.genome.theta_0)))
+            P_ignition = 1.0 / (
+                1.0 + np.exp(-self.genome.alpha * (S_t - self.genome.theta_0))
+            )
 
             ignition = np.random.random() < P_ignition
 
@@ -749,7 +759,9 @@ class EvolutionaryOptimizer:
 
     def tournament_selection(self, fitness_scores: np.ndarray) -> AgentGenome:
         """Tournament selection"""
-        tournament_indices = np.random.choice(self.pop_size, self.tournament_size, replace=False)
+        tournament_indices = np.random.choice(
+            self.pop_size, self.tournament_size, replace=False
+        )
 
         winner_idx = tournament_indices[np.argmax(fitness_scores[tournament_indices])]
 
@@ -759,8 +771,12 @@ class EvolutionaryOptimizer:
         """Compute frequency of each architectural feature"""
         return {
             "has_threshold": np.mean([g.has_threshold for g in self.population]),
-            "has_intero_weighting": np.mean([g.has_intero_weighting for g in self.population]),
-            "has_somatic_markers": np.mean([g.has_somatic_markers for g in self.population]),
+            "has_intero_weighting": np.mean(
+                [g.has_intero_weighting for g in self.population]
+            ),
+            "has_somatic_markers": np.mean(
+                [g.has_somatic_markers for g in self.population]
+            ),
             "has_precision_weighting": np.mean(
                 [g.has_precision_weighting for g in self.population]
             ),
@@ -796,7 +812,9 @@ class EvolutionaryOptimizer:
         for generation in tqdm(range(self.n_generations), desc="Generations"):
 
             # Evaluate fitness
-            fitness_scores = np.array([self.evaluate_fitness(genome) for genome in self.population])
+            fitness_scores = np.array(
+                [self.evaluate_fitness(genome) for genome in self.population]
+            )
 
             # Record statistics
             self.history["generation"].append(generation)
@@ -812,7 +830,9 @@ class EvolutionaryOptimizer:
 
             # Store best genome
             best_idx = np.argmax(fitness_scores)
-            self.history["best_genomes"].append(copy.deepcopy(self.population[best_idx]))
+            self.history["best_genomes"].append(
+                copy.deepcopy(self.population[best_idx])
+            )
 
             # Progress report
             if generation % 50 == 0:
@@ -889,7 +909,9 @@ class EvolutionaryAnalyzer:
 
         for trait in traits:
             # Extract frequency time series
-            freqs = np.array([h[trait] for h in self.history["architecture_frequencies"]])
+            freqs = np.array(
+                [h[trait] for h in self.history["architecture_frequencies"]]
+            )
 
             # Avoid edge cases
             freqs = np.clip(freqs, 0.01, 0.99)
@@ -907,7 +929,9 @@ class EvolutionaryAnalyzer:
 
         return selection_coefficients
 
-    def find_fixation_generations(self, threshold: float = 0.9) -> Dict[str, Optional[int]]:
+    def find_fixation_generations(
+        self, threshold: float = 0.9
+    ) -> Dict[str, Optional[int]]:
         """
         Find generation when each trait reached fixation (>threshold frequency)
         """
@@ -989,7 +1013,9 @@ class EvolutionaryAnalyzer:
             key=lambda x: x[1] if x[1] is not None else float("inf"),
         )
 
-        emergence_order = {trait: rank for rank, (trait, gen) in enumerate(sorted_traits)}
+        emergence_order = {
+            trait: rank for rank, (trait, gen) in enumerate(sorted_traits)
+        }
 
         return emergence_order
 
@@ -1085,7 +1111,9 @@ class FalsificationChecker:
         return falsified, {
             "threshold_frequency": float(final_freq),
             "interpretation": (
-                "Discrete ignition advantageous" if final_freq > 0.5 else "Continuous equally good"
+                "Discrete ignition advantageous"
+                if final_freq > 0.5
+                else "Continuous equally good"
             ),
         }
 
@@ -1164,7 +1192,9 @@ class FalsificationChecker:
 # =============================================================================
 
 
-def plot_evolutionary_results(history: Dict, save_path: str = "protocol5_evolution_results.png"):
+def plot_evolutionary_results(
+    history: Dict, save_path: str = "protocol5_evolution_results.png"
+):
     """Generate comprehensive visualization of evolutionary results"""
 
     fig = plt.figure(figsize=(20, 14))
@@ -1328,7 +1358,9 @@ def plot_evolutionary_results(history: Dict, save_path: str = "protocol5_evoluti
             linewidth=1.5,
         )
         ax_fix.set_xlabel("Generation", fontsize=11, fontweight="bold")
-        ax_fix.set_title("Fixation Generation (freq>0.9)", fontsize=12, fontweight="bold")
+        ax_fix.set_title(
+            "Fixation Generation (freq>0.9)", fontsize=12, fontweight="bold"
+        )
         ax_fix.grid(axis="x", alpha=0.3)
 
     # ==========================================================================
@@ -1356,7 +1388,9 @@ def plot_evolutionary_results(history: Dict, save_path: str = "protocol5_evoluti
         startangle=90,
         textprops={"fontsize": 10, "fontweight": "bold"},
     )
-    ax_pie.set_title("Final Architecture\nComponent Frequencies", fontsize=12, fontweight="bold")
+    ax_pie.set_title(
+        "Final Architecture\nComponent Frequencies", fontsize=12, fontweight="bold"
+    )
 
     # Emergence order
     ax_order = fig.add_subplot(gs[3, 1])
@@ -1405,7 +1439,9 @@ def plot_evolutionary_results(history: Dict, save_path: str = "protocol5_evoluti
         ["Precision", f"{final_freqs['has_precision_weighting']:.2f}"],
     ]
 
-    table = ax_stats.table(cellText=stats_data, cellLoc="left", loc="center", colWidths=[0.6, 0.4])
+    table = ax_stats.table(
+        cellText=stats_data, cellLoc="left", loc="center", colWidths=[0.6, 0.4]
+    )
     table.auto_set_font_size(False)
     table.set_fontsize(9)
     table.scale(1, 2)
@@ -1486,7 +1522,9 @@ def phylogenetic_tree_analysis(evolution_history):
     """
     # Extract lineages - placeholder implementation
     lineages = []
-    for generation_idx, generation in enumerate(evolution_history.get("generations", [])):
+    for generation_idx, generation in enumerate(
+        evolution_history.get("generations", [])
+    ):
         for agent_idx, agent in enumerate(generation.get("agents", [])):
             lineage = {
                 "generation": generation_idx,
@@ -1535,7 +1573,9 @@ def phylogenetic_tree_analysis(evolution_history):
         agents = evolution_history["generations"][gen_num].get("agents", [])
         if emergence_times["threshold"] is None:
             if any(
-                getattr(a.genome, "has_threshold", False) for a in agents if hasattr(a, "genome")
+                getattr(a.genome, "has_threshold", False)
+                for a in agents
+                if hasattr(a, "genome")
             ):
                 emergence_times["threshold"] = gen_num
         if emergence_times["interoception"] is None:
@@ -1575,13 +1615,17 @@ def test_across_environmental_gradients():
         "stability": np.linspace(0.1, 0.9, 5),  # Reward stability
         "uncertainty": np.linspace(0.1, 0.9, 5),  # Noise level
         "metabolic_cost": np.linspace(0.0, 0.3, 5),  # Cost of computation
-        "interoceptive_relevance": np.linspace(0.1, 0.9, 5),  # How much internal states matter
+        "interoceptive_relevance": np.linspace(
+            0.1, 0.9, 5
+        ),  # How much internal states matter
     }
 
     results = {}
 
     print("Warning: test_across_environmental_gradients is a placeholder.")
-    print("Full implementation requires environment parameter modification infrastructure.")
+    print(
+        "Full implementation requires environment parameter modification infrastructure."
+    )
 
     return results, None
 
@@ -1866,7 +1910,9 @@ def main():
 def run_validation():
     """Entry point for CLI validation."""
     try:
-        print("Running APGI Validation Protocol 5: Computational Falsification Framework")
+        print(
+            "Running APGI Validation Protocol 5: Computational Falsification Framework"
+        )
         return main()
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in validation protocol 5: {e}")

@@ -267,7 +267,9 @@ def create_test_yaml(file_path: Path, data: dict):
         yaml.dump(data, f)
 
 
-def assert_performance_within_tolerance(actual_time: float, expected_time: float, tolerance: float):
+def assert_performance_within_tolerance(
+    actual_time: float, expected_time: float, tolerance: float
+):
     """Assert that performance is within acceptable tolerance."""
     lower_bound = expected_time * (1 - tolerance)
     upper_bound = expected_time * (1 + tolerance)

@@ -48,7 +48,9 @@ class TMSIntervention:
         self.inter_pulse_interval = 50  # ms for paired-pulse
         self.mt_adjustment = 0.8  # Adjustment factor for MT
 
-    def apply_tms_pulse(self, neural_state: Dict, target_region: str, timing: float) -> Dict:
+    def apply_tms_pulse(
+        self, neural_state: Dict, target_region: str, timing: float
+    ) -> Dict:
         """
         Apply TMS pulse to neural state
 
@@ -68,18 +70,24 @@ class TMSIntervention:
         if target_region in ["dlPFC", "posterior_parietal"]:
             if ignition_window[0] <= timing <= ignition_window[1]:
                 # Disrupt ignition parameters
-                disruption_factor = self.intensity * (1.0 if self.coil_type == "figure8" else 0.7)
+                disruption_factor = self.intensity * (
+                    1.0 if self.coil_type == "figure8" else 0.7
+                )
 
                 # Reduce effective precision in frontoparietal network
                 modified_state["Pi_e_effective"] *= 1.0 - disruption_factor * 0.3
-                modified_state["theta_t"] *= 1.0 + disruption_factor * 0.2  # Increase threshold
+                modified_state["theta_t"] *= (
+                    1.0 + disruption_factor * 0.2
+                )  # Increase threshold
 
                 # Add neural noise
                 modified_state["noise_level"] += disruption_factor * 0.5
 
         return modified_state
 
-    def simulate_tms_experiment(self, n_trials: int = 100, target_region: str = "dlPFC") -> Dict:
+    def simulate_tms_experiment(
+        self, n_trials: int = 100, target_region: str = "dlPFC"
+    ) -> Dict:
         """
         Simulate complete TMS experiment
 
@@ -112,14 +120,21 @@ class TMSIntervention:
             detection = np.random.random() < ignition_prob
 
             results["detection_rates"].append(detection)
-            results["p3b_amplitudes"].append(self._simulate_p3b_amplitude(tms_state, detection))
-            results["reaction_times"].append(self._simulate_reaction_time(tms_state, detection))
+            results["p3b_amplitudes"].append(
+                self._simulate_p3b_amplitude(tms_state, detection)
+            )
+            results["reaction_times"].append(
+                self._simulate_reaction_time(tms_state, detection)
+            )
 
         return results
 
     def _compute_ignition_probability(self, state: Dict) -> float:
         """Compute ignition probability from state"""
-        S = state["Pi_e_effective"] * state["stimulus_intensity"] + state["Pi_i_effective"] * 0.1
+        S = (
+            state["Pi_e_effective"] * state["stimulus_intensity"]
+            + state["Pi_i_effective"] * 0.1
+        )
         theta = state["theta_t"]
         alpha = 5.0  # Sigmoid steepness
 
@@ -296,7 +311,9 @@ class CausalManipulationsValidator:
         }
 
         # Calculate overall score
-        results["overall_causal_validation_score"] = self._calculate_causal_score(results)
+        results["overall_causal_validation_score"] = self._calculate_causal_score(
+            results
+        )
 
         return results
 
@@ -329,7 +346,9 @@ class CausalManipulationsValidator:
                         "timing": timing,
                         "detection_rate": detection_rate,
                         "p3b_amplitude": np.mean(
-                            tms_results["p3b_amplitudes"][timing_idx - 2 : timing_idx + 3]
+                            tms_results["p3b_amplitudes"][
+                                timing_idx - 2 : timing_idx + 3
+                            ]
                         ),
                     }
                 )
@@ -346,11 +365,16 @@ class CausalManipulationsValidator:
         control_window_results = []
         for region_data in results.values():
             for trial_data in region_data:
-                if 0.1 <= trial_data["timing"] < 0.2 or 0.3 < trial_data["timing"] <= 0.4:
+                if (
+                    0.1 <= trial_data["timing"] < 0.2
+                    or 0.3 < trial_data["timing"] <= 0.4
+                ):
                     control_window_results.append(trial_data["detection_rate"])
 
         # Statistical test
-        t_stat, p_value = stats.ttest_ind(ignition_window_results, control_window_results)
+        t_stat, p_value = stats.ttest_ind(
+            ignition_window_results, control_window_results
+        )
 
         return {
             "region_specific_effects": results,
@@ -380,7 +404,9 @@ class CausalManipulationsValidator:
                 "arousal": 0.5,
             }
 
-            drug_state = self.pharmacological_intervention.apply_drug_effects(baseline_state)
+            drug_state = self.pharmacological_intervention.apply_drug_effects(
+                baseline_state
+            )
 
             # Simulate psychometric function
             stimulus_intensities = np.linspace(0.1, 1.0, 20)
@@ -397,7 +423,9 @@ class CausalManipulationsValidator:
 
                 # Drug
                 drug_S = drug_state["Pi_e_baseline"] * intensity
-                drug_prob = 1.0 / (1.0 + np.exp(-5.0 * (drug_S - drug_state["theta_t"])))
+                drug_prob = 1.0 / (
+                    1.0 + np.exp(-5.0 * (drug_S - drug_state["theta_t"]))
+                )
                 drug_responses.append(drug_prob)
 
             results[drug] = {
@@ -405,7 +433,8 @@ class CausalManipulationsValidator:
                 "drug_responses": drug_responses,
                 "stimulus_intensities": stimulus_intensities,
                 "threshold_shift": drug_state["theta_t"] - baseline_state["theta_t"],
-                "precision_change": drug_state["Pi_e_baseline"] - baseline_state["Pi_e_baseline"],
+                "precision_change": drug_state["Pi_e_baseline"]
+                - baseline_state["Pi_e_baseline"],
             }
 
         return results
@@ -454,10 +483,14 @@ class CausalManipulationsValidator:
         erp_results = {}
         for condition in conditions:
             # Simulate N1 amplitude (invariant prediction)
-            n1_amplitude = np.random.normal(10.0, 1.0)  # Should be similar across conditions
+            n1_amplitude = np.random.normal(
+                10.0, 1.0
+            )  # Should be similar across conditions
 
             # Simulate P2 amplitude (invariant prediction)
-            p2_amplitude = np.random.normal(15.0, 1.5)  # Should be similar across conditions
+            p2_amplitude = np.random.normal(
+                15.0, 1.5
+            )  # Should be similar across conditions
 
             erp_results[condition] = {
                 "n1_amplitude": n1_amplitude,
@@ -477,7 +510,8 @@ class CausalManipulationsValidator:
             "erp_components": erp_results,
             "n1_invariance_p": n1_p,
             "p2_invariance_p": p2_p,
-            "null_prediction_supported": n1_p > 0.05 and p2_p > 0.05,  # Fail to reject null
+            "null_prediction_supported": n1_p > 0.05
+            and p2_p > 0.05,  # Fail to reject null
         }
 
     def _calculate_causal_score(self, results: Dict) -> float:
@@ -487,7 +521,9 @@ class CausalManipulationsValidator:
 
         # TMS ignition disruption (weight: 0.4)
         tms_result = results.get("tms_ignition_disruption", {})
-        scores.append(0.4 * (1.0 if tms_result.get("validation_passed", False) else 0.0))
+        scores.append(
+            0.4 * (1.0 if tms_result.get("validation_passed", False) else 0.0)
+        )
 
         # Pharmacological effects (weight: 0.3)
         pharma_result = results.get("pharmacological_precision_modulation", {})
@@ -499,7 +535,9 @@ class CausalManipulationsValidator:
 
         # ERP invariance null prediction (weight: 0.1)
         erp_result = results.get("erp_invariance_null_prediction", {})
-        scores.append(0.1 * (1.0 if erp_result.get("null_prediction_supported", False) else 0.0))
+        scores.append(
+            0.1 * (1.0 if erp_result.get("null_prediction_supported", False) else 0.0)
+        )
 
         return sum(scores)
 
@@ -510,7 +548,9 @@ def main():
     results = validator.validate_causal_predictions()
 
     print("APGI Causal Manipulations Validation Results:")
-    print(f"Overall Causal Validation Score: {results['overall_causal_validation_score']:.3f}")
+    print(
+        f"Overall Causal Validation Score: {results['overall_causal_validation_score']:.3f}"
+    )
 
     print("\nDetailed Results:")
     for key, value in results.items():

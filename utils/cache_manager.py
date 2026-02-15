@@ -132,7 +132,9 @@ class CacheManager:
 
         if total_size > self.max_size_bytes:
             # Sort by least recently used
-            entries = sorted(self.metadata.items(), key=lambda x: x[1].get("accessed", 0))
+            entries = sorted(
+                self.metadata.items(), key=lambda x: x[1].get("accessed", 0)
+            )
 
             # Evict entries until under limit
             for key, info in entries:
@@ -178,7 +180,9 @@ class CacheManager:
                     OSError,
                     EOFError,
                 ) as e:
-                    print(f"Error loading cache entry {cache_key}: {type(e).__name__}: {e}")
+                    print(
+                        f"Error loading cache entry {cache_key}: {type(e).__name__}: {e}"
+                    )
                     # Remove corrupted entry
                     cache_path.unlink(missing_ok=True)
                     if cache_key in self.metadata:
@@ -235,7 +239,9 @@ class CacheManager:
         import time
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        console.print(f"[blue]Warming up cache with {len(data_sources)} data sources...[/blue]")
+        console.print(
+            f"[blue]Warming up cache with {len(data_sources)} data sources...[/blue]"
+        )
         start_time = time.time()
 
         def warm_single_source(source_path):
@@ -286,7 +292,9 @@ class CacheManager:
 
         # Warm up sources in parallel
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(warm_single_source, source) for source in data_sources]
+            futures = [
+                executor.submit(warm_single_source, source) for source in data_sources
+            ]
 
             completed = 0
             for future in as_completed(futures):
@@ -299,7 +307,9 @@ class CacheManager:
                 console.print(f"[blue]Progress: {completed}/{len(data_sources)}[/blue]")
 
         elapsed_time = time.time() - start_time
-        console.print(f"[green]✓[/green] Cache warming completed in {elapsed_time:.1f}s")
+        console.print(
+            f"[green]✓[/green] Cache warming completed in {elapsed_time:.1f}s"
+        )
 
         # Update stats
         self.stats["cache_warms"] = self.stats.get("cache_warms", 0) + 1
@@ -408,7 +418,9 @@ class CacheManager:
                         "created": datetime.fromtimestamp(info.get("created", 0)),
                         "accessed": datetime.fromtimestamp(info.get("accessed", 0)),
                         "expires": (
-                            datetime.fromtimestamp(info["expires"]) if "expires" in info else None
+                            datetime.fromtimestamp(info["expires"])
+                            if "expires" in info
+                            else None
                         ),
                     }
                 )
@@ -503,7 +515,9 @@ class DataCache:
 
         self.cache.set(cache_key, results, ttl)
 
-    def get_simulation_results(self, model_params: Dict, simulation_config: Dict) -> Optional[Dict]:
+    def get_simulation_results(
+        self, model_params: Dict, simulation_config: Dict
+    ) -> Optional[Dict]:
         """Get cached simulation results."""
         cache_key = {
             "type": "simulation_results",
@@ -529,7 +543,9 @@ class DataCache:
 
         self.cache.set(cache_key, results, ttl)
 
-    def get_validation_results(self, protocol_name: str, validation_config: Dict) -> Optional[Dict]:
+    def get_validation_results(
+        self, protocol_name: str, validation_config: Dict
+    ) -> Optional[Dict]:
         """Get cached validation results."""
         cache_key = {
             "type": "validation_results",

@@ -143,12 +143,17 @@ class DataSharingProtocol:
             ):
                 raise ValueError("Sample size must be a positive number")
 
-            if not isinstance(metadata.get("variables"), list) or len(metadata["variables"]) == 0:
+            if (
+                not isinstance(metadata.get("variables"), list)
+                or len(metadata["variables"]) == 0
+            ):
                 raise ValueError("Variables must be a non-empty list")
 
             # Add APGI-specific metadata
             metadata["apgi_version"] = "1.0"
-            metadata["validation_protocol"] = metadata.get("validation_protocol", "Unknown")
+            metadata["validation_protocol"] = metadata.get(
+                "validation_protocol", "Unknown"
+            )
             metadata["data_standard"] = "APGI_Open_Science_v1.0"
 
             # Create metadata file
@@ -208,7 +213,9 @@ class DataSharingProtocol:
         compliance_checks["has_codebook"] = codebook_file.exists()
 
         # Check for analysis code
-        analysis_file = self.repository_path / "analysis" / f"{dataset_name}_analysis.py"
+        analysis_file = (
+            self.repository_path / "analysis" / f"{dataset_name}_analysis.py"
+        )
         compliance_checks["reproducible_code"] = analysis_file.exists()
 
         # Calculate compliance score
@@ -273,7 +280,9 @@ class ReplicationProtocol:
             },
         }
 
-    def create_replication_plan(self, original_study: str, replication_type: str) -> Dict:
+    def create_replication_plan(
+        self, original_study: str, replication_type: str
+    ) -> Dict:
         """
         Create a replication plan for a study
 
@@ -396,11 +405,15 @@ class ReplicationProtocol:
             "consistent": consistent,
         }
 
-    def _assess_methodological_fidelity(self, original: Dict, replication: Dict) -> Dict:
+    def _assess_methodological_fidelity(
+        self, original: Dict, replication: Dict
+    ) -> Dict:
         """Assess methodological fidelity"""
 
         # Simplified fidelity assessment
-        fidelity_score = 0.85  # Placeholder - would be calculated from protocol comparison
+        fidelity_score = (
+            0.85  # Placeholder - would be calculated from protocol comparison
+        )
 
         return {"fidelity_score": fidelity_score, "high_fidelity": fidelity_score > 0.8}
 
@@ -607,7 +620,9 @@ class CollaborativeValidationFramework:
 
         return registration_id
 
-    def find_collaboration_opportunities(self, research_interests: List[str]) -> List[Dict]:
+    def find_collaboration_opportunities(
+        self, research_interests: List[str]
+    ) -> List[Dict]:
         """
         Find potential collaboration opportunities
 
@@ -703,8 +718,8 @@ class OpenScienceValidator:
         if (Path(project_path) / "data").exists():
             datasets = list((Path(project_path) / "data").glob("*"))
             if datasets:
-                compliance_results["data_sharing"] = self.data_protocol.validate_dataset_compliance(
-                    str(datasets[0])
+                compliance_results["data_sharing"] = (
+                    self.data_protocol.validate_dataset_compliance(str(datasets[0]))
                 )
 
         # Check for preregistration
@@ -741,14 +756,20 @@ class OpenScienceValidator:
         scores = []
         if compliance_results["data_sharing"]:
             scores.append(compliance_results["data_sharing"].get("compliance_score", 0))
-        scores.append(1.0 if compliance_results["preregistration"]["has_preregistration"] else 0)
-        scores.append(1.0 if compliance_results["replication"]["has_replication_plan"] else 0)
+        scores.append(
+            1.0 if compliance_results["preregistration"]["has_preregistration"] else 0
+        )
+        scores.append(
+            1.0 if compliance_results["replication"]["has_replication_plan"] else 0
+        )
         scores.append(1.0 if all(compliance_results["open_access"].values()) else 0)
         scores.append(
             min(1.0, len(self.collaboration_framework.validation_registry) / 10)
         )  # Scale with registry size
 
-        compliance_results["overall_compliance_score"] = sum(scores) / len(scores) if scores else 0
+        compliance_results["overall_compliance_score"] = (
+            sum(scores) / len(scores) if scores else 0
+        )
 
         return compliance_results
 

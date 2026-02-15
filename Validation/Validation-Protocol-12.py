@@ -58,7 +58,9 @@ class ClinicalDataAnalyzer:
             },
         }
 
-    def simulate_patient_data(self, condition: str, n_subjects: int = 20) -> pd.DataFrame:
+    def simulate_patient_data(
+        self, condition: str, n_subjects: int = 20
+    ) -> pd.DataFrame:
         """
         Simulate clinical patient data based on known profiles
 
@@ -157,8 +159,12 @@ class ClinicalDataAnalyzer:
 
             # Effect sizes (Cohen's d for key comparisons)
             if "vegetative_state" in conditions and "healthy_controls" in conditions:
-                vs_data = patient_data[patient_data["condition"] == "vegetative_state"][measure]
-                hc_data = patient_data[patient_data["condition"] == "healthy_controls"][measure]
+                vs_data = patient_data[patient_data["condition"] == "vegetative_state"][
+                    measure
+                ]
+                hc_data = patient_data[patient_data["condition"] == "healthy_controls"][
+                    measure
+                ]
                 cohens_d = self._cohens_d(vs_data, hc_data)
             else:
                 cohens_d = None
@@ -169,7 +175,9 @@ class ClinicalDataAnalyzer:
                 "significant": p_value < 0.05,
                 "cohens_d_vs_healthy": cohens_d,
                 "condition_means": {
-                    cond: np.mean(patient_data[patient_data["condition"] == cond][measure])
+                    cond: np.mean(
+                        patient_data[patient_data["condition"] == cond][measure]
+                    )
                     for cond in conditions
                 },
             }
@@ -224,7 +232,9 @@ class PsychiatricProfileAnalyzer:
             },
         }
 
-    def simulate_psychiatric_data(self, diagnosis: str, n_subjects: int = 30) -> pd.DataFrame:
+    def simulate_psychiatric_data(
+        self, diagnosis: str, n_subjects: int = 30
+    ) -> pd.DataFrame:
         """
         Simulate psychiatric patient data
 
@@ -249,7 +259,9 @@ class PsychiatricProfileAnalyzer:
 
             # Add profile parameters with noise
             for param, value in profile.items():
-                noise_scale = 0.2 if "gap" in param else 0.15  # More noise for expectation gap
+                noise_scale = (
+                    0.2 if "gap" in param else 0.15
+                )  # More noise for expectation gap
                 noise = np.random.normal(0, noise_scale)
                 subject_data[param] = value + noise
 
@@ -355,7 +367,9 @@ class PsychiatricProfileAnalyzer:
             "diagnostic_power": self._calculate_diagnostic_power(cm, conditions),
         }
 
-    def _calculate_diagnostic_power(self, cm: np.ndarray, conditions: List[str]) -> Dict:
+    def _calculate_diagnostic_power(
+        self, cm: np.ndarray, conditions: List[str]
+    ) -> Dict:
         """Calculate diagnostic discrimination power"""
 
         power = {}
@@ -443,9 +457,9 @@ class CrossSpeciesHomologyAnalyzer:
             # Sample APGI parameters within species range
             subject_data["theta_t"] = np.random.uniform(*profile["theta_t_range"])
             subject_data["Pi_e"] = np.random.uniform(*profile["Pi_e_range"])
-            subject_data["ignition_latency"] = profile["ignition_latency"] + np.random.normal(
-                0, 0.02
-            )
+            subject_data["ignition_latency"] = profile[
+                "ignition_latency"
+            ] + np.random.normal(0, 0.02)
 
             # Add species-specific neural measures
             subject_data.update(self._simulate_species_measures(subject_data, species))
@@ -502,7 +516,9 @@ class CrossSpeciesHomologyAnalyzer:
             # Correlation with APGI parameters across species
             correlations = {}
             for param in ["theta_t", "Pi_e"]:
-                corr, p_value = stats.pearsonr(species_data[measure], species_data[param])
+                corr, p_value = stats.pearsonr(
+                    species_data[measure], species_data[param]
+                )
                 correlations[param] = {
                     "correlation": corr,
                     "p_value": p_value,
@@ -512,7 +528,9 @@ class CrossSpeciesHomologyAnalyzer:
             results[measure] = correlations
 
         # Test for phylogenetic signal
-        results["phylogenetic_conservation"] = self._test_phylogenetic_conservation(species_data)
+        results["phylogenetic_conservation"] = self._test_phylogenetic_conservation(
+            species_data
+        )
 
         return results
 
@@ -543,8 +561,12 @@ class CrossSpeciesHomologyAnalyzer:
                         dist = phylo_distances[(sp1, sp2)]
 
                         # Parameter similarity (1 - normalized difference)
-                        val1 = np.mean(species_data[species_data["species"] == sp1][param])
-                        val2 = np.mean(species_data[species_data["species"] == sp2][param])
+                        val1 = np.mean(
+                            species_data[species_data["species"] == sp1][param]
+                        )
+                        val2 = np.mean(
+                            species_data[species_data["species"] == sp2][param]
+                        )
                         similarity = 1 - abs(val1 - val2) / max(val1, val2)
 
                         distances.append(dist)
@@ -555,7 +577,8 @@ class CrossSpeciesHomologyAnalyzer:
                 conservation_results[param] = {
                     "phylocorrelation": corr,
                     "p_value": p_value,
-                    "conserved": p_value < 0.05 and corr < 0,  # Negative correlation = conservation
+                    "conserved": p_value < 0.05
+                    and corr < 0,  # Negative correlation = conservation
                 }
 
         return conservation_results
@@ -630,7 +653,9 @@ class IITConvergenceAnalyzer:
             "correlation_p_value": p_value,
             "mean_convergence_error": np.mean(convergence_df["convergence_error"]),
             "convergence_significant": p_value < 0.05,
-            "state_classification_accuracy": self._analyze_state_classification(convergence_df),
+            "state_classification_accuracy": self._analyze_state_classification(
+                convergence_df
+            ),
         }
 
     def _analyze_state_classification(self, convergence_df: pd.DataFrame) -> float:
@@ -696,22 +721,29 @@ class ClinicalConvergenceValidator:
         patient_data = []
 
         for condition in conditions:
-            condition_data = self.clinical_analyzer.simulate_patient_data(condition, n_subjects=15)
+            condition_data = self.clinical_analyzer.simulate_patient_data(
+                condition, n_subjects=15
+            )
             patient_data.append(condition_data)
 
         all_patient_data = pd.concat(patient_data, ignore_index=True)
 
         # Analyze differences
-        clinical_differences = self.clinical_analyzer.analyze_clinical_differences(all_patient_data)
+        clinical_differences = self.clinical_analyzer.analyze_clinical_differences(
+            all_patient_data
+        )
 
         # Test key predictions
         predictions_tested = {
             "p3b_loss_in_vs": clinical_differences["p3b_amplitude"]["significant"]
             and clinical_differences["p3b_amplitude"]["cohens_d_vs_healthy"] > 1.0,
-            "connectivity_loss_in_vs": clinical_differences["frontoparietal_connectivity"][
-                "significant"
+            "connectivity_loss_in_vs": clinical_differences[
+                "frontoparietal_connectivity"
+            ]["significant"]
+            and clinical_differences["frontoparietal_connectivity"][
+                "cohens_d_vs_healthy"
             ]
-            and clinical_differences["frontoparietal_connectivity"]["cohens_d_vs_healthy"] > 1.0,
+            > 1.0,
             "threshold_elevation_in_vs": clinical_differences["theta_t"]["significant"]
             and clinical_differences["theta_t"]["condition_means"]["vegetative_state"]
             > clinical_differences["theta_t"]["condition_means"]["healthy_controls"],
@@ -787,7 +819,9 @@ class ClinicalConvergenceValidator:
         species_data = []
 
         for species in species_list:
-            species_df = self.species_analyzer.simulate_species_data(species, n_subjects=12)
+            species_df = self.species_analyzer.simulate_species_data(
+                species, n_subjects=12
+            )
             species_data.append(species_df)
 
         all_species_data = pd.concat(species_data, ignore_index=True)
@@ -798,12 +832,14 @@ class ClinicalConvergenceValidator:
         # Test conservation predictions
         conservation_tests = {
             "p3b_conserved": homology_results["p3b_amplitude"]["Pi_e"]["significant"],
-            "connectivity_conserved": homology_results["frontoparietal_connectivity"]["Pi_e"][
-                "significant"
-            ],
+            "connectivity_conserved": homology_results["frontoparietal_connectivity"][
+                "Pi_e"
+            ]["significant"],
             "phylogenetic_signal": any(
                 param_results.get("conserved", False)
-                for param_results in homology_results.get("phylogenetic_conservation", {}).values()
+                for param_results in homology_results.get(
+                    "phylogenetic_conservation", {}
+                ).values()
             ),
         }
 
@@ -817,14 +853,19 @@ class ClinicalConvergenceValidator:
     def _validate_iit_convergence(self) -> Dict:
         """Validate convergence with IIT"""
 
-        convergence_results = self.iit_analyzer.simulate_iit_apgi_convergence(n_simulations=200)
+        convergence_results = self.iit_analyzer.simulate_iit_apgi_convergence(
+            n_simulations=200
+        )
 
         # Test convergence predictions
         convergence_tests = {
             "correlation_significant": convergence_results["convergence_significant"],
-            "state_classification_accurate": convergence_results["state_classification_accuracy"]
+            "state_classification_accurate": convergence_results[
+                "state_classification_accuracy"
+            ]
             > 0.8,
-            "low_convergence_error": convergence_results["mean_convergence_error"] < 2.0,
+            "low_convergence_error": convergence_results["mean_convergence_error"]
+            < 2.0,
         }
 
         return {
@@ -840,19 +881,27 @@ class ClinicalConvergenceValidator:
 
         # Disorders of consciousness (weight: 0.35)
         doc_result = results.get("disorders_of_consciousness", {})
-        scores.append(0.35 * (1.0 if doc_result.get("validation_passed", False) else 0.0))
+        scores.append(
+            0.35 * (1.0 if doc_result.get("validation_passed", False) else 0.0)
+        )
 
         # Psychiatric profiles (weight: 0.35)
         psych_result = results.get("psychiatric_disorder_profiles", {})
-        scores.append(0.35 * (1.0 if psych_result.get("validation_passed", False) else 0.0))
+        scores.append(
+            0.35 * (1.0 if psych_result.get("validation_passed", False) else 0.0)
+        )
 
         # Cross-species homologies (weight: 0.2)
         species_result = results.get("cross_species_homologies", {})
-        scores.append(0.2 * (1.0 if species_result.get("validation_passed", False) else 0.0))
+        scores.append(
+            0.2 * (1.0 if species_result.get("validation_passed", False) else 0.0)
+        )
 
         # IIT convergence (weight: 0.1)
         iit_result = results.get("iit_apgi_convergence", {})
-        scores.append(0.1 * (1.0 if iit_result.get("validation_passed", False) else 0.0))
+        scores.append(
+            0.1 * (1.0 if iit_result.get("validation_passed", False) else 0.0)
+        )
 
         return sum(scores)
 

@@ -134,7 +134,9 @@ class SurpriseIgnitionSystem:
             self.theta_t = np.clip(self.theta_t, 0.1, 2.0)
 
             # Check ignition
-            ignition_prob = 1.0 / (1.0 + np.exp(-self.alpha * (self.S_t - self.theta_t)))
+            ignition_prob = 1.0 / (
+                1.0 + np.exp(-self.alpha * (self.S_t - self.theta_t))
+            )
             ignition = np.random.random() < ignition_prob
 
             # Store history
@@ -214,7 +216,9 @@ class InformationTheoreticAnalysis:
 
         for t in range(lag, len(X)):
             # H(Y_t | Y_{t-lag})
-            p_Y_given_Ypast = self._conditional_prob(Y_binned[t], Y_binned[t - lag], n_bins)
+            p_Y_given_Ypast = self._conditional_prob(
+                Y_binned[t], Y_binned[t - lag], n_bins
+            )
             H_Y_given_Ypast = entropy(p_Y_given_Ypast)
 
             # H(Y_t | Y_{t-lag}, X_{t-lag})
@@ -309,7 +313,9 @@ class InformationTheoreticAnalysis:
                 post_deriv = np.mean(dS_dt[idx : idx + window])
                 discontinuities.append(abs(post_deriv - pre_deriv))
 
-        results["mean_discontinuity"] = np.mean(discontinuities) if discontinuities else 0
+        results["mean_discontinuity"] = (
+            np.mean(discontinuities) if discontinuities else 0
+        )
 
         # 2. Susceptibility (variance near threshold)
         near_threshold = np.abs(S - theta) < DEFAULT_NEAR_THRESHOLD
@@ -451,26 +457,35 @@ class InformationTheoreticAnalysis:
                 }
 
             try:
-                history = self.system.simulate(DEFAULT_SIMULATION_DURATION, DEFAULT_DT, input_gen)
+                history = self.system.simulate(
+                    DEFAULT_SIMULATION_DURATION, DEFAULT_DT, input_gen
+                )
 
                 # Phase transition analysis
                 pt_results = self.detect_phase_transition(history)
                 results["discontinuities"].append(pt_results["mean_discontinuity"])
-                results["susceptibility_ratios"].append(pt_results.get("susceptibility_ratio", 1.0))
-                results["critical_slowing"].append(pt_results.get("critical_slowing", 1.0))
+                results["susceptibility_ratios"].append(
+                    pt_results.get("susceptibility_ratio", 1.0)
+                )
+                results["critical_slowing"].append(
+                    pt_results.get("critical_slowing", 1.0)
+                )
                 results["hurst_near"].append(pt_results.get("hurst_near", 0.5))
                 results["hurst_far"].append(pt_results.get("hurst_far", 0.5))
 
                 # Integrated information
                 phi = self.compute_integrated_information(history)
-                ignition_indices = np.where(history["B"] > DEFAULT_IGNITION_THRESHOLD)[0]
+                ignition_indices = np.where(history["B"] > DEFAULT_IGNITION_THRESHOLD)[
+                    0
+                ]
 
                 if len(ignition_indices) > 0:
                     # Φ at ignition
                     ignition_phi = [
                         phi[max(0, idx - DEFAULT_PHI_LOOKBACK)]
                         for idx in ignition_indices
-                        if idx >= DEFAULT_PHI_LOOKBACK and idx - DEFAULT_PHI_LOOKBACK < len(phi)
+                        if idx >= DEFAULT_PHI_LOOKBACK
+                        and idx - DEFAULT_PHI_LOOKBACK < len(phi)
                     ]
                     if ignition_phi:
                         results["phi_at_ignition"].append(np.mean(ignition_phi))
@@ -549,7 +564,9 @@ class InformationTheoreticAnalysis:
         if len(data.shape) > 1:
             # Multivariate case
             try:
-                hist, _ = np.histogramdd(data, bins=DEFAULT_HISTOGRAM_BINS, density=False)
+                hist, _ = np.histogramdd(
+                    data, bins=DEFAULT_HISTOGRAM_BINS, density=False
+                )
             except (ValueError, np.linalg.LinAlgError):
                 # Fallback for problematic multivariate data
                 return 0.0

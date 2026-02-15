@@ -226,7 +226,9 @@ class APGISyntheticSignalGenerator:
 
         return waveform
 
-    def generate_gamma_burst(self, ignition: bool, S_t: float, duration: float = 1.0) -> np.ndarray:
+    def generate_gamma_burst(
+        self, ignition: bool, S_t: float, duration: float = 1.0
+    ) -> np.ndarray:
         """
         Generate late gamma synchronization (30-100 Hz)
 
@@ -293,7 +295,9 @@ class APGISyntheticSignalGenerator:
             # Precision modulates dilation magnitude
             dilation_magnitude = baseline_dilation * (0.3 + 0.7 * Pi_i / 2.5)
 
-            pupil = dilation_magnitude * np.exp(-((t - peak_time) ** 2) / (2 * sigma**2))
+            pupil = dilation_magnitude * np.exp(
+                -((t - peak_time) ** 2) / (2 * sigma**2)
+            )
         else:
             pupil = 0.05 * np.exp(-((t - 1.5) ** 2) / (2 * 0.5**2))
 
@@ -378,7 +382,9 @@ class APGISyntheticSignalGenerator:
         for octave in range(5):
             step = 2**octave
             n_octave_samples = n_samples // step + 1
-            pink += np.repeat(np.random.randn(n_octave_samples), step)[:n_samples] / (octave + 1)
+            pink += np.repeat(np.random.randn(n_octave_samples), step)[:n_samples] / (
+                octave + 1
+            )
 
         # Normalize
         if np.std(pink) > 1e-10:
@@ -419,7 +425,12 @@ class RealisticNoiseGenerator:
         # Muscle artifacts (EMG contamination)
         emg_freq = np.random.uniform(20, 60)
         emg_amp = np.random.uniform(10, 50)
-        signal += emg_amp * np.sin(2 * np.pi * emg_freq * t) * np.random.randn(n_samples) * 0.3
+        signal += (
+            emg_amp
+            * np.sin(2 * np.pi * emg_freq * t)
+            * np.random.randn(n_samples)
+            * 0.3
+        )
 
         # Line noise (50 Hz for Europe, 60 Hz for US)
         line_freq = 60.0  # Could parametrize by region
@@ -542,7 +553,9 @@ class GlobalWorkspaceOnlyGenerator:
         )
 
         # Pupil response if ignition
-        pupil = self.signal_gen.generate_pupil_response(Pi_i=1.0, ignition=ignition, duration=1.0)
+        pupil = self.signal_gen.generate_pupil_response(
+            Pi_i=1.0, ignition=ignition, duration=1.0
+        )
 
         return {
             "eeg": eeg,
@@ -679,11 +692,17 @@ class APGIDatasetGenerator:
         S_final = S_traj[int(0.5 / dt)]
 
         # Generate signals
-        eeg = self.apgi_gen.generate_multi_channel_eeg(S_final, params.theta_t, ignition)
+        eeg = self.apgi_gen.generate_multi_channel_eeg(
+            S_final, params.theta_t, ignition
+        )
 
-        hep = self.apgi_gen.generate_HEP_waveform(params.Pi_i, params.epsilon_i, duration=1.0)
+        hep = self.apgi_gen.generate_HEP_waveform(
+            params.Pi_i, params.epsilon_i, duration=1.0
+        )
 
-        pupil = self.apgi_gen.generate_pupil_response(params.Pi_i, ignition, duration=1.0)
+        pupil = self.apgi_gen.generate_pupil_response(
+            params.Pi_i, ignition, duration=1.0
+        )
 
         return {
             "eeg": eeg,
@@ -846,7 +865,9 @@ class IgnitionClassifier(nn.Module):
         - Binary classification head
     """
 
-    def __init__(self, n_channels: int = 64, n_timepoints: int = 1000, dropout: float = 0.5):
+    def __init__(
+        self, n_channels: int = 64, n_timepoints: int = 1000, dropout: float = 0.5
+    ):
         super().__init__()
 
         self.n_channels = n_channels
@@ -865,7 +886,9 @@ class IgnitionClassifier(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # Attention mechanism
-        self.attention = nn.Sequential(nn.Linear(256, 128), nn.Tanh(), nn.Linear(128, 1))
+        self.attention = nn.Sequential(
+            nn.Linear(256, 128), nn.Tanh(), nn.Linear(128, 1)
+        )
 
         # Classification head
         self.fc = nn.Sequential(
@@ -1360,7 +1383,9 @@ class FalsificationChecker:
         falsified = real_data_accuracy < self.criteria["F1.3"]["threshold"]
         return falsified, real_data_accuracy
 
-    def check_F1_4(self, results_by_model: Dict[str, Dict]) -> Tuple[bool, Tuple[float, float]]:
+    def check_F1_4(
+        self, results_by_model: Dict[str, Dict]
+    ) -> Tuple[bool, Tuple[float, float]]:
         """F1.4: StandardPP >= APGI accuracy"""
         apgi_acc = results_by_model["APGI"]["accuracy"]
         pp_acc = results_by_model["StandardPP"]["accuracy"]
@@ -1398,7 +1423,9 @@ class FalsificationChecker:
             report["passed_criteria"].append(criterion_result)
 
         # Check F1.2
-        f1_2_falsified, confusion_val = self.check_F1_2(results_task_1b["confusion_matrix"])
+        f1_2_falsified, confusion_val = self.check_F1_2(
+            results_task_1b["confusion_matrix"]
+        )
         criterion_result = {
             "code": "F1.2",
             "description": self.criteria["F1.2"]["description"],
@@ -1477,7 +1504,9 @@ def plot_classification_results(
     bars = ax1.bar(model_names, accuracies, color=colors, alpha=0.7, edgecolor="black")
     ax1.axhline(y=75, color="red", linestyle="--", linewidth=2, label="F1.1 Threshold")
     ax1.set_ylabel("Accuracy (%)", fontsize=12, fontweight="bold")
-    ax1.set_title("Task 1A: Ignition Classification Accuracy", fontsize=13, fontweight="bold")
+    ax1.set_title(
+        "Task 1A: Ignition Classification Accuracy", fontsize=13, fontweight="bold"
+    )
     ax1.legend()
     ax1.set_ylim([0, 100])
     ax1.grid(axis="y", alpha=0.3)
@@ -1554,7 +1583,9 @@ def plot_classification_results(
     )
     ax4.set_ylabel("True Model", fontsize=12, fontweight="bold")
     ax4.set_xlabel("Predicted Model", fontsize=12, fontweight="bold")
-    ax4.set_title("Task 1B: Model Identification Confusion Matrix", fontsize=13, fontweight="bold")
+    ax4.set_title(
+        "Task 1B: Model Identification Confusion Matrix", fontsize=13, fontweight="bold"
+    )
 
     # Add text box with APGI-GWT confusion
     apgi_gwt = (cm_normalized[0, 2] + cm_normalized[2, 0]) / 2
@@ -1765,7 +1796,9 @@ def calculate_effect_sizes(results_task_1a):
             # Cohen's d = (mean1 - mean2) / pooled_std
             # For accuracy difference
             if baseline_model in results_task_1a:
-                mean_diff = results["accuracy"] - results_task_1a[baseline_model]["accuracy"]
+                mean_diff = (
+                    results["accuracy"] - results_task_1a[baseline_model]["accuracy"]
+                )
                 # Assuming we have standard deviations from multiple runs
                 std_pooled = np.sqrt(
                     (
@@ -1966,7 +1999,10 @@ def compare_models_with_statistics(results_task_1a):
             # Build contingency table: [both_correct, i_correct_j_wrong, i_wrong_j_correct, both_wrong]
 
             # Permutation test for AUC differences
-            auc_diff = results_task_1a[model_i]["auc_roc"] - results_task_1a[model_j]["auc_roc"]
+            auc_diff = (
+                results_task_1a[model_i]["auc_roc"]
+                - results_task_1a[model_j]["auc_roc"]
+            )
 
             # Store p-values
             comparisons[f"{model_i}_vs_{model_j}"] = {
@@ -2071,7 +2107,9 @@ def main():
         )
 
         # Evaluate on test set
-        results = evaluate_ignition_classifier(trained_model, test_loader, device=config["device"])
+        results = evaluate_ignition_classifier(
+            trained_model, test_loader, device=config["device"]
+        )
 
         results_task_1a[model_name] = results
 
@@ -2098,7 +2136,9 @@ def main():
     n_val = int(0.2 * n_total)
     n_test = n_total - n_train - n_val
 
-    train_dataset, val_dataset, test_dataset = random_split(full_dataset, [n_train, n_val, n_test])
+    train_dataset, val_dataset, test_dataset = random_split(
+        full_dataset, [n_train, n_val, n_test]
+    )
 
     train_loader = DataLoader(
         train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0
@@ -2163,7 +2203,9 @@ def main():
     print("STEP 5: GENERATING VISUALIZATIONS")
     print("=" * 80)
 
-    plot_classification_results(results_task_1a, results_task_1b, save_path="protocol1_results.png")
+    plot_classification_results(
+        results_task_1a, results_task_1b, save_path="protocol1_results.png"
+    )
 
     # =========================================================================
     # STEP 6: Save Results
@@ -2230,9 +2272,7 @@ def run_validation():
             "Protocol 1 validates APGI framework through synthetic data generation and ML classification."
         )
         print("✓ Protocol 1 validation completed successfully")
-        return (
-            "Protocol 1 completed: Synthetic data generation and classification validation passed"
-        )
+        return "Protocol 1 completed: Synthetic data generation and classification validation passed"
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         return f"Protocol 1 failed: {str(e)}"
 
