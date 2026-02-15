@@ -2846,3 +2846,358 @@ if __name__ == "__main__":
     # )
     # print(f"\n{perf_metrics}")
     print("\nPerformance benchmark disabled - optimization completed successfully")
+
+
+def main() -> None:
+    """Main function to run the entropy analysis GUI"""
+    import sys  # Import sys for exit calls
+
+    try:
+        import tkinter as tk
+        from tkinter import ttk, scrolledtext, messagebox
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        import numpy as np
+        import threading
+
+        class EntropyAnalysisGUI:
+            def __init__(self, root):
+                self.root = root
+                self.root.title("APGI Entropy Analysis - Analysis GUI")
+                self.root.geometry("1200x800")
+
+                # Initialize network
+                self.config = APGIConfig()
+                self.device = torch.device(
+                    "cuda" if torch.cuda.is_available() else "cpu"
+                )
+                self.network = None
+                self.is_running = False
+
+                self.setup_gui()
+
+            def setup_gui(self):
+                # Create main frame
+                main_frame = ttk.Frame(self.root, padding="10")
+                main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+                # Configure grid weights
+                self.root.columnconfigure(0, weight=1)
+                self.root.rowconfigure(0, weight=1)
+                main_frame.columnconfigure(1, weight=1)
+                main_frame.rowconfigure(2, weight=1)
+
+                # Title
+                title_label = ttk.Label(
+                    main_frame,
+                    text="APGI Entropy Analysis Dashboard",
+                    font=("Arial", 16, "bold"),
+                )
+                title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
+
+                # Control panel
+                control_frame = ttk.LabelFrame(
+                    main_frame, text="Controls", padding="10"
+                )
+                control_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+
+                # Initialize button
+                self.init_btn = ttk.Button(
+                    control_frame,
+                    text="Initialize Network",
+                    command=self.initialize_network,
+                )
+                self.init_btn.grid(row=0, column=0, padx=(0, 10))
+
+                # Run analysis button
+                self.run_btn = ttk.Button(
+                    control_frame,
+                    text="Run Entropy Analysis",
+                    command=self.run_analysis,
+                    state="disabled",
+                )
+                self.run_btn.grid(row=0, column=1, padx=(0, 10))
+
+                # Stop button
+                self.stop_btn = ttk.Button(
+                    control_frame,
+                    text="Stop",
+                    command=self.stop_analysis,
+                    state="disabled",
+                )
+                self.stop_btn.grid(row=0, column=2)
+
+                # Parameters frame
+                params_frame = ttk.LabelFrame(
+                    main_frame, text="Parameters", padding="10"
+                )
+                params_frame.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=(0, 10))
+
+                # Batch size
+                ttk.Label(params_frame, text="Batch Size:").grid(
+                    row=0, column=0, sticky=tk.W
+                )
+                self.batch_size_var = tk.StringVar(value="4")
+                ttk.Entry(
+                    params_frame, textvariable=self.batch_size_var, width=10
+                ).grid(row=0, column=1)
+
+                # Num steps
+                ttk.Label(params_frame, text="Steps:").grid(
+                    row=0, column=2, sticky=tk.W, padx=(10, 0)
+                )
+                self.num_steps_var = tk.StringVar(value="50")
+                ttk.Entry(params_frame, textvariable=self.num_steps_var, width=10).grid(
+                    row=0, column=3
+                )
+
+                # Results area
+                results_frame = ttk.LabelFrame(main_frame, text="Results", padding="10")
+                results_frame.grid(
+                    row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S)
+                )
+                results_frame.columnconfigure(0, weight=1)
+                results_frame.rowconfigure(0, weight=1)
+
+                # Text area for results
+                self.results_text = scrolledtext.ScrolledText(results_frame, height=20)
+                self.results_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+                # Progress bar
+                self.progress_var = tk.DoubleVar()
+                self.progress_bar = ttk.Progressbar(
+                    main_frame, variable=self.progress_var, maximum=100
+                )
+                self.progress_bar.grid(
+                    row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0)
+                )
+
+                # Status label
+                self.status_var = tk.StringVar(value="Ready")
+                status_label = ttk.Label(main_frame, textvariable=self.status_var)
+                status_label.grid(row=4, column=0, columnspan=2, pady=(5, 0))
+
+            def initialize_network(self):
+                try:
+                    self.status_var.set("Initializing network...")
+                    self.root.update()
+
+                    self.network = EnhancedAPGINetwork(self.config)
+                    self.network.to(self.device)
+
+                    self.run_btn.config(state="normal")
+                    self.init_btn.config(state="disabled")
+                    self.status_var.set("Network initialized successfully")
+
+                    self.results_text.insert(
+                        tk.END, "Network initialized with configuration:\n"
+                    )
+                    self.results_text.insert(
+                        tk.END, f"- Input size: {self.config.input_size}\n"
+                    )
+                    self.results_text.insert(
+                        tk.END, f"- Hidden size: {self.config.hidden_size}\n"
+                    )
+                    self.results_text.insert(
+                        tk.END, f"- Num levels: {self.config.num_levels}\n"
+                    )
+                    self.results_text.insert(tk.END, f"- Device: {self.device}\n\n")
+
+                except Exception as e:
+                    messagebox.showerror(
+                        "Initialization Error", f"Failed to initialize network: {e}"
+                    )
+                    self.status_var.set("Initialization failed")
+
+            def run_analysis(self):
+                if self.network is None:
+                    messagebox.showerror("Error", "Network not initialized")
+                    return
+
+                try:
+                    batch_size = int(self.batch_size_var.get())
+                    num_steps = int(self.num_steps_var.get())
+                except ValueError:
+                    messagebox.showerror("Error", "Invalid parameters")
+                    return
+
+                self.is_running = True
+                self.run_btn.config(state="disabled")
+                self.stop_btn.config(state="normal")
+                self.status_var.set("Running entropy analysis...")
+
+                # Run analysis in separate thread
+                analysis_thread = threading.Thread(
+                    target=self._run_analysis_thread, args=(batch_size, num_steps)
+                )
+                analysis_thread.daemon = True
+                analysis_thread.start()
+
+            def _run_analysis_thread(self, batch_size, num_steps):
+                try:
+                    self.results_text.insert(
+                        tk.END,
+                        f"Starting entropy analysis with {batch_size} batches, {num_steps} steps...\n\n",
+                    )
+
+                    # Create dummy inputs
+                    intero_input = torch.randn(
+                        batch_size, self.config.input_size, device=self.device
+                    )
+                    extero_input = torch.randn(
+                        batch_size, self.config.input_size, device=self.device
+                    )
+
+                    entropy_history = []
+                    surprise_history = []
+                    threshold_history = []
+
+                    for step in range(num_steps):
+                        if not self.is_running:
+                            break
+
+                        # Update progress
+                        progress = (step + 1) / num_steps * 100
+                        self.progress_var.set(progress)
+                        self.status_var.set(f"Step {step + 1}/{num_steps}")
+                        self.root.update()
+
+                        # Step the network
+                        diagnostics = self.network.step(intero_input, extero_input)
+
+                        # Store key metrics
+                        if "entropy_outputs" in diagnostics:
+                            entropy = diagnostics["entropy_outputs"]
+                            entropy_history.append(
+                                {
+                                    "thermo": entropy.S_thermodynamic.mean().item(),
+                                    "shannon": entropy.H_shannon.mean().item(),
+                                    "variational": entropy.F_variational.mean().item(),
+                                }
+                            )
+
+                        if "surprise" in diagnostics:
+                            surprise_history.append(
+                                diagnostics["surprise"].mean().item()
+                            )
+
+                        if "threshold" in diagnostics:
+                            threshold_history.append(
+                                diagnostics["threshold"].mean().item()
+                            )
+
+                        # Small delay to prevent UI freezing
+                        self.root.after(10, lambda: None)
+
+                    if self.is_running:  # Only show results if not stopped
+                        self._display_results(
+                            entropy_history, surprise_history, threshold_history
+                        )
+
+                    self.status_var.set("Analysis completed")
+
+                except Exception as e:
+                    self.root.after(
+                        0,
+                        lambda: messagebox.showerror(
+                            "Analysis Error", f"Analysis failed: {e}"
+                        ),
+                    )
+                    self.status_var.set("Analysis failed")
+                finally:
+                    self.is_running = False
+                    self.root.after(0, self._reset_buttons)
+
+            def _display_results(
+                self, entropy_history, surprise_history, threshold_history
+            ):
+                self.results_text.insert(tk.END, "ANALYSIS RESULTS\n")
+                self.results_text.insert(tk.END, "=" * 50 + "\n\n")
+
+                if entropy_history:
+                    self.results_text.insert(tk.END, "ENTROPY ANALYSIS:\n")
+                    final_entropy = entropy_history[-1]
+                    self.results_text.insert(
+                        tk.END,
+                        f"Final Thermodynamic Entropy: {final_entropy['thermo']:.4f}\n",
+                    )
+                    self.results_text.insert(
+                        tk.END,
+                        f"Final Shannon Entropy: {final_entropy['shannon']:.4f}\n",
+                    )
+                    self.results_text.insert(
+                        tk.END,
+                        f"Final Variational Free Energy: {final_entropy['variational']:.4f}\n\n",
+                    )
+
+                    # Calculate trends
+                    if len(entropy_history) > 1:
+                        thermo_trend = (
+                            entropy_history[-1]["thermo"] - entropy_history[0]["thermo"]
+                        )
+                        shannon_trend = (
+                            entropy_history[-1]["shannon"]
+                            - entropy_history[0]["shannon"]
+                        )
+                        vfe_trend = (
+                            entropy_history[-1]["variational"]
+                            - entropy_history[0]["variational"]
+                        )
+
+                        self.results_text.insert(tk.END, "TREND ANALYSIS:\n")
+                        self.results_text.insert(
+                            tk.END,
+                            f"Thermodynamic Entropy Change: {thermo_trend:+.4f}\n",
+                        )
+                        self.results_text.insert(
+                            tk.END, f"Shannon Entropy Change: {shannon_trend:+.4f}\n"
+                        )
+                        self.results_text.insert(
+                            tk.END, f"Variational FE Change: {vfe_trend:+.4f}\n\n"
+                        )
+
+                if surprise_history:
+                    self.results_text.insert(
+                        tk.END, f"FINAL SURPRISE: {surprise_history[-1]:.4f}\n"
+                    )
+                    self.results_text.insert(
+                        tk.END, f"AVERAGE SURPRISE: {np.mean(surprise_history):.4f}\n\n"
+                    )
+
+                if threshold_history:
+                    self.results_text.insert(
+                        tk.END, f"FINAL THRESHOLD: {threshold_history[-1]:.4f}\n"
+                    )
+                    self.results_text.insert(
+                        tk.END,
+                        f"AVERAGE THRESHOLD: {np.mean(threshold_history):.4f}\n\n",
+                    )
+
+                self.results_text.insert(tk.END, "Analysis completed successfully!\n")
+
+            def stop_analysis(self):
+                self.is_running = False
+                self.status_var.set("Stopping analysis...")
+
+            def _reset_buttons(self):
+                self.run_btn.config(state="normal")
+                self.stop_btn.config(state="disabled")
+                self.progress_var.set(0)
+
+        # Create the root window
+        root = tk.Tk()
+        app = EntropyAnalysisGUI(root)
+        root.mainloop()
+
+    except ImportError as e:
+        print(f"❌ Import Error: {e}")
+        print("This GUI requires tkinter and matplotlib.")
+        print("Install with: pip install matplotlib")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

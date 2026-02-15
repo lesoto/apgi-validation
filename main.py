@@ -2357,6 +2357,10 @@ def _launch_analysis_gui(debug):
     default="validation",
     help="Type of GUI to launch (validation, psychological, analysis)",
 )
+@click.option("--port", default=8050, type=int, help="Port for web GUI")
+@click.option("--host", default="127.0.0.1", help="Host for web GUI")
+@click.option("--debug", is_flag=True, help="Enable debug mode")
+@click.pass_context
 def gui(ctx, gui_type, port, host, debug):
     """Launch graphical user interface for APGI framework."""
     console.print(Panel.fit("🖥️  Graphical User Interface", style="bold blue"))

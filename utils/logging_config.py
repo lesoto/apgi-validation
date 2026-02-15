@@ -22,6 +22,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+try:
+    from threading import _PythonFinalizationError as PythonFinalizationError
+except ImportError:
+    # Fallback for older Python versions
+    class PythonFinalizationError(RuntimeError):
+        pass
+
+
 from loguru import logger
 
 # Project root directory
@@ -129,8 +137,9 @@ class LogStreamer:
     def stop_streaming(self):
         """Stop the streaming thread."""
         self.running = False
-        if self.thread:
-            self.thread.join()
+        if self.thread and self.thread.is_alive():
+            # Use timeout to avoid hanging during interpreter shutdown
+            self.thread.join(timeout=1.0)
 
     def _stream_worker(self):
         """Background worker for streaming."""
@@ -980,8 +989,12 @@ class APGILogger:
 
     def __del__(self):
         """Cleanup when logger is destroyed."""
-        if hasattr(self, "streamer"):
-            self.streamer.stop_streaming()
+        try:
+            if hasattr(self, "streamer"):
+                self.streamer.stop_streaming()
+        except (AttributeError, RuntimeError, PythonFinalizationError):
+            # Ignore errors during interpreter shutdown
+            pass
 
 
 # Global logger instance with configurable queue size

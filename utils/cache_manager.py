@@ -157,8 +157,23 @@ class CacheManager:
 
             cache_key = self._generate_key(key)
             cache_path = self._get_cache_path(cache_key)
+            json_path = cache_path.with_suffix(".json")
 
-            if cache_path.exists():
+            # Check if entry exists and is not expired
+            if cache_key in self.metadata:
+                entry = self.metadata[cache_key]
+                if "expires" in entry and entry["expires"] < time.time():
+                    # Entry expired, remove it
+                    if cache_path.exists():
+                        cache_path.unlink()
+                    if json_path.exists():
+                        json_path.unlink()
+                    del self.metadata[cache_key]
+                    self._save_metadata()
+                    self.stats["misses"] += 1
+                    return default
+
+            if json_path.exists() or cache_path.exists():
                 try:
                     # Try JSON first for better performance
                     json_path = cache_path.with_suffix(".json")
@@ -185,6 +200,7 @@ class CacheManager:
                     )
                     # Remove corrupted entry
                     cache_path.unlink(missing_ok=True)
+                    json_path.unlink(missing_ok=True)
                     if cache_key in self.metadata:
                         del self.metadata[cache_key]
                         self._save_metadata()

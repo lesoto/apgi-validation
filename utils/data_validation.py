@@ -8,11 +8,10 @@ for multimodal physiological data.
 """
 
 import json
-import warnings
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -134,7 +133,7 @@ class DataValidator:
 
     def _validate_csv_structure(self, df: pd.DataFrame, results: Dict) -> bool:
         """Validate CSV DataFrame structure."""
-        required_columns = ["timestamp", "eeg_fz", "pupil_diameter", "eda"]
+        required_columns = ["timestamp", "EEG_Cz", "pupil_diameter", "eda"]
         optional_columns = [
             "eeg_pz",
             "heart_rate",
@@ -216,7 +215,7 @@ class DataValidator:
 
         # Check first record structure
         first_record = data_records[0]
-        required_fields = ["timestamp", "eeg_fz", "pupil_diameter", "eda"]
+        required_fields = ["timestamp", "EEG_Cz", "pupil_diameter", "eda"]
         for field in required_fields:
             if field not in first_record:
                 results["errors"].append(f"Missing data field: {field}")
@@ -319,9 +318,9 @@ class DataValidator:
                     }
 
         # Signal quality metrics
-        if "eeg_fz" in df.columns:
-            quality_metrics["signal_quality"]["eeg_fz"] = self._assess_signal_quality(
-                df["eeg_fz"]
+        if "EEG_Cz" in df.columns:
+            quality_metrics["signal_quality"]["EEG_Cz"] = self._assess_signal_quality(
+                df["EEG_Cz"]
             )
 
         if "pupil_diameter" in df.columns:
@@ -341,9 +340,9 @@ class DataValidator:
             )
 
         # Calculate overall quality score
-        quality_metrics["overall_score"] = self._calculate_quality_score(
-            quality_metrics
-        )
+        quality_score = self._calculate_quality_score(quality_metrics)
+        quality_metrics["quality_score"] = quality_score
+        quality_metrics["overall_score"] = quality_score  # Backward compatibility
 
         return quality_metrics
 
@@ -621,7 +620,7 @@ class DataValidator:
             return False
 
         # Check for required columns (same as CSV validation)
-        required_columns = ["timestamp", "eeg_fz", "pupil_diameter", "eda"]
+        required_columns = ["timestamp", "EEG_Cz", "pupil_diameter", "eda"]
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             results["errors"].append(f"Missing required columns: {missing_columns}")

@@ -5,13 +5,9 @@ APGI Static HTML Dashboard Generator
 Generates static HTML dashboards for APGI framework visualizations.
 """
 
-import json
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
-
-import pandas as pd
+from typing import List
 
 # APGI imports - make imports optional for testing
 try:
