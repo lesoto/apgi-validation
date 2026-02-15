@@ -9,14 +9,13 @@ validation protocols, and analyses in parallel with progress tracking.
 
 import importlib.util
 import json
-import os
 import pickle
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -36,10 +35,8 @@ formal_model_spec.loader.exec_module(formal_model_module)
 SurpriseIgnitionSystem = formal_model_module.SurpriseIgnitionSystem
 
 try:
-    from .config_manager import get_config
     from .logging_config import apgi_logger
 except ImportError:
-    from utils.config_manager import get_config
     from utils.logging_config import apgi_logger
 
 

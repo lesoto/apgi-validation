@@ -43,6 +43,14 @@ loguru>=0.6.0
 jsonschema>=4.0.0
 pydantic>=1.8.0
 
+# REST API
+fastapi>=0.68.0
+uvicorn>=0.15.0
+
+# Database integration
+sqlalchemy>=1.4.0
+alembic>=1.7.0
+
 # File handling and utilities
 pathlib2>=2.3.0
 

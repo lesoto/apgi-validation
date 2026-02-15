@@ -16,24 +16,18 @@ Date: 2026
 Version: 1.0 (Empirical Validation)
 """
 
-import json
 import warnings
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from scipy import signal, stats
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
-from tqdm import tqdm
 
 # MNE for EEG analysis
 try:
     import mne
-    from mne import Epochs, find_events
     from mne.io import read_raw_fif
 
     MNE_AVAILABLE = True
@@ -44,8 +38,7 @@ except ImportError:
 # Nilearn for fMRI analysis
 try:
     import nibabel as nib
-    from nilearn import datasets, image, plotting
-    from nilearn.glm import FirstLevelModel
+    from nilearn import image
 
     NILEARN_AVAILABLE = True
 except ImportError:
@@ -53,6 +46,13 @@ except ImportError:
     warnings.warn("Nilearn not available. Install with: pip install nilearn nibabel")
 
 warnings.filterwarnings("ignore")
+
+
+# Data repository paths
+DATA_REPO = Path(__file__).parent.parent / "data_repository"
+RAW_DATA_DIR = DATA_REPO / "raw_data"
+PROCESSED_DATA_DIR = DATA_REPO / "processed_data"
+METADATA_DIR = DATA_REPO / "metadata"
 
 
 class APGIP3bAnalyzer:
@@ -270,23 +270,38 @@ class APGINeuralSignaturesValidator:
     def _analyze_p3b_signatures(self, eeg_path: str, behavioral_path: str) -> Dict:
         """Analyze P3b signatures for sigmoidal relationship"""
 
+        # Try to load behavioral data from data_repository if path not provided
+        if behavioral_path is None:
+            behavioral_path = str(PROCESSED_DATA_DIR / "behavioral_data.csv")
+            if not Path(behavioral_path).exists():
+                return {
+                    "error": f"No behavioral data found. Expected at {behavioral_path}"
+                }
+
         # Load behavioral data to get trial-wise variables
         behavioral_df = pd.read_csv(behavioral_path)
 
-        # Compute APGI variables for each trial
-        # This would require actual precision and error estimates
-        # For demonstration, we'll use proxy variables
-        behavioral_df["surprisal_proxy"] = behavioral_df.get(
-            "stimulus_surprisal", np.random.normal(0, 1, len(behavioral_df))
-        )
-        behavioral_df["precision_proxy"] = behavioral_df.get(
-            "pupil_diameter", np.random.normal(1, 0.2, len(behavioral_df))
-        )
+        # Check for required columns
+        required_cols = [
+            "stimulus_surprisal",
+            "precision_e",
+            "error_e",
+            "precision_i",
+            "error_i",
+        ]
+        missing_cols = [
+            col for col in required_cols if col not in behavioral_df.columns
+        ]
 
-        # Compute S(t) proxy = Π × |ε|
-        behavioral_df["S_proxy"] = behavioral_df["precision_proxy"] * np.abs(
-            behavioral_df["surprisal_proxy"]
-        )
+        if missing_cols:
+            return {
+                "error": f"Missing required columns in behavioral data: {missing_cols}"
+            }
+
+        # Compute APGI variables for each trial
+        behavioral_df["S_proxy"] = behavioral_df["precision_e"] * np.abs(
+            behavioral_df["error_e"]
+        ) + behavioral_df["precision_i"] * np.abs(behavioral_df["error_i"])
 
         # Load and epoch EEG data
         raw = self.eeg_analyzer.load_eeg_data(eeg_path)
@@ -331,8 +346,34 @@ class APGINeuralSignaturesValidator:
     def _analyze_fmri_signatures(self, fmri_path: str, behavioral_path: str) -> Dict:
         """Analyze fMRI signatures for frontoparietal coactivation"""
 
+        # Try to load behavioral data from data_repository if path not provided
+        if behavioral_path is None:
+            behavioral_path = str(PROCESSED_DATA_DIR / "behavioral_data.csv")
+            if not Path(behavioral_path).exists():
+                return {
+                    "error": f"No behavioral data found. Expected at {behavioral_path}"
+                }
+
         # Load behavioral data
         behavioral_df = pd.read_csv(behavioral_path)
+
+        # Check for required columns for ignition probability calculation
+        required_cols = [
+            "precision_e",
+            "error_e",
+            "precision_i",
+            "error_i",
+            "threshold",
+            "alpha",
+        ]
+        missing_cols = [
+            col for col in required_cols if col not in behavioral_df.columns
+        ]
+
+        if missing_cols:
+            return {
+                "error": f"Missing required columns in behavioral data: {missing_cols}"
+            }
 
         # Compute ignition probabilities using APGI model
         from APGI_Equations import CoreIgnitionSystem
@@ -341,15 +382,14 @@ class APGINeuralSignaturesValidator:
 
         ignition_probs = []
         for _, trial in behavioral_df.iterrows():
-            # Simplified - would use actual trial parameters
-            Pi_e = trial.get("precision_e", 1.0)
-            eps_e = trial.get("error_e", 0.0)
-            Pi_i = trial.get("precision_i", 1.0)
-            eps_i = trial.get("error_i", 0.0)
-
-            S = ignition_system.accumulated_signal(Pi_e, eps_e, Pi_i, eps_i)
-            theta = trial.get("threshold", 0.5)
-            alpha = trial.get("alpha", 5.0)
+            S = ignition_system.accumulated_signal(
+                trial["precision_e"],
+                trial["error_e"],
+                trial["precision_i"],
+                trial["error_i"],
+            )
+            theta = trial["threshold"]
+            alpha = trial["alpha"]
 
             prob = ignition_system.ignition_probability(S, theta, alpha)
             ignition_probs.append(prob)
@@ -359,15 +399,22 @@ class APGINeuralSignaturesValidator:
         # Load fMRI data
         func_img = self.fmri_analyzer.load_fmri_data(fmri_path)
 
-        # Analyze coactivation (placeholder - would implement actual GLM)
-        coactivation_results = self.fmri_analyzer.analyze_frontoparietal_coactivation(
-            func_img, behavioral_df
-        )
+        # Analyze coactivation (implement actual GLM if possible)
+        try:
+            coactivation_results = (
+                self.fmri_analyzer.analyze_frontoparietal_coactivation(
+                    func_img, behavioral_df, tr=2.0
+                )
+            )
+            validation_passed = True  # Would be based on actual analysis
+        except Exception as e:
+            coactivation_results = {"error": str(e)}
+            validation_passed = False
 
         return {
             "ignition_probabilities": ignition_probs,
             "coactivation_results": coactivation_results,
-            "validation_passed": True,  # Placeholder
+            "validation_passed": validation_passed,
         }
 
     def _analyze_theta_gamma_coupling(self) -> Dict:

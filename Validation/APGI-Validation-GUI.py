@@ -15,7 +15,6 @@ import json
 import logging
 import os
 import queue
-import sys
 import threading
 import tkinter as tk
 from concurrent.futures import ThreadPoolExecutor
@@ -23,7 +22,7 @@ from concurrent.futures import TimeoutError as FutureTimeoutError
 from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -321,7 +320,7 @@ class APGIValidationGUI:
         close_btn.pack(pady=10)
 
     def create_widgets(self) -> None:
-        """Create all GUI widgets"""
+        """Create all GUI widgets with tabbed interface"""
 
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
@@ -330,8 +329,8 @@ class APGIValidationGUI:
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(3, weight=1)
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(1, weight=1)
 
         # Title
         title_label = ttk.Label(
@@ -339,14 +338,26 @@ class APGIValidationGUI:
             text="APGI Validation Protocol Runner",
             font=("Arial", 16, "bold"),
         )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        title_label.grid(row=0, column=0, pady=(0, 20))
+
+        # Create notebook for tabs
+        self.notebook = ttk.Notebook(main_frame)
+        self.notebook.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Validation Tab
+        validation_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(validation_frame, text="Validation")
+
+        # Configure validation tab grid
+        validation_frame.columnconfigure(1, weight=1)
+        validation_frame.rowconfigure(3, weight=1)
 
         # Protocol selection frame
         protocol_frame = ttk.LabelFrame(
-            main_frame, text="Protocol Selection", padding="10"
+            validation_frame, text="Protocol Selection", padding="10"
         )
         protocol_frame.grid(
-            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
+            row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
         )
         protocol_frame.columnconfigure(0, weight=1)
 
@@ -371,8 +382,8 @@ class APGIValidationGUI:
             cb.grid(row=i // 2, column=(i % 2) * 2, sticky=tk.W, padx=5, pady=2)
 
         # Control buttons frame
-        control_frame = ttk.Frame(main_frame)
-        control_frame.grid(row=2, column=0, columnspan=2, pady=(0, 10))
+        control_frame = ttk.Frame(validation_frame)
+        control_frame.grid(row=1, column=0, columnspan=2, pady=(0, 10))
 
         self.run_button = ttk.Button(
             control_frame, text="Run Validation", command=self.run_validation
@@ -392,24 +403,24 @@ class APGIValidationGUI:
         # Progress bar
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(
-            main_frame, variable=self.progress_var, maximum=100, length=400
+            validation_frame, variable=self.progress_var, maximum=100, length=400
         )
         self.progress_bar.grid(
-            row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
+            row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
         )
 
         # Status label
         self.status_label = ttk.Label(
-            main_frame, text="Ready to run validation", font=("Arial", 10)
+            validation_frame, text="Ready to run validation", font=("Arial", 10)
         )
-        self.status_label.grid(row=4, column=0, columnspan=2, pady=(0, 10))
+        self.status_label.grid(row=3, column=0, columnspan=2, pady=(0, 10))
 
         # Results text area
         results_frame = ttk.LabelFrame(
-            main_frame, text="Validation Results", padding="10"
+            validation_frame, text="Validation Results", padding="10"
         )
         results_frame.grid(
-            row=5, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
+            row=4, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
         )
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
@@ -421,16 +432,270 @@ class APGIValidationGUI:
 
         # Summary frame
         summary_frame = ttk.LabelFrame(
-            main_frame, text="Validation Summary", padding="10"
+            validation_frame, text="Validation Summary", padding="10"
         )
-        summary_frame.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E))
+        summary_frame.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E))
 
         self.summary_label = ttk.Label(
             summary_frame, text="No validation run yet", font=("Arial", 10)
         )
         self.summary_label.grid(row=0, column=0)
 
-    def run_validation(self) -> None:
+        # Parameter Exploration Tab
+        exploration_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(exploration_frame, text="Parameter Exploration")
+
+        self.create_parameter_exploration_widgets(exploration_frame)
+
+    def create_parameter_exploration_widgets(self, parent_frame: ttk.Frame) -> None:
+        """Create interactive parameter exploration widgets with sliders and real-time feedback"""
+
+        # Configure parent frame
+        parent_frame.columnconfigure(0, weight=1)
+        parent_frame.rowconfigure(1, weight=1)
+
+        # Parameter controls frame
+        controls_frame = ttk.LabelFrame(
+            parent_frame, text="Parameter Controls", padding="10"
+        )
+        controls_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        controls_frame.columnconfigure(1, weight=1)
+
+        # APGI Parameters with sliders
+        self.param_vars = {}
+        self.param_sliders = {}
+        self.param_labels = {}
+
+        parameters = {
+            "tau_S": {
+                "label": "Signal Time Constant (τ_S)",
+                "min": 0.1,
+                "max": 5.0,
+                "default": 0.5,
+                "step": 0.1,
+            },
+            "tau_theta": {
+                "label": "Threshold Time Constant (τ_θ)",
+                "min": 10.0,
+                "max": 100.0,
+                "default": 30.0,
+                "step": 5.0,
+            },
+            "theta_0": {
+                "label": "Initial Threshold (θ₀)",
+                "min": 0.1,
+                "max": 2.0,
+                "default": 0.5,
+                "step": 0.1,
+            },
+            "alpha": {
+                "label": "Sigmoid Slope (α)",
+                "min": 0.1,
+                "max": 20.0,
+                "default": 5.0,
+                "step": 0.5,
+            },
+        }
+
+        row = 0
+        for param_name, config in parameters.items():
+            # Parameter label
+            label = ttk.Label(controls_frame, text=config["label"])
+            label.grid(row=row, column=0, sticky=tk.W, padx=(0, 10))
+
+            # Value variable and label
+            value_var = tk.DoubleVar(value=config["default"])
+            self.param_vars[param_name] = value_var
+
+            value_label = ttk.Label(controls_frame, text=".2f")
+            value_label.grid(row=row, column=2, sticky=tk.W, padx=(10, 0))
+            self.param_labels[param_name] = value_label
+
+            # Slider
+            slider = tk.Scale(
+                controls_frame,
+                from_=config["min"],
+                to=config["max"],
+                resolution=config["step"],
+                orient=tk.HORIZONTAL,
+                variable=value_var,
+                command=lambda val, name=param_name: self.on_parameter_change(
+                    name, val
+                ),
+            )
+            slider.grid(row=row, column=1, sticky=(tk.W, tk.E), padx=5)
+            self.param_sliders[param_name] = slider
+
+            row += 1
+
+        # Control buttons for exploration
+        button_frame = ttk.Frame(controls_frame)
+        button_frame.grid(row=row, column=0, columnspan=3, pady=(10, 0))
+
+        self.run_sim_button = ttk.Button(
+            button_frame, text="Run Simulation", command=self.run_parameter_simulation
+        )
+        self.run_sim_button.grid(row=0, column=0, padx=5)
+
+        self.reset_params_button = ttk.Button(
+            button_frame, text="Reset to Defaults", command=self.reset_parameters
+        )
+        self.reset_params_button.grid(row=0, column=1, padx=5)
+
+        # Results display frame
+        results_frame = ttk.LabelFrame(
+            parent_frame, text="Simulation Results", padding="10"
+        )
+        results_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        results_frame.columnconfigure(0, weight=1)
+        results_frame.rowconfigure(0, weight=1)
+
+        # Text area for results
+        self.param_results_text = scrolledtext.ScrolledText(
+            results_frame, height=15, width=80
+        )
+        self.param_results_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Initialize parameter display
+        self.update_parameter_display()
+
+    def on_parameter_change(self, param_name: str, value: str) -> None:
+        """Handle parameter slider changes"""
+        try:
+            float_value = float(value)
+            self.param_labels[param_name].config(text=f"{float_value:.2f}")
+        except ValueError:
+            pass
+
+    def update_parameter_display(self) -> None:
+        """Update all parameter value displays"""
+        for param_name, value_var in self.param_vars.items():
+            value = value_var.get()
+            try:
+                float_value = float(value)
+                self.param_labels[param_name].config(text=f"{float_value:.2f}")
+            except ValueError:
+                self.param_labels[param_name].config(text=value)
+
+    def reset_parameters(self) -> None:
+        """Reset all parameters to default values"""
+        defaults = {
+            "tau_S": 0.5,
+            "tau_theta": 30.0,
+            "theta_0": 0.5,
+            "alpha": 5.0,
+        }
+
+        for param_name, default_value in defaults.items():
+            self.param_vars[param_name].set(default_value)
+            self.param_sliders[param_name].set(default_value)
+
+        self.update_parameter_display()
+        self.param_results_text.delete(1.0, tk.END)
+        self.param_results_text.insert(tk.END, "Parameters reset to defaults\n")
+
+    def run_parameter_simulation(self) -> None:
+        """Run simulation with current parameter values"""
+        # Get current parameter values
+        params = {name: var.get() for name, var in self.param_vars.items()}
+
+        self.param_results_text.delete(1.0, tk.END)
+        self.param_results_text.insert(tk.END, "Running simulation with parameters:\n")
+        for name, value in params.items():
+            self.param_results_text.insert(tk.END, f"  {name}: {value}\n")
+        self.param_results_text.insert(tk.END, "\n")
+
+        # Run simulation in thread to avoid blocking GUI
+        threading.Thread(
+            target=self._run_parameter_simulation_worker, args=(params,), daemon=True
+        ).start()
+
+    def _run_parameter_simulation_worker(self, params: Dict[str, float]) -> None:
+        """Worker thread for parameter simulation"""
+        try:
+            # Import APGI equations for simulation
+            from APGI_Equations import CoreIgnitionSystem
+
+            ignition_system = CoreIgnitionSystem()
+
+            # Simulate ignition dynamics
+            steps = 1000
+            dt = 0.01
+
+            # Initialize variables
+            S = 0.0
+            theta = params["theta_0"]
+            tau_S = params["tau_S"]
+            tau_theta = params["tau_theta"]
+            alpha = params["alpha"]
+
+            # Track variables over time
+            S_history = []
+            theta_history = []
+            ignition_prob_history = []
+
+            # Simulate with a test stimulus
+            stimulus_strength = 1.0
+
+            for step in range(steps):
+                # Update signal accumulation
+                dS_dt = (stimulus_strength - S) / tau_S
+                S += dS_dt * dt
+
+                # Update threshold adaptation
+                dtheta_dt = (params["theta_0"] - theta) / tau_theta
+                theta += dtheta_dt * dt
+
+                # Calculate ignition probability
+                ignition_prob = ignition_system.ignition_probability(S, theta, alpha)
+
+                # Store history
+                S_history.append(S)
+                theta_history.append(theta)
+                ignition_prob_history.append(ignition_prob)
+
+            # Calculate summary statistics
+            final_ignition_prob = ignition_prob_history[-1]
+            max_ignition_prob = max(ignition_prob_history)
+            time_to_half_max = next(
+                (
+                    i
+                    for i, p in enumerate(ignition_prob_history)
+                    if p >= max_ignition_prob / 2
+                ),
+                steps,
+            )
+
+            # Update results text
+            result_text = f"""Simulation Results:
+Final Ignition Probability: {final_ignition_prob:.3f}
+Maximum Ignition Probability: {max_ignition_prob:.3f}
+Time to Half-Max Ignition: {time_to_half_max * dt:.2f} seconds
+Final Signal Level (S): {S:.3f}
+Final Threshold (θ): {theta:.3f}
+
+Interpretation:
+"""
+            if final_ignition_prob > 0.5:
+                result_text += "• High ignition probability - parameters favor conscious detection\n"
+            else:
+                result_text += "• Low ignition probability - parameters suppress conscious detection\n"
+
+            if time_to_half_max < 0.5:
+                result_text += "• Fast response - quick conscious access\n"
+            else:
+                result_text += "• Slow response - gradual conscious access\n"
+
+            # Update GUI from main thread
+            self.root.after(
+                0, lambda: self.param_results_text.insert(tk.END, result_text)
+            )
+
+        except Exception as e:
+            error_text = f"Simulation failed: {str(e)}\n"
+            self.root.after(
+                0, lambda: self.param_results_text.insert(tk.END, error_text)
+            )
         """Run the selected validation protocols"""
         if self.is_running:
             return
@@ -812,7 +1077,6 @@ class APGIValidationGUI:
         self, error: Exception, protocol_num: int, protocol_tiers: Dict[int, str]
     ) -> None:
         """Handle protocol execution errors with logging and UI updates."""
-        import traceback
 
         error_result = self._handle_protocol_error(error, protocol_num)
         tier = protocol_tiers[protocol_num]

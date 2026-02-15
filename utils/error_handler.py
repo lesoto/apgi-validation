@@ -8,12 +8,11 @@ error handling with proper logging and user-friendly messages.
 """
 
 import functools
-import sys
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 try:
     from utils.logging_config import apgi_logger

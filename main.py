@@ -33,7 +33,6 @@ PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from utils.backup_manager import (
-    backup_manager,
     cleanup_backups_cli,
     create_backup_cli,
     delete_backup_cli,
@@ -47,7 +46,6 @@ from utils.error_handler import (
     ErrorSeverity,
     error_handler,
     format_user_message,
-    get_error_summary,
 )
 
 # Import APGI framework components
@@ -76,7 +74,7 @@ global_config = {
 
 def verbose_print(message: str, level: str = "info") -> None:
     """Print message only if verbose mode is enabled."""
-    if not config.get("quiet", False) and config.get("verbose", False):
+    if not global_config.get("quiet", False) and global_config.get("verbose", False):
         if level == "error":
             console.print(f"[red]{message}[/red]")
         elif level == "warning":
@@ -89,7 +87,7 @@ def verbose_print(message: str, level: str = "info") -> None:
 
 def quiet_print(message: str, level: str = "info", force: bool = False) -> None:
     """Print message unless quiet mode is enabled (or forced)."""
-    if not config.get("quiet", False) or force:
+    if not global_config.get("quiet", False) or force:
         if level == "error":
             console.print(f"[red]{message}[/red]")
         elif level == "warning":
@@ -315,10 +313,14 @@ def formal_model(
     """Run formal model simulations."""
     console.print(Panel.fit("🧮 Formal Model Simulation", style="bold blue"))
 
-    # Use default values since get_config is not available
-    sim_steps = simulation_steps or 1000
-    time_step = dt or 0.01
-    enable_plots = plot or True
+    # Get configuration values
+    sim_config = config_manager.get_config("simulation")
+    model_config = config_manager.get_config("model")
+
+    # Use config values with command-line overrides
+    sim_steps = simulation_steps or sim_config.default_steps
+    time_step = dt or sim_config.default_dt
+    enable_plots = plot if plot is not None else sim_config.enable_plots
 
     start_time = time.time()
 
@@ -340,17 +342,17 @@ def formal_model(
             # Initialize the model with configuration parameters
             SurpriseIgnitionSystem = module_info["module"].SurpriseIgnitionSystem
 
-            # Use default values since config.model is not available
+            # Use config values for model parameters
             model_params = {
-                "tau_S": 0.1,
-                "tau_theta": 0.2,
-                "theta_0": 2.0,
-                "alpha": 0.01,
-                "gamma_M": 0.1,
-                "gamma_A": 0.1,
-                "rho": 0.95,
-                "sigma_S": 0.1,
-                "sigma_theta": 0.1,
+                "tau_S": model_config.tau_S,
+                "tau_theta": model_config.tau_theta,
+                "theta_0": model_config.theta_0,
+                "alpha": model_config.alpha,
+                "gamma_M": model_config.gamma_M,
+                "gamma_A": model_config.gamma_A,
+                "rho": model_config.rho,
+                "sigma_S": model_config.sigma_S,
+                "sigma_theta": model_config.sigma_theta,
             }
 
             # Load custom parameters if provided
@@ -435,7 +437,23 @@ def formal_model(
                     )
                     quiet_print("Using default parameters instead", "warning")
 
-            system = SurpriseIgnitionSystem(**model_params)
+            # Filter model_params to only include parameters accepted by SurpriseIgnitionSystem
+            system_params = {
+                k: v
+                for k, v in model_params.items()
+                if k
+                in [
+                    "alpha",
+                    "tau_S",
+                    "tau_theta",
+                    "eta_theta",
+                    "beta",
+                    "theta_0",
+                    "random_seed",
+                ]
+            }
+
+            system = SurpriseIgnitionSystem(**system_params)
 
             progress.update(task, description="Running simulation...")
 
@@ -3030,7 +3048,6 @@ def visualize(
     try:
         import matplotlib.pyplot as plt
         import numpy as np
-        import pandas as pd
         import seaborn as sns
         from matplotlib import MatplotlibDeprecationWarning
 

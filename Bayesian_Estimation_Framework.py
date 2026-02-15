@@ -13,17 +13,12 @@ Date: 2026
 Version: 1.0 (Bayesian Estimation)
 """
 
-import json
 import logging
 import warnings
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from scipy import stats
-from scipy.optimize import minimize
 from tqdm import tqdm
 
 # Configure logging
@@ -37,7 +32,6 @@ logger = logging.getLogger(__name__)
 try:
     import arviz as az
     import pymc as pm
-    import xarray as xr
 
     BAYESIAN_AVAILABLE = True
     logger.info("PyMC and dependencies successfully imported")

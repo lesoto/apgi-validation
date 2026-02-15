@@ -33,7 +33,7 @@ Usage:
 =============================================================================
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Dict, List, Optional, Tuple
 

@@ -16,18 +16,13 @@ Date: 2026
 Version: 1.0 (Quantitative Validation)
 """
 
-import json
 import warnings
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from scipy import optimize, stats
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
-from tqdm import tqdm
 
 # PyMC for Bayesian estimation
 try:

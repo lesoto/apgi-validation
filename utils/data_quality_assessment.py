@@ -6,25 +6,19 @@ Comprehensive data quality assessment and anomaly detection system for APGI fram
 Provides quality scoring, anomaly detection, and data validation insights.
 """
 
-import json
-import warnings
-from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 # APGI imports
 from logging_config import apgi_logger
 from scipy import stats
 from sklearn.ensemble import IsolationForest
-from sklearn.metrics import silhouette_score
-from sklearn.preprocessing import StandardScaler
 
 
 @dataclass
@@ -436,7 +430,6 @@ class DataQualityAssessment:
                     if p_value < 0.001:  # Not normally distributed
                         # Check for multimodality using Hartigan's dip test
                         try:
-                            from scipy.stats import kstest
 
                             # Simple multimodality check using kernel density
                             values = col_data.values
