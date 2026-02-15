@@ -23,19 +23,14 @@ Dependencies:
 import json
 import warnings
 from collections import deque
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import psutil
-import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from scipy import stats
 from sklearn.linear_model import LogisticRegression
 from tqdm import tqdm
 
@@ -82,7 +77,8 @@ class HierarchicalGenerativeModel(nn.Module):
 
         # State representations at each level
         self.states = [
-            torch.zeros(level["dim"], dtype=torch.float32) for level in levels
+            torch.zeros(level["dim"], dtype=torch.float32, requires_grad=True)
+            for level in levels
         ]
 
         # Time constants for each level

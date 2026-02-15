@@ -13,15 +13,12 @@ Date: 2026
 Version: 1.0 (Falsification Framework)
 """
 
-import json
 import logging
 import warnings
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 import numpy as np
-import pandas as pd
 import scipy.stats as stats
-from scipy.optimize import curve_fit
 
 # Configure logging
 logging.basicConfig(

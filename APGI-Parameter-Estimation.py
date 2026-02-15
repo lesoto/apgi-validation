@@ -31,16 +31,15 @@ import json
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import pymc as pm
-import pytensor.tensor as pt
-from scipy import linalg, optimize, stats
+from scipy import linalg, stats
 from sklearn.linear_model import Ridge
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import r2_score
 from sklearn.model_selection import KFold, cross_val_score
 
 warnings.filterwarnings("ignore")

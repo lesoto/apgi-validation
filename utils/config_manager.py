@@ -2,25 +2,40 @@
 APGI Theory Framework - Configuration Management
 ================================================
 
-Comprehensive configuration system with:
-- YAML and JSON configuration files
-- Environment variable support
-- Parameter validation
+Comprehensive configuration system for the APGI validation framework.
+Provides flexible configuration management with validation, profiling,
+and runtime updates for all APGI parameters and settings.
+
+Features:
+- YAML and JSON configuration file support
+- Environment variable integration
+- Parameter validation with schemas
 - Default configuration management
 - Runtime configuration updates
 - Named configuration profiles with easy switching
 - Configuration comparison and diff functionality
-- Configuration versioning and rollback
+- Configuration versioning and rollback capabilities
+- Hierarchical configuration inheritance
+- Configuration templates and presets
+
+Example:
+    >>> config_manager = ConfigManager()
+    >>> config = config_manager.get_config("validation")
+    >>> config_manager.set_parameter("validation", "threshold", "0.5")
+    >>> profile_path = config_manager.create_profile("research", "Research settings")
+
+Author: APGI Research Team
+Date: 2026
+Version: 1.0
 """
 
-import difflib
 import hashlib
 import json
 import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import jsonschema
 import yaml
@@ -39,7 +54,7 @@ except ImportError:
         log_error = logging_config.log_error
 
 # Project root directory
-PROJECT_ROOT = Path(__file__).parent
+PROJECT_ROOT = Path(__file__).parent.parent
 CONFIG_DIR = PROJECT_ROOT / "config"
 PROFILES_DIR = CONFIG_DIR / "profiles"
 VERSIONS_DIR = CONFIG_DIR / "versions"

@@ -20,11 +20,10 @@ Integrates:
 =============================================================================
 """
 
-import warnings
 from collections import deque
-from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np

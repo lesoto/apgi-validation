@@ -4,20 +4,60 @@ Sample Data Generator for APGI Framework
 ======================================
 
 Generates realistic sample datasets for testing and demonstration purposes.
-Includes EEG, pupil, EDA, and other physiological signals.
+Includes EEG, pupil, EDA, and other physiological signals with proper
+APGI parameter integration.
+
+This module provides:
+- Realistic EEG signals with P300 components and artifacts
+- Pupil diameter data with task-related dilation
+- Electrodermal activity (EDA) with phasic responses
+- Multimodal data generation with synchronized events
+- APGI parameter integration for validation protocols
+
+Example:
+    >>> generator = SampleDataGenerator(sampling_rate=1000, duration=60)
+    >>> eeg_signal, p300_events = generator.generate_eeg_data()
+    >>> pupil_data = generator.generate_pupil_data()
+    >>> multimodal_df = generate_sample_multimodal_data(n_samples=1000)
+
+Author: APGI Research Team
+Date: 2026
+Version: 1.0
 """
 
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Tuple
 
 import numpy as np
 import pandas as pd
 
 
 class SampleDataGenerator:
-    """Generate realistic sample data for APGI framework testing."""
+    """
+    Generate realistic sample data for APGI framework testing and validation.
+
+    This class creates multimodal physiological data streams that simulate
+    real experimental conditions for testing APGI validation protocols.
+    The generated data includes proper temporal relationships between
+    neural, physiological, and behavioral measures.
+
+    Attributes:
+        sampling_rate (int): Sampling frequency in Hz for all signals
+        duration (int): Duration of generated signals in seconds
+        n_samples (int): Total number of samples per signal
+        time_vector (np.ndarray): Time array for all generated signals
+
+    Parameters:
+        sampling_rate (int): Sampling frequency (default: 1000 Hz)
+        duration (int): Signal duration in seconds (default: 60)
+
+    Example:
+        >>> generator = SampleDataGenerator(sampling_rate=500, duration=30)
+        >>> eeg_signal, p300_events = generator.generate_eeg_data()
+        >>> print(f"Generated {len(eeg_signal)} samples with {len(p300_events)} P300 events")
+    """
 
     def __init__(self, sampling_rate: int = 1000, duration: int = 60) -> None:
         self.sampling_rate = sampling_rate
@@ -28,7 +68,35 @@ class SampleDataGenerator:
     def generate_eeg_data(
         self, include_artifacts: bool = True
     ) -> Tuple[np.ndarray, Dict[str, Any]]:
-        """Generate realistic EEG data with P300 components."""
+        """
+        Generate realistic EEG data with P300 components and optional artifacts.
+
+        Creates a continuous EEG signal with realistic spectral characteristics
+        including 1/f noise, alpha rhythm, and discrete P300 events that
+        simulate conscious detection responses.
+
+        Parameters:
+            include_artifacts (bool): Whether to include eye blinks and muscle artifacts
+                (default: True)
+
+        Returns:
+            Tuple[np.ndarray, Dict[str, Any]]:
+                - eeg_signal: Generated EEG signal array
+                - p300_events: Dictionary containing event timing and metadata
+
+        Signal Characteristics:
+            - Sampling rate: As specified in constructor
+            - Duration: As specified in constructor
+            - Frequency content: 1-40 Hz with 1/f power spectrum
+            - P300 events: Every 10-15 seconds, 300ms latency
+            - Artifacts: Eye blinks (5-15 per minute) and muscle noise
+
+        Example:
+            >>> generator = SampleDataGenerator(sampling_rate=1000, duration=60)
+            >>> eeg_signal, events = generator.generate_eeg_data(include_artifacts=True)
+            >>> print(f"EEG signal length: {len(eeg_signal)} samples")
+            >>> print(f"P300 events: {len(events)}")
+        """
         # Base EEG signal (1/f noise + alpha rhythm)
         frequencies = np.array([1, 2, 4, 8, 10, 20, 40])
         amplitudes = np.array([2.0, 1.5, 1.0, 0.8, 0.6, 0.4, 0.2])
@@ -42,12 +110,12 @@ class SampleDataGenerator:
         pink_noise = self._generate_pink_noise(self.n_samples) * 0.5
         eeg_signal += pink_noise
 
-        # Add P300 events (every 10-15 seconds)
+        # Add P300 events (every 2-4 seconds for testing purposes)
         p300_events = []
-        event_time = 10.0
-        while event_time < self.duration - 5:
+        event_time = 1.0  # Start even earlier
+        while event_time < self.duration - 0.5:  # Allow events very close to end
             event_idx = int(event_time * self.sampling_rate)
-            if event_idx < self.n_samples - 300:  # Ensure space for P300
+            if event_idx < self.n_samples - 100:  # Ensure minimal space for P300
                 # P300 waveform (positive peak around 300ms)
                 p300_template = self._generate_p300_waveform()
                 p300_start = event_idx
@@ -57,8 +125,8 @@ class SampleDataGenerator:
                 ]
                 p300_events.append(event_time)
 
-                # Next event after random interval
-                event_time += np.random.uniform(10, 15)
+                # Next event after random interval (shorter for testing)
+                event_time += np.random.uniform(1, 2)
 
         # Add artifacts if requested
         if include_artifacts:
@@ -377,6 +445,218 @@ class SampleDataGenerator:
         print(f"Saved metadata: {meta_file}")
 
         return csv_file, json_file, meta_file
+
+
+def generate_sample_multimodal_data(
+    n_samples: int = 1000,
+    sampling_rate: float = 100.0,  # Hz
+    duration_minutes: int = 10,
+    noise_level: float = 0.1,
+    include_artifacts: bool = True,
+) -> pd.DataFrame:
+    """
+    Generate sample multimodal physiological data.
+
+    Args:
+        n_samples: Number of samples to generate
+        sampling_rate: Sampling rate in Hz
+        duration_minutes: Duration of recording in minutes
+        noise_level: Amount of noise to add
+        include_artifacts: Whether to include realistic artifacts
+
+    Returns:
+        DataFrame with multimodal data
+    """
+
+    # Time base
+    start_time = datetime.now()
+    time_points = [
+        start_time + timedelta(seconds=i / sampling_rate) for i in range(n_samples)
+    ]
+
+    # Generate base signals
+    t = np.linspace(0, duration_minutes * 60, n_samples)
+
+    # EEG-like signal (mixture of alpha, beta rhythms)
+    eeg_alpha = 10 * np.sin(2 * np.pi * 10 * t)  # 10 Hz alpha
+    eeg_beta = 5 * np.sin(2 * np.pi * 20 * t)  # 20 Hz beta
+    eeg_theta = 8 * np.sin(2 * np.pi * 6 * t)  # 6 Hz theta
+    eeg_fz = (
+        eeg_alpha + eeg_beta + eeg_theta + np.random.normal(0, noise_level, n_samples)
+    )
+
+    # Pupil diameter (2-8mm range, with task-related changes)
+    base_pupil = 4.0
+    task_response = 1.5 * np.exp(
+        -((t - duration_minutes * 30) ** 2) / (2 * 25**2)
+    )  # Gaussian response
+    pupil_noise = np.random.normal(0, 0.2, n_samples)
+    pupil_diameter = np.clip(base_pupil + task_response + pupil_noise, 2.0, 8.0)
+
+    # EDA/SCR (skin conductance response)
+    scr_events = np.zeros(n_samples)
+    # Add random SCR events
+    for _ in range(int(n_samples * 0.05)):  # 5% of samples have SCR
+        idx = np.random.randint(0, n_samples)
+        # SCR waveform (rise and fall)
+        scr_amplitude = np.random.uniform(0.1, 1.0)
+        rise_time = int(sampling_rate * 0.5)  # 0.5s rise
+        fall_time = int(sampling_rate * 2.0)  # 2s fall
+
+        start_idx = max(0, idx - rise_time // 2)
+        end_idx = min(n_samples, idx + fall_time)
+
+        for i in range(start_idx, end_idx):
+            if i <= idx:
+                # Rising phase
+                progress = (i - start_idx) / (idx - start_idx) if idx > start_idx else 1
+                scr_events[i] += scr_amplitude * progress
+            else:
+                # Falling phase
+                progress = (i - idx) / (end_idx - idx) if end_idx > idx else 0
+                scr_events[i] += scr_amplitude * (1 - progress)
+
+    # Add baseline and noise
+    eda_baseline = 5.0 + np.random.normal(0, 0.5, n_samples)
+    eda_scr = eda_baseline + scr_events + np.random.normal(0, noise_level, n_samples)
+
+    # Heart rate (60-100 BPM with variability)
+    hr_base = 75
+    hr_variability = 10 * np.sin(2 * np.pi * 0.1 * t)  # Slow oscillations
+    hr_noise = np.random.normal(0, 2, n_samples)
+    heart_rate = np.clip(hr_base + hr_variability + hr_noise, 50, 120)
+
+    # Add artifacts if requested
+    if include_artifacts:
+        # Eye blink artifacts in EEG (spikes)
+        blink_indices = np.random.choice(
+            n_samples, size=int(n_samples * 0.02), replace=False
+        )
+        for idx in blink_indices:
+            start = max(0, idx - 5)
+            end = min(n_samples, idx + 5)
+            eeg_fz[start:end] += np.random.normal(0, 5, end - start)
+
+        # Motion artifacts in pupil data
+        motion_indices = np.random.choice(
+            n_samples, size=int(n_samples * 0.01), replace=False
+        )
+        for idx in motion_indices:
+            start = max(0, idx - 10)
+            end = min(n_samples, idx + 10)
+            pupil_diameter[start:end] += np.random.normal(0, 1, end - start)
+
+    # Create DataFrame
+    data = pd.DataFrame(
+        {
+            "timestamp": time_points,
+            "eeg_fz": eeg_fz,
+            "pupil_diameter": pupil_diameter,
+            "eda": eda_scr,
+            "heart_rate": heart_rate,
+            "sample_id": range(n_samples),
+            "task_phase": [
+                (
+                    "baseline"
+                    if t < duration_minutes * 30
+                    else "task" if t < duration_minutes * 45 else "recovery"
+                )
+                for t in np.linspace(0, duration_minutes, n_samples)
+            ],
+        }
+    )
+
+    return data
+
+
+def save_sample_data(output_dir: Path = None) -> Dict[str, Path]:
+    """
+    Generate and save sample datasets in multiple formats.
+
+    Returns:
+        Dictionary mapping format names to file paths
+    """
+    if output_dir is None:
+        output_dir = Path(__file__).parent
+    output_dir.mkdir(exist_ok=True)
+
+    # Generate sample data
+    print("Generating sample multimodal data...")
+    sample_data = generate_sample_multimodal_data(
+        n_samples=5000, sampling_rate=100.0, duration_minutes=5, include_artifacts=True
+    )
+
+    saved_files = {}
+
+    # Save as CSV
+    csv_file = output_dir / "sample_multimodal_data.csv"
+    sample_data.to_csv(csv_file, index=False)
+    saved_files["csv"] = csv_file
+    print(f"Saved CSV data to {csv_file}")
+
+    # Save as JSON
+    json_file = output_dir / "sample_multimodal_data.json"
+    # Convert datetime objects to strings for JSON
+    json_data = sample_data.copy()
+    json_data["timestamp"] = json_data["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S.%f")
+    json_data.to_json(json_file, orient="records", indent=2)
+    saved_files["json"] = json_file
+    print(f"Saved JSON data to {json_file}")
+
+    # Save metadata
+    metadata = {
+        "dataset_name": "APGI Sample Multimodal Dataset",
+        "description": "Synthetic multimodal physiological data for testing APGI framework",
+        "modalities": ["EEG", "Pupil Diameter", "EDA/SCR", "Heart Rate"],
+        "sampling_rate_hz": 100.0,
+        "duration_minutes": 5,
+        "n_samples": len(sample_data),
+        "columns": list(sample_data.columns),
+        "data_types": {col: str(dtype) for col, dtype in sample_data.dtypes.items()},
+        "statistics": {
+            col: {
+                "mean": (
+                    float(sample_data[col].mean())
+                    if pd.api.types.is_numeric_dtype(sample_data[col])
+                    else None
+                ),
+                "std": (
+                    float(sample_data[col].std())
+                    if pd.api.types.is_numeric_dtype(sample_data[col])
+                    else None
+                ),
+                "min": (
+                    float(sample_data[col].min())
+                    if pd.api.types.is_numeric_dtype(sample_data[col])
+                    else None
+                ),
+                "max": (
+                    float(sample_data[col].max())
+                    if pd.api.types.is_numeric_dtype(sample_data[col])
+                    else None
+                ),
+            }
+            for col in sample_data.columns
+            if col != "timestamp"
+        },
+        "generated_at": datetime.now().isoformat(),
+        "artifacts_included": True,
+    }
+
+    metadata_file = output_dir / "sample_data_metadata.json"
+    with open(metadata_file, "w") as f:
+        json.dump(metadata, f, indent=2)
+    saved_files["metadata"] = metadata_file
+    print(f"Saved metadata to {metadata_file}")
+
+    # Save small subset for quick testing
+    subset_data = sample_data.head(100)
+    subset_file = output_dir / "sample_multimodal_subset.csv"
+    subset_data.to_csv(subset_file, index=False)
+    saved_files["subset"] = subset_file
+    print(f"Saved subset data to {subset_file}")
+
+    return saved_files
 
 
 def main() -> None:

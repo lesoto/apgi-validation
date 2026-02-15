@@ -7,7 +7,7 @@ A tkinter-based GUI that allows running all scripts in the utils folder
 with output display and error handling.
 """
 
-import os
+import importlib.util
 import subprocess
 import sys
 import threading
@@ -333,6 +333,28 @@ class UtilsRunnerGUI:
         # Quit the application
         self.root.quit()
         self.root.destroy()
+
+
+def _get_protocol1():
+    """Safely import Protocol 1 with error handling"""
+    import os
+
+    try:
+        protocol1_path = os.path.join(
+            os.path.dirname(__file__), "Falsification-Protocol-1.py"
+        )
+        if not os.path.exists(protocol1_path):
+            raise ImportError(f"Protocol 1 file not found: {protocol1_path}")
+
+        spec1 = importlib.util.spec_from_file_location("Protocol_1", protocol1_path)
+        if spec1 is None or spec1.loader is None:
+            raise ImportError("Failed to load spec for Protocol 1")
+
+        protocol1 = importlib.util.module_from_spec(spec1)
+        spec1.loader.exec_module(protocol1)
+        return protocol1
+    except Exception as e:
+        raise ImportError(f"Failed to import Protocol 1: {str(e)}")
 
 
 def main() -> None:
