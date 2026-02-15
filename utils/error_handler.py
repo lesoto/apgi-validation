@@ -151,7 +151,9 @@ class ConfigurationError(APGIError):
     def __init__(self, message: str, config_file: Optional[str] = None, **kwargs):
         if config_file:
             message = f"Configuration error in '{config_file}': {message}"
-        super().__init__(message=message, category=ErrorCategory.CONFIGURATION, **kwargs)
+        super().__init__(
+            message=message, category=ErrorCategory.CONFIGURATION, **kwargs
+        )
 
 
 class ProtocolError(APGIError):
@@ -416,7 +418,9 @@ class ErrorHandler:
     ) -> None:
         """Register custom error handler for a category."""
         self.error_handlers[category] = handler
-        apgi_logger.logger.info(f"Registered error handler for category: {category.value}")
+        apgi_logger.logger.info(
+            f"Registered error handler for category: {category.value}"
+        )
 
     def get_error_summary(self) -> Dict[str, Any]:
         """Get summary of errors by category."""
@@ -424,7 +428,9 @@ class ErrorHandler:
 
         return {
             "total_errors": total_errors,
-            "by_category": {category.value: count for category, count in self.error_counts.items()},
+            "by_category": {
+                category.value: count for category, count in self.error_counts.items()
+            },
             "most_common": (
                 max(
                     self.error_counts.items(),
@@ -494,22 +500,30 @@ def config_error(code: str, **kwargs) -> APGIError:
 
 def validation_error(code: str, **kwargs) -> APGIError:
     """Create validation error."""
-    return error_handler.handle_error(ErrorCategory.VALIDATION, ErrorSeverity.HIGH, code, **kwargs)
+    return error_handler.handle_error(
+        ErrorCategory.VALIDATION, ErrorSeverity.HIGH, code, **kwargs
+    )
 
 
 def simulation_error(code: str, **kwargs) -> APGIError:
     """Create simulation error."""
-    return error_handler.handle_error(ErrorCategory.SIMULATION, ErrorSeverity.HIGH, code, **kwargs)
+    return error_handler.handle_error(
+        ErrorCategory.SIMULATION, ErrorSeverity.HIGH, code, **kwargs
+    )
 
 
 def data_error(code: str, **kwargs) -> APGIError:
     """Create data error."""
-    return error_handler.handle_error(ErrorCategory.DATA, ErrorSeverity.HIGH, code, **kwargs)
+    return error_handler.handle_error(
+        ErrorCategory.DATA, ErrorSeverity.HIGH, code, **kwargs
+    )
 
 
 def io_error(code: str, **kwargs) -> APGIError:
     """Create I/O error."""
-    return error_handler.handle_error(ErrorCategory.IO, ErrorSeverity.HIGH, code, **kwargs)
+    return error_handler.handle_error(
+        ErrorCategory.IO, ErrorSeverity.HIGH, code, **kwargs
+    )
 
 
 def user_input_error(code: str, **kwargs) -> APGIError:
@@ -521,7 +535,9 @@ def user_input_error(code: str, **kwargs) -> APGIError:
 
 def critical_error(code: str, **kwargs) -> APGIError:
     """Create critical error."""
-    return error_handler.handle_error(ErrorCategory.RUNTIME, ErrorSeverity.CRITICAL, code, **kwargs)
+    return error_handler.handle_error(
+        ErrorCategory.RUNTIME, ErrorSeverity.CRITICAL, code, **kwargs
+    )
 
 
 # User-friendly error message formatter
@@ -752,7 +768,9 @@ def retry_on_error(
                         time.sleep(current_delay)
                         current_delay *= backoff
                     else:
-                        logger.error(f"All {max_retries + 1} attempts failed for {func.__name__}")
+                        logger.error(
+                            f"All {max_retries + 1} attempts failed for {func.__name__}"
+                        )
 
             raise last_exception
 
@@ -812,7 +830,9 @@ if __name__ == "__main__":
 
     try:
         # Test data error
-        raise data_error("MISSING_REQUIRED_FIELDS", fields=["subject_id", "timestamp", "value"])
+        raise data_error(
+            "MISSING_REQUIRED_FIELDS", fields=["subject_id", "timestamp", "value"]
+        )
     except APGIError as e:
         print(f"Data error: {format_user_message(e)}")
 

@@ -78,7 +78,9 @@ class APGIP3bAnalyzer:
 
         return raw
 
-    def extract_p3b_amplitude(self, epochs: mne.Epochs, electrode: str = "Pz") -> np.ndarray:
+    def extract_p3b_amplitude(
+        self, epochs: mne.Epochs, electrode: str = "Pz"
+    ) -> np.ndarray:
         """Extract P3b peak amplitudes from epoched data"""
         # Get data for target electrode
         data = epochs.get_data(picks=[electrode])[0]  # Shape: (n_epochs, n_times)
@@ -116,7 +118,9 @@ class APGIP3bAnalyzer:
             ]
 
             # Fit sigmoid
-            popt, pcov = curve_fit(sigmoid, surprisal_values, p3b_amplitudes, p0=p0, maxfev=10000)
+            popt, pcov = curve_fit(
+                sigmoid, surprisal_values, p3b_amplitudes, p0=p0, maxfev=10000
+            )
 
             # Calculate R²
             y_pred = sigmoid(surprisal_values, *popt)
@@ -161,7 +165,9 @@ class APGIFMRIAnalyzer:
 
         return img
 
-    def extract_roi_timeseries(self, img: nib.Nifti1Image, roi_mask: nib.Nifti1Image) -> np.ndarray:
+    def extract_roi_timeseries(
+        self, img: nib.Nifti1Image, roi_mask: nib.Nifti1Image
+    ) -> np.ndarray:
         """Extract mean timeseries from ROI"""
         masked_img = image.math_img("img1 * img2", img1=img, img2=roi_mask)
         timeseries = image.mean_img(masked_img).get_fdata().flatten()
@@ -252,7 +258,9 @@ class APGINeuralSignaturesValidator:
         results["theta_gamma_coupling"] = self._analyze_theta_gamma_coupling()
 
         # 4. Subthreshold Analysis
-        results["subthreshold_local_activation"] = self._analyze_subthreshold_activations()
+        results["subthreshold_local_activation"] = (
+            self._analyze_subthreshold_activations()
+        )
 
         # Calculate overall validation score
         results["overall_validation_score"] = self._calculate_validation_score(results)
@@ -286,7 +294,8 @@ class APGINeuralSignaturesValidator:
         # Create events (simplified - would use actual event detection)
         events = np.column_stack(
             [
-                np.arange(0, len(behavioral_df)) * int(1.0 * raw.info["sfreq"]),  # Sample indices
+                np.arange(0, len(behavioral_df))
+                * int(1.0 * raw.info["sfreq"]),  # Sample indices
                 np.zeros(len(behavioral_df), dtype=int),  # Previous event
                 np.ones(len(behavioral_df), dtype=int),  # Event ID
             ]
@@ -388,14 +397,18 @@ class APGINeuralSignaturesValidator:
 
         # P3b sigmoidal fit (weight: 0.4)
         if "model_comparison" in results.get("p3b_sigmoidal_fit", {}):
-            scores.append(0.4 * (1.0 if results["p3b_sigmoidal_fit"]["model_comparison"] else 0.0))
+            scores.append(
+                0.4 * (1.0 if results["p3b_sigmoidal_fit"]["model_comparison"] else 0.0)
+            )
 
         # Frontoparietal coactivation (weight: 0.3)
         scores.append(
             0.3
             * (
                 1.0
-                if results.get("frontoparietal_coactivation", {}).get("validation_passed", False)
+                if results.get("frontoparietal_coactivation", {}).get(
+                    "validation_passed", False
+                )
                 else 0.0
             )
         )
@@ -405,7 +418,9 @@ class APGINeuralSignaturesValidator:
             0.2
             * (
                 1.0
-                if results.get("theta_gamma_coupling", {}).get("validation_passed", False)
+                if results.get("theta_gamma_coupling", {}).get(
+                    "validation_passed", False
+                )
                 else 0.0
             )
         )
@@ -415,7 +430,9 @@ class APGINeuralSignaturesValidator:
             0.1
             * (
                 1.0
-                if results.get("subthreshold_local_activation", {}).get("validation_passed", False)
+                if results.get("subthreshold_local_activation", {}).get(
+                    "validation_passed", False
+                )
                 else 0.0
             )
         )

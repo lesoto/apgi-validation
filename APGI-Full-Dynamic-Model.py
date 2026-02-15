@@ -32,7 +32,9 @@ class APGIParameters:
     """Parameters for APGI Full Dynamic Model with constraints."""
 
     # Temporal parameters
-    delta_t: float = 0.05  # Δt: Timestep duration (seconds), typical 0.05-0.1 (50-100ms)
+    delta_t: float = (
+        0.05  # Δt: Timestep duration (seconds), typical 0.05-0.1 (50-100ms)
+    )
     tau: float = 0.2  # τ: Signal decay time constant (seconds), typical 0.1-0.3
 
     # Signal accumulation parameters
@@ -125,7 +127,9 @@ class APGIFullDynamicModel:
         # Baseline statistics for standardization
         self.baseline_stats: Dict[str, Tuple[float, float]] = {}
 
-    def standardize_signal(self, signal: np.ndarray, baseline_window: int = 20) -> np.ndarray:
+    def standardize_signal(
+        self, signal: np.ndarray, baseline_window: int = 20
+    ) -> np.ndarray:
         """
         Z-score normalize prediction errors.
 
@@ -137,7 +141,9 @@ class APGIFullDynamicModel:
             Normalized signal in z-score units
         """
         if len(signal) < baseline_window:
-            raise ValueError(f"Signal length {len(signal)} < baseline_window {baseline_window}")
+            raise ValueError(
+                f"Signal length {len(signal)} < baseline_window {baseline_window}"
+            )
 
         baseline = signal[:baseline_window]
         mu_baseline = np.mean(baseline)
@@ -177,7 +183,9 @@ class APGIFullDynamicModel:
         external_contribution = self.params.we * Pi_e * abs(epsilon_e)
         internal_contribution = self.params.wi * beta_val * Pi_i * abs(epsilon_i)
 
-        S_next = decay_factor * self.state.S + external_contribution + internal_contribution
+        S_next = (
+            decay_factor * self.state.S + external_contribution + internal_contribution
+        )
 
         return S_next
 
@@ -215,7 +223,9 @@ class APGIFullDynamicModel:
             New metabolic modulation ηm(t+1)
         """
         eta_m_next = (
-            self.state.eta_m + self.params.gamma_c * I_prev - self.params.gamma_r * (1 - I_prev)
+            self.state.eta_m
+            + self.params.gamma_c * I_prev
+            - self.params.gamma_r * (1 - I_prev)
         )
 
         # Ensure non-negative metabolic modulation
@@ -343,7 +353,9 @@ class APGIFullDynamicModel:
                 raise ValueError(f"{name} length {len(arr)} != Pi_e length {n_steps}")
 
         if beta_sequence is not None and len(beta_sequence) != n_steps:
-            raise ValueError(f"beta_sequence length {len(beta_sequence)} != Pi_e length {n_steps}")
+            raise ValueError(
+                f"beta_sequence length {len(beta_sequence)} != Pi_e length {n_steps}"
+            )
 
         # Initialize storage
         history = {

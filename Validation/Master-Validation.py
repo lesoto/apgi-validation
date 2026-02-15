@@ -21,7 +21,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -177,7 +179,9 @@ class APGIMasterValidator:
             "passed": False,
         }
 
-    def _handle_protocol_error(self, protocol_num: int, status: str, error: str) -> None:
+    def _handle_protocol_error(
+        self, protocol_num: int, status: str, error: str
+    ) -> None:
         """Handle protocol errors consistently."""
         error_result = {"status": status, "error": error, "passed": False}
 
@@ -200,7 +204,9 @@ class APGIMasterValidator:
             'VALIDATED', 'MAJOR_REVISION', 'SCOPE_RESTRICTION', or 'REJECTED'
         """
         # Count failures at each tier
-        primary_failures = len([r for r in self.falsification_status["primary"] if not r["passed"]])
+        primary_failures = len(
+            [r for r in self.falsification_status["primary"] if not r["passed"]]
+        )
         secondary_failures = len(
             [r for r in self.falsification_status["secondary"] if not r["passed"]]
         )
@@ -300,7 +306,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="APGI Master Validation Pipeline")
-    parser.add_argument("--timeout", type=int, default=300, help="Protocol timeout in seconds")
+    parser.add_argument(
+        "--timeout", type=int, default=300, help="Protocol timeout in seconds"
+    )
     args = parser.parse_args()
 
     validator = APGIMasterValidator(timeout_seconds=args.timeout)

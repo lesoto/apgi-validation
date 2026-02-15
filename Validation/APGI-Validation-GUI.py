@@ -100,7 +100,9 @@ class APGIValidationGUI:
         self._thread_cleanup_lock = threading.Lock()
 
         # GUI update queue for thread safety
-        self._update_queue = queue.Queue(maxsize=100)  # Limit queue size to prevent memory issues
+        self._update_queue = queue.Queue(
+            maxsize=100
+        )  # Limit queue size to prevent memory issues
         self._process_gui_updates()
 
         # Set environment variables to prevent GUI operations in worker threads
@@ -192,7 +194,9 @@ class APGIValidationGUI:
     def on_closing(self) -> None:
         """Handle window close event with proper cleanup."""
         if self.is_running:
-            if not messagebox.askyesno("Quit", "Validation in progress. Stop and quit?"):
+            if not messagebox.askyesno(
+                "Quit", "Validation in progress. Stop and quit?"
+            ):
                 return
             self.stop_validation()
         self.clear_protocol_cache()
@@ -216,7 +220,9 @@ class APGIValidationGUI:
                     if update_type == "status":
                         self.status_label.config(text=data)
                     elif update_type == "progress":
-                        self.progress_var.set(min(100, max(0, data)))  # Clamp between 0-100
+                        self.progress_var.set(
+                            min(100, max(0, data))
+                        )  # Clamp between 0-100
                     elif update_type == "results":
                         self.results_text.insert(tk.END, data)
                         self.results_text.see(tk.END)
@@ -253,7 +259,9 @@ class APGIValidationGUI:
         status_window.geometry("600x400")
 
         # Create scrolled text widget
-        text_widget = scrolledtext.ScrolledText(status_window, wrap=tk.WORD, width=70, height=20)
+        text_widget = scrolledtext.ScrolledText(
+            status_window, wrap=tk.WORD, width=70, height=20
+        )
         text_widget.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
         # Add status information
@@ -287,12 +295,18 @@ class APGIValidationGUI:
             "2. Verify all dependencies are installed: pip install -r requirements.txt\n",
         )
         text_widget.insert(tk.END, "3. Check for syntax errors in protocol files\n")
-        text_widget.insert(tk.END, "4. Ensure Python path includes the Validation directory\n")
-        text_widget.insert(tk.END, "5. Run individual protocols from command line to test\n\n")
+        text_widget.insert(
+            tk.END, "4. Ensure Python path includes the Validation directory\n"
+        )
+        text_widget.insert(
+            tk.END, "5. Run individual protocols from command line to test\n\n"
+        )
 
         # Fallback options
         text_widget.insert(tk.END, "=== Fallback Options ===\n")
-        text_widget.insert(tk.END, "• GUI will operate in limited mode without full validation\n")
+        text_widget.insert(
+            tk.END, "• GUI will operate in limited mode without full validation\n"
+        )
         text_widget.insert(
             tk.END, "• Use command line: python main.py validate --protocol <number>\n"
         )
@@ -301,7 +315,9 @@ class APGIValidationGUI:
         text_widget.config(state=tk.DISABLED)
 
         # Close button
-        close_btn = ttk.Button(status_window, text="Close", command=status_window.destroy)
+        close_btn = ttk.Button(
+            status_window, text="Close", command=status_window.destroy
+        )
         close_btn.pack(pady=10)
 
     def create_widgets(self) -> None:
@@ -326,8 +342,12 @@ class APGIValidationGUI:
         title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
         # Protocol selection frame
-        protocol_frame = ttk.LabelFrame(main_frame, text="Protocol Selection", padding="10")
-        protocol_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        protocol_frame = ttk.LabelFrame(
+            main_frame, text="Protocol Selection", padding="10"
+        )
+        protocol_frame.grid(
+            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
+        )
         protocol_frame.columnconfigure(0, weight=1)
 
         # Protocol checkboxes
@@ -364,7 +384,9 @@ class APGIValidationGUI:
         )
         self.stop_button.grid(row=0, column=1, padx=5)
 
-        self.save_button = ttk.Button(control_frame, text="Save Results", command=self.save_results)
+        self.save_button = ttk.Button(
+            control_frame, text="Save Results", command=self.save_results
+        )
         self.save_button.grid(row=0, column=2, padx=5)
 
         # Progress bar
@@ -372,7 +394,9 @@ class APGIValidationGUI:
         self.progress_bar = ttk.Progressbar(
             main_frame, variable=self.progress_var, maximum=100, length=400
         )
-        self.progress_bar.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        self.progress_bar.grid(
+            row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
+        )
 
         # Status label
         self.status_label = ttk.Label(
@@ -381,18 +405,24 @@ class APGIValidationGUI:
         self.status_label.grid(row=4, column=0, columnspan=2, pady=(0, 10))
 
         # Results text area
-        results_frame = ttk.LabelFrame(main_frame, text="Validation Results", padding="10")
+        results_frame = ttk.LabelFrame(
+            main_frame, text="Validation Results", padding="10"
+        )
         results_frame.grid(
             row=5, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
         )
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
 
-        self.results_text = scrolledtext.ScrolledText(results_frame, height=15, width=80)
+        self.results_text = scrolledtext.ScrolledText(
+            results_frame, height=15, width=80
+        )
         self.results_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Summary frame
-        summary_frame = ttk.LabelFrame(main_frame, text="Validation Summary", padding="10")
+        summary_frame = ttk.LabelFrame(
+            main_frame, text="Validation Summary", padding="10"
+        )
         summary_frame.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E))
 
         self.summary_label = ttk.Label(
@@ -478,7 +508,9 @@ class APGIValidationGUI:
                 # Import protocol module dynamically
                 spec = importlib.util.spec_from_file_location(cache_key, protocol_path)
                 if spec is None or spec.loader is None:
-                    raise ImportError(f"Could not create spec for protocol {protocol_num}")
+                    raise ImportError(
+                        f"Could not create spec for protocol {protocol_num}"
+                    )
 
                 protocol_module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(protocol_module)
@@ -513,7 +545,9 @@ class APGIValidationGUI:
             }
 
             # Determine protocol success with strict validation
-            passed = self._determine_protocol_success(protocol_result, output_text, result)
+            passed = self._determine_protocol_success(
+                protocol_result, output_text, result
+            )
 
             result["passed"] = passed
 
@@ -521,7 +555,9 @@ class APGIValidationGUI:
             self._store_protocol_result(protocol_num, result, protocol_tiers, passed)
 
             self.update_results(f"Status: {'PASSED' if passed else 'FAILED'}\n\n")
-            logging.info(f"Protocol {protocol_num} completed: {'PASSED' if passed else 'FAILED'}")
+            logging.info(
+                f"Protocol {protocol_num} completed: {'PASSED' if passed else 'FAILED'}"
+            )
 
         except (ImportError, FileNotFoundError, SyntaxError) as e:
             self._handle_protocol_execution_error(e, protocol_num, protocol_tiers)
@@ -588,7 +624,9 @@ class APGIValidationGUI:
                 }
             )
         else:
-            logging.error(f"Validator missing or invalid falsification_status for tier: {tier}")
+            logging.error(
+                f"Validator missing or invalid falsification_status for tier: {tier}"
+            )
             # Initialize if missing
             if not hasattr(self.validator, "falsification_status"):
                 self.validator.falsification_status = {
@@ -632,7 +670,9 @@ class APGIValidationGUI:
                 progress = int((i / total_protocols) * 100)
                 self.update_progress(progress)
 
-                self._execute_single_protocol(protocol_num, i, total_protocols, protocol_tiers)
+                self._execute_single_protocol(
+                    protocol_num, i, total_protocols, protocol_tiers
+                )
 
                 # Update progress
                 progress = ((i + 1) / total_protocols) * 100
@@ -655,7 +695,9 @@ class APGIValidationGUI:
                     # Validate report structure
                     self._validate_report(report)
                 except Exception as e:
-                    error_msg = f"Failed to generate master report: {type(e).__name__}: {e}"
+                    error_msg = (
+                        f"Failed to generate master report: {type(e).__name__}: {e}"
+                    )
                     self.update_status(error_msg)
                     self.update_results(f"CRITICAL ERROR: {error_msg}\n")
                     logging.error(error_msg)
@@ -687,7 +729,9 @@ class APGIValidationGUI:
                 # Clear any pending GUI updates with non-blocking approach
                 try:
                     cleared_count = 0
-                    while cleared_count < 50:  # Limit iterations to prevent infinite loop
+                    while (
+                        cleared_count < 50
+                    ):  # Limit iterations to prevent infinite loop
                         try:
                             self._update_queue.get_nowait()
                             self._update_queue.task_done()
@@ -700,13 +744,17 @@ class APGIValidationGUI:
                 # Clear validation thread reference AFTER ensuring thread is done
                 if self.validation_thread:
                     if self.validation_thread.is_alive():
-                        logging.warning("Validation thread still alive in finally block")
+                        logging.warning(
+                            "Validation thread still alive in finally block"
+                        )
                         # Don't force join here to avoid blocking GUI
                     self.validation_thread = None
 
                 logging.info("Validation worker thread cleanup completed")
 
-    def _handle_protocol_error(self, error: Exception, protocol_num: int) -> Dict[str, Any]:
+    def _handle_protocol_error(
+        self, error: Exception, protocol_num: int
+    ) -> Dict[str, Any]:
         """Handle protocol errors and return error result with troubleshooting."""
         error_type = type(error).__name__
         error_str = str(error).lower()
@@ -769,7 +817,9 @@ class APGIValidationGUI:
         error_result = self._handle_protocol_error(error, protocol_num)
         tier = protocol_tiers[protocol_num]
 
-        logging.error(f"Protocol {protocol_num} failed: {type(error).__name__}: {error}")
+        logging.error(
+            f"Protocol {protocol_num} failed: {type(error).__name__}: {error}"
+        )
 
         if (
             hasattr(self.validator, "falsification_status")
@@ -842,19 +892,27 @@ class APGIValidationGUI:
                 required_result_keys = ["protocol", "passed", "result"]
                 for result_key in required_result_keys:
                     if result_key not in result:
-                        raise ValueError(f"Result at {tier}[{i}] missing key: {result_key}")
+                        raise ValueError(
+                            f"Result at {tier}[{i}] missing key: {result_key}"
+                        )
 
                 # Validate protocol number
                 if not isinstance(result["protocol"], int):
-                    raise ValueError(f"Invalid protocol number at {tier}[{i}]: expected int")
+                    raise ValueError(
+                        f"Invalid protocol number at {tier}[{i}]: expected int"
+                    )
 
                 # Validate passed status
                 if not isinstance(result["passed"], bool):
-                    raise ValueError(f"Invalid passed status at {tier}[{i}]: expected bool")
+                    raise ValueError(
+                        f"Invalid passed status at {tier}[{i}]: expected bool"
+                    )
 
                 # Validate result object
                 if not isinstance(result["result"], dict):
-                    raise ValueError(f"Invalid result object at {tier}[{i}]: expected dict")
+                    raise ValueError(
+                        f"Invalid result object at {tier}[{i}]: expected dict"
+                    )
 
     def stop_validation(self) -> None:
         """Stop the running validation with proper thread cancellation"""
@@ -872,11 +930,17 @@ class APGIValidationGUI:
                 self.update_results("Validation stopped by user\n")
 
                 # Wait for thread to finish (with timeout) - non-blocking approach
-                self.validation_thread.join(timeout=1.0)  # Short timeout to avoid GUI freeze
+                self.validation_thread.join(
+                    timeout=1.0
+                )  # Short timeout to avoid GUI freeze
 
                 if self.validation_thread.is_alive():
-                    self.update_results("Warning: Validation thread did not stop cleanly\n")
-                    logging.warning("Validation thread did not stop cleanly, may be zombie thread")
+                    self.update_results(
+                        "Warning: Validation thread did not stop cleanly\n"
+                    )
+                    logging.warning(
+                        "Validation thread did not stop cleanly, may be zombie thread"
+                    )
                     # Don't block on thread cleanup
                     self.validation_thread = None
                 else:
@@ -1102,9 +1166,7 @@ class APGIValidationGUI:
             return f"Protocol file missing. Check that APGI-Protocol-{protocol_num}.py exists in Validation directory"
 
         elif "permission" in error_str:
-            return (
-                "File permission error. Check read/write permissions for the Validation directory"
-            )
+            return "File permission error. Check read/write permissions for the Validation directory"
 
         elif "memory" in error_str or "ram" in error_str:
             return "Memory error. Try reducing protocol parameters or closing other applications"
@@ -1115,9 +1177,7 @@ class APGIValidationGUI:
         # Protocol-specific issues
         if protocol_num == 3:
             if "broadcast" in error_str:
-                return (
-                    "Observation dimension mismatch. This should be fixed with the latest updates"
-                )
+                return "Observation dimension mismatch. This should be fixed with the latest updates"
 
         elif protocol_num in [2, 8]:
             if "pymc" in error_str or "arviz" in error_str:

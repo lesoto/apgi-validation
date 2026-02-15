@@ -122,7 +122,9 @@ class PsiMethod:
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Update posterior distributions based on new trial data"""
         # Calculate likelihood for current trial
-        p_response = self.psychometric_function(stimulus, threshold_samples, slope_samples)
+        p_response = self.psychometric_function(
+            stimulus, threshold_samples, slope_samples
+        )
 
         if response == 1:  # Yes/Seen response
             likelihood = p_response
@@ -153,7 +155,9 @@ class PsiMethod:
         # Simple maximum likelihood estimation
         def neg_log_likelihood(params):
             threshold, slope = params
-            predicted = self.psychometric_function(np.array(stimulus_levels), threshold, slope)
+            predicted = self.psychometric_function(
+                np.array(stimulus_levels), threshold, slope
+            )
             # Avoid log(0)
             predicted = np.clip(predicted, 1e-10, 1 - 1e-10)
             return -np.sum(
@@ -232,7 +236,9 @@ class APGIPsychophysicalEstimator:
             confidence_rating=confidence_rating,
         )
 
-    def run_psychophysical_experiment(self, participant: ParticipantData) -> Tuple[float, float]:
+    def run_psychophysical_experiment(
+        self, participant: ParticipantData
+    ) -> Tuple[float, float]:
         """Simulate adaptive psychophysical experiment for a participant"""
         psi = PsiMethod(stimulus_range=(0.0, 1.0), n_trials=50)
 
@@ -250,7 +256,9 @@ class APGIPsychophysicalEstimator:
             stimulus_levels.append(current_stimulus)
 
             # Generate response based on true psychometric function
-            p_response = psi.psychometric_function(current_stimulus, true_threshold, true_slope)
+            p_response = psi.psychometric_function(
+                current_stimulus, true_threshold, true_slope
+            )
             response = 1 if np.random.random() < p_response else 0
             responses.append(response)
 
@@ -267,7 +275,9 @@ class APGIPsychophysicalEstimator:
                         current_stimulus = min(0.9, current_stimulus + 0.05)
 
         # Estimate parameters from trial data
-        estimated_threshold, estimated_slope = psi.estimate_parameters(stimulus_levels, responses)
+        estimated_threshold, estimated_slope = psi.estimate_parameters(
+            stimulus_levels, responses
+        )
 
         return estimated_threshold, estimated_slope
 
@@ -381,7 +391,9 @@ class APGIPsychophysicalEstimator:
         test_retest_iccs = {}
         for param in ["theta_0", "pi_i", "beta", "alpha"]:
             original = df[param].values
-            retest = original + np.random.normal(0, 0.1 * np.std(original), len(original))
+            retest = original + np.random.normal(
+                0, 0.1 * np.std(original), len(original)
+            )
 
             # Calculate ICC (proper intraclass correlation)
             # Use simplified ICC(2,1) - two-way random effects, single measurement
@@ -421,7 +433,8 @@ class APGIPsychophysicalEstimator:
         }
         results["falsification_tests"]["F3_3"] = {
             "passed": all(
-                test_retest_iccs[param] >= min_icc_thresholds[param] for param in min_icc_thresholds
+                test_retest_iccs[param] >= min_icc_thresholds[param]
+                for param in min_icc_thresholds
             ),
             "iccs": test_retest_iccs,
             "thresholds_met": {
@@ -442,7 +455,9 @@ class APGIPsychophysicalEstimator:
 
         # Check if parameters are sufficiently independent
         if param_correlations:
-            max_correlation = max(abs(corrs["r"]) for corrs in param_correlations.values())
+            max_correlation = max(
+                abs(corrs["r"]) for corrs in param_correlations.values()
+            )
         else:
             max_correlation = 0.0
         results["falsification_tests"]["F3_4"] = {
@@ -458,7 +473,9 @@ class APGIPsychophysicalEstimator:
             fa.fit(param_matrix)
 
             results["factor_analysis"]["loadings"] = fa.components_.T.tolist()
-            results["factor_analysis"]["explained_variance"] = fa.explained_variance_.tolist()
+            results["factor_analysis"][
+                "explained_variance"
+            ] = fa.explained_variance_.tolist()
 
             # Check if at least 2 factors emerge
             try:
@@ -482,10 +499,14 @@ class APGIPsychophysicalEstimator:
         }
 
         # Overall falsification decision
-        all_tests_passed = all(test["passed"] for test in results["falsification_tests"].values())
+        all_tests_passed = all(
+            test["passed"] for test in results["falsification_tests"].values()
+        )
         results["overall_falsification"] = {
             "framework_supported": all_tests_passed,
-            "tests_passed": sum(test["passed"] for test in results["falsification_tests"].values()),
+            "tests_passed": sum(
+                test["passed"] for test in results["falsification_tests"].values()
+            ),
             "total_tests": len(results["falsification_tests"]),
         }
 
@@ -590,7 +611,9 @@ class APGIPsychophysicalEstimator:
 
         # 3. Correlation heatmap
         correlation_matrix = df[param_names].corr()
-        im = axes[2, 0].imshow(correlation_matrix, cmap="coolwarm", aspect="auto", vmin=-1, vmax=1)
+        im = axes[2, 0].imshow(
+            correlation_matrix, cmap="coolwarm", aspect="auto", vmin=-1, vmax=1
+        )
         axes[2, 0].set_xticks(range(len(param_names)))
         axes[2, 0].set_yticks(range(len(param_names)))
         axes[2, 0].set_xticklabels(param_names, rotation=45)
@@ -620,12 +643,16 @@ class APGIPsychophysicalEstimator:
         axes[2, 1].set_title("Test-Retest Reliability (ICC)")
         axes[2, 1].set_ylabel("ICC")
         axes[2, 1].tick_params(axis="x", rotation=45)
-        axes[2, 1].axhline(y=0.7, color="red", linestyle="--", alpha=0.7, label="Minimum threshold")
+        axes[2, 1].axhline(
+            y=0.7, color="red", linestyle="--", alpha=0.7, label="Minimum threshold"
+        )
         axes[2, 1].legend()
 
         # 5. Falsification results summary
         test_names = list(results["falsification_tests"].keys())[:-1]  # Exclude overall
-        test_results = [results["falsification_tests"][test]["passed"] for test in test_names]
+        test_results = [
+            results["falsification_tests"][test]["passed"] for test in test_names
+        ]
         colors = ["green" if result else "red" for result in test_results]
 
         axes[2, 2].barh(test_names, [1] * len(test_names), color=colors)
@@ -667,7 +694,9 @@ Key Findings:
         axes[2, 3].axis("off")
 
         plt.tight_layout()
-        plt.savefig("protocol8_individual_differences.png", dpi=300, bbox_inches="tight")
+        plt.savefig(
+            "protocol8_individual_differences.png", dpi=300, bbox_inches="tight"
+        )
         plt.close()
 
         print("Visualization saved to: protocol8_individual_differences.png")
@@ -676,7 +705,9 @@ Key Findings:
 def run_validation():
     """Main validation function for the protocol"""
     print("=" * 80)
-    print("APGI PROTOCOL 8: PSYCHOPHYSICAL THRESHOLD ESTIMATION & INDIVIDUAL DIFFERENCES")
+    print(
+        "APGI PROTOCOL 8: PSYCHOPHYSICAL THRESHOLD ESTIMATION & INDIVIDUAL DIFFERENCES"
+    )
     print("=" * 80)
 
     estimator = APGIPsychophysicalEstimator(n_participants=50)
@@ -702,7 +733,9 @@ def run_validation():
     print(
         f"• Maximum parameter intercorrelation: {results['falsification_tests']['F3_4']['max_correlation']:.3f}"
     )
-    print(f"• Number of factors identified: {results['falsification_tests']['F3_5']['n_factors']}")
+    print(
+        f"• Number of factors identified: {results['falsification_tests']['F3_5']['n_factors']}"
+    )
 
     print("\nTest-Retest Reliability (ICC):")
     for param, icc in results["reliability_analysis"]["test_retest_icc"].items():

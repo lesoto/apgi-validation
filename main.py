@@ -133,7 +133,9 @@ def handle_import_error(module_name: str, error: Exception, context: str = "") -
 
     elif "Permission denied" in error_msg:
         quiet_print(f"Permission error loading {module_name}", "error", force=True)
-        quiet_print("Try running with appropriate permissions or check file permissions", "info")
+        quiet_print(
+            "Try running with appropriate permissions or check file permissions", "info"
+        )
 
     else:
         quiet_print(f"Error importing {module_name}: {error_msg}", "error", force=True)
@@ -156,7 +158,9 @@ def handle_file_error(file_path: str, operation: str, error: Exception) -> None:
         quiet_print("Check file permissions or run with appropriate privileges", "info")
 
     elif "Is a directory" in error_msg:
-        quiet_print(f"Expected file but got directory: {file_path}", "error", force=True)
+        quiet_print(
+            f"Expected file but got directory: {file_path}", "error", force=True
+        )
         quiet_print("Please specify a file, not a directory", "info")
 
     else:
@@ -173,7 +177,9 @@ def handle_validation_error(error: Exception, context: str = "") -> None:
         or "maximum" in error_msg.lower()
     ):
         quiet_print(f"Parameter out of valid range: {error_msg}", "error", force=True)
-        quiet_print("Check parameter constraints in configuration documentation", "info")
+        quiet_print(
+            "Check parameter constraints in configuration documentation", "info"
+        )
 
     elif "type" in error_msg.lower():
         quiet_print(f"Invalid parameter type: {error_msg}", "error", force=True)
@@ -230,7 +236,9 @@ class APGIModuleLoader:
                     spec.loader.exec_module(module)
                     self.modules[name] = {"module": module, "config": config}
                 except (ImportError, AttributeError, OSError, TypeError) as e:
-                    console.print(f"[yellow]Warning: Could not load {config['file']}: {e}[/yellow]")
+                    console.print(
+                        f"[yellow]Warning: Could not load {config['file']}: {e}[/yellow]"
+                    )
 
     def get_module(self, name):
         """Get loaded module by name."""
@@ -242,7 +250,9 @@ module_loader = APGIModuleLoader()
 
 
 @click.group()
-@click.version_option(version=global_config["version"], prog_name=global_config["project_name"])
+@click.version_option(
+    version=global_config["version"], prog_name=global_config["project_name"]
+)
 @click.option("--config-file", help="Override configuration file path")
 @click.option("--log-level", help="Override logging level")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
@@ -287,7 +297,9 @@ def cli(ctx, config_file, log_level, verbose, quiet):
     type=int,
     help="Number of simulation steps (uses config default)",
 )
-@click.option("--dt", default=None, type=float, help="Time step size (uses config default)")
+@click.option(
+    "--dt", default=None, type=float, help="Time step size (uses config default)"
+)
 @click.option("--output-file", help="Output file for results")
 @click.option("--params", help="JSON file with custom parameters")
 @click.option("--plot", is_flag=True, help="Generate visualization plots")
@@ -360,7 +372,9 @@ def formal_model(
                             console.print("[red]❌ Parameter validation failed:[/red]")
                             for error in validation_result["errors"]:
                                 console.print(f"  • {error}")
-                            console.print("[yellow]Using default parameters instead[/yellow]")
+                            console.print(
+                                "[yellow]Using default parameters instead[/yellow]"
+                            )
 
                             if validation_result["warnings"]:
                                 console.print("[yellow]Warnings:[/yellow]")
@@ -380,14 +394,18 @@ def formal_model(
                         console.print(
                             "[yellow]⚠️  Parameter validator not available, skipping validation[/yellow]"
                         )
-                        console.print(f"[green]✓[/green] Loaded custom parameters from {params}")
+                        console.print(
+                            f"[green]✓[/green] Loaded custom parameters from {params}"
+                        )
 
                     # Update model parameters with custom values
                     for key, value in custom_params.items():
                         if key in model_params:
                             model_params[key] = float(value)
                         else:
-                            verbose_print(f"Warning: Unknown parameter '{key}' ignored", "warning")
+                            verbose_print(
+                                f"Warning: Unknown parameter '{key}' ignored", "warning"
+                            )
 
                 except FileNotFoundError:
                     quiet_print(
@@ -395,7 +413,9 @@ def formal_model(
                         "error",
                         force=True,
                     )
-                    verbose_print(f"File path checked: {Path(params).absolute()}", "warning")
+                    verbose_print(
+                        f"File path checked: {Path(params).absolute()}", "warning"
+                    )
                     quiet_print("Using default parameters instead", "warning")
                     verbose_print(
                         'Tip: Create a JSON file with parameters like: {"tau_S": 0.5, "alpha": 10.0}',
@@ -435,7 +455,9 @@ def formal_model(
             def handle_cancel(signum, frame):
                 """Handle SIGINT signal to cancel simulation gracefully."""
                 cancel_flag.set()
-                console.print("\n[yellow]⚠️  Simulation cancellation requested...[/yellow]")
+                console.print(
+                    "\n[yellow]⚠️  Simulation cancellation requested...[/yellow]"
+                )
 
             signal.signal(signal.SIGINT, handle_cancel)
 
@@ -449,7 +471,9 @@ def formal_model(
                 # Check for cancellation
                 if cancel_flag.is_set():
                     console.print("[yellow]⚠️  Simulation cancelled by user[/yellow]")
-                    progress.update(task, description="Simulation cancelled!", completed=True)
+                    progress.update(
+                        task, description="Simulation cancelled!", completed=True
+                    )
                     return
 
                 # Create dummy inputs for demonstration
@@ -469,7 +493,10 @@ def formal_model(
                 results["ignition"].append(system.B)
 
                 # Update progress periodically
-                if step - last_update >= progress_update_interval or step == sim_steps - 1:
+                if (
+                    step - last_update >= progress_update_interval
+                    or step == sim_steps - 1
+                ):
                     progress_percent = (step + 1) / sim_steps
                     progress.update(
                         task,
@@ -575,7 +602,9 @@ def _validate_input_file(input_data: Optional[str]) -> bool:
 
     # Check file format
     if not input_data.lower().endswith((".csv", ".json", ".pkl")):
-        console.print(f"[red]❌ Error: Unsupported file format '{input_path.suffix}'[/red]")
+        console.print(
+            f"[red]❌ Error: Unsupported file format '{input_path.suffix}'[/red]"
+        )
         console.print("[blue]Supported formats: .csv, .json, .pkl[/blue]")
         return False
 
@@ -610,9 +639,13 @@ def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
         return
 
     # Check for valid numeric data
-    numeric_cols = [col for col in data.columns if data[col].dtype in ["float64", "int64"]]
+    numeric_cols = [
+        col for col in data.columns if data[col].dtype in ["float64", "int64"]
+    ]
     if len(numeric_cols) == 0:
-        console.print(f"[red]Error: CSV file '{input_data}' contains no numeric columns[/red]")
+        console.print(
+            f"[red]Error: CSV file '{input_data}' contains no numeric columns[/red]"
+        )
         console.print(f"[yellow]Available columns: {list(data.columns)}[/yellow]")
         return
 
@@ -642,16 +675,24 @@ def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
 
     # Ensure we have required modalities
     if "P3b_amplitude" not in subject_data or "pupil_diameter" not in subject_data:
-        console.print("[yellow]Warning: Missing required modalities for APGI integration[/yellow]")
-        console.print(f"[yellow]Available modalities: {list(subject_data.keys())}[/yellow]")
+        console.print(
+            "[yellow]Warning: Missing required modalities for APGI integration[/yellow]"
+        )
+        console.print(
+            f"[yellow]Available modalities: {list(subject_data.keys())}[/yellow]"
+        )
         console.print(
             "[yellow]Required: P3b_amplitude (EEG) and pupil_diameter (for APGI integration)[/yellow]"
         )
         return
 
     console.print(f"[blue]Found modalities: {list(subject_data.keys())}[/blue]")
-    console.print(f"[blue]P3b_amplitude shape: {subject_data['P3b_amplitude'].shape}[/blue]")
-    console.print(f"[blue]Pupil_diameter shape: {subject_data['pupil_diameter'].shape}[/blue]")
+    console.print(
+        f"[blue]P3b_amplitude shape: {subject_data['P3b_amplitude'].shape}[/blue]"
+    )
+    console.print(
+        f"[blue]Pupil_diameter shape: {subject_data['pupil_diameter'].shape}[/blue]"
+    )
 
     # Run integration using process_subject
     results = {"status": "demo", "message": "Processor not available"}
@@ -719,12 +760,16 @@ def _run_demo_mode() -> None:
 
     except (ValueError, KeyError, AttributeError, IndexError) as e:
         console.print(f"[yellow]Demo integration limited: {e}[/yellow]")
-        console.print("[yellow]Note: Full integration requires specific data format[/yellow]")
+        console.print(
+            "[yellow]Note: Full integration requires specific data format[/yellow]"
+        )
 
         # Fallback: show basic statistics
         console.print("[blue]Synthetic Data Statistics:[/blue]")
         for modality, data in synthetic_subject_data.items():
-            console.print(f"  {modality}: mean={np.mean(data):.3f}, std={np.std(data):.3f}")
+            console.print(
+                f"  {modality}: mean={np.mean(data):.3f}, std={np.std(data):.3f}"
+            )
 
 
 @cli.command()
@@ -788,7 +833,9 @@ def multimodal(
 
 @cli.command()
 @click.option("--data-file", help="Experimental data file for parameter estimation")
-@click.option("--method", default="mcmc", help="Estimation method (mcmc, map, gradient)")
+@click.option(
+    "--method", default="mcmc", help="Estimation method (mcmc, map, gradient)"
+)
 @click.option("--iterations", default=1000, help="Number of iterations for MCMC")
 @click.option("--output-file", help="Output file for parameter estimates")
 @click.pass_context
@@ -871,14 +918,18 @@ def estimate_params(
                         trace = pm.sample(iterations, tune=500, cores=1)
 
                     # Summarize results
-                    results = az.summary(trace, var_names=["Pi_e", "Pi_i", "theta", "beta"])
+                    results = az.summary(
+                        trace, var_names=["Pi_e", "Pi_i", "theta", "beta"]
+                    )
                     console.print("[green]✓[/green] MCMC estimation completed")
                     console.print(results)
 
                     # Save results
                     if output_file:
                         results.to_csv(output_file)
-                        console.print(f"[green]✓[/green] Results saved to {output_file}")
+                        console.print(
+                            f"[green]✓[/green] Results saved to {output_file}"
+                        )
 
                 elif method == "map":
                     console.print("[blue]Running MAP parameter estimation...[/blue]")
@@ -925,10 +976,14 @@ def estimate_params(
                                     f,
                                     indent=2,
                                 )
-                            console.print(f"[green]✓[/green] Results saved to {output_file}")
+                            console.print(
+                                f"[green]✓[/green] Results saved to {output_file}"
+                            )
 
                 elif method == "gradient":
-                    console.print("[blue]Running gradient-based parameter estimation...[/blue]")
+                    console.print(
+                        "[blue]Running gradient-based parameter estimation...[/blue]"
+                    )
                     # Simple gradient-based optimization using scipy
                     from scipy.optimize import minimize
 
@@ -973,7 +1028,9 @@ def estimate_params(
 
                     if result.success:
                         params_optimized = result.x
-                        console.print("[green]✓[/green] Gradient-based estimation completed")
+                        console.print(
+                            "[green]✓[/green] Gradient-based estimation completed"
+                        )
                         console.print("[bold]Optimized Parameters:[/bold]")
                         param_names = ["Pi_e", "Pi_i", "theta", "beta"]
                         for name, value in zip(param_names, params_optimized):
@@ -986,9 +1043,13 @@ def estimate_params(
                             results_dict = dict(zip(param_names, params_optimized))
                             with open(output_file, "w") as f:
                                 json.dump(results_dict, f, indent=2)
-                            console.print(f"[green]✓[/green] Results saved to {output_file}")
+                            console.print(
+                                f"[green]✓[/green] Results saved to {output_file}"
+                            )
                     else:
-                        console.print(f"[red]Optimization failed: {result.message}[/red]")
+                        console.print(
+                            f"[red]Optimization failed: {result.message}[/red]"
+                        )
 
             except (
                 FileNotFoundError,
@@ -1027,10 +1088,14 @@ def estimate_params(
             p3b_signal = p3b_signal[:min_length]
 
             # Create synthetic data (for potential use)
-            _synthetic_data = pd.DataFrame({"time": t, "HEP": hep_signal, "P3b": p3b_signal})
+            _synthetic_data = pd.DataFrame(
+                {"time": t, "HEP": hep_signal, "P3b": p3b_signal}
+            )
 
             console.print("[green]✓[/green] Synthetic neural signals generated")
-            console.print(f"Signal duration: {signal_duration}s, Sampling rate: {sampling_rate}Hz")
+            console.print(
+                f"Signal duration: {signal_duration}s, Sampling rate: {sampling_rate}Hz"
+            )
 
             # Run APGI dynamics
             surprise_trajectory = APGIDynamics.simulate_surprise_accumulation(
@@ -1041,7 +1106,9 @@ def estimate_params(
                 surprise_accumulated, theta_t=0.5
             )
 
-            console.print(f"[blue]Accumulated Surprise: {surprise_accumulated:.3f}[/blue]")
+            console.print(
+                f"[blue]Accumulated Surprise: {surprise_accumulated:.3f}[/blue]"
+            )
             console.print(f"[blue]Ignition Probability: {ignition_prob:.3f}[/blue]")
 
     except (ValueError, TypeError, RuntimeError, ImportError) as e:
@@ -1063,7 +1130,9 @@ def _run_single_protocol(protocol_file: str, validation_dir: Path) -> tuple:
     protocol_num = protocol_file.split("-")[-1].replace(".py", "")
 
     try:
-        spec = importlib.util.spec_from_file_location(f"protocol_{protocol_num}", protocol_path)
+        spec = importlib.util.spec_from_file_location(
+            f"protocol_{protocol_num}", protocol_path
+        )
         protocol_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol_module)
 
@@ -1092,7 +1161,8 @@ def _run_parallel(protocols: List[str], validation_dir: Path) -> Dict:
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         future_to_protocol = {
-            executor.submit(run_single, protocol_file): protocol_file for protocol_file in protocols
+            executor.submit(run_single, protocol_file): protocol_file
+            for protocol_file in protocols
         }
 
         for future in concurrent.futures.as_completed(future_to_protocol):
@@ -1117,7 +1187,9 @@ def _run_sequential(protocols: List[str], validation_dir: Path) -> Dict:
         console.print(f"[blue]Running Protocol {protocol_num}...[/blue]")
 
         try:
-            spec = importlib.util.spec_from_file_location(f"protocol_{protocol_num}", protocol_path)
+            spec = importlib.util.spec_from_file_location(
+                f"protocol_{protocol_num}", protocol_path
+            )
             protocol_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(protocol_module)
 
@@ -1152,7 +1224,9 @@ def _save_results(results: Dict, output_dir: Optional[str]):
     else:
         default_output_dir = PROJECT_ROOT / "validation_results"
         default_output_dir.mkdir(exist_ok=True)
-        results_file = default_output_dir / f"validation_results_{int(time.time())}.json"
+        results_file = (
+            default_output_dir / f"validation_results_{int(time.time())}.json"
+        )
 
     import json
 
@@ -1216,7 +1290,9 @@ def validate(
             elif protocol in [p.split("-")[-1].replace(".py", "") for p in protocols]:
                 console.print(f"[blue]Running protocol: {protocol}[/blue]")
                 protocol_file = f"Validation-Protocol-{protocol}.py"
-                protocol_num, result, error = _run_single_protocol(protocol_file, validation_dir)
+                protocol_num, result, error = _run_single_protocol(
+                    protocol_file, validation_dir
+                )
                 if error:
                     console.print(f"[red]Error in Protocol {protocol}: {error}[/red]")
                 else:
@@ -1282,7 +1358,9 @@ def falsify(
         if protocol:
             if protocol in protocols:
                 console.print(f"[blue]Running falsification protocol {protocol}[/blue]")
-                protocol_file = falsification_dir / f"Falsification-Protocol-{protocol}.py"
+                protocol_file = (
+                    falsification_dir / f"Falsification-Protocol-{protocol}.py"
+                )
 
                 try:
                     # Import and run falsification protocol
@@ -1305,10 +1383,14 @@ def falsify(
 
                             with open(output_file, "w") as f:
                                 json.dump(result, f, indent=2, default=str)
-                            console.print(f"[green]✓[/green] Results saved to {output_file}")
+                            console.print(
+                                f"[green]✓[/green] Results saved to {output_file}"
+                            )
 
                     elif hasattr(falsification_module, "main"):
-                        console.print("[blue]Running main falsification function...[/blue]")
+                        console.print(
+                            "[blue]Running main falsification function...[/blue]"
+                        )
                         falsification_module.main()
                         console.print(f"[green]✓[/green] Protocol {protocol} completed")
                     else:
@@ -1322,7 +1404,9 @@ def falsify(
                             if callable(getattr(falsification_module, attr))
                             and not attr.startswith("_")
                         ]
-                        console.print(f"[yellow]Available functions: {functions}[/yellow]")
+                        console.print(
+                            f"[yellow]Available functions: {functions}[/yellow]"
+                        )
 
                 except (
                     ImportError,
@@ -1331,14 +1415,18 @@ def falsify(
                     RuntimeError,
                 ) as e:
                     console.print(f"[red]Error in Protocol {protocol}: {e}[/red]")
-                    apgi_logger.logger.error(f"Falsification protocol {protocol} error: {e}")
+                    apgi_logger.logger.error(
+                        f"Falsification protocol {protocol} error: {e}"
+                    )
             else:
                 console.print(f"[red]Error: Protocol {protocol} not found[/red]")
         else:
             console.print("[yellow]Specify a protocol number (1-6)[/yellow]")
             # Run a quick demo of falsification concept
             console.print("[blue]Demo: APGI Falsification Testing Concept[/blue]")
-            console.print("Falsification protocols test specific predictions of the APGI theory:")
+            console.print(
+                "Falsification protocols test specific predictions of the APGI theory:"
+            )
             console.print("- Protocol 1: Surprise accumulation threshold falsification")
             console.print("- Protocol 2: Precision-weighted integration falsification")
             console.print("- Protocol 3: Cross-modal validation falsification")
@@ -1434,7 +1522,9 @@ def _set_config(key, value):
         if "." in key:
             section, param = key.split(".", 1)
             if not section or not param:
-                raise ValueError("Invalid key format. Use 'section.parameter' or 'parameter'")
+                raise ValueError(
+                    "Invalid key format. Use 'section.parameter' or 'parameter'"
+                )
             console.print(f"[blue]Setting {section}.{param} = {value}[/blue]")
             # success = set_parameter(section, param, value)
             success = True
@@ -1529,7 +1619,9 @@ def config(ctx, show, set, reset):
             _reset_config()
         if not any([show, set, reset]):
             console.print("[yellow]Use --show to view current configuration[/yellow]")
-            console.print("[yellow]Use --set key=value to update configuration[/yellow]")
+            console.print(
+                "[yellow]Use --set key=value to update configuration[/yellow]"
+            )
             console.print("[yellow]Use --reset to restore defaults[/yellow]")
 
     except (FileNotFoundError, PermissionError, ValueError, KeyError) as e:
@@ -1553,7 +1645,9 @@ def neural_signatures(
     output_file: Optional[str],
 ) -> None:
     """Run Priority 1: Convergent Neural Signatures validation."""
-    console.print(Panel.fit("🧠 Priority 1: Convergent Neural Signatures", style="bold blue"))
+    console.print(
+        Panel.fit("🧠 Priority 1: Convergent Neural Signatures", style="bold blue")
+    )
 
     try:
         # Import the neural signatures validator
@@ -1619,7 +1713,9 @@ def causal_manipulations(
         validator = causal_module.CausalManipulationsValidator()
 
         if intervention:
-            console.print(f"[blue]Running {intervention} intervention validation...[/blue]")
+            console.print(
+                f"[blue]Running {intervention} intervention validation...[/blue]"
+            )
             if intervention == "tms":
                 results = validator._validate_tms_ignition_disruption()
             elif intervention == "pharmacological":
@@ -1662,7 +1758,9 @@ def quantitative_fits(
     output_file: Optional[str],
 ) -> None:
     """Run Priority 3: Quantitative Model Fits validation."""
-    console.print(Panel.fit("📊 Priority 3: Quantitative Model Fits", style="bold yellow"))
+    console.print(
+        Panel.fit("📊 Priority 3: Quantitative Model Fits", style="bold yellow")
+    )
 
     try:
         # Import the quantitative fits validator
@@ -1705,7 +1803,9 @@ def clinical_convergence(
     output_file: Optional[str],
 ) -> None:
     """Run Priority 4: Clinical and Cross-Species Convergence validation."""
-    console.print(Panel.fit("🏥 Priority 4: Clinical Convergence", style="bold magenta"))
+    console.print(
+        Panel.fit("🏥 Priority 4: Clinical Convergence", style="bold magenta")
+    )
 
     try:
         # Import the clinical convergence validator
@@ -1747,7 +1847,9 @@ def clinical_convergence(
 @cli.command()
 @click.option(
     "--component",
-    type=click.Choice(["preregistration", "replication", "publication", "collaboration"]),
+    type=click.Choice(
+        ["preregistration", "replication", "publication", "collaboration"]
+    ),
     help="Open science component",
 )
 @click.option("--action", help="Specific action (create, validate, etc.)")
@@ -1800,7 +1902,9 @@ def open_science(
             if output_file:
                 with open(output_file, "w") as f:
                     f.write(prereg.to_json())
-                console.print(f"[green]✓[/green] Preregistration saved to {output_file}")
+                console.print(
+                    f"[green]✓[/green] Preregistration saved to {output_file}"
+                )
             else:
                 print(prereg.to_json())
 
@@ -1861,7 +1965,9 @@ def falsification(
         if comprehensive:
             results = framework.conduct_falsification_test(empirical_results)
             print("Comprehensive Falsification Assessment:")
-            print(f"Scientific Status: {results['scientific_assessment']['scientific_status']}")
+            print(
+                f"Scientific Status: {results['scientific_assessment']['scientific_status']}"
+            )
             print(".3f")
             print(".3f")
         elif priority:
@@ -1875,7 +1981,9 @@ def falsification(
             print(f"Falsified: {results['overall_falsified']}")
             print(f"Falsification Rate: {results['falsification_rate']:.3f}")
         else:
-            console.print("[yellow]Specify --priority (1-4) or use --comprehensive[/yellow]")
+            console.print(
+                "[yellow]Specify --priority (1-4) or use --comprehensive[/yellow]"
+            )
 
         if output_file:
             import json
@@ -1928,7 +2036,9 @@ def bayesian_estimation(
             true_probs = 1.0 / (1 + np.exp(-true_beta * (stimuli - true_theta)))
             detections = np.random.binomial(20, true_probs) / 20
 
-            empirical_data = {"psychometric_data": {"stimuli": stimuli, "detections": detections}}
+            empirical_data = {
+                "psychometric_data": {"stimuli": stimuli, "detections": detections}
+            }
 
             results = framework.comprehensive_bayesian_validation(empirical_data)
 
@@ -1977,7 +2087,9 @@ def comprehensive_validation(
     parallel: bool,
 ) -> None:
     """Run comprehensive validation across all APGI priorities and frameworks."""
-    console.print(Panel.fit("🎯 Comprehensive APGI Validation", style="bold white on red"))
+    console.print(
+        Panel.fit("🎯 Comprehensive APGI Validation", style="bold white on red")
+    )
 
     import time
 
@@ -2068,7 +2180,9 @@ def comprehensive_validation(
             "priority_3_score": priority_scores[2],
             "priority_4_score": priority_scores[3],
             "average_priority_score": np.mean(priority_scores),
-            "falsification_status": fals_results["scientific_assessment"]["scientific_status"],
+            "falsification_status": fals_results["scientific_assessment"][
+                "scientific_status"
+            ],
             "overall_validation_score": np.mean(priority_scores) * 25,  # Scale to 0-100
             "validation_time_seconds": time.time() - start_time,
         }
@@ -2084,7 +2198,9 @@ def comprehensive_validation(
         print(f"Priority 4 (Clinical Convergence): {priority_scores[3]:.3f}")
         print(".3f")
         print(".1f")
-        print(f"Scientific Status: {fals_results['scientific_assessment']['scientific_status']}")
+        print(
+            f"Scientific Status: {fals_results['scientific_assessment']['scientific_status']}"
+        )
         print(".3f")
 
         # Final assessment
@@ -2108,7 +2224,9 @@ def comprehensive_validation(
 
             with open(output_file, "w") as f:
                 json.dump(results, f, indent=2, default=str)
-            console.print(f"[green]✓[/green] Comprehensive results saved to {output_file}")
+            console.print(
+                f"[green]✓[/green] Comprehensive results saved to {output_file}"
+            )
 
     except Exception as e:
         console.print(f"[red]Error in comprehensive validation: {e}[/red]")
@@ -2120,10 +2238,14 @@ def comprehensive_validation(
 def _run_gui_module(gui_path, gui_name, debug):
     """Run a GUI module."""
     console.print(f"[blue]🚀 Launching {gui_name} GUI...[/blue]")
-    console.print("[yellow]ℹ️  Note: GUI will run in foreground. Press Ctrl+C to exit.[/yellow]")
+    console.print(
+        "[yellow]ℹ️  Note: GUI will run in foreground. Press Ctrl+C to exit.[/yellow]"
+    )
 
     try:
-        spec = importlib.util.spec_from_file_location(f"{gui_name.lower()}_gui", gui_path)
+        spec = importlib.util.spec_from_file_location(
+            f"{gui_name.lower()}_gui", gui_path
+        )
         if spec is None or spec.loader is None:
             raise ImportError(f"Could not create module spec for {gui_path}")
 
@@ -2138,7 +2260,9 @@ def _run_gui_module(gui_path, gui_name, debug):
                 gui_module.main()
                 console.print(f"[blue]✅ {gui_name} GUI closed normally[/blue]")
             except KeyboardInterrupt:
-                console.print(f"[yellow]⚠️  {gui_name} GUI interrupted by user[/yellow]")
+                console.print(
+                    f"[yellow]⚠️  {gui_name} GUI interrupted by user[/yellow]"
+                )
             except Exception as e:
                 console.print(f"[red]❌ Error in {gui_name} GUI: {e}[/red]")
                 if debug:
@@ -2146,7 +2270,9 @@ def _run_gui_module(gui_path, gui_name, debug):
 
                     console.print(f"[red]Traceback: {traceback.format_exc()}[/red]")
         else:
-            console.print(f"[red]❌ {gui_name} GUI does not have a main() function[/red]")
+            console.print(
+                f"[red]❌ {gui_name} GUI does not have a main() function[/red]"
+            )
 
     except (ImportError, FileNotFoundError, AttributeError, RuntimeError) as e:
         console.print(f"[red]❌ Error launching {gui_name} GUI: {e}[/red]")
@@ -2246,14 +2372,18 @@ def logs(ctx, tail, follow, level, export):
 
     logs_dir = PROJECT_ROOT / "logs"
     if not logs_dir.exists():
-        console.print("[yellow]No logs directory found. Run some commands first.[/yellow]")
+        console.print(
+            "[yellow]No logs directory found. Run some commands first.[/yellow]"
+        )
         return
 
     # Handle export functionality
     if export:
         console.print(f"[blue]Exporting logs to {export}...[/blue]")
         format_type = export.split(".")[-1] if "." in export else "json"
-        success = apgi_logger.export_logs(export, format_type=format_type, log_level=level)
+        success = apgi_logger.export_logs(
+            export, format_type=format_type, log_level=level
+        )
         if success:
             console.print(f"[green]✓[/green] Logs exported to {export}")
         else:
@@ -2291,7 +2421,9 @@ def logs(ctx, tail, follow, level, export):
             if level:
                 filtered_lines = [line for line in lines if level.upper() in line]
                 display_lines = (
-                    filtered_lines[-tail:] if len(filtered_lines) > tail else filtered_lines
+                    filtered_lines[-tail:]
+                    if len(filtered_lines) > tail
+                    else filtered_lines
                 )
             else:
                 display_lines = lines[-tail:]
@@ -2318,7 +2450,9 @@ def performance(detailed):
             return
 
         # Create performance table
-        perf_table = Table(title="Performance Summary", show_header=True, header_style="bold cyan")
+        perf_table = Table(
+            title="Performance Summary", show_header=True, header_style="bold cyan"
+        )
         perf_table.add_column("Metric", style="cyan", width=25)
         perf_table.add_column("Count", style="white", width=10)
         perf_table.add_column("Mean", style="green", width=12)
@@ -2345,7 +2479,9 @@ def performance(detailed):
                 console.print(
                     f"  Latest: {stats['latest']:.3f} {stats['unit']} at {stats['latest_timestamp']}"
                 )
-                console.print(f"  Range: {stats['min']:.3f} - {stats['max']:.3f} {stats['unit']}")
+                console.print(
+                    f"  Range: {stats['min']:.3f} - {stats['max']:.3f} {stats['unit']}"
+                )
                 console.print(
                     f"  Average: {stats['mean']:.3f} {stats['unit']} over {stats['count']} measurements"
                 )
@@ -2363,7 +2499,9 @@ def _load_visualization_data(input_file):
         data = pd.read_csv(input_file)
     except FileNotFoundError:
         console.print(f"[red]Error: File not found: {input_file}[/red]")
-        console.print(f"[yellow]File path checked: {Path(input_file).absolute()}[/yellow]")
+        console.print(
+            f"[yellow]File path checked: {Path(input_file).absolute()}[/yellow]"
+        )
         console.print("[yellow]Available data files:[/yellow]")
 
         # List available CSV files in data directory
@@ -2396,7 +2534,9 @@ def _load_visualization_data(input_file):
         console.print(f"[red]Error reading file {input_file}: {e}[/red]")
         console.print(f"[yellow]File type: {Path(input_file).suffix}[/yellow]")
         console.print("[yellow]Supported formats: .csv, .json, .xlsx, .xls[/yellow]")
-        console.print("[blue]Tip: Check if the file is corrupted or in the correct format[/blue]")
+        console.print(
+            "[blue]Tip: Check if the file is corrupted or in the correct format[/blue]"
+        )
         return None
 
     console.print(f"[green]✓[/green] Loaded data with shape: {data.shape}")
@@ -2454,7 +2594,11 @@ def _parse_visualization_parameters(
     try:
         subplot_rows_val = int(subplot_rows)
         subplot_cols_val = int(subplot_cols)
-        if subplot_rows_val < 1 or subplot_cols_val < 1 or subplot_rows_val * subplot_cols_val > 12:
+        if (
+            subplot_rows_val < 1
+            or subplot_cols_val < 1
+            or subplot_rows_val * subplot_cols_val > 12
+        ):
             raise ValueError()
     except ValueError:
         subplot_rows_val, subplot_cols_val = 1, 1
@@ -2495,9 +2639,13 @@ def _setup_plotting_style(style, palette, font_family, font_size_val, sns, plt):
             elif palette.startswith("Set"):
                 sns.set_palette(palette)
             else:
-                console.print(f"[yellow]Unknown palette '{palette}', using default[/yellow]")
+                console.print(
+                    f"[yellow]Unknown palette '{palette}', using default[/yellow]"
+                )
         except (ValueError, TypeError, AttributeError):
-            console.print(f"[yellow]Error setting palette '{palette}', using default[/yellow]")
+            console.print(
+                f"[yellow]Error setting palette '{palette}', using default[/yellow]"
+            )
 
     # Set up font properties
     plt.rcParams["font.family"] = font_family
@@ -2509,7 +2657,9 @@ def _setup_plotting_style(style, palette, font_family, font_size_val, sns, plt):
     plt.rcParams["legend.fontsize"] = font_size_val - 1
 
 
-def _create_figure_and_axes(fig_width, fig_height, subplot_rows_val, subplot_cols_val, aspect, plt):
+def _create_figure_and_axes(
+    fig_width, fig_height, subplot_rows_val, subplot_cols_val, aspect, plt
+):
     """Create figure and axes with proper configuration."""
     # Create figure with custom size and subplots
     if subplot_rows_val * subplot_cols_val > 1:
@@ -2596,14 +2746,18 @@ def _create_scatter_plot(
         )
         ax.set_xlabel(xlabel if xlabel else numeric_cols[0])
         ax.set_ylabel(ylabel if ylabel else numeric_cols[1])
-        ax.set_title(title if title else f"Scatter Plot: {numeric_cols[0]} vs {numeric_cols[1]}")
+        ax.set_title(
+            title if title else f"Scatter Plot: {numeric_cols[0]} vs {numeric_cols[1]}"
+        )
         if grid:
             ax.grid(True, alpha=0.3)
         if legend:
             ax.legend([scatter], [f"{numeric_cols[0]} vs {numeric_cols[1]}"])
         return True
     else:
-        console.print("[yellow]Need at least 2 numeric columns for scatter plot[/yellow]")
+        console.print(
+            "[yellow]Need at least 2 numeric columns for scatter plot[/yellow]"
+        )
         return False
 
 
@@ -2717,11 +2871,15 @@ def _create_plot_by_type(
     elif plot_type == "pair":
         numeric_cols = data.select_dtypes(include=[np.number]).columns.tolist()
         if len(numeric_cols) >= 2:
-            sns.pairplot(data[numeric_cols[:4]], alpha=float(alpha))  # Limit to 4 columns
+            sns.pairplot(
+                data[numeric_cols[:4]], alpha=float(alpha)
+            )  # Limit to 4 columns
             plt.title("Pair Plot")
             return True
         else:
-            console.print("[yellow]Need at least 2 numeric columns for pair plot[/yellow]")
+            console.print(
+                "[yellow]Need at least 2 numeric columns for pair plot[/yellow]"
+            )
             return False
 
     elif plot_type == "3d":
@@ -2745,7 +2903,9 @@ def _create_plot_by_type(
                 ax.grid(True, alpha=0.3)
             return True
         else:
-            console.print("[yellow]Need at least 3 numeric columns for 3D plot[/yellow]")
+            console.print(
+                "[yellow]Need at least 3 numeric columns for 3D plot[/yellow]"
+            )
             return False
 
     elif plot_type == "polar":
@@ -2759,7 +2919,9 @@ def _create_plot_by_type(
             ax.set_title("Polar Plot")
             return True
         else:
-            console.print("[yellow]Need at least 2 numeric columns for polar plot[/yellow]")
+            console.print(
+                "[yellow]Need at least 2 numeric columns for polar plot[/yellow]"
+            )
             return False
 
     else:
@@ -2767,7 +2929,9 @@ def _create_plot_by_type(
         return False
 
 
-def _save_or_display_plot(output_file, save_format, dpi, tight_layout, interactive, plt):
+def _save_or_display_plot(
+    output_file, save_format, dpi, tight_layout, interactive, plt
+):
     """Save or display the plot."""
     # Apply tight layout if requested
     if tight_layout:
@@ -2787,7 +2951,9 @@ def _save_or_display_plot(output_file, save_format, dpi, tight_layout, interacti
             facecolor="white",
             edgecolor="none",
         )
-        file_size = Path(output_file).stat().st_size if Path(output_file).exists() else 0
+        file_size = (
+            Path(output_file).stat().st_size if Path(output_file).exists() else 0
+        )
         console.print(
             f"[green]✓[/green] Visualization saved to {output_file} "
             f"({file_size:,} bytes, DPI: {dpi}, Format: {save_format})"
@@ -2887,7 +3053,9 @@ def visualize(
             else:
                 plot_type = "heatmap"
 
-        console.print(f"[blue]Creating {plot_type} visualization with {style} style...[/blue]")
+        console.print(
+            f"[blue]Creating {plot_type} visualization with {style} style...[/blue]"
+        )
 
         # Parse parameters
         (
@@ -2937,7 +3105,9 @@ def visualize(
             return
 
         # Save or display plot
-        _save_or_display_plot(output_file, save_format, dpi, tight_layout, interactive, plt)
+        _save_or_display_plot(
+            output_file, save_format, dpi, tight_layout, interactive, plt
+        )
 
     except (
         ValueError,
@@ -2955,7 +3125,9 @@ def visualize(
 @cli.command()
 @click.option("--input-file", required=True, help="Input file to export")
 @click.option("--output-file", required=True, help="Output file path")
-@click.option("--format", default="auto", help="Output format (auto, json, csv, excel, parquet)")
+@click.option(
+    "--format", default="auto", help="Output format (auto, json, csv, excel, parquet)"
+)
 @click.option("--compress", is_flag=True, help="Compress the output file")
 @click.pass_context
 def export_data(ctx, input_file, output_file, format, compress):
@@ -3038,7 +3210,9 @@ def export_data(ctx, input_file, output_file, format, compress):
 
         # Show file size
         file_size = Path(output_file).stat().st_size
-        console.print(f"[green]✓[/green] Data exported to {output_file} ({file_size:,} bytes)")
+        console.print(
+            f"[green]✓[/green] Data exported to {output_file} ({file_size:,} bytes)"
+        )
 
     except (FileNotFoundError, PermissionError, ValueError, json.JSONEncodeError) as e:
         console.print(f"[red]Error exporting data: {e}[/red]")
@@ -3048,7 +3222,9 @@ def export_data(ctx, input_file, output_file, format, compress):
 @cli.command()
 @click.option("--input-file", required=True, help="Input file to import")
 @click.option("--output-file", required=True, help="Output CSV file path")
-@click.option("--format", default="auto", help="Input format (auto, json, excel, parquet)")
+@click.option(
+    "--format", default="auto", help="Input format (auto, json, excel, parquet)"
+)
 @click.option("--validate", is_flag=True, help="Validate data during import")
 @click.pass_context
 def import_data(ctx, input_file, output_file, format, validate):
@@ -3097,7 +3273,9 @@ def import_data(ctx, input_file, output_file, format, validate):
             total_nulls = null_counts.sum()
 
             if total_nulls > 0:
-                console.print(f"[yellow]Warning: {total_nulls} null values found[/yellow]")
+                console.print(
+                    f"[yellow]Warning: {total_nulls} null values found[/yellow]"
+                )
                 for col, count in null_counts.items():
                     if count > 0:
                         console.print(f"  {col}: {count} nulls")
@@ -3105,7 +3283,9 @@ def import_data(ctx, input_file, output_file, format, validate):
             # Check for duplicate rows
             duplicates = data.duplicated().sum()
             if duplicates > 0:
-                console.print(f"[yellow]Warning: {duplicates} duplicate rows found[/yellow]")
+                console.print(
+                    f"[yellow]Warning: {duplicates} duplicate rows found[/yellow]"
+                )
 
             # Data types summary
             console.print("[blue]Data types:[/blue]")
@@ -3117,7 +3297,9 @@ def import_data(ctx, input_file, output_file, format, validate):
 
         # Show file size
         file_size = Path(output_file).stat().st_size
-        console.print(f"[green]✓[/green] Data imported to {output_file} ({file_size:,} bytes)")
+        console.print(
+            f"[green]✓[/green] Data imported to {output_file} ({file_size:,} bytes)"
+        )
 
     except (FileNotFoundError, PermissionError, ValueError, json.JSONDecodeError) as e:
         console.print(f"[red]Error importing data: {e}[/red]")
@@ -3125,7 +3307,9 @@ def import_data(ctx, input_file, output_file, format, validate):
 
 
 @cli.command()
-@click.option("--action", default="status", help="Cache action (status, clear, warm, suggestions)")
+@click.option(
+    "--action", default="status", help="Cache action (status, clear, warm, suggestions)"
+)
 @click.option("--sources", help="Data sources for warming (comma-separated)")
 @click.option("--max-workers", default=4, help="Max workers for parallel warming")
 def cache(ctx, action, sources, max_workers):
@@ -3186,7 +3370,9 @@ def cache(ctx, action, sources, max_workers):
 
         else:
             console.print(f"[red]Unknown action: {action}[/red]")
-            console.print("[yellow]Available actions: status, clear, warm, suggestions[/yellow]")
+            console.print(
+                "[yellow]Available actions: status, clear, warm, suggestions[/yellow]"
+            )
 
     except (FileNotFoundError, PermissionError, IOError, ValueError) as e:
         console.print(f"[red]Cache operation failed: {e}[/red]")
@@ -3198,8 +3384,12 @@ def cache(ctx, action, sources, max_workers):
     "--output-dir",
     help="Output directory for dashboards (default: apgi_output/dashboards)",
 )
-@click.option("--dashboard-type", help="Specific dashboard type (system, validation, all)")
-@click.option("--open-browser", is_flag=True, help="Open dashboard in browser after generation")
+@click.option(
+    "--dashboard-type", help="Specific dashboard type (system, validation, all)"
+)
+@click.option(
+    "--open-browser", is_flag=True, help="Open dashboard in browser after generation"
+)
 def dashboard(output_dir, dashboard_type, open_browser):
     """Generate static HTML dashboards for APGI framework."""
     console.print(Panel.fit("📊 Dashboard Generation", style="bold blue"))
@@ -3236,8 +3426,12 @@ def dashboard(output_dir, dashboard_type, open_browser):
                 elif dashboard_type == "validation":
                     generated_files = [generator.generate_validation_dashboard()]
                 else:
-                    console.print(f"[red]Unknown dashboard type: {dashboard_type}[/red]")
-                    console.print("[yellow]Available types: system, validation, all[/yellow]")
+                    console.print(
+                        f"[red]Unknown dashboard type: {dashboard_type}[/red]"
+                    )
+                    console.print(
+                        "[yellow]Available types: system, validation, all[/yellow]"
+                    )
                     return
 
         # Display results
@@ -3260,7 +3454,9 @@ def dashboard(output_dir, dashboard_type, open_browser):
 
     except ImportError as e:
         console.print(f"[red]Error importing dashboard generator: {e}[/red]")
-        console.print("[yellow]Make sure utils/static_dashboard_generator.py exists[/yellow]")
+        console.print(
+            "[yellow]Make sure utils/static_dashboard_generator.py exists[/yellow]"
+        )
     except Exception as e:
         console.print(f"[red]Error generating dashboards: {e}[/red]")
         apgi_logger.logger.error(f"Dashboard generation error: {e}")
@@ -3439,7 +3635,9 @@ def delete_backup(backup_id: Optional[str], keep_count: int, cleanup_all: bool) 
 
     try:
         if cleanup_all:
-            console.print("[yellow]This will delete ALL backups. Are you sure?[/yellow]")
+            console.print(
+                "[yellow]This will delete ALL backups. Are you sure?[/yellow]"
+            )
             # In a real implementation, you'd want confirmation here
             deleted = cleanup_backups_cli(0)  # Keep 0 backups
             console.print(f"[green]✓[/green] Deleted {deleted} backups")
@@ -3544,7 +3742,9 @@ def config_restore(version_id: Optional[str]) -> None:
                 f"[green]✓[/green] Configuration version {version_id} restored successfully"
             )
         else:
-            console.print(f"[red]✗[/red] Failed to restore configuration version {version_id}")
+            console.print(
+                f"[red]✗[/red] Failed to restore configuration version {version_id}"
+            )
     except Exception as e:
         console.print(f"[red]Error restoring config version: {e}[/red]")
         apgi_logger.logger.error(f"Config version restore error: {e}")
@@ -3558,12 +3758,16 @@ def config_diff() -> None:
     try:
         versions = config_manager.list_versions()
         if not versions:
-            console.print("[yellow]No configuration versions available for comparison[/yellow]")
+            console.print(
+                "[yellow]No configuration versions available for comparison[/yellow]"
+            )
             return
 
         # Get current config
         current_config = config_manager.get_config()
-        current_dict = current_config.__dict__ if hasattr(current_config, "__dict__") else {}
+        current_dict = (
+            current_config.__dict__ if hasattr(current_config, "__dict__") else {}
+        )
 
         # Get last version config
         last_version = versions[0]
@@ -3632,7 +3836,9 @@ def errors(category: Optional[str], severity: Optional[str], reset: bool) -> Non
 
         # Show most common error
         if summary["most_common"]:
-            console.print(f"\n[bold]Most common error category:[/bold] {summary['most_common']}")
+            console.print(
+                f"\n[bold]Most common error category:[/bold] {summary['most_common']}"
+            )
 
         console.print(f"\n[bold]Total errors:[/bold] {total}")
 

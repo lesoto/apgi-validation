@@ -115,7 +115,9 @@ class FalsificationCriterion:
                 return {"error": "Insufficient data for mean difference test"}
 
             if len(group1) < 3 or len(group2) < 3:
-                logger.warning(f"Small sample sizes: group1={len(group1)}, group2={len(group2)}")
+                logger.warning(
+                    f"Small sample sizes: group1={len(group1)}, group2={len(group2)}"
+                )
 
             # Check for normality (optional warning)
             try:
@@ -159,7 +161,9 @@ class FalsificationCriterion:
             }
 
         except Exception as e:
-            logger.error(f"Error in mean difference test for criterion {self.name}: {e}")
+            logger.error(
+                f"Error in mean difference test for criterion {self.name}: {e}"
+            )
             return {"error": f"Test execution failed: {str(e)}"}
 
     def _test_correlation(self, data: Dict) -> Dict:
@@ -169,7 +173,9 @@ class FalsificationCriterion:
             y = data.get("y", [])
 
             # Input validation
-            if not isinstance(x, (list, np.ndarray)) or not isinstance(y, (list, np.ndarray)):
+            if not isinstance(x, (list, np.ndarray)) or not isinstance(
+                y, (list, np.ndarray)
+            ):
                 return {"error": "Data must be lists or numpy arrays"}
 
             x = np.array(x, dtype=float)
@@ -179,7 +185,9 @@ class FalsificationCriterion:
                 return {"error": "Insufficient data for correlation test"}
 
             if len(x) != len(y):
-                return {"error": f"Arrays must have same length: x={len(x)}, y={len(y)}"}
+                return {
+                    "error": f"Arrays must have same length: x={len(x)}, y={len(y)}"
+                }
 
             if len(x) < 3:
                 logger.warning(f"Very small sample size for correlation: n={len(x)}")
@@ -253,7 +261,9 @@ class FalsificationCriterion:
                 return {"error": "Both models must use the same information criterion"}
 
             # Validate criterion values
-            if not isinstance(crit1, (int, float)) or not isinstance(crit2, (int, float)):
+            if not isinstance(crit1, (int, float)) or not isinstance(
+                crit2, (int, float)
+            ):
                 return {"error": f"{criterion_name} values must be numeric"}
 
             aic_diff = crit2 - crit1  # Positive means model2 is better
@@ -284,7 +294,9 @@ class FalsificationCriterion:
             }
 
         except Exception as e:
-            logger.error(f"Error in model comparison test for criterion {self.name}: {e}")
+            logger.error(
+                f"Error in model comparison test for criterion {self.name}: {e}"
+            )
             return {"error": f"Test execution failed: {str(e)}"}
 
     def _test_effect_size(self, data: Dict) -> Dict:
@@ -469,7 +481,9 @@ class APGIFalsificationProtocol:
                 criterion_data = test_data.get(criterion.name, {})
 
                 if not criterion_data:
-                    logger.warning(f"No test data provided for criterion: {criterion.name}")
+                    logger.warning(
+                        f"No test data provided for criterion: {criterion.name}"
+                    )
                     result = {
                         "criterion": criterion.name,
                         "error": "No test data provided",
@@ -482,7 +496,9 @@ class APGIFalsificationProtocol:
 
                         if result.get("falsified", False):
                             falsified_count += 1
-                            logger.warning(f"Criterion {criterion.name} falsified the theory")
+                            logger.warning(
+                                f"Criterion {criterion.name} falsified the theory"
+                            )
 
                     except Exception as e:
                         logger.error(f"Failed to test criterion {criterion.name}: {e}")
@@ -496,7 +512,9 @@ class APGIFalsificationProtocol:
             # Determine overall falsification
             results["falsified_criteria"] = falsified_count
             results["total_criteria"] = total_tests
-            results["falsification_rate"] = falsified_count / total_tests if total_tests > 0 else 0
+            results["falsification_rate"] = (
+                falsified_count / total_tests if total_tests > 0 else 0
+            )
 
             # Theory is falsified if ANY criterion is met (strict Popperian)
             results["overall_falsified"] = falsified_count > 0
@@ -506,7 +524,9 @@ class APGIFalsificationProtocol:
                 falsified_count / total_tests if total_tests > 0 else 0
             )
 
-            logger.info(f"Priority {priority}: {falsified_count}/{total_tests} criteria falsified")
+            logger.info(
+                f"Priority {priority}: {falsified_count}/{total_tests} criteria falsified"
+            )
             if results["overall_falsified"]:
                 logger.warning(f"Priority {priority} falsifies the theory")
 
@@ -527,7 +547,9 @@ class APGIFalsificationProtocol:
             Comprehensive falsification results
         """
         try:
-            logger.info("Starting comprehensive falsification testing across all priorities")
+            logger.info(
+                "Starting comprehensive falsification testing across all priorities"
+            )
 
             if not isinstance(all_test_data, dict):
                 logger.error("All test data must be a dictionary")
@@ -556,10 +578,14 @@ class APGIFalsificationProtocol:
                         total_criteria += result.get("total_criteria", 0)
                         priorities_tested += 1
                     else:
-                        logger.error(f"Failed to test priority {priority}: {result['error']}")
+                        logger.error(
+                            f"Failed to test priority {priority}: {result['error']}"
+                        )
 
                 except Exception as e:
-                    logger.error(f"Exception during priority testing for {priority}: {e}")
+                    logger.error(
+                        f"Exception during priority testing for {priority}: {e}"
+                    )
                     error_result = {
                         "priority": priority,
                         "error": f"Priority testing failed: {str(e)}",
@@ -726,20 +752,24 @@ class RobustnessTestingFramework:
 
         return discrimination_results
 
-    def _assess_discriminating_power(self, model_name: str, empirical_data: Dict) -> Dict:
+    def _assess_discriminating_power(
+        self, model_name: str, empirical_data: Dict
+    ) -> Dict:
         """Assess how well data discriminates APGI from alternative"""
 
         # Simplified assessment - would be more sophisticated
-        discriminating_tests = self.alternative_models[model_name]["discriminating_tests"]
+        discriminating_tests = self.alternative_models[model_name][
+            "discriminating_tests"
+        ]
 
         # Check if APGI makes unique predictions that alternatives don't
         unique_predictions = {
             "precision_expectation_gap_anxiety": empirical_data.get(
                 "precision_expectation_gap_anxiety", {}
             ).get("passed", False),
-            "metabolic_allostasis": empirical_data.get("metabolic_threshold_elevation", {}).get(
-                "passed", False
-            ),
+            "metabolic_allostasis": empirical_data.get(
+                "metabolic_threshold_elevation", {}
+            ).get("passed", False),
             "phase_transition": empirical_data.get("phase_transition_dynamics", {}).get(
                 "passed", False
             ),
@@ -748,7 +778,9 @@ class RobustnessTestingFramework:
             ),
         }
 
-        discriminating_power = sum(unique_predictions.values()) / len(unique_predictions)
+        discriminating_power = sum(unique_predictions.values()) / len(
+            unique_predictions
+        )
 
         return {
             "unique_predictions_tested": unique_predictions,
@@ -779,8 +811,8 @@ class PopperianFalsificationFramework:
         test_data = self._extract_test_data(empirical_results)
 
         # Run falsification tests
-        falsification_results = self.falsification_protocol.run_comprehensive_falsification(
-            test_data
+        falsification_results = (
+            self.falsification_protocol.run_comprehensive_falsification(test_data)
         )
 
         # Test robustness against alternatives
@@ -838,12 +870,16 @@ class PopperianFalsificationFramework:
 
         # Priority 3: Quantitative fits
         test_data["priority_3_quantitative_fits"] = {
-            "no_phase_transition": {"effect_size": empirical_results.get("psychometric_beta", 0)},
+            "no_phase_transition": {
+                "effect_size": empirical_results.get("psychometric_beta", 0)
+            },
             "lnn_fails_paradigm": {
                 "model1": empirical_results.get("apgi_lnn_fit", {}),
                 "model2": empirical_results.get("alternative_fit", {}),
             },
-            "bayesian_no_convergence": {"effect_size": empirical_results.get("bayesian_rhat", 1.0)},
+            "bayesian_no_convergence": {
+                "effect_size": empirical_results.get("bayesian_rhat", 1.0)
+            },
         }
 
         # Priority 4: Clinical convergence
@@ -853,7 +889,9 @@ class PopperianFalsificationFramework:
                 "group2": empirical_results.get("healthy_p3b", []),
             },
             "psychiatric_no_differentiation": {
-                "effect_size": empirical_results.get("psychiatric_classification_accuracy", 0)
+                "effect_size": empirical_results.get(
+                    "psychiatric_classification_accuracy", 0
+                )
             },
             "no_species_homology": {
                 "x": empirical_results.get("species_brain_size", []),
@@ -870,9 +908,9 @@ class PopperianFalsificationFramework:
 
         # Corroboration vs falsification
         falsification_rate = falsification_results.get("overall_falsification_rate", 0)
-        discrimination_success = discrimination_results.get("overall_assessment", {}).get(
-            "theory_discriminated", False
-        )
+        discrimination_success = discrimination_results.get(
+            "overall_assessment", {}
+        ).get("theory_discriminated", False)
 
         # Scientific status determination
         if falsification_results.get("overall_falsification", False):
@@ -896,15 +934,19 @@ class PopperianFalsificationFramework:
             "falsification_rate": falsification_rate,
             "discrimination_success": discrimination_success,
             "testability_score": 1 - falsification_rate,  # How well tested
-            "corroboration_score": discrimination_results.get("overall_assessment", {}).get(
-                "discrimination_success_rate", 0
+            "corroboration_score": discrimination_results.get(
+                "overall_assessment", {}
+            ).get("discrimination_success_rate", 0),
+            "recommendations": self._generate_recommendations(
+                status, falsification_rate
             ),
-            "recommendations": self._generate_recommendations(status, falsification_rate),
         }
 
         return assessment
 
-    def _generate_recommendations(self, status: str, falsification_rate: float) -> List[str]:
+    def _generate_recommendations(
+        self, status: str, falsification_rate: float
+    ) -> List[str]:
         """Generate recommendations based on falsification results"""
 
         recommendations = []
@@ -992,7 +1034,9 @@ def main():
     )
 
     print("\nFalsification Results by Priority:")
-    for priority_result in falsification_assessment["falsification_results"]["priority_results"]:
+    for priority_result in falsification_assessment["falsification_results"][
+        "priority_results"
+    ]:
         print(
             f"  {priority_result['priority']}: {priority_result['falsified_criteria']}/{priority_result['total_criteria']} falsified"
         )

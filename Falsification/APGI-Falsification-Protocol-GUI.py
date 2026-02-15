@@ -78,7 +78,9 @@ class ProtocolRunnerGUI:
 
         # Protocol buttons frame
         button_frame = ttk.LabelFrame(main_frame, text="Select Protocol", padding="10")
-        button_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        button_frame.grid(
+            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
+        )
 
         # Create 6 buttons in 2x3 grid
         for i, (protocol_name, protocol_info) in enumerate(self.protocols.items()):
@@ -101,9 +103,13 @@ class ProtocolRunnerGUI:
 
         # Output console
         console_frame = ttk.LabelFrame(main_frame, text="Output Console", padding="10")
-        console_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
+        console_frame.grid(
+            row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S)
+        )
 
-        self.output_console = scrolledtext.ScrolledText(console_frame, height=15, width=80)
+        self.output_console = scrolledtext.ScrolledText(
+            console_frame, height=15, width=80
+        )
         self.output_console.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         console_frame.columnconfigure(0, weight=1)
@@ -111,14 +117,20 @@ class ProtocolRunnerGUI:
 
         # Status bar and clear console button frame
         status_frame = ttk.Frame(main_frame)
-        status_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
+        status_frame.grid(
+            row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0)
+        )
         status_frame.columnconfigure(0, weight=1)
 
         self.status_var = tk.StringVar(value="Ready")
-        status_bar = ttk.Label(status_frame, textvariable=self.status_var, relief=tk.SUNKEN)
+        status_bar = ttk.Label(
+            status_frame, textvariable=self.status_var, relief=tk.SUNKEN
+        )
         status_bar.grid(row=0, column=0, sticky=(tk.W, tk.E))
 
-        clear_btn = ttk.Button(status_frame, text="Clear Console", command=self.clear_console)
+        clear_btn = ttk.Button(
+            status_frame, text="Clear Console", command=self.clear_console
+        )
         clear_btn.grid(row=0, column=1)
 
     def create_tooltip(self, widget, text):
@@ -176,8 +188,12 @@ class ProtocolRunnerGUI:
                 self.log_message(f"=== Running {protocol_info['file']} ===")
 
                 # Load the protocol module
-                file_path = os.path.join(os.path.dirname(__file__), protocol_info["file"])
-                spec = importlib.util.spec_from_file_location(protocol_info["file"], file_path)
+                file_path = os.path.join(
+                    os.path.dirname(__file__), protocol_info["file"]
+                )
+                spec = importlib.util.spec_from_file_location(
+                    protocol_info["file"], file_path
+                )
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
 
@@ -209,7 +225,9 @@ class ProtocolRunnerGUI:
                             self.log_message(
                                 "Broadcasting error in Protocol-3 - this is expected due to observation size mismatches"
                             )
-                            self.log_message("Protocol-3 needs observation size alignment")
+                            self.log_message(
+                                "Protocol-3 needs observation size alignment"
+                            )
                         else:
                             raise
 
@@ -218,13 +236,17 @@ class ProtocolRunnerGUI:
                     surprise_system = module.SurpriseIgnitionSystem()
                     instance = cls(surprise_system)
                     result = instance.run_phase_transition_analysis()
-                    self.log_message(f"Phase transition analysis completed: {type(result)}")
+                    self.log_message(
+                        f"Phase transition analysis completed: {type(result)}"
+                    )
 
                 elif hasattr(cls, "run_evolution"):
                     # Protocol 5 - Add timeout handling
                     try:
                         instance = cls()
-                        self.log_message("Starting evolutionary simulation (this may take time)...")
+                        self.log_message(
+                            "Starting evolutionary simulation (this may take time)..."
+                        )
                         result = instance.run_evolution()
                         self.log_message(f"Evolution completed: {type(result)}")
                     except KeyboardInterrupt:
@@ -237,7 +259,9 @@ class ProtocolRunnerGUI:
                         KeyError,
                     ) as e:
                         self.log_message(f"Error in evolution: {str(e)}")
-                        self.log_message("EvolutionaryAPGIEmergence instance creation failed")
+                        self.log_message(
+                            "EvolutionaryAPGIEmergence instance creation failed"
+                        )
 
                 elif protocol_info["class"] == "APGIActiveInferenceAgent":
                     # Protocol 1 - Create agent and run demo
@@ -276,7 +300,9 @@ class ProtocolRunnerGUI:
                             f"InteroCost={intero_cost:.2f}"
                         )
 
-                    self.log_message(f"Demo completed. Total reward: {total_reward:.2f}")
+                    self.log_message(
+                        f"Demo completed. Total reward: {total_reward:.2f}"
+                    )
 
                 else:
                     self.log_message(f"Created {protocol_info['class']} instance")

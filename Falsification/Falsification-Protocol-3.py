@@ -23,7 +23,9 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 def _get_protocol1():
     """Safely import Protocol 1 with error handling"""
     try:
-        protocol1_path = os.path.join(os.path.dirname(__file__), "Falsification-Protocol-1.py")
+        protocol1_path = os.path.join(
+            os.path.dirname(__file__), "Falsification-Protocol-1.py"
+        )
         if not os.path.exists(protocol1_path):
             raise ImportError(f"Protocol 1 file not found: {protocol1_path}")
 
@@ -41,7 +43,9 @@ def _get_protocol1():
 def _get_protocol2():
     """Safely import Protocol 2 with error handling"""
     try:
-        protocol2_path = os.path.join(os.path.dirname(__file__), "Falsification-Protocol-2.py")
+        protocol2_path = os.path.join(
+            os.path.dirname(__file__), "Falsification-Protocol-2.py"
+        )
         if not os.path.exists(protocol2_path):
             raise ImportError(f"Protocol 2 file not found: {protocol2_path}")
 
@@ -145,7 +149,9 @@ class StandardPPAgent:
             # Handle dimension mismatch with policy weights
             if state.shape[0] != self.policy_weights.shape[1]:
                 if state.shape[0] < self.policy_weights.shape[1]:
-                    state = np.pad(state, (0, self.policy_weights.shape[1] - state.shape[0]))
+                    state = np.pad(
+                        state, (0, self.policy_weights.shape[1] - state.shape[0])
+                    )
                 else:
                     state = state[: self.policy_weights.shape[1]]
 
@@ -157,7 +163,9 @@ class StandardPPAgent:
             print(f"Warning: StandardPPAgent step failed: {str(e)}")
             return np.random.choice(N_ACTIONS)  # Random action as fallback
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict) -> None:
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ) -> None:
         """Receive outcome with type hints"""
         pass  # Simple agent doesn't learn
 
@@ -179,7 +187,9 @@ class GWTOnlyAgent:
             # Handle dimension mismatch with policy weights
             if state.shape[0] != self.policy_weights.shape[1]:
                 if state.shape[0] < self.policy_weights.shape[1]:
-                    state = np.pad(state, (0, self.policy_weights.shape[1] - state.shape[0]))
+                    state = np.pad(
+                        state, (0, self.policy_weights.shape[1] - state.shape[0])
+                    )
                 else:
                     state = state[: self.policy_weights.shape[1]]
 
@@ -199,7 +209,9 @@ class GWTOnlyAgent:
             print(f"Warning: GWTOnlyAgent step failed: {str(e)}")
             return np.random.choice(N_ACTIONS)  # Random action as fallback
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict) -> None:
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ) -> None:
         """Receive outcome with type hints"""
         pass
 
@@ -220,7 +232,9 @@ class StandardActorCriticAgent:
             # Handle dimension mismatch with actor weights
             if state.shape[0] != self.actor_weights.shape[1]:
                 if state.shape[0] < self.actor_weights.shape[1]:
-                    state = np.pad(state, (0, self.actor_weights.shape[1] - state.shape[0]))
+                    state = np.pad(
+                        state, (0, self.actor_weights.shape[1] - state.shape[0])
+                    )
                 else:
                     state = state[: self.actor_weights.shape[1]]
 
@@ -232,7 +246,9 @@ class StandardActorCriticAgent:
             print(f"Warning: StandardActorCriticAgent step failed: {str(e)}")
             return np.random.choice(N_ACTIONS)  # Random action as fallback
 
-    def receive_outcome(self, reward: float, intero_cost: float, next_observation: Dict) -> None:
+    def receive_outcome(
+        self, reward: float, intero_cost: float, next_observation: Dict
+    ) -> None:
         """Receive outcome with type hints"""
         pass
 
@@ -323,7 +339,9 @@ class AgentComparisonExperiment:
 
                 if agent.conscious_access and hasattr(agent, "ignition_history"):
                     last_ignition = agent.ignition_history[-1]
-                    data["intero_dominant_ignitions"].append(last_ignition["intero_dominant"])
+                    data["intero_dominant_ignitions"].append(
+                        last_ignition["intero_dominant"]
+                    )
 
             # Detect strategy changes
             if trial > 0:
@@ -381,10 +399,14 @@ class AgentComparisonExperiment:
     ) -> Dict[str, Any]:
         """Analyze P3a: Convergence trials with statistical testing"""
         analysis_p3a = {}
-        if "IGT" in results and self._validate_analysis_input(results["IGT"], "P3a IGT data"):
+        if "IGT" in results and self._validate_analysis_input(
+            results["IGT"], "P3a IGT data"
+        ):
             analysis_p3a["IGT"] = {}
             for agent in results["IGT"].keys():
-                if not self._validate_analysis_input(results["IGT"][agent], f"P3a {agent} data"):
+                if not self._validate_analysis_input(
+                    results["IGT"][agent], f"P3a {agent} data"
+                ):
                     analysis_p3a["IGT"][agent] = None
                     continue
 
@@ -433,7 +455,9 @@ class AgentComparisonExperiment:
         other_agents = [a for a in igt_results.keys() if a != "APGI"]
         other_convergence = []
         for other in other_agents:
-            if "convergence_trials" in igt_results[other] and self._validate_analysis_input(
+            if "convergence_trials" in igt_results[
+                other
+            ] and self._validate_analysis_input(
                 igt_results[other]["convergence_trials"],
                 f"P3a {other} convergence trials",
             ):
@@ -452,7 +476,9 @@ class AgentComparisonExperiment:
                 cohens_d = self._calculate_cohens_d(convergence_data, other_convergence)
 
                 # Power analysis
-                power_calc = self._calculate_power(abs(cohens_d), alpha, len(convergence_data))
+                power_calc = self._calculate_power(
+                    abs(cohens_d), alpha, len(convergence_data)
+                )
 
                 return {
                     "mean": float(np.mean(convergence_data)),
@@ -470,7 +496,9 @@ class AgentComparisonExperiment:
         """Analyze convergence for non-APGI agents (basic statistics only)"""
         return {
             "mean": (float(np.mean(convergence_data)) if convergence_data else None),
-            "std": (float(np.std(convergence_data, ddof=1)) if convergence_data else None),
+            "std": (
+                float(np.std(convergence_data, ddof=1)) if convergence_data else None
+            ),
         }
 
     def _calculate_cohens_d(self, group1: List, group2: List) -> float:
@@ -515,14 +543,18 @@ class AgentComparisonExperiment:
             intero_dominant_data = []
 
             for agent_result in agent_results:
-                if not self._validate_analysis_input(agent_result, "P3b individual agent"):
+                if not self._validate_analysis_input(
+                    agent_result, "P3b individual agent"
+                ):
                     continue
                 if "intero_dominant_ignitions" in agent_result:
                     if self._validate_analysis_input(
                         agent_result["intero_dominant_ignitions"],
                         "P3b intero_dominant_ignitions",
                     ):
-                        intero_dominant_data.extend(agent_result["intero_dominant_ignitions"])
+                        intero_dominant_data.extend(
+                            agent_result["intero_dominant_ignitions"]
+                        )
 
             if intero_dominant_data and len(intero_dominant_data) > 0:
                 # Test if proportion > 0.5 (null hypothesis: p = 0.5)
@@ -534,14 +566,18 @@ class AgentComparisonExperiment:
                     # Try newer binomtest first
                     from scipy.stats import binomtest
 
-                    binom_result = binomtest(n_successes, n_total, p=0.5, alternative="greater")
+                    binom_result = binomtest(
+                        n_successes, n_total, p=0.5, alternative="greater"
+                    )
                     p_value = binom_result.pvalue
                 except ImportError:
                     # Fallback to binom_test (older scipy versions)
                     try:
                         from scipy.stats import binom_test
 
-                        p_value = binom_test(n_successes, n_total, p=0.5, alternative="greater")
+                        p_value = binom_test(
+                            n_successes, n_total, p=0.5, alternative="greater"
+                        )
                     except ImportError:
                         # Last resort: simple proportion test approximation
                         p_hat = n_successes / n_total
@@ -641,7 +677,8 @@ class AgentComparisonExperiment:
 
                 # Check required fields exist
                 if not all(
-                    key in agent_result for key in ["ignitions", "rewards", "strategy_changes"]
+                    key in agent_result
+                    for key in ["ignitions", "rewards", "strategy_changes"]
                 ):
                     continue
 
@@ -650,17 +687,25 @@ class AgentComparisonExperiment:
                 strategy_changes = agent_result["strategy_changes"]
 
                 # Ensure we have matching lengths
-                min_length = min(len(ignitions), len(rewards), len(strategy_changes) + 1)
+                min_length = min(
+                    len(ignitions), len(rewards), len(strategy_changes) + 1
+                )
 
                 for t in range(1, min_length):
                     # Skip if any data is invalid
-                    if t >= len(ignitions) or t >= len(rewards) or t - 1 >= len(strategy_changes):
+                    if (
+                        t >= len(ignitions)
+                        or t >= len(rewards)
+                        or t - 1 >= len(strategy_changes)
+                    ):
                         continue
 
                     try:
                         X_data.append(
                             [
-                                int(bool(ignitions[t])),  # Ignition (ensure boolean/integer)
+                                int(
+                                    bool(ignitions[t])
+                                ),  # Ignition (ensure boolean/integer)
                                 float(abs(rewards[t])),  # Prediction error proxy
                                 t / len(ignitions),  # Time control
                             ]
@@ -768,7 +813,12 @@ class AgentComparisonExperiment:
                 # Compare against best other agent
                 other_means = []
                 for k, v in igt_rewards.items():
-                    if k != "APGI" and isinstance(v, dict) and "mean" in v and v["mean"] > 0:
+                    if (
+                        k != "APGI"
+                        and isinstance(v, dict)
+                        and "mean" in v
+                        and v["mean"] > 0
+                    ):
                         other_means.append(v["mean"])
 
                 if other_means:
@@ -795,7 +845,9 @@ class AgentComparisonExperiment:
 
                             if other_n > 1:
                                 # Pooled standard error
-                                pooled_se = np.sqrt((apgi_std**2 / apgi_n + other_std**2 / other_n))
+                                pooled_se = np.sqrt(
+                                    (apgi_std**2 / apgi_n + other_std**2 / other_n)
+                                )
                                 if pooled_se > 0:
                                     t_stat = (apgi_mean - best_other_mean) / pooled_se
                                     df = apgi_n + other_n - 2
@@ -803,7 +855,10 @@ class AgentComparisonExperiment:
 
                                     # Effect size
                                     pooled_std = np.sqrt(
-                                        ((apgi_n - 1) * apgi_std**2 + (other_n - 1) * other_std**2)
+                                        (
+                                            (apgi_n - 1) * apgi_std**2
+                                            + (other_n - 1) * other_std**2
+                                        )
                                         / (apgi_n + other_n - 2)
                                     )
                                     cohens_d = (
@@ -813,9 +868,9 @@ class AgentComparisonExperiment:
                                     )
 
                                     # Falsify if no significant advantage AND small effect size
-                                    falsified["F3.1"] = (p_value >= bonferroni_alpha) and (
-                                        abs(cohens_d) < 0.3
-                                    )
+                                    falsified["F3.1"] = (
+                                        p_value >= bonferroni_alpha
+                                    ) and (abs(cohens_d) < 0.3)
                                 else:
                                     falsified["F3.1"] = apgi_mean <= best_other_mean
                             else:
@@ -837,7 +892,9 @@ class AgentComparisonExperiment:
             ignition_coef = analysis["P3c"].get("ignition_coefficient", 0)
 
             # Falsify if no significant predictive relationship
-            falsified["F3.2"] = (ignition_p >= bonferroni_alpha) or (abs(ignition_coef) < 0.1)
+            falsified["F3.2"] = (ignition_p >= bonferroni_alpha) or (
+                abs(ignition_coef) < 0.1
+            )
         else:
             falsified["F3.2"] = True  # No data available
 
@@ -864,7 +921,9 @@ class AgentComparisonExperiment:
                         p_value = 2 * (1 - stats.t.cdf(abs(t_stat), df))
 
                         # Falsify if PP significantly outperforms APGI
-                        falsified["F3.3"] = (pp_mean > apgi_mean) and (p_value < bonferroni_alpha)
+                        falsified["F3.3"] = (pp_mean > apgi_mean) and (
+                            p_value < bonferroni_alpha
+                        )
                     else:
                         falsified["F3.3"] = pp_mean > apgi_mean
                 else:
@@ -907,7 +966,9 @@ class AgentComparisonExperiment:
                 adaptation_scores = analysis["P3d"].get("adaptation_scores", {})
                 if adaptation_scores and "APGI" in adaptation_scores:
                     apgi_score = adaptation_scores["APGI"]
-                    other_scores = [v for k, v in adaptation_scores.items() if k != "APGI"]
+                    other_scores = [
+                        v for k, v in adaptation_scores.items() if k != "APGI"
+                    ]
                     if other_scores:
                         best_other = max(other_scores)
                         falsified["F3.6"] = apgi_score <= best_other
@@ -970,7 +1031,9 @@ class AgentComparisonExperiment:
         """Aggregate results across multiple agents with data integrity checks"""
 
         # Validate input
-        if not self._validate_analysis_input(agent_results, "Agent results aggregation"):
+        if not self._validate_analysis_input(
+            agent_results, "Agent results aggregation"
+        ):
             return {
                 "cumulative_rewards": [],
                 "total_ignitions": [],
@@ -1001,19 +1064,28 @@ class AgentComparisonExperiment:
                     result["cumulative_reward"], f"Cumulative reward agent {i}"
                 ):
                     final_reward = result["cumulative_reward"][-1]
-                    if isinstance(final_reward, (int, float)) and np.isfinite(final_reward):
+                    if isinstance(final_reward, (int, float)) and np.isfinite(
+                        final_reward
+                    ):
                         aggregated["cumulative_rewards"].append(float(final_reward))
                     else:
-                        print(f"Warning: Invalid final reward for agent {i}: {final_reward}")
+                        print(
+                            f"Warning: Invalid final reward for agent {i}: {final_reward}"
+                        )
 
             # Process ignitions
             if "ignitions" in result and result["ignitions"]:
-                if self._validate_analysis_input(result["ignitions"], f"Ignitions agent {i}"):
+                if self._validate_analysis_input(
+                    result["ignitions"], f"Ignitions agent {i}"
+                ):
                     total_ignitions = sum(1 for ign in result["ignitions"] if ign)
                     aggregated["total_ignitions"].append(int(total_ignitions))
 
             # Process convergence trials
-            if "convergence_trial" in result and result["convergence_trial"] is not None:
+            if (
+                "convergence_trial" in result
+                and result["convergence_trial"] is not None
+            ):
                 conv_trial = result["convergence_trial"]
                 if (
                     isinstance(conv_trial, (int, float))
@@ -1027,7 +1099,9 @@ class AgentComparisonExperiment:
                 if self._validate_analysis_input(
                     result["strategy_changes"], f"Strategy changes agent {i}"
                 ):
-                    total_changes = sum(1 for change in result["strategy_changes"] if change)
+                    total_changes = sum(
+                        1 for change in result["strategy_changes"] if change
+                    )
                     aggregated["strategy_changes"].append(int(total_changes))
 
         # Compute statistics with error handling
@@ -1064,8 +1138,12 @@ class AgentComparisonExperiment:
 
                 # Additional convergence statistics
                 aggregated["convergence_trials_median"] = float(np.median(conv_array))
-                aggregated["convergence_trials_q25"] = float(np.percentile(conv_array, 25))
-                aggregated["convergence_trials_q75"] = float(np.percentile(conv_array, 75))
+                aggregated["convergence_trials_q25"] = float(
+                    np.percentile(conv_array, 25)
+                )
+                aggregated["convergence_trials_q75"] = float(
+                    np.percentile(conv_array, 75)
+                )
             except Exception as e:
                 print(f"Warning: Failed to compute convergence statistics: {str(e)}")
                 aggregated["convergence_trials_mean"] = None
@@ -1085,7 +1163,9 @@ class AgentComparisonExperiment:
             "agents_with_rewards": len(aggregated["cumulative_rewards"]),
             "agents_with_convergence": len(aggregated["convergence_trials"]),
             "completion_rate": (
-                len(aggregated["raw_results"]) / len(agent_results) if agent_results else 0.0
+                len(aggregated["raw_results"]) / len(agent_results)
+                if agent_results
+                else 0.0
             ),
         }
 
@@ -1106,7 +1186,9 @@ class AgentComparisonExperiment:
         power = 1 - stats.t.cdf(t_critical, df, ncp) + stats.t.cdf(-t_critical, df, ncp)
         return power
 
-    def _calculate_proportion_power(self, prop_diff: float, alpha: float, n: int) -> float:
+    def _calculate_proportion_power(
+        self, prop_diff: float, alpha: float, n: int
+    ) -> float:
         """Calculate statistical power for proportion test"""
         from scipy import stats
 
@@ -1124,7 +1206,11 @@ class AgentComparisonExperiment:
         z_stat = prop_diff / se
 
         # Power
-        power = 1 - stats.norm.cdf(z_critical - z_stat) + stats.norm.cdf(-z_critical - z_stat)
+        power = (
+            1
+            - stats.norm.cdf(z_critical - z_stat)
+            + stats.norm.cdf(-z_critical - z_stat)
+        )
         return power
 
     def _perform_anova(self, reward_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -1168,7 +1254,9 @@ class AgentComparisonExperiment:
         assumption_details["normality_test"] = {
             "p_values": normality_p_values,
             "assumption_met": (
-                all(p >= 0.05 for p in normality_p_values) if normality_p_values else False
+                all(p >= 0.05 for p in normality_p_values)
+                if normality_p_values
+                else False
             ),
         }
 
@@ -1195,7 +1283,9 @@ class AgentComparisonExperiment:
             grand_mean = np.mean(all_data)
 
             # Between-group sum of squares
-            ss_between = sum(len(group) * (np.mean(group) - grand_mean) ** 2 for group in groups)
+            ss_between = sum(
+                len(group) * (np.mean(group) - grand_mean) ** 2 for group in groups
+            )
 
             # Total sum of squares
             ss_total = np.sum((all_data - grand_mean) ** 2)
@@ -1225,7 +1315,9 @@ class AgentComparisonExperiment:
                 "error": f"ANOVA calculation failed: {str(e)}",
             }
 
-    def _perform_post_hoc_tests(self, groups: list, group_names: list) -> Dict[str, Any]:
+    def _perform_post_hoc_tests(
+        self, groups: list, group_names: list
+    ) -> Dict[str, Any]:
         """Perform pairwise t-tests with Bonferroni correction"""
         from scipy import stats
 
@@ -1296,7 +1388,9 @@ class AgentComparisonExperiment:
         else:
             return "large"
 
-    def _analyze_adaptation_speed(self, foraging_results: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_adaptation_speed(
+        self, foraging_results: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze adaptation speed in volatile foraging with proper statistics"""
         from scipy import stats
 
@@ -1316,7 +1410,9 @@ class AgentComparisonExperiment:
 
                     # Adaptation score = improvement + consistency
                     improvement = late_mean - early_mean
-                    consistency = 1 - (np.std(late_rewards) / (np.mean(late_rewards) + 1e-10))
+                    consistency = 1 - (
+                        np.std(late_rewards) / (np.mean(late_rewards) + 1e-10)
+                    )
 
                     adaptation_scores[agent_name] = improvement * max(0, consistency)
                 else:

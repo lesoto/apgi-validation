@@ -99,7 +99,9 @@ class BatchProcessor:
         self.results: Dict[str, Any] = {}
 
         # Choose executor type
-        self.executor_class = ProcessPoolExecutor if use_processes else ThreadPoolExecutor
+        self.executor_class = (
+            ProcessPoolExecutor if use_processes else ThreadPoolExecutor
+        )
 
     def add_simulation_job(
         self,
@@ -216,7 +218,9 @@ class BatchProcessor:
 
         # Run simulation
         duration = steps * dt
-        results = system.simulate(duration=duration, dt=dt, input_generator=input_generator)
+        results = system.simulate(
+            duration=duration, dt=dt, input_generator=input_generator
+        )
 
         return {
             "job_id": job.job_id,
@@ -339,7 +343,11 @@ class BatchProcessor:
         print(f"Running {len(self.jobs)} jobs with {self.max_workers} workers...")
 
         # Create progress bar
-        pbar = tqdm(total=len(self.jobs), desc="Processing jobs") if show_progress else None
+        pbar = (
+            tqdm(total=len(self.jobs), desc="Processing jobs")
+            if show_progress
+            else None
+        )
 
         # Separate and run different job types
         memory_intensive_jobs, regular_jobs = self._categorize_jobs()
@@ -349,7 +357,9 @@ class BatchProcessor:
 
         # Run jobs and collect results
         self._run_regular_jobs(regular_jobs, completed_jobs, failed_jobs, pbar)
-        self._run_memory_intensive_jobs(memory_intensive_jobs, completed_jobs, failed_jobs, pbar)
+        self._run_memory_intensive_jobs(
+            memory_intensive_jobs, completed_jobs, failed_jobs, pbar
+        )
         self._retry_failed_jobs(failed_jobs, completed_jobs, pbar)
 
         # Cleanup progress bar
@@ -365,7 +375,10 @@ class BatchProcessor:
         regular_jobs = []
 
         for job in self.jobs:
-            if job.job_type == "validation" and job.parameters.get("protocol") == "protocol_2":
+            if (
+                job.job_type == "validation"
+                and job.parameters.get("protocol") == "protocol_2"
+            ):
                 memory_intensive_jobs.append(job)
             else:
                 regular_jobs.append(job)
@@ -381,7 +394,9 @@ class BatchProcessor:
         try:
             with self.executor_class(max_workers=self.max_workers) as executor:
                 # Submit regular jobs
-                future_to_job = {executor.submit(self.run_job, job): job for job in regular_jobs}
+                future_to_job = {
+                    executor.submit(self.run_job, job): job for job in regular_jobs
+                }
 
                 # Collect results
                 for future in as_completed(future_to_job):
@@ -403,12 +418,16 @@ class BatchProcessor:
             # Add all regular jobs to failed list for sequential processing
             failed_jobs.extend(regular_jobs)
 
-    def _run_memory_intensive_jobs(self, memory_intensive_jobs, completed_jobs, failed_jobs, pbar):
+    def _run_memory_intensive_jobs(
+        self, memory_intensive_jobs, completed_jobs, failed_jobs, pbar
+    ):
         """Run memory-intensive jobs sequentially."""
         if not memory_intensive_jobs:
             return
 
-        print(f"Running {len(memory_intensive_jobs)} memory-intensive jobs sequentially...")
+        print(
+            f"Running {len(memory_intensive_jobs)} memory-intensive jobs sequentially..."
+        )
         for job in memory_intensive_jobs:
             try:
                 print(f"Running {job.job_id} (memory-intensive)...")

@@ -114,7 +114,9 @@ class PsychometricFunctionFitter:
             )
             apgi_pred = self._apgi_sigmoid(stimulus_intensities, *popt_apgi)
             apgi_r2 = r2_score(detection_rates, apgi_pred)
-            apgi_aic = self._calculate_aic(detection_rates, apgi_pred, 4)  # 4 parameters
+            apgi_aic = self._calculate_aic(
+                detection_rates, apgi_pred, 4
+            )  # 4 parameters
 
             results["apgi_model"] = {
                 "parameters": popt_apgi,
@@ -123,7 +125,8 @@ class PsychometricFunctionFitter:
                 "predictions": apgi_pred,
                 "beta": popt_apgi[0],  # Sigmoid steepness
                 "theta": popt_apgi[1],  # Threshold
-                "phase_transition": popt_apgi[0] >= 10,  # β ≥ 10 indicates phase transition
+                "phase_transition": popt_apgi[0]
+                >= 10,  # β ≥ 10 indicates phase transition
             }
         except Exception as e:
             results["apgi_model"] = {"error": str(e)}
@@ -176,7 +179,9 @@ class PsychometricFunctionFitter:
 
         return results
 
-    def _calculate_aic(self, observed: np.ndarray, predicted: np.ndarray, n_params: int) -> float:
+    def _calculate_aic(
+        self, observed: np.ndarray, predicted: np.ndarray, n_params: int
+    ) -> float:
         """Calculate Akaike Information Criterion"""
         n = len(observed)
         rss = np.sum((observed - predicted) ** 2)
@@ -205,8 +210,11 @@ class PsychometricFunctionFitter:
             "apgi_vs_linear_bf": (
                 aic_weights[0] / aic_weights[2] if aic_weights[2] > 0 else float("inf")
             ),
-            "apgi_preferred": aic_weights[0] > aic_weights[1] and aic_weights[0] > aic_weights[2],
-            "phase_transition_evidence": results["apgi_model"].get("phase_transition", False),
+            "apgi_preferred": aic_weights[0] > aic_weights[1]
+            and aic_weights[0] > aic_weights[2],
+            "phase_transition_evidence": results["apgi_model"].get(
+                "phase_transition", False
+            ),
         }
 
 
@@ -261,8 +269,12 @@ class SpikingLNNModel:
 
         for step in range(1, n_steps):
             # Generate input (simplified)
-            external_input = stimulus_intensity * np.random.normal(1, 0.1, self.n_neurons)
-            internal_input = 0.1 * np.random.normal(0, 1, self.n_neurons)  # Interoceptive noise
+            external_input = stimulus_intensity * np.random.normal(
+                1, 0.1, self.n_neurons
+            )
+            internal_input = 0.1 * np.random.normal(
+                0, 1, self.n_neurons
+            )  # Interoceptive noise
 
             # APGI prediction error computation
             eps_e = external_input - np.mean(external_input)  # Simplified
@@ -288,7 +300,9 @@ class SpikingLNNModel:
 
             # Update membrane potentials
             dV_dt = (
-                -membrane_potential + input_current + np.dot(self.weights, spikes[:, step - 1])
+                -membrane_potential
+                + input_current
+                + np.dot(self.weights, spikes[:, step - 1])
             ) / self.tau
             membrane_potential += dV_dt * dt
 
@@ -309,7 +323,9 @@ class SpikingLNNModel:
             "time": np.arange(n_steps) * dt,
         }
 
-    def simulate_consciousness_paradigm(self, paradigm: str, n_trials: int = 100) -> Dict:
+    def simulate_consciousness_paradigm(
+        self, paradigm: str, n_trials: int = 100
+    ) -> Dict:
         """
         Simulate specific consciousness paradigm
 
@@ -334,7 +350,9 @@ class SpikingLNNModel:
                 trial_result = self.simulate_trial(soa_intensity)
                 results["trials"].append(trial_result)
                 results["psychometric_data"]["intensities"].append(soa_intensity)
-                results["psychometric_data"]["detections"].append(trial_result["detection"])
+                results["psychometric_data"]["detections"].append(
+                    trial_result["detection"]
+                )
 
         elif paradigm == "attentional_blink":
             # Attentional blink
@@ -344,7 +362,9 @@ class SpikingLNNModel:
                 trial_result = self.simulate_trial(lag_intensity)
                 results["trials"].append(trial_result)
                 results["psychometric_data"]["intensities"].append(lag_intensity)
-                results["psychometric_data"]["detections"].append(trial_result["detection"])
+                results["psychometric_data"]["detections"].append(
+                    trial_result["detection"]
+                )
 
         return results
 
@@ -382,7 +402,9 @@ class BayesianParameterEstimator:
             )
 
             # Likelihood
-            detections_obs = pm.Bernoulli("detections_obs", p=prob_detect, observed=detections)
+            detections_obs = pm.Bernoulli(
+                "detections_obs", p=prob_detect, observed=detections
+            )
 
             # Sample posterior
             trace = pm.sample(1000, tune=1000, return_inferencedata=True)
@@ -405,7 +427,9 @@ class QuantitativeModelValidator:
     def __init__(self):
         self.psychometric_fitter = PsychometricFunctionFitter()
         self.lnn_model = SpikingLNNModel()
-        self.bayesian_estimator = BayesianParameterEstimator() if BAYESIAN_AVAILABLE else None
+        self.bayesian_estimator = (
+            BayesianParameterEstimator() if BAYESIAN_AVAILABLE else None
+        )
 
     def validate_quantitative_fits(self) -> Dict:
         """
@@ -424,7 +448,9 @@ class QuantitativeModelValidator:
         }
 
         # Calculate overall score
-        results["overall_quantitative_score"] = self._calculate_quantitative_score(results)
+        results["overall_quantitative_score"] = self._calculate_quantitative_score(
+            results
+        )
 
         return results
 
@@ -437,10 +463,14 @@ class QuantitativeModelValidator:
         true_theta = 0.5
 
         # Generate detection probabilities using APGI model
-        true_probabilities = 1.0 / (1 + np.exp(-true_beta * (stimulus_intensities - true_theta)))
+        true_probabilities = 1.0 / (
+            1 + np.exp(-true_beta * (stimulus_intensities - true_theta))
+        )
 
         # Add noise to simulate behavioral data
-        detection_rates = np.random.binomial(20, true_probabilities) / 20  # 20 trials per intensity
+        detection_rates = (
+            np.random.binomial(20, true_probabilities) / 20
+        )  # 20 trials per intensity
 
         # Fit all models
         fit_results = self.psychometric_fitter.fit_psychometric_functions(
@@ -480,7 +510,9 @@ class QuantitativeModelValidator:
 
         for paradigm in paradigms:
             # Simulate paradigm
-            results = self.lnn_model.simulate_consciousness_paradigm(paradigm, n_trials=50)
+            results = self.lnn_model.simulate_consciousness_paradigm(
+                paradigm, n_trials=50
+            )
 
             # Fit psychometric function to simulated data
             intensities = np.array(results["psychometric_data"]["intensities"])
@@ -520,7 +552,9 @@ class QuantitativeModelValidator:
         true_beta, true_theta = 12.0, 0.5
 
         # Generate detections
-        true_probs = 1.0 / (1 + np.exp(-true_beta * (stimulus_intensities - true_theta)))
+        true_probs = 1.0 / (
+            1 + np.exp(-true_beta * (stimulus_intensities - true_theta))
+        )
         detections = np.random.binomial(1, true_probs)
 
         behavioral_data = pd.DataFrame(
@@ -529,7 +563,9 @@ class QuantitativeModelValidator:
 
         # Estimate parameters
         try:
-            estimation_results = self.bayesian_estimator.estimate_apgi_parameters(behavioral_data)
+            estimation_results = self.bayesian_estimator.estimate_apgi_parameters(
+                behavioral_data
+            )
             return estimation_results
         except Exception as e:
             return {"error": str(e)}
@@ -541,12 +577,18 @@ class QuantitativeModelValidator:
 
         # Psychometric fitting (weight: 0.4)
         psycho_result = results.get("psychometric_fitting", {})
-        model_comparison = psycho_result.get("model_fits", {}).get("model_comparison", {})
-        scores.append(0.4 * (1.0 if model_comparison.get("apgi_preferred", False) else 0.0))
+        model_comparison = psycho_result.get("model_fits", {}).get(
+            "model_comparison", {}
+        )
+        scores.append(
+            0.4 * (1.0 if model_comparison.get("apgi_preferred", False) else 0.0)
+        )
 
         # Spiking LNN (weight: 0.3)
         lnn_result = results.get("spiking_lnn_simulation", {})
-        scores.append(0.3 * (1.0 if lnn_result.get("realistic_dynamics", False) else 0.0))
+        scores.append(
+            0.3 * (1.0 if lnn_result.get("realistic_dynamics", False) else 0.0)
+        )
 
         # Consciousness paradigms (weight: 0.2)
         paradigm_result = results.get("consciousness_paradigms", {})
@@ -570,7 +612,9 @@ def main():
     results = validator.validate_quantitative_fits()
 
     print("APGI Quantitative Model Validation Results:")
-    print(f"Overall Quantitative Validation Score: {results['overall_quantitative_score']:.3f}")
+    print(
+        f"Overall Quantitative Validation Score: {results['overall_quantitative_score']:.3f}"
+    )
 
     print("\nDetailed Results:")
     for key, value in results.items():
