@@ -316,9 +316,7 @@ class PsychometricCurve:
             p_pred = np.clip(p_pred, 1e-10, 1 - 1e-10)
 
             # Binomial log-likelihood
-            ll = np.sum(
-                n_correct * np.log(p_pred) + (n_trials - n_correct) * np.log(1 - p_pred)
-            )
+            ll = np.sum(n_correct * np.log(p_pred) + (n_trials - n_correct) * np.log(1 - p_pred))
 
             return -ll
 
@@ -398,13 +396,10 @@ class PsychometricCurve:
         """
 
         # Threshold shift
-        threshold_shift = (
-            intervention_params["threshold"] - baseline_params["threshold"]
-        )
+        threshold_shift = intervention_params["threshold"] - baseline_params["threshold"]
 
         threshold_shift_se = np.sqrt(
-            baseline_params["threshold_se"] ** 2
-            + intervention_params["threshold_se"] ** 2
+            baseline_params["threshold_se"] ** 2 + intervention_params["threshold_se"] ** 2
         )
 
         threshold_z = threshold_shift / (threshold_shift_se + 1e-10)
@@ -668,9 +663,7 @@ class PowerAnalysis:
                 t_crit = stats.t.ppf(1 - alpha / 2, df)
 
                 # Power = P(|t| > t_crit | H1)
-                power[i] = (
-                    1 - stats.nct.cdf(t_crit, df, ncp) + stats.nct.cdf(-t_crit, df, ncp)
-                )
+                power[i] = 1 - stats.nct.cdf(t_crit, df, ncp) + stats.nct.cdf(-t_crit, df, ncp)
 
             except (ValueError, RuntimeError):
                 power[i] = np.nan
@@ -678,9 +671,7 @@ class PowerAnalysis:
         return power
 
     @staticmethod
-    def minimum_detectable_effect(
-        n: int, alpha: float = 0.05, power: float = 0.80
-    ) -> float:
+    def minimum_detectable_effect(n: int, alpha: float = 0.05, power: float = 0.80) -> float:
         """
         Minimum effect size detectable with given N and power
         """
@@ -768,9 +759,7 @@ class InterventionFalsificationChecker:
             "significant": p_value < 0.05,
         }
 
-    def check_F3_3(
-        self, predicted_direction: str, observed_effect: float
-    ) -> Tuple[bool, Dict]:
+    def check_F3_3(self, predicted_direction: str, observed_effect: float) -> Tuple[bool, Dict]:
         """F3.3: Direction of effect"""
 
         if predicted_direction == "increase":
@@ -786,9 +775,7 @@ class InterventionFalsificationChecker:
         if expected_sign != 0:
             falsified = observed_sign != expected_sign
         else:
-            falsified = (
-                abs(observed_effect) > 0.3
-            )  # Significant effect when null predicted
+            falsified = abs(observed_effect) > 0.3  # Significant effect when null predicted
 
         return falsified, {
             "predicted_direction": predicted_direction,
@@ -901,17 +888,13 @@ def plot_intervention_results(
     intervention = results_df[results_df["condition"] == "intervention"]
 
     # Group by stimulus level
-    baseline_grouped = baseline.groupby("stimulus_level").agg(
-        {"n_seen": "sum", "n_trials": "sum"}
-    )
+    baseline_grouped = baseline.groupby("stimulus_level").agg({"n_seen": "sum", "n_trials": "sum"})
 
     intervention_grouped = intervention.groupby("stimulus_level").agg(
         {"n_seen": "sum", "n_trials": "sum"}
     )
 
-    baseline_grouped["p_seen"] = (
-        baseline_grouped["n_seen"] / baseline_grouped["n_trials"]
-    )
+    baseline_grouped["p_seen"] = baseline_grouped["n_seen"] / baseline_grouped["n_trials"]
     intervention_grouped["p_seen"] = (
         intervention_grouped["n_seen"] / intervention_grouped["n_trials"]
     )
@@ -988,9 +971,7 @@ def plot_intervention_results(
 
     ax1.set_xlabel("Stimulus Intensity", fontsize=13, fontweight="bold")
     ax1.set_ylabel("P(Seen)", fontsize=13, fontweight="bold")
-    ax1.set_title(
-        f"Psychometric Functions - {intervention_name}", fontsize=14, fontweight="bold"
-    )
+    ax1.set_title(f"Psychometric Functions - {intervention_name}", fontsize=14, fontweight="bold")
     ax1.legend(fontsize=11)
     ax1.grid(alpha=0.3)
     ax1.set_xlim([0, 1])
@@ -1142,13 +1123,11 @@ def plot_intervention_results(
     if len(baseline_thresholds_valid) < 2:
         t_stat, p_value = np.nan, np.nan
     else:
-        t_stat, p_value = stats.ttest_rel(
-            baseline_thresholds_valid, intervention_thresholds_valid
-        )
+        t_stat, p_value = stats.ttest_rel(baseline_thresholds_valid, intervention_thresholds_valid)
 
-    cohens_d = (
-        np.nanmean(intervention_thresholds) - np.nanmean(baseline_thresholds)
-    ) / np.nanstd(individual_effects)
+    cohens_d = (np.nanmean(intervention_thresholds) - np.nanmean(baseline_thresholds)) / np.nanstd(
+        individual_effects
+    )
 
     ci_low, ci_high = stats.t.interval(
         0.95,
@@ -1274,9 +1253,7 @@ def interactive_power_analysis_tool():
             "n_per_group": np.ceil(n),
             "n_total": np.ceil(n * 2) if design == "between" else np.ceil(n),
             "n_with_dropout": (
-                np.ceil(n_with_dropout * 2)
-                if design == "between"
-                else np.ceil(n_with_dropout)
+                np.ceil(n_with_dropout * 2) if design == "between" else np.ceil(n_with_dropout)
             ),
         }
 
@@ -1357,9 +1334,7 @@ def model_dose_response_relationship(doses, responses):
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.scatter(doses, responses, s=100, alpha=0.6, label="Data")
         ax.plot(dose_range, fitted_response, "r-", linewidth=2, label="Hill fit")
-        ax.axvline(
-            EC50, color="k", linestyle="--", alpha=0.5, label=f"EC50 = {EC50:.2f}"
-        )
+        ax.axvline(EC50, color="k", linestyle="--", alpha=0.5, label=f"EC50 = {EC50:.2f}")
         ax.set_xscale("log")
         ax.set_xlabel("Dose (log scale)")
         ax.set_ylabel("Response")
@@ -1400,9 +1375,7 @@ def bayesian_equivalence_test(control_data, treatment_data, rope_width=0.1):
 
             # Likelihood
             pm.Normal("control_obs", mu=mu_control, sigma=sigma, observed=control_data)
-            pm.Normal(
-                "treatment_obs", mu=mu_treatment, sigma=sigma, observed=treatment_data
-            )
+            pm.Normal("treatment_obs", mu=mu_treatment, sigma=sigma, observed=treatment_data)
 
             # Effect size
             effect = pm.Deterministic("effect", mu_treatment - mu_control)
@@ -1456,8 +1429,7 @@ def bayesian_equivalence_test(control_data, treatment_data, rope_width=0.1):
         # Frequentist fallback
         effect = np.mean(treatment_data) - np.mean(control_data)
         pooled_se = np.sqrt(
-            np.var(control_data) / len(control_data)
-            + np.var(treatment_data) / len(treatment_data)
+            np.var(control_data) / len(control_data) + np.var(treatment_data) / len(treatment_data)
         )
 
         # Simple approximation
@@ -1561,11 +1533,7 @@ def meta_analysis_of_interventions(studies_data):
             "interpretation": (
                 "Low heterogeneity"
                 if I_squared < 0.25
-                else (
-                    "Moderate heterogeneity"
-                    if I_squared < 0.75
-                    else "High heterogeneity"
-                )
+                else ("Moderate heterogeneity" if I_squared < 0.75 else "High heterogeneity")
             ),
         }
 
@@ -1690,7 +1658,7 @@ def main():
         n_trials_per_condition=200,
     )
 
-    print(f"\n✅ Simulated dlPFC TMS crossover study")
+    print("\n✅ Simulated dlPFC TMS crossover study")
     print(f"   Subjects: {dlpfc_data['subject_id'].nunique()}")
     print(f"   Total trials: {dlpfc_data['n_trials'].sum()}")
     print(f"   Conditions: {dlpfc_data['condition'].unique()}")
@@ -1767,7 +1735,7 @@ def main():
         n_trials_per_condition=200,
     )
 
-    print(f"\n✅ Simulated propranolol crossover study")
+    print("\n✅ Simulated propranolol crossover study")
     print(f"   Subjects: {propranolol_data['subject_id'].nunique()}")
 
     # =========================================================================
@@ -1790,9 +1758,7 @@ def main():
     dlpfc_report = checker.generate_report(dlpfc_results)
 
     print("\ndlPFC TMS Falsification Report:")
-    print(
-        f"  Overall: {'❌ FALSIFIED' if dlpfc_report['overall_falsified'] else '✅ VALIDATED'}"
-    )
+    print(f"  Overall: {'❌ FALSIFIED' if dlpfc_report['overall_falsified'] else '✅ VALIDATED'}")
     print(f"  Passed: {len(dlpfc_report['passed_criteria'])}")
     print(f"  Failed: {len(dlpfc_report['falsified_criteria'])}")
 
@@ -1812,9 +1778,7 @@ def main():
     print("STEP 7: GENERATING VISUALIZATIONS")
     print("=" * 80)
 
-    plot_intervention_results(
-        dlpfc_data, "dlPFC TMS", save_path="protocol7_dlpfc_results.png"
-    )
+    plot_intervention_results(dlpfc_data, "dlPFC TMS", save_path="protocol7_dlpfc_results.png")
 
     plot_intervention_results(
         propranolol_data, "Propranolol", save_path="protocol7_propranolol_results.png"
@@ -1884,9 +1848,7 @@ def main():
 def run_validation():
     """Entry point for CLI validation."""
     try:
-        print(
-            "Running APGI Validation Protocol 7: TMS/Pharmacological Intervention Predictions"
-        )
+        print("Running APGI Validation Protocol 7: TMS/Pharmacological Intervention Predictions")
         return main()
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in validation protocol 7: {e}")

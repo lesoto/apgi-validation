@@ -54,9 +54,7 @@ class APGIConstants:
     """All constants with scientific justification"""
 
     # Measurement relationship constants (empirically validated)
-    HEP_SCALE_FACTOR: float = (
-        0.48  # Park et al. (2014): HEP ~ 0.5 ± 0.1 μV per unit precision
-    )
+    HEP_SCALE_FACTOR: float = 0.48  # Park et al. (2014): HEP ~ 0.5 ± 0.1 μV per unit precision
     HEP_NOISE_SD: float = 0.15  # Pollatos et al. (2007): within-subject HEP variability
 
     PUPIL_SCALE_FACTOR: float = 0.32  # Beatty (1982): pupil dilation ~ precision
@@ -179,9 +177,7 @@ class DriftDiffusionGenerator:
 
             # Confidence based on decision variable magnitude
             # Higher intensity → stronger evidence → higher confidence
-            confidence[i] = min(
-                4, max(1, int(1 + 3 * intensity) + self.rng.randint(-1, 2))
-            )
+            confidence[i] = min(4, max(1, int(1 + 3 * intensity) + self.rng.randint(-1, 2)))
 
         return responses, rts, confidence
 
@@ -229,9 +225,7 @@ class NeuralMassGenerator:
             v_pyr[t] = v_pyr[t - 1] + dt * (
                 C1 * self.sigmoid(v_exc[t - 1]) - C2 * self.sigmoid(v_inh[t - 1])
             )
-            v_exc[t] = v_exc[t - 1] + dt * (
-                C3 * self.sigmoid(v_pyr[t - 1]) + input_signal[t]
-            )
+            v_exc[t] = v_exc[t - 1] + dt * (C3 * self.sigmoid(v_pyr[t - 1]) + input_signal[t])
             v_inh[t] = v_inh[t - 1] + dt * (C4 * self.sigmoid(v_pyr[t - 1]))
 
         # P3b is primarily pyramidal output
@@ -280,9 +274,7 @@ def generate_synthetic_dataset(
         "tau_M": np.clip(np.random.normal(1.52, 0.35, n_subjects), 0.45, 5.5),
         "tau_A_phasic": np.clip(np.random.normal(0.22, 0.055, n_subjects), 0.08, 0.55),
         "tau_A_tonic": np.clip(np.random.normal(620, 135, n_subjects), 280, 1900),
-        "lambda_coupling": np.clip(
-            np.random.normal(0.032, 0.012, n_subjects), 0.001, 0.12
-        ),
+        "lambda_coupling": np.clip(np.random.normal(0.032, 0.012, n_subjects), 0.001, 0.12),
         "beta_M": np.clip(np.random.normal(2.05, 0.55, n_subjects), 0.08, 11.0),
         "gamma": np.clip(np.random.normal(0.048, 0.016, n_subjects), 0.015, 0.085),
         "delta": np.clip(np.random.normal(0.19, 0.045, n_subjects), 0.08, 0.35),
@@ -326,9 +318,7 @@ def generate_synthetic_dataset(
 
             ddm_boundary = 0.5 + 0.15 * theta0  # Approximate mapping
             ddm_base_drift = 0.3
-            ddm_drift_sensitivity = (
-                0.8 + 0.2 * alpha
-            )  # Steeper APGI → more sensitive DDM
+            ddm_drift_sensitivity = 0.8 + 0.2 * alpha  # Steeper APGI → more sensitive DDM
             ddm_noise = 0.1 + 0.05 * sigma
 
             # Adaptive staircase
@@ -343,9 +333,7 @@ def generate_synthetic_dataset(
                 # 2-down 1-up staircase
                 if trial > 0:
                     if trial > 1 and all_intensities[-1] == all_intensities[-2]:
-                        current_intensity = max(
-                            0.05, current_intensity - step_size * 0.5
-                        )
+                        current_intensity = max(0.05, current_intensity - step_size * 0.5)
                     else:
                         current_intensity = min(0.95, current_intensity + step_size)
 
@@ -383,9 +371,7 @@ def generate_synthetic_dataset(
                 accuracy += np.random.normal(0, 0.08)  # Trial noise
 
                 correct = np.random.random() < np.clip(accuracy, 0.1, 0.95)
-                response = (
-                    1 if (is_sync and correct) or (not is_sync and not correct) else 0
-                )
+                response = 1 if (is_sync and correct) or (not is_sync and not correct) else 0
                 hb_responses.append(response)
 
                 # HEP generated via neural mass model
@@ -415,9 +401,7 @@ def generate_synthetic_dataset(
                 # Heart rate variability (RMSSD)
                 # Higher precision → better autonomic control → higher HRV
                 # Thayer et al. (2012): vagal tone and interoception
-                hrv_base = CONST.HRV_BASELINE / (
-                    CONST.HRV_PRECISION_SCALING / Pi_i_baseline
-                )
+                hrv_base = CONST.HRV_BASELINE / (CONST.HRV_PRECISION_SCALING / Pi_i_baseline)
                 hrv = np.abs(hrv_base + np.random.gamma(2, 8))
                 heart_rates.append(hrv)
 
@@ -537,9 +521,7 @@ def artifact_rejection_pipeline(data: Dict, method: str = "faster") -> Dict:
             std_hep = np.std(heps)
 
             if std_hep == 0:
-                warnings.warn(
-                    f"Subject {subj_id}: Zero HEP variance, skipping rejection"
-                )
+                warnings.warn(f"Subject {subj_id}: Zero HEP variance, skipping rejection")
                 clean_heps = heps
             else:
                 # FASTER: ±3 SD threshold
@@ -667,9 +649,7 @@ def conduct_prior_predictive_checks(n_samples: int = 1000, save_plots: bool = Tr
         if coverage <= 0.92:
             all_pass = False
 
-        print(
-            f"{param:<20} {status} {coverage:.2%}    {mean_val:>8.3f}  {sd_val:>8.3f}  {ref}"
-        )
+        print(f"{param:<20} {status} {coverage:.2%}    {mean_val:>8.3f}  {sd_val:>8.3f}  {ref}")
 
     if all_pass:
         print("\n✓ All priors pass empirical range checks (>92% coverage)")
@@ -683,9 +663,7 @@ def conduct_prior_predictive_checks(n_samples: int = 1000, save_plots: bool = Tr
         for idx, (param, (low, high, ref)) in enumerate(checks.items()):
             samples = prior_samples.prior[param].values.flatten()
             axes[idx].hist(samples, bins=50, alpha=0.7, edgecolor="black")
-            axes[idx].axvline(
-                low, color="red", linestyle="--", label=f"Empirical range"
-            )
+            axes[idx].axvline(low, color="red", linestyle="--", label="Empirical range")
             axes[idx].axvline(high, color="red", linestyle="--")
             axes[idx].set_xlabel(param)
             axes[idx].set_ylabel("Frequency")
@@ -722,9 +700,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
         PyMC model object
     """
     n_subjects = len(data)
-    max_trials = max(
-        len(data[subj]["detection"]["responses"]) for subj in range(n_subjects)
-    )
+    max_trials = max(len(data[subj]["detection"]["responses"]) for subj in range(n_subjects))
 
     # Extract time-series for dynamic validation
     if estimate_dynamics:
@@ -768,17 +744,13 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
         mu_sigma = pm.Gamma("mu_sigma", alpha=1.8, beta=1.0)
         sigma_sigma = pm.HalfNormal("sigma_sigma", sigma=0.35)
         sigma_offset = pm.Normal("sigma_offset", mu=0, sigma=1, shape=n_subjects)
-        sigma = pm.Deterministic(
-            "sigma", pm.math.abs(mu_sigma + sigma_offset * sigma_sigma)
-        )
+        sigma = pm.Deterministic("sigma", pm.math.abs(mu_sigma + sigma_offset * sigma_sigma))
 
         # 5. Composite interoceptive parameter (beta_Pi_i)
         # Structurally identifiable composite to avoid beta-Pi_i trade-off
         mu_beta_Pi_i = pm.Lognormal("mu_beta_Pi_i", mu=0.45, sigma=0.45)
         sigma_beta_Pi_i = pm.HalfNormal("sigma_beta_Pi_i", sigma=0.42)
-        beta_Pi_i_offset = pm.Normal(
-            "beta_Pi_i_offset", mu=0, sigma=1, shape=n_subjects
-        )
+        beta_Pi_i_offset = pm.Normal("beta_Pi_i_offset", mu=0, sigma=1, shape=n_subjects)
         beta_Pi_i = pm.Deterministic(
             "beta_Pi_i",
             pm.math.exp(pm.math.log(mu_beta_Pi_i) + beta_Pi_i_offset * sigma_beta_Pi_i),
@@ -788,16 +760,12 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
         mu_Pi_e0 = pm.Gamma("mu_Pi_e0", alpha=2.2, beta=0.6)
         sigma_Pi_e0 = pm.HalfNormal("sigma_Pi_e0", sigma=0.35)
         Pi_e0_offset = pm.Normal("Pi_e0_offset", mu=0, sigma=1, shape=n_subjects)
-        Pi_e0 = pm.Deterministic(
-            "Pi_e0", pm.math.abs(mu_Pi_e0 + Pi_e0_offset * sigma_Pi_e0)
-        )
+        Pi_e0 = pm.Deterministic("Pi_e0", pm.math.abs(mu_Pi_e0 + Pi_e0_offset * sigma_Pi_e0))
 
         # 7. Baseline interoceptive precision (Pi_i_baseline)
         mu_Pi_i_baseline = pm.Gamma("mu_Pi_i_baseline", alpha=1.5, beta=0.5)
         sigma_Pi_i_baseline = pm.HalfNormal("sigma_Pi_i_baseline", sigma=0.32)
-        Pi_i_baseline_offset = pm.Normal(
-            "Pi_i_baseline_offset", mu=0, sigma=1, shape=n_subjects
-        )
+        Pi_i_baseline_offset = pm.Normal("Pi_i_baseline_offset", mu=0, sigma=1, shape=n_subjects)
         Pi_i_baseline = pm.Deterministic(
             "Pi_i_baseline",
             pm.math.abs(mu_Pi_i_baseline + Pi_i_baseline_offset * sigma_Pi_i_baseline),
@@ -815,15 +783,11 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             mu_tau_S = pm.Normal("mu_tau_S", mu=0.48, sigma=0.12)
             sigma_tau_S = pm.HalfNormal("sigma_tau_S", sigma=0.11)
             tau_S_offset = pm.Normal("tau_S_offset", mu=0, sigma=1, shape=n_subjects)
-            tau_S = pm.Deterministic(
-                "tau_S", pm.math.abs(mu_tau_S + tau_S_offset * sigma_tau_S)
-            )
+            tau_S = pm.Deterministic("tau_S", pm.math.abs(mu_tau_S + tau_S_offset * sigma_tau_S))
 
             mu_tau_theta = pm.Normal("mu_tau_theta", mu=1.45, sigma=0.32)
             sigma_tau_theta = pm.HalfNormal("sigma_tau_theta", sigma=0.22)
-            tau_theta_offset = pm.Normal(
-                "tau_theta_offset", mu=0, sigma=1, shape=n_subjects
-            )
+            tau_theta_offset = pm.Normal("tau_theta_offset", mu=0, sigma=1, shape=n_subjects)
             tau_theta = pm.Deterministic(
                 "tau_theta",
                 pm.math.abs(mu_tau_theta + tau_theta_offset * sigma_tau_theta),
@@ -832,15 +796,11 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             mu_tau_M = pm.Normal("mu_tau_M", mu=1.52, sigma=0.35)
             sigma_tau_M = pm.HalfNormal("sigma_tau_M", sigma=0.22)
             tau_M_offset = pm.Normal("tau_M_offset", mu=0, sigma=1, shape=n_subjects)
-            tau_M = pm.Deterministic(
-                "tau_M", pm.math.abs(mu_tau_M + tau_M_offset * sigma_tau_M)
-            )
+            tau_M = pm.Deterministic("tau_M", pm.math.abs(mu_tau_M + tau_M_offset * sigma_tau_M))
 
             mu_tau_A_phasic = pm.Normal("mu_tau_A_phasic", mu=0.22, sigma=0.055)
             sigma_tau_A_phasic = pm.HalfNormal("sigma_tau_A_phasic", sigma=0.035)
-            tau_A_phasic_offset = pm.Normal(
-                "tau_A_phasic_offset", mu=0, sigma=1, shape=n_subjects
-            )
+            tau_A_phasic_offset = pm.Normal("tau_A_phasic_offset", mu=0, sigma=1, shape=n_subjects)
             tau_A_phasic = pm.Deterministic(
                 "tau_A_phasic",
                 pm.math.abs(mu_tau_A_phasic + tau_A_phasic_offset * sigma_tau_A_phasic),
@@ -848,9 +808,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
 
             mu_tau_A_tonic = pm.Normal("mu_tau_A_tonic", mu=620, sigma=135)
             sigma_tau_A_tonic = pm.HalfNormal("sigma_tau_A_tonic", sigma=110)
-            tau_A_tonic_offset = pm.Normal(
-                "tau_A_tonic_offset", mu=0, sigma=1, shape=n_subjects
-            )
+            tau_A_tonic_offset = pm.Normal("tau_A_tonic_offset", mu=0, sigma=1, shape=n_subjects)
             tau_A_tonic = pm.Deterministic(
                 "tau_A_tonic",
                 pm.math.abs(mu_tau_A_tonic + tau_A_tonic_offset * sigma_tau_A_tonic),
@@ -864,17 +822,13 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             )
             lambda_coupling = pm.Deterministic(
                 "lambda_coupling",
-                pm.math.abs(
-                    mu_lambda_coupling + lambda_coupling_offset * sigma_lambda_coupling
-                ),
+                pm.math.abs(mu_lambda_coupling + lambda_coupling_offset * sigma_lambda_coupling),
             )
 
             mu_beta_M = pm.Normal("mu_beta_M", mu=2.05, sigma=0.55)
             sigma_beta_M = pm.HalfNormal("sigma_beta_M", sigma=0.32)
             beta_M_offset = pm.Normal("beta_M_offset", mu=0, sigma=1, shape=n_subjects)
-            beta_M = pm.Deterministic(
-                "beta_M", mu_beta_M + beta_M_offset * sigma_beta_M
-            )
+            beta_M = pm.Deterministic("beta_M", mu_beta_M + beta_M_offset * sigma_beta_M)
 
             # Dynamic parameters
             mu_gamma = pm.Normal("mu_gamma", mu=0.048, sigma=0.018)
@@ -890,9 +844,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
         # ===== NUISANCE PARAMETER =====
         mu_c = pm.Normal("mu_c", mu=0, sigma=0.22)
         sigma_c = pm.HalfNormal("sigma_c", sigma=0.12)
-        criterion_offset = pm.Normal(
-            "criterion_offset", mu=0, sigma=1, shape=n_subjects
-        )
+        criterion_offset = pm.Normal("criterion_offset", mu=0, sigma=1, shape=n_subjects)
         criterion = pm.Deterministic("criterion", mu_c + criterion_offset * sigma_c)
 
         # ===== LIKELIHOOD FUNCTIONS =====
@@ -920,17 +872,11 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             alpha[:, None] * (intensities_all - theta0[:, None]) + criterion[:, None]
         )
 
-        pm.Bernoulli(
-            "detection", p=prob_seen, observed=responses_all, dims=("subject", "trial")
-        )
+        pm.Bernoulli("detection", p=prob_seen, observed=responses_all, dims=("subject", "trial"))
 
         # TASK 2: Heartbeat Detection
-        hep_means = np.array(
-            [np.mean(data[s]["heartbeat"]["heps"]) for s in range(n_subjects)]
-        )
-        pupil_means = np.array(
-            [np.mean(data[s]["heartbeat"]["pupils"]) for s in range(n_subjects)]
-        )
+        hep_means = np.array([np.mean(data[s]["heartbeat"]["heps"]) for s in range(n_subjects)])
+        pupil_means = np.array([np.mean(data[s]["heartbeat"]["pupils"]) for s in range(n_subjects)])
         hrv_means = np.array(
             [np.mean(data[s]["heartbeat"]["heart_rates"]) for s in range(n_subjects)]
         )
@@ -1001,11 +947,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
         # Ratio measurement (for beta_Pi_i / Pi_e0 identification)
         ratios = np.array(
             [
-                (
-                    p3b_intero_means[i] / p3b_extero_means[i]
-                    if p3b_extero_means[i] > 0.1
-                    else 1.0
-                )
+                (p3b_intero_means[i] / p3b_extero_means[i] if p3b_extero_means[i] > 0.1 else 1.0)
                 for i in range(n_subjects)
             ]
         )
@@ -1019,9 +961,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
         )
 
         # TASK 4: Reaction Time Analysis
-        rt_means = np.array(
-            [np.mean(data[s]["detection"]["rts"]) for s in range(n_subjects)]
-        )
+        rt_means = np.array([np.mean(data[s]["detection"]["rts"]) for s in range(n_subjects)])
 
         # Ratcliff & McKoon (2008): RT ~ base / alpha
         pm.Normal(
@@ -1044,24 +984,21 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             # Signal integration: dS/dt = -S/tau_S + input
             signal_integration = pm.Deterministic(
                 "signal_integration",
-                beta_Pi_i[:, None]
-                * pm.math.exp(-time_points[None, :] / tau_S[:, None]),
+                beta_Pi_i[:, None] * pm.math.exp(-time_points[None, :] / tau_S[:, None]),
                 dims=("subject", "time"),
             )
 
             # Threshold recovery: theta(t) = theta0 * (1 - exp(-t/tau_theta))
             threshold_recovery = pm.Deterministic(
                 "threshold_recovery",
-                theta0[:, None]
-                * (1 - pm.math.exp(-time_points[None, :] / tau_theta[:, None])),
+                theta0[:, None] * (1 - pm.math.exp(-time_points[None, :] / tau_theta[:, None])),
                 dims=("subject", "time"),
             )
 
             # Somatic marker: M(t) = beta_M * (1 - exp(-t/tau_M))
             somatic_marker = pm.Deterministic(
                 "somatic_marker",
-                beta_M[:, None]
-                * (1 - pm.math.exp(-time_points[None, :] / tau_M[:, None])),
+                beta_M[:, None] * (1 - pm.math.exp(-time_points[None, :] / tau_M[:, None])),
                 dims=("subject", "time"),
             )
 
@@ -1156,9 +1093,7 @@ def compute_fisher_information(
     for i, param in enumerate(param_names):
         if param in trace.posterior:
             samples = trace.posterior[param].values.flatten()
-            param_samples[:, i] = np.random.choice(
-                samples, size=n_samples, replace=False
-            )
+            param_samples[:, i] = np.random.choice(samples, size=n_samples, replace=False)
 
     # Inverse of covariance is approximate FIM (Cramér-Rao bound)
     cov_matrix = np.cov(param_samples.T)
@@ -1169,9 +1104,7 @@ def compute_fisher_information(
         # Compute identifiability metrics
         eigenvalues = linalg.eigvalsh(fim)
         condition_number = (
-            np.max(eigenvalues) / np.min(eigenvalues)
-            if np.min(eigenvalues) > 0
-            else np.inf
+            np.max(eigenvalues) / np.min(eigenvalues) if np.min(eigenvalues) > 0 else np.inf
         )
         determinant = linalg.det(fim)
 
@@ -1181,15 +1114,11 @@ def compute_fisher_information(
             and np.min(eigenvalues) / np.max(eigenvalues) > CONST.MIN_EIGENVALUE_RATIO
         )
 
-        print(f"\nFisher Information Matrix computed successfully")
+        print("\nFisher Information Matrix computed successfully")
         print(f"Condition number: {condition_number:.2e}")
         print(f"Determinant: {determinant:.2e}")
-        print(
-            f"Eigenvalue range: [{np.min(eigenvalues):.2e}, {np.max(eigenvalues):.2e}]"
-        )
-        print(
-            f"Min/Max eigenvalue ratio: {np.min(eigenvalues)/np.max(eigenvalues):.2e}"
-        )
+        print(f"Eigenvalue range: [{np.min(eigenvalues):.2e}, {np.max(eigenvalues):.2e}]")
+        print(f"Min/Max eigenvalue ratio: {np.min(eigenvalues) / np.max(eigenvalues):.2e}")
 
         if identifiable:
             print("\n✓ PARAMETERS ARE STRUCTURALLY IDENTIFIABLE")
@@ -1197,16 +1126,14 @@ def compute_fisher_information(
                 f"  Condition number {condition_number:.2e} < {CONST.FIM_CONDITION_NUMBER_MAX:.2e}"
             )
             print(
-                f"  Eigenvalue ratio {np.min(eigenvalues)/np.max(eigenvalues):.2e} > {CONST.MIN_EIGENVALUE_RATIO:.2e}"
+                f"  Eigenvalue ratio {np.min(eigenvalues) / np.max(eigenvalues):.2e} > {CONST.MIN_EIGENVALUE_RATIO:.2e}"
             )
         else:
             print("\n✗ PARAMETERS MAY NOT BE FULLY IDENTIFIABLE")
             if condition_number >= CONST.FIM_CONDITION_NUMBER_MAX:
                 print(f"  ! High condition number: {condition_number:.2e}")
             if np.min(eigenvalues) / np.max(eigenvalues) <= CONST.MIN_EIGENVALUE_RATIO:
-                print(
-                    f"  ! Low eigenvalue ratio: {np.min(eigenvalues)/np.max(eigenvalues):.2e}"
-                )
+                print(f"  ! Low eigenvalue ratio: {np.min(eigenvalues) / np.max(eigenvalues):.2e}")
 
         # Identify problematic parameter pairs (high correlation)
         print("\nParameter Correlations (|r| > 0.7 may indicate weak identifiability):")
@@ -1215,9 +1142,7 @@ def compute_fisher_information(
         for i in range(n_params):
             for j in range(i + 1, n_params):
                 if abs(corr_matrix[i, j]) > 0.7:
-                    print(
-                        f"  ! {param_names[i]} <-> {param_names[j]}: r = {corr_matrix[i, j]:.3f}"
-                    )
+                    print(f"  ! {param_names[i]} <-> {param_names[j]}: r = {corr_matrix[i, j]:.3f}")
 
         results = {
             "fim": fim,
@@ -1302,9 +1227,7 @@ def validate_parameter_recovery(
 
             # Handle edge cases
             if len(np.unique(true_vals)) <= 1 or len(np.unique(rec_vals)) <= 1:
-                warnings.warn(
-                    f"Parameter {param}: insufficient variance for correlation"
-                )
+                warnings.warn(f"Parameter {param}: insufficient variance for correlation")
                 r, p = 0, 1
             else:
                 r, p = stats.pearsonr(true_vals, rec_vals)
@@ -1379,9 +1302,7 @@ def validate_parameter_recovery(
 # =============================================================================
 # 7. TEST-RETEST RELIABILITY
 # =============================================================================
-def assess_test_retest(
-    session1_trace: az.InferenceData, session2_trace: az.InferenceData
-) -> Dict:
+def assess_test_retest(session1_trace: az.InferenceData, session2_trace: az.InferenceData) -> Dict:
     """
     Calculate ICC and reliability metrics with proper error handling.
 
@@ -1410,18 +1331,11 @@ def assess_test_retest(
 
     for param in params:
         try:
-            if (
-                param not in session1_trace.posterior
-                or param not in session2_trace.posterior
-            ):
+            if param not in session1_trace.posterior or param not in session2_trace.posterior:
                 continue
 
-            s1_means = (
-                session1_trace.posterior[param].mean(dim=["chain", "draw"]).values
-            )
-            s2_means = (
-                session2_trace.posterior[param].mean(dim=["chain", "draw"]).values
-            )
+            s1_means = session1_trace.posterior[param].mean(dim=["chain", "draw"]).values
+            s2_means = session2_trace.posterior[param].mean(dim=["chain", "draw"]).values
 
             n = min(len(s1_means), len(s2_means))
             s1_means = s1_means[:n]
@@ -1454,11 +1368,7 @@ def assess_test_retest(
 
             # Coefficient of variation
             mean_of_means = np.mean([np.mean(s1_means), np.mean(s2_means)])
-            cv = (
-                np.std(s1_means - s2_means) / mean_of_means
-                if mean_of_means != 0
-                else np.inf
-            )
+            cv = np.std(s1_means - s2_means) / mean_of_means if mean_of_means != 0 else np.inf
 
             reliability[param] = {
                 "ICC": icc,
@@ -1535,9 +1445,7 @@ def load_independent_datasets() -> Dict:
     return datasets
 
 
-def assess_predictive_validity(
-    data: Dict, trace: az.InferenceData, independent_data: Dict
-) -> Dict:
+def assess_predictive_validity(data: Dict, trace: az.InferenceData, independent_data: Dict) -> Dict:
     """
     Comprehensive predictive validity on INDEPENDENT datasets.
 
@@ -1718,11 +1626,7 @@ def assess_predictive_validity(
     # At least 2 of 3 validations must exceed R² threshold
     valid_r2s = []
     for key in ["emotional_interference", "cpt_performance", "body_vigilance"]:
-        if (
-            key in results
-            and "cv_r2" in results[key]
-            and not np.isnan(results[key]["cv_r2"])
-        ):
+        if key in results and "cv_r2" in results[key] and not np.isnan(results[key]["cv_r2"]):
             valid_r2s.append(results[key]["cv_r2"])
 
     if len(valid_r2s) >= 2:
@@ -1779,30 +1683,22 @@ def generate_comprehensive_visualizations(
 
             # Scatter with identity line
             n_subjects = len(true_params[param])
-            rec_vals = (
-                trace.posterior[param].mean(dim=["chain", "draw"]).values[:n_subjects]
-            )
+            rec_vals = trace.posterior[param].mean(dim=["chain", "draw"]).values[:n_subjects]
             true_vals = true_params[param][:n_subjects]
 
-            ax.scatter(
-                true_vals, rec_vals, alpha=0.6, s=30, edgecolors="black", linewidths=0.5
-            )
+            ax.scatter(true_vals, rec_vals, alpha=0.6, s=30, edgecolors="black", linewidths=0.5)
 
             # Identity line
             lims = [
                 np.min([ax.get_xlim(), ax.get_ylim()]),
                 np.max([ax.get_xlim(), ax.get_ylim()]),
             ]
-            ax.plot(
-                lims, lims, "r--", alpha=0.75, linewidth=2, label="Perfect recovery"
-            )
+            ax.plot(lims, lims, "r--", alpha=0.75, linewidth=2, label="Perfect recovery")
 
             # Regression line
             z = np.polyfit(true_vals, rec_vals, 1)
             p = np.poly1d(z)
-            ax.plot(
-                true_vals, p(true_vals), "b-", alpha=0.5, linewidth=1.5, label="Fit"
-            )
+            ax.plot(true_vals, p(true_vals), "b-", alpha=0.5, linewidth=1.5, label="Fit")
 
             ax.set_xlabel(f"True {param}", fontsize=11)
             ax.set_ylabel(f"Recovered {param}", fontsize=11)
@@ -1887,18 +1783,14 @@ def generate_comprehensive_visualizations(
         # Correlation matrix heatmap
         if "correlation_matrix" in fim_results:
             corr = fim_results["correlation_matrix"]
-            param_names = fim_results.get(
-                "param_names", [f"P{i}" for i in range(len(corr))]
-            )
+            param_names = fim_results.get("param_names", [f"P{i}" for i in range(len(corr))])
 
             im = ax2.imshow(corr, cmap="RdBu_r", vmin=-1, vmax=1, aspect="auto")
             ax2.set_xticks(range(len(param_names)))
             ax2.set_yticks(range(len(param_names)))
             ax2.set_xticklabels(param_names, rotation=45, ha="right", fontsize=9)
             ax2.set_yticklabels(param_names, fontsize=9)
-            ax2.set_title(
-                "Parameter Correlation Matrix", fontsize=13, fontweight="bold"
-            )
+            ax2.set_title("Parameter Correlation Matrix", fontsize=13, fontweight="bold")
 
             # Add colorbar
             cbar = plt.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
@@ -1920,9 +1812,7 @@ def generate_comprehensive_visualizations(
                         )
 
         plt.tight_layout()
-        plt.savefig(
-            f"{save_dir}/fig3_identifiability.png", dpi=300, bbox_inches="tight"
-        )
+        plt.savefig(f"{save_dir}/fig3_identifiability.png", dpi=300, bbox_inches="tight")
         print(f"Saved: {save_dir}/fig3_identifiability.png")
 
     # ===== FIGURE 4: Predictive Validity =====
@@ -1982,9 +1872,7 @@ def generate_comprehensive_visualizations(
                     )
 
         plt.tight_layout()
-        plt.savefig(
-            f"{save_dir}/fig4_predictive_validity.png", dpi=300, bbox_inches="tight"
-        )
+        plt.savefig(f"{save_dir}/fig4_predictive_validity.png", dpi=300, bbox_inches="tight")
         print(f"Saved: {save_dir}/fig4_predictive_validity.png")
 
 
@@ -2246,53 +2134,34 @@ def print_measurement_summary():
 # =============================================================================
 # 11. MAIN EXECUTION PIPELINE
 # =============================================================================
-def main():
-    """
-    Execute complete APGI validation pipeline.
-
-    This addresses ALL critical issues identified in the review:
-    1. ✓ Independent generative models (DDM + neural mass)
-    2. ✓ Formal identifiability analysis (Fisher Information Matrix)
-    3. ✓ Accurate parameter count documentation
-    4. ✓ Empirically-validated measurement relationships
-    5. ✓ Independent dataset validation
-    6. ✓ Comprehensive error handling
-    7. ✓ Integrated dynamic validation
-    8. ✓ Justified priors and thresholds
-    9. ✓ Named constants
-    10. ✓ Optimized computation
-    """
-    print("=" * 80)
-    print("APGI PARAMETER ESTIMATION - PUBLICATION-READY VALIDATION")
-    print("Version 2.0 - Addressing All Critical Issues")
-    print("=" * 80)
-
-    # Print measurement protocols
-    print_measurement_summary()
-
-    # Step 0: Prior predictive checks
+def _step_prior_checks(save_plots: bool) -> bool:
+    """Step 0: Prior predictive checks"""
     print("\n[0/8] PRIOR PREDICTIVE CHECKS")
     print("-" * 80)
-    prior_valid = conduct_prior_predictive_checks(n_samples=1000, save_plots=True)
+    prior_valid = conduct_prior_predictive_checks(n_samples=1000, save_plots=save_plots)
 
     if not prior_valid:
-        warnings.warn(
-            "Some priors failed empirical range checks. Proceeding with caution."
-        )
+        warnings.warn("Some priors failed empirical range checks. Proceeding with caution.")
 
-    # Step 1: Generate independent validation data
+    return prior_valid
+
+
+def _step_generate_data() -> Tuple:
+    """Step 1: Generate independent validation data"""
     print("\n[1/8] GENERATING SYNTHETIC DATA VIA INDEPENDENT MODELS")
     print("-" * 80)
     print("Using drift-diffusion model (detection) + neural mass model (EEG)")
     print("This breaks circular validation by using different generative processes")
 
-    sessions, true_params = generate_synthetic_dataset(
-        n_subjects=100, n_sessions=2, seed=42
-    )
+    sessions, true_params = generate_synthetic_dataset(n_subjects=100, n_sessions=2, seed=42)
 
     print(f"Generated: {len(sessions)} sessions, {len(sessions[0])} subjects")
 
-    # Step 2: Artifact rejection
+    return sessions, true_params
+
+
+def _step_artifact_rejection(sessions: List) -> List:
+    """Step 2: Artifact rejection"""
     print("\n[2/8] ARTIFACT REJECTION PIPELINE")
     print("-" * 80)
 
@@ -2301,50 +2170,51 @@ def main():
 
     print("Artifact rejection complete for both sessions")
 
-    # Step 3: Build and fit model (Session 1)
+    return sessions
+
+
+def _step_build_model(sessions: List) -> pm.Model:
+    """Step 3: Build and fit model"""
     print("\n[3/8] BUILDING HIERARCHICAL BAYESIAN MODEL")
     print("-" * 80)
     print("Model structure:")
     print(
         "  - CORE parameters (8): theta0, alpha, tau, sigma, beta_Pi_i, Pi_e0, Pi_i_baseline, beta"
     )
-    print(
-        "  - AUXILIARY parameters (9): tau_S, tau_theta, tau_M, tau_A_phasic, tau_A_tonic,"
-    )
+    print("  - AUXILIARY parameters (9): tau_S, tau_theta, tau_M, tau_A_phasic, tau_A_tonic,")
     print("                               lambda_coupling, beta_M, gamma, delta")
     print("  - NUISANCE parameters (1): criterion")
     print("  - TOTAL: 18 parameters")
 
-    try:
-        model = build_apgi_model(sessions[0], estimate_dynamics=True)
+    model = build_apgi_model(sessions[0], estimate_dynamics=True)
 
-        print("\nSampling from posterior (Session 1)...")
-        print(
-            f"MCMC settings: {CONST.MCMC_DRAWS} draws, {CONST.MCMC_TUNE} tune, "
-            f"{CONST.MCMC_CHAINS} chains"
+    print("\nSampling from posterior (Session 1)...")
+    print(
+        f"MCMC settings: {CONST.MCMC_DRAWS} draws, {CONST.MCMC_TUNE} tune, "
+        f"{CONST.MCMC_CHAINS} chains"
+    )
+
+    with model:
+        trace1 = pm.sample(
+            draws=CONST.MCMC_DRAWS,
+            tune=CONST.MCMC_TUNE,
+            chains=CONST.MCMC_CHAINS,
+            target_accept=CONST.MCMC_TARGET_ACCEPT,
+            max_treedepth=CONST.MCMC_MAX_TREEDEPTH,
+            cores=CONST.MCMC_CHAINS,
+            init="adapt_diag",
+            return_inferencedata=True,
+            progressbar=True,
+            random_seed=42,
         )
 
-        with model:
-            trace1 = pm.sample(
-                draws=CONST.MCMC_DRAWS,
-                tune=CONST.MCMC_TUNE,
-                chains=CONST.MCMC_CHAINS,
-                target_accept=CONST.MCMC_TARGET_ACCEPT,
-                max_treedepth=CONST.MCMC_MAX_TREEDEPTH,
-                cores=CONST.MCMC_CHAINS,
-                init="adapt_diag",
-                return_inferencedata=True,
-                progressbar=True,
-                random_seed=42,
-            )
+    print("✓ Session 1 sampling complete")
 
-        print("✓ Session 1 sampling complete")
+    return model, trace1
 
-    except Exception as e:
-        print(f"✗ CRITICAL ERROR during model fitting: {e}")
-        raise
 
-    # Step 4: Model diagnostics
+def _step_model_diagnostics(trace1) -> Tuple[float, float, int]:
+    """Step 4: Model diagnostics"""
     print("\n[4/8] MODEL DIAGNOSTICS")
     print("-" * 80)
 
@@ -2356,8 +2226,7 @@ def main():
 
         if min_ess < CONST.MIN_ESS:
             warnings.warn(
-                f"ESS ({min_ess:.0f}) < threshold ({CONST.MIN_ESS}). "
-                f"Consider longer sampling."
+                f"ESS ({min_ess:.0f}) < threshold ({CONST.MIN_ESS}). " f"Consider longer sampling."
             )
 
         # R-hat
@@ -2381,13 +2250,20 @@ def main():
                     f"Divergences ({n_divergences}) > threshold ({CONST.MAX_DIVERGENCES}). "
                     f"Consider reparameterization."
                 )
+        else:
+            n_divergences = 0
 
         print("✓ Model diagnostics acceptable")
 
     except Exception as e:
         warnings.warn(f"Diagnostic check failed: {e}")
+        min_ess, max_rhat, n_divergences = 0, 1, 0
 
-    # Step 5: Fisher Information Matrix
+    return min_ess, max_rhat, n_divergences
+
+
+def _step_fim_analysis(model, trace1) -> Dict:
+    """Step 5: Fisher Information Matrix"""
     print("\n[5/8] IDENTIFIABILITY ANALYSIS")
     print("-" * 80)
 
@@ -2395,20 +2271,22 @@ def main():
         fim_results = compute_fisher_information(model, trace1, n_samples=500)
 
         if not fim_results["identifiable"]:
-            warnings.warn(
-                "Parameters may not be fully identifiable. See FIM results above."
-            )
+            warnings.warn("Parameters may not be fully identifiable. See FIM results above.")
 
     except Exception as e:
         warnings.warn(f"FIM computation failed: {e}")
         fim_results = {"identifiable": False, "error": str(e)}
 
-    # Step 6: Parameter recovery
+    return fim_results
+
+
+def _step_parameter_recovery(true_params, trace1) -> Tuple[Dict, bool, List[str]]:
+    """Step 6: Parameter recovery"""
     print("\n[6/8] PARAMETER RECOVERY VALIDATION")
     print("-" * 80)
 
-    recovery_results, falsified_recovery, recovery_failures = (
-        validate_parameter_recovery(true_params, trace1, n_subjects=100)
+    recovery_results, falsified_recovery, recovery_failures = validate_parameter_recovery(
+        true_params, trace1, n_subjects=100
     )
 
     print(f"\n{'Parameter':<20} {'r':<8} {'RMSE':<10} {'Coverage':<10} {'Status'}")
@@ -2432,7 +2310,11 @@ def main():
     else:
         print("\n✓ PARAMETER RECOVERY SUCCESSFUL")
 
-    # Step 7: Test-retest reliability (Session 2)
+    return recovery_results, falsified_recovery, recovery_failures
+
+
+def _step_test_retest(sessions, trace1) -> Tuple[Dict, bool]:
+    """Step 7: Test-retest reliability"""
     print("\n[7/8] TEST-RETEST RELIABILITY")
     print("-" * 80)
 
@@ -2472,24 +2354,24 @@ def main():
         if falsified_reliability:
             print(f"\n✗ TEST-RETEST RELIABILITY FAILED (ICC < {CONST.ICC_THRESHOLD})")
         else:
-            print(
-                f"\n✓ TEST-RETEST RELIABILITY ACCEPTABLE (ICC ≥ {CONST.ICC_THRESHOLD})"
-            )
+            print(f"\n✓ TEST-RETEST RELIABILITY ACCEPTABLE (ICC ≥ {CONST.ICC_THRESHOLD})")
 
     except Exception as e:
         warnings.warn(f"Test-retest assessment failed: {e}")
         reliability = {}
         falsified_reliability = True
 
-    # Step 8: Predictive validity on independent datasets
+    return reliability, falsified_reliability
+
+
+def _step_predictive_validity(sessions, trace1) -> Tuple[Dict, bool]:
+    """Step 8: Predictive validity"""
     print("\n[8/8] PREDICTIVE VALIDITY ON INDEPENDENT DATASETS")
     print("-" * 80)
 
     try:
         independent_data = load_independent_datasets()
-        predictive_results = assess_predictive_validity(
-            sessions[0], trace1, independent_data
-        )
+        predictive_results = assess_predictive_validity(sessions[0], trace1, independent_data)
 
         falsified_predictive = predictive_results.get("falsified", True)
 
@@ -2503,7 +2385,17 @@ def main():
         predictive_results = {"falsified": True, "error": str(e)}
         falsified_predictive = True
 
-    # Final assessment
+    return predictive_results, falsified_predictive
+
+
+def _step_final_assessment(
+    falsified_recovery,
+    falsified_reliability,
+    falsified_predictive,
+    fim_results,
+    recovery_failures,
+) -> Tuple[bool, Dict]:
+    """Final assessment"""
     print("\n" + "=" * 80)
     print("FINAL VALIDATION SUMMARY")
     print("=" * 80)
@@ -2547,6 +2439,384 @@ def main():
         print("  4. ✓ Strong test-retest reliability (ICC > 0.68)")
         print("  5. ✓ Predictive validity on independent datasets (R² > 0.48)")
 
+    return total_falsified, criteria_status
+
+
+def _step_visualizations(
+    true_params, recovery_results, reliability, predictive_results, trace1, fim_results
+):
+    """Generate visualizations"""
+    print("\n" + "=" * 80)
+    print("GENERATING PUBLICATION-QUALITY VISUALIZATIONS")
+    print("=" * 80)
+
+    try:
+        generate_comprehensive_visualizations(
+            true_params=true_params,
+            recovery_results=recovery_results,
+            reliability=reliability,
+            predictive_results=predictive_results,
+            trace=trace1,
+            fim_results=fim_results,
+            save_dir=".",
+        )
+
+        print("\n✓ All visualizations generated")
+
+    except Exception as e:
+        warnings.warn(f"Visualization generation failed: {e}")
+
+
+def _step_save_results(
+    validation_status,
+    criteria_status,
+    recovery_results,
+    reliability,
+    predictive_results,
+    fim_results,
+    min_ess,
+    max_rhat,
+    n_divergences,
+):
+    """Save results"""
+    print("\n" + "=" * 80)
+    print("SAVING RESULTS")
+    print("=" * 80)
+
+    try:
+        results_summary = {
+            "validation_status": "VALIDATED" if not validation_status else "FALSIFIED",
+            "criteria": criteria_status,
+            "parameter_recovery": {
+                param: {
+                    k: float(v) if isinstance(v, (np.floating, np.integer)) else v
+                    for k, v in res.items()
+                }
+                for param, res in recovery_results.items()
+            },
+            "test_retest_reliability": (
+                {
+                    param: {
+                        k: float(v) if isinstance(v, (np.floating, np.integer)) else v
+                        for k, v in rel.items()
+                    }
+                    for param, rel in reliability.items()
+                }
+                if reliability
+                else {}
+            ),
+            "predictive_validity": (
+                {
+                    k: (
+                        {
+                            kk: (float(vv) if isinstance(vv, (np.floating, np.integer)) else vv)
+                            for kk, vv in v.items()
+                        }
+                        if isinstance(v, dict)
+                        else v
+                    )
+                    for k, v in predictive_results.items()
+                }
+                if predictive_results
+                else {}
+            ),
+            "identifiability": (
+                {
+                    "status": fim_results.get("identifiable", False),
+                    "condition_number": float(fim_results.get("condition_number", np.inf)),
+                    "determinant": float(fim_results.get("determinant", 0)),
+                }
+                if fim_results
+                else {}
+            ),
+            "model_diagnostics": {
+                "min_ess": float(min_ess),
+                "max_rhat": float(max_rhat),
+                "n_divergences": int(n_divergences),
+            },
+            "thresholds": {
+                "recovery_r_critical": CONST.RECOVERY_R_CRITICAL,
+                "recovery_r_auxiliary": CONST.RECOVERY_R_AUXILIARY,
+                "icc_threshold": CONST.ICC_THRESHOLD,
+                "predictive_r2_threshold": CONST.PREDICTIVE_R2_THRESHOLD,
+            },
+        }
+
+        with open("apgi_validation_results_v2.json", "w") as f:
+            json.dump(results_summary, f, indent=2, default=str)
+
+        print("✓ Results saved to: apgi_validation_results_v2.json")
+
+    except Exception as e:
+        warnings.warn(f"Results saving failed: {e}")
+
+
+def _step_final_summary():
+    """Final summary"""
+    print("\n" + "=" * 80)
+    print("EXECUTION COMPLETE")
+    print("=" * 80)
+    print("\nGenerated files:")
+    print("  - apgi_validation_results_v2.json (comprehensive results)")
+    print("  - prior_predictive_checks.png (prior validation)")
+    print("  - fig1_parameter_recovery.png (recovery scatter plots)")
+    print("  - fig2_test_retest.png (reliability analysis)")
+    print("  - fig3_identifiability.png (FIM eigenvalues + correlations)")
+    print("  - fig4_predictive_validity.png (independent validation)")
+
+    print("\n" + "=" * 80)
+    print("PUBLICATION-READY IMPLEMENTATION COMPLETE")
+    print("Addressed all critical issues:")
+    print("  ✓ Independent generative models (DDM + neural mass)")
+    print("  ✓ Formal identifiability analysis (Fisher Information Matrix)")
+    print("  ✓ Accurate parameter documentation (8 core + 9 auxiliary = 17 total)")
+    print("  ✓ Empirically-validated measurement relationships")
+    print("  ✓ Independent dataset validation")
+    print("  ✓ Comprehensive error handling")
+    print("  ✓ Integrated dynamic validation")
+    print("  ✓ Justified priors and thresholds")
+    print("  ✓ Named constants throughout")
+    print("  ✓ Optimized computation")
+    print("=" * 80)
+
+
+def _run_model_diagnostics(trace1):
+    """Run and display model diagnostics."""
+    print("\n[4/8] MODEL DIAGNOSTICS")
+    print("-" * 80)
+
+    try:
+        # Effective sample size
+        ess = az.ess(trace1)
+        min_ess = float(ess.to_array().min())
+        print(f"Minimum effective sample size: {min_ess:.0f}")
+
+        if min_ess < CONST.MIN_ESS:
+            warnings.warn(
+                f"ESS ({min_ess:.0f}) < threshold ({CONST.MIN_ESS}). " f"Consider longer sampling."
+            )
+
+        # R-hat
+        rhat = az.rhat(trace1)
+        max_rhat = float(rhat.to_array().max())
+        print(f"Maximum R-hat: {max_rhat:.4f}")
+
+        if max_rhat > CONST.MAX_RHAT:
+            warnings.warn(
+                f"R-hat ({max_rhat:.4f}) > threshold ({CONST.MAX_RHAT}). "
+                f"Convergence issues detected."
+            )
+
+        # Divergences
+        if hasattr(trace1, "sample_stats") and "diverging" in trace1.sample_stats:
+            n_divergences = int(trace1.sample_stats.diverging.sum())
+            print(f"Number of divergences: {n_divergences}")
+
+            if n_divergences > CONST.MAX_DIVERGENCES:
+                warnings.warn(
+                    f"Divergences ({n_divergences}) > threshold ({CONST.MAX_DIVERGENCES}). "
+                    f"Consider reparameterization."
+                )
+
+        print("✓ Model diagnostics acceptable")
+        return min_ess, max_rhat
+
+    except Exception as e:
+        warnings.warn(f"Diagnostic check failed: {e}")
+        return None, None
+
+
+def _run_identifiability_analysis(model, trace1):
+    """Run Fisher Information Matrix analysis."""
+    print("\n[5/8] IDENTIFIABILITY ANALYSIS")
+    print("-" * 80)
+
+    try:
+        fim_results = compute_fisher_information(model, trace1, n_samples=500)
+
+        if not fim_results["identifiable"]:
+            warnings.warn("Parameters may not be fully identifiable. See FIM results above.")
+
+        return fim_results
+
+    except Exception as e:
+        warnings.warn(f"FIM computation failed: {e}")
+        return {"identifiable": False, "error": str(e)}
+
+
+def _run_parameter_recovery(true_params, trace1):
+    """Run parameter recovery validation."""
+    print("\n[6/8] PARAMETER RECOVERY VALIDATION")
+    print("-" * 80)
+
+    recovery_results, falsified_recovery, recovery_failures = validate_parameter_recovery(
+        true_params, trace1, n_subjects=100
+    )
+
+    print(f"\n{'Parameter':<20} {'r':<8} {'RMSE':<10} {'Coverage':<10} {'Status'}")
+    print("-" * 80)
+
+    for param, res in recovery_results.items():
+        threshold = (
+            CONST.RECOVERY_R_CRITICAL
+            if param in ["theta0", "alpha", "beta_Pi_i", "Pi_e0", "Pi_i_baseline"]
+            else CONST.RECOVERY_R_AUXILIARY
+        )
+        status = "✓" if res["r"] >= threshold else "✗"
+        print(
+            f"{param:<20} {res['r']:.3f}    {res['rmse']:.4f}     {res['coverage']:.3f}       {status}"
+        )
+
+    if falsified_recovery:
+        print("\n✗ PARAMETER RECOVERY FAILED")
+        for reason in recovery_failures:
+            print(f"  - {reason}")
+    else:
+        print("\n✓ PARAMETER RECOVERY SUCCESSFUL")
+
+    return recovery_results, falsified_recovery, recovery_failures
+
+
+def _run_test_retest_reliability(sessions, trace1):
+    """Run test-retest reliability assessment."""
+    print("\n[7/8] TEST-RETEST RELIABILITY")
+    print("-" * 80)
+
+    try:
+        print("Fitting Session 2...")
+        model2 = build_apgi_model(sessions[1], estimate_dynamics=True)
+
+        with model2:
+            trace2 = pm.sample(
+                draws=CONST.MCMC_DRAWS,
+                tune=CONST.MCMC_TUNE,
+                chains=CONST.MCMC_CHAINS,
+                target_accept=CONST.MCMC_TARGET_ACCEPT,
+                max_treedepth=CONST.MCMC_MAX_TREEDEPTH,
+                cores=CONST.MCMC_CHAINS,
+                init="adapt_diag",
+                return_inferencedata=True,
+                progressbar=True,
+                random_seed=43,
+            )
+
+        print("✓ Session 2 sampling complete")
+
+        # Calculate test-retest
+        reliability = assess_test_retest(trace1, trace2)
+
+        print(f"\n{'Parameter':<20} {'ICC':<8} {'r':<8} {'Status'}")
+        print("-" * 80)
+
+        falsified_reliability = False
+        for param, rel in reliability.items():
+            status = "✓" if rel["ICC"] >= CONST.ICC_THRESHOLD else "✗"
+            if rel["ICC"] < CONST.ICC_THRESHOLD:
+                falsified_reliability = True
+            print(f"{param:<20} {rel['ICC']:.3f}    {rel['r']:.3f}    {status}")
+
+        if falsified_reliability:
+            print(f"\n✗ TEST-RETEST RELIABILITY FAILED (ICC < {CONST.ICC_THRESHOLD})")
+        else:
+            print(f"\n✓ TEST-RETEST RELIABILITY ACCEPTABLE (ICC ≥ {CONST.ICC_THRESHOLD})")
+
+        return reliability, falsified_reliability, trace2
+
+    except Exception as e:
+        warnings.warn(f"Test-retest assessment failed: {e}")
+        return {}, True, None
+
+
+def _run_predictive_validity(sessions, trace1):
+    """Run predictive validity on independent datasets."""
+    print("\n[8/8] PREDICTIVE VALIDITY ON INDEPENDENT DATASETS")
+    print("-" * 80)
+
+    try:
+        independent_data = load_independent_datasets()
+        predictive_results = assess_predictive_validity(sessions[0], trace1, independent_data)
+
+        falsified_predictive = predictive_results.get("falsified", True)
+
+        if falsified_predictive:
+            print("\n✗ PREDICTIVE VALIDATION FAILED")
+        else:
+            print("\n✓ PREDICTIVE VALIDATION SUCCESSFUL")
+
+        return predictive_results, falsified_predictive
+
+    except Exception as e:
+        warnings.warn(f"Predictive validity assessment failed: {e}")
+        return {"falsified": True, "error": str(e)}, True
+
+
+def _generate_final_summary(
+    falsified_recovery,
+    falsified_reliability,
+    falsified_predictive,
+    fim_results,
+    recovery_failures,
+):
+    """Generate final validation summary."""
+    print("\n" + "=" * 80)
+    print("FINAL VALIDATION SUMMARY")
+    print("=" * 80)
+
+    total_falsified = (
+        falsified_recovery
+        or falsified_reliability
+        or falsified_predictive
+        or not fim_results.get("identifiable", False)
+    )
+
+    criteria_status = {
+        "Parameter Recovery": not falsified_recovery,
+        "Test-Retest Reliability": not falsified_reliability,
+        "Predictive Validity": not falsified_predictive,
+        "Structural Identifiability": fim_results.get("identifiable", False),
+    }
+
+    print("\nValidation Criteria:")
+    for criterion, passed in criteria_status.items():
+        status = "✓ PASS" if passed else "✗ FAIL"
+        print(f"  {criterion:<30} {status}")
+
+    if total_falsified:
+        print("\n" + "✗" * 40)
+        print("MODEL FALSIFIED - Does not meet validation criteria")
+        print("✗" * 40)
+
+        if recovery_failures:
+            print("\nParameter Recovery Failures:")
+            for fail in recovery_failures:
+                print(f"  - {fail}")
+    else:
+        print("\n" + "✓" * 40)
+        print("MODEL VALIDATED - All criteria satisfied")
+        print("✓" * 40)
+        print("\nValidation achievements:")
+        print("  1. ✓ Independent generative models (no circular validation)")
+        print("  2. ✓ Structural identifiability proven (FIM analysis)")
+        print("  3. ✓ High parameter recovery (r > thresholds)")
+        print("  4. ✓ Strong test-retest reliability (ICC > 0.68)")
+        print("  5. ✓ Predictive validity on independent datasets (R² > 0.48)")
+
+    return total_falsified, criteria_status
+
+
+def _generate_visualizations_and_save_results(
+    true_params,
+    recovery_results,
+    reliability,
+    predictive_results,
+    trace1,
+    fim_results,
+    total_falsified,
+    criteria_status,
+    min_ess,
+    max_rhat,
+):
+    """Generate visualizations and save comprehensive results."""
     # Generate visualizations
     print("\n" + "=" * 80)
     print("GENERATING PUBLICATION-QUALITY VISUALIZATIONS")
@@ -2599,11 +2869,7 @@ def main():
                 {
                     k: (
                         {
-                            kk: (
-                                float(vv)
-                                if isinstance(vv, (np.floating, np.integer))
-                                else vv
-                            )
+                            kk: (float(vv) if isinstance(vv, (np.floating, np.integer)) else vv)
                             for kk, vv in v.items()
                         }
                         if isinstance(v, dict)
@@ -2617,20 +2883,16 @@ def main():
             "identifiability": (
                 {
                     "status": fim_results.get("identifiable", False),
-                    "condition_number": float(
-                        fim_results.get("condition_number", np.inf)
-                    ),
+                    "condition_number": float(fim_results.get("condition_number", np.inf)),
                     "determinant": float(fim_results.get("determinant", 0)),
                 }
                 if fim_results
                 else {}
             ),
             "model_diagnostics": {
-                "min_ess": float(min_ess),
-                "max_rhat": float(max_rhat),
-                "n_divergences": (
-                    int(n_divergences) if "n_divergences" in locals() else 0
-                ),
+                "min_ess": float(min_ess) if min_ess is not None else 0,
+                "max_rhat": float(max_rhat) if max_rhat is not None else 0,
+                "n_divergences": 0,  # Will be updated if available
             },
             "thresholds": {
                 "recovery_r_critical": CONST.RECOVERY_R_CRITICAL,
@@ -2647,6 +2909,83 @@ def main():
 
     except Exception as e:
         warnings.warn(f"Results saving failed: {e}")
+
+
+def main():
+    """
+    Execute complete APGI validation pipeline.
+
+    This addresses ALL critical issues identified in the review:
+    1. ✓ Independent generative models (DDM + neural mass)
+    2. ✓ Formal identifiability analysis (Fisher Information Matrix)
+    3. ✓ Accurate parameter count documentation
+    4. ✓ Empirically-validated measurement relationships
+    5. ✓ Independent dataset validation
+    6. ✓ Comprehensive error handling
+    7. ✓ Integrated dynamic validation
+    8. ✓ Justified priors and thresholds
+    9. ✓ Named constants
+    10. ✓ Optimized computation
+    """
+    print("=" * 80)
+    print("APGI PARAMETER ESTIMATION - PUBLICATION-READY VALIDATION")
+    print("Version 2.0 - Addressing All Critical Issues")
+    print("=" * 80)
+
+    # Print measurement protocols
+    print_measurement_summary()
+
+    # Step 0: Prior predictive checks
+    prior_valid = _step_prior_checks(save_plots=True)
+
+    # Step 1: Generate independent validation data
+    sessions, true_params = _step_generate_data()
+
+    # Step 2: Artifact rejection
+    sessions = _step_artifact_rejection(sessions)
+
+    # Step 3: Build and fit model (Session 1)
+    model, trace1 = _step_build_model(sessions)
+
+    # Step 4: Model diagnostics
+    min_ess, max_rhat = _run_model_diagnostics(trace1)
+
+    # Step 5: Fisher Information Matrix
+    fim_results = _run_identifiability_analysis(model, trace1)
+
+    # Step 6: Parameter recovery
+    recovery_results, falsified_recovery, recovery_failures = _run_parameter_recovery(
+        true_params, trace1
+    )
+
+    # Step 7: Test-retest reliability
+    reliability, falsified_reliability, trace2 = _run_test_retest_reliability(sessions, trace1)
+
+    # Step 8: Predictive validity
+    predictive_results, falsified_predictive = _run_predictive_validity(sessions, trace1)
+
+    # Final assessment
+    total_falsified, criteria_status = _generate_final_summary(
+        falsified_recovery,
+        falsified_reliability,
+        falsified_predictive,
+        fim_results,
+        recovery_failures,
+    )
+
+    # Generate visualizations and save results
+    _generate_visualizations_and_save_results(
+        true_params,
+        recovery_results,
+        reliability,
+        predictive_results,
+        trace1,
+        fim_results,
+        total_falsified,
+        criteria_status,
+        min_ess,
+        max_rhat,
+    )
 
     # Final summary
     print("\n" + "=" * 80)

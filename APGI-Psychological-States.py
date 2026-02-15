@@ -60,9 +60,7 @@ class APGIParameters:
         assert (
             0.1 <= self.Pi_i_baseline <= 15.0
         ), f"Pi_i_baseline must be in [0.1, 15], got {self.Pi_i_baseline}"
-        assert (
-            0.1 <= self.Pi_i_eff <= 15.0
-        ), f"Pi_i_eff must be in [0.1, 15], got {self.Pi_i_eff}"
+        assert 0.1 <= self.Pi_i_eff <= 15.0, f"Pi_i_eff must be in [0.1, 15], got {self.Pi_i_eff}"
         assert -2.0 <= self.M_ca <= 2.0, f"M_ca must be in [-2, 2], got {self.M_ca}"
         assert 0.3 <= self.beta <= 0.8, f"beta must be in [0.3, 0.8], got {self.beta}"
 
@@ -862,9 +860,7 @@ STATE_CATEGORIES: Dict[str, StateCategory] = {
 def get_state(name: str) -> APGIParameters:
     """Retrieve parameters for a named psychological state"""
     if name not in PSYCHOLOGICAL_STATES:
-        raise KeyError(
-            f"Unknown state: {name}. Available: {list(PSYCHOLOGICAL_STATES.keys())}"
-        )
+        raise KeyError(f"Unknown state: {name}. Available: {list(PSYCHOLOGICAL_STATES.keys())}")
     return PSYCHOLOGICAL_STATES[name]
 
 
@@ -1052,9 +1048,7 @@ def validate_transition_plausibility(
 
         for cat1, cat2 in incompatible_transitions:
             if current_cat == cat1 and next_cat == cat2:
-                warnings.append(
-                    f"Direct aversive→optimal transition: {current} → {next_state}"
-                )
+                warnings.append(f"Direct aversive→optimal transition: {current} → {next_state}")
                 score -= 8
 
     return {
@@ -1086,8 +1080,7 @@ def get_transition_pathway(
     for alpha in [0.33, 0.66]:
         interpolated = create_apgi_params(
             Pi_e=p1.Pi_e + alpha * (p2.Pi_e - p1.Pi_e),
-            Pi_i_baseline=p1.Pi_i_baseline
-            + alpha * (p2.Pi_i_baseline - p1.Pi_i_baseline),
+            Pi_i_baseline=p1.Pi_i_baseline + alpha * (p2.Pi_i_baseline - p1.Pi_i_baseline),
             M_ca=p1.M_ca + alpha * (p2.M_ca - p1.M_ca),
             beta=np.clip(p1.beta + alpha * (p2.beta - p1.beta), 0.3, 0.8),
             z_e=p1.z_e + alpha * (p2.z_e - p1.z_e),
@@ -1187,18 +1180,12 @@ def generate_state_comparison_table(states: List[str]) -> str:
 
     lines = []
     lines.append("┌" + "┬".join("─" * w for w in col_widths) + "┐")
-    lines.append(
-        "│"
-        + "│".join(headers[i].ljust(col_widths[i]) for i in range(len(headers)))
-        + "│"
-    )
+    lines.append("│" + "│".join(headers[i].ljust(col_widths[i]) for i in range(len(headers))) + "│")
     lines.append("├" + "┼".join("─" * w for w in col_widths) + "┤")
 
     for row in rows:
         lines.append(
-            "│"
-            + "│".join(str(row[i]).ljust(col_widths[i]) for i in range(len(row)))
-            + "│"
+            "│" + "│".join(str(row[i]).ljust(col_widths[i]) for i in range(len(row))) + "│"
         )
 
     lines.append("└" + "┴".join("─" * w for w in col_widths) + "┘")
@@ -1298,7 +1285,7 @@ if __name__ == "__main__":
     print("\n1. BASIC STATE RETRIEVAL")
     print("-" * 40)
     fear_params = get_state("fear")
-    print(f"Fear parameters:")
+    print("Fear parameters:")
     print(f"  Π_e = {fear_params.Pi_e}")
     print(f"  Π_i_eff = {fear_params.Pi_i_eff}")
     print(f"  θ_t = {fear_params.theta_t}")
@@ -1345,15 +1332,13 @@ if __name__ == "__main__":
     print("\n7. STATE TRANSITION PATHWAY")
     print("-" * 40)
     pathway, validation = get_transition_pathway("anxiety", "calm", validate=True)
-    print(f"Suggested pathway from 'anxiety' to 'calm':")
+    print("Suggested pathway from 'anxiety' to 'calm':")
     print(f"  {' → '.join(pathway)}")
 
     # Display validation results
     if validation:
         print(f"\n  Plausibility Score: {validation['score']:.0f}/100")
-        print(
-            f"  Status: {'✓ PLAUSIBLE' if validation['plausible'] else '✗ QUESTIONABLE'}"
-        )
+        print(f"  Status: {'✓ PLAUSIBLE' if validation['plausible'] else '✗ QUESTIONABLE'}")
 
         if validation["issues"]:
             print("\n  Issues:")
@@ -1369,10 +1354,8 @@ if __name__ == "__main__":
     print("\n8. TRANSITION COST ANALYSIS")
     print("-" * 40)
     costs = compute_transition_cost("anxiety", "calm")
-    print(f"Cost to transition from 'anxiety' to 'calm':")
-    for param, cost in sorted(
-        costs.items(), key=lambda x: -x[1] if x[0] != "total" else 0
-    ):
+    print("Cost to transition from 'anxiety' to 'calm':")
+    for param, cost in sorted(costs.items(), key=lambda x: -x[1] if x[0] != "total" else 0):
         if param != "total":
             print(f"  {param:<15}: {cost:.2f}")
     print(f"  {'TOTAL':<15}: {costs['total']:.2f}")
@@ -1388,14 +1371,10 @@ if __name__ == "__main__":
     all_pi_e = [p.Pi_e for p in PSYCHOLOGICAL_STATES.values()]
     all_theta = [p.theta_t for p in PSYCHOLOGICAL_STATES.values()]
     all_m_ca = [p.M_ca for p in PSYCHOLOGICAL_STATES.values()]
-    all_ignition = [
-        p.compute_ignition_probability() for p in PSYCHOLOGICAL_STATES.values()
-    ]
+    all_ignition = [p.compute_ignition_probability() for p in PSYCHOLOGICAL_STATES.values()]
 
     print(f"Total states: {len(PSYCHOLOGICAL_STATES)}")
-    print(
-        f"\nΠ_e range: {min(all_pi_e):.1f} - {max(all_pi_e):.1f} (mean: {np.mean(all_pi_e):.2f})"
-    )
+    print(f"\nΠ_e range: {min(all_pi_e):.1f} - {max(all_pi_e):.1f} (mean: {np.mean(all_pi_e):.2f})")
     print(
         f"θ_t range: {min(all_theta):+.1f} - {max(all_theta):+.1f} (mean: {np.mean(all_theta):+.2f})"
     )

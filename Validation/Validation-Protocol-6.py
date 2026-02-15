@@ -119,9 +119,7 @@ class APGIInspiredNetwork(nn.Module):
         # =====================
         # SURPRISE ACCUMULATOR
         # =====================
-        self.surprise_rnn = nn.GRUCell(
-            input_size=2, hidden_size=16
-        )  # Precision-weighted errors
+        self.surprise_rnn = nn.GRUCell(input_size=2, hidden_size=16)  # Precision-weighted errors
 
         # =====================
         # THRESHOLD NETWORK
@@ -165,9 +163,7 @@ class APGIInspiredNetwork(nn.Module):
 
         # Learnable parameters - explicitly set to float32
         self.beta = nn.Parameter(torch.tensor(1.2, dtype=torch.float32))  # Somatic bias
-        self.alpha = nn.Parameter(
-            torch.tensor(5.0, dtype=torch.float32)
-        )  # Sigmoid steepness
+        self.alpha = nn.Parameter(torch.tensor(5.0, dtype=torch.float32))  # Sigmoid steepness
 
         # State
         self.surprise_hidden = None
@@ -230,9 +226,7 @@ class APGIInspiredNetwork(nn.Module):
         # Update surprise accumulator - ensure hidden state is float32
         if self.surprise_hidden is not None:
             self.surprise_hidden = self.surprise_hidden.float()
-        self.surprise_hidden = self.surprise_rnn(
-            surprise_input.float(), self.surprise_hidden
-        )
+        self.surprise_hidden = self.surprise_rnn(surprise_input.float(), self.surprise_hidden)
 
         S_t = torch.norm(self.surprise_hidden, dim=-1, keepdim=True)
 
@@ -314,9 +308,7 @@ class StandardMLPNetwork(nn.Module):
             nn.ReLU(),
         )
 
-        self.policy_head = nn.Sequential(
-            nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1)
-        )
+        self.policy_head = nn.Sequential(nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1))
 
         self.value_head = nn.Linear(32, 1)
 
@@ -373,8 +365,7 @@ class LSTMNetwork(nn.Module):
         return {
             "policy": self.policy_head(features),
             "value": self.value_head(features),
-            "ignition_prob": torch.ones(batch_size, 1, dtype=torch.float32)
-            * 0.5,  # Dummy
+            "ignition_prob": torch.ones(batch_size, 1, dtype=torch.float32) * 0.5,  # Dummy
         }
 
     def reset(self):
@@ -392,9 +383,7 @@ class AttentionNetwork(nn.Module):
 
         self.attention = nn.MultiheadAttention(32, 4, batch_first=True)
 
-        self.policy_head = nn.Sequential(
-            nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1)
-        )
+        self.policy_head = nn.Sequential(nn.Linear(32, config["action_dim"]), nn.Softmax(dim=-1))
 
         self.value_head = nn.Linear(32, 1)
 
@@ -770,9 +759,7 @@ class NetworkTrainer:
                 extero = batch["extero"].to(self.device)
                 intero = batch["intero"].to(self.device)
                 context = batch["context"].to(self.device)
-                target = batch["target"].to(
-                    self.device, dtype=torch.long
-                )  # Ensure target is long
+                target = batch["target"].to(self.device, dtype=torch.long)  # Ensure target is long
 
                 outputs = self.network(extero, intero, context)
 
@@ -780,9 +767,7 @@ class NetworkTrainer:
 
                 all_preds.extend(preds.cpu().numpy())
                 all_targets.extend(target.cpu().numpy())
-                all_ignition_probs.extend(
-                    outputs["ignition_prob"].squeeze().cpu().numpy()
-                )
+                all_ignition_probs.extend(outputs["ignition_prob"].squeeze().cpu().numpy())
 
         all_preds = np.array(all_preds)
         all_targets = np.array(all_targets)
@@ -804,9 +789,7 @@ class NetworkTrainer:
             "ignition_probs": all_ignition_probs,
         }
 
-    def train(
-        self, train_loader: DataLoader, val_loader: DataLoader, n_epochs: int = 100
-    ) -> Dict:
+    def train(self, train_loader: DataLoader, val_loader: DataLoader, n_epochs: int = 100) -> Dict:
         """Full training loop"""
 
         history = {"train_losses": [], "val_accuracies": [], "val_aucs": []}
@@ -876,15 +859,12 @@ class NetworkComparison:
         }
 
         self.trainers = {
-            name: NetworkTrainer(net, name, self.device)
-            for name, net in self.networks.items()
+            name: NetworkTrainer(net, name, self.device) for name, net in self.networks.items()
         }
 
         self.results = {}
 
-    def train_all_on_task(
-        self, task_name: str, dataset_class, n_epochs: int = 100
-    ) -> Dict:
+    def train_all_on_task(self, task_name: str, dataset_class, n_epochs: int = 100) -> Dict:
         """Train all networks on a specific task"""
 
         print(f"\n{'=' * 60}")
@@ -926,9 +906,7 @@ class NetworkComparison:
             print(f"\n  {name} Results:")
             print(f"    Test Accuracy: {test_results['accuracy']:.3f}")
             print(f"    Test AUC: {test_results['auc']:.3f}")
-            conv_epoch = task_results[name].get(
-                "convergence_epoch", len(history["train_losses"])
-            )
+            conv_epoch = task_results[name].get("convergence_epoch", len(history["train_losses"]))
             print(f"    Converged in: {conv_epoch} epochs")
 
         return task_results
@@ -946,9 +924,7 @@ class NetworkComparison:
         all_results = {}
 
         for task_name, dataset_class in tasks.items():
-            all_results[task_name] = self.train_all_on_task(
-                task_name, dataset_class, n_epochs=100
-            )
+            all_results[task_name] = self.train_all_on_task(task_name, dataset_class, n_epochs=100)
 
         return all_results
 
@@ -1199,9 +1175,7 @@ def plot_comprehensive_results(
         linewidth=2,
     )
 
-    ax1.axhline(
-        y=0.85, color="red", linestyle="--", linewidth=2, label="P6a Threshold (0.85)"
-    )
+    ax1.axhline(y=0.85, color="red", linestyle="--", linewidth=2, label="P6a Threshold (0.85)")
 
     ax1.set_ylabel("AUC-ROC", fontsize=12, fontweight="bold")
     ax1.set_title("Conscious Classification AUC", fontsize=13, fontweight="bold")
@@ -1365,6 +1339,11 @@ def plot_comprehensive_results(
     ax7 = fig.add_subplot(gs[3, 2:])
     ax7.axis("off")
 
+    # Calculate convergence speedup
+    lstm_conv = conscious_task["LSTM"].get("convergence_epoch", 100)
+    apgi_conv = conscious_task["APGI"].get("convergence_epoch", 100)
+    speedup = 100 * (1 - apgi_conv / lstm_conv) if lstm_conv > 0 else 0
+
     summary_text = f"""
     SUMMARY STATISTICS
     {'=' * 50}
@@ -1383,9 +1362,6 @@ def plot_comprehensive_results(
     P6b (Faster Convergence):
       APGI: {conscious_task['APGI'].get('convergence_epoch', 100)} epochs
       LSTM: {conscious_task['LSTM'].get('convergence_epoch', 100)} epochs
-      lstm_conv = conscious_task['LSTM'].get('convergence_epoch', 100)
-      apgi_conv = conscious_task['APGI'].get('convergence_epoch', 100)
-      speedup = 100 * (1 - apgi_conv / lstm_conv) if lstm_conv > 0 else 0
       Speedup: {speedup:.1f}%
     """
 
@@ -1460,9 +1436,7 @@ def visualize_attention_patterns(model, test_loader, return_attention=False):
     model modification to return attention weights and precision histories.
     """
     print("Warning: visualize_attention_patterns is a placeholder.")
-    print(
-        "Full implementation requires model modification to return attention weights."
-    )
+    print("Full implementation requires model modification to return attention weights.")
 
     # Create placeholder figure
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
@@ -1568,12 +1542,8 @@ def compute_lrp_attribution(model, input_batch, target_class):
 
     try:
         # Compute relevance scores
-        relevance_extero = lrp.attribute(
-            extero, target=target_class, attribute_to_layer_input=True
-        )
-        relevance_intero = lrp.attribute(
-            intero, target=target_class, attribute_to_layer_input=True
-        )
+        relevance_extero = lrp.attribute(extero, target=target_class, attribute_to_layer_input=True)
+        relevance_intero = lrp.attribute(intero, target=target_class, attribute_to_layer_input=True)
 
         # Visualize
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
@@ -1655,16 +1625,10 @@ def analyze_gradient_flow(model, optimizer):
         ax.grid(True, alpha=0.3)
 
         # Add warning lines
-        ax.axhline(
-            1e-4, color="r", linestyle="--", alpha=0.5, label="Vanishing threshold"
-        )
-        ax.axhline(
-            1e2, color="r", linestyle="--", alpha=0.5, label="Exploding threshold"
-        )
+        ax.axhline(1e-4, color="r", linestyle="--", alpha=0.5, label="Vanishing threshold")
+        ax.axhline(1e2, color="r", linestyle="--", alpha=0.5, label="Exploding threshold")
     else:
-        print(
-            "Warning: No gradients found. Call analyze_gradient_flow after backward()."
-        )
+        print("Warning: No gradients found. Call analyze_gradient_flow after backward().")
         fig = None
 
     return gradient_norms, fig
@@ -1690,7 +1654,7 @@ def main():
         "n_epochs": 100,
     }
 
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     for k, v in config.items():
         print(f"  {k}: {v}")
 
@@ -1703,7 +1667,7 @@ def main():
 
     comparison = NetworkComparison(config)
 
-    print(f"\nNetworks initialized:")
+    print("\nNetworks initialized:")
     for name in comparison.networks.keys():
         n_params = sum(p.numel() for p in comparison.networks[name].parameters())
         print(f"  {name}: {n_params:,} parameters")
@@ -1812,9 +1776,7 @@ def main():
 def run_validation():
     """Entry point for CLI validation."""
     try:
-        print(
-            "Running APGI Validation Protocol 6: Real-Time Implementation and Performance"
-        )
+        print("Running APGI Validation Protocol 6: Real-Time Implementation and Performance")
         return main()
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in validation protocol 6: {e}")

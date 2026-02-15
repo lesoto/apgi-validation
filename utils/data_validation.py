@@ -107,13 +107,9 @@ class DataValidator:
                     data = json.load(f)
                 results["is_readable"] = True
                 results["format_valid"] = self._validate_json_structure(data, results)
-            elif (
-                file_path.suffix.lower() == ".h5" or file_path.suffix.lower() == ".hdf5"
-            ):
+            elif file_path.suffix.lower() == ".h5" or file_path.suffix.lower() == ".hdf5":
                 if not HDF5_AVAILABLE:
-                    results["errors"].append(
-                        "HDF5 support not available - install h5py"
-                    )
+                    results["errors"].append("HDF5 support not available - install h5py")
                     return results
                 df = self._read_hdf5_file(file_path)
                 results["is_readable"] = True
@@ -156,18 +152,14 @@ class DataValidator:
                     try:
                         pd.to_datetime(df[col])
                     except (ValueError, TypeError):
-                        results["errors"].append(
-                            f"Column {col} cannot be converted to datetime"
-                        )
+                        results["errors"].append(f"Column {col} cannot be converted to datetime")
                         return False
             else:
                 if not pd.api.types.is_numeric_dtype(df[col]):
                     try:
                         pd.to_numeric(df[col], errors="coerce")
                     except (ValueError, TypeError):
-                        results["errors"].append(
-                            f"Column {col} cannot be converted to numeric"
-                        )
+                        results["errors"].append(f"Column {col} cannot be converted to numeric")
                         return False
 
         # Check for missing values
@@ -232,10 +224,7 @@ class DataValidator:
                 eeg_data = df[col].dropna()
                 if len(eeg_data) > 0:
                     eeg_min, eeg_max = eeg_data.min(), eeg_data.max()
-                    if (
-                        eeg_min < self.config.eeg_min_range
-                        or eeg_max > self.config.eeg_max_range
-                    ):
+                    if eeg_min < self.config.eeg_min_range or eeg_max > self.config.eeg_max_range:
                         results["warnings"].append(
                             f"{col}: Unusual EEG range ({eeg_min:.2f} to {eeg_max:.2f} μV)"
                         )
@@ -258,10 +247,7 @@ class DataValidator:
             eda_data = df["eda"].dropna()
             if len(eda_data) > 0:
                 eda_min, eda_max = eda_data.min(), eda_data.max()
-                if (
-                    eda_min < self.config.eda_min_range
-                    or eda_max > self.config.eda_max_range
-                ):
+                if eda_min < self.config.eda_min_range or eda_max > self.config.eda_max_range:
                     results["warnings"].append(
                         f"EDA: Unusual range ({eda_min:.3f} to {eda_max:.3f} μS)"
                     )
@@ -271,10 +257,7 @@ class DataValidator:
             hr_data = df["heart_rate"].dropna()
             if len(hr_data) > 0:
                 hr_min, hr_max = hr_data.min(), hr_data.max()
-                if (
-                    hr_min < self.config.hr_min_range
-                    or hr_max > self.config.hr_max_range
-                ):
+                if hr_min < self.config.hr_min_range or hr_max > self.config.hr_max_range:
                     results["warnings"].append(
                         f"Heart rate: Unusual range ({hr_min:.1f} to {hr_max:.1f} BPM)"
                     )
@@ -320,30 +303,22 @@ class DataValidator:
 
         # Signal quality metrics
         if "eeg_fz" in df.columns:
-            quality_metrics["signal_quality"]["eeg_fz"] = self._assess_signal_quality(
-                df["eeg_fz"]
-            )
+            quality_metrics["signal_quality"]["eeg_fz"] = self._assess_signal_quality(df["eeg_fz"])
 
         if "pupil_diameter" in df.columns:
-            quality_metrics["signal_quality"]["pupil_diameter"] = (
-                self._assess_signal_quality(df["pupil_diameter"])
+            quality_metrics["signal_quality"]["pupil_diameter"] = self._assess_signal_quality(
+                df["pupil_diameter"]
             )
 
         if "eda" in df.columns:
-            quality_metrics["signal_quality"]["eda"] = self._assess_signal_quality(
-                df["eda"]
-            )
+            quality_metrics["signal_quality"]["eda"] = self._assess_signal_quality(df["eda"])
 
         # Temporal consistency
         if "timestamp" in df.columns:
-            quality_metrics["temporal_consistency"] = self._assess_temporal_consistency(
-                df
-            )
+            quality_metrics["temporal_consistency"] = self._assess_temporal_consistency(df)
 
         # Calculate overall quality score
-        quality_metrics["overall_score"] = self._calculate_quality_score(
-            quality_metrics
-        )
+        quality_metrics["overall_score"] = self._calculate_quality_score(quality_metrics)
 
         return quality_metrics
 
@@ -357,10 +332,7 @@ class DataValidator:
         score = 100.0
 
         # Check for flat segments using configurable threshold
-        if (
-            len(signal_clean.unique())
-            < len(signal_clean) * self.config.repeated_values_threshold
-        ):
+        if len(signal_clean.unique()) < len(signal_clean) * self.config.repeated_values_threshold:
             issues.append("Many repeated values")
             score -= 20
 
@@ -374,10 +346,7 @@ class DataValidator:
         else:
             z_scores = np.abs((signal_clean - signal_mean) / signal_std)
             extreme_count = (z_scores > self.config.extreme_value_zscore).sum()
-            if (
-                extreme_count
-                > len(signal_clean) * self.config.extreme_value_percentage_threshold
-            ):
+            if extreme_count > len(signal_clean) * self.config.extreme_value_percentage_threshold:
                 issues.append(f"Many extreme values ({extreme_count})")
                 score -= 15
 
@@ -418,9 +387,7 @@ class DataValidator:
                 if len(irregular_diffs) > len(time_diffs) * (
                     self.config.temporal_irregular_threshold / 100
                 ):
-                    issues.append(
-                        f"Irregular sampling: {len(irregular_diffs)} irregular intervals"
-                    )
+                    issues.append(f"Irregular sampling: {len(irregular_diffs)} irregular intervals")
                     score -= 20
 
                 # Check for gaps
@@ -432,9 +399,7 @@ class DataValidator:
             return {
                 "score": max(0, score),
                 "issues": issues,
-                "expected_interval": (
-                    str(expected_interval) if len(time_diffs) > 0 else "unknown"
-                ),
+                "expected_interval": (str(expected_interval) if len(time_diffs) > 0 else "unknown"),
                 "total_duration": (
                     str(timestamps.iloc[-1] - timestamps.iloc[0])
                     if len(timestamps) > 1
@@ -460,16 +425,12 @@ class DataValidator:
         score = 100.0
 
         # Penalize missing data using configurable threshold
-        total_missing = sum(
-            info["percentage"] for info in metrics["missing_data"].values()
-        )
+        total_missing = sum(info["percentage"] for info in metrics["missing_data"].values())
         if total_missing > self.config.missing_data_threshold:
             score -= min(30, total_missing / 2)
 
         # Penalize outliers using configurable threshold
-        total_outliers = sum(
-            info["percentage"] for info in metrics["outliers"].values()
-        )
+        total_outliers = sum(info["percentage"] for info in metrics["outliers"].values())
         if total_outliers > self.config.outlier_threshold:
             score -= min(20, total_outliers)
 
@@ -540,17 +501,13 @@ class DataValidator:
         missing_data = report["data_quality"].get("missing_data", {})
         for col, info in missing_data.items():
             if info["percentage"] > self.config.missing_data_threshold:
-                recommendations.append(
-                    f"Consider imputation or removal of missing data in {col}"
-                )
+                recommendations.append(f"Consider imputation or removal of missing data in {col}")
 
         # Outlier recommendations using configurable threshold
         outliers = report["data_quality"].get("outliers", {})
         for col, info in outliers.items():
             if info["percentage"] > self.config.outlier_threshold:
-                recommendations.append(
-                    f"Review outliers in {col} ({info['percentage']:.1f}%)"
-                )
+                recommendations.append(f"Review outliers in {col} ({info['percentage']:.1f}%)")
 
         # Signal quality recommendations using configurable threshold
         signal_quality = report["data_quality"].get("signal_quality", {})
@@ -644,9 +601,7 @@ class DataValidator:
                         try:
                             pd.to_numeric(df[col], errors="coerce")
                         except (ValueError, TypeError):
-                            results["errors"].append(
-                                f"Column {col} cannot be converted to numeric"
-                            )
+                            results["errors"].append(f"Column {col} cannot be converted to numeric")
                             return False
 
         # Check for missing values
@@ -691,9 +646,7 @@ class DataPreprocessor:
 
         return df
 
-    def clean_missing_data(
-        self, df: pd.DataFrame, strategy: str = "interpolate"
-    ) -> pd.DataFrame:
+    def clean_missing_data(self, df: pd.DataFrame, strategy: str = "interpolate") -> pd.DataFrame:
         """Clean missing data using various strategies."""
         df_clean = df.copy()
         numeric_cols = df_clean.select_dtypes(include=[np.number]).columns
@@ -714,9 +667,7 @@ class DataPreprocessor:
         elif strategy == "drop":
             df_clean = df_clean.dropna()
 
-        self.preprocessing_steps.append(
-            f"Missing data cleaned using {strategy} strategy"
-        )
+        self.preprocessing_steps.append(f"Missing data cleaned using {strategy} strategy")
         return df_clean
 
     def remove_outliers(
@@ -735,16 +686,12 @@ class DataPreprocessor:
                 lower_bound = Q1 - threshold * IQR
                 upper_bound = Q3 + threshold * IQR
 
-                outlier_mask = (df_clean[col] < lower_bound) | (
-                    df_clean[col] > upper_bound
-                )
+                outlier_mask = (df_clean[col] < lower_bound) | (df_clean[col] > upper_bound)
                 outliers_removed += outlier_mask.sum()
                 df_clean = df_clean[~outlier_mask]
 
             elif method == "zscore":
-                z_scores = np.abs(
-                    (df_clean[col] - df_clean[col].mean()) / df_clean[col].std()
-                )
+                z_scores = np.abs((df_clean[col] - df_clean[col].mean()) / df_clean[col].std())
                 outlier_mask = z_scores > threshold
                 outliers_removed += outlier_mask.sum()
                 df_clean = df_clean[~outlier_mask]
@@ -778,15 +725,9 @@ class DataPreprocessor:
                 data = df_filtered[col].dropna()
 
                 if filter_type == "bandpass":
-                    low_freq = filter_params.get(
-                        "low_freq", self.config.default_low_freq
-                    )
-                    high_freq = filter_params.get(
-                        "high_freq", self.config.default_high_freq
-                    )
-                    fs = filter_params.get(
-                        "sampling_rate", self.config.default_sampling_rate
-                    )
+                    low_freq = filter_params.get("low_freq", self.config.default_low_freq)
+                    high_freq = filter_params.get("high_freq", self.config.default_high_freq)
+                    fs = filter_params.get("sampling_rate", self.config.default_sampling_rate)
 
                     nyquist = fs / 2
                     low = low_freq / nyquist
@@ -798,12 +739,8 @@ class DataPreprocessor:
                     df_filtered.loc[data.index, col] = filtered_data
 
                 elif filter_type == "lowpass":
-                    cutoff_freq = filter_params.get(
-                        "cutoff_freq", self.config.default_cutoff_freq
-                    )
-                    fs = filter_params.get(
-                        "sampling_rate", self.config.default_sampling_rate
-                    )
+                    cutoff_freq = filter_params.get("cutoff_freq", self.config.default_cutoff_freq)
+                    fs = filter_params.get("sampling_rate", self.config.default_sampling_rate)
 
                     nyquist = fs / 2
                     cutoff = cutoff_freq / nyquist
@@ -922,9 +859,7 @@ def main():
 
             print(f"  File readable: {report['file_info']['is_readable']}")
             print(f"  Format valid: {report['file_info']['format_valid']}")
-            print(
-                f"  Overall quality: {report['data_quality'].get('overall_score', 'N/A'):.1f}"
-            )
+            print(f"  Overall quality: {report['data_quality'].get('overall_score', 'N/A'):.1f}")
 
             if report["recommendations"]:
                 print("  Recommendations:")
@@ -932,7 +867,7 @@ def main():
                     print(f"    - {rec}")
 
     # Demonstrate preprocessing
-    print(f"\nDemonstrating preprocessing pipeline...")
+    print("\nDemonstrating preprocessing pipeline...")
 
     try:
         preprocessor = DataPreprocessor()
