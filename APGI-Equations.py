@@ -755,9 +755,7 @@ class APGIParameters:
         """Validate time-related parameters"""
         # τ_S
         if not (0.2 <= self.tau_S <= 0.5):
-            violations.append(
-                f"τ_S = {self.tau_S:.3f}s not in [0.2, 0.5]s (P3b latency)"
-            )
+            violations.append(f"τ_S = {self.tau_S:.3f}s not in [0.2, 0.5]s (P3b latency)")
 
         # Check tau_theta (5-60 s)
         if not (5.0 <= self.tau_theta <= 60.0):
@@ -771,15 +769,11 @@ class APGIParameters:
 
         # α
         if not (3.0 <= self.alpha <= 8.0):
-            violations.append(
-                f"α = {self.alpha:.1f} not in [3.0, 8.0] (optimal sigmoid)"
-            )
+            violations.append(f"α = {self.alpha:.1f} not in [3.0, 8.0] (optimal sigmoid)")
 
         # β
         if not (0.5 <= self.beta <= 2.5):
-            violations.append(
-                f"β = {self.beta:.2f} not in [0.5, 2.5] (physiological range)"
-            )
+            violations.append(f"β = {self.beta:.2f} not in [0.5, 2.5] (physiological range)")
 
         # rho (0.3-0.9)
         if not (0.3 <= self.rho <= 0.9):
@@ -799,13 +793,9 @@ class APGIParameters:
         """Validate domain-specific thresholds"""
         # Check domain-specific thresholds
         if not (0.1 <= self.theta_survival <= 0.5):
-            violations.append(
-                f"theta_survival = {self.theta_survival:.2f} not in [0.1, 0.5]"
-            )
+            violations.append(f"theta_survival = {self.theta_survival:.2f} not in [0.1, 0.5]")
         if not (0.5 <= self.theta_neutral <= 1.5):
-            violations.append(
-                f"theta_neutral = {self.theta_neutral:.2f} not in [0.5, 1.5]"
-            )
+            violations.append(f"theta_neutral = {self.theta_neutral:.2f} not in [0.5, 1.5]")
 
     def validate(self) -> List[str]:
         """Validate parameters against CORRECTED A.2 constraints"""
@@ -850,9 +840,7 @@ class APGIParameters:
             "Pi_i_mod": Pi_i_mod,
         }
 
-    def compute_precision_expectation_gap(
-        self, Pi_e_actual: float, Pi_i_actual: float
-    ) -> float:
+    def compute_precision_expectation_gap(self, Pi_e_actual: float, Pi_i_actual: float) -> float:
         """Compute Π̂ - Π gap (critical for anxiety)"""
         # In anxiety: Π̂ > Π (overestimation of precision needed)
         expected_precision = self.ACh * 0.5 + self.NE * 0.3  # Neuromodulator influence
@@ -902,9 +890,7 @@ class PsychologicalState:
 
     # ========== DERIVED PARAMETERS ==========
     Pi_i_eff_actual: Optional[float] = None  # Actual effective interoceptive precision
-    Pi_i_eff_expected: Optional[float] = (
-        None  # Expected effective interoceptive precision
-    )
+    Pi_i_eff_expected: Optional[float] = None  # Expected effective interoceptive precision
     S_t: Optional[float] = None  # Accumulated surprise
 
     # ========== ADDITIONAL METADATA ==========
@@ -924,9 +910,7 @@ class PsychologicalState:
 
         # ========== VALIDATE β RANGE ==========
         if not (0.5 <= self.beta <= 2.5):
-            warnings.warn(
-                f"β={self.beta} outside valid range [0.5, 2.5] for state {self.name}"
-            )
+            warnings.warn(f"β={self.beta} outside valid range [0.5, 2.5] for state {self.name}")
             self.beta = np.clip(self.beta, 0.5, 2.5)
 
         # ========== SET EXPECTED PRECISION IF NOT PROVIDED ==========
@@ -947,9 +931,7 @@ class PsychologicalState:
 
         # ========== COMPUTE ACCUMULATED SURPRISE ==========
         # Using ACTUAL precision
-        self.S_t = self.Pi_e_actual * abs(self.z_e) + self.Pi_i_eff_actual * abs(
-            self.z_i
-        )
+        self.S_t = self.Pi_e_actual * abs(self.z_e) + self.Pi_i_eff_actual * abs(self.z_i)
 
         # ========== COMPUTE PRECISION EXPECTATION GAP ==========
         self.precision_expectation_gap = (
@@ -994,20 +976,16 @@ class PsychologicalState:
                 * np.sin(2 * np.pi * time / OSCILLATION_PERIOD_PRECISION)
             ),
             "eps_e": self.z_e
-            + OSCILLATION_AMPLITUDE_ERROR
-            * np.sin(2 * np.pi * time / OSCILLATION_PERIOD_ERROR_E),
+            + OSCILLATION_AMPLITUDE_ERROR * np.sin(2 * np.pi * time / OSCILLATION_PERIOD_ERROR_E),
             "beta": self.beta,
             "Pi_i": Pi_i,
             "eps_i": self.z_i
-            + OSCILLATION_AMPLITUDE_ERROR
-            * np.sin(2 * np.pi * time / OSCILLATION_PERIOD_ERROR_I),
+            + OSCILLATION_AMPLITUDE_ERROR * np.sin(2 * np.pi * time / OSCILLATION_PERIOD_ERROR_I),
             "M": SOMATIC_MARKER_BASE
             + SOMATIC_MARKER_SCALE * self.M_ca
-            + OSCILLATION_AMPLITUDE_ERROR
-            * np.sin(2 * np.pi * time / OSCILLATION_PERIOD_SOMATIC),
+            + OSCILLATION_AMPLITUDE_ERROR * np.sin(2 * np.pi * time / OSCILLATION_PERIOD_SOMATIC),
             "A": self.arousal_level
-            + OSCILLATION_AMPLITUDE_ERROR
-            * np.sin(2 * np.pi * time / OSCILLATION_PERIOD_AROUSAL),
+            + OSCILLATION_AMPLITUDE_ERROR * np.sin(2 * np.pi * time / OSCILLATION_PERIOD_AROUSAL),
             "content_domain": self.content_domain,
         }
 
@@ -2033,9 +2011,7 @@ class APGIStateLibrary:
             },
         }
 
-    def apply_psychiatric_profile(
-        self, state_name: str, profile: str
-    ) -> PsychologicalState:
+    def apply_psychiatric_profile(self, state_name: str, profile: str) -> PsychologicalState:
         """Apply psychiatric profile to a state"""
         if state_name not in self.states:
             raise ValueError(f"Unknown state: {state_name}")
@@ -2141,12 +2117,8 @@ class MeasurementEquations:
 
         # Modulations
         precision_mod = Pi_i_eff / HEP_PRECISION_NORMALIZATION  # Normalize
-        somatic_mod = (
-            M_ca + HEP_SOMATIC_OFFSET
-        ) / HEP_SOMATIC_NORMALIZATION  # Map [-2,2] to [0,1]
-        gain_mod = (
-            beta / HEP_GAIN_NORMALIZATION
-        )  # Normalize β ∈ [0.5,2.5] to [0.25,1.25]
+        somatic_mod = (M_ca + HEP_SOMATIC_OFFSET) / HEP_SOMATIC_NORMALIZATION  # Map [-2,2] to [0,1]
+        gain_mod = beta / HEP_GAIN_NORMALIZATION  # Normalize β ∈ [0.5,2.5] to [0.25,1.25]
 
         HEP = HEP_baseline * precision_mod * somatic_mod * gain_mod
 
@@ -2171,9 +2143,7 @@ class MeasurementEquations:
 
         if surprise_excess <= 0:
             # No ignition → long latency (or no P3b)
-            return P3B_NO_IGNITION_LATENCY + np.random.normal(
-                0, P3B_NO_IGNITION_NOISE_STD
-            )
+            return P3B_NO_IGNITION_LATENCY + np.random.normal(0, P3B_NO_IGNITION_NOISE_STD)
 
         # Latency reduction with surprise excess and precision
         latency_reduction = (
@@ -2205,7 +2175,9 @@ class MeasurementEquations:
 
         # Domain-specific adjustments
         if content_domain == "survival":
-            domain_multiplier = DETECTION_SURVIVAL_MULTIPLIER  # Enhanced detection for survival-relevant
+            domain_multiplier = (
+                DETECTION_SURVIVAL_MULTIPLIER  # Enhanced detection for survival-relevant
+            )
         else:
             domain_multiplier = DETECTION_NEUTRAL_MULTIPLIER
 
@@ -2213,13 +2185,9 @@ class MeasurementEquations:
         neuromod_multiplier = 1.0
         if neuromodulators:
             # NE increases threshold (reduces d')
-            neuromod_multiplier -= DETECTION_NE_EFFECT * (
-                neuromodulators.get("NE", 1.0) - 1.0
-            )
+            neuromod_multiplier -= DETECTION_NE_EFFECT * (neuromodulators.get("NE", 1.0) - 1.0)
             # ACh enhances detection (increases d')
-            neuromod_multiplier += DETECTION_ACH_EFFECT * (
-                neuromodulators.get("ACh", 1.0) - 1.0
-            )
+            neuromod_multiplier += DETECTION_ACH_EFFECT * (neuromodulators.get("ACh", 1.0) - 1.0)
 
         # Compute d' (higher θ_t → lower d')
         d_prime = (
@@ -2243,9 +2211,7 @@ class MeasurementEquations:
         """
         baseline_duration = IGNITION_BASELINE_DURATION
 
-        duration = (
-            baseline_duration * P_ignition * (S_t / IGNITION_SURPRISE_NORMALIZATION)
-        )
+        duration = baseline_duration * P_ignition * (S_t / IGNITION_SURPRISE_NORMALIZATION)
 
         # Add variability
         duration += np.random.normal(0, IGNITION_DURATION_NOISE_STD)
@@ -2416,9 +2382,7 @@ class NeuromodulatorSystem:
 
         # Clip to reasonable ranges
         for mod in self.levels:
-            self.levels[mod] = np.clip(
-                self.levels[mod], NEUROMOD_MIN_LEVEL, NEUROMOD_MAX_LEVEL
-            )
+            self.levels[mod] = np.clip(self.levels[mod], NEUROMOD_MIN_LEVEL, NEUROMOD_MAX_LEVEL)
 
         # Record history
         for mod, level in self.levels.items():
@@ -2687,9 +2651,7 @@ class EnhancedSurpriseIgnitionSystem:
 
         # Target precision depends on task demands
         Pi_e_target = Pi_e_input * 1.0  # Baseline
-        Pi_i_target = Pi_i_input * (
-            1.0 + 0.5 * self.M
-        )  # Threat increases interoceptive precision
+        Pi_i_target = Pi_i_input * (1.0 + 0.5 * self.M)  # Threat increases interoceptive precision
 
         self.Pi_e = self.dynamics.precision_dynamics(
             Pi=self.Pi_e,
@@ -2826,9 +2788,7 @@ class CompleteAPGIVisualizer:
         plt.style.use("seaborn-v0_8-darkgrid")
         self.figsize = (16, 12)
 
-    def plot_comprehensive_dashboard(
-        self, history: Dict[str, np.ndarray]
-    ) -> plt.Figure:
+    def plot_comprehensive_dashboard(self, history: Dict[str, np.ndarray]) -> plt.Figure:
         """Create comprehensive dashboard visualization"""
 
         fig = plt.figure(figsize=(20, 16))
@@ -2902,9 +2862,7 @@ class CompleteAPGIVisualizer:
         time = history["time"]
 
         if "HEP_amplitude" in history:
-            ax.plot(
-                time, history["HEP_amplitude"], "g-", label="HEP Amplitude", alpha=0.7
-            )
+            ax.plot(time, history["HEP_amplitude"], "g-", label="HEP Amplitude", alpha=0.7)
 
         if "P3b_latency" in history:
             ax_twin = ax.twinx()
@@ -3050,9 +3008,7 @@ class CompleteAPGIVisualizer:
         """Plot state space trajectory"""
         S = history["S"]
         theta = history["theta"]
-        P_ignition = (
-            history["P_ignition"] if "P_ignition" in history else np.zeros_like(S)
-        )
+        P_ignition = history["P_ignition"] if "P_ignition" in history else np.zeros_like(S)
 
         scatter = ax.scatter(
             S, theta, c=P_ignition, cmap="viridis", s=20, alpha=0.6, edgecolors="none"
@@ -3176,9 +3132,7 @@ def run_complete_demo() -> None:
     print(f"     Gap: {anxiety_state.precision_expectation_gap:.2f} (Π̂ > Π → Anxiety)")
 
     flow_state = library.get_state("flow")
-    print(
-        f"   • Flow: Π̂_e={flow_state.Pi_e_expected:.1f} vs Π_e={flow_state.Pi_e_actual:.1f}"
-    )
+    print(f"   • Flow: Π̂_e={flow_state.Pi_e_expected:.1f} vs Π_e={flow_state.Pi_e_actual:.1f}")
     print(f"     Gap: {flow_state.precision_expectation_gap:.2f} (Π̂ ≈ Π → Optimal)")
 
     # ========== 3. INITIALIZE ENHANCED SYSTEM ==========
@@ -3199,9 +3153,7 @@ def run_complete_demo() -> None:
 
     # Test measurements for anxiety state
     neuromodulators = neuromod_system.get_summary()
-    measurements = measurement_system.compute_all_measurements(
-        anxiety_state, neuromodulators
-    )
+    measurements = measurement_system.compute_all_measurements(anxiety_state, neuromodulators)
 
     print("   MEASUREMENTS FOR ANXIETY STATE:")
     print(f"   • HEP Amplitude: {measurements['HEP_amplitude']:.2f} μV")
@@ -3396,9 +3348,7 @@ def _check_precision_distinction(library) -> bool:
     """Check Π vs Π̂ distinction"""
     print("\n3. Π vs Π̂ DISTINCTION:")
     anxiety_state = library.get_state("anxiety")
-    if hasattr(anxiety_state, "Pi_e_expected") and hasattr(
-        anxiety_state, "Pi_e_actual"
-    ):
+    if hasattr(anxiety_state, "Pi_e_expected") and hasattr(anxiety_state, "Pi_e_actual"):
         gap = anxiety_state.precision_expectation_gap
         print(
             f"   Anxiety: Π̂_e={anxiety_state.Pi_e_expected:.1f}, "
@@ -3499,9 +3449,7 @@ def _check_ignition_system() -> bool:
         # Test accumulated signal
         S = ignition.accumulated_signal(Pi_e=2.0, eps_e=1.0, Pi_i_eff=1.5, eps_i=0.5)
         expected = 0.5 * 2.0 * 1.0 + 0.5 * 1.5 * 0.25
-        assert (
-            abs(S - expected) < 1e-6
-        ), f"Accumulated signal incorrect: {S} vs {expected}"
+        assert abs(S - expected) < 1e-6, f"Accumulated signal incorrect: {S} vs {expected}"
         print("   Accumulated signal: ✓")
 
         # Test effective interoceptive precision
@@ -3510,13 +3458,13 @@ def _check_ignition_system() -> bool:
         )
         sigmoid = 1.0 / (1.0 + np.exp(-0.5))
         expected = 2.0 * (1.0 + sigmoid)
-        assert abs(Pi_i_eff - expected) < 1e-6, f"Effective precision incorrect"
+        assert abs(Pi_i_eff - expected) < 1e-6, "Effective precision incorrect"
         print("   Effective interoceptive precision: ✓")
 
         # Test ignition probability
         P = ignition.ignition_probability(S=2.0, theta=1.0, alpha=5.0)
         expected = 1.0 / (1.0 + np.exp(-5.0 * 1.0))
-        assert abs(P - expected) < 1e-6, f"Ignition probability incorrect"
+        assert abs(P - expected) < 1e-6, "Ignition probability incorrect"
         print("   Ignition probability: ✓")
 
         return True
@@ -3577,9 +3525,7 @@ def _check_dynamical_system() -> bool:
         print("   Somatic marker dynamics: ✓")
 
         # Test arousal dynamics
-        A_new = dynamics.arousal_dynamics(
-            A=0.5, A_target=0.7, tau_A=0.2, sigma_A=0.01, dt=0.01
-        )
+        A_new = dynamics.arousal_dynamics(A=0.5, A_target=0.7, tau_A=0.2, sigma_A=0.01, dt=0.01)
         assert 0.0 <= A_new <= 1.0, "Arousal out of range"
         print("   Arousal dynamics: ✓")
 
@@ -3670,12 +3616,8 @@ def verify_all_equations():
     print("\n" + "=" * 80)
     if all_passed:
         print("\nImplemented Sections:")
-        print(
-            "   • Part 1: Foundational Concepts (prediction error, precision, z-scores)"
-        )
-        print(
-            "   • Part 2: Core Ignition System (accumulated signal, effective precision)"
-        )
+        print("   • Part 1: Foundational Concepts (prediction error, precision, z-scores)")
+        print("   • Part 2: Core Ignition System (accumulated signal, effective precision)")
         print("   • Part 3: Complete Dynamical System (S, θ, M, A, Π dynamics)")
         print("   • Part 4: Ignition Probability & Broadcast")
         print("   • Part 5: Derived Quantities (latency, metabolic cost, hierarchical)")
@@ -3703,15 +3645,11 @@ if __name__ == "__main__":
 
     print("\nPART 2: Core Ignition System")
     print("   • Accumulated signal: S(t) = ½Π^e(t)(ε^e(t))² + ½Π^i_eff(t)(ε^i(t))²")
-    print(
-        "   • Effective interoceptive precision: Π^i_eff = Π^i_baseline · [1 + β·σ(M - M_0)]"
-    )
+    print("   • Effective interoceptive precision: Π^i_eff = Π^i_baseline · [1 + β·σ(M - M_0)]")
     print("   • Ignition probability: P(broadcast) = σ(α(S - θ))")
 
     print("\nPART 3: Complete Dynamical System")
-    print(
-        "   • Signal dynamics: dS/dt = -τ_S⁻¹S + ½Π^e(ε^e)² + ½Π^i_eff(ε^i)² + σ_Sξ_S"
-    )
+    print("   • Signal dynamics: dS/dt = -τ_S⁻¹S + ½Π^e(ε^e)² + ½Π^i_eff(ε^i)² + σ_Sξ_S")
     print("   • Threshold dynamics: dθ/dt = τ_θ⁻¹(θ_0(A) - θ) + γ_M M + λS + σ_θξ_θ")
     print("   • Somatic marker dynamics: dM/dt = τ_M⁻¹(M*(ε^i) - M) + γ_C C + σ_M ξ_M")
     print("   • Arousal dynamics: dA/dt = τ_A⁻¹(A_target - A) + σ_A ξ_A")

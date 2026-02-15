@@ -84,9 +84,7 @@ class UtilsRunnerGUI:
             self.scripts_listbox.insert(tk.END, script.name)
 
         # Bind selection change to update stop button state
-        self.scripts_listbox.bind(
-            "<<ListboxSelect>>", lambda e: self.update_stop_button_state()
-        )
+        self.scripts_listbox.bind("<<ListboxSelect>>", lambda e: self.update_stop_button_state())
 
         # Control buttons frame
         control_frame = ttk.Frame(main_frame)
@@ -116,9 +114,7 @@ class UtilsRunnerGUI:
         )
         self.clear_button.pack(pady=5, fill=tk.X)
 
-        self.quit_button = ttk.Button(
-            control_frame, text="Quit", command=self.quit_application
-        )
+        self.quit_button = ttk.Button(control_frame, text="Quit", command=self.quit_application)
         self.quit_button.pack(pady=5, fill=tk.X)
 
         # Status frame
@@ -195,7 +191,7 @@ class UtilsRunnerGUI:
         def run_all():
             for i, script in enumerate(self.scripts):
                 self.log_output(
-                    f"Running script {i+1}/{len(self.scripts)}: {script.name}", "info"
+                    f"Running script {i + 1}/{len(self.scripts)}: {script.name}", "info"
                 )
                 self.scripts_listbox.selection_clear(0, tk.END)
                 self.scripts_listbox.selection_set(i)
@@ -203,9 +199,7 @@ class UtilsRunnerGUI:
 
                 success = self.run_script(script, wait=True)
                 if not success:
-                    self.log_output(
-                        f"Script {script.name} failed, stopping execution", "error"
-                    )
+                    self.log_output(f"Script {script.name} failed, stopping execution", "error")
                     break
 
             self.log_output("All scripts execution completed", "success")
@@ -249,9 +243,7 @@ class UtilsRunnerGUI:
                 # Get return code
                 return_code = process.poll()
                 if return_code == 0:
-                    self.log_output(
-                        f"✅ {script.name} completed successfully", "success"
-                    )
+                    self.log_output(f"✅ {script.name} completed successfully", "success")
                 else:
                     self.log_output(
                         f"❌ {script.name} failed with return code {return_code}",
@@ -317,9 +309,7 @@ class UtilsRunnerGUI:
                     process.terminate()
                     self.log_output(f"Terminated process: {script_name}", "warning")
             except Exception as e:
-                self.log_output(
-                    f"Error terminating process {script_name}: {e}", "error"
-                )
+                self.log_output(f"Error terminating process {script_name}: {e}", "error")
 
         # Clear running processes
         self.running_processes.clear()

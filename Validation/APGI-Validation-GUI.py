@@ -100,9 +100,7 @@ class APGIValidationGUI:
         self._thread_cleanup_lock = threading.Lock()
 
         # GUI update queue for thread safety
-        self._update_queue = queue.Queue(
-            maxsize=100
-        )  # Limit queue size to prevent memory issues
+        self._update_queue = queue.Queue(maxsize=100)  # Limit queue size to prevent memory issues
         self._process_gui_updates()
 
         # Set environment variables to prevent GUI operations in worker threads
@@ -194,9 +192,7 @@ class APGIValidationGUI:
     def on_closing(self) -> None:
         """Handle window close event with proper cleanup."""
         if self.is_running:
-            if not messagebox.askyesno(
-                "Quit", "Validation in progress. Stop and quit?"
-            ):
+            if not messagebox.askyesno("Quit", "Validation in progress. Stop and quit?"):
                 return
             self.stop_validation()
         self.clear_protocol_cache()
@@ -220,9 +216,7 @@ class APGIValidationGUI:
                     if update_type == "status":
                         self.status_label.config(text=data)
                     elif update_type == "progress":
-                        self.progress_var.set(
-                            min(100, max(0, data))
-                        )  # Clamp between 0-100
+                        self.progress_var.set(min(100, max(0, data)))  # Clamp between 0-100
                     elif update_type == "results":
                         self.results_text.insert(tk.END, data)
                         self.results_text.see(tk.END)
@@ -259,9 +253,7 @@ class APGIValidationGUI:
         status_window.geometry("600x400")
 
         # Create scrolled text widget
-        text_widget = scrolledtext.ScrolledText(
-            status_window, wrap=tk.WORD, width=70, height=20
-        )
+        text_widget = scrolledtext.ScrolledText(status_window, wrap=tk.WORD, width=70, height=20)
         text_widget.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
         # Add status information
@@ -295,18 +287,12 @@ class APGIValidationGUI:
             "2. Verify all dependencies are installed: pip install -r requirements.txt\n",
         )
         text_widget.insert(tk.END, "3. Check for syntax errors in protocol files\n")
-        text_widget.insert(
-            tk.END, "4. Ensure Python path includes the Validation directory\n"
-        )
-        text_widget.insert(
-            tk.END, "5. Run individual protocols from command line to test\n\n"
-        )
+        text_widget.insert(tk.END, "4. Ensure Python path includes the Validation directory\n")
+        text_widget.insert(tk.END, "5. Run individual protocols from command line to test\n\n")
 
         # Fallback options
         text_widget.insert(tk.END, "=== Fallback Options ===\n")
-        text_widget.insert(
-            tk.END, "• GUI will operate in limited mode without full validation\n"
-        )
+        text_widget.insert(tk.END, "• GUI will operate in limited mode without full validation\n")
         text_widget.insert(
             tk.END, "• Use command line: python main.py validate --protocol <number>\n"
         )
@@ -315,9 +301,7 @@ class APGIValidationGUI:
         text_widget.config(state=tk.DISABLED)
 
         # Close button
-        close_btn = ttk.Button(
-            status_window, text="Close", command=status_window.destroy
-        )
+        close_btn = ttk.Button(status_window, text="Close", command=status_window.destroy)
         close_btn.pack(pady=10)
 
     def create_widgets(self) -> None:
@@ -342,12 +326,8 @@ class APGIValidationGUI:
         title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
         # Protocol selection frame
-        protocol_frame = ttk.LabelFrame(
-            main_frame, text="Protocol Selection", padding="10"
-        )
-        protocol_frame.grid(
-            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
-        )
+        protocol_frame = ttk.LabelFrame(main_frame, text="Protocol Selection", padding="10")
+        protocol_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         protocol_frame.columnconfigure(0, weight=1)
 
         # Protocol checkboxes
@@ -384,9 +364,7 @@ class APGIValidationGUI:
         )
         self.stop_button.grid(row=0, column=1, padx=5)
 
-        self.save_button = ttk.Button(
-            control_frame, text="Save Results", command=self.save_results
-        )
+        self.save_button = ttk.Button(control_frame, text="Save Results", command=self.save_results)
         self.save_button.grid(row=0, column=2, padx=5)
 
         # Progress bar
@@ -394,9 +372,7 @@ class APGIValidationGUI:
         self.progress_bar = ttk.Progressbar(
             main_frame, variable=self.progress_var, maximum=100, length=400
         )
-        self.progress_bar.grid(
-            row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
-        )
+        self.progress_bar.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
 
         # Status label
         self.status_label = ttk.Label(
@@ -405,24 +381,18 @@ class APGIValidationGUI:
         self.status_label.grid(row=4, column=0, columnspan=2, pady=(0, 10))
 
         # Results text area
-        results_frame = ttk.LabelFrame(
-            main_frame, text="Validation Results", padding="10"
-        )
+        results_frame = ttk.LabelFrame(main_frame, text="Validation Results", padding="10")
         results_frame.grid(
             row=5, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
         )
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
 
-        self.results_text = scrolledtext.ScrolledText(
-            results_frame, height=15, width=80
-        )
+        self.results_text = scrolledtext.ScrolledText(results_frame, height=15, width=80)
         self.results_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Summary frame
-        summary_frame = ttk.LabelFrame(
-            main_frame, text="Validation Summary", padding="10"
-        )
+        summary_frame = ttk.LabelFrame(main_frame, text="Validation Summary", padding="10")
         summary_frame.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E))
 
         self.summary_label = ttk.Label(
@@ -478,6 +448,162 @@ class APGIValidationGUI:
         self.validation_thread.start()
         logging.info(f"Started validation for protocols: {selected_protocols}")
 
+    def _execute_single_protocol(
+        self, protocol_num: int, i: int, total_protocols: int, protocol_tiers: Dict
+    ) -> None:
+        """Execute a single protocol and handle its results"""
+        self.update_status(f"Running Protocol {protocol_num}...")
+        self.update_results(f"=== Protocol {protocol_num} ===\n")
+
+        try:
+            # Execute actual protocol in isolated environment
+            protocol_file = f"Validation-Protocol-{protocol_num}.py"
+            protocol_path = Path(__file__).parent / protocol_file
+
+            if not protocol_path.exists():
+                raise FileNotFoundError(f"Protocol file {protocol_file} not found")
+
+            # Use cached module if available, otherwise import and cache
+            cache_key = f"APGI_Protocol_{protocol_num}"
+
+            # Check cache first with lock protection
+            with self._cache_lock:
+                if cache_key in self._protocol_cache:
+                    protocol_module = self._protocol_cache[cache_key]
+                else:
+                    protocol_module = None
+
+            # Import if not cached
+            if protocol_module is None:
+                # Import protocol module dynamically
+                spec = importlib.util.spec_from_file_location(cache_key, protocol_path)
+                if spec is None or spec.loader is None:
+                    raise ImportError(f"Could not create spec for protocol {protocol_num}")
+
+                protocol_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(protocol_module)
+
+                # Cache the module with lock protection
+                with self._cache_lock:
+                    self._protocol_cache[cache_key] = protocol_module
+            else:
+                # Use cached module - ensure it's fresh by reloading
+                importlib.reload(protocol_module)
+
+            # Capture stdout to get results
+            captured_output = io.StringIO()
+
+            # Execute protocol in a completely isolated manner
+            with contextlib.redirect_stdout(captured_output):
+                # Create a subprocess-like environment for protocol execution
+                protocol_result = self._execute_protocol_safely(
+                    protocol_module, protocol_num, i, total_protocols
+                )
+
+            # Parse captured output for results
+            output_text = captured_output.getvalue()
+
+            # Create result based on protocol execution
+            result: Dict[str, Any] = {
+                "status": "COMPLETED",
+                "passed": False,  # Default to False until explicitly verified
+                "timestamp": datetime.now().isoformat(),
+                "output": output_text,
+                "protocol_result": protocol_result if protocol_result else {},
+            }
+
+            # Determine protocol success with strict validation
+            passed = self._determine_protocol_success(protocol_result, output_text, result)
+
+            result["passed"] = passed
+
+            # Safely assign to validator with validation
+            self._store_protocol_result(protocol_num, result, protocol_tiers, passed)
+
+            self.update_results(f"Status: {'PASSED' if passed else 'FAILED'}\n\n")
+            logging.info(f"Protocol {protocol_num} completed: {'PASSED' if passed else 'FAILED'}")
+
+        except (ImportError, FileNotFoundError, SyntaxError) as e:
+            self._handle_protocol_execution_error(e, protocol_num, protocol_tiers)
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
+            self._handle_protocol_execution_error(e, protocol_num, protocol_tiers)
+        except (RuntimeError, MemoryError, FutureTimeoutError) as e:
+            self._handle_protocol_execution_error(e, protocol_num, protocol_tiers)
+
+    def _determine_protocol_success(
+        self, protocol_result: Any, output_text: str, result: Dict
+    ) -> bool:
+        """Determine if protocol execution was successful"""
+        passed = False
+
+        # Check if protocol returned explicit success
+        if protocol_result and isinstance(protocol_result, dict):
+            # Check for explicit success indicators
+            passed = (
+                protocol_result.get("status") == "PASSED"
+                or protocol_result.get("success") is True
+                or protocol_result.get("passed") is True
+            )
+
+        # Check for error indicators in output
+        error_indicators = ["ERROR", "FAILED", "Exception", "Traceback", "Error:"]
+        has_errors = any(indicator in output_text for indicator in error_indicators)
+
+        # Final decision: explicit success required, no fallback assumptions
+        if has_errors:
+            passed = False
+            result["status"] = "COMPLETED_WITH_ERRORS"
+        elif not passed:
+            result["status"] = "INDETERMINATE"
+            passed = False
+
+        return passed
+
+    def _store_protocol_result(
+        self, protocol_num: int, result: Dict, protocol_tiers: Dict, passed: bool
+    ) -> None:
+        """Store protocol result in validator with proper validation"""
+        protocol_key = f"protocol_{protocol_num}"
+        if hasattr(self.validator, "protocol_results"):
+            self.validator.protocol_results[protocol_key] = result
+        else:
+            logging.error("Validator missing protocol_results attribute")
+            self.validator.protocol_results = {protocol_key: result}
+
+        tier = protocol_tiers[protocol_num]
+
+        # Validate tier exists in falsification_status
+        if (
+            hasattr(self.validator, "falsification_status")
+            and tier in self.validator.falsification_status
+        ):
+            if not isinstance(self.validator.falsification_status[tier], list):
+                self.validator.falsification_status[tier] = []
+
+            self.validator.falsification_status[tier].append(
+                {
+                    "protocol": protocol_num,
+                    "passed": passed,
+                    "result": result,
+                }
+            )
+        else:
+            logging.error(f"Validator missing or invalid falsification_status for tier: {tier}")
+            # Initialize if missing
+            if not hasattr(self.validator, "falsification_status"):
+                self.validator.falsification_status = {
+                    "primary": [],
+                    "secondary": [],
+                    "tertiary": [],
+                }
+            self.validator.falsification_status[tier] = [
+                {
+                    "protocol": protocol_num,
+                    "passed": passed,
+                    "result": result,
+                }
+            ]
+
     def _run_validation_worker(self, selected_protocols: List[int]) -> None:
         """Worker thread for running validation"""
         try:
@@ -494,7 +620,6 @@ class APGIValidationGUI:
             }
 
             protocol_tiers = self.validator.PROTOCOL_TIERS
-
             total_protocols = len(selected_protocols)
 
             for i, protocol_num in enumerate(selected_protocols):
@@ -506,172 +631,8 @@ class APGIValidationGUI:
 
                 progress = int((i / total_protocols) * 100)
                 self.update_progress(progress)
-                self.update_status(f"Running Protocol {protocol_num}...")
 
-                self.update_results(f"=== Protocol {protocol_num} ===\n")
-
-                try:
-                    # Execute actual protocol in isolated environment
-                    protocol_file = f"Validation-Protocol-{protocol_num}.py"
-                    protocol_path = Path(__file__).parent / protocol_file
-
-                    if not protocol_path.exists():
-                        raise FileNotFoundError(
-                            f"Protocol file {protocol_file} not found"
-                        )
-
-                    # Use cached module if available, otherwise import and cache
-                    cache_key = f"APGI_Protocol_{protocol_num}"
-
-                    # Check cache first with lock protection
-                    with self._cache_lock:
-                        if cache_key in self._protocol_cache:
-                            protocol_module = self._protocol_cache[cache_key]
-                        else:
-                            protocol_module = None
-
-                    # Import if not cached
-                    if protocol_module is None:
-                        # Import protocol module dynamically
-                        spec = importlib.util.spec_from_file_location(
-                            cache_key, protocol_path
-                        )
-                        if spec is None or spec.loader is None:
-                            raise ImportError(
-                                f"Could not create spec for protocol {protocol_num}"
-                            )
-
-                        protocol_module = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(protocol_module)
-
-                        # Cache the module with lock protection
-                        with self._cache_lock:
-                            self._protocol_cache[cache_key] = protocol_module
-                    else:
-                        # Use cached module - ensure it's fresh by reloading
-                        importlib.reload(protocol_module)
-
-                    # Capture stdout to get results
-                    captured_output = io.StringIO()
-
-                    # Execute protocol in a completely isolated manner
-                    with contextlib.redirect_stdout(captured_output):
-                        # Create a subprocess-like environment for protocol execution
-                        protocol_result = self._execute_protocol_safely(
-                            protocol_module, protocol_num, i, total_protocols
-                        )
-
-                    # Parse captured output for results
-                    output_text = captured_output.getvalue()
-
-                    # Create result based on protocol execution
-                    result: Dict[str, Any] = {
-                        "status": "COMPLETED",
-                        "passed": False,  # Default to False until explicitly verified
-                        "timestamp": datetime.now().isoformat(),
-                        "output": output_text,
-                        "protocol_result": protocol_result if protocol_result else {},
-                    }
-
-                    # Determine protocol success with strict validation
-                    passed = False
-
-                    # Check if protocol returned explicit success
-                    if protocol_result and isinstance(protocol_result, dict):
-                        # Check for explicit success indicators
-                        passed = (
-                            protocol_result.get("status") == "PASSED"
-                            or protocol_result.get("success") is True
-                            or protocol_result.get("passed") is True
-                        )
-
-                    # Check for error indicators in output
-                    error_indicators = [
-                        "ERROR",
-                        "FAILED",
-                        "Exception",
-                        "Traceback",
-                        "Error:",
-                    ]
-                    has_errors = any(
-                        indicator in output_text for indicator in error_indicators
-                    )
-
-                    # Final decision: explicit success required, no fallback assumptions
-                    if has_errors:
-                        passed = False
-                        result["status"] = "COMPLETED_WITH_ERRORS"
-                    elif not passed:
-                        result["status"] = "INDETERMINATE"
-                        passed = False
-
-                    result["passed"] = passed
-
-                    # Safely assign to validator with validation
-                    protocol_key = f"protocol_{protocol_num}"
-                    if hasattr(self.validator, "protocol_results"):
-                        self.validator.protocol_results[protocol_key] = result
-                    else:
-                        logging.error(f"Validator missing protocol_results attribute")
-                        self.validator.protocol_results = {protocol_key: result}
-
-                    tier = protocol_tiers[protocol_num]
-
-                    # Validate tier exists in falsification_status
-                    if (
-                        hasattr(self.validator, "falsification_status")
-                        and tier in self.validator.falsification_status
-                    ):
-                        if not isinstance(
-                            self.validator.falsification_status[tier], list
-                        ):
-                            self.validator.falsification_status[tier] = []
-
-                        self.validator.falsification_status[tier].append(
-                            {
-                                "protocol": protocol_num,
-                                "passed": passed,
-                                "result": result,
-                            }
-                        )
-                    else:
-                        logging.error(
-                            f"Validator missing or invalid falsification_status for tier: {tier}"
-                        )
-                        # Initialize if missing
-                        if not hasattr(self.validator, "falsification_status"):
-                            self.validator.falsification_status = {
-                                "primary": [],
-                                "secondary": [],
-                                "tertiary": [],
-                            }
-                        self.validator.falsification_status[tier] = [
-                            {
-                                "protocol": protocol_num,
-                                "passed": passed,
-                                "result": result,
-                            }
-                        ]
-
-                    self.update_results(
-                        f"Status: {'PASSED' if passed else 'FAILED'}\n\n"
-                    )
-                    logging.info(
-                        f"Protocol {protocol_num} completed: {'PASSED' if passed else 'FAILED'}"
-                    )
-
-                except (ImportError, FileNotFoundError, SyntaxError) as e:
-                    self._handle_protocol_execution_error(
-                        e, protocol_num, protocol_tiers
-                    )
-                except (ValueError, TypeError, AttributeError, KeyError) as e:
-                    self._handle_protocol_execution_error(
-                        e, protocol_num, protocol_tiers
-                    )
-                except (RuntimeError, MemoryError, FutureTimeoutError) as e:
-                    self._handle_protocol_execution_error(
-                        e, protocol_num, protocol_tiers
-                    )
+                self._execute_single_protocol(protocol_num, i, total_protocols, protocol_tiers)
 
                 # Update progress
                 progress = ((i + 1) / total_protocols) * 100
@@ -694,9 +655,7 @@ class APGIValidationGUI:
                     # Validate report structure
                     self._validate_report(report)
                 except Exception as e:
-                    error_msg = (
-                        f"Failed to generate master report: {type(e).__name__}: {e}"
-                    )
+                    error_msg = f"Failed to generate master report: {type(e).__name__}: {e}"
                     self.update_status(error_msg)
                     self.update_results(f"CRITICAL ERROR: {error_msg}\n")
                     logging.error(error_msg)
@@ -704,7 +663,7 @@ class APGIValidationGUI:
 
                 # Update summary
                 self.update_summary(report)
-                self.update_results(f"\n=== FINAL RESULT ===\n")
+                self.update_results("\n=== FINAL RESULT ===\n")
                 self.update_results(f"Overall Decision: {report['overall_decision']}\n")
 
                 self.update_status("Validation completed")
@@ -728,9 +687,7 @@ class APGIValidationGUI:
                 # Clear any pending GUI updates with non-blocking approach
                 try:
                     cleared_count = 0
-                    while (
-                        cleared_count < 50
-                    ):  # Limit iterations to prevent infinite loop
+                    while cleared_count < 50:  # Limit iterations to prevent infinite loop
                         try:
                             self._update_queue.get_nowait()
                             self._update_queue.task_done()
@@ -743,17 +700,13 @@ class APGIValidationGUI:
                 # Clear validation thread reference AFTER ensuring thread is done
                 if self.validation_thread:
                     if self.validation_thread.is_alive():
-                        logging.warning(
-                            "Validation thread still alive in finally block"
-                        )
+                        logging.warning("Validation thread still alive in finally block")
                         # Don't force join here to avoid blocking GUI
                     self.validation_thread = None
 
                 logging.info("Validation worker thread cleanup completed")
 
-    def _handle_protocol_error(
-        self, error: Exception, protocol_num: int
-    ) -> Dict[str, Any]:
+    def _handle_protocol_error(self, error: Exception, protocol_num: int) -> Dict[str, Any]:
         """Handle protocol errors and return error result with troubleshooting."""
         error_type = type(error).__name__
         error_str = str(error).lower()
@@ -816,9 +769,7 @@ class APGIValidationGUI:
         error_result = self._handle_protocol_error(error, protocol_num)
         tier = protocol_tiers[protocol_num]
 
-        logging.error(
-            f"Protocol {protocol_num} failed: {type(error).__name__}: {error}"
-        )
+        logging.error(f"Protocol {protocol_num} failed: {type(error).__name__}: {error}")
 
         if (
             hasattr(self.validator, "falsification_status")
@@ -855,14 +806,12 @@ class APGIValidationGUI:
         self.update_status(error_msg)
         self.update_results(f"CRITICAL ERROR: {error_msg}\n")
         self.update_results(f"Error details: {error_details['error_message']}\n")
-        self.update_results(f"\nTroubleshooting steps:\n")
-        self.update_results(
-            f"1. Check that all protocol files exist and are readable\n"
-        )
-        self.update_results(f"2. Verify all dependencies are installed\n")
-        self.update_results(f"3. Check file permissions in the Validation directory\n")
-        self.update_results(f"4. Try running individual protocols separately\n")
-        self.update_results(f"5. Check logs for detailed traceback information\n")
+        self.update_results("\nTroubleshooting steps:\n")
+        self.update_results("1. Check that all protocol files exist and are readable\n")
+        self.update_results("2. Verify all dependencies are installed\n")
+        self.update_results("3. Check file permissions in the Validation directory\n")
+        self.update_results("4. Try running individual protocols separately\n")
+        self.update_results("5. Check logs for detailed traceback information\n")
 
     def _validate_report(self, report: Any) -> None:
         """Validate report structure before accessing it."""
@@ -893,27 +842,19 @@ class APGIValidationGUI:
                 required_result_keys = ["protocol", "passed", "result"]
                 for result_key in required_result_keys:
                     if result_key not in result:
-                        raise ValueError(
-                            f"Result at {tier}[{i}] missing key: {result_key}"
-                        )
+                        raise ValueError(f"Result at {tier}[{i}] missing key: {result_key}")
 
                 # Validate protocol number
                 if not isinstance(result["protocol"], int):
-                    raise ValueError(
-                        f"Invalid protocol number at {tier}[{i}]: expected int"
-                    )
+                    raise ValueError(f"Invalid protocol number at {tier}[{i}]: expected int")
 
                 # Validate passed status
                 if not isinstance(result["passed"], bool):
-                    raise ValueError(
-                        f"Invalid passed status at {tier}[{i}]: expected bool"
-                    )
+                    raise ValueError(f"Invalid passed status at {tier}[{i}]: expected bool")
 
                 # Validate result object
                 if not isinstance(result["result"], dict):
-                    raise ValueError(
-                        f"Invalid result object at {tier}[{i}]: expected dict"
-                    )
+                    raise ValueError(f"Invalid result object at {tier}[{i}]: expected dict")
 
     def stop_validation(self) -> None:
         """Stop the running validation with proper thread cancellation"""
@@ -931,17 +872,11 @@ class APGIValidationGUI:
                 self.update_results("Validation stopped by user\n")
 
                 # Wait for thread to finish (with timeout) - non-blocking approach
-                self.validation_thread.join(
-                    timeout=1.0
-                )  # Short timeout to avoid GUI freeze
+                self.validation_thread.join(timeout=1.0)  # Short timeout to avoid GUI freeze
 
                 if self.validation_thread.is_alive():
-                    self.update_results(
-                        "Warning: Validation thread did not stop cleanly\n"
-                    )
-                    logging.warning(
-                        "Validation thread did not stop cleanly, may be zombie thread"
-                    )
+                    self.update_results("Warning: Validation thread did not stop cleanly\n")
+                    logging.warning("Validation thread did not stop cleanly, may be zombie thread")
                     # Don't block on thread cleanup
                     self.validation_thread = None
                 else:
@@ -1167,7 +1102,9 @@ class APGIValidationGUI:
             return f"Protocol file missing. Check that APGI-Protocol-{protocol_num}.py exists in Validation directory"
 
         elif "permission" in error_str:
-            return "File permission error. Check read/write permissions for the Validation directory"
+            return (
+                "File permission error. Check read/write permissions for the Validation directory"
+            )
 
         elif "memory" in error_str or "ram" in error_str:
             return "Memory error. Try reducing protocol parameters or closing other applications"
@@ -1178,7 +1115,9 @@ class APGIValidationGUI:
         # Protocol-specific issues
         if protocol_num == 3:
             if "broadcast" in error_str:
-                return "Observation dimension mismatch. This should be fixed with the latest updates"
+                return (
+                    "Observation dimension mismatch. This should be fixed with the latest updates"
+                )
 
         elif protocol_num in [2, 8]:
             if "pymc" in error_str or "arviz" in error_str:

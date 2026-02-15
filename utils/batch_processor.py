@@ -99,9 +99,7 @@ class BatchProcessor:
         self.results: Dict[str, Any] = {}
 
         # Choose executor type
-        self.executor_class = (
-            ProcessPoolExecutor if use_processes else ThreadPoolExecutor
-        )
+        self.executor_class = ProcessPoolExecutor if use_processes else ThreadPoolExecutor
 
     def add_simulation_job(
         self,
@@ -218,9 +216,7 @@ class BatchProcessor:
 
         # Run simulation
         duration = steps * dt
-        results = system.simulate(
-            duration=duration, dt=dt, input_generator=input_generator
-        )
+        results = system.simulate(duration=duration, dt=dt, input_generator=input_generator)
 
         return {
             "job_id": job.job_id,
@@ -343,97 +339,112 @@ class BatchProcessor:
         print(f"Running {len(self.jobs)} jobs with {self.max_workers} workers...")
 
         # Create progress bar
-        if show_progress:
-            pbar = tqdm(total=len(self.jobs), desc="Processing jobs")
+        pbar = tqdm(total=len(self.jobs), desc="Processing jobs") if show_progress else None
 
-        # Separate memory-intensive jobs (protocol_2) from others
-        memory_intensive_jobs = []
-        regular_jobs = []
-
-        for job in self.jobs:
-            if (
-                job.job_type == "validation"
-                and job.parameters.get("protocol") == "protocol_2"
-            ):
-                memory_intensive_jobs.append(job)
-            else:
-                regular_jobs.append(job)
+        # Separate and run different job types
+        memory_intensive_jobs, regular_jobs = self._categorize_jobs()
 
         completed_jobs = []
         failed_jobs = []
 
-        # Run regular jobs in parallel
-        if regular_jobs:
-            print(f"Running {len(regular_jobs)} regular jobs in parallel...")
-            try:
-                with self.executor_class(max_workers=self.max_workers) as executor:
-                    # Submit regular jobs
-                    future_to_job = {
-                        executor.submit(self.run_job, job): job for job in regular_jobs
-                    }
+        # Run jobs and collect results
+        self._run_regular_jobs(regular_jobs, completed_jobs, failed_jobs, pbar)
+        self._run_memory_intensive_jobs(memory_intensive_jobs, completed_jobs, failed_jobs, pbar)
+        self._retry_failed_jobs(failed_jobs, completed_jobs, pbar)
 
-                    # Collect results
-                    for future in as_completed(future_to_job):
-                        job = future_to_job[future]
-                        try:
-                            completed_job = future.result()
-                            completed_jobs.append(completed_job)
-                        except Exception as e:
-                            job.status = "failed"
-                            job.error = str(e)
-                            failed_jobs.append(job)
-                            print(f"\nJob {job.job_id} failed: {e}")
-
-                        if show_progress:
-                            pbar.update(1)
-
-            except Exception as e:
-                print(f"\nExecutor error: {e}")
-                # Add all regular jobs to failed list for sequential processing
-                failed_jobs.extend(regular_jobs)
-
-        # Run memory-intensive jobs sequentially with threading
-        if memory_intensive_jobs:
-            print(
-                f"Running {len(memory_intensive_jobs)} memory-intensive jobs sequentially..."
-            )
-            for job in memory_intensive_jobs:
-                try:
-                    print(f"Running {job.job_id} (memory-intensive)...")
-                    completed_job = self.run_job(job)
-                    completed_jobs.append(completed_job)
-                except Exception as e:
-                    job.status = "failed"
-                    job.error = str(e)
-                    failed_jobs.append(job)
-                    print(f"Memory-intensive job {job.job_id} failed: {e}")
-
-                if show_progress:
-                    pbar.update(1)
-
-        # Try to run any remaining failed jobs sequentially
-        if failed_jobs:
-            print(f"Attempting to run {len(failed_jobs)} failed jobs sequentially...")
-            for job in failed_jobs[
-                :
-            ]:  # Copy list to allow modification during iteration
-                try:
-                    print(f"Running {job.job_id} sequentially...")
-                    completed_job = self.run_job(job)
-                    completed_jobs.append(completed_job)
-                    failed_jobs.remove(job)
-                except Exception as e2:
-                    job.status = "failed"
-                    job.error = str(e2)
-                    print(f"Sequential run also failed for {job.job_id}: {e2}")
-
-                if show_progress:
-                    pbar.update(1)
-
-        if show_progress:
+        # Cleanup progress bar
+        if pbar:
             pbar.close()
 
-        # Compile results
+        # Compile and return results
+        return self._compile_results(completed_jobs)
+
+    def _categorize_jobs(self):
+        """Separate memory-intensive jobs from regular jobs."""
+        memory_intensive_jobs = []
+        regular_jobs = []
+
+        for job in self.jobs:
+            if job.job_type == "validation" and job.parameters.get("protocol") == "protocol_2":
+                memory_intensive_jobs.append(job)
+            else:
+                regular_jobs.append(job)
+
+        return memory_intensive_jobs, regular_jobs
+
+    def _run_regular_jobs(self, regular_jobs, completed_jobs, failed_jobs, pbar):
+        """Run regular jobs in parallel."""
+        if not regular_jobs:
+            return
+
+        print(f"Running {len(regular_jobs)} regular jobs in parallel...")
+        try:
+            with self.executor_class(max_workers=self.max_workers) as executor:
+                # Submit regular jobs
+                future_to_job = {executor.submit(self.run_job, job): job for job in regular_jobs}
+
+                # Collect results
+                for future in as_completed(future_to_job):
+                    job = future_to_job[future]
+                    try:
+                        completed_job = future.result()
+                        completed_jobs.append(completed_job)
+                    except Exception as e:
+                        job.status = "failed"
+                        job.error = str(e)
+                        failed_jobs.append(job)
+                        print(f"\nJob {job.job_id} failed: {e}")
+
+                    if pbar:
+                        pbar.update(1)
+
+        except Exception as e:
+            print(f"\nExecutor error: {e}")
+            # Add all regular jobs to failed list for sequential processing
+            failed_jobs.extend(regular_jobs)
+
+    def _run_memory_intensive_jobs(self, memory_intensive_jobs, completed_jobs, failed_jobs, pbar):
+        """Run memory-intensive jobs sequentially."""
+        if not memory_intensive_jobs:
+            return
+
+        print(f"Running {len(memory_intensive_jobs)} memory-intensive jobs sequentially...")
+        for job in memory_intensive_jobs:
+            try:
+                print(f"Running {job.job_id} (memory-intensive)...")
+                completed_job = self.run_job(job)
+                completed_jobs.append(completed_job)
+            except Exception as e:
+                job.status = "failed"
+                job.error = str(e)
+                failed_jobs.append(job)
+                print(f"Memory-intensive job {job.job_id} failed: {e}")
+
+            if pbar:
+                pbar.update(1)
+
+    def _retry_failed_jobs(self, failed_jobs, completed_jobs, pbar):
+        """Try to run failed jobs sequentially."""
+        if not failed_jobs:
+            return
+
+        print(f"Attempting to run {len(failed_jobs)} failed jobs sequentially...")
+        for job in failed_jobs[:]:  # Copy list to allow modification during iteration
+            try:
+                print(f"Running {job.job_id} sequentially...")
+                completed_job = self.run_job(job)
+                completed_jobs.append(completed_job)
+                failed_jobs.remove(job)
+            except Exception as e2:
+                job.status = "failed"
+                job.error = str(e2)
+                print(f"Sequential run also failed for {job.job_id}: {e2}")
+
+            if pbar:
+                pbar.update(1)
+
+    def _compile_results(self, completed_jobs):
+        """Compile and return batch processing results."""
         self.results = {
             "total_jobs": len(self.jobs),
             "completed": len([j for j in completed_jobs if j.status == "completed"]),
@@ -442,7 +453,7 @@ class BatchProcessor:
         }
 
         # Print summary
-        print(f"\nBatch processing complete:")
+        print("\nBatch processing complete:")
         print(f"  Total jobs: {self.results['total_jobs']}")
         print(f"  Completed: {self.results['completed']}")
         print(f"  Failed: {self.results['failed']}")

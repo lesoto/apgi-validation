@@ -203,29 +203,17 @@ class PipelineVisualizer:
 
         edges = [
             PipelineEdge("raw_data", "data_validation", "Validate input data"),
-            PipelineEdge(
-                "data_validation", "eeg_preprocessor", "Route EEG data", "EEG"
-            ),
-            PipelineEdge(
-                "data_validation", "pupil_preprocessor", "Route pupil data", "Pupil"
-            ),
-            PipelineEdge(
-                "data_validation", "eda_preprocessor", "Route EDA data", "EDA"
-            ),
+            PipelineEdge("data_validation", "eeg_preprocessor", "Route EEG data", "EEG"),
+            PipelineEdge("data_validation", "pupil_preprocessor", "Route pupil data", "Pupil"),
+            PipelineEdge("data_validation", "eda_preprocessor", "Route EDA data", "EDA"),
             PipelineEdge("data_validation", "hr_preprocessor", "Route HR data", "HR"),
             PipelineEdge("eeg_preprocessor", "quality_assessment", "EEG quality check"),
-            PipelineEdge(
-                "pupil_preprocessor", "quality_assessment", "Pupil quality check"
-            ),
+            PipelineEdge("pupil_preprocessor", "quality_assessment", "Pupil quality check"),
             PipelineEdge("eda_preprocessor", "quality_assessment", "EDA quality check"),
             PipelineEdge("hr_preprocessor", "quality_assessment", "HR quality check"),
-            PipelineEdge(
-                "quality_assessment", "data_integration", "Integrate quality data"
-            ),
+            PipelineEdge("quality_assessment", "data_integration", "Integrate quality data"),
             PipelineEdge("data_integration", "feature_extraction", "Extract features"),
-            PipelineEdge(
-                "feature_extraction", "processed_data", "Output processed data"
-            ),
+            PipelineEdge("feature_extraction", "processed_data", "Output processed data"),
         ]
 
         return PipelineDiagram(
@@ -251,9 +239,7 @@ class PipelineVisualizer:
                 name="Protocol Selection",
                 node_type=NodeType.DECISION,
                 description="Select validation protocol",
-                parameters={
-                    "protocols": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
-                },
+                parameters={"protocols": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]},
             ),
             PipelineNode(
                 id="protocol_1",
@@ -382,18 +368,14 @@ class PipelineVisualizer:
                 name="Data Layer",
                 node_type=NodeType.PREPROCESSOR,
                 description="Data processing and quality assessment",
-                metadata={
-                    "components": ["Preprocessing", "Quality Assessment", "Cache"]
-                },
+                metadata={"components": ["Preprocessing", "Quality Assessment", "Cache"]},
             ),
             PipelineNode(
                 id="apgi_core",
                 name="APGI Core Engine",
                 node_type=NodeType.TRANSFORMER,
                 description="Core APGI computations and algorithms",
-                metadata={
-                    "components": ["Formal Model", "Dynamics", "State Estimation"]
-                },
+                metadata={"components": ["Formal Model", "Dynamics", "State Estimation"]},
             ),
             PipelineNode(
                 id="validation_engine",
@@ -434,15 +416,9 @@ class PipelineVisualizer:
             PipelineEdge("data_layer", "apgi_core", "Provide processed data"),
             PipelineEdge("apgi_core", "validation_engine", "Validate results"),
             PipelineEdge("apgi_core", "performance_monitor", "Monitor performance"),
-            PipelineEdge(
-                "validation_engine", "report_generator", "Provide validation results"
-            ),
-            PipelineEdge(
-                "performance_monitor", "report_generator", "Provide performance data"
-            ),
-            PipelineEdge(
-                "report_generator", "visualization_engine", "Create visualizations"
-            ),
+            PipelineEdge("validation_engine", "report_generator", "Provide validation results"),
+            PipelineEdge("performance_monitor", "report_generator", "Provide performance data"),
+            PipelineEdge("report_generator", "visualization_engine", "Create visualizations"),
             PipelineEdge("visualization_engine", "output_layer", "Generate outputs"),
         ]
 
@@ -454,9 +430,7 @@ class PipelineVisualizer:
             layout="hierarchical",
         )
 
-    def calculate_layout(
-        self, diagram: PipelineDiagram
-    ) -> Dict[str, Tuple[float, float]]:
+    def calculate_layout(self, diagram: PipelineDiagram) -> Dict[str, Tuple[float, float]]:
         """Calculate node positions for the diagram."""
         G = nx.DiGraph()
 
@@ -533,9 +507,7 @@ class PipelineVisualizer:
                         fontsize=8,
                         ha="center",
                         va="center",
-                        bbox=dict(
-                            boxstyle="round,pad=0.3", facecolor="white", alpha=0.8
-                        ),
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8),
                     )
 
         # Draw nodes
@@ -547,9 +519,7 @@ class PipelineVisualizer:
                 # Determine node shape
                 if node.node_type in [NodeType.INPUT, NodeType.OUTPUT]:
                     # Ellipse for input/output
-                    circle = plt.Circle(
-                        pos, 0.08, color=color, alpha=0.8, transform=ax.transData
-                    )
+                    circle = plt.Circle(pos, 0.08, color=color, alpha=0.8, transform=ax.transData)
                     ax.add_patch(circle)
                 elif node.node_type == NodeType.DECISION:
                     # Diamond for decision nodes
@@ -565,9 +535,7 @@ class PipelineVisualizer:
                     ax.add_patch(diamond)
                 elif node.node_type == NodeType.MERGE:
                     # Circle for merge nodes
-                    circle = plt.Circle(
-                        pos, 0.06, color=color, alpha=0.8, transform=ax.transData
-                    )
+                    circle = plt.Circle(pos, 0.06, color=color, alpha=0.8, transform=ax.transData)
                     ax.add_patch(circle)
                 else:
                     # Rectangle for other nodes
@@ -622,9 +590,7 @@ class PipelineVisualizer:
         # Add legend
         legend_elements = []
         for node_type, color in self.colors.items():
-            legend_elements.append(
-                patches.Patch(color=color, label=node_type.value.title())
-            )
+            legend_elements.append(patches.Patch(color=color, label=node_type.value.title()))
         ax.legend(handles=legend_elements, loc="upper right", bbox_to_anchor=(1.15, 1))
 
         # Set axis properties
@@ -690,10 +656,7 @@ class PipelineVisualizer:
     def generate_pipeline_documentation(self, diagram: PipelineDiagram) -> Path:
         """Generate pipeline documentation."""
 
-        doc_path = (
-            self.output_dir
-            / f"{diagram.name.replace(' ', '_').lower()}_documentation.md"
-        )
+        doc_path = self.output_dir / f"{diagram.name.replace(' ', '_').lower()}_documentation.md"
 
         with open(doc_path, "w") as f:
             f.write(f"# {diagram.name}\n\n")
@@ -714,7 +677,7 @@ class PipelineVisualizer:
                     f.write(f"- **ID**: {node.id}\n")
                     f.write(f"- **Description**: {node.description}\n")
                     if node.parameters:
-                        f.write(f"- **Parameters**:\n")
+                        f.write("- **Parameters**:\n")
                         for param, value in node.parameters.items():
                             f.write(f"  - `{param}`: {value}\n")
                     if node.metadata:

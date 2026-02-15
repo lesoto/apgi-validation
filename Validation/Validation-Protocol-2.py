@@ -231,9 +231,9 @@ class SyntheticConsciousnessDataGenerator:
             eps_i = self.rng.normal(0, 0.25)
 
             # APGI
-            S_t = stimulus_strength[trial] * prediction_error[trial] + beta_true[
+            S_t = stimulus_strength[trial] * prediction_error[trial] + beta_true[subj] * Pi_i_true[
                 subj
-            ] * Pi_i_true[subj] * np.abs(eps_i)
+            ] * np.abs(eps_i)
 
             theta_t = theta_0_true[subj] + self.rng.normal(0, 0.08)
 
@@ -243,9 +243,7 @@ class SyntheticConsciousnessDataGenerator:
 
             # P3b
             if conscious_report[trial]:
-                P3b_amplitude[trial] = self.rng.normal(
-                    2.0 + 8.0 * max(S_t - theta_t, 0), 2.0
-                )
+                P3b_amplitude[trial] = self.rng.normal(2.0 + 8.0 * max(S_t - theta_t, 0), 2.0)
             else:
                 P3b_amplitude[trial] = self.rng.normal(1.2, 1.8)
 
@@ -321,7 +319,7 @@ def validate_parameter_recovery(n_simulations: int = 100):
     # Check against thresholds
     validation_passed = (r_theta > 0.85) and (r_beta > 0.85) and (r_Pi_i > 0.75)
 
-    print(f"Parameter Recovery Validation:")
+    print("Parameter Recovery Validation:")
     print(f"  θ₀: r = {r_theta:.3f} {'✅' if r_theta > 0.85 else '❌'}")
     print(f"  Πᵢ: r = {r_Pi_i:.3f} {'✅' if r_Pi_i > 0.75 else '❌'}")
     print(f"  β:  r = {r_beta:.3f} {'✅' if r_beta > 0.85 else '❌'}")
@@ -383,12 +381,8 @@ class APGIGenerativeModel:
             # =================================================================
 
             # Threshold
-            theta_0_offset = pm.Normal(
-                "theta_0_offset", mu=0, sigma=1, shape=n_subjects
-            )
-            theta_0 = pm.Deterministic(
-                "theta_0", mu_theta + sigma_theta * theta_0_offset
-            )
+            theta_0_offset = pm.Normal("theta_0_offset", mu=0, sigma=1, shape=n_subjects)
+            theta_0 = pm.Deterministic("theta_0", mu_theta + sigma_theta * theta_0_offset)
             theta_0_bounded = pm.math.clip(theta_0, 0.2, 0.9)
 
             # Interoceptive precision
@@ -425,17 +419,13 @@ class APGIGenerativeModel:
 
             # Accumulated surprise
             extero_contrib = Pi_e * data_dict["stimulus_strength"] * pm.math.abs(eps_e)
-            intero_contrib = (
-                beta_bounded[subj_idx] * Pi_i_bounded[subj_idx] * pm.math.abs(eps_i)
-            )
+            intero_contrib = beta_bounded[subj_idx] * Pi_i_bounded[subj_idx] * pm.math.abs(eps_i)
 
             S_t = pm.Deterministic("S_t", extero_contrib + intero_contrib)
 
             # Dynamic threshold (baseline + trial noise)
             theta_noise = pm.Normal("theta_noise", mu=0, sigma=0.1, shape=n_trials)
-            theta_t = pm.Deterministic(
-                "theta_t", theta_0_bounded[subj_idx] + theta_noise
-            )
+            theta_t = pm.Deterministic("theta_t", theta_0_bounded[subj_idx] + theta_noise)
 
             # Ignition probability
             logit_p = alpha_bounded[subj_idx] * (S_t - theta_t)
@@ -446,9 +436,7 @@ class APGIGenerativeModel:
             # =================================================================
 
             # 1. Conscious report (primary outcome)
-            pm.Bernoulli(
-                "y_report", p=P_ignition, observed=data_dict["conscious_report"]
-            )
+            pm.Bernoulli("y_report", p=P_ignition, observed=data_dict["conscious_report"])
 
             # 2. P3b amplitude (if available)
             if "P3b_amplitude" in data_dict:
@@ -470,17 +458,13 @@ class APGIGenerativeModel:
                 RT_mu = 300 + 200 * pm.math.abs(S_t - theta_t)
 
                 # Inverse Gaussian (Wald) distribution
-                pm.Wald(
-                    "y_RT", mu=RT_mu, lam=50000, observed=data_dict["reaction_time"]
-                )
+                pm.Wald("y_RT", mu=RT_mu, lam=50000, observed=data_dict["reaction_time"])
 
             # 4. HEP amplitude (if available - key for interoception)
             if "HEP_amplitude" in data_dict:
                 HEP_pred = 1.5 + 2.5 * Pi_i_bounded[subj_idx] * pm.math.abs(eps_i)
 
-                pm.Normal(
-                    "y_HEP", mu=HEP_pred, sigma=1.0, observed=data_dict["HEP_amplitude"]
-                )
+                pm.Normal("y_HEP", mu=HEP_pred, sigma=1.0, observed=data_dict["HEP_amplitude"])
 
         self.model = model
         return model
@@ -582,9 +566,7 @@ class GlobalWorkspaceModel:
             logit_p = alpha_bounded[subj_idx] * (S_t - theta_bounded[subj_idx])
             P_ignition = pm.math.sigmoid(logit_p)
 
-            pm.Bernoulli(
-                "y_report", p=P_ignition, observed=data_dict["conscious_report"]
-            )
+            pm.Bernoulli("y_report", p=P_ignition, observed=data_dict["conscious_report"])
 
             # P3b
             if "P3b_amplitude" in data_dict:
@@ -685,9 +667,9 @@ class BayesianModelComparison:
 
         Uses NUTS sampler with non-centered parameterization for efficiency.
         """
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"FITTING MODELS TO: {data.name}")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Subjects: {data.n_subjects}, Trials: {data.n_trials}")
         print(f"Sampling: {n_samples} draws × {n_chains} chains")
 
@@ -724,9 +706,9 @@ class BayesianModelComparison:
                 print(f"  Divergences = {n_divergences}")
 
                 if rhat_max > 1.05:
-                    print(f"  ⚠️  Warning: Poor convergence (R-hat > 1.05)")
+                    print("  ⚠️  Warning: Poor convergence (R-hat > 1.05)")
                 if n_divergences > 100:
-                    print(f"  ⚠️  Warning: Many divergences")
+                    print("  ⚠️  Warning: Many divergences")
 
             except (RuntimeError, ValueError, TypeError, KeyError) as e:
                 print(f"  ❌ Error fitting {name}: {e}")
@@ -738,9 +720,9 @@ class BayesianModelComparison:
 
         Returns DataFrame with comparison metrics for all models.
         """
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("COMPUTING MODEL COMPARISON METRICS")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         results = []
 
@@ -816,9 +798,9 @@ class BayesianModelComparison:
         For each model, generate predictions from posterior and compare
         to observed data.
         """
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("POSTERIOR PREDICTIVE CHECKS")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         results = {}
 
@@ -830,9 +812,7 @@ class BayesianModelComparison:
 
             # Get posterior samples
             with self.models[name]().build_model(data):
-                ppc = pm.sample_posterior_predictive(
-                    trace, samples=n_samples, progressbar=False
-                )
+                ppc = pm.sample_posterior_predictive(trace, samples=n_samples, progressbar=False)
 
             # Compare predictions to observations
             pred_report = ppc.posterior_predictive["y_report"].values
@@ -873,9 +853,9 @@ class BayesianModelComparison:
         More computationally expensive but provides robust estimate
         of generalization performance.
         """
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"{n_folds}-FOLD CROSS-VALIDATION")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         # Create folds (stratified by subject)
         unique_subjects = np.unique(data.subject_idx)
@@ -883,9 +863,7 @@ class BayesianModelComparison:
 
         cv_results = {name: [] for name in self.models.keys()}
 
-        for fold_idx, (train_subjects, test_subjects) in enumerate(
-            kf.split(unique_subjects)
-        ):
+        for fold_idx, (train_subjects, test_subjects) in enumerate(kf.split(unique_subjects)):
             print(f"\nFold {fold_idx + 1}/{n_folds}")
 
             # Create train/test splits
@@ -919,9 +897,7 @@ class BayesianModelComparison:
                         test_model = model_instance.build_model(test_data)
 
                     with test_model:
-                        ppc = pm.sample_posterior_predictive(
-                            trace, samples=500, progressbar=False
-                        )
+                        ppc = pm.sample_posterior_predictive(trace, samples=500, progressbar=False)
 
                     # Compute log-likelihood on test set
                     pred_mean = ppc.posterior_predictive["y_report"].mean(axis=(0, 1))
@@ -938,20 +914,14 @@ class BayesianModelComparison:
         cv_summary = pd.DataFrame(
             {
                 "model": list(cv_results.keys()),
-                "mean_log_likelihood": [
-                    np.nanmean(scores) for scores in cv_results.values()
-                ],
-                "std_log_likelihood": [
-                    np.nanstd(scores) for scores in cv_results.values()
-                ],
+                "mean_log_likelihood": [np.nanmean(scores) for scores in cv_results.values()],
+                "std_log_likelihood": [np.nanstd(scores) for scores in cv_results.values()],
             }
         )
 
         return cv_summary.sort_values("mean_log_likelihood", ascending=False)
 
-    def _subset_data(
-        self, data: ConsciousnessDataset, mask: np.ndarray
-    ) -> ConsciousnessDataset:
+    def _subset_data(self, data: ConsciousnessDataset, mask: np.ndarray) -> ConsciousnessDataset:
         """Create subset of dataset based on boolean mask"""
 
         # Remap subject indices
@@ -967,15 +937,9 @@ class BayesianModelComparison:
             stimulus_strength=data.stimulus_strength[mask],
             prediction_error=data.prediction_error[mask],
             conscious_report=data.conscious_report[mask],
-            P3b_amplitude=(
-                data.P3b_amplitude[mask] if data.P3b_amplitude is not None else None
-            ),
-            reaction_time=(
-                data.reaction_time[mask] if data.reaction_time is not None else None
-            ),
-            HEP_amplitude=(
-                data.HEP_amplitude[mask] if data.HEP_amplitude is not None else None
-            ),
+            P3b_amplitude=(data.P3b_amplitude[mask] if data.P3b_amplitude is not None else None),
+            reaction_time=(data.reaction_time[mask] if data.reaction_time is not None else None),
+            HEP_amplitude=(data.HEP_amplitude[mask] if data.HEP_amplitude is not None else None),
             paradigm=data.paradigm,
             citation=data.citation,
         )
@@ -1023,9 +987,7 @@ class FalsificationChecker:
 
         for competitor in ["StandardSDT", "GlobalWorkspace"]:
             if competitor in comparison_df["model"].values:
-                comp_loo = comparison_df[comparison_df["model"] == competitor][
-                    "loo"
-                ].values[0]
+                comp_loo = comparison_df[comparison_df["model"] == competitor]["loo"].values[0]
                 delta = apgi_loo - comp_loo
 
                 details[competitor] = delta
@@ -1121,9 +1083,7 @@ class FalsificationChecker:
         if "GlobalWorkspace" not in comparison_df["model"].values:
             return False, 0.0
 
-        bf = comparison_df[comparison_df["model"] == "GlobalWorkspace"][
-            "BF_vs_apgi"
-        ].values[0]
+        bf = comparison_df[comparison_df["model"] == "GlobalWorkspace"]["BF_vs_apgi"].values[0]
 
         # If BF < 3, GWT is not substantially worse than APGI
         # (Bayes factor interpretation: <3 = weak evidence)
@@ -1278,9 +1238,7 @@ def plot_model_comparison_results(
 
     delta_loos = comparison_df["delta_loo"].values
 
-    ax2.barh(
-        y_pos, delta_loos, color=bar_colors, alpha=0.7, edgecolor="black", linewidth=1.5
-    )
+    ax2.barh(y_pos, delta_loos, color=bar_colors, alpha=0.7, edgecolor="black", linewidth=1.5)
     ax2.set_yticks(y_pos)
     ax2.set_yticklabels(models)
     ax2.set_xlabel("ΔLOO from best model", fontsize=12, fontweight="bold")
@@ -1296,9 +1254,7 @@ def plot_model_comparison_results(
 
     p_loos = comparison_df["p_loo"].values
 
-    ax3.barh(
-        y_pos, p_loos, color=bar_colors, alpha=0.7, edgecolor="black", linewidth=1.5
-    )
+    ax3.barh(y_pos, p_loos, color=bar_colors, alpha=0.7, edgecolor="black", linewidth=1.5)
     ax3.set_yticks(y_pos)
     ax3.set_yticklabels(models)
     ax3.set_xlabel("Effective Parameters (p_LOO)", fontsize=12, fontweight="bold")
@@ -1325,9 +1281,7 @@ def plot_model_comparison_results(
     ax4.set_yticks(y_pos)
     ax4.set_yticklabels(models)
     ax4.set_xlabel("WAIC (lower is better)", fontsize=12, fontweight="bold")
-    ax4.set_title(
-        "Widely Applicable Information Criterion", fontsize=13, fontweight="bold"
-    )
+    ax4.set_title("Widely Applicable Information Criterion", fontsize=13, fontweight="bold")
     ax4.grid(axis="x", alpha=0.3)
 
     # ==========================================================================
@@ -1486,7 +1440,7 @@ def print_falsification_report(report: Dict):
     print(f"PROTOCOL 2 FALSIFICATION REPORT - {report['dataset']}")
     print("=" * 80)
 
-    print(f"\nOVERALL STATUS: ", end="")
+    print("\nOVERALL STATUS: ", end="")
     if report["overall_falsified"]:
         print("❌ MODEL FALSIFIED")
     else:
@@ -1625,9 +1579,7 @@ def posterior_predictive_check(trace, data, model):
         .mean()
     )
 
-    axes[0, 0].scatter(
-        observed_rates.index, observed_rates.values, label="Observed", alpha=0.7
-    )
+    axes[0, 0].scatter(observed_rates.index, observed_rates.values, label="Observed", alpha=0.7)
     axes[0, 0].plot(
         predicted_rates_grouped.index,
         predicted_rates_grouped.values,
@@ -1641,9 +1593,7 @@ def posterior_predictive_check(trace, data, model):
 
     # 2. P3b amplitude distributions
     if data.P3b_amplitude is not None:
-        axes[0, 1].hist(
-            data.P3b_amplitude, bins=30, alpha=0.5, label="Observed", density=True
-        )
+        axes[0, 1].hist(data.P3b_amplitude, bins=30, alpha=0.5, label="Observed", density=True)
         axes[0, 1].hist(
             ppc["y_P3b"].flatten(),
             bins=30,
@@ -1668,9 +1618,7 @@ def posterior_predictive_check(trace, data, model):
     # Compute quantitative PPC metrics
     ppc_metrics = {
         "mean_absolute_error": np.mean(np.abs(residuals)),
-        "bayesian_p_value": np.mean(
-            ppc["y_report"].var(axis=1) > data.conscious_report.var()
-        ),
+        "bayesian_p_value": np.mean(ppc["y_report"].var(axis=1) > data.conscious_report.var()),
     }
 
     return ppc, ppc_metrics, fig
@@ -1706,9 +1654,7 @@ def compute_all_ic_metrics(trace, model, data):
 
     # Flag if LOO is unreliable
     if high_pareto_k > 0:
-        results["warning"] = (
-            f"{high_pareto_k} observations with Pareto k > 0.7 (unreliable LOO)"
-        )
+        results["warning"] = f"{high_pareto_k} observations with Pareto k > 0.7 (unreliable LOO)"
 
     return results
 
@@ -1798,9 +1744,7 @@ def parameter_recovery_simulation(true_params, n_simulations=100):
         true_Pi_i = np.random.uniform(0.8, 1.8)
 
         # Create synthetic data with these parameters
-        data = generator.generate_melloni_style_data(
-            n_subjects=10, trials_per_subject=100
-        )
+        data = generator.generate_melloni_style_data(n_subjects=10, trials_per_subject=100)
 
         # Fit model
         model = APGIGenerativeModel()
@@ -1812,9 +1756,7 @@ def parameter_recovery_simulation(true_params, n_simulations=100):
         recovered_theta_0 = trace.posterior["theta_0"].mean().item()
         recovery_results["theta_0"]["true"].append(true_theta_0)
         recovery_results["theta_0"]["recovered"].append(recovered_theta_0)
-        recovery_results["theta_0"]["error"].append(
-            abs(recovered_theta_0 - true_theta_0)
-        )
+        recovery_results["theta_0"]["error"].append(abs(recovered_theta_0 - true_theta_0))
 
     # Compute recovery statistics
     for param in recovery_results:
@@ -1822,9 +1764,7 @@ def parameter_recovery_simulation(true_params, n_simulations=100):
         recovered_vals = np.array(recovery_results[param]["recovered"])
 
         # Correlation between true and recovered (should be high)
-        recovery_results[param]["correlation"] = np.corrcoef(true_vals, recovered_vals)[
-            0, 1
-        ]
+        recovery_results[param]["correlation"] = np.corrcoef(true_vals, recovered_vals)[0, 1]
 
         # Mean absolute error
         recovery_results[param]["mae"] = np.mean(recovery_results[param]["error"])
@@ -1847,7 +1787,7 @@ def main():
     # Configuration
     config = {"n_samples": 2000, "n_tune": 1000, "n_chains": 4, "target_accept": 0.95}
 
-    print(f"\nSampling Configuration:")
+    print("\nSampling Configuration:")
     for k, v in config.items():
         print(f"  {k}: {v}")
 
@@ -1861,9 +1801,7 @@ def main():
     generator = SyntheticConsciousnessDataGenerator(seed=42)
 
     # Generate two datasets
-    melloni_data = generator.generate_melloni_style_data(
-        n_subjects=12, trials_per_subject=200
-    )
+    melloni_data = generator.generate_melloni_style_data(n_subjects=12, trials_per_subject=200)
     print(
         f"\n✅ {melloni_data.name}: {melloni_data.n_subjects} subjects, "
         f"{melloni_data.n_trials} trials"
@@ -1920,11 +1858,7 @@ def main():
     print("\n" + "-" * 80)
     print("MODEL COMPARISON SUMMARY - MELLONI")
     print("-" * 80)
-    print(
-        melloni_comparison_df[["model", "loo", "delta_loo", "p_loo"]].to_string(
-            index=False
-        )
-    )
+    print(melloni_comparison_df[["model", "loo", "delta_loo", "p_loo"]].to_string(index=False))
 
     # =========================================================================
     # STEP 4: Fit Models to Canales-Johnson Dataset
@@ -1952,11 +1886,7 @@ def main():
     print("\n" + "-" * 80)
     print("MODEL COMPARISON SUMMARY - CANALES-JOHNSON")
     print("-" * 80)
-    print(
-        canales_comparison_df[["model", "loo", "delta_loo", "p_loo"]].to_string(
-            index=False
-        )
-    )
+    print(canales_comparison_df[["model", "loo", "delta_loo", "p_loo"]].to_string(index=False))
 
     # =========================================================================
     # STEP 5: Posterior Predictive Checks
