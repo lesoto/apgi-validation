@@ -22,9 +22,29 @@ try:
     from weasyprint import CSS, HTML
 
     WEASYPRINT_AVAILABLE = True
-except ImportError:
+except (ImportError, OSError) as e:
     WEASYPRINT_AVAILABLE = False
-    warnings.warn("WeasyPrint not available. PDF generation disabled.")
+    # Handle different types of import errors gracefully
+    # Use warnings since logger may not be available yet
+    error_msg = str(e).lower()
+    if (
+        "libgobject" in error_msg
+        or "library" in error_msg
+        or "cannot load library" in error_msg
+    ):
+        # System library error - this is expected in some environments
+        warnings.warn(
+            "WeasyPrint system dependencies not available. "
+            "PDF generation disabled. Install system dependencies with: brew install gtk+3",
+            UserWarning,
+        )
+    else:
+        # Standard import error
+        warnings.warn(
+            f"WeasyPrint import failed: {e}. "
+            "PDF generation disabled. Install with: pip install weasyprint",
+            UserWarning,
+        )
 
 try:
     from utils.logging_config import apgi_logger

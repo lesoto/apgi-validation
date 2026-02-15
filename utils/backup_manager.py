@@ -19,7 +19,6 @@ import os
 import shutil
 import tarfile
 import threading
-import time
 import zipfile
 from dataclasses import asdict, dataclass
 from datetime import datetime

@@ -112,8 +112,8 @@ class SampleDataGenerator:
 
         # Add P300 events (every 2-4 seconds for testing purposes)
         p300_events = []
-        event_time = 1.0  # Start even earlier
-        while event_time < self.duration - 0.5:  # Allow events very close to end
+        event_time = 0.5  # Start earlier for short durations
+        while event_time < self.duration - 0.2:  # Allow events closer to end
             event_idx = int(event_time * self.sampling_rate)
             if event_idx < self.n_samples - 100:  # Ensure minimal space for P300
                 # P300 waveform (positive peak around 300ms)
@@ -550,7 +550,7 @@ def generate_sample_multimodal_data(
     data = pd.DataFrame(
         {
             "timestamp": time_points,
-            "eeg_fz": eeg_fz,
+            "EEG_Cz": eeg_fz,
             "pupil_diameter": pupil_diameter,
             "eda": eda_scr,
             "heart_rate": heart_rate,

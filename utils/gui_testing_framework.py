@@ -7,25 +7,20 @@ Supports testing of tkinter and Dash-based GUI applications.
 """
 
 import json
-import subprocess
 import sys
-import threading
 import time
 import unittest
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
-from unittest.mock import Mock, patch
+from typing import Any, Callable, Dict, List, Optional
 
 try:
     import tkinter as tk
-    from tkinter import ttk
 
     TKINTER_AVAILABLE = True
 except ImportError:
     TKINTER_AVAILABLE = False
 
 try:
-    import dash
     from dash.testing.application_runners import ThreadedRunner
     from dash.testing.browser import Browser
 
@@ -134,34 +129,23 @@ class TkinterTester(BaseGUITester):
 
         self.root = None
 
-    def launch_app(self, app_class: type, *args, **kwargs) -> tk.Tk:
+    def launch_app(self, app_class: type, *args, **kwargs) -> Optional[tk.Tk]:
         """Launch tkinter application for testing."""
-
-        def run_app():
+        try:
+            # Create root in main thread
             self.root = tk.Tk()
             # Hide the main window during testing
             self.root.withdraw()
 
-            try:
-                app = app_class(self.root, *args, **kwargs)
-                # Run the app briefly to initialize
-                self.root.update()
-                return app
-            except Exception as e:
+            app = app_class(self.root, *args, **kwargs)
+            # Run the app briefly to initialize
+            self.root.update()
+            return app
+        except Exception as e:
+            if self.root:
                 self.root.quit()
-                raise e
-
-        # Run in a separate thread to avoid blocking
-        app_thread = threading.Thread(target=run_app, daemon=True)
-        app_thread.start()
-
-        # Wait for app to initialize
-        time.sleep(0.5)
-
-        if not self.root:
-            raise RuntimeError("Failed to launch tkinter application")
-
-        return self.root
+                self.root.destroy()
+            raise e
 
     def close_app(self):
         """Close the tkinter application."""
@@ -169,7 +153,7 @@ class TkinterTester(BaseGUITester):
             try:
                 self.root.quit()
                 self.root.destroy()
-            except:
+            except Exception:
                 pass
             finally:
                 self.root = None
@@ -188,7 +172,7 @@ class TkinterTester(BaseGUITester):
                     try:
                         if widget.cget("text") == text:
                             return widget
-                    except:
+                    except Exception:
                         pass
                 elif name and widget.winfo_name() == name:
                     return widget
@@ -222,12 +206,12 @@ class TkinterTester(BaseGUITester):
         if widget and hasattr(widget, "get"):
             try:
                 return widget.get()
-            except:
+            except Exception:
                 pass
         if widget and hasattr(widget, "cget"):
             try:
                 return widget.cget("text")
-            except:
+            except Exception:
                 pass
         return ""
 
@@ -268,14 +252,14 @@ class DashTester(BaseGUITester):
         if self.browser:
             try:
                 self.browser.quit()
-            except:
+            except Exception:
                 pass
             self.browser = None
 
         if self.runner:
             try:
                 self.runner.stop()
-            except:
+            except Exception:
                 pass
             self.runner = None
 
@@ -359,12 +343,22 @@ def test_tkinter_utils_gui():
 
     def test_basic_functionality(result: GUITestResult):
         try:
-            # Import the GUI class
-            sys.path.append(str(Path(__file__).parent.parent.parent / "utils"))
-            from Utils_GUI import UtilsRunnerGUI
+            import importlib.util
 
-            # Launch the app
-            root = tester.launch_app(UtilsRunnerGUI)
+            # Get the project root directory
+            current_dir = Path(__file__).parent
+            project_root = current_dir.parent
+            gui_file = project_root / "Utils-GUI.py"
+
+            # Load the module dynamically since filename has hyphen
+            spec = importlib.util.spec_from_file_location("utils_gui", gui_file)
+            utils_gui_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(utils_gui_module)
+            UtilsRunnerGUI = utils_gui_module.UtilsRunnerGUI
+
+            # Launch app
+            app_instance = tester.launch_app(UtilsRunnerGUI)
+            root = tester.root  # Get the actual root window
 
             # Test that main window exists
             if not root:
@@ -372,11 +366,11 @@ def test_tkinter_utils_gui():
                 return
 
             # Look for basic GUI elements
-            script_listbox = tester.find_widget("Listbox")
-            if not script_listbox:
-                result.add_warning("Script listbox not found")
+            scripts_listbox = tester.find_widget("Listbox")
+            if not scripts_listbox:
+                result.add_warning("Scripts listbox not found")
 
-            run_button = tester.find_widget("Button", text="Run")
+            run_button = tester.find_widget("Button", text="Run Selected")
             if not run_button:
                 result.add_warning("Run button not found")
 
@@ -388,7 +382,7 @@ def test_tkinter_utils_gui():
                 {
                     "window_title": root.title(),
                     "widgets_found": (
-                        ["Listbox", "Button"] if script_listbox and run_button else []
+                        ["Listbox", "Button"] if scripts_listbox and run_button else []
                     ),
                 }
             )
