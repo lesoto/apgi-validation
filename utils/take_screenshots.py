@@ -319,10 +319,7 @@ class APGIScreenshotDocumentation:
 
         # Check dependencies
         try:
-            import cv2
             import pyautogui
-            import pygetwindow as gw
-            from PIL import Image
 
             print("✅ All required packages are installed")
         except ImportError as e:
