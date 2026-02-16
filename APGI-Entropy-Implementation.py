@@ -395,18 +395,18 @@ class ThermodynamicEntropyCalculator(nn.Module):
         Returns:
             Z: Partition function [batch, 1]
         """
-        # Boltzmann factors: exp(-E/kT) with numerical stability
-        # Clamp energies to prevent overflow
-        max_energy = 50.0 * self.kB_T * self.energy_scale  # Maximum safe energy
-        clamped_energies = torch.clamp(energies, min=-max_energy, max=max_energy)
-        boltzmann_factors = torch.exp(
-            -clamped_energies / (self.kB_T * self.energy_scale)
-        )
+        # Normalize energies to prevent numerical overflow
+        # Use log-sum-exp trick for numerical stability
+        energies_norm = energies - torch.max(energies, dim=-1, keepdim=True)[0]
+
+        # Boltzmann factors: exp(-E/kT) with proper scaling
+        scaled_energies = energies_norm / (self.kB_T * self.energy_scale)
+        boltzmann_factors = torch.exp(-torch.clamp(scaled_energies, min=-50, max=50))
 
         # Sum over all accessible states
         Z = boltzmann_factors.sum(dim=-1, keepdim=True)
 
-        # Prevent division by zero
+        # Prevent division by zero and add reference scale
         Z = torch.clamp(Z, min=self.config.eps)
 
         return Z
@@ -475,15 +475,15 @@ class ThermodynamicEntropyCalculator(nn.Module):
 
         # Thermodynamic entropy: S = k_B * ln(Z) + <E>/T with numerical stability
         if self.config.use_physical_temperature:
-            # Clamp log argument to prevent overflow
-            log_Z = torch.log(torch.clamp(Z, max=1e10))
+            # Use log-sum-exp result for better numerical stability
+            log_Z = torch.log(Z)
+            mean_energy = total_energy.mean(dim=-1, keepdim=True)
+
+            # Calculate entropy with proper scaling
             S_thermo = (
                 self.config.boltzmann_constant * log_Z * self.entropy_scale.item()
-                + torch.clamp(
-                    total_energy
-                    / (self.config.boltzmann_constant * self.config.temperature_kelvin),
-                    max=1e10,
-                )
+                + mean_energy
+                / (self.config.boltzmann_constant * self.config.temperature_kelvin)
             )
             # Helmholtz free energy: F = -kT ln(Z)
             F_thermo = (
@@ -491,10 +491,9 @@ class ThermodynamicEntropyCalculator(nn.Module):
             )
         else:
             # Normalized version with stability
-            log_Z = torch.log(torch.clamp(Z, max=1e10))
-            S_thermo = log_Z + torch.clamp(
-                energy_samples.mean(dim=-1, keepdim=True) / self.kB_T, max=1e10
-            )
+            log_Z = torch.log(Z)
+            mean_energy = energy_samples.mean(dim=-1, keepdim=True)
+            S_thermo = log_Z + mean_energy / self.kB_T
             F_thermo = -self.kB_T * log_Z
 
         # Mean energy
@@ -556,14 +555,18 @@ class ShannonEntropyCalculator(nn.Module):
             H: Shannon entropy in nats [batch, 1]
         """
         if use_softmax:
-            # Convert activations to probability distribution
-            p = F.softmax(state, dim=-1)
+            # Convert activations to probability distribution with temperature scaling
+            temperature = 1.0  # Can be adjusted for entropy sensitivity
+            p = F.softmax(state / temperature, dim=-1)
         else:
             # Assume state is already a distribution
             p = state
 
+        # Ensure numerical stability
+        p = torch.clamp(p, min=self.config.eps, max=1.0)
+
         # Shannon entropy: H = -Σ p log(p)
-        H = -(p * torch.log(p + self.config.eps)).sum(dim=-1, keepdim=True)
+        H = -(p * torch.log(p)).sum(dim=-1, keepdim=True)
 
         return H
 
@@ -773,15 +776,27 @@ class VariationalFreeEnergyCalculator(nn.Module):
             p_mean = p_mean.unsqueeze(0).expand_as(q_mean)
             p_var = p_var.unsqueeze(0).expand_as(q_var)
 
-        # KL divergence formula for Gaussians
+        # Clamp variances to prevent numerical issues
+        q_var_clamped = torch.clamp(q_var, min=self.config.eps, max=100.0)
+        p_var_clamped = torch.clamp(p_var, min=self.config.eps, max=100.0)
+
+        # KL divergence formula for Gaussians with numerical stability
+        log_ratio = torch.log(p_var_clamped / q_var_clamped)
+        squared_diff = (q_mean - p_mean).pow(2)
+        variance_ratio = q_var_clamped / p_var_clamped
+
+        # Clamp individual terms to prevent explosion
+        log_ratio = torch.clamp(log_ratio, min=-50, max=50)
+        squared_diff = torch.clamp(squared_diff, min=0, max=1000)
+        variance_ratio = torch.clamp(variance_ratio, min=0, max=100)
+
         kl_per_dim = 0.5 * (
-            torch.log((p_var + self.config.eps) / (q_var + self.config.eps))
-            + (q_var + (q_mean - p_mean).pow(2)) / (p_var + self.config.eps)
-            - 1.0
+            log_ratio + variance_ratio + squared_diff / p_var_clamped - 1.0
         )
 
-        # Sum over dimensions
+        # Sum over dimensions and clamp final result
         kl = kl_per_dim.sum(dim=-1, keepdim=True)
+        kl = torch.clamp(kl, min=0, max=1000)  # Prevent negative KL and explosion
 
         return kl
 
@@ -1143,7 +1158,7 @@ class LTCNeuron(nn.Module):
 
 
 # ============================================================================
-# Hierarchical Predictive Coding Layer (Enhanced)
+# Hierarchical Predictive Coding Layer
 # ============================================================================
 
 
@@ -1277,7 +1292,7 @@ class HierarchicalPredictiveCodingLayer(nn.Module):
 
 
 # ============================================================================
-# Precision Estimator (Enhanced)
+# Precision Estimator
 # ============================================================================
 
 
@@ -1493,7 +1508,7 @@ class PrecisionEstimator(nn.Module):
 
 
 # ============================================================================
-# Prediction Error Module (Enhanced)
+# Prediction Error Module
 # ============================================================================
 
 
@@ -1728,7 +1743,7 @@ class EnhancedMetabolicCostModule(nn.Module):
 
 
 # ============================================================================
-# Adaptive Threshold (Enhanced)
+# Adaptive Threshold
 # ============================================================================
 
 
@@ -1869,7 +1884,7 @@ class NeuromodulationModule(nn.Module):
 
 
 # ============================================================================
-# Global Workspace Module (Enhanced)
+# Global Workspace Module
 # ============================================================================
 
 
@@ -1925,7 +1940,7 @@ class GlobalWorkspaceModule(nn.Module):
 
 
 # ============================================================================
-# Main APGI Liquid Network (Enhanced)
+# Main APGI Liquid Network
 # ============================================================================
 
 
@@ -2058,6 +2073,31 @@ class APGILiquidNetwork(nn.Module):
             prev_energies=prev_energies,
             cumulative_entropy_production=cumulative_entropy_production,
         )
+
+    def step(self, intero_input: torch.Tensor, extero_input: torch.Tensor) -> Dict:
+        """
+        Simplified step method for GUI compatibility.
+
+        Args:
+            intero_input: Interoceptive input [batch, input_size]
+            extero_input: Exteroceptive input [batch, input_size]
+
+        Returns:
+            diagnostics: Network diagnostics including entropy outputs
+        """
+        # Initialize state if not exists
+        if (
+            not hasattr(self, "_state")
+            or self._state.intero_states[0].shape[0] != intero_input.shape[0]
+        ):
+            self._state = self.initialize_state(
+                intero_input.shape[0], intero_input.device
+            )
+
+        # Call forward method
+        _, _, _, diagnostics = self.forward(intero_input, extero_input, self._state)
+
+        return diagnostics
 
     def _setup_context_and_state(
         self, intero_input: torch.Tensor, context: Optional[Dict[str, torch.Tensor]]
@@ -2855,8 +2895,6 @@ def main() -> None:
     try:
         import tkinter as tk
         from tkinter import ttk, scrolledtext, messagebox
-        import matplotlib.pyplot as plt
-        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
         import numpy as np
         import threading
 
@@ -2982,7 +3020,7 @@ def main() -> None:
                     self.status_var.set("Initializing network...")
                     self.root.update()
 
-                    self.network = EnhancedAPGINetwork(self.config)
+                    self.network = APGILiquidNetwork(self.config)
                     self.network.to(self.device)
 
                     self.run_btn.config(state="normal")
@@ -3003,9 +3041,9 @@ def main() -> None:
                     )
                     self.results_text.insert(tk.END, f"- Device: {self.device}\n\n")
 
-                except Exception as e:
+                except Exception as exc:
                     messagebox.showerror(
-                        "Initialization Error", f"Failed to initialize network: {e}"
+                        "Initialization Error", f"Failed to initialize network: {exc}"
                     )
                     self.status_var.set("Initialization failed")
 
@@ -3096,17 +3134,15 @@ def main() -> None:
 
                     self.status_var.set("Analysis completed")
 
-                except Exception as e:
+                except Exception as exc:
+                    error_msg = f"Error during analysis: {exc}"
                     self.root.after(
                         0,
-                        lambda: messagebox.showerror(
-                            "Analysis Error", f"Analysis failed: {e}"
-                        ),
+                        lambda: messagebox.showerror("Analysis Error", error_msg),
                     )
                     self.status_var.set("Analysis failed")
                 finally:
-                    self.is_running = False
-                    self.root.after(0, self._reset_buttons)
+                    self._reset_buttons()
 
             def _display_results(
                 self, entropy_history, surprise_history, threshold_history
@@ -3189,13 +3225,13 @@ def main() -> None:
         app = EntropyAnalysisGUI(root)
         root.mainloop()
 
-    except ImportError as e:
-        print(f"❌ Import Error: {e}")
+    except ImportError as exc:
+        print(f"❌ Import Error: {exc}")
         print("This GUI requires tkinter and matplotlib.")
         print("Install with: pip install matplotlib")
         sys.exit(1)
-    except Exception as e:
-        print(f"❌ Error: {e}")
+    except Exception as exc:
+        print(f"❌ Error: {exc}")
         sys.exit(1)
 
 

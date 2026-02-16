@@ -56,7 +56,7 @@ class APGIBayesianModel:
         self,
         stimulus_intensities: np.ndarray,
         detection_rates: np.ndarray,
-        n_samples: int = 1000,
+        n_samples: int = 2000,
     ) -> Dict:
         """
         Bayesian estimation of psychometric function parameters
@@ -117,15 +117,17 @@ class APGIBayesianModel:
             )
 
             with pm.Model() as apgi_model:
-                # Priors for APGI parameters
-                beta = pm.Normal(
-                    "beta", mu=10.0, sigma=5.0, bounds=(0.1, 50.0)
-                )  # Sigmoid steepness
-                theta = pm.Normal(
+                # Priors for APGI parameters (non-centered parametrization)
+                raw_beta = pm.Normal(
+                    "raw_beta", mu=0.0, sigma=0.5
+                )  # Non-centered, tighter
+                beta = 10.0 + 5.0 * raw_beta  # Reparameterized beta
+                theta = pm.TruncatedNormal(
                     "theta",
                     mu=np.median(stimulus_intensities),
                     sigma=np.std(stimulus_intensities),
-                    bounds=(0, np.max(stimulus_intensities)),
+                    lower=0,
+                    upper=np.max(stimulus_intensities),
                 )
                 amplitude = pm.Beta("amplitude", alpha=5, beta=1)  # Response amplitude
                 baseline = pm.Beta("baseline", alpha=1, beta=3)  # Baseline response
@@ -143,7 +145,12 @@ class APGIBayesianModel:
                 # Sample posterior
                 try:
                     trace = pm.sample(
-                        n_samples, tune=1000, return_inferencedata=True, random_seed=42
+                        n_samples,
+                        tune=2000,
+                        target_accept=0.99,
+                        return_inferencedata=True,
+                        idata_kwargs={"log_likelihood": True},
+                        random_seed=42,
                     )
                 except Exception as e:
                     logger.error(f"MCMC sampling failed: {e}")
@@ -174,15 +181,18 @@ class APGIBayesianModel:
             # Model evidence (simplified)
             model_evidence = self._compute_model_evidence(trace)
 
+            # Compute beta from raw_beta
+            beta_posterior_mean = 10.0 + 5.0 * summary.loc["raw_beta", "mean"]
+
             result = {
                 "trace": trace,
                 "summary": summary,
                 "converged": converged,
                 "rhat_max": rhat_max,
                 "posterior_predictive": posterior_predictive,
-                "beta_posterior_mean": summary.loc["beta", "mean"],
+                "beta_posterior_mean": beta_posterior_mean,
                 "theta_posterior_mean": summary.loc["theta", "mean"],
-                "phase_transition_posterior": summary.loc["beta", "mean"] > 10,
+                "phase_transition_posterior": beta_posterior_mean > 10,
                 "model_evidence": model_evidence,
             }
 
@@ -262,7 +272,12 @@ class APGIBayesianModel:
 
             # Sample posterior
             trace = pm.sample(
-                n_samples, tune=1000, return_inferencedata=True, random_seed=42
+                n_samples,
+                tune=2000,
+                target_accept=0.99,
+                return_inferencedata=True,
+                idata_kwargs={"log_likelihood": True},
+                random_seed=42,
             )
 
         summary = az.summary(trace, round_to=3)
@@ -279,7 +294,7 @@ class APGIBayesianModel:
         }
 
     def _compute_model_evidence(self, trace) -> float:
-        """Compute approximate model evidence using harmonic mean estimator"""
+        """Compute approximate model evidence using multiple methods"""
         try:
             if not BAYESIAN_AVAILABLE:
                 return 0.1  # Fallback
@@ -295,6 +310,17 @@ class APGIBayesianModel:
                 return float(model_evidence)
             except Exception as e:
                 logger.debug(f"Harmonic mean estimator failed: {e}")
+
+            # Try LOO-CV approximation for marginal likelihood
+            try:
+                loo = az.loo(trace, pointwise=True)
+                # Approximate marginal likelihood using LOO (rough approximation)
+                log_marg_like = -loo.loo
+                model_evidence = np.exp(log_marg_like)
+                logger.debug(f"Model evidence approximated via LOO: {model_evidence}")
+                return float(model_evidence)
+            except Exception as e:
+                logger.debug(f"LOO computation failed: {e}")
 
             # Fallback: use WAIC if available
             try:
@@ -454,7 +480,9 @@ class ModelComparisonFramework:
 
         with pm.Model() as gnw_model:
             # GNW parameters (different prior structure)
-            slope = pm.Normal("slope", mu=5.0, sigma=3.0, bounds=(0.1, 20.0))
+            slope = pm.TruncatedNormal(
+                "slope", mu=5.0, sigma=3.0, lower=0.1, upper=20.0
+            )
             threshold = pm.Normal(
                 "threshold",
                 mu=np.median(stimulus_intensities),
@@ -472,7 +500,14 @@ class ModelComparisonFramework:
                 "responses_obs", n=n_trials, p=prob_detect, observed=responses
             )
 
-            trace = pm.sample(1000, tune=500, return_inferencedata=True, random_seed=42)
+            trace = pm.sample(
+                2000,
+                tune=2000,
+                target_accept=0.99,
+                return_inferencedata=True,
+                idata_kwargs={"log_likelihood": True},
+                random_seed=42,
+            )
 
         summary = az.summary(trace, round_to=3)
 
@@ -502,7 +537,14 @@ class ModelComparisonFramework:
                 "responses_obs", n=n_trials, p=prob_detect, observed=responses
             )
 
-            trace = pm.sample(1000, tune=500, return_inferencedata=True, random_seed=42)
+            trace = pm.sample(
+                2000,
+                tune=2000,
+                target_accept=0.99,
+                return_inferencedata=True,
+                idata_kwargs={"log_likelihood": True},
+                random_seed=42,
+            )
 
         summary = az.summary(trace, round_to=3)
 
@@ -515,13 +557,28 @@ class ModelComparisonFramework:
         }
 
     def _compute_model_evidence_simple(self, trace) -> float:
-        """Simplified model evidence computation"""
+        """Simplified model evidence computation with multiple methods"""
         try:
-            log_likelihood = trace.log_likelihood.stack(sample=("chain", "draw"))
-            mean_log_likelihood = log_likelihood.mean()
-            return float(np.exp(mean_log_likelihood))
+            # Try harmonic mean
+            try:
+                log_likelihood = trace.log_likelihood.stack(sample=("chain", "draw"))
+                mean_log_likelihood = log_likelihood.mean()
+                return float(np.exp(mean_log_likelihood))
+            except Exception:
+                pass
+
+            # Try LOO
+            try:
+                loo = az.loo(trace, pointwise=True)
+                log_marg_like = -loo.loo
+                return float(np.exp(log_marg_like))
+            except Exception:
+                pass
+
+            # Fallback
+            return 0.1
         except Exception:
-            return 0.1  # Fallback for failed computation
+            return 0.1
 
     def _interpret_bayes_factor(self, bf: float) -> str:
         """Interpret Bayes factor strength"""
@@ -577,7 +634,14 @@ class IITConvergenceBayesian:
             phi_obs = pm.Normal("phi_obs", mu=mu, sigma=sigma, observed=phi_values)
 
             # Sample
-            trace = pm.sample(1000, tune=500, return_inferencedata=True, random_seed=42)
+            trace = pm.sample(
+                2000,
+                tune=2000,
+                target_accept=0.99,
+                return_inferencedata=True,
+                idata_kwargs={"log_likelihood": True},
+                random_seed=42,
+            )
 
         summary = az.summary(trace, round_to=3)
 

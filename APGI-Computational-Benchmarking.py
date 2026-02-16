@@ -16,6 +16,7 @@ Version: 1.0
 
 import json
 import logging
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Any
@@ -27,6 +28,11 @@ from sklearn.metrics import f1_score
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Suppress NumPy warnings that we handle explicitly
+warnings.filterwarnings(
+    "ignore", category=RuntimeWarning, message=".*invalid value encountered in divide.*"
+)
 
 # =============================================================================
 # BASE FRAMEWORK CLASSES
@@ -518,9 +524,22 @@ class ComputationalBenchmarker:
         target_binary = (target_outputs > np.mean(target_outputs)).astype(int)
 
         mse = np.mean((predicted - target_binary) ** 2)
-        correlation = (
-            np.corrcoef(predicted, target_binary)[0, 1] if len(predicted) > 1 else 0.0
-        )
+
+        # Safe correlation calculation with proper error handling
+        if len(predicted) > 1:
+            try:
+                # Check for zero variance in either array
+                if np.std(predicted) == 0 or np.std(target_binary) == 0:
+                    correlation = 0.0
+                else:
+                    correlation = np.corrcoef(predicted, target_binary)[0, 1]
+                    # Handle NaN results
+                    if np.isnan(correlation):
+                        correlation = 0.0
+            except (RuntimeWarning, ValueError):
+                correlation = 0.0
+        else:
+            correlation = 0.0
         f1 = f1_score(target_binary, predicted, zero_division=0)
 
         return {"mse": mse, "correlation": correlation, "f1_score": f1}

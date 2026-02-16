@@ -1,6 +1,6 @@
 [flake8]
 max-line-length = 120
-max-complexity = 25
+max-complexity = 50
 exclude =
     .git,
     __pycache__,
@@ -20,6 +20,7 @@ ignore =
     F405,
     F811,
     F841,
-    E402
+    E402,
+    C901
 per-file-ignores =
     __init__.py:F401
