@@ -9,7 +9,6 @@ import sys
 import threading
 import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
-from typing import Any, Dict
 
 
 class ProtocolRunnerGUI:

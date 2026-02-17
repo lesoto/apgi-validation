@@ -15,18 +15,15 @@ Dependencies:
 
 import json
 import warnings
-from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.signal as signal
 import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from scipy import stats
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -35,7 +32,6 @@ from sklearn.metrics import (
     roc_auc_score,
     roc_curve,
 )
-from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader, Dataset, random_split
 from tqdm import tqdm
 
@@ -1987,8 +1983,6 @@ def compare_models_with_statistics(results_task_1a):
     Add DeLong's test for AUC comparison
     Add permutation tests for significance
     """
-    from scipy.stats import permutation_test
-    from statsmodels.stats.contingency_tables import mcnemar
 
     comparisons = {}
     models = list(results_task_1a.keys())
