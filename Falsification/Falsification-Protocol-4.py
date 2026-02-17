@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import numpy as np
 from scipy.stats import entropy
