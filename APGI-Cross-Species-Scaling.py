@@ -192,7 +192,6 @@ class CrossSpeciesScalingModel:
             Predicted number of hierarchical levels
         """
 
-        # Scale hierarchical levels with cortical complexity
         cortical_complexity = (
             np.log(species.total_neurons)
             * (species.cortical_thickness_mm**0.3)

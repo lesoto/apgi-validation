@@ -276,3 +276,9 @@ def assert_performance_within_tolerance(
     assert (
         lower_bound <= actual_time <= upper_bound
     ), f"Performance {actual_time:.3f}s not within tolerance of {expected_time:.3f}s ± {tolerance * 100}%"
+
+
+if __name__ == "__main__":
+    print("conftest.py is a pytest configuration file and should not be run directly.")
+    print("Use 'pytest' to run the test suite.")
+    exit(0)

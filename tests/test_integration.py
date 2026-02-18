@@ -101,7 +101,30 @@ def test_full_validation_pipeline():
 
 def test_batch_processing_integration():
     """Test batch processing with multiple jobs."""
-    pytest.skip("Skipping batch processing test due to hanging issue")
+    from utils.batch_processor import BatchProcessor
+
+    # Create batch processor with single worker and threads to avoid hanging
+    processor = BatchProcessor(max_workers=1, use_processes=False)
+
+    # Add a simple simulation job
+    processor.add_simulation_job(
+        job_id="test_batch_job", params={"tau_S": 0.5, "alpha": 5.0}, steps=10, dt=0.1
+    )
+
+    # Run batch
+    results = processor.run_batch(show_progress=False)
+
+    # Verify results
+    assert results["total_jobs"] == 1
+    assert results["completed"] == 1
+    assert results["failed"] == 0
+    assert len(results["jobs"]) == 1
+
+    job_result = results["jobs"][0]
+    assert job_result["job_id"] == "test_batch_job"
+    assert job_result["status"] == "completed"
+    assert "result" in job_result
+    assert "summary" in job_result["result"]
 
 
 def test_data_processing_pipeline():
