@@ -291,6 +291,46 @@ class ConfigManager:
                         "enable_structured_logging": {"type": "boolean"},
                     },
                 },
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "default_data_dir": {"type": "string"},
+                        "supported_formats": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "max_file_size_mb": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 10000,
+                        },
+                        "enable_caching": {"type": "boolean"},
+                        "cache_dir": {"type": "string"},
+                    },
+                },
+                "validation": {
+                    "type": "object",
+                    "properties": {
+                        "enable_cross_validation": {"type": "boolean"},
+                        "cv_folds": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 20,
+                        },
+                        "enable_sensitivity_analysis": {"type": "boolean"},
+                        "sensitivity_samples": {
+                            "type": "integer",
+                            "minimum": 10,
+                            "maximum": 10000,
+                        },
+                        "enable_robustness_tests": {"type": "boolean"},
+                        "significance_level": {
+                            "type": "number",
+                            "minimum": 0.001,
+                            "maximum": 0.5,
+                        },
+                    },
+                },
             },
         }
         return schema

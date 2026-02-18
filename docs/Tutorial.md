@@ -140,29 +140,24 @@ import numpy as np
 dt = 0.01
 steps = 1000
 
-results = {
-    'time': [],
-    'surprise': [],
-    'threshold': [],
-    'ignition': []
-}
-
-for step in range(steps):
-    # Create input (can be from real data)
-    inputs = {
-        'surprise_input': np.random.normal(0, 0.1),
-        'metabolic': 1.0,
-        'arousal': 0.5
+# Define input generator function
+def input_generator(t):
+    return {
+        'Pi_e': np.random.normal(0, 0.1),  # Exteroceptive input
+        'Pi_i': 1.0,                       # Interoceptive metabolic
+        'eps_e': 1.0,                       # Exteroceptive precision
+        'eps_i': 0.5,                       # Interoceptive arousal
+        'beta': 1.2                         # Somatic bias
     }
 
-    # Step the system
-    system.step(dt, inputs)
+# Run simulation using simulate method
+results = system.simulate(duration=steps*dt, dt=dt, input_generator=input_generator)
 
-    # Store results
-    results['time'].append(step * dt)
-    results['surprise'].append(system.S)
-    results['threshold'].append(system.theta)
-    results['ignition'].append(system.B)
+# Extract results
+time = results['time']
+surprise = results['S']
+threshold = results['theta']
+ignition = results['B']
 
 # CLI
 python main.py formal-model --simulation-steps 1000 --plot --output-file results.csv
@@ -205,21 +200,35 @@ surprise_inputs = eeg_data['p300_amplitude'].values
 
 # Run simulation with real data
 system = SurpriseIgnitionSystem()
-results = {'time': [], 'surprise': [], 'threshold': [], 'ignition': []}
 
-for i, surprise_input in enumerate(surprise_inputs):
-    inputs = {
-        'surprise_input': surprise_input,
-        'metabolic': eeg_data['heart_rate'].iloc[i] if i < len(eeg_data) else 1.0,
-        'arousal': eeg_data['skin_conductance'].iloc[i] if i < len(eeg_data) else 0.5
-    }
+# Define input generator for real data
+def real_data_input_generator(t):
+    step_idx = int(t / 0.01)  # Assuming 0.01s dt
+    if step_idx < len(surprise_inputs):
+        return {
+            'Pi_e': surprise_inputs[step_idx],
+            'Pi_i': eeg_data['heart_rate'].iloc[step_idx] if step_idx < len(eeg_data) else 1.0,
+            'eps_e': 1.0,
+            'eps_i': eeg_data['arousal'].iloc[step_idx] if step_idx < len(eeg_data) and 'arousal' in eeg_data.columns else 0.5,
+            'beta': 1.2
+        }
+    else:
+        return {
+            'Pi_e': 0.0,
+            'Pi_i': 1.0,
+            'eps_e': 1.0,
+            'eps_i': 0.5,
+            'beta': 1.2
+        }
 
-    system.step(0.01, inputs)
+# Run simulation using simulate method
+results = system.simulate(duration=len(surprise_inputs)*0.01, dt=0.01, input_generator=real_data_input_generator)
 
-    results['time'].append(i * 0.01)
-    results['surprise'].append(system.S)
-    results['threshold'].append(system.theta)
-    results['ignition'].append(system.B)
+# Extract results
+time = results['time']
+surprise = results['S']
+threshold = results['theta']
+ignition = results['B']
 
 # Save results
 pd.DataFrame(results).to_csv('simulation_results.csv', index=False)
