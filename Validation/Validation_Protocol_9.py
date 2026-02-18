@@ -210,7 +210,10 @@ class APGINeuralSignaturesValidator:
 
     def __init__(self):
         self.eeg_analyzer = APGIP3bAnalyzer()
-        self.fmri_analyzer = APGIFMRIAnalyzer()
+        try:
+            self.fmri_analyzer = APGIFMRIAnalyzer()
+        except ImportError:
+            self.fmri_analyzer = None
 
     def validate_convergent_signatures(
         self,
@@ -345,6 +348,9 @@ class APGINeuralSignaturesValidator:
 
     def _analyze_fmri_signatures(self, fmri_path: str, behavioral_path: str) -> Dict:
         """Analyze fMRI signatures for frontoparietal coactivation"""
+
+        if self.fmri_analyzer is None:
+            return {"error": "fMRI analysis not available (nilearn not installed)"}
 
         # Try to load behavioral data from data_repository if path not provided
         if behavioral_path is None:

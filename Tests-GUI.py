@@ -12,6 +12,7 @@ import subprocess
 import sys
 import threading
 import tkinter as tk
+import os
 from collections import deque
 from pathlib import Path
 from tkinter import scrolledtext, ttk
@@ -469,6 +470,8 @@ class TestsRunnerGUI:
                 self.log_output("pytest installed successfully", self.TAG_SUCCESS)
 
             # Run pytest with coverage and detailed output
+            env = os.environ.copy()
+            env["PYTHONPATH"] = str(Path(__file__).parent)
             process = subprocess.Popen(
                 [
                     sys.executable,
@@ -485,6 +488,7 @@ class TestsRunnerGUI:
                 bufsize=1,
                 universal_newlines=True,
                 cwd=self.tests_dir.parent,
+                env=env,
             )
 
             self.running_processes["pytest_all"] = process
@@ -559,15 +563,21 @@ class TestsRunnerGUI:
             # Enable stop button when script starts
             self.root.after_idle(lambda: self.stop_button.config(state=tk.NORMAL))
 
-            # Run the script
+            # Run the script as a module to handle imports correctly
+            module_path = str(
+                script.relative_to(self.tests_dir.parent).with_suffix("")
+            ).replace(os.sep, ".")
+            env = os.environ.copy()
+            env["PYTHONPATH"] = str(Path(__file__).parent)
             process = subprocess.Popen(
-                [sys.executable, str(script)],
+                [sys.executable, "-m", module_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
                 cwd=self.tests_dir.parent,
+                env=env,
             )
 
             self.running_processes[script.name] = process

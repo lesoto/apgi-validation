@@ -101,11 +101,11 @@ class HierarchicalGenerativeModel(nn.Module):
 
         # Bottom-up message (prediction error)
         if level < self.n_levels - 1:
-            # Update current level state (non-in-place)
-            with torch.no_grad():
-                self.states[level] = (
-                    self.states[level] + dt * prediction_error / self.taus[level]
-                )
+            self.states[level] = (
+                (self.states[level] + dt * prediction_error / self.taus[level])
+                .detach()
+                .requires_grad_(True)
+            )
 
             # Propagate error upward (no gradient for recursive calls)
             if level < self.n_levels - 2:
