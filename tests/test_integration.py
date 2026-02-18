@@ -21,7 +21,19 @@ def test_api_endpoints_integration():
     # This would require running the FastAPI server
     # For now, test the import and basic functionality
     try:
-        from APGI_API import app
+        import importlib.util
+        import sys
+        from pathlib import Path
+
+        # Load the module with hyphen in filename
+        api_path = Path(__file__).parent.parent / "APGI-API.py"
+        spec = importlib.util.spec_from_file_location("APGI_API", api_path)
+        if spec and spec.loader:
+            api_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(api_module)
+            app = api_module.app
+        else:
+            raise ImportError("Could not load API module")
 
         assert app.title == "APGI Framework API"
     except ImportError:

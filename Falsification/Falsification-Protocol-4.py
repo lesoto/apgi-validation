@@ -66,6 +66,63 @@ class SurpriseIgnitionSystem:
         if random_seed is not None:
             np.random.seed(random_seed)
 
+    def step(self, dt: float, inputs: Dict[str, float]) -> None:
+        """Advance the system by one time step
+
+        Args:
+            dt: Time step size
+            inputs: Dictionary containing input values
+                   Expected keys: 'surprise_input', 'metabolic', 'arousal'
+        """
+        # Map inputs to expected format
+        Pi_e = inputs.get("surprise_input", 0.0)  # Exteroceptive input
+        Pi_i = inputs.get("metabolic", 1.0)  # Interoceptive input
+        eps_e = 1.0  # Exteroceptive precision (assume full)
+        eps_i = inputs.get("arousal", 0.5)  # Interoceptive precision from arousal
+        beta = self.beta  # Use stored somatic bias
+
+        # Compute input drive
+        input_drive = Pi_e * eps_e + beta * Pi_i * eps_i
+
+        # Update surprise
+        dS_dt = -self.S_t / self.tau_S + input_drive
+        self.S_t += dS_dt * dt
+        self.S_t = max(0.0, self.S_t)
+
+        # Update threshold (simplified)
+        dtheta_dt = (self.theta_0 - self.theta_t) / self.tau_theta
+        self.theta_t += dtheta_dt * dt
+        self.theta_t = np.clip(self.theta_t, 0.1, 2.0)
+
+        # Check ignition
+        ignition_prob = 1.0 / (1.0 + np.exp(-self.alpha * (self.S_t - self.theta_t)))
+        ignition = np.random.random() < ignition_prob
+
+        # Store ignition state
+        self.ignition_states.append(ignition)
+
+        # Partial reset if ignition occurred
+        if ignition:
+            self.S_t *= DEFAULT_SURPRISE_RESET_FACTOR
+
+        # Update time
+        self.time += dt
+
+    @property
+    def S(self) -> float:
+        """Current surprise level"""
+        return self.S_t
+
+    @property
+    def theta(self) -> float:
+        """Current threshold"""
+        return self.theta_t
+
+    @property
+    def B(self) -> float:
+        """Current ignition state (1.0 if ignited, 0.0 otherwise)"""
+        return 1.0 if self.ignition_states and self.ignition_states[-1] else 0.0
+
     def simulate(
         self,
         duration: float = DEFAULT_SIMULATION_DURATION,

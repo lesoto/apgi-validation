@@ -186,18 +186,23 @@ system = SurpriseIgnitionSystem(params={
     'sigma_theta': 0.1  # Threshold noise
 })
 
-# Step the simulation
-inputs = {
-    'surprise_input': 1.5,
-    'metabolic': 1.0,
-    'arousal': 0.5
-}
-system.step(dt=0.01, inputs=inputs)
+# Run simulation using simulate method
+def input_generator(t):
+    return {
+        'Pi_e': np.random.normal(0, 0.1),  # Exteroceptive input
+        'Pi_i': 1.0,                       # Interoceptive metabolic
+        'eps_e': 1.0,                       # Exteroceptive precision
+        'eps_i': 0.5,                       # Interoceptive arousal
+        'beta': 1.2                         # Somatic bias
+    }
 
-# Access state variables
-surprise = system.S      # Current surprise
-threshold = system.theta # Current threshold
-ignition = system.B      # Ignition state
+results = system.simulate(duration=10.0, dt=0.01, input_generator=input_generator)
+
+# Extract results
+time = results['time']
+surprise = results['S']
+threshold = results['theta']
+ignition = results['B']
 ```
 
 **Key Methods:**
