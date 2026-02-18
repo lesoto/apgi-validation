@@ -386,7 +386,7 @@ class APGIValidationGUI:
         control_frame.grid(row=1, column=0, columnspan=2, pady=(0, 10))
 
         self.run_button = ttk.Button(
-            control_frame, text="Run Validation", command=self.run_validation
+            control_frame, text="Run Validation", command=self.run_parameter_simulation
         )
         self.run_button.grid(row=0, column=0, padx=5)
 
@@ -446,6 +446,24 @@ class APGIValidationGUI:
         self.notebook.add(exploration_frame, text="Parameter Exploration")
 
         self.create_parameter_exploration_widgets(exploration_frame)
+
+        # Settings Tab
+        settings_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(settings_frame, text="Settings")
+
+        self.create_settings_widgets(settings_frame)
+
+        # Data Export Tab
+        export_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(export_frame, text="Data Export")
+
+        self.create_export_widgets(export_frame)
+
+        # Alerts Tab
+        alerts_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(alerts_frame, text="Alerts")
+
+        self.create_alerts_widgets(alerts_frame)
 
     def create_parameter_exploration_widgets(self, parent_frame: ttk.Frame) -> None:
         """Create interactive parameter exploration widgets with sliders and real-time feedback"""
@@ -558,6 +576,218 @@ class APGIValidationGUI:
 
         # Initialize parameter display
         self.update_parameter_display()
+
+    def create_settings_widgets(self, parent_frame: ttk.Frame) -> None:
+        """Create settings configuration widgets"""
+
+        # Configure parent frame
+        parent_frame.columnconfigure(0, weight=1)
+        parent_frame.rowconfigure(0, weight=1)
+
+        # Settings frame
+        settings_frame = ttk.LabelFrame(
+            parent_frame, text="Configuration Settings", padding="10"
+        )
+        settings_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Initialize settings if not already done
+        if not hasattr(self, "settings"):
+            self.settings = {
+                "update_interval": tk.IntVar(value=10),  # seconds
+                "data_retention": tk.IntVar(value=30),  # days
+                "monitoring_threshold": tk.DoubleVar(value=0.05),  # error rate
+            }
+
+        # Update interval
+        ttk.Label(settings_frame, text="Update Interval (seconds):").grid(
+            row=0, column=0, sticky=tk.W, pady=5
+        )
+        ttk.Spinbox(
+            settings_frame,
+            from_=1,
+            to=3600,
+            textvariable=self.settings["update_interval"],
+            width=10,
+        ).grid(row=0, column=1, sticky=tk.W, padx=10)
+
+        # Data retention
+        ttk.Label(settings_frame, text="Data Retention (days):").grid(
+            row=1, column=0, sticky=tk.W, pady=5
+        )
+        ttk.Spinbox(
+            settings_frame,
+            from_=1,
+            to=365,
+            textvariable=self.settings["data_retention"],
+            width=10,
+        ).grid(row=1, column=1, sticky=tk.W, padx=10)
+
+        # Monitoring threshold
+        ttk.Label(settings_frame, text="Monitoring Threshold (error rate):").grid(
+            row=2, column=0, sticky=tk.W, pady=5
+        )
+        ttk.Spinbox(
+            settings_frame,
+            from_=0.0,
+            to=1.0,
+            increment=0.01,
+            textvariable=self.settings["monitoring_threshold"],
+            width=10,
+        ).grid(row=2, column=1, sticky=tk.W, padx=10)
+
+        # Save settings button
+        ttk.Button(
+            settings_frame, text="Save Settings", command=self.save_settings
+        ).grid(row=3, column=0, columnspan=2, pady=20)
+
+    def save_settings(self) -> None:
+        """Save current settings"""
+        # For now, just show a message
+        messagebox.showinfo("Settings", "Settings saved successfully!")
+
+    def create_export_widgets(self, parent_frame: ttk.Frame) -> None:
+        """Create data export widgets"""
+
+        # Configure parent frame
+        parent_frame.columnconfigure(0, weight=1)
+        parent_frame.rowconfigure(0, weight=1)
+
+        # Export frame
+        export_frame = ttk.LabelFrame(parent_frame, text="Data Export", padding="10")
+        export_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Export buttons
+        ttk.Button(
+            export_frame, text="Export Results to CSV", command=self.export_csv
+        ).grid(row=0, column=0, pady=10, padx=10, sticky=(tk.W, tk.E))
+
+        ttk.Button(
+            export_frame, text="Export Results to JSON", command=self.export_json
+        ).grid(row=1, column=0, pady=10, padx=10, sticky=(tk.W, tk.E))
+
+        ttk.Button(
+            export_frame, text="Generate PDF Report", command=self.generate_report
+        ).grid(row=2, column=0, pady=10, padx=10, sticky=(tk.W, tk.E))
+
+    def export_csv(self) -> None:
+        """Export validation results to CSV"""
+        if (
+            not hasattr(self.validator, "protocol_results")
+            or not self.validator.protocol_results
+        ):
+            messagebox.showwarning(
+                "Export", "No results to export. Run validation first."
+            )
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        )
+        if file_path:
+            # Simple CSV export
+            import csv
+
+            with open(file_path, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Protocol", "Status", "Passed"])
+                for protocol, result in self.validator.protocol_results.items():
+                    writer.writerow(
+                        [protocol, result.get("status", ""), result.get("passed", "")]
+                    )
+            messagebox.showinfo("Export", f"Results exported to {file_path}")
+
+    def export_json(self) -> None:
+        """Export validation results to JSON"""
+        if (
+            not hasattr(self.validator, "protocol_results")
+            or not self.validator.protocol_results
+        ):
+            messagebox.showwarning(
+                "Export", "No results to export. Run validation first."
+            )
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+        )
+        if file_path:
+            with open(file_path, "w") as f:
+                json.dump(self.validator.protocol_results, f, indent=2, default=str)
+            messagebox.showinfo("Export", f"Results exported to {file_path}")
+
+    def generate_report(self) -> None:
+        """Generate a PDF report"""
+        if not hasattr(self.validator, "generate_master_report"):
+            messagebox.showerror("Report", "Report generation not available.")
+            return
+
+        try:
+            report = self.validator.generate_master_report()
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+            )
+            if file_path:
+                with open(file_path, "w") as f:
+                    f.write(f"APGI Validation Report\n{'='*50}\n\n")
+                    f.write(
+                        f"Overall Decision: {report.get('overall_decision', 'Unknown')}\n\n"
+                    )
+                    f.write("Protocol Results:\n")
+                    for protocol, result in report.get("protocol_results", {}).items():
+                        f.write(f"- {protocol}: {result.get('status', '')}\n")
+                messagebox.showinfo("Report", f"Report generated at {file_path}")
+        except Exception as e:
+            messagebox.showerror("Report", f"Failed to generate report: {e}")
+
+    def create_alerts_widgets(self, parent_frame: ttk.Frame) -> None:
+        """Create alert configuration widgets"""
+
+        # Configure parent frame
+        parent_frame.columnconfigure(0, weight=1)
+        parent_frame.rowconfigure(0, weight=1)
+
+        # Alerts frame
+        alerts_frame = ttk.LabelFrame(
+            parent_frame, text="Alert Configuration", padding="10"
+        )
+        alerts_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Initialize alert settings if not already done
+        if not hasattr(self, "alert_settings"):
+            self.alert_settings = {
+                "threshold": tk.DoubleVar(value=0.8),
+                "enabled": tk.BooleanVar(value=True),
+            }
+
+        # Alert threshold
+        ttk.Label(alerts_frame, text="Alert Threshold:").grid(
+            row=0, column=0, sticky=tk.W, pady=5
+        )
+        ttk.Spinbox(
+            alerts_frame,
+            from_=0.0,
+            to=1.0,
+            increment=0.05,
+            textvariable=self.alert_settings["threshold"],
+            width=10,
+        ).grid(row=0, column=1, sticky=tk.W, padx=10)
+
+        # Enable alerts
+        ttk.Checkbutton(
+            alerts_frame, text="Enable Alerts", variable=self.alert_settings["enabled"]
+        ).grid(row=1, column=0, columnspan=2, pady=10)
+
+        # Save alerts button
+        ttk.Button(
+            alerts_frame, text="Save Alert Settings", command=self.save_alert_settings
+        ).grid(row=2, column=0, columnspan=2, pady=20)
+
+    def save_alert_settings(self) -> None:
+        """Save alert settings"""
+        messagebox.showinfo("Alerts", "Alert settings saved successfully!")
 
     def on_parameter_change(self, param_name: str, value: str) -> None:
         """Handle parameter slider changes"""

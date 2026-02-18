@@ -5,13 +5,11 @@ Integration tests for APGI validation framework.
 Tests full protocol execution and end-to-end workflows.
 """
 
-import sys
 from pathlib import Path
 
 import pytest
 
 # Add the project root to Python path
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import sample_data_generator
 
@@ -20,30 +18,43 @@ def test_api_endpoints_integration():
     """Test API endpoints for protocol execution."""
     # This would require running the FastAPI server
     # For now, test the import and basic functionality
-    try:
-        import importlib.util
-        import sys
-        from pathlib import Path
+    import importlib.util
+    from pathlib import Path
 
-        # Load the module with hyphen in filename
-        api_path = Path(__file__).parent.parent / "APGI-API.py"
-        spec = importlib.util.spec_from_file_location("APGI_API", api_path)
-        if spec and spec.loader:
-            api_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(api_module)
-            app = api_module.app
-        else:
-            raise ImportError("Could not load API module")
+    # Load the module with hyphen in filename
+    api_path = Path(__file__).parent.parent / "APGI-API.py"
+    spec = importlib.util.spec_from_file_location("APGI_API", api_path)
+    if spec and spec.loader:
+        api_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api_module)
+        app = api_module.app
+    else:
+        raise ImportError("Could not load API module")
 
-        assert app.title == "APGI Framework API"
-    except ImportError:
-        pytest.skip("API module not available")
+    assert app.title == "APGI Framework API"
 
 
 def test_validation_protocol_9_integration():
     """Test full execution of Validation Protocol 9."""
     try:
-        from Validation.Validation_Protocol_9 import APGINeuralSignaturesValidator
+        import importlib.util
+        from pathlib import Path
+
+        # Load the module with hyphen in filename
+        module_path = (
+            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-9.py"
+        )
+        spec = importlib.util.spec_from_file_location(
+            "validation_protocol_9", module_path
+        )
+        if spec and spec.loader:
+            validation_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(validation_module)
+            APGINeuralSignaturesValidator = (
+                validation_module.APINeuralSignaturesValidator
+            )
+        else:
+            raise ImportError("Could not load Validation Protocol 9")
 
         validator = APGINeuralSignaturesValidator()
 

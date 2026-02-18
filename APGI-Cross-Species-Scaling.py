@@ -98,7 +98,7 @@ class EmpiricalPCIData:
 # =============================================================================
 
 
-class CrossSpeciesScalingModel:
+class CrossSpeciesScaling:
     """
     Comparative PCI/complexity model for predicting consciousness across species.
 
@@ -533,7 +533,7 @@ def predict_species_consciousness(
         Dictionary with predicted consciousness measures
     """
 
-    model = CrossSpeciesScalingModel()
+    model = CrossSpeciesScaling()
 
     return {
         "predicted_pci": model.predict_pci(species_params),
@@ -553,7 +553,7 @@ def validate_cross_species_model() -> Dict[str, float]:
         Validation metrics
     """
 
-    model = CrossSpeciesScalingModel()
+    model = CrossSpeciesScaling()
     return model.validate_model()
 
 
@@ -565,7 +565,7 @@ def generate_species_comparison_report() -> str:
         Formatted report string
     """
 
-    model = CrossSpeciesScalingModel()
+    model = CrossSpeciesScaling()
     species_list = ["mouse", "rat", "cat", "monkey", "human"]
 
     report_lines = [
@@ -660,7 +660,7 @@ if __name__ == "__main__":
         f.write(report)
 
     # Create scaling plots
-    model = CrossSpeciesScalingModel()
+    model = CrossSpeciesScaling()
     model.plot_scaling_relationships("cross_species_scaling_plots.png")
 
     print("\nReport saved to: cross_species_scaling_report.txt")
