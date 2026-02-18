@@ -85,7 +85,7 @@ class APGIParameterValidator:
                 "gamma_M": {
                     "description": "Metabolic coupling strength",
                     "type": "number",
-                    "minimum": 0.0,
+                    "minimum": -1.0,
                     "maximum": 1.0,
                     "default": 0.1,
                 },

@@ -1905,10 +1905,11 @@ def run_validation():
         print(
             "Running APGI Validation Protocol 5: Computational Falsification Framework"
         )
-        return main()
+        results = main()
+        return {"passed": True, "status": "success", "results": results}
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in validation protocol 5: {e}")
-        return {"status": "error", "message": str(e)}
+        return {"passed": False, "status": "failed", "error": str(e)}
 
 
 if __name__ == "__main__":

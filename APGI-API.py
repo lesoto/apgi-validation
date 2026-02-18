@@ -12,6 +12,7 @@ from typing import Dict, Optional
 
 from fastapi import FastAPI, Form, HTTPException, UploadFile
 from pydantic import BaseModel
+from werkzeug.utils import secure_filename
 
 # Add project root to Python path
 PROJECT_ROOT = Path(__file__).parent
@@ -72,7 +73,9 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "timestamp": "2024-01-01T00:00:00Z"}
+    from datetime import datetime
+
+    return {"status": "healthy", "timestamp": datetime.now().isoformat() + "Z"}
 
 
 @app.post("/simulation/run")
@@ -125,7 +128,13 @@ async def generate_data(request: DataGenerationRequest):
 async def validate_data_file(file_path: str):
     """Validate a data file."""
     try:
-        file_path_obj = Path(file_path)
+        file_path_obj = Path(file_path).resolve()
+        allowed_base = PROJECT_ROOT / "data_repository"
+        if not file_path_obj.is_relative_to(allowed_base):
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: file path outside allowed directory",
+            )
         if not file_path_obj.exists():
             raise HTTPException(status_code=404, detail="File not found")
 
@@ -234,7 +243,7 @@ async def run_validation_protocol(protocol_id: str, request: ValidationRequest):
                 validation_module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(validation_module)
                 APGINeuralSignaturesValidator = (
-                    validation_module.APINeuralSignaturesValidator
+                    validation_module.APGINeuralSignaturesValidator
                 )
             else:
                 raise HTTPException(
@@ -303,7 +312,7 @@ async def upload_data_file(file: UploadFile, data_type: str = Form(...)):
 
         data_dir.mkdir(parents=True, exist_ok=True)
 
-        file_path = data_dir / file.filename
+        file_path = data_dir / secure_filename(file.filename)
         with open(file_path, "wb") as f:
             content = await file.read()
             f.write(content)

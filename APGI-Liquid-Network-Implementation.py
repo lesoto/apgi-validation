@@ -1,5 +1,5 @@
 """
-APGI Liquid Network - Research Grade Implementation v1.1.0
+APGI Liquid Network - Research Grade Implementation
 ============================================================
 
 Allostatic Precision-Gated Ignition framework implemented as Liquid Time-Constant Networks.

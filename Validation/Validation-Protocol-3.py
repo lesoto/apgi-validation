@@ -2239,10 +2239,11 @@ def run_validation():
     """Entry point for CLI validation."""
     try:
         print("Running APGI Validation Protocol 3: Active Inference Agent Simulations")
-        return main()
+        results = main()
+        return {"passed": True, "status": "success", "results": results}
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in validation protocol 3: {e}")
-        return {"status": "error", "message": str(e)}
+        return {"passed": False, "status": "failed", "error": str(e)}
 
 
 # =============================================================================

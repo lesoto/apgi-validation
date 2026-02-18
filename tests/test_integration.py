@@ -51,7 +51,7 @@ def test_validation_protocol_9_integration():
             validation_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(validation_module)
             APGINeuralSignaturesValidator = (
-                validation_module.APINeuralSignaturesValidator
+                validation_module.APGINeuralSignaturesValidator
             )
         else:
             raise ImportError("Could not load Validation Protocol 9")

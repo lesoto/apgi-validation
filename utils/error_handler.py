@@ -173,7 +173,7 @@ class DataError(APGIError):
         super().__init__(message=message, category=ErrorCategory.DATA, **kwargs)
 
 
-class ImportWarning(APGIError):
+class APGIImportWarning(APGIError):
     """Import/dependency related warnings"""
 
     def __init__(self, message: str, package: Optional[str] = None, **kwargs):
@@ -539,9 +539,15 @@ def critical_error(code: str, **kwargs) -> APGIError:
     )
 
 
-# User-friendly error message formatter
 def format_user_message(error: APGIError) -> str:
     """Format error message for user display."""
+    if error.error_info is None:
+        # Fallback when error_info is not available
+        message = f"❌ {error.message}"
+        if error.suggestion:
+            message += f"\n\n💡 Suggestion: {error.suggestion}"
+        return message
+
     info = error.error_info
 
     # Base message

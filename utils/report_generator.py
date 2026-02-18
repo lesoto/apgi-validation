@@ -294,6 +294,9 @@ class ReportGenerator:
         """Create performance visualization charts."""
         charts = []
 
+        if performance_profiler is None:
+            return charts
+
         try:
             # Function performance chart
             if performance_profiler.function_profiles:
@@ -313,15 +316,36 @@ class ReportGenerator:
                     for i, v in enumerate(times):
                         ax1.text(v + 0.01, i, f"{v:.2f}s", va="center")
 
-                # Function call counts
-                call_counts = [f.call_count for f in top_functions]
-                ax2.barh(names, call_counts, color="orange")
-                ax2.set_xlabel("Call Count")
-                ax2.set_title("Function Call Counts")
+                    # Function call counts
+                    call_counts = [f.call_count for f in top_functions]
+                    ax2.barh(names, call_counts, color="orange")
+                    ax2.set_xlabel("Call Count")
+                    ax2.set_title("Function Call Counts")
 
-                # Add value labels
-                for i, v in enumerate(call_counts):
-                    ax2.text(v + max(call_counts) * 0.01, i, str(v), va="center")
+                    # Add value labels
+                    for i, v in enumerate(call_counts):
+                        ax2.text(v + max(call_counts) * 0.01, i, str(v), va="center")
+                else:
+                    # No function data available
+                    ax1.text(
+                        0.5,
+                        0.5,
+                        "No function performance data available",
+                        ha="center",
+                        va="center",
+                        transform=ax1.transAxes,
+                    )
+                    ax1.set_title("Function Performance (No Data)")
+
+                    ax2.text(
+                        0.5,
+                        0.5,
+                        "No function performance data available",
+                        ha="center",
+                        va="center",
+                        transform=ax2.transAxes,
+                    )
+                    ax2.set_title("Function Call Counts (No Data)")
 
                 plt.tight_layout()
 
@@ -420,7 +444,7 @@ class ReportGenerator:
         summary["avg_performance"] = total_duration / max(summary["total_protocols"], 1)
 
         # Calculate error rate from function profiles
-        if performance_profiler.function_profiles:
+        if performance_profiler is not None and performance_profiler.function_profiles:
             for profile in performance_profiler.function_profiles.values():
                 total_calls += profile.call_count
                 total_errors += profile.errors
@@ -432,6 +456,9 @@ class ReportGenerator:
     def _extract_performance_metrics(self) -> List[Dict[str, Any]]:
         """Extract key performance metrics."""
         metrics = []
+
+        if performance_profiler is None:
+            return metrics
 
         # System metrics
         system_summary = performance_profiler.system_monitor.get_metrics_summary()
@@ -540,40 +567,41 @@ class ReportGenerator:
             )
 
         # Performance recommendations
-        performance_report = performance_profiler.generate_performance_report()
-        for bottleneck in performance_report.get("bottlenecks", []):
-            if bottleneck["severity"] == "high":
-                recommendations.append(
-                    {
-                        "type": "optimization",
-                        "priority": "high",
-                        "message": f"Critical bottleneck detected: {bottleneck['name']} ({bottleneck['value']:.2f} {bottleneck['unit']})",
-                    }
-                )
+        if performance_profiler is not None:
+            performance_report = performance_profiler.generate_performance_report()
+            for bottleneck in performance_report.get("bottlenecks", []):
+                if bottleneck["severity"] == "high":
+                    recommendations.append(
+                        {
+                            "type": "optimization",
+                            "priority": "high",
+                            "message": f"Critical bottleneck detected: {bottleneck['name']} ({bottleneck['value']:.2f} {bottleneck['unit']})",
+                        }
+                    )
 
-        # System recommendations
-        system_summary = performance_profiler.system_monitor.get_metrics_summary()
-        if system_summary:
-            cpu_mean = system_summary.get("cpu_percent_mean", 0)
-            memory_mean = system_summary.get("memory_percent_mean", 0)
+            # System recommendations
+            system_summary = performance_profiler.system_monitor.get_metrics_summary()
+            if system_summary:
+                cpu_mean = system_summary.get("cpu_percent_mean", 0)
+                memory_mean = system_summary.get("memory_percent_mean", 0)
 
-            if cpu_mean > 80:
-                recommendations.append(
-                    {
-                        "type": "system",
-                        "priority": "medium",
-                        "message": f"High CPU usage detected ({cpu_mean:.1f}%). Consider computational optimization.",
-                    }
-                )
+                if cpu_mean > 80:
+                    recommendations.append(
+                        {
+                            "type": "system",
+                            "priority": "medium",
+                            "message": f"High CPU usage detected ({cpu_mean:.1f}%). Consider computational optimization.",
+                        }
+                    )
 
-            if memory_mean > 80:
-                recommendations.append(
-                    {
-                        "type": "system",
-                        "priority": "medium",
-                        "message": f"High memory usage detected ({memory_mean:.1f}%). Consider memory optimization.",
-                    }
-                )
+                if memory_mean > 80:
+                    recommendations.append(
+                        {
+                            "type": "system",
+                            "priority": "medium",
+                            "message": f"High memory usage detected ({memory_mean:.1f}%). Consider memory optimization.",
+                        }
+                    )
 
         return recommendations
 
@@ -597,7 +625,10 @@ class ReportGenerator:
         charts = self._create_performance_charts() if include_charts else []
 
         # Extract bottlenecks
-        performance_report = performance_profiler.generate_performance_report()
+        if performance_profiler is not None:
+            performance_report = performance_profiler.generate_performance_report()
+        else:
+            performance_report = {"bottlenecks": []}
         bottlenecks = performance_report.get("bottlenecks", [])
 
         # Prepare validation results for template
@@ -636,7 +667,7 @@ class ReportGenerator:
                 f"{validation_summary['passed_protocols']} of {validation_summary['total_protocols']} protocols passed",
                 f"Average execution time: {validation_summary['avg_performance']:.2f}s",
                 f"Overall error rate: {validation_summary['error_rate']:.1%}%",
-                f"Total functions profiled: {len(performance_profiler.function_profiles)}",
+                f"Total functions profiled: {len(performance_profiler.function_profiles) if performance_profiler is not None else 0}",
             ],
         )
 
@@ -722,7 +753,7 @@ class ReportGenerator:
                 f"{validation_summary['passed_protocols']} of {validation_summary['total_protocols']} protocols passed",
                 f"Average execution time: {validation_summary['avg_performance']:.2f}s",
                 f"Overall error rate: {validation_summary['error_rate']:.1%}%",
-                f"Total functions profiled: {len(performance_profiler.function_profiles)}",
+                f"Total functions profiled: {len(performance_profiler.function_profiles) if performance_profiler is not None else 0}",
             ],
         )
 
@@ -764,7 +795,11 @@ class ReportGenerator:
             "timestamp": datetime.now().isoformat(),
             "title": title,
             "validation_summary": self._analyze_validation_data(validation_data or {}),
-            "performance_report": performance_profiler.generate_performance_report(),
+            "performance_report": (
+                performance_profiler.generate_performance_report()
+                if performance_profiler is not None
+                else {}
+            ),
             "validation_data": validation_data,
             "recommendations": self._generate_recommendations(
                 self._analyze_validation_data(validation_data or {})

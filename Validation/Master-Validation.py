@@ -1,5 +1,5 @@
 """
-APGI Master Validation Pipeline
+APGI Validation Pipeline
 ================================
 
 Executes all 8 protocols and applies hierarchical falsification decision tree
