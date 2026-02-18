@@ -403,9 +403,11 @@ class UtilsRunnerGUI:
                     f"Running script {i + 1}/{len(self.scripts)}: {script.name}",
                     self.TAG_INFO,
                 )
-                self.scripts_listbox.selection_clear(0, tk.END)
-                self.scripts_listbox.selection_set(i)
-                self.scripts_listbox.see(i)
+                self.root.after(
+                    0, lambda: self.scripts_listbox.selection_clear(0, tk.END)
+                )
+                self.root.after(0, lambda: self.scripts_listbox.selection_set(i))
+                self.root.after(0, lambda: self.scripts_listbox.see(i))
 
                 success = self.run_script(
                     script, wait=True, timeout=self.get_script_timeout(script.name)
@@ -489,7 +491,30 @@ class UtilsRunnerGUI:
 
                 while True:
                     # Wait for output with a short timeout to allow timeout checking
-                    ready, _, _ = select.select([process.stdout], [], [], 1.0)
+                    import platform
+
+                    if platform.system() == "Windows":
+                        # On Windows, select doesn't work on file handles, so poll differently
+                        import time
+
+                        time.sleep(0.1)  # Short sleep to prevent busy waiting
+                        try:
+                            # Try to read with a non-blocking approach
+                            if hasattr(process.stdout, "readline"):
+                                # Check if data is available by trying a non-blocking read
+                                output = process.stdout.readline()
+                                if output:
+                                    ready = True
+                                else:
+                                    ready = False
+                            else:
+                                ready = False
+                        except Exception:
+                            ready = False
+                    else:
+                        # On Unix-like systems, use select
+                        ready, _, _ = select.select([process.stdout], [], [], 1.0)
+
                     if ready:
                         output = process.stdout.readline()
                         if not output and process.poll() is not None:

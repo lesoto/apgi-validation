@@ -414,9 +414,11 @@ class TestsRunnerGUI:
                     f"Running test {i + 1}/{len(self.scripts)}: {relative_path}",
                     self.TAG_INFO,
                 )
-                self.scripts_listbox.selection_clear(0, tk.END)
-                self.scripts_listbox.selection_set(i)
-                self.scripts_listbox.see(i)
+                self.root.after(
+                    0, lambda: self.scripts_listbox.selection_clear(0, tk.END)
+                )
+                self.root.after(0, lambda: self.scripts_listbox.selection_set(i))
+                self.root.after(0, lambda: self.scripts_listbox.see(i))
 
                 success = self.run_script(script, wait=True)
                 if not success:

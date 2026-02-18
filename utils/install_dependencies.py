@@ -29,6 +29,7 @@ except ImportError:
     try:
         from error_handler import (
             APGIError,
+            APGIImportWarning,
             ConfigurationError,
             DataError,
             ErrorSeverity,
@@ -39,6 +40,9 @@ except ImportError:
     except ImportError:
         # Minimal fallback if error_handler is not available
         class APGIError(Exception):
+            pass
+
+        class APGIImportWarning(APGIError):
             pass
 
         class ConfigurationError(APGIError):
@@ -187,7 +191,7 @@ def verify_installation():
             __import__(package)
             print(f"✅ {package}")
         except ImportError as e:
-            error = ImportWarning(
+            error = APGIImportWarning(
                 message=format_error_message("missing_dependency", package=package),
                 package=package,
                 suggestion=f"Install with: pip install {package}",

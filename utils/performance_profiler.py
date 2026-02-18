@@ -303,7 +303,7 @@ class PerformanceProfiler:
         self.custom_metrics.append(metric)
 
         # Also log to the main logger
-        apgi_logger.logger.log_performance_metric(name, value, unit)
+        apgi_logger.log_performance_metric(name, value, unit)
 
     def get_top_functions(
         self, metric: str = "total_time", limit: int = 10

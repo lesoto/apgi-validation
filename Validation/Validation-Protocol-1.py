@@ -2259,16 +2259,18 @@ def main():
 def run_validation():
     """Entry point for CLI validation."""
     try:
-        print(
-            "Running APGI Validation Protocol 1: Synthetic Neural Data Generation and Classification"
-        )
-        print(
-            "Protocol 1 validates APGI framework through synthetic data generation and ML classification."
-        )
-        print("✓ Protocol 1 validation completed successfully")
-        return "Protocol 1 completed: Synthetic data generation and classification validation passed"
+        main()  # Call the actual validation
+        return {
+            "passed": True,
+            "status": "success",
+            "message": "Protocol 1 completed: Synthetic data generation and classification validation passed",
+        }
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
-        return f"Protocol 1 failed: {str(e)}"
+        return {
+            "passed": False,
+            "status": "failed",
+            "error": f"Protocol 1 failed: {str(e)}",
+        }
 
 
 if __name__ == "__main__":

@@ -1,18 +1,5 @@
 """
-APGI PARAMETER ESTIMATION PROTOCOL - PUBLICATION-READY IMPLEMENTATION
-Version 2.0 - Addressing All Validation Issues for 99/100 Rating
-
-CRITICAL IMPROVEMENTS:
-1. Independent generative model (drift-diffusion) breaks circular validation
-2. Formal identifiability analysis via Fisher Information Matrix
-3. Accurate parameter documentation (8 core + 9 auxiliary = 17 total)
-4. Empirically-validated measurement relationships with literature citations
-5. Real independent dataset integration
-6. Comprehensive error handling and numerical stability
-7. Full dynamic model integration with proper likelihoods
-8. Justified priors via literature and prior predictive checks
-9. Named constants replacing magic numbers
-10. Optimized computational efficiency
+APGI PARAMETER ESTIMATION PROTOCOL
 
 Model Structure:
 - CORE (8 parameters): theta0, alpha, sigma, beta_Pi_i, Pi_e0, Pi_i_baseline, beta, tau

@@ -7,101 +7,208 @@ Contains protocols for testing and potentially falsifying APGI theory prediction
 
 import importlib.util
 import os
+import warnings
 from pathlib import Path
 
 # Get the directory path
 _dir = Path(__file__).parent
 
 # Protocol 1: Active Inference Agent Testing
-_spec1 = importlib.util.spec_from_file_location(
-    "Protocol_1", _dir / "Falsification-Protocol-1.py"
-)
-Protocol_1 = importlib.util.module_from_spec(_spec1)
-_spec1.loader.exec_module(Protocol_1)
+try:
+    _spec1 = importlib.util.spec_from_file_location(
+        "Protocol_1", _dir / "Falsification-Protocol-1.py"
+    )
+    if _spec1 and _spec1.loader:
+        Protocol_1 = importlib.util.module_from_spec(_spec1)
+        _spec1.loader.exec_module(Protocol_1)
+    else:
+        raise ImportError("Could not load Protocol 1")
+except Exception as e:
+    warnings.warn(f"Failed to load Falsification Protocol 1: {e}")
+    Protocol_1 = None
 
 # Protocol 2: Iowa Gambling Task Environment
-_spec2 = importlib.util.spec_from_file_location(
-    "Protocol_2", _dir / "Falsification-Protocol-2.py"
-)
-Protocol_2 = importlib.util.module_from_spec(_spec2)
-_spec2.loader.exec_module(Protocol_2)
+try:
+    _spec2 = importlib.util.spec_from_file_location(
+        "Protocol_2", _dir / "Falsification-Protocol-2.py"
+    )
+    if _spec2 and _spec2.loader:
+        Protocol_2 = importlib.util.module_from_spec(_spec2)
+        _spec2.loader.exec_module(Protocol_2)
+    else:
+        raise ImportError("Could not load Protocol 2")
+except Exception as e:
+    warnings.warn(f"Failed to load Falsification Protocol 2: {e}")
+    Protocol_2 = None
 
 # Protocol 3: Agent Comparison Experiment
-_spec3 = importlib.util.spec_from_file_location(
-    "Protocol_3", _dir / "Falsification-Protocol-3.py"
-)
-Protocol_3 = importlib.util.module_from_spec(_spec3)
-_spec3.loader.exec_module(Protocol_3)
+try:
+    _spec3 = importlib.util.spec_from_file_location(
+        "Protocol_3", _dir / "Falsification-Protocol-3.py"
+    )
+    if _spec3 and _spec3.loader:
+        Protocol_3 = importlib.util.module_from_spec(_spec3)
+        _spec3.loader.exec_module(Protocol_3)
+    else:
+        raise ImportError("Could not load Protocol 3")
+except Exception as e:
+    warnings.warn(f"Failed to load Falsification Protocol 3: {e}")
+    Protocol_3 = None
 
 # Protocol 4: Phase Transition Analysis
-_spec4 = importlib.util.spec_from_file_location(
-    "Protocol_4", _dir / "Falsification-Protocol-4.py"
-)
-Protocol_4 = importlib.util.module_from_spec(_spec4)
-_spec4.loader.exec_module(Protocol_4)
+try:
+    _spec4 = importlib.util.spec_from_file_location(
+        "Protocol_4", _dir / "Falsification-Protocol-4.py"
+    )
+    if _spec4 and _spec4.loader:
+        Protocol_4 = importlib.util.module_from_spec(_spec4)
+        _spec4.loader.exec_module(Protocol_4)
+    else:
+        raise ImportError("Could not load Protocol 4")
+except Exception as e:
+    warnings.warn(f"Failed to load Falsification Protocol 4: {e}")
+    Protocol_4 = None
 
 # Protocol 5: Evolutionary APGI Emergence
-_spec5 = importlib.util.spec_from_file_location(
-    "Protocol_5", _dir / "Falsification-Protocol-5.py"
-)
-Protocol_5 = importlib.util.module_from_spec(_spec5)
-_spec5.loader.exec_module(Protocol_5)
+try:
+    _spec5 = importlib.util.spec_from_file_location(
+        "Protocol_5", _dir / "Falsification-Protocol-5.py"
+    )
+    if _spec5 and _spec5.loader:
+        Protocol_5 = importlib.util.module_from_spec(_spec5)
+        _spec5.loader.exec_module(Protocol_5)
+    else:
+        raise ImportError("Could not load Protocol 5")
+except Exception as e:
+    warnings.warn(f"Failed to load Falsification Protocol 5: {e}")
+    Protocol_5 = None
 
 # Protocol 6: Network Comparison Experiment
-_spec6 = importlib.util.spec_from_file_location(
-    "Protocol_6", _dir / "Falsification-Protocol-6.py"
-)
-Protocol_6 = importlib.util.module_from_spec(_spec6)
-_spec6.loader.exec_module(Protocol_6)
+try:
+    _spec6 = importlib.util.spec_from_file_location(
+        "Protocol_6", _dir / "Falsification-Protocol-6.py"
+    )
+    if _spec6 and _spec6.loader:
+        Protocol_6 = importlib.util.module_from_spec(_spec6)
+        _spec6.loader.exec_module(Protocol_6)
+    else:
+        raise ImportError("Could not load Protocol 6")
+except Exception as e:
+    warnings.warn(f"Failed to load Falsification Protocol 6: {e}")
+    Protocol_6 = None
 
 # GUI Components
-_gui_spec = importlib.util.spec_from_file_location(
-    "protocol_gui", _dir / "APGI-Falsification-Protocol-GUI.py"
-)
-protocol_gui = importlib.util.module_from_spec(_gui_spec)
-_gui_spec.loader.exec_module(protocol_gui)
-ProtocolRunnerGUI = protocol_gui.ProtocolRunnerGUI
+try:
+    _gui_spec = importlib.util.spec_from_file_location(
+        "protocol_gui", _dir / "APGI-Falsification-Protocol-GUI.py"
+    )
+    if _gui_spec and _gui_spec.loader:
+        protocol_gui = importlib.util.module_from_spec(_gui_spec)
+        _gui_spec.loader.exec_module(protocol_gui)
+        ProtocolRunnerGUI = protocol_gui.ProtocolRunnerGUI
+    else:
+        raise ImportError("Could not load GUI components")
+except Exception as e:
+    warnings.warn(f"Failed to load Falsification GUI components: {e}")
+    ProtocolRunnerGUI = None
 
 # Protocol 1 exports
-HierarchicalGenerativeModel = Protocol_1.HierarchicalGenerativeModel
-SomaticMarkerNetwork = Protocol_1.SomaticMarkerNetwork
-PolicyNetwork = Protocol_1.PolicyNetwork
-HabitualPolicy = Protocol_1.HabitualPolicy
-EpisodicMemory = Protocol_1.EpisodicMemory
-WorkingMemory = Protocol_1.WorkingMemory
-APGIActiveInferenceAgent = Protocol_1.APGIActiveInferenceAgent
-StandardPPAgent_P1 = Protocol_1.StandardPPAgent
-GWTOnlyAgent_P1 = Protocol_1.GWTOnlyAgent
-run_falsification_protocol_1 = Protocol_1.run_falsification
+if Protocol_1:
+    try:
+        HierarchicalGenerativeModel = Protocol_1.HierarchicalGenerativeModel
+        SomaticMarkerNetwork = Protocol_1.SomaticMarkerNetwork
+        PolicyNetwork = Protocol_1.PolicyNetwork
+        HabitualPolicy = Protocol_1.HabitualPolicy
+        EpisodicMemory = Protocol_1.EpisodicMemory
+        WorkingMemory = Protocol_1.WorkingMemory
+        APGIActiveInferenceAgent = Protocol_1.APGIActiveInferenceAgent
+        StandardPPAgent_P1 = Protocol_1.StandardPPAgent
+        GWTOnlyAgent_P1 = Protocol_1.GWTOnlyAgent
+        run_falsification_protocol_1 = Protocol_1.run_falsification
+    except AttributeError as e:
+        warnings.warn(f"Failed to load Protocol 1 exports: {e}")
+        # Set defaults to None
+        HierarchicalGenerativeModel = SomaticMarkerNetwork = PolicyNetwork = None
+        HabitualPolicy = EpisodicMemory = WorkingMemory = None
+        APGIActiveInferenceAgent = StandardPPAgent_P1 = GWTOnlyAgent_P1 = None
+        run_falsification_protocol_1 = None
+else:
+    HierarchicalGenerativeModel = SomaticMarkerNetwork = PolicyNetwork = None
+    HabitualPolicy = EpisodicMemory = WorkingMemory = None
+    APGIActiveInferenceAgent = StandardPPAgent_P1 = GWTOnlyAgent_P1 = None
+    run_falsification_protocol_1 = None
 
 # Protocol 2 exports
-IowaGamblingTaskEnvironment = Protocol_2.IowaGamblingTaskEnvironment
-VolatileForagingEnvironment = Protocol_2.VolatileForagingEnvironment
-ThreatRewardTradeoffEnvironment = Protocol_2.ThreatRewardTradeoffEnvironment
-run_falsification_protocol_2 = Protocol_2.run_falsification
+if Protocol_2:
+    try:
+        IowaGamblingTaskEnvironment = Protocol_2.IowaGamblingTaskEnvironment
+        VolatileForagingEnvironment = Protocol_2.VolatileForagingEnvironment
+        ThreatRewardTradeoffEnvironment = Protocol_2.ThreatRewardTradeoffEnvironment
+        run_falsification_protocol_2 = Protocol_2.run_falsification
+    except AttributeError as e:
+        warnings.warn(f"Failed to load Protocol 2 exports: {e}")
+        IowaGamblingTaskEnvironment = VolatileForagingEnvironment = None
+        ThreatRewardTradeoffEnvironment = run_falsification_protocol_2 = None
+else:
+    IowaGamblingTaskEnvironment = VolatileForagingEnvironment = None
+    ThreatRewardTradeoffEnvironment = run_falsification_protocol_2 = None
 
 # Protocol 3 exports
-StandardPPAgent_P3 = Protocol_3.StandardPPAgent
-GWTOnlyAgent_P3 = Protocol_3.GWTOnlyAgent
-StandardActorCriticAgent = Protocol_3.StandardActorCriticAgent
-AgentComparisonExperiment = Protocol_3.AgentComparisonExperiment
-run_falsification_protocol_3 = Protocol_3.run_falsification
+if Protocol_3:
+    try:
+        StandardPPAgent_P3 = Protocol_3.StandardPPAgent
+        GWTOnlyAgent_P3 = Protocol_3.GWTOnlyAgent
+        StandardActorCriticAgent = Protocol_3.StandardActorCriticAgent
+        AgentComparisonExperiment = Protocol_3.AgentComparisonExperiment
+        run_falsification_protocol_3 = Protocol_3.run_falsification
+    except AttributeError as e:
+        warnings.warn(f"Failed to load Protocol 3 exports: {e}")
+        StandardPPAgent_P3 = GWTOnlyAgent_P3 = StandardActorCriticAgent = None
+        AgentComparisonExperiment = run_falsification_protocol_3 = None
+else:
+    StandardPPAgent_P3 = GWTOnlyAgent_P3 = StandardActorCriticAgent = None
+    AgentComparisonExperiment = run_falsification_protocol_3 = None
 
 # Protocol 4 exports
-SurpriseIgnitionSystem = Protocol_4.SurpriseIgnitionSystem
-InformationTheoreticAnalysis = Protocol_4.InformationTheoreticAnalysis
-run_falsification_protocol_4 = Protocol_4.run_falsification
+if Protocol_4:
+    try:
+        SurpriseIgnitionSystem = Protocol_4.SurpriseIgnitionSystem
+        InformationTheoreticAnalysis = Protocol_4.InformationTheoreticAnalysis
+        run_falsification_protocol_4 = Protocol_4.run_falsification
+    except AttributeError as e:
+        warnings.warn(f"Failed to load Protocol 4 exports: {e}")
+        SurpriseIgnitionSystem = InformationTheoreticAnalysis = None
+        run_falsification_protocol_4 = None
+else:
+    SurpriseIgnitionSystem = InformationTheoreticAnalysis = None
+    run_falsification_protocol_4 = None
 
 # Protocol 5 exports
-EvolvableAgent = Protocol_5.EvolvableAgent
-EvolutionaryAPGIEmergence = Protocol_5.EvolutionaryAPGIEmergence
-run_falsification_protocol_5 = Protocol_5.run_falsification
+if Protocol_5:
+    try:
+        EvolvableAgent = Protocol_5.EvolvableAgent
+        EvolutionaryAPGIEmergence = Protocol_5.EvolutionaryAPGIEmergence
+        run_falsification_protocol_5 = Protocol_5.run_falsification
+    except AttributeError as e:
+        warnings.warn(f"Failed to load Protocol 5 exports: {e}")
+        EvolvableAgent = EvolutionaryAPGIEmergence = run_falsification_protocol_5 = None
+else:
+    EvolvableAgent = EvolutionaryAPGIEmergence = run_falsification_protocol_5 = None
 
 # Protocol 6 exports
-APGIInspiredNetwork = Protocol_6.APGIInspiredNetwork
-ComparisonNetworks = Protocol_6.ComparisonNetworks
-NetworkComparisonExperiment = Protocol_6.NetworkComparisonExperiment
-run_falsification_protocol_6 = Protocol_6.run_falsification
+if Protocol_6:
+    try:
+        APGIInspiredNetwork = Protocol_6.APGIInspiredNetwork
+        ComparisonNetworks = Protocol_6.ComparisonNetworks
+        NetworkComparisonExperiment = Protocol_6.NetworkComparisonExperiment
+        run_falsification_protocol_6 = Protocol_6.run_falsification
+    except AttributeError as e:
+        warnings.warn(f"Failed to load Protocol 6 exports: {e}")
+        APGIInspiredNetwork = ComparisonNetworks = NetworkComparisonExperiment = None
+        run_falsification_protocol_6 = None
+else:
+    APGIInspiredNetwork = ComparisonNetworks = NetworkComparisonExperiment = None
+    run_falsification_protocol_6 = None
 
 # Version info
 __version__ = "1.0.0"

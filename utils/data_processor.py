@@ -7,7 +7,6 @@ Provides data loading, preprocessing, and basic analysis functions.
 """
 
 import json
-import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -15,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 # Suppress warnings for cleaner output
-warnings.filterwarnings("ignore")
+# warnings.filterwarnings("ignore")  # Removed: Global warning suppression affects entire framework
 
 
 class DataProcessor:
@@ -23,7 +22,7 @@ class DataProcessor:
 
     def __init__(self):
         self.supported_formats = ["csv", "json", "xlsx", "parquet"]
-        self.required_columns = ["timestamp", "eeg_fz", "pupil_diameter"]
+        self.required_columns = ["timestamp", "EEG_Cz", "pupil_diameter"]
 
     def load_data(self, file_path: Union[str, Path]) -> pd.DataFrame:
         """
@@ -154,10 +153,10 @@ class DataProcessor:
             )
 
             # Forward fill remaining NaNs
-            cleaned_data = cleaned_data.fillna(method="ffill")
+            cleaned_data = cleaned_data.ffill()
 
             # Backward fill any remaining NaNs at the beginning
-            cleaned_data = cleaned_data.fillna(method="bfill")
+            cleaned_data = cleaned_data.bfill()
 
         # Remove outliers
         if remove_outliers:
@@ -335,7 +334,7 @@ class DataProcessor:
             # Convert datetime to string for JSON
             json_data = data.copy()
             if "timestamp" in json_data.columns:
-                json_data["timestamp"] = json_data["timestamp"].dt.isoformat()
+                json_data["timestamp"] = json_data["timestamp"].astype(str)
             json_data.to_json(output_path, orient="records", indent=2)
         elif format == "parquet":
             data.to_parquet(output_path, index=False)

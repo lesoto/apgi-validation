@@ -747,7 +747,11 @@ def run_validation():
     print("Protocol 8 completed successfully!")
     print("=" * 80)
 
-    return results
+    return {
+        "passed": overall["framework_supported"],
+        "status": "success" if overall["framework_supported"] else "failed",
+        "results": results,
+    }
 
 
 def main():

@@ -295,7 +295,7 @@ class APGILogger:
             rotation="10 MB",
             retention="30 days",
             compression="zip",
-            enqueue={"queue_size": self.queue_size},
+            enqueue=True,
         )
 
         # Error-specific log file with queue limit
@@ -307,7 +307,7 @@ class APGILogger:
             rotation="5 MB",
             retention="60 days",
             compression="zip",
-            enqueue={"queue_size": self.queue_size},
+            enqueue=True,
             backtrace=True,
             diagnose=True,
         )
@@ -321,7 +321,7 @@ class APGILogger:
             rotation="5 MB",
             retention="7 days",
             filter=lambda record: "metric" in record["extra"],
-            enqueue={"queue_size": self.queue_size},
+            enqueue=True,
         )
 
         # Structured JSON log for machine processing with queue limit
@@ -333,7 +333,7 @@ class APGILogger:
             rotation="20 MB",
             retention="30 days",
             serialize=True,
-            enqueue={"queue_size": self.queue_size},
+            enqueue=True,
         )
 
         self.log_files = {
@@ -443,7 +443,7 @@ class APGILogger:
             file_path=file_path,
             records_processed=records_processed,
             duration=duration,
-            throughput=records_processed / duration,
+            throughput=records_processed / duration if duration > 0 else float("inf"),
         ).debug("Data processing details")
 
     def log_model_configuration(self, model_name: str, config: Dict[str, Any]):
@@ -574,14 +574,12 @@ class APGILogger:
     def _extract_log_fields(self, groups: tuple) -> tuple:
         """Extract timestamp, level, location, and message from regex groups."""
         if len(groups) >= 3:
-            timestamp_str, level, location, message = (
-                groups[0],
-                groups[1],
-                groups[2],
-            )
+            timestamp_str, level, location = groups[0], groups[1], groups[2]
             if len(groups) == 3:
                 location = "unknown"
                 message = groups[2]
+            else:
+                message = groups[3] if len(groups) > 3 else groups[2]
         else:
             timestamp_str, level, message = groups[0], groups[1], groups[2]
             location = "unknown"

@@ -386,7 +386,7 @@ class APGIValidationGUI:
         control_frame.grid(row=1, column=0, columnspan=2, pady=(0, 10))
 
         self.run_button = ttk.Button(
-            control_frame, text="Run Validation", command=self.run_parameter_simulation
+            control_frame, text="Run Validation", command=self.run_validation
         )
         self.run_button.grid(row=0, column=0, padx=5)
 
@@ -840,6 +840,54 @@ class APGIValidationGUI:
             target=self._run_parameter_simulation_worker, args=(params,), daemon=True
         ).start()
 
+    def run_validation(self) -> None:
+        """Run the selected validation protocols"""
+        if self.is_running:
+            return
+
+        if not self.validator:
+            messagebox.showerror("Error", "APGI Master Validator not available")
+            return
+
+        # Get selected protocols with validation
+        selected_protocols: List[int] = [
+            num for num, var in self.protocol_vars.items() if var.get()
+        ]
+
+        # Validate protocol numbers
+        for protocol_num in selected_protocols:
+            if (
+                not isinstance(protocol_num, int)
+                or protocol_num not in self.validator.PROTOCOL_TIERS
+            ):
+                messagebox.showerror(
+                    "Error",
+                    f"Invalid protocol number: {protocol_num}. Must be between 1 and 8.",
+                )
+                return
+
+        if not selected_protocols:
+            messagebox.showwarning("Warning", "No protocols selected")
+            return
+
+        # Clear protocol cache to prevent cross-protocol contamination
+        self.clear_protocol_cache()
+
+        # Start validation in separate thread
+        self.is_running = True
+
+        # Make UI state changes atomically
+        self.run_button.config(state=tk.DISABLED)
+        self.stop_button.config(state=tk.NORMAL)
+        self.results_text.delete(1.0, tk.END)
+        self.progress_var.set(0)
+
+        self.validation_thread = threading.Thread(
+            target=self._run_validation_worker, args=(selected_protocols,)
+        )
+        self.validation_thread.start()
+        logging.info(f"Started validation for protocols: {selected_protocols}")
+
     def _run_parameter_simulation_worker(self, params: Dict[str, float]) -> None:
         """Worker thread for parameter simulation"""
         try:
@@ -926,52 +974,6 @@ Interpretation:
             self.root.after(
                 0, lambda: self.param_results_text.insert(tk.END, error_text)
             )
-        """Run the selected validation protocols"""
-        if self.is_running:
-            return
-
-        if not self.validator:
-            messagebox.showerror("Error", "APGI Master Validator not available")
-            return
-
-        # Get selected protocols with validation
-        selected_protocols: List[int] = [
-            num for num, var in self.protocol_vars.items() if var.get()
-        ]
-
-        # Validate protocol numbers
-        for protocol_num in selected_protocols:
-            if (
-                not isinstance(protocol_num, int)
-                or protocol_num not in self.validator.PROTOCOL_TIERS
-            ):
-                messagebox.showerror(
-                    "Error",
-                    f"Invalid protocol number: {protocol_num}. Must be between 1 and 8.",
-                )
-                return
-
-        if not selected_protocols:
-            messagebox.showwarning("Warning", "No protocols selected")
-            return
-
-        # Clear protocol cache to prevent cross-protocol contamination
-        self.clear_protocol_cache()
-
-        # Start validation in separate thread
-        self.is_running = True
-
-        # Make UI state changes atomically
-        self.run_button.config(state=tk.DISABLED)
-        self.stop_button.config(state=tk.NORMAL)
-        self.results_text.delete(1.0, tk.END)
-        self.progress_var.set(0)
-
-        self.validation_thread = threading.Thread(
-            target=self._run_validation_worker, args=(selected_protocols,)
-        )
-        self.validation_thread.start()
-        logging.info(f"Started validation for protocols: {selected_protocols}")
 
     def _execute_single_protocol(
         self, protocol_num: int, i: int, total_protocols: int, protocol_tiers: Dict
@@ -1423,11 +1425,15 @@ Interpretation:
                 self.update_progress(100)
                 self.update_results("Validation stopped by user\n")
 
-                # Wait for thread to finish (with timeout) - non-blocking approach
-                self.validation_thread.join(
-                    timeout=1.0
-                )  # Short timeout to avoid GUI freeze
+        # Wait for thread to finish (with timeout) - OUTSIDE the lock to avoid deadlock
+        if self.validation_thread and self.validation_thread.is_alive():
+            self.validation_thread.join(
+                timeout=1.0
+            )  # Short timeout to avoid GUI freeze
 
+        # Re-acquire lock for final cleanup
+        with self._thread_cleanup_lock:
+            if self.validation_thread:
                 if self.validation_thread.is_alive():
                     self.update_results(
                         "Warning: Validation thread did not stop cleanly\n"

@@ -390,6 +390,23 @@ class ConfigManager:
         except jsonschema.ValidationError as e:
             raise ValueError(f"Configuration validation failed: {e.message}")
 
+    def _dict_to_config(self, config_dict: Dict[str, Any]) -> APGIConfig:
+        """Convert dictionary to APGIConfig object."""
+        config = APGIConfig()
+
+        if "model" in config_dict:
+            self._update_dataclass(config.model, config_dict["model"])
+        if "simulation" in config_dict:
+            self._update_dataclass(config.simulation, config_dict["simulation"])
+        if "logging" in config_dict:
+            self._update_dataclass(config.logging, config_dict["logging"])
+        if "data" in config_dict:
+            self._update_dataclass(config.data, config_dict["data"])
+        if "validation" in config_dict:
+            self._update_dataclass(config.validation, config_dict["validation"])
+
+        return config
+
     def _update_config(self, config_data: Dict[str, Any]):
         """Update configuration with loaded data."""
         if "model" in config_data:
@@ -524,6 +541,7 @@ class ConfigManager:
 
         setattr(section_obj, parameter, converted_value)
         apgi_logger.logger.info(f"Updated {section}.{parameter} = {converted_value}")
+        return True
 
     def _convert_parameter_value(self, section: str, parameter: str, value: Any) -> Any:
         """Convert parameter value to appropriate type."""
@@ -582,6 +600,7 @@ class ConfigManager:
     def save_config(self, file_path: Optional[str] = None):
         """Save current configuration to file."""
         save_path = file_path or self.config_file
+        save_path = Path(save_path)
         config_dict = asdict(self.config)
 
         with open(save_path, "w") as f:
@@ -1308,10 +1327,18 @@ class EnhancedConfigManager(ConfigManager):
                 validation_errors.append("Profile parameters are required")
 
             # Validate parameter structure
-            required_sections = ["model", "simulation", "logging", "data", "validation"]
-            for section in required_sections:
-                if section not in profile.parameters:
-                    validation_errors.append(f"Missing required section: {section}")
+            built_in_profiles = ["adhd", "anxiety-disorder", "research-default"]
+            if profile_data.get("name") not in built_in_profiles:
+                required_sections = [
+                    "model",
+                    "simulation",
+                    "logging",
+                    "data",
+                    "validation",
+                ]
+                for section in required_sections:
+                    if section not in profile.parameters:
+                        validation_errors.append(f"Missing required section: {section}")
 
             return {
                 "valid": len(validation_errors) == 0,

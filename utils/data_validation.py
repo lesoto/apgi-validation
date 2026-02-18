@@ -225,7 +225,7 @@ class DataValidator:
     def _validate_data_ranges(self, df: pd.DataFrame, results: Dict):
         """Validate physiological data ranges."""
         # EEG ranges (microvolts)
-        eeg_cols = [col for col in df.columns if col.startswith("eeg")]
+        eeg_cols = [col for col in df.columns if col.lower().startswith("eeg")]
         for col in eeg_cols:
             if col in df.columns:
                 eeg_data = df[col].dropna()
@@ -666,6 +666,7 @@ class DataPreprocessor:
 
     def __init__(self):
         self.preprocessing_steps = []
+        self.config = ValidationConfig()
 
     def load_data(self, file_path: Union[str, Path]) -> pd.DataFrame:
         """Load data from various formats."""
@@ -701,9 +702,9 @@ class DataPreprocessor:
             for col in numeric_cols:
                 df_clean[col] = df_clean[col].interpolate(method="linear")
         elif strategy == "forward_fill":
-            df_clean[numeric_cols] = df_clean[numeric_cols].fillna(method="ffill")
+            df_clean[numeric_cols] = df_clean[numeric_cols].ffill()
         elif strategy == "backward_fill":
-            df_clean[numeric_cols] = df_clean[numeric_cols].fillna(method="bfill")
+            df_clean[numeric_cols] = df_clean[numeric_cols].bfill()
         elif strategy == "mean":
             for col in numeric_cols:
                 df_clean[col] = df_clean[col].fillna(df_clean[col].mean())
