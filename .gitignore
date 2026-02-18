@@ -125,6 +125,15 @@ Temporary Items
 *.svg
 *.pdf
 
+# Exceptions for data_repository
+!data_repository/**/*.csv
+!data_repository/**/*.json
+!data_repository/**/*.png
+!data_repository/**/*.jpg
+!data_repository/**/*.jpeg
+!data_repository/**/*.npz
+!data_repository/**/*.pdf
+
 # Model files
 *.pth
 *.pkl

@@ -223,7 +223,23 @@ async def run_validation_protocol(protocol_id: str, request: ValidationRequest):
 
         # Import and run the appropriate protocol
         if protocol_id_int == 9:
-            from Validation.Validation_Protocol_9 import APGINeuralSignaturesValidator
+            # Load the module with hyphen in filename
+            import importlib.util
+
+            module_path = PROJECT_ROOT / "Validation" / "Validation-Protocol-9.py"
+            spec = importlib.util.spec_from_file_location(
+                "validation_protocol_9", module_path
+            )
+            if spec and spec.loader:
+                validation_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(validation_module)
+                APGINeuralSignaturesValidator = (
+                    validation_module.APINeuralSignaturesValidator
+                )
+            else:
+                raise HTTPException(
+                    status_code=500, detail="Could not load Validation Protocol 9"
+                )
 
             validator = APGINeuralSignaturesValidator()
 

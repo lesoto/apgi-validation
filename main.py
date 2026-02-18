@@ -50,6 +50,7 @@ from utils.error_handler import (
 
 # Import APGI framework components
 from utils.logging_config import apgi_logger
+from utils.validation_pipeline_connector import ValidationPipelineConnector
 
 # Initialize rich console with better width handling
 console = Console(
@@ -214,7 +215,7 @@ class APGIModuleLoader:
                 "description": "Multimodal data integration",
             },
             "parameter_estimation": {
-                "file": "APGI-Parameter-Estimation-Protocol.py",
+                "file": "APGI-Parameter-Estimation.py",
                 "class": None,
                 "description": "Bayesian parameter estimation",
             },
@@ -222,6 +223,11 @@ class APGIModuleLoader:
                 "file": "APGI-Psychological-States.py",
                 "class": None,
                 "description": "Psychological states analysis",
+            },
+            "cross_species": {
+                "file": "APGI-Cross-Species-Scaling.py",
+                "class": "CrossSpeciesScaling",
+                "description": "Cross-species scaling analysis",
             },
         }
 
@@ -891,8 +897,20 @@ def estimate_params(
     try:
         # Import the APGI Parameter Estimation classes
         module = module_info["module"]
-        NeuralSignalGenerator = module.NeuralSignalGenerator
-        APGIDynamics = module.APGIDynamics
+        NeuralMassGenerator = module.NeuralMassGenerator
+
+        # Check if there's a main function we can call directly
+        if hasattr(module, "main"):
+            console.print(
+                "[blue]Running parameter estimation with main function...[/blue]"
+            )
+            result = module.main()
+            console.print(f"[green]✓[/green] Parameter estimation completed")
+            if isinstance(result, dict):
+                console.print("[blue]Results summary:[/blue]")
+                for key, value in list(result.items())[:5]:
+                    console.print(f"  {key}: {value}")
+            return
 
         console.print(f"[blue]Estimation method: {method}[/blue]")
         console.print(f"[blue]Iterations: {iterations}[/blue]")
@@ -1132,6 +1150,714 @@ def estimate_params(
     except (ValueError, TypeError, RuntimeError, ImportError) as e:
         console.print(f"[red]Error in parameter estimation: {e}[/red]")
         apgi_logger.logger.error(f"Parameter estimation error: {e}")
+
+
+@cli.command()
+@click.option("--species", help="Species name (human, monkey, cat, rat, mouse)")
+@click.option("--output-file", help="Output file for scaling results")
+@click.option("--plot", is_flag=True, help="Generate scaling plots")
+@click.pass_context
+def cross_species(
+    ctx: click.Context,
+    species: Optional[str],
+    output_file: Optional[str],
+    plot: bool,
+) -> None:
+    """Run cross-species scaling analysis for consciousness measures."""
+    console.print(Panel.fit("🐒 Cross-Species Scaling Analysis", style="bold green"))
+
+    module_info = module_loader.get_module("cross_species")
+    if not module_info:
+        console.print("[red]Error: Cross-species scaling module not found[/red]")
+        return
+
+    try:
+        # Import the CrossSpeciesScaling class
+        CrossSpeciesScaling = module_info["module"].CrossSpeciesScaling
+
+        model = CrossSpeciesScaling()
+
+        if species:
+            # Get species parameters (simplified defaults)
+            species_defaults = {
+                "human": {
+                    "name": "human",
+                    "cortical_volume_mm3": 500000,
+                    "cortical_thickness_mm": 3.0,
+                    "neuron_density_per_mm3": 25000,
+                    "synaptic_density_per_mm3": 500000,
+                    "conduction_velocity_m_s": 50.0,
+                    "body_mass_kg": 70.0,
+                    "brain_mass_g": 1400.0,
+                },
+                "monkey": {
+                    "name": "monkey",
+                    "cortical_volume_mm3": 80000,
+                    "cortical_thickness_mm": 2.5,
+                    "neuron_density_per_mm3": 30000,
+                    "synaptic_density_per_mm3": 600000,
+                    "conduction_velocity_m_s": 45.0,
+                    "body_mass_kg": 8.0,
+                    "brain_mass_g": 100.0,
+                },
+                "cat": {
+                    "name": "cat",
+                    "cortical_volume_mm3": 15000,
+                    "cortical_thickness_mm": 2.0,
+                    "neuron_density_per_mm3": 35000,
+                    "synaptic_density_per_mm3": 700000,
+                    "conduction_velocity_m_s": 40.0,
+                    "body_mass_kg": 4.0,
+                    "brain_mass_g": 30.0,
+                },
+                "rat": {
+                    "name": "rat",
+                    "cortical_volume_mm3": 500,
+                    "cortical_thickness_mm": 1.5,
+                    "neuron_density_per_mm3": 40000,
+                    "synaptic_density_per_mm3": 800000,
+                    "conduction_velocity_m_s": 35.0,
+                    "body_mass_kg": 0.3,
+                    "brain_mass_g": 2.5,
+                },
+                "mouse": {
+                    "name": "mouse",
+                    "cortical_volume_mm3": 100,
+                    "cortical_thickness_mm": 1.0,
+                    "neuron_density_per_mm3": 45000,
+                    "synaptic_density_per_mm3": 900000,
+                    "conduction_velocity_m_s": 30.0,
+                    "body_mass_kg": 0.02,
+                    "brain_mass_g": 0.4,
+                },
+            }
+
+            if species.lower() in species_defaults:
+                params = species_defaults[species.lower()]
+                species_obj = module_info["module"].SpeciesParameters(**params)
+
+                console.print(f"[blue]Analyzing species: {species}[/blue]")
+                predictions = module_info["module"].predict_species_consciousness(
+                    species_obj
+                )
+
+                console.print(
+                    f"[green]✓[/green] Predicted PCI: {predictions['predicted_pci']:.3f}"
+                )
+                console.print(
+                    f"[green]✓[/green] Hierarchical Levels: {predictions['hierarchical_levels']:.1f}"
+                )
+                console.print(
+                    f"[green]✓[/green] Intrinsic Timescale: {predictions['intrinsic_timescale']:.3f}s"
+                )
+                console.print(
+                    f"[green]✓[/green] Encephalization Quotient: {predictions['encephalization_quotient']:.2f}"
+                )
+
+                if output_file:
+                    import json
+
+                    with open(output_file, "w") as f:
+                        json.dump(predictions, f, indent=2)
+                    console.print(f"[green]✓[/green] Results saved to {output_file}")
+            else:
+                console.print(f"[red]Unknown species: {species}[/red]")
+                console.print(
+                    "[yellow]Available species: human, monkey, cat, rat, mouse[/yellow]"
+                )
+        else:
+            # Generate comparison report
+            console.print("[blue]Generating cross-species comparison report...[/blue]")
+            report = module_info["module"].generate_species_comparison_report()
+            console.print(report)
+
+            if output_file:
+                with open(output_file, "w") as f:
+                    f.write(report)
+                console.print(f"[green]✓[/green] Report saved to {output_file}")
+
+        if plot:
+            console.print("[blue]Generating scaling plots...[/blue]")
+            model.plot_scaling_relationships("cross_species_plots.png")
+            console.print("[green]✓[/green] Plots saved to cross_species_plots.png")
+
+    except (ValueError, TypeError, RuntimeError, ImportError) as e:
+        console.print(f"[red]Error in cross-species analysis: {e}[/red]")
+        apgi_logger.logger.error(f"Cross-species analysis error: {e}")
+
+
+@cli.command()
+@click.option("--log-file", help="Specific log file to analyze")
+@click.option("--level", help="Filter by log level (DEBUG, INFO, WARNING, ERROR)")
+@click.option("--module", help="Filter by module name")
+@click.option("--search", help="Search for text in log messages")
+@click.option("--last-hours", type=int, help="Analyze logs from last N hours")
+@click.option("--output-file", help="Save analysis results to file")
+@click.pass_context
+def analyze_logs(
+    ctx: click.Context,
+    log_file: Optional[str],
+    level: Optional[str],
+    module: Optional[str],
+    search: Optional[str],
+    last_hours: Optional[int],
+    output_file: Optional[str],
+) -> None:
+    """Analyze log files for patterns and insights."""
+    console.print(Panel.fit("📊 Log Analysis", style="bold blue"))
+
+    try:
+        from utils.logging_config import apgi_logger
+        import os
+        from pathlib import Path
+
+        logs_dir = PROJECT_ROOT / "logs"
+        if not logs_dir.exists():
+            console.print("[red]Error: Logs directory not found[/red]")
+            return
+
+        # Find log files
+        log_files = []
+        if log_file:
+            specific_log = logs_dir / log_file
+            if specific_log.exists():
+                log_files = [specific_log]
+            else:
+                console.print(f"[red]Error: Log file '{log_file}' not found[/red]")
+                return
+        else:
+            log_files = list(logs_dir.glob("*.log"))
+
+        if not log_files:
+            console.print("[yellow]No log files found[/yellow]")
+            return
+
+        console.print(f"[blue]Analyzing {len(log_files)} log file(s)...[/blue]")
+
+        # Simple log analysis
+        total_lines = 0
+        level_counts = {}
+        module_counts = {}
+        error_messages = []
+
+        for log_path in log_files:
+            try:
+                with open(log_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        total_lines += 1
+
+                        # Parse log levels
+                        if "DEBUG" in line:
+                            level_counts["DEBUG"] = level_counts.get("DEBUG", 0) + 1
+                        elif "INFO" in line:
+                            level_counts["INFO"] = level_counts.get("INFO", 0) + 1
+                        elif "WARNING" in line:
+                            level_counts["WARNING"] = level_counts.get("WARNING", 0) + 1
+                        elif "ERROR" in line:
+                            level_counts["ERROR"] = level_counts.get("ERROR", 0) + 1
+                            if "ERROR" in line or "Exception" in line:
+                                error_messages.append(line.strip())
+
+                        # Parse modules (simplified)
+                        if " - " in line:
+                            parts = line.split(" - ", 1)
+                            if len(parts) > 1:
+                                potential_module = parts[1].split(":")[0].strip()
+                                if potential_module and len(potential_module) < 50:
+                                    module_counts[potential_module] = (
+                                        module_counts.get(potential_module, 0) + 1
+                                    )
+
+            except Exception as e:
+                console.print(
+                    f"[yellow]Warning: Could not read {log_path}: {e}[/yellow]"
+                )
+
+        # Display results
+        console.print(f"[green]✓[/green] Analysis complete")
+        console.print(f"Total log lines analyzed: {total_lines}")
+
+        if level_counts:
+            console.print("\nLog Level Distribution:")
+            for lvl, count in sorted(
+                level_counts.items(), key=lambda x: x[1], reverse=True
+            ):
+                percentage = (count / total_lines) * 100 if total_lines > 0 else 0
+                console.print(".1f")
+
+        if module_counts:
+            console.print("\nTop Modules by Log Count:")
+            for mod, count in sorted(
+                module_counts.items(), key=lambda x: x[1], reverse=True
+            )[:10]:
+                console.print(f"  {mod}: {count}")
+
+        if error_messages:
+            console.print(f"\nRecent Errors ({len(error_messages)} found):")
+            for i, error in enumerate(error_messages[-5:]):  # Show last 5 errors
+                console.print(
+                    f"  {i+1}. {error[:100]}{'...' if len(error) > 100 else ''}"
+                )
+
+        # Save results if requested
+        if output_file:
+            import json
+
+            results = {
+                "total_lines": total_lines,
+                "level_counts": level_counts,
+                "module_counts": dict(
+                    sorted(module_counts.items(), key=lambda x: x[1], reverse=True)[:20]
+                ),
+                "error_count": len(error_messages),
+                "analysis_timestamp": datetime.now().isoformat(),
+            }
+
+            with open(output_file, "w") as f:
+                json.dump(results, f, indent=2)
+            console.print(f"[green]✓[/green] Results saved to {output_file}")
+
+    except (ImportError, FileNotFoundError, RuntimeError) as e:
+        console.print(f"[red]Error in log analysis: {e}[/red]")
+        apgi_logger.logger.error(f"Log analysis error: {e}")
+
+
+@cli.command()
+@click.option("--input-file", help="Input data file to process")
+@click.option("--output-dir", help="Output directory for processed data")
+@click.option(
+    "--modalities",
+    help="Comma-separated list of modalities to process (eeg,pupil,eda,hr)",
+)
+@click.option("--config-file", help="Preprocessing configuration file")
+@click.pass_context
+def process_data(
+    ctx: click.Context,
+    input_file: Optional[str],
+    output_dir: Optional[str],
+    modalities: Optional[str],
+    config_file: Optional[str],
+) -> None:
+    """Run data processing pipelines on raw data."""
+    console.print(Panel.fit("🔧 Data Processing Pipeline", style="bold cyan"))
+
+    try:
+        from utils.preprocessing_pipelines import (
+            EEGPreprocessor,
+            PupilPreprocessor,
+            EDAPreprocessor,
+            HeartRatePreprocessor,
+            MultimodalDataProcessor,
+            PreprocessingConfig,
+        )
+        import pandas as pd
+        from pathlib import Path
+
+        # Set up paths
+        project_root = Path(__file__).parent
+        data_dir = project_root / "data_repository"
+        raw_data_dir = data_dir / "raw_data"
+        processed_data_dir = data_dir / "processed_data"
+
+        if output_dir:
+            output_path = Path(output_dir)
+            output_path.mkdir(exist_ok=True)
+        else:
+            output_path = processed_data_dir
+
+        # Load configuration
+        if config_file:
+            import yaml
+
+            with open(config_file, "r") as f:
+                config_dict = yaml.safe_load(f)
+            config = PreprocessingConfig(**config_dict)
+        else:
+            config = PreprocessingConfig()
+
+        # Determine modalities to process
+        if modalities:
+            modality_list = [m.strip() for m in modalities.split(",")]
+        else:
+            modality_list = ["eeg", "pupil", "eda", "hr"]
+
+        console.print(f"[blue]Processing modalities: {', '.join(modality_list)}[/blue]")
+        console.print(f"[blue]Output directory: {output_path}[/blue]")
+
+        # Process input file or sample data
+        if input_file:
+            input_path = Path(input_file)
+            if not input_path.exists():
+                console.print(f"[red]Error: Input file '{input_file}' not found[/red]")
+                return
+
+            console.print(f"[blue]Processing file: {input_path}[/blue]")
+            data = pd.read_csv(input_path)
+        else:
+            # Use sample multimodal data
+            sample_file = raw_data_dir / "sample_multimodal_data.csv"
+            if sample_file.exists():
+                console.print(f"[blue]Using sample data: {sample_file}[/blue]")
+                data = pd.read_csv(sample_file)
+            else:
+                console.print(
+                    "[yellow]No input file specified and sample data not found[/yellow]"
+                )
+                console.print(
+                    "[yellow]Creating synthetic data for demonstration...[/yellow]"
+                )
+
+                # Create synthetic multimodal data
+                import numpy as np
+
+                n_samples = 1000
+                time_ms = np.arange(0, n_samples * 10, 10)  # 10ms intervals
+
+                data = pd.DataFrame(
+                    {
+                        "subject_id": [1] * n_samples,
+                        "trial": [1] * n_samples,
+                        "time_ms": time_ms,
+                        "eeg_fz": np.random.normal(0, 20, n_samples)
+                        + 10
+                        * np.sin(2 * np.pi * 10 * time_ms / 1000),  # 10Hz oscillation
+                        "pupil_diameter": 3.0
+                        + 0.5 * np.sin(2 * np.pi * 0.1 * time_ms / 1000)
+                        + np.random.normal(0, 0.1, n_samples),  # Slow changes
+                        "eda": 5.0
+                        + np.random.normal(0, 1, n_samples)
+                        + 2
+                        * np.exp(
+                            -((time_ms - 5000) ** 2) / (2 * 1000**2)
+                        ),  # Phasic response
+                    }
+                )
+
+        # Initialize processors
+        processors = {}
+        if "eeg" in modality_list:
+            processors["eeg"] = EEGPreprocessor(config)
+        if "pupil" in modality_list:
+            processors["pupil"] = PupilPreprocessor(config)
+        if "eda" in modality_list:
+            processors["eda"] = EDAPreprocessor(config)
+        if "hr" in modality_list:
+            processors["hr"] = HeartRatePreprocessor(config)
+
+        # Process each modality
+        processed_data = {}
+        for modality, processor in processors.items():
+            if modality in data.columns or any(
+                col.startswith(modality) for col in data.columns
+            ):
+                console.print(f"[blue]Processing {modality} data...[/blue]")
+
+                # Find relevant columns
+                if modality == "eeg":
+                    cols = [col for col in data.columns if "eeg" in col.lower()]
+                elif modality == "pupil":
+                    cols = [col for col in data.columns if "pupil" in col.lower()]
+                elif modality == "eda":
+                    cols = [col for col in data.columns if "eda" in col.lower()]
+                elif modality == "hr":
+                    cols = [
+                        col
+                        for col in data.columns
+                        if "hr" in col.lower() or "heart" in col.lower()
+                    ]
+                else:
+                    continue
+
+                if cols:
+                    modality_data = data[cols].values
+
+                    # Add progress tracking for processing
+                    with Progress(
+                        SpinnerColumn(),
+                        TextColumn("[progress.description]{task.description}"),
+                        BarColumn(),
+                        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                        console=console,
+                    ) as progress:
+                        task = progress.add_task(
+                            f"Processing {modality} data...", total=100
+                        )
+
+                        # Simulate progress updates during processing
+                        progress.update(
+                            task,
+                            advance=10,
+                            description=f"Initializing {modality} processing...",
+                        )
+
+                        try:
+                            processed = processor.process(modality_data)
+                            progress.update(
+                                task,
+                                advance=70,
+                                description=f"Applying {modality} filters and transformations...",
+                            )
+                            processed_data[f"{modality}_processed"] = processed
+                            progress.update(
+                                task,
+                                advance=20,
+                                description=f"{modality.capitalize()} processing complete",
+                            )
+                        except Exception as e:
+                            console.print(
+                                f"[red]Error processing {modality}: {e}[/red]"
+                            )
+                            continue
+
+                    # Save individual modality results
+                    output_file = output_path / f"processed_{modality}.csv"
+                    pd.DataFrame(processed, columns=cols).to_csv(
+                        output_file, index=False
+                    )
+                    console.print(
+                        f"[green]✓[/green] Saved {modality} results to {output_file}"
+                    )
+                else:
+                    console.print(
+                        f"[yellow]No {modality} columns found in data[/yellow]"
+                    )
+
+        # Create summary report
+        summary = {
+            "input_file": str(input_file) if input_file else "synthetic",
+            "modalities_processed": list(processed_data.keys()),
+            "output_directory": str(output_path),
+            "processing_timestamp": datetime.now().isoformat(),
+            "config_used": {
+                "eeg_bandpass": f"{config.eeg_bandpass_low}-{config.eeg_bandpass_high} Hz",
+                "pupil_smoothing": f"{config.pupil_smoothing_window} samples",
+                "eda_lowpass": f"{config.eda_lowpass_cutoff} Hz",
+                "missing_data_strategy": config.missing_data_strategy,
+            },
+        }
+
+        summary_file = output_path / "processing_summary.json"
+        import json
+
+        with open(summary_file, "w") as f:
+            json.dump(summary, f, indent=2)
+
+        console.print(f"[green]✓[/green] Processing complete!")
+        console.print(f"[green]✓[/green] Summary saved to {summary_file}")
+
+        # Show basic statistics
+        console.print("\n[bold]Processing Summary:[/bold]")
+        for modality in processed_data.keys():
+            console.print(f"  {modality}: processed successfully")
+
+    except (ImportError, FileNotFoundError, RuntimeError) as e:
+        console.print(f"[red]Error in data processing: {e}[/red]")
+        apgi_logger.logger.error(f"Data processing error: {e}")
+
+
+@cli.command()
+@click.option("--command", help="Command to monitor performance for")
+@click.option("--iterations", type=int, default=5, help="Number of iterations to run")
+@click.option("--output-file", help="Output file for performance results")
+@click.option("--memory", is_flag=True, help="Monitor memory usage")
+@click.option("--cpu", is_flag=True, help="Monitor CPU usage")
+@click.pass_context
+def monitor_performance(
+    ctx: click.Context,
+    command: Optional[str],
+    iterations: int,
+    output_file: Optional[str],
+    memory: bool,
+    cpu: bool,
+) -> None:
+    """Monitor performance metrics for APGI operations."""
+    console.print(Panel.fit("📊 Performance Monitoring", style="bold yellow"))
+
+    try:
+        import time
+        import psutil
+        import os
+        from statistics import mean, stdev
+
+        # Get current process
+        process = psutil.Process(os.getpid())
+
+        results = {
+            "command": command,
+            "iterations": iterations,
+            "timestamp": datetime.now().isoformat(),
+            "metrics": {},
+        }
+
+        if command:
+            console.print(f"[blue]Monitoring performance for: {command}[/blue]")
+            console.print(f"[blue]Running {iterations} iterations...[/blue]")
+
+            execution_times = []
+            memory_usage = []
+            cpu_usage = []
+
+            for i in range(iterations):
+                console.print(f"[blue]Iteration {i+1}/{iterations}...[/blue]")
+
+                # Record starting metrics
+                start_time = time.time()
+                start_memory = process.memory_info().rss / 1024 / 1024  # MB
+                start_cpu = process.cpu_percent(interval=None)
+
+                try:
+                    # Execute the command (simplified - in real implementation would parse and run actual commands)
+                    if command == "cross-species":
+                        # Simulate cross-species analysis
+                        time.sleep(0.1)  # Simulate processing time
+                        from APGI_Cross_Species_Scaling import CrossSpeciesScaling
+
+                        model = CrossSpeciesScaling()
+                        model.predict_pci(
+                            {
+                                "name": "human",
+                                "cortical_volume_mm3": 500000,
+                                "cortical_thickness_mm": 3.0,
+                                "neuron_density_per_mm3": 25000,
+                                "synaptic_density_per_mm3": 500000,
+                                "conduction_velocity_m_s": 50.0,
+                                "body_mass_kg": 70.0,
+                                "brain_mass_g": 1400.0,
+                            }
+                        )
+
+                    elif command == "process-data":
+                        # Simulate data processing
+                        time.sleep(0.05)  # Simulate processing time
+                        import numpy as np
+
+                        data = np.random.normal(0, 1, (1000, 3))
+                        # Simulate processing
+                        processed = data * 2
+
+                    elif command == "formal-model":
+                        # Simulate formal model simulation
+                        time.sleep(0.2)  # Simulate longer processing time
+                        import numpy as np
+
+                        results_sim = np.random.normal(0, 1, 1000)
+
+                    else:
+                        console.print(
+                            f"[yellow]Unknown command: {command}, using generic simulation[/yellow]"
+                        )
+                        time.sleep(0.1)
+
+                except Exception as e:
+                    console.print(f"[red]Error in iteration {i+1}: {e}[/red]")
+                    continue
+
+                # Record ending metrics
+                end_time = time.time()
+                end_memory = process.memory_info().rss / 1024 / 1024  # MB
+                end_cpu = process.cpu_percent(interval=None)
+
+                execution_times.append(end_time - start_time)
+                memory_usage.append(end_memory - start_memory)
+                cpu_usage.append(end_cpu)
+
+                console.print(
+                    f"[green]✓[/green] Iteration {i+1} completed in {execution_times[-1]:.3f}s"
+                )
+
+            # Calculate statistics
+            if execution_times:
+                results["metrics"] = {
+                    "execution_time": {
+                        "mean": mean(execution_times),
+                        "std": (
+                            stdev(execution_times) if len(execution_times) > 1 else 0
+                        ),
+                        "min": min(execution_times),
+                        "max": max(execution_times),
+                        "total": sum(execution_times),
+                    }
+                }
+
+                if memory:
+                    results["metrics"]["memory_usage_mb"] = {
+                        "mean": mean(memory_usage),
+                        "std": stdev(memory_usage) if len(memory_usage) > 1 else 0,
+                        "peak": max(memory_usage),
+                    }
+
+                if cpu:
+                    results["metrics"]["cpu_usage_percent"] = {
+                        "mean": mean(cpu_usage),
+                        "std": stdev(cpu_usage) if len(cpu_usage) > 1 else 0,
+                        "peak": max(cpu_usage),
+                    }
+
+                # Display results
+                console.print("\n[bold]Performance Results:[/bold]")
+                et = results["metrics"]["execution_time"]
+                console.print(".3f")
+                console.print(".3f")
+                console.print(".3f")
+
+                if memory and "memory_usage_mb" in results["metrics"]:
+                    mu = results["metrics"]["memory_usage_mb"]
+                    console.print(".1f")
+
+                if cpu and "cpu_usage_percent" in results["metrics"]:
+                    cu = results["metrics"]["cpu_usage_percent"]
+                    console.print(".1f")
+
+                console.print(".1f")
+
+            else:
+                console.print("[red]No successful iterations to analyze[/red]")
+
+        else:
+            # Show current system metrics
+            console.print("[blue]Current system performance metrics:[/blue]")
+
+            memory_info = process.memory_info()
+            cpu_percent = process.cpu_percent(interval=1.0)
+
+            console.print(f"Memory Usage: {memory_info.rss / 1024 / 1024:.1f} MB")
+            console.print(f"CPU Usage: {cpu_percent:.1f}%")
+            console.print(f"Threads: {process.num_threads()}")
+            console.print(f"Open Files: {len(process.open_files())}")
+
+            # System-wide metrics
+            system_memory = psutil.virtual_memory()
+            system_cpu = psutil.cpu_percent(interval=1.0)
+
+            console.print(
+                f"System Memory: {system_memory.percent:.1f}% used ({system_memory.available / 1024 / 1024 / 1024:.1f} GB available)"
+            )
+            console.print(f"System CPU: {system_cpu:.1f}%")
+
+            results["metrics"] = {
+                "process_memory_mb": memory_info.rss / 1024 / 1024,
+                "process_cpu_percent": cpu_percent,
+                "process_threads": process.num_threads(),
+                "process_open_files": len(process.open_files()),
+                "system_memory_percent": system_memory.percent,
+                "system_memory_available_gb": system_memory.available
+                / 1024
+                / 1024
+                / 1024,
+                "system_cpu_percent": system_cpu,
+            }
+
+        # Save results if requested
+        if output_file:
+            import json
+
+            with open(output_file, "w") as f:
+                json.dump(results, f, indent=2)
+            console.print(f"[green]✓[/green] Results saved to {output_file}")
+
+    except (ImportError, RuntimeError) as e:
+        console.print(f"[red]Error in performance monitoring: {e}[/red]")
+        apgi_logger.logger.error(f"Performance monitoring error: {e}")
 
 
 def _list_protocols(validation_dir: Path) -> List[str]:
@@ -3927,11 +4653,157 @@ def test_errors(test_config: bool, test_validation: bool, test_data: bool) -> No
         apgi_logger.logger.error(f"Error handling test error: {e}")
 
 
+@cli.command()
+@click.option("--protocol", type=int, help="Validation protocol number (1-12)")
+@click.option("--input-data", help="Input data file for validation")
+@click.option(
+    "--use-synthetic", is_flag=True, help="Generate synthetic data for validation"
+)
+@click.option("--output-file", help="Output file for validation results")
+@click.option("--samples", default=1000, help="Number of synthetic samples to generate")
+@click.pass_context
+def validate_pipeline(
+    ctx: click.Context,
+    protocol: Optional[int],
+    input_data: Optional[str],
+    use_synthetic: bool,
+    output_file: Optional[str],
+    samples: int,
+) -> None:
+    """Run validation protocols with integrated preprocessing pipeline.
+
+    This command connects preprocessing pipelines with validation protocols
+    to enable end-to-end workflow automation.
+
+    Examples:
+        main.py validate-pipeline --protocol 1 --use-synthetic
+        main.py validate-pipeline --protocol 2 --input-data data.csv
+        main.py validate-pipeline --protocol 3 --use-synthetic --samples 2000
+    """
+    console.print(Panel.fit("🔗 Validation Pipeline Connector", style="bold cyan"))
+
+    if not protocol:
+        console.print("[red]Error: Protocol number is required[/red]")
+        console.print("Available protocols: 1-12")
+        return
+
+    if protocol < 1 or protocol > 12:
+        console.print(f"[red]Error: Protocol {protocol} not found. Use 1-12[/red]")
+        return
+
+    try:
+        # Initialize validation pipeline connector
+        connector = ValidationPipelineConnector()
+
+        # Run validation with integrated pipeline
+        result = connector.run_validation_with_pipeline(
+            validation_protocol=protocol,
+            input_data=input_data,
+            use_synthetic=use_synthetic,
+            n_samples=samples,
+        )
+
+        if result["status"] == "success":
+            console.print(
+                f"[green]✓[/green] Protocol {protocol} completed successfully"
+            )
+
+            # Display results summary
+            metadata = result["pipeline_metadata"]
+            console.print(f"[blue]Data shape: {metadata['data_shape']}[/blue]")
+            console.print(f"[blue]Data source: {metadata['source']}[/blue]")
+
+            compatibility = metadata["compatibility"]
+            if compatibility["valid"]:
+                console.print("[green]✓[/green] Data compatibility check passed")
+            else:
+                console.print("[yellow]⚠[/yellow] Data compatibility warnings:")
+                for warning in compatibility["warnings"]:
+                    console.print(f"  • {warning}")
+
+            # Save results if requested
+            if output_file:
+                import json
+
+                with open(output_file, "w") as f:
+                    json.dump(result, f, indent=2, default=str)
+                console.print(f"[green]✓[/green] Results saved to {output_file}")
+
+            # Display validation result summary
+            if "validation_result" in result:
+                val_result = result["validation_result"]
+                if isinstance(val_result, dict):
+                    console.print("[blue]Validation Result Summary:[/blue]")
+                    for key, value in list(val_result.items())[
+                        :5
+                    ]:  # Show first 5 items
+                        console.print(f"  {key}: {value}")
+                else:
+                    console.print(f"[blue]Validation Result: {val_result}[/blue]")
+
+        else:
+            console.print(f"[red]❌ Protocol {protocol} failed[/red]")
+            console.print(f"Error: {result.get('error', 'Unknown error')}")
+
+            if "pipeline_metadata" in result:
+                metadata = result["pipeline_metadata"]
+                if "compatibility" in metadata:
+                    compatibility = metadata["compatibility"]
+                    if compatibility.get("missing_columns"):
+                        console.print(
+                            f"[yellow]Missing columns: {compatibility['missing_columns']}[/yellow]"
+                        )
+
+    except (ValueError, TypeError, ImportError, RuntimeError, FileNotFoundError) as e:
+        console.print(f"[red]Error in validation pipeline: {e}[/red]")
+        apgi_logger.logger.error(f"Validation pipeline error: {e}")
+
+
+@cli.command()
+@click.option("--host", default="127.0.0.1", help="Host for dashboard")
+@click.option("--port", type=int, default=8050, help="Port for performance dashboard")
+@click.option("--debug", is_flag=True, help="Enable debug mode")
+@click.pass_context
+def performance_dashboard(
+    ctx: click.Context, host: str, port: int, debug: bool
+) -> None:
+    """Launch comprehensive performance monitoring dashboard.
+
+    Provides real-time system monitoring, performance metrics visualization,
+    validation results tracking, and interactive reporting.
+
+    Examples:
+        main.py performance-dashboard                    # Run on default port 8050
+        main.py performance-dashboard --port 8080        # Run on port 8080
+        main.py performance-dashboard --host 0.0.0.0      # Run on specific host
+        main.py performance-dashboard --debug              # Enable debug mode
+    """
+    console.print(Panel.fit("📊 Performance Dashboard", style="bold magenta"))
+
+    try:
+        from utils.comprehensive_performance_dashboard import (
+            ComprehensivePerformanceDashboard,
+        )
+
+        dashboard = ComprehensivePerformanceDashboard(port=port, debug=debug)
+        dashboard.run(host=host)
+
+    except ImportError as e:
+        console.print(
+            f"[red]Error: Performance dashboard dependencies not available: {e}[/red]"
+        )
+        console.print("[yellow]Install with: pip install dash plotly psutil[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error starting performance dashboard: {e}[/red]")
+        apgi_logger.logger.error(f"Performance dashboard error: {e}")
+
+
 # Add all commands to CLI
 cli.add_command(formal_model)
 cli.add_command(multimodal)
 cli.add_command(estimate_params)
 cli.add_command(validate)
+cli.add_command(validate_pipeline)
 cli.add_command(falsify)
 cli.add_command(config)
 cli.add_command(logs)

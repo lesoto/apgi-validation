@@ -46,6 +46,11 @@ python main.py validate --protocol 3
 # Run falsification protocols
 python main.py falsify --protocol 1
 
+# CLI integration via `validate-pipeline` command
+python main.py validate-pipeline --protocol 1 --use-synthetic
+python main.py validate-pipeline --protocol 2 --input-data data.csv
+python main.py validate-pipeline --protocol 3 --use-synthetic --samples 2000
+
 # View framework information
 python main.py info
 ```
