@@ -110,12 +110,12 @@ class SampleDataGenerator:
         pink_noise = self._generate_pink_noise(self.n_samples) * 0.5
         eeg_signal += pink_noise
 
-        # Add P300 events (every 2-4 seconds for testing purposes)
+        # Add P300 events (fixed intervals for testing)
         p300_events = []
-        event_time = 0.5  # Start earlier for short durations
-        while event_time < self.duration - 0.2:  # Allow events closer to end
+        p300_event_times = np.arange(1, self.duration - 1, 1.5)  # Every 1.5 seconds
+        for event_time in p300_event_times:
             event_idx = int(event_time * self.sampling_rate)
-            if event_idx < self.n_samples - 100:  # Ensure minimal space for P300
+            if event_idx < self.n_samples - 100:
                 # P300 waveform (positive peak around 300ms)
                 p300_template = self._generate_p300_waveform()
                 p300_start = event_idx
@@ -124,9 +124,6 @@ class SampleDataGenerator:
                     : p300_end - p300_start
                 ]
                 p300_events.append(event_time)
-
-                # Next event after random interval (shorter for testing)
-                event_time += np.random.uniform(1, 2)
 
         # Add artifacts if requested
         if include_artifacts:

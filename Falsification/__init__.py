@@ -203,6 +203,13 @@ __version__ = "1.0.0"
 
 # Export all main classes for easy access
 __all__ = [
+    # Protocols
+    "Protocol_1",
+    "Protocol_2",
+    "Protocol_3",
+    "Protocol_4",
+    "Protocol_5",
+    "Protocol_6",
     # Protocol 1
     "HierarchicalGenerativeModel",
     "SomaticMarkerNetwork",

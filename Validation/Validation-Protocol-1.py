@@ -1734,7 +1734,125 @@ def enhanced_cross_validation(dataset, n_folds=5):
         # Inner loop: hyperparameter tuning
         # Outer loop: performance estimation
         # This prevents optimistic bias
-        pass
+
+        # Define hyperparameter grid
+        param_grid = {
+            "learning_rate": [1e-4, 5e-4, 1e-3],
+            "dropout": [0.3, 0.5, 0.7],
+            "batch_size": [16, 32, 64],
+        }
+
+        # Generate all parameter combinations
+        from itertools import product
+
+        param_combinations = list(product(*param_grid.values()))
+        param_names = list(param_grid.keys())
+
+        best_score = -float("inf")
+        best_params = None
+
+        # Inner CV for hyperparameter tuning (3-fold)
+        inner_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+
+        for params in param_combinations:
+            param_dict = dict(zip(param_names, params))
+            scores = []
+
+            for inner_train_idx, inner_val_idx in inner_cv.split(
+                dataset["eeg"][train_idx], dataset["ignition_labels"][train_idx]
+            ):
+                # Create inner datasets
+                inner_train_eeg = dataset["eeg"][train_idx][inner_train_idx]
+                inner_train_labels = dataset["ignition_labels"][train_idx][
+                    inner_train_idx
+                ]
+                inner_val_eeg = dataset["eeg"][train_idx][inner_val_idx]
+                inner_val_labels = dataset["ignition_labels"][train_idx][inner_val_idx]
+
+                # Create datasets and loaders
+                inner_train_dataset = IgnitionClassificationDataset(
+                    inner_train_eeg, inner_train_labels
+                )
+                inner_val_dataset = IgnitionClassificationDataset(
+                    inner_val_eeg, inner_val_labels
+                )
+
+                inner_train_loader = DataLoader(
+                    inner_train_dataset,
+                    batch_size=param_dict["batch_size"],
+                    shuffle=True,
+                )
+                inner_val_loader = DataLoader(
+                    inner_val_dataset,
+                    batch_size=param_dict["batch_size"],
+                    shuffle=False,
+                )
+
+                # Train model with these parameters
+                model = IgnitionClassifier(
+                    n_channels=64, n_timepoints=1000, dropout=param_dict["dropout"]
+                )
+                trained_model, _ = train_ignition_classifier(
+                    model,
+                    inner_train_loader,
+                    inner_val_loader,
+                    epochs=5,
+                    lr=param_dict["learning_rate"],
+                    device="cpu",
+                )
+
+                # Evaluate
+                val_results = evaluate_ignition_classifier(
+                    trained_model, inner_val_loader, device="cpu"
+                )
+                scores.append(val_results["accuracy"])
+
+            # Average score across inner folds
+            avg_score = np.mean(scores)
+            if avg_score > best_score:
+                best_score = avg_score
+                best_params = param_dict
+
+        # Train final model with best parameters on full outer train set
+        final_model = IgnitionClassifier(
+            n_channels=64, n_timepoints=1000, dropout=best_params["dropout"]
+        )
+        train_dataset_full = IgnitionClassificationDataset(
+            dataset["eeg"][train_idx], dataset["ignition_labels"][train_idx]
+        )
+        train_loader_full = DataLoader(
+            train_dataset_full, batch_size=best_params["batch_size"], shuffle=True
+        )
+        val_loader_dummy = DataLoader(
+            train_dataset_full, batch_size=best_params["batch_size"], shuffle=False
+        )  # Dummy
+
+        final_trained_model, _ = train_ignition_classifier(
+            final_model,
+            train_loader_full,
+            val_loader_dummy,
+            epochs=10,
+            lr=best_params["learning_rate"],
+            device="cpu",
+        )
+
+        # Evaluate on outer test set
+        test_dataset = IgnitionClassificationDataset(
+            dataset["eeg"][test_idx], dataset["ignition_labels"][test_idx]
+        )
+        test_loader = DataLoader(
+            test_dataset, batch_size=best_params["batch_size"], shuffle=False
+        )
+        test_results = evaluate_ignition_classifier(
+            final_trained_model, test_loader, device="cpu"
+        )
+
+        results[f"fold_{fold_idx}"] = {
+            "best_params": best_params,
+            "test_accuracy": test_results["accuracy"],
+            "test_f1": test_results["f1_score"],
+            "test_auc": test_results["auc_roc"],
+        }
 
     return results
 

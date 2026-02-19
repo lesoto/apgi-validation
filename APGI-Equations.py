@@ -2606,9 +2606,10 @@ class EnhancedSurpriseIgnitionSystem:
         )
 
         # Compute accumulated signal (dimensionally correct)
-        S_input = self.ignition_system.accumulated_signal(
-            Pi_e_input, self.eps_e, Pi_i_eff, self.eps_i
-        )
+        # Note: S_input computed but not used in current implementation
+        # S_input = self.ignition_system.accumulated_signal(
+        #     Pi_e_input, self.eps_e, Pi_i_eff, self.eps_i
+        # )
 
         # ========== COMPLETE DYNAMICAL SYSTEM ==========
         # Signal dynamics: dS/dt = -τ_S⁻¹S + ½Π^e(ε^e)² + ½Π^i_eff(ε^i)² + σ_Sξ_S

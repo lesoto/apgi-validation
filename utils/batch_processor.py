@@ -19,7 +19,15 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+
+# Optional import for tqdm
+try:
+    from tqdm import tqdm
+
+    TQDM_AVAILABLE = True
+except ImportError:
+    TQDM_AVAILABLE = False
+    tqdm = None  # type: ignore
 
 # Add project root to Python path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -341,12 +349,13 @@ class BatchProcessor:
 
         print(f"Running {len(self.jobs)} jobs with {self.max_workers} workers...")
 
-        # Create progress bar
-        pbar = (
-            tqdm(total=len(self.jobs), desc="Processing jobs")
-            if show_progress
-            else None
-        )
+        # Create progress bar (or simple counter if tqdm not available)
+        if show_progress and TQDM_AVAILABLE:
+            pbar = tqdm(total=len(self.jobs), desc="Processing jobs")
+        else:
+            pbar = None
+            if show_progress:
+                print("Progress tracking disabled (tqdm not available)")
 
         # Separate and run different job types
         memory_intensive_jobs, regular_jobs = self._categorize_jobs()
@@ -362,7 +371,7 @@ class BatchProcessor:
         self._retry_failed_jobs(failed_jobs, completed_jobs, pbar)
 
         # Cleanup progress bar
-        if pbar:
+        if pbar and TQDM_AVAILABLE:
             pbar.close()
 
         # Compile and return results

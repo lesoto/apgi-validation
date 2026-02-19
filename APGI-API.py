@@ -7,17 +7,36 @@ REST API for running simulations, validations, and accessing results.
 """
 
 import sys
+import os
 from pathlib import Path
 from typing import Dict, Optional
 import secrets
-import hashlib
+import bcrypt
 from datetime import datetime, timedelta
 import numpy as np
+import threading
+import json
 
 from fastapi import FastAPI, Form, HTTPException, UploadFile, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from werkzeug.utils import secure_filename
+
+# Rate limiting (optional)
+try:
+    from slowapi import Limiter, SlowAPIMiddleware
+    from slowapi.errors import RateLimitExceeded
+    from slowapi import _rate_limit_exceeded_handler
+    from werkzeug.middleware.proxy_fix import get_remote_address
+
+    SLOWAPI_AVAILABLE = True
+except ImportError:
+    SLOWAPI_AVAILABLE = False
+    Limiter = None
+    SlowAPIMiddleware = None
+    RateLimitExceeded = None
+    _rate_limit_exceeded_handler = None
+    get_remote_address = None
 
 # Add project root to Python path
 PROJECT_ROOT = Path(__file__).parent
@@ -26,11 +45,40 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from utils import data_validation, sample_data_generator
 from utils.config_manager import ConfigManager
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(
     title="APGI Framework API",
     description="REST API for the Active Predictive Processing and Ignition (APGI) framework",
     version="1.0.0",
 )
+
+# CORS setup
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify allowed origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Rate limiting setup (conditional)
+if SLOWAPI_AVAILABLE:
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
+else:
+    # Rate limiting disabled - slowapi not available
+    # Create dummy limiter for decorators
+    class DummyLimiter:
+        def limit(self, limit_string):
+            def decorator(func):
+                return func
+
+            return decorator
+
+    limiter = DummyLimiter()
 
 # Initialize components
 config_manager = ConfigManager()
@@ -40,6 +88,12 @@ DATA_REPO = PROJECT_ROOT / "data_repository"
 RAW_DATA_DIR = DATA_REPO / "raw_data"
 PROCESSED_DATA_DIR = DATA_REPO / "processed_data"
 METADATA_DIR = DATA_REPO / "metadata"
+
+# Create data repository directories on startup
+DATA_REPO.mkdir(parents=True, exist_ok=True)
+RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
+PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
+METADATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class SimulationRequest(BaseModel):
@@ -88,43 +142,131 @@ class TokenResponse(BaseModel):
 security = HTTPBearer()
 
 # Simple in-memory user store (in production, use proper database)
-USERS_DB = {
-    "admin": hashlib.sha256("admin123".encode()).hexdigest(),  # Default admin user
-    "researcher": hashlib.sha256(
-        "research123".encode()
-    ).hexdigest(),  # Default researcher user
-}
+# Load credentials from environment variables ONLY
+USERS_DB = {}
+
+# Initialize admin user from environment
+admin_username = os.getenv("APGI_ADMIN_USERNAME")
+admin_password = os.getenv("APGI_ADMIN_PASSWORD")
+if admin_username and admin_password:
+    USERS_DB[admin_username] = bcrypt.hashpw(
+        admin_password.encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+
+# Initialize researcher user from environment
+researcher_username = os.getenv("APGI_RESEARCHER_USERNAME")
+researcher_password = os.getenv("APGI_RESEARCHER_PASSWORD")
+if researcher_username and researcher_password:
+    USERS_DB[researcher_username] = bcrypt.hashpw(
+        researcher_password.encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+
+# No fallback default credentials - require environment variables
 
 # Token store (in production, use Redis or database)
 TOKENS = {}
 TOKEN_EXPIRY_HOURS = 24
+TOKEN_LOCK = threading.Lock()
+TOKEN_FILE = PROJECT_ROOT / "data" / "tokens.json"
+
+# Ensure token storage directory exists
+TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+
+def load_tokens_from_file():
+    """Load tokens from persistent storage."""
+    try:
+        if TOKEN_FILE.exists():
+            with open(TOKEN_FILE, "r") as f:
+                data = json.load(f)
+                # Convert string expiry back to datetime
+                for token, info in data.items():
+                    if isinstance(info.get("expiry"), str):
+                        info["expiry"] = datetime.fromisoformat(info["expiry"])
+                TOKENS.update(data)
+    except (json.JSONDecodeError, KeyError, ValueError):
+        # If file is corrupted, start fresh
+        pass
+
+
+def save_tokens_to_file():
+    """Save tokens to persistent storage."""
+    try:
+        # Convert datetime objects to strings for JSON serialization
+        serializable_tokens = {}
+        for token, info in TOKENS.items():
+            serializable_tokens[token] = {
+                "username": info["username"],
+                "expiry": (
+                    info["expiry"].isoformat()
+                    if isinstance(info["expiry"], datetime)
+                    else info["expiry"]
+                ),
+            }
+
+        with open(TOKEN_FILE, "w") as f:
+            json.dump(serializable_tokens, f, indent=2)
+    except (OSError, IOError) as e:
+        # Log error but don't crash the application
+        print(f"Warning: Could not save tokens to file: {e}")
+
+
+def cleanup_expired_tokens():
+    """Remove expired tokens from memory and storage."""
+    current_time = datetime.utcnow()
+    expired_tokens = [
+        token
+        for token, info in TOKENS.items()
+        if current_time > info.get("expiry", current_time)
+    ]
+
+    for token in expired_tokens:
+        del TOKENS[token]
+
+    if expired_tokens:
+        save_tokens_to_file()
+
+
+# Load existing tokens on startup
+load_tokens_from_file()
+cleanup_expired_tokens()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash."""
-    return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
+    """Verify a password against its bcrypt hash."""
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"), hashed_password.encode("utf-8")
+        )
+    except (ValueError, TypeError):
+        # No fallback to insecure hashing - require proper bcrypt hashes
+        return False
 
 
 def create_access_token(username: str) -> str:
     """Create a new access token for the user."""
-    token = secrets.token_urlsafe(32)
-    expiry = datetime.utcnow() + timedelta(hours=TOKEN_EXPIRY_HOURS)
-    TOKENS[token] = {"username": username, "expiry": expiry}
-    return token
+    with TOKEN_LOCK:
+        token = secrets.token_urlsafe(32)
+        expiry = datetime.utcnow() + timedelta(hours=TOKEN_EXPIRY_HOURS)
+        TOKENS[token] = {"username": username, "expiry": expiry}
+        save_tokens_to_file()
+        return token
 
 
 def verify_token(token: str) -> Optional[str]:
     """Verify a token and return the associated username if valid."""
-    if token not in TOKENS:
-        return None
+    with TOKEN_LOCK:
+        if token not in TOKENS:
+            return None
 
-    token_data = TOKENS[token]
-    if datetime.utcnow() > token_data["expiry"]:
-        # Token expired, remove it
-        del TOKENS[token]
-        return None
+        token_data = TOKENS[token]
+        if datetime.utcnow() > token_data["expiry"]:
+            # Token expired, remove it
+            del TOKENS[token]
+            save_tokens_to_file()
+            return None
 
-    return token_data["username"]
+        return token_data["username"]
 
 
 async def get_current_user(
@@ -159,6 +301,7 @@ async def health_check():
 
 
 @app.post("/auth/login", response_model=TokenResponse)
+@limiter.limit("5/minute")
 async def login(request: LoginRequest):
     """Authenticate user and return access token."""
     if request.username not in USERS_DB:
@@ -184,6 +327,7 @@ async def login(request: LoginRequest):
 
 
 @app.post("/simulation/run")
+@limiter.limit("10/minute")
 async def run_simulation(
     request: SimulationRequest, current_user: str = Depends(get_current_user)
 ):
@@ -295,9 +439,37 @@ async def generate_data(
 
 
 @app.post("/data/validate")
-async def validate_data_file(file: UploadFile):
+async def validate_data_file(
+    file: UploadFile, current_user: str = Depends(get_current_user)
+):
     """Validate an uploaded data file."""
     try:
+        # Validate file type
+        allowed_content_types = [
+            "text/csv",
+            "application/csv",
+            "text/plain",
+            "application/json",
+        ]
+        if file.content_type not in allowed_content_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type: {file.content_type}. Allowed types: {', '.join(allowed_content_types)}",
+            )
+
+        # Validate file size (10MB limit)
+        max_size = 10 * 1024 * 1024  # 10MB
+        file_size = 0
+        content = await file.read()
+        file_size = len(content)
+        await file.seek(0)  # Reset file pointer
+
+        if file_size > max_size:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large: {file_size} bytes. Maximum allowed: {max_size} bytes",
+            )
+
         # Save uploaded file temporarily with secure filename
         temp_dir = PROJECT_ROOT / "temp"
         temp_dir.mkdir(exist_ok=True)
@@ -306,7 +478,6 @@ async def validate_data_file(file: UploadFile):
 
         # Write uploaded file to temp location
         with open(temp_path, "wb") as f:
-            content = await file.read()
             f.write(content)
 
         try:
@@ -346,7 +517,9 @@ async def validate_data_file(file: UploadFile):
 
 
 @app.get("/config")
-async def get_config(section: Optional[str] = None):
+async def get_config(
+    section: Optional[str] = None, current_user: str = Depends(get_current_user)
+):
     """Get current configuration."""
     try:
         config = config_manager.get_config(section)
@@ -399,7 +572,9 @@ async def create_config_profile(
 
 
 @app.get("/config/profiles")
-async def list_config_profiles(category: Optional[str] = None):
+async def list_config_profiles(
+    category: Optional[str] = None, current_user: str = Depends(get_current_user)
+):
     """List available configuration profiles."""
     try:
         profiles = config_manager.list_profiles(category)
@@ -521,7 +696,9 @@ async def upload_data_file(
 
 
 @app.get("/results/{result_id}")
-async def get_validation_results(result_id: str):
+async def get_validation_results(
+    result_id: str, current_user: str = Depends(get_current_user)
+):
     """Retrieve validation results by ID."""
     raise HTTPException(
         status_code=501,
@@ -530,7 +707,7 @@ async def get_validation_results(result_id: str):
 
 
 @app.get("/protocols/list")
-async def list_validation_protocols():
+async def list_validation_protocols(current_user: str = Depends(get_current_user)):
     """List available validation protocols."""
     try:
         protocols = {

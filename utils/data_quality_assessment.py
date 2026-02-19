@@ -385,7 +385,8 @@ class DataQualityAssessment:
             # Method 1: Isolation Forest
             iso_forest = IsolationForest(contamination=0.1, random_state=42)
             anomaly_labels = iso_forest.fit_predict(X)
-            anomaly_scores = iso_forest.decision_function(X)
+            # Note: anomaly_scores computed but not used in current implementation
+            # anomaly_scores = iso_forest.decision_function(X)
 
             # Identify anomalies
             anomaly_indices = np.where(anomaly_labels == -1)[0]

@@ -134,13 +134,14 @@ class DataValidator:
     def _validate_csv_structure(self, df: pd.DataFrame, results: Dict) -> bool:
         """Validate CSV DataFrame structure."""
         required_columns = ["timestamp", "EEG_Cz", "pupil_diameter", "eda"]
-        optional_columns = [
-            "eeg_pz",
-            "heart_rate",
-            "event_marker",
-            "subject_id",
-            "session_id",
-        ]
+        # Note: optional_columns defined but not used in current implementation
+        # optional_columns = [
+        #     "eeg_pz",
+        #     "heart_rate",
+        #     "event_marker",
+        #     "subject_id",
+        #     "session_id",
+        # ]
 
         # Check required columns
         missing_columns = [col for col in required_columns if col not in df.columns]

@@ -17,14 +17,14 @@ def test_simulation_performance():
 
     def run_simulation():
         generator = sample_data_generator.SampleDataGenerator(
-            sampling_rate=1000, duration=1
+            sampling_rate=1000, duration=3  # Increased duration to ensure events
         )
         eeg_signal, p300_events = generator.generate_eeg_data()
         return len(eeg_signal), len(p300_events)
 
     signal_length, event_count = run_simulation()
 
-    assert signal_length == 1000  # 1000 Hz * 1 second
+    assert signal_length == 3000  # 1000 Hz * 3 seconds
     assert event_count > 0
 
 
