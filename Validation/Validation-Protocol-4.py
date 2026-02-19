@@ -14,12 +14,10 @@ This protocol implements:
 - Long-range correlation analysis (Hurst exponents)
 - Comprehensive falsification testing
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0 (Production)
+# NOTE: β here refers to CRITICAL EXPONENT in phase transition theory,
+# NOT to be confused with β_som (somatic modulation gain) in APGI equations.
+# Critical exponents: β (order parameter), γ (susceptibility)
 
-Dependencies:
-    numpy, scipy, pandas, matplotlib, seaborn, sklearn, tqdm
 """
 
 import json
@@ -128,7 +126,8 @@ class APGIDynamicalSystem:
             )
             theta[i] = self.theta_0 + theta_noise
 
-            # APGI core equation: dS/dt = -S/τ + Π_e·|ε_e| + β·Π_i(M,c,a)·|ε_i|
+            # APGI core equation: dS/dt = -S/τ + Π_e·|ε_e| + β_som·Π_i(M,c,a)·|ε_i|
+
             if i > 0:
                 extero_contrib = Pi_e * np.abs(eps_e)
                 intero_contrib = beta * Pi_i * np.abs(eps_i)
@@ -824,7 +823,11 @@ class FiniteSizeScalingAnalysis:
         exponents = {}
 
         # Log-log fit for exponent β
-        # log(m) = β * log(|T - Tc|) + const
+
+        # log(m) = β_crit * log(|T - Tc|) + const
+        # NOTE: β_crit is critical exponent (phase transition theory),
+        # distinct from β_som (somatic gain) in APGI equations
+
         if len(param_near_crit) > 3:
             reduced_param = np.abs(param_near_crit - critical_point)
             # Avoid log(0)

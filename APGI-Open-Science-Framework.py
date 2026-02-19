@@ -9,9 +9,6 @@ Complete open science framework for APGI theory validation including:
 - Open access publication templates
 - Collaborative validation framework
 
-Author: APGI Research Team
-Date: 2026
-Version: 1.0 (Open Science)
 """
 
 import json

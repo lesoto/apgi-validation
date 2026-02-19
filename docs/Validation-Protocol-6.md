@@ -530,10 +530,10 @@ print(f"Alpha: {params['alpha']:.3f}")
 If you use this implementation, please cite:
 
 ```bibtex
-@software{apgi_protocol6_2025,
+@software{apgi_protocol6_2026,
   title={APGI Protocol 6: RNN Architectures with APGI Inductive Biases},
-  author={APGI Research Team},
-  year={2025},
+  author={APGI Framework},
+  year={2026},
   version={1.0},
   url={https://github.com/apgi-framework/protocols}
 }

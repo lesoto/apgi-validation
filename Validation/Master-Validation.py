@@ -2,13 +2,13 @@
 APGI Validation Pipeline
 ================================
 
-Executes all 12 protocols and applies hierarchical falsification decision tree
-per validation roadmap page 26.
+Executes all 12 protocols and applies hierarchical falsification decision tree per validation roadmap page 26.
 
 Falsification Logic:
 - Primary tests (Protocols 1, 3, 9, 12): Failure → Framework rejected
 - Secondary tests (2+ failures): Major revision required
 - Tertiary tests (3+ failures): Scope restriction
+
 """
 
 import importlib

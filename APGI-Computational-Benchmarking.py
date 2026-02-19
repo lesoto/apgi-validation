@@ -9,9 +9,6 @@ Implementation of systematic computational comparisons against:
 
 Includes neuromorphic hardware simulation and phase transition analysis.
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0
 """
 
 import json

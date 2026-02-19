@@ -5,12 +5,6 @@ APGI Protocol 1: Synthetic Neural Data Generation and Machine Learning Classific
 Complete implementation of falsifiable predictions for the APGI framework through
 synthetic data generation and multi-model comparison using deep learning.
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0 (Production)
-
-Dependencies:
-    numpy, scipy, torch, sklearn, matplotlib, seaborn, tqdm
 """
 
 import json
@@ -68,7 +62,7 @@ class APGIDynamicalSystem:
         """
         Simulate APGI surprise accumulation dynamics
 
-        Equation: dS/dt = -S/τ + Π_e·|ε_e| + β·Π_i·|ε_i|
+        Equation: dS/dt = -S/τ + Π_e·|ε_e| + β_som·Π_i·|ε_i|
 
         Returns:
             S_trajectory: Surprise over time
@@ -515,7 +509,7 @@ class GlobalWorkspaceOnlyGenerator:
         """
         Generate signals with ignition but no somatic bias
 
-        Key difference: No β·Π_i term in surprise equation
+        Key difference: No β_som·Π_i term in surprise equation
         P3b present, but HEP not modulated by ignition
         """
         # Only exteroceptive signals
@@ -538,8 +532,8 @@ class GlobalWorkspaceOnlyGenerator:
         # HEP present but NOT modulated by ignition
         # (fixed low amplitude)
         hep = self.signal_gen.generate_HEP_waveform(
-            Pi_i=0.5, epsilon_i=0.1, duration=1.0  # Fixed low value
-        )
+            Pi_i=0.5, epsilon_i=0.1, duration=1.0
+        )  # Fixed low value
 
         # Pupil response if ignition
         pupil = self.signal_gen.generate_pupil_response(
@@ -1359,7 +1353,7 @@ class FalsificationChecker:
 
     def check_F1_2(self, confusion_matrix: np.ndarray) -> Tuple[bool, float]:
         """F1.2: APGI-GWT confusion > 40%"""
-        # Extract confusion between APGI (0) and GWTOnly (2)
+        # Extract confusion between APGI  and GWTOnly
         apgi_to_gwt = confusion_matrix[0, 2] / confusion_matrix[0].sum()
         gwt_to_apgi = confusion_matrix[2, 0] / confusion_matrix[2].sum()
         avg_confusion = (apgi_to_gwt + gwt_to_apgi) / 2

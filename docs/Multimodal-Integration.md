@@ -500,7 +500,7 @@ If you use this software in research, please cite:
 @software{apgi_multimodal_integration,
   title={APGI-Multimodal-Integration: Precision-Weighted Conscious Access Prediction},
   author={[Your Name]},
-  year={2024},
+  year={2026},
   url={https://github.com/your-repo/apgi-multimodal-integration}
 }
 ```
@@ -576,15 +576,7 @@ def complete_apgi_analysis(subject_data, individual_profile=None):
         'threshold': apgi_params.theta_t
     }
 
-# Key formulas (FIXED)
 ignition_signal = apgi_params.Pi_e * abs(apgi_params.z_e) + \
                  apgi_params.Pi_i_eff * abs(apgi_params.z_i)
 ignition_prob = 1 / (1 + np.exp(-ignition_signal))
 ```
-
----
-
-**🆕 Last Updated**: December 2024
-**Version**: 2.0 (Major Feature Release)
-**Compatibility**: Python 3.8+, PyTorch 1.9+
-**🆕 New Features**: Threshold Integration, Beta Individualization, Protocol 1 Windowing, Bug Fixes

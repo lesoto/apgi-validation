@@ -13,7 +13,7 @@ Each state is defined with:
 - theta_t: Ignition threshold (z-score units; negative = lowered, positive = elevated)
 - S_t: Accumulated surprise signal (computed: Π_e·|z_e| + Π_i_eff·|z_i|)
 - M_ca: Somatic marker value ∈ [-2, +2]
-- beta: Somatic influence gain ∈ [0.3, 0.8]
+- beta: Somatic influence gain (β_som) ∈ [0.3, 0.8]
 - z_e: Exteroceptive prediction error magnitude
 - z_i: Interoceptive prediction error magnitude
 
@@ -50,7 +50,7 @@ class APGIParameters:
     theta_t: float  # Ignition threshold (z-score)
     S_t: float  # Accumulated surprise signal
     M_ca: float  # Somatic marker value ∈ [-2, +2]
-    beta: float  # Somatic influence gain ∈ [0.3, 0.8]
+    beta: float  # Somatic influence gain (β_som) ∈ [0.3, 0.8]
     z_e: float  # Exteroceptive z-score
     z_i: float  # Interoceptive z-score
 
@@ -76,7 +76,7 @@ class APGIParameters:
         return np.isclose(self.S_t, computed, rtol=0.001)
 
     def verify_Pi_i_eff(self) -> bool:
-        """Verify Π_i_eff matches the formula: Π_i_eff = Π_i_baseline · exp(β·M)"""
+        """Verify Π_i_eff matches the formula: Π_i_eff = Π_i_baseline · exp(β_som·M)"""
         computed = self.Pi_i_baseline * np.exp(self.beta * self.M_ca)
         computed = np.clip(computed, 0.1, 15.0)
         return np.isclose(self.Pi_i_eff, computed, rtol=0.001)
@@ -122,7 +122,7 @@ def create_apgi_params(
     Factory function that computes derived parameters automatically.
 
     Computes:
-    - Pi_i_eff = Pi_i_baseline · exp(β·M_ca)
+    - Pi_i_eff = Pi_i_baseline · exp(β_som·M_ca)
     - S_t = Π_e·|z_e| + Π_i_eff·|z_i|
     """
     # Compute effective interoceptive precision with somatic modulation
@@ -1142,7 +1142,7 @@ DERIVED VALUES
   Ignition probability:       {ignition_prob:6.2%}
 
 Formula verification:
-  Π_i_eff = Π_i_baseline · exp(β·M):  {"✓" if params.verify_Pi_i_eff() else "✗"}
+  Π_i_eff = Π_i_baseline · exp(β_som·M):  {"✓" if params.verify_Pi_i_eff() else "✗"}
   S_t = Π_e·|z_e| + Π_i_eff·|z_i|:    {"✓" if params.verify_S_t() else "✗"}
 ═══════════════════════════════════════════════════════════════════
 """

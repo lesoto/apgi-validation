@@ -583,7 +583,7 @@ for param_name, param_values in param_ranges.items():
 If you use Protocol 4 in your research, please cite:
 
 ```text
-APGI Research Team (2025). Protocol 4: Information-Theoretic
+APGI Framework (2026). Protocol 4: Information-Theoretic
 Phase Transition Analysis. APGI Framework Testing Suite.
 ```text
 

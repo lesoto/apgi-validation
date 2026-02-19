@@ -20,9 +20,6 @@ Example:
     >>> pupil_data = generator.generate_pupil_data()
     >>> multimodal_df = generate_sample_multimodal_data(n_samples=1000)
 
-Author: APGI Research Team
-Date: 2026
-Version: 1.0
 """
 
 import json

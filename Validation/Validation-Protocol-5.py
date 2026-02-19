@@ -10,12 +10,6 @@ This protocol uses genetic algorithms to evolve agent architectures and tests
 whether APGI components (threshold ignition, interoceptive weighting, somatic
 markers, precision gating) provide selective advantages.
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0 (Production)
-
-Dependencies:
-    numpy, scipy, pandas, matplotlib, seaborn, tqdm
 """
 
 import copy
@@ -45,7 +39,7 @@ class AgentGenome:
 
     Structural genes determine which APGI components are present:
         - has_threshold: Discrete ignition vs continuous processing
-        - has_intero_weighting: β·Π_i term vs uniform weighting
+        - has_intero_weighting: β_som·Π_i term vs uniform weighting
         - has_somatic_markers: Affective valuation of states
         - has_precision_weighting: Precision-gated vs direct processing
 
@@ -212,7 +206,8 @@ class EvolvableAgent:
         """
         Compute accumulated surprise based on genome architecture
 
-        Full APGI: S_t = Π_e·|ε_e| + β·Π_i·|ε_i|
+        Full APGI: S_t = Π_e·|ε_e| + β_som·Π_i·|ε_i|
+
         Without intero_weighting: S_t = Π_e·|ε_e| + |ε_i|
         Without precision: S_t = |ε_e| + |ε_i|
         """

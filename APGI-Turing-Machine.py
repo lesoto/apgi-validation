@@ -6,7 +6,7 @@ APGI TURING MACHINE - Complete Implementation
 Implements Allostatic Precision-Gated Ignition as a discrete-state chemical
 computation system with continuous dynamics.
 
-Core equation: S_t = Π_e·|ε_e| + β·Π_i·|ε_i| → Ignition if S_t > θ_t
+Core equation: S_t = Π_e·|ε_e| + β_som·Π_i·|ε_i| → Ignition if S_t > θ_t
 with θ_t dynamically regulated by neuromodulators and metabolic cost
 
 Integrates:
@@ -317,7 +317,8 @@ class APGITuringMachine:
         """
         Compute precision-weighted prediction error
 
-        PE_weighted = Π · |ε| · β^(is_intero)
+        PE_weighted = Π · |ε| · β_som^(is_intero)
+
         """
         if self.is_interoceptive(signal):
             # Interoceptive: apply somatic bias
@@ -1036,7 +1037,7 @@ def run_baseline_simulation(duration: float = 120.0, dt: float = 0.05):
 
     print(f"Duration: {duration}s | Time step: {dt}s | Steps: {steps}")
     print(
-        f"Parameters: Π_e={params.Pi_e:.2f}, Π_i={params.Pi_i:.2f}, β={params.beta:.2f}"
+        f"Parameters: Π_e={params.Pi_e:.2f}, Π_i={params.Pi_i:.2f}, β_som={params.beta:.2f}"
     )
     print()
 
@@ -1137,8 +1138,12 @@ def run_anxiety_comparison(duration: float = 60.0):
     params_anxiety = APGIParameters(anxiety_level=0.9, alexithymia_level=0.2)
     machine_anxiety = APGITuringMachine(params_anxiety)
 
-    print(f"\nNeutral β={params_neutral.beta:.3f}, κ_NE={params_neutral.kappa_NE:.3f}")
-    print(f"Anxiety β={params_anxiety.beta:.3f}, κ_NE={params_anxiety.kappa_NE:.3f}")
+    print(
+        f"\nNeutral β_som={params_neutral.beta:.3f}, κ_NE={params_neutral.kappa_NE:.3f}"
+    )
+    print(
+        f"Anxiety β_som={params_anxiety.beta:.3f}, κ_NE={params_anxiety.kappa_NE:.3f}"
+    )
     print()
 
     # Same input sequence for both

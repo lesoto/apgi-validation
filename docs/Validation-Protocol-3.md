@@ -619,8 +619,8 @@ If using this implementation in research:
 ```bibtex
 @software{apgi_protocol3,
   title = {APGI Protocol 3: Active Inference Agent Simulations},
-  author = {APGI Research Team},
-  year = {2025},
+  author = {APGI Framework},
+  year = {2026},
   version = {1.0},
   url = {https://github.com/apgi-framework/protocols}
 }
@@ -649,9 +649,3 @@ This implementation builds on:
 - Global Workspace Theory (Baars, Dehaene)
 - Somatic Marker Hypothesis (Damasio)
 - Active Inference Framework (Friston, Parr, et al.)
-
----
-
-**Version**: 1.0 (Production)
-**Last Updated**: December 2025
-**Status**: Ready for empirical validation

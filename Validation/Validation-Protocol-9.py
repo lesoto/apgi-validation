@@ -11,9 +11,6 @@ This protocol analyzes real neural data to demonstrate:
 - Theta-gamma phase-amplitude coupling emerges at threshold crossing
 - Subthreshold trials activate sensory cortex without engaging frontoparietal networks
 
-Author: APGI Research Team
-Date: 2026
-Version: 1.0 (Empirical Validation)
 """
 
 import warnings

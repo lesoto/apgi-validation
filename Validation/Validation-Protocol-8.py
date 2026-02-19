@@ -13,12 +13,6 @@ Key Features:
 5. Factor analysis of parameter structure
 6. Falsifiable predictions about parameter relationships
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0 (Production)
-
-Dependencies:
-    numpy, scipy, pandas, matplotlib, seaborn, scikit-learn, statsmodels
 """
 
 import json

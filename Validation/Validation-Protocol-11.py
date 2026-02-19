@@ -6,14 +6,13 @@ Complete implementation of Priority 3 from the APGI Empirical Credibility Roadma
 Quantitative model fits to behavioral data.
 
 This protocol implements:
-- Psychometric function fitting: P(seen) = 1/(1 + exp(-β(S - θ_t)))
+
+- Psychometric function fitting: P(seen) = 1/(1 + exp(-β_steep(S - θ_t)))
+        P(seen) = baseline + amplitude / (1 + exp(-β_steep(S - θ)))
 - Spiking Leaky Neural Network (LNN) implementation reproducing consciousness paradigms
 - Model comparison against GNW and additive linear alternatives
 - Bayesian parameter estimation for model validation
 
-Author: APGI Research Team
-Date: 2026
-Version: 1.0 (Quantitative Validation)
 """
 
 import warnings
@@ -55,7 +54,9 @@ class PsychometricFunctionFitter:
     ) -> np.ndarray:
         """
         APGI sigmoidal psychometric function:
-        P(seen) = baseline + amplitude / (1 + exp(-β(S - θ)))
+
+        P(seen) = baseline + amplitude / (1 + exp(-β_steep(S - θ)))
+
         """
         return baseline + amplitude / (1 + np.exp(-beta * (x - theta)))
 

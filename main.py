@@ -823,7 +823,7 @@ def multimodal(
     try:
         # Import APGI Multimodal Integration classes
         module = module_info["module"]
-        _APGINormalizer = module.APGINormalizer
+        _ = module.APGINormalizer
         APGICoreIntegration = module.APGICoreIntegration
         APGIBatchProcessor = module.APGIBatchProcessor
 
@@ -840,7 +840,7 @@ def multimodal(
         integration = APGICoreIntegration()
 
         # Initialize batch processor
-        _processor = APGIBatchProcessor(integration, config)
+        _ = APGIBatchProcessor(integration, config)
 
         console.print("[green]✓[/green] APGI Integration initialized")
         console.print(f"Input data: {input_data or 'Demo mode'}")
@@ -873,7 +873,7 @@ def estimate_params(
 ) -> None:
     """Perform Bayesian parameter estimation for APGI framework.
 
-    This command estimates the core APGI parameters (θ₀, Πᵢ, β, α) using
+    This command estimates the core APGI parameters (θ₀, Πᵢ, β_som, α) using
     Bayesian inference methods. Supports both synthetic data (demo mode)
     and experimental data files.
 
@@ -898,7 +898,7 @@ def estimate_params(
     try:
         # Import the APGI Parameter Estimation classes
         module = module_info["module"]
-        _NeuralMassGenerator = module.NeuralMassGenerator
+        _ = module.NeuralMassGenerator
 
         # Check if there's a main function we can call directly
         if hasattr(module, "main"):
@@ -933,18 +933,18 @@ def estimate_params(
                 if method == "mcmc":
                     console.print("[blue]Running MCMC parameter estimation...[/blue]")
                     # Create a simple PyMC model for demonstration
-                    with pm.Model() as _model:
+                    with pm.Model() as _:
                         # Priors for APGI parameters
                         Pi_e = pm.Normal("Pi_e", mu=1.0, sigma=0.5)
                         Pi_i = pm.Normal("Pi_i", mu=1.0, sigma=0.5)
-                        _theta = pm.Normal("theta", mu=2.0, sigma=0.5)
-                        _beta = pm.Beta("beta", alpha=2, beta=2)
+                        _ = pm.Normal("theta", mu=2.0, sigma=0.5)
+                        _ = pm.Beta("beta", alpha=2, beta=2)
 
                         # Likelihood (simplified)
                         sigma = pm.HalfNormal("sigma", sigma=1.0)
 
                         # Generate synthetic likelihood for demo
-                        _observed = pm.Normal(
+                        _ = pm.Normal(
                             "observed",
                             mu=Pi_e + Pi_i,
                             sigma=sigma,
@@ -971,18 +971,18 @@ def estimate_params(
                 elif method == "map":
                     console.print("[blue]Running MAP parameter estimation...[/blue]")
                     # Create a simple PyMC model for MAP estimation
-                    with pm.Model() as __model:
+                    with pm.Model() as _:
                         # Priors for APGI parameters
                         Pi_e = pm.Normal("Pi_e", mu=1.0, sigma=0.5)
                         Pi_i = pm.Normal("Pi_i", mu=1.0, sigma=0.5)
-                        __theta = pm.Normal("theta", mu=2.0, sigma=0.5)
-                        _beta = pm.Beta("beta", alpha=2, beta=2)
+                        _ = pm.Normal("theta", mu=2.0, sigma=0.5)
+                        _ = pm.Beta("beta", alpha=2, beta=2)
 
                         # Likelihood (simplified)
                         sigma = pm.HalfNormal("sigma", sigma=1.0)
 
                         # Generate synthetic likelihood for demo
-                        __observed = pm.Normal(
+                        _ = pm.Normal(
                             "observed",
                             mu=Pi_e + Pi_i,
                             sigma=sigma,
@@ -1104,7 +1104,7 @@ def estimate_params(
 
             # Generate synthetic neural signals
             sampling_rate = 1000
-            _Pi_i_demo = 1.2  # Interoceptive precision
+            _ = 1.2  # Interoceptive precision
 
             # Generate synthetic HEP and P3b waveforms with same duration
             signal_duration = 1.0  # Use 1 second for both signals
@@ -1121,9 +1121,7 @@ def estimate_params(
             p3b_signal = p3b_signal[:min_length]
 
             # Create synthetic data (for potential use)
-            __synthetic_data = pd.DataFrame(
-                {"time": t, "HEP": hep_signal, "P3b": p3b_signal}
-            )
+            _ = pd.DataFrame({"time": t, "HEP": hep_signal, "P3b": p3b_signal})
 
             console.print("[green]✓[/green] Synthetic neural signals generated")
             console.print(
@@ -1693,7 +1691,7 @@ def monitor_performance(
                 # Record starting metrics
                 start_time = time.time()
                 start_memory = process.memory_info().rss / 1024 / 1024  # MB
-                _start_cpu = process.cpu_percent(interval=None)
+                _ = process.cpu_percent(interval=None)
 
                 try:
                     # Execute the command (simplified - in real implementation would parse and run actual commands)
@@ -1723,14 +1721,14 @@ def monitor_performance(
 
                         data = np.random.normal(0, 1, (1000, 3))
                         # Simulate processing
-                        _processed = data * 2
+                        _ = data * 2
 
                     elif command == "formal-model":
                         # Simulate formal model simulation
                         time.sleep(0.2)  # Simulate longer processing time
                         import numpy as np
 
-                        _results_sim = np.random.normal(0, 1, 1000)
+                        _ = np.random.normal(0, 1, 1000)
 
                     else:
                         console.print(
@@ -2645,7 +2643,7 @@ def open_science(
                 paradigm="masking",
                 sample_size=25,
                 power_analysis={"effect_size": 0.8, "power": 0.9, "alpha": 0.05},
-                apgi_predictions={"p3b_beta": "β ≥ 10"},
+                apgi_predictions={"p3bbeta": "β ≥ 10"},
                 falsification_criteria=["If β < 5, reject APGI"],
                 primary_analyses=["P3b analysis"],
                 secondary_analyses=["fMRI analysis"],
@@ -2791,8 +2789,8 @@ def bayesian_estimation(
         if method == "mcmc" or not method:
             # Psychometric function estimation
             stimuli = np.linspace(0.1, 1.0, 20)
-            true_beta, true_theta = 12.0, 0.5
-            true_probs = 1.0 / (1 + np.exp(-true_beta * (stimuli - true_theta)))
+            truebeta, true_theta = 12.0, 0.5
+            true_probs = 1.0 / (1 + np.exp(-truebeta * (stimuli - true_theta)))
             detections = np.random.binomial(20, true_probs) / 20
 
             empirical_data = {
