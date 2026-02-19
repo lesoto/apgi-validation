@@ -233,7 +233,6 @@ class APGINormalizer:
 
         import numpy as np
 
-        # Convert numpy arrays to Python native types for JSON serialization
         serializable_norms = {}
         for var_name, stats_dict in self.norms.items():
             serializable_norms[var_name] = {}
