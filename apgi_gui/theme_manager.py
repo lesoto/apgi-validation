@@ -2,8 +2,8 @@
 Theme Manager for APGI GUI Applications
 =====================================
 
-Provides theme management functionality for tkinter-based GUI applications
-with support for multiple color schemes including Normal, Dark, and High Contrast themes.
+Provides theme management functionality for tkinter-based GUI applications with support for multiple color schemes including Normal, Dark, and High Contrast themes.
+
 """
 
 from typing import Dict, List

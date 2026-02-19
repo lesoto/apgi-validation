@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Optional
 import secrets
 import bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import numpy as np
 import threading
 import json
@@ -213,7 +213,7 @@ def save_tokens_to_file():
 
 def cleanup_expired_tokens():
     """Remove expired tokens from memory and storage."""
-    current_time = datetime.utcnow()
+    current_time = datetime.now(timezone.utc)
     expired_tokens = [
         token
         for token, info in TOKENS.items()
@@ -247,7 +247,7 @@ def create_access_token(username: str) -> str:
     """Create a new access token for the user."""
     with TOKEN_LOCK:
         token = secrets.token_urlsafe(32)
-        expiry = datetime.utcnow() + timedelta(hours=TOKEN_EXPIRY_HOURS)
+        expiry = datetime.now(datetime.UTC) + timedelta(hours=TOKEN_EXPIRY_HOURS)
         TOKENS[token] = {"username": username, "expiry": expiry}
         save_tokens_to_file()
         return token
@@ -260,7 +260,7 @@ def verify_token(token: str) -> Optional[str]:
             return None
 
         token_data = TOKENS[token]
-        if datetime.utcnow() > token_data["expiry"]:
+        if datetime.now(datetime.UTC) > token_data["expiry"]:
             # Token expired, remove it
             del TOKENS[token]
             save_tokens_to_file()
@@ -297,12 +297,17 @@ async def health_check():
     """Health check endpoint."""
     from datetime import datetime
 
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat() + "Z"}
+    timestamp = datetime.now(timezone.utc).isoformat()
+    return {
+        "status": "healthy",
+        "timestamp": timestamp + "Z",
+    }
 
 
 @app.post("/auth/login", response_model=TokenResponse)
 @limiter.limit("5/minute")
 async def login(request: LoginRequest):
+    ...
     """Authenticate user and return access token."""
     if request.username not in USERS_DB:
         raise HTTPException(

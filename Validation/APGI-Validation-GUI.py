@@ -52,7 +52,7 @@ def safe_import_module(module_name: str, file_path: Path) -> Optional[Any]:
 
 
 # Try to import master validation module
-master_validation_path = Path(__file__).parent / "Master-Validation.py"
+master_validation_path = Path(__file__).parent / "Master_Validation.py"
 APGI_Master_Validation = safe_import_module("Master_Validation", master_validation_path)
 
 if APGI_Master_Validation:
