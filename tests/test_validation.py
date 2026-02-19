@@ -62,7 +62,7 @@ def test_apgi_dynamical_system_simulate_surprise_accumulation():
 
         spec = importlib.util.spec_from_file_location(
             "protocol1",
-            "/Users/lesoto/Sites/PYTHON/apgi-validation/Validation/Validation-Protocol-1.py",
+            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-1.py",
         )
         protocol1 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol1)
@@ -184,46 +184,36 @@ def test_data_validator_validate_data_quality():
     )
 
 
-def test_apgi_master_validator_integration(mocker):
-    """Integration test for APGIMasterValidator end-to-end with mocked run_validation()."""
-    try:
-        # Import the Master-Validation module using importlib due to hyphen in filename
-        import importlib.util
+@pytest.mark.integration
+def test_apgi_master_validator_integration():
+    """Integration test for APGIMasterValidator end-to-end."""
+    # Import the Master-Validation module using importlib due to hyphen in filename
+    import importlib.util
 
-        spec = importlib.util.spec_from_file_location(
-            "master_validation",
-            "/Users/lesoto/Sites/PYTHON/apgi-validation/Validation/Master-Validation.py",
-        )
-        master_validation = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(master_validation)
-        APGIMasterValidator = master_validation.APGIMasterValidator
-    except ImportError:
-        pytest.skip("APGIMasterValidator not available for testing")
+    spec = importlib.util.spec_from_file_location(
+        "master_validation",
+        Path(__file__).parent.parent / "Validation" / "Master-Validation.py",
+    )
+    master_validation = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(master_validation)
+    APGIMasterValidator = master_validation.APGIMasterValidator
 
     # Create validator
-    validator = APGIMasterValidator()
+    validator = APGIMasterValidator(timeout_seconds=10)  # Short timeout for testing
 
-    # Mock the run_all_protocols method
-    mock_result = {
-        "protocol_results": {"protocol_1": {"passed": True}},
-        "falsification_status": {"primary": [], "secondary": [], "tertiary": []},
-        "overall_decision": "VALIDATED",
-    }
-    mocker.patch.object(validator, "run_all_protocols")
-    mocker.patch.object(validator, "generate_master_report", return_value=mock_result)
+    # Test basic functionality (don't run full protocols to avoid long test)
+    assert hasattr(validator, "run_all_protocols")
+    assert hasattr(validator, "generate_master_report")
+    assert hasattr(validator, "apply_decision_tree")
 
-    # Test end-to-end validation
-    validator.run_all_protocols()
-    report = validator.generate_master_report()
+    # Test that we can create the object and get initial results
+    results = validator.generate_master_report()
 
     # Verify results structure
-    assert isinstance(report, dict)
-    assert "protocol_results" in report
-    assert "falsification_status" in report
-    assert "overall_decision" in report
-
-    # Verify decision
-    assert report["overall_decision"] == "VALIDATED"
+    assert isinstance(results, dict)
+    assert "protocol_results" in results
+    assert "falsification_status" in results
+    assert "overall_decision" in results
 
 
 def test_api_endpoints_with_httpx():

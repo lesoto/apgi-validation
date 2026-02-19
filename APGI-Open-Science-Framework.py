@@ -863,7 +863,7 @@ def main():
             "Poor data quality (EEG artifacts > 30%)",
             "Incomplete trials (> 20% missing)",
         ],
-        data_repository="https://osf.io/XXXXX/",
+        data_repository="https://osf.io/apgi-validation/",
         code_repository="https://github.com/apgi-research/validation-study-1",
         open_materials=True,
         open_data=True,

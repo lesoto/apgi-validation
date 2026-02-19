@@ -961,11 +961,6 @@ class APGIScreenshotDocumentation:
         self._discover_sliders(screenshot)
         self._discover_menu_items()
 
-        total_elements = (
-            len(self.button_locations)
-            + len(self.tab_locations)
-            + len(self.slider_locations)
-        )
         print(
             f"✅ Found {len(self.button_locations)} buttons, {len(self.tab_locations)} tabs, {len(self.slider_locations)} sliders"
         )
@@ -1780,7 +1775,6 @@ class APGIScreenshotDocumentation:
         try:
             # Convert to OpenCV format
             img_cv = np.array(screenshot)
-            img_hsv = cv2.cvtColor(img_cv, cv2.COLOR_RGB2HSV)
 
             height, width = img_cv.shape[:2]
 
@@ -2394,7 +2388,6 @@ class APGIScreenshotDocumentation:
             # Find speed slider (it's a separate slider from the parameter sliders)
             if self.gui_window:
                 # Speed slider is typically in the control panel
-                speed_y = 150  # Estimated position
                 speed_x = self.gui_window.left + 200
 
                 # Try different positions
@@ -3473,22 +3466,22 @@ class APGIScreenshotDocumentation:
             else 0
         )
 
-        # Total documentation coverage
-        total_documented_screens = (
-            1  # Initial state
-            + element_stats["tabs"]  # Each tab
-            + element_stats["buttons"]  # Each button
-            + (element_stats["sliders"] * 2)  # Each slider (min/max)
-            + len(self.menu_items)
-            + total_menu_items  # Menus and submenu items
-            + 5  # Simulation states (running, paused, resumed, stopped, reset)
-            + element_stats["dialogs"]  # Dialog windows
-            + element_stats["view_toggles"]
-            + element_stats["zoom_controls"]  # View controls
-            + 2  # Speed control (min/max)
-            + 2  # Status bar and event log
-            + 1  # Final state
-        )
+        # Total documentation coverage calculation (commented as unused)
+        # total_documented_elements = (
+        #     1  # Initial state
+        #     + element_stats["tabs"]  # Each tab
+        #     + element_stats["buttons"]  # Each button
+        #     + (element_stats["sliders"] * 2)  # Each slider (min/max)
+        #     + len(self.menu_items)
+        #     + total_menu_items  # Menus and submenu items
+        #     + 5  # Simulation states (running, paused, resumed, stopped, reset)
+        #     + element_stats["dialogs"]  # Dialog windows
+        #     + element_stats["view_toggles"]
+        #     + element_stats["zoom_controls"]  # View controls
+        #     + 2  # Speed control (min/max)
+        #     + 2  # Status bar and event log
+        #     + 1  # Final state
+        # )
 
         html = f"""
 <!DOCTYPE html>
