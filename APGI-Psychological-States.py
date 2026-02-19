@@ -1215,7 +1215,6 @@ def validate_all_states() -> Dict[str, Dict[str, bool]]:
     """Validate all state parameters and formulas"""
     results = {}
     edge_cases = []
-    boundary_violations = []
 
     for name, params in PSYCHOLOGICAL_STATES.items():
         checks = {

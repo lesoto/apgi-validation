@@ -34,8 +34,6 @@ except ImportError:
     BAYESIAN_AVAILABLE = False
     warnings.warn("PyMC/ArviZ not available. Install with: pip install pymc arviz")
 
-warnings.filterwarnings("ignore")
-
 
 class PsychometricFunctionFitter:
     """Fit psychometric functions to behavioral data"""
@@ -384,7 +382,7 @@ class BayesianParameterEstimator:
         stimulus_intensities = behavioral_data["stimulus_intensity"].values
         detections = behavioral_data["detected"].values.astype(int)
 
-        with pm.Model() as apgi_model:
+        with pm.Model():
             # Priors for APGI parameters
             beta = pm.Normal("beta", mu=5.0, sigma=2.0)  # Sigmoid steepness
             theta = pm.Normal("theta", mu=0.5, sigma=0.2)  # Threshold
@@ -397,9 +395,7 @@ class BayesianParameterEstimator:
             )
 
             # Likelihood
-            detections_obs = pm.Bernoulli(
-                "detections_obs", p=prob_detect, observed=detections
-            )
+            pm.Bernoulli("detections_obs", p=prob_detect, observed=detections)
 
             # Sample posterior
             trace = pm.sample(1000, tune=1000, return_inferencedata=True)
@@ -623,6 +619,28 @@ def main():
                         print(f"  {sub_key}: {sub_value}")
             else:
                 print(f"  {value}")
+
+
+def run_validation():
+    """Standard validation entry point for Protocol 11."""
+    try:
+        validator = QuantitativeModelValidator()
+        results = validator.validate_quantitative_fits()
+
+        # Determine if validation passed based on overall score
+        passed = results.get("overall_quantitative_score", 0) > 0.5
+
+        return {
+            "passed": passed,
+            "status": "success" if passed else "failed",
+            "message": f"Protocol 11 completed: Overall quantitative validation score {results.get('overall_quantitative_score', 0):.3f}",
+        }
+    except Exception as e:
+        return {
+            "passed": False,
+            "status": "error",
+            "message": f"Protocol 11 failed: {str(e)}",
+        }
 
 
 if __name__ == "__main__":

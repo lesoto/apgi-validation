@@ -29,8 +29,6 @@ from sklearn.linear_model import Ridge
 from sklearn.metrics import r2_score
 from sklearn.model_selection import KFold, cross_val_score
 
-warnings.filterwarnings("ignore")
-
 
 # =============================================================================
 # NAMED CONSTANTS (Replacing Magic Numbers)
@@ -244,7 +242,6 @@ def generate_synthetic_dataset(
     ddm = DriftDiffusionGenerator(seed=seed)
     nmm = NeuralMassGenerator(seed=seed)
 
-    subjects = {i: {} for i in range(n_subjects)}
     sessions = {s: {} for s in range(n_sessions)}
 
     # Ground truth APGI parameters (8 CORE + 9 AUXILIARY = 17 total)
@@ -618,14 +615,14 @@ def conduct_prior_predictive_checks(n_samples: int = 1000, save_plots: bool = Tr
     print("PRIOR PREDICTIVE CHECKS")
     print("=" * 70)
 
-    with pm.Model() as prior_model:
+    with pm.Model():
         # Sample from priors
-        theta0_prior = pm.Normal("theta0", mu=3.2, sigma=0.8)
-        alpha_prior = pm.Normal("alpha", mu=4.8, sigma=1.2)
-        sigma_prior = pm.Gamma("sigma", alpha=1.8, beta=1.0)
-        beta_Pi_i_prior = pm.Lognormal("beta_Pi_i", mu=0.45, sigma=0.45)
-        Pi_e0_prior = pm.Gamma("Pi_e0", alpha=2.2, beta=0.6)
-        Pi_i_baseline_prior = pm.Gamma("Pi_i_baseline", alpha=1.5, beta=0.5)
+        pm.Normal("theta0", mu=3.2, sigma=0.8)
+        pm.Normal("alpha", mu=4.8, sigma=1.2)
+        pm.Gamma("sigma", alpha=1.8, beta=1.0)
+        pm.Lognormal("beta_Pi_i", mu=0.45, sigma=0.45)
+        pm.Gamma("Pi_e0", alpha=2.2, beta=0.6)
+        pm.Gamma("Pi_i_baseline", alpha=1.5, beta=0.5)
 
         prior_samples = pm.sample_prior_predictive(samples=n_samples, random_seed=42)
 
@@ -752,9 +749,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
         mu_sigma = pm.Gamma("mu_sigma", alpha=1.8, beta=1.0)
         sigma_sigma = pm.HalfNormal("sigma_sigma", sigma=0.35)
         sigma_offset = pm.Normal("sigma_offset", mu=0, sigma=1, shape=n_subjects)
-        sigma = pm.Deterministic(
-            "sigma", pm.math.abs(mu_sigma + sigma_offset * sigma_sigma)
-        )
+        pm.Deterministic("sigma", pm.math.abs(mu_sigma + sigma_offset * sigma_sigma))
 
         # 5. Composite interoceptive parameter (beta_Pi_i)
         # Structurally identifiable composite to avoid beta-Pi_i trade-off
@@ -791,7 +786,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
         mu_beta = pm.Normal("mu_beta", mu=0.68, sigma=0.25)
         sigma_beta = pm.HalfNormal("sigma_beta", sigma=0.18)
         beta_offset = pm.Normal("beta_offset", mu=0, sigma=1, shape=n_subjects)
-        beta = pm.Deterministic("beta", mu_beta + beta_offset * sigma_beta)
+        pm.Deterministic("beta", mu_beta + beta_offset * sigma_beta)
 
         # ===== AUXILIARY PARAMETERS (9) - Only if estimating dynamics =====
         if estimate_dynamics:
@@ -825,7 +820,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             tau_A_phasic_offset = pm.Normal(
                 "tau_A_phasic_offset", mu=0, sigma=1, shape=n_subjects
             )
-            tau_A_phasic = pm.Deterministic(
+            pm.Deterministic(
                 "tau_A_phasic",
                 pm.math.abs(mu_tau_A_phasic + tau_A_phasic_offset * sigma_tau_A_phasic),
             )
@@ -835,7 +830,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             tau_A_tonic_offset = pm.Normal(
                 "tau_A_tonic_offset", mu=0, sigma=1, shape=n_subjects
             )
-            tau_A_tonic = pm.Deterministic(
+            pm.Deterministic(
                 "tau_A_tonic",
                 pm.math.abs(mu_tau_A_tonic + tau_A_tonic_offset * sigma_tau_A_tonic),
             )
@@ -846,7 +841,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             lambda_coupling_offset = pm.Normal(
                 "lambda_coupling_offset", mu=0, sigma=1, shape=n_subjects
             )
-            lambda_coupling = pm.Deterministic(
+            pm.Deterministic(
                 "lambda_coupling",
                 pm.math.abs(
                     mu_lambda_coupling + lambda_coupling_offset * sigma_lambda_coupling
@@ -864,12 +859,12 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             mu_gamma = pm.Normal("mu_gamma", mu=0.048, sigma=0.018)
             sigma_gamma = pm.HalfNormal("sigma_gamma", sigma=0.012)
             gamma_offset = pm.Normal("gamma_offset", mu=0, sigma=1, shape=n_subjects)
-            gamma = pm.Deterministic("gamma", mu_gamma + gamma_offset * sigma_gamma)
+            pm.Deterministic("gamma", mu_gamma + gamma_offset * sigma_gamma)
 
             mu_delta = pm.Normal("mu_delta", mu=0.19, sigma=0.05)
             sigma_delta = pm.HalfNormal("sigma_delta", sigma=0.035)
             delta_offset = pm.Normal("delta_offset", mu=0, sigma=1, shape=n_subjects)
-            delta = pm.Deterministic("delta", mu_delta + delta_offset * sigma_delta)
+            pm.Deterministic("delta", mu_delta + delta_offset * sigma_delta)
 
         # ===== NUISANCE PARAMETER =====
         mu_c = pm.Normal("mu_c", mu=0, sigma=0.22)
@@ -1019,14 +1014,14 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
         if estimate_dynamics:
             # Generate dynamic predictions
             # Surprise decay: S(t) = S0 * exp(-t/tau)
-            surprise_decay = pm.Deterministic(
+            pm.Deterministic(
                 "surprise_decay",
                 beta_Pi_i[:, None] * pm.math.exp(-time_points[None, :] / tau[:, None]),
                 dims=("subject", "time"),
             )
 
             # Signal integration: dS/dt = -S/tau_S + input
-            signal_integration = pm.Deterministic(
+            pm.Deterministic(
                 "signal_integration",
                 beta_Pi_i[:, None]
                 * pm.math.exp(-time_points[None, :] / tau_S[:, None]),
@@ -1034,7 +1029,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             )
 
             # Threshold recovery: theta(t) = theta0 * (1 - exp(-t/tau_theta))
-            threshold_recovery = pm.Deterministic(
+            pm.Deterministic(
                 "threshold_recovery",
                 theta0[:, None]
                 * (1 - pm.math.exp(-time_points[None, :] / tau_theta[:, None])),
@@ -1042,7 +1037,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             )
 
             # Somatic marker: M(t) = beta_M * (1 - exp(-t/tau_M))
-            somatic_marker = pm.Deterministic(
+            pm.Deterministic(
                 "somatic_marker",
                 beta_M[:, None]
                 * (1 - pm.math.exp(-time_points[None, :] / tau_M[:, None])),
@@ -1112,7 +1107,6 @@ def compute_fisher_information(
     ]
 
     n_params = len(param_names)
-    n_subjects = trace.posterior.dims["subject"]
 
     # Initialize FIM
     fim = np.zeros((n_params, n_params))
@@ -1757,8 +1751,6 @@ def generate_comprehensive_visualizations(
             ax = axes[idx]
 
             # Get data
-            rec_mean = recovery_results[param].get("rec_mean", 0)
-            true_mean = recovery_results[param].get("true_mean", 0)
             r = recovery_results[param].get("r", 0)
 
             # Scatter with identity line
@@ -1887,21 +1879,6 @@ def generate_comprehensive_visualizations(
             # Add colorbar
             cbar = plt.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
             cbar.set_label("Correlation", fontsize=11)
-
-            # Add correlation values
-            for i in range(len(param_names)):
-                for j in range(len(param_names)):
-                    if abs(corr[i, j]) > 0.7 and i != j:
-                        text = ax2.text(
-                            j,
-                            i,
-                            f"{corr[i, j]:.2f}",
-                            ha="center",
-                            va="center",
-                            color="white",
-                            fontsize=8,
-                            fontweight="bold",
-                        )
 
         plt.tight_layout()
         plt.savefig(

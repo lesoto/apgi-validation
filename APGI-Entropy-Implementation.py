@@ -3222,7 +3222,7 @@ def main() -> None:
 
         # Create the root window
         root = tk.Tk()
-        app = EntropyAnalysisGUI(root)
+        EntropyAnalysisGUI(root)
         root.mainloop()
 
     except ImportError as exc:

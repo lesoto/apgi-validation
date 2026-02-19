@@ -14,7 +14,6 @@ Version: 1.0 (Bayesian Estimation)
 """
 
 import logging
-import warnings
 from typing import Dict
 
 import numpy as np
@@ -41,8 +40,6 @@ except ImportError as e:
     logger.warning(
         "Bayesian functionality will be limited. Install with: pip install pymc arviz xarray"
     )
-
-warnings.filterwarnings("ignore")
 
 
 class APGIBayesianModel:
@@ -118,27 +115,41 @@ class APGIBayesianModel:
 
             with pm.Model() as apgi_model:
                 # Priors for APGI parameters (non-centered parametrization)
-                raw_beta = pm.Normal(
-                    "raw_beta", mu=0.0, sigma=0.5
-                )  # Non-centered, tighter
-                beta = 10.0 + 5.0 * raw_beta  # Reparameterized beta
-                theta = pm.TruncatedNormal(
+                pm.Normal("raw_beta", mu=0.0, sigma=0.5)  # Non-centered, tighter
+                beta = 10.0 + 5.0 * pm.Normal("raw_beta", mu=0.0, sigma=0.5)
+                # Reparameterized beta
+                pm.TruncatedNormal(
                     "theta",
                     mu=np.median(stimulus_intensities),
                     sigma=np.std(stimulus_intensities),
                     lower=0,
                     upper=np.max(stimulus_intensities),
                 )
-                amplitude = pm.Beta("amplitude", alpha=5, beta=1)  # Response amplitude
-                baseline = pm.Beta("baseline", alpha=1, beta=3)  # Baseline response
+                pm.Beta("amplitude", alpha=5, beta=1)  # Response amplitude
+                pm.Beta("baseline", alpha=1, beta=3)  # Baseline response
 
                 # APGI psychometric function
-                prob_detect = baseline + amplitude / (
-                    1 + pm.math.exp(-beta * (stimulus_intensities - theta))
+                prob_detect = pm.Beta("baseline", alpha=1, beta=3) + pm.Beta(
+                    "amplitude", alpha=5, beta=1
+                ) / (
+                    1
+                    + pm.math.exp(
+                        -beta
+                        * (
+                            stimulus_intensities
+                            - pm.TruncatedNormal(
+                                "theta",
+                                mu=np.median(stimulus_intensities),
+                                sigma=np.std(stimulus_intensities),
+                                lower=0,
+                                upper=np.max(stimulus_intensities),
+                            )
+                        )
+                    )
                 )
 
                 # Likelihood
-                responses_obs = pm.Binomial(
+                pm.Binomial(
                     "responses_obs", n=n_trials, p=prob_detect, observed=responses
                 )
 
@@ -237,38 +248,57 @@ class APGIBayesianModel:
         response_data = np.array(response_data)
         subject_indices = np.array(subject_indices)
 
-        with pm.Model() as hierarchical_model:
+        with pm.Model():
             # Hyperpriors for group-level parameters
-            beta_mu = pm.Normal("beta_mu", mu=10.0, sigma=5.0)
-            beta_sigma = pm.HalfNormal("beta_sigma", sigma=5.0)
-            theta_mu = pm.Normal("theta_mu", mu=0.5, sigma=0.3)
-            theta_sigma = pm.HalfNormal("theta_sigma", sigma=0.3)
+            pm.Normal("beta_mu", mu=10.0, sigma=5.0)
+            pm.HalfNormal("beta_sigma", sigma=5.0)
+            pm.Normal("theta_mu", mu=0.5, sigma=0.3)
+            pm.HalfNormal("theta_sigma", sigma=0.3)
 
             # Subject-level parameters
-            beta_subj = pm.Normal(
-                "beta_subj", mu=beta_mu, sigma=beta_sigma, shape=n_subjects
+            pm.Normal(
+                "beta_subj",
+                mu=pm.Normal("beta_mu", mu=10.0, sigma=5.0),
+                sigma=pm.HalfNormal("beta_sigma", sigma=5.0),
+                shape=n_subjects,
             )
-            theta_subj = pm.Normal(
-                "theta_subj", mu=theta_mu, sigma=theta_sigma, shape=n_subjects
+            pm.Normal(
+                "theta_subj",
+                mu=pm.Normal("theta_mu", mu=0.5, sigma=0.3),
+                sigma=pm.HalfNormal("theta_sigma", sigma=0.3),
+                shape=n_subjects,
             )
 
             # Amplitude and baseline (fixed across subjects for simplicity)
-            amplitude = pm.Beta("amplitude", alpha=5, beta=1)
-            baseline = pm.Beta("baseline", alpha=1, beta=3)
+            pm.Beta("amplitude", alpha=5, beta=1)
+            pm.Beta("baseline", alpha=1, beta=3)
 
             # APGI psychometric function for each subject
-            prob_detect = baseline + amplitude / (
+            prob_detect = pm.Beta("baseline", alpha=1, beta=3) + pm.Beta(
+                "amplitude", alpha=5, beta=1
+            ) / (
                 1
                 + pm.math.exp(
-                    -beta_subj[subject_indices]
-                    * (stimulus_data - theta_subj[subject_indices])
+                    -pm.Normal(
+                        "beta_subj",
+                        mu=pm.Normal("beta_mu", mu=10.0, sigma=5.0),
+                        sigma=pm.HalfNormal("beta_sigma", sigma=5.0),
+                        shape=n_subjects,
+                    )[subject_indices]
+                    * (
+                        stimulus_data
+                        - pm.Normal(
+                            "theta_subj",
+                            mu=pm.Normal("theta_mu", mu=0.5, sigma=0.3),
+                            sigma=pm.HalfNormal("theta_sigma", sigma=0.3),
+                            shape=n_subjects,
+                        )[subject_indices]
+                    )
                 )
             )
 
             # Likelihood
-            responses_obs = pm.Bernoulli(
-                "responses_obs", p=prob_detect, observed=response_data
-            )
+            pm.Bernoulli("responses_obs", p=prob_detect, observed=response_data)
 
             # Sample posterior
             trace = pm.sample(
@@ -478,7 +508,7 @@ class ModelComparisonFramework:
         n_trials = 20
         responses = (detection_rates * n_trials).astype(int)
 
-        with pm.Model() as gnw_model:
+        with pm.Model():
             # GNW parameters (different prior structure)
             slope = pm.TruncatedNormal(
                 "slope", mu=5.0, sigma=3.0, lower=0.1, upper=20.0
@@ -489,16 +519,14 @@ class ModelComparisonFramework:
                 sigma=np.std(stimulus_intensities),
             )
             amplitude = pm.Beta("amplitude", alpha=5, beta=1)
-            baseline = pm.Beta("baseline", alpha=1, beta=3)
+            pm.Beta("baseline", alpha=1, beta=3)
 
             # GNW psychometric function (different functional form)
-            prob_detect = baseline + amplitude / (
+            prob_detect = pm.Beta("baseline", alpha=1, beta=3) + amplitude / (
                 1 + pm.math.exp(-slope * (stimulus_intensities - threshold))
             )
 
-            responses_obs = pm.Binomial(
-                "responses_obs", n=n_trials, p=prob_detect, observed=responses
-            )
+            pm.Binomial("responses_obs", n=n_trials, p=prob_detect, observed=responses)
 
             trace = pm.sample(
                 2000,
@@ -527,15 +555,13 @@ class ModelComparisonFramework:
         n_trials = 20
         responses = (detection_rates * n_trials).astype(int)
 
-        with pm.Model() as linear_model:
+        with pm.Model():
             slope = pm.Normal("slope", mu=1.0, sigma=0.5)
             intercept = pm.Normal("intercept", mu=0.0, sigma=0.3)
 
             prob_detect = pm.math.clip(slope * stimulus_intensities + intercept, 0, 1)
 
-            responses_obs = pm.Binomial(
-                "responses_obs", n=n_trials, p=prob_detect, observed=responses
-            )
+            pm.Binomial("responses_obs", n=n_trials, p=prob_detect, observed=responses)
 
             trace = pm.sample(
                 2000,
@@ -621,7 +647,7 @@ class IITConvergenceBayesian:
         ignition_probs = ignition_data["ignition_probability"].values
         phi_values = phi_data["phi_value"].values
 
-        with pm.Model() as convergence_model:
+        with pm.Model():
             # Parameters for the relationship
             slope = pm.Normal("slope", mu=10.0, sigma=5.0)
             intercept = pm.Normal("intercept", mu=0.0, sigma=2.0)
@@ -631,7 +657,7 @@ class IITConvergenceBayesian:
             mu = slope * ignition_probs + intercept
 
             # Likelihood
-            phi_obs = pm.Normal("phi_obs", mu=mu, sigma=sigma, observed=phi_values)
+            pm.Normal("phi_obs", mu=mu, sigma=sigma, observed=phi_values)
 
             # Sample
             trace = pm.sample(
@@ -908,13 +934,13 @@ def main():
 
     print("APGI Bayesian Parameter Estimation Framework Results")
     print("=" * 60)
-    print(".3f")
+    print(f"  Overall Mean: {validation_results.get('overall_mean', 0):.3f}")
 
     print("\nPsychometric Estimation:")
     psycho = validation_results["psychometric_estimation"]
     if "beta_posterior_mean" in psycho:
-        print(".3f")
-        print(".3f")
+        print(f"  Beta Posterior Mean: {psycho['beta_posterior_mean']:.3f}")
+        print(f"  Alpha Posterior Mean: {psycho.get('alpha_posterior_mean', 0):.3f}")
         print(f"  Phase Transition: {psycho['phase_transition_posterior']}")
         print(f"  Converged: {psycho['converged']}")
 
@@ -922,21 +948,21 @@ def main():
     comp = validation_results["model_comparison"]
     if "bayes_factors" in comp:
         bf = comp["bayes_factors"]
-        print(".1f")
-        print(".1f")
+        print(f"  Bayes Factor Mean: {bf.get('mean', 0):.1f}")
+        print(f"  Bayes Factor STD: {bf.get('std', 0):.1f}")
         print(f"  Winning Model: {comp['winning_model']}")
         print(f"  Evidence Strength: {comp['evidence_strength']}")
 
     print("\nIIT Convergence:")
     iit = validation_results["iit_convergence"]
     if "slope_mean" in iit:
-        print(".3f")
+        print(f"  Slope Mean: {iit['slope_mean']:.3f}")
         print(f"  Convergence Supported: {iit['convergence_supported']}")
 
     print("\nParameter Recovery:")
     recovery = validation_results["parameter_recovery"]
     if "convergence_rate" in recovery:
-        print(".3f")
+        print(f"  Convergence Rate: {recovery['convergence_rate']:.3f}")
         print(f"  N Successful Recoveries: {recovery['n_successful_recoveries']}")
 
 

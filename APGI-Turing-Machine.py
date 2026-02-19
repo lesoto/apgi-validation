@@ -701,11 +701,6 @@ class APGITuringMachine:
 
         Integrates SDE for surprise and threshold dynamics
         """
-        # Compute current inputs (from discrete state)
-        Pi_e = self.params.Pi_e
-        Pi_i = self.params.Pi_i
-        beta = self.params.beta
-
         # Stochastic noise terms
         xi_S = np.random.normal(0, 1) * np.sqrt(dt)
         xi_theta = np.random.normal(0, 1) * np.sqrt(dt)
@@ -1038,7 +1033,6 @@ def run_baseline_simulation(duration: float = 120.0, dt: float = 0.05):
     machine = APGITuringMachine(params)
 
     steps = int(duration / dt)
-    time = np.linspace(0, duration, steps)
 
     print(f"Duration: {duration}s | Time step: {dt}s | Steps: {steps}")
     print(

@@ -14,6 +14,7 @@ import pytest
 from utils import sample_data_generator
 
 
+@pytest.mark.integration
 def test_api_endpoints_integration():
     """Test API endpoints for protocol execution."""
     # This would require running the FastAPI server
@@ -26,14 +27,18 @@ def test_api_endpoints_integration():
     spec = importlib.util.spec_from_file_location("APGI_API", api_path)
     if spec and spec.loader:
         api_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(api_module)
-        app = api_module.app
+        try:
+            spec.loader.exec_module(api_module)
+            app = api_module.app
+        except (ImportError, RuntimeError, OSError, ValueError, TypeError) as e:
+            pytest.fail(f"Failed to load API module: {e}")
     else:
         raise ImportError("Could not load API module")
 
     assert app.title == "APGI Framework API"
 
 
+@pytest.mark.integration
 def test_validation_protocol_9_integration():
     """Test full execution of Validation Protocol 9."""
     try:
@@ -69,7 +74,8 @@ def test_validation_protocol_9_integration():
         pytest.skip("Validation Protocol 9 not available")
 
 
-def test_data_repository_integration():
+@pytest.mark.integration
+def test_data_repository_integration(temp_dir):
     """Test data loading from data_repository."""
     PROJECT_ROOT = Path(__file__).parent.parent
 
@@ -82,28 +88,28 @@ def test_data_repository_integration():
     assert RAW_DATA_DIR.exists()
     assert PROCESSED_DATA_DIR.exists()
 
-    # Test creating a sample data file
-    sample_file = PROCESSED_DATA_DIR / "test_behavioral.csv"
-    if not sample_file.exists():
-        # Create sample behavioral data
-        import pandas as pd
+    # Test creating a sample data file in temp directory
+    sample_file = temp_dir / "test_behavioral.csv"
+    # Create sample behavioral data
+    import pandas as pd
 
-        sample_data = pd.DataFrame(
-            {
-                "stimulus_surprisal": [0.1, 0.2, 0.3],
-                "precision_e": [1.0, 1.1, 0.9],
-                "error_e": [0.0, 0.1, -0.1],
-                "precision_i": [1.0, 0.9, 1.2],
-                "error_i": [0.0, -0.1, 0.1],
-                "threshold": [0.5, 0.5, 0.5],
-                "alpha": [5.0, 5.0, 5.0],
-            }
-        )
-        sample_data.to_csv(sample_file, index=False)
+    sample_data = pd.DataFrame(
+        {
+            "stimulus_surprisal": [0.1, 0.2, 0.3],
+            "precision_e": [1.0, 1.1, 0.9],
+            "error_e": [0.0, 0.1, -0.1],
+            "precision_i": [1.0, 0.9, 1.2],
+            "error_i": [0.0, -0.1, 0.1],
+            "threshold": [0.5, 0.5, 0.5],
+            "alpha": [5.0, 5.0, 5.0],
+        }
+    )
+    sample_data.to_csv(sample_file, index=False)
 
     assert sample_file.exists()
 
 
+@pytest.mark.integration
 def test_full_validation_pipeline():
     """Test complete validation protocol execution."""
     # This is a placeholder for a full integration test
@@ -122,6 +128,7 @@ def test_full_validation_pipeline():
     assert len(p300_events) > 0  # Should have some P300 events
 
 
+@pytest.mark.integration
 def test_batch_processing_integration():
     """Test batch processing with multiple jobs."""
     from utils.batch_processor import BatchProcessor
@@ -150,6 +157,7 @@ def test_batch_processing_integration():
     assert "summary" in job_result["result"]
 
 
+@pytest.mark.integration
 def test_data_processing_pipeline():
     """Test complete data processing pipeline."""
     from utils import data_validation, sample_data_generator
@@ -183,6 +191,7 @@ def test_data_processing_pipeline():
         tmp_path.unlink()
 
 
+@pytest.mark.integration
 def test_config_management_integration():
     """Test configuration management end-to-end."""
     from utils.config_manager import ConfigManager
@@ -206,6 +215,7 @@ def test_config_management_integration():
     assert config.model.tau_S == original_value
 
 
+@pytest.mark.integration
 def test_cache_integration():
     """Test caching system with data processing."""
     import tempfile
@@ -233,6 +243,7 @@ def test_cache_integration():
         assert stats["hits"] > 0
 
 
+@pytest.mark.integration
 def test_end_to_end_workflow():
     """Test complete end-to-end workflow from data generation to validation."""
     # Generate sample data

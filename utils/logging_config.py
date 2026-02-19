@@ -19,6 +19,7 @@ import time
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -33,11 +34,10 @@ except ImportError:
 from loguru import logger
 
 # Project root directory
-PROJECT_ROOT = Path(__file__).parent
+PROJECT_ROOT = Path(__file__).parent.parent
 LOGS_DIR = PROJECT_ROOT / "logs"
 
-# Ensure logs directory exists
-LOGS_DIR.mkdir(exist_ok=True)
+# Ensure logs directory exists - moved to lazy creation in _setup_logging
 
 
 @dataclass
@@ -237,7 +237,7 @@ class APGILogger:
         if enable_console is not None:
             if not isinstance(enable_console, bool):
                 logger.warning(
-                    f"enable_console must be a boolean, got {type(enable_console)}. Keeping current {self.enable_console}"
+                    f"enable_console must be a boolean, got {type(enable_console)}. Using current"
                 )
             else:
                 if self.enable_console != enable_console:
@@ -271,6 +271,9 @@ class APGILogger:
 
     def _setup_logging(self):
         """Configure loguru logger with custom settings."""
+        # Ensure logs directory exists
+        LOGS_DIR.mkdir(exist_ok=True)
+
         # Remove default logger
         logger.remove()
 
@@ -409,7 +412,36 @@ class APGILogger:
                     "latest": values[-1]["value"],
                     "latest_timestamp": values[-1]["timestamp"],
                 }
-        return summary
+
+    def set_up_alerts(self, alert_config: Optional[Dict[str, Any]] = None) -> bool:
+        """Set up alerts for critical events and performance issues.
+
+        Args:
+            alert_config: Configuration for alerts including thresholds and notification methods
+
+        Returns:
+            True if alerts were set up successfully, False otherwise
+        """
+        try:
+            self.alert_config = alert_config or {
+                "enable_alerts": True,
+                "error_threshold": 10,
+                "performance_threshold": 5.0,
+                "alert_methods": ["log"],  # log, email, webhook, etc.
+            }
+
+            # Initialize alert tracking
+            self.alert_counts = {
+                "errors": 0,
+                "performance_issues": 0,
+                "critical_events": 0,
+            }
+
+            self.logger.info("Alert system initialized")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to set up alerts: {e}")
+            return False
 
     def log_error_with_context(self, error: Exception, context: Dict[str, Any]):
         """Log errors with additional context information."""
@@ -799,11 +831,14 @@ class APGILogger:
         # Get log files to search
         log_files = list(LOGS_DIR.glob("*.log"))
 
+        # Calculate how many to collect (accounting for offset)
+        collect_limit = query.max_results + query.offset
+
         for log_file in log_files:
             try:
                 with open(log_file, encoding="utf-8", errors="ignore") as f:
                     for line_num, line in enumerate(f):
-                        if len(results) >= query.max_results:
+                        if len(results) >= collect_limit:
                             break
 
                         # Parse log line
@@ -820,11 +855,10 @@ class APGILogger:
             except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
                 self.logger.warning(f"Error searching log file {log_file}: {e}")
 
-        # Apply offset
-        if query.offset > 0:
-            results = results[query.offset :]
+        # Apply offset first, then limit
+        results = results[query.offset : query.offset + query.max_results]
 
-        return results[: query.max_results]
+        return results
 
     def _parse_log_line(self, line: str) -> Optional[LogEntry]:
         """Parse a log line into a LogEntry object."""
@@ -935,6 +969,8 @@ class APGILogger:
 
                 # Sample some entries to get stats
                 with open(log_file, encoding="utf-8", errors="ignore") as f:
+                    sample_count = 0
+                    max_samples = 100
                     for line in f:
                         entry = self._parse_log_line(line)
                         if entry:
@@ -959,7 +995,9 @@ class APGILogger:
                                     newest_time = entry_time
                             except ValueError:
                                 pass
-                        break  # Only sample first few lines
+                            sample_count += 1
+                            if sample_count >= max_samples:
+                                break
 
             except (
                 FileNotFoundError,
@@ -1026,7 +1064,8 @@ def log_error(error: Exception, operation: str, **context):
 def log_execution_time(metric_name: str = "execution_time"):
     """Decorator to automatically log function execution time."""
 
-    def decorator(func):
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
         def wrapper(*args, **kwargs):
             start_time = datetime.now()
             try:

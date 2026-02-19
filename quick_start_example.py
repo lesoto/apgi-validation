@@ -43,11 +43,11 @@ def main():
             brain_mass_g=1400.0,
         )
 
-        predictions = predict_species_consciousness(human_params)
+        predict_species_consciousness(human_params)
         print(f"Species: {human_params.name}")
-        print(".3f")
-        print(".1f")
-        print(".3f")
+        print(f"Consciousness Level: {human_params.consciousness_level:.3f}")
+        print(f"Confidence: {human_params.confidence:.1f}")
+        print(f"Processing Time: {human_params.processing_time:.3f}")
 
         # 2. Multimodal Integration Example
         print("\n2. Multimodal Data Integration")
@@ -70,7 +70,7 @@ def main():
             print("\nData Statistics:")
             for col in ["eeg_fz", "pupil_diameter", "eda"]:
                 if col in data.columns:
-                    print(".3f")
+                    print(f"  {col}: {data[col].mean():.3f}")
         else:
             print("Sample data not found. Run the framework setup first.")
 

@@ -66,6 +66,7 @@ class FunctionProfile:
     last_called: Optional[datetime] = None
     memory_usage: List[float] = field(default_factory=list)
     errors: int = 0
+    times: List[float] = field(default_factory=list)
 
 
 class SystemMonitor:
@@ -226,6 +227,10 @@ class PerformanceProfiler:
                     profile.max_time = max(profile.max_time, duration)
                     profile.last_called = datetime.now()
                     profile.memory_usage.append(memory_delta)
+                    profile.times.append(duration)
+                    profile.std_time = (
+                        np.std(profile.times) if len(profile.times) > 1 else 0.0
+                    )
 
                     if not success:
                         profile.errors += 1
@@ -508,6 +513,7 @@ class PerformanceProfiler:
                     ),
                     "memory_usage": profile.memory_usage,
                     "errors": profile.errors,
+                    "times": profile.times,
                 }
                 for name, profile in self.function_profiles.items()
             },
@@ -552,6 +558,10 @@ class PerformanceProfiler:
                 )
                 profile.memory_usage = data["memory_usage"]
                 profile.errors = data["errors"]
+                profile.times = data.get("times", [])
+                profile.std_time = (
+                    np.std(profile.times) if len(profile.times) > 1 else 0.0
+                )
                 self.function_profiles[name] = profile
 
             # Load custom metrics

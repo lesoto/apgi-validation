@@ -587,6 +587,7 @@ def main(argv: List[str] = None):
                 "results",
                 "figures",
                 "plots",
+                "backups",
             ]
         )
         include_file_patterns.extend(

@@ -109,7 +109,9 @@ class DataProcessor:
         total_nulls = null_counts.sum()
         if total_nulls > 0:
             null_percentage = (total_nulls / (len(data) * len(data.columns))) * 100
-            validation_results["warnings"].append(".1f")
+            validation_results["warnings"].append(
+                f"{null_percentage:.1f}% of data contains null values"
+            )
 
         # Summary statistics
         validation_results["summary"] = {

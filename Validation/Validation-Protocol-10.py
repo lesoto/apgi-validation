@@ -16,13 +16,12 @@ Date: 2026
 Version: 1.0 (Causal Validation)
 """
 
-import warnings
 from typing import Dict
 
 import numpy as np
 from scipy import stats
 
-warnings.filterwarnings("ignore")
+# Set random seeds
 
 
 class TMSIntervention:
@@ -555,6 +554,28 @@ def main():
                     print(f"  {sub_key}: {sub_value}")
             else:
                 print(f"  {value}")
+
+
+def run_validation():
+    """Standard validation entry point for Protocol 10."""
+    try:
+        validator = CausalManipulationsValidator()
+        results = validator.validate_causal_predictions()
+
+        # Determine if validation passed based on overall score
+        passed = results.get("overall_causal_validation_score", 0) > 0.5
+
+        return {
+            "passed": passed,
+            "status": "success" if passed else "failed",
+            "message": f"Protocol 10 completed: Overall causal validation score {results.get('overall_causal_validation_score', 0):.3f}",
+        }
+    except Exception as e:
+        return {
+            "passed": False,
+            "status": "error",
+            "message": f"Protocol 10 failed: {str(e)}",
+        }
 
 
 if __name__ == "__main__":

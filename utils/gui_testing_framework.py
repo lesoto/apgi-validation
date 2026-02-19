@@ -89,12 +89,55 @@ class BaseGUITester:
 
     def take_screenshot(self, filename: str, description: str = "") -> str:
         """Take a screenshot and save it."""
-        # This is a placeholder - actual screenshot implementation
-        # would depend on the GUI framework
         screenshot_path = self.screenshot_dir / f"{filename}.png"
-        # In a real implementation, this would capture the actual GUI
-        # For now, just create an empty file as placeholder
-        screenshot_path.touch()
+
+        try:
+            # Try different screenshot methods based on GUI framework
+            if isinstance(self, DashTester) and self.browser:
+                # Selenium-based screenshot for web applications
+                try:
+                    self.browser.save_screenshot(str(screenshot_path))
+                    return str(screenshot_path)
+                except Exception as e:
+                    print(f"Web screenshot failed: {e}")
+
+            elif isinstance(self, TkinterTester) and self.root:
+                # Tkinter screenshot using PIL
+                try:
+                    from PIL import ImageGrab
+
+                    # Get window position and size
+                    x = self.root.winfo_x()
+                    y = self.root.winfo_y()
+                    width = self.root.winfo_width()
+                    height = self.root.winfo_height()
+
+                    # Take screenshot of the window area
+                    screenshot = ImageGrab.grab(bbox=(x, y, x + width, y + height))
+                    screenshot.save(screenshot_path)
+                    return str(screenshot_path)
+                except ImportError:
+                    print("PIL not available for tkinter screenshots")
+                except Exception as e:
+                    print(f"Tkinter screenshot failed: {e}")
+
+            # Fallback: create empty file with metadata
+            screenshot_path.touch()
+
+            # Add metadata if description provided
+            if description:
+                metadata_path = screenshot_path.with_suffix(".txt")
+                with open(metadata_path, "w") as f:
+                    f.write(f"Screenshot: {filename}\n")
+                    f.write(f"Description: {description}\n")
+                    f.write(f"Timestamp: {time.time()}\n")
+                    f.write(f"Framework: {type(self).__name__}\n")
+
+        except Exception as e:
+            print(f"Screenshot failed completely: {e}")
+            # Ensure file exists even on failure
+            screenshot_path.touch()
+
         return str(screenshot_path)
 
     def generate_report(self, output_file: Optional[str] = None) -> Dict[str, Any]:
@@ -357,7 +400,7 @@ def test_tkinter_utils_gui():
             UtilsRunnerGUI = utils_gui_module.UtilsRunnerGUI
 
             # Launch app
-            app_instance = tester.launch_app(UtilsRunnerGUI)
+            tester.launch_app(UtilsRunnerGUI)
             root = tester.root  # Get the actual root window
 
             # Test that main window exists
@@ -394,7 +437,7 @@ def test_tkinter_utils_gui():
     result = tester.run_test("tkinter_utils_basic", test_basic_functionality)
 
     # Generate report
-    report = tester.generate_report("test_results/tkinter_utils_test.json")
+    tester.generate_report("test_results/tkinter_utils_test.json")
 
     return result.success
 
@@ -447,7 +490,7 @@ def test_dash_interactive_dashboard():
     result = tester.run_test("dash_dashboard_basic", test_basic_functionality)
 
     # Generate report
-    report = tester.generate_report("test_results/dash_dashboard_test.json")
+    tester.generate_report("test_results/dash_dashboard_test.json")
 
     return result.success
 

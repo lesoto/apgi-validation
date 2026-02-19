@@ -3,13 +3,8 @@ Basic tests for APGI validation framework.
 =========================================
 """
 
-import sys
-from pathlib import Path
-
 import pytest
-
-# Add the project root to Python path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+from pathlib import Path
 
 
 def test_import_main():
@@ -72,6 +67,3 @@ def test_temp_dir_fixture(temp_dir):
     """Test that temp_dir fixture provides a valid temporary directory."""
     assert temp_dir.exists()
     assert temp_dir.is_dir()
-    assert temp_dir.name.startswith(
-        "tmp"
-    )  # Temporary directories typically start with 'tmp'

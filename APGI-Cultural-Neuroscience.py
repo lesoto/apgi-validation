@@ -605,9 +605,6 @@ class CulturalPredictionMap:
 
         gradients = {}
 
-        L = param_grids["linguistic_complexity"]
-        C = param_grids["contemplative_experience"]
-
         for param_key, param_grid in param_grids.items():
             if param_key in ["linguistic_complexity", "contemplative_experience"]:
                 continue
@@ -881,7 +878,7 @@ def plot_cultural_parameter_comparison(save_path: Optional[str] = None):
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
                 bar.get_height() + 0.01,
-                ".2f",
+                f"{value:.2f}",
                 ha="center",
                 va="bottom",
                 fontsize=9,
@@ -920,20 +917,6 @@ def validate_cultural_modulation_effects() -> Dict[str, float]:
 
     # Test known cultural effects
     cultures = create_cultural_database()
-
-    # Expected patterns
-    expected_patterns = {
-        "individualism_vs_collectivism": {
-            "high_individualism": {"Pi_e": "higher", "coupling_strength": "lower"},
-            "high_collectivism": {"Pi_i": "higher", "coupling_strength": "higher"},
-        },
-        "contemplative_experience": {
-            "high_experience": {"theta": "higher", "Pi_e": "higher", "beta": "lower"},
-        },
-        "linguistic_complexity": {
-            "high_complexity": {"coupling_strength": "higher", "tau_S": "lower"},
-        },
-    }
 
     validation_results = {}
 

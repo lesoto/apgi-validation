@@ -9,8 +9,13 @@ REST API for running simulations, validations, and accessing results.
 import sys
 from pathlib import Path
 from typing import Dict, Optional
+import secrets
+import hashlib
+from datetime import datetime, timedelta
+import numpy as np
 
-from fastapi import FastAPI, Form, HTTPException, UploadFile
+from fastapi import FastAPI, Form, HTTPException, UploadFile, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from werkzeug.utils import secure_filename
 
@@ -64,6 +69,81 @@ class DataGenerationRequest(BaseModel):
     include_artifacts: bool = True
 
 
+class LoginRequest(BaseModel):
+    """Request model for user login."""
+
+    username: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    """Response model for token generation."""
+
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+
+# Authentication setup
+security = HTTPBearer()
+
+# Simple in-memory user store (in production, use proper database)
+USERS_DB = {
+    "admin": hashlib.sha256("admin123".encode()).hexdigest(),  # Default admin user
+    "researcher": hashlib.sha256(
+        "research123".encode()
+    ).hexdigest(),  # Default researcher user
+}
+
+# Token store (in production, use Redis or database)
+TOKENS = {}
+TOKEN_EXPIRY_HOURS = 24
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash."""
+    return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
+
+
+def create_access_token(username: str) -> str:
+    """Create a new access token for the user."""
+    token = secrets.token_urlsafe(32)
+    expiry = datetime.utcnow() + timedelta(hours=TOKEN_EXPIRY_HOURS)
+    TOKENS[token] = {"username": username, "expiry": expiry}
+    return token
+
+
+def verify_token(token: str) -> Optional[str]:
+    """Verify a token and return the associated username if valid."""
+    if token not in TOKENS:
+        return None
+
+    token_data = TOKENS[token]
+    if datetime.utcnow() > token_data["expiry"]:
+        # Token expired, remove it
+        del TOKENS[token]
+        return None
+
+    return token_data["username"]
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
+    """Dependency to get the current authenticated user."""
+    token = credentials.credentials
+    username = verify_token(token)
+
+    if username is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return username
+
+
 @app.get("/")
 async def root():
     """Root endpoint."""
@@ -75,28 +155,116 @@ async def health_check():
     """Health check endpoint."""
     from datetime import datetime
 
-    return {"status": "healthy", "timestamp": datetime.now().isoformat() + "Z"}
+    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat() + "Z"}
+
+
+@app.post("/auth/login", response_model=TokenResponse)
+async def login(request: LoginRequest):
+    """Authenticate user and return access token."""
+    if request.username not in USERS_DB:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+        )
+
+    if not verify_password(request.password, USERS_DB[request.username]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+        )
+
+    # Create access token
+    access_token = create_access_token(request.username)
+
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        expires_in=TOKEN_EXPIRY_HOURS * 3600,  # Convert to seconds
+    )
 
 
 @app.post("/simulation/run")
-async def run_simulation(request: SimulationRequest):
+async def run_simulation(
+    request: SimulationRequest, current_user: str = Depends(get_current_user)
+):
     """Run a simulation with given parameters."""
     try:
-        # Create generator
-        generator = sample_data_generator.SampleDataGenerator(
-            sampling_rate=int(1 / request.dt), duration=int(request.steps * request.dt)
-        )
+        # Import APGI simulation components
+        import importlib.util
 
-        # Generate data (placeholder - would run actual APGI simulation)
-        eeg_signal, p300_events = generator.generate_eeg_data()
+        # Load the SurpriseIgnitionSystem
+        module_path = PROJECT_ROOT / "Falsification" / "Falsification-Protocol-4.py"
+        spec = importlib.util.spec_from_file_location("apgi_simulation", module_path)
+        if spec and spec.loader:
+            simulation_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(simulation_module)
+            SurpriseIgnitionSystem = simulation_module.SurpriseIgnitionSystem
+        else:
+            raise HTTPException(
+                status_code=500, detail="Could not load APGI simulation module"
+            )
+
+        # Initialize the APGI system with request parameters
+        system_params = {
+            "alpha": getattr(request, "alpha", 10.0),
+            "tau_S": getattr(request, "tau_S", 0.5),
+            "tau_theta": getattr(request, "tau_theta", 30.0),
+            "theta_0": getattr(request, "theta_0", 0.5),
+            "gamma_M": getattr(request, "gamma_M", -0.3),
+            "gamma_A": getattr(request, "gamma_A", 0.1),
+            "rho": getattr(request, "rho", 0.7),
+            "sigma_S": getattr(request, "sigma_S", 0.05),
+            "sigma_theta": getattr(request, "sigma_theta", 0.02),
+        }
+
+        system = SurpriseIgnitionSystem(**system_params)
+
+        # Run simulation
+        steps = getattr(request, "steps", 1000)
+        dt = getattr(request, "dt", 0.01)
+
+        # Prepare input generator (simplified for API)
+        def input_gen(t):
+            return {
+                "Pi_e": 1.0 + 0.3 * np.sin(2 * np.pi * t / 10),  # Oscillating precision
+                "eps_e": np.random.normal(0.5, 0.3),  # Surprise input
+                "beta": 1.0,  # Somatic bias
+                "Pi_i": 1.0,  # Internal precision
+                "eps_i": np.random.normal(0.2, 0.2),  # Internal error
+                "M": 1.0,  # Metabolic state
+                "A": 0.5,  # Arousal
+            }
+
+        # Run the simulation
+        history = system.simulate(steps, dt, input_gen)
+
+        # Extract key results
+        ignition_events = np.sum(history["B"] > 0.5)  # Count ignition events
+        avg_surprise = np.mean(history["S"])
+        final_surprise = history["S"][-1]
+        final_threshold = history["theta"][-1]
+
+        # Calculate ignition statistics
+        ignition_times = np.where(history["B"] > 0.5)[0]
+        ignition_probability = len(ignition_times) / steps if steps > 0 else 0
 
         return {
             "status": "completed",
             "parameters": request.dict(),
             "results": {
-                "signal_length": len(eeg_signal),
-                "p300_events": len(p300_events),
-                "eeg_sample": eeg_signal[:100].tolist(),  # First 100 samples
+                "steps_simulated": steps,
+                "dt": dt,
+                "ignition_events": int(ignition_events),
+                "ignition_probability": float(ignition_probability),
+                "avg_surprise": float(avg_surprise),
+                "final_surprise": float(final_surprise),
+                "final_threshold": float(final_threshold),
+                "time_series": {
+                    "time": history["time"][::10].tolist(),  # Sample every 10th point
+                    "surprise": history["S"][::10].tolist(),
+                    "threshold": history["theta"][::10].tolist(),
+                    "ignition": history["B"][::10].tolist(),
+                },
             },
         }
     except Exception as e:
@@ -104,7 +272,9 @@ async def run_simulation(request: SimulationRequest):
 
 
 @app.post("/data/generate")
-async def generate_data(request: DataGenerationRequest):
+async def generate_data(
+    request: DataGenerationRequest, current_user: str = Depends(get_current_user)
+):
     """Generate sample multimodal data."""
     try:
         data_df = sample_data_generator.generate_sample_multimodal_data(
@@ -125,42 +295,50 @@ async def generate_data(request: DataGenerationRequest):
 
 
 @app.post("/data/validate")
-async def validate_data_file(file_path: str):
-    """Validate a data file."""
+async def validate_data_file(file: UploadFile):
+    """Validate an uploaded data file."""
     try:
-        file_path_obj = Path(file_path).resolve()
-        allowed_base = PROJECT_ROOT / "data_repository"
-        if not file_path_obj.is_relative_to(allowed_base):
-            raise HTTPException(
-                status_code=403,
-                detail="Access denied: file path outside allowed directory",
-            )
-        if not file_path_obj.exists():
-            raise HTTPException(status_code=404, detail="File not found")
+        # Save uploaded file temporarily with secure filename
+        temp_dir = PROJECT_ROOT / "temp"
+        temp_dir.mkdir(exist_ok=True)
+        secure_name = secure_filename(file.filename)
+        temp_path = temp_dir / secure_name
 
-        validator = data_validation.DataValidator()
+        # Write uploaded file to temp location
+        with open(temp_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
 
-        # Validate format
-        format_result = validator.validate_file_format(file_path_obj)
+        try:
+            validator = data_validation.DataValidator()
 
-        if not format_result["is_readable"]:
-            raise HTTPException(status_code=400, detail="File not readable")
+            # Validate format
+            format_result = validator.validate_file_format(temp_path)
 
-        # Load data and assess quality
-        if file_path_obj.suffix.lower() == ".csv":
-            import pandas as pd
+            if not format_result["is_readable"]:
+                raise HTTPException(status_code=400, detail="File not readable")
 
-            data_df = pd.read_csv(file_path_obj)
-        else:
-            raise HTTPException(status_code=400, detail="Unsupported file format")
+            # Load data and assess quality
+            if temp_path.suffix.lower() == ".csv":
+                import pandas as pd
 
-        quality_report = validator.validate_data_quality(data_df)
+                data_df = pd.read_csv(temp_path)
+            else:
+                raise HTTPException(status_code=400, detail="Unsupported file format")
 
-        return {
-            "status": "completed",
-            "file_info": format_result,
-            "quality_report": quality_report,
-        }
+            quality_report = validator.validate_data_quality(data_df)
+
+            return {
+                "status": "completed",
+                "file_info": format_result,
+                "quality_report": quality_report,
+            }
+
+        finally:
+            # Clean up temporary file
+            if temp_path.exists():
+                temp_path.unlink()
+
     except HTTPException:
         raise
     except Exception as e:
@@ -183,7 +361,12 @@ async def get_config(section: Optional[str] = None):
 
 
 @app.put("/config/{section}/{parameter}")
-async def set_config_parameter(section: str, parameter: str, value: str):
+async def set_config_parameter(
+    section: str,
+    parameter: str,
+    value: str,
+    current_user: str = Depends(get_current_user),
+):
     """Set a configuration parameter."""
     try:
         # Convert value to appropriate type
@@ -199,7 +382,12 @@ async def set_config_parameter(section: str, parameter: str, value: str):
 
 
 @app.post("/config/profile")
-async def create_config_profile(name: str, description: str, category: str = "custom"):
+async def create_config_profile(
+    name: str,
+    description: str,
+    category: str = "custom",
+    current_user: str = Depends(get_current_user),
+):
     """Create a new configuration profile."""
     try:
         profile_path = config_manager.create_profile(name, description, category)
@@ -221,7 +409,11 @@ async def list_config_profiles(category: Optional[str] = None):
 
 
 @app.post("/validation/run-protocol/{protocol_id}")
-async def run_validation_protocol(protocol_id: str, request: ValidationRequest):
+async def run_validation_protocol(
+    protocol_id: str,
+    request: ValidationRequest,
+    current_user: str = Depends(get_current_user),
+):
     """Run a specific validation protocol."""
     try:
         protocol_id_int = int(protocol_id)
@@ -272,25 +464,22 @@ async def run_validation_protocol(protocol_id: str, request: ValidationRequest):
             )
 
         elif protocol_id_int == 10:
-            from Validation.Validation_Protocol_10 import CausalManipulationsValidator
-
-            validator = CausalManipulationsValidator()
-            # Implement similar to protocol 9
-            results = {"status": "placeholder", "protocol": protocol_id}
+            raise HTTPException(
+                status_code=501,
+                detail="Not Implemented: Protocol 10 (Causal Manipulations) not yet implemented",
+            )
 
         elif protocol_id_int == 11:
-            from Validation.Validation_Protocol_11 import QuantitativeModelFitsValidator
-
-            validator = QuantitativeModelFitsValidator()
-            # Implement similar to protocol 9
-            results = {"status": "placeholder", "protocol": protocol_id}
+            raise HTTPException(
+                status_code=501,
+                detail="Not Implemented: Protocol 11 (Quantitative Model Fits) not yet implemented",
+            )
 
         elif protocol_id_int == 12:
-            from Validation.Validation_Protocol_12 import ClinicalCrossSpeciesValidator
-
-            validator = ClinicalCrossSpeciesValidator()
-            # Implement similar to protocol 9
-            results = {"status": "placeholder", "protocol": protocol_id}
+            raise HTTPException(
+                status_code=501,
+                detail="Not Implemented: Protocol 12 (Clinical Cross-Species) not yet implemented",
+            )
 
         return {"status": "completed", "protocol": protocol_id, "results": results}
 
@@ -299,7 +488,11 @@ async def run_validation_protocol(protocol_id: str, request: ValidationRequest):
 
 
 @app.post("/data/upload")
-async def upload_data_file(file: UploadFile, data_type: str = Form(...)):
+async def upload_data_file(
+    file: UploadFile,
+    data_type: str = Form(...),
+    current_user: str = Depends(get_current_user),
+):
     """Upload data files for validation."""
     try:
         # Save file to data_repository
@@ -330,19 +523,10 @@ async def upload_data_file(file: UploadFile, data_type: str = Form(...)):
 @app.get("/results/{result_id}")
 async def get_validation_results(result_id: str):
     """Retrieve validation results by ID."""
-    try:
-        # In a real implementation, results would be stored in a database
-        # For now, return placeholder
-        return {
-            "result_id": result_id,
-            "status": "available",
-            "results": {"placeholder": "Results would be stored here"},
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Result retrieval failed: {str(e)}"
-        )
+    raise HTTPException(
+        status_code=501,
+        detail="Not Implemented: Results persistence not yet implemented",
+    )
 
 
 @app.get("/protocols/list")

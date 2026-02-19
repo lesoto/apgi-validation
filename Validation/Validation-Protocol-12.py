@@ -16,15 +16,12 @@ Date: 2026
 Version: 1.0 (Clinical Validation)
 """
 
-import warnings
 from typing import Dict, List
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 from sklearn.metrics import classification_report, confusion_matrix
-
-warnings.filterwarnings("ignore")
 
 
 class ClinicalDataAnalyzer:
@@ -109,7 +106,6 @@ class ClinicalDataAnalyzer:
         Pi_e = 0.5 + 0.5 * connectivity  # Precision from connectivity
         Pi_i = 0.3 + 0.4 * p3b  # Interoceptive precision from P3b
         beta = 1.0 + 0.5 * connectivity  # Somatic influence
-        theta_t = subject_data["theta_t"]
 
         # Simulate precision expectation gap (key for anxiety disorders)
         precision_expectation_gap = np.random.normal(0, 0.2)
@@ -312,16 +308,6 @@ class PsychiatricProfileAnalyzer:
         """
 
         # Features for classification
-        features = [
-            "precision_expectation_gap",
-            "Pi_e_baseline",
-            "Pi_i_baseline",
-            "beta",
-            "theta_t",
-            "arousal",
-        ]
-
-        X = psychiatric_data[features].values
         y = psychiatric_data["diagnosis"].values
 
         # Simple rule-based classification (could be improved with ML)
@@ -499,7 +485,6 @@ class CrossSpeciesHomologyAnalyzer:
             Homology analysis results
         """
 
-        species_list = species_data["species"].unique()
         results = {}
 
         # Test for conserved relationships across species
@@ -926,6 +911,28 @@ def main():
                             print(f"  {sub_key}: {sub_value}")
             else:
                 print(f"  {value}")
+
+
+def run_validation():
+    """Standard validation entry point for Protocol 12."""
+    try:
+        validator = ClinicalConvergenceValidator()
+        results = validator.validate_clinical_convergence()
+
+        # Determine if validation passed based on overall score
+        passed = results.get("overall_clinical_score", 0) > 0.5
+
+        return {
+            "passed": passed,
+            "status": "success" if passed else "failed",
+            "message": f"Protocol 12 completed: Overall clinical validation score {results.get('overall_clinical_score', 0):.3f}",
+        }
+    except Exception as e:
+        return {
+            "passed": False,
+            "status": "error",
+            "message": f"Protocol 12 failed: {str(e)}",
+        }
 
 
 if __name__ == "__main__":

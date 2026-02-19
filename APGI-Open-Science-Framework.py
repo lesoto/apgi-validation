@@ -16,7 +16,6 @@ Version: 1.0 (Open Science)
 
 import json
 import logging
-import warnings
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -26,8 +25,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-
-warnings.filterwarnings("ignore")
 
 
 @dataclass
@@ -488,8 +485,6 @@ class OpenAccessPublicationTemplate:
 
         if study_type not in self.templates:
             raise ValueError(f"Unknown study type: {study_type}")
-
-        template = self.templates[study_type]
 
         manuscript = f"""# {title}
 

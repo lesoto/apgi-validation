@@ -59,11 +59,6 @@ CONFIG_DIR = PROJECT_ROOT / "config"
 PROFILES_DIR = CONFIG_DIR / "profiles"
 VERSIONS_DIR = CONFIG_DIR / "versions"
 
-# Ensure directories exist
-CONFIG_DIR.mkdir(exist_ok=True)
-PROFILES_DIR.mkdir(exist_ok=True)
-VERSIONS_DIR.mkdir(exist_ok=True)
-
 
 @dataclass
 class ConfigProfile:
@@ -507,6 +502,7 @@ class ConfigManager:
 
     def _save_default_config(self):
         """Save default configuration to file."""
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         config_dict = asdict(self.config)
 
         with open(self.config_file, "w") as f:
@@ -628,6 +624,7 @@ class ConfigManager:
         )
 
         profile_file = PROFILES_DIR / f"{name}.yaml"
+        PROFILES_DIR.mkdir(parents=True, exist_ok=True)
         with open(profile_file, "w") as f:
             yaml.dump(asdict(profile), f, default_flow_style=False, indent=2)
 
@@ -636,6 +633,8 @@ class ConfigManager:
 
     def load_profile(self, name: str) -> bool:
         """Load a configuration profile."""
+        if not PROFILES_DIR.exists():
+            PROFILES_DIR.mkdir(parents=True, exist_ok=True)
         profile_file = PROFILES_DIR / f"{name}.yaml"
         if not profile_file.exists():
             apgi_logger.logger.error(f"Profile not found: {name}")
@@ -666,6 +665,8 @@ class ConfigManager:
 
     def list_profiles(self, category: str = None) -> List[Dict[str, Any]]:
         """List available configuration profiles."""
+        if not PROFILES_DIR.exists():
+            PROFILES_DIR.mkdir(parents=True, exist_ok=True)
         profiles = []
 
         for profile_file in PROFILES_DIR.glob("*.yaml"):
@@ -691,6 +692,8 @@ class ConfigManager:
 
     def delete_profile(self, name: str) -> bool:
         """Delete a configuration profile."""
+        if not PROFILES_DIR.exists():
+            PROFILES_DIR.mkdir(parents=True, exist_ok=True)
         profile_file = PROFILES_DIR / f"{name}.yaml"
         if profile_file.exists():
             profile_file.unlink()
@@ -713,6 +716,7 @@ class ConfigManager:
         )
 
         version_file = VERSIONS_DIR / f"{version.version_id}.json"
+        VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
         version_data = {"version": asdict(version), "config": config_dict}
 
         with open(version_file, "w") as f:
@@ -723,6 +727,8 @@ class ConfigManager:
 
     def list_versions(self) -> List[Dict[str, Any]]:
         """List available configuration versions."""
+        if not VERSIONS_DIR.exists():
+            VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
         versions = []
 
         for version_file in sorted(VERSIONS_DIR.glob("*.json"), reverse=True):
@@ -752,6 +758,8 @@ class ConfigManager:
 
     def restore_version(self, version_id: str) -> bool:
         """Restore configuration from a version snapshot."""
+        if not VERSIONS_DIR.exists():
+            VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
         version_file = VERSIONS_DIR / f"{version_id}.json"
         if not version_file.exists():
             apgi_logger.logger.error(f"Version not found: {version_id}")
@@ -807,6 +815,8 @@ class ConfigManager:
 
     def initialize_default_profiles(self):
         """Initialize default configuration profiles."""
+        if not PROFILES_DIR.exists():
+            PROFILES_DIR.mkdir(parents=True, exist_ok=True)
         default_profiles = [
             {
                 "name": "anxiety-disorder",
@@ -978,8 +988,16 @@ validation:
                 # Convert string to appropriate type
                 if value.lower() in ["true", "false"]:
                     value = value.lower() == "true"
-                elif value.replace(".", "").isdigit():
-                    value = float(value) if "." in value else int(value)
+                else:
+                    try:
+                        # Try to convert to float (handles negatives and decimals)
+                        value = float(value)
+                        # If it's an integer, convert to int
+                        if value.is_integer():
+                            value = int(value)
+                    except ValueError:
+                        # Not a number, keep as string
+                        pass
 
                 self.set_parameter(section, param, value)
                 apgi_logger.logger.info(
@@ -1007,7 +1025,7 @@ class EnhancedConfigManager(ConfigManager):
         category: str = "custom",
         tags: List[str] = None,
         author: str = "APGI Framework",
-    ) -> ConfigProfile:
+    ) -> str:
         """Create a new configuration profile from current settings."""
 
         # Get current configuration
@@ -1030,7 +1048,7 @@ class EnhancedConfigManager(ConfigManager):
             yaml.dump(asdict(profile), f, default_flow_style=False)
 
         apgi_logger.logger.info(f"Created configuration profile: {name}")
-        return profile
+        return str(profile_path)
 
     def load_profile(self, name: str) -> bool:
         """Load a configuration profile."""
@@ -1328,7 +1346,8 @@ class EnhancedConfigManager(ConfigManager):
 
             # Validate parameter structure
             built_in_profiles = ["adhd", "anxiety-disorder", "research-default"]
-            if profile_data.get("name") not in built_in_profiles:
+            if profile.name not in built_in_profiles:
+                # For custom profiles, require all sections
                 required_sections = [
                     "model",
                     "simulation",
@@ -1339,6 +1358,10 @@ class EnhancedConfigManager(ConfigManager):
                 for section in required_sections:
                     if section not in profile.parameters:
                         validation_errors.append(f"Missing required section: {section}")
+            else:
+                # For built-in profiles, only require the sections they actually have
+                if not profile.parameters:
+                    validation_errors.append("Profile parameters are required")
 
             return {
                 "valid": len(validation_errors) == 0,
@@ -1438,7 +1461,7 @@ def set_parameter(section: str, parameter: str, value: Any):
     try:
         config_manager.set_parameter(section, parameter, value)
         return True
-    except (ValueError, KeyError, AttributeError, TypeError) as e:
+    except (ValueError, KeyError, AttributeError, TypeError):
         return False
 
 

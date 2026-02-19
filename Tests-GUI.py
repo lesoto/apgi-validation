@@ -73,12 +73,17 @@ class ToolTip:
         """Display the tooltip"""
         if self.tipwindow or not self.text:
             return
-        bbox = self.widget.bbox("insert")  # type: ignore
-        if bbox is None:
-            return
-        x, y, _, _ = bbox
-        x = x + self.widget.winfo_rootx() + 25
-        y = y + self.widget.winfo_rooty() + 20
+        try:
+            bbox = self.widget.bbox("insert")  # type: ignore
+            if bbox is None:
+                return
+            x, y, _, _ = bbox
+            x = x + self.widget.winfo_rootx() + 25
+            y = y + self.widget.winfo_rooty() + 20
+        except tk.TclError:
+            # For widgets that don't support bbox("insert") like buttons
+            x = self.widget.winfo_rootx() + self.widget.winfo_width() // 2
+            y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
         self.tipwindow = tw = tk.Toplevel(self.widget)
         tw.wm_overrideredirect(True)
         tw.wm_geometry(f"+{x}+{y}")
@@ -129,6 +134,10 @@ class TestsRunnerGUI:
 
         # Store running processes
         self.running_processes: Dict[str, subprocess.Popen[str]] = {}
+
+        # Cancellation event for run_all operation
+        self.run_all_cancel_event = threading.Event()
+        self.run_all_running = False
 
         # Output tag constants
         self.TAG_INFO = "info"
@@ -408,7 +417,14 @@ class TestsRunnerGUI:
             return
 
         def run_all() -> None:
+            self.run_all_running = True
+            self.run_all_cancel_event.clear()
+
             for i, script in enumerate(self.scripts):
+                if self.run_all_cancel_event.is_set():
+                    self.log_output("Run All cancelled by user", self.TAG_WARNING)
+                    break
+
                 relative_path = script.relative_to(self.tests_dir)
                 self.log_output(
                     f"Running test {i + 1}/{len(self.scripts)}: {relative_path}",
@@ -431,6 +447,7 @@ class TestsRunnerGUI:
             self.log_output("All tests execution completed", self.TAG_SUCCESS)
             self.update_status("Ready")
             self.progress.stop()
+            self.run_all_running = False
 
         # Run in separate thread to avoid blocking GUI
         thread = threading.Thread(target=run_all, daemon=True)
@@ -645,7 +662,17 @@ class TestsRunnerGUI:
             self.stop_button.config(state=tk.DISABLED)
 
     def stop_selected_script(self) -> None:
-        """Stop the selected script if it's running."""
+        """Stop the selected script if it's running, or cancel run_all operation."""
+        # First, check if run_all is running and cancel it
+        if self.run_all_running:
+            self.run_all_cancel_event.set()
+            self.run_all_running = False
+            self.log_output("Cancelled Run All operation", self.TAG_WARNING)
+            self._update_stop_button_state()
+            self.progress.stop()
+            self.update_status("Ready")
+            return
+
         script = self.get_selected_script()
         if not script:
             # Check if pytest is running

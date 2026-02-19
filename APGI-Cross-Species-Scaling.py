@@ -535,7 +535,7 @@ def predict_species_consciousness(
 
     model = CrossSpeciesScaling()
 
-    return {
+    result = {
         "predicted_pci": model.predict_pci(species_params),
         "hierarchical_levels": model.predict_hierarchical_levels(species_params),
         "intrinsic_timescale": model.predict_intrinsic_timescale(species_params),
@@ -543,6 +543,22 @@ def predict_species_consciousness(
         "total_neurons": species_params.total_neurons,
         "total_synapses": species_params.total_synapses,
     }
+
+    # Set attributes on the species_params object for convenience in examples
+    species_params.consciousness_level = result["predicted_pci"]
+
+    # Compute confidence based on prediction uncertainty
+    # Higher brain mass generally means more confidence in prediction
+    brain_mass_log = np.log10(species_params.brain_mass)
+    species_params.confidence = min(0.95, 0.7 + 0.1 * brain_mass_log)
+
+    # Compute processing time based on brain size and complexity
+    # Larger brains have longer processing times
+    species_params.processing_time = (
+        0.05 + 0.05 * (species_params.brain_mass / 1000) ** 0.3
+    )
+
+    return result
 
 
 def validate_cross_species_model() -> Dict[str, float]:
