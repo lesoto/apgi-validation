@@ -661,12 +661,13 @@ class DataValidator:
         return len(results["errors"]) == 0
 
 
-class DataPreprocessor:
+class DataPreprocessor(DataValidator):
     """Data preprocessing utilities for APGI framework."""
 
-    def __init__(self):
+    def __init__(self, config=None):
+        super().__init__()
         self.preprocessing_steps = []
-        self.config = ValidationConfig()
+        self.config = config
 
     def load_data(self, file_path: Union[str, Path]) -> pd.DataFrame:
         """Load data from various formats."""
@@ -700,7 +701,7 @@ class DataPreprocessor:
 
         if strategy == "interpolate":
             for col in numeric_cols:
-                df_clean[col] = df_clean[col].interpolate(method="linear")
+                df_clean[col] = df_clean[col].interpolate()
         elif strategy == "forward_fill":
             df_clean[numeric_cols] = df_clean[numeric_cols].ffill()
         elif strategy == "backward_fill":
@@ -779,13 +780,28 @@ class DataPreprocessor:
 
                 if filter_type == "bandpass":
                     low_freq = filter_params.get(
-                        "low_freq", self.config.default_low_freq
+                        "low_freq",
+                        (
+                            getattr(self.config, "default_low_freq", 1.0)
+                            if self.config
+                            else 1.0
+                        ),
                     )
                     high_freq = filter_params.get(
-                        "high_freq", self.config.default_high_freq
+                        "high_freq",
+                        (
+                            getattr(self.config, "default_high_freq", 50.0)
+                            if self.config
+                            else 50.0
+                        ),
                     )
                     fs = filter_params.get(
-                        "sampling_rate", self.config.default_sampling_rate
+                        "sampling_rate",
+                        (
+                            getattr(self.config, "default_sampling_rate", 1000.0)
+                            if self.config
+                            else 1000.0
+                        ),
                     )
 
                     nyquist = fs / 2
@@ -799,10 +815,20 @@ class DataPreprocessor:
 
                 elif filter_type == "lowpass":
                     cutoff_freq = filter_params.get(
-                        "cutoff_freq", self.config.default_cutoff_freq
+                        "cutoff_freq",
+                        (
+                            getattr(self.config, "default_cutoff_freq", 50.0)
+                            if self.config
+                            else 50.0
+                        ),
                     )
                     fs = filter_params.get(
-                        "sampling_rate", self.config.default_sampling_rate
+                        "sampling_rate",
+                        (
+                            getattr(self.config, "default_sampling_rate", 1000.0)
+                            if self.config
+                            else 1000.0
+                        ),
                     )
 
                     nyquist = fs / 2
@@ -852,7 +878,7 @@ class DataPreprocessor:
         df_resampled = df_resampled.set_index(time_column)
 
         # Calculate target frequency
-        target_freq = f"{int(target_rate)}S"
+        target_freq = f"{int(1000000 / target_rate)}us"
 
         # Resample numeric columns
         numeric_cols = df_resampled.select_dtypes(include=[np.number]).columns

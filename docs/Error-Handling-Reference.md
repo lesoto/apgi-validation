@@ -52,7 +52,7 @@ raise ValidationError(
 For configuration related errors.
 
 ```python
-from utils.error_handling import ConfigurationError
+from utils.error_handler import ConfigurationError
 
 raise ConfigurationError(
     message="Invalid configuration parameter",

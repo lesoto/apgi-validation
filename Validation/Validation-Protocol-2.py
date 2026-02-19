@@ -18,7 +18,6 @@ Dependencies:
 """
 
 import json
-import warnings
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
@@ -31,11 +30,9 @@ from scipy import stats
 from sklearn.metrics import log_loss, roc_auc_score
 from sklearn.model_selection import KFold
 
-warnings.filterwarnings("ignore")
-
 # Set random seeds
 RANDOM_SEED = 42
-np.random.seed(RANDOM_SEED)
+# np.random.seed(RANDOM_SEED)
 
 # =============================================================================
 # PART 1: DATA STRUCTURES & DATASET LOADING
@@ -299,7 +296,6 @@ def validate_parameter_recovery(n_simulations: int = 100):
         model_instance = model.build_model(dataset)
         with model_instance:
             trace = pm.sample(2000, tune=1000, target_accept=0.95)
-        fitted = trace
         theta_0_recovered = trace.posterior["theta_0"].mean().item()
         Pi_i_recovered = trace.posterior["Pi_i"].mean().item()
         beta_recovered = trace.posterior["beta"].mean().item()
@@ -504,7 +500,6 @@ class StandardSDTModel:
 
         data_dict = data.to_dict()
         n_subjects = data_dict["n_subjects"]
-        n_trials = data_dict["n_trials"]
 
         with pm.Model() as model:
             # Subject-level parameters
@@ -552,7 +547,6 @@ class GlobalWorkspaceModel:
 
         data_dict = data.to_dict()
         n_subjects = data_dict["n_subjects"]
-        n_trials = data_dict["n_trials"]
 
         with pm.Model() as model:
             # Subject parameters
@@ -1446,7 +1440,6 @@ def plot_posterior_distributions(trace, save_path: str = "protocol2_posteriors.p
 
             # Add posterior statistics
             mean = samples.mean()
-            median = np.median(samples)
             ci_low, ci_high = np.percentile(samples, [2.5, 97.5])
 
             ax.axvline(
@@ -1791,8 +1784,6 @@ def parameter_recovery_simulation(true_params, n_simulations=100):
     for sim in range(n_simulations):
         # Generate synthetic data with known parameters
         true_theta_0 = np.random.uniform(0.3, 0.7)
-        true_beta = np.random.uniform(0.8, 1.5)
-        true_Pi_i = np.random.uniform(0.8, 1.8)
 
         # Create synthetic data with these parameters
         data = generator.generate_melloni_style_data(

@@ -754,11 +754,6 @@ class RobustnessTestingFramework:
     ) -> Dict:
         """Assess how well data discriminates APGI from alternative"""
 
-        # Simplified assessment - would be more sophisticated
-        discriminating_tests = self.alternative_models[model_name][
-            "discriminating_tests"
-        ]
-
         # Check if APGI makes unique predictions that alternatives don't
         unique_predictions = {
             "precision_expectation_gap_anxiety": empirical_data.get(
@@ -1022,10 +1017,8 @@ def main():
         f"Scientific Status: {falsification_assessment['scientific_assessment']['scientific_status']}"
     )
     print(
-        f"Confidence Level: {falsification_assessment['scientific_assessment']['confidence_level']}"
+        f"Confidence Level: {falsification_assessment['scientific_assessment']['confidence_level']:.3f}"
     )
-    print(".3f")
-    print(".3f")
     print(
         f"Testability Score: {falsification_assessment['scientific_assessment']['testability_score']:.3f}"
     )

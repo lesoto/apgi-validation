@@ -14,7 +14,6 @@ Dependencies:
 """
 
 import json
-import warnings
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
@@ -35,14 +34,8 @@ from sklearn.metrics import (
 from torch.utils.data import DataLoader, Dataset, random_split
 from tqdm import tqdm
 
-warnings.filterwarnings("ignore")
-
-# Set random seeds for reproducibility
+# Random seed for reproducibility (set locally when needed)
 RANDOM_SEED = 42
-np.random.seed(RANDOM_SEED)
-torch.manual_seed(RANDOM_SEED)
-if torch.cuda.is_available():
-    torch.cuda.manual_seed(RANDOM_SEED)
 
 # =============================================================================
 # PART 1: APGI DYNAMICAL SYSTEM & MEASUREMENT EQUATIONS
@@ -1728,7 +1721,6 @@ def enhanced_cross_validation(dataset, n_folds=5):
     from sklearn.model_selection import StratifiedKFold
 
     outer_cv = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
-    inner_cv = StratifiedKFold(n_splits=n_folds - 1, shuffle=True, random_state=43)
 
     results = {
         "outer_fold_scores": [],
@@ -1827,13 +1819,12 @@ def compute_feature_importance(trained_model, test_loader):
     Add integrated gradients for feature attribution
     """
     try:
-        from captum.attr import IntegratedGradients, Saliency
+        from captum.attr import IntegratedGradients
     except ImportError:
         print("Warning: captum not installed. Install with: pip install captum")
         return None
 
     ig = IntegratedGradients(trained_model)
-    saliency = Saliency(trained_model)
 
     attributions = []
 

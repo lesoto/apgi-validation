@@ -22,7 +22,6 @@ Dependencies:
 """
 
 import json
-import warnings
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
@@ -33,8 +32,6 @@ from scipy import optimize, stats
 from scipy.stats import beta, norm
 from sklearn.decomposition import FactorAnalysis
 from tqdm import tqdm
-
-warnings.filterwarnings("ignore")
 
 # Set random seeds for reproducibility
 RANDOM_SEED = 42
@@ -607,7 +604,7 @@ class APGIPsychophysicalEstimator:
 
         # 3. Correlation heatmap
         correlation_matrix = df[param_names].corr()
-        im = axes[2, 0].imshow(
+        axes[2, 0].imshow(
             correlation_matrix, cmap="coolwarm", aspect="auto", vmin=-1, vmax=1
         )
         axes[2, 0].set_xticks(range(len(param_names)))
@@ -619,7 +616,7 @@ class APGIPsychophysicalEstimator:
         # Add correlation values to heatmap
         for i in range(len(param_names)):
             for j in range(len(param_names)):
-                text = axes[2, 0].text(
+                axes[2, 0].text(
                     j,
                     i,
                     f"{correlation_matrix.iloc[i, j]:.2f}",

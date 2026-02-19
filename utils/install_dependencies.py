@@ -72,9 +72,7 @@ def run_command(command, description):
     """Run a command and handle errors gracefully."""
     print(f"\n📦 {description}...")
     try:
-        result = subprocess.run(
-            command, shell=True, check=True, capture_output=True, text=True
-        )
+        subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
         print(f"✅ {description} completed successfully")
         return True
     except subprocess.CalledProcessError as e:
@@ -190,7 +188,7 @@ def verify_installation():
         try:
             __import__(package)
             print(f"✅ {package}")
-        except ImportError as e:
+        except ImportError:
             error = APGIImportWarning(
                 message=format_error_message("missing_dependency", package=package),
                 package=package,

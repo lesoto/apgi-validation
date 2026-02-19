@@ -93,7 +93,7 @@ class EEGPreprocessor:
                 self.preprocessing_log.append(f"Processing EEG channel: {col}")
 
                 # Step 1: Handle missing values
-                df_processed[col] = df_processed[col].interpolate(method="linear")
+                df_processed[col] = df_processed[col].interpolate()
 
                 # Step 2: Apply bandpass filter
                 df_processed[col] = self._apply_bandpass_filter(df_processed[col])
@@ -221,7 +221,7 @@ class EEGPreprocessor:
 
             # Interpolate over artifacts
             result.loc[artifact_indices] = np.nan
-            result = result.interpolate(method="linear")
+            result = result.interpolate()
 
             self.preprocessing_log.append(
                 f"Corrected {artifact_mask.sum()} artifacts in {signal_data.name}"
@@ -588,7 +588,7 @@ class PupilPreprocessor:
             result.loc[blink_mask] = np.nan
 
             # Interpolate over blinks
-            result = result.interpolate(method=self.config.pupil_interpolation_method)
+            result = result.interpolate()
 
             self.preprocessing_log.append(
                 f"Detected and interpolated {blink_mask.sum()} blinks"
@@ -910,7 +910,7 @@ class HeartRatePreprocessor:
         """Interpolate missing values in heart rate data."""
         try:
             # Use linear interpolation for missing values
-            result = hr_data.interpolate(method="linear")
+            result = hr_data.interpolate()
 
             # Fill any remaining NaN values with forward fill then backward fill
             result = result.ffill().bfill()

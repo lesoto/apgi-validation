@@ -18,7 +18,6 @@ Dependencies:
 """
 
 import json
-import warnings
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
@@ -28,8 +27,6 @@ import pandas as pd
 from scipy import stats
 from scipy.optimize import minimize
 from statsmodels.stats.power import tt_ind_solve_power
-
-warnings.filterwarnings("ignore")
 
 # Set random seeds
 RANDOM_SEED = 42
@@ -466,7 +463,6 @@ class InterventionStudySimulator:
 
         # Subject-level baseline parameters
         baseline_theta = self.rng.normal(0.50, 0.12, n_subjects)
-        baseline_Pi_i = self.rng.gamma(2.0, 0.5, n_subjects)
         baseline_alpha = self.rng.normal(5.0, 1.0, n_subjects)
 
         for subj_id in range(n_subjects):
@@ -483,13 +479,10 @@ class InterventionStudySimulator:
 
                 # Apply intervention effect to parameters
                 theta = baseline_theta[subj_id]
-                Pi_i = baseline_Pi_i[subj_id]
                 alpha = baseline_alpha[subj_id]
 
                 if effect.target_parameter == "theta":
                     theta = baseline_theta[subj_id] + effect_magnitude
-                elif effect.target_parameter == "Pi_i":
-                    Pi_i = baseline_Pi_i[subj_id] * (1 + effect_magnitude)
                 elif effect.target_parameter == "alpha":
                     alpha = baseline_alpha[subj_id] * (1 + effect_magnitude)
 
@@ -1389,7 +1382,7 @@ def bayesian_equivalence_test(control_data, treatment_data, rope_width=0.1):
         import arviz as az
         import pymc as pm
 
-        with pm.Model() as model:
+        with pm.Model():
             # Priors
             mu_control = pm.Normal("mu_control", mu=0, sigma=10)
             mu_treatment = pm.Normal("mu_treatment", mu=0, sigma=10)
@@ -1486,7 +1479,7 @@ def meta_analysis_of_interventions(studies_data):
         effect_sizes = np.array([s["effect_size"] for s in studies_data])
         se = np.array([s["se"] for s in studies_data])
 
-        with pm.Model() as meta_model:
+        with pm.Model():
             # Hyperpriors
             mu = pm.Normal("mu", mu=0, sigma=10)  # Overall effect
             tau = pm.HalfNormal("tau", sigma=1)  # Between-study heterogeneity

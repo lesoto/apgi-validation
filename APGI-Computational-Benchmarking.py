@@ -219,13 +219,6 @@ class IITFramework(ComputationalFramework):
 
     def simulate(self, inputs: np.ndarray, params: Dict[str, float]) -> Dict[str, Any]:
         """IIT simulation computing integrated information"""
-        timescale = params.get(
-            "integration_timescale", self.default_params["integration_timescale"]
-        )
-        diff_threshold = params.get(
-            "differentiation_threshold",
-            self.default_params["differentiation_threshold"],
-        )
         phi_threshold = params.get(
             "phi_threshold", self.default_params["phi_threshold"]
         )
@@ -246,7 +239,6 @@ class IITFramework(ComputationalFramework):
 
             # Compute integrated information (simplified Phi calculation)
             # Phi = mutual information between system and partitioned subsystems
-            system_entropy = self._entropy(window_data)
 
             # Partition into two subsystems
             mid = len(window_data) // 2
@@ -746,14 +738,6 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
     ) -> Dict[str, Any]:
         """Analyze how well frameworks perform under neuromorphic constraints"""
         logger.info("Analyzing neuromorphic constraints...")
-
-        constraints = {
-            "max_neurons": 1000,  # Loihi/SpiNNaker scale
-            "max_synapses": 10000,
-            "max_precision": 8,  # bits
-            "power_budget": 1.0,  # watts
-            "temporal_resolution": 0.001,  # seconds
-        }
 
         neuromorphic_scores = {}
 

@@ -24,7 +24,6 @@ Dependencies:
 
 import json
 import math
-import warnings
 from collections import Counter
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -37,11 +36,9 @@ from sklearn.metrics import mutual_info_score
 from sklearn.preprocessing import KBinsDiscretizer
 from tqdm import tqdm
 
-warnings.filterwarnings("ignore")
-
 # Set random seeds
 RANDOM_SEED = 42
-np.random.seed(RANDOM_SEED)
+# np.random.seed(RANDOM_SEED)
 
 # =============================================================================
 # PART 1: APGI DYNAMICAL SYSTEM
@@ -118,9 +115,6 @@ class APGIDynamicalSystem:
             beta = inputs.get("beta", 1.15)
             Pi_i = inputs.get("Pi_i", 1.2)
             eps_i = inputs.get("eps_i", 0.0)
-            M = inputs.get("M", 1.0)
-            c = inputs.get("c", 0.5)
-            a = inputs.get("a", 0.3)
 
             # Store inputs
             Pi_e_history[i] = Pi_e
@@ -254,7 +248,6 @@ class InformationTheoreticAnalysis:
             Φ time series
         """
 
-        n_vars = len(variables)
         n_timepoints = len(variables[0])
 
         phi_values = np.zeros(n_timepoints - window_size)
@@ -977,8 +970,7 @@ class FiniteSizeScalingAnalysis:
         variables = ["S", "theta", "B", "Pi_e", "Pi_i", "eps_e", "eps_i"]
         available_vars = [v for v in variables if v in timeseries]
 
-        n_vars = len(available_vars)
-        mi_matrix = np.zeros((n_vars, n_vars))
+        mi_matrix = np.zeros((len(available_vars), len(available_vars)))
 
         for i, var1 in enumerate(available_vars):
             for j, var2 in enumerate(available_vars):
@@ -989,26 +981,20 @@ class FiniteSizeScalingAnalysis:
 
                     mi = mutual_info_score(x, y)
                     mi_matrix[i, j] = mi
-                    mi_matrix[j, i] = mi
 
         # Visualize
         fig, ax = plt.subplots(figsize=(10, 8))
         im = ax.imshow(mi_matrix, cmap="viridis")
-        ax.set_xticks(range(n_vars))
-        ax.set_yticks(range(n_vars))
-        ax.set_xticklabels(available_vars, rotation=45)
-        ax.set_yticklabels(available_vars)
-
-        # Add values
-        for i in range(n_vars):
-            for j in range(n_vars):
-                text = ax.text(
+        ax.set_xticks(range(len(available_vars)))
+        ax.set_yticks(range(len(available_vars)))
+        for i in range(len(available_vars)):
+            for j in range(len(available_vars)):
+                ax.text(
                     j, i, f"{mi_matrix[i, j]:.2f}", ha="center", va="center", color="w"
                 )
 
         ax.set_title("Mutual Information Matrix")
         plt.colorbar(im, ax=ax)
-
         return mi_matrix, fig
 
     def compute_permutation_entropy(

@@ -210,10 +210,10 @@ ValueError: tau_S must be positive
 ```python
 # Check parameter constraints
 valid_params = {
-    'tau_S': 0.01,      # Must be positive
-    'tau_theta': 0.1,   # Must be positive
-    'theta_0': 2.0,     # Should be reasonable
-    'alpha': 0.5,       # Should be between 0 and 1
+    'tau_S': 0.5,       # Must be positive, default 0.5
+    'tau_theta': 30.0,  # Must be positive, default 30.0
+    'theta_0': 0.5,     # Baseline threshold, default 0.5
+    'alpha': 5.0,       # Sigmoid sharpness, default 5.0
 }
 
 # Use valid parameters

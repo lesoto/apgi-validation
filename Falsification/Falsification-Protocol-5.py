@@ -108,9 +108,12 @@ class EvolutionaryAPGIEmergence:
     Test whether APGI-like architectures emerge under selection pressure
     """
 
-    def __init__(self, population_size: int = 20, n_generations: int = 50):
+    def __init__(
+        self, population_size: int = 20, n_generations: int = 50, stop_event=None
+    ):
         self.pop_size = population_size
         self.n_generations = n_generations
+        self.stop_event = stop_event
 
     def create_genome(self) -> Dict:
         """
@@ -263,6 +266,11 @@ class EvolutionaryAPGIEmergence:
             # Check timeout
             if time.time() - start_time > max_time_seconds:
                 print(f"Evolution stopped after {max_time_seconds} seconds")
+                break
+
+            # Check stop event
+            if self.stop_event and self.stop_event.is_set():
+                print("Evolution stopped by user")
                 break
 
             # Evaluate fitness

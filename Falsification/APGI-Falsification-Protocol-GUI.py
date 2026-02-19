@@ -8,7 +8,9 @@ import os
 import sys
 import threading
 import tkinter as tk
+from queue import Queue
 from tkinter import messagebox, scrolledtext, ttk
+from typing import Dict
 
 
 class ProtocolRunnerGUI:
@@ -100,6 +102,10 @@ class ProtocolRunnerGUI:
         for col in range(3):
             button_frame.columnconfigure(col, weight=1)
 
+        self.running_processes: Dict[str, threading.Thread] = {}
+        self.output_queue = Queue()
+        self.stop_event = threading.Event()
+
         # Output console
         console_frame = ttk.LabelFrame(main_frame, text="Output Console", padding="10")
         console_frame.grid(
@@ -132,6 +138,11 @@ class ProtocolRunnerGUI:
         )
         clear_btn.grid(row=0, column=1)
 
+        self.stop_btn = ttk.Button(
+            status_frame, text="Stop", command=self.stop_protocol, state=tk.DISABLED
+        )
+        self.stop_btn.grid(row=0, column=2)
+
     def create_tooltip(self, widget, text):
         """Create tooltip for widget"""
 
@@ -160,6 +171,13 @@ class ProtocolRunnerGUI:
     def clear_console(self):
         """Clear the output console"""
         self.output_console.delete(1.0, tk.END)
+
+    def stop_protocol(self):
+        """Stop the currently running protocol if any"""
+        self.stop_event.set()
+        self.set_status("Stopping protocol...")
+        if self.running_thread and self.running_thread.is_alive():
+            self.log_message("Stop requested - protocol will terminate when possible")
 
     def set_status(self, message):
         """Set status bar message (thread-safe)"""
@@ -199,115 +217,25 @@ class ProtocolRunnerGUI:
                 # Get the main class
                 cls = getattr(module, protocol_info["class"])
 
-                # Try to find and run the main method
+                # Handle protocol based on class
                 if protocol_info["class"] == "NetworkComparisonExperiment":
-                    # Protocol 6 - Create experiment with config
-                    config = {
-                        "extero_dim": 32,
-                        "intero_dim": 16,
-                        "action_dim": 4,
-                        "context_dim": 8,
-                    }
-                    instance = cls(config)
-                    result = instance.run_full_experiment()
-                    self.log_message("Network Comparison Experiment completed")
-                    self.log_message(f"Results: {type(result)}")
-
-                elif hasattr(cls, "run_full_experiment"):
-                    # Protocol 3 - Handle potential broadcasting issues
-                    try:
-                        instance = cls()
-                        result = instance.run_full_experiment()
-                        self.log_message(f"Experiment completed: {type(result)}")
-                    except ValueError as ve:
-                        if "broadcast" in str(ve):
-                            self.log_message(
-                                "Broadcasting error in Protocol-3 - this is expected due to observation size mismatches"
-                            )
-                            self.log_message(
-                                "Protocol-3 needs observation size alignment"
-                            )
-                        else:
-                            raise
-
-                elif hasattr(cls, "run_phase_transition_analysis"):
-                    # Protocol 4 - Create analysis with surprise system
-                    surprise_system = module.SurpriseIgnitionSystem()
-                    instance = cls(surprise_system)
-                    result = instance.run_phase_transition_analysis()
-                    self.log_message(
-                        f"Phase transition analysis completed: {type(result)}"
-                    )
-
-                elif hasattr(cls, "run_evolution"):
-                    # Protocol 5 - Add timeout handling
-                    try:
-                        instance = cls()
-                        self.log_message(
-                            "Starting evolutionary simulation (this may take time)..."
-                        )
-                        result = instance.run_evolution()
-                        self.log_message(f"Evolution completed: {type(result)}")
-                    except KeyboardInterrupt:
-                        self.log_message("Evolution interrupted by user")
-                    except (
-                        RuntimeError,
-                        ValueError,
-                        TypeError,
-                        AttributeError,
-                        KeyError,
-                    ) as e:
-                        self.log_message(f"Error in evolution: {str(e)}")
-                        self.log_message(
-                            "EvolutionaryAPGIEmergence instance creation failed"
-                        )
-
+                    self._handle_network_comparison(cls, protocol_info)
                 elif protocol_info["class"] == "APGIActiveInferenceAgent":
-                    # Protocol 1 - Create agent and run demo
-                    config = {
-                        "lr_extero": 0.01,
-                        "lr_intero": 0.01,
-                        "lr_precision": 0.05,
-                        "lr_somatic": 0.1,
-                        "n_actions": 4,
-                        "theta_init": 0.5,
-                        "theta_baseline": 0.5,
-                        "alpha": 8.0,
-                        "tau_S": 0.3,
-                        "tau_theta": 10.0,
-                        "eta_theta": 0.01,
-                        "beta": 1.2,
-                        "rho": 0.7,
-                    }
-                    agent = cls(config)
-                    self.log_message("APGI Agent created successfully")
-                    self.log_message(f"Agent config: {config}")
-
+                    self._handle_apgi_agent(cls, protocol_info)
                 elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
-                    # Protocol 2 - Create environment and run demo
-                    env = cls(n_trials=10)
-                    self.log_message("Iowa Gambling Task Environment created")
-
-                    # Run a few demo trials
-                    total_reward = 0
-                    for trial in range(5):
-                        action = 0  # Always pick deck A for demo
-                        reward, intero_cost, obs, done = env.step(action)
-                        total_reward += reward
-                        self.log_message(
-                            f"Trial {trial + 1}: Action={action}, Reward={reward:.2f}, "
-                            f"InteroCost={intero_cost:.2f}"
-                        )
-
-                    self.log_message(
-                        f"Demo completed. Total reward: {total_reward:.2f}"
-                    )
-
+                    self._handle_iowa_gambling(cls, protocol_info)
+                elif hasattr(cls, "run_full_experiment"):
+                    self._handle_run_full_experiment(cls, protocol_info)
+                elif hasattr(cls, "run_phase_transition_analysis"):
+                    self._handle_phase_transition(cls, module, protocol_info)
+                elif hasattr(cls, "run_evolution"):
+                    self._handle_evolution(cls, protocol_info)
                 else:
-                    self.log_message(f"Created {protocol_info['class']} instance")
+                    self._handle_default(cls, protocol_info)
 
                 self.log_message("=== Protocol completed successfully ===")
                 self.set_status("Ready")
+                self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
 
             except (
                 ImportError,
@@ -321,16 +249,139 @@ class ProtocolRunnerGUI:
                 self.log_message(error_msg)
                 messagebox.showerror("Error", error_msg)
                 self.set_status("Error")
+                self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
 
         # Run in separate thread to avoid blocking GUI
+        self.stop_event.clear()
+        self.running_thread = None
         thread = threading.Thread(target=protocol_thread)
         thread.daemon = True
+        self.running_thread = thread
+        self.stop_btn.config(state=tk.NORMAL)
         thread.start()
+
+    def _handle_network_comparison(self, cls, protocol_info):
+        config = {
+            "extero_dim": 32,
+            "intero_dim": 16,
+            "action_dim": 4,
+            "context_dim": 8,
+        }
+        instance = cls(config)
+        result = instance.run_full_experiment()
+        self.log_message("Network Comparison Experiment completed")
+        self.log_message(f"Results: {type(result)}")
+
+    def _handle_apgi_agent(self, cls, protocol_info):
+        """Run the full falsification protocol for APGI agent"""
+        try:
+            # Import the run_falsification function
+            run_func = getattr(self.module, "run_falsification", None)
+            if run_func:
+                # Run the full protocol
+                result = run_func()
+                self.log_message(f"APGI Agent falsification completed: {result}")
+            else:
+                # Fallback to old behavior
+                config = {
+                    "lr_extero": 0.01,
+                    "lr_intero": 0.01,
+                    "lr_precision": 0.05,
+                    "lr_somatic": 0.1,
+                    "n_actions": 4,
+                    "theta_init": 0.5,
+                    "theta_baseline": 0.5,
+                    "alpha": 8.0,
+                    "tau_S": 0.3,
+                    "tau_theta": 10.0,
+                    "eta_theta": 0.01,
+                    "beta": 1.2,
+                    "rho": 0.7,
+                }
+                _ = cls(config)
+                self.log_message("APGI Agent created successfully (fallback)")
+                self.log_message(f"Agent config: {config}")
+        except Exception as e:
+            self.log_message(f"Error in APGI agent protocol: {str(e)}")
+            raise
+
+    def _handle_iowa_gambling(self, cls, protocol_info):
+        """Run the full falsification protocol for Iowa Gambling Task"""
+        try:
+            # Import the run_falsification function
+            run_func = getattr(self.module, "run_falsification", None)
+            if run_func:
+                # Run the full protocol
+                result = run_func()
+                self.log_message(
+                    f"Iowa Gambling Task falsification completed: {result}"
+                )
+            else:
+                # Fallback to old behavior
+                env = cls(n_trials=10)
+                self.log_message("Iowa Gambling Task Environment created (fallback)")
+
+                # Run a few demo trials
+                total_reward = 0
+                for trial in range(5):
+                    action = 0  # Always pick deck A for demo
+                    reward, intero_cost, obs, done = env.step(action)
+                    total_reward += reward
+                    self.log_message(
+                        f"Trial {trial + 1}: Action={action}, Reward={reward:.2f}, "
+                        f"InteroCost={intero_cost:.2f}"
+                    )
+
+                self.log_message(f"Demo completed. Total reward: {total_reward:.2f}")
+        except Exception as e:
+            self.log_message(f"Error in Iowa Gambling protocol: {str(e)}")
+            raise
+
+    def _handle_run_full_experiment(self, cls, protocol_info):
+        try:
+            instance = cls()
+            result = instance.run_full_experiment()
+            self.log_message(f"Experiment completed: {type(result)}")
+        except ValueError as ve:
+            if "broadcast" in str(ve):
+                self.log_message(
+                    "Broadcasting error in Protocol-3 - this is expected due to observation size mismatches"
+                )
+                self.log_message("Protocol-3 needs observation size alignment")
+            else:
+                raise
+
+    def _handle_phase_transition(self, cls, module, protocol_info):
+        surprise_system = module.SurpriseIgnitionSystem()
+        instance = cls(surprise_system)
+        result = instance.run_phase_transition_analysis()
+        self.log_message(f"Phase transition analysis completed: {type(result)}")
+
+    def _handle_evolution(self, cls, protocol_info):
+        try:
+            instance = cls(stop_event=self.stop_event)
+            self.log_message("Starting evolutionary simulation (this may take time)...")
+            result = instance.run_evolution()
+            self.log_message(f"Evolution completed: {type(result)}")
+        except KeyboardInterrupt:
+            self.log_message("Evolution interrupted by user")
+        except (
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            KeyError,
+        ) as e:
+            self.log_message(f"Error in evolution: {str(e)}")
+            self.log_message("EvolutionaryAPGIEmergence instance creation failed")
+
+    def _handle_default(self, cls, protocol_info):
+        self.log_message(f"Created {protocol_info['class']} instance")
 
 
 def main():
     root = tk.Tk()
-    app = ProtocolRunnerGUI(root)
+    _ = ProtocolRunnerGUI(root)
     root.mainloop()
 
 

@@ -2593,7 +2593,7 @@ def clinical_convergence(
 @click.option(
     "--component",
     type=click.Choice(
-        ["preregistration", "replication", "publication", "collaboration"]
+        ["preregistration", "replication", "publication", "collaboration", "compliance"]
     ),
     help="Open science component",
 )
@@ -2665,7 +2665,7 @@ def open_science(
 
         else:
             console.print(
-                "[yellow]Available components: preregistration, replication, publication, collaboration[/yellow]"
+                "[yellow]Available components: preregistration, replication, publication, collaboration, compliance[/yellow]"
             )
             console.print("[yellow]Available actions: create, validate, etc.[/yellow]")
 
@@ -2849,68 +2849,99 @@ def comprehensive_validation(
             "overall_assessment": {},
         }
 
-        # Priority 1: Neural Signatures
-        console.print("[blue]Running Priority 1: Neural Signatures...[/blue]")
-        spec1 = importlib.util.spec_from_file_location(
-            "neural_val", PROJECT_ROOT / "Validation" / "Validation-Protocol-9.py"
-        )
-        neural_module = importlib.util.module_from_spec(spec1)
-        spec1.loader.exec_module(neural_module)
-        neural_validator = neural_module.APGINeuralSignaturesValidator()
-        neural_results = neural_validator.validate_convergent_signatures()
+        # Define validation components
+        def run_neural_signatures():
+            console.print("[blue]Running Priority 1: Neural Signatures...[/blue]")
+            spec1 = importlib.util.spec_from_file_location(
+                "neural_val", PROJECT_ROOT / "Validation" / "Validation-Protocol-9.py"
+            )
+            neural_module = importlib.util.module_from_spec(spec1)
+            spec1.loader.exec_module(neural_module)
+            neural_validator = neural_module.APGINeuralSignaturesValidator()
+            return neural_validator.validate_convergent_signatures()
+
+        def run_causal_manipulations():
+            console.print("[blue]Running Priority 2: Causal Manipulations...[/blue]")
+            spec2 = importlib.util.spec_from_file_location(
+                "causal_val", PROJECT_ROOT / "Validation" / "Validation-Protocol-10.py"
+            )
+            causal_module = importlib.util.module_from_spec(spec2)
+            spec2.loader.exec_module(causal_module)
+            causal_validator = causal_module.CausalManipulationsValidator()
+            return causal_validator.validate_causal_predictions()
+
+        def run_quantitative_fits():
+            console.print("[blue]Running Priority 3: Quantitative Model Fits...[/blue]")
+            spec3 = importlib.util.spec_from_file_location(
+                "quant_val", PROJECT_ROOT / "Validation" / "Validation-Protocol-11.py"
+            )
+            quant_module = importlib.util.module_from_spec(spec3)
+            spec3.loader.exec_module(quant_module)
+            quant_validator = quant_module.QuantitativeModelValidator()
+            return quant_validator.validate_quantitative_fits()
+
+        def run_clinical_convergence():
+            console.print("[blue]Running Priority 4: Clinical Convergence...[/blue]")
+            spec4 = importlib.util.spec_from_file_location(
+                "clinical_val",
+                PROJECT_ROOT / "Validation" / "Validation-Protocol-12.py",
+            )
+            clinical_module = importlib.util.module_from_spec(spec4)
+            spec4.loader.exec_module(clinical_module)
+            clinical_validator = clinical_module.ClinicalConvergenceValidator()
+            return clinical_validator.validate_clinical_convergence()
+
+        def run_falsification_testing():
+            console.print("[blue]Running Falsification Testing...[/blue]")
+            spec_fals = importlib.util.spec_from_file_location(
+                "fals_val", PROJECT_ROOT / "Falsification_Framework.py"
+            )
+            fals_module = importlib.util.module_from_spec(spec_fals)
+            spec_fals.loader.exec_module(fals_module)
+            fals_framework = fals_module.PopperianFalsificationFramework()
+
+            # Simulate empirical results for falsification
+            empirical_results = {
+                "p3b_sigmoidal_vs_linear": {"passed": True},
+                "metabolic_threshold_elevation": {"passed": True},
+                "phase_transition_dynamics": {"passed": True},
+                "precision_expectation_gap_anxiety": {"passed": True},
+            }
+
+            return fals_framework.conduct_falsification_test(empirical_results)
+
+        # Run validation components
+        if parallel:
+            import concurrent.futures
+
+            console.print("[yellow]Running validations in parallel...[/yellow]")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                # Submit all validation tasks
+                future_neural = executor.submit(run_neural_signatures)
+                future_causal = executor.submit(run_causal_manipulations)
+                future_quant = executor.submit(run_quantitative_fits)
+                future_clinical = executor.submit(run_clinical_convergence)
+                future_fals = executor.submit(run_falsification_testing)
+
+                # Collect results
+                neural_results = future_neural.result()
+                causal_results = future_causal.result()
+                quant_results = future_quant.result()
+                clinical_results = future_clinical.result()
+                fals_results = future_fals.result()
+        else:
+            # Run sequentially
+            neural_results = run_neural_signatures()
+            causal_results = run_causal_manipulations()
+            quant_results = run_quantitative_fits()
+            clinical_results = run_clinical_convergence()
+            fals_results = run_falsification_testing()
+
+        # Store results
         results["validation_components"]["neural_signatures"] = neural_results
-
-        # Priority 2: Causal Manipulations
-        console.print("[blue]Running Priority 2: Causal Manipulations...[/blue]")
-        spec2 = importlib.util.spec_from_file_location(
-            "causal_val", PROJECT_ROOT / "Validation" / "Validation-Protocol-10.py"
-        )
-        causal_module = importlib.util.module_from_spec(spec2)
-        spec2.loader.exec_module(causal_module)
-        causal_validator = causal_module.CausalManipulationsValidator()
-        causal_results = causal_validator.validate_causal_predictions()
         results["validation_components"]["causal_manipulations"] = causal_results
-
-        # Priority 3: Quantitative Fits
-        console.print("[blue]Running Priority 3: Quantitative Model Fits...[/blue]")
-        spec3 = importlib.util.spec_from_file_location(
-            "quant_val", PROJECT_ROOT / "Validation" / "Validation-Protocol-11.py"
-        )
-        quant_module = importlib.util.module_from_spec(spec3)
-        spec3.loader.exec_module(quant_module)
-        quant_validator = quant_module.QuantitativeModelValidator()
-        quant_results = quant_validator.validate_quantitative_fits()
         results["validation_components"]["quantitative_fits"] = quant_results
-
-        # Priority 4: Clinical Convergence
-        console.print("[blue]Running Priority 4: Clinical Convergence...[/blue]")
-        spec4 = importlib.util.spec_from_file_location(
-            "clinical_val", PROJECT_ROOT / "Validation" / "Validation-Protocol-12.py"
-        )
-        clinical_module = importlib.util.module_from_spec(spec4)
-        spec4.loader.exec_module(clinical_module)
-        clinical_validator = clinical_module.ClinicalConvergenceValidator()
-        clinical_results = clinical_validator.validate_clinical_convergence()
         results["validation_components"]["clinical_convergence"] = clinical_results
-
-        # Falsification Testing
-        console.print("[blue]Running Falsification Testing...[/blue]")
-        spec_fals = importlib.util.spec_from_file_location(
-            "fals_val", PROJECT_ROOT / "Falsification_Framework.py"
-        )
-        fals_module = importlib.util.module_from_spec(spec_fals)
-        spec_fals.loader.exec_module(fals_module)
-        fals_framework = fals_module.PopperianFalsificationFramework()
-
-        # Simulate empirical results for falsification
-        empirical_results = {
-            "p3b_sigmoidal_vs_linear": {"passed": True},
-            "metabolic_threshold_elevation": {"passed": True},
-            "phase_transition_dynamics": {"passed": True},
-            "precision_expectation_gap_anxiety": {"passed": True},
-        }
-
-        fals_results = fals_framework.conduct_falsification_test(empirical_results)
         results["validation_components"]["falsification_testing"] = fals_results
 
         # Calculate overall scores
@@ -3666,9 +3697,15 @@ def _create_plot_by_type(
         if len(numeric_cols) >= 2:
             fig = plt.figure(figsize=(fig_width, fig_height))
             ax = fig.add_subplot(111, projection="polar")
-            theta = np.linspace(0, 2 * np.pi, 100)
-            r = np.random.uniform(0, 1, 100)
-            ax.plot(theta, r, alpha=float(alpha), linewidth=linewidth_val)
+            # Use actual data for radius, normalize to 0-1 range
+            r_data = data[numeric_cols[0]].dropna().values
+            r = (
+                (r_data - r_data.min()) / (r_data.max() - r_data.min())
+                if r_data.max() > r_data.min()
+                else r_data
+            )
+            theta = np.linspace(0, 2 * np.pi, len(r))
+            ax.plot(theta, r[:100], alpha=float(alpha), linewidth=linewidth_val)
             ax.set_title("Polar Plot")
             return True
         else:

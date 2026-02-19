@@ -348,30 +348,6 @@ class UtilsRunnerGUI:
             return self.scripts[index]
         return None
 
-    def run_script(
-        self,
-        script_path: Path,
-        args: List[str] = None,
-        wait: bool = False,
-        timeout: int = None,
-    ):
-        """Run a script with optional waiting and timeout.
-
-        Args:
-            script_path: Path to the script to run.
-            args: List of arguments to pass to the script.
-            wait: If True, wait for completion and return success status.
-            timeout: Timeout in seconds, uses config default if None.
-
-        Returns:
-            True if script started (wait=False) or completed successfully (wait=True).
-        """
-        if args is None:
-            args = []
-        script_name = script_path.name
-        self.log_output(f"Running script: {script_name}", self.TAG_INFO)
-        return self._run_script_thread(script_path, args, timeout=timeout, wait=wait)
-
     def run_selected_script(self):
         """Run the selected script in a separate thread."""
         script = self.get_selected_script()
@@ -451,7 +427,6 @@ class UtilsRunnerGUI:
         """
         import time
 
-        start_time = time.time()
         script_name = script.name
 
         # Prepare command
@@ -485,77 +460,9 @@ class UtilsRunnerGUI:
             self.running_processes[script_name] = process
 
             # Read output in real-time
-            def read_output():
-                script_timeout = self.get_script_timeout(script_name)
-                start_time = time.time()
-
-                while True:
-                    # Wait for output with a short timeout to allow timeout checking
-                    import platform
-
-                    if platform.system() == "Windows":
-                        # On Windows, select doesn't work on file handles, so poll differently
-                        import time
-
-                        time.sleep(0.1)  # Short sleep to prevent busy waiting
-                        try:
-                            # Try to read with a non-blocking approach
-                            if hasattr(process.stdout, "readline"):
-                                # Check if data is available by trying a non-blocking read
-                                output = process.stdout.readline()
-                                if output:
-                                    ready = True
-                                else:
-                                    ready = False
-                            else:
-                                ready = False
-                        except Exception:
-                            ready = False
-                    else:
-                        # On Unix-like systems, use select
-                        ready, _, _ = select.select([process.stdout], [], [], 1.0)
-
-                    if ready:
-                        output = process.stdout.readline()
-                        if not output and process.poll() is not None:
-                            break
-                        if output:
-                            self.log_output(output.strip(), self.TAG_INFO)
-                            # Reset timeout on output to allow slow processes full time
-                            start_time = time.time()
-
-                    # Check timeout even without output
-                    if time.time() - start_time > script_timeout:
-                        self.log_output(
-                            f"Script timeout after {script_timeout} seconds",
-                            self.TAG_ERROR,
-                        )
-                        process.terminate()
-                        break
-
-                # Get final return code
-                return_code = process.poll()
-                if return_code == 0:
-                    self.log_output(
-                        f"✅ {script_name} completed successfully in {time.time() - start_time:.2f}s",
-                        self.TAG_SUCCESS,
-                    )
-                else:
-                    self.log_output(
-                        f"❌ {script_name} failed with return code {return_code}",
-                        self.TAG_ERROR,
-                    )
-
-                # Remove from running processes
-                if script_name in self.running_processes:
-                    del self.running_processes[script_name]
-
-                # Re-enable run button if no processes running
-                if not self.running_processes:
-                    self.root.after(0, self._update_button_states)
-
-            # Start output reading thread
-            output_thread = threading.Thread(target=read_output, daemon=True)
+            output_thread = threading.Thread(
+                target=self._read_output, args=(process, script_name), daemon=True
+            )
             output_thread.start()
 
             # Update button states
@@ -583,6 +490,75 @@ class UtilsRunnerGUI:
                 time.sleep(1)
                 return self.run_script(script, wait, retry_count + 1, timeout)
             return False
+
+    def _read_output(self, process, script_name):
+        """Read output from subprocess in real-time."""
+        import time
+
+        script_timeout = self.get_script_timeout(script_name)
+        start_time = time.time()
+
+        while True:
+            # Wait for output with a short timeout to allow timeout checking
+            import platform
+
+            if platform.system() == "Windows":
+                # On Windows, select doesn't work on file handles, so poll differently
+
+                time.sleep(0.1)  # Short sleep to prevent busy waiting
+                try:
+                    # Try to read with a non-blocking approach
+                    if hasattr(process.stdout, "readline"):
+                        # Check if data is available by trying a non-blocking read
+                        output = process.stdout.readline()
+                        if output:
+                            ready = True
+                        else:
+                            ready = False
+                    else:
+                        ready = False
+                except Exception:
+                    ready = False
+            else:
+                # On Unix-like systems, use select
+                ready, _, _ = select.select([process.stdout], [], [], 1.0)
+
+            if ready:
+                output = process.stdout.readline()
+                if not output and process.poll() is not None:
+                    break
+                if output:
+                    self.log_output(output.strip(), self.TAG_INFO)
+
+            # Check timeout even without output
+            if time.time() - start_time > script_timeout:
+                self.log_output(
+                    f"Script timeout after {script_timeout} seconds",
+                    self.TAG_ERROR,
+                )
+                process.terminate()
+                break
+
+        # Get final return code
+        return_code = process.poll()
+        if return_code == 0:
+            self.log_output(
+                f"✅ {script_name} completed successfully in {time.time() - start_time:.2f}s",
+                self.TAG_SUCCESS,
+            )
+        else:
+            self.log_output(
+                f"❌ {script_name} failed with return code {return_code}",
+                self.TAG_ERROR,
+            )
+
+        # Remove from running processes
+        if script_name in self.running_processes:
+            del self.running_processes[script_name]
+
+        # Re-enable run button if no processes running
+        if not self.running_processes:
+            self.root.after(0, self._update_button_states)
 
     def _force_kill_process(self, process: subprocess.Popen, script_name: str):
         """Force kill a stubborn process.
@@ -688,7 +664,7 @@ def main():
     try:
         # Create and run the GUI
         root = tk.Tk()
-        app = UtilsRunnerGUI(root)
+        _ = UtilsRunnerGUI(root)
 
         # Center window on screen
         root.update_idletasks()

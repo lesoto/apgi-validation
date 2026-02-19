@@ -5,13 +5,7 @@ Performance tests for APGI validation framework.
 Benchmarks for simulation, validation, and data processing performance.
 """
 
-import sys
-from pathlib import Path
-
 import pytest
-
-# Add the project root to Python path
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import data_validation, sample_data_generator
 
@@ -63,8 +57,8 @@ def test_data_validation_performance():
 
     quality_report = validate_data()
 
-    assert "quality_score" in quality_report
-    assert quality_report["quality_score"] > 0
+    assert "overall_score" in quality_report
+    assert quality_report["overall_score"] > 0
 
 
 def test_batch_processing_performance():

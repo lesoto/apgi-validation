@@ -2,11 +2,11 @@
 APGI Validation Pipeline
 ================================
 
-Executes all 8 protocols and applies hierarchical falsification decision tree
+Executes all 12 protocols and applies hierarchical falsification decision tree
 per validation roadmap page 26.
 
 Falsification Logic:
-- Primary tests (Protocols 1, 3): Failure → Framework rejected
+- Primary tests (Protocols 1, 3, 9, 12): Failure → Framework rejected
 - Secondary tests (2+ failures): Major revision required
 - Tertiary tests (3+ failures): Scope restriction
 """
@@ -38,6 +38,10 @@ class APGIMasterValidator:
         6: "tertiary",  # Tertiary tests: 3+ failures → Scope restriction
         7: "tertiary",  # Tertiary tests: 3+ failures → Scope restriction
         8: "secondary",  # Secondary tests: 2+ failures → Major revision
+        9: "primary",  # Primary tests: Failure → Framework rejected
+        10: "secondary",  # Secondary tests: 2+ failures → Major revision
+        11: "tertiary",  # Tertiary tests: 3+ failures → Scope restriction
+        12: "primary",  # Primary tests: Failure → Framework rejected
     }
 
     def __init__(self, timeout_seconds: int = 300) -> None:
@@ -53,7 +57,7 @@ class APGIMasterValidator:
         }
 
     def run_all_protocols(self) -> None:
-        """Execute all 8 protocols in sequence."""
+        """Execute all 12 protocols in sequence."""
         for protocol_num in self.PROTOCOL_TIERS.keys():
             self._run_protocol(protocol_num)
 
@@ -67,7 +71,7 @@ class APGIMasterValidator:
             self._handle_protocol_error(
                 protocol_num,
                 "INVALID_PROTOCOL",
-                f"Protocol number must be between 1 and 8, got {protocol_num}",
+                f"Protocol number must be between 1 and 12, got {protocol_num}",
             )
             return
 

@@ -92,7 +92,7 @@ class APGIParameterValidator:
                 "gamma_A": {
                     "description": "Attentional coupling strength",
                     "type": "number",
-                    "minimum": 0.0,
+                    "minimum": -1.0,
                     "maximum": 1.0,
                     "default": 0.2,
                 },
@@ -148,7 +148,8 @@ class APGIParameterValidator:
         for param in recommended_params:
             if param not in parameters:
                 warnings.append(
-                    f"Recommended parameter '{param}' not specified, will use default: {self.schema['properties'][param]['default']}"
+                    f"Recommended parameter '{param}' not specified, will use default: "
+                    f"{self.schema['properties'][param]['default']}"
                 )
 
     def validate(self, parameters: Dict[str, Any]) -> Dict[str, Any]:

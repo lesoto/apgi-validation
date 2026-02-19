@@ -97,20 +97,8 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 6: {e}")
     Protocol_6 = None
 
-# GUI Components
-try:
-    _gui_spec = importlib.util.spec_from_file_location(
-        "protocol_gui", _dir / "APGI-Falsification-Protocol-GUI.py"
-    )
-    if _gui_spec and _gui_spec.loader:
-        protocol_gui = importlib.util.module_from_spec(_gui_spec)
-        _gui_spec.loader.exec_module(protocol_gui)
-        ProtocolRunnerGUI = protocol_gui.ProtocolRunnerGUI
-    else:
-        raise ImportError("Could not load GUI components")
-except Exception as e:
-    warnings.warn(f"Failed to load Falsification GUI components: {e}")
-    ProtocolRunnerGUI = None
+# GUI Components - Not loaded at import to avoid tkinter side effects
+ProtocolRunnerGUI = None
 
 # Protocol 1 exports
 if Protocol_1:

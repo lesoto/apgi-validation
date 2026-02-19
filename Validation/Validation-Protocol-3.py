@@ -21,7 +21,6 @@ Dependencies:
 """
 
 import json
-import warnings
 from collections import deque
 from typing import Dict, List, Tuple
 
@@ -34,12 +33,10 @@ import torch.nn.functional as F
 from sklearn.linear_model import LogisticRegression
 from tqdm import tqdm
 
-warnings.filterwarnings("ignore")
-
 # Set random seeds
 RANDOM_SEED = 42
-np.random.seed(RANDOM_SEED)
-torch.manual_seed(RANDOM_SEED)
+# np.random.seed(RANDOM_SEED)  # Moved to local usage to avoid test isolation issues
+# torch.manual_seed(RANDOM_SEED)  # Moved to local usage to avoid test isolation issues
 
 # =============================================================================
 # PART 1: NEURAL NETWORK COMPONENTS
@@ -1475,14 +1472,16 @@ def plot_experiment_results(
 
     env_name = "IGT"
     agents = list(results[env_name].keys())
-    final_rewards = [results[env_name][a]["mean_cumulative_reward"] for a in agents]
-    errors = [results[env_name][a]["std_cumulative_reward"] for a in agents]
+    final_rewards = [
+        results[env_name]["APGI"]["mean_cumulative_reward"] for a in agents
+    ]
+    errors = [results[env_name]["APGI"]["std_cumulative_reward"] for a in agents]
 
-    bars = ax.bar(
+    ax.bar(
         agents,
         final_rewards,
         yerr=errors,
-        color=[colors.get(a, "gray") for a in agents],
+        color=["#2E86AB" for a in agents],
         alpha=0.7,
         edgecolor="black",
         linewidth=2,

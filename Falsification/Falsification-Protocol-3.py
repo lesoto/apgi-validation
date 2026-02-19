@@ -616,7 +616,6 @@ class AgentComparisonExperiment:
 
         # Statistical power analysis parameters
         alpha = 0.05  # Significance level
-        power = 0.8  # Desired power
         effect_size_threshold = 0.5  # Cohen's d threshold for medium effect
 
         # Import stats for statistical tests

@@ -34,10 +34,13 @@ formal_model_module = importlib.util.module_from_spec(formal_model_spec)
 formal_model_spec.loader.exec_module(formal_model_module)
 SurpriseIgnitionSystem = formal_model_module.SurpriseIgnitionSystem
 
-try:
-    from .logging_config import apgi_logger
-except ImportError:
-    from utils.logging_config import apgi_logger
+# Import logging_config using importlib to avoid package init issues
+logging_config_spec = importlib.util.spec_from_file_location(
+    "logging_config", PROJECT_ROOT / "utils" / "logging_config.py"
+)
+logging_config = importlib.util.module_from_spec(logging_config_spec)
+logging_config_spec.loader.exec_module(logging_config)
+apgi_logger = logging_config.apgi_logger
 
 
 def load_validation_module(protocol):
@@ -82,7 +85,7 @@ class BatchJob:
 class BatchProcessor:
     """Advanced batch processing system for APGI framework."""
 
-    def __init__(self, max_workers: int = 4, use_processes: bool = True):
+    def __init__(self, max_workers: int = 4, use_processes: bool = False):
         """
         Initialize batch processor.
 
@@ -260,7 +263,6 @@ class BatchProcessor:
         """Run an analysis job."""
         analysis_type = job.parameters["analysis_type"]
         input_file = job.parameters["input_file"]
-        parameters = job.parameters["parameters"]
 
         # Load data
         if not Path(input_file).exists():
@@ -557,7 +559,7 @@ def main():
         )
 
     # Run batch
-    results = processor.run_batch(show_progress=True)
+    processor.run_batch(show_progress=True)
 
     # Save report
     processor.save_batch_report("results/batch_report.json")

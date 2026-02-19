@@ -26,6 +26,9 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
+# Add project root to Python path for imports
+PROJECT_ROOT = Path(__file__).parent.parent
+
 
 def safe_import_module(module_name: str, file_path: Path) -> Optional[Any]:
     """Safely import a module with detailed error reporting."""
@@ -41,11 +44,11 @@ def safe_import_module(module_name: str, file_path: Path) -> Optional[Any]:
         spec.loader.exec_module(module)
         return module
 
-    except ImportError as e:
+    except ImportError:
         return None
-    except SyntaxError as e:
+    except SyntaxError:
         return None
-    except (AttributeError, ValueError, TypeError, RuntimeError) as e:
+    except (AttributeError, ValueError, TypeError, RuntimeError):
         return None
 
 
@@ -56,7 +59,7 @@ APGI_Master_Validation = safe_import_module("Master_Validation", master_validati
 if APGI_Master_Validation:
     try:
         APGIMasterValidator = APGI_Master_Validation.APGIMasterValidator
-    except AttributeError as e:
+    except AttributeError:
         APGIMasterValidator = None
 else:
     APGIMasterValidator = None
@@ -174,9 +177,8 @@ class APGIValidationGUI:
         except Exception as e:
             logging.warning(f"Failed to set matplotlib backend: {e}")
 
-        # Set environment variables to disable GUI
+        # Set environment variables to disable GUI (DISPLAY is not needed for Agg backend)
         os.environ["MPLBACKEND"] = "Agg"
-        os.environ["DISPLAY"] = ""  # Disable display for worker threads
 
     @property
     def is_running(self) -> bool:
@@ -508,7 +510,7 @@ class APGIValidationGUI:
             },
             "alpha": {
                 "label": "Sigmoid Slope (α)",
-                "min": 0.1,
+                "min": 2.0,
                 "max": 20.0,
                 "default": 5.0,
                 "step": 0.5,
@@ -525,7 +527,7 @@ class APGIValidationGUI:
             value_var = tk.DoubleVar(value=config["default"])
             self.param_vars[param_name] = value_var
 
-            value_label = ttk.Label(controls_frame, text=".2f")
+            value_label = ttk.Label(controls_frame, text=f"{config['default']:.2f}")
             value_label.grid(row=row, column=2, sticky=tk.W, padx=(10, 0))
             self.param_labels[param_name] = value_label
 
@@ -598,6 +600,9 @@ class APGIValidationGUI:
                 "monitoring_threshold": tk.DoubleVar(value=0.05),  # error rate
             }
 
+            # Load saved settings
+            self._load_settings()
+
         # Update interval
         ttk.Label(settings_frame, text="Update Interval (seconds):").grid(
             row=0, column=0, sticky=tk.W, pady=5
@@ -641,32 +646,67 @@ class APGIValidationGUI:
         ).grid(row=3, column=0, columnspan=2, pady=20)
 
     def save_settings(self) -> None:
-        """Save current settings"""
-        # For now, just show a message
-        messagebox.showinfo("Settings", "Settings saved successfully!")
+        """Save current settings to config/gui_config.yaml via ConfigManager"""
+        try:
+
+            # Get current settings values
+            settings_data = {
+                "update_interval": self.settings["update_interval"].get(),
+                "data_retention": self.settings["data_retention"].get(),
+                "monitoring_threshold": self.settings["monitoring_threshold"].get(),
+            }
+
+            # Save to config file
+            gui_config_path = PROJECT_ROOT / "config" / "gui_config.yaml"
+            with open(gui_config_path, "w") as f:
+                import yaml
+
+                yaml.dump(settings_data, f, default_flow_style=False, indent=2)
+
+            messagebox.showinfo("Settings", "Settings saved successfully!")
+            logging.info("GUI settings saved to config/gui_config.yaml")
+        except Exception as e:
+            messagebox.showerror("Settings", f"Failed to save settings: {e}")
+            logging.error(f"Failed to save GUI settings: {e}")
+
+    def _load_settings(self) -> None:
+        """Load GUI settings from config/gui_config.yaml on startup"""
+        try:
+            gui_config_path = PROJECT_ROOT / "config" / "gui_config.yaml"
+            if gui_config_path.exists():
+                with open(gui_config_path, "r") as f:
+                    import yaml
+
+                    saved_settings = yaml.safe_load(f)
+
+                if saved_settings:
+                    # Update settings variables with saved values
+                    if "update_interval" in saved_settings:
+                        self.settings["update_interval"].set(
+                            saved_settings["update_interval"]
+                        )
+                    if "data_retention" in saved_settings:
+                        self.settings["data_retention"].set(
+                            saved_settings["data_retention"]
+                        )
+                    if "monitoring_threshold" in saved_settings:
+                        self.settings["monitoring_threshold"].set(
+                            saved_settings["monitoring_threshold"]
+                        )
+
+                logging.info("GUI settings loaded from config/gui_config.yaml")
+        except Exception as e:
+            logging.warning(f"Failed to load GUI settings: {e}")
+            # Continue with defaults
 
     def create_export_widgets(self, parent_frame: ttk.Frame) -> None:
-        """Create data export widgets"""
-
-        # Configure parent frame
-        parent_frame.columnconfigure(0, weight=1)
-        parent_frame.rowconfigure(0, weight=1)
-
-        # Export frame
-        export_frame = ttk.LabelFrame(parent_frame, text="Data Export", padding="10")
-        export_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-        # Export buttons
-        ttk.Button(
-            export_frame, text="Export Results to CSV", command=self.export_csv
-        ).grid(row=0, column=0, pady=10, padx=10, sticky=(tk.W, tk.E))
 
         ttk.Button(
-            export_frame, text="Export Results to JSON", command=self.export_json
+            parent_frame, text="Export Results to JSON", command=self.export_json
         ).grid(row=1, column=0, pady=10, padx=10, sticky=(tk.W, tk.E))
 
         ttk.Button(
-            export_frame, text="Generate PDF Report", command=self.generate_report
+            parent_frame, text="Generate PDF Report", command=self.generate_report
         ).grid(row=2, column=0, pady=10, padx=10, sticky=(tk.W, tk.E))
 
     def export_csv(self) -> None:
@@ -731,7 +771,7 @@ class APGIValidationGUI:
             )
             if file_path:
                 with open(file_path, "w") as f:
-                    f.write(f"APGI Validation Report\n{'='*50}\n\n")
+                    f.write(f"APGI Validation Report\n{'=' * 50}\n\n")
                     f.write(
                         f"Overall Decision: {report.get('overall_decision', 'Unknown')}\n\n"
                     )
@@ -786,8 +826,27 @@ class APGIValidationGUI:
         ).grid(row=2, column=0, columnspan=2, pady=20)
 
     def save_alert_settings(self) -> None:
-        """Save alert settings"""
-        messagebox.showinfo("Alerts", "Alert settings saved successfully!")
+        """Save alert settings to config/gui_alert_config.yaml via ConfigManager"""
+        try:
+
+            # Get current alert settings values
+            alert_data = {
+                "threshold": self.alert_settings["threshold"].get(),
+                "enabled": self.alert_settings["enabled"].get(),
+            }
+
+            # Save to config file
+            alert_config_path = PROJECT_ROOT / "config" / "gui_alert_config.yaml"
+            with open(alert_config_path, "w") as f:
+                import yaml
+
+                yaml.dump(alert_data, f, default_flow_style=False, indent=2)
+
+            messagebox.showinfo("Alerts", "Alert settings saved successfully!")
+            logging.info("GUI alert settings saved to config/gui_alert_config.yaml")
+        except Exception as e:
+            messagebox.showerror("Alerts", f"Failed to save alert settings: {e}")
+            logging.error(f"Failed to save GUI alert settings: {e}")
 
     def on_parameter_change(self, param_name: str, value: str) -> None:
         """Handle parameter slider changes"""
@@ -1254,7 +1313,6 @@ Interpretation:
     ) -> Dict[str, Any]:
         """Handle protocol errors and return error result with troubleshooting."""
         error_type = type(error).__name__
-        error_str = str(error).lower()
 
         if isinstance(error, ImportError):
             return {
@@ -1574,7 +1632,8 @@ Interpretation:
                     # Update progress with sub-protocol granularity
                     self.update_progress(overall_progress)
                     self.update_status(
-                        f"Running Protocol {protocol_num}... {int(percent)}% (Step {protocol_index + 1}/{total_protocols})"
+                        f"Running Protocol {protocol_num}... {int(percent)}% "
+                        f"(Step {protocol_index + 1}/{total_protocols})"
                     )
                 except Exception:
                     # Silently ignore progress callback errors to avoid interrupting protocol
@@ -1708,7 +1767,7 @@ Interpretation:
 def main() -> None:
     """Main function to run the GUI"""
     root = tk.Tk()
-    app = APGIValidationGUI(root)
+    _ = APGIValidationGUI(root)
     root.mainloop()
 
 

@@ -14,12 +14,11 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 import yaml
 
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 @pytest.fixture
@@ -82,28 +81,6 @@ def sample_config():
 
 
 @pytest.fixture
-def config_file(temp_dir, sample_config):
-    """Provide a temporary configuration file."""
-    config_path = temp_dir / "test_config.yaml"
-
-    with open(config_path, "w") as f:
-        yaml.dump(sample_config, f)
-
-    return config_path
-
-
-@pytest.fixture
-def invalid_config_file(temp_dir):
-    """Provide an invalid configuration file."""
-    config_path = temp_dir / "invalid_config.yaml"
-
-    with open(config_path, "w") as f:
-        f.write("invalid: yaml: content: [")
-
-    return config_path
-
-
-@pytest.fixture
 def sample_data():
     """Provide sample data for testing."""
     return {
@@ -112,110 +89,6 @@ def sample_data():
         "threshold": [0.5, 0.52, 0.51, 0.53, 0.54],
         "metabolic": [1.0, 1.1, 1.05, 1.15, 1.2],
         "arousal": [0.8, 0.85, 0.82, 0.88, 0.9],
-    }
-
-
-@pytest.fixture
-def mock_logger():
-    """Provide a mock logger."""
-    logger = MagicMock()
-    logger.info = MagicMock()
-    logger.warning = MagicMock()
-    logger.error = MagicMock()
-    logger.debug = MagicMock()
-    return logger
-
-
-@pytest.fixture
-def cache_file(temp_dir):
-    """Provide a temporary cache file."""
-    return temp_dir / "test_cache.json"
-
-
-@pytest.fixture
-def log_file(temp_dir):
-    """Provide a temporary log file."""
-    return temp_dir / "test.log"
-
-
-@pytest.fixture
-def profile_data():
-    """Provide sample profile data."""
-    return {
-        "name": "test_profile",
-        "description": "Test configuration profile",
-        "category": "test",
-        "version": "1.0",
-        "author": "test",
-        "tags": ["test", "sample"],
-        "created_at": "2024-01-01T00:00:00",
-        "parameters": {"model": {"tau_S": 0.8, "tau_theta": 25.0}},
-        "metadata": {"purpose": "testing"},
-    }
-
-
-@pytest.fixture
-def performance_data():
-    """Provide sample performance data."""
-    return {
-        "execution_time": 1.23,
-        "memory_usage": 1024,
-        "cpu_usage": 0.75,
-        "operations_per_second": 1000,
-        "cache_hit_rate": 0.85,
-    }
-
-
-@pytest.fixture
-def mock_environment():
-    """Provide mock environment variables."""
-    return {
-        "APGI_LOG_LEVEL": "DEBUG",
-        "APGI_ENABLE_PLOTS": "true",
-        "APGI_DATA_DIR": "/tmp/test_data",
-        "APGI_TAU_S": "0.7",
-        "APGI_TAU_THETA": "25.0",
-    }
-
-
-@pytest.fixture
-def error_context_data():
-    """Provide sample error context data."""
-    return {
-        "operation": "test_operation",
-        "component": "test_component",
-        "user_data": {"param1": "value1", "param2": "value2"},
-    }
-
-
-@pytest.fixture
-def validation_errors():
-    """Provide sample validation errors."""
-    return [
-        {
-            "field": "tau_S",
-            "value": 2.0,
-            "constraint": "range",
-            "expected": (0.1, 1.0),
-            "message": "Value out of valid range",
-        },
-        {
-            "field": "alpha",
-            "value": "invalid",
-            "constraint": "type",
-            "expected": "number",
-            "message": "Invalid type",
-        },
-    ]
-
-
-@pytest.fixture
-def benchmark_data():
-    """Provide benchmark data for performance testing."""
-    return {
-        "small_dataset": {"size": 100, "expected_time": 0.1, "tolerance": 0.05},
-        "medium_dataset": {"size": 10000, "expected_time": 1.0, "tolerance": 0.2},
-        "large_dataset": {"size": 1000000, "expected_time": 10.0, "tolerance": 2.0},
     }
 
 
