@@ -1,14 +1,29 @@
 # APGI Innovations
 
+**Document Version:** 1.0  
+**Last Updated:** [Current Date]  
+**Code Repository Commit:** (<https://github.com/apgi-framework/>)
+
+## FALSIFICATION CRITERIA NOTATION
+
+All falsification criteria follow this format:
+
+- **Quantitative threshold:** Numerical value with units
+- **Statistical test:** Specific test type and significance level
+- **Minimum effect size:** Cohen's d, η², or correlation coefficient
+- **Alternative hypothesis:** What would falsify the prediction
+
+Example: "Cardiac modulation >12% (d > 0.5, p < 0.01, two-tailed t-test); falsified if modulation <5% or non-significant"
+
 ## Foundational Innovations
 
 Ideas whose specific formal structure does not exist in the prior literature and upon which the entire framework depends.
 
 ## 1. Interoceptive-Specific Precision Weighting via Formalized Somatic Marker Modulation
 
-The somatic marker modulation equation Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI-Multimodal-Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, enforcing physiological bounds and capturing the nonlinear gain-control role of somatic markers.
+The somatic marker modulation equation Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI-Multimodal-Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, with Πⁱ_eff hard-clamped to absolute bounds [0.1, 10.0] to prevent physiologically implausible precision values (typical dynamic range 0.1–10× when Πⁱ_baseline ≈ 1.0), capturing the nonlinear gain-control role of somatic markers.
 
-APGI-Multimodal-Integration.py, `APGICoreIntegration.compute_somatic_modulation()`  
+APGI-Multimodal-Integration.py, `APGICoreIntegration.compute_somatic_modulation(self, Pi_i_baseline: float, M_ca: float, beta: float) -> float`
 
 Implements Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) with bounded exponential modulation, enforcing physiological bounds and capturing nonlinear gain-control.
 
@@ -30,7 +45,7 @@ Computes entropy at thermodynamic (joules/kelvin), information-theoretic (bits/m
 
 ## 4. The Cortex-as-Liquid-Computer with Threshold as Attractor-Basin Bifurcation Point
 
-The cortex-as-liquid-computer with threshold as attractor-basin bifurcation point is implemented in `APGI-Liquid-Network-Implementation.py`, where liquid time-constant networks (LTCNs) model cortical dynamics with adaptive time constants modulated by precision weights. The bifurcation structure is realized through phase transitions in the ODE state space of the liquid neurons, generating predictions about bistability, hysteresis, and critical slowing linked to precision-weighted prediction error accumulation and threshold adaptation rate.
+The cortex-as-liquid-computer with threshold as attractor-basin bifurcation point is implemented in `APGI-Liquid-Network-Implementation.py`, where liquid time-constant networks (LTCNs) model cortical dynamics with adaptive time constants modulated by precision weights. The bifurcation structure is realized as a saddle-node bifurcation in the ODE state space of the liquid neurons, occurring when precision-weighted prediction error Π·|ε| equals threshold θ_t, creating bistable attractors (low-firing "subthreshold" vs. high-firing "ignited" states) and generating quantitative predictions about hysteresis width (Δθ ≈ 0.1–0.2 θ_t), critical slowing (τ_critical ∝ |Π·|ε| - θ_t|^(-0.5)), and bistability linked to precision-weighted prediction error accumulation and threshold adaptation rate.
 
 APGI-Entropy-Implementation.py (APGILiquidNetwork), APGI-Liquid-Network-Implementation.py  
 
@@ -70,15 +85,15 @@ The APGI-LNN mapping table is implemented in `APGI-Liquid-Network-Implementation
 
 APGI-Entropy-Implementation.py (APGILiquidNetwork), APGI-Liquid-Network-Implementation.py
 
-Maps precision weighting to liquid time constant (τ) modulation, allostatic threshold modulation to state-dependent τ functions, prediction error accumulation to τ-modulated accumulator dynamics, and ignition threshold to bifurcation points.
+Maps precision weighting to liquid time constant (τ) modulation, allostatic threshold modulation to state-dependent τ functions, prediction error accumulation to τ-modulated accumulator dynamics, and ignition threshold to saddle-node bifurcation points where Π·|ε| = θ_t defines the separatrix between subthreshold and ignited attractor basins.
 
 ## 9. 1/f Spectral Slope as Quantitative Prediction of Hierarchical APGI Architecture
 
-The 1/f spectral slope predictions are implemented through the hierarchical generative models in Falsification-Protocol-1.py, where nested regulatory loops with precision weights and allostatic thresholds across timescales generate the predicted aperiodic exponents (β ≈ 0.8-1.2 wakefulness, β ≈ 1.5-2.0 deep sleep, β > 1.5 anesthesia), with falsification criteria based on FOOOF/specparam measurements.
+The 1/f spectral slope predictions are implemented through the hierarchical generative models in Falsification-Protocol-1.py, where nested regulatory loops with precision weights and allostatic thresholds across timescales generate the predicted aperiodic exponents (α_spec ≈ 0.8-1.2 wakefulness, α_spec ≈ 1.5-2.0 deep sleep, α_spec > 1.5 anesthesia), with falsification criteria based on FOOOF/specparam measurements.
 
 Falsification/Falsification-Protocol-1.py, hierarchical generative models  
 
-Predicts aperiodic exponents β_spec ≈ 0.8-1.2 (wakefulness), β ≈ 1.5-2.0 (deep sleep), β > 1.5 (anesthesia) through nested regulatory loops with precision weights and allostatic thresholds across timescales.
+Predicts aperiodic exponents α_spec ≈ 0.8-1.2 (wakefulness), α_spec ≈ 1.5-2.0 (deep sleep), α_spec > 1.5 (anesthesia) through nested regulatory loops with precision weights and allostatic thresholds across timescales.
 
 ## 10. Psychiatric Disorders Recharacterized as Specific Precision/Threshold Dysregulation Profiles
 
@@ -90,11 +105,11 @@ Provides specific parameter profiles for psychiatric states including GAD (eleva
 
 ## 11. Ignition as Phase Transition in Cortical Reservoir: Bistability, Critical Slowing, Hysteresis Predictions
 
-The phase transition predictions are implemented in the liquid network dynamics of APGI-Liquid-Network-Implementation.py, where precision-weighted prediction error accumulation leads to bistable firing rates, critical slowing near thresholds, and hysteresis in the ODE state space, with testable signatures for intracranial EEG.
+The phase transition predictions are implemented in the liquid network dynamics of APGI-Liquid-Network-Implementation.py, where precision-weighted prediction error accumulation leads to saddle-node bifurcation-induced bistable firing rates (subthreshold <5 Hz vs. ignited 20-40 Hz), critical slowing near thresholds (autocorrelation time τ_AC ∝ |Π·|ε| - θ_t|^(-0.5)), and hysteresis width Δθ ≈ 0.1–0.2 θ_t in the ODE state space, with testable signatures for intracranial EEG including pre-ignition variance increases and post-ignition relaxation timescales.
 
 APGI-Entropy-Implementation.py (APGILiquidNetwork), APGI-Liquid-Network-Implementation.py  
 
-Implements phase transition dynamics in liquid network ODE state space, generating bistable firing rates, critical slowing near thresholds, and hysteresis linked to precision-weighted prediction error accumulation.
+Implements saddle-node bifurcation dynamics in liquid network ODE state space, generating bistable firing rates (subthreshold <5 Hz vs. ignited 20-40 Hz), critical slowing (τ_AC ∝ |Π·|ε| - θ_t|^(-0.5)), and hysteresis (Δθ ≈ 0.1–0.2 θ_t) linked to precision-weighted prediction error accumulation.
 
 ## 12. Cross-Level Bidirectional Coupling Formalized as Coupled Differential Equations
 
@@ -142,7 +157,7 @@ Specifies theta-gamma PAC for Level 1-2 coupling and delta-theta PAC for Level 3
 
 ## 17. Dissociation as Level Decoupling (Between-Level Coherence Reduced While Within-Level Coherence Preserved)
 
-The dissociation as level decoupling is implemented in the hierarchical architecture of Falsification-Protocol-1.py, predicting between-level EEG coherence ≥40% below norms while within-level coherence remains intact (<15% deviation) during dissociative episodes.
+The dissociation as level decoupling is implemented in the hierarchical architecture of Falsification-Protocol-1.py, predicting between-level EEG coherence (delta-theta, theta-gamma PAC) ≥40% below norms (d > 1.2, p < 0.001) while within-level coherence remains intact (<15% deviation, d < 0.3, p > 0.05) during dissociative episodes (Clinician-Administered Dissociative States Scale score >15); falsified if between-level reduction <20% or within-level reduction >25%.
 
 Falsification/Falsification-Protocol-1.py, hierarchical architecture
 
@@ -182,19 +197,19 @@ Features like threshold filtering, predictive hierarchy, precision-weighted popu
 
 ## 22. Developmental Trajectory of Hierarchical Level Emergence from Level 1 to Level 5
 
-The developmental trajectory is implemented in the hierarchical generative models of Falsification-Protocol-1.py, predicting level emergence sequence from Level 1 at birth to Level 4 in adolescence, with transitions trackable via intrinsic timescale lengthening.
+The developmental trajectory is implemented in the hierarchical generative models of Falsification-Protocol-1.py, predicting level emergence sequence from Level 1 (birth, τ₁≈50ms) to Level 2 (6–12 months, τ₂≈200–500ms), Level 3 (2–4 years, τ₃≈1–2s), and Level 4 (12–16 years, τ₄≈5–20s), with level transitions defined by >50% increase in intrinsic timescale and >30% increase in inter-level PAC strength, falsifiable if no such transitions occur or if sequence order differs.
 
 Falsification/Falsification-Protocol-1.py, hierarchical generative models  
 
-Predicts level emergence sequence from Level 1 (birth) to Level 4 (adolescence), with transitions trackable via intrinsic timescale lengthening.
+Predicts level emergence sequence: Level 1 (birth, τ₁≈50ms) → Level 2 (6–12mo, τ₂≈200–500ms) → Level 3 (2–4yr, τ₃≈1–2s) → Level 4 (12–16yr, τ₄≈5–20s), with transitions defined by >50% increase in intrinsic timescale and >30% increase in inter-level PAC strength.
 
 ## 23. Meta-Consciousness as Level ℓ+1 Modeling Level ℓ Dynamics
 
-The meta-consciousness implementation is in the hierarchical architecture of Falsification-Protocol-1.py, where Level ℓ+1 develops generative models of Level ℓ's ignition dynamics, predicting metacognitive accuracy correlations with inter-level coupling strength.
+The meta-consciousness implementation is in the hierarchical architecture of Falsification-Protocol-1.py, where Level ℓ+1 develops generative models of Level ℓ's ignition dynamics, predicting metacognitive accuracy (type-2 ROC AUC) correlates with inter-level coupling strength (Level ℓ–ℓ+1 PAC) at r > 0.45, p < 0.001, with TMS disruption of Level ℓ+1 reducing metacognitive sensitivity (meta-d'/d') by ≥35% while preserving Level ℓ task performance (d' reduction <10%).
 
 Falsification/Falsification-Protocol-1.py, hierarchical architecture
 
-Level ℓ+1 develops generative models of Level ℓ's ignition dynamics, predicting metacognitive accuracy correlations with inter-level coupling strength.
+Level ℓ+1 develops generative models of Level ℓ's ignition dynamics, predicting metacognitive accuracy (type-2 ROC AUC) correlates with Level ℓ–ℓ+1 PAC strength at r > 0.45 (p < 0.001), with TMS disruption of Level ℓ+1 reducing meta-d'/d' by ≥35% while preserving Level ℓ performance (d' reduction <10%).
 
 ## Incremental and Methodological Contributions
 
@@ -226,11 +241,11 @@ Uses behavioral constraints from simulation of detection rates, ignition frequen
 
 ## 27. Continuous-Time Dynamical Equations (dSₜ/dt, dθₜ/dt)
 
-The continuous-time dynamical equations are implemented in APGI-Full-Dynamic-Model.py, distinguishing surprise accumulation (dS_t/dt) from threshold adaptation (dθ_t/dt) with distinct time constants (λ_S ≈ 2–5 s⁻¹ vs λ_θ ≈ 0.01–0.1 s⁻¹).
+The continuous-time dynamical equations are implemented in APGI-Full-Dynamic-Model.py, distinguishing surprise accumulation (dS_t/dt) from threshold adaptation (dθ_t/dt) with distinct time constants: τ_S ≈ 0.2–0.5 s (fast surprise integration) vs τ_θ ≈ 10–100 s (slow threshold adaptation), equivalent to decay rates λ_S = 1/τ_S ≈ 2–5 s⁻¹ and λ_θ = 1/τ_θ ≈ 0.01–0.1 s⁻¹.
 
 APGI-Full-Dynamic-Model.py  
 
-Distinguishes surprise accumulation (dS_t/dt = -S_t/τ_S + input_drive) from threshold adaptation (dθ_t/dt = (θ_0 - θ_t)/τ_θ + η_θ · (C_metabolic - V_information)) with distinct time constants (λ_S ≈ 2-5 s⁻¹ vs λ_θ ≈ 0.01-0.1 s⁻¹).
+Distinguishes surprise accumulation (dS_t/dt = -S_t/τ_S + input_drive) from threshold adaptation (dθ_t/dt = (θ_0 - θ_t)/τ_θ + η_θ · (C_metabolic - V_information)) with distinct time constants: τ_S ≈ 0.2–0.5 s vs τ_θ ≈ 10–100 s (decay rates λ_S = 1/τ_S ≈ 2–5 s⁻¹, λ_θ = 1/τ_θ ≈ 0.01–0.1 s⁻¹).
 
 ## 28. Full Neuromodulatory Implementation of Each LNN Parameter
 
@@ -274,19 +289,19 @@ Sustained cognitive engagement depletes neuromodulator reserves and elevates θ_
 
 ## 33. Cross-Species Prediction
 
-The cross-species prediction is implemented in the hierarchical architecture of Falsification-Protocol-1.py, predicting fewer levels, shorter timescales, and reduced PAC complexity in simpler nervous systems, testable via comparative PCI measurements.
+The cross-species prediction is implemented in the hierarchical architecture of Falsification-Protocol-1.py, predicting hierarchical level count scaling as L ≈ 1 + log₁₀(N_cortical_neurons/10⁶), level-specific timescales scaling as τ_ℓ ∝ (brain_mass)^(1/4), and PAC complexity (number of cross-frequency couplings) scaling as C_PAC ∝ L(L-1)/2, testable via comparative PCI measurements across species (e.g., mouse L≈2, τ₁≈30ms; macaque L≈3, τ₁≈80ms; human L≈4, τ₁≈150ms).
 
-Falsification/Falsification-Protocol-1.py, hierarchical architecture
+Falsification/Falsification-Protocol-1.py, hierarchical architecture  
 
-Predicts fewer levels, shorter timescales, and reduced PAC complexity in simpler nervous systems, testable via comparative PCI measurements.
+Predicts hierarchical level count L ≈ 1 + log₁₀(N_cortical_neurons/10⁶), level timescales τ_ℓ ∝ (brain_mass)^(1/4), and PAC complexity C_PAC ∝ L(L-1)/2 in cross-species comparisons, with specific predictions: mouse (L≈2, τ₁≈30ms), macaque (L≈3, τ₁≈80ms), human (L≈4, τ₁≈150ms), testable via comparative PCI and intrinsic timescale measurements.
 
 ## 34. Cultural Neuroscience Prediction
 
-The cultural neuroscience prediction is implemented in the hierarchical architecture of Falsification-Protocol-1.py, predicting meditation and linguistic temporal grammar effects on inter-level coupling strength and level-specific θ_t values.
+The cultural neuroscience prediction is implemented in the hierarchical architecture of Falsification-Protocol-1.py, predicting meditation effects (10,000+ hours focused attention practice increases Level 3–4 theta-gamma PAC by 15–25% and reduces θ_t coefficient of variation by 30–40%) and linguistic temporal grammar effects (languages with rich tense/aspect morphology, e.g., >8 distinct temporal markers, show 10–20% stronger delta-theta PAC for Level 3–4 coupling and 5–15% elevated baseline θ_t in temporal reasoning tasks compared to isolating languages).
 
-Falsification/Falsification-Protocol-1.py, hierarchical architecture
+Falsification/Falsification-Protocol-1.py, hierarchical architecture  
 
-Predicts meditation and linguistic temporal grammar effects on inter-level coupling strength and level-specific θ_t values.
+Predicts meditation effects: 10,000+ hours focused attention practice → 15–25% increase in Level 3–4 theta-gamma PAC, 30–40% reduction in θ_t coefficient of variation; linguistic temporal grammar effects: languages with >8 temporal markers → 10–20% stronger delta-theta PAC and 5–15% elevated baseline θ_t in temporal tasks vs. isolating languages.
 
 ## 35. APGI Multimodal Classifier: Proposed Stratification Tool for Psychiatric Diagnosis
 
