@@ -24,8 +24,6 @@ Based on:
 - Friston (2010) - Free Energy Principle
 - Dehaene & Changeux (2011) - Global Workspace Theory
 
-Author: Implementation for APGI Research Project
-Version: 1.1.0 (Research Grade - Enhanced)
 """
 
 import time
@@ -1159,7 +1157,7 @@ class GlobalWorkspace(nn.Module):
         """
         Smooth phase transition with hysteresis.
 
-        P(ignition) = σ(β * (S - θ_effective))
+        P(ignition) = σ(β_steep * (S - θ_effective))
         where θ_effective is lower if previously ignited (hysteresis)
         """
         # Apply hysteresis: effective threshold is lower if already ignited

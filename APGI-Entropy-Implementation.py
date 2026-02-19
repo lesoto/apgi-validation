@@ -28,9 +28,6 @@ Based on:
 - Shannon (1948) - Mathematical Theory of Communication
 - Jaynes (1957) - Information Theory and Statistical Mechanics
 
-Author: Implementation for APGI Research Project
-Version: 2.0.0 (Research Grade - Theoretically Complete)
-Rating Target: 100/100
 """
 
 import math

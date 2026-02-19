@@ -24,9 +24,6 @@ Example:
     >>> config_manager.set_parameter("validation", "threshold", "0.5")
     >>> profile_path = config_manager.create_profile("research", "Research settings")
 
-Author: APGI Research Team
-Date: 2026
-Version: 1.0
 """
 
 import hashlib

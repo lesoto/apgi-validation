@@ -308,7 +308,7 @@ This project is licensed under the MIT License - see the details below:
 ```text
 MIT License
 
-Copyright (c) 2024 APGI Theory Framework
+Copyright (c) 2026 APGI Framework
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

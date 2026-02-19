@@ -2,8 +2,7 @@
 APGI Validation GUI
 ==================
 
-Simple tkinter GUI for running APGI validation protocols
-with real-time progress tracking and results visualization.
+Simple tkinter GUI for running APGI validation protocols with real-time progress tracking and results visualization.
 """
 
 import contextlib

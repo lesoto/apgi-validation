@@ -12,12 +12,6 @@ This protocol implements:
 - Three task environments (IGT, Foraging, Threat-Reward)
 - Comprehensive analysis and falsification framework
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0 (Production)
-
-Dependencies:
-    numpy, scipy, torch, matplotlib, seaborn, pandas, tqdm
 """
 
 import json

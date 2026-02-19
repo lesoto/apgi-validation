@@ -2,8 +2,7 @@
 """
 APGI Validation Cleanup Script
 
-This script removes temporary files and output directories generated during
-APGI (Adaptive Psychological General Intelligence) validation processes.
+This script removes temporary files and output directories generated during validation processes.
 
 Features:
 - Removes Python cache files (__pycache__, *.pyc, etc.)
@@ -40,6 +39,7 @@ DEFAULT_DIR_NAMES = {
     ".cache",
     "build",
     "dist",
+    "backups",
     ".coverage",
     "site-packages",
     "cache",

@@ -1,13 +1,17 @@
 """
 =============================================================================
-APGI TAPGI Full Dynamic Model - Complete Implementation
+APGI APGI Full Dynamic Model Implementation
 =============================================================================
 
 Core Ignition Criterion:
-    (Πe · |εe| + β · Πi · |εi|) > θt
+
+    (Πe · |εe| + β_som · Πi · |εi|) > θt
 
 Mathematical Formulation:
-    1. Signal Accumulation: S(t+Δt) = exp(−Δt/τ)·S(t) + we·Πe(t)·|εe(t)| + wi·β(t)·Πi(t)·|εi(t)|
+
+    1. Signal Accumulation: S(t+Δt) = exp(−Δt/τ)·S(t) + we·Πe(t)·|εe(t)| + wi·β_som(t)·Πi(t)·|εi(t)|
+    ...
+        S(t+Δt) = exp(−Δt/τ)·S(t) + we·Πe(t)·|εe(t)| + wi·β_som(t)·Πi(t)·|εi(t)|
     2. Threshold Dynamics: θt(t+Δt) = θt0 + ηm(t) + α·[θt(t) − (θt0 + ηm(t))] + φ·I(t)
     3. Ignition Probability: P(ignition|t) = 1 / (1 + exp(−k·(S(t)−θt(t))))
     4. Metabolic State: ηm(t+Δt) = ηm(t) + γc·I(t) − γr·(1−I(t))
@@ -78,6 +82,95 @@ class APGIParameters:
             raise ValueError(f"k must be in [1.0, 10.0], got {self.k}")
         if not (0.0 <= self.beta <= 5.0):
             raise ValueError(f"beta must be in [0.0, 5.0], got {self.beta}")
+
+    def get_circadian_modulation(self, time_of_day_hours: float) -> float:
+        """
+        Compute circadian modulation of threshold based on cortisol rhythm.
+
+        Innovation #31: Cortisol-θ_t relationship formalized as inverted-U function.
+
+        Theory:
+            Δθ_circadian = -k_cort · [C(t) - C_optimal]²
+
+            where:
+            - C(t): Cortisol concentration at time t (approximated from circadian phase)
+            - C_optimal ≈ 12.5 μg/dL (optimal for sustained attention)
+            - k_cort: Inverted-U gain constant (default 0.08)
+
+        Mechanism:
+            - LOW cortisol (<8 μg/dL, evening): elevated θ_t (reduced ignition)
+            - OPTIMAL cortisol (10-15 μg/dL, morning): minimal θ_t (enhanced access)
+            - HIGH cortisol (>20 μg/dL, acute stress): elevated θ_t (narrowed focus)
+
+        Args:
+            time_of_day_hours: Time in hours (0-24), e.g., 9.5 for 9:30 AM
+
+        Returns:
+            Threshold modulation Δθ_circadian in σ units
+
+        References:
+            - Lupien et al. 2007: Morning cortisol facilitates memory encoding
+            - McEwen 2007: Chronic elevation impairs hippocampal function
+            - Dijk & Czeisler 2012: Evening nadir enables restorative processes
+        """
+        # Approximate cortisol concentration from circadian phase
+        # Peak: 8-9 AM (~15 μg/dL), Nadir: 12 AM (~3 μg/dL)
+        circadian_phase = (time_of_day_hours - 8.5) * 2 * np.pi / 24
+        C_t = 9.0 + 6.0 * np.cos(circadian_phase)  # Range: 3-15 μg/dL
+
+        # Optimal cortisol level
+        C_optimal = 12.5  # μg/dL
+
+        # Inverted-U gain constant
+        k_cort = 0.08  # Scaled for threshold units
+
+        # Compute threshold modulation
+        delta_theta_circadian = -k_cort * (C_t - C_optimal) ** 2
+
+        return delta_theta_circadian
+
+    def get_ultradian_modulation(
+        self, time_since_task_start_min: float, task_load: float = 0.7
+    ) -> float:
+        """
+        Compute ultradian modulation of threshold (Innovation #32).
+
+        Theory: ~90-minute oscillations in threshold due to neuromodulator depletion
+        and metabolic accumulation under sustained cognitive load.
+
+        Mechanism:
+            Δθ_ultradian = A_ultradian · cos(ω_ultradian · t + φ) · task_load
+
+            where:
+            - A_ultradian: Oscillation amplitude (~20% of θ_0)
+            - ω_ultradian: Angular frequency (2π/90 min)
+            - φ: Phase offset (typically 0)
+            - task_load: Cognitive load factor ∈ [0, 1]
+
+        Args:
+            time_since_task_start_min: Minutes since task/session began
+            task_load: Cognitive load factor (0=rest, 1=maximal load)
+
+        Returns:
+            Threshold modulation Δθ_ultradian in σ units
+
+        Note: This is APGI's contribution to BRAC. Full ultradian rhythm involves
+        multiple neurotransmitter systems (NE, DA, ACh) beyond θ_t modulation alone.
+
+        References:
+            - Kleitman 1963: Basic rest-activity cycle (BRAC)
+            - Dijk & Czeisler 1995: Two-process model (circadian × homeostatic)
+        """
+        # Ultradian parameters
+        period_min = 90.0  # ~90-minute cycle
+        amplitude = 0.2 * self.theta_t0  # 20% of baseline threshold
+        omega = 2 * np.pi / period_min  # Angular frequency
+
+        # Compute modulation (scaled by task load)
+        delta_theta_ultradian = amplitude * np.cos(omega * time_since_task_start_min)
+        delta_theta_ultradian *= task_load  # Only active during cognitive engagement
+
+        return delta_theta_ultradian
 
 
 @dataclass
@@ -165,7 +258,7 @@ class APGIFullDynamicModel:
         """
         Compute signal accumulation equation.
 
-        S(t+Δt) = exp(−Δt/τ)·S(t) + we·Πe(t)·|εe(t)| + wi·β(t)·Πi(t)·|εi(t)|
+        S(t+Δt) = exp(−Δt/τ)·S(t) + we·Πe(t)·|εe(t)| + wi·β_som(t)·Πi(t)·|εi(t)|
 
         Args:
             Pi_e: External precision/reliability [0,1]

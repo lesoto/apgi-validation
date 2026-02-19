@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a **production-ready** implementation of Protocol 2 from the APGI framework. The protocol uses **Bayesian model comparison** to test APGI predictions against published consciousness datasets without collecting new human data.
+This is an implementation of Protocol 2 from the APGI framework. The protocol uses **Bayesian model comparison** to test APGI predictions against published consciousness datasets without collecting new human data.
 
 ## Core Approach
 
@@ -129,7 +129,7 @@ real_data = ConsciousnessDataset(
     reaction_time=rt_array,              # Shape: (2400,), optional
     HEP_amplitude=hep_array,             # Shape: (2400,), optional
     paradigm="Attentional blink",
-    citation="Your et al., 2024"
+    citation="Your et al., 2026"
 )
 ```text
 
@@ -559,14 +559,11 @@ import pymc as pm
 pm.set_backend('jax')  # More memory efficient
 ```text
 
-
 ## Scientific Interpretation
-
 
 ### If F2.1 Falsified (APGI worse than SDT/GWT)
 
-
-**Implication**: The additional complexity of APGI (interoceptive precision, somatic bias) doesn't improve predictions.
+**Implication**: The additional complexity of interoceptive precision, somatic bias don't improve predictions.
 
 **Possible explanations**:
 1. Interoception not involved in this paradigm
@@ -575,9 +572,7 @@ pm.set_backend('jax')  # More memory efficient
 
 **Action**: Examine which specific parameters are problematic. Perhaps β or Π_i should be fixed rather than estimated.
 
-
 ### If F2.2 Falsified (Π_i includes zero)
-
 
 **Implication**: No evidence that interoceptive precision contributes to conscious access.
 
@@ -715,7 +710,7 @@ If you use this implementation, please cite:
 APGI Framework: Allostatic Precision-Gated Ignition
 Protocol 2: Bayesian Model Comparison on Existing Consciousness Datasets
 Implementation Version 1.0
-2025
+2026
 ```text
 
 

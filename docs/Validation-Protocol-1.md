@@ -1,12 +1,8 @@
 # APGI Protocol 1: Complete Implementation Guide
 
-## Overview
+This protocol tests falsifiable predictions about consciousness through synthetic neural data generation and machine learning classification.
 
-This is a **production-ready** implementation of Protocol 1 from the APGI (Allostatic Precision-Gated Ignition) framework. The protocol tests falsifiable predictions about consciousness through synthetic neural data generation and machine learning classification.
-
-## What This Script Does
-
-### Core Functionality
+## Core Functionality
 
 1. **Generates Biophysically Realistic Neural Signals**
    - Multi-channel EEG (64 channels × 1000 timepoints)
@@ -33,7 +29,6 @@ This is a **production-ready** implementation of Protocol 1 from the APGI (Allos
 ## Installation
 
 ```bash
-# Required packages
 pip install numpy scipy torch scikit-learn matplotlib seaborn tqdm
 ```
 
@@ -363,8 +358,6 @@ If you use this code, please cite:
 ```text
 APGI Framework: Allostatic Precision-Gated Ignition
 Protocol 1: Synthetic Neural Data Generation and Machine Learning Classification
-Implementation Version 1.0
-2025
 ```
 
 ## License

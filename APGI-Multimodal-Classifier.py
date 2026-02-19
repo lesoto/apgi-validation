@@ -164,8 +164,7 @@ def invert_parameters(
 
 def simulation_based_calibration(self, n_simulations: int = 100):
     """
-    Perform simulation-based calibration to verify identifiability of β and Πᵢ.
-
+    Perform simulation-based calibration to verify identifiability of β_som and Πᵢ.
     Checks if posteriors recover true parameters within credible intervals.
     """
     print(f"Running SBC with {n_simulations} simulations...")
@@ -238,7 +237,7 @@ def simulation_based_calibration(self, n_simulations: int = 100):
 # NEW: Mechanistic Stratification Class
 class APGIMechanisticStratifier:
     """
-    Uses extracted latent parameters (Πᵢ, θ₀, β) as features for ML-based
+    Uses extracted latent parameters (Πᵢ, θ₀, β_som) as features for ML-based
     psychiatric disorder stratification.
     """
 
@@ -425,6 +424,7 @@ if __name__ == "__main__":
         print("Feature Importance:")
         for feat, imp in importance.items():
             print(f"  {feat}: {imp:.3f}")
-
-    print("\nNote: β and Πᵢ are mathematically collinear; independent manipulations")
+    print(
+        "\nNote: β_som and Πᵢ are mathematically collinear; independent manipulations"
+    )
     print("(e.g., interoceptive training) are needed for full identifiability.")

@@ -150,7 +150,7 @@ def test_data_validator_validate_data_quality():
     # Test with valid data
     valid_data = pd.DataFrame(
         {
-            "timestamp": pd.date_range("2023-01-01", periods=100, freq="100ms"),
+            "timestamp": pd.date_range("2026-01-01", periods=100, freq="100ms"),
             "eeg_signal": np.random.randn(100),
             "p300_events": np.random.choice([0, 1], 100),
             "reaction_time": np.random.uniform(200, 800, 100),

@@ -12,12 +12,6 @@ This protocol implements:
 - Consciousness-relevant tasks (conscious/unconscious classification, etc.)
 - Comprehensive evaluation and falsification framework
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0 (Production)
-
-Dependencies:
-    numpy, torch, scipy, matplotlib, seaborn, pandas, sklearn, tqdm
 """
 
 import json
@@ -1777,7 +1771,7 @@ def main():
     apgi_params = comparison.analyze_apgi_parameters()
 
     print("\nLearned APGI Parameters:")
-    print(f"  β (Somatic Bias): {apgi_params['beta']:.4f}")
+    print(f"  β_som (Somatic Bias): {apgi_params['beta']:.4f}")
     print(f"  α (Sigmoid Steepness): {apgi_params['alpha']:.4f}")
 
     # =========================================================================

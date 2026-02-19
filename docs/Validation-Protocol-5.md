@@ -159,7 +159,7 @@ Where s = selection coefficient (rate of frequency increase)
 
 ### P5c: Combined Architecture Superiority
 
-- Full APGI (4 components) > Partial (1-3) > None (0)
+- Full APGI > Partial (1-3) > None (0)
 - Synergistic benefits from integration
 
 ### P5d: Emergence Order
@@ -458,7 +458,7 @@ Protocol 5 is unique in testing *why* APGI architecture exists, not just whether
 If using this protocol:
 
 ```text
-APGI Research Team (2025). Protocol 5: Evolutionary Emergence of
+APGI Framework (2026). Protocol 5: Evolutionary Emergence of
 APGI-like Architectures. APGI Falsification Framework v1.0.
 ```text
 ## References
@@ -477,12 +477,6 @@ APGI-like Architectures. APGI Falsification Framework v1.0.
 ## Contact
 For questions, issues, or contributions:
 - Open an issue on the repository
-- Contact: APGI Research Team
+- Contact: APGI Framework
 ## License
 MIT License - See LICENSE file
-
----
-
-**Version**: 1.0
-**Last Updated**: December 2025
-**Status**: Production Ready

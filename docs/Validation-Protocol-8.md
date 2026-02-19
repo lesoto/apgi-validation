@@ -517,10 +517,10 @@ var_cols.extend(['your_measure_1', 'your_measure_2'])
 If you use this protocol, please cite:
 
 ```bibtex
-@software{apgi_protocol3_2025,
+@software{apgi_protocol3_2026,
   title={APGI Protocol 8: Psychophysical Threshold Estimation and Individual Differences},
-  author={APGI Research Team},
-  year={2025},
+  author={APGI Framework},
+  year={2026},
   url={https://github.com/apgi-framework/protocols}
 }
 ```text
@@ -612,7 +612,3 @@ For questions, issues, or contributions:
 - **Psychophysics Theory:** Gescheider (1997), Kingdom & Prins (2016)
 - **Individual Differences:** Underwood & Everatt (1992), Hedge et al. (2018)
 
----
-
-**Last Updated:** December 2025
-**Version:** 1.0 (Production)

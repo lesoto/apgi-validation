@@ -11,9 +11,6 @@ This protocol validates:
 - Cross-species homologies in ignition signatures
 - Convergence between APGI (algorithmic) and IIT (implementational) descriptions
 
-Author: APGI Research Team
-Date: 2026
-Version: 1.0 (Clinical Validation)
 """
 
 from typing import Dict, List

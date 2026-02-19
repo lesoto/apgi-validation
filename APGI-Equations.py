@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 ===============================================================================
 COMPLETE APGI SYSTEM
@@ -24,14 +26,57 @@ PARAMETER NOTATION STANDARD
          Controls exponential amplification of precision by vmPFC-insula markers
          Typical range: 0.3-0.7 (pathological anxiety: ~1.2)
          
-β_spec : Spectral exponent of aperiodic neural activity (1/f^β_spec)
+beta_spec : Spectral exponent of aperiodic neural activity (1/f^beta_spec)
          Characterizes hierarchical timescale integration
          Typical range: 0.8-1.2 (wakefulness), 1.5-2.0 (deep sleep)
-         
-NOTE: These are INDEPENDENT parameters describing different mechanisms.
 """
 
-from __future__ import annotations
+
+"""
+COMPLETE PARAMETER REFERENCE
+=============================
+
+SOMATIC/INTEROCEPTIVE PARAMETERS:
+beta_som  : Somatic modulation gain (dimensionless) in [0.3, 0.8]
+           Variable name: `beta`
+           Controls exponential amplification: Pi_eff = Pi * exp(beta_som * M)
+           
+Pi       : Interoceptive precision (inverse variance) in [0.1, 15]
+           Reliability of body-state prediction errors
+           
+M(c,a)   : Somatic marker value in [-2, +2]
+           vmPFC-insula connectivity strength for context-action pair
+
+HIERARCHICAL/SPECTRAL PARAMETERS:
+beta_spec: Spectral exponent of aperiodic activity in [0.8, 2.0]
+           Characterizes power-law: PSD ~ 1/f^beta_spec
+           Wakefulness: 0.8-1.2, Sleep: 1.5-2.0
+           
+tau_l    : Intrinsic timescale at hierarchical level l
+           Autocorrelation decay constant
+           Level 1: 50-100 ms, Level 5: 2-10 s
+
+THRESHOLD PARAMETERS:
+theta_t   : Ignition threshold (z-score units) in [1.0, 10.0]
+           Dynamic threshold for global broadcast
+           Baseline: theta_0 approximately 3.0 sigma (typical)
+           
+Delta_theta_circ: Circadian modulation of threshold
+           Cortisol-dependent inverted-U function
+           
+Delta_theta_ultr: Ultradian modulation (~90-min oscillation)
+           Neuromodulator depletion effect
+
+OTHER BETA PARAMETERS (NOT beta_som or beta_spec):
+beta_M   : Sensitivity for somatic marker tanh function
+           Used in: M_star(epsilon_i) = tanh(beta_M * epsilon_i)
+           
+beta_cross: Cross-level coupling strength
+           Used in: Pi_l_minus_1 = Pi_l_minus_1 * (1 + beta_cross * B_l)
+
+Always specify subscript (beta_som, beta_spec, beta_M, beta_cross) in formulas to avoid ambiguity.
+
+"""
 
 import json
 import warnings
@@ -44,7 +89,6 @@ from typing import Dict, List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Check for optional visualization packages
 try:
     import plotly.io as pio
 
@@ -169,7 +213,7 @@ class CoreIgnitionSystem:
         """
         Compute effective interoceptive precision with sigmoid modulation:
 
-        Π^i_eff(t) = Π^i_baseline · [1 + β·σ(M(t) - M_0)]
+        Π^i_eff(t) = Π^i_baseline · [1 + β_som·σ(M(t) - M_0)]
 
         From Section 2.2 of APGI-Equations.md (Option A - Sigmoid Modulation)
 
@@ -177,7 +221,7 @@ class CoreIgnitionSystem:
             Pi_i_baseline: Baseline interoceptive precision
             M: Current somatic marker state
             M_0: Reference somatic marker level
-            beta: Modulation strength (β ∈ [0, 2])
+            beta: Modulation strength (β_som ∈ [0, 2])
 
         Returns:
             Effective interoceptive precision Π^i_eff(t)
@@ -738,7 +782,7 @@ class APGIParameters:
     A_0: float = 0.5  # Baseline arousal level
 
     # ========== CORRECTED SOMATIC GAIN ==========
-    beta: float = 1.5  # **CORRECTED**: Somatic influence gain (Range: 0.5-2.5)
+    beta: float = 1.5  # **CORRECTED**: Somatic influence gain β_som (Range: 0.5-2.5)
 
     # ========== RESET DYNAMICS ==========
     rho: float = 0.7  # Reset fraction (Range: 0.3-0.9)
@@ -759,7 +803,7 @@ class APGIParameters:
     ACh: float = 1.0  # Acetylcholine (↑ Πᵉ)
     NE: float = 1.0  # Norepinephrine (↑ θₜ)
     DA: float = 1.0  # Dopamine (action precision)
-    HT5: float = 1.0  # Serotonin (↑ Πⁱ, ↓ β)
+    HT5: float = 1.0  # Serotonin (↑ Πⁱ, ↓ β_som)
 
     # ========== MEASUREMENT PROXIES ==========
     HEP_amplitude: float = 0.0  # Heartbeat-evoked potential
@@ -789,10 +833,10 @@ class APGIParameters:
                 f"α = {self.alpha:.1f} not in [3.0, 8.0] (optimal sigmoid)"
             )
 
-        # β
+        # β_som validation
         if not (0.5 <= self.beta <= 2.5):
             violations.append(
-                f"β = {self.beta:.2f} not in [0.5, 2.5] (physiological range)"
+                f"β_som = {self.beta:.2f} not in [0.5, 2.5] (physiological range)"
             )
 
         # rho (0.3-0.9)
@@ -936,10 +980,10 @@ class PsychologicalState:
     def __post_init__(self) -> None:
         """Compute derived parameters with Π vs Π̂ distinction"""
 
-        # ========== VALIDATE β RANGE ==========
+        # ========== VALIDATE β_som RANGE ==========
         if not (0.5 <= self.beta <= 2.5):
             warnings.warn(
-                f"β={self.beta} outside valid range [0.5, 2.5] for state {self.name}"
+                f"β_som={self.beta} outside valid range [0.5, 2.5] for state {self.name}"
             )
             self.beta = np.clip(self.beta, 0.5, 2.5)
 
@@ -950,13 +994,14 @@ class PsychologicalState:
             self.Pi_i_expected = self.Pi_i_baseline_actual
 
         # ========== COMPUTE ACTUAL EFFECTIVE PRECISION ==========
-        # Π_i_eff_actual = Π_i_baseline_actual · exp(β·M_ca)
+        # Π_i_eff_actual = Π_i_baseline_actual · exp(β_som·M_ca)
         self.Pi_i_eff_actual = self.Pi_i_baseline_actual * np.exp(self.beta * self.M_ca)
         self.Pi_i_eff_actual = np.clip(self.Pi_i_eff_actual, 0.1, 10.0)
 
         # ========== COMPUTE EXPECTED EFFECTIVE PRECISION ==========
-        # Π_i_eff_expected = Π_i_expected · exp(β·M_ca)
+        # Π_i_eff_expected = Π_i_expected · exp(β_som·M_ca)
         self.Pi_i_eff_expected = self.Pi_i_expected * np.exp(self.beta * self.M_ca)
+
         self.Pi_i_eff_expected = np.clip(self.Pi_i_eff_expected, 0.1, 10.0)
 
         # ========== COMPUTE ACCUMULATED SURPRISE ==========
@@ -2160,7 +2205,7 @@ class MeasurementEquations:
         ) / HEP_SOMATIC_NORMALIZATION  # Map [-2,2] to [0,1]
         gain_mod = (
             beta / HEP_GAIN_NORMALIZATION
-        )  # Normalize β ∈ [0.5,2.5] to [0.25,1.25]
+        )  # Normalize β_som ∈ [0.5,2.5] to [0.25,1.25]
 
         HEP = HEP_baseline * precision_mod * somatic_mod * gain_mod
 
@@ -2344,12 +2389,12 @@ class NeuromodulatorSystem:
             "sigma_S": -0.1,  # Reduces surprise noise
         },
         "DA": {
-            "beta": 0.25,  # DA → action precision (affects β)
+            "beta": 0.25,  # DA → action precision (affects β_som)
             "rho": 0.15,  # Enhances reset efficiency
         },
         "5-HT": {
             "Pi_i_baseline": 0.3,  # 5-HT → ↑ Πⁱ (interoceptive precision)
-            "beta": -0.2,  # ↓ β (reduces somatic gain)
+            "beta": -0.2,  # ↓ β_som (reduces somatic gain)
             "M_ca": 0.1,  # Mild positive somatic bias
         },
         "CRF": {
@@ -2457,7 +2502,7 @@ class EnhancedSurpriseIgnitionSystem:
     3. Complete dynamical system (S, θ, M, A, Π dynamics)
     4. Running statistics for z-score normalization
     5. Derived quantities (latency, metabolic cost, hierarchical extension)
-    6. Parameter ranges (τ_S: 0.2-0.5s, α: 3-8, β: 0.5-2.5)
+    6. Parameter ranges (τ_S: 0.2-0.5s, α: 3-8, β_som: 0.5-2.5)
     7. Π vs Π̂ distinction for anxiety modeling
     8. Domain-specific thresholds (survival vs neutral)
     9. Neuromodulator integration
@@ -2523,7 +2568,7 @@ class EnhancedSurpriseIgnitionSystem:
         elif self.params.alpha > 8.0:
             self.params.alpha = 8.0
 
-        # β: 0.5-2.5
+        # β_som: 0.5-2.5
         if self.params.beta < 0.5:
             self.params.beta = 0.5
         elif self.params.beta > 2.5:
@@ -3172,7 +3217,7 @@ def run_complete_demo() -> None:
         print("✅ ALL PARAMETERS WITHIN CORRECTED RANGES:")
         print(f"   • τ_S = {params.tau_S:.3f}s ∈ [0.2, 0.5]s ✓")
         print(f"   • α = {params.alpha:.1f} ∈ [3.0, 8.0] ✓")
-        print(f"   • β = {params.beta:.2f} ∈ [0.5, 2.5] ✓")
+        print(f"   • β_som = {params.beta:.2f} ∈ [0.5, 2.5] ✓")
         print(f"   • θ_survival = {params.theta_survival:.2f} (lower for threat)")
         print(f"   • θ_neutral = {params.theta_neutral:.2f} (higher for neutral)")
 
@@ -3385,11 +3430,11 @@ def _check_parameter_ranges(params) -> bool:
         print(f"   α = {params.alpha:.1f} ❌ NOT IN [3.0, 8.0]")
         all_passed = False
 
-    # β
+    # β_som
     if 0.5 <= params.beta <= 2.5:
-        print(f"   β = {params.beta:.2f} ∈ [0.5, 2.5] ✓")
+        print(f"   β_som = {params.beta:.2f} ∈ [0.5, 2.5] ✓")
     else:
-        print(f"   β = {params.beta:.2f} ❌ NOT IN [0.5, 2.5]")
+        print(f"   β_som = {params.beta:.2f} ❌ NOT IN [0.5, 2.5]")
         all_passed = False
 
     return all_passed
@@ -3719,7 +3764,7 @@ if __name__ == "__main__":
     print("\nPART 2: Core Ignition System")
     print("   • Accumulated signal: S(t) = ½Π^e(t)(ε^e(t))² + ½Π^i_eff(t)(ε^i(t))²")
     print(
-        "   • Effective interoceptive precision: Π^i_eff = Π^i_baseline · [1 + β·σ(M - M_0)]"
+        "   • Effective interoceptive precision: Π^i_eff = Π^i_baseline · [1 + β_som·σ(M - M_0)]"
     )
     print("   • Ignition probability: P(broadcast) = σ(α(S - θ))")
 
@@ -3742,11 +3787,11 @@ if __name__ == "__main__":
     print("   • Hierarchical level dynamics")
 
     print("\nAdditional Features:")
-    print("   • Corrected parameter ranges (τ_S: 0.2-0.5s, α: 3-8, β: 0.5-2.5)")
+    print("   • Corrected parameter ranges (τ_S: 0.2-0.5s, α: 3-8, β_som: 0.5-2.5)")
     print("   • Complete 51/51 psychological states")
     print("   • Π vs Π̂ distinction for anxiety modeling")
     print("   • Measurement equations (HEP, P3b, detection)")
-    print("   • Neuromodulator mapping (ACh→Πᵉ, NE→θₜ, DA→action, 5-HT→Πⁱ/β)")
+    print("   • Neuromodulator mapping (ACh→Πᵉ, NE→θₜ, DA→action, 5-HT→Πⁱ/β_som)")
     print("   • Domain-specific thresholds (survival vs neutral)")
     print("   • Psychiatric profiles (GAD, MDD, Psychosis)")
 

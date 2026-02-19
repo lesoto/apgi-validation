@@ -345,10 +345,10 @@ class APGICoreIntegration:
         """
         Estimate beta parameter based on individual psychological traits
 
-        Theory: β represents somatic influence gain on interoceptive precision
-        - High anxiety: β = 0.7 (heightened somatic sensitivity)
-        - High alexithymia: β = 0.3 (reduced somatic awareness)
-        - Neutral: β = 0.5 (baseline)
+        Theory: β_som represents somatic influence gain on interoceptive precision
+        - High anxiety: β_som = 0.7 (heightened somatic sensitivity)
+        - High alexithymia: β_som = 0.3 (reduced somatic awareness)
+        - Neutral: β_som = 0.5 (baseline)
 
         Returns:
             Individualized beta value ∈ [0.3, 0.8]
@@ -440,7 +440,7 @@ class APGICoreIntegration:
 
         Where:
         - M(c,a): Somatic marker value ∈ [-2, +2]
-        - β: Somatic influence gain ∈ [0.3, 0.8]
+        - β_som: Somatic influence gain ∈ [0.3, 0.8]
 
         Args:
             Pi_i_baseline: Baseline interoceptive precision
@@ -456,7 +456,9 @@ class APGICoreIntegration:
         Pi_i_baseline = np.clip(Pi_i_baseline, 0.1, 10.0)
 
         # Exponential modulation
-        Pi_i_eff = Pi_i_baseline * np.exp(beta * M_ca)
+        Pi_i_eff = Pi_i_baseline * np.exp(
+            beta * M_ca
+        )  # beta represents β_som (somatic gain)
 
         # Maintain physiological bounds after modulation
         return np.clip(Pi_i_eff, 0.1, 10.0)
@@ -678,7 +680,7 @@ def compare_implementations():
 
         integrator = APGICoreIntegration(individual_profile=profile)
         estimated_beta = integrator.estimate_beta_from_profile()
-        print(f"   Estimated β: {estimated_beta:.3f}")
+        print(f"   Estimated β_som: {estimated_beta:.3f}")
 
         try:
             params = integrator.integrate_multimodal_zscores(z_scores, raw_signals)
@@ -724,8 +726,8 @@ def compare_implementations():
     print(f"  z_i = {params.z_i:.3f} (magnitude)")
     print(f"  Π_i_baseline = {params.Pi_i_baseline:.3f} (baseline reliability)")
     print(f"  M(c,a) = {params.M_ca:.3f} (somatic marker)")
-    print(f"  β = {params.beta:.3f} (somatic gain)")
-    print(f"  Π_i_eff = {params.Pi_i_eff:.3f} (modulated: Π_i × exp(β·M))")
+    print(f"  β_som = {params.beta:.3f} (somatic gain)")
+    print(f"  Π_i_eff = {params.Pi_i_eff:.3f} (modulated: Π_i × exp(β_som·M))")
     print(f"  Contribution = {params.Pi_i_eff * np.abs(params.z_i):.3f}")
 
     print("\nAccumulated Signal:")
@@ -734,7 +736,7 @@ def compare_implementations():
 
     print("\nKey Differences:")
     print("  1. Precision (Π) computed as 1/variance, NOT copied from z-score")
-    print("  2. Somatic modulation applied: Π_i_eff = Π_i × exp(β·M)")
+    print("  2. Somatic modulation applied: Π_i_eff = Π_i × exp(β_som·M)")
     print("  3. Formula uses multiplication: Π·|z|, not addition")
     print("  4. Separate magnitude (z) and reliability (Π) terms")
 
@@ -3399,7 +3401,9 @@ def compute_fallback_apgi_parameters(
     # Apply somatic modulation
     M_ca = z_scores.get("vmPFC_connectivity", 0.0)
     beta = 0.5  # Default somatic gain
-    pi_i_eff = pi_i_baseline * np.exp(beta * M_ca)
+    pi_i_eff = pi_i_baseline * np.exp(
+        beta * M_ca
+    )  # beta represents β_som (somatic gain)
     pi_i_eff = np.clip(pi_i_eff, 0.1, 10.0)
 
     # Compute accumulated surprise using proper APGI formula

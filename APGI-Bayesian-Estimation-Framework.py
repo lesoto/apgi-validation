@@ -8,9 +8,6 @@ Complete Bayesian parameter estimation for APGI model validation including:
 - Parameter recovery and uncertainty quantification
 - Cross-validation and posterior predictive checks
 
-Author: APGI Research Team
-Date: 2026
-Version: 1.0 (Bayesian Estimation)
 """
 
 import logging

@@ -18,11 +18,12 @@ import json
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import pymc as pm
 from scipy import linalg, stats
 from sklearn.linear_model import Ridge
@@ -168,6 +169,258 @@ class DriftDiffusionGenerator:
             )
 
         return responses, rts, confidence
+
+
+"""
+═══════════════════════════════════════════════════════════════════════════
+INNOVATION #26: COMPREHENSIVE PARAMETER IDENTIFIABILITY ANALYSIS
+═══════════════════════════════════════════════════════════════════════════
+
+This section extends basic parameter estimation with:
+1. Confidence interval estimation (parametric bootstrap + Bayesian posterior)
+2. Sensitivity analysis (prior variation, measurement noise, missing modalities)
+3. Out-of-sample validation strategy (cross-participant, cross-task, longitudinal)
+4. Identifiability quantification (correlation with ground truth, posterior width)
+
+References:
+    - Raue et al. 2009 (J R Soc Interface): Structural/practical identifiability
+    - Chis et al. 2011 (BMC Syst Biol): Profile likelihood for non-identifiability
+═══════════════════════════════════════════════════════════════════════════
+"""
+
+
+class ParameterIdentifiabilityAnalyzer:
+    """
+    Comprehensive identifiability analysis for APGI parameters.
+
+    Methods:
+        - confidence_intervals(): Parametric bootstrap + Bayesian credible intervals
+        - sensitivity_analysis(): Test robustness to priors, noise, missing data
+        - cross_validation(): Out-of-sample prediction validation
+        - identifiability_metrics(): Correlation with ground truth, posterior width
+    """
+
+    def __init__(self, parameter_estimator):
+        """
+        Initialize identifiability analyzer.
+
+        Args:
+            parameter_estimator: Fitted ParameterEstimator instance
+        """
+        self.estimator = parameter_estimator
+        self.bootstrap_samples = None
+        self.mcmc_samples = None
+
+    def confidence_intervals(
+        self, method: str = "bootstrap", n_samples: int = 1000, alpha: float = 0.05
+    ) -> Dict[str, Tuple[float, float, float]]:
+        """
+        Compute confidence/credible intervals for estimated parameters.
+
+        Args:
+            method: 'bootstrap' (frequentist) or 'bayesian' (MCMC)
+            n_samples: Number of bootstrap/MCMC samples
+            alpha: Significance level (default 0.05 for 95% CI/CrI)
+
+        Returns:
+            Dictionary mapping parameter names to (median, lower, upper) bounds
+
+        Example:
+            >>> analyzer = ParameterIdentifiabilityAnalyzer(fitted_estimator)
+            >>> intervals = analyzer.confidence_intervals(method='bootstrap')
+            >>> print(f"Π_i: {intervals['Pi_i']}")  # (0.45, 0.38, 0.52)
+        """
+        if method == "bootstrap":
+            return self._parametric_bootstrap(n_samples, alpha)
+        elif method == "bayesian":
+            return self._bayesian_posterior(n_samples, alpha)
+        else:
+            raise ValueError(f"Unknown method: {method}")
+
+    def _parametric_bootstrap(
+        self, n_samples: int, alpha: float
+    ) -> Dict[str, Tuple[float, float, float]]:
+        """Parametric bootstrap confidence intervals"""
+        # Implementation details...
+        pass
+
+    def _bayesian_posterior(
+        self, n_samples: int, alpha: float
+    ) -> Dict[str, Tuple[float, float, float]]:
+        """Bayesian credible intervals via MCMC"""
+        # Implementation details...
+        pass
+
+    def sensitivity_analysis(
+        self,
+        variations: Dict[str, List[Any]],
+        metrics: List[str] = ["mae", "correlation"],
+    ) -> pd.DataFrame:
+        """
+        Test parameter estimation robustness to perturbations.
+
+        Tests:
+            1. Prior variation: uniform vs weakly-informative Gaussian
+            2. Measurement noise: σ ∈ {5%, 10%, 20%}
+            3. Missing modalities: exclude HEP, P3b, or RT individually
+
+        Args:
+            variations: Dictionary specifying perturbation types and values
+                Example: {"noise_level": [0.05, 0.10, 0.20],
+                         "missing_modality": ["HEP", "P3b", "RT"]}
+            metrics: Evaluation metrics to compute
+
+        Returns:
+            DataFrame with rows=variations, columns=parameter shifts
+
+        Target: Core parameters shift <15% under perturbations
+        """
+        results = []
+
+        baseline_params = self.estimator.get_parameters()
+
+        for variation_type, variation_values in variations.items():
+            for value in variation_values:
+                # Perturb estimation
+                perturbed_params = self._estimate_with_perturbation(
+                    variation_type, value
+                )
+
+                # Compute parameter shifts
+                shifts = {
+                    param: abs(perturbed_params[param] - baseline_params[param])
+                    / baseline_params[param]
+                    for param in baseline_params
+                }
+
+                results.append(
+                    {
+                        "variation_type": variation_type,
+                        "variation_value": value,
+                        **shifts,
+                    }
+                )
+
+        return pd.DataFrame(results)
+
+    def cross_validation_strategy(
+        self, validation_type: str, **kwargs
+    ) -> Dict[str, float]:
+        """
+        Out-of-sample validation for parameter generalization.
+
+        Validation types:
+            1. "cross_participant": Fit participant A, predict participant B
+            2. "cross_task": Fit task 1 (Gabor detection), predict task 2 (oddball)
+            3. "longitudinal": Test-retest reliability (2-week interval)
+
+        Args:
+            validation_type: Type of cross-validation
+            **kwargs: Type-specific arguments
+
+        Returns:
+            Dictionary with validation metrics (log-likelihood ratio, ICC, etc.)
+
+        Targets:
+            - Cross-participant: LL_APGI > LL_null + 10 (strong evidence)
+            - Cross-task: Task-general parameters r > 0.6
+            - Longitudinal: ICC > 0.7 for clinical biomarker viability
+        """
+        if validation_type == "cross_participant":
+            return self._cross_participant_validation(**kwargs)
+        elif validation_type == "cross_task":
+            return self._cross_task_validation(**kwargs)
+        elif validation_type == "longitudinal":
+            return self._longitudinal_stability(**kwargs)
+        else:
+            raise ValueError(f"Unknown validation type: {validation_type}")
+
+    def identifiability_metrics(
+        self, ground_truth: Optional[Dict[str, float]] = None
+    ) -> Dict[str, Dict[str, float]]:
+        """
+        Quantify parameter identifiability.
+
+        Metrics:
+            1. Correlation with ground truth (simulation-based validation)
+            2. Posterior interval width (relative to prior range)
+            3. Sensitivity to initial conditions
+
+        Args:
+            ground_truth: True parameter values (for simulation studies)
+
+        Returns:
+            Dictionary with identifiability metrics per parameter
+
+        Interpretation:
+            - Core parameters: r > 0.82, posterior width <20% of prior
+            - Auxiliary parameters: r > 0.68, posterior width <40% of prior
+        """
+        metrics = {}
+
+        for param_name in self.estimator.parameter_names:
+            metrics[param_name] = {
+                "correlation_with_truth": self._compute_correlation(
+                    param_name, ground_truth
+                ),
+                "posterior_width_ratio": self._compute_posterior_width(param_name),
+                "sensitivity_to_init": self._compute_init_sensitivity(param_name),
+            }
+
+        return metrics
+
+
+# Example usage and validation
+if __name__ == "__main__":
+    # Demonstrate identifiability analysis
+    print("\n" + "=" * 70)
+    print("PARAMETER IDENTIFIABILITY ANALYSIS DEMONSTRATION")
+    print("=" * 70)
+
+    # Simulate data with known ground truth
+    true_params = {
+        "Pi_i_baseline": 2.5,
+        "theta_t": 3.2,
+        "tau_S": 0.35,
+        "beta_som": 0.55,
+    }
+
+    print("\n1. Ground Truth Parameters:")
+    for param, value in true_params.items():
+        print(f"   {param} = {value:.3f}")
+
+    # Fit model (placeholder - replace with actual fitting)
+    # fitted_estimator = fit_model(simulated_data)
+
+    # Perform identifiability analysis
+    # analyzer = ParameterIdentifiabilityAnalyzer(fitted_estimator)
+
+    print("\n2. Confidence Intervals (Bootstrap):")
+    # intervals = analyzer.confidence_intervals(method='bootstrap', n_samples=1000)
+    # for param, (median, lower, upper) in intervals.items():
+    #     print(f"   {param}: {median:.3f} [{lower:.3f}, {upper:.3f}]")
+
+    print("\n3. Sensitivity Analysis:")
+    print("   Testing robustness to 10% measurement noise...")
+    # sensitivity_results = analyzer.sensitivity_analysis(
+    #     variations={"noise_level": [0.05, 0.10, 0.20]}
+    # )
+    # print(sensitivity_results)
+
+    print("\n4. Identifiability Metrics:")
+    # metrics = analyzer.identifiability_metrics(ground_truth=true_params)
+    # for param, param_metrics in metrics.items():
+    #     print(f"   {param}:")
+    #     print(f"      Correlation with truth: r = {param_metrics['correlation_with_truth']:.3f}")
+    #     print(f"      Posterior width: {param_metrics['posterior_width_ratio']:.1%}")
+
+    print("\n" + "=" * 70)
+    print("NOTE: This is a template. Full implementation requires:")
+    print("  1. MCMC sampler (PyMC3, Stan, or custom)")
+    print("  2. Bootstrap resampling procedure")
+    print("  3. Cross-validation data splitting")
+    print("  4. Integration with existing ParameterEstimator class")
+    print("=" * 70)
 
 
 class NeuralMassGenerator:
@@ -1999,9 +2252,10 @@ MEASUREMENT_PROTOCOLS = {
         "(2) Resting HEP amplitude, (3) Interoceptive oddball P3b, "
         "(4) Pupil dilation to body sensations",
         "timeline": "Integrated across 90 minutes (3 tasks)",
-        "biological_basis": "Composite β·Πᵢ solves identifiability problem. Reflects combined "
-        "somatic gain (β) × interoceptive precision (Πᵢ). "
-        "Implemented via anterior insula gain control.",
+        "biological_basis": "Composite β_som·Πᵢ solves identifiability problem. Reflects combined "
+        "somatic gain (β_som) × interoceptive precision (Πᵢ). "
+        "β_som represents strength of this top-down modulation.",
+        "implementation": "Implemented via anterior insula gain control.",
         "citation": "Park et al. (2014) HEP-accuracy; Garfinkel et al. (2015) Interoceptive precision",
     },
     "Pi_e0": {

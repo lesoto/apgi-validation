@@ -9,12 +9,6 @@ This protocol fits hierarchical Bayesian models to real data from published stud
 and uses rigorous model comparison metrics (WAIC, LOO-CV, Bayes factors) to assess
 which theoretical framework best explains conscious access.
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0 (Production)
-
-Dependencies:
-    numpy, scipy, pandas, pymc, arviz, matplotlib, seaborn, tqdm
 """
 
 import json
@@ -270,9 +264,9 @@ class SyntheticConsciousnessDataGenerator:
 def validate_parameter_recovery(n_simulations: int = 100):
     """
     Mandatory pre-empirical validation: Can we recover known parameters?
+    Generates synthetic data with known θ₀, Πᵢ, β_som and tests if
+    Bayesian fitting recovers them with r > 0.85 (θ₀, β_som) and r > 0.75 (Πᵢ)
 
-    Generates synthetic data with known θ₀, Πᵢ, β and tests if
-    Bayesian fitting recovers them with r > 0.85 (θ₀, β) and r > 0.75 (Πᵢ)
     """
     true_params = []
     recovered_params = []
@@ -317,7 +311,7 @@ def validate_parameter_recovery(n_simulations: int = 100):
     print("Parameter Recovery Validation:")
     print(f"  θ₀: r = {r_theta:.3f} {'✅' if r_theta > 0.85 else '❌'}")
     print(f"  Πᵢ: r = {r_Pi_i:.3f} {'✅' if r_Pi_i > 0.75 else '❌'}")
-    print(f"  β:  r = {r_beta:.3f} {'✅' if r_beta > 0.85 else '❌'}")
+    print(f"  β_som:  r = {r_beta:.3f} {'✅' if r_beta > 0.85 else '❌'}")
     print(f"\nOVERALL: {'VALIDATED ✅' if validation_passed else 'FAILED ❌'}")
 
     return validation_passed, {"r_theta": r_theta, "r_Pi_i": r_Pi_i, "r_beta": r_beta}
@@ -333,7 +327,9 @@ class APGIGenerativeModel:
     Full Bayesian hierarchical generative model for APGI framework
 
     Implements the complete APGI theory:
-        S_t = Π_e·|ε_e| + β·Π_i·|ε_i|
+
+        S_t = Π_e·|ε_e| + β_som·Π_i·|ε_i|
+
         P(conscious) = σ(α·(S_t - θ_t))
 
     With hierarchical priors for individual differences.

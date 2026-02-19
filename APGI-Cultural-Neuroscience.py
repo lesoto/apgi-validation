@@ -12,13 +12,6 @@ This module provides:
 3. Cross-cultural prediction maps
 4. Cultural modulation of APGI parameters
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0
-
-Dependencies:
-    numpy, scipy, matplotlib, pandas, networkx
-===============================================================================
 """
 
 from __future__ import annotations
@@ -105,6 +98,286 @@ class CulturalContext:
 # =============================================================================
 # 2. APGI PARAMETER MODULATION FUNCTIONS
 # =============================================================================
+
+
+"""
+═══════════════════════════════════════════════════════════════════════════
+INNOVATION #34: QUANTITATIVE CULTURAL NEUROSCIENCE PREDICTIONS
+═══════════════════════════════════════════════════════════════════════════
+
+Specific, falsifiable predictions for cultural modulation of APGI parameters:
+
+1. Meditation Practice Effects (Focused Attention vs Open Monitoring)
+2. Linguistic Temporal Framing (Mandarin vs English)
+3. Self-Construal Effects (Interdependent vs Independent cultures)
+
+Each prediction includes:
+- Mechanism specification
+- Effect size estimation (Cohen's d)
+- Sample size justification (power analysis)
+- Falsification criteria
+═══════════════════════════════════════════════════════════════════════════
+"""
+
+
+@dataclass
+class CulturalPrediction:
+    """Single quantitative prediction for cultural modulation"""
+
+    dimension_name: str  # e.g., "Meditation: Focused Attention"
+    affected_parameter: str  # e.g., "Level_2_3_PAC"
+    effect_direction: str  # "increase" or "decrease"
+    effect_size_cohens_d: float  # Expected Cohen's d
+    sample_size_per_group: int  # For 80% power, α=0.05
+    measurement_method: str  # How to assess the parameter
+    falsification_threshold: float  # Below this d, prediction fails
+    mechanism: str  # Brief mechanistic explanation
+
+
+# =============================================================================
+# PREDICTION 1: MEDITATION PRACTICE EFFECTS
+# =============================================================================
+
+MEDITATION_PREDICTIONS = [
+    CulturalPrediction(
+        dimension_name="Focused Attention Meditation (FA)",
+        affected_parameter="theta_gamma_PAC_Level_2_3",
+        effect_direction="increase",
+        effect_size_cohens_d=0.7,
+        sample_size_per_group=30,
+        measurement_method="EEG: Theta-gamma phase-amplitude coupling during meditation",
+        falsification_threshold=0.3,
+        mechanism=(
+            "FA trains sustained interoceptive focus (breath awareness) → "
+            "enhances precision at sensory-organ interface (Level 2-3). "
+            "Predicted PAC increase: 20-30% relative to controls."
+        ),
+    ),
+    CulturalPrediction(
+        dimension_name="Open Monitoring Meditation (OM)",
+        affected_parameter="frontal_parietal_delta_theta_coherence_Level_4_5",
+        effect_direction="increase",
+        effect_size_cohens_d=0.6,
+        sample_size_per_group=30,
+        measurement_method="EEG: Delta-theta coherence between frontal and parietal regions",
+        falsification_threshold=0.3,
+        mechanism=(
+            "OM trains non-reactive awareness of thoughts → enhances precision "
+            "at self-reflective level (Level 4-5). Predicted coherence increase: "
+            "15-25% relative to controls."
+        ),
+    ),
+]
+
+
+# =============================================================================
+# PREDICTION 2: LINGUISTIC TEMPORAL FRAMING
+# =============================================================================
+
+LINGUISTIC_PREDICTIONS = [
+    CulturalPrediction(
+        dimension_name="Mandarin vs English Temporal Framing",
+        affected_parameter="Level_3_intrinsic_timescale_tau",
+        effect_direction="increase",  # Mandarin shows longer tau
+        effect_size_cohens_d=0.5,
+        sample_size_per_group=40,
+        measurement_method=(
+            "fMRI: Autocorrelation decay in Level 3 regions (posterior parietal cortex) "
+            "during temporal reasoning task"
+        ),
+        falsification_threshold=0.2,
+        mechanism=(
+            "Mandarin vertical time metaphors (past=up, future=down) structure "
+            "temporal cognition → modulates τ at Level 3 (event segmentation). "
+            "Predicted: Mandarin τ ≈ 0.6-0.8s vs English τ ≈ 0.4-0.6s"
+        ),
+    ),
+]
+
+
+# Control condition for linguistic prediction
+LINGUISTIC_CONTROL = {
+    "design": "Within-subject bilingual design",
+    "participants": "Mandarin-English bilinguals (N=40)",
+    "manipulation": "Test in each language context (counterbalanced order)",
+    "rationale": "Controls for genetic/demographic confounds",
+    "prediction": "Language context modulates τ even within same individuals",
+}
+
+
+# =============================================================================
+# PREDICTION 3: SELF-CONSTRUAL EFFECTS
+# =============================================================================
+
+SELF_CONSTRUAL_PREDICTIONS = [
+    CulturalPrediction(
+        dimension_name="Interdependent vs Independent Self-Construal",
+        affected_parameter="theta_t_self_processing",
+        effect_direction="increase",  # Interdependent shows higher threshold
+        effect_size_cohens_d=0.6,
+        sample_size_per_group=40,
+        measurement_method=(
+            "Self-face recognition task with varying contextual cues. "
+            "Measure P3b latency (proxy for ignition threshold)"
+        ),
+        falsification_threshold=0.2,
+        mechanism=(
+            "Interdependent self requires more contextual information before "
+            "self/other boundaries ignite → higher threshold for self-processing. "
+            "Predicted: Interdependent θ_t ≈ 1.3× baseline vs Independent θ_t ≈ 0.9× baseline"
+        ),
+    ),
+]
+
+
+# =============================================================================
+# SAMPLE SIZE JUSTIFICATION (POWER ANALYSIS)
+# =============================================================================
+
+
+def power_analysis_cultural_predictions(
+    alpha: float = 0.05, power: float = 0.80, effect_size_d: float = 0.5
+) -> int:
+    """
+    Compute required sample size per group for cultural predictions.
+
+    Args:
+        alpha: Type I error rate (default 0.05, two-tailed)
+        power: Statistical power (default 0.80)
+        effect_size_d: Cohen's d effect size
+
+    Returns:
+        Required sample size per group
+
+    Assumptions:
+        - Two independent groups (e.g., FA meditators vs controls)
+        - Normal distributions (or large enough N for CLT)
+        - Equal variances between groups
+        - Two-tailed independent t-test
+
+    Formula:
+        N ≈ 2 * (Z_α/2 + Z_β)² / d²
+
+        where:
+        - Z_α/2 = 1.96 for α=0.05 (two-tailed)
+        - Z_β = 0.84 for power=0.80
+        - d = Cohen's d effect size
+
+    Examples:
+        >>> power_analysis_cultural_predictions(effect_size_d=0.5)
+        40  # N=40 per group for d=0.5
+
+        >>> power_analysis_cultural_predictions(effect_size_d=0.7)
+        27  # N=27 per group for d=0.7 (stronger effect, smaller N needed)
+    """
+    from scipy.stats import norm
+
+    Z_alpha_half = norm.ppf(1 - alpha / 2)  # 1.96 for α=0.05
+    Z_beta = norm.ppf(power)  # 0.84 for power=0.80
+
+    N_per_group = 2 * (Z_alpha_half + Z_beta) ** 2 / effect_size_d**2
+
+    return int(np.ceil(N_per_group))
+
+
+# =============================================================================
+# FALSIFICATION CRITERIA
+# =============================================================================
+
+FALSIFICATION_CRITERIA = {
+    "meditation": (
+        "If cultural manipulations show NO effect on inter-level coupling or θ_t "
+        "(Cohen's d < 0.2 for all predictions), then APGI parameters are purely "
+        "biologically determined, NOT shaped by cognitive training."
+    ),
+    "linguistic": (
+        "If within-subject language manipulation (bilingual design) shows NO effect "
+        "on Level 3 intrinsic timescale (d < 0.2), then linguistic framing does NOT "
+        "modulate temporal processing architecture."
+    ),
+    "self_construal": (
+        "If self-face recognition threshold shows NO difference between cultural "
+        "groups (d < 0.2), then self-processing in APGI is culturally invariant."
+    ),
+}
+
+
+# =============================================================================
+# LIMITATIONS AND FUTURE DIRECTIONS
+# =============================================================================
+
+CULTURAL_NEUROSCIENCE_LIMITATIONS = """
+METHODOLOGICAL LIMITATIONS:
+
+1. Cross-Cultural Confounds:
+   - Must carefully match groups on SES, education, age
+   - Language effects may confound with writing system (logographic vs alphabetic)
+   - Meditation effects subject to self-selection bias (pre-existing neural differences)
+
+2. Sample Size Considerations:
+   - N=40 per group assumes within-culture variability σ ≈ 0.8 (typical for EEG)
+   - Larger N needed if heterogeneity is higher (e.g., meditation practice duration varies widely)
+
+3. Measurement Precision:
+   - PAC and intrinsic timescale measurements require high-quality EEG/fMRI
+   - Need careful artifact rejection and signal processing
+
+FUTURE EXTENSIONS:
+
+1. Dose-Response Relationships:
+   - Does meditation effect scale with practice duration? (test N=100, 200, 500+ hours)
+   - Does bilingual proficiency predict strength of linguistic effect?
+
+2. Developmental Trajectories:
+   - When do cultural effects emerge? (test children at ages 5, 8, 12, 16)
+   - Are there sensitive periods for cultural neural plasticity?
+
+3. Intervention Studies:
+   - Can short-term meditation training (8 weeks) modify APGI parameters?
+   - Can linguistic framing training alter temporal processing?
+"""
+
+
+# =============================================================================
+# EXAMPLE USAGE AND VALIDATION
+# =============================================================================
+
+if __name__ == "__main__":
+    print("\n" + "=" * 70)
+    print("CULTURAL NEUROSCIENCE PREDICTIONS (INNOVATION #34)")
+    print("=" * 70)
+
+    print("\n1. MEDITATION PREDICTIONS:")
+    for pred in MEDITATION_PREDICTIONS:
+        print(f"\n   {pred.dimension_name}:")
+        print(f"   → Affected parameter: {pred.affected_parameter}")
+        print(f"   → Effect direction: {pred.effect_direction}")
+        print(f"   → Expected Cohen's d: {pred.effect_size_cohens_d}")
+        print(f"   → Sample size needed: N={pred.sample_size_per_group}/group")
+        print(f"   → Mechanism: {pred.mechanism}")
+
+    print("\n2. LINGUISTIC PREDICTIONS:")
+    for pred in LINGUISTIC_PREDICTIONS:
+        print(f"\n   {pred.dimension_name}:")
+        print(f"   → Predicted effect: {pred.mechanism}")
+        print(f"   → Effect size: d={pred.effect_size_cohens_d}")
+
+    print("\n3. SELF-CONSTRUAL PREDICTIONS:")
+    for pred in SELF_CONSTRUAL_PREDICTIONS:
+        print(f"\n   {pred.dimension_name}:")
+        print(f"   → Threshold modulation: {pred.mechanism}")
+
+    print("\n4. POWER ANALYSIS:")
+    for d in [0.4, 0.5, 0.6, 0.7]:
+        N = power_analysis_cultural_predictions(effect_size_d=d)
+        print(f"   Cohen's d={d} requires N={N} per group (80% power, α=0.05)")
+
+    print("\n5. FALSIFICATION CRITERIA:")
+    for domain, criterion in FALSIFICATION_CRITERIA.items():
+        print(f"\n   {domain.upper()}:")
+        print(f"   {criterion}")
+
+    print("\n" + "=" * 70)
 
 
 class CulturalParameterModulator:

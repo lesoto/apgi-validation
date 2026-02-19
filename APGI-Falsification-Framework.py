@@ -8,9 +8,6 @@ Complete falsification testing framework for APGI theory including:
 - Popperian falsification protocols
 - Robustness testing against alternative explanations
 
-Author: APGI Research Team
-Date: 2026
-Version: 1.0 (Falsification Framework)
 """
 
 import logging
@@ -20,13 +17,11 @@ from typing import Dict, List, Union
 import numpy as np
 import scipy.stats as stats
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
-# Only suppress specific warnings, not all
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 

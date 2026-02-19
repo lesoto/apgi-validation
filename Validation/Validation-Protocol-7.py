@@ -9,12 +9,6 @@ interventions) causally affects conscious access.
 This protocol generates falsifiable predictions about intervention effects and
 provides tools for analyzing intervention studies.
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0 (Production)
-
-Dependencies:
-    numpy, scipy, pandas, matplotlib, seaborn, statsmodels
 """
 
 import json

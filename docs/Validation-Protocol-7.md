@@ -842,7 +842,7 @@ If you use this implementation, please cite:
 APGI Framework: Allostatic Precision-Gated Ignition
 Protocol 7: TMS/Pharmacological Intervention Predictions
 Implementation Version 1.0
-2025
+2026
 ```text
 
 

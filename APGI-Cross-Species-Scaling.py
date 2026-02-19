@@ -11,13 +11,6 @@ This module provides:
 3. Intrinsic timescale predictions
 4. Validation against empirical PCI measurements
 
-Author: APGI Research Team
-Date: 2025
-Version: 1.0
-
-Dependencies:
-    numpy, scipy, matplotlib, pandas
-===============================================================================
 """
 
 from __future__ import annotations

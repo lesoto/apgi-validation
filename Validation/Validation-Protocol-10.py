@@ -11,9 +11,6 @@ This protocol implements and validates:
 - Metabolic challenge (glucose depletion) elevating θ_t predictably
 - Null predictions: early ERPs invariant to precision/metabolic manipulations
 
-Author: APGI Research Team
-Date: 2026
-Version: 1.0 (Causal Validation)
 """
 
 from typing import Dict
