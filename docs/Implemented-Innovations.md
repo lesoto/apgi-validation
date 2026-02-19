@@ -4,7 +4,7 @@
 
 **Status**: ✅ Implemented  
 **Location**: APGI-Multimodal-Integration.py, `APGICoreIntegration.compute_somatic_modulation()`  
-**Details**: Implements Πⁱ_eff = Πⁱ_baseline · exp(β·M(c,a)) with bounded exponential modulation, enforcing physiological bounds and capturing nonlinear gain-control.
+**Details**: Implements Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) with bounded exponential modulation, enforcing physiological bounds and capturing nonlinear gain-control.
 
 ---
 
@@ -68,7 +68,7 @@
 
 **Status**: ✅ Implemented  
 **Location**: Falsification/Falsification-Protocol-1.py, hierarchical generative models  
-**Details**: Predicts aperiodic exponents β ≈ 0.8-1.2 (wakefulness), β ≈ 1.5-2.0 (deep sleep), β > 1.5 (anesthesia) through nested regulatory loops with precision weights and allostatic thresholds across timescales.
+**Details**: Predicts aperiodic exponents β_spec ≈ 0.8-1.2 (wakefulness), β ≈ 1.5-2.0 (deep sleep), β > 1.5 (anesthesia) through nested regulatory loops with precision weights and allostatic thresholds across timescales.
 
 ---
 

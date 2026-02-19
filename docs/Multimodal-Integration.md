@@ -166,7 +166,7 @@ print(f"β: {params.beta:.3f}")              # Individualized gain
 #### **Core APGI Formulas Implemented**
 
 1. **Precision Calculation**: Π = 1/σ² (inverse variance)
-2. **Somatic Modulation**: Πⁱ_eff = Πⁱ_baseline · exp(β·M(c,a))
+2. **Somatic Modulation**: Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a))
 3. **Accumulated Signal**: Sₜ = Πᵉ·|zᵉ| + Πⁱ_eff·|zⁱ|
 4. **Threshold Integration**: θₜ = compute_threshold_composite(pupil, alpha)
 5. **Individualized Beta**: β = f(anxiety, alexithymia) ∈ [0.3, 0.8]

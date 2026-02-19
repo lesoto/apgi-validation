@@ -17,6 +17,20 @@ Implementation of the APGI framework including:
 ===============================================================================
 """
 
+"""
+PARAMETER NOTATION STANDARD
+============================
+β_som  : Somatic modulation gain (dimensionless)
+         Controls exponential amplification of precision by vmPFC-insula markers
+         Typical range: 0.3-0.7 (pathological anxiety: ~1.2)
+         
+β_spec : Spectral exponent of aperiodic neural activity (1/f^β_spec)
+         Characterizes hierarchical timescale integration
+         Typical range: 0.8-1.2 (wakefulness), 1.5-2.0 (deep sleep)
+         
+NOTE: These are INDEPENDENT parameters describing different mechanisms.
+"""
+
 from __future__ import annotations
 
 import json

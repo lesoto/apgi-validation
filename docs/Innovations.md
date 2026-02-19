@@ -8,13 +8,13 @@ Ideas whose specific formal structure does not exist in the prior literature and
 
 Prior frameworks either treat all prediction errors equivalently (standard predictive processing), describe somatic markers qualitatively (Damasio, 1994), handle interoceptive precision separately from exteroception (Seth, 2013), or model somatic markers within Bayesian frameworks without specifying a bounded gain-control equation (Allen, Levy, Parr, & Friston, 2019). APGI builds on these foundations—particularly Seth's (2013) interoceptive inference framework, which established conceptually that interoceptive precision modulates access to conscious awareness, and Critchley & Garfinkel's (2017) empirical quantification of interoceptive precision via HEP amplitude—to produce the first formally specified integration of somatic marker modulation into a single precision-weighting equation:
 
-Πⁱ_eff = Πⁱ_baseline · exp(β·M(c,a))
+Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a))
 
 where M(c,a) is a bounded somatic marker value ∈ [−2, +2] and β is an empirically constrained individual-difference parameter with an expected range of approximately 0.3–0.8, derived from simulation studies and calibrated against behavioral data (see parameter estimation protocol). The bounded exponential structure prevents runaway amplification while capturing the nonlinear gain-control role of somatic markers—a functional form absent from Seth's conceptual framework, Allen et al.'s (2019) Bayesian modeling, and Damasio's qualitative account. The formalization produces testable individual-difference predictions about β (higher in anxiety, predicted ≈0.7; lower in alexithymia, predicted ≈0.3) that follow from the equation's structure and are pre-specified targets for empirical validation, not post-hoc parameter fits. No single prior framework generates these predictions in this form.
 
 ### Connection to App Implementation (Innovation 1)
 
-The somatic marker modulation equation Πⁱ_eff = Πⁱ_baseline · exp(β·M(c,a)) is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI-Multimodal-Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, enforcing physiological bounds and capturing the nonlinear gain-control role of somatic markers.
+The somatic marker modulation equation Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI-Multimodal-Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, enforcing physiological bounds and capturing the nonlinear gain-control role of somatic markers.
 
 ### Relationship to Prior Work (Innovation 1)
 

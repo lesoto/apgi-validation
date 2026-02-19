@@ -6,7 +6,7 @@ Ideas whose specific formal structure does not exist in the prior literature and
 
 ## 1. Interoceptive-Specific Precision Weighting via Formalized Somatic Marker Modulation
 
-The somatic marker modulation equation Πⁱ_eff = Πⁱ_baseline · exp(β·M(c,a)) is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI-Multimodal-Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, enforcing physiological bounds and capturing the nonlinear gain-control role of somatic markers.
+The somatic marker modulation equation Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI-Multimodal-Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, enforcing physiological bounds and capturing the nonlinear gain-control role of somatic markers.
 
 ## 2. Allostatic Modulation of the Ignition Threshold as an Active Computational Variable
 
