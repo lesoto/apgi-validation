@@ -5,9 +5,15 @@ Integration tests for APGI validation framework.
 Tests full protocol execution and end-to-end workflows.
 """
 
+import warnings
 from pathlib import Path
 
 import pytest
+
+# Suppress scipy overflow warnings in tests
+warnings.filterwarnings(
+    "ignore", message="overflow encountered in vecdot", category=RuntimeWarning
+)
 
 # Add the project root to Python path
 
