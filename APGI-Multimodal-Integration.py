@@ -8,7 +8,7 @@ for conscious access prediction using cross-modal precision-weighted integration
 
 Core Features:
 - Precision-weighted multimodal integration (Π = 1/σ²)
-- Somatic marker modulation (Πⁱ_eff = Πⁱ_baseline · exp(β·M(c,a)))
+- Somatic marker modulation (Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)))
 - Accumulated surprise computation (Sₜ = Πᵉ·|zᵉ| + Πⁱ_eff·|zⁱ|)
 - Clinical interpretation and psychiatric disorder profiling
 - Real-time monitoring and quality control
@@ -301,7 +301,7 @@ class APGICoreIntegration:
     This implements the core APGI formulas that are absent from the current code:
 
     1. Precision calculation: Π = 1/σ² (inverse variance)
-    2. Somatic modulation: Πⁱ_eff = Πⁱ_baseline · exp(β·M(c,a))
+    2. Somatic modulation: Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a))
     3. Accumulated signal: Sₜ = Πᵉ·|zᵉ| + Πⁱ_eff·|zⁱ|
     4. Ignition probability: P(ignite) = σ(Sₜ - θ)
     """
@@ -436,7 +436,7 @@ class APGICoreIntegration:
         """
         Apply somatic marker modulation to interoceptive precision
 
-        Theory: "Πⁱ_eff = Πⁱ_baseline · exp(β·M(c,a))"
+        Theory: "Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a))"
 
         Where:
         - M(c,a): Somatic marker value ∈ [-2, +2]
