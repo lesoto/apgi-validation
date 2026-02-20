@@ -1318,6 +1318,20 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     Tests: Hierarchical generative models, self-similar APGI computation,
     level-specific timescales
 
+    Strategic Decision: Protocol 1 uses alternative hypothesis thresholds
+    (e.g., silhouette ≥0.30 vs optimal ≥0.45) to ensure conservative
+    falsification testing, prioritizing avoidance of false positives.
+
+    This approach prioritizes avoiding false positives (incorrectly accepting APGI predictions) over false negatives.
+
+    Key decisions:
+    - Effect sizes set higher than standard psychology thresholds (e.g., d ≥ 0.60 vs. typical 0.50) to require robust evidence
+    - Statistical significance levels are stringent (α=0.01 or 0.001) with Bonferroni corrections where applicable
+    - Goodness-of-fit metrics (R²) require high values (≥0.80-0.90) to ensure model adequacy
+    - Physiological time constants validated within empirically plausible ranges (e.g., τ_θ=10-100s)
+
+    This strategy ensures that only theories with strong empirical support pass falsification, maintaining scientific rigor.
+
     Returns:
         Dictionary of falsification criteria with thresholds, tests, and effect sizes
     """
@@ -1664,12 +1678,24 @@ def check_falsification(
     ss_tot = np.sum((threshold_values - np.mean(threshold_values)) ** 2)
     r_squared = 1 - (ss_res / ss_tot)
 
+    # Calculate recovery time
+    def calculate_recovery_time(time_points, popt):
+        tau, a, b = popt
+        fitted = exp_decay(time_points, tau, a, b)
+        target_diff = 0.05 * abs(a)  # 5% of initial drop
+        idx = np.where(np.abs(fitted - b) <= target_diff)[0]
+        return time_points[idx[0]] if len(idx) > 0 else time_points[-1]
+
+    recovery_time = calculate_recovery_time(time_points, popt)
+    recovery_ratio = recovery_time / tau_theta
+
     f1_4_pass = (
         threshold_reduction >= 20
         and cohens_d_adapt >= 0.70
         and p_adapt < 0.01
         and 10 <= tau_theta <= 100
         and r_squared >= 0.80
+        and 2.0 <= recovery_ratio <= 3.0
     )
     results["criteria"]["F1.4"] = {
         "passed": f1_4_pass,
@@ -1679,9 +1705,10 @@ def check_falsification(
         "t_statistic": t_stat,
         "tau_theta": tau_theta,
         "r_squared": r_squared,
+        "recovery_ratio": recovery_ratio,
         "power": power_value,
-        "threshold": "≥20% reduction, d ≥ 0.70, τ_θ=10-100s, R² ≥ 0.80",
-        "actual": f"{threshold_reduction:.2f}% reduction, d={cohens_d_adapt:.3f}, τ_θ={tau_theta:.1f}s, R²={r_squared:.3f}, power={power_value:.3f}",
+        "threshold": "≥20% reduction, d ≥ 0.70, τ_θ=10-100s, R² ≥ 0.80, recovery 2-3× τ_θ",
+        "actual": f"{threshold_reduction:.2f}% reduction, d={cohens_d_adapt:.3f}, τ_θ={tau_theta:.1f}s, R²={r_squared:.3f}, recovery={recovery_ratio:.1f}×τ_θ, power={power_value:.3f}",
     }
     if f1_4_pass:
         results["summary"]["passed"] += 1
