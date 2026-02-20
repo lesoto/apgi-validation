@@ -969,7 +969,7 @@ class IowaGamblingTaskEnvironment:
         # Internal: physiological signals
         intero = np.zeros(16)
         intero[0:4] = np.random.normal(0, 0.1 + intero_cost * 0.3, size=4)  # HRV
-        intero[4:8] = np.random.exponential(intero_cost, size=4)  # SCR
+        intero[4:8] = np.random.exponential(max(intero_cost, 0.01), size=4)  # SCR
         intero[8:12] = np.random.normal(-intero_cost, 0.2, size=4)  # Gastric
         intero[12:] = np.random.randn(4) * 0.1
 
@@ -1114,7 +1114,7 @@ class ThreatRewardTradeoffEnvironment:
 
         intero = np.zeros(16)
         intero[:8] = np.random.normal(intero_cost, 0.2, size=8)
-        intero[8:] = np.random.exponential(intero_cost * 0.5, size=8)
+        intero[8:] = np.random.exponential(max(intero_cost * 0.5, 0.01), size=8)
 
         return {"extero": extero, "intero": intero}
 

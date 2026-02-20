@@ -1232,7 +1232,6 @@ def check_falsification(
     # Binomial test for proportion >= 0.60
     n_total = 100  # Assume sample size
     n_success = int(threshold_emergence_proportion * n_total)
-    p_hat = n_success / n_total
 
     # Binomial test
     from scipy.stats import binomtest
@@ -1261,7 +1260,6 @@ def check_falsification(
     # F5.2: Precision Emergence Proportion
     logger.info("Testing F5.2: Precision Emergence Proportion")
     n_success = int(precision_emergence_proportion * n_total)
-    p_hat = n_success / n_total
     binom_result = binomtest(n_success, n_total, p=0.50, alternative="greater")
     p_binom = binom_result.pvalue
 

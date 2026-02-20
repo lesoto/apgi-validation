@@ -1513,7 +1513,7 @@ def check_falsification(
         nobs1=len(apgi_rewards),
         nobs2=len(pp_rewards),
         alpha=0.01,
-        power=None
+        power=None,
     )
 
     f1_1_pass = advantage_pct >= 18 and cohens_d >= 0.60 and p_value < 0.01
@@ -1563,7 +1563,7 @@ def check_falsification(
         nobs=len(timescales),
         alpha=0.001,
         k_groups=3,
-        power=None
+        power=None,
     )
 
     f1_2_pass = silhouette >= 0.30 and eta_squared >= 0.50 and p_anova < 0.001
@@ -1599,16 +1599,18 @@ def check_falsification(
     # Create dataframe for ANOVA
     data = []
     for i, (l1, l3) in enumerate(precision_weights):
-        data.append({'subject': i, 'level': '1', 'precision': l1})
-        data.append({'subject': i, 'level': '3', 'precision': l3})
+        data.append({"subject": i, "level": "1", "precision": l1})
+        data.append({"subject": i, "level": "3", "precision": l3})
     df = pd.DataFrame(data)
 
-    aovrm = sm.stats.AnovaRM(df, 'precision', 'subject', within=['level'])
+    aovrm = sm.stats.AnovaRM(df, "precision", "subject", within=["level"])
     res = aovrm.fit()
 
-    p_rm = res.anova_table['Pr > F']['level']
-    f_stat = res.anova_table['F Value']['level']
-    partial_eta_sq = res.anova_table['Sum Sq']['level'] / (res.anova_table['Sum Sq']['level'] + res.anova_table['Sum Sq']['Residual'])
+    p_rm = res.anova_table["Pr > F"]["level"]
+    f_stat = res.anova_table["F Value"]["level"]
+    partial_eta_sq = res.anova_table["Sum Sq"]["level"] / (
+        res.anova_table["Sum Sq"]["level"] + res.anova_table["Sum Sq"]["Residual"]
+    )
 
     cohens_d_rm = np.mean(level1_precision - level3_precision) / np.std(
         level1_precision - level3_precision, ddof=1
@@ -1617,10 +1619,7 @@ def check_falsification(
     # Post-hoc power analysis (using t-test equivalent)
     power_calc_rel = TTestPower()
     power_value = power_calc_rel.solve_power(
-        effect_size=cohens_d_rm,
-        nobs=len(level1_precision),
-        alpha=0.01,
-        power=None
+        effect_size=cohens_d_rm, nobs=len(level1_precision), alpha=0.01, power=None
     )
 
     f1_3_pass = mean_diff >= 15 and partial_eta_sq >= 0.15 and p_rm < 0.001
@@ -1661,7 +1660,7 @@ def check_falsification(
     tau_theta = popt[0]
 
     # Calculate R²
-    ss_res = np.sum((threshold_values - exp_decay(time_points, *popt))**2)
+    ss_res = np.sum((threshold_values - exp_decay(time_points, *popt)) ** 2)
     ss_tot = np.sum((threshold_values - np.mean(threshold_values)) ** 2)
     r_squared = 1 - (ss_res / ss_tot)
 
@@ -1719,8 +1718,8 @@ def check_falsification(
     )
 
     f1_5_pass = (
-        mean_baseline_MI >= 0.012 and
-        mean_pac_increase >= 30
+        mean_baseline_MI >= 0.012
+        and mean_pac_increase >= 30
         and cohens_d_pac >= 0.50
         and p_pac < 0.01
         and perm_p < 0.01
@@ -1767,7 +1766,7 @@ def check_falsification(
 
     # FOOOF/specparam fitting quality check
     freqs = np.logspace(1, 2, 50)  # 10 to 100 Hz
-    power_spectrum = 1 / freqs ** mean_active  # Example spectrum based on mean slope
+    power_spectrum = 1 / freqs**mean_active  # Example spectrum based on mean slope
     fm = FOOOF(peak_width_limits=[1, 8], max_n_peaks=6)
     fm.fit(freqs, power_spectrum)
     r_squared_spectral = fm.r_squared_
@@ -1775,10 +1774,7 @@ def check_falsification(
     # Post-hoc power analysis
     power_calc_rel = TTestPower()
     power_value = power_calc_rel.solve_power(
-        effect_size=cohens_d_slope,
-        nobs=len(active_slopes),
-        alpha=0.001,
-        power=None
+        effect_size=cohens_d_slope, nobs=len(active_slopes), alpha=0.001, power=None
     )
 
     f1_6_pass = (
@@ -2438,32 +2434,36 @@ def check_falsification(
 
     # Generate comprehensive validation report
     # Summary plot
-    plt.figure(figsize=(10,6))
-    labels = list(results['criteria'].keys())
-    passed = [1 if results['criteria'][k]['passed'] else 0 for k in labels]
+    plt.figure(figsize=(10, 6))
+    labels = list(results["criteria"].keys())
+    passed = [1 if results["criteria"][k]["passed"] else 0 for k in labels]
     plt.bar(labels, passed)
-    plt.title('Falsification Criteria Results')
-    plt.ylabel('Passed (1) / Failed (0)')
+    plt.title("Falsification Criteria Results")
+    plt.ylabel("Passed (1) / Failed (0)")
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('falsification_results.png')
+    plt.savefig("falsification_results.png")
     plt.close()
 
     # Save detailed report
-    with open('validation_report.md', 'w') as f:
-        f.write('# APGI Falsification Protocol 1 Validation Report\n\n')
-        f.write(f'## Summary\n')
-        f.write(f'Passed: {results["summary"]["passed"]}/{results["summary"]["total"]}\n\n')
-        for key, value in results['criteria'].items():
-            f.write(f'## {key}\n')
+    with open("validation_report.md", "w") as f:
+        f.write("# APGI Falsification Protocol 1 Validation Report\n\n")
+        f.write("## Summary\n")
+        f.write(
+            f'Passed: {results["summary"]["passed"]}/{results["summary"]["total"]}\n\n'
+        )
+        for key, value in results["criteria"].items():
+            f.write(f"## {key}\n")
             f.write(f'- Passed: {value["passed"]}\n')
             f.write(f'- Threshold: {value["threshold"]}\n')
             f.write(f'- Actual: {value["actual"]}\n')
-            if 'power' in value:
+            if "power" in value:
                 f.write(f'- Power: {value["power"]:.3f}\n')
-            f.write('\n')
+            f.write("\n")
 
-    print('Comprehensive report generated: validation_report.md and falsification_results.png')
+    print(
+        "Comprehensive report generated: validation_report.md and falsification_results.png"
+    )
 
     logger.info(
         f"\nFalsification-Protocol-1 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
