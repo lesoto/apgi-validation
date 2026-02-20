@@ -307,9 +307,9 @@ class APGIState:
     entropy_history: List[EntropyOutput]  # Recent entropy calculations
 
     # NEW: Physical state tracking for thermodynamics (Optional fields at end)
-    prev_state: Optional[torch.Tensor] = (
-        None  # Previous neural state for entropy production
-    )
+    prev_state: Optional[
+        torch.Tensor
+    ] = None  # Previous neural state for entropy production
     prev_energies: Optional[torch.Tensor] = None  # Previous energy levels
     cumulative_entropy_production: torch.Tensor = None  # Cumulative dS/dt
 
@@ -2474,9 +2474,12 @@ class APGILiquidNetwork(nn.Module):
         )
 
         # Compute ignition decision
-        ignition_state, ignition_active, theta_new, ignition_prob = (
-            self._compute_ignition_decision(S_total, state, metabolic_output, dt)
-        )
+        (
+            ignition_state,
+            ignition_active,
+            theta_new,
+            ignition_prob,
+        ) = self._compute_ignition_decision(S_total, state, metabolic_output, dt)
 
         # Global workspace update
         workspace_new = self.global_workspace(

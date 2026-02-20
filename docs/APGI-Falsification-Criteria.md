@@ -500,33 +500,12 @@ All criteria follow this mandatory format:
 
 ## SUMMARY STATISTICS
 
-**Total Falsification Criteria Specified:** 52 across 18 protocols
-
-**Completeness by Protocol:**
-
-- Falsification-Protocol-1: 6 criteria ✅
-- Falsification-Protocol-2: 5 criteria ✅
-- Falsification-Protocol-3: 6 criteria ✅
-- Falsification-Protocol-5: 6 criteria ✅
-- Falsification-Protocol-6: 6 criteria ✅
-- Validation-Protocol-1: 4 criteria ✅
-- Validation-Protocol-2: 3 criteria ✅
-- Validation-Protocol-3: 2 criteria ✅
-- Validation-Protocol-4: 5 criteria ✅
-- Validation-Protocol-5: 1 criterion ✅
-- Validation-Protocol-6: 1 criterion ✅
-- Validation-Protocol-7: 2 criteria ✅
-- Validation-Protocol-8: 2 criteria ✅
-- Validation-Protocol-10: 1 criterion ✅
-- Validation-Protocol-11: 1 criterion ✅
-- Validation-Protocol-12: 2 criteria ✅
-
 **Effect Size Distribution:**
 
 - Cohen's d: 41 specifications (range 0.35-0.90)
 - Correlation r: 8 specifications (range 0.40-0.82)
 - Eta-squared η²: 7 specifications (range 0.15-0.70)
-- Other (OR, hazard ratio, R²): 11 specifications
+- Other (OR, hazard ratio, R², Bayes Factor): 11 specifications
 
 **Statistical Tests Used:**
 
@@ -537,7 +516,15 @@ All criteria follow this mandatory format:
 - Model comparison: 8 specifications
 - Bayesian: 3 specifications
 
-**Alpha Levels:**
+### Statistical Test Distribution
 
-- α = 0.01: 38 specifications (73%)
-- α = 0.008-0.05: 14 specifications (27%)
+Parametric t-tests/ANOVA: 36 specifications (69%)
+Correlation/regression: 10 specifications (19%)
+Non-parametric: 6 specifications (12%)
+Bayesian methods: 3 specifications (6%)
+Model comparison: 8 specifications (15%)
+
+### Significance Levels
+
+- α = 0.01: 38 criteria (73%) - conservative threshold for main claims
+- α = 0.008-0.05: 14 criteria (27%) - Bonferroni-corrected or less critical tests

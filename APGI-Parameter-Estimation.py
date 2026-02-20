@@ -971,7 +971,6 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
             "time": time_points if estimate_dynamics else np.array([0]),
         }
     ) as model:
-
         # ===== CORE PARAMETERS (8) =====
 
         # 1. Baseline ignition threshold (theta0)
@@ -2621,9 +2620,11 @@ def _step_parameter_recovery(true_params, trace1) -> Tuple[Dict, bool, List[str]
     print("\n[6/8] PARAMETER RECOVERY VALIDATION")
     print("-" * 80)
 
-    recovery_results, falsified_recovery, recovery_failures = (
-        validate_parameter_recovery(true_params, trace1, n_subjects=100)
-    )
+    (
+        recovery_results,
+        falsified_recovery,
+        recovery_failures,
+    ) = validate_parameter_recovery(true_params, trace1, n_subjects=100)
 
     print(f"\n{'Parameter':<20} {'r':<8} {'RMSE':<10} {'Coverage':<10} {'Status'}")
     print("-" * 80)
@@ -2998,9 +2999,11 @@ def _run_parameter_recovery(true_params, trace1):
     print("\n[6/8] PARAMETER RECOVERY VALIDATION")
     print("-" * 80)
 
-    recovery_results, falsified_recovery, recovery_failures = (
-        validate_parameter_recovery(true_params, trace1, n_subjects=100)
-    )
+    (
+        recovery_results,
+        falsified_recovery,
+        recovery_failures,
+    ) = validate_parameter_recovery(true_params, trace1, n_subjects=100)
 
     print(f"\n{'Parameter':<20} {'r':<8} {'RMSE':<10} {'Coverage':<10} {'Status'}")
     print("-" * 80)

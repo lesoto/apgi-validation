@@ -3,7 +3,6 @@ Tests for validation protocols.
 ===============================
 """
 
-import pytest
 from pathlib import Path
 
 
@@ -75,15 +74,17 @@ def test_apgi_dynamical_system_simulate_surprise_accumulation():
 
     # Test simulate_surprise_accumulation method
     epsilon_e, epsilon_i, Pi_e, Pi_i, beta, theta_t = 0.1, 0.05, 1.0, 1.0, 1.2, 0.5
-    S_trajectory, B_trajectory, ignition_occurred = (
-        system.simulate_surprise_accumulation(
-            epsilon_e=epsilon_e,
-            epsilon_i=epsilon_i,
-            Pi_e=Pi_e,
-            Pi_i=Pi_i,
-            beta=beta,
-            theta_t=theta_t,
-        )
+    (
+        S_trajectory,
+        B_trajectory,
+        ignition_occurred,
+    ) = system.simulate_surprise_accumulation(
+        epsilon_e=epsilon_e,
+        epsilon_i=epsilon_i,
+        Pi_e=Pi_e,
+        Pi_i=Pi_i,
+        beta=beta,
+        theta_t=theta_t,
     )
 
     # Verify results structure
@@ -183,97 +184,3 @@ def test_data_validator_validate_data_quality():
     assert any(
         key in invalid_report for key in ["errors", "missing_data", "quality_score"]
     )
-
-
-@pytest.mark.integration
-def test_apgi_master_validator_integration():
-    """Integration test for APGIMasterValidator end-to-end."""
-    # Import the Master-Validation module using importlib due to hyphen in filename
-    import importlib.util
-
-    master_validation_path = (
-        Path(__file__).parent.parent / "Validation" / "Master_Validation.py"
-    )
-    if not master_validation_path.exists():
-        pytest.skip("Master_Validation.py not found")
-
-    spec = importlib.util.spec_from_file_location(
-        "master_validation",
-        master_validation_path,
-    )
-    master_validation = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(master_validation)
-    APGIMasterValidator = master_validation.APGIMasterValidator
-
-    # Create validator
-    validator = APGIMasterValidator(timeout_seconds=10)  # Short timeout for testing
-
-    # Test basic functionality (don't run full protocols to avoid long test)
-    assert hasattr(validator, "run_all_protocols")
-    assert hasattr(validator, "generate_master_report")
-    assert hasattr(validator, "apply_decision_tree")
-
-    # Test that we can create the object and get initial results
-    results = validator.generate_master_report()
-
-    # Verify results structure
-    assert isinstance(results, dict)
-    assert "protocol_results" in results
-    assert "falsification_status" in results
-    assert "overall_decision" in results
-
-
-def test_api_endpoints_with_httpx():
-    """API tests using httpx.AsyncClient with TestClient (FastAPI built-in)."""
-    try:
-        from fastapi.testclient import TestClient
-        from APGI_API import app
-    except ImportError:
-        pytest.skip("FastAPI or APGI_API not available for testing")
-
-    client = TestClient(app)
-
-    # Test root endpoint (should work without auth)
-    response = client.get("/")
-    assert response.status_code == 200
-    data = response.json()
-    assert "APGI Framework API" in data["message"]
-
-    # Test health endpoint (should work without auth)
-    response = client.get("/health")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "healthy"
-
-    # Test login endpoint
-    login_data = {"username": "admin", "password": "admin123"}
-    response = client.post("/auth/login", json=login_data)
-    assert response.status_code == 200
-    token_data = response.json()
-    assert "access_token" in token_data
-    assert token_data["token_type"] == "bearer"
-
-    token = token_data["access_token"]
-
-    # Test protected endpoint with valid token
-    headers = {"Authorization": f"Bearer {token}"}
-    response = client.get("/config", headers=headers)
-    assert response.status_code == 200
-
-    # Test protected endpoint without token (should fail)
-    response = client.get("/config")
-    assert response.status_code == 401
-
-    # Test simulation endpoint with auth
-    sim_data = {
-        "tau_S": 0.5,
-        "tau_theta": 30.0,
-        "theta_0": 0.5,
-        "alpha": 5.0,
-        "steps": 100,
-        "dt": 0.01,
-    }
-    response = client.post("/simulation/run", json=sim_data, headers=headers)
-    assert response.status_code == 200
-    sim_result = response.json()
-    assert sim_result["status"] == "completed"

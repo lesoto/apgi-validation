@@ -2,8 +2,6 @@
 
 ## Guide to Measurement, Typical Ranges, and Biological Grounding
 
----
-
 ## PART 1: CORE PARAMETERS - ACCUMULATED SIGNAL (S)
 
 ### Parameter 1a: Exteroceptive Precision ($\Pi^e$)

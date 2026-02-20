@@ -325,9 +325,9 @@ class DataValidator:
             )
 
         if "pupil_diameter" in df.columns:
-            quality_metrics["signal_quality"]["pupil_diameter"] = (
-                self._assess_signal_quality(df["pupil_diameter"])
-            )
+            quality_metrics["signal_quality"][
+                "pupil_diameter"
+            ] = self._assess_signal_quality(df["pupil_diameter"])
 
         if "eda" in df.columns:
             quality_metrics["signal_quality"]["eda"] = self._assess_signal_quality(

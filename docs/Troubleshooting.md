@@ -468,9 +468,6 @@ ImportError: No module named 'flask'
 ```bash
 # Install Flask
 pip install flask
-
-# Or use alternative web framework
-pip install fastapi uvicorn
 ```
 
 ### GUI Display Issues

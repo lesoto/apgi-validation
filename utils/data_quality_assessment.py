@@ -270,9 +270,9 @@ class DataQualityAssessment:
                     pd.to_datetime(col_data, errors="raise")
                 except (ValueError, TypeError):
                     consistency_issues += col_data.notna().sum()
-                    consistency_details[f"{col}_date_format"] = (
-                        "Inconsistent date formats"
-                    )
+                    consistency_details[
+                        f"{col}_date_format"
+                    ] = "Inconsistent date formats"
 
         # Calculate consistency score
         if total_checks > 0:
@@ -330,9 +330,9 @@ class DataQualityAssessment:
                     invalid_percentages = ((col_data < 0) | (col_data > 100)).sum()
                     if invalid_percentages > 0:
                         accuracy_score -= (invalid_percentages / len(col_data)) * 0.1
-                        accuracy_details[f"{col}_invalid_percentage"] = (
-                            invalid_percentages
-                        )
+                        accuracy_details[
+                            f"{col}_invalid_percentage"
+                        ] = invalid_percentages
 
                 # Check for statistical outliers
                 if len(col_data) > 10 and col_data.std() > 0:
@@ -431,7 +431,6 @@ class DataQualityAssessment:
                     if p_value < 0.001:  # Not normally distributed
                         # Check for multimodality using Hartigan's dip test
                         try:
-
                             # Simple multimodality check using kernel density
                             values = col_data.values
                             if len(values) > 50:
@@ -712,7 +711,9 @@ class DataQualityAssessment:
             (
                 "green"
                 if m.status == "good"
-                else "orange" if m.status == "warning" else "red"
+                else "orange"
+                if m.status == "warning"
+                else "red"
             )
             for m in report.metrics
         ]

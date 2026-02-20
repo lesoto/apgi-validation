@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Import theme manager
 try:
-    from apgi_gui.theme_manager import ThemeManager
+    from utils.theme_manager import ThemeManager
 
     THEME_MANAGER_AVAILABLE = True
 except ImportError:
