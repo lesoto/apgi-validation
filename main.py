@@ -2545,9 +2545,7 @@ def clinical_convergence(
     output_file: Optional[str],
 ) -> None:
     """Run Priority 4: Clinical and Cross-Species Convergence validation."""
-    console.print(
-        Panel.fit("🏥 Priority 4: Clinical Convergence", style="bold magenta")
-    )
+    console.print(Panel.fit("🏥 Priority 4: Clinical Convergence", style="bold magenta"))
 
     try:
         # Import the clinical convergence validator

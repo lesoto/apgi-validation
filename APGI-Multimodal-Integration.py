@@ -1582,13 +1582,13 @@ class APGITemporalDynamics:
         for modality, modality_signal in multimodal_data.items():
             if modality != primary_modality:
                 try:
-                    secondary_results[modality] = (
-                        self.protocol_1_validate_window_length(
-                            modality_signal,
-                            modality,
-                            window_range=(0.5, 4.0),
-                            n_windows_test=10,
-                        )
+                    secondary_results[
+                        modality
+                    ] = self.protocol_1_validate_window_length(
+                        modality_signal,
+                        modality,
+                        window_range=(0.5, 4.0),
+                        n_windows_test=10,
                     )
                 except (
                     ValueError,

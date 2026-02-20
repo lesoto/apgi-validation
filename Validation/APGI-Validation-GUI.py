@@ -647,7 +647,6 @@ class APGIValidationGUI:
     def save_settings(self) -> None:
         """Save current settings to config/gui_config.yaml via ConfigManager"""
         try:
-
             # Get current settings values
             settings_data = {
                 "update_interval": self.settings["update_interval"].get(),
@@ -699,7 +698,6 @@ class APGIValidationGUI:
             # Continue with defaults
 
     def create_export_widgets(self, parent_frame: ttk.Frame) -> None:
-
         ttk.Button(
             parent_frame, text="Export Results to JSON", command=self.export_json
         ).grid(row=1, column=0, pady=10, padx=10, sticky=(tk.W, tk.E))
@@ -827,7 +825,6 @@ class APGIValidationGUI:
     def save_alert_settings(self) -> None:
         """Save alert settings to config/gui_alert_config.yaml via ConfigManager"""
         try:
-
             # Get current alert settings values
             alert_data = {
                 "threshold": self.alert_settings["threshold"].get(),

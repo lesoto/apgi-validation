@@ -407,7 +407,6 @@ class APGITuringMachine:
             and self.state.surprise == SurpriseLevel.HIGH
             and self.state.reportability == ReportabilityState.REPORTABLE
         ):
-
             # IGNITION TRIGGER
             self._trigger_ignition(dt)
 

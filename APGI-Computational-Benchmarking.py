@@ -1024,9 +1024,9 @@ if __name__ == "__main__":
     # Validate implementations
     neuromorphic_validation = {}
     for framework_name, framework in benchmarker.frameworks.items():
-        neuromorphic_validation[framework_name] = (
-            neuromorphic_sim.validate_implementation(framework)
-        )
+        neuromorphic_validation[
+            framework_name
+        ] = neuromorphic_sim.validate_implementation(framework)
 
     # AI benchmarking
     ai_extension = AIBenchmarkingExtension()

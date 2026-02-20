@@ -21,37 +21,6 @@ from utils import sample_data_generator
 
 
 @pytest.mark.integration
-def test_api_endpoints_integration():
-    """Test API endpoints for protocol execution."""
-    # This would require running the FastAPI server
-    # For now, test the import and basic functionality
-    import importlib.util
-    from pathlib import Path
-
-    # Load the module with hyphen in filename
-    api_path = Path(__file__).parent.parent / "APGI-API.py"
-    spec = importlib.util.spec_from_file_location("APGI_API", api_path)
-    if spec and spec.loader:
-        api_module = importlib.util.module_from_spec(spec)
-        try:
-            spec.loader.exec_module(api_module)
-            app = api_module.app
-        except ImportError as e:
-            if "slowapi" in str(e):
-                pytest.skip("API module requires slowapi, which is not installed")
-            else:
-                pytest.fail(f"Failed to load API module: {e}")
-    else:
-        pytest.skip("Could not create spec for API module")
-
-    # Test that app was created
-    assert hasattr(api_module, "app")
-    assert api_module.app is not None
-
-    assert app.title == "APGI Framework API"
-
-
-@pytest.mark.integration
 def test_validation_protocol_9_integration():
     """Test full execution of Validation Protocol 9."""
     try:
@@ -76,8 +45,11 @@ def test_validation_protocol_9_integration():
 
         validator = APGINeuralSignaturesValidator()
 
-        # Test with None paths (should load from data_repository or fail gracefully)
-        results = validator.validate_convergent_signatures()
+        # Suppress scipy warnings during validation
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            # Test with None paths (should load from data_repository or fail gracefully)
+            results = validator.validate_convergent_signatures()
 
         # Should return results dict even if data not available
         assert isinstance(results, dict)

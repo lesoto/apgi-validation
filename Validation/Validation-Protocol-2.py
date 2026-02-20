@@ -13,11 +13,15 @@ which theoretical framework best explains conscious access.
 
 import json
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
+
+import logging
 
 import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
+
+logger = logging.getLogger(__name__)
 import pandas as pd
 import pymc as pm
 from scipy import stats
@@ -1692,9 +1696,9 @@ def compute_all_ic_metrics(trace, model, data):
 
     # Flag if LOO is unreliable
     if high_pareto_k > 0:
-        results["warning"] = (
-            f"{high_pareto_k} observations with Pareto k > 0.7 (unreliable LOO)"
-        )
+        results[
+            "warning"
+        ] = f"{high_pareto_k} observations with Pareto k > 0.7 (unreliable LOO)"
 
     return results
 
@@ -2089,6 +2093,453 @@ def run_validation():
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in validation protocol 2: {e}")
         return {"passed": False, "status": "failed", "error": str(e)}
+
+
+# =============================================================================
+# FALSIFICATION CRITERIA IMPLEMENTATION
+# =============================================================================
+
+
+def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
+    """
+    Return complete falsification specifications for Validation-Protocol-2.
+
+    Tests: Model comparison framework, epistemic architecture, empirical validation
+
+    Returns:
+        Dictionary of falsification criteria with thresholds, tests, and effect sizes
+    """
+    return {
+        "V2.1": {
+            "description": "Bayes Factor Threshold",
+            "threshold": "APGI model shows Bayes Factor BF₁₀ ≥ 10 (strong evidence) over standard predictive processing models",
+            "test": "Bayesian model comparison via bridge sampling or thermodynamic integration; BIC approximation cross-validation",
+            "effect_size": "BF₁₀ ≥ 10; ΔBIC ≥ 10 (strong support)",
+            "alternative": "Falsified if BF₁₀ < 3 (weak evidence) OR ΔBIC < 6",
+        },
+        "V2.2": {
+            "description": "Posterior Predictive Accuracy",
+            "threshold": "APGI model achieves ≥20% lower mean absolute error (MAE) in posterior predictive checks for ignition timing",
+            "test": "Cross-validated MAE with 95% HDI; Bayesian estimation",
+            "effect_size": "ΔMAE ≥ 20%; 95% HDI excludes 10%",
+            "alternative": "Falsified if ΔMAE < 12% OR 95% HDI includes 8%",
+        },
+        "V2.3": {
+            "description": "Parameter Recovery",
+            "threshold": "Synthetic data generated from known parameters recovers parameter estimates with r ≥ 0.82 (core) and r ≥ 0.68 (auxiliary)",
+            "test": "Pearson correlation between true and recovered parameters; regression slope 0.85-1.15",
+            "effect_size": "Core r ≥ 0.82; auxiliary r ≥ 0.68",
+            "alternative": "Falsified if core r < 0.75 OR auxiliary r < 0.60 OR slope outside [0.80, 1.20]",
+        },
+        "F5.1": {
+            "description": "Threshold Filtering Emergence",
+            "threshold": "≥75% of evolved agents under metabolic constraint develop threshold-like gating with ignition sharpness α ≥ 4.0 by generation 500",
+            "test": "Binomial test against 50% null rate, α = 0.01; one-sample t-test for α values",
+            "effect_size": "Proportion difference ≥ 0.25 (75% vs. 50%); mean α ≥ 4.0 with Cohen's d ≥ 0.80 vs. unconstrained control",
+            "alternative": "Falsified if <60% develop thresholds OR mean α < 3.0 OR d < 0.50 OR binomial p ≥ 0.01",
+        },
+        "F5.2": {
+            "description": "Precision-Weighted Coding Emergence",
+            "threshold": "≥65% of evolved agents under noisy signaling constraints develop precision-like weighting (correlation between signal reliability and influence ≥0.45) by generation 400",
+            "test": "Binomial test, α = 0.01; Pearson correlation test",
+            "effect_size": "r ≥ 0.45; proportion difference ≥ 0.15 vs. no-noise control",
+            "alternative": "Falsified if <50% develop weighting OR mean r < 0.35 OR binomial p ≥ 0.01",
+        },
+        "F5.3": {
+            "description": "Interoceptive Prioritization Emergence",
+            "threshold": "Under survival pressure (resources tied to homeostasis), ≥70% of agents evolve interoceptive signal gain β_intero ≥ 1.3× exteroceptive gain by generation 600",
+            "test": "Binomial test, α = 0.01; paired t-test comparing β_intero vs. β_extero",
+            "effect_size": "Mean gain ratio ≥ 1.3; Cohen's d ≥ 0.60 for paired comparison",
+            "alternative": "Falsified if <55% show prioritization OR mean ratio < 1.15 OR d < 0.40 OR binomial p ≥ 0.01",
+        },
+        "F5.4": {
+            "description": "Multi-Timescale Integration Emergence",
+            "threshold": "≥60% of evolved agents develop ≥2 distinct temporal integration windows (fast: 50-200ms, slow: 500ms-2s) under multi-level environmental dynamics",
+            "test": "Autocorrelation function analysis with peak detection; binomial test for proportion, α = 0.01",
+            "effect_size": "Peak separation ≥3× fast window duration; proportion difference ≥ 0.10",
+            "alternative": "Falsified if <45% develop multi-timescale OR peak separation < 2× fast window OR binomial p ≥ 0.01",
+        },
+        "F5.5": {
+            "description": "APGI-Like Feature Clustering",
+            "threshold": "Principal component analysis on evolved agent parameters shows ≥70% of variance captured by first 3 PCs corresponding to threshold gating, precision weighting, and interoceptive bias dimensions",
+            "test": "Scree plot analysis; varimax rotation for interpretability; loadings ≥0.60 on predicted dimensions",
+            "effect_size": "Cumulative variance ≥70%; minimum loading ≥0.60",
+            "alternative": "Falsified if cumulative variance <60% OR loadings <0.45 OR PCs don't align with predicted dimensions (cosine similarity <0.65)",
+        },
+        "F5.6": {
+            "description": "Non-APGI Architecture Failure",
+            "threshold": "Control agents without evolved APGI features (threshold, precision, interoceptive bias) show ≥40% worse performance under combined metabolic + noise + survival constraints",
+            "test": "Independent samples t-test, α = 0.01",
+            "effect_size": "Cohen's d ≥ 0.85",
+            "alternative": "Falsified if performance difference <25% OR d < 0.55 OR p ≥ 0.01",
+        },
+        "F6.1": {
+            "description": "Intrinsic Threshold Behavior",
+            "threshold": "Liquid time-constant networks show sharp ignition transitions (10-90% firing rate increase within <50ms) without explicit threshold modules, whereas feedforward networks require added sigmoidal gates",
+            "test": "Transition time comparison (Mann-Whitney U test for non-normal distributions), α = 0.01",
+            "effect_size": "LTCN median transition time ≤50ms vs. >150ms for feedforward without gates; Cliff's delta ≥ 0.60",
+            "alternative": "Falsified if LTCN transition time >80ms OR Cliff's delta < 0.45 OR Mann-Whitney p ≥ 0.01",
+        },
+        "F6.2": {
+            "description": "Intrinsic Temporal Integration",
+            "threshold": "LTCNs naturally integrate information over 200-500ms windows (measured by autocorrelation decay to <0.37) without recurrent add-ons, vs. <50ms for standard RNNs",
+            "test": "Exponential decay curve fitting; Wilcoxon signed-rank test comparing integration windows, α = 0.01",
+            "effect_size": "LTCN integration window ≥4× standard RNN; curve fit R² ≥ 0.85",
+            "alternative": "Falsified if LTCN window <150ms OR ratio < 2.5× OR R² < 0.70 OR p ≥ 0.01",
+        },
+    }
+
+
+def check_falsification(
+    bayes_factor: float,
+    delta_bic: float,
+    mae_reduction: float,
+    hdi_lower: float,
+    core_parameter_correlation: float,
+    auxiliary_parameter_correlation: float,
+    regression_slope: float,
+    # F5.1 parameters
+    proportion_threshold_agents: float,
+    mean_alpha: float,
+    cohen_d_alpha: float,
+    binomial_p_f5_1: float,
+    # F5.2 parameters
+    proportion_precision_agents: float,
+    mean_correlation_r: float,
+    binomial_p_f5_2: float,
+    # F5.3 parameters
+    proportion_interoceptive_agents: float,
+    mean_gain_ratio: float,
+    cohen_d_gain: float,
+    binomial_p_f5_3: float,
+    # F5.4 parameters
+    proportion_multiscale_agents: float,
+    peak_separation_ratio: float,
+    binomial_p_f5_4: float,
+    # F5.5 parameters
+    cumulative_variance: float,
+    min_loading: float,
+    # F5.6 parameters
+    performance_difference: float,
+    cohen_d_performance: float,
+    ttest_p_f5_6: float,
+    # F6.1 parameters
+    ltcn_transition_time: float,
+    feedforward_transition_time: float,
+    cliffs_delta: float,
+    mann_whitney_p: float,
+    # F6.2 parameters
+    ltcn_integration_window: float,
+    rnn_integration_window: float,
+    curve_fit_r2: float,
+    wilcoxon_p: float,
+) -> Dict[str, Any]:
+    """
+    Implement all statistical tests for Validation-Protocol-2.
+
+    Args:
+        bayes_factor: Bayes Factor BF₁₀ comparing APGI to standard models
+        delta_bic: Difference in BIC between APGI and best alternative
+        mae_reduction: Percentage reduction in MAE for APGI model
+        hdi_lower: Lower bound of 95% HDI for MAE reduction
+        core_parameter_correlation: Correlation between true and recovered core parameters
+        auxiliary_parameter_correlation: Correlation for auxiliary parameters
+        regression_slope: Slope of regression between true and recovered parameters
+        proportion_threshold_agents: Proportion of evolved agents with threshold gating
+        mean_alpha: Mean ignition sharpness α
+        cohen_d_alpha: Cohen's d for α vs. unconstrained control
+        binomial_p_f5_1: p-value from binomial test for threshold emergence
+        proportion_precision_agents: Proportion with precision weighting
+        mean_correlation_r: Mean correlation between reliability and influence
+        binomial_p_f5_2: p-value from binomial test for precision weighting
+        proportion_interoceptive_agents: Proportion with interoceptive prioritization
+        mean_gain_ratio: Mean β_intero / β_extero ratio
+        cohen_d_gain: Cohen's d for gain comparison
+        binomial_p_f5_3: p-value from binomial test for interoceptive prioritization
+        proportion_multiscale_agents: Proportion with multi-timescale integration
+        peak_separation_ratio: Ratio of peak separation to fast window duration
+        binomial_p_f5_4: p-value from binomial test for multi-timescale
+        cumulative_variance: Cumulative variance explained by first 3 PCs
+        min_loading: Minimum loading on predicted dimensions
+        performance_difference: Performance difference between APGI and non-APGI agents
+        cohen_d_performance: Cohen's d for performance difference
+        ttest_p_f5_6: p-value from t-test for performance
+        ltcn_transition_time: Median transition time for LTCNs
+        feedforward_transition_time: Median transition time for feedforward networks
+        cliffs_delta: Cliff's delta for transition time comparison
+        mann_whitney_p: p-value from Mann-Whitney test
+        ltcn_integration_window: Integration window for LTCNs
+        rnn_integration_window: Integration window for standard RNNs
+        curve_fit_r2: R² from exponential decay curve fit
+        wilcoxon_p: p-value from Wilcoxon test
+
+    Returns:
+        Dictionary with pass/fail results, effect sizes, and test statistics
+    """
+    results = {
+        "protocol": "Validation-Protocol-2",
+        "criteria": {},
+        "summary": {"passed": 0, "failed": 0, "total": 11},
+    }
+
+    # V2.1: Bayes Factor Threshold
+    logger.info("Testing V2.1: Bayes Factor Threshold")
+    # Log Bayes factor
+    if bayes_factor > 0:
+        log_bf = np.log(bayes_factor)
+    else:
+        log_bf = -np.inf
+
+    v2_1_pass = bayes_factor >= 3 and delta_bic >= 6
+    results["criteria"]["V2.1"] = {
+        "passed": v2_1_pass,
+        "bayes_factor": bayes_factor,
+        "delta_bic": delta_bic,
+        "log_bayes_factor": log_bf,
+        "threshold": "BF₁₀ ≥ 10, ΔBIC ≥ 10",
+        "actual": f"BF₁₀: {bayes_factor:.2f}, ΔBIC: {delta_bic:.1f}",
+    }
+    if v2_1_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"V2.1: {'PASS' if v2_1_pass else 'FAIL'} - BF₁₀: {bayes_factor:.2f}, ΔBIC: {delta_bic:.1f}"
+    )
+
+    # V2.2: Posterior Predictive Accuracy
+    logger.info("Testing V2.2: Posterior Predictive Accuracy")
+    v2_2_pass = mae_reduction >= 12 and hdi_lower >= 8
+    results["criteria"]["V2.2"] = {
+        "passed": v2_2_pass,
+        "mae_reduction_pct": mae_reduction,
+        "hdi_lower": hdi_lower,
+        "threshold": "ΔMAE ≥ 20%, 95% HDI excludes 10%",
+        "actual": f"ΔMAE: {mae_reduction:.2f}%, HDI lower: {hdi_lower:.2f}%",
+    }
+    if v2_2_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"V2.2: {'PASS' if v2_2_pass else 'FAIL'} - ΔMAE: {mae_reduction:.2f}%, HDI lower: {hdi_lower:.2f}%"
+    )
+
+    # V2.3: Parameter Recovery
+    logger.info("Testing V2.3: Parameter Recovery")
+    # Test regression slope
+    t_stat_slope, p_slope = stats.ttest_1samp([regression_slope], 1.0)
+
+    v2_3_pass = (
+        core_parameter_correlation >= 0.75
+        and auxiliary_parameter_correlation >= 0.60
+        and 0.80 <= regression_slope <= 1.20
+    )
+    results["criteria"]["V2.3"] = {
+        "passed": v2_3_pass,
+        "core_correlation": core_parameter_correlation,
+        "auxiliary_correlation": auxiliary_parameter_correlation,
+        "regression_slope": regression_slope,
+        "p_value": p_slope,
+        "threshold": "Core r ≥ 0.82, auxiliary r ≥ 0.68, slope 0.85-1.15",
+        "actual": f"Core r: {core_parameter_correlation:.3f}, aux r: {auxiliary_parameter_correlation:.3f}, slope: {regression_slope:.2f}",
+    }
+    if v2_3_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"V2.3: {'PASS' if v2_3_pass else 'FAIL'} - Core r: {core_parameter_correlation:.3f}, aux r: {auxiliary_parameter_correlation:.3f}, slope: {regression_slope:.2f}"
+    )
+
+    # F5.1: Threshold Filtering Emergence
+    logger.info("Testing F5.1: Threshold Filtering Emergence")
+    f5_1_pass = (
+        proportion_threshold_agents >= 0.60
+        and mean_alpha >= 3.0
+        and cohen_d_alpha >= 0.50
+        and binomial_p_f5_1 < 0.01
+    )
+    results["criteria"]["F5.1"] = {
+        "passed": f5_1_pass,
+        "proportion_threshold_agents": proportion_threshold_agents,
+        "mean_alpha": mean_alpha,
+        "cohen_d_alpha": cohen_d_alpha,
+        "binomial_p": binomial_p_f5_1,
+        "threshold": "≥75% develop thresholds, mean α ≥ 4.0, d ≥ 0.80, binomial p < 0.01",
+        "actual": f"Prop: {proportion_threshold_agents:.2f}, α: {mean_alpha:.2f}, d: {cohen_d_alpha:.2f}, p: {binomial_p_f5_1:.3f}",
+    }
+    if f5_1_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"F5.1: {'PASS' if f5_1_pass else 'FAIL'} - Prop: {proportion_threshold_agents:.2f}, α: {mean_alpha:.2f}, d: {cohen_d_alpha:.2f}"
+    )
+
+    # F5.2: Precision-Weighted Coding Emergence
+    logger.info("Testing F5.2: Precision-Weighted Coding Emergence")
+    f5_2_pass = (
+        proportion_precision_agents >= 0.50
+        and mean_correlation_r >= 0.35
+        and binomial_p_f5_2 < 0.01
+    )
+    results["criteria"]["F5.2"] = {
+        "passed": f5_2_pass,
+        "proportion_precision_agents": proportion_precision_agents,
+        "mean_correlation_r": mean_correlation_r,
+        "binomial_p": binomial_p_f5_2,
+        "threshold": "≥65% develop weighting, r ≥ 0.45, binomial p < 0.01",
+        "actual": f"Prop: {proportion_precision_agents:.2f}, r: {mean_correlation_r:.2f}, p: {binomial_p_f5_2:.3f}",
+    }
+    if f5_2_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"F5.2: {'PASS' if f5_2_pass else 'FAIL'} - Prop: {proportion_precision_agents:.2f}, r: {mean_correlation_r:.2f}"
+    )
+
+    # F5.3: Interoceptive Prioritization Emergence
+    logger.info("Testing F5.3: Interoceptive Prioritization Emergence")
+    f5_3_pass = (
+        proportion_interoceptive_agents >= 0.55
+        and mean_gain_ratio >= 1.15
+        and cohen_d_gain >= 0.40
+        and binomial_p_f5_3 < 0.01
+    )
+    results["criteria"]["F5.3"] = {
+        "passed": f5_3_pass,
+        "proportion_interoceptive_agents": proportion_interoceptive_agents,
+        "mean_gain_ratio": mean_gain_ratio,
+        "cohen_d_gain": cohen_d_gain,
+        "binomial_p": binomial_p_f5_3,
+        "threshold": "≥70% show prioritization, ratio ≥ 1.3, d ≥ 0.60, binomial p < 0.01",
+        "actual": f"Prop: {proportion_interoceptive_agents:.2f}, ratio: {mean_gain_ratio:.2f}, d: {cohen_d_gain:.2f}, p: {binomial_p_f5_3:.3f}",
+    }
+    if f5_3_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"F5.3: {'PASS' if f5_3_pass else 'FAIL'} - Prop: {proportion_interoceptive_agents:.2f}, ratio: {mean_gain_ratio:.2f}, d: {cohen_d_gain:.2f}"
+    )
+
+    # F5.4: Multi-Timescale Integration Emergence
+    logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
+    f5_4_pass = (
+        proportion_multiscale_agents >= 0.45
+        and peak_separation_ratio >= 2.0
+        and binomial_p_f5_4 < 0.01
+    )
+    results["criteria"]["F5.4"] = {
+        "passed": f5_4_pass,
+        "proportion_multiscale_agents": proportion_multiscale_agents,
+        "peak_separation_ratio": peak_separation_ratio,
+        "binomial_p": binomial_p_f5_4,
+        "threshold": "≥60% develop multi-timescale, separation ≥3× fast window, binomial p < 0.01",
+        "actual": f"Prop: {proportion_multiscale_agents:.2f}, ratio: {peak_separation_ratio:.1f}, p: {binomial_p_f5_4:.3f}",
+    }
+    if f5_4_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"F5.4: {'PASS' if f5_4_pass else 'FAIL'} - Prop: {proportion_multiscale_agents:.2f}, ratio: {peak_separation_ratio:.1f}"
+    )
+
+    # F5.5: APGI-Like Feature Clustering
+    logger.info("Testing F5.5: APGI-Like Feature Clustering")
+    f5_5_pass = cumulative_variance >= 0.60 and min_loading >= 0.45
+    results["criteria"]["F5.5"] = {
+        "passed": f5_5_pass,
+        "cumulative_variance": cumulative_variance,
+        "min_loading": min_loading,
+        "threshold": "Cumulative variance ≥70%, min loading ≥0.60",
+        "actual": f"Variance: {cumulative_variance:.2f}, loading: {min_loading:.2f}",
+    }
+    if f5_5_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"F5.5: {'PASS' if f5_5_pass else 'FAIL'} - Variance: {cumulative_variance:.2f}, loading: {min_loading:.2f}"
+    )
+
+    # F5.6: Non-APGI Architecture Failure
+    logger.info("Testing F5.6: Non-APGI Architecture Failure")
+    f5_6_pass = (
+        performance_difference >= 0.25
+        and cohen_d_performance >= 0.55
+        and ttest_p_f5_6 < 0.01
+    )
+    results["criteria"]["F5.6"] = {
+        "passed": f5_6_pass,
+        "performance_difference": performance_difference,
+        "cohen_d_performance": cohen_d_performance,
+        "ttest_p": ttest_p_f5_6,
+        "threshold": "Difference ≥40%, d ≥ 0.85, t-test p < 0.01",
+        "actual": f"Diff: {performance_difference:.2f}, d: {cohen_d_performance:.2f}, p: {ttest_p_f5_6:.3f}",
+    }
+    if f5_6_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"F5.6: {'PASS' if f5_6_pass else 'FAIL'} - Diff: {performance_difference:.2f}, d: {cohen_d_performance:.2f}"
+    )
+
+    # F6.1: Intrinsic Threshold Behavior
+    logger.info("Testing F6.1: Intrinsic Threshold Behavior")
+    f6_1_pass = (
+        ltcn_transition_time <= 80 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+    )
+    results["criteria"]["F6.1"] = {
+        "passed": f6_1_pass,
+        "ltcn_transition_time": ltcn_transition_time,
+        "feedforward_transition_time": feedforward_transition_time,
+        "cliffs_delta": cliffs_delta,
+        "mann_whitney_p": mann_whitney_p,
+        "threshold": "LTCN time ≤50ms, delta ≥ 0.60, Mann-Whitney p < 0.01",
+        "actual": f"LTCN: {ltcn_transition_time:.1f}ms, Feedforward: {feedforward_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, p: {mann_whitney_p:.3f}",
+    }
+    if f6_1_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"F6.1: {'PASS' if f6_1_pass else 'FAIL'} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}"
+    )
+
+    # F6.2: Intrinsic Temporal Integration
+    logger.info("Testing F6.2: Intrinsic Temporal Integration")
+    f6_2_pass = (
+        ltcn_integration_window >= 150
+        and (ltcn_integration_window / rnn_integration_window) >= 2.5
+        and curve_fit_r2 >= 0.70
+        and wilcoxon_p < 0.01
+    )
+    results["criteria"]["F6.2"] = {
+        "passed": f6_2_pass,
+        "ltcn_integration_window": ltcn_integration_window,
+        "rnn_integration_window": rnn_integration_window,
+        "curve_fit_r2": curve_fit_r2,
+        "wilcoxon_p": wilcoxon_p,
+        "threshold": "LTCN window ≥200ms, ratio ≥4×, R² ≥ 0.85, Wilcoxon p < 0.01",
+        "actual": f"LTCN: {ltcn_integration_window:.1f}ms, RNN: {rnn_integration_window:.1f}ms, R²: {curve_fit_r2:.2f}, p: {wilcoxon_p:.3f}",
+    }
+    if f6_2_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"F6.2: {'PASS' if f6_2_pass else 'FAIL'} - LTCN: {ltcn_integration_window:.1f}ms, ratio: {ltcn_integration_window / rnn_integration_window:.1f}"
+    )
+
+    logger.info(
+        f"\nValidation-Protocol-2 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
+    )
+    return results
 
 
 if __name__ == "__main__":

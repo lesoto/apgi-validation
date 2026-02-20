@@ -236,12 +236,16 @@ class BatchProcessor:
             "results": results,
             "summary": {
                 "total_ignitions": np.sum(results["B"]),
-                "mean_surprise": np.mean(results["S"]),
-                "mean_threshold": np.mean(results["theta"]),
+                "mean_surprise": np.mean(results["S"])
+                if len(results["S"]) > 0
+                else 0.0,
+                "mean_threshold": np.mean(results["theta"])
+                if len(results["theta"]) > 0
+                else 0.0,
                 "final_state": {
-                    "S": results["S"][-1],
-                    "theta": results["theta"][-1],
-                    "B": results["B"][-1],
+                    "S": results["S"][-1] if len(results["S"]) > 0 else 0.0,
+                    "theta": results["theta"][-1] if len(results["theta"]) > 0 else 0.0,
+                    "B": results["B"][-1] if len(results["B"]) > 0 else 0.0,
                 },
             },
         }

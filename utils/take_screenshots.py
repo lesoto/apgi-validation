@@ -293,9 +293,7 @@ class APGIScreenshotDocumentation:
 
                     # Verify it's the right app
                     if self._is_likely_app_screenshot(test_screenshot):
-                        print(
-                            "✅ Screenshot appears to be the correct APGI application"
-                        )
+                        print("✅ Screenshot appears to be the correct APGI application")
                     else:
                         print("⚠️ Screenshot might not be the APGI application")
 
@@ -368,9 +366,7 @@ class APGIScreenshotDocumentation:
             if self.gui_window:
                 print(f"✅ Window found: {self.gui_window.title}")
                 print(f"   📐 Size: {self.gui_window.width}x{self.gui_window.height}")
-                print(
-                    f"   📍 Position: ({self.gui_window.left}, {self.gui_window.top})"
-                )
+                print(f"   📍 Position: ({self.gui_window.left}, {self.gui_window.top})")
                 break
             else:
                 print("⚠️ Window not found, retrying in 2 seconds...")
@@ -633,7 +629,6 @@ class APGIScreenshotDocumentation:
                         and window.width > 400
                         and window.height > 300
                     ):
-
                         title_lower = window.title.lower()
                         # Skip system windows
                         if not any(
@@ -1330,7 +1325,6 @@ class APGIScreenshotDocumentation:
                         and 600 < window.width < 1800
                         and 400 < window.height < 1200
                     ):
-
                         # First filter: exclude IDE windows
                         if self._is_ide_window(window):
                             continue
@@ -1391,7 +1385,6 @@ class APGIScreenshotDocumentation:
                         and hasattr(window, "title")
                         and window.title
                     ):
-
                         # First filter: exclude IDE windows
                         if self._is_ide_window(window):
                             continue
@@ -3164,9 +3157,7 @@ class APGIScreenshotDocumentation:
         for idx, candidate in enumerate(candidates[:10]):  # Show top 10
             confidence_score = self._calculate_window_confidence(candidate)
             confidence_emoji = (
-                "🟢"
-                if confidence_score > 70
-                else "🟡" if confidence_score > 40 else "🔴"
+                "🟢" if confidence_score > 70 else "🟡" if confidence_score > 40 else "🔴"
             )
 
             print(f"  {idx + 1:2d}. {confidence_emoji} {candidate['title']}")
@@ -3891,7 +3882,6 @@ class APGIScreenshotDocumentation:
                         and window.width > 400
                         and window.height > 300
                     ):
-
                         title_lower = window.title.lower()
                         # Skip obvious system windows
                         if not any(

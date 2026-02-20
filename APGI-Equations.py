@@ -960,9 +960,9 @@ class PsychologicalState:
 
     # ========== DERIVED PARAMETERS ==========
     Pi_i_eff_actual: Optional[float] = None  # Actual effective interoceptive precision
-    Pi_i_eff_expected: Optional[float] = (
-        None  # Expected effective interoceptive precision
-    )
+    Pi_i_eff_expected: Optional[
+        float
+    ] = None  # Expected effective interoceptive precision
     S_t: Optional[float] = None  # Accumulated surprise
 
     # ========== ADDITIONAL METADATA ==========
@@ -3702,7 +3702,6 @@ def _check_derived_quantities():
 
 
 def verify_all_equations():
-
     print("=" * 80)
     print("EQUATION VERIFICATION")
     print("=" * 80)
@@ -3750,7 +3749,6 @@ def verify_all_equations():
 # =============================================================================
 
 if __name__ == "__main__":
-
     print("\n" + "=" * 80)
     print("COMPLETE APGI SYSTEM - 100% EQUATION IMPLEMENTATION")
     print("=" * 80)

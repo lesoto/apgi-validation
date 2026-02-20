@@ -13,10 +13,14 @@ This protocol implements and validates:
 
 """
 
-from typing import Dict
+from typing import Any, Dict
+
+import logging
 
 import numpy as np
 from scipy import stats
+
+logger = logging.getLogger(__name__)
 
 # Set random seeds
 
@@ -573,6 +577,261 @@ def run_validation():
             "status": "error",
             "message": f"Protocol 10 failed: {str(e)}",
         }
+
+
+# =============================================================================
+# FALSIFICATION CRITERIA IMPLEMENTATION
+# =============================================================================
+
+
+def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
+    """
+    Return complete falsification specifications for Validation-Protocol-10.
+
+    Tests: Causal manipulations, selective disruption of ignition parameters
+
+    Returns:
+        Dictionary of falsification criteria with thresholds, tests, and effect sizes
+    """
+    return {
+        "V10.1": {
+            "description": "Selective Disruption",
+            "threshold": "TMS to dlPFC near threshold-crossing reduces ignition probability by ≥40% while early ERPs (<200ms) unchanged (≤10% change)",
+            "test": "Paired t-test ignition probability, α=0.01; equivalence test for early ERPs, α=0.05",
+            "effect_size": "Cohen's d ≥ 0.85 for ignition; TOST non-inferiority for early ERPs",
+            "alternative": "Falsified if ignition reduction <25% OR early ERP change >20% OR fails TOST",
+        },
+        "F1.1": {
+            "description": "APGI Agent Performance Advantage",
+            "threshold": "APGI agents achieve ≥18% higher cumulative reward than standard predictive processing agents over 1000 trials in multi-level decision tasks",
+            "test": "Independent samples t-test, two-tailed, α = 0.01 (Bonferroni-corrected for 6 comparisons, family-wise α = 0.05)",
+            "effect_size": "Cohen's d ≥ 0.6 (medium-to-large effect)",
+            "alternative": "Falsified if APGI advantage <10% OR d < 0.35 OR p ≥ 0.01",
+        },
+        "F1.2": {
+            "description": "Hierarchical Level Emergence",
+            "threshold": "Intrinsic timescale measurements show ≥3 distinct temporal clusters corresponding to Levels 1-3 (τ₁ ≈ 50-150ms, τ₂ ≈ 200-800ms, τ₃ ≈ 1-3s), with between-cluster separation >2× within-cluster standard deviation",
+            "test": "K-means clustering (k=3) with silhouette score validation; one-way ANOVA comparing cluster means, α = 0.001",
+            "effect_size": "η² ≥ 0.70 (large effect), silhouette score ≥ 0.45",
+            "alternative": "Falsified if <3 clusters emerge OR silhouette score < 0.30 OR between-cluster separation < 1.5× within-cluster SD OR η² < 0.50",
+        },
+        "F1.3": {
+            "description": "Level-Specific Precision Weighting",
+            "threshold": "Precision weights (Πⁱ, Πᵉ) show differential modulation across hierarchical levels, with Level 1 interoceptive precision 25-40% higher than Level 3 during interoceptive salience tasks",
+            "test": "Repeated-measures ANOVA (Level × Precision Type), α = 0.001; post-hoc Tukey HSD",
+            "effect_size": "Partial η² ≥ 0.15 for Level × Type interaction",
+            "alternative": "Falsified if Level 1-3 interoceptive precision difference <15% OR interaction p ≥ 0.01 OR partial η² < 0.08",
+        },
+        "F1.4": {
+            "description": "Threshold Adaptation Dynamics",
+            "threshold": "Allostatic threshold θ_t adapts with time constant τ_θ = 10-100s, showing >20% reduction after sustained high prediction error exposure (>5min), with recovery time constant within 2-3× τ_θ",
+            "test": "Exponential decay curve fitting (R² ≥ 0.80); paired t-test comparing pre/post-exposure thresholds, α = 0.01",
+            "effect_size": "Cohen's d ≥ 0.7 for pre/post comparison; θ_t reduction ≥20%",
+            "alternative": "Falsified if threshold adaptation <12% OR τ_θ < 5s or >150s OR curve fit R² < 0.65 OR recovery time >5× τ_θ",
+        },
+        "F1.5": {
+            "description": "Cross-Level Phase-Amplitude Coupling (PAC)",
+            "threshold": "Theta-gamma PAC (Level 1-2 coupling) shows modulation index MI ≥ 0.012, with ≥30% increase during ignition events vs. baseline",
+            "test": "Permutation test (10,000 iterations) for PAC significance, α = 0.001; paired t-test for ignition vs. baseline, α = 0.01",
+            "effect_size": "Cohen's d ≥ 0.5 for ignition effect",
+            "alternative": "Falsified if MI < 0.008 OR ignition increase <15% OR permutation p ≥ 0.01 OR d < 0.30",
+        },
+        "F1.6": {
+            "description": "1/f Spectral Slope Predictions",
+            "threshold": "Aperiodic exponent α_spec = 0.8-1.2 during active task engagement, increasing to α_spec = 1.5-2.0 during low-arousal states (using FOOOF/specparam algorithm)",
+            "test": "Paired t-test comparing active vs. low-arousal states, α = 0.001; goodness-of-fit for spectral parameterization R² ≥ 0.90",
+            "effect_size": "Cohen's d ≥ 0.8 for state difference; Δα_spec ≥ 0.4",
+            "alternative": "Falsified if active α_spec > 1.4 OR low-arousal α_spec < 1.3 OR Δα_spec < 0.25 OR d < 0.50 OR spectral fit R² < 0.85",
+        },
+        "F2.1": {
+            "description": "Somatic Marker Advantage Quantification",
+            "threshold": "APGI agents show ≥22% higher selection frequency for advantageous decks (C+D) vs. disadvantageous (A+B) by trial 60, compared to ≤12% for agents without somatic modulation",
+            "test": "Two-proportion z-test comparing APGI vs. no-somatic agents, α = 0.01; repeated-measures ANOVA for learning trajectory",
+            "effect_size": "Cohen's h ≥ 0.55 (medium-large effect for proportions); between-group difference ≥10 percentage points",
+            "alternative": "Falsified if APGI advantageous selection <18% by trial 60 OR advantage over no-somatic agents <8 percentage points OR h < 0.35 OR p ≥ 0.01",
+        },
+        "F2.2": {
+            "description": "Interoceptive Cost Sensitivity",
+            "threshold": "Deck selection correlates with simulated interoceptive cost at r = -0.45 to -0.65 for APGI agents (i.e., higher cost → lower selection), vs. r = -0.15 to +0.05 for non-interoceptive agents",
+            "test": "Pearson correlation with Fisher's z-transformation for group comparison, α = 0.01",
+            "effect_size": "APGI |r| ≥ 0.40; Fisher's z for group difference ≥ 1.80 (p < 0.05)",
+            "alternative": "Falsified if APGI |r| < 0.30 OR group difference z < 1.50 (p ≥ 0.07) OR non-interoceptive |r| > 0.20",
+        },
+        "F2.3": {
+            "description": "vmPFC-Like Anticipatory Bias",
+            "threshold": "APGI agents show ≥35ms faster reaction times for selections from previously rewarding decks with low interoceptive cost, with RT modulation β_cost ≥ 25ms per unit cost increase",
+            "test": "Linear mixed-effects model (LMM) with random intercepts for agents; F-test for cost effect, α = 0.01",
+            "effect_size": "Standardized β ≥ 0.40; marginal R² ≥ 0.18",
+            "alternative": "Falsified if RT advantage <20ms OR β_cost < 15ms/unit OR standardized β < 0.25 OR marginal R² < 0.10",
+        },
+        "F2.4": {
+            "description": "Precision-Weighted Integration (Not Error Magnitude)",
+            "threshold": "Somatic marker modulation targets precision (Πⁱ_eff) as demonstrated by ≥30% greater influence of high-confidence interoceptive signals vs. low-confidence signals, independent of prediction error magnitude",
+            "test": "Multiple regression: Deck preference ~ Intero_Signal × Confidence + PE_Magnitude; test Confidence interaction, α = 0.01",
+            "effect_size": "Standardized β_interaction ≥ 0.35; semi-partial R² ≥ 0.12",
+            "alternative": "Falsified if confidence effect <18% OR β_interaction < 0.22 OR p ≥ 0.01 OR semi-partial R² < 0.08",
+        },
+        "F2.5": {
+            "description": "Learning Trajectory Discrimination",
+            "threshold": "APGI agents reach 70% advantageous selection criterion by trial 45 ± 10, whereas non-interoceptive agents require >65 trials (≥20 trial advantage)",
+            "test": "Log-rank test for survival analysis (time-to-criterion), α = 0.01; Cox proportional hazards model",
+            "effect_size": "Hazard ratio ≥ 1.65 (APGI learns 65% faster)",
+            "alternative": "Falsified if APGI time-to-criterion >55 trials OR hazard ratio < 1.35 OR log-rank p ≥ 0.01 OR trial advantage <12",
+        },
+        "F3.1": {
+            "description": "Overall Performance Advantage",
+            "threshold": "APGI agents achieve ≥18% higher cumulative reward than the best non-APGI baseline (Standard PP, GWT-only, or Q-learning) across mixed task battery (n ≥ 100 trials per task, 3+ task types)",
+            "test": "Independent samples t-test with Welch correction for unequal variances, two-tailed, α = 0.008 (Bonferroni for 6 comparisons)",
+            "effect_size": "Cohen's d ≥ 0.60; 95% CI for advantage excludes 10%",
+            "alternative": "Falsified if APGI advantage <12% OR d < 0.40 OR p ≥ 0.008 OR 95% CI includes 8%",
+        },
+        "F3.2": {
+            "description": "Interoceptive Task Specificity",
+            "threshold": "APGI advantage increases to ≥28% in tasks with high interoceptive relevance (e.g., IGT, threat detection, effort allocation) vs. ≤12% in purely exteroceptive tasks",
+            "test": "Two-way mixed ANOVA (Agent Type × Task Category); test interaction, α = 0.01",
+            "effect_size": "Partial η² ≥ 0.20 for interaction; simple effects d ≥ 0.70 for interoceptive tasks",
+            "alternative": "Falsified if interoceptive advantage <20% OR interaction p ≥ 0.01 OR partial η² < 0.12 OR simple effects d < 0.45",
+        },
+        "F3.3": {
+            "description": "Threshold Gating Necessity",
+            "threshold": "Removing threshold gating (θ_t → 0) reduces APGI performance by ≥25% in volatile environments, demonstrating non-redundancy of ignition mechanism",
+            "test": "Paired t-test comparing full APGI vs. no-threshold variant, α = 0.01",
+            "effect_size": "Cohen's d ≥ 0.75",
+            "alternative": "Falsified if performance reduction <15% OR d < 0.50 OR p ≥ 0.01",
+        },
+        "F3.4": {
+            "description": "Precision Weighting Necessity",
+            "threshold": "Uniform precision (Πⁱ = Πᵉ = constant) reduces APGI performance by ≥20% in tasks with unreliable sensory modalities",
+            "test": "Paired t-test, α = 0.01",
+            "effect_size": "Cohen's d ≥ 0.65",
+            "alternative": "Falsified if reduction <12% OR d < 0.42 OR p ≥ 0.01",
+        },
+        "F3.5": {
+            "description": "Computational Efficiency Trade-Off",
+            "threshold": "APGI maintains ≥85% of full model performance while using ≤60% of computational operations (measured by floating-point operations per decision)",
+            "test": "Equivalence testing (TOST procedure) for non-inferiority in performance, with efficiency ratio t-test, α = 0.05",
+            "effect_size": "Efficiency gain ≥30%; performance retention ≥85%",
+            "alternative": "Falsified if performance retention <78% OR efficiency gain <20% OR fails TOST non-inferiority bounds",
+        },
+        "F3.6": {
+            "description": "Sample Efficiency in Learning",
+            "threshold": "APGI agents achieve 80% asymptotic performance in ≤200 trials, vs. ≥300 trials for standard RL baselines (≥33% sample efficiency advantage)",
+            "test": "Time-to-criterion analysis with log-rank test, α = 0.01",
+            "effect_size": "Hazard ratio ≥ 1.45",
+            "alternative": "Falsified if APGI time-to-criterion >250 trials OR advantage <25% OR hazard ratio < 1.30 OR p ≥ 0.01",
+        },
+        "F5.1": {
+            "description": "Threshold Filtering Emergence",
+            "threshold": "≥75% of evolved agents under metabolic constraint develop threshold-like gating with ignition sharpness α ≥ 4.0 by generation 500",
+            "test": "Binomial test against 50% null rate, α = 0.01; one-sample t-test for α values",
+            "effect_size": "Proportion difference ≥ 0.25 (75% vs. 50%); mean α ≥ 4.0 with Cohen's d ≥ 0.80 vs. unconstrained control",
+            "alternative": "Falsified if <60% develop thresholds OR mean α < 3.0 OR d < 0.50 OR binomial p ≥ 0.01",
+        },
+        "F5.2": {
+            "description": "Precision-Weighted Coding Emergence",
+            "threshold": "≥65% of evolved agents under noisy signaling constraints develop precision-like weighting (correlation between signal reliability and influence ≥0.45) by generation 400",
+            "test": "Binomial test, α = 0.01; Pearson correlation test",
+            "effect_size": "r ≥ 0.45; proportion difference ≥ 0.15 vs. no-noise control",
+            "alternative": "Falsified if <50% develop weighting OR mean r < 0.35 OR binomial p ≥ 0.01",
+        },
+        "F5.3": {
+            "description": "Interoceptive Prioritization Emergence",
+            "threshold": "Under survival pressure (resources tied to homeostasis), ≥70% of agents evolve interoceptive signal gain β_intero ≥ 1.3× exteroceptive gain by generation 600",
+            "test": "Binomial test, α = 0.01; paired t-test comparing β_intero vs. β_extero",
+            "effect_size": "Mean gain ratio ≥ 1.3; Cohen's d ≥ 0.60 for paired comparison",
+            "alternative": "Falsified if <55% show prioritization OR mean ratio < 1.15 OR d < 0.40 OR binomial p ≥ 0.01",
+        },
+        "F5.4": {
+            "description": "Multi-Timescale Integration Emergence",
+            "threshold": "≥60% of evolved agents develop ≥2 distinct temporal integration windows (fast: 50-200ms, slow: 500ms-2s) under multi-level environmental dynamics",
+            "test": "Autocorrelation function analysis with peak detection; binomial test for proportion, α = 0.01",
+            "effect_size": "Peak separation ≥3× fast window duration; proportion difference ≥ 0.10",
+            "alternative": "Falsified if <45% develop multi-timescale OR peak separation < 2× fast window OR binomial p ≥ 0.01",
+        },
+        "F5.5": {
+            "description": "APGI-Like Feature Clustering",
+            "threshold": "Principal component analysis on evolved agent parameters shows ≥70% of variance captured by first 3 PCs corresponding to threshold gating, precision weighting, and interoceptive bias dimensions",
+            "test": "Scree plot analysis; varimax rotation for interpretability; loadings ≥0.60 on predicted dimensions",
+            "effect_size": "Cumulative variance ≥70%; minimum loading ≥0.60",
+            "alternative": "Falsified if cumulative variance <60% OR loadings <0.45 OR PCs don't align with predicted dimensions (cosine similarity <0.65)",
+        },
+        "F5.6": {
+            "description": "Non-APGI Architecture Failure",
+            "threshold": "Control agents without evolved APGI features (threshold, precision, interoceptive bias) show ≥40% worse performance under combined metabolic + noise + survival constraints",
+            "test": "Independent samples t-test, α = 0.01",
+            "effect_size": "Cohen's d ≥ 0.85",
+            "alternative": "Falsified if performance difference <25% OR d < 0.55 OR p ≥ 0.01",
+        },
+        "F6.1": {
+            "description": "Intrinsic Threshold Behavior",
+            "threshold": "Liquid time-constant networks show sharp ignition transitions (10-90% firing rate increase within <50ms) without explicit threshold modules, whereas feedforward networks require added sigmoidal gates",
+            "test": "Transition time comparison (Mann-Whitney U test for non-normal distributions), α = 0.01",
+            "effect_size": "LTCN median transition time ≤50ms vs. >150ms for feedforward without gates; Cliff's delta ≥ 0.60",
+            "alternative": "Falsified if LTCN transition time >80ms OR Cliff's delta < 0.45 OR Mann-Whitney p ≥ 0.01",
+        },
+        "F6.2": {
+            "description": "Intrinsic Temporal Integration",
+            "threshold": "LTCNs naturally integrate information over 200-500ms windows (measured by autocorrelation decay to <0.37) without recurrent add-ons, vs. <50ms for standard RNNs",
+            "test": "Exponential decay curve fitting; Wilcoxon signed-rank test comparing integration windows, α = 0.01",
+            "effect_size": "LTCN integration window ≥4× standard RNN; curve fit R² ≥ 0.85",
+            "alternative": "Falsified if LTCN window <150ms OR ratio < 2.5× OR R² < 0.70 OR p ≥ 0.01",
+        },
+    }
+
+
+def check_falsification(
+    ignition_reduction: float,
+    early_erp_change: float,
+    cohens_d_ignition: float,
+    tost_erp_passed: bool,
+) -> Dict[str, Any]:
+    """
+    Implement all statistical tests for Validation-Protocol-10.
+
+    Args:
+        ignition_reduction: Percentage reduction in ignition probability after TMS
+        early_erp_change: Percentage change in early ERPs (<200ms)
+        cohens_d_ignition: Cohen's d for ignition reduction
+        tost_erp_passed: Whether TOST non-inferiority test passed for early ERPs
+
+    Returns:
+        Dictionary with pass/fail results, effect sizes, and test statistics
+    """
+    results = {
+        "protocol": "Validation-Protocol-10",
+        "criteria": {},
+        "summary": {"passed": 0, "failed": 0, "total": 1},
+    }
+
+    # V10.1: Selective Disruption
+    logger.info("Testing V10.1: Selective Disruption")
+    v10_1_pass = (
+        ignition_reduction >= 25
+        and early_erp_change <= 20
+        and cohens_d_ignition >= 0.55
+        and tost_erp_passed
+    )
+    results["criteria"]["V10.1"] = {
+        "passed": v10_1_pass,
+        "ignition_reduction_pct": ignition_reduction,
+        "early_erp_change_pct": early_erp_change,
+        "cohens_d": cohens_d_ignition,
+        "tost_erp_passed": tost_erp_passed,
+        "threshold": "≥40% ignition reduction, ≤10% early ERP change, d ≥ 0.85",
+        "actual": f"Ignition: {ignition_reduction:.2f}%, Early ERP: {early_erp_change:.2f}%, d: {cohens_d_ignition:.3f}",
+    }
+    if v10_1_pass:
+        results["summary"]["passed"] += 1
+    else:
+        results["summary"]["failed"] += 1
+    logger.info(
+        f"V10.1: {'PASS' if v10_1_pass else 'FAIL'} - Ignition: {ignition_reduction:.2f}%, Early ERP: {early_erp_change:.2f}%, d: {cohens_d_ignition:.3f}"
+    )
+
+    logger.info(
+        f"\nValidation-Protocol-10 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
+    )
+    return results
 
 
 if __name__ == "__main__":
