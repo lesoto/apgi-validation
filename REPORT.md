@@ -1,32 +1,74 @@
-# APGI Theory Framework — Comprehensive Application Audit Report
+# APGI Validation Framework — Comprehensive Application Audit Report
 
-**Report Date:** 2026-02-21
-**Auditor:** Claude (Sonnet 4.6) — Automated Static + Structural Audit
-**Repository Branch:** `claude/app-audit-testing-76F4X`
+**Audit Date:** 2026-02-22
+**Auditor:** Automated Code Audit (Claude Sonnet 4.6)
 **Framework Version:** 1.3.0
-**Scope:** Full codebase, CLI interface, GUI components, test infrastructure, configuration system, documentation
+**Branch:** `claude/app-audit-testing-GPhpI`
+**Python Version:** 3.11.14
+**Pytest Version:** 9.0.2
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#executive-summary)
+2. [KPI Scores](#kpi-scores)
+3. [Audit Scope](#audit-scope)
+4. [Bug Inventory](#bug-inventory)
+5. [Missing Features & Incomplete Implementations](#missing-features--incomplete-implementations)
+6. [Detailed Findings by Component](#detailed-findings-by-component)
+7. [Actionable Recommendations](#actionable-recommendations)
 
 ---
 
 ## Executive Summary
 
-The APGI (Adaptive Pattern Generation and Integration) Theory Framework is a scientific Python CLI application providing computational modeling, multimodal data integration, Bayesian parameter estimation, validation protocols, and falsification testing for consciousness research. The framework is substantial (~5,000-line `main.py`, 63 Python files, 39 CLI commands, 3 GUI applications, 12+ validation protocols) but contains **critical unresolved issues** that prevent several commands from functioning correctly in production.
+The APGI (Adaptive Pattern Generation and Integration) Theory Framework is a scientific Python application providing a unified CLI, multiple tkinter-based GUIs, 12 validation protocols, 6 falsification protocols, and a comprehensive utility layer. The framework targets neuroscience researchers and data scientists running formal model simulations, parameter estimation, multimodal integration, and statistical falsification workflows.
 
-The most severe finding is that **four commands (`open-science`, `falsification`, `bayesian-estimation`, and `comprehensive-validation`) attempt to import files that do not exist** under the names they reference. The actual files are present but use hyphenated names (`APGI-Open-Science-Framework.py`) while the code references them without the `APGI-` prefix and with underscores (`Open_Science_Framework.py`). These commands will fail at runtime with `FileNotFoundError` or a module-spec error. Additionally, the configuration `--set` action is a **no-op** (the write path is permanently commented out), the `cache` command has a **wrong import path**, and the `visualize` command passes **wrong argument counts** to two helper functions (`_create_heatmap_plot` and `_create_distribution_plot`), causing `TypeError` failures at runtime.
+This audit conducted a full end-to-end code review of 63 Python files, all configuration YAML files, documentation markdown files, test suites (14 collected tests across 5 test modules), and all GUI entry points.
 
-Core infrastructure (logging, config loading, error handling, backup manager, data validation, batch processor, preprocessing pipelines) is well-engineered. The test suite structure is solid with clear pytest fixtures and markers, though it cannot be executed in this environment because none of the required dependencies (`pytest`, `click`, `numpy`, etc.) are installed at the system level.
+**Key findings:**
+
+- **Critical blocking defect:** The `jsonschema` package is absent from the runtime environment. This causes `utils/__init__.py` to fail at import, which cascades and blocks the main CLI entry point (`main.py`), both integration test files, and the `test_import_main` basic test. **The application cannot be started from the CLI**.
+- **Missing dependency `matplotlib`** prevents Validation Protocol 1 (and potentially others) from running in the test harness.
+- **Test pass rate is 71% (10/14 collected tests pass; 2 additional test files fail to collect)**, meaning only ~63% of all intended tests execute successfully.
+- **A critical NameError bug** exists in `Falsification/APGI-Falsification-Protocol-GUI.py`: `_handle_apgi_agent()` and `_handle_iowa_gambling()` both reference `self.module`, which is never defined on the class, causing an `AttributeError` at runtime.
+- **Missing file `utils/data_quality_assessment.py`** is expected by `tests/test_utils.py` but was never created.
+- **`utils/theme_manager.py` does not exist**, causing a soft import warning at every `Tests-GUI.py` startup.
+- **`Validation/Master_Validation.py` does not exist**, so `APGIMasterValidator` is always `None` in the Validation GUI — the "Run Validation" button always fails immediately.
+- Several GUI usability issues exist: generic protocol labels, sparse Data Export tab, no CSV export button wired into the export widget, and no confirmation dialog on destructive actions.
+- Documentation generation target in the Makefile prints "not yet implemented".
+- Several performance-logging calls in `main.py` are commented out, representing dead code from an incomplete feature.
 
 ---
 
 ## KPI Scores
 
-| KPI | Score | Rationale |
-|-----|-------|-----------|
-| **1. Functional Completeness** | **52 / 100** | 39 CLI commands defined; ≥4 are broken at runtime due to wrong file references; 1 is a silent no-op (`--set`); 2 have argument-count bugs; `--follow` log option is declared but not implemented; `--port`/`--host` GUI options are accepted but silently ignored; `theme_manager` dependency missing for Tests-GUI; docs misrepresent several command signatures. |
-| **2. UI/UX Consistency** | **60 / 100** | Rich console output is consistently styled across most commands. However, ~83 raw `print()` calls bypass Rich formatting in newer commands (`bayesian-estimation`, `falsification`, `open-science`, etc.), breaking visual consistency. Error messages inconsistently use Rich markup vs. plain text. GUI User Guide documents commands as positional subcommands (`python main.py gui validation`) when they are actually flags (`python main.py gui --gui-type validation`). |
-| **3. Responsiveness & Performance** | **68 / 100** | `formal_model` simulation has progress tracking with cancellation support. `process_data` uses `Progress` with `BarColumn`. Batch processing uses `ThreadPoolExecutor`. Caching layer is implemented. However, large modules are fully imported at startup via `APGIModuleLoader`, which may significantly slow startup for users without all dependencies. No async I/O; web-based analysis interface (`--host`/`--port`) is accepted but not implemented in the `gui` command body. |
-| **4. Error Handling & Resilience** | **63 / 100** | A central `error_handler.py` with typed error categories and severity levels exists. Most commands catch specific exception types. However: (a) several newer commands use bare `except Exception` masking the actual failure cause; (b) the duplicate `except ValueError` in `_set_config` will silently swallow `KeyError`/`AttributeError` after the first handler has already matched; (c) four commands will raise uncaught errors outside their try-blocks when module spec construction fails; (d) `_create_heatmap_plot` and `_create_distribution_plot` are called with missing positional arguments — these `TypeErrors` will propagate to the broad `visualize` exception handler but with no user-friendly guidance. |
-| **5. Overall Implementation Quality** | **58 / 100** | Core scientific modules (APGI equations, liquid networks, entropy, cross-species, Bayesian framework) are extensive and well-commented. Infrastructure utilities are modular and testable. However, `main.py` at 4,998 lines is monolithic and mixes concerns. Multiple dead-code patterns exist (unreachable save block at L558, permanently-commented `set_parameter` calls). Wrong import paths for 4 major features indicate the integration layer was not fully tested. 63 Python files with 0 syntax errors is a positive sign. |
+| # | KPI | Score (1–100) | Rationale |
+|---|-----|--------------|-----------|
+| 1 | **Functional Completeness** | **48** | CLI cannot be imported due to missing `jsonschema`. ~37% of tests fail or cannot be collected. `Master_Validation.py` is missing, blocking GUI validation entirely. Key files expected by tests are absent. Several GUI handlers contain broken `self.module` references. Core exports (CSV export) are unconnected. |
+| 2 | **UI/UX Consistency** | **62** | GUI layouts are generally consistent across tkinter windows; tabbed interface in the Validation GUI is clear. However, protocol labels are non-descriptive (e.g., "Protocol 1: Primary Test"), the Data Export tab is sparse with a missing CSV button, tooltips are inconsistent across GUIs, and the Falsification GUI has no progress bar or overall status indicator. |
+| 3 | **Responsiveness & Performance** | **70** | Worker threads are used correctly throughout all GUIs. Queue-based thread-safe UI update pattern is implemented in the Validation GUI. Output buffer bounding exists in Tests-GUI. However, the output limit in Utils-GUI uses a less efficient full-buffer-delete approach, the Validation GUI update queue caps at 100 items (could silently drop status updates), and performance-logging calls are commented out. |
+| 4 | **Error Handling & Resilience** | **61** | Error handler utility (`utils/error_handler.py`) and structured logging (`utils/logging_config.py`) are present. Broad exception categories are caught in the CLI. GUIs handle import failures gracefully with `safe_import_module()`. However, the `self.module` bug in Falsification GUI causes an unhandled `AttributeError`; `pd.read_csv()` at `main.py:655` is uncaught; and several commented-out `log_error()` calls leave error events untracked. |
+| 5 | **Overall Implementation Quality** | **55** | Architecture is sound and reasonably modular. Docstrings and type hints are present throughout. The 4,998-line `main.py` violates single-responsibility; a signal handler is defined but never registered (`main.py:480`); config values are duplicated between `config/` and `utils/config/`; multiple redundant local imports shadow global imports; documentation generation is unimplemented. |
+
+**Composite Score: 59 / 100**
+
+---
+
+## Audit Scope
+
+| Category | Files Audited |
+|----------|--------------|
+| CLI entry point | `main.py` (4,998 lines) |
+| GUI modules | `Utils-GUI.py`, `Tests-GUI.py`, `Validation/APGI-Validation-GUI.py`, `Falsification/APGI-Falsification-Protocol-GUI.py` |
+| Validation protocols | `Validation/Validation-Protocol-1.py` through `Validation-Protocol-12.py` (12 files) |
+| Falsification protocols | `Falsification/Falsification-Protocol-1.py` through `Falsification-Protocol-6.py` (6 files) |
+| Utility modules | All 13 files in `utils/` |
+| Configuration | `config/default.yaml`, `config/gui_config.yaml`, `config/gui_alert_config.yaml`, `config/profiles/*.yaml` |
+| Test suite | `tests/test_basic.py`, `tests/test_utils.py`, `tests/test_validation.py`, `tests/test_integration.py`, `tests/test_performance.py` |
+| Build / tooling | `Makefile`, `pytest.ini`, `mypy.ini`, `.flake8`, `requirements.txt` |
+| Documentation | 18 markdown files in `docs/` |
 
 ---
 
@@ -34,390 +76,329 @@ Core infrastructure (logging, config loading, error handling, backup manager, da
 
 ### Critical Severity
 
----
-
-**BUG-001 — Four commands fail at runtime: wrong file references**
-
-- **Severity:** Critical
-- **Affected Commands:** `open-science`, `falsification`, `bayesian-estimation`, `comprehensive-validation`
-- **Affected File:** `main.py`
-- **Line Numbers:** 2619, 2701, 2775, 3004
-- **Description:** These commands use `importlib.util.spec_from_file_location()` to load modules by constructing `PROJECT_ROOT / "<name>.py"` paths. The actual files on disk are named with the `APGI-` prefix and hyphens, not the bare underscored names expected:
-
-| Command | Expected path (in code) | Actual file on disk |
-|---------|------------------------|---------------------|
-| `open-science` | `Open_Science_Framework.py` | `APGI-Open-Science-Framework.py` |
-| `falsification` | `Falsification_Framework.py` | `APGI-Falsification-Framework.py` |
-| `bayesian-estimation` | `Bayesian_Estimation_Framework.py` | `APGI-Bayesian-Estimation-Framework.py` |
-| `comprehensive-validation` | `Falsification_Framework.py` | `APGI-Falsification-Framework.py` |
-
-- **Reproduction Steps:**
-  1. `python main.py open-science --component compliance`
-  2. `python main.py falsification --comprehensive`
-  3. `python main.py bayesian-estimation --method mcmc`
-  4. `python main.py comprehensive-validation`
-- **Expected Behavior:** Commands execute against their respective framework files.
-- **Actual Behavior:** `spec_from_file_location` returns `None` or raises `FileNotFoundError`; module execution silently fails or raises an unhandled `AttributeError` on `None.loader`.
-
----
-
-**BUG-002 — `cache` command has wrong import path**
-
-- **Severity:** Critical
-- **Affected Command:** `cache`
-- **Affected File:** `main.py:4216`
-- **Description:** The `cache` command imports `from data.cache_manager import CacheManager`. The actual module is located at `utils/cache_manager.py`, not `data/cache_manager.py`. No `data/` package exists at the project root.
-- **Reproduction Steps:** `python main.py cache --action status`
-- **Expected Behavior:** Displays cache status table.
-- **Actual Behavior:** `ModuleNotFoundError: No module named 'data.cache_manager'`
-
----
-
-**BUG-003 — `visualize --plot-type heatmap` and `--plot-type distribution` crash with TypeError**
-
-- **Severity:** Critical
-- **Affected Command:** `visualize`
-- **Affected File:** `main.py:3744, 3747`
-- **Description:** `_create_plot_by_type` calls `_create_heatmap_plot(data, colormap, alpha)` (3 args) but the function signature is `_create_heatmap_plot(data, colormap, alpha, sns, plt)` (5 args). Similarly, `_create_distribution_plot(data, bins_val, alpha, grid)` (4 args) is called but the function requires `(data, bins_val, alpha, grid, plt)` (5 args). The `plt` (and `sns` for heatmap) references are available in the outer scope but are not passed through.
-- **Reproduction Steps:**
-  1. `python main.py visualize --input-file data.csv --plot-type heatmap`
-  2. `python main.py visualize --input-file data.csv --plot-type distribution`
-- **Expected Behavior:** Heatmap or distribution plot renders.
-- **Actual Behavior:** `TypeError: _create_heatmap_plot() missing 2 required positional arguments: 'sns' and 'plt'` (and similarly for distribution).
-
----
-
-**BUG-004 — `monitor-performance --command cross-species` uses wrong import path**
-
-- **Severity:** Critical
-- **Affected Command:** `monitor-performance`
-- **Affected File:** `main.py:1701`
-- **Description:** When `command == "cross-species"`, the code does `from APGI_Cross_Species_Scaling import CrossSpeciesScaling`. The actual file is named `APGI-Cross-Species-Scaling.py`. Python cannot import a hyphenated filename directly; dynamic loading via `importlib` is required. This will raise `ModuleNotFoundError`.
-- **Reproduction Steps:** `python main.py monitor-performance --command cross-species`
-- **Expected Behavior:** Cross-species analysis is benchmarked.
-- **Actual Behavior:** `ModuleNotFoundError: No module named 'APGI_Cross_Species_Scaling'`
-
----
+| ID | Title | File | Line(s) | Reproduction Steps | Expected Behavior | Actual Behavior |
+|----|-------|------|---------|-------------------|-------------------|-----------------|
+| BUG-001 | `jsonschema` package missing — blocks entire CLI | `utils/config_manager.py` | 37 | `python3 main.py --help` | CLI launches and shows help | `ModuleNotFoundError: No module named 'jsonschema'` |
+| BUG-002 | `self.module` NameError in Falsification GUI | `Falsification/APGI-Falsification-Protocol-GUI.py` | 279, 315 | Launch Falsification GUI → click "APGI Agent" or "Iowa Gambling" button | Protocol runs in background thread | `AttributeError: 'ProtocolRunnerGUI' object has no attribute 'module'` — protocol crashes silently (error only shows in GUI console) |
+| BUG-003 | `utils/__init__.py` import chain blocks test collection | `utils/__init__.py` | 26 | `python3 -m pytest tests/test_integration.py tests/test_performance.py` | All tests collected and run | `ModuleNotFoundError: No module named 'jsonschema'` — 2 test files cannot be collected |
+| BUG-004 | `Master_Validation.py` missing — Validation GUI cannot run | `Validation/APGI-Validation-GUI.py` | 55–64 | Launch Validation GUI → click "Run Validation" | Validation protocols run | `APGIMasterValidator` is always `None`; clicking "Run Validation" immediately shows "APGI Master Validator not available" |
 
 ### High Severity
 
----
-
-**BUG-005 — `config --set` is a silent no-op**
-
-- **Severity:** High
-- **Affected Command:** `config --set`
-- **Affected File:** `main.py:2267–2276`
-- **Description:** The `_set_config` function always sets `success = True` and prints "Configuration updated successfully" but the actual `set_parameter(section, param, value)` call is permanently commented out. No parameter value is ever written. The user receives a false confirmation.
-- **Reproduction Steps:** `python main.py config --set model.tau_S=0.8` → outputs success message, but value is not persisted.
-- **Expected Behavior:** The configuration value is updated in memory and/or saved to YAML.
-- **Actual Behavior:** The function prints success but performs no write operation.
-
----
-
-**BUG-006 — Duplicate `except ValueError` in `_set_config` — second handler is unreachable**
-
-- **Severity:** High
-- **Affected File:** `main.py:2287–2294`
-- **Description:** The function has two consecutive `except` clauses — `except ValueError` followed by `except (ValueError, KeyError, AttributeError)`. In Python, once an exception is matched by the first handler, the second handler is never evaluated. `KeyError` and `AttributeError` that might arise from config operations will be caught by the first `except ValueError` handler, which prints a misleading usage message.
-- **Reproduction Steps:** Inject a `KeyError` or `AttributeError` in `_set_config`.
-- **Expected Behavior:** Distinct error messages for different exception types.
-- **Actual Behavior:** `KeyError`/`AttributeError` triggers the `ValueError` handler, printing a usage message.
-
----
-
-**BUG-007 — `logs --follow` option accepted but not implemented**
-
-- **Severity:** High
-- **Affected Command:** `logs --follow`
-- **Affected File:** `main.py:3256, 3260–3327`
-- **Description:** `--follow` is declared as a click option with help text "Follow log file in real-time" but the `follow` variable is accepted as a parameter and never referenced in the function body. No `tail -f`-style polling or inotify logic exists.
-- **Reproduction Steps:** `python main.py logs --follow`
-- **Expected Behavior:** Log file output streams in real-time.
-- **Actual Behavior:** Displays the last 20 lines and exits immediately.
-
----
-
-**BUG-008 — `gui --host` and `--port` options accepted but silently ignored**
-
-- **Severity:** High
-- **Affected Command:** `gui`
-- **Affected File:** `main.py:3229–3251`
-- **Description:** `--port` and `--host` are declared click options (default `8050` and `127.0.0.1`) but are never used inside the `gui()` function. The function dispatches to `_launch_validation_gui()`, `_launch_psychological_gui()`, or `_launch_analysis_gui()` without passing `host` or `port`. The GUI User Guide documents a web-based analysis interface on `localhost:8080`, but no such web server is launched.
-- **Reproduction Steps:** `python main.py gui --gui-type analysis --host 0.0.0.0 --port 9000`
-- **Expected Behavior:** Web analysis interface starts on port 9000.
-- **Actual Behavior:** Attempts to run `APGI-Entropy-Implementation.py` as a desktop GUI, ignoring network parameters.
-
----
-
-**BUG-009 — `Tests-GUI.py` imports missing `utils.theme_manager` module**
-
-- **Severity:** High
-- **Affected File:** `Tests-GUI.py:23–28`
-- **Description:** `Tests-GUI.py` unconditionally attempts `from utils.theme_manager import ThemeManager`. The file `utils/theme_manager.py` does not exist in the repository. A warning is printed to stdout but the application continues with `THEME_MANAGER_AVAILABLE = False`. Since the GUI may use theme functionality that is not gracefully degraded throughout the file, this could cause `NameError` or `AttributeError` at runtime when theme functions are called.
-- **Reproduction Steps:** Run `Tests-GUI.py` directly.
-- **Expected Behavior:** Theme support either works or the application uses a built-in default theme.
-- **Actual Behavior:** Prints "Warning: Theme manager not available" and theme support is silently disabled.
-
----
-
-**BUG-010 — Unreachable code: redundant `if not save_file` check (L558)**
-
-- **Severity:** High
-- **Affected Command:** `formal-model`
-- **Affected File:** `main.py:556–559`
-- **Description:** Inside the `if save_file:` branch, there is a nested `if not save_file:` block (L558) that assigns a fallback filename. This inner condition can never be `True` because the outer branch guarantees `save_file` is truthy. The auto-generated timestamped filename for the case where `--output-file` is not provided is therefore dead code — if no output file is given, the `if save_file:` block is skipped entirely.
-- **Impact:** Users who run `python main.py formal-model` without `--output-file` get no automatic save to a timestamped file despite the code's intent.
-
----
+| ID | Title | File | Line(s) | Reproduction Steps | Expected Behavior | Actual Behavior |
+|----|-------|------|---------|-------------------|-------------------|-----------------|
+| BUG-005 | Missing `utils/data_quality_assessment.py` | `tests/test_utils.py` | 35 | `python3 -m pytest tests/test_utils.py::test_utility_files_exist` | File exists, test passes | `AssertionError: Utility file data_quality_assessment.py missing` |
+| BUG-006 | `matplotlib` package missing — blocks Validation-Protocol-1 | `Validation/Validation-Protocol-1.py` | 14 | `python3 -m pytest tests/test_validation.py::test_apgi_dynamical_system_simulate_surprise_accumulation` | Protocol module loads, test passes | `ModuleNotFoundError: No module named 'matplotlib'` |
+| BUG-007 | `export_csv()` method defined but not wired to any button | `Validation/APGI-Validation-GUI.py` | 700–735, 701–707 | Launch Validation GUI → Data Export tab | "Export CSV" button is visible | No CSV export button exists; `export_csv()` is dead code |
+| BUG-008 | Signal handler defined but never registered | `main.py` | 480–483 | Run `python3 main.py formal-model` → press Ctrl+C | Graceful simulation cancellation | `handle_cancel` is defined inside `formal_model()` but never passed to `signal.signal()`; Ctrl+C causes an unhandled interrupt |
+| BUG-009 | `pd.read_csv()` at CLI preprocessing not in try/except | `main.py` | 655 | `python3 main.py process-data --input-file /nonexistent.csv` | Informative error message | Unhandled `FileNotFoundError` stack trace shown to user |
+| BUG-010 | `_run_parameter_simulation_worker` import uses wrong module name | `Validation/APGI-Validation-GUI.py` | 950 | Click "Run Simulation" in Parameter Exploration tab | Simulation runs | `from APGI_Equations import CoreIgnitionSystem` fails — actual file is `APGI-Equations.py` (hyphen); `ModuleNotFoundError` |
 
 ### Medium Severity
 
----
-
-**BUG-011 — GUI User Guide documents wrong command syntax for `gui` subcommand**
-
-- **Severity:** Medium
-- **Affected File:** `docs/GUI-User-Guide.md`
-- **Description:** The documentation shows:
-  ```bash
-  python main.py gui validation       # WRONG
-  python main.py gui psychological    # WRONG
-  python main.py gui analysis         # WRONG
-  ```
-  The actual CLI syntax requires the `--gui-type` flag:
-  ```bash
-  python main.py gui --gui-type validation
-  python main.py gui --gui-type psychological
-  python main.py gui --gui-type analysis
-  ```
-  The positional `validation`/`psychological`/`analysis` tokens would be silently ignored by Click (it only sees options, not positional arguments here), so users following the docs would always get the default `validation` GUI regardless of what they typed.
-- **Expected Behavior:** Documentation accurately reflects CLI syntax.
-
----
-
-**BUG-012 — `visualize` command: None defaults for required parameters cause TypeError in helpers**
-
-- **Severity:** Medium
-- **Affected Command:** `visualize`
-- **Affected File:** `main.py:3867–3893`
-- **Description:** Options such as `--plot-type`, `--style`, `--palette`, `--figsize`, `--bins`, `--linewidth`, `--markersize`, `--font-family`, `--font-size`, `--save-format`, `--aspect`, `--subplot-rows`, `--subplot-cols` have no `default=` values, so they resolve to `None` when not provided. The `_parse_visualization_parameters` function attempts `map(int, figsize.split(","))` on a `None` `figsize`, causing `AttributeError: 'NoneType' object has no attribute 'split'`. Similarly `_setup_plotting_style` calls `sns.set_style(style)` where `style` may be `None`.
-- **Reproduction Steps:** `python main.py visualize --input-file data.csv`
-- **Expected Behavior:** Uses sensible defaults (e.g., `figsize="12,8"`, `style="default"`).
-- **Actual Behavior:** `AttributeError` crash.
-
----
-
-**BUG-013 — Inconsistent output: 83 raw `print()` calls in newer commands**
-
-- **Severity:** Medium
-- **Affected Commands:** `neural-signatures`, `causal-manipulations`, `quantitative-fits`, `clinical-convergence`, `open-science`, `falsification`, `bayesian-estimation`, `comprehensive-validation`
-- **Affected File:** `main.py` (multiple lines)
-- **Description:** The codebase uses `console.print()` (Rich) for structured output in most commands. However, 83 raw `print()` calls were found, concentrated in the newer scientific validation and Bayesian estimation commands. These bypass Rich's terminal formatting (colors, panels, alignment) producing inconsistent visual output.
-
----
-
-**BUG-014 — `_set_config` rejects values containing `=` sign unnecessarily**
-
-- **Severity:** Medium
-- **Affected Command:** `config --set`
-- **Affected File:** `main.py:2248–2249`
-- **Description:** `_set_config(key, value)` raises `ValueError("Parameter value cannot contain '=' separator")` if `value` contains `=`. However, the caller (`config` command) already splits `set` string on the first `=` before calling `_set_config`, so `value` would only contain `=` if the user explicitly provides something like `model.key=val=extra`. The validation is overly restrictive, rejecting valid values like URL parameters or mathematical expressions.
-
----
-
-**BUG-015 — `log-level` CLI override has no effect**
-
-- **Severity:** Medium
-- **Affected Option:** `--log-level` (global)
-- **Affected File:** `main.py:289–291`
-- **Description:** The global `--log-level` option handler reads:
-  ```python
-  # set_parameter("logging", "level", log_level.upper())
-  apgi_logger.logger.info(f"Log level overridden to: {log_level.upper()}")
-  ```
-  The `set_parameter` call is commented out. The log level is never actually changed; only an INFO message is emitted at the current (unconfigured) log level.
-
----
-
-**BUG-016 — `violin` plot uses incorrect DataFrame method**
-
-- **Severity:** Medium
-- **Affected Command:** `visualize --plot-type violin`
-- **Affected File:** `main.py:3752`
-- **Description:** `data[numeric_cols].violinplot(alpha=float(alpha))` is called on a DataFrame. Pandas DataFrames do not have a `.violinplot()` method. The correct call would be `data[numeric_cols].plot.violin()` or use `matplotlib.pyplot.violinplot()`. This will raise `AttributeError: 'DataFrame' object has no attribute 'violinplot'`.
-- **Reproduction Steps:** `python main.py visualize --input-file data.csv --plot-type violin`
-- **Expected Behavior:** A violin plot is rendered.
-- **Actual Behavior:** `AttributeError` crash.
-
----
-
-**BUG-017 — `docs` Makefile target is a stub**
-
-- **Severity:** Medium
-- **Affected File:** `Makefile:36–37`
-- **Description:** The `docs` target prints "Documentation generation not yet implemented" and does nothing. Given the extensive `docs/` directory exists, this target should generate API docs (e.g., via Sphinx or pdoc3).
-
----
+| ID | Title | File | Line(s) | Reproduction Steps | Expected Behavior | Actual Behavior |
+|----|-------|------|---------|-------------------|-------------------|-----------------|
+| BUG-011 | `utils/theme_manager.py` missing — generates startup warning | `Tests-GUI.py` | 22–27 | Launch `Tests-GUI.py` | Silent import, Theme menu available | `Warning: Theme manager not available. Theme support disabled.` printed; Theme menu absent |
+| BUG-012 | Duplicate config directories — `utils/config/` shadows `config/` | `utils/config/`, `config/` | — | Run any command using `config_manager.py` | Single authoritative config source | Two parallel config trees; unclear which takes precedence |
+| BUG-013 | Validation GUI status label at row=3 can be hidden on resize | `Validation/APGI-Validation-GUI.py` | 413–417 | Launch Validation GUI → resize window smaller | Status label always visible | Results frame expands, pushing status label out of view |
+| BUG-014 | `run_all` in Utils-GUI.py uses lambda capture-by-reference in loop | `Utils-GUI.py` | 382–386 | Launch Utils-GUI → "Run All Scripts" | Each script highlighted in turn | Lambda closures over loop variable `i`; all lambdas resolve to last value — last script always highlighted |
+| BUG-015 | Validation protocol descriptions are generic and uninformative | `Validation/APGI-Validation-GUI.py` | 367–376 | Launch Validation GUI | Checkboxes show meaningful protocol names | Labels read "Protocol 1: Primary Test" etc. — no scientific context |
+| BUG-016 | Performance logging calls commented out — dead code | `main.py` | 290, 295, 539, 597 | — | Performance metrics tracked | `log_performance()` calls are commented out; metrics are never recorded |
+| BUG-017 | `config-diff` CLI command cannot compare against a specific version | `main.py` | 4649–4701 | `python3 main.py config-diff` | Compare current vs a prior version | No `--base-version` option; always diffs current config against itself |
+| BUG-018 | `messagebox.showerror()` called from daemon thread in Falsification GUI | `Falsification/APGI-Falsification-Protocol-GUI.py` | 250 | Trigger a protocol error | Error dialog shown | tkinter dialog is called from non-main thread; can cause `RuntimeError: main thread is not in main loop` |
 
 ### Low Severity
 
----
-
-**BUG-018 — `log` `Modified` column shows raw Unix timestamp float**
-
-- **Severity:** Low
-- **Affected Command:** `logs`
-- **Affected File:** `main.py:3297`
-- **Description:** `modified = f"{log_file.stat().st_mtime}"` produces a raw float timestamp like `1740099600.0` instead of a human-readable date. Should use `datetime.fromtimestamp()`.
-
----
-
-**BUG-019 — `__init__.py` references non-existent `APGI_Master_Validation` class**
-
-- **Severity:** Low
-- **Affected File:** `__init__.py:16`
-- **Description:** `from .Validation.APGI_Master_Validation import APGIMasterValidator` uses an underscored module name. No file named `APGI_Master_Validation.py` exists in `Validation/`. The import is wrapped in a `try/except ImportError` so it silently fails, leaving `__all__ = []`.
+| ID | Title | File | Line(s) | Reproduction Steps | Expected Behavior | Actual Behavior |
+|----|-------|------|---------|-------------------|-------------------|-----------------|
+| BUG-019 | Redundant local imports shadow module-level imports | `main.py` | 474, 561, 743, 1102 | — | Single import at module level | `numpy` and `pandas` are re-imported locally inside functions that already have them globally |
+| BUG-020 | Makefile `docs` target prints "not yet implemented" | `Makefile` | last target | `make docs` | Generate documentation | Prints "Documentation generation not yet implemented" |
+| BUG-021 | `_force_kill_process()` escalation not invoked on timeout | `Utils-GUI.py` | 534–540 | Run a script that hangs past timeout | Force-killed via SIGKILL after timeout | Only `process.terminate()` (SIGTERM) is called; no escalation to `process.kill()` (SIGKILL) |
+| BUG-022 | `test_config_manager_load_save_cycle` passes silently on failure | `tests/test_validation.py` | 105–141 | `python3 -m pytest tests/test_validation.py::test_config_manager_load_save_cycle` | Test correctly validates round-trip | Exception in `set_parameter` is caught and printed; test continues and passes regardless of correctness |
+| BUG-023 | No `__init__.py` in Falsification directory | `Falsification/` | — | `import Falsification` | Module importable as a package | `Falsification` directory cannot be imported as a Python package |
 
 ---
 
-**BUG-020 — `setup_environment.py` not referenced in Makefile or README**
+## Missing Features & Incomplete Implementations
 
-- **Severity:** Low
-- **Affected File:** `setup_environment.py`
-- **Description:** A `setup_environment.py` file exists but is not invoked by `make install`, `make dev-install`, or any documented workflow. New contributors may not discover it.
-
----
-
-**BUG-021 — `data[numeric_cols].violinplot` — see BUG-016**
-
----
-
-**BUG-022 — `Validation-Protocol-*` files may lack `run_validation()` function**
-
-- **Severity:** Low
-- **Affected Command:** `validate`
-- **Affected File:** `main.py:1877–1943`
-- **Description:** The `validate` command checks `hasattr(protocol_module, "run_validation")` and falls back to printing "No validation function" rather than raising an error. If a protocol file exists but does not define `run_validation()`, the user gets a silent non-failure — results are stored as the string `"No validation function"` and saved to JSON. This may mislead users into thinking validation passed.
-
----
-
-**BUG-023 — `export_data` catches `json.JSONEncodeError` (wrong exception name)**
-
-- **Severity:** Low
-- **Affected File:** `main.py:4113`
-- **Description:** `except (FileNotFoundError, PermissionError, ValueError, json.JSONEncodeError)` — `json.JSONEncodeError` does not exist; the correct name is `json.JSONDecodeError`. Raised `JSONDecodeError` exceptions during error recovery would not be caught, propagating unexpectedly.
+| ID | Feature / Component | Status | Notes |
+|----|---------------------|--------|-------|
+| MF-001 | **Documentation generation** (`make docs`) | Not implemented | Makefile target prints placeholder; no doc generator configured |
+| MF-002 | **`utils/data_quality_assessment.py`** | File missing | Expected by test suite; asserted as an essential utility file |
+| MF-003 | **`utils/theme_manager.py`** | File missing | Imported by `Tests-GUI.py`; absence removes theme switching UI |
+| MF-004 | **`Validation/Master_Validation.py`** | File missing | Required by `APGI-Validation-GUI.py`; without it `APGIMasterValidator = None` and validation cannot run via GUI |
+| MF-005 | **Validation Protocols 9–12 not selectable in GUI** | Partial | GUI hard-codes 8 protocol checkboxes; Protocols 9–12 exist as files but are not accessible from the UI |
+| MF-006 | **CSV export button in Data Export tab** | Button missing | `export_csv()` method is implemented but no button is added in `create_export_widgets()` |
+| MF-007 | **PDF report generation** | Partial | `generate_report()` saves a plain-text `.txt` file; button label says "Generate PDF Report" |
+| MF-008 | **Performance logging framework** | Commented out | `log_performance()` calls exist but are commented in 4 locations in `main.py`; metrics are never persisted |
+| MF-009 | **Signal handling for `formal_model` cancellation** | Incomplete | Handler function is defined but `signal.signal()` is never called to register it |
+| MF-010 | **`config-diff` base-version selection** | Incomplete | `config_diff` CLI command has no `--base-version` option; always diffs against self |
+| MF-011 | **Integration and performance tests cannot run** | Blocked | `tests/test_integration.py` and `tests/test_performance.py` fail during collection due to missing `jsonschema` |
+| MF-012 | **`Falsification/__init__.py`** | Missing | Falsification directory cannot be imported as a Python package |
+| MF-013 | **`dashboard` CLI command** | Partial | Described as generating "static HTML dashboards" but produces minimal placeholder output |
+| MF-014 | **Cross-browser / web GUI (Dash/Flask)** | Not testable | `dash` and `flask` are in requirements but not installed; `gui --gui-type=analysis` and `performance-dashboard` commands cannot be verified |
+| MF-015 | **All 39 CLI commands exercised by tests** | Not covered | No test exercises any CLI command end-to-end; test coverage of the CLI layer is 0% |
 
 ---
 
-## Missing Features / Incomplete Implementations
+## Detailed Findings by Component
 
-| ID | Feature | Status | Evidence |
-|----|---------|--------|----------|
-| MF-001 | **Real-time log following (`logs --follow`)** | Declared, not implemented | `follow` parameter is accepted but never used in `logs()` body (`main.py:3260`) |
-| MF-002 | **Web-based analysis interface (`gui analysis`)** | Misdirected to desktop script | `_launch_analysis_gui` points to `APGI-Entropy-Implementation.py` (a desktop script), not a Flask/Dash web server |
-| MF-003 | **`--host`/`--port` web server in `gui` command** | Accepted but not used | GUI command accepts `--host` and `--port` but never starts a web server (`main.py:3229–3251`) |
-| MF-004 | **Persistent configuration writes (`config --set`)** | Silent no-op | `set_parameter` permanently commented out (`main.py:2267–2276`) |
-| MF-005 | **`--log-level` global override** | Commented out | `set_parameter("logging", "level", ...)` is commented (`main.py:290`) |
-| MF-006 | **Documentation generation (`make docs`)** | Stub | Makefile `docs` target prints message only |
-| MF-007 | **`utils/theme_manager.py`** | Missing file | `Tests-GUI.py` imports it but it doesn't exist in `utils/` |
-| MF-008 | **`open-science` command** | Runtime failure | Resolves to wrong file path `Open_Science_Framework.py` |
-| MF-009 | **`falsification` command** | Runtime failure | Resolves to wrong file path `Falsification_Framework.py` |
-| MF-010 | **`bayesian-estimation` command** | Runtime failure | Resolves to wrong file path `Bayesian_Estimation_Framework.py` |
-| MF-011 | **`comprehensive-validation` command** | Runtime failure | Calls `falsification` framework via wrong path |
-| MF-012 | **Validation protocol descriptions in `validate` table** | Placeholder text | All protocols shown with generic `"Validation Protocol N"` description; no protocol metadata is loaded |
-| MF-013 | **`__init__.py` public API** | Silently empty | Import of `APGIMasterValidator` fails silently; `__all__` is empty |
-| MF-014 | **`Makefile docs` target** | Stub | No documentation generation tool configured |
-| MF-015 | **`parameter_validator` module** | Conditional usage | `from parameter_validator import validate_parameters` — this is a relative import that may not resolve; falls back gracefully, but validation is skipped |
+### 1. CLI Entry Point (`main.py`)
 
----
+**Lines:** 4,998 | **Commands:** 39
 
-## Recommendations for Remediation
+**Strengths:**
+- Comprehensive command set covering simulation, validation, falsification, data I/O, caching, backup, and performance.
+- Consistent Rich-formatted output with color-coded severity levels.
+- Verbose/quiet mode correctly propagated.
+- Broad exception type coverage in most commands.
+- `APGIModuleLoader` class provides lazy module loading with graceful failure.
 
-### P0 — Immediate Fixes (Breaking Functionality)
-
-1. **Fix file path references (BUG-001, BUG-004):** Replace all occurrences of bare underscore-named paths with the correct hyphenated filenames using `importlib.util.spec_from_file_location`. For example:
-   - `"Open_Science_Framework.py"` → `"APGI-Open-Science-Framework.py"`
-   - `"Falsification_Framework.py"` → `"APGI-Falsification-Framework.py"`
-   - `"Bayesian_Estimation_Framework.py"` → `"APGI-Bayesian-Estimation-Framework.py"`
-   - Remove the direct `from APGI_Cross_Species_Scaling import ...` and use `importlib` instead.
-
-2. **Fix `cache` import path (BUG-002):** Change `from data.cache_manager import CacheManager` to `from utils.cache_manager import CacheManager`.
-
-3. **Fix `visualize` helper function calls (BUG-003, BUG-012, BUG-016):**
-   - Pass `sns` and `plt` to `_create_heatmap_plot`.
-   - Pass `plt` to `_create_distribution_plot`.
-   - Add explicit defaults to all `visualize` click options (e.g., `default="auto"` for `--plot-type`, `default="default"` for `--style`, `default="12,8"` for `--figsize`, etc.).
-   - Replace `data[numeric_cols].violinplot(...)` with `data[numeric_cols].plot.violin(...)`.
-
-### P1 — High-Priority Fixes
-
-4. **Implement config persistence (BUG-005, MF-004):** Uncomment and wire `set_parameter` calls in `_set_config` and `config --log-level` handler. Alternatively, implement direct YAML write using `config_manager.set_parameter`.
-
-5. **Implement `logs --follow` (BUG-007, MF-001):** Add a polling loop (e.g., using `file.seek`, `time.sleep(0.5)`) or use `watchdog` library when `follow=True`.
-
-6. **Fix duplicate `except ValueError` in `_set_config` (BUG-006):** Merge into `except (ValueError, KeyError, AttributeError)` as a single clause.
-
-7. **Create `utils/theme_manager.py` stub or remove import (BUG-009, MF-007):** Either implement a minimal `ThemeManager` class or remove the import and replace usages with hardcoded defaults.
-
-8. **Fix dead code in `formal-model` save path (BUG-010):** Move the auto-timestamped filename logic outside the `if save_file:` gate, so results are saved when no `--output-file` is given.
-
-### P2 — Medium-Priority Improvements
-
-9. **Fix GUI documentation (BUG-011):** Update `docs/GUI-User-Guide.md` to reflect actual `--gui-type` flag syntax.
-
-10. **Implement or document `gui --host`/`--port` (BUG-008, MF-003):** Either wire up a Flask/Dash server using the provided parameters, or remove the options and update docs.
-
-11. **Replace raw `print()` with `console.print()` (BUG-013):** Apply Rich formatting consistently across all commands. This is particularly important for the scientific validation results output.
-
-12. **Fix `json.JSONEncodeError` (BUG-023):** Replace with `json.JSONDecodeError`.
-
-13. **Fix `__init__.py` import (BUG-019):** Either create `Validation/APGI_Master_Validation.py` with the `APGIMasterValidator` class, or update the import to reference the correct module name.
-
-### P3 — Low-Priority / Quality Improvements
-
-14. **Human-readable timestamps in `logs` command (BUG-018):** Replace `f"{log_file.stat().st_mtime}"` with `datetime.fromtimestamp(log_file.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")`.
-
-15. **Implement `make docs` (BUG-017, MF-014):** Configure `pdoc` or `sphinx-apidoc` for automatic API documentation from docstrings.
-
-16. **Load protocol metadata in `validate` table (MF-012):** Parse a `__doc__` or metadata dict from each protocol file to display meaningful descriptions.
-
-17. **Install dependencies and run test suite:** The test suite cannot run in the current environment. Ensure `requirements.txt` packages are installable and CI executes `pytest` on every commit.
-
-18. **Address `parameter_validator` import path (MF-015):** Ensure `from parameter_validator import validate_parameters` resolves correctly, or change to `from utils.parameter_validator import validate_parameters`.
+**Issues:**
+- Cannot be imported or executed due to missing `jsonschema` (BUG-001).
+- Extremely large single file (4,998 lines) violates single-responsibility principle.
+- 4 commented-out `log_performance()` / `set_parameter()` calls (BUG-016).
+- Unregistered signal handler in `formal_model()` (BUG-008).
+- Unguarded `pd.read_csv()` in `process_data` (BUG-009).
+- 16 hardcoded default values that should be sourced from config (ports, paths, counts).
+- Redundant local imports of `numpy` and `pandas` in 4 functions (BUG-019).
+- 0% of CLI commands are covered by automated tests.
 
 ---
 
-## Test Infrastructure Assessment
+### 2. Validation GUI (`Validation/APGI-Validation-GUI.py`)
 
-- **Test files:** 3 (`test_basic.py`, `test_integration.py`, `test_performance.py`)
-- **Fixtures:** Well-defined in `conftest.py` (`temp_dir`, `sample_config`, `sample_data`)
-- **Markers:** Correctly configured (`unit`, `integration`, `performance`, `slow`)
-- **Coverage target:** 60% (configured in `pytest.ini`)
-- **Status:** Cannot be executed — no dependencies installed at system level (`pytest`, `numpy`, `pandas`, etc. all missing). Once dependencies are installed, tests are structurally sound.
-- **Gap:** No tests cover the CLI commands in `main.py` (no `click.testing.CliRunner` tests). The 39 CLI commands are entirely untested.
+**Lines:** 1,771 | **Tabs:** Validation, Parameter Exploration, Settings, Data Export, Alerts
 
----
+**Strengths:**
+- Thread-safe GUI update pattern via bounded queue (maxsize=100).
+- Protocol module caching with lock protection prevents memory leaks.
+- `is_running` property with threading lock for thread-safe access.
+- Comprehensive error classification in `_handle_protocol_error()`.
+- Settings and alert configurations persist to YAML files.
+- `_convert_to_serializable()` correctly handles numpy types for JSON export.
+- `_validate_report()` enforces strict structure before accessing report keys.
 
-## Summary Statistics
-
-| Category | Count |
-|----------|-------|
-| Total Python files audited | 63 |
-| Syntax errors | 0 |
-| CLI commands defined | 39 |
-| CLI commands broken at runtime (critical path) | ≥5 |
-| Commands with silent no-op behaviour | 1 (`config --set`) |
-| Declared but unimplemented features | ≥3 (`--follow`, `--host`/`--port` for web, `make docs`) |
-| Missing files referenced by code | 4 |
-| Missing utility module | 1 (`theme_manager.py`) |
-| Inconsistent `print()` vs `console.print()` calls | 83 raw `print()` occurrences |
-| Total bugs documented | 23 |
-| Critical severity bugs | 4 |
-| High severity bugs | 6 |
-| Medium severity bugs | 7 |
-| Low severity bugs | 6 |
+**Issues:**
+- `Master_Validation.py` is missing → `APGIMasterValidator = None` → validation always fails (BUG-004 / MF-004).
+- Only 8 protocols shown in GUI; Protocols 9–12 are unreachable via the UI (MF-005).
+- Protocol labels are generic: "Primary Test", "Secondary Test", "Tertiary Test" (BUG-015).
+- `export_csv()` is implemented but no button exists in the Data Export tab (BUG-007 / MF-006).
+- PDF generation saves `.txt` not `.pdf` (MF-007).
+- `_run_parameter_simulation_worker` uses a module import path that fails due to hyphenated filename (BUG-010).
+- Status label can be hidden when window is resized (BUG-013).
+- Update queue hard cap of 100: rapid protocol logging could silently drop status messages.
 
 ---
 
-*This report was generated via automated static analysis and structural code inspection. Dynamic/runtime testing was not performed due to missing runtime dependencies. All findings should be verified against a fully-configured development environment before remediation.*
+### 3. Falsification GUI (`Falsification/APGI-Falsification-Protocol-GUI.py`)
+
+**Lines:** 389 | **Protocols:** 6
+
+**Strengths:**
+- Clean 2×3 grid button layout with tooltips.
+- Separate stop mechanism via `threading.Event`.
+- Protocol dispatch through dedicated handler methods per protocol type.
+
+**Issues:**
+- `_handle_apgi_agent()` (line 279) and `_handle_iowa_gambling()` (line 315) both reference `self.module` which is never assigned on the class — `AttributeError` at runtime (BUG-002).
+- `messagebox.showerror()` called from a daemon thread (line 250) — not thread-safe (BUG-018).
+- No `__init__.py` in Falsification directory (BUG-023 / MF-012).
+- No progress bar in the UI despite protocols potentially running for minutes.
+- `_handle_default()` (line 378–379) creates a class instance and logs its name but performs no meaningful action.
+- Stop button cannot interrupt `run_full_experiment()` type calls.
+
+---
+
+### 4. Utils GUI (`Utils-GUI.py`)
+
+**Lines:** 693
+
+**Strengths:**
+- Timeout mechanism per-script via `select`-based polling (Unix) with Windows fallback.
+- Retry logic for failed scripts (up to 2 retries with 1-second delay).
+- Configuration via external JSON file with automatic default-file creation.
+- Graceful process termination sequence with `_force_kill_process()`.
+
+**Issues:**
+- Lambda closure capture bug in `run_all_scripts()` (BUG-014).
+- `_force_kill_process()` is not called from `_read_output()` timeout path — only `process.terminate()` is used (BUG-021).
+- `load_config()` calls `self.log_output()` before `setup_ui()` has created the output widget; exception caught broadly but warning is silently lost.
+
+---
+
+### 5. Tests GUI (`Tests-GUI.py`)
+
+**Lines:** 782
+
+**Strengths:**
+- Bounded output buffer (`deque` with `maxlen=10000`) prevents memory leaks.
+- Correct pytest installation check before running full suite.
+- Proper PYTHONPATH injection for module resolution.
+- Cancellation event for `run_all` operation.
+- `ToolTip` helper class with delay scheduling and proper cleanup on leave/press.
+
+**Issues:**
+- `utils/theme_manager.py` missing → Theme menu absent, warning printed on startup (BUG-011).
+- `_safe_log_output()` clears entire output area when buffer exceeds 5,000 entries, causing a jarring UI flash.
+- Stop button cancels `run_all` but does not kill the currently running script process.
+
+---
+
+### 6. Test Suite (`tests/`)
+
+**Collected:** 14 tests from 3 files (2 files failed to collect)
+**Pass:** 10 | **Fail:** 4 | **Collection Error:** 2 files
+
+| Test | File | Result | Root Cause |
+|------|------|--------|-----------|
+| `test_import_main` | `test_basic.py` | FAIL | Missing `jsonschema` |
+| `test_import_validation` | `test_basic.py` | PASS | — |
+| `test_project_structure` | `test_basic.py` | PASS | — |
+| `test_config_files_exist` | `test_basic.py` | PASS | — |
+| `test_sample_config_fixture` | `test_basic.py` | PASS | — |
+| `test_temp_dir_fixture` | `test_basic.py` | PASS | — |
+| `test_utils_directory_structure` | `test_utils.py` | PASS | — |
+| `test_utility_files_exist` | `test_utils.py` | FAIL | Missing `data_quality_assessment.py` |
+| `test_sample_data_fixture_structure` | `test_utils.py` | PASS | — |
+| `test_validation_files_exist` | `test_validation.py` | PASS | — |
+| `test_validation_config_structure` | `test_validation.py` | PASS | — |
+| `test_apgi_dynamical_system_simulate_surprise_accumulation` | `test_validation.py` | FAIL | Missing `matplotlib` |
+| `test_config_manager_load_save_cycle` | `test_validation.py` | FAIL | Missing `jsonschema` |
+| `test_data_validator_validate_data_quality` | `test_validation.py` | PASS | — |
+| All 6 tests in `test_integration.py` | `test_integration.py` | COLLECTION ERROR | Missing `jsonschema` |
+| All tests in `test_performance.py` | `test_performance.py` | COLLECTION ERROR | Missing `jsonschema` |
+
+**Observed test pass rate:** 71% of collected (10/14); ~63% of all intended tests if collection errors are counted as failures.
+
+---
+
+### 7. Configuration Files
+
+**Files:** `config/default.yaml`, `config/gui_config.yaml`, `config/gui_alert_config.yaml`, `config/profiles/*.yaml`
+
+**Issues:**
+- Duplicate config directory: `config/` at project root AND `utils/config/` — both contain `default.yaml` and profile subdirectories. Unclear which takes precedence (BUG-012).
+- `config/gui_config.yaml` is minimal (3 keys); full schema is implicitly defined only by GUI source code.
+- No JSON Schema validation for config files (ironic given the missing `jsonschema` dependency).
+
+---
+
+### 8. Dependencies (`requirements.txt`)
+
+**Installed packages relevant to this project:**
+`click 8.3.1`, `numpy 2.4.2`, `pandas 3.0.1`, `psutil 7.2.2`, `rich 14.3.3`, `scipy 1.17.0`
+
+**Required but missing from runtime environment:**
+`jsonschema`, `matplotlib`, `seaborn`, `plotly`, `torch`, `torchvision`, `pymc`, `arviz`, `nilearn`, `tqdm`, `flask`, `dash`, `pydantic`, `sqlalchemy`, `alembic`, `numba`, `loguru`, `black`, `jupyter`, `python-dotenv`, `slowapi`
+
+**Impact:** The majority of scientific computation and visualization features are non-functional in the current environment. `pip install -r requirements.txt` must be executed before any meaningful testing can occur.
+
+---
+
+## Actionable Recommendations
+
+### Priority 1 — Fix Now (Blocking Issues)
+
+**R-01: Install all required dependencies**
+```bash
+pip install -r requirements.txt
+```
+This alone will unblock the CLI, the integration tests, and the performance tests. Minimum immediate fix: `pip install jsonschema matplotlib`.
+
+**R-02: Fix `self.module` AttributeError in Falsification GUI**
+`Falsification/APGI-Falsification-Protocol-GUI.py` lines 279 and 315.
+The `module` variable is local to `protocol_thread()`. Pass it as a parameter to `_handle_apgi_agent(module, ...)` and `_handle_iowa_gambling(module, ...)`, or assign `self.module = module` before calling those methods.
+
+**R-03: Create `Validation/Master_Validation.py`**
+Define a minimal `APGIMasterValidator` class exposing at minimum: `PROTOCOL_TIERS` dict, `protocol_results` dict, `falsification_status` dict, `timeout_seconds` attribute, and `generate_master_report()` method. Without this file the Validation GUI is completely non-functional.
+
+**R-04: Create `utils/data_quality_assessment.py`**
+Implement or stub the data quality assessment utility to satisfy both the test assertion and any code that calls it.
+
+---
+
+### Priority 2 — Fix Soon (High-Impact Defects)
+
+**R-05: Wire CSV export button in Data Export tab**
+In `Validation/APGI-Validation-GUI.py`, `create_export_widgets()`, add:
+```python
+ttk.Button(parent_frame, text="Export Results to CSV",
+           command=self.export_csv).grid(row=0, column=0, pady=10, padx=10, sticky=(tk.W, tk.E))
+```
+
+**R-06: Register signal handler in `main.py` `formal_model()`**
+After defining `handle_cancel`, add:
+```python
+import signal
+signal.signal(signal.SIGINT, handle_cancel)
+```
+
+**R-07: Wrap `pd.read_csv()` at `main.py:655` in error handling**
+```python
+try:
+    data = pd.read_csv(input_data)
+except (FileNotFoundError, pd.errors.ParserError, PermissionError) as e:
+    handle_file_error(input_data, "read", e)
+    return
+```
+
+**R-08: Add Protocols 9–12 to the Validation GUI**
+Extend `protocols_info` in `create_widgets()` to include entries for protocols 9–12, or add a numeric spin-box / range input.
+
+**R-09: Fix lambda closure bug in `Utils-GUI.py`**
+```python
+# Change:
+self.root.after(0, lambda: self.scripts_listbox.selection_set(i))
+# To:
+self.root.after(0, lambda idx=i: self.scripts_listbox.selection_set(idx))
+```
+
+**R-10: Fix `_run_parameter_simulation_worker` import path**
+Replace `from APGI_Equations import CoreIgnitionSystem` with a `importlib.util.spec_from_file_location` call using the absolute path to `APGI-Equations.py`.
+
+**R-11: Fix thread-safety of `messagebox` in Falsification GUI**
+Replace `messagebox.showerror("Error", error_msg)` in `protocol_thread()` with a thread-safe alternative using `self.root.after(0, lambda: messagebox.showerror(...))`.
+
+---
+
+### Priority 3 — Improve (Medium-Impact)
+
+**R-12: Replace generic protocol labels in Validation GUI**
+Update `protocols_info` dict to use descriptive names sourced from the actual protocol files' docstrings (e.g., "Protocol 1: Surprise Accumulation Dynamics", "Protocol 2: Bayesian Parameter Estimation").
+
+**R-13: Add `Falsification/__init__.py`**
+Create an empty `__init__.py` to make the Falsification directory a proper Python package.
+
+**R-14: Create `utils/theme_manager.py`** or remove the import and conditional Theme menu code from `Tests-GUI.py` to eliminate the startup warning.
+
+**R-15: Consolidate duplicate config directories**
+Remove `utils/config/` and update `config_manager.py` to reference `config/` at the project root as the single authoritative configuration location.
+
+**R-16: Add a progress bar to the Falsification GUI** for long-running protocols (add a `ttk.Progressbar` in `setup_ui()` and call it indeterminate when a protocol thread is running).
+
+**R-17: Rename "Generate PDF Report" button** to "Export Report (Text)" or implement actual PDF generation using `reportlab` or `fpdf2`.
+
+**R-18: Remove or activate commented-out `log_performance()` calls** in `main.py`.
+
+**R-19: Implement `make docs`**: Integrate `pdoc`, `sphinx`, or `mkdocs` and update the Makefile target accordingly.
+
+---
+
+### Priority 4 — Refactor / Improve Quality
+
+**R-20: Split `main.py` (4,998 lines) into sub-modules**: Group commands by domain (e.g., `cli/simulation.py`, `cli/validation.py`, `cli/config.py`, `cli/data.py`) and compose a thin `main.py` that just assembles the Click group.
+
+**R-21: Strengthen test coverage**: Add unit tests for individual CLI commands (use Click's `CliRunner`), GUI widget interactions (using `unittest.mock`), and all 12 validation protocol classes. Aim for ≥80% line coverage.
+
+**R-22: Enable `mypy` strict mode** for the `utils/` package and gradually extend to all modules.
+
+**R-23: Remove redundant local imports** of `numpy` and `pandas` in `main.py` at lines 474, 561, 743, and 1102.
+
+**R-24: Fix `test_config_manager_load_save_cycle`** to assert correctness rather than silently passing on exception (remove the bare `except Exception: print(...)` pattern at line 138).
+
+**R-25: Move hardcoded constants** (default port 8050, default host 127.0.0.1, max line counts, buffer sizes) into the config system.
+
+---
+
+*End of Report — APGI Validation Framework Audit v2.0 (2026-02-22)*
