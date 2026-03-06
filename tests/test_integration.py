@@ -108,7 +108,8 @@ def test_full_validation_pipeline():
     generator = sample_data_generator.SampleDataGenerator(sampling_rate=100, duration=5)
     eeg_signal, p300_events = generator.generate_eeg_data()
 
-    assert len(eeg_signal) == 500  # 100 Hz * 5 seconds
+    expected_length = int(generator.sampling_rate * generator.duration)
+    assert len(eeg_signal) == expected_length
     assert isinstance(p300_events, list)
     assert len(p300_events) > 0  # Should have some P300 events
 

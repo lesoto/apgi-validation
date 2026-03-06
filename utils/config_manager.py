@@ -512,35 +512,71 @@ class ConfigManager:
         """Get configuration section or entire config."""
         if section is None:
             return self.config
-        elif hasattr(self.config, section):
-            return getattr(self.config, section)
+        elif hasattr(self.config, "__dataclass_fields__"):
+            # Dataclass configuration
+            if hasattr(self.config, section):
+                return getattr(self.config, section)
+            else:
+                raise ValueError(f"Unknown configuration section: {section}")
         else:
-            raise ValueError(f"Unknown configuration section: {section}")
+            # Dictionary configuration
+            if section in self.config:
+                return self.config[section]
+            else:
+                raise ValueError(f"Unknown configuration section: {section}")
 
     def set_parameter(self, section: str, parameter: str, value: Any) -> bool:
         """Set a specific configuration parameter."""
-        if not hasattr(self.config, section):
-            raise ValueError(f"Unknown configuration section: {section}")
 
-        section_obj = getattr(self.config, section)
-        if not hasattr(section_obj, parameter):
-            raise ValueError(f"Unknown parameter: {parameter} in section: {section}")
+        # Handle both dataclass and dictionary configs
+        if hasattr(self.config, "__dataclass_fields__"):
+            # Dataclass configuration
+            if not hasattr(self.config, section):
+                raise ValueError(f"Unknown configuration section: {section}")
 
-        # Convert string values to appropriate types
-        converted_value = self._convert_parameter_value(section, parameter, value)
+            section_obj = getattr(self.config, section)
+            if not hasattr(section_obj, parameter):
+                raise ValueError(
+                    f"Unknown parameter: {parameter} in section: {section}"
+                )
 
-        # Validate parameter value
-        self._validate_parameter(section, parameter, converted_value)
+            # Convert string values to appropriate types
+            converted_value = self._convert_parameter_value(section, parameter, value)
 
-        setattr(section_obj, parameter, converted_value)
+            # Validate parameter value
+            self._validate_parameter(section, parameter, converted_value)
+
+            setattr(section_obj, parameter, converted_value)
+        else:
+            # Dictionary configuration
+            if section not in self.config:
+                self.config[section] = {}
+
+            # Convert string values to appropriate types
+            converted_value = self._convert_parameter_value(section, parameter, value)
+
+            # Validate parameter value
+            self._validate_parameter(section, parameter, converted_value)
+
+            self.config[section][parameter] = converted_value
+
         apgi_logger.logger.info(f"Updated {section}.{parameter} = {converted_value}")
         return True
 
     def _convert_parameter_value(self, section: str, parameter: str, value: Any) -> Any:
         """Convert parameter value to appropriate type."""
         # Get current value to determine target type
-        section_obj = getattr(self.config, section)
-        current_value = getattr(section_obj, parameter)
+        if hasattr(self.config, "__dataclass_fields__"):
+            # Dataclass configuration
+            section_obj = getattr(self.config, section)
+            current_value = getattr(section_obj, parameter)
+        else:
+            # Dictionary configuration
+            if section in self.config and parameter in self.config[section]:
+                current_value = self.config[section][parameter]
+            else:
+                # Default to string if no existing value
+                return value
 
         # If value is already the correct type, return as-is
         if isinstance(value, type(current_value)):
@@ -594,7 +630,12 @@ class ConfigManager:
         """Save current configuration to file."""
         save_path = file_path or self.config_file
         save_path = Path(save_path)
-        config_dict = asdict(self.config)
+
+        # Handle both dataclass and dictionary configs
+        if hasattr(self.config, "__dataclass_fields__"):
+            config_dict = asdict(self.config)
+        else:
+            config_dict = self.config
 
         with open(save_path, "w") as f:
             if save_path.suffix.lower() == ".yaml":

@@ -147,11 +147,16 @@ class APGIConfig:
 
     def __post_init__(self):
         """Validate configuration parameters"""
-        assert self.input_size > 0, "input_size must be positive"
-        assert self.hidden_size > 0, "hidden_size must be positive"
-        assert self.num_levels > 0, "num_levels must be positive"
-        assert self.dt_ms > 0, "dt_ms must be positive"
-        assert 0 < self.reservoir_sparsity < 1, "reservoir_sparsity must be in (0, 1)"
+        if not self.input_size > 0:
+            raise ValueError("input_size must be positive")
+        if not self.hidden_size > 0:
+            raise ValueError("hidden_size must be positive")
+        if not self.num_levels > 0:
+            raise ValueError("num_levels must be positive")
+        if not self.dt_ms > 0:
+            raise ValueError("dt_ms must be positive")
+        if not 0 < self.reservoir_sparsity < 1:
+            raise ValueError("reservoir_sparsity must be in (0, 1)")
 
 
 # ============================================================================

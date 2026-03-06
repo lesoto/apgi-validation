@@ -86,6 +86,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import matplotlib
+
+matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -134,23 +137,6 @@ class FoundationalEquations:
         return observed - predicted
 
     @staticmethod
-    def precision(variance: float) -> float:
-        """
-        Compute precision: Π = 1/σ²_ε
-
-        From Section 1.3 of APGI-Equations.md
-
-        Args:
-            variance: σ²_ε - variance of prediction errors
-
-        Returns:
-            Precision Π (inverse variance)
-        """
-        if variance <= 0:
-            return float("inf")
-        return 1.0 / variance
-
-    @staticmethod
     def z_score(error: float, mean: float, std: float) -> float:
         """
         Compute standardized prediction error: z(t) = (ε(t) - μ_ε(t))/σ_ε(t)
@@ -165,14 +151,23 @@ class FoundationalEquations:
         Returns:
             Z-score normalized prediction error
         """
-        if std <= 0:
-            return 0.0
-        return (error - mean) / std
 
+    @staticmethod
+    def precision(variance: float) -> float:
+        """
+        Compute precision: Π = 1/σ²_ε
 
-# =============================================================================
-# 1.2 CORE IGNITION SYSTEM EQUATIONS
-# =============================================================================
+        From Section 1.3 of APGI-Equations.md
+
+        Args:
+            variance: Variance of prediction errors (must be > 0)
+
+        Returns:
+            Precision Π (capped at 1e6 to prevent overflow)
+        """
+        if variance <= 0:
+            return 1e6  # Cap infinite precision to prevent downstream NaN
+        return 1.0 / variance
 
 
 class CoreIgnitionSystem:
@@ -226,7 +221,7 @@ class CoreIgnitionSystem:
         Returns:
             Effective interoceptive precision Π^i_eff(t)
         """
-        sigmoid = 1.0 / (1.0 + np.exp(-(M - M_0)))
+        sigmoid = 1.0 / (1.0 + np.exp(np.clip(-(M - M_0), -500, 500)))
         modulation = 1.0 + beta * sigmoid
         return Pi_i_baseline * modulation
 
@@ -994,14 +989,15 @@ class PsychologicalState:
             self.Pi_i_expected = self.Pi_i_baseline_actual
 
         # ========== COMPUTE ACTUAL EFFECTIVE PRECISION ==========
-        # Π_i_eff_actual = Π_i_baseline_actual · exp(β_som·M_ca)
-        self.Pi_i_eff_actual = self.Pi_i_baseline_actual * np.exp(self.beta * self.M_ca)
+        # Π_i_eff_actual = Π_i_baseline_actual · [1 + β·σ(M_ca - M₀)]
+        M_0 = 0.0  # Reference somatic marker level
+        sigmoid = 1.0 / (1.0 + np.exp(-(self.M_ca - M_0)))
+        self.Pi_i_eff_actual = self.Pi_i_baseline_actual * (1.0 + self.beta * sigmoid)
         self.Pi_i_eff_actual = np.clip(self.Pi_i_eff_actual, 0.1, 10.0)
 
         # ========== COMPUTE EXPECTED EFFECTIVE PRECISION ==========
-        # Π_i_eff_expected = Π_i_expected · exp(β_som·M_ca)
-        self.Pi_i_eff_expected = self.Pi_i_expected * np.exp(self.beta * self.M_ca)
-
+        # Π_i_eff_expected = Π_i_expected · [1 + β·σ(M_ca - M₀)]
+        self.Pi_i_eff_expected = self.Pi_i_expected * (1.0 + self.beta * sigmoid)
         self.Pi_i_eff_expected = np.clip(self.Pi_i_eff_expected, 0.1, 10.0)
 
         # ========== COMPUTE ACCUMULATED SURPRISE ==========

@@ -185,6 +185,12 @@ class CrossSpeciesScaling:
             Predicted number of hierarchical levels
         """
 
+        # Ensure total_neurons is positive to avoid log(0) or log(negative)
+        if species.total_neurons <= 0:
+            raise ValueError(
+                f"total_neurons must be positive, got {species.total_neurons}"
+            )
+
         cortical_complexity = (
             np.log(species.total_neurons)
             * (species.cortical_thickness_mm**0.3)
@@ -393,8 +399,8 @@ class CrossSpeciesScaling:
 
         # PCI vs brain size
         try:
-            log_brain = np.log(brain_sizes)
-            log_pci = np.log(pci_values)
+            log_brain = np.log(np.maximum(brain_sizes, 1e-10))
+            log_pci = np.log(np.maximum(pci_values, 1e-10))
             slope, intercept = np.polyfit(log_brain, log_pci, 1)
             scaling_laws["pci_vs_brain_size"] = (slope, intercept)
         except (ValueError, RuntimeWarning):

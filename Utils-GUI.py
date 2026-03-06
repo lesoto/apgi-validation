@@ -382,8 +382,10 @@ class UtilsRunnerGUI:
                 self.root.after(
                     0, lambda: self.scripts_listbox.selection_clear(0, tk.END)
                 )
-                self.root.after(0, lambda: self.scripts_listbox.selection_set(i))
-                self.root.after(0, lambda: self.scripts_listbox.see(i))
+                self.root.after(
+                    0, lambda idx=i: self.scripts_listbox.selection_set(idx)
+                )
+                self.root.after(0, lambda idx=i: self.scripts_listbox.see(idx))
 
                 success = self.run_script(
                     script, wait=True, timeout=self.get_script_timeout(script.name)

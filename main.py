@@ -33,6 +33,35 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+
+# Secure module loading function
+def secure_load_module(name: str, module_path: Path):
+    """Safely load a Python module with path validation"""
+    # Resolve the absolute path and validate it's within project root
+    resolved_path = module_path.resolve()
+    if not str(resolved_path).startswith(str(PROJECT_ROOT.resolve())):
+        raise ValueError(f"Module path outside project root: {module_path}")
+
+    # Additional validation: ensure it's a .py file
+    if not resolved_path.suffix == ".py":
+        raise ValueError(f"Module must be a .py file: {module_path}")
+
+    # Load the module
+    spec = importlib.util.spec_from_file_location(name, resolved_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load module spec for {module_path}")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def secure_load_module_from_path(module_path: Path):
+    """Convenience function to load module from path with auto-generated name"""
+    name = module_path.stem
+    return secure_load_module(name, module_path)
+
+
 from utils.backup_manager import (
     cleanup_backups_cli,
     create_backup_cli,
@@ -236,9 +265,7 @@ class APGIModuleLoader:
             module_path = PROJECT_ROOT / config["file"]
             if module_path.exists():
                 try:
-                    spec = importlib.util.spec_from_file_location(name, module_path)
-                    module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
+                    module = secure_load_module(name, module_path)
                     self.modules[name] = {"module": module, "config": config}
                 except (ImportError, AttributeError, OSError, TypeError) as e:
                     console.print(
@@ -648,11 +675,18 @@ def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
         console.print(f"[red]Error: Input file '{input_data}' does not exist[/red]")
         return
 
-    if os.path.getsize(input_data) == 0:
-        console.print(f"[red]Error: Input file '{input_data}' is empty[/red]")
+    try:
+        data = pd.read_csv(input_data)
+    except (pd.errors.EmptyDataError, FileNotFoundError) as e:
+        if isinstance(e, pd.errors.EmptyDataError):
+            console.print(
+                f"[red]Error: CSV file '{input_data}' is empty or contains no data[/red]"
+            )
+        else:
+            console.print(
+                f"[red]Error: Input file '{input_data}' became inaccessible during processing[/red]"
+            )
         return
-
-    data = pd.read_csv(input_data)
 
     # Validate DataFrame
     if data.empty:
@@ -1868,11 +1902,7 @@ def _run_single_protocol(protocol_file: str, validation_dir: Path) -> tuple:
     protocol_num = protocol_file.split("-")[-1].replace(".py", "")
 
     try:
-        spec = importlib.util.spec_from_file_location(
-            f"protocol_{protocol_num}", protocol_path
-        )
-        protocol_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(protocol_module)
+        protocol_module = secure_load_module(f"protocol_{protocol_num}", protocol_path)
 
         if hasattr(protocol_module, "run_validation"):
             result = protocol_module.run_validation()
@@ -2102,11 +2132,9 @@ def falsify(
 
                 try:
                     # Import and run falsification protocol
-                    spec = importlib.util.spec_from_file_location(
+                    falsification_module = secure_load_module(
                         f"falsification_protocol_{protocol}", protocol_file
                     )
-                    falsification_module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(falsification_module)
 
                     # Look for main falsification function
                     if hasattr(falsification_module, "run_falsification"):

@@ -32,6 +32,35 @@ except ImportError:
     # Fallback if running as standalone script
     import logging
 
+    apgi_logger = logging.getLogger(__name__)
+
+
+class LoggingDeque(deque):
+    """A deque that logs when old items are discarded due to maxlen"""
+
+    def __init__(self, maxlen=None, name="deque"):
+        super().__init__(maxlen=maxlen)
+        self.name = name
+        self.discarded_count = 0
+
+    def append(self, item):
+        if self.maxlen is not None and len(self) == self.maxlen:
+            self.discarded_count += 1
+            if self.discarded_count % 10 == 0:  # Log every 10 discards to avoid spam
+                apgi_logger.warning(
+                    f"{self.name}: discarded {self.discarded_count} oldest items due to size limit"
+                )
+        super().append(item)
+
+    def appendleft(self, item):
+        if self.maxlen is not None and len(self) == self.maxlen:
+            self.discarded_count += 1
+            if self.discarded_count % 10 == 0:  # Log every 10 discards to avoid spam
+                apgi_logger.warning(
+                    f"{self.name}: discarded {self.discarded_count} items due to size limit"
+                )
+        super().appendleft(item)
+
     class MockAPGILogger:
         def __init__(self):
             self.logger = logging.getLogger(__name__)
@@ -50,6 +79,7 @@ except ImportError:
 
     apgi_logger = MockAPGILogger()
 
+
 # APGI imports
 try:
     from utils.performance_profiler import performance_profiler
@@ -67,10 +97,10 @@ class DashboardData:
         self.thread = None
 
         # Data storage
-        self.system_metrics = deque(maxlen=1000)
-        self.performance_metrics = deque(maxlen=1000)
-        self.validation_results = deque(maxlen=100)
-        self.alerts = deque(maxlen=50)
+        self.system_metrics = LoggingDeque(maxlen=1000, name="system_metrics")
+        self.performance_metrics = LoggingDeque(maxlen=1000, name="performance_metrics")
+        self.validation_results = LoggingDeque(maxlen=100, name="validation_results")
+        self.alerts = LoggingDeque(maxlen=50, name="alerts")
 
         # Start data collection
         self.start_collection()
@@ -103,6 +133,10 @@ class DashboardData:
                     current_system = None
                 if current_system:
                     current_system["dashboard_timestamp"] = datetime.now()
+                    if len(self.system_metrics) == self.system_metrics.maxlen:
+                        apgi_logger.warning(
+                            "System metrics deque full, oldest data lost"
+                        )
                     self.system_metrics.append(current_system)
 
                 # Collect performance metrics
@@ -115,6 +149,10 @@ class DashboardData:
                 else:
                     recent_metrics = []
                 for metric in recent_metrics:
+                    if len(self.performance_metrics) == self.performance_metrics.maxlen:
+                        apgi_logger.warning(
+                            "Performance metrics deque full, oldest data lost"
+                        )
                     self.performance_metrics.append(
                         {
                             "name": metric.name,
@@ -182,6 +220,8 @@ class DashboardData:
 
         # Add alerts to queue
         for alert in alerts:
+            if len(self.alerts) == self.alerts.maxlen:
+                apgi_logger.warning("Alerts deque full, oldest alerts lost")
             self.alerts.append(alert)
 
     def get_system_metrics_df(self) -> pd.DataFrame:

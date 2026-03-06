@@ -13,15 +13,28 @@ Complete open science framework for APGI theory validation including:
 
 import json
 import logging
+import numpy as np
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Any
+
+import numpy as np
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+
+def serialize(obj):
+    """Custom JSON serializer for non-serializable objects"""
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (datetime, np.datetime64)):
+        return obj.isoformat()
+    else:
+        return str(obj)
 
 
 @dataclass
@@ -60,9 +73,24 @@ class PreregistrationTemplate:
     open_materials: bool
     open_data: bool
 
+    def _json_serializer(self, obj: Any) -> Any:
+        """Custom JSON serializer for numpy arrays and datetime objects"""
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, datetime):
+            return obj.isoformat()
+        elif hasattr(obj, "__dict__"):
+            return obj.__dict__
+        else:
+            raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
     def to_json(self) -> str:
         """Export preregistration as JSON"""
-        return json.dumps(asdict(self), indent=2, default=str)
+        return json.dumps(asdict(self), indent=2, default=self._json_serializer)
 
     @classmethod
     def from_json(cls, json_str: str) -> "PreregistrationTemplate":
@@ -91,6 +119,21 @@ class DataSharingProtocol:
             self.codebooks_path,
         ]:
             path.mkdir(exist_ok=True)
+
+    def _serialize_metadata(self, obj: Any) -> Any:
+        """Custom JSON serializer for metadata objects"""
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, datetime):
+            return obj.isoformat()
+        elif hasattr(obj, "__dict__"):
+            return obj.__dict__
+        else:
+            raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
     def create_dataset_metadata(self, dataset_name: str, metadata: Dict) -> str:
         """
@@ -152,7 +195,7 @@ class DataSharingProtocol:
 
             try:
                 with open(metadata_file, "w") as f:
-                    json.dump(metadata, f, indent=2, default=str)
+                    json.dump(metadata, f, indent=2, default=self._serialize_metadata)
                 logger.info(f"Metadata created successfully: {metadata_file}")
                 return str(metadata_file)
             except Exception as e:
