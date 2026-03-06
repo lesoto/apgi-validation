@@ -22,6 +22,9 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 
+# Import batch configuration
+from .batch_config import BatchProcessorConfig
+
 # Optional import for tqdm
 try:
     from tqdm import tqdm
@@ -31,8 +34,30 @@ except ImportError:
     TQDM_AVAILABLE = False
     tqdm = None  # type: ignore
 
+import os
+
 # Secure pickle functions with HMAC signing
-PICKLE_SECRET_KEY = b"apgi_batch_processor_secret_key_2024"
+PICKLE_SECRET_KEY = os.environ.get("PICKLE_SECRET_KEY")
+if PICKLE_SECRET_KEY is None:
+    from utils.error_handler import APGIError, ErrorCategory, ErrorSeverity
+
+    raise APGIError(
+        message=(
+            "PICKLE_SECRET_KEY environment variable not set. Please set this "
+            "environment variable to a secure random key."
+        ),
+        category=ErrorCategory.IMPORT,
+        severity=ErrorSeverity.CRITICAL,
+        error_code="MISSING_ENV_VAR",
+        suggestion=[
+            "Set PICKLE_SECRET_KEY environment variable",
+            "Use: export PICKLE_SECRET_KEY='your_secret_key_here'",
+        ],
+        user_action=(
+            "Set the required environment variable before running the application"
+        ),
+    )
+PICKLE_SECRET_KEY = PICKLE_SECRET_KEY.encode()
 
 
 def secure_pickle_dump(obj: Any, file_path: Path) -> None:
@@ -138,22 +163,37 @@ class BatchJob:
 class BatchProcessor:
     """Advanced batch processing system for APGI framework."""
 
-    def __init__(self, max_workers: int = 4, use_processes: bool = False):
+    def __init__(
+        self,
+        max_workers: Optional[int] = None,
+        use_processes: Optional[bool] = None,
+        config_file: Optional[Path] = None,
+    ):
         """
         Initialize batch processor.
 
         Args:
-            max_workers: Maximum number of parallel workers
-            use_processes: Use processes instead of threads for CPU-bound tasks
+            max_workers: Maximum number of parallel workers (overrides config)
+            use_processes: Use processes instead of threads (overrides config)
+            config_file: Path to configuration file
         """
-        self.max_workers = max_workers
-        self.use_processes = use_processes
+        # Load configuration
+        self.config = BatchProcessorConfig(config_file)
+
+        # Use provided values or fall back to config
+        self.max_workers = max_workers or self.config.get_max_workers()
+        self.use_processes = (
+            use_processes
+            if use_processes is not None
+            else self.config.get("use_processes", False)
+        )
+
         self.jobs: List[BatchJob] = []
         self.results: Dict[str, Any] = {}
 
         # Choose executor type
         self.executor_class = (
-            ProcessPoolExecutor if use_processes else ThreadPoolExecutor
+            ProcessPoolExecutor if self.use_processes else ThreadPoolExecutor
         )
 
     def add_simulation_job(
