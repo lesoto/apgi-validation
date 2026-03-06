@@ -28,6 +28,8 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 def _get_protocol1():
     """Safely import Protocol 1 with error handling"""
     try:
+        from utils.error_handler import handle_import_error
+
         protocol1_path = os.path.join(
             os.path.dirname(__file__), "Falsification-Protocol-1.py"
         )
@@ -41,13 +43,24 @@ def _get_protocol1():
         protocol1 = importlib.util.module_from_spec(spec1)
         spec1.loader.exec_module(protocol1)
         return protocol1
+    except ImportError as e:
+        handle_import_error(
+            "Falsification-Protocol-1", e, "Protocol 1 import for agent comparison"
+        )
+        raise
     except Exception as e:
-        raise ImportError(f"Failed to import Protocol 1: {str(e)}")
+        from utils.error_handler import import_error
+
+        raise import_error(
+            "DEPENDENCY_ERROR", details=f"Failed to import Protocol 1: {str(e)}"
+        )
 
 
 def _get_protocol2():
     """Safely import Protocol 2 with error handling"""
     try:
+        from utils.error_handler import handle_import_error
+
         protocol2_path = os.path.join(
             os.path.dirname(__file__), "Falsification-Protocol-2.py"
         )
@@ -61,8 +74,17 @@ def _get_protocol2():
         protocol2 = importlib.util.module_from_spec(spec2)
         spec2.loader.exec_module(protocol2)
         return protocol2
+    except ImportError as e:
+        handle_import_error(
+            "Falsification-Protocol-2", e, "Protocol 2 import for environment creation"
+        )
+        raise
     except Exception as e:
-        raise ImportError(f"Failed to import Protocol 2: {str(e)}")
+        from utils.error_handler import import_error
+
+        raise import_error(
+            "DEPENDENCY_ERROR", details=f"Failed to import Protocol 2: {str(e)}"
+        )
 
 
 def _get_stats():
@@ -71,8 +93,13 @@ def _get_stats():
         from scipy import stats
 
         return stats
-    except ImportError:
-        raise ImportError("scipy is required for statistical analysis")
+    except ImportError as e:
+        from utils.error_handler import handle_import_error
+
+        handle_import_error(
+            "scipy.stats", e, "Statistical analysis in agent comparison"
+        )
+        raise
 
 
 def _get_logistic_regression():
@@ -81,8 +108,15 @@ def _get_logistic_regression():
         from sklearn.linear_model import LogisticRegression
 
         return LogisticRegression
-    except ImportError:
-        raise ImportError("scikit-learn is required for logistic regression")
+    except ImportError as e:
+        from utils.error_handler import handle_import_error
+
+        handle_import_error(
+            "sklearn.linear_model.LogisticRegression",
+            e,
+            "Logistic regression for strategy change analysis",
+        )
+        raise
 
 
 def _standardize_observation(observation: Dict) -> np.ndarray:

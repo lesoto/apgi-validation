@@ -897,51 +897,58 @@ class APGIValidationGUI:
 
     def run_validation(self) -> None:
         """Run the selected validation protocols"""
-        if self.is_running:
-            return
-
-        if not self.validator:
-            messagebox.showerror("Error", "APGI Master Validator not available")
-            return
-
-        # Get selected protocols with validation
-        selected_protocols: List[int] = [
-            num for num, var in self.protocol_vars.items() if var.get()
-        ]
-
-        # Validate protocol numbers
-        for protocol_num in selected_protocols:
-            if (
-                not isinstance(protocol_num, int)
-                or protocol_num not in self.validator.PROTOCOL_TIERS
-            ):
-                messagebox.showerror(
-                    "Error",
-                    f"Invalid protocol number: {protocol_num}. Must be between 1 and 8.",
-                )
+        try:
+            if self.is_running:
                 return
 
-        if not selected_protocols:
-            messagebox.showwarning("Warning", "No protocols selected")
-            return
+            if not self.validator:
+                messagebox.showerror("Error", "APGI Master Validator not available")
+                return
 
-        # Clear protocol cache to prevent cross-protocol contamination
-        self.clear_protocol_cache()
+            # Get selected protocols with validation
+            selected_protocols: List[int] = [
+                num for num, var in self.protocol_vars.items() if var.get()
+            ]
 
-        # Start validation in separate thread
-        self.is_running = True
+            # Validate protocol numbers
+            for protocol_num in selected_protocols:
+                if (
+                    not isinstance(protocol_num, int)
+                    or protocol_num not in self.validator.PROTOCOL_TIERS
+                ):
+                    messagebox.showerror(
+                        "Error",
+                        f"Invalid protocol number: {protocol_num}. Must be between 1 and 8.",
+                    )
+                    return
 
-        # Make UI state changes atomically
-        self.run_button.config(state=tk.DISABLED)
-        self.stop_button.config(state=tk.NORMAL)
-        self.results_text.delete(1.0, tk.END)
-        self.progress_var.set(0)
+            if not selected_protocols:
+                messagebox.showwarning("Warning", "No protocols selected")
+                return
 
-        self.validation_thread = threading.Thread(
-            target=self._run_validation_worker, args=(selected_protocols,)
-        )
-        self.validation_thread.start()
-        logging.info(f"Started validation for protocols: {selected_protocols}")
+            # Clear protocol cache to prevent cross-protocol contamination
+            self.clear_protocol_cache()
+
+            # Start validation in separate thread
+            self.is_running = True
+
+            # Make UI state changes atomically
+            self.run_button.config(state=tk.DISABLED)
+            self.stop_button.config(state=tk.NORMAL)
+            self.results_text.delete(1.0, tk.END)
+            self.progress_var.set(0)
+
+            self.validation_thread = threading.Thread(
+                target=self._run_validation_worker, args=(selected_protocols,)
+            )
+            self.validation_thread.start()
+            logging.info(f"Started validation for protocols: {selected_protocols}")
+
+        except Exception as e:
+            logging.error(f"Error starting validation: {e}")
+            messagebox.showerror("Validation Error", f"Failed to start validation: {e}")
+            self.is_running = False
+            self._ensure_ui_consistency()
 
     def _run_parameter_simulation_worker(self, params: Dict[str, float]) -> None:
         """Worker thread for parameter simulation"""
@@ -1466,58 +1473,69 @@ Interpretation:
 
     def stop_validation(self) -> None:
         """Stop the running validation with proper thread cancellation"""
-        with self._thread_cleanup_lock:
-            if not self.is_running:
-                return
+        try:
+            with self._thread_cleanup_lock:
+                if not self.is_running:
+                    return
 
-            self.is_running = False
-            self.update_status("Stopping validation...")
+                self.is_running = False
+                self.update_status("Stopping validation...")
 
-            # Force stop the validation thread
+                # Force stop the validation thread
+                if self.validation_thread and self.validation_thread.is_alive():
+                    # Give the thread a moment to clean up
+                    self.update_progress(100)
+                    self.update_results("Validation stopped by user\n")
+
+            # Wait for thread to finish (with timeout) - OUTSIDE the lock to avoid deadlock
             if self.validation_thread and self.validation_thread.is_alive():
-                # Give the thread a moment to clean up
-                self.update_progress(100)
-                self.update_results("Validation stopped by user\n")
+                self.validation_thread.join(
+                    timeout=1.0
+                )  # Short timeout to avoid GUI freeze
 
-        # Wait for thread to finish (with timeout) - OUTSIDE the lock to avoid deadlock
-        if self.validation_thread and self.validation_thread.is_alive():
-            self.validation_thread.join(
-                timeout=1.0
-            )  # Short timeout to avoid GUI freeze
+            # Re-acquire lock for final cleanup
+            with self._thread_cleanup_lock:
+                if self.validation_thread:
+                    if self.validation_thread.is_alive():
+                        self.update_results(
+                            "Warning: Validation thread did not stop cleanly\n"
+                        )
+                        logging.warning(
+                            "Validation thread did not stop cleanly, may be zombie thread"
+                        )
+                        # Don't block on thread cleanup
+                        self.validation_thread = None
+                    else:
+                        self.update_results("Validation stopped successfully\n")
+                        logging.info("Validation thread stopped successfully")
+                        self.validation_thread = None
 
-        # Re-acquire lock for final cleanup
-        with self._thread_cleanup_lock:
-            if self.validation_thread:
-                if self.validation_thread.is_alive():
-                    self.update_results(
-                        "Warning: Validation thread did not stop cleanly\n"
-                    )
-                    logging.warning(
-                        "Validation thread did not stop cleanly, may be zombie thread"
-                    )
-                    # Don't block on thread cleanup
-                    self.validation_thread = None
-                else:
-                    self.update_results("Validation stopped successfully\n")
-                    logging.info("Validation thread stopped successfully")
-                    self.validation_thread = None
+                # Reset UI state atomically
+                self.run_button.config(state=tk.NORMAL)
+                self.stop_button.config(state=tk.DISABLED)
 
-            # Reset UI state atomically
-            self.run_button.config(state=tk.NORMAL)
-            self.stop_button.config(state=tk.DISABLED)
+                # Clear any pending GUI updates with non-blocking approach
+                try:
+                    cleared_count = 0
+                    while (
+                        cleared_count < 50
+                    ):  # Limit iterations to prevent infinite loop
+                        try:
+                            self._update_queue.get_nowait()
+                            self._update_queue.task_done()
+                            cleared_count += 1
+                        except queue.Empty:
+                            break
+                except Exception as e:
+                    logging.error(f"Error clearing GUI update queue: {e}")
 
-            # Clear any pending GUI updates with non-blocking approach
-            try:
-                cleared_count = 0
-                while cleared_count < 50:  # Limit iterations to prevent infinite loop
-                    try:
-                        self._update_queue.get_nowait()
-                        self._update_queue.task_done()
-                        cleared_count += 1
-                    except queue.Empty:
-                        break
-            except Exception as e:
-                logging.error(f"Error clearing GUI update queue: {e}")
+        except Exception as e:
+            logging.error(f"Error stopping validation: {e}")
+            messagebox.showerror(
+                "Stop Error", f"Failed to stop validation properly: {e}"
+            )
+            self.is_running = False
+            self._ensure_ui_consistency()
 
     def _convert_to_serializable(self, obj: Any) -> Any:
         """Convert numpy and other non-serializable types to Python types."""

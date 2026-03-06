@@ -18,6 +18,18 @@ from pathlib import Path
 from tkinter import scrolledtext, ttk
 from typing import Any, Dict, List, Optional, Tuple
 
+# Import matplotlib for visualization
+try:
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+    from matplotlib.figure import Figure
+    import matplotlib
+
+    matplotlib.use("TkAgg")
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
+    print("Warning: matplotlib not available. Advanced visualization disabled.")
+
 # Import theme manager
 try:
     from utils.theme_manager import ThemeManager
@@ -146,12 +158,15 @@ class TestsRunnerGUI:
         self.TAG_WARNING = "warning"
 
         # Bounded output buffer to prevent memory leaks
-        self.output_buffer_size = 10000  # Maximum number of output lines to keep
+        self.output_buffer_size = 1000  # Maximum number of output lines to keep (reduced from 10,000 for better memory efficiency)
         self.output_buffer: deque[Tuple[str, str]] = deque(
             maxlen=self.output_buffer_size
         )
 
         self.setup_ui()
+
+        # Configure tab order for keyboard navigation
+        self._setup_tab_order()
 
         # Add keyboard shortcut for quitting (Ctrl+Q or Cmd+Q)
         self.root.bind("<Control-q>", lambda e: self.quit_application())
@@ -336,9 +351,13 @@ class TestsRunnerGUI:
         self.progress = ttk.Progressbar(control_frame, mode="indeterminate", length=200)
         self.progress.pack(pady=10, fill=tk.X)
 
-        # Output frame
-        output_frame = ttk.LabelFrame(main_frame, text="Output", padding="5")
-        output_frame.grid(row=2, column=0, columnspan=3, sticky="nsew", pady=(10, 0))
+        # Output frame with tabs
+        output_notebook = ttk.Notebook(main_frame)
+        output_notebook.grid(row=2, column=0, columnspan=3, sticky="nsew", pady=(10, 0))
+
+        # Output tab
+        output_frame = ttk.Frame(output_notebook)
+        output_notebook.add(output_frame, text="Output")
 
         # Output text area
         self.output_text = scrolledtext.ScrolledText(
@@ -346,11 +365,410 @@ class TestsRunnerGUI:
         )
         self.output_text.pack(fill=tk.BOTH, expand=True)
 
-        # Configure text tags for different output types
-        self.output_text.tag_config(self.TAG_INFO, foreground="black")
-        self.output_text.tag_config(self.TAG_ERROR, foreground="red")
-        self.output_text.tag_config(self.TAG_SUCCESS, foreground="green")
-        self.output_text.tag_config(self.TAG_WARNING, foreground="orange")
+        # Visualization tab
+        viz_frame = ttk.Frame(output_notebook)
+        output_notebook.add(viz_frame, text="Visualization")
+        self.setup_visualization_tab(viz_frame)
+
+    def setup_visualization_tab(self, parent_frame: ttk.Frame) -> None:
+        """Setup the visualization tab with test result displays."""
+        parent_frame.columnconfigure(0, weight=1)
+        parent_frame.rowconfigure(1, weight=1)
+
+        # Summary frame
+        summary_frame = ttk.LabelFrame(parent_frame, text="Test Summary", padding="10")
+        summary_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+
+        # Summary labels
+        self.summary_vars = {
+            "total_tests": tk.StringVar(value="0"),
+            "passed": tk.StringVar(value="0"),
+            "failed": tk.StringVar(value="0"),
+            "errors": tk.StringVar(value="0"),
+            "skipped": tk.StringVar(value="0"),
+            "duration": tk.StringVar(value="0.0s"),
+            "coverage": tk.StringVar(value="0%"),
+        }
+
+        summary_items = [
+            ("Total Tests:", self.summary_vars["total_tests"]),
+            ("Passed:", self.summary_vars["passed"]),
+            ("Failed:", self.summary_vars["failed"]),
+            ("Errors:", self.summary_vars["errors"]),
+            ("Skipped:", self.summary_vars["skipped"]),
+            ("Duration:", self.summary_vars["duration"]),
+            ("Coverage:", self.summary_vars["coverage"]),
+        ]
+
+        for i, (label, var) in enumerate(summary_items):
+            ttk.Label(summary_frame, text=label).grid(
+                row=i // 2, column=(i % 2) * 2, sticky=tk.W, padx=(0, 5)
+            )
+            ttk.Label(summary_frame, textvariable=var, font=("Arial", 10, "bold")).grid(
+                row=i // 2, column=(i % 2) * 2 + 1, sticky=tk.W
+            )
+
+        # Visualization frame with charts
+        viz_container = ttk.Frame(parent_frame)
+        viz_container.grid(
+            row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
+        )
+
+        if MATPLOTLIB_AVAILABLE:
+            # Create matplotlib figure for charts
+            self.fig = Figure(figsize=(12, 4), dpi=80)
+            self.fig.patch.set_facecolor("white")
+
+            # Create subplots
+            self.ax_pie = self.fig.add_subplot(131)
+            self.ax_bar = self.fig.add_subplot(132)
+            self.ax_timeline = self.fig.add_subplot(133)
+
+            # Embed matplotlib in tkinter
+            self.canvas = FigureCanvasTkAgg(self.fig, master=viz_container)
+            self.canvas.draw()
+            self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        else:
+            # Fallback text display if matplotlib not available
+            no_viz_label = ttk.Label(
+                viz_container,
+                text="Advanced visualization requires matplotlib.\nInstall with: pip install matplotlib",
+                font=("Arial", 12),
+            )
+            no_viz_label.pack(expand=True)
+
+        # Results display frame
+        results_frame = ttk.LabelFrame(parent_frame, text="Test Results", padding="10")
+        results_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        results_frame.columnconfigure(0, weight=1)
+        results_frame.rowconfigure(0, weight=1)
+
+        # Results treeview
+        columns = ("Test", "Status", "Duration", "Details")
+        self.results_tree = ttk.Treeview(
+            results_frame, columns=columns, show="headings", height=15
+        )
+
+        # Configure columns
+        self.results_tree.heading("Test", text="Test Name")
+        self.results_tree.heading("Status", text="Status")
+        self.results_tree.heading("Duration", text="Duration")
+        self.results_tree.heading("Details", text="Details")
+
+        self.results_tree.column("Test", width=200)
+        self.results_tree.column("Status", width=80)
+        self.results_tree.column("Duration", width=80)
+        self.results_tree.column("Details", width=300)
+
+        # Add scrollbar
+        scrollbar = ttk.Scrollbar(
+            results_frame, orient=tk.VERTICAL, command=self.results_tree.yview
+        )
+        self.results_tree.configure(yscrollcommand=scrollbar.set)
+
+        # Pack treeview and scrollbar
+        self.results_tree.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+
+        # Initialize test results storage
+        self.test_results = []
+
+    def _setup_tab_order(self) -> None:
+        """Configure tab order for consistent keyboard navigation."""
+        # Define tab order: listbox -> buttons -> output tabs
+        tab_order = [
+            self.scripts_listbox,
+            self.run_button,
+            self.run_all_button,
+            self.run_all_tests_button,
+            self.stop_button,
+            self.clear_button,
+            self.quit_button,
+            self.output_text,
+            self.results_tree,
+        ]
+
+        # Set up tab navigation
+        for i, widget in enumerate(tab_order):
+            if widget:  # Check if widget exists
+                next_widget = tab_order[(i + 1) % len(tab_order)]
+                prev_widget = tab_order[(i - 1) % len(tab_order)]
+
+                # Bind Tab to move to next widget
+                widget.bind("<Tab>", lambda e, nw=next_widget: self._focus_widget(nw))
+                # Bind Shift+Tab to move to previous widget
+                widget.bind(
+                    "<Shift-Tab>", lambda e, pw=prev_widget: self._focus_widget(pw)
+                )
+
+        # Ensure listbox is focused initially
+        self.scripts_listbox.focus_set()
+
+    def _focus_widget(self, widget: tk.Widget) -> None:
+        """Focus on a specific widget and handle different widget types."""
+        try:
+            if isinstance(widget, tk.Listbox):
+                widget.focus_set()
+                # Select first item if nothing is selected
+                if widget.curselection() == ():
+                    widget.selection_set(0)
+            elif isinstance(widget, ttk.Treeview):
+                widget.focus_set()
+                # Select first item if nothing is selected
+                if widget.selection() == ():
+                    first_item = widget.get_children()
+                    if first_item:
+                        widget.selection_set(first_item[0])
+            else:
+                widget.focus_set()
+        except tk.TclError:
+            # Widget might be disabled or not focusable
+            pass
+
+    def update_visualization(self) -> None:
+        """Update the visualization with current test results."""
+        try:
+            # Clear existing results
+            for item in self.results_tree.get_children():
+                self.results_tree.delete(item)
+
+            # Parse test results from output buffer
+            self._parse_test_results()
+
+            # Update summary statistics
+            self._update_summary_stats()
+
+            # Update charts if matplotlib is available
+            if MATPLOTLIB_AVAILABLE:
+                self._update_charts()
+
+            # Populate results tree
+            for result in self.test_results[-100:]:  # Show last 100 results
+                status = result.get("status", "unknown")
+                tags = ()
+                if status == "PASSED":
+                    tags = ("passed",)
+                elif status in ["FAILED", "ERROR"]:
+                    tags = ("failed",)
+
+                self.results_tree.insert(
+                    "",
+                    tk.END,
+                    values=(
+                        result.get("test", "unknown"),
+                        status,
+                        result.get("duration", "0.0s"),
+                        result.get("details", ""),
+                    ),
+                    tags=tags,
+                )
+
+        except Exception as e:
+            self.log_output(f"Error updating visualization: {e}", self.TAG_ERROR)
+
+    def _update_charts(self) -> None:
+        """Update matplotlib charts with current test results."""
+        if not MATPLOTLIB_AVAILABLE or not hasattr(self, "fig"):
+            return
+
+        # Clear previous plots
+        self.ax_pie.clear()
+        self.ax_bar.clear()
+        self.ax_timeline.clear()
+
+        if not self.test_results:
+            # Show empty state
+            for ax in [self.ax_pie, self.ax_bar, self.ax_timeline]:
+                ax.text(
+                    0.5,
+                    0.5,
+                    "No test data",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
+            self.canvas.draw()
+            return
+
+        # Count test results
+        status_counts = {}
+        for result in self.test_results:
+            status = result.get("status", "unknown")
+            status_counts[status] = status_counts.get(status, 0) + 1
+
+        # Pie chart of test results
+        if status_counts:
+            labels = list(status_counts.keys())
+            sizes = list(status_counts.values())
+            colors = {
+                "PASSED": "green",
+                "FAILED": "red",
+                "ERROR": "orange",
+                "SKIPPED": "gray",
+            }
+            pie_colors = [colors.get(label, "blue") for label in labels]
+
+            self.ax_pie.pie(sizes, labels=labels, colors=pie_colors, autopct="%1.1f%%")
+            self.ax_pie.set_title("Test Results Distribution")
+
+        # Bar chart of test results
+        if status_counts:
+            labels = list(status_counts.keys())
+            values = list(status_counts.values())
+            bar_colors = [colors.get(label, "blue") for label in labels]
+
+            self.ax_bar.bar(labels, values, color=bar_colors)
+            self.ax_bar.set_title("Test Results Count")
+            self.ax_bar.set_ylabel("Number of Tests")
+
+        # Timeline of recent test results
+        recent_results = self.test_results[-20:]  # Last 20 results
+        if recent_results:
+            status_values = []
+            status_colors = []
+
+            for result in recent_results:
+                status = result.get("status", "unknown")
+                if status == "PASSED":
+                    status_values.append(1)
+                    status_colors.append("green")
+                elif status == "FAILED":
+                    status_values.append(0)
+                    status_colors.append("red")
+                elif status == "ERROR":
+                    status_values.append(-1)
+                    status_colors.append("orange")
+                else:
+                    status_values.append(0.5)
+                    status_colors.append("gray")
+
+            self.ax_timeline.bar(
+                range(len(recent_results)), status_values, color=status_colors
+            )
+            self.ax_timeline.set_title("Recent Test Timeline")
+            self.ax_timeline.set_xlabel("Test Sequence")
+            self.ax_timeline.set_ylabel("Status")
+            self.ax_timeline.set_ylim(-1.5, 1.5)
+            self.ax_timeline.set_yticks([-1, 0, 1])
+            self.ax_timeline.set_yticklabels(["Error", "Failed", "Passed"])
+
+        # Adjust layout and redraw
+        self.fig.tight_layout()
+        self.canvas.draw()
+
+    def _parse_test_results(self) -> None:
+        """Parse test results from the output buffer."""
+        self.test_results = []
+
+        # Parse pytest output for test results
+        current_test = None
+        for message, tag in self.output_buffer:
+            line = message.strip()
+
+            # Detect test start
+            if line.startswith("tests/") and "::" in line:
+                current_test = line.split()[0] if line else "unknown"
+            elif "PASSED" in line and current_test:
+                self.test_results.append(
+                    {
+                        "test": current_test,
+                        "status": "PASSED",
+                        "duration": self._extract_duration(line),
+                        "details": "",
+                    }
+                )
+                current_test = None
+            elif "FAILED" in line and current_test:
+                self.test_results.append(
+                    {
+                        "test": current_test,
+                        "status": "FAILED",
+                        "duration": self._extract_duration(line),
+                        "details": "Test failed",
+                    }
+                )
+                current_test = None
+            elif "ERROR" in line and current_test:
+                self.test_results.append(
+                    {
+                        "test": current_test,
+                        "status": "ERROR",
+                        "duration": self._extract_duration(line),
+                        "details": "Test error",
+                    }
+                )
+                current_test = None
+            elif "SKIPPED" in line and current_test:
+                self.test_results.append(
+                    {
+                        "test": current_test,
+                        "status": "SKIPPED",
+                        "duration": "0.0s",
+                        "details": "Test skipped",
+                    }
+                )
+                current_test = None
+
+    def _extract_duration(self, line: str) -> str:
+        """Extract duration from pytest output line."""
+        try:
+            # Look for duration in format like "0.12s"
+            import re
+
+            duration_match = re.search(r"(\d+\.\d+)s", line)
+            if duration_match:
+                return f"{duration_match.group(1)}s"
+        except Exception:
+            pass
+        return "0.0s"
+
+    def _update_summary_stats(self) -> None:
+        """Update summary statistics from test results."""
+        if not self.test_results:
+            return
+
+        total = len(self.test_results)
+        passed = sum(1 for r in self.test_results if r["status"] == "PASSED")
+        failed = sum(1 for r in self.test_results if r["status"] == "FAILED")
+        errors = sum(1 for r in self.test_results if r["status"] == "ERROR")
+        skipped = sum(1 for r in self.test_results if r["status"] == "SKIPPED")
+
+        # Calculate total duration
+        total_duration = 0.0
+        for result in self.test_results:
+            try:
+                duration_str = result.get("duration", "0.0s").rstrip("s")
+                total_duration += float(duration_str)
+            except (ValueError, AttributeError):
+                pass
+
+        # Update summary variables
+        self.summary_vars["total_tests"].set(str(total))
+        self.summary_vars["passed"].set(str(passed))
+        self.summary_vars["failed"].set(str(failed))
+        self.summary_vars["errors"].set(str(errors))
+        self.summary_vars["skipped"].set(str(skipped))
+        self.summary_vars["duration"].set(f"{total_duration:.2f}s")
+
+        # Try to extract coverage from recent output
+        coverage = self._extract_coverage()
+        self.summary_vars["coverage"].set(coverage)
+
+    def _extract_coverage(self) -> str:
+        """Extract coverage percentage from recent output."""
+        # Look for coverage in recent output lines
+        recent_lines = [msg for msg, tag in list(self.output_buffer)[-20:]]
+        for line in reversed(recent_lines):
+            if "TOTAL" in line and "%" in line:
+                try:
+                    # Extract percentage from line like "TOTAL                     85      0   100%"
+                    parts = line.split()
+                    for part in parts:
+                        if "%" in part:
+                            return part
+                except Exception:
+                    pass
+        return "0%"
 
     def log_output(self, message: str, tag: Optional[str] = None) -> None:
         """Add message to output text area.

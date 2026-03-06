@@ -285,9 +285,12 @@ class ErrorHandler:
             ErrorSeverity.HIGH: {
                 "MODULE_NOT_FOUND": "Required module not found: {module}",
                 "DEPENDENCY_ERROR": "Dependency error: {details}",
+                "VERSION_CONFLICT": "Version conflict for {package}: required {required}, installed {installed}",
+                "MISSING_PACKAGE": "Package not installed: {package}. Install with: pip install {package}",
             },
             ErrorSeverity.MEDIUM: {
                 "OPTIONAL_MODULE_MISSING": "Optional module missing: {module}. Some features may be limited.",
+                "IMPORT_WARNING": "Import warning: {details}",
             },
         },
         # User input errors
@@ -525,10 +528,10 @@ def io_error(code: str, **kwargs) -> APGIError:
     )
 
 
-def user_input_error(code: str, **kwargs) -> APGIError:
-    """Create user input error."""
+def import_error(code: str, **kwargs) -> APGIError:
+    """Create import/dependency error."""
     return error_handler.handle_error(
-        ErrorCategory.USER_INPUT, ErrorSeverity.MEDIUM, code, **kwargs
+        ErrorCategory.IMPORT, ErrorSeverity.HIGH, code, **kwargs
     )
 
 
@@ -539,8 +542,52 @@ def critical_error(code: str, **kwargs) -> APGIError:
     )
 
 
+def handle_import_error(module_name: str, error: Exception, context: str = "") -> None:
+    """Handle import errors with specific, actionable messages."""
+    error_msg = str(error)
+
+    if "No module named" in error_msg:
+        missing_module = error_msg.split("'")[1] if "'" in error_msg else module_name
+        suggestions = {
+            "click": "pip install click",
+            "pandas": "pip install pandas",
+            "numpy": "pip install numpy",
+            "matplotlib": "pip install matplotlib",
+            "scipy": "pip install scipy",
+            "torch": "pip install torch",
+            "sklearn": "pip install scikit-learn",
+            "pymc": "pip install pymc",
+            "arviz": "pip install arviz",
+            "yaml": "pip install pyyaml",
+            "seaborn": "pip install seaborn",
+            "tqdm": "pip install tqdm",
+        }
+
+        suggestion = suggestions.get(missing_module, f"pip install {missing_module}")
+        import_error("MISSING_PACKAGE", package=missing_module, install_cmd=suggestion)
+
+    elif "DLL load failed" in error_msg or "shared library" in error_msg:
+        import_error(
+            "DEPENDENCY_ERROR",
+            details=f"Library loading error for {module_name}: {error_msg}",
+        )
+
+    elif "Permission denied" in error_msg:
+        import_error(
+            "DEPENDENCY_ERROR",
+            details=f"Permission error loading {module_name}: {error_msg}",
+        )
+
+    else:
+        import_error(
+            "DEPENDENCY_ERROR", details=f"Import error for {module_name}: {error_msg}"
+        )
+
+    if context:
+        apgi_logger.logger.warning(f"Import context: {context}")
+
+
 def format_user_message(error: APGIError) -> str:
-    """Format error message for user display."""
     if error.error_info is None:
         # Fallback when error_info is not available
         message = f"❌ {error.message}"
@@ -798,13 +845,30 @@ ERROR_MESSAGES = {
 }
 
 
-def format_error_message(template_key: str, **kwargs) -> str:
-    """Format a standardized error message"""
-    template = ERROR_MESSAGES.get(template_key, "Unknown error: {details}")
+def safe_import(module_name: str, fallback=None, context: str = ""):
+    """
+    Safely import a module with standardized error handling.
+
+    Args:
+        module_name: Name of the module to import
+        fallback: Optional fallback value if import fails
+        context: Additional context for error reporting
+
+    Returns:
+        Imported module or fallback value
+    """
     try:
-        return template.format(**kwargs)
-    except KeyError as e:
-        return f"Error formatting message: {template_key} - missing key: {e}"
+        import importlib
+
+        return importlib.import_module(module_name)
+    except ImportError as e:
+        handle_import_error(module_name, e, context)
+        return fallback
+    except Exception as e:
+        import_error(
+            "DEPENDENCY_ERROR", details=f"Unexpected error importing {module_name}: {e}"
+        )
+        return fallback
 
 
 if __name__ == "__main__":

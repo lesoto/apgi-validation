@@ -129,50 +129,6 @@ def quiet_print(message: str, level: str = "info", force: bool = False) -> None:
             console.print(message)
 
 
-def handle_import_error(module_name: str, error: Exception, context: str = "") -> None:
-    """Handle import errors with specific, actionable messages."""
-    error_msg = str(error)
-
-    if "No module named" in error_msg:
-        missing_module = error_msg.split("'")[1] if "'" in error_msg else module_name
-        suggestions = {
-            "click": "pip install click",
-            "pandas": "pip install pandas",
-            "numpy": "pip install numpy",
-            "matplotlib": "pip install matplotlib",
-            "scipy": "pip install scipy",
-            "torch": "pip install torch",
-            "sklearn": "pip install scikit-learn",
-            "pymc": "pip install pymc",
-            "arviz": "pip install arviz",
-            "yaml": "pip install pyyaml",
-            "seaborn": "pip install seaborn",
-        }
-
-        suggestion = suggestions.get(missing_module, f"pip install {missing_module}")
-        quiet_print(f"Missing dependency: {missing_module}", "error", force=True)
-        quiet_print(f"Install with: {suggestion}", "info")
-
-    elif "DLL load failed" in error_msg or "shared library" in error_msg:
-        quiet_print(f"Library loading error for {module_name}", "error", force=True)
-        quiet_print(
-            f"Try reinstalling: pip uninstall {module_name} && pip install {module_name}",
-            "info",
-        )
-
-    elif "Permission denied" in error_msg:
-        quiet_print(f"Permission error loading {module_name}", "error", force=True)
-        quiet_print(
-            "Try running with appropriate permissions or check file permissions", "info"
-        )
-
-    else:
-        quiet_print(f"Error importing {module_name}: {error_msg}", "error", force=True)
-
-    if context:
-        verbose_print(f"Context: {context}", "warning")
-
-
 def handle_file_error(file_path: str, operation: str, error: Exception) -> None:
     """Handle file-related errors with specific guidance."""
     error_msg = str(error)
@@ -346,6 +302,35 @@ def formal_model(
 ) -> None:
     """Run formal model simulations."""
     console.print(Panel.fit("🧮 Formal Model Simulation", style="bold blue"))
+
+    # Validate inputs
+    if simulation_steps is not None and simulation_steps <= 0:
+        console.print(
+            f"[red]❌ Invalid simulation steps '{simulation_steps}'. Must be a positive integer[/red]"
+        )
+        return
+
+    if simulation_steps is not None and simulation_steps > 100000:
+        console.print(
+            f"[yellow]⚠️ Warning: Large number of simulation steps ({simulation_steps}) may take a long time[/yellow]"
+        )
+
+    if dt is not None and dt <= 0:
+        console.print(
+            f"[red]❌ Invalid time step '{dt}'. Must be a positive number[/red]"
+        )
+        return
+
+    if dt is not None and dt > 1.0:
+        console.print(
+            f"[yellow]⚠️ Warning: Large time step ({dt}) may reduce simulation accuracy[/yellow]"
+        )
+
+    if output_file and not output_file.endswith((".csv", ".json", ".pkl")):
+        console.print(
+            f"[red]❌ Invalid output file '{output_file}'. Must end with .csv, .json, or .pkl[/red]"
+        )
+        return
 
     # Get configuration values
     sim_config = config_manager.get_config("simulation")
@@ -923,6 +908,36 @@ def estimate_params(
         - gradient: Gradient-based optimization (experimental)
     """
     console.print(Panel.fit("📊 Parameter Estimation", style="bold yellow"))
+
+    # Validate inputs
+    if method not in ["mcmc", "map", "gradient"]:
+        console.print(
+            f"[red]❌ Invalid method '{method}'. Must be one of: mcmc, map, gradient[/red]"
+        )
+        return
+
+    if iterations <= 0:
+        console.print(
+            f"[red]❌ Invalid iterations '{iterations}'. Must be a positive integer[/red]"
+        )
+        return
+
+    if iterations > 10000:
+        console.print(
+            f"[yellow]⚠️ Warning: Large number of iterations ({iterations}) may take a long time[/yellow]"
+        )
+
+    if data_file and not data_file.endswith(".csv"):
+        console.print(
+            f"[red]❌ Invalid data file '{data_file}'. Must be a CSV file[/red]"
+        )
+        return
+
+    if output_file and not output_file.endswith((".json", ".csv")):
+        console.print(
+            f"[red]❌ Invalid output file '{output_file}'. Must end with .json or .csv[/red]"
+        )
+        return
 
     module_info = module_loader.get_module("parameter_estimation")
     if not module_info:
@@ -4377,7 +4392,11 @@ def dashboard(output_dir, dashboard_type, open_browser):
         )
 
     except ImportError as e:
-        console.print(f"[red]Error importing dashboard generator: {e}[/red]")
+        from utils.error_handler import handle_import_error
+
+        handle_import_error(
+            "utils.static_dashboard_generator", e, "Dashboard generation"
+        )
         console.print(
             "[yellow]Make sure utils/static_dashboard_generator.py exists[/yellow]"
         )
