@@ -282,8 +282,10 @@ class SpikingLNNModel:
             M_target = np.tanh(self.beta * np.mean(eps_i))
             M += (M_target - M) / (0.1 / dt)  # Tau_M = 0.1 s
 
-            # Effective interoceptive precision
-            Pi_i_eff = self.Pi_i * np.exp(self.beta * M)
+            # Effective interoceptive precision (sigmoid form per specification)
+            M_0 = 0.0  # Reference somatic marker level
+            sigmoid = 1.0 / (1.0 + np.exp(-(M - M_0)))
+            Pi_i_eff = self.Pi_i * (1.0 + self.beta * sigmoid)
 
             # Accumulate surprise
             S += (self.Pi_e * np.mean(eps_e**2) + Pi_i_eff * np.mean(eps_i**2)) * dt

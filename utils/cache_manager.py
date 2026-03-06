@@ -390,7 +390,7 @@ class CacheManager:
                     expired_keys.append(key)
 
             for key in expired_keys:
-                cache_path = Path(info["path"])
+                cache_path = Path(self.metadata[key]["path"])
                 if cache_path.exists():
                     cache_path.unlink()
                 del self.metadata[key]
@@ -444,14 +444,26 @@ class CacheManager:
             return sorted(entries, key=lambda x: x["accessed"], reverse=True)
 
 
-def cached(ttl: Optional[int] = None, cache_manager: Optional[CacheManager] = None):
-    """Decorator for caching function results."""
+# Module-level default cache manager to prevent memory leaks
+_default_cache_manager = None
+
+
+def get_default_cache_manager() -> CacheManager:
+    """Get or create the default cache manager instance"""
+    global _default_cache_manager
+    if _default_cache_manager is None:
+        _default_cache_manager = CacheManager()
+    return _default_cache_manager
+
+
+def cached(cache_manager: Optional[CacheManager] = None, ttl: Optional[float] = None):
+    """Decorator to cache function results"""
 
     def decorator(func: Callable):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            # Use provided cache manager or create default
-            cm = cache_manager or CacheManager()
+            # Use provided cache manager or default instance
+            cm = cache_manager or get_default_cache_manager()
 
             # Generate cache key from function name and arguments
             cache_key = {"function": func.__name__, "args": args, "kwargs": kwargs}

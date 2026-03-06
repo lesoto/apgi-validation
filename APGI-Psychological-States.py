@@ -56,15 +56,21 @@ class APGIParameters:
 
     def __post_init__(self):
         """Validate parameters are within physiological bounds"""
-        assert 0.1 <= self.Pi_e <= 15.0, f"Pi_e must be in [0.1, 15], got {self.Pi_e}"
-        assert (
-            0.1 <= self.Pi_i_baseline <= 15.0
-        ), f"Pi_i_baseline must be in [0.1, 15], got {self.Pi_i_baseline}"
-        assert (
-            0.1 <= self.Pi_i_eff <= 15.0
-        ), f"Pi_i_eff must be in [0.1, 15], got {self.Pi_i_eff}"
-        assert -2.0 <= self.M_ca <= 2.0, f"M_ca must be in [-2, 2], got {self.M_ca}"
-        assert 0.3 <= self.beta <= 0.8, f"beta must be in [0.3, 0.8], got {self.beta}"
+        if not 0.1 <= self.Pi_e <= 15.0:
+            raise ValueError(f"Pi_e must be in [0.1, 15], got {self.Pi_e}")
+        if not 0.1 <= self.Pi_i_baseline <= 15.0:
+            raise ValueError(
+                f"Pi_i_baseline must be in [0.1, 15], got {self.Pi_i_baseline}"
+            )
+        if not 0.1 <= self.Pi_i_eff <= 15.0:
+            raise ValueError(f"Pi_i_eff must be in [0.1, 15], got {self.Pi_i_eff}")
+        if not -2.0 <= self.M_ca <= 2.0:
+            raise ValueError(f"M_ca must be in [-2, 2], got {self.M_ca}")
+        if not (0.5 <= self.beta <= 2.5):
+            raise ValueError(
+                f"β_som={self.beta} outside valid range [0.5, 2.5] for state {self.name}"
+            )
+            self.beta = np.clip(self.beta, 0.5, 2.5)
 
     def compute_ignition_probability(self) -> float:
         """Compute P(ignite) = σ(S_t - θ_t)"""
@@ -76,8 +82,10 @@ class APGIParameters:
         return np.isclose(self.S_t, computed, rtol=0.001)
 
     def verify_Pi_i_eff(self) -> bool:
-        """Verify Π_i_eff matches the formula: Π_i_eff = Π_i_baseline · exp(β_som·M)"""
-        computed = self.Pi_i_baseline * np.exp(self.beta * self.M_ca)
+        """Verify Π_i_eff matches the formula: Π_i_eff = Π_i_baseline · [1 + β·σ(M - M₀)]"""
+        M_0 = 0.0  # Reference somatic marker level
+        sigmoid = 1.0 / (1.0 + np.exp(-(self.M_ca - M_0)))
+        computed = self.Pi_i_baseline * (1.0 + self.beta * sigmoid)
         computed = np.clip(computed, 0.1, 15.0)
         return np.isclose(self.Pi_i_eff, computed, rtol=0.001)
 
@@ -122,11 +130,13 @@ def create_apgi_params(
     Factory function that computes derived parameters automatically.
 
     Computes:
-    - Pi_i_eff = Pi_i_baseline · exp(β_som·M_ca)
+    - Pi_i_eff = Pi_i_baseline · [1 + β·σ(M_ca - M₀)]
     - S_t = Π_e·|z_e| + Π_i_eff·|z_i|
     """
-    # Compute effective interoceptive precision with somatic modulation
-    Pi_i_eff = Pi_i_baseline * np.exp(beta * M_ca)
+    # Compute effective interoceptive precision with somatic modulation (sigmoid form)
+    M_0 = 0.0  # Reference somatic marker level
+    sigmoid = 1.0 / (1.0 + np.exp(-(M_ca - M_0)))
+    Pi_i_eff = Pi_i_baseline * (1.0 + beta * sigmoid)
     Pi_i_eff = np.clip(Pi_i_eff, 0.1, 15.0)
 
     # Compute accumulated surprise

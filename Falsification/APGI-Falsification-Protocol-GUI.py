@@ -213,6 +213,7 @@ class ProtocolRunnerGUI:
                 )
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
+                self.module = module
 
                 # Get the main class
                 cls = getattr(module, protocol_info["class"])
@@ -221,9 +222,9 @@ class ProtocolRunnerGUI:
                 if protocol_info["class"] == "NetworkComparisonExperiment":
                     self._handle_network_comparison(cls, protocol_info)
                 elif protocol_info["class"] == "APGIActiveInferenceAgent":
-                    self._handle_apgi_agent(cls, protocol_info)
+                    self._handle_apgi_agent(cls, module, protocol_info)
                 elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
-                    self._handle_iowa_gambling(cls, protocol_info)
+                    self._handle_iowa_gambling(cls, module, protocol_info)
                 elif hasattr(cls, "run_full_experiment"):
                     self._handle_run_full_experiment(cls, protocol_info)
                 elif hasattr(cls, "run_phase_transition_analysis"):

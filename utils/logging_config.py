@@ -169,6 +169,7 @@ class APGILogger:
         self.error_counts = {}
         self.logger = logger  # Expose the loguru logger
         self.streamer = LogStreamer()
+        self._metrics_lock = threading.Lock()  # Lock for thread-safe metrics access
 
         # Validate and apply logging configuration with fallbacks
         self._validate_logging_config(log_level, enable_console, queue_size)
@@ -391,27 +392,29 @@ class APGILogger:
         )
 
         # Track metrics for analysis
-        if metric_name not in self.performance_metrics:
-            self.performance_metrics[metric_name] = []
-        self.performance_metrics[metric_name].append(
-            {"value": value, "unit": unit, "timestamp": datetime.now().isoformat()}
-        )
+        with self._metrics_lock:
+            if metric_name not in self.performance_metrics:
+                self.performance_metrics[metric_name] = []
+            self.performance_metrics[metric_name].append(
+                {"value": value, "unit": unit, "timestamp": datetime.now().isoformat()}
+            )
 
     def get_performance_summary(self) -> Dict[str, Dict[str, Any]]:
         """Get summary of all performance metrics."""
         summary = {}
-        for metric_name, values in self.performance_metrics.items():
-            if values:
-                numeric_values = [v["value"] for v in values]
-                summary[metric_name] = {
-                    "count": len(values),
-                    "mean": sum(numeric_values) / len(numeric_values),
-                    "min": min(numeric_values),
-                    "max": max(numeric_values),
-                    "unit": values[0]["unit"],
-                    "latest": values[-1]["value"],
-                    "latest_timestamp": values[-1]["timestamp"],
-                }
+        with self._metrics_lock:
+            for metric_name, values in self.performance_metrics.items():
+                if values:
+                    numeric_values = [v["value"] for v in values]
+                    summary[metric_name] = {
+                        "count": len(values),
+                        "mean": sum(numeric_values) / len(numeric_values),
+                        "min": min(numeric_values),
+                        "max": max(numeric_values),
+                        "unit": values[0]["unit"],
+                        "latest": values[-1]["value"],
+                        "latest_timestamp": values[-1]["timestamp"],
+                    }
 
     def set_up_alerts(self, alert_config: Optional[Dict[str, Any]] = None) -> bool:
         """Set up alerts for critical events and performance issues.

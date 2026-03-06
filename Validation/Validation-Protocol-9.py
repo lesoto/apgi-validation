@@ -27,6 +27,7 @@ from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
 
 # MNE for EEG analysis
+mne = None
 try:
     import mne
     from mne.io import read_raw_fif
@@ -61,7 +62,7 @@ class APGIP3bAnalyzer:
         self.sfreq = sfreq
         self.p3b_window = (0.3, 0.5)  # P3b latency window in seconds
 
-    def load_eeg_data(self, filepath: str) -> mne.io.BaseRaw:
+    def load_eeg_data(self, filepath: str) -> "mne.io.BaseRaw":
         """Load EEG data from various formats"""
         if not MNE_AVAILABLE:
             raise ImportError("MNE required for EEG analysis")

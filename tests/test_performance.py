@@ -5,8 +5,6 @@ Performance tests for APGI validation framework.
 Benchmarks for simulation, validation, and data processing performance.
 """
 
-import pytest
-
 from utils import data_validation, sample_data_generator
 
 
@@ -133,7 +131,6 @@ def test_memory_usage():
     assert "overall_score" in quality_report
 
 
-@pytest.mark.slow
 def test_large_scale_simulation():
     """Test performance with larger simulation."""
     import time

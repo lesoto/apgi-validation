@@ -454,9 +454,11 @@ class APGICoreIntegration:
         beta = np.clip(beta, 0.3, 0.8)
         Pi_i_baseline = np.clip(Pi_i_baseline, 0.1, 10.0)
 
-        # Exponential modulation
-        Pi_i_eff = Pi_i_baseline * np.exp(
-            beta * M_ca
+        # Sigmoid modulation (per specification)
+        M_0 = 0.0  # Reference somatic marker level
+        sigmoid = 1.0 / (1.0 + np.exp(-(M_ca - M_0)))
+        Pi_i_eff = Pi_i_baseline * (
+            1.0 + beta * sigmoid
         )  # beta represents β_som (somatic gain)
 
         # Maintain physiological bounds after modulation
@@ -3397,11 +3399,13 @@ def compute_fallback_apgi_parameters(
         pi_e = np.clip(1.0 / (0.5 + 0.3), 0.1, 10.0)
         pi_i_baseline = np.clip(1.0 / (0.8 + 0.4), 0.1, 10.0)
 
-    # Apply somatic modulation
+    # Apply somatic modulation (sigmoid form per specification)
     M_ca = z_scores.get("vmPFC_connectivity", 0.0)
     beta = 0.5  # Default somatic gain
-    pi_i_eff = pi_i_baseline * np.exp(
-        beta * M_ca
+    M_0 = 0.0  # Reference somatic marker level
+    sigmoid = 1.0 / (1.0 + np.exp(-(M_ca - M_0)))
+    pi_i_eff = pi_i_baseline * (
+        1.0 + beta * sigmoid
     )  # beta represents β_som (somatic gain)
     pi_i_eff = np.clip(pi_i_eff, 0.1, 10.0)
 

@@ -122,23 +122,14 @@ def test_config_manager_load_save_cycle(tmp_path):
     config_manager.config = test_config
 
     # Test save (we'll need to check the actual implementation)
-    try:
-        config_manager.save_config()
-    except Exception:
-        # If save fails, that's okay for this test - we're mainly testing set_parameter
-        pass
+    config_manager.save_config()
 
     # Test set_parameter
-    try:
-        config_manager.set_parameter("model", "tau_S", "0.8")
-        # Verify parameter was updated if the method exists
-        model_config = config_manager.get_config("model")
-        if hasattr(model_config, "tau_S"):
-            assert model_config.tau_S == 0.8
-    except Exception as e:
-        # Instead of skipping, just pass the test if set_parameter is not implemented
-        # The test is mainly about the load/save cycle
-        print(f"set_parameter not fully implemented: {e}")
+    config_manager.set_parameter("model", "tau_S", 0.8)
+    # Verify parameter was updated if the method exists
+    model_config = config_manager.get_config("model")
+    if hasattr(model_config, "tau_S"):
+        assert model_config.tau_S == 0.8
 
 
 def test_data_validator_validate_data_quality():

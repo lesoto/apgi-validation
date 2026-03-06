@@ -329,14 +329,19 @@ class BackupManager:
                 # Create temporary metadata file
                 import tempfile
 
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".json", delete=False
-                ) as tmp:
-                    json.dump(backup_info, tmp, indent=2)
-                    tmp_path = Path(tmp.name)
+                tmp_path = None
+                try:
+                    with tempfile.NamedTemporaryFile(
+                        mode="w", suffix=".json", delete=False
+                    ) as tmp:
+                        json.dump(backup_info, tmp, indent=2)
+                        tmp_path = Path(tmp.name)
 
-                tarf.add(tmp_path, "backup_info.json")
-                tmp_path.unlink()  # Clean up temporary file
+                    tarf.add(tmp_path, "backup_info.json")
+                finally:
+                    # Clean up temporary file even if tarf.add() fails
+                    if tmp_path is not None and tmp_path.exists():
+                        tmp_path.unlink()
 
     def list_backups(self) -> List[Dict[str, Any]]:
         """List all available backups."""
@@ -444,7 +449,11 @@ class BackupManager:
 
                 # Extract file
                 try:
-                    target_path = target_dir / file_path
+                    # Validate path to prevent Zip Slip attacks
+                    resolved = (target_dir / file_path).resolve()
+                    if not str(resolved).startswith(str(target_dir.resolve())):
+                        raise ValueError(f"Zip Slip detected: {file_path}")
+                    target_path = resolved
 
                     # Check if file exists
                     if target_path.exists() and not overwrite:
@@ -488,16 +497,26 @@ class BackupManager:
                     continue
 
                 try:
-                    # Extract file
-                    tarf.extract(file_path, target_dir)
+                    # Validate path to prevent path traversal attacks
+                    resolved = (target_dir / file_path).resolve()
+                    if not str(resolved).startswith(str(target_dir.resolve())):
+                        raise ValueError(f"Path traversal detected in TAR: {file_path}")
+                    target_path = resolved
 
                     # Check overwrite condition
-                    target_path = target_dir / file_path
                     if target_path.exists() and not overwrite:
                         apgi_logger.logger.warning(
                             f"Skipping existing file: {target_path}"
                         )
-                        target_path.unlink()
+                        continue
+
+                    # Create parent directories
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+                    # Extract file manually with path validation
+                    with tarf.extractfile(file_path) as source:
+                        with open(target_path, "wb") as target:
+                            shutil.copyfileobj(source, target)
 
                 except (OSError, PermissionError) as e:
                     apgi_logger.logger.error(f"Error extracting {file_path}: {e}")

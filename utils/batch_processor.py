@@ -12,6 +12,8 @@ import json
 import pickle
 import sys
 import time
+import hashlib
+import hmac
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -28,6 +30,49 @@ try:
 except ImportError:
     TQDM_AVAILABLE = False
     tqdm = None  # type: ignore
+
+# Secure pickle functions with HMAC signing
+PICKLE_SECRET_KEY = b"apgi_batch_processor_secret_key_2024"
+
+
+def secure_pickle_dump(obj: Any, file_path: Path) -> None:
+    """Securely pickle an object with HMAC signature"""
+    # Generate HMAC signature
+    pickle_data = pickle.dumps(obj)
+    signature = hmac.new(PICKLE_SECRET_KEY, pickle_data, hashlib.sha256).digest()
+
+    # Write signature + data
+    with open(file_path, "wb") as f:
+        f.write(len(signature).to_bytes(4, "big"))  # Signature length
+        f.write(signature)
+        f.write(pickle_data)
+
+
+def secure_pickle_load(file_path: Path) -> Any:
+    """Securely load a pickled object with HMAC verification"""
+    with open(file_path, "rb") as f:
+        # Read signature length
+        sig_len_bytes = f.read(4)
+        if len(sig_len_bytes) != 4:
+            raise ValueError("Invalid pickle file format")
+
+        sig_len = int.from_bytes(sig_len_bytes, "big")
+
+        # Read signature and data
+        signature = f.read(sig_len)
+        pickle_data = f.read()
+
+        # Verify signature
+        expected_signature = hmac.new(
+            PICKLE_SECRET_KEY, pickle_data, hashlib.sha256
+        ).digest()
+        if not hmac.compare_digest(signature, expected_signature):
+            raise ValueError(
+                "Pickle file signature verification failed - possible tampering"
+            )
+
+        return pickle.loads(pickle_data)
+
 
 # Add project root to Python path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -329,8 +374,7 @@ class BatchProcessor:
             with open(output_path, "w") as f:
                 json.dump(job.result, f, indent=2, default=str)
         elif job.output_file.endswith(".pkl"):
-            with open(output_path, "wb") as f:
-                pickle.dump(job.result, f)
+            secure_pickle_dump(job.result, output_path)
         elif job.output_file.endswith(".csv"):
             if isinstance(job.result, dict) and "results" in job.result:
                 # Save simulation results as CSV

@@ -256,6 +256,10 @@ class IITFramework(ComputationalFramework):
             # Integrated information Phi
             phi = min(h1 - h1_given_2, h2 - h2_given_1)
 
+            # Handle NaN values in phi
+            if np.isnan(phi):
+                phi = 0.0  # Default to no integration when computation fails
+
             phi_values[t] = phi
             integrated_states[t] = window_data
 
@@ -270,7 +274,18 @@ class IITFramework(ComputationalFramework):
         """Compute Shannon entropy"""
         hist, _ = np.histogram(data, bins=10, density=True)
         hist = hist[hist > 0]
-        return -np.sum(hist * np.log(hist))
+
+        # Handle empty histogram (e.g., for single-element or constant data)
+        if len(hist) == 0:
+            return 0.0
+
+        entropy = -np.sum(hist * np.log(hist))
+
+        # Handle potential NaN from numerical issues
+        if np.isnan(entropy):
+            entropy = 0.0
+
+        return np.nan_to_num(entropy, nan=0.0, posinf=0.0, neginf=0.0)
 
     def _conditional_entropy(self, x: np.ndarray, y: np.ndarray) -> float:
         """Compute conditional entropy H(X|Y)"""
@@ -288,7 +303,8 @@ class IITFramework(ComputationalFramework):
         h_joint = -np.sum(
             joint_hist[joint_hist > 0] * np.log(joint_hist[joint_hist > 0])
         )
-        return h_joint - h_y
+        conditional_entropy = h_joint - h_y
+        return np.nan_to_num(conditional_entropy, nan=0.0, posinf=0.0, neginf=0.0)
 
     def get_parameter_count(self) -> int:
         return len(self.default_params)
