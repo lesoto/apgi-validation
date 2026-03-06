@@ -15,7 +15,7 @@ def test_validation_files_exist():
     validation_files = [
         "Validation-Protocol-1.py",
         "Validation-Protocol-2.py",
-        "APGI-Validation-GUI.py",
+        "APGI_Validation_GUI.py",
     ]
 
     for file_name in validation_files:

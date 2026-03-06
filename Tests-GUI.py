@@ -972,6 +972,9 @@ class TestsRunnerGUI:
                 self.progress.stop()
                 self.update_status("Ready")
 
+                # Update visualization statistics and charts after tests complete
+                self.root.after_idle(self.update_visualization)
+
             # Start output reading thread
             output_thread = threading.Thread(target=read_pytest_output, daemon=True)
             output_thread.start()
@@ -1054,6 +1057,9 @@ class TestsRunnerGUI:
 
                 self.progress.stop()
                 self.update_status("Ready")
+
+                # Update visualization statistics and charts after script completes
+                self.root.after_idle(self.update_visualization)
 
             # Start output reading thread
             output_thread = threading.Thread(target=read_output, daemon=True)

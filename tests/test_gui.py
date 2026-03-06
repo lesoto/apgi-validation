@@ -8,6 +8,8 @@ Tests for tkinter GUI components with proper mocking and fixtures.
 import pytest
 from unittest.mock import Mock, patch
 
+import Validation  # noqa: F401
+
 
 @pytest.fixture
 def mock_tkinter():
@@ -18,10 +20,29 @@ def mock_tkinter():
         "tkinter.ttk.Label"
     ) as mock_label, patch(
         "tkinter.StringVar"
-    ) as mock_stringvar:
+    ) as mock_stringvar, patch(
+        "tkinter.BooleanVar"
+    ) as mock_boolvar, patch(
+        "tkinter.DoubleVar"
+    ) as mock_doublevar, patch(
+        "tkinter.IntVar"
+    ) as mock_intvar:
         # Configure mocks
         mock_root = Mock()
+        mock_child_ids = Mock()
+        mock_child_ids.get = Mock(
+            side_effect=lambda key, default=0: default
+            if isinstance(default, int)
+            else 0
+        )
+        mock_root._last_child_ids = mock_child_ids
         mock_tk.return_value = mock_root
+
+        # Configure variable mocks
+        mock_stringvar.return_value = Mock()
+        mock_boolvar.return_value = Mock()
+        mock_doublevar.return_value = Mock()
+        mock_intvar.return_value = Mock()
 
         yield {
             "tk": mock_tk,
@@ -30,6 +51,9 @@ def mock_tkinter():
             "button": mock_button,
             "label": mock_label,
             "stringvar": mock_stringvar,
+            "boolvar": mock_boolvar,
+            "doublevar": mock_doublevar,
+            "intvar": mock_intvar,
         }
 
 
@@ -57,41 +81,42 @@ def mock_validator():
 class TestAPGIValidationGUI:
     """Test suite for APGI Validation GUI."""
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
     def test_gui_initialization(
         self, mock_safe_import, mock_validator_class, mock_tkinter
     ):
         """Test GUI initialization with mocked components."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
-        # Mock the validator import
-        mock_safe_import.return_value = Mock()
-        mock_validator_class.return_value = Mock()
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            # Mock the validator import
+            mock_safe_import.return_value = Mock()
+            mock_validator_class.return_value = Mock()
 
-        # Create GUI instance
-        root = Mock()
-        gui = APGIValidationGUI(root)
+            # Create GUI instance
+            root = Mock()
+            gui = APGIValidationGUI(root)
 
-        # Verify initialization
-        assert gui.root == root
-        assert hasattr(gui, "validator")
-        assert hasattr(gui, "_protocol_cache")
+            # Verify initialization
+            assert gui.root == root
+            assert hasattr(gui, "validator")
+            assert hasattr(gui, "_protocol_cache")
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
     def test_protocol_selection_validation(
-        self, mock_safe_import, mock_validator_class, mock_validator
+        self, mock_safe_import, mock_validator_class, mock_validator, mock_tkinter
     ):
         """Test protocol selection validation."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         # Setup mocks
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = mock_validator
 
         with patch("tkinter.messagebox.showerror") as mock_error:
-            root = Mock()
+            root = mock_tkinter["root"]
             gui = APGIValidationGUI(root)
 
             # Mock protocol vars
@@ -109,17 +134,18 @@ class TestAPGIValidationGUI:
             # Verify error was shown
             mock_error.assert_called()
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
-    def test_parameter_validation(self, mock_safe_import, mock_validator_class):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_parameter_validation(self, mock_safe_import, mock_validator_class, mock_tkinter):
         """Test parameter slider validation."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()
 
-        root = Mock()
-        gui = APGIValidationGUI(root)
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            root = mock_tkinter["root"]
+            gui = APGIValidationGUI(root)
 
         # Mock parameter labels
         gui.param_labels = {"tau_S": Mock()}
@@ -130,13 +156,13 @@ class TestAPGIValidationGUI:
         # Verify label was updated
         gui.param_labels["tau_S"].config.assert_called_with(text="0.750")
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
     def test_save_results_validation(
-        self, mock_safe_import, mock_validator_class, mock_validator
+        self, mock_safe_import, mock_validator_class, mock_validator, mock_tkinter
     ):
         """Test save results with validation."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = mock_validator
@@ -145,8 +171,8 @@ class TestAPGIValidationGUI:
             "tkinter.messagebox.showinfo"
         ) as mock_info, patch("builtins.open", create=True) as mock_open, patch(
             "json.dump"
-        ) as mock_json:
-            root = Mock()
+        ) as mock_json, patch.object(APGIValidationGUI, "update_parameter_display"):
+            root = mock_tkinter["root"]
             gui = APGIValidationGUI(root)
 
             # Setup validator with results
@@ -163,19 +189,20 @@ class TestAPGIValidationGUI:
             mock_json.assert_called_once()
             mock_info.assert_called_once()
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
     def test_thread_safety(
-        self, mock_safe_import, mock_validator_class, mock_validator
+        self, mock_safe_import, mock_validator_class, mock_validator, mock_tkinter
     ):
         """Test thread safety mechanisms."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = mock_validator
 
-        root = Mock()
-        gui = APGIValidationGUI(root)
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            root = mock_tkinter["root"]
+            gui = APGIValidationGUI(root)
 
         # Test running state thread safety
         assert not gui.is_running
@@ -185,17 +212,18 @@ class TestAPGIValidationGUI:
             gui._is_running = True
             assert gui.is_running
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
-    def test_progress_tracking(self, mock_safe_import, mock_validator_class):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_progress_tracking(self, mock_safe_import, mock_validator_class, mock_tkinter):
         """Test progress tracking mechanisms."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()
 
-        root = Mock()
-        gui = APGIValidationGUI(root)
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            root = mock_tkinter["root"]
+            gui = APGIValidationGUI(root)
 
         # Mock update queue
         gui._update_queue = Mock()
@@ -207,17 +235,18 @@ class TestAPGIValidationGUI:
         # Verify queue operation
         gui._update_queue.put.assert_called_with(("progress", 50.0), block=False)
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
-    def test_error_handling_callbacks(self, mock_safe_import, mock_validator_class):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_error_handling_callbacks(self, mock_safe_import, mock_validator_class, mock_tkinter):
         """Test error handling in GUI callbacks."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()
 
-        root = Mock()
-        gui = APGIValidationGUI(root)
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            root = mock_tkinter["root"]
+            gui = APGIValidationGUI(root)
 
         # Mock UI elements that might fail
         gui.run_button = Mock()
@@ -228,19 +257,20 @@ class TestAPGIValidationGUI:
 
         # Should not crash, error should be logged internally
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
     def test_parameter_reset_functionality(
-        self, mock_safe_import, mock_validator_class
+        self, mock_safe_import, mock_validator_class, mock_tkinter
     ):
         """Test parameter reset functionality."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()
 
-        root = Mock()
-        gui = APGIValidationGUI(root)
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            root = mock_tkinter["root"]
+            gui = APGIValidationGUI(root)
 
         # Mock parameter controls
         gui.param_vars = {
@@ -266,17 +296,18 @@ class TestAPGIValidationGUI:
         gui.param_vars["theta_0"].set.assert_called_with(0.5)
         gui.param_vars["alpha"].set.assert_called_with(5.0)
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
-    def test_settings_management(self, mock_safe_import, mock_validator_class):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_settings_management(self, mock_safe_import, mock_validator_class, mock_tkinter):
         """Test GUI settings management."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()
 
-        root = Mock()
-        gui = APGIValidationGUI(root)
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            root = mock_tkinter["root"]
+            gui = APGIValidationGUI(root)
 
         # Mock settings
         gui.settings = {
@@ -300,21 +331,21 @@ class TestGUIIntegration:
     """Integration tests for GUI components."""
 
     @pytest.mark.integration
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
     def test_full_validation_workflow(
-        self, mock_safe_import, mock_validator_class, mock_validator
+        self, mock_safe_import, mock_validator_class, mock_validator, mock_tkinter
     ):
         """Integration test for full validation workflow."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = mock_validator
 
         with patch("tkinter.messagebox.showwarning"), patch(
             "tkinter.messagebox.showerror"
-        ), patch("threading.Thread") as mock_thread:
-            root = Mock()
+        ), patch("threading.Thread") as mock_thread, patch.object(APGIValidationGUI, "update_parameter_display"):
+            root = mock_tkinter["root"]
             gui = APGIValidationGUI(root)
 
             # Setup protocol selection
@@ -339,19 +370,20 @@ class TestGUIIntegration:
             mock_thread_instance.start.assert_called_once()
 
     @pytest.mark.integration
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
     def test_parameter_exploration_workflow(
-        self, mock_safe_import, mock_validator_class
+        self, mock_safe_import, mock_validator_class, mock_tkinter
     ):
         """Integration test for parameter exploration."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()
 
-        root = Mock()
-        gui = APGIValidationGUI(root)
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            root = mock_tkinter["root"]
+            gui = APGIValidationGUI(root)
 
         # Setup parameter controls
         gui.param_vars = {
@@ -375,38 +407,40 @@ class TestGUIIntegration:
 class TestGUIPerformance:
     """Performance tests for GUI operations."""
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
     def test_gui_initialization_performance(
-        self, mock_safe_import, mock_validator_class
+        self, mock_safe_import, mock_validator_class, mock_tkinter
     ):
         """Test GUI initialization performance."""
         import time
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()
 
-        start_time = time.time()
-        root = Mock()
-        APGIValidationGUI(root)
-        end_time = time.time()
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            start_time = time.time()
+            root = mock_tkinter["root"]
+            APGIValidationGUI(root)
+            end_time = time.time()
 
-        # GUI initialization should complete within reasonable time
-        assert end_time - start_time < 5.0  # 5 seconds max
+            # GUI initialization should complete within reasonable time
+            assert end_time - start_time < 5.0  # 5 seconds max
 
-    @patch("Validation.APGI_Validation_GUI.APGIMasterValidator")
-    @patch("Validation.APGI_Validation_GUI.safe_import_module")
-    def test_ui_update_queue_performance(self, mock_safe_import, mock_validator_class):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_ui_update_queue_performance(self, mock_safe_import, mock_validator_class, mock_tkinter):
         """Test UI update queue performance under load."""
-        from Validation.APGI_Validation_GUI import APGIValidationGUI
+        from Validation import APGIValidationGUI
         import time
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()
 
-        root = Mock()
-        gui = APGIValidationGUI(root)
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            root = mock_tkinter["root"]
+            gui = APGIValidationGUI(root)
 
         # Test rapid UI updates
         start_time = time.time()
