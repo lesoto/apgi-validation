@@ -23,7 +23,23 @@ import numpy as np
 import pandas as pd
 
 # Import batch configuration
-from .batch_config import BatchProcessorConfig
+try:
+    from .batch_config import BatchProcessorConfig
+except ImportError:
+    try:
+        from utils.batch_config import BatchProcessorConfig
+    except ImportError:
+        # Fallback to basic config if not available
+        class BatchProcessorConfig:
+            def __init__(self, config_file=None):
+                self.config_file = config_file
+
+            def get_max_workers(self):
+                return 4
+
+            def get(self, key, default=None):
+                return default
+
 
 # Optional import for tqdm
 try:
@@ -38,30 +54,23 @@ import os
 
 # Secure pickle functions with HMAC signing
 PICKLE_SECRET_KEY = os.environ.get("PICKLE_SECRET_KEY")
-if PICKLE_SECRET_KEY is None:
-    from utils.error_handler import APGIError, ErrorCategory, ErrorSeverity
-
-    raise APGIError(
-        message=(
-            "PICKLE_SECRET_KEY environment variable not set. Please set this "
-            "environment variable to a secure random key."
-        ),
-        category=ErrorCategory.IMPORT,
-        severity=ErrorSeverity.CRITICAL,
-        error_code="MISSING_ENV_VAR",
-        suggestion=[
-            "Set PICKLE_SECRET_KEY environment variable",
-            "Use: export PICKLE_SECRET_KEY='your_secret_key_here'",
-        ],
-        user_action=(
-            "Set the required environment variable before running the application"
-        ),
-    )
-PICKLE_SECRET_KEY = PICKLE_SECRET_KEY.encode()
+if PICKLE_SECRET_KEY is not None:
+    PICKLE_SECRET_KEY = PICKLE_SECRET_KEY.encode()
 
 
 def secure_pickle_dump(obj: Any, file_path: Path) -> None:
     """Securely pickle an object with HMAC signature"""
+    if PICKLE_SECRET_KEY is None:
+        from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
+
+        raise error_handler.handle_error(
+            category=ErrorCategory.IMPORT,
+            severity=ErrorSeverity.CRITICAL,
+            code="MISSING_ENV_VAR",
+            message="PICKLE_SECRET_KEY environment variable not set. Cannot use secure pickle.",
+            suggestions=["Set PICKLE_SECRET_KEY environment variable"],
+            user_action="Set the required environment variable before using secure pickle functions",
+        )
     # Generate HMAC signature
     pickle_data = pickle.dumps(obj)
     signature = hmac.new(PICKLE_SECRET_KEY, pickle_data, hashlib.sha256).digest()
@@ -75,6 +84,17 @@ def secure_pickle_dump(obj: Any, file_path: Path) -> None:
 
 def secure_pickle_load(file_path: Path) -> Any:
     """Securely load a pickled object with HMAC verification"""
+    if PICKLE_SECRET_KEY is None:
+        from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
+
+        raise error_handler.handle_error(
+            category=ErrorCategory.IMPORT,
+            severity=ErrorSeverity.CRITICAL,
+            code="MISSING_ENV_VAR",
+            message="PICKLE_SECRET_KEY environment variable not set. Cannot use secure pickle.",
+            suggestions=["Set PICKLE_SECRET_KEY environment variable"],
+            user_action="Set the required environment variable before using secure pickle functions",
+        )
     with open(file_path, "rb") as f:
         # Read signature length
         sig_len_bytes = f.read(4)

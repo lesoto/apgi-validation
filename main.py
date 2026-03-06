@@ -3214,7 +3214,7 @@ def _run_gui_module(gui_path, gui_name, debug):
 
 def _launch_validation_gui(debug):
     """Launch validation GUI."""
-    gui_path = PROJECT_ROOT / "Validation" / "APGI-Validation-GUI.py"
+    gui_path = PROJECT_ROOT / "Validation" / "APGI_Validation_GUI.py"
 
     if not gui_path.exists():
         console.print(f"[red]❌ Validation GUI not found at: {gui_path}[/red]")

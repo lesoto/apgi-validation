@@ -32,7 +32,7 @@ except Exception as e:
     APGIMasterValidator = None
 
 # Import GUI module using importlib (needed for hyphenated filename)
-gui_path = validation_dir / "APGI-Validation-GUI.py"
+gui_path = validation_dir / "APGI_Validation_GUI.py"
 
 try:
     gui_spec = importlib.util.spec_from_file_location("APGI_Validation_GUI", gui_path)
