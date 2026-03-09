@@ -1,6 +1,6 @@
 # APGI Validation Framework — End-to-End Audit Report
 
-**Report Version:** 4.0
+**Report Version:** 4.1
 **Audit Date:** 2026-03-09
 **Audited Commit:** `162fc0b`
 **Branch:** `claude/app-audit-security-Kijfx`
@@ -37,15 +37,16 @@ This audit performed a full end-to-end review covering functional completeness, 
 
 | Metric | Count |
 |--------|-------|
-| **Total Issues Found** | **117** |
-| Critical Bugs | 7 |
-| High Bugs | 22 |
-| Medium Bugs | 56 |
-| Low Bugs | 32 |
+| **Total Issues Found** | **128** |
+| Critical Bugs | 9 |
+| High Bugs | 26 |
+| Medium Bugs | 58 |
+| Low Bugs | 35 |
 | Security Vulnerabilities | 18 |
-| Missing Features / Incomplete Implementations | 24 |
-| Tests with Broken/Weak Assertions | 11 |
+| Missing Features / Incomplete Implementations | 27 |
+| Tests with Broken/Weak Assertions | 16 |
 | Untested Protocol Files | 16 of 18 (89%) |
+| Tests That Will Fail at Runtime | 7 |
 
 ### Overall Health: ⚠️ REQUIRES REMEDIATION
 
@@ -425,6 +426,51 @@ All `pd.read_csv()` and `pd.read_excel()` calls lack `nrows` or pre-read file si
 
 ---
 
+### BUG-H12A — Seven Test Methods Will Fail at Runtime Due to `@patch` + Fixture Parameter Mismatch
+
+| Field | Detail |
+|-------|--------|
+| **File** | `tests/test_gui.py` |
+| **Lines** | 108–109, 161–162, 194–195, 336–339, 375–385 |
+| **Severity** | 🟠 HIGH |
+| **Type** | Test Defect / Runtime Crash |
+
+**Description:**
+Five test methods combine `@patch` decorators with a `mock_validator` pytest fixture parameter that is **not** provided by any `@patch` decorator. When pytest injects `@patch` mock arguments (bottom-to-top order), the parameter list is misaligned — `mock_validator` receives the wrong mock object, or the test raises `TypeError` about unexpected arguments.
+
+Additionally, `test_gui_initialization` and `test_parameter_exploration_workflow` reference `mock_tkinter` in their bodies but the fixture is not in their parameter lists, causing `NameError` at runtime.
+
+**Affected tests:**
+- `test_gui_initialization` (line 86)
+- `test_protocol_selection_validation` (line 108)
+- `test_save_results_validation` (line 161)
+- `test_thread_safety` (line 194)
+- `test_full_validation_workflow` (line 336)
+- `test_parameter_exploration_workflow` (line 375)
+- `test_apgi_dynamical_system_simulate_surprise_accumulation` (line 52 — raises `AssertionError` instead of skipping)
+
+**Fix:** Align `@patch` decorator count with parameter count. Remove fixture parameters that are supplied by decorators.
+
+---
+
+### BUG-H12B — `APGIMasterValidator` Missing Attributes Expected by Tests
+
+| Field | Detail |
+|-------|--------|
+| **File** | `Validation/Master_Validation.py` + `tests/test_gui.py` |
+| **Lines** | `test_gui.py:64–76` |
+| **Severity** | 🟠 HIGH |
+| **Type** | API Contract Violation / Test Failure |
+
+**Description:**
+The `mock_validator` fixture in `test_gui.py` patches `APGIMasterValidator` and sets three attributes (`PROTOCOL_TIERS`, `falsification_status`, `timeout_seconds`) that do not exist in the actual `APGIMasterValidator` class implementation. The class only exposes `protocol_results`, `available_protocols`, `run_validation()`, `generate_master_report()`, `get_available_protocols()`, and `clear_results()`.
+
+Any test that uses the real (unpatched) `APGIMasterValidator` will fail with `AttributeError`. The mock tests pass only because they never exercise the real class.
+
+**Fix:** Either add the documented attributes to `APGIMasterValidator`, or update the fixture to match the real implementation.
+
+---
+
 ### BUG-H12 — Broken Test: Uses `raise AssertionError` Instead of `pytest.skip`
 
 | Field | Detail |
@@ -612,6 +658,9 @@ Five test methods return dictionaries with inconsistent keys: some include `"err
 | BUG-M28 | `tests/test_gui.py` | 193–213 | Thread-safety test uses locks but no actual concurrent access | Test Defect |
 | BUG-M29 | `tests/conftest.py` | 84–92 | Sample data fixture has only 5 data points — insufficient for time-series validation | Test Defect |
 | BUG-M30 | `tests/test_performance.py` | 149 | Performance threshold of 5 seconds for GUI initialization is unrealistically long | Test Defect |
+| BUG-M30A | `tests/test_performance.py` | 11–104 | 5 of 7 performance tests do not actually measure elapsed time — they only verify correctness | Test Defect |
+| BUG-M30B | `tests/test_integration.py` | 98–114 | Full pipeline integration test is a placeholder comment; no protocol execution occurs | Test Defect |
+| BUG-M30C | `tests/test_integration.py` | 24–59 | Protocol-9 integration test calls `validate_convergent_signatures(None, None)` — no real data provided | Test Defect |
 | BUG-M31 | `utils/logging_config.py` | 593–607 | Regex search on log lines has no timeout (ReDoS risk on malformed logs) | Security |
 | BUG-M32 | `utils/logging_config.py` | 144–156 | Stream worker silently continues after exception | Error Handling |
 | BUG-M33 | `APGI-Falsification-Framework.py` | 13–18 | `warnings` module imported and configured but never explicitly used | Code Quality |
@@ -709,10 +758,25 @@ P2 (Fix Next Sprint): SEC-09 through SEC-18
 | MF-22 | Upper-bound clamp on EEG window array allocation | `utils/preprocessing_pipelines.py` | ❌ Missing | OOM on large sliding window |
 | MF-23 | HDF5 depth/key-count limit in validation | `utils/data_validation.py` | ❌ Missing | Deeply nested HDF5 causes infinite loop |
 | MF-24 | Seed randomization option for robustness testing | `Validation/Validation-Protocol-1.py` | ❌ Missing | Fixed seed 42 masks stochastic failures |
+| MF-25 | `PROTOCOL_TIERS`, `falsification_status`, `timeout_seconds` on `APGIMasterValidator` | `Validation/Master_Validation.py` | ❌ Missing | Tests reference non-existent API surface |
+| MF-26 | Actual timing measurements in performance tests | `tests/test_performance.py` | ❌ Missing | Performance suite does not benchmark performance |
+| MF-27 | Complete full-pipeline integration test | `tests/test_integration.py` | ⚠️ Placeholder | Test file contains comment stub, no actual execution |
 
 ---
 
 ## 10. Test Suite Analysis
+
+### Tests Confirmed to Fail at Runtime
+
+| Test | File | Line | Failure Reason |
+|------|------|------|---------------|
+| `test_gui_initialization` | `test_gui.py` | 86 | `mock_tkinter` referenced in body but not in params |
+| `test_protocol_selection_validation` | `test_gui.py` | 108 | `@patch` count mismatch — `mock_validator` bound to wrong arg |
+| `test_save_results_validation` | `test_gui.py` | 161 | Same `@patch` / fixture mismatch |
+| `test_thread_safety` | `test_gui.py` | 194 | Same `@patch` / fixture mismatch |
+| `test_full_validation_workflow` | `test_gui.py` | 336 | Same `@patch` / fixture mismatch |
+| `test_parameter_exploration_workflow` | `test_gui.py` | 375 | `mock_tkinter` used in body but not injected |
+| `test_apgi_dynamical_system_simulate_surprise_accumulation` | `test_validation.py` | 52 | `raise AssertionError()` on import failure instead of skip |
 
 ### Coverage Summary
 
@@ -799,6 +863,8 @@ P2 (Fix Next Sprint): SEC-09 through SEC-18
 | R18 | Add memory size guard before ICA processing | `utils/preprocessing_pipelines.py:233` | 2 hrs |
 | R19 | Fix config directory creation before GUI settings save | `Validation/APGI_Validation_GUI.py:658` | 15 min |
 | R20 | Use `queue.Queue` for thread-safe GUI updates | `Validation/APGI_Validation_GUI.py:212` | 2 hrs |
+| R20A | Fix `@patch` + fixture parameter mismatches in 6 `test_gui.py` tests | `tests/test_gui.py` | 1 hr |
+| R20B | Add `PROTOCOL_TIERS`, `falsification_status`, `timeout_seconds` to `APGIMasterValidator` OR update mocks | `Validation/Master_Validation.py` | 2 hrs |
 
 ### P2 — Fix Next Sprint (Medium)
 
@@ -809,6 +875,8 @@ P2 (Fix Next Sprint): SEC-09 through SEC-18
 | R23 | Replace `any()` assertions with explicit field checks | `tests/test_validation.py` | 2 hrs |
 | R24 | Remove `if hasattr()` guards from assertions | `tests/test_validation.py` | 1 hr |
 | R25 | Add `@pytest.mark.parametrize` for edge cases | All test files | 1 day |
+| R25A | Add actual `time.perf_counter()` measurements to all 7 performance tests | `tests/test_performance.py` | 2 hrs |
+| R25B | Replace placeholder integration test with real protocol execution | `tests/test_integration.py:98` | 4 hrs |
 | R26 | Fix `raise AssertionError()` → `pytest.skip()` | `tests/test_validation.py:70` | 5 min |
 | R27 | Add `nrows` limit to all `pd.read_csv()` calls | `utils/data_validation.py` | 2 hrs |
 | R28 | Add HDF5 depth/key-count limit | `utils/data_validation.py:583` | 2 hrs |
