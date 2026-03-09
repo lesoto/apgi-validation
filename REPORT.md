@@ -1,6 +1,6 @@
 # APGI Validation Framework — End-to-End Audit Report
 
-**Report Version:** 4.1
+**Report Version:** 4.2 (Live Test Run Validated)
 **Audit Date:** 2026-03-09
 **Audited Commit:** `162fc0b`
 **Branch:** `claude/app-audit-security-Kijfx`
@@ -37,16 +37,17 @@ This audit performed a full end-to-end review covering functional completeness, 
 
 | Metric | Count |
 |--------|-------|
-| **Total Issues Found** | **128** |
-| Critical Bugs | 9 |
-| High Bugs | 26 |
-| Medium Bugs | 58 |
-| Low Bugs | 35 |
+| **Total Issues Found** | **134** |
+| Critical Bugs | 11 |
+| High Bugs | 27 |
+| Medium Bugs | 59 |
+| Low Bugs | 37 |
 | Security Vulnerabilities | 18 |
 | Missing Features / Incomplete Implementations | 27 |
 | Tests with Broken/Weak Assertions | 16 |
 | Untested Protocol Files | 16 of 18 (89%) |
-| Tests That Will Fail at Runtime | 7 |
+| Tests Failing in Live Run | 4 FAILED + 13 ERROR (of 42 collected) |
+| Dependency Conflicts in `requirements.txt` | 1 irresolvable conflict |
 
 ### Overall Health: ⚠️ REQUIRES REMEDIATION
 
@@ -426,6 +427,56 @@ All `pd.read_csv()` and `pd.read_excel()` calls lack `nrows` or pre-read file si
 
 ---
 
+### BUG-C08 — `Validation-Protocol-9.py` Crashes at Import Due to Optional `mne` Dependency
+
+| Field | Detail |
+|-------|--------|
+| **File** | `Validation/Validation-Protocol-9.py` |
+| **Line** | 82 |
+| **Severity** | 🔴 CRITICAL |
+| **Type** | Import Crash / AttributeError |
+| **Confirmed** | ✅ Live test run |
+
+**Description:**
+`Validation-Protocol-9.py` uses `mne.Epochs` as a **class-body type annotation** at line 82, not inside a method. When `mne` is unavailable, it is set to `None` (via `try/except ImportError`), causing `AttributeError: 'NoneType' object has no attribute 'Epochs'` at class definition time — the entire module fails to load.
+
+**Actual error from live test run:**
+```
+Validation/Validation-Protocol-9.py:82: in APGIP3bAnalyzer
+    self, epochs: mne.Epochs, electrode: str = "Pz"
+AttributeError: 'NoneType' object has no attribute 'Epochs'
+```
+
+**Expected Behavior:** Protocol loads gracefully and raises `ImportError` only when the specific feature is called.
+**Fix:** Move `mne` type annotation inside `TYPE_CHECKING` guard or use string-literal annotations (`"mne.Epochs"`).
+
+---
+
+### BUG-C09 — `requirements.txt` Contains Irresolvable Dependency Conflict
+
+| Field | Detail |
+|-------|--------|
+| **File** | `requirements.txt` |
+| **Severity** | 🔴 CRITICAL |
+| **Type** | Dependency Resolution Failure |
+| **Confirmed** | ✅ Live `pip install` |
+
+**Description:**
+`requirements.txt` specifies `pandas>=1.3.0,<2.2.0` but `nilearn>=0.13.1` (also listed) requires `pandas>=2.2.0`. These constraints are mutually exclusive — `pip` cannot satisfy both and aborts with `ResolutionImpossible`.
+
+**Actual pip error:**
+```
+ERROR: Cannot install requirements.txt because these package versions have conflicting dependencies.
+The conflict is caused by:
+    pandas<2.2.0 and >=1.3.0  (user requirement)
+    nilearn 0.13.1 requires pandas>=2.2.0
+```
+
+**Impact:** Fresh environment setup fails entirely; CI/CD pipelines will always fail on `pip install`.
+**Fix:** Either upgrade pandas constraint to `>=2.2.0` or pin `nilearn<0.13.1`.
+
+---
+
 ### BUG-H12A — Seven Test Methods Will Fail at Runtime Due to `@patch` + Fixture Parameter Mismatch
 
 | Field | Detail |
@@ -609,6 +660,22 @@ GUI settings are serialised with `yaml.dump()` without validating that values co
 
 ---
 
+### BUG-H22A — `tqdm` Missing from `requirements.txt` Breaks `main.py` Import
+
+| Field | Detail |
+|-------|--------|
+| **File** | `requirements.txt` + `utils/preprocessing_pipelines.py:22` |
+| **Severity** | 🟠 HIGH |
+| **Type** | Missing Dependency / Installation Failure |
+| **Confirmed** | ✅ Live test run |
+
+**Description:**
+`utils/preprocessing_pipelines.py` imports `tqdm` at module level (line 22). `utils/__init__.py` imports `preprocessing_pipelines`, and `main.py` imports `utils`. Result: `main.py` — the entire CLI entry point — raises `ModuleNotFoundError: No module named 'tqdm'` on any fresh install, making the application completely unusable out of the box.
+
+**Fix:** Add `tqdm>=4.0` to `requirements.txt`.
+
+---
+
 ### BUG-H22 — Inconsistent Return Type in `FalsificationCriterion.test()`
 
 | Field | Detail |
@@ -666,6 +733,9 @@ Five test methods return dictionaries with inconsistent keys: some include `"err
 | BUG-M33 | `APGI-Falsification-Framework.py` | 13–18 | `warnings` module imported and configured but never explicitly used | Code Quality |
 | BUG-M34 | `config/default.yaml` | 1–6 | Config file nearly empty (6 lines); most parameters remain hardcoded | Configuration |
 | BUG-M35 | `Validation/Validation-Protocol-1.py` | 50, 619 | Fixed random seeds (`42`) throughout; no mechanism for seed variation in robustness testing | Reproducibility |
+| BUG-M36 | `requirements.txt` | — | `psutil` used in `test_performance.py:111` but not listed as dependency | Missing Dependency |
+| BUG-M37 | `requirements.txt` | — | `mne` used in Validation-Protocol-9 but not listed as dependency | Missing Dependency |
+| BUG-M38 | `tests/test_gui.py` | 17 | `mock_tkinter` fixture patches `tkinter.Tk` which triggers real import; fails on headless/CI servers | Environment |
 
 *(Additional 21 medium issues omitted for brevity — see Appendix for full matrix.)*
 
@@ -766,17 +836,43 @@ P2 (Fix Next Sprint): SEC-09 through SEC-18
 
 ## 10. Test Suite Analysis
 
-### Tests Confirmed to Fail at Runtime
+### Live Test Run Results (Verified 2026-03-09)
 
-| Test | File | Line | Failure Reason |
-|------|------|------|---------------|
-| `test_gui_initialization` | `test_gui.py` | 86 | `mock_tkinter` referenced in body but not in params |
-| `test_protocol_selection_validation` | `test_gui.py` | 108 | `@patch` count mismatch — `mock_validator` bound to wrong arg |
-| `test_save_results_validation` | `test_gui.py` | 161 | Same `@patch` / fixture mismatch |
-| `test_thread_safety` | `test_gui.py` | 194 | Same `@patch` / fixture mismatch |
-| `test_full_validation_workflow` | `test_gui.py` | 336 | Same `@patch` / fixture mismatch |
-| `test_parameter_exploration_workflow` | `test_gui.py` | 375 | `mock_tkinter` used in body but not injected |
-| `test_apgi_dynamical_system_simulate_surprise_accumulation` | `test_validation.py` | 52 | `raise AssertionError()` on import failure instead of skip |
+```
+pytest tests/ --tb=short -q
+4 failed, 25 passed, 2 warnings, 13 errors in 4.67s
+```
+
+#### FAILED Tests (4)
+
+| Test | File | Actual Error |
+|------|------|-------------|
+| `test_import_main` | `test_basic.py:13` | `ModuleNotFoundError: No module named 'tqdm'` — `main.py` cannot be imported at all |
+| `test_validation_protocol_9_integration` | `test_integration.py:39` | `AttributeError: 'NoneType' has no attribute 'Epochs'` — Protocol-9 crashes on import (BUG-C08) |
+| `test_memory_usage` | `test_performance.py:111` | `ModuleNotFoundError: No module named 'psutil'` — unlisted dependency |
+| `test_apgi_dynamical_system_simulate_surprise_accumulation` | `test_validation.py:66` | `AssertionError: APGIDynamicalSystem import failed: No module named 'seaborn'` |
+
+#### ERROR Tests (13 — entire GUI test class)
+
+All 13 tests in `tests/test_gui.py` error during **fixture setup** before the test body runs:
+
+```
+ModuleNotFoundError: No module named 'tkinter'
+```
+
+The `mock_tkinter` fixture at line 17 attempts `patch("tkinter.Tk")` which triggers a real import of `tkinter`. Since `tkinter` is not installed in the test environment (headless server), every GUI test fails at the fixture level — not even reaching the test body. **The GUI test suite provides zero actual coverage.**
+
+#### Additional Missing Unlisted Dependencies
+
+| Module | Required By | In requirements.txt |
+|--------|-------------|---------------------|
+| `tqdm` | `utils/preprocessing_pipelines.py:22` | ❌ Missing |
+| `psutil` | `tests/test_performance.py:111` | ❌ Missing |
+| `seaborn` | `Validation/Validation-Protocol-1.py:25` | ✅ Listed but install conflicts |
+| `mne` | `Validation/Validation-Protocol-9.py` | ❌ Missing |
+| `tkinter` | All GUI code | ❌ Not installable via pip (OS package) |
+
+> **Note:** `tqdm` is used in core utility code but is absent from `requirements.txt`, meaning `main.py` cannot be imported in any fresh environment — the entire CLI is broken on clean install.
 
 ### Coverage Summary
 
@@ -848,6 +944,9 @@ P2 (Fix Next Sprint): SEC-09 through SEC-18
 | R08 | Validate all file I/O paths against canonical base directory | `main.py:267,378,568` | 2 hrs |
 | R09 | Add subprocess argument whitelist to `Utils-GUI.py` | `Utils-GUI.py:437` | 1 hr |
 | R10 | Validate `PICKLE_SECRET_KEY` minimum entropy | `utils/batch_processor.py:56` | 1 hr |
+| R10A | Add `tqdm>=4.0` to `requirements.txt` (CLI broken without it) | `requirements.txt` | 2 min |
+| R10B | Resolve `pandas` version conflict (`nilearn>=0.13.1` vs `pandas<2.2.0`) | `requirements.txt` | 30 min |
+| R10C | Fix `mne.Epochs` class-body annotation in Protocol-9 (use string literal or `TYPE_CHECKING`) | `Validation/Validation-Protocol-9.py:82` | 15 min |
 
 ### P1 — Fix This Sprint (High)
 
@@ -877,6 +976,8 @@ P2 (Fix Next Sprint): SEC-09 through SEC-18
 | R25 | Add `@pytest.mark.parametrize` for edge cases | All test files | 1 day |
 | R25A | Add actual `time.perf_counter()` measurements to all 7 performance tests | `tests/test_performance.py` | 2 hrs |
 | R25B | Replace placeholder integration test with real protocol execution | `tests/test_integration.py:98` | 4 hrs |
+| R25C | Add `psutil` and `mne` to `requirements.txt` | `requirements.txt` | 5 min |
+| R25D | Fix `mock_tkinter` fixture to use `unittest.mock.MagicMock()` directly without patching real `tkinter` import | `tests/test_gui.py:17` | 1 hr |
 | R26 | Fix `raise AssertionError()` → `pytest.skip()` | `tests/test_validation.py:70` | 5 min |
 | R27 | Add `nrows` limit to all `pd.read_csv()` calls | `utils/data_validation.py` | 2 hrs |
 | R28 | Add HDF5 depth/key-count limit | `utils/data_validation.py:583` | 2 hrs |
