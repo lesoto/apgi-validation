@@ -13,9 +13,13 @@ __author__ = "APGI Framework"
 
 # Import main classes for convenience
 try:
-    from .Validation.APGI_Master_Validation import APGIMasterValidator
+    from Validation.Master_Validation import APGIMasterValidator
 
     __all__ = ["APGIMasterValidator"]
-except ImportError:
-    # If imports fail, provide minimal package
-    __all__ = []
+except ImportError as e:
+    # Re-raise import error with helpful message instead of silently failing
+    raise ImportError(
+        f"Failed to import APGIMasterValidator from Validation.Master_Validation. "
+        f"This usually means the Validation module is missing or corrupted. "
+        f"Original error: {e}"
+    ) from e

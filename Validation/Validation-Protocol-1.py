@@ -49,6 +49,11 @@ except ImportError:
 # Random seed for reproducibility (set locally when needed)
 RANDOM_SEED = 42
 
+# Physiological constants
+PHYSIOLOGICAL_SURPRISE_MAX = 10.0  # Upper bound for surprise signal (σ units)
+EEG_N_CHANNELS = 64  # Number of EEG channels in standard montage
+EEG_PZ_CHANNEL = 31  # Index of Pz channel (centro-parietal)
+
 # =============================================================================
 # PART 1: APGI DYNAMICAL SYSTEM & MEASUREMENT EQUATIONS
 # =============================================================================
@@ -101,7 +106,15 @@ class APGIDynamicalSystem:
 
             dS_dt = -S / self.tau + extero_contrib + intero_contrib
             S += dt * dS_dt
-            S = np.clip(S, 0, 10)  # Physiological bounds
+            S_clipped = np.clip(
+                S, 0, PHYSIOLOGICAL_SURPRISE_MAX
+            )  # Physiological bounds
+            if S != S_clipped:
+                # Log when values are clipped
+                logger.warning(
+                    f"Surprise value {S:.3f} clipped to {S_clipped:.3f} (bounds: [0, 10])"
+                )
+            S = S_clipped
 
             S_trajectory[i] = S
 
@@ -148,6 +161,12 @@ class APGISyntheticSignalGenerator:
         Returns:
             ERP waveform (μV)
         """
+        # Validate inputs
+        if not np.isfinite(S_t):
+            raise ValueError(f"S_t must be finite, got {S_t}")
+        if not np.isfinite(theta_t):
+            raise ValueError(f"theta_t must be finite, got {theta_t}")
+
         c_0, c_1 = 2.0, 8.0  # Baseline and scaling (μV)
 
         n_samples = int(duration * self.fs)
@@ -323,7 +342,7 @@ class APGISyntheticSignalGenerator:
         S_t: float,
         theta_t: float,
         ignition: bool,
-        n_channels: int = 64,
+        n_channels: int = EEG_N_CHANNELS,
         duration: float = 1.0,
     ) -> np.ndarray:
         """
@@ -718,7 +737,10 @@ class APGIDatasetGenerator:
         }
 
     def generate_dataset(
-        self, n_trials_per_model: int = 5000, save_path: Optional[str] = None
+        self,
+        n_trials_per_model: int = 5000,
+        save_path: Optional[str] = None,
+        seed: Optional[int] = None,
     ) -> Dict[str, np.ndarray]:
         """
         Generate complete dataset with all models
@@ -726,10 +748,20 @@ class APGIDatasetGenerator:
         Args:
             n_trials_per_model: Number of trials per model
             save_path: Optional path to save dataset
+            seed: Random seed for reproducibility (None for random)
 
         Returns:
             Dictionary with all data arrays
         """
+        if seed is not None:
+            np.random.seed(seed)
+            # Also set torch seed for consistency
+            try:
+                import torch
+
+                torch.manual_seed(seed)
+            except ImportError:
+                pass
         print(
             f"Generating dataset: {n_trials_per_model} trials × 4 models = "
             f"{4 * n_trials_per_model} total trials"

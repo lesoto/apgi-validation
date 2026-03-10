@@ -8,6 +8,7 @@ Tests full protocol execution and end-to-end workflows.
 import warnings
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 # Suppress scipy overflow warnings in tests
@@ -45,13 +46,27 @@ def test_validation_protocol_9_integration():
 
         validator = APGINeuralSignaturesValidator()
 
-        # Suppress scipy warnings during validation
+        # Generate sample data for testing
+        import numpy as np
+
+        sample_data = {
+            "eeg_signals": np.random.randn(100, 1000),  # 100 trials, 1000 time points
+            "behavioral_data": {
+                "response_times": np.random.uniform(0.2, 1.0, 100),
+                "accuracy": np.random.choice([0, 1], 100),
+            },
+            "physiological_data": {
+                "pupil_diameter": np.random.normal(3.0, 0.5, 100),
+                "heart_rate": np.random.normal(70, 10, 100),
+            },
+        }
+
+        # Test with sample data instead of None
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
-            # Test with None paths (should load from data_repository or fail gracefully)
-            results = validator.validate_convergent_signatures()
+            results = validator.validate_convergent_signatures(sample_data)
 
-        # Should return results dict even if data not available
+        # Should return results dict
         assert isinstance(results, dict)
         assert "overall_validation_score" in results
 
@@ -97,21 +112,62 @@ def test_data_repository_integration(temp_dir):
 @pytest.mark.integration
 def test_full_validation_pipeline():
     """Test complete validation protocol execution."""
-    # This is a placeholder for a full integration test
-    # In a real implementation, this would:
-    # 1. Load a validation protocol
-    # 2. Generate sample data
-    # 3. Run the protocol
-    # 4. Verify results
+    try:
+        import importlib.util
+        from pathlib import Path
 
-    # For now, just test that we can generate sample data
-    generator = sample_data_generator.SampleDataGenerator(sampling_rate=100, duration=5)
-    eeg_signal, p300_events = generator.generate_eeg_data()
+        # Load Validation Protocol 1 module
+        module_path = (
+            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-1.py"
+        )
+        spec = importlib.util.spec_from_file_location(
+            "validation_protocol_1", module_path
+        )
+        if spec and spec.loader:
+            validation_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(validation_module)
+            APGIDatasetGenerator = validation_module.APGIDatasetGenerator
+        else:
+            raise ImportError("Could not load Validation Protocol 1")
 
-    expected_length = int(generator.sampling_rate * generator.duration)
-    assert len(eeg_signal) == expected_length
-    assert isinstance(p300_events, list)
-    assert len(p300_events) > 0  # Should have some P300 events
+        # Generate small dataset for integration testing
+        generator = APGIDatasetGenerator(fs=100)  # Lower sampling rate for faster test
+        dataset = generator.generate_dataset(n_trials_per_model=10, save_path=None)
+
+        # Verify dataset structure
+        assert "eeg" in dataset
+        assert "hep" in dataset
+        assert "pupil" in dataset
+        assert "ignition_labels" in dataset
+        assert "S_values" in dataset
+        assert "model_labels" in dataset
+        assert "model_names" in dataset
+
+        # Verify shapes
+        expected_total_trials = 10 * 4  # 10 per model × 4 models
+        assert dataset["eeg"].shape[0] == expected_total_trials
+        assert dataset["hep"].shape[0] == expected_total_trials
+        assert dataset["pupil"].shape[0] == expected_total_trials
+        assert len(dataset["ignition_labels"]) == expected_total_trials
+        assert len(dataset["S_values"]) == expected_total_trials
+        assert len(dataset["model_labels"]) == expected_total_trials
+        assert len(dataset["model_names"]) == expected_total_trials
+
+        # Verify model diversity
+        unique_models = set(dataset["model_names"])
+        assert len(unique_models) == 4  # All 4 models should be present
+        expected_models = {"APGI", "StandardPP", "GWTOnly", "Continuous"}
+        assert unique_models == expected_models
+
+        # Verify data types
+        assert dataset["eeg"].dtype == np.float32 or dataset["eeg"].dtype == np.float64
+        assert (
+            dataset["ignition_labels"].dtype == np.int64
+            or dataset["ignition_labels"].dtype == np.int32
+        )
+
+    except ImportError:
+        pytest.skip("Validation Protocol 1 not available")
 
 
 @pytest.mark.integration
@@ -122,25 +178,46 @@ def test_batch_processing_integration():
     # Create batch processor with single worker and threads to avoid hanging
     processor = BatchProcessor(max_workers=1, use_processes=False)
 
-    # Add a simple simulation job
-    processor.add_simulation_job(
-        job_id="test_batch_job", params={"tau_S": 0.5, "alpha": 5.0}, steps=10, dt=0.1
-    )
+    # Add multiple simulation jobs to test batch processing
+    jobs = [
+        {
+            "job_id": "test_batch_job_1",
+            "params": {"tau_S": 0.5, "alpha": 5.0},
+            "steps": 10,
+            "dt": 0.1,
+        },
+        {
+            "job_id": "test_batch_job_2",
+            "params": {"tau_S": 0.6, "alpha": 6.0},
+            "steps": 15,
+            "dt": 0.1,
+        },
+        {
+            "job_id": "test_batch_job_3",
+            "params": {"tau_S": 0.7, "alpha": 7.0},
+            "steps": 20,
+            "dt": 0.1,
+        },
+    ]
+
+    for job in jobs:
+        processor.add_simulation_job(**job)
 
     # Run batch
     results = processor.run_batch(show_progress=False)
 
-    # Verify results
-    assert results["total_jobs"] == 1
-    assert results["completed"] == 1
+    # Verify results for multiple jobs
+    assert results["total_jobs"] == len(jobs)
+    assert results["completed"] == len(jobs)
     assert results["failed"] == 0
-    assert len(results["jobs"]) == 1
+    assert len(results["jobs"]) == len(jobs)
 
-    job_result = results["jobs"][0]
-    assert job_result["job_id"] == "test_batch_job"
-    assert job_result["status"] == "completed"
-    assert "result" in job_result
-    assert "summary" in job_result["result"]
+    for i, job_result in enumerate(results["jobs"]):
+        expected_job = jobs[i]
+        assert job_result["job_id"] == expected_job["job_id"]
+        assert job_result["status"] == "completed"
+        assert "result" in job_result
+        assert "summary" in job_result["result"]
 
 
 @pytest.mark.integration
@@ -177,13 +254,35 @@ def test_data_processing_pipeline():
         tmp_path.unlink()
 
 
-@pytest.mark.integration
-def test_config_management_integration():
-    """Test configuration management end-to-end."""
+@pytest.fixture
+def isolated_config_manager():
+    """Provide an isolated config manager for each test."""
     from utils.config_manager import ConfigManager
+    import tempfile
+    import os
 
-    # Create config manager
-    manager = ConfigManager()
+    # Create a temporary config file for this test
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        temp_config_path = f.name
+
+    # Create manager with isolated config
+    manager = ConfigManager(config_file=temp_config_path)
+
+    yield manager
+
+    # Cleanup
+    try:
+        os.unlink(temp_config_path)
+    except FileNotFoundError:
+        pass
+
+
+@pytest.mark.integration
+def test_config_management_integration(isolated_config_manager):
+    """Test configuration management end-to-end."""
+
+    # Use the isolated config manager
+    manager = isolated_config_manager
 
     # Test getting config
     config = manager.get_config()
@@ -199,6 +298,9 @@ def test_config_management_integration():
     # Reset to defaults
     manager.reset_to_defaults("model")
     assert config.model.tau_S == original_value
+
+    # Reset all configurations to ensure test isolation
+    manager.reset_to_defaults()
 
 
 @pytest.mark.integration

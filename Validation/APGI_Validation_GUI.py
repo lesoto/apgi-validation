@@ -165,19 +165,23 @@ class APGIValidationGUI:
 
     def _setup_worker_thread_environment(self) -> None:
         """Setup environment to prevent GUI operations in worker threads."""
-        # Set matplotlib to use non-interactive backend to prevent GUI operations
+        # Set matplotlib to use configurable backend (default non-interactive)
         try:
             import matplotlib
 
-            matplotlib.use("Agg")  # Use non-interactive backend
-            logging.info("Set matplotlib to non-interactive backend")
+            # Set matplotlib backend based on environment variable
+            # Defaults to "Agg" for headless systems but can be overridden
+            backend = os.environ.get("MPLBACKEND", "Agg")
+            matplotlib.use(backend)
+            logging.info(f"Set matplotlib to backend: {backend}")
         except ImportError:
             pass  # matplotlib not available
         except Exception as e:
             logging.warning(f"Failed to set matplotlib backend: {e}")
 
-        # Set environment variables to disable GUI (DISPLAY is not needed for Agg backend)
-        os.environ["MPLBACKEND"] = "Agg"
+        # Set environment variable for backend
+        if "MPLBACKEND" not in os.environ:
+            os.environ["MPLBACKEND"] = "Agg"
 
     @property
     def is_running(self) -> bool:
@@ -466,47 +470,8 @@ class APGIValidationGUI:
 
         self.create_alerts_widgets(alerts_frame)
 
-    def create_parameter_exploration_widgets(self, parent_frame: ttk.Frame) -> None:
-        """Create interactive parameter exploration widgets with sliders and real-time feedback"""
-
-        # Configure parent frame
-        parent_frame.columnconfigure(0, weight=1)
-        parent_frame.rowconfigure(1, weight=1)
-
-        # Parameter controls frame
-        controls_frame = ttk.LabelFrame(
-            parent_frame, text="Parameter Controls", padding="10"
-        )
-        controls_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
-        controls_frame.columnconfigure(1, weight=1)
-
-        # APGI Parameters with sliders
-        self.param_vars = {}
-        self.param_sliders = {}
-        self.param_labels = {}
-
+        # Parameter configurations for validation
         parameters = {
-            "tau_S": {
-                "label": "Signal Time Constant (τ_S)",
-                "min": 0.1,
-                "max": 5.0,
-                "default": 0.5,
-                "step": 0.1,
-            },
-            "tau_theta": {
-                "label": "Threshold Time Constant (τ_θ)",
-                "min": 10.0,
-                "max": 100.0,
-                "default": 30.0,
-                "step": 5.0,
-            },
-            "theta_0": {
-                "label": "Initial Threshold (θ₀)",
-                "min": 0.1,
-                "max": 2.0,
-                "default": 0.5,
-                "step": 0.1,
-            },
             "alpha": {
                 "label": "Sigmoid Slope (α)",
                 "min": 2.0,
@@ -516,8 +481,26 @@ class APGIValidationGUI:
             },
         }
 
+        self.param_configs = parameters  # Store configs for bound enforcement
+
+    def create_parameter_exploration_widgets(self, parent_frame: ttk.Frame) -> None:
+        """Create parameter exploration widgets"""
+        # Configure parent frame
+        parent_frame.columnconfigure(1, weight=1)
+        parent_frame.rowconfigure(1, weight=1)
+
+        # Parameter controls frame
+        controls_frame = ttk.LabelFrame(
+            parent_frame, text="Parameter Controls", padding="10"
+        )
+        controls_frame.grid(
+            row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
+        )
+        controls_frame.columnconfigure(1, weight=1)
+
         row = 0
-        for param_name, config in parameters.items():
+
+        for param_name, config in self.param_configs.items():
             # Parameter label
             label = ttk.Label(controls_frame, text=config["label"])
             label.grid(row=row, column=0, sticky=tk.W, padx=(0, 10))
@@ -612,6 +595,13 @@ class APGIValidationGUI:
             to=3600,
             textvariable=self.settings["update_interval"],
             width=10,
+            validate="key",
+            validatecommand=(
+                self.root.register(self._validate_spinbox_int),
+                "%P",
+                1,
+                3600,
+            ),
         ).grid(row=0, column=1, sticky=tk.W, padx=10)
 
         # Data retention
@@ -624,6 +614,13 @@ class APGIValidationGUI:
             to=365,
             textvariable=self.settings["data_retention"],
             width=10,
+            validate="key",
+            validatecommand=(
+                self.root.register(self._validate_spinbox_int),
+                "%P",
+                1,
+                365,
+            ),
         ).grid(row=1, column=1, sticky=tk.W, padx=10)
 
         # Monitoring threshold
@@ -637,6 +634,13 @@ class APGIValidationGUI:
             increment=0.01,
             textvariable=self.settings["monitoring_threshold"],
             width=10,
+            validate="key",
+            validatecommand=(
+                self.root.register(self._validate_spinbox_float),
+                "%P",
+                0.0,
+                1.0,
+            ),
         ).grid(row=2, column=1, sticky=tk.W, padx=10)
 
         # Save settings button
@@ -763,21 +767,127 @@ class APGIValidationGUI:
         try:
             report = self.validator.generate_master_report()
             file_path = filedialog.asksaveasfilename(
-                defaultextension=".txt",
-                filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+                defaultextension=".pdf",
+                filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
             )
             if file_path:
-                with open(file_path, "w") as f:
-                    f.write(f"APGI Validation Report\n{'=' * 50}\n\n")
-                    f.write(
-                        f"Overall Decision: {report.get('overall_decision', 'Unknown')}\n\n"
-                    )
-                    f.write("Protocol Results:\n")
-                    for protocol, result in report.get("protocol_results", {}).items():
-                        f.write(f"- {protocol}: {result.get('status', '')}\n")
-                messagebox.showinfo("Report", f"Report generated at {file_path}")
+                self._generate_pdf_report(report, file_path)
+                messagebox.showinfo("Report", f"PDF report generated at {file_path}")
         except Exception as e:
-            messagebox.showerror("Report", f"Failed to generate report: {e}")
+            messagebox.showerror("Report", f"Failed to generate PDF report: {e}")
+
+    def _generate_pdf_report(self, report: Dict, file_path: str) -> None:
+        """Generate PDF report from validation results"""
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.platypus import (
+                SimpleDocTemplate,
+                Paragraph,
+                Spacer,
+                Table,
+                TableStyle,
+            )
+        except ImportError:
+            raise ImportError(
+                "PDF generation requires reportlab. Install with: pip install reportlab"
+            )
+
+        doc = SimpleDocTemplate(file_path, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
+
+        # Title
+        title_style = ParagraphStyle(
+            "CustomTitle",
+            parent=styles["Heading1"],
+            fontSize=16,
+            spaceAfter=30,
+        )
+        story.append(Paragraph("APGI Validation Report", title_style))
+        story.append(Spacer(1, 12))
+
+        # Overall decision
+        decision_text = (
+            f"<b>Overall Decision:</b> {report.get('overall_decision', 'Unknown')}"
+        )
+        story.append(Paragraph(decision_text, styles["Normal"]))
+        story.append(Spacer(1, 12))
+
+        # Summary
+        summary_text = (
+            f"<b>Summary:</b> {report.get('summary', 'No summary available')}"
+        )
+        story.append(Paragraph(summary_text, styles["Normal"]))
+        story.append(Spacer(1, 12))
+
+        # Protocol results
+        if "protocol_results" in report and report["protocol_results"]:
+            story.append(Paragraph("<b>Protocol Results:</b>", styles["Heading2"]))
+            story.append(Spacer(1, 6))
+
+            # Table data
+            table_data = [["Protocol", "Status", "Passed"]]
+            for protocol_name, result in report["protocol_results"].items():
+                status = result.get("status", "Unknown")
+                passed = "Yes" if result.get("passed", False) else "No"
+                table_data.append([protocol_name, status, passed])
+
+            # Create table
+            table = Table(table_data)
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, 0), 14),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                    ]
+                )
+            )
+            story.append(table)
+
+        # Falsification status
+        if "falsification_status" in report and report["falsification_status"]:
+            story.append(Spacer(1, 12))
+            story.append(Paragraph("<b>Falsification Status:</b>", styles["Heading2"]))
+
+            for tier, results in report["falsification_status"].items():
+                story.append(Spacer(1, 6))
+                story.append(
+                    Paragraph(f"<i>{tier.title()} Tier:</i>", styles["Heading3"])
+                )
+
+                if results:
+                    tier_data = [["Protocol", "Passed"]]
+                    for result in results:
+                        protocol = result.get("protocol", "Unknown")
+                        passed = "Yes" if result.get("passed", False) else "No"
+                        tier_data.append([str(protocol), passed])
+
+                    tier_table = Table(tier_data)
+                    tier_table.setStyle(
+                        TableStyle(
+                            [
+                                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                            ]
+                        )
+                    )
+                    story.append(tier_table)
+                else:
+                    story.append(
+                        Paragraph("No protocols in this tier", styles["Italic"])
+                    )
+
+        # Build PDF
+        doc.build(story)
 
     def create_alerts_widgets(self, parent_frame: ttk.Frame) -> None:
         """Create alert configuration widgets"""
@@ -810,6 +920,13 @@ class APGIValidationGUI:
             increment=0.05,
             textvariable=self.alert_settings["threshold"],
             width=10,
+            validate="key",
+            validatecommand=(
+                self.root.register(self._validate_spinbox_float),
+                "%P",
+                0.0,
+                1.0,
+            ),
         ).grid(row=0, column=1, sticky=tk.W, padx=10)
 
         # Enable alerts
@@ -833,6 +950,7 @@ class APGIValidationGUI:
 
             # Save to config file
             alert_config_path = PROJECT_ROOT / "config" / "gui_alert_config.yaml"
+            alert_config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(alert_config_path, "w") as f:
                 import yaml
 
@@ -845,11 +963,22 @@ class APGIValidationGUI:
             logging.error(f"Failed to save GUI alert settings: {e}")
 
     def on_parameter_change(self, param_name: str, value: str) -> None:
-        """Handle parameter slider changes"""
+        """Handle parameter slider changes with bound enforcement"""
         try:
             float_value = float(value)
+
+            # Enforce hard bounds
+            if param_name in self.param_configs:
+                config = self.param_configs[param_name]
+                min_val = config["min"]
+                max_val = config["max"]
+                float_value = max(min_val, min(max_val, float_value))
+
+                # Update the variable to the clamped value
+                self.param_vars[param_name].set(float_value)
+
             self.param_labels[param_name].config(text=f"{float_value:.2f}")
-        except ValueError:
+        except (ValueError, KeyError):
             pass
 
     def update_parameter_display(self) -> None:
@@ -1776,6 +1905,26 @@ Interpretation:
         except queue.Full:
             # If queue is full, skip this update to prevent blocking
             pass
+
+    def _validate_spinbox_float(self, value, min_val, max_val):
+        """Validate float spinbox input."""
+        if value == "":
+            return True
+        try:
+            val = float(value)
+            return float(min_val) <= val <= float(max_val)
+        except ValueError:
+            return False
+
+    def _validate_spinbox_int(self, value, min_val, max_val):
+        """Validate integer spinbox input."""
+        if value == "":
+            return True
+        try:
+            val = int(float(value))  # Allow decimal input but convert to int
+            return int(min_val) <= val <= int(max_val)
+        except ValueError:
+            return False
 
 
 def main() -> None:

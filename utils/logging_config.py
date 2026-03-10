@@ -456,15 +456,72 @@ class APGILogger:
             self.error_counts[error_type] = 0
         self.error_counts[error_type] += 1
 
+        # Sanitize context to prevent sensitive data exposure
+        sanitized_context = self._sanitize_context(context)
+
         logger.error(
-            f"Error in {context.get('operation', 'unknown operation')}: {error_message}"
+            f"Error in {sanitized_context.get('operation', 'unknown operation')}: {error_message}"
         )
         logger.bind(
             error_type=error_type,
             error_message=error_message,
-            context=context,
+            context=sanitized_context,
             traceback=traceback.format_exc(),
         ).exception("Error details")
+
+    def _sanitize_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Sanitize context dictionary to remove sensitive information and prevent log injection."""
+        if not isinstance(context, dict):
+            return context
+
+        # Keys that may contain sensitive information
+        sensitive_keys = {
+            "password",
+            "passwd",
+            "secret",
+            "token",
+            "key",
+            "api_key",
+            "apikey",
+            "auth",
+            "authorization",
+            "bearer",
+            "credentials",
+            "session",
+            "cookie",
+            "csrf",
+            "xsrf",
+            "jwt",
+            "access_token",
+            "refresh_token",
+            "private_key",
+            "secret_key",
+            "database_url",
+            "db_url",
+            "connection_string",
+        }
+
+        sanitized = {}
+        for k, v in context.items():
+            # Check if key contains sensitive keywords
+            if any(sensitive in k.lower() for sensitive in sensitive_keys):
+                sanitized[k] = "[REDACTED]"
+            elif isinstance(v, dict):
+                # Recursively sanitize nested dictionaries
+                sanitized[k] = self._sanitize_context(v)
+            elif isinstance(v, str):
+                # Sanitize strings to prevent log injection
+                v = v.replace("\n", " ").replace("\r", " ").replace("\t", " ")
+                # Remove other control characters
+                v = "".join(c for c in v if ord(c) >= 32 or c in "\t\n\r")
+                if len(v) > 100:
+                    # Truncate long strings that might contain sensitive data
+                    v = v[:100] + "...[TRUNCATED]"
+                sanitized[k] = v
+            else:
+                sanitized[k] = v
+
+        return sanitized
 
     def log_data_processing(
         self, data_type: str, file_path: str, records_processed: int, duration: float
@@ -601,9 +658,29 @@ class APGILogger:
         ]
 
         for pattern in patterns:
-            match = re.match(pattern, first_line)
-            if match:
-                return match.groups()
+            try:
+                # Add timeout to prevent ReDoS attacks
+                import signal
+
+                def timeout_handler(signum, frame):
+                    raise TimeoutError("Regex matching timed out")
+
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(1)  # 1 second timeout
+
+                try:
+                    match = re.match(pattern, first_line)
+                    signal.alarm(0)  # Cancel alarm
+
+                    if match:
+                        return match.groups()
+                except TimeoutError:
+                    signal.alarm(0)  # Cancel alarm
+                    continue  # Try next pattern
+
+            except re.error:
+                continue  # Try next pattern
+
         return None
 
     def _extract_log_fields(self, groups: tuple) -> tuple:
@@ -780,7 +857,21 @@ class APGILogger:
         parsed_entries.sort(key=lambda x: x["datetime"])
 
         try:
-            output_path = Path(output_file)
+            from pathlib import Path
+
+            # Validate output file path to prevent directory traversal
+            project_root = Path(__file__).parent.parent
+            output_path = (project_root / output_file).resolve()
+
+            # Check if path is within project root
+            try:
+                output_path.relative_to(project_root)
+            except ValueError:
+                logger.error(
+                    f"Output file path '{output_file}' is outside project directory"
+                )
+                return False
+
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             if format_type.lower() == "json":

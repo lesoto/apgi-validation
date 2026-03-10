@@ -15,10 +15,21 @@ from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 
-from utils.preprocessing_pipelines import (
-    MultimodalPreprocessingPipeline,
-    PreprocessingConfig,
-)
+try:
+    from utils.preprocessing_pipelines import (
+        MultimodalPreprocessingPipeline,
+        PreprocessingConfig,
+    )
+except ImportError:
+    # Fallback if utils.preprocessing_pipelines is not available
+    import warnings
+
+    warnings.warn(
+        "utils.preprocessing_pipelines not available - pipeline connector may be limited",
+        ImportWarning,
+    )
+    MultimodalPreprocessingPipeline = None
+    PreprocessingConfig = None
 from utils.sample_data_generator import (
     SampleDataGenerator,
     generate_sample_multimodal_data,

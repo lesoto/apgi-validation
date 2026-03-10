@@ -183,9 +183,26 @@ class ComprehensivePerformanceDashboard:
                     metrics = self.system_metrics[-20:]  # Last 20 data points
 
                 if not metrics:
-                    # Return empty figures if no data
+                    # Return empty figures with clear error messages
                     empty_fig = go.Figure()
-                    empty_fig.update_layout(title="No data available")
+                    empty_fig.add_annotation(
+                        text="No system metrics available yet.<br>Please wait for data collection to begin.",
+                        xref="paper",
+                        yref="paper",
+                        x=0.5,
+                        y=0.5,
+                        showarrow=False,
+                        font=dict(size=14, color="red"),
+                    )
+                    empty_fig.update_layout(
+                        title="System Metrics - No Data Available",
+                        xaxis=dict(
+                            showgrid=False, zeroline=False, showticklabels=False
+                        ),
+                        yaxis=dict(
+                            showgrid=False, zeroline=False, showticklabels=False
+                        ),
+                    )
                     return empty_fig, empty_fig
 
                 # CPU and Memory usage over time

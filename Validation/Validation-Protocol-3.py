@@ -95,6 +95,10 @@ class HierarchicalGenerativeModel(nn.Module):
     def update(self, prediction_error: torch.Tensor, level: int = 0, dt: float = 0.05):
         """Update states based on prediction error"""
 
+        # Prevent unbounded recursion
+        if level >= self.n_levels:
+            return
+
         # Bottom-up message (prediction error)
         if level < self.n_levels - 1:
             self.states[level] = (
@@ -478,8 +482,8 @@ class APGIActiveInferenceAgent:
 
         # Policies
         self.policy_network = PolicyNetwork(
-            state_dim=20, action_dim=config.get("n_actions", 4)  # Simplified state
-        )
+            state_dim=20, action_dim=config.get("n_actions", 4)
+        )  # Simplified state
 
         self.implicit_policy = HabitualPolicy(
             state_dim=32, action_dim=config.get("n_actions", 4)
@@ -1782,7 +1786,7 @@ def main():
     print("APGI PROTOCOL 3: ACTIVE INFERENCE AGENT SIMULATIONS")
     print("=" * 80)
 
-    config = {"n_agents": 20, "n_trials": 100}
+    config = {"n_agents": 10, "n_trials": 50}
 
     print("\nConfiguration:")
     for k, v in config.items():

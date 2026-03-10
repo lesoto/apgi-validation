@@ -97,8 +97,21 @@ class DataValidator:
             return results
 
         try:
+            # Check file size to prevent DoS from large files
+            file_size = file_path.stat().st_size
+            max_file_size = (
+                getattr(self.config, "max_file_size_mb", 100) * 1024 * 1024
+            )  # Default 100MB
+            if file_size > max_file_size:
+                results["errors"].append(
+                    f"File too large: {file_size / (1024 * 1024):.1f}MB exceeds limit of {max_file_size / (1024 * 1024):.0f}MB"
+                )
+                return results
+
             if file_path.suffix.lower() == ".csv":
-                df = pd.read_csv(file_path)
+                # Add nrows limit to prevent OOM on large files
+                max_rows = getattr(self.config, "max_csv_rows", 1000000)
+                df = pd.read_csv(file_path, nrows=max_rows, encoding="utf-8")
                 results["is_readable"] = True
                 results["format_valid"] = self._validate_csv_structure(df, results)
             elif file_path.suffix.lower() == ".json":
@@ -504,11 +517,30 @@ class DataValidator:
         if report["file_info"]["is_readable"]:
             try:
                 if file_path.suffix.lower() == ".csv":
-                    df = pd.read_csv(file_path)
+                    # Limit rows for large files to prevent memory exhaustion
+                    max_rows_for_validation = getattr(
+                        self.config, "max_rows_for_validation", 100000
+                    )
+                    file_size_mb = file_path.stat().st_size / (1024 * 1024)
+                    if file_size_mb > 10:  # For files > 10MB, limit rows
+                        df = pd.read_csv(file_path, nrows=max_rows_for_validation)
+                        report["data_quality"][
+                            "warning"
+                        ] = f"Large file detected ({file_size_mb:.1f}MB). Validation performed on first {max_rows_for_validation} rows only."
+                    else:
+                        df = pd.read_csv(file_path)
                 elif file_path.suffix.lower() == ".json":
+                    # For JSON, check file size and warn if large
+                    file_size_mb = file_path.stat().st_size / (1024 * 1024)
+                    if file_size_mb > 50:  # JSON files are typically smaller
+                        report["data_quality"][
+                            "warning"
+                        ] = f"Large JSON file detected ({file_size_mb:.1f}MB). Memory usage may be high."
                     with open(file_path, "r") as f:
                         data = json.load(f)
                     df = pd.DataFrame(data["data"])
+                elif file_path.suffix.lower() in [".h5", ".hdf5"]:
+                    df = self._read_hdf5_file(file_path)
 
                 report["data_quality"] = self.validate_data_quality(df)
                 report["recommendations"] = self._generate_recommendations(report)
@@ -584,6 +616,26 @@ class DataValidator:
         """Read HDF5 file and convert to DataFrame."""
         try:
             with h5py.File(file_path, "r") as f:
+                # Limit HDF5 traversal to prevent DoS
+                max_keys = 1000  # Limit number of keys
+                max_depth = 5  # Limit nesting depth
+
+                def _count_keys(group, depth=0):
+                    """Count keys with depth limit."""
+                    if depth > max_depth:
+                        raise ValueError("HDF5 file exceeds maximum depth limit")
+                    count = 0
+                    for key in group.keys():
+                        count += 1
+                        if count > max_keys:
+                            raise ValueError("HDF5 file exceeds maximum key count")
+                        if isinstance(group[key], h5py.Group):
+                            count += _count_keys(group[key], depth + 1)
+                    return count
+
+                # Check key count
+                _count_keys(f)
+
                 # Check if data is stored as a dataset or group
                 if "data" in f:
                     if isinstance(f["data"], h5py.Dataset):
@@ -860,13 +912,26 @@ class DataPreprocessor(DataValidator):
                 data = df_normalized[col]
 
                 if method == "zscore":
-                    df_normalized[col] = (data - data.mean()) / data.std()
+                    mean = data.mean()
+                    std = data.std()
+                    if std == 0:
+                        df_normalized[col] = 0
+                    else:
+                        df_normalized[col] = (data - mean) / std
                 elif method == "minmax":
-                    df_normalized[col] = (data - data.min()) / (data.max() - data.min())
+                    min_val = data.min()
+                    max_val = data.max()
+                    if max_val == min_val:
+                        df_normalized[col] = 0.5
+                    else:
+                        df_normalized[col] = (data - min_val) / (max_val - min_val)
                 elif method == "robust":
                     median = data.median()
                     mad = np.median(np.abs(data - median))
-                    df_normalized[col] = (data - median) / mad
+                    if mad == 0:
+                        df_normalized[col] = 0
+                    else:
+                        df_normalized[col] = (data - median) / mad
 
         self.preprocessing_steps.append(f"Normalized {columns} using {method} method")
         return df_normalized

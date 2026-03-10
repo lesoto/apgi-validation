@@ -14,6 +14,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -83,17 +84,190 @@ def sample_config():
 @pytest.fixture
 def sample_data():
     """Provide sample data for testing."""
+    import numpy as np
+
+    # Generate sufficient data points for time-series validation
+    n_samples = 1000
+    dt = 0.01
+    time = np.arange(0, n_samples * dt, dt)
+
     return {
-        "timestamps": [0.0, 0.1, 0.2, 0.3, 0.4],
-        "surprise": [0.1, 0.2, 0.15, 0.25, 0.3],
-        "threshold": [0.5, 0.52, 0.51, 0.53, 0.54],
-        "metabolic": [1.0, 1.1, 1.05, 1.15, 1.2],
-        "arousal": [0.8, 0.85, 0.82, 0.88, 0.9],
+        "timestamps": time.tolist(),
+        "surprise": (
+            0.2
+            + 0.1 * np.sin(2 * np.pi * 0.1 * time)
+            + 0.05 * np.random.randn(n_samples)
+        ).tolist(),
+        "threshold": (
+            0.5
+            + 0.02 * np.sin(2 * np.pi * 0.05 * time)
+            + 0.01 * np.random.randn(n_samples)
+        ).tolist(),
+        "metabolic": (
+            1.0
+            + 0.1 * np.sin(2 * np.pi * 0.2 * time)
+            + 0.05 * np.random.randn(n_samples)
+        ).tolist(),
+        "arousal": (
+            0.8
+            + 0.1 * np.sin(2 * np.pi * 0.15 * time)
+            + 0.03 * np.random.randn(n_samples)
+        ).tolist(),
     }
 
 
-# Test markers
-pytest_plugins = []
+@pytest.fixture
+def raises_fixture():
+    """Fixture that provides a context manager for testing exceptions."""
+
+    class RaisesContext:
+        def __init__(self, expected_exception=Exception):
+            self.expected_exception = expected_exception
+            self.exception_raised = None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            if exc_type is None:
+                pytest.fail(
+                    f"Expected {self.expected_exception.__name__} to be raised, but no exception was raised"
+                )
+            if not isinstance(exc_val, self.expected_exception):
+                pytest.fail(
+                    f"Expected {self.expected_exception.__name__} to be raised, but got {exc_type.__name__}: {exc_val}"
+                )
+            self.exception_raised = exc_val
+            return True  # Suppress the exception
+
+    return RaisesContext
+
+
+@pytest.fixture
+def oom_fixture():
+    """Fixture for testing out-of-memory conditions."""
+
+    class OOMContext:
+        def __init__(self):
+            self.original_memory_limit = None
+
+        def __enter__(self):
+            # Try to simulate OOM by setting a very low memory limit
+            # This is a best-effort simulation since actual OOM is hard to trigger safely
+            try:
+                import resource
+
+                self.original_memory_limit = resource.getrlimit(resource.RLIMIT_AS)
+                # Set memory limit to 10MB for testing
+                resource.setrlimit(
+                    resource.RLIMIT_AS,
+                    (10 * 1024 * 1024, self.original_memory_limit[1]),
+                )
+            except ImportError:
+                # resource module not available on Windows
+                pass
+            except Exception:
+                # If we can't set limits, we'll use a mock approach
+                pass
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            # Restore original memory limit
+            if self.original_memory_limit is not None:
+                try:
+                    import resource
+
+                    resource.setrlimit(resource.RLIMIT_AS, self.original_memory_limit)
+                except Exception:
+                    pass
+            return False  # Don't suppress exceptions
+
+    return OOMContext
+
+
+@pytest.fixture
+def mock_memory_error():
+    """Fixture that mocks memory allocation to raise MemoryError."""
+
+    class MemoryErrorMocker:
+        def __init__(self):
+            self.patches = []
+
+        def patch_numpy_zeros(self):
+            """Patch numpy.zeros to raise MemoryError after a few calls."""
+            call_count = [0]
+            original_zeros = __import__("numpy").zeros
+
+            def mock_zeros(*args, **kwargs):
+                call_count[0] += 1
+                if call_count[0] > 3:  # Allow a few calls before failing
+                    raise MemoryError("Simulated out of memory")
+                return original_zeros(*args, **kwargs)
+
+            patch_obj = patch("numpy.zeros", side_effect=mock_zeros)
+            patch_obj.start()
+            self.patches.append(patch_obj)
+            return patch_obj
+
+        def patch_torch_tensor(self):
+            """Patch torch tensor creation to raise MemoryError."""
+            try:
+                torch = __import__("torch")
+                call_count = [0]
+                original_tensor = torch.tensor
+
+                def mock_tensor(*args, **kwargs):
+                    call_count[0] += 1
+                    if call_count[0] > 2:
+                        raise RuntimeError("CUDA out of memory")  # Simulates GPU OOM
+                    return original_tensor(*args, **kwargs)
+
+                patch_obj = patch("torch.tensor", side_effect=mock_tensor)
+                patch_obj.start()
+                self.patches.append(patch_obj)
+                return patch_obj
+            except ImportError:
+                return None
+
+        def cleanup(self):
+            """Clean up all patches."""
+            for patch_obj in self.patches:
+                patch_obj.stop()
+            self.patches.clear()
+
+    mocker = MemoryErrorMocker()
+    yield mocker
+    mocker.cleanup()
+
+
+@pytest.fixture
+def exception_test_cases():
+    """Provide common exception test cases."""
+    return {
+        "value_error": ValueError("Invalid value"),
+        "type_error": TypeError("Invalid type"),
+        "key_error": KeyError("Missing key"),
+        "attribute_error": AttributeError("'NoneType' object has no attribute"),
+        "io_error": IOError("File operation failed"),
+        "memory_error": MemoryError("Out of memory"),
+        "runtime_error": RuntimeError("Runtime error"),
+        "assertion_error": AssertionError("Assertion failed"),
+    }
+
+
+@pytest.fixture
+def flaky_operation():
+    """Fixture that simulates a flaky operation that may fail intermittently."""
+    import random
+
+    def operation(success_rate=0.7):
+        """Simulate an operation that succeeds with given probability."""
+        if random.random() < success_rate:
+            return "success"
+        else:
+            raise RuntimeError("Flaky operation failed")
+
+    return operation
 
 
 def pytest_configure(config):

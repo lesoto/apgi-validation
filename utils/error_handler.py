@@ -123,6 +123,20 @@ class APGIError(Exception):
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert error to dictionary for logging/serialization."""
+        # Sanitize traceback to prevent sensitive data exposure
+        sanitized_traceback = None
+        if self.traceback:
+            # Remove file paths and potentially sensitive information from traceback
+            import re
+
+            sanitized_traceback = re.sub(
+                r'File "[^"]*"', 'File "[REDACTED]"', self.traceback
+            )
+            sanitized_traceback = re.sub(r"(/[^\s]+)", "/[PATH]", sanitized_traceback)
+            # Limit traceback length
+            if len(sanitized_traceback) > 500:
+                sanitized_traceback = sanitized_traceback[:500] + "...[TRUNCATED]"
+
         return {
             "message": self.message,
             "severity": self.severity.value,
@@ -131,7 +145,7 @@ class APGIError(Exception):
             "context": self.context,
             "suggestion": self.suggestion,
             "timestamp": self.timestamp.isoformat(),
-            "traceback": self.traceback,
+            "traceback": sanitized_traceback,
         }
 
 
@@ -336,8 +350,12 @@ class ErrorHandler:
     ) -> str:
         """Format error message using templates."""
         try:
+            import string
+
             template = self.ERROR_TEMPLATES[category][severity][code]
-            return template.format(**kwargs)
+            # Use string.Template for safer formatting with user input
+            safe_template = string.Template(template)
+            return safe_template.safe_substitute(**kwargs)
         except KeyError:
             return f"Unknown error: {category.value}.{severity.value}.{code}: {kwargs}"
 
@@ -383,8 +401,8 @@ class ErrorHandler:
             category, severity, code, details, suggestions, user_action, **format_kwargs
         )
 
-        # Count errors by category
-        self.error_counts[category] = self.error_counts.get(category, 0) + 1
+        # Count errors by category with cap to prevent unbounded growth
+        self.error_counts[category] = min(self.error_counts.get(category, 0) + 1, 1000)
 
         # Log error
         log_message = f"[{severity.value}] {category.value}: {error_info.message}"

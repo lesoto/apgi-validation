@@ -206,12 +206,13 @@ class FalsificationCriterion:
             )
 
             return {
-                "correlation": float(corr),
+                "test_statistic": float(corr),
                 "p_value": float(p_value),
                 "falsified": bool(falsified),
                 "threshold": self.threshold,
                 "direction": self.direction,
                 "sample_size": len(x),
+                "correlation": float(corr),  # Keep for backward compatibility
             }
 
         except Exception as e:
@@ -276,13 +277,17 @@ class FalsificationCriterion:
             )
 
             return {
-                f"{criterion_name.lower()}_difference": float(aic_diff),
-                f"model1_{criterion_name.lower()}": float(crit1),
-                f"model2_{criterion_name.lower()}": float(crit2),
+                "test_statistic": float(aic_diff),
+                "p_value": None,  # Model comparison doesn't use p-values
                 "falsified": bool(falsified),
                 "threshold": self.threshold,
                 "direction": self.direction,
                 "criterion": criterion_name,
+                f"{criterion_name.lower()}_difference": float(
+                    aic_diff
+                ),  # Keep for backward compatibility
+                f"model1_{criterion_name.lower()}": float(crit1),
+                f"model2_{criterion_name.lower()}": float(crit2),
             }
 
         except Exception as e:
@@ -319,10 +324,12 @@ class FalsificationCriterion:
             )
 
             return {
-                "effect_size": float(effect_size),
+                "test_statistic": float(effect_size),
+                "p_value": None,  # Effect size test doesn't use p-values
                 "falsified": bool(falsified),
                 "threshold": self.threshold,
                 "direction": self.direction,
+                "effect_size": float(effect_size),  # Keep for backward compatibility
             }
 
         except Exception as e:

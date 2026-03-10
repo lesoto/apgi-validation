@@ -185,23 +185,11 @@ class ValidationConfig:
 class APGIConfig:
     """Main configuration container."""
 
-    model: ModelParameters = None
-    simulation: SimulationConfig = None
-    logging: LoggingConfig = None
-    data: DataConfig = None
-    validation: ValidationConfig = None
-
-    def __post_init__(self):
-        if self.model is None:
-            self.model = ModelParameters()
-        if self.simulation is None:
-            self.simulation = SimulationConfig()
-        if self.logging is None:
-            self.logging = LoggingConfig()
-        if self.data is None:
-            self.data = DataConfig()
-        if self.validation is None:
-            self.validation = ValidationConfig()
+    model: ModelParameters = field(default_factory=ModelParameters)
+    simulation: SimulationConfig = field(default_factory=SimulationConfig)
+    logging: LoggingConfig = field(default_factory=LoggingConfig)
+    data: DataConfig = field(default_factory=DataConfig)
+    validation: ValidationConfig = field(default_factory=ValidationConfig)
 
 
 class ConfigManager:
@@ -1011,36 +999,64 @@ validation:
 
     def apply_environment_overrides(self):
         """Apply environment variable overrides to configuration."""
-        env_mappings = {
-            "APGI_LOG_LEVEL": ("logging", "level"),
-            "APGI_ENABLE_PLOTS": ("simulation", "enable_plots"),
-            "APGI_DATA_DIR": ("data", "default_data_dir"),
-            "APGI_TAU_S": ("model", "tau_S"),
-            "APGI_TAU_THETA": ("model", "tau_theta"),
-            "APGI_THETA_0": ("model", "theta_0"),
-        }
+        # Load whitelisted environment variables from .env file
+        env_file = Path(".env")
+        if env_file.exists():
+            try:
+                # Read .env file manually and only load whitelisted variables
+                whitelisted_vars = {}
+                with open(env_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        if "=" in line:
+                            key, value = line.split("=", 1)
+                            key = key.strip()
+                            value = value.strip()
+                            # Remove quotes if present
+                            if (value.startswith('"') and value.endswith('"')) or (
+                                value.startswith("'") and value.endswith("'")
+                            ):
+                                value = value[1:-1]
+                            whitelisted_vars[key] = value
 
-        for env_var, (section, param) in env_mappings.items():
-            value = os.getenv(env_var)
-            if value is not None:
-                # Convert string to appropriate type
-                if value.lower() in ["true", "false"]:
-                    value = value.lower() == "true"
-                else:
-                    try:
-                        # Try to convert to float (handles negatives and decimals)
-                        value = float(value)
-                        # If it's an integer, convert to int
-                        if value.is_integer():
-                            value = int(value)
-                    except ValueError:
-                        # Not a number, keep as string
-                        pass
+                # Only set whitelisted environment variables
+                env_mappings = {
+                    "APGI_LOG_LEVEL": ("logging", "level"),
+                    "APGI_ENABLE_PLOTS": ("simulation", "enable_plots"),
+                    "APGI_DATA_DIR": ("data", "default_data_dir"),
+                    "APGI_TAU_S": ("model", "tau_S"),
+                    "APGI_TAU_THETA": ("model", "tau_theta"),
+                    "APGI_THETA_0": ("model", "theta_0"),
+                    "APGI_ALPHA": ("model", "alpha"),
+                }
 
-                self.set_parameter(section, param, value)
-                apgi_logger.logger.info(
-                    f"Applied environment override: {env_var} -> {section}.{param} = {value}"
-                )
+                for env_var, (section, param) in env_mappings.items():
+                    value = whitelisted_vars.get(env_var) or os.getenv(env_var)
+                    if value is not None:
+                        # Convert string values to appropriate types
+                        if value.lower() in ["true", "false"]:
+                            value = value.lower() == "true"
+                        else:
+                            try:
+                                # Try to convert to float (handles negatives and decimals)
+                                value = float(value)
+                                # If it's an integer, convert to int
+                                if value.is_integer():
+                                    value = int(value)
+                            except ValueError:
+                                # Not a number, keep as string
+                                pass
+
+                        self.set_parameter(section, param, value)
+                        apgi_logger.logger.info(
+                            f"Applied environment override: {env_var} -> {section}.{param} = {value}"
+                        )
+            except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
+                apgi_logger.logger.warning(f"Could not read .env file: {e}")
+                # Fall back to regular environment variables
+                self._apply_env_mappings_from_system()
 
 
 # Global configuration manager instance

@@ -447,27 +447,45 @@ class ProtocolRunnerGUI:
         console_frame.rowconfigure(0, weight=1)
 
         # Status bar and clear console button frame
-        status_frame = ttk.Frame(main_frame)
+        status_frame = ttk.LabelFrame(main_frame, text="Status", padding="10")
         status_frame.grid(
             row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0)
         )
-        status_frame.columnconfigure(0, weight=1)
+        status_frame.columnconfigure(1, weight=1)
 
+        # Status bar
         self.status_var = tk.StringVar(value="Ready")
         status_bar = ttk.Label(
             status_frame, textvariable=self.status_var, relief=tk.SUNKEN
         )
-        status_bar.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        status_bar.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 5))
+
+        # Progress bar
+        self.progress_var = tk.DoubleVar(value=0.0)
+        self.progress_bar = ttk.Progressbar(
+            status_frame,
+            variable=self.progress_var,
+            maximum=100.0,
+            mode="determinate",
+            length=300,
+        )
+        self.progress_bar.grid(
+            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
+        )
+
+        # Control buttons
+        button_frame = ttk.Frame(status_frame)
+        button_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E))
 
         clear_btn = ttk.Button(
-            status_frame, text="Clear Console", command=self.clear_console
+            button_frame, text="Clear Console", command=self.clear_console
         )
-        clear_btn.grid(row=0, column=1)
+        clear_btn.pack(side=tk.LEFT, padx=(0, 10))
 
         self.stop_btn = ttk.Button(
-            status_frame, text="Stop", command=self.stop_protocol, state=tk.DISABLED
+            button_frame, text="Stop", command=self.stop_protocol, state=tk.DISABLED
         )
-        self.stop_btn.grid(row=0, column=2)
+        self.stop_btn.pack(side=tk.LEFT)
 
         # Configure tab order for keyboard navigation
         self._setup_tab_order()
@@ -629,6 +647,13 @@ class ProtocolRunnerGUI:
                     increment=(param_config["max"] - param_config["min"]) / 100,
                     textvariable=var,
                     width=15,
+                    validate="key",
+                    validatecommand=(
+                        self.root.register(self._validate_spinbox_float),
+                        "%P",
+                        param_config["min"],
+                        param_config["max"],
+                    ),
                 )
             elif param_config["type"] == "int":
                 var = tk.IntVar(value=param_config["default"])
@@ -639,6 +664,13 @@ class ProtocolRunnerGUI:
                     increment=1,
                     textvariable=var,
                     width=15,
+                    validate="key",
+                    validatecommand=(
+                        self.root.register(self._validate_spinbox_int),
+                        "%P",
+                        param_config["min"],
+                        param_config["max"],
+                    ),
                 )
             else:  # string
                 var = tk.StringVar(value=param_config["default"])
@@ -713,10 +745,10 @@ class ProtocolRunnerGUI:
                     # String validation - check if it's a valid format
                     if param_name == "surprise_range":
                         try:
-                            # Parse [min, max] format
-                            import ast
+                            # Parse [min, max] format using JSON
+                            import json
 
-                            value_list = ast.literal_eval(current_value)
+                            value_list = json.loads(current_value)
                             if not isinstance(value_list, list) or len(value_list) != 2:
                                 validation_errors.append(
                                     f"{param_name}: Must be in format [min, max]"
@@ -897,6 +929,14 @@ class ProtocolRunnerGUI:
         def _update():
             self.output_console.insert(tk.END, message + "\n")
             self.output_console.see(tk.END)
+
+            # Limit the number of lines to prevent memory issues
+            max_lines = 1000
+            lines = self.output_console.get("1.0", tk.END).splitlines()
+            if len(lines) > max_lines:
+                # Keep only the last max_lines lines
+                self.output_console.delete("1.0", tk.END)
+                self.output_console.insert(tk.END, "\n".join(lines[-max_lines:]) + "\n")
 
         self.root.after(0, _update)
 
@@ -1125,6 +1165,26 @@ class ProtocolRunnerGUI:
             )
 
         self.log_message(f"Created {cls.__name__} instance")
+
+    def _validate_spinbox_float(self, value, min_val, max_val):
+        """Validate float spinbox input."""
+        if value == "":
+            return True
+        try:
+            val = float(value)
+            return float(min_val) <= val <= float(max_val)
+        except ValueError:
+            return False
+
+    def _validate_spinbox_int(self, value, min_val, max_val):
+        """Validate integer spinbox input."""
+        if value == "":
+            return True
+        try:
+            val = int(float(value))  # Allow decimal input but convert to int
+            return int(min_val) <= val <= int(max_val)
+        except ValueError:
+            return False
 
 
 def main():

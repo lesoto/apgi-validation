@@ -176,8 +176,15 @@ class APGIParameterValidator:
             # Check each parameter
             for key, value in parameters.items():
                 if key not in self.schema["properties"]:
-                    errors.append(
-                        f"Unknown parameter: '{key}'. Valid parameters: {list(self.schema['properties'].keys())}"
+                    # Add fail-fast option for unknown parameters
+                    if getattr(self, "fail_fast", False):
+                        errors.append(
+                            f"Unknown parameter: '{key}'. Valid parameters: {list(self.schema['properties'].keys())}"
+                        )
+                        continue
+                    # Log warning but continue validation
+                    warnings.append(
+                        f"Unknown parameter: '{key}' will be ignored. Valid parameters: {list(self.schema['properties'].keys())}"
                     )
                     continue
 

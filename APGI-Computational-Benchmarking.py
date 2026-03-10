@@ -95,6 +95,9 @@ class FEPFramework(ComputationalFramework):
             # Prediction error
             prediction_error = inputs[t] - belief
 
+            # Store belief at current timestep BEFORE update
+            beliefs[t] = belief
+
             # Free energy = prediction error precision + KL divergence
             free_energy[t] = (
                 0.5 * sensory_precision * prediction_error**2

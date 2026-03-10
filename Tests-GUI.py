@@ -18,13 +18,16 @@ from pathlib import Path
 from tkinter import scrolledtext, ttk
 from typing import Any, Dict, List, Optional, Tuple
 
+# Set matplotlib backend before importing any matplotlib modules
+import matplotlib
+
+matplotlib.use("TkAgg")
+
 # Import matplotlib for visualization
 try:
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
     from matplotlib.figure import Figure
-    import matplotlib
 
-    matplotlib.use("TkAgg")
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
@@ -439,7 +442,7 @@ class TestsRunnerGUI:
 
         # Results display frame
         results_frame = ttk.LabelFrame(parent_frame, text="Test Results", padding="10")
-        results_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        results_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
 
@@ -571,90 +574,96 @@ class TestsRunnerGUI:
         if not MATPLOTLIB_AVAILABLE or not hasattr(self, "fig"):
             return
 
-        # Clear previous plots
-        self.ax_pie.clear()
-        self.ax_bar.clear()
-        self.ax_timeline.clear()
+        try:
+            # Clear previous plots
+            self.ax_pie.clear()
+            self.ax_bar.clear()
+            self.ax_timeline.clear()
 
-        if not self.test_results:
-            # Show empty state
-            for ax in [self.ax_pie, self.ax_bar, self.ax_timeline]:
-                ax.text(
-                    0.5,
-                    0.5,
-                    "No test data",
-                    ha="center",
-                    va="center",
-                    transform=ax.transAxes,
-                )
-            self.canvas.draw()
-            return
+            if not self.test_results:
+                # Show empty state
+                for ax in [self.ax_pie, self.ax_bar, self.ax_timeline]:
+                    ax.text(
+                        0.5,
+                        0.5,
+                        "No test data",
+                        ha="center",
+                        va="center",
+                        transform=ax.transAxes,
+                    )
+                self.canvas.draw()
+                return
 
-        # Count test results
-        status_counts = {}
-        for result in self.test_results:
-            status = result.get("status", "unknown")
-            status_counts[status] = status_counts.get(status, 0) + 1
-
-        # Pie chart of test results
-        if status_counts:
-            labels = list(status_counts.keys())
-            sizes = list(status_counts.values())
-            colors = {
-                "PASSED": "green",
-                "FAILED": "red",
-                "ERROR": "orange",
-                "SKIPPED": "gray",
-            }
-            pie_colors = [colors.get(label, "blue") for label in labels]
-
-            self.ax_pie.pie(sizes, labels=labels, colors=pie_colors, autopct="%1.1f%%")
-            self.ax_pie.set_title("Test Results Distribution")
-
-        # Bar chart of test results
-        if status_counts:
-            labels = list(status_counts.keys())
-            values = list(status_counts.values())
-            bar_colors = [colors.get(label, "blue") for label in labels]
-
-            self.ax_bar.bar(labels, values, color=bar_colors)
-            self.ax_bar.set_title("Test Results Count")
-            self.ax_bar.set_ylabel("Number of Tests")
-
-        # Timeline of recent test results
-        recent_results = self.test_results[-20:]  # Last 20 results
-        if recent_results:
-            status_values = []
-            status_colors = []
-
-            for result in recent_results:
+            # Count test results
+            status_counts = {}
+            for result in self.test_results:
                 status = result.get("status", "unknown")
-                if status == "PASSED":
-                    status_values.append(1)
-                    status_colors.append("green")
-                elif status == "FAILED":
-                    status_values.append(0)
-                    status_colors.append("red")
-                elif status == "ERROR":
-                    status_values.append(-1)
-                    status_colors.append("orange")
-                else:
-                    status_values.append(0.5)
-                    status_colors.append("gray")
+                status_counts[status] = status_counts.get(status, 0) + 1
 
-            self.ax_timeline.bar(
-                range(len(recent_results)), status_values, color=status_colors
-            )
-            self.ax_timeline.set_title("Recent Test Timeline")
-            self.ax_timeline.set_xlabel("Test Sequence")
-            self.ax_timeline.set_ylabel("Status")
-            self.ax_timeline.set_ylim(-1.5, 1.5)
-            self.ax_timeline.set_yticks([-1, 0, 1])
-            self.ax_timeline.set_yticklabels(["Error", "Failed", "Passed"])
+            # Pie chart of test results
+            if status_counts:
+                labels = list(status_counts.keys())
+                sizes = list(status_counts.values())
+                colors = {
+                    "PASSED": "#2ecc71",  # green
+                    "FAILED": "#e74c3c",  # red
+                    "ERROR": "#e67e22",  # orange
+                    "SKIPPED": "#95a5a6",  # gray
+                }
+                pie_colors = [colors.get(label, "#3498db") for label in labels]
 
-        # Adjust layout and redraw
-        self.fig.tight_layout()
-        self.canvas.draw()
+                self.ax_pie.pie(
+                    sizes, labels=labels, colors=pie_colors, autopct="%1.1f%%"
+                )
+                self.ax_pie.set_title("Test Results Distribution")
+
+            # Bar chart of test results
+            if status_counts:
+                labels = list(status_counts.keys())
+                values = list(status_counts.values())
+                bar_colors = [colors.get(label, "#3498db") for label in labels]
+
+                self.ax_bar.bar(labels, values, color=bar_colors)
+                self.ax_bar.set_title("Test Results Count")
+                self.ax_bar.set_ylabel("Number of Tests")
+
+            # Timeline of recent test results
+            recent_results = self.test_results[-20:]  # Last 20 results
+            if recent_results:
+                status_values = []
+                status_colors = []
+
+                for result in recent_results:
+                    status = result.get("status", "unknown")
+                    if status == "PASSED":
+                        status_values.append(1)
+                        status_colors.append("#2ecc71")
+                    elif status == "FAILED":
+                        status_values.append(0)
+                        status_colors.append("#e74c3c")
+                    elif status == "ERROR":
+                        status_values.append(-1)
+                        status_colors.append("#e67e22")
+                    else:
+                        status_values.append(0.5)
+                        status_colors.append("#95a5a6")
+
+                self.ax_timeline.bar(
+                    range(len(recent_results)), status_values, color=status_colors
+                )
+                self.ax_timeline.set_title("Recent Test Timeline")
+                self.ax_timeline.set_xlabel("Test Sequence")
+                self.ax_timeline.set_ylabel("Status")
+                self.ax_timeline.set_ylim(-1.5, 1.5)
+                self.ax_timeline.set_yticks([-1, 0, 1])
+                self.ax_timeline.set_yticklabels(["Error", "Failed", "Passed"])
+
+            # Adjust layout and redraw
+            self.fig.tight_layout()
+            self.canvas.draw()
+
+        except Exception as e:
+            self.log_output(f"Error updating charts: {e}", self.TAG_ERROR)
 
     def _parse_test_results(self) -> None:
         """Parse test results from the output buffer."""
@@ -1162,6 +1171,15 @@ class TestsRunnerGUI:
 
         # Clear running processes
         self.running_processes.clear()
+
+        # Cleanup matplotlib figures
+        if MATPLOTLIB_AVAILABLE and hasattr(self, "fig"):
+            try:
+                import matplotlib.pyplot as plt
+
+                plt.close(self.fig)
+            except Exception:
+                pass
 
         # Log quit message
         self.log_output("Quitting application...", self.TAG_INFO)

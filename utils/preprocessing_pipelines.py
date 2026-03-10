@@ -15,7 +15,19 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from utils.data_validation import DataPreprocessor, DataValidator
+
+try:
+    from utils.data_validation import DataPreprocessor, DataValidator
+except ImportError:
+    # Fallback if utils.data_validation is not available
+    import warnings
+
+    warnings.warn(
+        "utils.data_validation not available - preprocessing may be limited",
+        ImportWarning,
+    )
+    DataPreprocessor = None
+    DataValidator = None
 from scipy import signal, stats
 from sklearn import exceptions
 from sklearn.decomposition import FastICA
@@ -71,9 +83,34 @@ class EEGPreprocessor:
         self,
         df: pd.DataFrame,
         eeg_columns: List[str] = None,
+        sampling_rate: Optional[float] = None,
         show_progress: bool = True,
     ) -> pd.DataFrame:
-        """Apply comprehensive EEG preprocessing pipeline."""
+        """Apply comprehensive EEG preprocessing pipeline.
+
+        Args:
+            df: DataFrame containing EEG data
+            eeg_columns: List of EEG column names (default: auto-detect)
+            sampling_rate: Explicit sampling rate in Hz (REQUIRED for filtering)
+            show_progress: Whether to show progress bar
+
+        Raises:
+            ValueError: If sampling_rate is not provided
+        """
+        if sampling_rate is None:
+            import warnings
+
+            warnings.warn(
+                "EXPLICIT SAMPLING RATE REQUIRED: sampling_rate parameter must be provided for EEG preprocessing. "
+                "Automatic estimation is unreliable and may lead to incorrect filter design. "
+                "Please specify the sampling rate in Hz (e.g., sampling_rate=1000.0 for 1kHz data).",
+                UserWarning,
+                stacklevel=2,
+            )
+            raise ValueError(
+                "sampling_rate parameter is required for EEG preprocessing"
+            )
+
         if eeg_columns is None:
             eeg_columns = [col for col in df.columns if col.startswith("eeg")]
 
@@ -96,10 +133,14 @@ class EEGPreprocessor:
                 df_processed[col] = df_processed[col].interpolate()
 
                 # Step 2: Apply bandpass filter
-                df_processed[col] = self._apply_bandpass_filter(df_processed[col])
+                df_processed[col] = self._apply_bandpass_filter(
+                    df_processed[col], sampling_rate
+                )
 
                 # Step 3: Apply notch filter for power line noise
-                df_processed[col] = self._apply_notch_filter(df_processed[col])
+                df_processed[col] = self._apply_notch_filter(
+                    df_processed[col], sampling_rate
+                )
 
                 # Step 4: Apply ICA artifact removal
                 df_processed[col] = self._apply_ica_artifact_removal(df_processed[col])
@@ -117,10 +158,12 @@ class EEGPreprocessor:
 
         return df_processed
 
-    def _apply_bandpass_filter(self, signal_data: pd.Series) -> pd.Series:
+    def _apply_bandpass_filter(
+        self, signal_data: pd.Series, sampling_rate: float
+    ) -> pd.Series:
         """Apply bandpass filter to EEG signal."""
-        # Estimate sampling rate from time column if available
-        fs = self._estimate_sampling_rate(signal_data)
+        # Use provided sampling rate
+        fs = sampling_rate
 
         if fs is None:
             self.preprocessing_log.append(
@@ -164,9 +207,11 @@ class EEGPreprocessor:
             )
             return signal_data
 
-    def _apply_notch_filter(self, signal_data: pd.Series) -> pd.Series:
+    def _apply_notch_filter(
+        self, signal_data: pd.Series, sampling_rate: float
+    ) -> pd.Series:
         """Apply notch filter to remove power line noise."""
-        fs = self._estimate_sampling_rate(signal_data)
+        fs = sampling_rate
 
         if fs is None:
             return signal_data
@@ -253,6 +298,15 @@ class EEGPreprocessor:
                 return signal_data
 
             # Create windows with overlap
+            # Add memory guard to prevent OOM
+            total_elements = n_windows * window_size
+            max_elements = 10_000_000  # Limit to ~80MB for float64
+            if total_elements > max_elements:
+                self.preprocessing_log.append(
+                    f"Window array too large for ICA in {signal_data.name}: {total_elements} elements exceeds limit"
+                )
+                return signal_data
+
             windows = np.array(
                 [data_clean.iloc[i : i + window_size].values for i in range(n_windows)]
             )
@@ -967,12 +1021,16 @@ class MultimodalPreprocessingPipeline:
         self.pipeline_log.append(f"Loaded data: {df.shape}")
         return df
 
-    def _apply_specialized_preprocessing(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _apply_specialized_preprocessing(
+        self, df: pd.DataFrame, sampling_rate: Optional[float] = None
+    ) -> pd.DataFrame:
         """Apply specialized preprocessing for different data types."""
         df_processed = df.copy()
 
         if "eeg" in df.columns:
-            df_processed = self.eeg_processor.preprocess_eeg(df_processed, "eeg")
+            df_processed = self.eeg_processor.preprocess_eeg(
+                df_processed, "eeg", sampling_rate=sampling_rate
+            )
 
         if "pupil_diameter" in df.columns:
             df_processed = self.pupil_processor.preprocess_pupil(
@@ -1046,9 +1104,17 @@ class MultimodalPreprocessingPipeline:
         self,
         input_file: Union[str, Path],
         output_dir: Union[str, Path] = "data/processed",
+        sampling_rate: Optional[float] = None,
         show_progress: bool = True,
     ) -> Dict[str, Any]:
-        """Run complete preprocessing pipeline."""
+        """Run complete preprocessing pipeline.
+
+        Args:
+            input_file: Path to input data file
+            output_dir: Directory for output files
+            sampling_rate: Sampling rate in Hz for EEG data (required if EEG columns present)
+            show_progress: Whether to show progress bars
+        """
         input_path = Path(input_file)
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -1072,7 +1138,7 @@ class MultimodalPreprocessingPipeline:
             validation_report = self._validate_input_data(input_path, pbar, steps[0][0])
             df = self._load_input_data(input_path, pbar, steps[1][0])
 
-            df_processed = self._apply_specialized_preprocessing(df)
+            df_processed = self._apply_specialized_preprocessing(df, sampling_rate)
             self._update_progress(pbar, steps[2][0])
 
             df_processed = self._apply_general_preprocessing(df_processed)
