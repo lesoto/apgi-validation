@@ -195,8 +195,8 @@ class APGIConfig:
 class ConfigManager:
     """Advanced configuration management system."""
 
-    def __init__(self, config_file: Optional[str] = None):
-        self.config_file = config_file or CONFIG_DIR / "default.yaml"
+    def __init__(self, config_file: Optional[Union[str, Path]] = None):
+        self.config_file = Path(config_file or CONFIG_DIR / "default.yaml")
         self.config = APGIConfig()
         self.schema = self._load_schema()
         self._load_environment()

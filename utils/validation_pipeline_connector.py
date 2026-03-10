@@ -30,7 +30,7 @@ except ImportError:
     )
     MultimodalPreprocessingPipeline = None
     PreprocessingConfig = None
-from utils.sample_data_generator import (
+from .sample_data_generator import (
     SampleDataGenerator,
     generate_sample_multimodal_data,
 )

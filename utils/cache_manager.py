@@ -106,7 +106,7 @@ class CacheManager:
             key_string = str(key_data)
 
         # Generate hash
-        return hashlib.md5(key_string.encode()).hexdigest()
+        return hashlib.sha256(key_string.encode()).hexdigest()
 
     def _get_cache_path(self, key: str) -> Path:
         """Get file path for cache key."""

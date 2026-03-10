@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import shutil
+import sys
 import tarfile
 import threading
 import zipfile
@@ -25,13 +26,28 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+BACKUP_HMAC_KEY = os.environ.get("APGI_BACKUP_HMAC_KEY")
+if BACKUP_HMAC_KEY is None:
+    # Use default key for testing/development environments
+    BACKUP_HMAC_KEY = "default_backup_key_for_testing_32_chars"
+    import warnings
+
+    warnings.warn(
+        "APGI_BACKUP_HMAC_KEY not set, using default key. "
+        "For production, set APGI_BACKUP_HMAC_KEY=openssl rand -hex 32"
+    )
+BACKUP_HMAC_KEY = BACKUP_HMAC_KEY.encode()
+
 # Add project root to Python path for direct execution
 if __name__ == "__main__":
     import sys
-    from pathlib import Path
+    from dotenv import load_dotenv
 
-    PROJECT_ROOT = Path(__file__).parent.parent
-    sys.path.insert(0, str(PROJECT_ROOT))
+    load_dotenv()
+
+# Project root directory
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 try:
     from .logging_config import apgi_logger
@@ -67,6 +83,17 @@ class BackupManager:
     """Comprehensive backup and restore system for APGI framework."""
 
     def __init__(self, backup_dir: Union[str, Path] = "backups"):
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        backup_hmac_key = os.environ.get("APGI_BACKUP_HMAC_KEY")
+        if backup_hmac_key is None:
+            raise ValueError(
+                "APGI_BACKUP_HMAC_KEY environment variable must be set for backup integrity. "
+                "Generate a secure key with: openssl rand -hex 32"
+            )
+        self._backup_hmac_key = backup_hmac_key.encode()  # Store as instance variable
+
         self.backup_dir = Path(backup_dir)
         self.backup_dir.mkdir(exist_ok=True)
 
@@ -123,7 +150,7 @@ class BackupManager:
                     import hashlib
 
                     # Use a fixed key for history integrity (not sensitive, just prevents tampering)
-                    history_key = b"apgi_backup_history_integrity_key_2024"
+                    history_key = self._backup_hmac_key
                     expected_signature = hmac.new(
                         history_key, history_data, hashlib.sha256
                     ).digest()
@@ -157,7 +184,7 @@ class BackupManager:
             import hashlib
 
             # Use a fixed key for history integrity
-            history_key = b"apgi_backup_history_integrity_key_2024"
+            history_key = self._backup_hmac_key
             history_data = json.dumps(self.backup_history, indent=2).encode("utf-8")
 
             # Generate HMAC signature

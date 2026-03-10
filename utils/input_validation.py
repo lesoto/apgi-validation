@@ -349,6 +349,15 @@ class InputValidator:
         try:
             import json
 
+            # Check payload size to prevent memory exhaustion
+            max_json_size = 10000  # 10KB limit for JSON strings
+            if len(value) > max_json_size:
+                message = params.get(
+                    "message",
+                    f"JSON payload too large (max {max_json_size} characters)",
+                )
+                return ValidationResult(False, message)
+
             range_list = json.loads(value)
             if not isinstance(range_list, list) or len(range_list) != 2:
                 raise ValueError()

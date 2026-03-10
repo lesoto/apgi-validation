@@ -67,3 +67,19 @@ class ThemeManager:
     def get_current_theme(self) -> Dict:
         """Get current theme configuration"""
         return self._themes[self.current_theme]
+
+    def get_theme_color(self, color_key: str) -> str:
+        """Get a specific color from the current theme"""
+        theme = self.get_current_theme()
+
+        # Map common abbreviations to full keys
+        key_mapping = {
+            "bg": "background",
+            "fg": "foreground",
+            "text": "text",
+            "button": "button",
+            "highlight": "highlight",
+        }
+
+        full_key = key_mapping.get(color_key, color_key)
+        return theme.get(full_key, theme.get("background", "#ffffff"))

@@ -89,6 +89,7 @@ class ComprehensivePerformanceDashboard:
                         dcc.Tab(label="System Overview", value="overview"),
                         dcc.Tab(label="Performance Metrics", value="performance"),
                         dcc.Tab(label="Validation Results", value="validation"),
+                        dcc.Tab(label="Data Exploration", value="exploration"),
                         dcc.Tab(label="Error Monitoring", value="errors"),
                     ],
                 ),
@@ -120,6 +121,8 @@ class ComprehensivePerformanceDashboard:
                     return self._create_performance_tab()
                 elif tab_value == "validation":
                     return self._create_validation_tab()
+                elif tab_value == "exploration":
+                    return self._create_exploration_tab()
                 elif tab_value == "errors":
                     return self._create_error_tab()
                 else:
@@ -438,29 +441,142 @@ class ComprehensivePerformanceDashboard:
                 ]
             )
 
-    def _create_error_tab(self) -> html.Div:
-        """Create the error monitoring tab."""
+    def _create_exploration_tab(self) -> html.Div:
+        """Create the data exploration tab."""
         try:
             return html.Div(
                 [
-                    html.H2("Error Monitoring"),
+                    html.H2("Interactive Data Exploration"),
                     html.Div(
                         [
-                            html.H3("System Errors and Warnings"),
-                            html.P(
-                                "Error monitoring is handled in the main dashboard area."
+                            html.Div(
+                                [
+                                    html.H3("Dataset Selection"),
+                                    dcc.Dropdown(
+                                        id="dataset-selector",
+                                        options=[
+                                            {
+                                                "label": "System Metrics",
+                                                "value": "system",
+                                            },
+                                            {
+                                                "label": "Performance Data",
+                                                "value": "performance",
+                                            },
+                                            {
+                                                "label": "Validation Results",
+                                                "value": "validation",
+                                            },
+                                            {
+                                                "label": "Sample Multimodal Data",
+                                                "value": "sample",
+                                            },
+                                        ],
+                                        value="system",
+                                        clearable=False,
+                                    ),
+                                ],
+                                style={
+                                    "width": "30%",
+                                    "display": "inline-block",
+                                    "marginRight": "20px",
+                                },
+                            ),
+                            html.Div(
+                                [
+                                    html.H3("Visualization Type"),
+                                    dcc.Dropdown(
+                                        id="plot-type-selector",
+                                        options=[
+                                            {"label": "Line Chart", "value": "line"},
+                                            {
+                                                "label": "Scatter Plot",
+                                                "value": "scatter",
+                                            },
+                                            {"label": "Bar Chart", "value": "bar"},
+                                            {
+                                                "label": "Histogram",
+                                                "value": "histogram",
+                                            },
+                                            {"label": "Box Plot", "value": "box"},
+                                        ],
+                                        value="line",
+                                        clearable=False,
+                                    ),
+                                ],
+                                style={
+                                    "width": "30%",
+                                    "display": "inline-block",
+                                    "marginRight": "20px",
+                                },
+                            ),
+                            html.Div(
+                                [
+                                    html.H3("X-Axis"),
+                                    dcc.Dropdown(
+                                        id="x-axis-selector",
+                                        options=[],  # Will be populated dynamically
+                                        value=None,
+                                    ),
+                                ],
+                                style={"width": "30%", "display": "inline-block"},
                             ),
                         ]
                     ),
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.H3("Y-Axis"),
+                                    dcc.Dropdown(
+                                        id="y-axis-selector",
+                                        options=[],  # Will be populated dynamically
+                                        value=None,
+                                        multi=True,
+                                    ),
+                                ],
+                                style={
+                                    "width": "45%",
+                                    "display": "inline-block",
+                                    "marginRight": "20px",
+                                },
+                            ),
+                            html.Div(
+                                [
+                                    html.H3("Filters"),
+                                    dcc.RangeSlider(
+                                        id="time-range-slider",
+                                        min=0,
+                                        max=100,
+                                        step=1,
+                                        value=[0, 100],
+                                        marks={0: "Start", 100: "End"},
+                                    ),
+                                ],
+                                style={"width": "45%", "display": "inline-block"},
+                            ),
+                        ],
+                        style={"marginTop": "20px"},
+                    ),
+                    html.Div(
+                        [
+                            html.Button(
+                                "Update Visualization", id="update-viz-btn", n_clicks=0
+                            ),
+                        ],
+                        style={"marginTop": "20px", "marginBottom": "20px"},
+                    ),
+                    dcc.Graph(id="exploration-graph"),
+                    html.Div(id="exploration-stats"),
                 ]
             )
         except Exception as e:
             if apgi_logger:
-                apgi_logger.logger.error(f"Error creating error tab: {e}")
+                apgi_logger.logger.error(f"Error creating exploration tab: {e}")
             return html.Div(
                 [
-                    html.H3("Error Loading Error Monitoring", style={"color": "red"}),
-                    html.P(f"Failed to create error tab: {str(e)}"),
+                    html.H3("Error Loading Data Exploration", style={"color": "red"}),
+                    html.P(f"Failed to create exploration tab: {str(e)}"),
                 ]
             )
 
