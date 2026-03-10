@@ -30,6 +30,7 @@ class UtilsRunnerGUI:
         self.root = root
         self.root.title("APGI Utils Scripts Runner")
         self.root.geometry("800x600")
+        self.root.minsize(640, 480)  # Prevent resizing below usable size
 
         # Get utils directory
         self.utils_dir = Path(__file__).parent / "utils"

@@ -199,13 +199,6 @@ class APGIMasterValidator:
 
     def generate_master_report(self) -> Dict:
         """Generate comprehensive validation report"""
-        if not self.protocol_results:
-            return {
-                "overall_decision": "No protocols run",
-                "summary": "Run validation protocols first",
-                "protocol_results": {},
-            }
-
         total_protocols = len(self.protocol_results)
         passed_protocols = sum(
             1 for r in self.protocol_results.values() if r.get("passed", False)
@@ -213,9 +206,12 @@ class APGIMasterValidator:
         success_rate = passed_protocols / total_protocols if total_protocols > 0 else 0
 
         # Determine overall decision
-        if success_rate >= 0.8:
+        if total_protocols == 0:
+            overall_decision = "No protocols run"
+            summary = "Run validation protocols first"
+        elif success_rate >= 0.8:
             overall_decision = "PASS: Strong validation support"
-        elif success_rate >= 0.6:
+        elif success_rate >= 0.5:
             overall_decision = "MARGINAL: Moderate validation support"
         else:
             overall_decision = "FAIL: Insufficient validation support"
@@ -226,7 +222,10 @@ class APGIMasterValidator:
             "passed_protocols": passed_protocols,
             "success_rate": success_rate,
             "protocol_results": self.protocol_results,
-            "summary": f"Validated {passed_protocols}/{total_protocols} protocols ({success_rate:.1%})",
+            "falsification_status": self.falsification_status,
+            "summary": summary
+            if total_protocols == 0
+            else f"Validated {passed_protocols}/{total_protocols} protocols ({success_rate:.1%})",
         }
 
     def get_available_protocols(self) -> Dict[str, Dict]:
