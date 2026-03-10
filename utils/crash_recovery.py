@@ -15,6 +15,15 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Callable
 from dataclasses import dataclass, asdict
 
+try:
+    from utils.logging_config import apgi_logger
+except ImportError:
+    # Fallback to basic logging if utils.logging_config is not available
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
+    apgi_logger = logging.getLogger("crash_recovery")
+
 
 @dataclass
 class RecoveryState:
@@ -42,6 +51,9 @@ class CrashRecovery:
         self.auto_save_enabled = True
         self.auto_save_interval = 30.0  # seconds
         self.max_recovery_attempts = 3
+        self.max_auto_save_retries = 5  # Maximum number of auto-save retries
+        self.auto_save_backoff_factor = 2.0  # Exponential backoff multiplier
+        self.auto_save_max_delay = 300.0  # Maximum delay between retries (5 minutes)
 
         self._auto_save_thread: Optional[threading.Thread] = None
         self._stop_auto_save = threading.Event()
@@ -130,14 +142,49 @@ class CrashRecovery:
             self._auto_save_thread.join(timeout=2.0)
 
     def _auto_save_worker(self, get_state_func: Callable[[], Dict[str, Any]]):
-        """Worker thread for automatic state saving."""
-        while not self._stop_auto_save.wait(self.auto_save_interval):
+        """Worker thread for automatic state saving with exponential backoff and retry limits."""
+        consecutive_failures = 0
+        current_delay = self.auto_save_interval
+
+        while not self._stop_auto_save.wait(current_delay):
             try:
                 state_data = get_state_func()
                 if state_data:
                     self.save_state(state_data)
+                    consecutive_failures = 0  # Reset on success
+                    current_delay = (
+                        self.auto_save_interval
+                    )  # Reset delay to base interval
+                else:
+                    consecutive_failures += 1
+                    apgi_logger.logger.warning(
+                        f"Auto-save: get_state_func returned None (failure {consecutive_failures}/{self.max_auto_save_retries})"
+                    )
             except Exception as e:
-                print(f"Auto-save failed: {e}")
+                consecutive_failures += 1
+                apgi_logger.logger.error(
+                    f"Auto-save failed (failure {consecutive_failures}/{self.max_auto_save_retries}): {e}"
+                )
+
+            # Check if we've exceeded max retries
+            if consecutive_failures >= self.max_auto_save_retries:
+                apgi_logger.logger.critical(
+                    f"Auto-save thread terminating after {consecutive_failures} consecutive failures. "
+                    f"Max retries ({self.max_auto_save_retries}) exceeded."
+                )
+                break
+
+            # Exponential backoff with jitter
+            if consecutive_failures > 0:
+                current_delay = min(
+                    current_delay * self.auto_save_backoff_factor,
+                    self.auto_save_max_delay,
+                )
+                # Add small random jitter to prevent thundering herd
+                jitter = (
+                    current_delay * 0.1 * (0.5 - time.time() % 1)
+                )  # Small random variation
+                current_delay = max(self.auto_save_interval, current_delay + jitter)
 
     def _check_for_crash(self):
         """Check if the application crashed previously."""

@@ -16,7 +16,7 @@ import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import scrolledtext, ttk, simpledialog
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class UtilsRunnerGUI:
@@ -68,27 +68,43 @@ class UtilsRunnerGUI:
         # Handle window close button
         self.root.protocol("WM_DELETE_WINDOW", self.quit_application)
 
-    def load_config(self) -> Dict:
-        """Load configuration from JSON file.
+    def load_config(self) -> Dict[str, Any]:
+        """Load configuration from file or create default.
 
         Returns:
             Configuration dictionary with default values if file not found.
         """
         config_path = Path(__file__).parent / "utils" / "utils_script_config.json"
+
+        # Detect environment for appropriate timeout settings
+        import os
+
+        env = os.environ.get("APGI_ENV", "development").lower()
+
+        # Environment-specific timeout settings
+        env_timeouts = {
+            "development": {"default": 300, "utilities": 300},  # 5 minutes for dev
+            "testing": {"default": 600, "utilities": 600},  # 10 minutes for testing
+            "production": {"default": 3600, "utilities": 3600},  # 1 hour for prod
+        }
+
+        env_timeout = env_timeouts.get(env, env_timeouts["development"])
+
         default_config = {
             "script_categories": {
                 "utilities": {
                     "description": "General utility scripts",
                     "scripts": [],
-                    "timeout": 3600,
+                    "timeout": env_timeout["utilities"],
                 }
             },
             "default_settings": {
-                "timeout": 3600,
+                "timeout": env_timeout["default"],
                 "max_retries": 2,
                 "retry_delay": 1,
                 "enable_execution_time": True,
                 "log_level": "INFO",
+                "environment": env,
             },
         }
 
@@ -310,9 +326,12 @@ class UtilsRunnerGUI:
 
         # Limit output lines to prevent performance issues
         line_count = int(self.output_text.index("end-1c").split(".")[0])
-        if line_count > self.max_output_lines:
-            # Keep only the last max_output_lines lines
-            self.output_text.delete(1.0, f"{line_count - self.max_output_lines + 1}.0")
+        if (
+            line_count > self.max_output_lines + 100
+        ):  # Larger buffer to reduce frequent trimming
+            # Batch delete multiple lines at once for better performance
+            lines_to_delete = line_count - self.max_output_lines + 50
+            self.output_text.delete(1.0, f"{lines_to_delete + 1}.0")
 
     def process_output_queue(self):
         """Process queued output messages in the main thread."""
@@ -439,9 +458,20 @@ class UtilsRunnerGUI:
         if script_name in auto_scripts:
             cmd.append("--auto")
 
-        # Add user-provided arguments
+        # Validate and add user-provided arguments with whitelist
         if args:
-            cmd.extend(args)
+            # Whitelist of allowed arguments to prevent command injection
+            allowed_args = {"--auto", "--help", "--verbose", "--quiet", "--dry-run"}
+            validated_args = []
+            for arg in args:
+                if arg in allowed_args:
+                    validated_args.append(arg)
+                else:
+                    self.log_output(
+                        f"Warning: Argument '{arg}' not in whitelist, ignoring",
+                        self.TAG_WARNING,
+                    )
+            cmd.extend(validated_args)
 
         # Use configuration timeout if not specified
         if timeout is None:

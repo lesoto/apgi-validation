@@ -10,6 +10,7 @@ preprocessed data, and intermediate calculations.
 import functools
 import hashlib
 import json
+import os
 import threading
 import time
 from datetime import datetime
@@ -55,12 +56,24 @@ class CacheManager:
         return {}
 
     def _save_metadata(self):
-        """Save cache metadata to file."""
+        """Save cache metadata to file atomically."""
         try:
-            with open(self.metadata_file, "w") as f:
+            # Write to temporary file first
+            temp_file = self.metadata_file.with_suffix(".tmp")
+            with open(temp_file, "w") as f:
                 json.dump(self.metadata, f, indent=2)
+
+            # Atomic replace
+            os.replace(temp_file, self.metadata_file)
+
         except (json.JSONDecodeError, FileNotFoundError, PermissionError, OSError) as e:
             print(f"Error saving cache metadata: {type(e).__name__}: {e}")
+            # Clean up temp file if it exists
+            if temp_file.exists():
+                try:
+                    temp_file.unlink()
+                except OSError:
+                    pass
 
     def _is_json_serializable(self, obj: Any) -> bool:
         """Check if object is JSON serializable."""
@@ -143,7 +156,10 @@ class CacheManager:
 
                 cache_path = Path(info["path"])
                 if cache_path.exists():
-                    cache_path.unlink()
+                    try:
+                        cache_path.unlink()
+                    except OSError as e:
+                        print(f"Error deleting cache file {cache_path}: {e}")
                     total_size -= info.get("size", 0)
                     del self.metadata[key]
                     self.stats["evictions"] += 1
@@ -164,10 +180,15 @@ class CacheManager:
                 entry = self.metadata[cache_key]
                 if "expires" in entry and entry["expires"] < time.time():
                     # Entry expired, remove it
-                    if cache_path.exists():
-                        cache_path.unlink()
-                    if json_path.exists():
-                        json_path.unlink()
+                    try:
+                        if cache_path.exists():
+                            cache_path.unlink()
+                        if json_path.exists():
+                            json_path.unlink()
+                    except OSError as e:
+                        print(
+                            f"Error deleting expired cache files for {cache_key}: {e}"
+                        )
                     del self.metadata[cache_key]
                     self._save_metadata()
                     self.stats["misses"] += 1
@@ -352,12 +373,15 @@ class CacheManager:
             json_path = cache_path.with_suffix(".json")
 
             deleted = False
-            if cache_path.exists():
-                cache_path.unlink()
-                deleted = True
-            if json_path.exists():
-                json_path.unlink()
-                deleted = True
+            try:
+                if cache_path.exists():
+                    cache_path.unlink()
+                    deleted = True
+                if json_path.exists():
+                    json_path.unlink()
+                    deleted = True
+            except OSError as e:
+                print(f"Error deleting cache files for {cache_key}: {e}")
 
             if deleted and cache_key in self.metadata:
                 del self.metadata[cache_key]

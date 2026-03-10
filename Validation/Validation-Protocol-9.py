@@ -15,7 +15,7 @@ This protocol analyzes real neural data to demonstrate:
 
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import logging
 
@@ -27,6 +27,11 @@ from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
 
 # MNE for EEG analysis
+if TYPE_CHECKING:
+    import mne as MneModule
+else:
+    MneModule = None
+
 mne = None
 try:
     import mne
@@ -79,7 +84,7 @@ class APGIP3bAnalyzer:
         return raw
 
     def extract_p3b_amplitude(
-        self, epochs: mne.Epochs, electrode: str = "Pz"
+        self, epochs: "MneModule.Epochs", electrode: str = "Pz"
     ) -> np.ndarray:
         """Extract P3b peak amplitudes from epoched data"""
         # Get data for target electrode

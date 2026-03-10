@@ -26,9 +26,10 @@ Mathematical Formulation:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
+from scipy.special import expit
 
 
 @dataclass
@@ -53,6 +54,9 @@ class APGIParameters:
     # Metabolic parameters
     gamma_c: float = 0.2  # Metabolic cost per ignition [0.05, 0.5], typical 0.1-0.3σ
     gamma_r: float = 0.07  # Metabolic recovery rate [0.01, 0.2], typical 0.05-0.1σ
+    eta_m_max: float = (
+        10.0  # Maximum metabolic modulation [5.0, 50.0], typical 10.0-20.0σ
+    )
 
     # Sigmoid parameters
     k: float = 3.0  # Sigmoid steepness [1.0, 10.0], typical 2.0-5.0
@@ -78,6 +82,8 @@ class APGIParameters:
             raise ValueError(f"gamma_c must be in [0.05, 0.5], got {self.gamma_c}")
         if not (0.01 <= self.gamma_r <= 0.2):
             raise ValueError(f"gamma_r must be in [0.01, 0.2], got {self.gamma_r}")
+        if not (5.0 <= self.eta_m_max <= 50.0):
+            raise ValueError(f"eta_m_max must be in [5.0, 50.0], got {self.eta_m_max}")
         if not (1.0 <= self.k <= 10.0):
             raise ValueError(f"k must be in [1.0, 10.0], got {self.k}")
         if not (0.0 <= self.beta <= 5.0):
@@ -183,8 +189,13 @@ class APGIState:
     I: int = 0  # Binary ignition indicator
     ignition_probability: float = 0.0  # P(ignition|t)
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert state to dictionary."""
+    def to_dict(self) -> Dict[str, Union[int, float]]:
+        """
+        Convert state to dictionary for serialization.
+
+        Returns:
+            Dictionary containing all state variables with their current values
+        """
         return {
             "S": self.S,
             "theta_t": self.theta_t,
@@ -242,8 +253,8 @@ class APGIFullDynamicModel:
         mu_baseline = np.mean(baseline)
         sigma_baseline = np.std(baseline)
 
-        if sigma_baseline == 0:
-            raise ValueError("Baseline std is zero, cannot standardize")
+        if np.isclose(sigma_baseline, 0, atol=1e-10):
+            raise ValueError("Baseline std is effectively zero, cannot standardize")
 
         return (signal - mu_baseline) / sigma_baseline
 
@@ -321,16 +332,13 @@ class APGIFullDynamicModel:
             - self.params.gamma_r * (1 - I_prev)
         )
 
-        # Ensure non-negative metabolic modulation
-        eta_m_next = max(0.0, eta_m_next)
+        # Ensure metabolic modulation is bounded
+        eta_m_next = np.clip(eta_m_next, 0.0, self.params.eta_m_max)
 
         return eta_m_next
 
     def ignition_probability(self, S: float, theta_t: float) -> float:
-        """
-        Compute ignition probability via sigmoid function.
-
-        P(ignition|t) = 1 / (1 + exp(−k·(S(t)−θt(t))))
+        """Compute ignition probability using numerically stable sigmoid.
 
         Args:
             S: Accumulated signal
@@ -340,7 +348,7 @@ class APGIFullDynamicModel:
             Ignition probability [0,1]
         """
         logit = self.params.k * (S - theta_t)
-        prob = 1.0 / (1.0 + np.exp(-logit))
+        prob = expit(np.clip(logit, -500, 500))
 
         return prob
 
@@ -435,6 +443,10 @@ class APGIFullDynamicModel:
             Dictionary of time series for all state variables
         """
         n_steps = len(Pi_e_sequence)
+
+        # Validate input is not empty
+        if n_steps == 0:
+            raise ValueError("Input sequences cannot be empty")
 
         # Validate input lengths
         for arr, name in [

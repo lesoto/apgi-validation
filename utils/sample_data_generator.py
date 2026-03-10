@@ -473,6 +473,10 @@ def generate_sample_multimodal_data(
     # Generate base signals
     t = np.linspace(0, duration_minutes * 60, n_samples)
 
+    # Validate inputs are finite
+    if not np.all(np.isfinite(t)):
+        raise ValueError("Time array contains NaN or Inf values")
+
     # EEG-like signal (mixture of alpha, beta rhythms)
     eeg_alpha = 10 * np.sin(2 * np.pi * 10 * t)  # 10 Hz alpha
     eeg_beta = 5 * np.sin(2 * np.pi * 20 * t)  # 20 Hz beta
@@ -480,6 +484,10 @@ def generate_sample_multimodal_data(
     eeg_fz = (
         eeg_alpha + eeg_beta + eeg_theta + np.random.normal(0, noise_level, n_samples)
     )
+
+    # Validate EEG signal
+    if not np.all(np.isfinite(eeg_fz)):
+        raise ValueError("EEG signal contains NaN or Inf values")
 
     # Pupil diameter (2-8mm range, with task-related changes)
     base_pupil = 4.0

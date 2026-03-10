@@ -224,11 +224,16 @@ class InputValidator:
 
     def _validate_path(self, value: Any, params: Dict[str, Any]) -> ValidationResult:
         """Validate path input."""
+        if not isinstance(params, dict):
+            return ValidationResult(False, "Invalid validation parameters")
+
         if not isinstance(value, str):
-            message = params.get("message", "Must be a valid path")
+            message = params.get("message", "Must be a string")
             return ValidationResult(False, message)
 
         try:
+            from pathlib import Path
+
             path_obj = Path(value)
 
             # Check if path should exist
@@ -253,13 +258,28 @@ class InputValidator:
         self, value: Any, params: Dict[str, Any]
     ) -> ValidationResult:
         """Validate file path input."""
+        if not isinstance(params, dict):
+            return ValidationResult(False, "Invalid validation parameters")
+
         result = self._validate_path(value, params)
         if not result.is_valid:
             return result
 
-        path_obj = Path(result.value)
-        if path_obj.exists() and not path_obj.is_file():
+        import os
+
+        path_str = result.value
+
+        # Check if file exists and is accessible (reduce TOCTOU window)
+        if not os.path.exists(path_str):
+            message = params.get("message", "File does not exist")
+            return ValidationResult(False, message)
+
+        if not os.path.isfile(path_str):
             message = params.get("message", "Path exists but is not a file")
+            return ValidationResult(False, message)
+
+        if not os.access(path_str, os.R_OK):
+            message = params.get("message", "File exists but is not readable")
             return ValidationResult(False, message)
 
         return result
@@ -268,6 +288,9 @@ class InputValidator:
         self, value: Any, params: Dict[str, Any]
     ) -> ValidationResult:
         """Validate directory path input."""
+        if not isinstance(params, dict):
+            return ValidationResult(False, "Invalid validation parameters")
+
         result = self._validate_path(value, params)
         if not result.is_valid:
             return result
@@ -281,6 +304,9 @@ class InputValidator:
 
     def _validate_email(self, value: Any, params: Dict[str, Any]) -> ValidationResult:
         """Validate email input."""
+        if not isinstance(params, dict):
+            return ValidationResult(False, "Invalid validation parameters")
+
         if not isinstance(value, str):
             message = params.get("message", "Must be a valid email address")
             return ValidationResult(False, message)
@@ -299,7 +325,14 @@ class InputValidator:
             message = params.get("message", "Must be a valid URL")
             return ValidationResult(False, message)
 
-        # Basic URL regex
+        # Only allow http and https protocols for security
+        if not (value.startswith("http://") or value.startswith("https://")):
+            message = params.get(
+                "message", "Must be a valid URL starting with http:// or https://"
+            )
+            return ValidationResult(False, message)
+
+        # Basic URL regex for structure validation
         url_pattern = r"^https?://[^\s/$.?#].[^\s]*$"
         if not re.match(url_pattern, value):
             message = params.get("message", "Must be a valid URL (http:// or https://)")
@@ -314,9 +347,9 @@ class InputValidator:
             return ValidationResult(False, message)
 
         try:
-            import ast
+            import json
 
-            range_list = ast.literal_eval(value)
+            range_list = json.loads(value)
             if not isinstance(range_list, list) or len(range_list) != 2:
                 raise ValueError()
 
@@ -333,6 +366,9 @@ class InputValidator:
 
     def _validate_length(self, value: Any, params: Dict[str, Any]) -> ValidationResult:
         """Validate length of iterable input."""
+        if not isinstance(params, dict):
+            return ValidationResult(False, "Invalid validation parameters")
+
         try:
             length = len(value)
         except TypeError:
@@ -356,6 +392,9 @@ class InputValidator:
 
     def _validate_pattern(self, value: Any, params: Dict[str, Any]) -> ValidationResult:
         """Validate against a regex pattern."""
+        if not isinstance(params, dict):
+            return ValidationResult(False, "Invalid validation parameters")
+
         if not isinstance(value, str):
             message = params.get("message", "Must be a string")
             return ValidationResult(False, message)
@@ -365,16 +404,36 @@ class InputValidator:
             return ValidationResult(False, "Pattern not specified")
 
         try:
-            if not re.match(pattern, value):
-                message = params.get("message", "Invalid format")
-                return ValidationResult(False, message)
+            # Add timeout to prevent ReDoS attacks
+            import signal
 
-            return ValidationResult(True, "Valid")
+            def timeout_handler(signum, frame):
+                raise TimeoutError("Regex matching timed out")
+
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(1)  # 1 second timeout
+
+            try:
+                result = re.match(pattern, value)
+                signal.alarm(0)  # Cancel alarm
+
+                if not result:
+                    message = params.get("message", "Invalid format")
+                    return ValidationResult(False, message)
+
+                return ValidationResult(True, "Valid")
+            except TimeoutError:
+                signal.alarm(0)  # Cancel alarm
+                return ValidationResult(False, "Regex matching timed out")
+
         except re.error:
             return ValidationResult(False, "Invalid regex pattern")
 
     def _validate_custom(self, value: Any, params: Dict[str, Any]) -> ValidationResult:
         """Validate using a custom validator."""
+        if not isinstance(params, dict):
+            return ValidationResult(False, "Invalid validation parameters")
+
         validator_name = params.get("validator")
         if not validator_name or validator_name not in self.custom_validators:
             return ValidationResult(False, "Custom validator not found")

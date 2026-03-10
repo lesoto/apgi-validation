@@ -20,9 +20,27 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import click
-import numpy as np
-import yaml
+try:
+    import click
+except ImportError:
+    print("ERROR: Required package 'click' not installed.")
+    print("Install with: pip install click")
+    sys.exit(1)
+
+try:
+    import numpy as np
+except ImportError:
+    print("ERROR: Required package 'numpy' not installed.")
+    print("Install with: pip install numpy")
+    sys.exit(1)
+
+try:
+    import yaml
+except ImportError:
+    print("ERROR: Required package 'pyyaml' not installed.")
+    print("Install with: pip install pyyaml")
+    sys.exit(1)
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
@@ -62,25 +80,31 @@ def secure_load_module_from_path(module_path: Path):
     return secure_load_module(name, module_path)
 
 
-from utils.backup_manager import (
-    cleanup_backups_cli,
-    create_backup_cli,
-    delete_backup_cli,
-    list_backups_cli,
-    restore_backup_cli,
-)
-from utils.config_manager import config_manager
-from utils.error_handler import (
-    APGIError,
-    ErrorCategory,
-    ErrorSeverity,
-    error_handler,
-    format_user_message,
-)
+try:
+    from utils.backup_manager import (
+        cleanup_backups_cli,
+        create_backup_cli,
+        delete_backup_cli,
+        list_backups_cli,
+        restore_backup_cli,
+    )
+    from utils.config_manager import config_manager
+    from utils.error_handler import (
+        APGIError,
+        ErrorCategory,
+        ErrorSeverity,
+        error_handler,
+        format_user_message,
+    )
 
-# Import APGI framework components
-from utils.logging_config import apgi_logger
-from utils.validation_pipeline_connector import ValidationPipelineConnector
+    # Import APGI framework components
+    from utils.logging_config import apgi_logger
+    from utils.validation_pipeline_connector import ValidationPipelineConnector
+except ImportError as e:
+    print(f"ERROR: Failed to import required utils modules: {e}")
+    print("This usually means the utils/ directory is missing or corrupted.")
+    print("Please ensure you have the complete APGI framework installation.")
+    sys.exit(1)
 
 # Initialize rich console with better width handling
 console = Console(
@@ -265,7 +289,11 @@ def cli(ctx, config_file, log_level, verbose, quiet):
 
     # Apply command-line overrides
     if config_file:
-        config_manager.config_file = Path(config_file)
+        # Validate config file path
+        validated_config_path = _validate_file_path(
+            config_file, allowed_dirs=["config"]
+        )
+        config_manager.config_file = validated_config_path
         config_manager._load_config()
         apgi_logger.logger.info(f"Using custom config file: {config_file}")
 
@@ -379,8 +407,13 @@ def formal_model(
                 try:
                     import json
 
+                    # Validate and resolve parameter file path
+                    validated_params_path = _validate_file_path(
+                        params, allowed_dirs=["config"]
+                    )
+
                     # Load JSON file
-                    with open(params, "r") as f:
+                    with open(validated_params_path, "r") as f:
                         custom_params = json.load(f)
 
                     # Validate JSON structure
@@ -489,12 +522,12 @@ def formal_model(
             cancel_flag = threading.Event()
 
             # Set up signal handler for cancellation
+            cancel_message = []
+
             def handle_cancel(signum, frame):
                 """Handle SIGINT signal to cancel simulation gracefully."""
                 cancel_flag.set()
-                console.print(
-                    "\n[yellow]⚠️  Simulation cancellation requested...[/yellow]"
-                )
+                cancel_message.append("Cancellation requested")
 
             signal.signal(signal.SIGINT, handle_cancel)
 
@@ -567,6 +600,12 @@ def formal_model(
         # Save results if requested
         save_file = output_file
         if save_file:
+            # Validate output file path
+            validated_save_path = _validate_output_path(
+                save_file, allowed_dirs=["results"]
+            )
+            save_file = str(validated_save_path)
+
             if not save_file:
                 save_file = f"formal_model_results_{int(time.time())}.csv"
 
@@ -606,36 +645,170 @@ def formal_model(
             console.print(f"[green]✓[/green] Plots saved to {plot_file}")
 
     except (ValueError, TypeError, RuntimeError, ImportError, MemoryError) as e:
+        # Sanitize exception message to prevent information disclosure
+        error_msg = _sanitize_error_message(str(e))
         # log_error(e, "formal_model_simulation", steps=sim_steps, dt=time_step)
-        apgi_logger.logger.error(f"Error in formal model simulation: {e}")
-        console.print(f"[red]Error in simulation: {e}[/red]")
+        apgi_logger.logger.error(f"Error in formal model simulation: {error_msg}")
+        console.print(f"[red]Error in simulation: {error_msg}[/red]")
 
 
-def _validate_input_file(input_data: Optional[str]) -> bool:
-    """Validate input file for multimodal integration."""
-    if not input_data:
-        return True  # No file, will run demo mode
+def _sanitize_error_message(error_msg: str) -> str:
+    """Sanitize error messages to prevent information disclosure."""
+    import re
 
-    import os
+    # Remove file paths
+    error_msg = re.sub(r"/[^\s]+", "/[PATH]", error_msg)
+    error_msg = re.sub(r"\\[^\s]+", "\\[PATH]", error_msg)
+
+    # Remove potential sensitive data patterns
+    # Remove what looks like keys/tokens
+    error_msg = re.sub(r"\b[A-Za-z0-9+/=]{20,}\b", "[REDACTED]", error_msg)
+
+    # Limit message length
+    if len(error_msg) > 200:
+        error_msg = error_msg[:200] + "..."
+
+    return error_msg
+
+
+def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
+    """Validate file path to prevent directory traversal attacks.
+
+    Args:
+        file_path: The file path to validate
+        allowed_dirs: List of allowed directory prefixes. If None, allows project root.
+
+    Returns:
+        Resolved Path object if valid
+
+    Raises:
+        ValueError: If path is invalid or outside allowed directories
+    """
     from pathlib import Path
 
-    input_path = Path(input_data)
+    # Get project root
+    project_root = Path(__file__).parent
 
-    # Check if file exists
-    if not input_path.exists():
-        console.print(f"[red]❌ Error: Input file '{input_data}' does not exist[/red]")
-        console.print(f"[yellow]Checked path: {input_path.absolute()}[/yellow]")
-        console.print("[blue]Please check:[/blue]")
-        console.print("  • File path is correct")
-        console.print("  • File has proper permissions")
-        console.print("  • File is not in a .gitignored directory")
-        return False
+    # Resolve the path to eliminate .. and symlinks
+    resolved_path = (project_root / file_path).resolve()
+
+    # Check if path is within project root
+    try:
+        resolved_path.relative_to(project_root)
+    except ValueError:
+        raise ValueError(f"File path '{file_path}' is outside project directory")
+
+    # Additional checks for allowed directories
+    if allowed_dirs:
+        allowed = False
+        for allowed_dir in allowed_dirs:
+            allowed_path = (project_root / allowed_dir).resolve()
+            try:
+                resolved_path.relative_to(allowed_path)
+                allowed = True
+                break
+            except ValueError:
+                continue
+        if not allowed:
+            raise ValueError(
+                f"File path '{file_path}' not in allowed directories: {allowed_dirs}"
+            )
+
+    return resolved_path
+
+
+def _validate_output_file_path(output_file: str) -> Path:
+    """Validate output file path to prevent directory traversal attacks.
+
+    Args:
+        output_file: The output file path to validate
+
+    Returns:
+        Resolved Path object if valid
+
+    Raises:
+        ValueError: If path is invalid or outside allowed directories
+    """
+    # Output files can be written to project root or specific output directories
+    allowed_dirs = ["output", "results", "exports", "reports", "data"]
+    return _validate_output_path(output_file, allowed_dirs)
+
+
+def _validate_output_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
+    """
+    Args:
+        file_path: The file path to validate
+        allowed_dirs: List of allowed directory prefixes. If None, allows project root.
+
+    Returns:
+        Resolved Path object if valid (creates parent directories if needed)
+
+    Raises:
+        ValueError: If path is invalid or outside allowed directories
+    """
+    from pathlib import Path
+
+    # Get project root
+    project_root = Path(__file__).parent
+
+    # Resolve the path to eliminate .. and symlinks
+    resolved_path = (project_root / file_path).resolve()
+
+    # Check if path is within project root
+    try:
+        resolved_path.relative_to(project_root)
+    except ValueError:
+        raise ValueError(f"Output file path '{file_path}' is outside project directory")
+
+    # Additional checks for allowed directories
+    if allowed_dirs:
+        allowed = False
+        for allowed_dir in allowed_dirs:
+            allowed_path = (project_root / allowed_dir).resolve()
+            try:
+                resolved_path.relative_to(allowed_path)
+                allowed = True
+                break
+            except ValueError:
+                continue
+        if not allowed:
+            raise ValueError(
+                f"Output file path '{file_path}' not in allowed directories: {allowed_dirs}"
+            )
+
+    # Check it's not a directory (should be a file)
+    if resolved_path.exists() and resolved_path.is_dir():
+        raise ValueError(f"Output path '{resolved_path}' is a directory, not a file")
+
+    # Create parent directories if they don't exist
+    resolved_path.parent.mkdir(parents=True, exist_ok=True)
+
+    return resolved_path
+
+
+def _validate_input_file(input_data: Optional[str]) -> Optional[str]:
+    if not input_data:
+        return None  # No file, will run demo mode
+
+    # Validate path to prevent directory traversal
+    try:
+        validated_path = _validate_file_path(input_data, allowed_dirs=["data"])
+    except ValueError as e:
+        console.print(f"[red]❌ Error: {e}[/red]")
+        return None
+
+    from pathlib import Path
+
+    input_path = Path(validated_path)
 
     # Check if file is readable
-    if not os.access(input_data, os.R_OK):
+    try:
+        with open(validated_path, "rb") as f:
+            f.read(1)
+    except (FileNotFoundError, PermissionError):
         console.print(f"[red]❌ Error: Cannot read input file '{input_data}'[/red]")
         console.print("[yellow]Check file permissions[/yellow]")
-        return False
+        return None
 
     # Check file format
     if not input_data.lower().endswith((".csv", ".json", ".pkl")):
@@ -643,10 +816,10 @@ def _validate_input_file(input_data: Optional[str]) -> bool:
             f"[red]❌ Error: Unsupported file format '{input_path.suffix}'[/red]"
         )
         console.print("[blue]Supported formats: .csv, .json, .pkl[/blue]")
-        return False
+        return None
 
     console.print(f"[green]✓[/green] Input file validated: {input_data}")
-    return True
+    return str(validated_path)
 
 
 def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
@@ -749,6 +922,14 @@ def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
 
     # Save results
     if output_file:
+        try:
+            validated_output = _validate_output_path(
+                output_file, allowed_dirs=["results"]
+            )
+            output_file = str(validated_output)
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            return
         results_df.to_csv(output_file, index=False)
         console.print(f"[green]✓[/green] Results saved to {output_file}")
     else:
@@ -831,7 +1012,8 @@ def multimodal(
     console.print(Panel.fit("🔗 Multimodal Integration", style="bold green"))
 
     # Validate input file
-    if not _validate_input_file(input_data):
+    validated_input = _validate_input_file(input_data)
+    if validated_input is None and input_data is not None:
         return
 
     module_info = module_loader.get_module("multimodal")
@@ -865,8 +1047,8 @@ def multimodal(
         console.print(f"Input data: {input_data or 'Demo mode'}")
         console.print(f"Modalities: {modalities or 'EEG, Pupil, EDA'}")
 
-        if input_data and input_data.endswith(".csv"):
-            _process_csv_file(input_data, output_file)
+        if validated_input and validated_input.endswith(".csv"):
+            _process_csv_file(validated_input, output_file)
         else:
             _run_demo_mode()
 
@@ -892,7 +1074,7 @@ def estimate_params(
 ) -> None:
     """Perform Bayesian parameter estimation for APGI framework.
 
-    This command estimates the core APGI parameters (θ₀, Πᵢ, β_som, α) using
+    This command estimates the core APGI parameters (theta_0, Pi_i, beta_som, alpha) using
     Bayesian inference methods. Supports both synthetic data (demo mode)
     and experimental data files.
 
@@ -967,6 +1149,16 @@ def estimate_params(
         console.print(f"[blue]Data file: {data_file or 'Demo mode'}[/blue]")
 
         if data_file and data_file.endswith(".csv"):
+            # Validate data file path
+            try:
+                validated_data_file = _validate_file_path(
+                    data_file, allowed_dirs=["data"]
+                )
+                data_file = str(validated_data_file)
+            except ValueError as e:
+                console.print(f"[red]❌ Error: {e}[/red]")
+                return
+
             # Process actual data file
             console.print(f"[blue]Processing data file: {data_file}[/blue]")
             try:
@@ -1012,6 +1204,14 @@ def estimate_params(
 
                     # Save results
                     if output_file:
+                        try:
+                            validated_output = _validate_output_path(
+                                output_file, allowed_dirs=["results"]
+                            )
+                            output_file = str(validated_output)
+                        except ValueError as e:
+                            console.print(f"[red]Error: {e}[/red]")
+                            return
                         results.to_csv(output_file)
                         console.print(
                             f"[green]✓[/green] Results saved to {output_file}"

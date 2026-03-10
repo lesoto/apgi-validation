@@ -52,10 +52,39 @@ except ImportError:
 
 import os
 
+
 # Secure pickle functions with HMAC signing
+def _validate_secret_key(key_bytes: bytes) -> None:
+    """Validate that the secret key has sufficient entropy."""
+    import math
+
+    if len(key_bytes) < 32:
+        raise ValueError("PICKLE_SECRET_KEY must be at least 32 bytes (256 bits)")
+
+    # Calculate Shannon entropy
+    byte_counts = {}
+    for byte in key_bytes:
+        byte_counts[byte] = byte_counts.get(byte, 0) + 1
+
+    entropy = 0.0
+    key_len = len(key_bytes)
+    for count in byte_counts.values():
+        probability = count / key_len
+        entropy -= probability * math.log2(probability)
+
+    # Require at least 7 bits per byte (224 bits for 32 bytes)
+    min_entropy_bits = len(key_bytes) * 7
+    if entropy < min_entropy_bits:
+        raise ValueError(
+            f"PICKLE_SECRET_KEY has insufficient entropy ({entropy:.1f} bits, "
+            f"requires at least {min_entropy_bits} bits)"
+        )
+
+
 PICKLE_SECRET_KEY = os.environ.get("PICKLE_SECRET_KEY")
 if PICKLE_SECRET_KEY is not None:
     PICKLE_SECRET_KEY = PICKLE_SECRET_KEY.encode()
+    _validate_secret_key(PICKLE_SECRET_KEY)
 
 
 def secure_pickle_dump(obj: Any, file_path: Path) -> None:
@@ -141,27 +170,51 @@ logging_config_spec.loader.exec_module(logging_config)
 apgi_logger = logging_config.apgi_logger
 
 
+# Global cache for loaded validation modules to prevent cycles and improve performance
+_loaded_validation_modules = {}
+
+
 def load_validation_module(protocol):
-    """Load validation module by name."""
-    module_map = {
-        "protocol_1": "Validation/Validation-Protocol-1.py",
-        "protocol_2": "Validation/Validation-Protocol-2.py",
-        "protocol_3": "Validation/Validation-Protocol-3.py",
-        "protocol_4": "Validation/Validation-Protocol-4.py",
-        "protocol_5": "Validation/Validation-Protocol-5.py",
-        "protocol_6": "Validation/Validation-Protocol-6.py",
-        "protocol_7": "Validation/Validation-Protocol-7.py",
-        "protocol_8": "Validation/Validation-Protocol-8.py",
-    }
+    """Load validation module by name with cycle detection."""
+    # Check if already loaded
+    if protocol in _loaded_validation_modules:
+        return _loaded_validation_modules[protocol]
 
-    if protocol not in module_map:
-        raise ValueError(f"Unknown validation protocol: {protocol}")
+    # Check for import cycles (simple detection)
+    if hasattr(load_validation_module, "_loading"):
+        if protocol in load_validation_module._loading:
+            raise ImportError(f"Circular import detected for protocol: {protocol}")
+    else:
+        load_validation_module._loading = set()
 
-    module_path = PROJECT_ROOT / module_map[protocol]
-    spec = importlib.util.spec_from_file_location(protocol, module_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    load_validation_module._loading.add(protocol)
+
+    try:
+        module_map = {
+            "protocol_1": "Validation/Validation-Protocol-1.py",
+            "protocol_2": "Validation/Validation-Protocol-2.py",
+            "protocol_3": "Validation/Validation-Protocol-3.py",
+            "protocol_4": "Validation/Validation-Protocol-4.py",
+            "protocol_5": "Validation/Validation-Protocol-5.py",
+            "protocol_6": "Validation/Validation-Protocol-6.py",
+            "protocol_7": "Validation/Validation-Protocol-7.py",
+            "protocol_8": "Validation/Validation-Protocol-8.py",
+        }
+
+        if protocol not in module_map:
+            raise ValueError(f"Unknown validation protocol: {protocol}")
+
+        module_path = PROJECT_ROOT / module_map[protocol]
+        spec = importlib.util.spec_from_file_location(protocol, module_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        # Cache the loaded module
+        _loaded_validation_modules[protocol] = module
+        return module
+
+    finally:
+        load_validation_module._loading.discard(protocol)
 
 
 @dataclass
@@ -298,8 +351,11 @@ class BatchProcessor:
 
         except Exception as e:
             job.status = "failed"
-            job.error = str(e)
-            apgi_logger.logger.error(f"Job {job.job_id} failed: {e}")
+            # Sanitize error message to prevent information disclosure
+            error_msg = str(e)
+            sanitized_error = error_msg[:500]  # Limit error message length
+            job.error = sanitized_error
+            apgi_logger.logger.error(f"Job {job.job_id} failed: {sanitized_error}")
 
         job.end_time = time.time()
         return job
@@ -491,10 +547,10 @@ class BatchProcessor:
         regular_jobs = []
 
         for job in self.jobs:
-            if (
-                job.job_type == "validation"
-                and job.parameters.get("protocol") == "protocol_2"
-            ):
+            if job.job_type == "validation" and job.parameters.get("protocol") in [
+                "protocol_2",
+                "protocol_3",
+            ]:
                 memory_intensive_jobs.append(job)
             else:
                 regular_jobs.append(job)

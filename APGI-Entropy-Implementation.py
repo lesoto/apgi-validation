@@ -713,8 +713,8 @@ class VariationalFreeEnergyCalculator(nn.Module):
 
         # Likelihood model p(o|s): generative model - optimized
         self.generative_net = nn.Sequential(
-            nn.Linear(state_size, 32), nn.ReLU(), nn.Linear(32, state_size)  # Reduced
-        )
+            nn.Linear(state_size, 32), nn.ReLU(), nn.Linear(32, state_size)
+        )  # Reduced
 
         self.likelihood_var_net = nn.Sequential(
             nn.Linear(state_size, 32), nn.Softplus()
@@ -1328,8 +1328,8 @@ class PrecisionEstimator(nn.Module):
         )
 
         self.fc_Pi_extero = nn.Sequential(
-            nn.Linear(32, 16), nn.ReLU(), nn.Linear(16, 1), nn.Softplus()  # Reduced
-        )
+            nn.Linear(32, 16), nn.ReLU(), nn.Linear(16, 1), nn.Softplus()
+        )  # Reduced
 
         # Time constant outputs - fixed input size
         self.fc_tau_intero = nn.Sequential(

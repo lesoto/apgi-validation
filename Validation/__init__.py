@@ -8,9 +8,9 @@ Contains validation protocols and GUI tools for testing APGI theory predictions.
 import importlib.util
 from pathlib import Path
 
-# Import Master-Validation.py using importlib (needed for hyphenated filename)
+# Import Master_Validation.py using importlib (needed for hyphenated filename)
 validation_dir = Path(__file__).parent
-master_validation_path = validation_dir / "Master-Validation.py"
+master_validation_path = validation_dir / "Master_Validation.py"
 
 try:
     spec = importlib.util.spec_from_file_location(

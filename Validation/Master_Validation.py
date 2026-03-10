@@ -24,6 +24,26 @@ class APGIMasterValidator:
 
     def __init__(self):
         self.protocol_results = {}
+        self.PROTOCOL_TIERS = {
+            1: "primary",
+            2: "primary",
+            3: "secondary",
+            4: "secondary",
+            5: "tertiary",
+            6: "tertiary",
+            7: "tertiary",
+            8: "secondary",
+            9: "tertiary",
+            10: "tertiary",
+            11: "secondary",
+            12: "secondary",
+        }
+        self.falsification_status = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": [],
+        }
+        self.timeout_seconds = 30
         self.available_protocols = {
             "Protocol-1": {
                 "file": "Validation-Protocol-1.py",

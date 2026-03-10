@@ -103,21 +103,74 @@ class BackupManager:
         self.backup_history = self._load_history()
 
     def _load_history(self) -> List[Dict[str, Any]]:
-        """Load backup history from file."""
+        """Load backup history from file with integrity verification."""
         if self.history_file.exists():
             try:
-                with open(self.history_file, "r") as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, FileNotFoundError, PermissionError) as e:
+                with open(self.history_file, "rb") as f:
+                    # Read signature length
+                    sig_len_bytes = f.read(4)
+                    if len(sig_len_bytes) != 4:
+                        raise ValueError("Invalid history file format")
+
+                    sig_len = int.from_bytes(sig_len_bytes, "big")
+
+                    # Read signature and data
+                    signature = f.read(sig_len)
+                    history_data = f.read()
+
+                    # Verify signature
+                    import hmac
+                    import hashlib
+
+                    # Use a fixed key for history integrity (not sensitive, just prevents tampering)
+                    history_key = b"apgi_backup_history_integrity_key_2024"
+                    expected_signature = hmac.new(
+                        history_key, history_data, hashlib.sha256
+                    ).digest()
+
+                    if not hmac.compare_digest(signature, expected_signature):
+                        raise ValueError("History file signature verification failed")
+
+                    history = json.loads(history_data.decode("utf-8"))
+                    if history is None:
+                        return []
+                    if not isinstance(history, list):
+                        return []
+                    return history
+
+            except (
+                json.JSONDecodeError,
+                FileNotFoundError,
+                PermissionError,
+                ValueError,
+                UnicodeDecodeError,
+                AttributeError,
+                TypeError,
+            ) as e:
                 apgi_logger.logger.warning(f"Error loading backup history: {e}")
                 return []
-        return []
 
     def _save_history(self) -> None:
-        """Save backup history to file."""
+        """Save backup history to file with integrity signature."""
         try:
-            with open(self.history_file, "w") as f:
-                json.dump(self.backup_history, f, indent=2)
+            import hmac
+            import hashlib
+
+            # Use a fixed key for history integrity
+            history_key = b"apgi_backup_history_integrity_key_2024"
+            history_data = json.dumps(self.backup_history, indent=2).encode("utf-8")
+
+            # Generate HMAC signature
+            signature = hmac.new(history_key, history_data, hashlib.sha256).digest()
+
+            with open(self.history_file, "wb") as f:
+                # Write signature length
+                f.write(len(signature).to_bytes(4, "big"))
+                # Write signature
+                f.write(signature)
+                # Write data
+                f.write(history_data)
+
         except (PermissionError, IOError) as e:
             apgi_logger.logger.error(f"Error saving backup history: {e}")
 
@@ -173,6 +226,11 @@ class BackupManager:
                     elif path.is_dir():
                         for file_path in path.rglob("*"):
                             if file_path.is_file():
+                                if not os.access(file_path, os.R_OK):
+                                    apgi_logger.logger.warning(
+                                        f"No read permission for {file_path}"
+                                    )
+                                    continue
                                 files_to_backup.append(file_path)
                 else:
                     apgi_logger.logger.debug(f"Path does not exist: {path}")
@@ -250,12 +308,25 @@ class BackupManager:
                 compressed=compress,
             )
 
-            # Save metadata
+            # Save metadata atomically
             metadata_file = self.backup_dir / f"{backup_id}_metadata.json"
-            with open(metadata_file, "w") as f:
-                json.dump(asdict(metadata), f, indent=2)
+            temp_file = metadata_file.with_suffix(".tmp")
+            try:
+                with open(temp_file, "w") as f:
+                    json.dump(asdict(metadata), f, indent=2)
+                os.replace(temp_file, metadata_file)
+            except Exception:
+                # Clean up temp file if it exists
+                if temp_file.exists():
+                    try:
+                        temp_file.unlink()
+                    except OSError:
+                        pass
+                raise
 
             # Update history
+            if self.backup_history is None:
+                self.backup_history = []
             self.backup_history.append(asdict(metadata))
             self._save_history()
 
@@ -344,22 +415,9 @@ class BackupManager:
                         tmp_path.unlink()
 
     def list_backups(self) -> List[Dict[str, Any]]:
-        """List all available backups."""
-        backups = []
-
-        for backup_file in self.backup_dir.glob("*.zip"):
-            backup_id = backup_file.stem
-            metadata_file = self.backup_dir / f"{backup_id}_metadata.json"
-
-            if metadata_file.exists():
-                try:
-                    with open(metadata_file, "r") as f:
-                        metadata = json.load(f)
-                    backups.append(metadata)
-                except (json.JSONDecodeError, FileNotFoundError) as e:
-                    apgi_logger.logger.warning(
-                        f"Error reading metadata for {backup_id}: {e}"
-                    )
+        """List all available backups from cached history."""
+        # Use cached backup history for better performance (O(1) vs O(n) disk reads)
+        backups = self.backup_history.copy()
 
         # Sort by timestamp (newest first)
         backups.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
@@ -434,47 +492,133 @@ class BackupManager:
         components: Optional[List[str]],
         overwrite: bool,
     ) -> bool:
-        """Restore from ZIP backup."""
-        with zipfile.ZipFile(backup_file, "r") as zipf:
-            file_list = zipf.namelist()
+        """Restore from ZIP backup atomically.
 
-            # Filter files if components specified
-            if components:
-                file_list = self._filter_files_by_components(file_list, components)
+        Extracts to a temporary directory first, validates, then replaces atomically.
+        """
+        import tempfile
 
-            for file_path in file_list:
-                # Skip metadata files
-                if file_path.endswith("backup_info.json"):
-                    continue
+        # Create temporary directory for atomic restore
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
 
-                # Extract file
-                try:
-                    # Validate path to prevent Zip Slip attacks
-                    resolved = (target_dir / file_path).resolve()
-                    if not str(resolved).startswith(str(target_dir.resolve())):
-                        raise ValueError(f"Zip Slip detected: {file_path}")
-                    target_path = resolved
+            try:
+                # Extract to temporary directory
+                with zipfile.ZipFile(backup_file, "r") as zipf:
+                    file_list = zipf.namelist()
 
-                    # Check if file exists
-                    if target_path.exists() and not overwrite:
-                        apgi_logger.logger.warning(
-                            f"Skipping existing file: {target_path}"
+                    # Filter files if components specified
+                    if components:
+                        file_list = self._filter_files_by_components(
+                            file_list, components
                         )
-                        continue
 
-                    # Create parent directories
-                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    for file_path in file_list:
+                        # Skip metadata files
+                        if file_path.endswith("backup_info.json"):
+                            continue
 
-                    # Extract file
-                    with zipf.open(file_path) as source:
-                        with open(target_path, "wb") as target:
-                            shutil.copyfileobj(source, target)
+                        # Validate path to prevent Zip Slip attacks
+                        resolved = (temp_path / file_path).resolve()
+                        if not str(resolved).startswith(str(temp_path.resolve())):
+                            raise ValueError(f"Zip Slip detected: {file_path}")
+                        target_temp_path = resolved
 
-                except (OSError, PermissionError) as e:
-                    apgi_logger.logger.error(f"Error extracting {file_path}: {e}")
+                        # Create parent directories
+                        target_temp_path.parent.mkdir(parents=True, exist_ok=True)
+
+                        # Extract file to temp location
+                        with zipf.open(file_path) as source:
+                            with open(target_temp_path, "wb") as target:
+                                shutil.copyfileobj(source, target)
+
+                # Validate extraction and verify integrity
+                success = self._verify_restored_integrity(
+                    backup_file, temp_path, file_list
+                )
+                if not success:
+                    apgi_logger.logger.error(
+                        f"Integrity verification failed for backup {backup_id}"
+                    )
                     return False
 
-        return True
+                # Now atomically move files to target directory
+                for file_path in file_list:
+                    if file_path.endswith("backup_info.json"):
+                        continue
+
+                    source_path = temp_path / file_path
+                    dest_path = target_dir / file_path
+
+                    # Skip if destination exists and not overwriting
+                    if dest_path.exists() and not overwrite:
+                        continue
+
+                    # Create parent directories in target
+                    dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+                    # Atomic move
+                    if dest_path.exists():
+                        dest_path.unlink()
+                    shutil.move(str(source_path), str(dest_path))
+
+                return True
+
+            except Exception as e:
+                apgi_logger.logger.error(
+                    f"Error during atomic restore from {backup_file}: {e}"
+                )
+                # Temp directory is automatically cleaned up
+                return False
+
+    def _verify_restored_integrity(
+        self, backup_file: Path, temp_dir: Path, file_list: List[str]
+    ) -> bool:
+        """Verify integrity of restored files using checksums from metadata."""
+        try:
+            # Load backup metadata
+            metadata_file = backup_file.parent / f"{backup_file.stem}_metadata.json"
+            if not metadata_file.exists():
+                apgi_logger.logger.warning(f"No metadata file found for {backup_file}")
+                return True  # Allow restore without verification if no metadata
+
+            with open(metadata_file, "r") as f:
+                metadata = json.load(f)
+
+            expected_checksum = metadata.get("checksum")
+            if not expected_checksum:
+                apgi_logger.logger.warning(f"No checksum in metadata for {backup_file}")
+                return True
+
+            # Calculate checksum of restored files
+            actual_checksum = self._calculate_restored_checksum(temp_dir, file_list)
+            if actual_checksum != expected_checksum:
+                apgi_logger.logger.error(
+                    f"Restored files checksum mismatch: expected {expected_checksum}, got {actual_checksum}"
+                )
+                return False
+
+            apgi_logger.logger.info("Integrity verification passed for restored backup")
+            return True
+
+        except Exception as e:
+            apgi_logger.logger.error(f"Error during integrity verification: {e}")
+            return False
+
+    def _calculate_restored_checksum(self, temp_dir: Path, file_list: List[str]) -> str:
+        """Calculate SHA256 checksum of restored files."""
+        import hashlib
+
+        sha256 = hashlib.sha256()
+        for file_path in sorted(file_list):
+            if file_path.endswith("backup_info.json"):
+                continue
+            full_path = temp_dir / file_path
+            if full_path.exists():
+                with open(full_path, "rb") as f:
+                    for chunk in iter(lambda: f.read(4096), b""):
+                        sha256.update(chunk)
+        return sha256.hexdigest()
 
     def _restore_tar_backup(
         self,
@@ -497,6 +641,22 @@ class BackupManager:
                     continue
 
                 try:
+                    # Get tar info
+                    tarinfo = tarf.getmember(file_path)
+
+                    # Check for symlinks and validate target
+                    if tarinfo.issym() or tarinfo.islnk():
+                        # Validate symlink target
+                        link_target = tarinfo.linkname
+                        resolved_link = (target_dir / link_target).resolve()
+                        if not str(resolved_link).startswith(str(target_dir.resolve())):
+                            raise ValueError(
+                                f"Symlink bypass detected: {file_path} -> {link_target}"
+                            )
+                        # Skip symlinks for safety
+                        apgi_logger.logger.warning(f"Skipping symlink: {file_path}")
+                        continue
+
                     # Validate path to prevent path traversal attacks
                     resolved = (target_dir / file_path).resolve()
                     if not str(resolved).startswith(str(target_dir.resolve())):
