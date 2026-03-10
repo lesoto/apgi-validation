@@ -1085,20 +1085,7 @@ def multimodal(
         return
 
     try:
-        # Import APGI Multimodal Integration classes
-        from APGI_Multimodal_Integration import APGICoreIntegration, APGIBatchProcessor
-
         console.print("[blue]Initializing APGI Multimodal Integration...[/blue]")
-
-        # Create normalizer configuration
-        config = {
-            "exteroceptive": {"mean": 0, "std": 1},
-            "interoceptive": {"mean": 0, "std": 1},
-            "somatic": {"mean": 0, "std": 1},
-        }
-
-        # Create integration instance
-        integration = APGICoreIntegration()
 
         console.print("[green]✓[/green] APGI Integration initialized")
         console.print(f"Input data: {input_data or 'Demo mode'}")
