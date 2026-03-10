@@ -27,7 +27,7 @@ The framework demonstrates strong architectural design with comprehensive securi
 | CLI Commands | 20+ |
 | Critical Bugs | 2 |
 | High Bugs | 4 |
-| Medium Bugs | 6 |
+| Medium Bugs | 10 |
 | Low Bugs | 5 |
 
 ---
@@ -252,9 +252,36 @@ The framework demonstrates strong architectural design with comprehensive securi
 
 ---
 
+### Low-Medium Severity (GUI-Specific)
+
+#### BUG-013: ThemeManager Missing `get_theme_color()` Method
+- **File:** `utils/theme_manager.py` (called from `Tests-GUI.py:237-238, 248`)
+- **Component:** GUI Theme System
+- **Description:** `Tests-GUI.py` calls `self.theme_manager.get_theme_color("bg")` and `get_theme_color("fg")`, but `ThemeManager` only has methods: `get_available_themes()`, `get_theme()`, `set_theme()`, `get_current_theme()`. No `get_theme_color()` exists.
+- **Impact:** Theme switching in Tests-GUI will crash with `AttributeError`
+
+#### BUG-014: Uninitialized Parameter Dictionaries in Validation GUI
+- **File:** `Validation/APGI_Validation_GUI.py:510, 514, 529`
+- **Component:** GUI — Validation
+- **Description:** `self.param_vars`, `self.param_labels`, and `self.param_sliders` are accessed in `on_parameter_change()` (line 965-982) and `update_parameter_display()` (line 984-992) but are never initialized in `__init__()`. Opening the "Parameter Exploration" tab will raise `KeyError` or `AttributeError`.
+- **Impact:** Parameter exploration feature is non-functional; crashes on first use
+
+#### BUG-015: 50ms GUI Redraw Frequency Too Aggressive
+- **File:** `Validation/APGI_Validation_GUI.py:243`
+- **Component:** GUI — Performance
+- **Description:** Visualization updates scheduled every 50ms with no debouncing. All matplotlib charts are fully redrawn on each update. This causes unnecessary CPU load and potential UI lag.
+- **Expected:** Debounced updates at 500ms+ with `after_cancel()`
+- **Impact:** Performance degradation during validation runs
+
+#### BUG-016: No Minimum Window Size Constraint
+- **File:** All GUI files
+- **Component:** GUI — Layout
+- **Description:** All GUIs use fixed `800x600` geometry but set no `minsize()`. Users can resize to unusably small dimensions.
+- **Impact:** UI becomes broken at small window sizes
+
 ### Low Severity
 
-#### BUG-013: Commented-Out Performance Logging
+#### BUG-017a: Commented-Out Performance Logging
 - **File:** `main.py:306, 584, 650`
 - **Component:** CLI Core
 - **Description:** Multiple `log_performance()` calls are commented out throughout `main.py`, suggesting incomplete refactoring.
@@ -331,6 +358,10 @@ The framework demonstrates strong architectural design with comprehensive securi
 | Rate limiting middleware | `requirements.txt` (slowapi) | Dependency installed but no API server | Low |
 | Database migrations | `requirements.txt` (alembic) | Dependency installed but no migrations found | Low |
 | Interactive data exploration | `docs/GUI-User-Guide.md` | Partially implemented in dashboard | Medium |
+| `ThemeManager.get_theme_color()` | `Tests-GUI.py:237` | Method called but not defined in class | High |
+| GUI parameter exploration tab | `APGI_Validation_GUI.py` | Param vars uninitialized; crashes on use | High |
+| GUI keyboard shortcuts | All GUI files | Only Ctrl-Q implemented; no shortcuts for actions | Low |
+| GUI minimum window size | All GUI files | No `minsize()` set; UI breaks at small sizes | Low |
 | CI/CD pipeline | Best practice | No `.github/workflows/` or equivalent | Medium |
 | `pytz` dependency update | `requirements.txt:37` | Upper bound `<2025.0` blocks 2026 installs | High |
 
@@ -383,6 +414,8 @@ The framework demonstrates strong architectural design with comprehensive securi
 | 6 | Enforce `PICKLE_SECRET_KEY` at module load with clear warning | `utils/batch_processor.py` | Security Team | Low |
 | 7 | Implement actual multimodal processing (remove stub) | `main.py:910-935, 970-998` | Core Team | High |
 | 8 | Update `pytz` upper bound in requirements.txt to `<2027.0` | `requirements.txt:37` | DevOps | Low |
+| 8a | Add `get_theme_color()` method to ThemeManager | `utils/theme_manager.py` | UI Team | Low |
+| 8b | Initialize `param_vars/labels/sliders` dicts in Validation GUI `__init__` | `Validation/APGI_Validation_GUI.py` | UI Team | Low |
 
 ### Priority 3 — Medium (Fix Within Release)
 
