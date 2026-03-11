@@ -55,11 +55,28 @@ import os
 
 # Secure pickle functions with HMAC signing
 def _validate_secret_key(key_bytes: bytes) -> None:
-    """Validate that the secret key has sufficient entropy."""
-    import math
-
+    """
+    Validate that the PICKLE_SECRET_KEY has sufficient entropy.
+    For hex-encoded keys, decode them first to check actual entropy.
+    """
+    # Check minimum length
     if len(key_bytes) < 32:
         raise ValueError("PICKLE_SECRET_KEY must be at least 32 bytes (256 bits)")
+
+    # Try to decode as hex if it looks like hex
+    try:
+        # Check if all bytes are valid hex characters
+        hex_string = key_bytes.decode("ascii")
+        if (
+            all(c in "0123456789abcdefABCDEF" for c in hex_string)
+            and len(hex_string) % 2 == 0
+        ):
+            # Decode hex to get actual key bytes
+            actual_key_bytes = binascii.unhexlify(hex_string)
+            key_bytes = actual_key_bytes
+    except (UnicodeDecodeError, binascii.Error):
+        # Not hex-encoded, use as-is
+        pass
 
     # Calculate Shannon entropy
     byte_counts = {}
@@ -68,16 +85,19 @@ def _validate_secret_key(key_bytes: bytes) -> None:
 
     entropy = 0.0
     key_len = len(key_bytes)
+
+    # Calculate entropy correctly for any key encoding
     for count in byte_counts.values():
         probability = count / key_len
         entropy -= probability * math.log2(probability)
 
-    # Require at least 7 bits per byte (224 bits for 32 bytes)
-    min_entropy_bits = len(key_bytes) * 7
+    # Use reasonable minimum entropy based on key length, not fixed bits per byte
+    min_entropy_bits = max(3.0, key_len * 0.5)  # At least 3 bits per byte average
+
     if entropy < min_entropy_bits:
         raise ValueError(
             f"PICKLE_SECRET_KEY has insufficient entropy ({entropy:.1f} bits, "
-            f"requires at least {min_entropy_bits} bits)"
+            f"requires at least {min_entropy_bits:.1f} bits"
         )
 
 

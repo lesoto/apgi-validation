@@ -302,7 +302,7 @@ class CacheManager:
                     return f"Already cached: {source_path.name}"
 
                 # Load and preprocess data to warm cache
-                from data_validation import DataPreprocessor
+                from utils.data_validation import DataPreprocessor
 
                 preprocessor = DataPreprocessor()
                 df = preprocessor.load_data(source_path)

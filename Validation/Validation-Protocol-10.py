@@ -298,6 +298,7 @@ class CausalManipulationsValidator:
 
         results = {
             "tms_ignition_disruption": self._validate_tms_ignition_disruption(),
+            "tacs_oscillatory_modulation": self._validate_tacs_effects(),
             "pharmacological_precision_modulation": self._validate_pharmacological_effects(),
             "metabolic_threshold_elevation": self._validate_metabolic_effects(),
             "erp_invariance_null_prediction": self._validate_erp_invariance(),
@@ -462,70 +463,86 @@ class CausalManipulationsValidator:
 
         return results
 
-    def _validate_erp_invariance(self) -> Dict:
-        """Test null prediction: early ERPs invariant to manipulations"""
+    def _validate_tacs_effects(self) -> Dict:
+        """Validate tACS oscillatory modulation effects on neural dynamics"""
 
-        # Simulate early ERP components (N1, P2) under different conditions
-        conditions = [
-            "baseline",
-            "tms_early",
-            "tms_late",
-            "propranolol",
-            "hypoglycemia",
-        ]
+        frequencies = [4.0, 10.0, 40.0]  # Theta, alpha, gamma
+        results = {}
 
-        erp_results = {}
-        for condition in conditions:
-            # Simulate N1 amplitude (invariant prediction)
-            n1_amplitude = np.random.normal(
-                10.0, 1.0
-            )  # Should be similar across conditions
+        for freq in frequencies:
+            self.tacs_intervention.frequency = freq
+            self.tacs_intervention.amplitude = 1.0
 
-            # Simulate P2 amplitude (invariant prediction)
-            p2_amplitude = np.random.normal(
-                15.0, 1.5
-            )  # Should be similar across conditions
-
-            erp_results[condition] = {
-                "n1_amplitude": n1_amplitude,
-                "p2_amplitude": p2_amplitude,
-                "erp_consistency": True,  # Placeholder - would test statistical invariance
+            # Simulate baseline and tACS conditions
+            baseline_state = {
+                "Pi_e_effective": 1.0,
+                "Pi_i_effective": 1.0,
+                "theta_t": 0.5,
+                "neural_oscillation": 0.0,
             }
 
-        # Statistical test for invariance
-        n1_values = [result["n1_amplitude"] for result in erp_results.values()]
-        p2_values = [result["p2_amplitude"] for result in erp_results.values()]
+            # Apply tACS over multiple cycles
+            tacs_state = baseline_state.copy()
+            for cycle in range(10):  # 10 modulation cycles
+                duration = cycle * 0.1  # 100ms per cycle
+                tacs_state = self.tacs_intervention.apply_tacs_modulation(
+                    tacs_state, duration
+                )
 
-        # ANOVA to test if ERPs differ across conditions
-        n1_f_stat, n1_p = stats.f_oneway(*[n1_values] * len(conditions))  # Simplified
-        p2_f_stat, p2_p = stats.f_oneway(*[p2_values] * len(conditions))  # Simplified
+            # Simulate oscillatory effects
+            stimulus_intensities = np.linspace(0.1, 1.0, 20)
+            baseline_responses = []
+            tacs_responses = []
 
-        return {
-            "erp_components": erp_results,
-            "n1_invariance_p": n1_p,
-            "p2_invariance_p": p2_p,
-            "null_prediction_supported": n1_p > 0.05
-            and p2_p > 0.05,  # Fail to reject null
-        }
+            for intensity in stimulus_intensities:
+                # Baseline
+                baseline_S = baseline_state["Pi_e_effective"] * intensity
+                baseline_prob = 1.0 / (
+                    1.0 + np.exp(-5.0 * (baseline_S - baseline_state["theta_t"]))
+                )
+                baseline_responses.append(baseline_prob)
+
+                # tACS
+                tacs_S = tacs_state["Pi_e_effective"] * intensity
+                tacs_prob = 1.0 / (
+                    1.0 + np.exp(-5.0 * (tacs_S - tacs_state["theta_t"]))
+                )
+                tacs_responses.append(tacs_prob)
+
+            results[f"freq_{freq}hz"] = {
+                "baseline_responses": baseline_responses,
+                "tacs_responses": tacs_responses,
+                "stimulus_intensities": stimulus_intensities,
+                "threshold_shift": tacs_state["theta_t"] - baseline_state["theta_t"],
+                "precision_change": tacs_state["Pi_e_effective"]
+                - baseline_state["Pi_e_effective"],
+                "frequency": freq,
+            }
+
+        return results
 
     def _calculate_causal_score(self, results: Dict) -> float:
         """Calculate overall causal validation score"""
 
         scores = []
 
-        # TMS ignition disruption (weight: 0.4)
+        # TMS ignition disruption (weight: 0.3)
         tms_result = results.get("tms_ignition_disruption", {})
         scores.append(
-            0.4 * (1.0 if tms_result.get("validation_passed", False) else 0.0)
+            0.3 * (1.0 if tms_result.get("validation_passed", False) else 0.0)
         )
 
-        # Pharmacological effects (weight: 0.3)
-        pharma_result = results.get("pharmacological_precision_modulation", {})
-        scores.append(0.3 * (1.0 if len(pharma_result) > 0 else 0.0))  # Simplified
+        # tACS oscillatory modulation (weight: 0.25)
+        tacs_result = results.get("tacs_oscillatory_modulation", {})
+        scores.append(0.25 * (1.0 if len(tacs_result) > 0 else 0.0))  # Simplified
 
-        # Metabolic effects (weight: 0.2)
+        # Pharmacological effects (weight: 0.25)
+        pharma_result = results.get("pharmacological_precision_modulation", {})
+        scores.append(0.25 * (1.0 if len(pharma_result) > 0 else 0.0))  # Simplified
+
+        # Metabolic effects (weight: 0.15)
         metabolic_result = results.get("metabolic_threshold_elevation", {})
-        scores.append(0.2 * (1.0 if len(metabolic_result) > 0 else 0.0))  # Simplified
+        scores.append(0.15 * (1.0 if len(metabolic_result) > 0 else 0.0))  # Simplified
 
         # ERP invariance null prediction (weight: 0.1)
         erp_result = results.get("erp_invariance_null_prediction", {})

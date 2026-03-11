@@ -102,7 +102,7 @@ class APGIValidationGUI:
         )
         self.root.bind("<Control-s>", lambda e: self.stop_selected_script())
         self.root.bind("<Control-e>", lambda e: self.save_results())
-        self.root.bind("<Control-c>", lambda e: self.clear_output())
+        self.root.bind("<Control-l>", lambda e: self.clear_output())
 
         # Import status tracking (instance variable instead of global)
         self._import_status = {
@@ -1126,7 +1126,9 @@ class APGIValidationGUI:
             self.progress_var.set(0)
 
             self.validation_thread = threading.Thread(
-                target=self._run_validation_worker, args=(selected_protocols,)
+                target=self._run_validation_worker,
+                args=(selected_protocols,),
+                daemon=True,
             )
             self.validation_thread.start()
             logging.info(f"Started validation for protocols: {selected_protocols}")
@@ -1469,8 +1471,8 @@ Interpretation:
                 # Ensure thread cleanup regardless of how validation ends
                 self.is_running = False
 
-                # Ensure UI state is consistent
-                self._ensure_ui_consistency()
+                # Ensure UI state is consistent - schedule on main thread
+                self.root.after(0, self._ensure_ui_consistency)
 
                 # Clear any pending GUI updates with non-blocking approach
                 try:
