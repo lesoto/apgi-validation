@@ -756,7 +756,7 @@ def integrate_with_existing_normalizer():
     Shows how to integrate this with the existing APGINormalizer class
     """
 
-    from APGI_Multimodal_Processor import APGINormalizer
+    # APGINormalizer is defined in this file, no import needed
 
     # Existing pipeline
     normalizer = APGINormalizer(use_robust_stats=True)

@@ -313,6 +313,10 @@ class ProtocolRunnerGUI:
             },
         }
 
+        # Initialize instance variables
+        self.selected_protocol = None
+        self.parameter_values = {}
+
         self.setup_ui()
 
     def _create_menu_bar(self):
@@ -994,7 +998,7 @@ class ProtocolRunnerGUI:
             ) as e:
                 error_msg = f"Error running {protocol_info['file']}: {str(e)}"
                 self.log_message(error_msg)
-                messagebox.showerror("Error", error_msg)
+                self.root.after(0, lambda: messagebox.showerror("Error", error_msg))
                 self.set_status("Error")
                 self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
 

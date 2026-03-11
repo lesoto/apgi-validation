@@ -9,6 +9,7 @@ Provides timeout handling for stuck operations and processes.
 import threading
 import time
 import subprocess
+import multiprocessing
 from typing import Optional, Callable, Any
 from dataclasses import dataclass
 from enum import Enum
@@ -162,8 +163,10 @@ def with_timeout(timeout_seconds: float):
 
     def decorator(func):
         def wrapper(*args, **kwargs):
-            result = []
-            exception = []
+            # Use multiprocessing.Manager to share results between processes
+            manager = multiprocessing.Manager()
+            result = manager.list()
+            exception = manager.list()
 
             def target():
                 try:
@@ -171,15 +174,32 @@ def with_timeout(timeout_seconds: float):
                 except Exception as e:
                     exception.append(e)
 
-            thread = threading.Thread(target=target)
-            thread.daemon = True
-            thread.start()
-            thread.join(timeout=timeout_seconds)
+            process = multiprocessing.Process(target=target)
+            process.start()
+            process.join(timeout=timeout_seconds)
 
-            if thread.is_alive():
-                raise TimeoutError(
-                    f"Operation timed out after {timeout_seconds} seconds"
-                )
+            if process.is_alive():
+                # Terminate the process
+                process.terminate()
+                process.join(timeout=1.0)  # Give it a moment to terminate
+                if process.is_alive():
+                    # Force kill if terminate didn't work (Unix only)
+                    try:
+                        process.kill()  # This will raise AttributeError on Windows
+                        process.join()
+                    except AttributeError:
+                        # On Windows, kill() is not available, terminate() is the only option
+                        # Wait a bit more for terminate() to take effect
+                        process.join(timeout=2.0)
+                        if process.is_alive():
+                            # Process is still alive, log warning but continue
+                            # On Windows, this can happen if the process doesn't respond to TerminateProcess
+                            print(
+                                f"Warning: Process {process.pid} could not be killed after timeout"
+                            )
+                    raise TimeoutError(
+                        f"Operation timed out after {timeout_seconds} seconds"
+                    )
 
             if exception:
                 raise exception[0]
@@ -198,8 +218,10 @@ def run_with_timeout(
     if kwargs is None:
         kwargs = {}
 
-    result = []
-    exception = []
+    # Use multiprocessing.Manager to share results between processes
+    manager = multiprocessing.Manager()
+    result = manager.list()
+    exception = manager.list()
 
     def target():
         try:
@@ -207,12 +229,17 @@ def run_with_timeout(
         except Exception as e:
             exception.append(e)
 
-    thread = threading.Thread(target=target)
-    thread.daemon = True
-    thread.start()
-    thread.join(timeout=timeout_seconds)
+    process = multiprocessing.Process(target=target)
+    process.start()
+    process.join(timeout=timeout_seconds)
 
-    if thread.is_alive():
+    if process.is_alive():
+        # Terminate the process
+        process.terminate()
+        process.join(timeout=1.0)  # Give it a moment to terminate
+        if process.is_alive():
+            process.kill()  # Force kill if terminate didn't work
+            process.join()
         raise TimeoutError(f"Operation timed out after {timeout_seconds} seconds")
 
     if exception:

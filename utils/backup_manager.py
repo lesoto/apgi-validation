@@ -177,6 +177,9 @@ class BackupManager:
                 apgi_logger.logger.warning(f"Error loading backup history: {e}")
                 return []
 
+        # Return empty list if history file doesn't exist
+        return []
+
     def _save_history(self) -> None:
         """Save backup history to file with integrity signature."""
         try:
@@ -219,6 +222,18 @@ class BackupManager:
                 f"Error calculating checksum for {file_path}: {e}"
             )
             return ""
+
+    def _calculate_files_checksum(self, files: List[Path]) -> str:
+        """Calculate SHA256 checksum of multiple files in sorted order."""
+        import hashlib
+
+        sha256 = hashlib.sha256()
+        for file_path in sorted(files):
+            if file_path.exists():
+                with open(file_path, "rb") as f:
+                    for chunk in iter(lambda: f.read(4096), b""):
+                        sha256.update(chunk)
+        return sha256.hexdigest()
 
     def _get_directory_size(self, path: Path) -> int:
         """Get total size of directory in bytes."""
@@ -319,8 +334,8 @@ class BackupManager:
                     backup_file, files_to_backup, backup_id, include_metadata
                 )
 
-            # Calculate checksum
-            checksum = self._calculate_checksum(backup_file)
+            # Calculate checksum of original files (before archiving)
+            checksum = self._calculate_files_checksum(files_to_backup)
 
             # Create metadata
             metadata = BackupMetadata(
@@ -564,6 +579,7 @@ class BackupManager:
                     backup_file, temp_path, file_list
                 )
                 if not success:
+                    backup_id = backup_file.stem  # Extract backup ID from filename
                     apgi_logger.logger.error(
                         f"Integrity verification failed for backup {backup_id}"
                     )
@@ -789,7 +805,9 @@ class BackupManager:
         return deleted_count
 
     def verify_backup(self, backup_id: str) -> bool:
-        """Verify backup integrity."""
+        """Verify backup integrity by extracting and checking content checksum."""
+        import tempfile
+
         # Find backup file
         backup_file = None
         for ext in [".zip", ".tar"]:
@@ -812,15 +830,49 @@ class BackupManager:
         except (json.JSONDecodeError, FileNotFoundError):
             return False
 
-        # Verify checksum
+        # Verify checksum by extracting and comparing content
         expected_checksum = metadata.get("checksum")
         if expected_checksum:
-            actual_checksum = self._calculate_checksum(backup_file)
-            if actual_checksum != expected_checksum:
-                apgi_logger.logger.error(f"Backup checksum mismatch for {backup_id}")
-                return False
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
 
-        # Test file integrity
+                try:
+                    # Extract backup to temp directory
+                    if backup_file.suffix == ".zip":
+                        with zipfile.ZipFile(backup_file, "r") as zipf:
+                            file_list = [
+                                f
+                                for f in zipf.namelist()
+                                if not f.endswith("backup_info.json")
+                            ]
+                            zipf.extractall(temp_path)
+                    else:
+                        with tarfile.open(backup_file, "r") as tarf:
+                            file_list = [
+                                f
+                                for f in tarf.getnames()
+                                if not f.endswith("backup_info.json")
+                            ]
+                            tarf.extractall(temp_path)
+
+                    # Calculate checksum of extracted content
+                    actual_checksum = self._calculate_restored_checksum(
+                        temp_path, file_list
+                    )
+
+                    if actual_checksum != expected_checksum:
+                        apgi_logger.logger.error(
+                            f"Backup content checksum mismatch for {backup_id}"
+                        )
+                        return False
+
+                except Exception as e:
+                    apgi_logger.logger.error(
+                        f"Error extracting backup for verification {backup_id}: {e}"
+                    )
+                    return False
+
+        # Test file integrity (basic corruption check)
         try:
             if backup_file.suffix == ".zip":
                 with zipfile.ZipFile(backup_file, "r") as zipf:

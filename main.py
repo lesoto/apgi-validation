@@ -418,7 +418,7 @@ def formal_model(
 
                     # Validate JSON structure
                     try:
-                        from parameter_validator import validate_parameters
+                        from utils.parameter_validator import validate_parameters
 
                         validation_result = validate_parameters(custom_params)
 
@@ -954,15 +954,13 @@ def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
     else:
         results_df = pd.DataFrame({"result": [str(results)]})
 
-    # Save results
+    # Validate output file path if provided
     if output_file:
         try:
-            validated_output = _validate_output_path(
-                output_file, allowed_dirs=["results"]
-            )
+            validated_output = _validate_output_file_path(output_file)
             output_file = str(validated_output)
         except ValueError as e:
-            console.print(f"[red]Error: {e}[/red]")
+            console.print(f"[red]❌ Error: {e}[/red]")
             return
         results_df.to_csv(output_file, index=False)
         console.print(f"[green]✓[/green] Results saved to {output_file}")
@@ -2063,7 +2061,14 @@ def monitor_performance(
                     if command == "cross-species":
                         # Simulate cross-species analysis
                         time.sleep(0.1)  # Simulate processing time
-                        from APGI_Cross_Species_Scaling import CrossSpeciesScaling
+                        # Import the cross-species scaling module
+                        spec = importlib.util.spec_from_file_location(
+                            "cross_species_scaling",
+                            PROJECT_ROOT / "APGI-Cross-Species-Scaling.py",
+                        )
+                        cross_species_module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(cross_species_module)
+                        CrossSpeciesScaling = cross_species_module.CrossSpeciesScaling
 
                         model = CrossSpeciesScaling()
                         model.predict_pci(
@@ -2623,16 +2628,11 @@ def _set_config(key, value):
                     "Invalid key format. Use 'section.parameter' or 'parameter'"
                 )
             console.print(f"[blue]Setting {section}.{param} = {value}[/blue]")
-            # success = set_parameter(section, param, value)
-            success = True
+            success = config_manager.set_parameter(section, param, value)
         else:
-            console.print(f"[blue]Setting {key} = {value}[/blue]")
-            # success = set_parameter(
-            #     key.split(".")[0],
-            #     key.split(".")[-1] if "." in key else key,
-            #     value,
-            # )
-            success = True
+            raise ValueError(
+                "Parameter key must include section. Use 'section.parameter=value' format"
+            )
 
         if success:
             console.print("[green]✓[/green] Configuration updated successfully")
@@ -2817,6 +2817,8 @@ def causal_manipulations(
             )
             if intervention == "tms":
                 results = validator._validate_tms_ignition_disruption()
+            elif intervention == "tacs":
+                results = validator._validate_tacs_effects()
             elif intervention == "pharmacological":
                 results = validator._validate_pharmacological_effects()
             elif intervention == "metabolic":
@@ -2975,7 +2977,7 @@ def open_science(
     try:
         # Import the open science framework
         spec = importlib.util.spec_from_file_location(
-            "open_science", PROJECT_ROOT / "Open_Science_Framework.py"
+            "open_science", PROJECT_ROOT / "APGI-Open-Science-Framework.py"
         )
         os_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(os_module)
@@ -2988,8 +2990,8 @@ def open_science(
                 return
 
             # Create a sample preregistration
-            prereg = os_module.PrereregistrationTemplate(
-                title="APGI Validation Study",
+            prereg = os_module.PreregistrationTemplate(
+                title="APGI Validation",
                 authors=["Research Team"],
                 date_created=datetime.now().isoformat(),
                 predicted_completion="2027-01-01",
@@ -3057,7 +3059,7 @@ def falsification(
     try:
         # Import the falsification framework
         spec = importlib.util.spec_from_file_location(
-            "falsification", PROJECT_ROOT / "Falsification_Framework.py"
+            "falsification", PROJECT_ROOT / "APGI-Falsification-Framework.py"
         )
         fals_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(fals_module)
@@ -3131,7 +3133,8 @@ def bayesian_estimation(
     try:
         # Import the Bayesian estimation framework
         spec = importlib.util.spec_from_file_location(
-            "bayesian_estimation", PROJECT_ROOT / "Bayesian_Estimation_Framework.py"
+            "bayesian_estimation",
+            PROJECT_ROOT / "APGI-Bayesian-Estimation-Framework.py",
         )
         bayes_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(bayes_module)
@@ -3360,7 +3363,7 @@ def comprehensive_validation(
         def run_falsification_testing():
             console.print("[blue]Running Falsification Testing...[/blue]")
             spec_fals = importlib.util.spec_from_file_location(
-                "fals_val", PROJECT_ROOT / "Falsification_Framework.py"
+                "fals_val", PROJECT_ROOT / "APGI-Falsification-Framework.py"
             )
             fals_module = importlib.util.module_from_spec(spec_fals)
             spec_fals.loader.exec_module(fals_module)
