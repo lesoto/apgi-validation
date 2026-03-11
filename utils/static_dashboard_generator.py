@@ -7,15 +7,11 @@ Generates static HTML dashboards for APGI framework components including
 system monitoring, validation results, and performance metrics.
 """
 
+import html
 import json
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
-
-try:
-    PLOTLY_AVAILABLE = False  # Plotly not actually used in this module
-except ImportError:
-    PLOTLY_AVAILABLE = False
 
 try:
     from utils.logging_config import apgi_logger
@@ -151,6 +147,16 @@ class StaticDashboardGenerator:
 
     def _generate_system_html(self, metrics: Dict) -> str:
         """Generate HTML for system dashboard."""
+        # Escape all user-controlled data to prevent XSS
+        timestamp = html.escape(str(metrics.get("timestamp", "unknown")))
+        error_msg = html.escape(str(metrics.get("error", "")))
+        cpu_percent = html.escape(str(metrics.get("cpu_percent", 0)))
+        memory_percent = html.escape(str(metrics.get("memory_percent", 0)))
+        memory_used_gb = html.escape(str(metrics.get("memory_used_gb", 0)))
+        memory_total_gb = html.escape(str(metrics.get("memory_total_gb", 0)))
+        disk_usage = html.escape(str(metrics.get("disk_usage", 0)))
+        network_connections = html.escape(str(metrics.get("network_connections", 0)))
+
         html_template = f"""
 <!DOCTYPE html>
 <html>
@@ -165,17 +171,17 @@ class StaticDashboardGenerator:
 </head>
 <body>
     <h1>APGI System Dashboard</h1>
-    <div class="timestamp">Generated: {metrics.get('timestamp', 'unknown')}</div>
+    <div class="timestamp">Generated: {timestamp}</div>
 
-    {'<div class="error">' + metrics.get('error', '') + '</div>' if 'error' in metrics else ''}
+    {'<div class="error">' + error_msg + '</div>' if 'error' in metrics else ''}
 
-    {'<div class="metric"><h3>CPU Usage</h3><p>' + f"{metrics.get('cpu_percent', 0):.1f}%" + '</p></div>' if 'cpu_percent' in metrics else ''}
+    {'<div class="metric"><h3>CPU Usage</h3><p>' + f"{cpu_percent}" + '%</p></div>' if 'cpu_percent' in metrics else ''}
 
-    {'<div class="metric"><h3>Memory Usage</h3><p>' + f"{metrics.get('memory_percent', 0):.1f}% ({metrics.get('memory_used_gb', 0):.1f} GB / {metrics.get('memory_total_gb', 0):.1f} GB)" + '</p></div>' if 'memory_percent' in metrics else ''}
+    {'<div class="metric"><h3>Memory Usage</h3><p>' + f"{memory_percent}% ({memory_used_gb} GB / {memory_total_gb} GB)" + '</p></div>' if 'memory_percent' in metrics else ''}
 
-    {'<div class="metric"><h3>Disk Usage</h3><p>' + f"{metrics.get('disk_usage', 0):.1f}%" + '</p></div>' if 'disk_usage' in metrics else ''}
+    {'<div class="metric"><h3>Disk Usage</h3><p>' + f"{disk_usage}" + '%</p></div>' if 'disk_usage' in metrics else ''}
 
-    {'<div class="metric"><h3>Network Connections</h3><p>' + str(metrics.get('network_connections', 0)) + '</p></div>' if 'network_connections' in metrics else ''}
+    {'<div class="metric"><h3>Network Connections</h3><p>' + network_connections + '</p></div>' if 'network_connections' in metrics else ''}
 </body>
 </html>
         """
@@ -183,6 +189,36 @@ class StaticDashboardGenerator:
 
     def _generate_validation_html(self, data: Dict) -> str:
         """Generate HTML for validation dashboard."""
+        # Escape all user-controlled data to prevent XSS
+        timestamp = html.escape(str(data.get("timestamp", "unknown")))
+        error_msg = html.escape(str(data.get("error", "")))
+        total_files = html.escape(str(data.get("total_files", 0)))
+
+        # Escape validation run data
+        validation_runs_html = []
+        for run in data.get("validation_runs", []):
+            file_name = html.escape(str(run.get("file", "Unknown")))
+            run_timestamp = html.escape(str(run.get("timestamp", "unknown")))
+            results_html = []
+            for k, v in run.get("results", {}).items():
+                k_escaped = html.escape(str(k))
+                v_escaped = html.escape(str(v))
+                results_html.append(
+                    f"<tr><td>{k_escaped}</td><td>{v_escaped}</td></tr>"
+                )
+            validation_runs_html.append(
+                f"""
+    <div class="validation-run">
+        <h3>{file_name}</h3>
+        <p>Timestamp: {run_timestamp}</p>
+        <table>
+            <tr><th>Protocol</th><th>Result</th></tr>
+            {''.join(results_html)}
+        </table>
+    </div>
+    """
+            )
+
         html_template = f"""
 <!DOCTYPE html>
 <html>
@@ -200,22 +236,13 @@ class StaticDashboardGenerator:
 </head>
 <body>
     <h1>APGI Validation Dashboard</h1>
-    <div class="timestamp">Generated: {data.get('timestamp', 'unknown')}</div>
+    <div class="timestamp">Generated: {timestamp}</div>
 
-    {'<div class="error">' + data.get('error', '') + '</div>' if 'error' in data else ''}
+    {'<div class="error">' + error_msg + '</div>' if 'error' in data else ''}
 
-    {'<p>Total validation files: ' + str(data.get('total_files', 0)) + '</p>' if 'total_files' in data else ''}
+    {'<p>Total validation files: ' + total_files + '</p>' if 'total_files' in data else ''}
 
-    {''.join([f'''
-    <div class="validation-run">
-        <h3>{run.get('file', 'Unknown')}</h3>
-        <p>Timestamp: {run.get('timestamp', 'unknown')}</p>
-        <table>
-            <tr><th>Protocol</th><th>Result</th></tr>
-            {''.join([f'<tr><td>{k}</td><td>{v}</td></tr>' for k, v in run.get('results', {}).items()])}
-        </table>
-    </div>
-    ''' for run in data.get('validation_runs', [])]) if 'validation_runs' in data else ''}
+    {''.join(validation_runs_html) if 'validation_runs' in data else ''}
 </body>
 </html>
         """
@@ -266,3 +293,24 @@ def generate_dashboards(output_dir: str) -> List[str]:
         if apgi_logger:
             apgi_logger.logger.error(f"Error in generate_dashboards: {e}")
         raise
+
+
+if __name__ == "__main__":
+    """Generate dashboards when script is run directly."""
+    import sys
+
+    # Default output directory
+    output_dir = "dashboards"
+
+    # Allow custom output directory via command line argument
+    if len(sys.argv) > 1:
+        output_dir = sys.argv[1]
+
+    try:
+        generated_files = generate_dashboards(output_dir)
+        print(f"Successfully generated {len(generated_files)} dashboard(s):")
+        for file_path in generated_files:
+            print(f"  - {file_path}")
+    except Exception as e:
+        print(f"Error generating dashboards: {e}", file=sys.stderr)
+        sys.exit(1)

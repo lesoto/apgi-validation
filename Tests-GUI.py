@@ -21,7 +21,18 @@ from typing import Any, Dict, List, Optional, Tuple
 # Set matplotlib backend before importing any matplotlib modules
 import matplotlib
 
-matplotlib.use("TkAgg")
+# Try to set matplotlib backend with fallback for headless environments
+try:
+    import matplotlib
+
+    matplotlib.use("TkAgg")
+except ImportError:
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")  # Fallback to non-interactive backend
+    except ImportError:
+        pass
 
 # Import matplotlib for visualization
 try:

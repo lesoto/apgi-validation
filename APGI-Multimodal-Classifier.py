@@ -107,17 +107,19 @@ class APGIBayesianInversion:
             S_t = pm.math.zeros_like(observed_S)
             S_t = pm.math.set_subtensor(S_t[0], 0.0)  # Initial surprise
 
+            # Single shared noise variable for all time steps
+            noise = pm.Normal("noise", 0, sigma_noise, shape=observed_S.shape)
+
             for t in range(1, len(observed_S)):
                 # Precision-weighted surprise input
                 surprise_input = pi_e * pm.math.abs(z_e[t]) + beta * pi_i * pm.math.abs(
                     z_i[t]
                 )
                 # ODE step: dS/dt = -S/τ + surprise_input + noise
-                noise = pm.Normal(f"noise_{t}", 0, sigma_noise)
                 S_t = pm.math.set_subtensor(
                     S_t[t],
                     S_t[t - 1]
-                    + self.dt * (-S_t[t - 1] / tau_s + surprise_input + noise),
+                    + self.dt * (-S_t[t - 1] / tau_s + surprise_input + noise[t]),
                 )
 
             # Ignition Decision Rule
@@ -128,110 +130,110 @@ class APGIBayesianInversion:
 
             return model
 
+    def invert_parameters(
+        self,
+        observed_S: np.ndarray,
+        observed_B: np.ndarray,
+        z_e: np.ndarray,
+        z_i: np.ndarray,
+    ):
+        """
+        Perform Bayesian inversion to recover latent parameters.
 
-def invert_parameters(
-    self,
-    observed_S: np.ndarray,
-    observed_B: np.ndarray,
-    z_e: np.ndarray,
-    z_i: np.ndarray,
-):
-    """
-    Perform Bayesian inversion to recover latent parameters.
+        Args:
+            observed_S: Array of accumulated surprise signals
+            observed_B: Array of binary ignition decisions (0/1)
+            z_e: Array of exteroceptive z-scores
+            z_i: Array of interoceptive z-scores
 
-    Args:
-        observed_S: Array of accumulated surprise signals
-        observed_B: Array of binary ignition decisions (0/1)
-        z_e: Array of exteroceptive z-scores
-        z_i: Array of interoceptive z-scores
+        Returns:
+            Recovered parameters and PyMC trace
+        """
+        model = self.apgi_model_inversion(observed_S, observed_B, z_e, z_i)
+        with model:
+            trace = pm.sample(self.draws, tune=self.tune, chains=4, cores=4)
+        recovered_params = {
+            "theta_0": np.mean(trace.posterior["theta_0"].values.flatten()),
+            "pi_e": np.mean(trace.posterior["pi_e"].values.flatten()),
+            "pi_i": np.mean(trace.posterior["pi_i"].values.flatten()),
+            "beta": np.mean(trace.posterior["beta"].values.flatten()),
+            "tau_s": np.mean(trace.posterior["tau_s"].values.flatten()),
+            "alpha": np.mean(trace.posterior["alpha"].values.flatten()),
+        }
+        return recovered_params, trace
 
-    Returns:
-        Recovered parameters and PyMC trace
-    """
-    model = self.apgi_model_inversion(observed_S, observed_B, z_e, z_i)
-    with model:
-        trace = pm.sample(self.draws, tune=self.tune, chains=4, cores=4)
-    recovered_params = {
-        "theta_0": np.mean(trace.posterior["theta_0"].values.flatten()),
-        "pi_e": np.mean(trace.posterior["pi_e"].values.flatten()),
-        "pi_i": np.mean(trace.posterior["pi_i"].values.flatten()),
-        "beta": np.mean(trace.posterior["beta"].values.flatten()),
-        "tau_s": np.mean(trace.posterior["tau_s"].values.flatten()),
-        "alpha": np.mean(trace.posterior["alpha"].values.flatten()),
-    }
-    return recovered_params, trace
+    def simulation_based_calibration(self, n_simulations: int = 100):
+        """
+        Perform simulation-based calibration to verify identifiability of β_som and Πᵢ.
+        Checks if posteriors recover true parameters within credible intervals.
+        """
+        print(f"Running SBC with {n_simulations} simulations...")
 
+        coverage = {"theta_0": [], "pi_e": [], "pi_i": [], "beta": [], "tau_s": []}
 
-def simulation_based_calibration(self, n_simulations: int = 100):
-    """
-    Perform simulation-based calibration to verify identifiability of β_som and Πᵢ.
-    Checks if posteriors recover true parameters within credible intervals.
-    """
-    print(f"Running SBC with {n_simulations} simulations...")
+        for sim in range(n_simulations):
+            if sim % 10 == 0:
+                print(f"Simulation {sim + 1}/{n_simulations}")
 
-    coverage = {"theta_0": [], "pi_e": [], "pi_i": [], "beta": [], "tau_s": []}
+            # Sample true parameters from priors
+            true_theta_0 = np.random.uniform(0.25, 0.85)
+            true_pi_e = np.random.normal(1.5, 0.5)
+            true_pi_i = np.random.normal(1.5, 0.5)
+            true_beta = np.random.normal(1.2, 0.3)
+            true_tau_s = np.random.normal(0.3, 0.1)
 
-    for sim in range(n_simulations):
-        if sim % 10 == 0:
-            print(f"Simulation {sim + 1}/{n_simulations}")
+            # Simulate data from full APGI model
+            time_steps = 100
+            z_e = np.random.normal(0, 1, time_steps)  # Exteroceptive surprise
+            z_i = np.random.normal(0, 1, time_steps)  # Interoceptive surprise
+            S_t = np.zeros(time_steps)
+            sigma_noise = 0.1
+            for t in range(1, time_steps):
+                # Precision-weighted surprise input
+                surprise_input = true_pi_e * np.abs(
+                    z_e[t]
+                ) + true_beta * true_pi_i * np.abs(z_i[t])
+                # ODE step
+                S_t[t] = S_t[t - 1] + self.dt * (
+                    -S_t[t - 1] / true_tau_s
+                    + surprise_input
+                    + np.random.normal(0, sigma_noise)
+                )
 
-        # Sample true parameters from priors
-        true_theta_0 = np.random.uniform(0.25, 0.85)
-        true_pi_e = np.random.normal(1.5, 0.5)
-        true_pi_i = np.random.normal(1.5, 0.5)
-        true_beta = np.random.normal(1.2, 0.3)
-        true_tau_s = np.random.normal(0.3, 0.1)
+            # Simulate ignition
+            alpha = 5.0
+            p_ignite = 1 / (1 + np.exp(-alpha * (S_t - true_theta_0)))
+            ignition = np.random.binomial(1, p_ignite)
 
-        # Simulate data from full APGI model
-        time_steps = 100
-        z_e = np.random.normal(0, 1, time_steps)  # Exteroceptive surprise
-        z_i = np.random.normal(0, 1, time_steps)  # Interoceptive surprise
-        S_t = np.zeros(time_steps)
-        sigma_noise = 0.1
-        for t in range(1, time_steps):
-            # Precision-weighted surprise input
-            surprise_input = true_pi_e * np.abs(
-                z_e[t]
-            ) + true_beta * true_pi_i * np.abs(z_i[t])
-            # ODE step
-            S_t[t] = S_t[t - 1] + self.dt * (
-                -S_t[t - 1] / true_tau_s
-                + surprise_input
-                + np.random.normal(0, sigma_noise)
-            )
+            # Invert parameters
+            try:
+                recovered, trace = self.invert_parameters(S_t, ignition, z_e, z_i)
 
-        # Simulate ignition
-        alpha = 5.0
-        p_ignite = 1 / (1 + np.exp(-alpha * (S_t - true_theta_0)))
-        ignition = np.random.binomial(1, p_ignite)
+                # Check if true params in 95% CI
+                for param in coverage:
+                    posterior = trace.posterior[param].values.flatten()
+                    ci_lower = np.percentile(posterior, 2.5)
+                    ci_upper = np.percentile(posterior, 97.5)
+                    true_val = locals()[f"true_{param}"]
+                    coverage[param].append(ci_lower <= true_val <= ci_upper)
+            except Exception as e:
+                print(f"Simulation {sim + 1} failed: {e}")
+                continue
 
-        # Invert parameters
-        try:
-            recovered, trace = self.invert_parameters(S_t, ignition, z_e, z_i)
+        # Report results
+        print("\nSBC Results (Proportion of simulations where true param in 95% CI):")
+        for param, covered in coverage.items():
+            if covered:
+                prop = np.mean(covered)
+                print(
+                    f"  {param}: {prop:.3f} ({len(covered)}/{n_simulations} simulations)"
+                )
+                if prop < 0.9:
+                    print(f"    WARNING: Poor identifiability for {param}")
+            else:
+                print(f"  {param}: No successful simulations")
 
-            # Check if true params in 95% CI
-            for param in coverage:
-                posterior = trace.posterior[param].values.flatten()
-                ci_lower = np.percentile(posterior, 2.5)
-                ci_upper = np.percentile(posterior, 97.5)
-                true_val = locals()[f"true_{param}"]
-                coverage[param].append(ci_lower <= true_val <= ci_upper)
-        except Exception as e:
-            print(f"Simulation {sim + 1} failed: {e}")
-            continue
-
-    # Report results
-    print("\nSBC Results (Proportion of simulations where true param in 95% CI):")
-    for param, covered in coverage.items():
-        if covered:
-            prop = np.mean(covered)
-            print(f"  {param}: {prop:.3f} ({len(covered)}/{n_simulations} simulations)")
-            if prop < 0.9:
-                print(f"    WARNING: Poor identifiability for {param}")
-        else:
-            print(f"  {param}: No successful simulations")
-
-    return coverage
+        return coverage
 
 
 # NEW: Mechanistic Stratification Class

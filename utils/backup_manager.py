@@ -26,18 +26,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-BACKUP_HMAC_KEY = os.environ.get("APGI_BACKUP_HMAC_KEY")
-if BACKUP_HMAC_KEY is None:
-    # Use default key for testing/development environments
-    BACKUP_HMAC_KEY = "default_backup_key_for_testing_32_chars"
-    import warnings
-
-    warnings.warn(
-        "APGI_BACKUP_HMAC_KEY not set, using default key. "
-        "For production, set APGI_BACKUP_HMAC_KEY=openssl rand -hex 32"
-    )
-BACKUP_HMAC_KEY = BACKUP_HMAC_KEY.encode()
-
 # Add project root to Python path for direct execution
 if __name__ == "__main__":
     import sys
@@ -701,25 +689,33 @@ class BackupManager:
                         continue
 
                     # Validate path to prevent path traversal attacks
-                    resolved = (target_dir / file_path).resolve()
-                    if not str(resolved).startswith(str(target_dir.resolve())):
-                        raise ValueError(f"Path traversal detected in TAR: {file_path}")
-                    target_path = resolved
-
-                    # Check overwrite condition
-                    if target_path.exists() and not overwrite:
-                        apgi_logger.logger.warning(
-                            f"Skipping existing file: {target_path}"
+                    # Use tarfile.data_filter for Python 3.12+ or manual validation
+                    if hasattr(tarfile, "data_filter"):
+                        tarfile.extractall(
+                            member=file_path, path=str(target_dir), filter="data"
                         )
-                        continue
+                    else:
+                        resolved = (target_dir / file_path).resolve()
+                        if not str(resolved).startswith(str(target_dir.resolve())):
+                            raise ValueError(
+                                f"Path traversal detected in TAR: {file_path}"
+                            )
+                        target_path = resolved
 
-                    # Create parent directories
-                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                        # Check overwrite condition
+                        if target_path.exists() and not overwrite:
+                            apgi_logger.logger.warning(
+                                f"Skipping existing file: {target_path}"
+                            )
+                            continue
 
-                    # Extract file manually with path validation
-                    with tarf.extractfile(file_path) as source:
-                        with open(target_path, "wb") as target:
-                            shutil.copyfileobj(source, target)
+                        # Create parent directories
+                        target_path.parent.mkdir(parents=True, exist_ok=True)
+
+                        # Extract file manually with path validation
+                        with tarf.extractfile(file_path) as source:
+                            with open(target_path, "wb") as target:
+                                shutil.copyfileobj(source, target)
 
                 except (OSError, PermissionError) as e:
                     apgi_logger.logger.error(f"Error extracting {file_path}: {e}")

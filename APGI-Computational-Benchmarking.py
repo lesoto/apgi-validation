@@ -717,11 +717,11 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
                     branching_ratios.append(0)
 
                 # Avalanche size distribution (simplified)
-                avalanche_sizes.append(
-                    np.mean(np.diff(np.where(ignition_events)[0]))
-                    if np.sum(ignition_events) > 1
-                    else 0
-                )
+                ignition_indices = np.where(ignition_events)[0]
+                if len(ignition_indices) > 1:
+                    avalanche_sizes.append(np.mean(np.diff(ignition_indices)))
+                else:
+                    avalanche_sizes.append(0)
 
                 # Perturbation susceptibility (response to small changes)
                 noise_level = 0.01

@@ -66,11 +66,10 @@ class APGIParameters:
             raise ValueError(f"Pi_i_eff must be in [0.1, 15], got {self.Pi_i_eff}")
         if not -2.0 <= self.M_ca <= 2.0:
             raise ValueError(f"M_ca must be in [-2, 2], got {self.M_ca}")
-        if not (0.5 <= self.beta <= 2.5):
+        if not (0.3 <= self.beta <= 0.8):
             raise ValueError(
-                f"β_som={self.beta} outside valid range [0.5, 2.5] for state {self.name}"
+                f"β_som={self.beta} outside valid range [0.3, 0.8] for state {self.name}"
             )
-            self.beta = np.clip(self.beta, 0.5, 2.5)
 
     def compute_ignition_probability(self) -> float:
         """Compute P(ignite) = σ(S_t - θ_t)"""

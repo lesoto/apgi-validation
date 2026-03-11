@@ -8,6 +8,7 @@ error handling with proper logging and user-friendly messages.
 """
 
 import functools
+import threading
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
@@ -344,6 +345,7 @@ class ErrorHandler:
     def __init__(self):
         self.error_counts: Dict[ErrorCategory, int] = {}
         self.error_handlers: Dict[ErrorCategory, Callable] = {}
+        self.error_counts_lock = threading.Lock()
 
     def format_error(
         self, category: ErrorCategory, severity: ErrorSeverity, code: str, **kwargs
@@ -402,7 +404,10 @@ class ErrorHandler:
         )
 
         # Count errors by category with cap to prevent unbounded growth
-        self.error_counts[category] = min(self.error_counts.get(category, 0) + 1, 1000)
+        with self.error_counts_lock:
+            self.error_counts[category] = min(
+                self.error_counts.get(category, 0) + 1, 1000
+            )
 
         # Log error
         log_message = f"[{severity.value}] {category.value}: {error_info.message}"

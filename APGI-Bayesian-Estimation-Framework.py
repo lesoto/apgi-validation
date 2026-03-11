@@ -102,7 +102,9 @@ class APGIBayesianModel:
             # Generate binary responses (simulate if needed)
             if np.any((detection_rates < 0) | (detection_rates > 1)):
                 # Assume detection_rates are already proportions
-                responses = np.random.binomial(n_trials, detection_rates)
+                # Clip to [0, 1] to prevent ValueError from binomial
+                clipped_rates = np.clip(detection_rates, 0, 1)
+                responses = np.random.binomial(n_trials, clipped_rates)
             else:
                 responses = (detection_rates * n_trials).astype(int)
 
@@ -780,7 +782,9 @@ class ParameterRecoveryAnalysis:
 
         # Add noise
         n_trials = 20
-        detections = np.random.binomial(n_trials, true_probs) / n_trials
+        # Clip probabilities to [0, 1] to prevent ValueError from binomial
+        clipped_probs = np.clip(true_probs, 0, 1)
+        detections = np.random.binomial(n_trials, clipped_probs) / n_trials
 
         return {"stimuli": stimuli, "detections": detections, "n_trials": n_trials}
 
@@ -907,7 +911,9 @@ def main():
     stimuli = np.linspace(0.1, 1.0, 20)
     true_beta, true_theta = 12.0, 0.5
     true_probs = 1.0 / (1 + np.exp(-true_beta * (stimuli - true_theta)))
-    detections = np.random.binomial(20, true_probs) / 20
+    # Clip probabilities to [0, 1] to prevent ValueError from binomial
+    clipped_probs = np.clip(true_probs, 0, 1)
+    detections = np.random.binomial(20, clipped_probs) / 20
 
     psychometric_data = {"stimuli": stimuli, "detections": detections}
 

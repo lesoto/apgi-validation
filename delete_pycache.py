@@ -52,7 +52,6 @@ DEFAULT_FILE_PATTERNS = [
     "*.pyc",
     "*.pyo",
     "*.pyd",
-    ".gitignore",
     ".coverage",
     "coverage.xml",
     ".coverage.*",

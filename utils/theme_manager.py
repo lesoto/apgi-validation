@@ -6,6 +6,7 @@ APGI Theme Manager
 Manages UI themes for APGI applications.
 """
 
+import threading
 from typing import Dict, List, Optional
 from pathlib import Path
 
@@ -21,6 +22,7 @@ class ThemeManager:
         self.current_theme = (
             initial_theme if initial_theme in self._themes else "default"
         )
+        self._lock = threading.Lock()
 
     def _load_themes(self) -> Dict[str, Dict]:
         """Load available themes from themes directory"""
@@ -59,14 +61,16 @@ class ThemeManager:
 
     def set_theme(self, theme_name: str) -> bool:
         """Set current theme"""
-        if theme_name in self._themes:
-            self.current_theme = theme_name
-            return True
-        return False
+        with self._lock:
+            if theme_name in self._themes:
+                self.current_theme = theme_name
+                return True
+            return False
 
     def get_current_theme(self) -> Dict:
         """Get current theme configuration"""
-        return self._themes[self.current_theme]
+        with self._lock:
+            return self._themes[self.current_theme]
 
     def get_theme_color(self, color_key: str) -> str:
         """Get a specific color from the current theme"""

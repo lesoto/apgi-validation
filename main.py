@@ -15,6 +15,7 @@ Provides command-line interface to all APGI framework components including:
 import importlib.util
 import json
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -844,6 +845,14 @@ def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
         console.print(f"[red]Error: Input file '{input_data}' does not exist[/red]")
         return
 
+    # Check file size to prevent DoS attacks (max 100MB)
+    file_size_mb = os.path.getsize(input_data) / (1024 * 1024)
+    if file_size_mb > 100:
+        console.print(
+            f"[red]Error: File too large ({file_size_mb:.1f}MB). Maximum size is 100MB.[/red]"
+        )
+        return
+
     try:
         data = pd.read_csv(input_data)
     except (pd.errors.EmptyDataError, FileNotFoundError) as e:
@@ -1418,28 +1427,9 @@ def estimate_params(
 
             # Run APGI dynamics using actual model
             try:
-                # system = CoreIgnitionSystem()  # Class not available, using demo mode instead
                 console.print(
                     "[yellow]CoreIgnitionSystem not available, using demo mode[/yellow]"
                 )
-
-                # Generate demo data
-                # demo_params = {  # Parameters defined but not used in current implementation
-                #     "tau_S": 0.5,
-                #     "tau_theta": 30.0,
-                #     "theta_0": 0.5,
-                #     "alpha": 5.0,
-                #     "gamma_M": -0.3,
-                #     "gamma_A": 0.1,
-                #     "rho": 0.7,
-                #     "sigma_S": 0.05,
-                #     "sigma_theta": 0.02,
-                # }
-
-                # Apply demo parameters to system (commented out since system is not available)
-                # for key, value in demo_params.items():
-                #     if hasattr(system, key):
-                #         setattr(system, key, value)
 
                 # Generate demo results instead
                 t = np.linspace(
@@ -2232,26 +2222,55 @@ def _list_protocols(validation_dir: Path) -> List[str]:
     return protocols
 
 
-def _run_single_protocol(protocol_file: str, validation_dir: Path) -> tuple:
+def _run_single_protocol(
+    protocol_file: str, validation_dir: Path, timeout_seconds: float = 300.0
+) -> tuple:
     """Run a single validation protocol and return results."""
     protocol_path = validation_dir / protocol_file
     protocol_num = protocol_file.split("-")[-1].replace(".py", "")
 
-    try:
-        protocol_module = secure_load_module(f"protocol_{protocol_num}", protocol_path)
+    console.print(f"[blue]Running Protocol {protocol_num}...[/blue]")
 
-        if hasattr(protocol_module, "run_validation"):
-            result = protocol_module.run_validation()
-            return protocol_num, result, None
-        else:
-            return protocol_num, "No validation function", None
-    except (
-        ImportError,
-        ModuleNotFoundError,
-        AttributeError,
-        RuntimeError,
-    ) as e:
-        return protocol_num, f"Error: {e}", str(e)
+    def run_validation():
+        try:
+            spec = importlib.util.spec_from_file_location(protocol_num, protocol_path)
+            if spec is None or spec.loader is None:
+                return (
+                    protocol_num,
+                    f"Error: Could not load module spec",
+                    "Module load error",
+                )
+
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            if hasattr(module, "validate"):
+                result = module.validate()
+                return protocol_num, str(result), None
+            elif hasattr(module, "APGIValidator"):
+                validator = module.APGIValidator()
+                result = validator.validate()
+                return protocol_num, str(result), None
+            else:
+                return protocol_num, "No validation function", None
+        except (
+            ImportError,
+            ModuleNotFoundError,
+            AttributeError,
+            RuntimeError,
+        ) as e:
+            return protocol_num, f"Error: {e}", str(e)
+
+    try:
+        protocol_num, result, error = run_with_timeout(
+            run_validation, timeout_seconds=timeout_seconds
+        )
+        return protocol_num, result, error
+    except TimeoutHandlerError as e:
+        console.print(
+            f"[red]✗[/red] Protocol {protocol_num} timed out after {timeout_seconds} seconds"
+        )
+        return protocol_num, f"Timeout: {str(e)}", "Timeout"
 
 
 def _run_parallel(protocols: List[str], validation_dir: Path) -> Dict:
@@ -2259,6 +2278,7 @@ def _run_parallel(protocols: List[str], validation_dir: Path) -> Dict:
     import concurrent.futures
 
     results = {}
+    results_lock = threading.Lock()
 
     def run_single(protocol_file):
         return _run_single_protocol(protocol_file, validation_dir)
@@ -2271,7 +2291,8 @@ def _run_parallel(protocols: List[str], validation_dir: Path) -> Dict:
 
         for future in concurrent.futures.as_completed(future_to_protocol):
             protocol_num, result, error = future.result()
-            results[protocol_num] = result
+            with results_lock:
+                results[protocol_num] = result
             if error:
                 console.print(f"[red]✗[/red] Protocol {protocol_num} failed: {error}")
             else:
@@ -2321,16 +2342,16 @@ def _run_sequential(protocols: List[str], validation_dir: Path) -> Dict:
 
 def _save_results(results: Dict, output_dir: Optional[str]):
     """Save validation results to file."""
+    import uuid
+
     if output_dir:
         output_path = Path(output_dir)
         output_path.mkdir(exist_ok=True)
-        results_file = output_path / f"validation_results_{int(time.time())}.json"
+        results_file = output_path / f"validation_results_{uuid.uuid4()}.json"
     else:
         default_output_dir = PROJECT_ROOT / "validation_results"
         default_output_dir.mkdir(exist_ok=True)
-        results_file = (
-            default_output_dir / f"validation_results_{int(time.time())}.json"
-        )
+        results_file = default_output_dir / f"validation_results_{uuid.uuid4()}.json"
 
     import json
 
@@ -3481,7 +3502,15 @@ def comprehensive_validation(
         console.print(f"[red]Error in comprehensive validation: {e}[/red]")
         import traceback
 
-        console.print(f"[red]Traceback: {traceback.format_exc()}[/red]")
+        # Log full traceback to file, show sanitized message to console
+        error_log_path = PROJECT_ROOT / "logs" / "error.log"
+        error_log_path.parent.mkdir(exist_ok=True)
+        with open(error_log_path, "a") as f:
+            f.write(
+                f"\n[{datetime.now().isoformat()}] Error in comprehensive validation:\n"
+            )
+            f.write(f"{traceback.format_exc()}\n")
+        console.print("[red]An error occurred. See logs/error.log for details.[/red]")
 
 
 def _run_gui_module(gui_path, gui_name, debug):
@@ -3517,7 +3546,14 @@ def _run_gui_module(gui_path, gui_name, debug):
                 if debug:
                     import traceback
 
-                    console.print(f"[red]Traceback: {traceback.format_exc()}[/red]")
+                    error_log_path = PROJECT_ROOT / "logs" / "error.log"
+                    error_log_path.parent.mkdir(exist_ok=True)
+                    with open(error_log_path, "a") as f:
+                        f.write(
+                            f"\n[{datetime.now().isoformat()}] Error in {gui_name} GUI:\n"
+                        )
+                        f.write(f"{traceback.format_exc()}\n")
+                    console.print("[red]See logs/error.log for details.[/red]")
         else:
             console.print(
                 f"[red]❌ {gui_name} GUI does not have a main() function[/red]"
@@ -3528,7 +3564,14 @@ def _run_gui_module(gui_path, gui_name, debug):
         if debug:
             import traceback
 
-            console.print(f"[red]Traceback: {traceback.format_exc()}[/red]")
+            error_log_path = PROJECT_ROOT / "logs" / "error.log"
+            error_log_path.parent.mkdir(exist_ok=True)
+            with open(error_log_path, "a") as f:
+                f.write(
+                    f"\n[{datetime.now().isoformat()}] Error launching {gui_name} GUI:\n"
+                )
+                f.write(f"{traceback.format_exc()}\n")
+            console.print("[red]See logs/error.log for details.[/red]")
 
 
 def _launch_validation_gui(debug):
@@ -4462,9 +4505,18 @@ def export_data(ctx, input_file, output_file, format, compress):
             # Remove original file
             import os
 
-            os.remove(output_file)
-            output_file = compressed_file
-            console.print(f"[green]✓[/green] File compressed to {output_file}")
+            try:
+                os.remove(output_file)
+                output_file = compressed_file
+                console.print(f"[green]✓[/green] File compressed to {output_file}")
+            except OSError as e:
+                console.print(
+                    f"[yellow]Warning: Could not remove original file: {e}[/yellow]"
+                )
+                console.print(
+                    f"[yellow]Using compressed file: {compressed_file}[/yellow]"
+                )
+                output_file = compressed_file
 
         # Show file size
         file_size = Path(output_file).stat().st_size

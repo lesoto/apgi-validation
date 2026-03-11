@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-APGI System API — a FastAPI REST API for Allostatic Precision-Gated Ignition consciousness modeling. Stack: FastAPI + PostgreSQL + Redis + Celery, with JWT authentication and RBAC.
+APGI System  Stack:  PostgreSQL + Redis + Celery, with JWT authentication and RBAC.
 
 ## Development Commands
 
@@ -12,8 +12,8 @@ APGI System API — a FastAPI REST API for Allostatic Precision-Gated Ignition c
 
 ```bash
 ./scripts/start.sh
-# Starts PostgreSQL, Redis, API, and Celery worker via Docker Compose
-# API: http://localhost:8000 | Docs: http://localhost:8000/docs
+# Starts PostgreSQL, Redis and Celery worker via Docker Compose
+# http://localhost:8000 | Docs: http://localhost:8000/docs
 ```
 
 ### Run locally (without Docker)
@@ -70,7 +70,7 @@ mypy app/
 
 ### Middleware stack (outermost to innermost)
 
-`RequestSizeLimitMiddleware` → `GZipMiddleware` → `PrometheusMetricsMiddleware` → `ProfilingMiddleware` (optional) → `RequestLoggingMiddleware` → `APIVersioningMiddleware` → `ResponseSchemaValidationMiddleware` → `CSRFMiddleware` → `AuthenticationMiddleware` → `DeprecationMiddleware` → `RateLimitingMiddleware` → `CORSMiddleware`
+`RequestSizeLimitMiddleware` → `GZipMiddleware` → `PrometheusMetricsMiddleware` → `ProfilingMiddleware` (optional) → `RequestLoggingMiddleware` → `ResponseSchemaValidationMiddleware` → `CSRFMiddleware` → `AuthenticationMiddleware` → `DeprecationMiddleware` → `RateLimitingMiddleware` → `CORSMiddleware`
 
 ### Route initialization pattern
 
@@ -83,7 +83,6 @@ Several routers require explicit initialization during lifespan (not at import t
 
 ### Key directories
 
-- `app/routes/` — FastAPI routers: `auth`, `users`, `sessions`, `templates`, `state`, `tasks`, `export`, `metrics`, `health`, `version`
 - `app/services/` — Business logic: `auth_manager`, `session_manager`, `user_management`, `task_executor`, `webhook_manager`, `cache_service`, `rate_limiter`, `authorization`
 - `app/middleware/` — Starlette middleware classes
 - `app/database/models.py` — SQLAlchemy ORM (`User`, `Session`, `Task`, and related models)

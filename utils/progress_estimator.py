@@ -7,6 +7,7 @@ Provides progress estimation and time tracking for long-running operations.
 """
 
 import time
+import threading
 from typing import Dict, Optional, Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -40,9 +41,11 @@ class ProgressInfo:
 class ProgressEstimator:
     """Estimates progress and time remaining for operations."""
 
-    def __init__(self):
+    def __init__(self, max_retained_operations: int = 100):
         self.operations: Dict[str, ProgressInfo] = {}
         self.progress_callbacks: Dict[str, Callable[[ProgressInfo], None]] = {}
+        self.max_retained_operations = max_retained_operations
+        self._lock = threading.Lock()
 
     def start_operation(
         self,
@@ -102,6 +105,9 @@ class ProgressEstimator:
         progress_info.current = progress_info.total
         progress_info.message = message
 
+        # Auto-cleanup old completed operations to prevent memory leak
+        self._cleanup_old_operations()
+
         self._notify_progress(operation_id)
         return progress_info
 
@@ -138,14 +144,48 @@ class ProgressEstimator:
         """Get progress information for all operations."""
         return self.operations.copy()
 
+    def _cleanup_old_operations(self):
+        """Remove old completed operations to prevent memory leak."""
+        with self._lock:
+            # Separate completed and non-completed operations
+            completed_ops = []
+            active_ops = []
+            for op_id, op_info in self.operations.items():
+                if op_info.state in (
+                    ProgressState.COMPLETED,
+                    ProgressState.FAILED,
+                    ProgressState.CANCELLED,
+                ):
+                    completed_ops.append((op_id, op_info))
+                else:
+                    active_ops.append((op_id, op_info))
+
+            # Sort completed ops by start time (oldest first)
+            completed_ops.sort(key=lambda x: x[1].start_time or 0)
+
+            # Remove excess completed operations beyond retention limit
+            if len(completed_ops) > self.max_retained_operations:
+                excess_ops = len(completed_ops) - self.max_retained_operations
+                for op_id, _ in completed_ops[:excess_ops]:
+                    if op_id in self.operations:
+                        del self.operations[op_id]
+                    if op_id in self.progress_callbacks:
+                        del self.progress_callbacks[op_id]
+
+            # Keep only active operations and recently completed operations
+            self.operations = {op_id: op_info for op_id, op_info in active_ops}
+            for op_id, op_info in completed_ops[self.max_retained_operations :]:
+                self.operations[op_id] = op_info
+
     def remove_operation(self, operation_id: str) -> bool:
         """Remove an operation from tracking."""
-        if operation_id in self.operations:
-            del self.operations[operation_id]
-            if operation_id in self.progress_callbacks:
-                del self.progress_callbacks[operation_id]
-            return True
-        return False
+        with self._lock:
+            if operation_id in self.operations:
+                del self.operations[operation_id]
+                if operation_id in self.progress_callbacks:
+                    del self.progress_callbacks[operation_id]
+                return True
+            return False
 
     def _notify_progress(self, operation_id: str):
         """Notify progress callback if available."""

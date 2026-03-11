@@ -10,7 +10,7 @@ import threading
 import time
 import subprocess
 import multiprocessing
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Dict, List
 from dataclasses import dataclass
 from enum import Enum
 
@@ -39,7 +39,7 @@ class TimeoutHandler:
     """Handles timeouts for long-running operations."""
 
     def __init__(self):
-        self.timeouts: dict[str, TimeoutInfo] = {}
+        self.timeouts: Dict[str, TimeoutInfo] = {}
         self._lock = threading.Lock()
         self._monitor_thread: Optional[threading.Thread] = None
         self._running = False
@@ -249,7 +249,7 @@ def run_with_timeout(
 
 
 def run_subprocess_with_timeout(
-    command: list[str], timeout_seconds: float = 300.0, **kwargs
+    command: List[str], timeout_seconds: float = 300.0, **kwargs
 ) -> subprocess.CompletedProcess:
     """Run a subprocess with a timeout."""
     try:
