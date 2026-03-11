@@ -413,27 +413,35 @@ class InputValidator:
             return ValidationResult(False, "Pattern not specified")
 
         try:
-            # Add timeout to prevent ReDoS attacks
-            import signal
+            # Add timeout to prevent ReDoS attacks (cross-platform solution)
+            import threading
 
-            def timeout_handler(signum, frame):
-                raise TimeoutError("Regex matching timed out")
+            timeout_result = [None]
+            timeout_exception = [None]
 
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(1)  # 1 second timeout
+            def run_regex():
+                try:
+                    timeout_result[0] = re.match(pattern, value)
+                except Exception as e:
+                    timeout_exception[0] = e
 
-            try:
-                result = re.match(pattern, value)
-                signal.alarm(0)  # Cancel alarm
+            thread = threading.Thread(target=run_regex)
+            thread.daemon = True
+            thread.start()
+            thread.join(timeout=1)  # 1 second timeout
 
-                if not result:
-                    message = params.get("message", "Invalid format")
-                    return ValidationResult(False, message)
-
-                return ValidationResult(True, "Valid")
-            except TimeoutError:
-                signal.alarm(0)  # Cancel alarm
+            if thread.is_alive():
                 return ValidationResult(False, "Regex matching timed out")
+
+            if timeout_exception[0]:
+                raise timeout_exception[0]
+
+            result = timeout_result[0]
+            if not result:
+                message = params.get("message", "Invalid format")
+                return ValidationResult(False, message)
+
+            return ValidationResult(True, "Valid")
 
         except re.error:
             return ValidationResult(False, "Invalid regex pattern")

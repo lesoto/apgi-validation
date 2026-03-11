@@ -15,6 +15,7 @@ This module provides:
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
@@ -399,18 +400,24 @@ class CrossSpeciesScaling:
 
         # PCI vs brain size
         try:
-            log_brain = np.log(np.maximum(brain_sizes, 1e-10))
-            log_pci = np.log(np.maximum(pci_values, 1e-10))
-            slope, intercept = np.polyfit(log_brain, log_pci, 1)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                log_brain = np.log(np.maximum(brain_sizes, 1e-10))
+                log_pci = np.log(np.maximum(pci_values, 1e-10))
+                slope, intercept = np.polyfit(log_brain, log_pci, 1)
             scaling_laws["pci_vs_brain_size"] = (slope, intercept)
-        except (ValueError, RuntimeWarning):
+        except ValueError:
             scaling_laws["pci_vs_brain_size"] = (0.3, -2.5)  # Default
 
         # Hierarchical levels vs brain size
         try:
-            slope, intercept = np.polyfit(np.log(brain_sizes), hierarchical_levels, 1)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                slope, intercept = np.polyfit(
+                    np.log(brain_sizes), hierarchical_levels, 1
+                )
             scaling_laws["levels_vs_brain_size"] = (slope, intercept)
-        except (ValueError, RuntimeWarning):
+        except ValueError:
             scaling_laws["levels_vs_brain_size"] = (0.15, 2.8)
 
         # Timescale vs brain size

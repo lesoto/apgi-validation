@@ -7,8 +7,10 @@ Advanced batch processing system for running multiple simulations,
 validation protocols, and analyses in parallel with progress tracking.
 """
 
+import binascii
 import importlib.util
 import json
+import math
 import pickle
 import sys
 import time
@@ -102,18 +104,13 @@ def _validate_secret_key(key_bytes: bytes) -> None:
 
 
 PICKLE_SECRET_KEY = os.environ.get("PICKLE_SECRET_KEY")
-if PICKLE_SECRET_KEY is not None:
-    PICKLE_SECRET_KEY = PICKLE_SECRET_KEY.encode()
-    _validate_secret_key(PICKLE_SECRET_KEY)
-else:
-    import warnings
-
-    warnings.warn(
-        "PICKLE_SECRET_KEY environment variable not set. "
-        "Secure pickle functions will raise an error when called.",
-        UserWarning,
-        stacklevel=2,
+if PICKLE_SECRET_KEY is None:
+    raise ValueError(
+        "PICKLE_SECRET_KEY environment variable must be set for secure pickle operations. "
+        "Generate a secure key with: openssl rand -hex 32"
     )
+PICKLE_SECRET_KEY = PICKLE_SECRET_KEY.encode()
+_validate_secret_key(PICKLE_SECRET_KEY)
 
 
 def secure_pickle_dump(obj: Any, file_path: Path) -> None:

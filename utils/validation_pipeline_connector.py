@@ -10,6 +10,7 @@ workflow automation for the APGI framework.
 import json
 import logging
 import inspect
+import threading
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
@@ -48,6 +49,7 @@ class ValidationPipelineConnector:
         self.preprocessor = MultimodalPreprocessingPipeline(self.config)
         self.data_generator = SampleDataGenerator()
         self.connection_log = []
+        self._log_lock = threading.Lock()
 
     def prepare_data_for_validation(
         self,
@@ -76,14 +78,16 @@ class ValidationPipelineConnector:
                 data = self._generate_protocol_specific_data(
                     validation_protocol, **kwargs
                 )
-                self.connection_log.append(
-                    f"Generated synthetic data for Protocol {validation_protocol}"
-                )
+                with self._log_lock:
+                    self.connection_log.append(
+                        f"Generated synthetic data for Protocol {validation_protocol}"
+                    )
             else:
                 data = self._load_and_preprocess_data(input_data, validation_protocol)
-                self.connection_log.append(
-                    f"Loaded and preprocessed {input_data} for Protocol {validation_protocol}"
-                )
+                with self._log_lock:
+                    self.connection_log.append(
+                        f"Loaded and preprocessed {input_data} for Protocol {validation_protocol}"
+                    )
 
             # Validate data compatibility
             compatibility_check = self._validate_protocol_compatibility(
@@ -282,7 +286,7 @@ class ValidationPipelineConnector:
                 "protocol": validation_protocol,
                 "validation_result": validation_result,
                 "pipeline_metadata": data_preparation["metadata"],
-                "connection_log": self.connection_log[-5:],  # Last 5 log entries
+                "connection_log": self._get_recent_logs(5),  # Last 5 log entries
                 "timestamp": pd.Timestamp.now().isoformat(),
             }
 
@@ -296,7 +300,7 @@ class ValidationPipelineConnector:
                 "protocol": validation_protocol,
                 "error": str(e),
                 "pipeline_metadata": data_preparation["metadata"],
-                "connection_log": self.connection_log[-5:],
+                "connection_log": self._get_recent_logs(5),
             }
 
     def _import_validation_protocol(self, protocol: int):
@@ -356,9 +360,11 @@ class ValidationPipelineConnector:
 
     def get_connection_summary(self) -> Dict[str, Any]:
         """Get summary of pipeline connections and operations."""
+        with self._log_lock:
+            recent_logs = self.connection_log[-10:]
         return {
             "total_connections": len(self.connection_log),
-            "recent_logs": self.connection_log[-10:],
+            "recent_logs": recent_logs,
             "supported_protocols": list(range(1, 13)),
             "preprocessing_config": {
                 "eeg_bandpass_low": self.config.eeg_bandpass_low,
@@ -368,6 +374,11 @@ class ValidationPipelineConnector:
                 ),
             },
         }
+
+    def _get_recent_logs(self, count: int = 5) -> list:
+        """Get recent log entries safely with lock."""
+        with self._log_lock:
+            return self.connection_log[-count:]
 
 
 def main():

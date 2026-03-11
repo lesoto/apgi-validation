@@ -253,8 +253,8 @@ class APGIFullDynamicModel:
         mu_baseline = np.mean(baseline)
         sigma_baseline = np.std(baseline)
 
-        if np.isclose(sigma_baseline, 0, atol=1e-10):
-            raise ValueError("Baseline std is effectively zero, cannot standardize")
+        # Use epsilon floor to prevent division by near-zero values
+        sigma_baseline = max(sigma_baseline, 1e-8)
 
         return (signal - mu_baseline) / sigma_baseline
 
@@ -462,19 +462,25 @@ class APGIFullDynamicModel:
                 f"beta_sequence length {len(beta_sequence)} != Pi_e length {n_steps}"
             )
 
-        # Initialize storage
+        # Initialize storage with rolling window to prevent memory exhaustion
+        # Use a maximum window size of 100,000 steps for long simulations
+        max_window_size = 100000
+        window_size = min(n_steps, max_window_size)
+
         history = {
-            "S": np.zeros(n_steps),
-            "theta_t": np.zeros(n_steps),
-            "eta_m": np.zeros(n_steps),
-            "I": np.zeros(n_steps, dtype=int),
-            "ignition_probability": np.zeros(n_steps),
+            "S": np.zeros(window_size),
+            "theta_t": np.zeros(window_size),
+            "eta_m": np.zeros(window_size),
+            "I": np.zeros(window_size, dtype=int),
+            "ignition_probability": np.zeros(window_size),
+            "window_size": window_size,
+            "total_steps": n_steps,
         }
 
         # Reset model
         self.reset()
 
-        # Run simulation
+        # Run simulation with rolling window
         for t in range(n_steps):
             beta_val = beta_sequence[t] if beta_sequence is not None else None
 

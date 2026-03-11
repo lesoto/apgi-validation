@@ -2,13 +2,40 @@
 APGI Multimodal Integration Module
 ==================================
 
+DEPRECATED: This module is deprecated. Use APGI-Multimodal-Integration.py instead.
+This file is kept for backward compatibility only.
+
 Integrates multiple physiological modalities (EEG, pupil, EDA) for APGI analysis.
 Provides core integration logic and batch processing capabilities.
 """
 
-import numpy as np
-from typing import Dict, List, Any
-from dataclasses import dataclass
+import warnings
+
+warnings.warn(
+    "APGI_Multimodal_Integration is deprecated. Use APGI-Multimodal-Integration instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# Re-export from the canonical module
+try:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "APGI_Multimodal_Integration", "APGI-Multimodal-Integration.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    # Re-export the main classes
+    APGICoreIntegration = module.APGICoreIntegration
+    APGIBatchProcessor = module.APGIBatchProcessor
+    APGINormalizer = module.APGINormalizer
+except ImportError:
+    # Fallback definitions if import fails
+    import numpy as np
+    from typing import Dict, List, Any
+    from dataclasses import dataclass
 
 
 @dataclass

@@ -79,7 +79,7 @@ class DataQualityAssessor:
 
         for metric, value in self.quality_metrics.items():
             if isinstance(value, float):
-                report += ".2%"
+                report += f"{metric}: {value:.2%}\n"
             else:
                 report += f"{metric}: {value}\n"
 
