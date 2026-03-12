@@ -290,8 +290,12 @@ class EvolvableAgent:
         for _ in range(self.genome.n_hidden_layers):
             # Ensure proper dimensions: input_dim x hidden_dim
             input_dim = len(hidden)
-            W = rng.randn(input_dim, self.genome.hidden_dim) * 0.1
+            W = rng.randn(input_dim, self.genome.hidden_dim) * 0.01
+            # Clip input to prevent overflow
+            hidden = np.clip(hidden, -10, 10)
             hidden = np.tanh(hidden @ W)
+            # Clip output to prevent downstream overflow
+            hidden = np.clip(hidden, -10, 10)
 
         # Output layer: hidden_dim x 4 (for 4 actions)
         W_out = rng.randn(self.genome.hidden_dim, 4) * 0.1
@@ -304,6 +308,8 @@ class EvolvableAgent:
             if state_key in self.somatic_markers:
                 # Bias towards previously rewarding actions
                 marker_values = self.somatic_markers[state_key]
+                # Clip to prevent overflow in exp
+                marker_values = np.clip(marker_values, -10, 10)
                 logits += marker_values
 
         # Softmax with numerical stability

@@ -32,6 +32,8 @@ import numpy as np
 
 # NEW: Import for Bayesian inversion
 import pymc as pm
+import pytensor.tensor as pt
+from pytensor.scan import scan
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
@@ -103,24 +105,37 @@ class APGIBayesianInversion:
             alpha = pm.Normal("alpha", 5.0, 1.0)  # Ignition slope
             sigma_noise = pm.HalfNormal("sigma_noise", 0.1)  # Process noise
 
-            # Simulate S_t evolution with full APGI dynamics
+            # Vectorized computation of surprise evolution
+            # Precision-weighted surprise inputs for all time steps
+            surprise_inputs = pi_e * pm.math.abs(z_e) + beta * pi_i * pm.math.abs(z_i)
+
+            # Initialize surprise array with zeros, set initial condition
             S_t = pm.math.zeros_like(observed_S)
-            S_t = pm.math.set_subtensor(S_t[0], 0.0)  # Initial surprise
+            S_t = pt.set_subtensor(S_t[0], 0.0)  # Initial surprise
+
+            # Use scan for vectorized time evolution
+            def step_surprise(S_prev, surprise_input, noise_val, tau_s, dt):
+                """Single step of surprise evolution: dS/dt = -S/τ + surprise_input + noise"""
+                return S_prev + dt * (-S_prev / tau_s + surprise_input + noise_val)
 
             # Single shared noise variable for all time steps
             noise = pm.Normal("noise", 0, sigma_noise, shape=observed_S.shape)
 
-            for t in range(1, len(observed_S)):
-                # Precision-weighted surprise input
-                surprise_input = pi_e * pm.math.abs(z_e[t]) + beta * pi_i * pm.math.abs(
-                    z_i[t]
-                )
-                # ODE step: dS/dt = -S/τ + surprise_input + noise
-                S_t = pm.math.set_subtensor(
-                    S_t[t],
-                    S_t[t - 1]
-                    + self.dt * (-S_t[t - 1] / tau_s + surprise_input + noise[t]),
-                )
+            # Compute surprise evolution using scan
+            surprise_evolution, _ = scan(
+                fn=step_surprise,
+                sequences=[
+                    surprise_inputs[1:],
+                    noise[1:],
+                ],  # Skip first element (initial condition)
+                outputs_info=S_t[0],  # Start with initial surprise
+                non_sequences=[tau_s, self.dt],
+                name="surprise_evolution",
+                return_updates=False,
+            )
+
+            # Set the evolved surprise values
+            S_t = pt.set_subtensor(S_t[1:], surprise_evolution)
 
             # Ignition Decision Rule
             p_ignition = pm.math.sigmoid(alpha * (S_t - theta_0))

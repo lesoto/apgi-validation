@@ -464,17 +464,17 @@ class APGIPsychophysicalEstimator:
             fa.fit(param_matrix)
 
             results["factor_analysis"]["loadings"] = fa.components_.T.tolist()
-            results["factor_analysis"][
-                "explained_variance"
-            ] = fa.explained_variance_.tolist()
 
-            # Check if at least 2 factors emerge
+            # Check if at least 2 factors emerge and calculate explained variance
             try:
                 eigenvalues = np.linalg.eigvals(np.cov(param_matrix.T))
                 n_factors = sum(eigenvalues > 1.0)  # Kaiser criterion
             except (np.linalg.LinAlgError, ValueError):
                 eigenvalues = np.ones(len(param_names))  # Fallback
                 n_factors = len(param_names)
+
+            # Use eigenvalues as explained variance (sklearn FactorAnalysis doesn't always provide explained_variance_)
+            results["factor_analysis"]["explained_variance"] = eigenvalues.tolist()
         except (ValueError, np.linalg.LinAlgError):
             # Fallback if factor analysis fails
             results["factor_analysis"]["loadings"] = []

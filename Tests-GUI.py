@@ -385,6 +385,11 @@ class TestsRunnerGUI:
         output_notebook.add(viz_frame, text="Visualization")
         self.setup_visualization_tab(viz_frame)
 
+        # Bind tab selection event to refresh visualization when tab is selected
+        output_notebook.bind(
+            "<<NotebookTabChanged>>", lambda e: self._on_visualization_tab_selected()
+        )
+
     def setup_visualization_tab(self, parent_frame: ttk.Frame) -> None:
         """Setup the visualization tab with test result displays."""
         parent_frame.columnconfigure(0, weight=1)
@@ -443,6 +448,9 @@ class TestsRunnerGUI:
             self.canvas = FigureCanvasTkAgg(self.fig, master=viz_container)
             self.canvas.draw()
             self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+            # Initial draw to ensure canvas is visible
+            self.root.update_idletasks()
         else:
             # Fallback text display if matplotlib not available
             no_viz_label = ttk.Label(
@@ -487,6 +495,12 @@ class TestsRunnerGUI:
 
         # Initialize test results storage
         self.test_results = []
+
+    def _on_visualization_tab_selected(self) -> None:
+        """Handle visualization tab selection event."""
+        # Refresh visualization when tab is selected to ensure it displays properly
+        if MATPLOTLIB_AVAILABLE and hasattr(self, "fig"):
+            self.root.after_idle(self._update_charts)
 
     def _setup_tab_order(self) -> None:
         """Configure tab order for consistent keyboard navigation."""
@@ -593,7 +607,7 @@ class TestsRunnerGUI:
             self.ax_timeline.clear()
 
             if not self.test_results:
-                # Show empty state
+                # Show empty state with proper layout
                 for ax in [self.ax_pie, self.ax_bar, self.ax_timeline]:
                     ax.text(
                         0.5,
@@ -602,8 +616,12 @@ class TestsRunnerGUI:
                         ha="center",
                         va="center",
                         transform=ax.transAxes,
+                        fontsize=14,
                     )
+                # Ensure the canvas is properly sized and visible
+                self.fig.tight_layout()
                 self.canvas.draw()
+                self.root.update_idletasks()
                 return
 
             # Count test results
@@ -667,12 +685,8 @@ class TestsRunnerGUI:
                 self.ax_timeline.set_xlabel("Test Sequence")
                 self.ax_timeline.set_ylabel("Status")
                 self.ax_timeline.set_ylim(-1.5, 1.5)
-                self.ax_timeline.set_yticks([-1, 0, 1])
-                self.ax_timeline.set_yticklabels(["Error", "Failed", "Passed"])
-
-            # Adjust layout and redraw
-            self.fig.tight_layout()
             self.canvas.draw()
+            return
 
         except Exception as e:
             self.log_output(f"Error updating charts: {e}", self.TAG_ERROR)
@@ -1032,6 +1046,17 @@ class TestsRunnerGUI:
             ).replace(os.sep, ".")
             env = os.environ.copy()
             env["PYTHONPATH"] = str(Path(__file__).parent)
+
+            # Set required environment variables for secure operations
+            if "PICKLE_SECRET_KEY" not in env:
+                env[
+                    "PICKLE_SECRET_KEY"
+                ] = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"  # Default for testing
+            if "APGI_BACKUP_HMAC_KEY" not in env:
+                env[
+                    "APGI_BACKUP_HMAC_KEY"
+                ] = "z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4j3i2h1g0f9e8d7c6b5a4b3c2d1e0f9"  # Default for testing
+
             process = subprocess.Popen(
                 [sys.executable, "-m", module_path],
                 stdout=subprocess.PIPE,

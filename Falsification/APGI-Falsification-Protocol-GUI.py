@@ -879,8 +879,10 @@ class ProtocolRunnerGUI:
         widget.bind("<Enter>", on_enter)
         widget.bind("<Leave>", on_leave)
 
-        # Configure grid weights
-        self.params_scrollable_frame.columnconfigure(1, weight=1)
+    def clear_console(self):
+        """Clear the console output."""
+        if hasattr(self, "console_text"):
+            self.console_text.delete(1.0, tk.END)
 
     def _setup_tab_order(self) -> None:
         """Configure tab order for consistent keyboard navigation."""

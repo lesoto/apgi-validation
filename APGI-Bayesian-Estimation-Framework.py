@@ -114,10 +114,9 @@ class APGIBayesianModel:
 
             with pm.Model() as apgi_model:
                 # Priors for APGI parameters (non-centered parametrization)
-                pm.Normal("raw_beta", mu=0.0, sigma=0.5)  # Non-centered, tighter
-                beta = 10.0 + 5.0 * pm.Normal("raw_beta", mu=0.0, sigma=0.5)
-                # Reparameterized beta
-                pm.TruncatedNormal(
+                raw_beta = pm.Normal("raw_beta", mu=0.0, sigma=0.5)  # Non-centered
+                beta = 10.0 + 5.0 * raw_beta
+                theta = pm.TruncatedNormal(
                     "theta",
                     mu=np.median(stimulus_intensities),
                     sigma=np.std(stimulus_intensities),
@@ -130,22 +129,7 @@ class APGIBayesianModel:
                 # APGI psychometric function
                 prob_detect = pm.Beta("baseline", alpha=1, beta=3) + pm.Beta(
                     "amplitude", alpha=5, beta=1
-                ) / (
-                    1
-                    + pm.math.exp(
-                        -beta
-                        * (
-                            stimulus_intensities
-                            - pm.TruncatedNormal(
-                                "theta",
-                                mu=np.median(stimulus_intensities),
-                                sigma=np.std(stimulus_intensities),
-                                lower=0,
-                                upper=np.max(stimulus_intensities),
-                            )
-                        )
-                    )
-                )
+                ) / (1 + pm.math.exp(-beta * (stimulus_intensities - theta)))
 
                 # Likelihood
                 pm.Binomial(

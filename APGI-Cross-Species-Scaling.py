@@ -555,13 +555,13 @@ def predict_species_consciousness(
 
     # Compute confidence based on prediction uncertainty
     # Higher brain mass generally means more confidence in prediction
-    brain_mass_log = np.log10(species_params.brain_mass)
+    brain_mass_log = np.log10(species_params.brain_mass_g)
     species_params.confidence = min(0.95, 0.7 + 0.1 * brain_mass_log)
 
     # Compute processing time based on brain size and complexity
     # Larger brains have longer processing times
     species_params.processing_time = (
-        0.05 + 0.05 * (species_params.brain_mass / 1000) ** 0.3
+        0.05 + 0.05 * (species_params.brain_mass_g / 1000) ** 0.3
     )
 
     return result
