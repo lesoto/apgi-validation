@@ -111,6 +111,17 @@ class APGIValidationGUI:
             "errors": [],
         }
 
+        # Initialize parameter dictionaries
+        self.param_vars = {
+            "tau_S": tk.DoubleVar(value=0.5),
+            "tau_theta": tk.DoubleVar(value=30.0),
+            "theta_0": tk.DoubleVar(value=0.5),
+            "alpha": tk.DoubleVar(value=5.0),
+        }
+        self.param_labels = {}
+        self.param_sliders = {}
+        self.param_configs = {}
+
         # Thread safety locks
         self._running_lock = threading.Lock()
         self._cache_lock = threading.Lock()
@@ -1142,6 +1153,13 @@ class APGIValidationGUI:
     def _run_parameter_simulation_worker(self, params: Dict[str, float]) -> None:
         """Worker thread for parameter simulation"""
         try:
+            # Add project root to Python path for imports
+            import sys
+
+            project_root = Path(__file__).parent.parent
+            if str(project_root) not in sys.path:
+                sys.path.insert(0, str(project_root))
+
             # Import APGI equations for simulation
             from APGI_Equations import CoreIgnitionSystem
 
@@ -1779,7 +1797,7 @@ Interpretation:
                 OSError,
                 IOError,
                 PermissionError,
-                json.JSONEncodeError,
+                json.JSONDecodeError,
                 UnicodeEncodeError,
             ) as e:
                 error_msg = f"Failed to save results: {type(e).__name__}: {e}"

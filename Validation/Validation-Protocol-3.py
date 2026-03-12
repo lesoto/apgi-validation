@@ -1282,7 +1282,7 @@ class AgentComparisonExperiment:
     def _get_config(self, env_name: str) -> Dict:
         """Get agent configuration"""
         return {
-            "n_actions": 4 if env_name == "IGT" else 5,
+            "n_actions": 4 if env_name in ["IGT", "ThreatReward"] else 5,
             "theta_init": 0.5,
             "beta": 1.2,
             "Pi_e_init": 1.0,

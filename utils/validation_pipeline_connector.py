@@ -31,10 +31,17 @@ except ImportError:
     )
     MultimodalPreprocessingPipeline = None
     PreprocessingConfig = None
-from .sample_data_generator import (
-    SampleDataGenerator,
-    generate_sample_multimodal_data,
-)
+try:
+    from .sample_data_generator import (
+        SampleDataGenerator,
+        generate_sample_multimodal_data,
+    )
+except ImportError:
+    # Fallback for direct execution
+    from sample_data_generator import (
+        SampleDataGenerator,
+        generate_sample_multimodal_data,
+    )
 
 # Configure logging
 logger = logging.getLogger(__name__)

@@ -47,6 +47,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
 from rich.table import Table
 import pandas as pd
+from utils.timeout_handler import TimeoutError, run_with_timeout
 
 # Add project root to Python path
 PROJECT_ROOT = Path(__file__).parent
@@ -2237,7 +2238,7 @@ def _run_single_protocol(
             if spec is None or spec.loader is None:
                 return (
                     protocol_num,
-                    f"Error: Could not load module spec",
+                    f"Error: Could not load module spec for {protocol_num}",
                     "Module load error",
                 )
 
@@ -2266,7 +2267,7 @@ def _run_single_protocol(
             run_validation, timeout_seconds=timeout_seconds
         )
         return protocol_num, result, error
-    except TimeoutHandlerError as e:
+    except TimeoutError as e:
         console.print(
             f"[red]✗[/red] Protocol {protocol_num} timed out after {timeout_seconds} seconds"
         )
@@ -4727,22 +4728,28 @@ def dashboard(output_dir, dashboard_type, open_browser):
                 generated_files = generate_dashboards(str(output_dir))
             else:
                 # Generate specific dashboard type
-                from utils.static_dashboard_generator import StaticDashboardGenerator
-
-                generator = StaticDashboardGenerator(str(output_dir))
-
-                if dashboard_type == "system":
-                    generated_files = [generator.generate_system_dashboard()]
-                elif dashboard_type == "validation":
-                    generated_files = [generator.generate_validation_dashboard()]
-                else:
-                    console.print(
-                        f"[red]Unknown dashboard type: {dashboard_type}[/red]"
+                try:
+                    from utils.static_dashboard_generator import (
+                        StaticDashboardGenerator,
                     )
-                    console.print(
-                        "[yellow]Available types: system, validation, all[/yellow]"
-                    )
-                    return
+
+                    generator = StaticDashboardGenerator(str(output_dir))
+
+                    if dashboard_type == "system":
+                        generated_files = [generator.generate_system_dashboard()]
+                    elif dashboard_type == "validation":
+                        generated_files = [generator.generate_validation_dashboard()]
+                    else:
+                        console.print(
+                            f"[red]Unknown dashboard type: {dashboard_type}[/red]"
+                        )
+                        console.print(
+                            "[yellow]Available types: system, validation, all[/yellow]"
+                        )
+                        return
+                except Exception as e:
+                    console.print(f"[red]Error generating dashboards: {e}[/red]")
+                    apgi_logger.logger.error(f"Dashboard generation error: {e}")
 
         # Display results
         console.print(f"[green]✓ Generated {len(generated_files)} dashboard(s)[/green]")
@@ -4760,16 +4767,6 @@ def dashboard(output_dir, dashboard_type, open_browser):
 
         console.print(
             "[yellow]Tip: Use 'python main.py dashboard --open-browser' to view dashboards[/yellow]"
-        )
-
-    except ImportError as e:
-        from utils.error_handler import handle_import_error
-
-        handle_import_error(
-            "utils.static_dashboard_generator", e, "Dashboard generation"
-        )
-        console.print(
-            "[yellow]Make sure utils/static_dashboard_generator.py exists[/yellow]"
         )
     except Exception as e:
         console.print(f"[red]Error generating dashboards: {e}[/red]")

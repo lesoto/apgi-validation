@@ -184,8 +184,8 @@ class TestAPGIValidationGUI:
         # Test parameter change callback
         gui.on_parameter_change("tau_S", "0.75")
 
-        # Verify label was updated
-        gui.param_labels["tau_S"].config.assert_called_with(text="0.750")
+        # Verify label was updated with correct .2f formatting
+        gui.param_labels["tau_S"].config.assert_called_with(text="0.75")
 
     @patch("Validation.APGIMasterValidator")
     @patch("Validation.safe_import_module")

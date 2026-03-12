@@ -2,6 +2,7 @@
 import importlib.util
 import logging
 import os
+import sys
 import warnings
 from typing import Any, Dict, List, Tuple
 
@@ -27,6 +28,10 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 # Lazy imports to speed up module loading
 def _get_protocol1():
     """Safely import Protocol 1 with error handling"""
+    # Add parent directory to path for utils import
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, parent_dir)
+
     try:
         from utils.error_handler import handle_import_error
 

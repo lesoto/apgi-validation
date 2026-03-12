@@ -1019,7 +1019,7 @@ def main():
         f"Scientific Status: {falsification_assessment['scientific_assessment']['scientific_status']}"
     )
     print(
-        f"Confidence Level: {falsification_assessment['scientific_assessment']['confidence_level']:.3f}"
+        f"Confidence Level: {falsification_assessment['scientific_assessment']['confidence_level']}"
     )
     print(
         f"Testability Score: {falsification_assessment['scientific_assessment']['testability_score']:.3f}"

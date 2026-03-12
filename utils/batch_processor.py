@@ -23,6 +23,27 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+import os
+
+
+# Load environment variables from .env file if it exists
+def load_env_file():
+    """Load environment variables from .env file in project root."""
+    env_path = Path(__file__).parent.parent / ".env"
+    if env_path.exists():
+        try:
+            with open(env_path, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, value = line.split("=", 1)
+                        os.environ[key.strip()] = value.strip()
+        except Exception as e:
+            print(f"Warning: Could not load .env file: {e}")
+
+
+# Load .env file before other imports
+load_env_file()
 
 # Import batch configuration
 try:
@@ -52,10 +73,40 @@ except ImportError:
     TQDM_AVAILABLE = False
     tqdm = None  # type: ignore
 
-import os
-
 
 # Secure pickle functions with HMAC signing
+PICKLE_SECRET_KEY = os.environ.get("PICKLE_SECRET_KEY")
+APGI_BACKUP_HMAC_KEY = os.environ.get("APGI_BACKUP_HMAC_KEY")
+
+
+def _ensure_secure_keys():
+    """Ensure secure keys are available, generating them if needed."""
+    global PICKLE_SECRET_KEY, APGI_BACKUP_HMAC_KEY
+
+    if PICKLE_SECRET_KEY is None:
+        print("PICKLE_SECRET_KEY not set, generating secure random key...")
+        PICKLE_SECRET_KEY = os.urandom(32).hex()
+
+    if APGI_BACKUP_HMAC_KEY is None:
+        print("APGI_BACKUP_HMAC_KEY not set, generating secure random key...")
+        APGI_BACKUP_HMAC_KEY = os.urandom(32).hex()
+
+
+# Initialize secure keys
+_ensure_secure_keys()
+
+
+def _get_pickle_secret_key():
+    """Get the pickle secret key as bytes."""
+    key = PICKLE_SECRET_KEY
+    if key is None:
+        return None
+    # If it's a string, encode to bytes
+    if isinstance(key, str):
+        return key.encode("utf-8")
+    return key  # Already bytes
+
+
 def _validate_secret_key(key_bytes: bytes) -> None:
     """
     Validate that the PICKLE_SECRET_KEY has sufficient entropy.
@@ -103,18 +154,10 @@ def _validate_secret_key(key_bytes: bytes) -> None:
         )
 
 
-PICKLE_SECRET_KEY = os.environ.get("PICKLE_SECRET_KEY")
-if PICKLE_SECRET_KEY is None:
-    raise ValueError(
-        "PICKLE_SECRET_KEY environment variable must be set for secure pickle operations. "
-        "Generate a secure key with: openssl rand -hex 32"
-    )
-PICKLE_SECRET_KEY = PICKLE_SECRET_KEY.encode()
-_validate_secret_key(PICKLE_SECRET_KEY)
-
-
 def secure_pickle_dump(obj: Any, file_path: Path) -> None:
     """Securely pickle an object with HMAC signature"""
+    key_bytes = _get_pickle_secret_key()
+    _validate_secret_key(key_bytes)
     if PICKLE_SECRET_KEY is None:
         from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
 
