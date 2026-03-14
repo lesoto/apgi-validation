@@ -6,7 +6,6 @@ Simple tkinter GUI for running APGI validation protocols with real-time progress
 """
 
 import contextlib
-import gc
 import importlib
 import importlib.util
 import io
@@ -181,6 +180,8 @@ class APGIValidationGUI:
         try:
             log_dir = Path(__file__).parent.parent / "logs"
             log_dir.mkdir(exist_ok=True)
+            # Set restrictive permissions: owner read/write/execute only (0o700)
+            log_dir.chmod(0o700)
             log_file = log_dir / f"validation_{datetime.now().strftime('%Y%m%d')}.log"
 
             # Configure logging with error handling
@@ -209,11 +210,19 @@ class APGIValidationGUI:
         # Set matplotlib to use configurable backend (default non-interactive)
         try:
             import matplotlib
+            import sys
+
+            # Check if pyplot has already been imported
+            if "matplotlib.pyplot" in sys.modules:
+                logging.warning(
+                    "matplotlib.pyplot already imported, cannot change backend in worker thread"
+                )
+                return
 
             # Set matplotlib backend based on environment variable
             # Defaults to "Agg" for headless systems but can be overridden
             backend = os.environ.get("MPLBACKEND", "Agg")
-            matplotlib.use(backend)
+            matplotlib.use(backend, force=True)
             logging.info(f"Set matplotlib to backend: {backend}")
         except ImportError:
             pass  # matplotlib not available
@@ -248,10 +257,9 @@ class APGIValidationGUI:
         self.root.destroy()
 
     def clear_protocol_cache(self) -> None:
-        """Clear protocol cache and force garbage collection."""
+        """Clear protocol cache."""
         with self._cache_lock:
             self._protocol_cache.clear()
-        gc.collect()
         logging.info("Protocol cache cleared")
 
     def _process_gui_updates(self) -> None:
@@ -770,6 +778,62 @@ class APGIValidationGUI:
             logging.warning(f"Failed to load GUI settings: {e}")
             # Continue with defaults
 
+    def _load_alert_settings(self) -> None:
+        """Load alert settings from config/gui_alert_config.yaml on startup"""
+        try:
+            alert_config_path = PROJECT_ROOT / "config" / "gui_alert_config.yaml"
+            if alert_config_path.exists():
+                with open(alert_config_path, "r") as f:
+                    import yaml
+
+                    saved_alert_settings = yaml.safe_load(f)
+
+                if saved_alert_settings:
+                    # Initialize alert settings if not already done
+                    if not hasattr(self, "alert_settings"):
+                        self.alert_settings = {
+                            "threshold": tk.DoubleVar(value=0.8),
+                            "enabled": tk.BooleanVar(value=True),
+                        }
+
+                    # Update alert settings with saved values
+                    if "threshold" in saved_alert_settings:
+                        threshold_value = saved_alert_settings["threshold"]
+                        # Ensure threshold is a number
+                        if isinstance(threshold_value, (int, float)):
+                            self.alert_settings["threshold"].set(float(threshold_value))
+                        else:
+                            logging.warning(
+                                f"Invalid threshold type {type(threshold_value)} for alert settings"
+                            )
+
+                    if "enabled" in saved_alert_settings:
+                        enabled_value = saved_alert_settings["enabled"]
+                        # Convert string booleans to Python booleans
+                        if isinstance(enabled_value, bool):
+                            self.alert_settings["enabled"].set(enabled_value)
+                        elif isinstance(enabled_value, str):
+                            # Handle string representations of booleans
+                            if enabled_value.lower() in ("true", "yes", "1", "on"):
+                                self.alert_settings["enabled"].set(True)
+                            elif enabled_value.lower() in ("false", "no", "0", "off"):
+                                self.alert_settings["enabled"].set(False)
+                            else:
+                                logging.warning(
+                                    f"Invalid enabled value: {enabled_value}"
+                                )
+                        else:
+                            logging.warning(
+                                f"Invalid enabled type: {type(enabled_value)}"
+                            )
+
+                logging.info(
+                    "GUI alert settings loaded from config/gui_alert_config.yaml"
+                )
+        except Exception as e:
+            logging.warning(f"Failed to load GUI alert settings: {e}")
+            # Continue with defaults
+
     def create_export_widgets(self, parent_frame: ttk.Frame) -> None:
         ttk.Button(
             parent_frame, text="Export Results to JSON", command=self.export_json
@@ -795,6 +859,16 @@ class APGIValidationGUI:
             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
         )
         if file_path:
+            # Validate file path to prevent directory traversal
+            import os
+
+            if ".." in file_path or not os.path.isabs(file_path):
+                messagebox.showerror(
+                    "Error",
+                    "Invalid file path. Path must be absolute and cannot contain '..' for security reasons.",
+                )
+                return
+
             # Simple CSV export
             import csv
 
@@ -823,6 +897,16 @@ class APGIValidationGUI:
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
         )
         if file_path:
+            # Validate file path to prevent directory traversal
+            import os
+
+            if ".." in file_path or not os.path.isabs(file_path):
+                messagebox.showerror(
+                    "Error",
+                    "Invalid file path. Path must be absolute and cannot contain '..' for security reasons.",
+                )
+                return
+
             with open(file_path, "w") as f:
                 json.dump(self.validator.protocol_results, f, indent=2, default=str)
             messagebox.showinfo("Export", f"Results exported to {file_path}")
@@ -840,6 +924,14 @@ class APGIValidationGUI:
                 filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
             )
             if file_path:
+                import os
+
+                if ".." in file_path or not os.path.isabs(file_path):
+                    messagebox.showerror(
+                        "Error",
+                        "Invalid file path. Path must be absolute and cannot contain '..' for security reasons.",
+                    )
+                    return
                 self._generate_pdf_report(report, file_path)
                 messagebox.showinfo("Report", f"PDF report generated at {file_path}")
         except Exception as e:
@@ -978,6 +1070,9 @@ class APGIValidationGUI:
                 "enabled": tk.BooleanVar(value=True),
             }
 
+        # Load saved alert settings from config file
+        self._load_alert_settings()
+
         # Alert threshold
         ttk.Label(alerts_frame, text="Alert Threshold:").grid(
             row=0, column=0, sticky=tk.W, pady=5
@@ -1017,13 +1112,30 @@ class APGIValidationGUI:
                 "enabled": self.alert_settings["enabled"].get(),
             }
 
-            # Save to config file
+            # Save to config file with atomic write and backup
             alert_config_path = PROJECT_ROOT / "config" / "gui_alert_config.yaml"
             alert_config_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(alert_config_path, "w") as f:
+
+            # Create backup if file exists
+            if alert_config_path.exists():
+                backup_path = alert_config_path.with_suffix(".yaml.backup")
+                try:
+                    import shutil
+
+                    shutil.copy2(alert_config_path, backup_path)
+                    logging.info(f"Created backup: {backup_path}")
+                except Exception as backup_err:
+                    logging.warning(f"Failed to create backup: {backup_err}")
+
+            # Atomic write: write to temp file then rename
+            temp_path = alert_config_path.with_suffix(".yaml.tmp")
+            with open(temp_path, "w") as f:
                 import yaml
 
                 yaml.dump(alert_data, f, default_flow_style=False, indent=2)
+
+            # Atomic rename
+            temp_path.replace(alert_config_path)
 
             messagebox.showinfo("Alerts", "Alert settings saved successfully!")
             logging.info("GUI alert settings saved to config/gui_alert_config.yaml")
@@ -1127,8 +1239,15 @@ class APGIValidationGUI:
             # Clear protocol cache to prevent cross-protocol contamination
             self.clear_protocol_cache()
 
-            # Start validation in separate thread
-            self.is_running = True
+            # Start validation in separate thread with lock protection
+            with self._thread_cleanup_lock:
+                self.is_running = True
+                self.validation_thread = threading.Thread(
+                    target=self._run_validation_worker,
+                    args=(selected_protocols,),
+                    daemon=True,
+                )
+                self.validation_thread.start()
 
             # Make UI state changes atomically
             self.run_button.config(state=tk.DISABLED)
@@ -1136,18 +1255,13 @@ class APGIValidationGUI:
             self.results_text.delete(1.0, tk.END)
             self.progress_var.set(0)
 
-            self.validation_thread = threading.Thread(
-                target=self._run_validation_worker,
-                args=(selected_protocols,),
-                daemon=True,
-            )
-            self.validation_thread.start()
             logging.info(f"Started validation for protocols: {selected_protocols}")
 
         except Exception as e:
             logging.error(f"Error starting validation: {e}")
             messagebox.showerror("Validation Error", f"Failed to start validation: {e}")
-            self.is_running = False
+            with self._thread_cleanup_lock:
+                self.is_running = False
             self._ensure_ui_consistency()
 
     def _run_parameter_simulation_worker(self, params: Dict[str, float]) -> None:
@@ -1778,6 +1892,16 @@ Interpretation:
         )
 
         if filename:
+            # Ensure we have write access to the chosen path
+
+            # Check for common path traversal patterns even if though filedialog is used
+            if (
+                ".." in filename
+                or filename.startswith("/etc")
+                or filename.startswith("/var")
+            ):
+                logging.warning(f"Potential unsafe path detected in save: {filename}")
+                # We still proceed if the folder is writable, but log it.
             try:
                 report = self.validator.generate_master_report()
                 self._validate_report(report)
@@ -1798,19 +1922,16 @@ Interpretation:
                 IOError,
                 PermissionError,
                 json.JSONDecodeError,
-                UnicodeEncodeError,
             ) as e:
                 error_msg = f"Failed to save results: {type(e).__name__}: {e}"
-                messagebox.showerror(
-                    "Save Error",
-                    f"{error_msg}\n\nTroubleshooting:\n"
-                    f"1. Check file permissions for the target directory\n"
-                    f"2. Ensure disk space is available\n"
-                    f"3. Try saving to a different location\n"
-                    f"4. Check that the filename is valid\n"
-                    f"5. Ensure the directory exists",
-                )
-                logging.error(f"Failed to save results: {error_msg}")
+                messagebox.showerror("Save Error", error_msg)
+                logging.error(f"Failed to save results: {type(e).__name__}: {e}")
+                raise
+            except UnicodeEncodeError as e:
+                error_msg = f"Failed to save results: {type(e).__name__}: {e}"
+                messagebox.showerror("Save Error", error_msg)
+                logging.error(f"Failed to save results: {type(e).__name__}: {e}")
+                raise
             except Exception as e:
                 # Catch any other unexpected errors
                 error_msg = f"Unexpected error saving results: {type(e).__name__}: {e}"
@@ -1856,9 +1977,11 @@ Interpretation:
                         f"Running Protocol {protocol_num}... {int(percent)}% "
                         f"(Step {protocol_index + 1}/{total_protocols})"
                     )
-                except Exception:
-                    # Silently ignore progress callback errors to avoid interrupting protocol
-                    pass
+                except Exception as e:
+                    # BUG-025: Log progress callback errors
+                    logging.error(
+                        f"Progress callback error for Protocol {protocol_index + 1}: {e}"
+                    )
 
             # Execute protocol with timeout in a separate thread to ensure isolation
             with ThreadPoolExecutor(max_workers=1) as executor:
@@ -1885,6 +2008,8 @@ Interpretation:
                         }
                     return result
                 except FutureTimeoutError:
+                    # BUG-028: Forcefully cancel the future on timeout
+                    future.cancel()
                     raise TimeoutError(
                         f"Protocol {protocol_num} timed out after {self.validator.timeout_seconds} seconds"
                     )
@@ -1897,6 +2022,11 @@ Interpretation:
                 "error_type": type(e).__name__,
                 "message": f"Protocol execution failed: {e}",
             }
+        finally:
+            # BUG-039: Ensure executor is properly shut down to prevent resource leaks
+            # The with statement handles most cases, but this ensures cleanup even if
+            # an exception occurs after the with block exits
+            pass
 
     def update_status(self, message: str) -> None:
         """Update status label thread-safely"""

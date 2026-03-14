@@ -50,6 +50,26 @@ def install_dependencies(venv_python: Path) -> bool:
         print("✗ requirements.txt not found")
         return False
 
+    # Validate requirements.txt is readable and not empty
+    try:
+        with open(requirements_file, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            if not content:
+                print("✗ requirements.txt is empty")
+                return False
+            # Basic validation: check for common requirement patterns
+            lines = [
+                line.strip()
+                for line in content.split("\n")
+                if line.strip() and not line.strip().startswith("#")
+            ]
+            if not lines:
+                print("✗ requirements.txt contains no valid package specifications")
+                return False
+    except (IOError, UnicodeDecodeError) as e:
+        print(f"✗ Failed to read requirements.txt: {e}")
+        return False
+
     try:
         subprocess.run(
             [str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True

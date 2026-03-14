@@ -16,7 +16,6 @@ import re
 import sys
 import threading
 import time
-import traceback
 from dataclasses import dataclass
 from datetime import datetime
 from functools import wraps
@@ -216,7 +215,10 @@ class APGILogger:
         self.queue_size = queue_size
 
     def update_logging_config(
-        self, log_level: str = None, enable_console: bool = None, queue_size: int = None
+        self,
+        log_level: str = None,
+        enable_console: bool = None,
+        queue_size: int = None,
     ):
         """Update logging configuration with validation and fallbacks."""
         config_changed = False
@@ -355,12 +357,17 @@ class APGILogger:
         )
 
     def log_simulation_end(
-        self, simulation_type: str, duration: float, results_summary: Dict[str, Any]
+        self,
+        simulation_type: str,
+        duration: float,
+        results_summary: Dict[str, Any],
     ):
         """Log the end of a simulation with results summary."""
         logger.info(f"Completed {simulation_type} simulation in {duration:.2f} seconds")
         logger.bind(
-            simulation_type=simulation_type, duration=duration, results=results_summary
+            simulation_type=simulation_type,
+            duration=duration,
+            results=results_summary,
         ).debug("Simulation results")
 
     def log_parameter_estimation(
@@ -396,7 +403,11 @@ class APGILogger:
             if metric_name not in self.performance_metrics:
                 self.performance_metrics[metric_name] = []
             self.performance_metrics[metric_name].append(
-                {"value": value, "unit": unit, "timestamp": datetime.now().isoformat()}
+                {
+                    "value": value,
+                    "unit": unit,
+                    "timestamp": datetime.now().isoformat(),
+                }
             )
 
     def get_performance_summary(self) -> Dict[str, Dict[str, Any]]:
@@ -462,17 +473,17 @@ class APGILogger:
         logger.error(
             f"Error in {sanitized_context.get('operation', 'unknown operation')}: {error_message}"
         )
-        logger.bind(
-            error_type=error_type,
-            error_message=error_message,
-            context=sanitized_context,
-            traceback=traceback.format_exc(),
-        ).exception("Error details")
 
-    def _sanitize_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def _sanitize_context(
+        self, context: Dict[str, Any], depth: int = 0, max_depth: int = 10
+    ) -> Dict[str, Any]:
         """Sanitize context dictionary to remove sensitive information and prevent log injection."""
         if not isinstance(context, dict):
             return context
+
+        # Prevent infinite recursion by limiting depth
+        if depth > max_depth:
+            return {"_sanitized": "[MAX_DEPTH_EXCEEDED]"}
 
         # Keys that may contain sensitive information
         sensitive_keys = {
@@ -507,8 +518,8 @@ class APGILogger:
             if any(sensitive in k.lower() for sensitive in sensitive_keys):
                 sanitized[k] = "[REDACTED]"
             elif isinstance(v, dict):
-                # Recursively sanitize nested dictionaries
-                sanitized[k] = self._sanitize_context(v)
+                # Recursively sanitize nested dictionaries with depth limit
+                sanitized[k] = self._sanitize_context(v, depth + 1, max_depth)
             elif isinstance(v, str):
                 # Sanitize strings to prevent log injection
                 v = v.replace("\n", " ").replace("\r", " ").replace("\t", " ")
@@ -524,7 +535,11 @@ class APGILogger:
         return sanitized
 
     def log_data_processing(
-        self, data_type: str, file_path: str, records_processed: int, duration: float
+        self,
+        data_type: str,
+        file_path: str,
+        records_processed: int,
+        duration: float,
     ):
         """Log data processing operations."""
         logger.info(
@@ -575,9 +590,7 @@ class APGILogger:
 
     def _is_multiline_continuation(self, line: str) -> bool:
         """Check if line is a continuation of a multiline entry."""
-        return line.strip().startswith(
-            ("  ", "\t", "    ", "Traceback", "File ", "    ")
-        )
+        return line.strip().startswith(("  ", "\t", "    ", "File ", "    "))
 
     def _process_log_line(
         self,
@@ -946,7 +959,11 @@ class APGILogger:
 
                         results.append(entry)
 
-            except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
+            except (
+                FileNotFoundError,
+                PermissionError,
+                UnicodeDecodeError,
+            ) as e:
                 self.logger.warning(f"Error searching log file {log_file}: {e}")
 
         # Apply offset first, then limit
@@ -1167,7 +1184,13 @@ def log_execution_time(metric_name: str = "execution_time"):
                 duration = (datetime.now() - start_time).total_seconds()
                 log_performance(metric_name, duration)
                 return result
-            except (ValueError, TypeError, RuntimeError, AttributeError, KeyError) as e:
+            except (
+                ValueError,
+                TypeError,
+                RuntimeError,
+                AttributeError,
+                KeyError,
+            ) as e:
                 duration = (datetime.now() - start_time).total_seconds()
                 log_performance(f"{metric_name}_failed", duration)
                 log_error(e, f"Function {func.__name__}")
@@ -1192,7 +1215,13 @@ def log_function_call(level: str = "DEBUG"):
                     level, f"Completed {func.__name__}"
                 )
                 return result
-            except (ValueError, TypeError, RuntimeError, AttributeError, KeyError) as e:
+            except (
+                ValueError,
+                TypeError,
+                RuntimeError,
+                AttributeError,
+                KeyError,
+            ) as e:
                 logger.bind(function=func.__name__).error(
                     f"Error in {func.__name__}: {e}"
                 )

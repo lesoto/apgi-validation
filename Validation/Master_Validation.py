@@ -24,6 +24,22 @@ class APGIMasterValidator:
 
     def __init__(self):
         self.protocol_results = {}
+        # Protocol tier classification rationale:
+        # - Primary (1-2): Core validation protocols that test fundamental APGI properties
+        #   Protocol 1: Basic equation validation
+        #   Protocol 2: Parameter consistency checks
+        # - Secondary (3-4, 8, 11-12): Extended validation covering specific aspects
+        #   Protocol 3: Behavioral pattern validation
+        #   Protocol 4: State transition verification
+        #   Protocol 8: Cross-species scaling validation
+        #   Protocol 11: Cultural neuroscience validation
+        #   Protocol 12: Liquid network validation
+        # - Tertiary (5-7, 9-10): Specialized and experimental protocols
+        #   Protocol 5: Computational benchmarking
+        #   Protocol 6: Bayesian estimation framework
+        #   Protocol 7: Multimodal integration
+        #   Protocol 9: Psychological states validation
+        #   Protocol 10: Turing machine validation
         self.PROTOCOL_TIERS = {
             1: "primary",
             2: "primary",
@@ -198,34 +214,78 @@ class APGIMasterValidator:
             return {"status": "error", "message": str(e), "passed": False}
 
     def generate_master_report(self) -> Dict:
-        """Generate comprehensive validation report"""
+        """Generate comprehensive validation report with weighted scoring."""
         total_protocols = len(self.protocol_results)
+        if total_protocols == 0:
+            return {
+                "overall_decision": "No protocols run",
+                "total_protocols": 0,
+                "passed_protocols": 0,
+                "success_rate": 0,
+                "weighted_score": 0,
+                "protocol_results": {},
+                "falsification_status": self.falsification_status,
+                "summary": "Run validation protocols first",
+            }
+
         passed_protocols = sum(
             1 for r in self.protocol_results.values() if r.get("passed", False)
         )
-        success_rate = passed_protocols / total_protocols if total_protocols > 0 else 0
+        success_rate = passed_protocols / total_protocols
+
+        # BUG-053: Weighted Scoring Implementation
+        tier_weights = {"primary": 0.5, "secondary": 0.3, "tertiary": 0.2}
+        tier_stats = {
+            "primary": {"passed": 0, "total": 0},
+            "secondary": {"passed": 0, "total": 0},
+            "tertiary": {"passed": 0, "total": 0},
+        }
+
+        for p_name, result in self.protocol_results.items():
+            # Extract number from "Protocol-X"
+            try:
+                p_num = int(p_name.split("-")[1])
+                tier = self.PROTOCOL_TIERS.get(p_num, "tertiary")
+            except (ValueError, IndexError):
+                tier = "tertiary"
+
+            tier_stats[tier]["total"] += 1
+            if result.get("passed", False):
+                tier_stats[tier]["passed"] += 1
+
+        weighted_score = 0.0
+        total_weight_used = 0.0
+        for tier, stats in tier_stats.items():
+            if stats["total"] > 0:
+                tier_success = stats["passed"] / stats["total"]
+                weight = tier_weights[tier]
+                weighted_score += tier_success * weight
+                total_weight_used += weight
+
+        # Normalize if not all tiers were run
+        if total_weight_used > 0:
+            weighted_score /= total_weight_used
 
         # Determine overall decision
-        if total_protocols == 0:
-            overall_decision = "No protocols run"
-            summary = "Run validation protocols first"
-        elif success_rate >= 0.8:
+        if weighted_score >= 0.85:
             overall_decision = "PASS: Strong validation support"
-        elif success_rate >= 0.5:
+        elif weighted_score >= 0.60:
             overall_decision = "MARGINAL: Moderate validation support"
         else:
             overall_decision = "FAIL: Insufficient validation support"
+
+        summary = f"Validated {passed_protocols}/{total_protocols} protocols (Raw: {success_rate:.1%}, Weighted Score: {weighted_score:.2f})"
 
         return {
             "overall_decision": overall_decision,
             "total_protocols": total_protocols,
             "passed_protocols": passed_protocols,
             "success_rate": success_rate,
+            "weighted_score": weighted_score,
+            "tier_summary": tier_stats,
             "protocol_results": self.protocol_results,
             "falsification_status": self.falsification_status,
-            "summary": summary
-            if total_protocols == 0
-            else f"Validated {passed_protocols}/{total_protocols} protocols ({success_rate:.1%})",
+            "summary": summary,
         }
 
     def get_available_protocols(self) -> Dict[str, Dict]:

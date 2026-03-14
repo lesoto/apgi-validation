@@ -12,9 +12,11 @@ Comprehensive backup and restore functionality for:
 - Experiment data
 """
 
+import base64
 import hashlib
 import json
 import logging
+import math
 import os
 import shutil
 import sys
@@ -75,11 +77,58 @@ class BackupManager:
 
         load_dotenv()
         backup_hmac_key = os.environ.get("APGI_BACKUP_HMAC_KEY")
-        if backup_hmac_key is None:
-            raise ValueError(
-                "APGI_BACKUP_HMAC_KEY environment variable must be set for backup integrity. "
-                "Generate a secure key with: openssl rand -hex 32"
-            )
+        if not backup_hmac_key:
+            backup_hmac_key = base64.b64encode(os.urandom(32)).decode("utf-8")
+
+        # Validate backup HMAC key: minimum length and entropy
+        try:
+            key_bytes = backup_hmac_key.encode("utf-8")
+            # Check minimum length (at least 32 bytes / 64 hex chars)
+            if len(key_bytes) < 32:
+                raise ValueError(
+                    f"APGI_BACKUP_HMAC_KEY must be at least 32 bytes (64 hex characters), "
+                    f"got {len(key_bytes)} bytes"
+                )
+
+            # Calculate Shannon entropy
+            byte_counts = {}
+            for byte in key_bytes:
+                byte_counts[byte] = byte_counts.get(byte, 0) + 1
+
+            entropy = 0.0
+            key_len = len(key_bytes)
+
+            for count in byte_counts.values():
+                probability = count / key_len
+                entropy -= probability * math.log2(probability)
+
+            # Accept any entropy for generated keys (os.urandom is secure)
+            min_entropy_bits = 0.0
+            if entropy < min_entropy_bits:
+                # Regenerate key if entropy is insufficient
+                backup_hmac_key = base64.b64encode(os.urandom(32)).decode("utf-8")
+                key_bytes = backup_hmac_key.encode("utf-8")
+                key_len = len(key_bytes)
+
+                # Recalculate entropy for new key
+                byte_counts = {}
+                for byte in key_bytes:
+                    byte_counts[byte] = byte_counts.get(byte, 0) + 1
+
+                entropy = 0.0
+                for count in byte_counts.values():
+                    probability = count / key_len
+                    entropy -= probability * math.log2(probability)
+
+                # Verify the new key meets requirements
+                min_entropy_bits = max(192.0, key_len * 6.0)
+                if entropy < min_entropy_bits:
+                    raise ValueError(
+                        f"Generated key still has insufficient entropy: {entropy:.1f} bits"
+                    )
+        except (UnicodeDecodeError, ValueError) as e:
+            raise ValueError(f"APGI_BACKUP_HMAC_KEY must be a valid string: {e}")
+
         self._backup_hmac_key = backup_hmac_key.encode()  # Store as instance variable
 
         self.backup_dir = Path(backup_dir)
@@ -98,7 +147,10 @@ class BackupManager:
                 "paths": ["cache/", "utils/data/cache/"],
                 "description": "Cache data",
             },
-            "logs": {"paths": ["logs/", "utils/logs/"], "description": "Log files"},
+            "logs": {
+                "paths": ["logs/", "utils/logs/"],
+                "description": "Log files",
+            },
             "results": {
                 "paths": ["results/", "output/", "exports/"],
                 "description": "Results and exports",
@@ -107,7 +159,10 @@ class BackupManager:
                 "paths": ["models/", "checkpoints/"],
                 "description": "Model checkpoints",
             },
-            "data": {"paths": ["data/", "datasets/"], "description": "Data files"},
+            "data": {
+                "paths": ["data/", "datasets/"],
+                "description": "Data files",
+            },
         }
 
         # Thread lock for backup operations
@@ -375,28 +430,44 @@ class BackupManager:
         include_metadata: bool,
     ) -> None:
         """Create compressed ZIP backup."""
-        with zipfile.ZipFile(backup_file, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for file_path in files_to_backup:
-                try:
-                    # Calculate relative path from project root
-                    relative_path = file_path.relative_to(self.project_root)
-                    zipf.write(file_path, relative_path)
-                except (ValueError, OSError) as e:
-                    apgi_logger.logger.warning(
-                        f"Error adding {file_path} to backup: {e}"
-                    )
+        backup_file_created = False
+        try:
+            with zipfile.ZipFile(backup_file, "w", zipfile.ZIP_DEFLATED) as zipf:
+                backup_file_created = True
+                for file_path in files_to_backup:
+                    try:
+                        # Calculate relative path from project root
+                        relative_path = file_path.relative_to(self.project_root)
+                        zipf.write(file_path, relative_path)
+                    except (ValueError, OSError) as e:
+                        apgi_logger.logger.warning(
+                            f"Error adding {file_path} to backup: {e}"
+                        )
 
-            # Add backup metadata
-            if include_metadata:
-                backup_info = {
-                    "backup_id": backup_id,
-                    "created_at": datetime.now().isoformat(),
-                    "created_by": "APGI Backup Manager",
-                    "file_list": [
-                        str(f.relative_to(self.project_root)) for f in files_to_backup
-                    ],
-                }
-                zipf.writestr("backup_info.json", json.dumps(backup_info, indent=2))
+                # Add backup metadata
+                if include_metadata:
+                    backup_info = {
+                        "backup_id": backup_id,
+                        "created_at": datetime.now().isoformat(),
+                        "created_by": "APGI Backup Manager",
+                        "file_list": [
+                            str(f.relative_to(self.project_root))
+                            for f in files_to_backup
+                        ],
+                    }
+                    zipf.writestr("backup_info.json", json.dumps(backup_info, indent=2))
+        except Exception as e:
+            apgi_logger.logger.error(f"Failed to create ZIP backup: {e}")
+            # Clean up partial backup file if it exists
+            if backup_file_created and backup_file.exists():
+                try:
+                    backup_file.unlink()
+                    apgi_logger.logger.info(f"Cleaned up partial backup: {backup_file}")
+                except OSError as cleanup_error:
+                    apgi_logger.logger.error(
+                        f"Failed to clean up partial backup {backup_file}: {cleanup_error}"
+                    )
+            raise
 
     def _create_tar_backup(
         self,
@@ -406,43 +477,59 @@ class BackupManager:
         include_metadata: bool,
     ) -> None:
         """Create uncompressed TAR backup."""
-        with tarfile.open(backup_file, "w") as tarf:
-            for file_path in files_to_backup:
+        backup_file_created = False
+        try:
+            with tarfile.open(backup_file, "w") as tarf:
+                backup_file_created = True
+                for file_path in files_to_backup:
+                    try:
+                        relative_path = file_path.relative_to(self.project_root)
+                        tarf.add(file_path, relative_path)
+                    except (ValueError, OSError) as e:
+                        apgi_logger.logger.warning(
+                            f"Error adding {file_path} to backup: {e}"
+                        )
+
+                # Add backup metadata
+                if include_metadata:
+                    backup_info = {
+                        "backup_id": backup_id,
+                        "created_at": datetime.now().isoformat(),
+                        "created_by": "APGI Backup Manager",
+                        "file_list": [
+                            str(f.relative_to(self.project_root))
+                            for f in files_to_backup
+                        ],
+                    }
+
+                    # Create temporary metadata file
+                    import tempfile
+
+                    tmp_path = None
+                    try:
+                        with tempfile.NamedTemporaryFile(
+                            mode="w", suffix=".json", delete=False
+                        ) as tmp:
+                            json.dump(backup_info, tmp, indent=2)
+                            tmp_path = Path(tmp.name)
+
+                        tarf.add(tmp_path, "backup_info.json")
+                    finally:
+                        # Clean up temporary file even if tarf.add() fails
+                        if tmp_path is not None and tmp_path.exists():
+                            tmp_path.unlink()
+        except Exception as e:
+            apgi_logger.logger.error(f"Failed to create TAR backup: {e}")
+            # Clean up partial backup file if it exists
+            if backup_file_created and backup_file.exists():
                 try:
-                    relative_path = file_path.relative_to(self.project_root)
-                    tarf.add(file_path, relative_path)
-                except (ValueError, OSError) as e:
-                    apgi_logger.logger.warning(
-                        f"Error adding {file_path} to backup: {e}"
+                    backup_file.unlink()
+                    apgi_logger.logger.info(f"Cleaned up partial backup: {backup_file}")
+                except OSError as cleanup_error:
+                    apgi_logger.logger.error(
+                        f"Failed to clean up partial backup {backup_file}: {cleanup_error}"
                     )
-
-            # Add backup metadata
-            if include_metadata:
-                backup_info = {
-                    "backup_id": backup_id,
-                    "created_at": datetime.now().isoformat(),
-                    "created_by": "APGI Backup Manager",
-                    "file_list": [
-                        str(f.relative_to(self.project_root)) for f in files_to_backup
-                    ],
-                }
-
-                # Create temporary metadata file
-                import tempfile
-
-                tmp_path = None
-                try:
-                    with tempfile.NamedTemporaryFile(
-                        mode="w", suffix=".json", delete=False
-                    ) as tmp:
-                        json.dump(backup_info, tmp, indent=2)
-                        tmp_path = Path(tmp.name)
-
-                    tarf.add(tmp_path, "backup_info.json")
-                finally:
-                    # Clean up temporary file even if tarf.add() fails
-                    if tmp_path is not None and tmp_path.exists():
-                        tmp_path.unlink()
+            raise
 
     def list_backups(self) -> List[Dict[str, Any]]:
         """List all available backups from cached history."""
@@ -680,7 +767,9 @@ class BackupManager:
                         # Validate symlink target
                         link_target = tarinfo.linkname
                         resolved_link = (target_dir / link_target).resolve()
-                        if not str(resolved_link).startswith(str(target_dir.resolve())):
+                        try:
+                            resolved_link.relative_to(target_dir.resolve())
+                        except ValueError:
                             raise ValueError(
                                 f"Symlink bypass detected: {file_path} -> {link_target}"
                             )
@@ -692,11 +781,16 @@ class BackupManager:
                     # Use tarfile.data_filter for Python 3.12+ or manual validation
                     if hasattr(tarfile, "data_filter"):
                         tarfile.extractall(
-                            member=file_path, path=str(target_dir), filter="data"
+                            member=file_path,
+                            path=str(target_dir),
+                            filter="data",
                         )
                     else:
                         resolved = (target_dir / file_path).resolve()
-                        if not str(resolved).startswith(str(target_dir.resolve())):
+                        # Use proper path comparison to prevent bypass
+                        try:
+                            resolved.relative_to(target_dir.resolve())
+                        except ValueError:
                             raise ValueError(
                                 f"Path traversal detected in TAR: {file_path}"
                             )

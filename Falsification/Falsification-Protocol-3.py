@@ -12,14 +12,27 @@ from scipy import stats
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Constants for better maintainability
-EXTEROCEPTIVE_DIM = 32
-INTEROCEPTIVE_DIM = 16
-STATE_DIMENSION = 48
-N_ACTIONS = 4
-IGNITION_THRESHOLD = 0.5
-MIN_SAMPLES_FOR_REGRESSION = 10
-MIN_BOOTSTRAP_SAMPLES = 100
+# =====================
+# DIMENSION CONSTANTS
+# =====================
+# Import centralized dimension constants
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from utils.constants import DIM_CONSTANTS
+
+EXTEROCEPTIVE_DIM = DIM_CONSTANTS.EXTERO_DIM
+INTEROCEPTIVE_DIM = DIM_CONSTANTS.INTERO_DIM
+STATE_DIMENSION = DIM_CONSTANTS.STATE_DIMENSION
+N_ACTIONS = DIM_CONSTANTS.N_ACTIONS
+IGNITION_THRESHOLD = DIM_CONSTANTS.IGNITION_THRESHOLD
+MIN_SAMPLES_FOR_REGRESSION = DIM_CONSTANTS.MIN_SAMPLES_FOR_REGRESSION
+MIN_BOOTSTRAP_SAMPLES = DIM_CONSTANTS.MIN_BOOTSTRAP_SAMPLES
 
 # Suppress scipy deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -1861,7 +1874,9 @@ def check_falsification(
     t_stat, p_value = stats.ttest_ind(apgi_rewards, pp_rewards)
     mean_apgi = np.mean(apgi_rewards)
     mean_pp = np.mean(pp_rewards)
-    advantage_pct = ((mean_apgi - mean_pp) / mean_pp) * 100
+    # Guard against zero mean_pp to prevent division by zero
+    safe_mean_pp = max(1e-10, abs(mean_pp)) * (1 if mean_pp >= 0 else -1)
+    advantage_pct = ((mean_apgi - mean_pp) / safe_mean_pp) * 100
 
     # Cohen's d
     pooled_std = np.sqrt(

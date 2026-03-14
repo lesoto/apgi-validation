@@ -4,6 +4,7 @@ Simple GUI for running APGI falsification protocols
 """
 
 import importlib.util
+import logging
 import os
 import sys
 import threading
@@ -19,6 +20,10 @@ try:
 except ImportError:
     THEME_MANAGER_AVAILABLE = False
     print("Warning: Theme manager not available. Theme support disabled.")
+
+# Set up logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class ProtocolRunnerGUI:
@@ -313,9 +318,12 @@ class ProtocolRunnerGUI:
             },
         }
 
-        # Initialize instance variables
-        self.selected_protocol = None
-        self.parameter_values = {}
+        # Thread management
+        self.stop_event = threading.Event()
+        self.running_thread = None
+
+        # Add window close handler for proper thread cleanup
+        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 
         self.setup_ui()
 
@@ -350,6 +358,17 @@ class ProtocolRunnerGUI:
 
         if self.theme_manager.set_theme(theme_name):
             self._apply_theme_to_widgets()
+
+    def _on_closing(self):
+        """Handle window close event with proper thread cleanup."""
+        # Stop the running thread if it exists
+        if self.running_thread and self.running_thread.is_alive():
+            self.stop_event.set()
+            # Join thread with timeout to prevent blocking
+            self.running_thread.join(timeout=2.0)
+            if self.running_thread.is_alive():
+                logging.warning("Thread did not stop cleanly on exit")
+        self.root.destroy()
 
     def _apply_theme_to_widgets(self):
         """Apply current theme to all widgets."""
@@ -758,7 +777,7 @@ class ProtocolRunnerGUI:
                                 validation_errors.append(
                                     f"{param_name}: Must be in format [min, max]"
                                 )
-                        except Exception:
+                        except json.JSONDecodeError:
                             validation_errors.append(
                                 f"{param_name}: Invalid range format '{current_value}'"
                             )
@@ -774,8 +793,10 @@ class ProtocolRunnerGUI:
         try:
             import json
 
-            config_dir = Path("config")
-            config_dir.mkdir(exist_ok=True)
+            # Use absolute path based on project root
+            project_root = Path(__file__).parent.parent
+            config_dir = project_root / "config"
+            config_dir.mkdir(parents=True, exist_ok=True)
 
             config_file = (
                 config_dir / f"{selected.lower().replace(' ', '_')}_params.json"
@@ -794,7 +815,9 @@ class ProtocolRunnerGUI:
 
         # Update parameter values from widgets with validation
         if hasattr(self, "parameter_widgets"):
-            for param_name, widget_info in self.parameter_widgets.items():
+            # BUG-040: Create a thread-safe copy to avoid race condition
+            widgets_copy = dict(self.parameter_widgets)
+            for param_name, widget_info in widgets_copy.items():
                 try:
                     value = widget_info["var"].get()
                     param_config = self.protocols[selected]["parameters"][param_name]
@@ -826,16 +849,36 @@ class ProtocolRunnerGUI:
                                 f"Parameter {param_name} must be between {param_config['min']} and {param_config['max']}",
                             )
                             return
+                    elif param_config["type"] == "str":
+                        if not isinstance(value, str):
+                            messagebox.showerror(
+                                "Validation Error",
+                                f"Parameter {param_name} must be a string",
+                            )
+                            return
 
-                    self.parameter_values[selected][param_name] = value
                 except Exception as e:
                     messagebox.showerror(
-                        "Validation Error",
-                        f"Error validating parameter {param_name}: {e}",
+                        "Validation Error", f"Error validating {param_name}: {e}"
                     )
                     return
 
-        messagebox.showinfo("Success", f"Parameters saved for {selected}")
+            # Update parameter values in self.parameter_values
+            for param_name, widget_info in widgets_copy.items():
+                try:
+                    value = widget_info["var"].get()
+                    self.parameter_values[selected][param_name] = value
+                except Exception as e:
+                    messagebox.showerror(
+                        "Update Error", f"Error updating {param_name}: {e}"
+                    )
+                    return
+
+            # Refresh the parameter list
+            self.refresh_parameter_list()
+
+    def refresh_parameter_list(self):
+        pass
 
     def run_selected_protocol(self):
         """Run the currently selected protocol with configured parameters."""
@@ -845,8 +888,18 @@ class ProtocolRunnerGUI:
 
         protocol_info = self.protocols[self.selected_protocol]
 
-        # Get configured parameters
-        params = self.parameter_values.get(self.selected_protocol, {})
+        # Get configured parameters from widgets
+        params = {}
+        if hasattr(self, "parameter_widgets"):
+            for param_name, widget_info in self.parameter_widgets.items():
+                try:
+                    value = widget_info["var"].get()
+                    params[param_name] = value
+                except Exception:
+                    # Use default value if widget access fails
+                    pass
+
+        # Merge with protocol info
 
         # Merge with protocol info
         protocol_info_with_params = protocol_info.copy()
@@ -921,6 +974,10 @@ class ProtocolRunnerGUI:
 
     def stop_protocol(self):
         """Stop the currently running protocol if any"""
+        if self.stop_event:
+            self.stop_event.set()
+            self.log_message("Stop signal sent to protocol...")
+            self.set_status("Stopping...")
 
     def set_status(self, message):
         """Set status bar message (thread-safe)"""
@@ -959,6 +1016,26 @@ class ProtocolRunnerGUI:
                 file_path = os.path.join(
                     os.path.dirname(__file__), protocol_info["file"]
                 )
+
+                # Validate file path to prevent path traversal
+                # Check for path traversal attempts
+                if ".." in protocol_info["file"] or protocol_info["file"].startswith(
+                    "/"
+                ):
+                    raise ValueError(
+                        f"Invalid protocol path: {protocol_info['file']} (contains path traversal)"
+                    )
+
+                # Resolve and validate it's within project directory
+                try:
+                    Path(file_path).resolve().relative_to(
+                        Path(os.path.dirname(__file__)).resolve()
+                    )
+                except ValueError:
+                    raise ValueError(
+                        f"Invalid protocol path: {protocol_info['file']} (outside project directory)"
+                    )
+
                 spec = importlib.util.spec_from_file_location(
                     protocol_info["file"], file_path
                 )
@@ -971,20 +1048,46 @@ class ProtocolRunnerGUI:
 
                 # Handle protocol based on class with configured parameters
                 configured_params = protocol_info.get("configured_params", {})
+
+                # Validate numeric parameters
+                validated_params = {}
+                for key, value in configured_params.items():
+                    try:
+                        # Try to convert to float
+                        num_value = float(value)
+                        # Add basic range validation
+                        if "dim" in key or "n_" in key:
+                            # Dimensions and counts should be positive integers
+                            if num_value <= 0 or num_value != int(num_value):
+                                raise ValueError(f"{key} must be a positive integer")
+                            validated_params[key] = int(num_value)
+                        elif "lr" in key:
+                            # Learning rates should be positive and reasonable
+                            if num_value <= 0 or num_value > 1.0:
+                                raise ValueError(f"{key} must be between 0 and 1")
+                            validated_params[key] = num_value
+                        else:
+                            validated_params[key] = num_value
+                    except (ValueError, TypeError) as e:
+                        self.log_message(
+                            f"Warning: Invalid value for {key}: {value}. Error: {e}. Using default."
+                        )
+                        # Don't add invalid params to validated_params
+
                 if protocol_info["class"] == "NetworkComparisonExperiment":
-                    self._handle_network_comparison(cls, configured_params)
+                    self._handle_network_comparison(cls, validated_params)
                 elif protocol_info["class"] == "APGIActiveInferenceAgent":
-                    self._handle_apgi_agent(cls, module, configured_params)
+                    self._handle_apgi_agent(cls, module, validated_params)
                 elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
-                    self._handle_iowa_gambling(cls, module, configured_params)
+                    self._handle_iowa_gambling(cls, module, validated_params)
                 elif hasattr(cls, "run_full_experiment"):
-                    self._handle_run_full_experiment(cls, configured_params)
+                    self._handle_run_full_experiment(cls, validated_params)
                 elif hasattr(cls, "run_phase_transition_analysis"):
-                    self._handle_phase_transition(cls, module, configured_params)
+                    self._handle_phase_transition(cls, module, validated_params)
                 elif hasattr(cls, "run_evolution"):
-                    self._handle_evolution(cls, configured_params)
+                    self._handle_evolution(cls, validated_params)
                 else:
-                    self._handle_default(cls, configured_params)
+                    self._handle_default(cls, validated_params)
 
                 self.log_message("=== Protocol completed successfully ===")
                 self.set_status("Ready")
@@ -997,15 +1100,22 @@ class ProtocolRunnerGUI:
                 RuntimeError,
                 ValueError,
                 KeyError,
+                TypeError,
             ) as e:
                 error_msg = f"Error running {protocol_info['file']}: {str(e)}"
-                self.log_message(error_msg)
+                logger.warning(error_msg)
                 self.root.after(0, lambda: messagebox.showerror("Error", error_msg))
+                self.set_status("Error")
+                self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
+            except Exception as e:
+                logger.error(f"Unexpected error in {protocol_info['file']}: {str(e)}")
+                error_message = f"Unexpected error: {str(e)}"
+                self.root.after(0, lambda: messagebox.showerror("Error", error_message))
                 self.set_status("Error")
                 self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
 
         # Run in separate thread to avoid blocking GUI
-        self.stop_event = threading.Event()
+        self.stop_event.clear()
         self.running_thread = None
         thread = threading.Thread(target=protocol_thread)
         thread.daemon = True
@@ -1100,9 +1210,13 @@ class ProtocolRunnerGUI:
             # Try to pass parameters to constructor if they match expected signature
             try:
                 instance = cls(**params)
-            except TypeError:
-                # If parameter passing fails, use default constructor
-                instance = cls()
+            except tk.TclError as e:
+                logger.warning(f"TclError in theme application: {e}")
+                pass  # Widget configuration errors are non-critical
+            except Exception as e:
+                # Log unexpected errors but don't suppress them
+                logger.warning(f"Unexpected error in theme application: {e}")
+                instance = cls()  # Create instance with defaults
                 self.log_message(
                     "Warning: Could not apply configured parameters, using defaults"
                 )

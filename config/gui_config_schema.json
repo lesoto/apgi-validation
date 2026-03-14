@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "APGI GUI Configuration Schema",
+  "description": "Schema for validating APGI GUI configuration YAML files",
+  "type": "object",
+  "properties": {
+    "update_interval": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3600,
+      "description": "GUI update interval in seconds"
+    },
+    "data_retention": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 365,
+      "description": "Data retention period in days"
+    },
+    "monitoring_threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Monitoring threshold for alerts"
+    }
+  },
+  "required": ["update_interval", "data_retention", "monitoring_threshold"],
+  "additionalProperties": false
+}

@@ -63,9 +63,6 @@ DEFAULT_FILE_PATTERNS = [
     "*.jpeg",
     "*.gif",
     "*.svg",
-    "*.html",
-    "*.json",
-    "*.csv",
     "*.pkl",
     "*.pickle",
     "*.npz",
@@ -73,7 +70,6 @@ DEFAULT_FILE_PATTERNS = [
     "*.hdf5",
     "*.mat",
     "*.fig",
-    "*.pdf",
     "*.tex",
     "*.dvi",
     "*.aux",
@@ -310,6 +306,164 @@ def _should_skip_directory(
     return False
 
 
+def preview_deletions(
+    root_dir: str,
+    include_dir_patterns: Iterable[str] = (),
+    include_file_patterns: Iterable[str] = (),
+    exclude_dir_patterns: Iterable[str] = (),
+    exclude_file_patterns: Iterable[str] = (),
+    remove_node_modules: bool = False,
+    remove_venvs: bool = False,
+    venv_names: Iterable[str] = (".venv", "venv", ".env", "env"),
+    follow_links: bool = False,
+    max_depth: Optional[int] = None,
+) -> dict:
+    """Preview what would be deleted without actually deleting anything.
+
+    Returns detailed information about files and directories that would be removed,
+    including file sizes and directory counts for better decision making.
+    """
+    import os
+
+    stats = {
+        "dirs_to_remove": [],
+        "files_to_remove": [],
+        "total_files": 0,
+        "total_size_bytes": 0,
+        "errors": 0,
+    }
+
+    default_dir_names = set(DEFAULT_DIR_NAMES) | set(DEFAULT_EXTRA_DIR_NAMES)
+    default_dir_patterns = list(DEFAULT_DIR_PATTERNS)
+    default_file_patterns = list(DEFAULT_FILE_PATTERNS) + list(
+        DEFAULT_EXTRA_FILE_PATTERNS
+    )
+
+    for dirpath, dirnames, filenames in os.walk(
+        root_dir, topdown=True, followlinks=follow_links
+    ):
+        if _should_skip_directory(dirpath, root_dir, max_depth):
+            dirnames[:] = []
+            continue
+
+        # Process directories for preview
+        for d in list(dirnames):
+            if d in DEFAULT_SKIP_TRAVERSE_DIRS or matches_any(d, exclude_dir_patterns):
+                continue
+
+            if _should_remove_directory(
+                d,
+                default_dir_names,
+                default_dir_patterns,
+                include_dir_patterns,
+                remove_node_modules,
+                remove_venvs,
+                venv_names,
+            ):
+                full_d = os.path.join(dirpath, d)
+                try:
+                    # Count files and calculate size in directory
+                    dir_size = 0
+                    file_count = 0
+                    for root, dirs, files in os.walk(full_d):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            try:
+                                file_size = os.path.getsize(file_path)
+                                dir_size += file_size
+                                file_count += 1
+                            except (OSError, IOError):
+                                stats["errors"] += 1
+
+                    stats["dirs_to_remove"].append(
+                        {
+                            "path": full_d,
+                            "file_count": file_count,
+                            "size_bytes": dir_size,
+                            "size_mb": round(dir_size / (1024 * 1024), 2),
+                        }
+                    )
+                    stats["total_files"] += file_count
+                    stats["total_size_bytes"] += dir_size
+                except (OSError, IOError):
+                    stats["errors"] += 1
+
+        # Process files for preview
+        for f in list(filenames):
+            if matches_any(f, exclude_file_patterns):
+                continue
+
+            if matches_any(f, default_file_patterns) or matches_any(
+                f, include_file_patterns
+            ):
+                full_f = os.path.join(dirpath, f)
+                try:
+                    file_size = os.path.getsize(full_f)
+                    stats["files_to_remove"].append(
+                        {
+                            "path": full_f,
+                            "size_bytes": file_size,
+                            "size_kb": round(file_size / 1024, 2),
+                        }
+                    )
+                    stats["total_files"] += 1
+                    stats["total_size_bytes"] += file_size
+                except (OSError, IOError):
+                    stats["errors"] += 1
+
+    return stats
+
+
+def format_preview(stats: dict, verbose: bool = True) -> None:
+    """Format and display deletion preview in a user-friendly way."""
+    if verbose:
+        print("\n" + "=" * 60)
+        print("DELETION PREVIEW")
+        print("=" * 60)
+
+        # Summary
+        total_size_mb = round(stats["total_size_bytes"] / (1024 * 1024), 2)
+        print("\nSUMMARY:")
+        print(f"  Files to delete: {len(stats['files_to_remove'])}")
+        print(f"  Directories to delete: {len(stats['dirs_to_remove'])}")
+        print(f"  Total files affected: {stats['total_files']}")
+        print(f"  Total space to free: {total_size_mb} MB")
+
+        if stats["errors"] > 0:
+            print(f"  Errors encountered: {stats['errors']}")
+
+        # Directories
+        if stats["dirs_to_remove"]:
+            print(f"\nDIRECTORIES TO DELETE ({len(stats['dirs_to_remove'])}):")
+            for i, dir_info in enumerate(stats["dirs_to_remove"][:10]):  # Show first 10
+                print(f"  {i + 1}. {dir_info['path']}")
+                print(
+                    f"     Files: {dir_info['file_count']}, Size: {dir_info['size_mb']} MB"
+                )
+
+            if len(stats["dirs_to_remove"]) > 10:
+                print(f"  ... and {len(stats['dirs_to_remove']) - 10} more directories")
+
+        # Files (show largest ones)
+        if stats["files_to_remove"]:
+            # Sort files by size (largest first)
+            sorted_files = sorted(
+                stats["files_to_remove"], key=lambda x: x["size_bytes"], reverse=True
+            )
+
+            print(
+                f"\nLARGEST FILES TO DELETE (showing top 10 of {len(stats['files_to_remove'])}):"
+            )
+            for i, file_info in enumerate(sorted_files[:10]):
+                print(f"  {i + 1}. {file_info['path']}")
+                print(f"     Size: {file_info['size_kb']} KB")
+
+        print("\n" + "=" * 60)
+        print("Use --dry-run to see this preview without deleting")
+        print("Use --yes to proceed with deletion")
+        print("=" * 60)
+
+
 def delete_temporary_items(
     root_dir: str,
     dry_run: bool = False,
@@ -377,7 +531,9 @@ def delete_temporary_items(
     return stats
 
 
-def prune_empty_dirs(root_dir: str, dry_run: bool = False, verbose: bool = True):
+def prune_empty_dirs(
+    root_dir: str, dry_run: bool = False, verbose: bool = True
+) -> None:
     for dirpath, dirnames, filenames in os.walk(root_dir, topdown=False):
         # don't prune the root itself
         if dirpath == root_dir:
@@ -429,7 +585,7 @@ def clear_log_files(
     delete_logs_dir: bool = False,
     dry_run: bool = False,
     verbose: bool = True,
-):
+) -> None:
     """Either truncate files under a `logs` dir, or delete the logs directory entirely.
 
     - If delete_logs_dir is True, the whole logs directory is removed.
@@ -452,7 +608,7 @@ def clear_log_files(
             _truncate_log_file(file_path, dry_run, verbose)
 
 
-def parse_args(argv: List[str] = None):
+def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Remove temporary files and folders from APGI validation project tree"
     )
@@ -466,6 +622,11 @@ def parse_args(argv: List[str] = None):
         "--dry-run",
         action="store_true",
         help="Show what would be removed without deleting",
+    )
+    p.add_argument(
+        "--preview",
+        action="store_true",
+        help="Show detailed preview of what would be deleted",
     )
     p.add_argument("--yes", action="store_true", help="Don't prompt for confirmation")
     p.add_argument(
@@ -550,7 +711,7 @@ def parse_args(argv: List[str] = None):
     return p.parse_args(argv)
 
 
-def main(argv: List[str] = None):
+def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     root_directory = os.path.abspath(args.root) if args.root else current_dir
@@ -564,8 +725,29 @@ def main(argv: List[str] = None):
         print(f"Error: Root path is not a directory: {root_directory}")
         return 1
 
-    dry_run = args.dry_run
+    dry_run = args.dry_run or args.preview
     verbose = not args.quiet
+
+    # Handle preview option
+    if args.preview:
+        preview_stats = preview_deletions(
+            root_directory,
+            include_dir_patterns=args.include_dir,
+            include_file_patterns=args.include_file,
+            exclude_dir_patterns=args.exclude_dir,
+            exclude_file_patterns=args.exclude_file,
+            remove_node_modules=args.remove_node_modules,
+            remove_venvs=args.remove_venvs,
+            venv_names=(
+                args.venv_names
+                if args.venv_names is not None
+                else (".venv", "venv", ".env", "env")
+            ),
+            follow_links=args.follow_links,
+            max_depth=args.max_depth,
+        )
+        format_preview(preview_stats, verbose=True)
+        return 0
 
     # Handle APGI-specific options
     include_dir_patterns = list(args.include_dir)

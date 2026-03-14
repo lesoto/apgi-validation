@@ -1,10 +1,15 @@
 """
 Tests for falsification protocols.
-==================================
+==============================
+
 """
 
 import pytest
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.constants import DIM_CONSTANTS
 
 
 def test_falsification_files_exist():
@@ -98,17 +103,21 @@ def test_falsification_protocol_1_somatic_marker_network():
         pytest.skip(f"SomaticMarkerNetwork import failed: {e}")
 
     # Test initialization
-    network = SomaticMarkerNetwork(state_dim=64, action_dim=4, hidden_dim=32)
+    network = SomaticMarkerNetwork(
+        state_dim=DIM_CONSTANTS.EXTERO_DIM,
+        action_dim=DIM_CONSTANTS.ACTION_DIM,
+        hidden_dim=DIM_CONSTANTS.SOMATIC_HIDDEN_DIM,
+    )
 
     # Test basic properties
     assert hasattr(network, "network")
     assert hasattr(network, "optimizer")
 
     # Test prediction
-    state = np.random.randn(64)
+    state = np.random.randn(DIM_CONSTANTS.EXTERO_DIM)
     predictions = network.predict(state)
     assert isinstance(predictions, np.ndarray)
-    assert predictions.shape[0] == 4
+    assert predictions.shape[0] == DIM_CONSTANTS.ACTION_DIM
 
     # Test update
     network.update(state, action=0, prediction_error=0.1)
@@ -118,7 +127,292 @@ def test_falsification_protocol_1_somatic_marker_network():
     assert not np.array_equal(predictions, new_predictions)
 
 
-# Placeholder tests for protocols 2-6 (to be expanded)
+def test_falsification_protocol_5_evolvable_agent():
+    """Test EvolvableAgent from Falsification-Protocol-5.py"""
+    try:
+        import importlib.util
+        import numpy as np
+
+        spec = importlib.util.spec_from_file_location(
+            "falsification5",
+            Path(__file__).parent.parent
+            / "Falsification"
+            / "Falsification-Protocol-5.py",
+        )
+        falsification5 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification5)
+        EvolvableAgent = falsification5.EvolvableAgent
+    except ImportError as e:
+        pytest.skip(f"EvolvableAgent import failed: {e}")
+
+    # Test initialization with different genomes
+    genome_full = {
+        "has_threshold": True,
+        "has_intero_weighting": True,
+        "has_somatic_markers": True,
+        "has_precision_weighting": True,
+        "theta_0": 0.5,
+        "alpha": 5.0,
+        "beta": 1.2,
+        "Pi_e_lr": 0.01,  # Add missing precision learning rate
+    }
+    agent_full = EvolvableAgent(genome_full)
+    assert agent_full.has_threshold is True
+    assert agent_full.has_intero_weighting is True
+    assert agent_full.has_somatic_markers is True
+    assert agent_full.has_precision_weighting is True
+
+    # Test basic evolution step
+    observation = {"extero": np.random.randn(32), "intero": np.random.randn(16)}
+    reward = agent_full.step(observation=observation, dt=0.05)
+    assert isinstance(reward, (int, float))
+
+    # Test genome with minimal features
+    genome_minimal = {
+        "has_threshold": False,
+        "has_intero_weighting": False,
+        "has_somatic_markers": False,
+        "has_precision_weighting": False,
+        "theta_0": 0.5,
+        "alpha": 5.0,
+        "beta": 1.2,
+        "Pi_e_lr": 0.01,  # Add missing precision learning rate
+    }
+    agent_minimal = EvolvableAgent(genome_minimal)
+    assert agent_minimal.has_threshold is False
+
+    # Test threshold behavior
+    agent_minimal.surprise = 1.0  # Above threshold
+    conscious_access = agent_minimal.conscious_access
+    assert conscious_access is True  # Always conscious when no threshold
+
+    # Test policy network interaction
+    state = np.random.randn(48)  # EXTERO (32) + INTERO (16) dimensions
+    action = agent_minimal.get_action(state)
+    assert isinstance(action, (int, np.integer))
+
+    # Test learning dynamics
+    old_surprise = agent_minimal.surprise
+    agent_minimal.update_surprise(0.8)
+    assert agent_minimal.surprise != old_surprise
+
+
+def test_falsification_protocol_5_exists():
+    """Test that Falsification-Protocol-5.py exists and can be imported"""
+    protocol_path = (
+        Path(__file__).parent.parent / "Falsification" / "Falsification-Protocol-5.py"
+    )
+    assert protocol_path.exists()
+
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("falsification5", protocol_path)
+        falsification5 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification5)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-5.py import failed: {e}")
+
+
+def test_falsification_protocol_6_network_comparison():
+    """Test NetworkComparisonExperiment from Falsification-Protocol-6.py"""
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "falsification6",
+            Path(__file__).parent.parent
+            / "Falsification"
+            / "Falsification-Protocol-6.py",
+        )
+        falsification6 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification6)
+        NetworkComparisonExperiment = falsification6.NetworkComparisonExperiment
+    except ImportError as e:
+        pytest.skip(f"NetworkComparisonExperiment import failed: {e}")
+
+    # Test initialization with default config
+    config = {
+        "extero_dim": DIM_CONSTANTS.EXTERO_DIM,
+        "intero_dim": DIM_CONSTANTS.INTERO_DIM,
+        "action_dim": DIM_CONSTANTS.ACTION_DIM,
+        "context_dim": DIM_CONSTANTS.CONTEXT_DIM,
+        "n_episodes": 10,
+    }
+    experiment = NetworkComparisonExperiment(config)
+    assert experiment.config is not None
+
+    # Test that experiment can be run
+    results = experiment.run_experiment()
+    assert isinstance(results, dict)
+
+    # Check for expected result structure
+    if "error" not in results:
+        # Results should contain task results with network accuracies
+        assert len(results) > 0
+        for task_name, task_results in results.items():
+            assert isinstance(task_results, dict)
+            for net_name, net_results in task_results.items():
+                assert isinstance(net_results, dict)
+                assert "accuracy" in net_results or "auc" in net_results
+
+
+def test_falsification_protocol_6_exists():
+    """Test that Falsification-Protocol-6.py exists and can be imported"""
+    protocol_path = (
+        Path(__file__).parent.parent / "Falsification" / "Falsification-Protocol-6.py"
+    )
+    assert protocol_path.exists()
+
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("falsification6", protocol_path)
+        falsification6 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification6)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-6.py import failed: {e}")
+
+
+# Tests for protocols 7-12 (placeholder files to be created)
+def test_falsification_protocol_7_mathematical_consistency():
+    """Test mathematical consistency checks from Falsification-Protocol-7.py"""
+    # Skip test if protocol doesn't exist yet
+    protocol_path = (
+        Path(__file__).parent.parent / "Falsification" / "Falsification-Protocol-7.py"
+    )
+    if not protocol_path.exists():
+        pytest.skip("Falsification-Protocol-7.py not yet implemented")
+
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("falsification7", protocol_path)
+        falsification7 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification7)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-7.py import failed: {e}")
+
+    # Test that module has mathematical consistency functions
+    assert hasattr(falsification7, "check_parameter_bounds")
+    assert hasattr(falsification7, "verify_equation_consistency")
+
+
+def test_falsification_protocol_8_parameter_sensitivity():
+    """Test parameter sensitivity analysis from Falsification-Protocol-8.py"""
+    # Skip test if protocol doesn't exist yet
+    protocol_path = (
+        Path(__file__).parent.parent / "Falsification" / "Falsification-Protocol-8.py"
+    )
+    if not protocol_path.exists():
+        pytest.skip("Falsification-Protocol-8.py not yet implemented")
+
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("falsification8", protocol_path)
+        falsification8 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification8)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-8.py import failed: {e}")
+
+    # Test that module has sensitivity analysis functions
+    assert hasattr(falsification8, "analyze_parameter_sensitivity")
+    assert hasattr(falsification8, "generate_sensitivity_report")
+
+
+def test_falsification_protocol_9_neural_signatures():
+    """Test neural signatures validation from Falsification-Protocol-9.py"""
+    # Skip test if protocol doesn't exist yet
+    protocol_path = (
+        Path(__file__).parent.parent / "Falsification" / "Falsification-Protocol-9.py"
+    )
+    if not protocol_path.exists():
+        pytest.skip("Falsification-Protocol-9.py not yet implemented")
+
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("falsification9", protocol_path)
+        falsification9 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification9)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-9.py import failed: {e}")
+
+    # Test that module has neural signature functions
+    assert hasattr(falsification9, "detect_neural_signatures")
+    assert hasattr(falsification9, "validate_consciousness_markers")
+
+
+def test_falsification_protocol_10_cross_species_scaling():
+    """Test cross-species scaling from Falsification-Protocol-10.py"""
+    # Skip test if protocol doesn't exist yet
+    protocol_path = (
+        Path(__file__).parent.parent / "Falsification" / "Falsification-Protocol-10.py"
+    )
+    if not protocol_path.exists():
+        pytest.skip("Falsification-Protocol-10.py not yet implemented")
+
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("falsification10", protocol_path)
+        falsification10 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification10)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-10.py import failed: {e}")
+
+    # Test that module has scaling functions
+    assert hasattr(falsification10, "apply_cross_species_scaling")
+    assert hasattr(falsification10, "validate_scaling_laws")
+
+
+def test_falsification_protocol_11_bayesian_estimation():
+    """Test Bayesian estimation from Falsification-Protocol-11.py"""
+    # Skip test if protocol doesn't exist yet
+    protocol_path = (
+        Path(__file__).parent.parent / "Falsification" / "Falsification-Protocol-11.py"
+    )
+    if not protocol_path.exists():
+        pytest.skip("Falsification-Protocol-11.py not yet implemented")
+
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("falsification11", protocol_path)
+        falsification11 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification11)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-11.py import failed: {e}")
+
+    # Test that module has Bayesian estimation functions
+    assert hasattr(falsification11, "run_bayesian_estimation")
+    assert hasattr(falsification11, "compute_posterior_distributions")
+
+
+def test_falsification_protocol_12_liquid_network():
+    """Test liquid network validation from Falsification-Protocol-12.py"""
+    # Skip test if protocol doesn't exist yet
+    protocol_path = (
+        Path(__file__).parent.parent / "Falsification" / "Falsification-Protocol-12.py"
+    )
+    if not protocol_path.exists():
+        pytest.skip("Falsification-Protocol-12.py not yet implemented")
+
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("falsification12", protocol_path)
+        falsification12 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification12)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-12.py import failed: {e}")
+
+    # Test that module has liquid network functions
+    assert hasattr(falsification12, "test_liquid_network_properties")
+    assert hasattr(falsification12, "validate_network_topology")
+
+
 def test_falsification_protocol_2_iowa_gambling_environment():
     """Test IowaGamblingTaskEnvironment from Falsification-Protocol-2.py"""
     try:
@@ -246,21 +540,181 @@ def test_falsification_protocol_4_exists():
         pytest.skip(f"Falsification-Protocol-4.py import failed: {e}")
 
 
-def test_falsification_protocol_5_exists():
-    """Test that Falsification-Protocol-5.py exists and can be imported"""
-    protocol_path = (
-        Path(__file__).parent.parent / "Falsification" / "Falsification-Protocol-5.py"
-    )
-    assert protocol_path.exists()
+def test_falsification_protocol_5_evolutionary_emergence():
+    """Test EvolvableAgent from Falsification-Protocol-5.py"""
+    try:
+        import importlib.util
+        import numpy as np
 
+        spec = importlib.util.spec_from_file_location(
+            "falsification5",
+            Path(__file__).parent.parent
+            / "Falsification"
+            / "Falsification-Protocol-5.py",
+        )
+        falsification5 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification5)
+        EvolvableAgent = falsification5.EvolvableAgent
+    except ImportError as e:
+        pytest.skip(f"EvolvableAgent import failed: {e}")
+
+    # Test initialization with different genomes
+    genome_full = {
+        "has_threshold": True,
+        "has_intero_weighting": True,
+        "has_somatic_markers": True,
+        "has_precision_weighting": True,
+        "theta_0": 0.5,
+        "alpha": 5.0,
+        "beta": 1.2,
+    }
+    agent_full = EvolvableAgent(genome_full)
+    assert agent_full.has_threshold is True
+    assert agent_full.has_intero_weighting is True
+
+    # Test basic evolution step
+    observation = {"extero": np.random.randn(32), "intero": np.random.randn(16)}
+    reward = agent_full.step(observation=observation, dt=0.05)
+    assert isinstance(reward, (int, float))
+
+    # Test genome with minimal features
+    genome_minimal = {
+        "has_threshold": False,
+        "has_intero_weighting": False,
+        "has_somatic_markers": False,
+        "has_precision_weighting": False,
+        "theta_0": 0.5,
+        "alpha": 5.0,
+        "beta": 1.2,
+    }
+    agent_minimal = EvolvableAgent(genome_minimal)
+    assert agent_minimal.has_threshold is False
+
+
+def test_falsification_protocol_7_mathematical_consistency():
+    """Test mathematical consistency checks from Falsification-Protocol-7.py"""
     try:
         import importlib.util
 
-        spec = importlib.util.spec_from_file_location("falsification5", protocol_path)
-        falsification5 = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(falsification5)
+        spec = importlib.util.spec_from_file_location(
+            "falsification7",
+            Path(__file__).parent.parent
+            / "Falsification"
+            / "Falsification-Protocol-7.py",
+        )
+        falsification7 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification7)
     except ImportError as e:
-        pytest.skip(f"Falsification-Protocol-5.py import failed: {e}")
+        pytest.skip(f"Falsification-Protocol-7.py import failed: {e}")
+
+    # Test that the module has mathematical consistency functions
+    assert hasattr(falsification7, "check_parameter_bounds")
+    assert hasattr(falsification7, "verify_equation_consistency")
+
+
+def test_falsification_protocol_8_parameter_sensitivity():
+    """Test parameter sensitivity analysis from Falsification-Protocol-8.py"""
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "falsification8",
+            Path(__file__).parent.parent
+            / "Falsification"
+            / "Falsification-Protocol-8.py",
+        )
+        falsification8 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification8)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-8.py import failed: {e}")
+
+    # Test that the module has sensitivity analysis functions
+    assert hasattr(falsification8, "analyze_parameter_sensitivity")
+    assert hasattr(falsification8, "generate_sensitivity_report")
+
+
+def test_falsification_protocol_9_neural_signatures():
+    """Test neural signatures validation from Falsification-Protocol-9.py"""
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "falsification9",
+            Path(__file__).parent.parent
+            / "Falsification"
+            / "Falsification-Protocol-9.py",
+        )
+        falsification9 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification9)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-9.py import failed: {e}")
+
+    # Test that the module has neural signature functions
+    assert hasattr(falsification9, "detect_neural_signatures")
+    assert hasattr(falsification9, "validate_consciousness_markers")
+
+
+def test_falsification_protocol_10_cross_species_scaling():
+    """Test cross-species scaling from Falsification-Protocol-10.py"""
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "falsification10",
+            Path(__file__).parent.parent
+            / "Falsification"
+            / "Falsification-Protocol-10.py",
+        )
+        falsification10 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification10)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-10.py import failed: {e}")
+
+    # Test that the module has scaling functions
+    assert hasattr(falsification10, "apply_cross_species_scaling")
+    assert hasattr(falsification10, "validate_scaling_laws")
+
+
+def test_falsification_protocol_11_bayesian_estimation():
+    """Test Bayesian estimation from Falsification-Protocol-11.py"""
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "falsification11",
+            Path(__file__).parent.parent
+            / "Falsification"
+            / "Falsification-Protocol-11.py",
+        )
+        falsification11 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification11)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-11.py import failed: {e}")
+
+    # Test that the module has Bayesian estimation functions
+    assert hasattr(falsification11, "run_bayesian_estimation")
+    assert hasattr(falsification11, "compute_posterior_distributions")
+
+
+def test_falsification_protocol_12_liquid_network():
+    """Test liquid network validation from Falsification-Protocol-12.py"""
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "falsification12",
+            Path(__file__).parent.parent
+            / "Falsification"
+            / "Falsification-Protocol-12.py",
+        )
+        falsification12 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(falsification12)
+    except ImportError as e:
+        pytest.skip(f"Falsification-Protocol-12.py import failed: {e}")
+
+    # Test that the module has liquid network functions
+    assert hasattr(falsification12, "test_liquid_network_properties")
+    assert hasattr(falsification12, "validate_network_topology")
 
 
 def test_falsification_protocol_6_exists():

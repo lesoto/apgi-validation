@@ -10,12 +10,14 @@ validation protocols, and analyses in parallel with progress tracking.
 import binascii
 import importlib.util
 import json
+import logging
 import math
 import pickle
 import sys
 import time
 import hashlib
 import hmac
+import threading
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -75,21 +77,30 @@ except ImportError:
 
 
 # Secure pickle functions with HMAC signing
-PICKLE_SECRET_KEY = os.environ.get("PICKLE_SECRET_KEY")
-APGI_BACKUP_HMAC_KEY = os.environ.get("APGI_BACKUP_HMAC_KEY")
+# Thread-safe global state with lock
+_keys_lock = threading.Lock()
+PICKLE_SECRET_KEY = None
+APGI_BACKUP_HMAC_KEY = None
 
 
 def _ensure_secure_keys():
-    """Ensure secure keys are available, generating them if needed."""
+    """Ensure secure keys are available, reading from environment variables."""
     global PICKLE_SECRET_KEY, APGI_BACKUP_HMAC_KEY
 
-    if PICKLE_SECRET_KEY is None:
-        print("PICKLE_SECRET_KEY not set, generating secure random key...")
-        PICKLE_SECRET_KEY = os.urandom(32).hex()
+    with _keys_lock:
+        if PICKLE_SECRET_KEY is None:
+            # Try environment variable, then generate
+            PICKLE_SECRET_KEY = os.environ.get("PICKLE_SECRET_KEY")
+            if PICKLE_SECRET_KEY is None:
+                PICKLE_SECRET_KEY = os.urandom(32).hex()
+                logging.info("Generated new PICKLE_SECRET_KEY")
 
-    if APGI_BACKUP_HMAC_KEY is None:
-        print("APGI_BACKUP_HMAC_KEY not set, generating secure random key...")
-        APGI_BACKUP_HMAC_KEY = os.urandom(32).hex()
+        if APGI_BACKUP_HMAC_KEY is None:
+            # Try environment variable, then generate
+            APGI_BACKUP_HMAC_KEY = os.environ.get("APGI_BACKUP_HMAC_KEY")
+            if APGI_BACKUP_HMAC_KEY is None:
+                APGI_BACKUP_HMAC_KEY = os.urandom(32).hex()
+                logging.info("Generated new APGI_BACKUP_HMAC_KEY")
 
 
 # Initialize secure keys
@@ -98,13 +109,14 @@ _ensure_secure_keys()
 
 def _get_pickle_secret_key():
     """Get the pickle secret key as bytes."""
-    key = PICKLE_SECRET_KEY
-    if key is None:
-        return None
-    # If it's a string, encode to bytes
-    if isinstance(key, str):
-        return key.encode("utf-8")
-    return key  # Already bytes
+    with _keys_lock:
+        key = PICKLE_SECRET_KEY
+        if key is None:
+            return None
+        # If it's a string, encode to bytes
+        if isinstance(key, str):
+            return key.encode("utf-8")
+        return key  # Already bytes
 
 
 def _validate_secret_key(key_bytes: bytes) -> None:
@@ -145,7 +157,9 @@ def _validate_secret_key(key_bytes: bytes) -> None:
         entropy -= probability * math.log2(probability)
 
     # Use reasonable minimum entropy based on key length, not fixed bits per byte
-    min_entropy_bits = max(3.0, key_len * 0.5)  # At least 3 bits per byte average
+    # For 32-byte keys, require at least 192 bits (75% of key length)
+    # This follows NIST recommendations for cryptographic keys
+    min_entropy_bits = max(192.0, key_len * 6.0)  # At least 6 bits per byte average
 
     if entropy < min_entropy_bits:
         raise ValueError(
@@ -158,20 +172,29 @@ def secure_pickle_dump(obj: Any, file_path: Path) -> None:
     """Securely pickle an object with HMAC signature"""
     key_bytes = _get_pickle_secret_key()
     _validate_secret_key(key_bytes)
-    if PICKLE_SECRET_KEY is None:
-        from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
 
-        raise error_handler.handle_error(
-            category=ErrorCategory.IMPORT,
-            severity=ErrorSeverity.CRITICAL,
-            code="MISSING_ENV_VAR",
-            message="PICKLE_SECRET_KEY environment variable not set. Cannot use secure pickle.",
-            suggestions=["Set PICKLE_SECRET_KEY environment variable"],
-            user_action="Set the required environment variable before using secure pickle functions",
+    # Get key bytes for HMAC (already thread-safe from _get_pickle_secret_key)
+    with _keys_lock:
+        if PICKLE_SECRET_KEY is None:
+            from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
+
+            raise error_handler.handle_error(
+                category=ErrorCategory.IMPORT,
+                severity=ErrorSeverity.CRITICAL,
+                code="MISSING_ENV_VAR",
+                message="PICKLE_SECRET_KEY environment variable not set. Cannot use secure pickle.",
+                suggestions=["Set PICKLE_SECRET_KEY environment variable"],
+                user_action="Set the required environment variable before using secure pickle functions",
+            )
+        pickle_key_bytes = (
+            PICKLE_SECRET_KEY.encode()
+            if isinstance(PICKLE_SECRET_KEY, str)
+            else PICKLE_SECRET_KEY
         )
+
     # Generate HMAC signature
     pickle_data = pickle.dumps(obj)
-    signature = hmac.new(PICKLE_SECRET_KEY, pickle_data, hashlib.sha256).digest()
+    signature = hmac.new(pickle_key_bytes, pickle_data, hashlib.sha256).digest()
 
     # Write signature + data
     with open(file_path, "wb") as f:
@@ -182,17 +205,24 @@ def secure_pickle_dump(obj: Any, file_path: Path) -> None:
 
 def secure_pickle_load(file_path: Path) -> Any:
     """Securely load a pickled object with HMAC verification"""
-    if PICKLE_SECRET_KEY is None:
-        from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
+    with _keys_lock:
+        if PICKLE_SECRET_KEY is None:
+            from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
 
-        raise error_handler.handle_error(
-            category=ErrorCategory.IMPORT,
-            severity=ErrorSeverity.CRITICAL,
-            code="MISSING_ENV_VAR",
-            message="PICKLE_SECRET_KEY environment variable not set. Cannot use secure pickle.",
-            suggestions=["Set PICKLE_SECRET_KEY environment variable"],
-            user_action="Set the required environment variable before using secure pickle functions",
+            raise error_handler.handle_error(
+                category=ErrorCategory.IMPORT,
+                severity=ErrorSeverity.CRITICAL,
+                code="MISSING_ENV_VAR",
+                message="PICKLE_SECRET_KEY environment variable not set. Cannot use secure pickle.",
+                suggestions=["Set PICKLE_SECRET_KEY environment variable"],
+                user_action="Set the required environment variable before using secure pickle functions",
+            )
+        pickle_key_bytes = (
+            PICKLE_SECRET_KEY.encode()
+            if isinstance(PICKLE_SECRET_KEY, str)
+            else PICKLE_SECRET_KEY
         )
+
     with open(file_path, "rb") as f:
         # Read signature length
         sig_len_bytes = f.read(4)
@@ -207,7 +237,7 @@ def secure_pickle_load(file_path: Path) -> Any:
 
         # Verify signature
         expected_signature = hmac.new(
-            PICKLE_SECRET_KEY, pickle_data, hashlib.sha256
+            pickle_key_bytes, pickle_data, hashlib.sha256
         ).digest()
         if not hmac.compare_digest(signature, expected_signature):
             raise ValueError(
@@ -270,11 +300,41 @@ def load_validation_module(protocol):
             "protocol_8": "Validation/Validation-Protocol-8.py",
         }
 
+        # Validate all hardcoded paths in module_map to prevent path traversal
+        for protocol_name, path_value in module_map.items():
+            # Check for path traversal attempts
+            if ".." in path_value or path_value.startswith("/"):
+                raise ValueError(
+                    f"Invalid protocol path in module_map for {protocol_name}: {path_value}"
+                )
+            # Resolve and validate it's within PROJECT_ROOT
+            full_path = PROJECT_ROOT / path_value
+            try:
+                full_path.resolve().relative_to(PROJECT_ROOT.resolve())
+            except ValueError:
+                raise ValueError(
+                    f"Invalid protocol path for {protocol_name}: {path_value} (outside PROJECT_ROOT)"
+                )
+
         if protocol not in module_map:
             raise ValueError(f"Unknown validation protocol: {protocol}")
 
         module_path = PROJECT_ROOT / module_map[protocol]
+        if not module_path.exists():
+            raise FileNotFoundError(
+                f"Validation protocol module not found: {module_path}"
+            )
+
+        # Validate that path is within PROJECT_ROOT to prevent traversal
+        try:
+            module_path.resolve().relative_to(PROJECT_ROOT.resolve())
+        except ValueError:
+            raise ValueError(f"Invalid protocol module path: {module_path}")
+
         spec = importlib.util.spec_from_file_location(protocol, module_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Could not load spec for protocol: {protocol}")
+
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
@@ -556,7 +616,7 @@ class BatchProcessor:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         if job.output_file.endswith(".json"):
-            with open(output_path, "w") as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(job.result, f, indent=2, default=str)
         elif job.output_file.endswith(".pkl"):
             secure_pickle_dump(job.result, output_path)

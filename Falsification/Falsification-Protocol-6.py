@@ -1,4 +1,6 @@
 import logging
+import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -7,6 +9,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from scipy import stats
 from sklearn.metrics import roc_auc_score
+
+# Add parent directory to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from utils.constants import DIM_CONSTANTS
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -302,13 +311,15 @@ class NetworkComparisonExperiment:
     """Compare APGI-inspired vs standard architectures"""
 
     def __init__(self, config: Dict):
-        # Ensure required dimensions are present
+        # Ensure required dimensions are present with centralized defaults
         if "extero_dim" not in config:
-            config["extero_dim"] = 32
+            config["extero_dim"] = DIM_CONSTANTS.EXTERO_DIM
         if "intero_dim" not in config:
-            config["intero_dim"] = 16
+            config["intero_dim"] = DIM_CONSTANTS.INTERO_DIM
         if "action_dim" not in config:
-            config["action_dim"] = 4
+            config["action_dim"] = DIM_CONSTANTS.ACTION_DIM
+        if "context_dim" not in config:
+            config["context_dim"] = DIM_CONSTANTS.CONTEXT_DIM
 
         self.config = config
 
@@ -451,6 +462,10 @@ class NetworkComparisonExperiment:
                     task_results[task_name][net_name] = {"accuracy": accuracy}
 
         return task_results
+
+    def run_experiment(self) -> Dict:
+        """Run a complete comparison experiment with synthetic data (alias for run_full_experiment)"""
+        return self.run_full_experiment()
 
     def run_full_experiment(self) -> Dict:
         """Run a complete comparison experiment with synthetic data"""
@@ -691,7 +706,9 @@ def check_falsification(
     t_stat, p_value = stats.ttest_ind(apgi_rewards, pp_rewards)
     mean_apgi = np.mean(apgi_rewards)
     mean_pp = np.mean(pp_rewards)
-    advantage_pct = ((mean_apgi - mean_pp) / mean_pp) * 100
+    # Guard against zero mean_pp to prevent division by zero
+    safe_mean_pp = max(1e-10, abs(mean_pp)) * (1 if mean_pp >= 0 else -1)
+    advantage_pct = ((mean_apgi - mean_pp) / safe_mean_pp) * 100
 
     # Cohen's d
     pooled_std = np.sqrt(

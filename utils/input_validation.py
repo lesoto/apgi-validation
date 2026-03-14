@@ -270,6 +270,8 @@ class InputValidator:
         path_str = result.value
 
         # Check if file exists and is accessible (reduce TOCTOU window)
+        # Note: This validation has a TOCTOU race condition - files should be opened
+        # immediately after validation to minimize the window
         if not os.path.exists(path_str):
             message = params.get("message", "File does not exist")
             return ValidationResult(False, message)
@@ -280,6 +282,16 @@ class InputValidator:
 
         if not os.access(path_str, os.R_OK):
             message = params.get("message", "File exists but is not readable")
+            return ValidationResult(False, message)
+
+        # Try to open the file to verify it's actually accessible
+        # This reduces the TOCTOU window by validating while file is open
+        try:
+            with open(path_str, "rb"):
+                # Just verify we can open it, don't read content
+                pass
+        except (IOError, OSError, PermissionError) as e:
+            message = params.get("message", f"File cannot be opened: {e}")
             return ValidationResult(False, message)
 
         return result
@@ -413,28 +425,50 @@ class InputValidator:
             return ValidationResult(False, "Pattern not specified")
 
         try:
-            # Add timeout to prevent ReDoS attacks (cross-platform solution)
-            import threading
+            # Use Python 3.11+ timeout parameter if available
+            import sys
 
-            timeout_result = [None]
-            timeout_exception = [None]
+            if sys.version_info >= (3, 11):
+                # Python 3.11+ has built-in regex timeout
+                match = re.match(pattern, value, timeout=1)
+                if match is None:
+                    message = params.get("message", "Pattern does not match")
+                    return ValidationResult(False, message)
+                return ValidationResult(True, "Valid")
+            else:
+                # Fallback for older Python versions: use threading with non-daemon thread
+                # Note: This still has limitations but is better than daemon threads
+                import threading
 
-            def run_regex():
-                try:
-                    timeout_result[0] = re.match(pattern, value)
-                except Exception as e:
-                    timeout_exception[0] = e
+                timeout_result = [None]
+                timeout_exception = [None]
 
-            thread = threading.Thread(target=run_regex)
-            thread.daemon = True
-            thread.start()
-            thread.join(timeout=1)  # 1 second timeout
+                def run_regex():
+                    try:
+                        timeout_result[0] = re.match(pattern, value)
+                    except (re.error, ValueError, TypeError, OverflowError) as e:
+                        timeout_exception[0] = e
 
-            if thread.is_alive():
-                return ValidationResult(False, "Regex matching timed out")
+                thread = threading.Thread(target=run_regex, daemon=False)
+                thread.start()
+                thread.join(timeout=1)  # 1 second timeout
 
-            if timeout_exception[0]:
-                raise timeout_exception[0]
+                if thread.is_alive():
+                    # Thread is still running - regex took too long
+                    # We cannot kill the thread, but we can return timeout error
+                    # The thread will eventually complete or be terminated when Python exits
+                    return ValidationResult(
+                        False, "Regex matching timed out (possible ReDoS attack)"
+                    )
+
+                if timeout_exception[0]:
+                    raise timeout_exception[0]
+
+                if timeout_result[0] is None:
+                    message = params.get("message", "Pattern does not match")
+                    return ValidationResult(False, message)
+
+                return ValidationResult(True, "Valid")
 
             result = timeout_result[0]
             if not result:

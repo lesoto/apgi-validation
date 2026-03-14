@@ -142,6 +142,54 @@ class PCINormalization:
     normalization_constant: float = 2.5
 
 
+@dataclass
+class DimensionConstants:
+    """Dimension constants for APGI models."""
+
+    # Exteroceptive pathway dimensions
+    EXTERO_DIM: int = 32
+    SENSORY_DIM: int = 32
+    OBJECTS_DIM: int = 16
+    CONTEXT_DIM: int = 8
+
+    # Interoceptive pathway dimensions
+    INTERO_DIM: int = 16
+    VISCERAL_DIM: int = 16
+    ORGAN_DIM: int = 8
+    HOMEOSTATIC_DIM: int = 4
+
+    # Combined dimensions
+    WORKSPACE_DIM: int = 8
+    STATE_DIMENSION: int = 48  # EXTERO_DIM + INTERO_DIM
+
+    # Network dimensions
+    HIDDEN_DIM_DEFAULT: int = 64
+    SOMATIC_HIDDEN_DIM: int = 32
+
+    # Action dimensions
+    N_ACTIONS: int = 4
+    ACTION_DIM: int = 4
+
+    # Thresholds
+    IGNITION_THRESHOLD: float = 0.5
+
+    # Sample sizes
+    MIN_SAMPLES_FOR_REGRESSION: int = 10
+    MIN_BOOTSTRAP_SAMPLES: int = 100
+
+    # Clipping values
+    DEFAULT_EPSILON: float = 1e-8
+    MAX_CLIP_VALUE: float = 10.0
+    GRAD_CLIP_VALUE: float = 1.0
+    WEIGHT_CLIP_VALUE: float = 2.0
+    POLICY_GRAD_CLIP: float = 5.0
+
+    # Extended dimensions for data generation (Validation Protocol 6)
+    EXTERO_DIM_EXTENDED: int = 64  # 2 * EXTERO_DIM
+    INTERO_DIM_EXTENDED: int = 32  # 2 * INTERO_DIM
+    CONTEXT_DIM_EXTENDED: int = 8  # Same as CONTEXT_DIM
+
+
 # Global instances
 MODEL_PARAMS = ModelParameters()
 NEURAL_DEFAULTS = NeuralDataDefaults()
@@ -149,3 +197,4 @@ SPECIES_METRICS = SpeciesMetrics()
 SYSTEM_DEFAULTS = SystemDefaults()
 PARAMETER_BOUNDS = ParameterBounds()
 PCI_NORMALIZATION = PCINormalization()
+DIM_CONSTANTS = DimensionConstants()

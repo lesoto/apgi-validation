@@ -8,6 +8,7 @@ individually, running all scripts sequentially, or running the complete test
 suite using pytest with real-time output display and error handling.
 """
 
+import logging
 import subprocess
 import sys
 import threading
@@ -23,16 +24,20 @@ import matplotlib
 
 # Try to set matplotlib backend with fallback for headless environments
 try:
-    import matplotlib
-
-    matplotlib.use("TkAgg")
+    # Try to use TkAgg for interactive GUI, fallback to Agg if not available
+    if (
+        "DISPLAY" not in os.environ
+        and sys.platform != "win32"
+        and sys.platform != "darwin"
+    ):
+        matplotlib.use("Agg")
+    else:
+        try:
+            matplotlib.use("TkAgg")
+        except (ImportError, RuntimeError):
+            matplotlib.use("Agg")
 except ImportError:
-    try:
-        import matplotlib
-
-        matplotlib.use("Agg")  # Fallback to non-interactive backend
-    except ImportError:
-        pass
+    pass
 
 # Import matplotlib for visualization
 try:
@@ -161,6 +166,9 @@ class TestsRunnerGUI:
 
         # Store running processes
         self.running_processes: Dict[str, subprocess.Popen[str]] = {}
+
+        # Track running threads for proper cleanup
+        self.running_threads: List[threading.Thread] = []
 
         # Cancellation event for run_all operation
         self.run_all_cancel_event = threading.Event()
@@ -620,7 +628,8 @@ class TestsRunnerGUI:
                     )
                 # Ensure the canvas is properly sized and visible
                 self.fig.tight_layout()
-                self.canvas.draw()
+                if hasattr(self, "canvas") and self.canvas is not None:
+                    self.canvas.draw()
                 self.root.update_idletasks()
                 return
 
@@ -905,18 +914,13 @@ class TestsRunnerGUI:
             self.run_all_running = False
 
         # Run in separate thread to avoid blocking GUI
-        thread = threading.Thread(target=run_all, daemon=True)
+        thread = threading.Thread(target=run_all, daemon=False)
+        self.running_threads.append(thread)
         thread.start()
 
     def run_all_tests_pytest(self) -> None:
         """Run all tests using pytest."""
         try:
-            self.log_output(
-                "Starting complete test suite with pytest...", self.TAG_INFO
-            )
-            self.update_status("Running all tests with pytest")
-            self.progress.start()
-
             # Check if pytest is available
             try:
                 subprocess.run(
@@ -926,26 +930,65 @@ class TestsRunnerGUI:
                 )
             except (subprocess.CalledProcessError, FileNotFoundError):
                 self.log_output(
-                    "pytest not found. Installing pytest...", self.TAG_WARNING
+                    "pytest not found. Please install pytest manually.",
+                    self.TAG_WARNING,
                 )
-                install_process = subprocess.Popen(
-                    [sys.executable, "-m", "pip", "install", "pytest"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    cwd=self.tests_dir.parent,
-                )
-                install_output, _ = install_process.communicate()
-                if install_process.returncode != 0:
-                    self.log_output(
-                        f"Failed to install pytest: {install_output}", self.TAG_ERROR
+                # Ask for user consent before installing
+                try:
+                    import tkinter.messagebox as messagebox
+
+                    consent = messagebox.askyesno(
+                        "Install pytest?",
+                        "pytest is required to run the test suite. Would you like to install it now?",
+                        parent=self.root,
+                        icon=messagebox.QUESTION,
                     )
-                    return
-                self.log_output("pytest installed successfully", self.TAG_SUCCESS)
+                    if consent:
+                        try:
+                            install_process = subprocess.Popen(
+                                [sys.executable, "-m", "pip", "install", "pytest"],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT,
+                                stdin=subprocess.DEVNULL,
+                                text=True,
+                                cwd=self.tests_dir.parent,
+                            )
+                            # Wait for installation to complete
+                            stdout, stderr = install_process.communicate()
+                            if install_process.returncode == 0:
+                                self.log_output(
+                                    "pytest installed successfully.", self.TAG_SUCCESS
+                                )
+                            else:
+                                self.log_output(
+                                    f"pytest installation failed with code {install_process.returncode}: {stderr}",
+                                    self.TAG_ERROR,
+                                )
+                        except Exception as e:
+                            self.log_output(
+                                f"Error during pytest installation: {e}", self.TAG_ERROR
+                            )
+                            return False
+                except Exception as e:
+                    self.log_output(
+                        f"Error showing consent dialog: {e}", self.TAG_WARNING
+                    )
+                    return False
+                else:
+                    return False
+            except Exception as e:
+                self.log_output(
+                    f"Error checking pytest availability: {e}", self.TAG_ERROR
+                )
+                return False
 
             # Run pytest with coverage and detailed output
             env = os.environ.copy()
-            env["PYTHONPATH"] = str(Path(__file__).parent)
+            parent_path = str(Path(__file__).parent)
+            if not parent_path or len(parent_path) > 1024:
+                self.log_output("Error: Invalid PYTHONPATH path", self.TAG_ERROR)
+                return False
+            env["PYTHONPATH"] = parent_path
             process = subprocess.Popen(
                 [
                     sys.executable,
@@ -954,10 +997,11 @@ class TestsRunnerGUI:
                     "-v",  # verbose output
                     "--tb=short",  # shorter traceback format
                     "--color=yes",  # colored output
-                    "tests/",
-                ],  # run tests in the tests directory
+                    "tests/",  # run tests in tests directory
+                ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
@@ -970,54 +1014,69 @@ class TestsRunnerGUI:
             def read_pytest_output() -> None:
                 if process.stdout is None:
                     return
-                while True:
-                    output = process.stdout.readline()
-                    if output == "" and process.poll() is not None:
-                        break
-                    if output:
-                        # Color-code pytest output
-                        line = output.strip()
-                        if line.startswith("FAILED") or "ERROR" in line:
-                            self.log_output(line, self.TAG_ERROR)
-                        elif line.startswith("PASSED") or "passed" in line.lower():
-                            self.log_output(line, self.TAG_SUCCESS)
-                        elif "WARNING" in line or "warning" in line.lower():
-                            self.log_output(line, self.TAG_WARNING)
-                        else:
-                            self.log_output(line)
+                try:
+                    while True:
+                        output = process.stdout.readline()
+                        if output == "" and process.poll() is not None:
+                            break
+                        if output:
+                            # Color-code pytest output
+                            line = output.strip()
+                            if line.startswith("FAILED") or "ERROR" in line:
+                                self.log_output(line, self.TAG_ERROR)
+                            elif line.startswith("PASSED") or "passed" in line.lower():
+                                self.log_output(line, self.TAG_SUCCESS)
+                            elif "WARNING" in line or "warning" in line.lower():
+                                self.log_output(line, self.TAG_WARNING)
+                            else:
+                                self.log_output(line)
+                except Exception as e:
+                    logging.warning(f"Error reading pytest output: {e}")
 
-                # Wait for process to complete
-                process.wait()
-                return_code = process.returncode
-
-                if return_code == 0:
-                    self.log_output(
-                        "🎉 All tests passed successfully!", self.TAG_SUCCESS
-                    )
-                else:
-                    self.log_output(
-                        f"❌ Test suite failed with return code {return_code}",
-                        self.TAG_ERROR,
-                    )
-
-                # Clean up
-                if "pytest_all" in self.running_processes:
-                    del self.running_processes["pytest_all"]
-
-                self.progress.stop()
-                self.update_status("Ready")
-
-                # Update visualization statistics and charts after tests complete
-                self.root.after_idle(self.update_visualization)
-
-            # Start output reading thread
-            output_thread = threading.Thread(target=read_pytest_output, daemon=True)
+            # Start output reading thread before waiting for process
+            output_thread = threading.Thread(target=read_pytest_output, daemon=False)
+            self.running_threads.append(output_thread)
             output_thread.start()
 
-        except Exception as e:
-            self.log_output(f"Error running pytest: {str(e)}", self.TAG_ERROR)
+            # Wait for process to complete (with timeout to avoid hanging)
+            try:
+                return_code = process.wait(timeout=300)
+            except subprocess.TimeoutExpired:
+                self.log_output(
+                    "Test process did not complete within 5 minutes, forcing termination",
+                    self.TAG_WARNING,
+                )
+                process.kill()
+                return_code = -1
+
+            if return_code == 0:
+                self.log_output(" All tests passed successfully!", self.TAG_SUCCESS)
+            else:
+                self.log_output(
+                    f"Test suite failed with return code {return_code}",
+                    self.TAG_ERROR,
+                )
+
+            # Clean up
+            if "pytest_all" in self.running_processes:
+                del self.running_processes["pytest_all"]
+
             self.progress.stop()
-            self.update_status("Error")
+            self.update_status("Ready")
+
+            # Update visualization statistics and charts after tests complete
+            self.root.after_idle(self.update_visualization)
+        except Exception as e:
+            self.log_output(f"Error running pytest: {e}", self.TAG_ERROR)
+            if "pytest_all" in self.running_processes:
+                try:
+                    self.running_processes["pytest_all"].kill()
+                except Exception:
+                    pass
+                del self.running_processes["pytest_all"]
+            self.progress.stop()
+            self.update_status("Ready")
+            return False
 
     def run_script(self, script: Path, wait: bool = False) -> bool:
         """Run a single script.
@@ -1032,7 +1091,19 @@ class TestsRunnerGUI:
             When wait=True, returns True if script completed with return code 0.
         """
         try:
-            relative_path = script.relative_to(self.tests_dir)
+            # Validate script path is within tests directory to prevent directory traversal
+            try:
+                relative_path = script.resolve().relative_to(self.tests_dir.resolve())
+            except ValueError:
+                self.log_output(
+                    f"Error: Script {script} is outside tests directory", self.TAG_ERROR
+                )
+                return False
+
+            if not script.exists() or not script.is_file():
+                self.log_output(f"Error: Script {script} not found", self.TAG_ERROR)
+                return False
+
             self.log_output(f"Starting: {relative_path}", self.TAG_INFO)
             self.update_status(f"Running: {relative_path}")
             self.progress.start()
@@ -1044,23 +1115,34 @@ class TestsRunnerGUI:
             module_path = str(
                 script.relative_to(self.tests_dir.parent).with_suffix("")
             ).replace(os.sep, ".")
-            env = os.environ.copy()
-            env["PYTHONPATH"] = str(Path(__file__).parent)
+
+            # Create minimal environment for test isolation
+            import secrets
+
+            # Validate and set PYTHONPATH
+            parent_path = str(Path(__file__).parent)
+            if not parent_path or len(parent_path) > 1024:  # Reasonable length limit
+                self.log_output("Error: Invalid PYTHONPATH path", self.TAG_ERROR)
+                return False
+
+            env = {
+                "PATH": os.environ.get("PATH", ""),
+                "PYTHONPATH": parent_path,
+                "HOME": os.environ.get("HOME", ""),
+                "USER": os.environ.get("USER", ""),
+            }
 
             # Set required environment variables for secure operations
             if "PICKLE_SECRET_KEY" not in env:
-                env[
-                    "PICKLE_SECRET_KEY"
-                ] = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"  # Default for testing
+                env["PICKLE_SECRET_KEY"] = secrets.token_hex(32)
             if "APGI_BACKUP_HMAC_KEY" not in env:
-                env[
-                    "APGI_BACKUP_HMAC_KEY"
-                ] = "z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4j3i2h1g0f9e8d7c6b5a4b3c2d1e0f9"  # Default for testing
+                env["APGI_BACKUP_HMAC_KEY"] = secrets.token_hex(32)
 
             process = subprocess.Popen(
                 [sys.executable, "-m", module_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
@@ -1071,59 +1153,82 @@ class TestsRunnerGUI:
             self.running_processes[script.name] = process
 
             def read_output() -> None:
-                if process.stdout is None:
-                    return
-                while True:
-                    output = process.stdout.readline()
-                    if output == "" and process.poll() is not None:
-                        break
-                    if output:
-                        self.log_output(output.strip())
+                try:
+                    if process.stdout is None:
+                        return
+                    while True:
+                        output = process.stdout.readline()
+                        if output == "" and process.poll() is not None:
+                            break
+                        if output:
+                            # Color-code pytest output
+                            line = output.strip()
+                            if line.startswith("FAILED") or "ERROR" in line:
+                                self.log_output(line, self.TAG_ERROR)
+                            elif line.startswith("PASSED") or "passed" in line.lower():
+                                self.log_output(line, self.TAG_SUCCESS)
+                            elif "WARNING" in line or "warning" in line.lower():
+                                self.log_output(line, self.TAG_WARNING)
+                            else:
+                                self.log_output(line)
 
-                # Wait for process to complete
-                process.wait()
-                return_code = process.returncode
+                    # Wait for process to complete (with timeout to avoid hanging)
+                    try:
+                        return_code = process.wait(timeout=300)
+                    except subprocess.TimeoutExpired:
+                        self.log_output(
+                            "Test process did not complete within 5 minutes, forcing termination",
+                            self.TAG_WARNING,
+                        )
+                        process.kill()
+                        return_code = -1
 
-                if return_code == 0:
+                    if return_code == 0:
+                        self.log_output(
+                            "🎉 All tests passed successfully!", self.TAG_SUCCESS
+                        )
+                    else:
+                        self.log_output(
+                            f"❌ Test suite failed with return code {return_code}",
+                            self.TAG_ERROR,
+                        )
+
+                    # Clean up
+                    if script.name in self.running_processes:
+                        del self.running_processes[script.name]
+
+                    self.progress.stop()
+                    self.update_status("Ready")
+
+                    # Update visualization statistics and charts after tests complete
+                    self.root.after_idle(self.update_visualization)
+                except Exception as e:
                     self.log_output(
-                        f"✅ {relative_path} completed successfully", self.TAG_SUCCESS
+                        f"Error reading test output: {str(e)}", self.TAG_ERROR
                     )
-                else:
-                    self.log_output(
-                        f"❌ {relative_path} failed with return code {return_code}",
-                        self.TAG_ERROR,
-                    )
-
-                # Clean up
-                if script.name in self.running_processes:
-                    del self.running_processes[script.name]
-
-                # Disable stop button when script completes
-                self.root.after_idle(self._update_stop_button_state)
-
-                self.progress.stop()
-                self.update_status("Ready")
-
-                # Update visualization statistics and charts after script completes
-                self.root.after_idle(self.update_visualization)
-
-            # Start output reading thread
-            output_thread = threading.Thread(target=read_output, daemon=True)
-            output_thread.start()
+                    self.progress.stop()
+                    self.update_status("Error")
 
             if wait:
-                output_thread.join()
-                return process.returncode == 0
+                # Wait for output thread to complete and get return code
+                output_thread = threading.Thread(target=read_output, daemon=False)
+                self.running_threads.append(output_thread)
+                output_thread.start()
+                output_thread.join(timeout=305)
+                # Check process return code after thread completes
+                return_code = process.poll()
+                return return_code == 0 if return_code is not None else False
             else:
+                # Run asynchronously
+                output_thread = threading.Thread(target=read_output, daemon=False)
+                self.running_threads.append(output_thread)
+                output_thread.start()
                 return True
 
         except Exception as e:
-            relative_path = script.relative_to(self.tests_dir)
-            self.log_output(f"Error running {relative_path}: {str(e)}", self.TAG_ERROR)
+            self.log_output(f"Error running pytest: {str(e)}", self.TAG_ERROR)
             self.progress.stop()
             self.update_status("Error")
-            # Disable stop button on error
-            self.root.after_idle(self._update_stop_button_state)
             return False
 
     def _update_stop_button_state(self) -> None:
@@ -1209,20 +1314,30 @@ class TestsRunnerGUI:
         # Clear running processes
         self.running_processes.clear()
 
+        # Cleanup environment variables
+        for key in ["PICKLE_SECRET_KEY", "APGI_BACKUP_HMAC_KEY"]:
+            if key in os.environ:
+                del os.environ[key]
+
         # Cleanup matplotlib figures
         if MATPLOTLIB_AVAILABLE and hasattr(self, "fig"):
             try:
                 import matplotlib.pyplot as plt
 
                 plt.close(self.fig)
-            except Exception:
-                pass
+            except (RuntimeError, ValueError) as e:
+                logging.warning(f"Error closing matplotlib figure: {e}")
 
         # Log quit message
         self.log_output("Quitting application...", self.TAG_INFO)
 
         # Wait a moment for messages to be processed
         self.root.update_idletasks()
+
+        # Clean up running threads with timeout to avoid hanging
+        for thread in self.running_threads:
+            if thread.is_alive():
+                thread.join(timeout=2)
 
         # Quit the application
         self.root.quit()
@@ -1234,7 +1349,17 @@ def main() -> None:
     try:
         # Create and run the GUI
         root = tk.Tk()
-        TestsRunnerGUI(root)
+        app = TestsRunnerGUI(root)
+
+        # Signal handling for graceful termination
+        import signal
+
+        def signal_handler(signum, frame):
+            print(f"Received signal {signum}, shutting down...")
+            root.after(0, app.quit_application)
+
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
 
         # Center window on screen
         root.update_idletasks()

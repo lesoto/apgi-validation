@@ -64,7 +64,7 @@ class SurpriseIgnitionSystem:
 
         # Set random seed for reproducibility
         if random_seed is not None:
-            pass  # np.random.seed(random_seed)
+            np.random.seed(random_seed)
 
     def step(self, dt: float, inputs) -> None:
         """Advance the system by one time step

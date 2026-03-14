@@ -19,15 +19,21 @@ import pandas as pd
 try:
     from utils.data_validation import DataPreprocessor, DataValidator
 except ImportError:
-    # Fallback if utils.data_validation is not available
-    import warnings
+    try:
+        from data_validation import DataPreprocessor, DataValidator
+    except ImportError:
+        try:
+            from .data_validation import DataPreprocessor, DataValidator
+        except ImportError:
+            # Fallback if utils.data_validation is not available
+            import warnings
 
-    warnings.warn(
-        "utils.data_validation not available - preprocessing may be limited",
-        ImportWarning,
-    )
-    DataPreprocessor = None
-    DataValidator = None
+            warnings.warn(
+                "utils.data_validation not available - preprocessing may be limited",
+                ImportWarning,
+            )
+            DataPreprocessor = None
+            DataValidator = None
 from scipy import signal, stats
 from sklearn import exceptions
 from sklearn.decomposition import FastICA
