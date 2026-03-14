@@ -456,7 +456,12 @@ class APGICoreIntegration:
 
         # Sigmoid modulation (per specification)
         M_0 = 0.0  # Reference somatic marker level
-        sigmoid = 1.0 / (1.0 + np.exp(-(M_ca - M_0)))
+        z = -(M_ca - M_0)
+        if z >= 0:
+            sigmoid = 1.0 / (1.0 + np.exp(-z))
+        else:
+            z_exp = np.exp(z)
+            sigmoid = z_exp / (1.0 + z_exp)
         Pi_i_eff = Pi_i_baseline * (
             1.0 + beta * sigmoid
         )  # beta represents β_som (somatic gain)
@@ -3403,7 +3408,12 @@ def compute_fallback_apgi_parameters(
     M_ca = z_scores.get("vmPFC_connectivity", 0.0)
     beta = 0.5  # Default somatic gain
     M_0 = 0.0  # Reference somatic marker level
-    sigmoid = 1.0 / (1.0 + np.exp(-(M_ca - M_0)))
+    z = -(M_ca - M_0)
+    if z >= 0:
+        sigmoid = 1.0 / (1.0 + np.exp(-z))
+    else:
+        z_exp = np.exp(z)
+        sigmoid = z_exp / (1.0 + z_exp)
     pi_i_eff = pi_i_baseline * (
         1.0 + beta * sigmoid
     )  # beta represents β_som (somatic gain)

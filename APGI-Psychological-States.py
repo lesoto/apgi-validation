@@ -72,8 +72,13 @@ class APGIParameters:
             )
 
     def compute_ignition_probability(self) -> float:
-        """Compute P(ignite) = σ(S_t - θ_t)"""
-        return 1.0 / (1.0 + np.exp(-(self.S_t - self.theta_t)))
+        """Compute P(ignite) = σ(S_t - θ_t) with overflow protection"""
+        z = self.S_t - self.theta_t
+        if z >= 0:
+            return 1.0 / (1.0 + np.exp(-z))
+        else:
+            z_exp = np.exp(z)
+            return z_exp / (1.0 + z_exp)
 
     def verify_S_t(self) -> bool:
         """Verify S_t matches the formula: S_t = Π_e·|z_e| + Π_i_eff·|z_i|"""
@@ -83,7 +88,12 @@ class APGIParameters:
     def verify_Pi_i_eff(self) -> bool:
         """Verify Π_i_eff matches the formula: Π_i_eff = Π_i_baseline · [1 + β·σ(M - M₀)]"""
         M_0 = 0.0  # Reference somatic marker level
-        sigmoid = 1.0 / (1.0 + np.exp(-(self.M_ca - M_0)))
+        z = -(self.M_ca - M_0)
+        if z >= 0:
+            sigmoid = 1.0 / (1.0 + np.exp(-z))
+        else:
+            z_exp = np.exp(z)
+            sigmoid = z_exp / (1.0 + z_exp)
         computed = self.Pi_i_baseline * (1.0 + self.beta * sigmoid)
         computed = np.clip(computed, 0.1, 15.0)
         return np.isclose(self.Pi_i_eff, computed, rtol=0.001)
@@ -134,7 +144,12 @@ def create_apgi_params(
     """
     # Compute effective interoceptive precision with somatic modulation (sigmoid form)
     M_0 = 0.0  # Reference somatic marker level
-    sigmoid = 1.0 / (1.0 + np.exp(-(M_ca - M_0)))
+    z = -(M_ca - M_0)
+    if z >= 0:
+        sigmoid = 1.0 / (1.0 + np.exp(-z))
+    else:
+        z_exp = np.exp(z)
+        sigmoid = z_exp / (1.0 + z_exp)
     Pi_i_eff = Pi_i_baseline * (1.0 + beta * sigmoid)
     Pi_i_eff = np.clip(Pi_i_eff, 0.1, 15.0)
 

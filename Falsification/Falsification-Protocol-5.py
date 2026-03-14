@@ -1,40 +1,98 @@
 import logging
 import os
-import time
-from typing import Any, Dict, List, Tuple
+import sys
+from pathlib import Path
 
-import numpy as np
-from scipy import stats
+# Add parent directory to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from utils.constants import DIM_CONSTANTS
+from utils.config_manager import ConfigManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+import numpy as np
+import scipy.stats as stats
+import time
+from typing import Dict, List, Any, Tuple
 
 
 class EvolvableAgent:
     """Agent that can evolve based on genome"""
 
-    def __init__(self, genome: Dict):
-        self.genome = genome
+    def __init__(self, genome: Dict = None):
+        """Initialize agent with genome from config or default"""
+        # Initialize config manager
+        config_manager = ConfigManager()
+
+        # Load validation configuration
+        config = config_manager.get_config("validation")
+
+        # Use genome from parameter or generate default
+        if genome is None:
+            genome = {
+                "has_threshold": getattr(config, "theta_0", 0.5),
+                "has_intero_weighting": getattr(config, "beta", 1.2),
+                "has_somatic_markers": getattr(config, "gamma_M", 1.52),
+                "has_precision_weighting": getattr(config, "alpha", 5.0),
+                "theta_0": getattr(config, "theta_0", 0.5),
+                "alpha": getattr(config, "alpha", 5.0),
+                "beta": getattr(config, "beta", 1.2),
+                "Pi_e_lr": getattr(config, "Pi_e_lr", 0.01),
+            }
+        else:
+            # Validate provided genome against config schema
+            required_params = [
+                "has_threshold",
+                "has_intero_weighting",
+                "has_somatic_markers",
+                "has_precision_weighting",
+                "theta_0",
+                "alpha",
+                "beta",
+                "Pi_e_lr",
+            ]
+            for param in required_params:
+                if param not in genome:
+                    logger.warning(
+                        f"Missing required parameter '{param}' in genome, using default from config"
+                    )
+                    # Add missing parameter with default value
+                    if param == "Pi_e_lr":
+                        genome[param] = getattr(config, "Pi_e_lr", 0.01)
+                    elif param == "theta_0":
+                        genome[param] = getattr(config, "theta_0", 0.5)
+                    elif param == "alpha":
+                        genome[param] = getattr(config, "alpha", 5.0)
+                    elif param == "beta":
+                        genome[param] = getattr(config, "beta", 1.2)
+
+            self.genome = genome
 
         # Initialize based on genome
-        self.has_threshold = genome["has_threshold"]
-        self.has_intero_weighting = genome["has_intero_weighting"]
-        self.has_somatic_markers = genome["has_somatic_markers"]
-        self.has_precision_weighting = genome["has_precision_weighting"]
+        self.has_threshold = self.genome["has_threshold"]
+        self.has_intero_weighting = self.genome["has_intero_weighting"]
+        self.has_somatic_markers = self.genome["has_somatic_markers"]
+        self.has_precision_weighting = self.genome["has_precision_weighting"]
 
         # Parameters
-        self.theta_0 = genome["theta_0"]
-        self.alpha = genome["alpha"]
-        self.beta = genome["beta"]
-
-        # State
-        self.surprise = 0.0
+        self.theta_0 = self.genome["theta_0"]
+        self.alpha = self.genome["alpha"]
+        self.beta = self.genome["beta"]
+        self.Pi_e = self.genome["Pi_e_lr"] if self.has_precision_weighting else 1.0
+        self.Pi_i = self.genome["Pi_e_lr"] if self.has_precision_weighting else 1.0
         self.threshold = self.theta_0 if self.has_threshold else 0.0
-        self.conscious_access = False
+        self._conscious_access = False
+        self.surprise = 0.0  # Initialize surprise attribute
 
-        # Simple policy network
-        state_dim = 32 + 16  # extero + intero
-        action_dim = 4
+        # Simple policy network using centralized constants
+        state_dim = (
+            DIM_CONSTANTS.EXTERO_DIM + DIM_CONSTANTS.INTERO_DIM
+        )  # extero + intero
+        action_dim = DIM_CONSTANTS.ACTION_DIM
 
         self.policy_weights = np.random.normal(0, 0.1, (action_dim, state_dim))
 
@@ -45,6 +103,14 @@ class EvolvableAgent:
         self.Pi_e = 1.0
         self.Pi_i = 1.0
         self.pi_lr = genome["Pi_e_lr"] if self.has_precision_weighting else 0.0
+
+    def _stable_sigmoid(self, z: float) -> float:
+        """Numerically stable sigmoid function."""
+        if z >= 0:
+            return 1.0 / (1.0 + np.exp(-z))
+        else:
+            z_exp = np.exp(z)
+            return z_exp / (1.0 + z_exp)
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
         """Execute one step"""
@@ -71,12 +137,12 @@ class EvolvableAgent:
 
         # Check ignition
         if self.has_threshold:
-            ignition_prob = 1.0 / (
-                1.0 + np.exp(-self.alpha * (self.surprise - self.threshold))
+            ignition_prob = self._stable_sigmoid(
+                self.alpha * (self.surprise - self.threshold)
             )
-            self.conscious_access = np.random.random() < ignition_prob
+            self._conscious_access = np.random.random() < ignition_prob
         else:
-            self.conscious_access = True  # Always conscious
+            self._conscious_access = True  # Always conscious
 
         # Compute action probabilities
         logits = self.policy_weights @ state
@@ -107,6 +173,41 @@ class EvolvableAgent:
             self.Pi_e = 0.99 * self.Pi_e + 0.01 * adjustment
             self.Pi_i = 0.99 * self.Pi_i + 0.01 * adjustment
 
+    def get_action(self, state: np.ndarray) -> int:
+        """Get action from state using policy network"""
+        # Compute action probabilities
+        logits = self.policy_weights @ state
+
+        if self.has_somatic_markers and self.conscious_access:
+            somatic_values = self.somatic_weights @ state
+            logits += 0.3 * somatic_values
+
+        # Softmax
+        exp_logits = np.exp(logits - np.max(logits))
+        action_probs = exp_logits / np.sum(exp_logits)
+
+        return np.random.choice(len(action_probs), p=action_probs)
+
+    def update_surprise(self, new_surprise: float):
+        """Update surprise value"""
+        self.surprise = new_surprise
+
+    @property
+    def conscious_access(self) -> bool:
+        """Get conscious access state"""
+        if self.has_threshold:
+            ignition_prob = self._stable_sigmoid(
+                self.alpha * (self.surprise - self.threshold)
+            )
+            return np.random.random() < ignition_prob
+        else:
+            return True  # Always conscious when no threshold
+
+    @conscious_access.setter
+    def conscious_access(self, value: bool):
+        """Set conscious access state"""
+        self._conscious_access = value
+
 
 class EvolutionaryAPGIEmergence:
     """
@@ -114,7 +215,10 @@ class EvolutionaryAPGIEmergence:
     """
 
     def __init__(
-        self, population_size: int = 20, n_generations: int = 50, stop_event=None
+        self,
+        population_size: int = 20,
+        n_generations: int = 50,
+        stop_event=None,
     ):
         self.pop_size = population_size
         self.n_generations = n_generations
@@ -582,7 +686,9 @@ def check_falsification(
     t_stat, p_value = stats.ttest_ind(apgi_rewards, pp_rewards)
     mean_apgi = np.mean(apgi_rewards)
     mean_pp = np.mean(pp_rewards)
-    advantage_pct = ((mean_apgi - mean_pp) / mean_pp) * 100
+    # Guard against zero mean_pp to prevent division by zero
+    safe_mean_pp = max(1e-10, abs(mean_pp)) * (1 if mean_pp >= 0 else -1)
+    advantage_pct = ((mean_apgi - mean_pp) / safe_mean_pp) * 100
 
     # Cohen's d
     pooled_std = np.sqrt(
@@ -590,9 +696,11 @@ def check_falsification(
             (len(apgi_rewards) - 1) * np.var(apgi_rewards, ddof=1)
             + (len(pp_rewards) - 1) * np.var(pp_rewards, ddof=1)
         )
-        / (len(apgi_rewards) + len(pp_rewards) - 2)
+        / max(1, (len(apgi_rewards) + len(pp_rewards) - 2))
     )
-    cohens_d = (mean_apgi - mean_pp) / pooled_std
+    # Guard against zero pooled_std
+    safe_pooled_std = max(1e-10, pooled_std)
+    cohens_d = (mean_apgi - mean_pp) / safe_pooled_std
 
     f1_1_pass = advantage_pct >= 18 and cohens_d >= 0.60 and p_value < 0.01
     results["criteria"]["F1.1"] = {
@@ -631,7 +739,8 @@ def check_falsification(
     ss_between = sum(
         len(cm) * (np.mean(cm) - np.mean(timescales)) ** 2 for cm in cluster_means
     )
-    eta_squared = ss_between / ss_total
+    # Guard against zero ss_total
+    eta_squared = ss_between / max(1e-10, ss_total)
 
     f1_2_pass = silhouette >= 0.30 and eta_squared >= 0.50 and p_anova < 0.001
     results["criteria"]["F1.2"] = {
@@ -656,16 +765,16 @@ def check_falsification(
     logger.info("Testing F1.3: Level-Specific Precision Weighting")
     level1_precision = np.array([pw[0] for pw in precision_weights])
     level3_precision = np.array([pw[1] for pw in precision_weights])
-    precision_diff_pct = (
-        (level1_precision - level3_precision) / level3_precision
-    ) * 100
+    # Guard against zero level3_precision to prevent division by zero
+    safe_level3 = np.where(np.abs(level3_precision) < 1e-10, 1e-10, level3_precision)
+    precision_diff_pct = ((level1_precision - level3_precision) / safe_level3) * 100
     mean_diff = np.mean(precision_diff_pct)
 
     # Repeated-measures ANOVA (simplified as paired t-test for level comparison)
     t_stat, p_rm = stats.ttest_rel(level1_precision, level3_precision)
-    cohens_d_rm = np.mean(level1_precision - level3_precision) / np.std(
-        level1_precision - level3_precision, ddof=1
-    )
+    # Guard against zero standard deviation
+    diff_std = np.std(level1_precision - level3_precision, ddof=1)
+    cohens_d_rm = np.mean(level1_precision - level3_precision) / max(1e-10, diff_std)
 
     f1_3_pass = mean_diff >= 15 and cohens_d_rm >= 0.35 and p_rm < 0.01
     results["criteria"]["F1.3"] = {
@@ -692,9 +801,9 @@ def check_falsification(
     # Paired t-test (pre vs post adaptation)
     # Assuming threshold_adaptation contains reduction percentages
     t_stat, p_adapt = stats.ttest_1samp(threshold_adaptation, 0)
-    cohens_d_adapt = np.mean(threshold_adaptation) / np.std(
-        threshold_adaptation, ddof=1
-    )
+    # Guard against zero standard deviation
+    adapt_std = np.std(threshold_adaptation, ddof=1)
+    cohens_d_adapt = np.mean(threshold_adaptation) / max(1e-10, adapt_std)
 
     f1_4_pass = threshold_reduction >= 20 and cohens_d_adapt >= 0.70 and p_adapt < 0.01
     results["criteria"]["F1.4"] = {
@@ -718,14 +827,16 @@ def check_falsification(
     logger.info("Testing F1.5: Cross-Level Phase-Amplitude Coupling")
     pac_baseline = np.array([pac[0] for pac in pac_mi])
     pac_ignition = np.array([pac[1] for pac in pac_mi])
-    pac_increase = ((pac_ignition - pac_baseline) / pac_baseline) * 100
+    # Guard against zero baseline to prevent division by zero
+    safe_baseline = np.where(np.abs(pac_baseline) < 1e-10, 1e-10, pac_baseline)
+    pac_increase = ((pac_ignition - pac_baseline) / safe_baseline) * 100
     mean_pac_increase = np.mean(pac_increase)
 
     # Paired t-test
     t_stat, p_pac = stats.ttest_rel(pac_ignition, pac_baseline)
-    cohens_d_pac = np.mean(pac_ignition - pac_baseline) / np.std(
-        pac_ignition - pac_baseline, ddof=1
-    )
+    # Guard against zero standard deviation
+    diff_std = np.std(pac_ignition - pac_baseline, ddof=1)
+    cohens_d_pac = np.mean(pac_ignition - pac_baseline) / max(1e-10, diff_std)
 
     # Permutation test (simplified)
     n_permutations = 10000
@@ -780,7 +891,7 @@ def check_falsification(
     residuals = active_slopes - mean_active
     ss_res = np.sum(residuals**2)
     ss_tot = np.sum((active_slopes - np.mean(active_slopes)) ** 2)
-    r_squared = 1 - (ss_res / ss_tot)
+    r_squared = 1 - (ss_res / max(1e-10, ss_tot))
 
     f1_6_pass = (
         mean_active <= 1.4
@@ -814,7 +925,8 @@ def check_falsification(
     t_stat, p_value = stats.ttest_ind(apgi_advantageous_selection, no_somatic_selection)
     mean_apgi = np.mean(apgi_advantageous_selection)
     mean_no_somatic = np.mean(no_somatic_selection)
-    advantage_pct = ((mean_apgi - mean_no_somatic) / mean_no_somatic) * 100
+    safe_no_somatic = max(1e-10, mean_no_somatic)
+    advantage_pct = ((mean_apgi - mean_no_somatic) / safe_no_somatic) * 100
 
     # Cohen's d
     pooled_std = np.sqrt(
@@ -823,9 +935,13 @@ def check_falsification(
             * np.var(apgi_advantageous_selection, ddof=1)
             + (len(no_somatic_selection) - 1) * np.var(no_somatic_selection, ddof=1)
         )
-        / (len(apgi_advantageous_selection) + len(no_somatic_selection) - 2)
+        / max(
+            1,
+            (len(apgi_advantageous_selection) + len(no_somatic_selection) - 2),
+        )
     )
-    cohens_d = (mean_apgi - mean_no_somatic) / pooled_std
+    safe_pooled_std = max(1e-10, pooled_std)
+    cohens_d = (mean_apgi - mean_no_somatic) / safe_pooled_std
 
     f2_1_pass = advantage_pct >= 25 and cohens_d >= 0.80 and p_value < 0.01
     results["criteria"]["F2.1"] = {
@@ -853,16 +969,21 @@ def check_falsification(
         [apgi_cost_correlation] * len(apgi_advantageous_selection),
     )
     corr_no_somatic, p_corr_no_somatic = stats.pearsonr(
-        no_somatic_selection, [no_somatic_cost_correlation] * len(no_somatic_selection)
+        no_somatic_selection,
+        [no_somatic_cost_correlation] * len(no_somatic_selection),
     )
 
     # Fisher's z-transformation for difference test
     z_apgi = np.arctanh(corr)
     z_no_somatic = np.arctanh(corr_no_somatic)
     se_diff = np.sqrt(
-        1 / (len(apgi_advantageous_selection) - 3) + 1 / (len(no_somatic_selection) - 3)
+        max(
+            1e-10,
+            1 / max(1, len(apgi_advantageous_selection) - 3)
+            + 1 / max(1, len(no_somatic_selection) - 3),
+        )
     )
-    z_diff = (z_apgi - z_no_somatic) / se_diff
+    z_diff = (z_apgi - z_no_somatic) / max(1e-10, se_diff)
     p_diff = 2 * (1 - stats.norm.cdf(abs(z_diff)))
 
     f2_2_pass = (
@@ -928,8 +1049,9 @@ def check_falsification(
     n_total = 100  # Assume sample size, adjust if needed
     p1 = 0.5 + confidence_effect / 2
     p2 = 0.5 - confidence_effect / 2
-    se = np.sqrt(p1 * (1 - p1) / n_total + p2 * (1 - p2) / n_total)
-    z_conf = confidence_effect / se
+    n_safe = max(1, n_total)
+    se = np.sqrt(max(1e-10, p1 * (1 - p1) / n_safe + p2 * (1 - p2) / n_safe))
+    z_conf = confidence_effect / max(1e-10, se)
     p_conf = 2 * (1 - stats.norm.cdf(abs(z_conf)))
 
     f2_4_pass = confidence_effect >= 0.15 and p_conf < 0.01
@@ -987,7 +1109,8 @@ def check_falsification(
         t_stat, p_value = stats.ttest_ind(apgi_rewards, pp_rewards)
         mean_apgi = np.mean(apgi_rewards)
         mean_baseline = np.mean(pp_rewards)
-        advantage_pct = ((mean_apgi - mean_baseline) / mean_baseline) * 100
+        safe_baseline = max(1e-10, mean_baseline)
+        advantage_pct = ((mean_apgi - mean_baseline) / safe_baseline) * 100
 
         # Cohen's d
         pooled_std = np.sqrt(
@@ -995,9 +1118,10 @@ def check_falsification(
                 (len(apgi_rewards) - 1) * np.var(apgi_rewards, ddof=1)
                 + (len(pp_rewards) - 1) * np.var(pp_rewards, ddof=1)
             )
-            / (len(apgi_rewards) + len(pp_rewards) - 2)
+            / max(1, (len(apgi_rewards) + len(pp_rewards) - 2))
         )
-        cohens_d = (mean_apgi - mean_baseline) / pooled_std
+        safe_pooled_std = max(1e-10, pooled_std)
+        cohens_d = (mean_apgi - mean_baseline) / safe_pooled_std
 
         f3_1_pass = advantage_pct >= 15 and cohens_d >= 0.50 and p_value < 0.05
         results["criteria"]["F3.1"] = {
@@ -1017,7 +1141,10 @@ def check_falsification(
             f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {advantage_pct:.2f}%, d={cohens_d:.3f}, p={p_value:.4f}"
         )
     else:
-        results["criteria"]["F3.1"] = {"passed": False, "error": "Insufficient data"}
+        results["criteria"]["F3.1"] = {
+            "passed": False,
+            "error": "Insufficient data",
+        }
         results["summary"]["failed"] += 1
 
     # F3.2: Interoceptive Task Advantage
@@ -1092,7 +1219,7 @@ def check_falsification(
     logger.info("Testing F3.6: Performance Retention")
     trial_advantage = (
         (apgi_time_to_criterion - baseline_time_to_criterion)
-        / baseline_time_to_criterion
+        / max(1e-10, baseline_time_to_criterion)
     ) * 100
     hazard_ratio = (
         baseline_time_to_criterion / apgi_time_to_criterion
@@ -1126,7 +1253,8 @@ def check_falsification(
     )
     mean_ltcn = ltcn_transition_time
     mean_rnn = feedforward_transition_time
-    advantage_pct = ((mean_rnn - mean_ltcn) / mean_rnn) * 100
+    safe_rnn = max(1e-10, mean_rnn)
+    advantage_pct = ((mean_rnn - mean_ltcn) / safe_rnn) * 100
 
     # Cohen's d
     pooled_std = (

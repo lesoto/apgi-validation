@@ -69,6 +69,7 @@ data:
   time_series_length: 100
   eeg_channels: 32
   sampling_rate: 1000
+  max_load_size_mb: 100  # Maximum file size for loading (in MB)
 
 gui:
   window_width: 1200
@@ -76,3 +77,93 @@ gui:
   enable_progress_bars: true
   max_threads: 4
   auto_save_interval: 30
+
+falsification:
+  # Falsification criterion thresholds
+  cumulative_reward_advantage_threshold: 18  # Minimum % advantage for F1.1
+  cohens_d_threshold: 0.60  # Minimum effect size for F1.1
+  significance_level: 0.01  # Alpha level for statistical tests
+  threshold_reduction_min: 20  # Minimum % threshold reduction for F1.4
+  cohens_d_adaptation_threshold: 0.70  # Minimum effect size for adaptation (F1.4)
+  tau_theta_min: 10  # Minimum threshold adaptation time constant (seconds)
+  tau_theta_max: 100  # Maximum threshold adaptation time constant (seconds)
+
+network:
+  # Neural network architecture dimensions
+  extero_dim: 32  # Exteroceptive input dimension
+  intero_dim: 16  # Interoceptive input dimension
+  context_dim: 8  # Context input dimension
+  action_dim: 4  # Action space dimension
+  hidden_dim: 64  # Default hidden layer dimension
+  somatic_hidden_dim: 32  # Somatic marker hidden dimension
+  workspace_dim: 4  # Global workspace dimension
+
+  # Layer dimensions for exteroceptive pathway
+  extero_encoder_layers: [128, 64, 32]  # Layer sizes
+  # Layer dimensions for interoceptive pathway
+  intero_encoder_layers: [64, 32, 16]  # Layer sizes
+
+  # Learning rates
+  learning_rate: 0.001  # Default learning rate
+  lr_extero: 0.01  # Exteroceptive model learning rate
+  lr_intero: 0.01  # Interoceptive model learning rate
+  lr_precision: 0.05  # Precision learning rate
+  lr_somatic: 0.1  # Somatic marker learning rate
+  lr_value: 0.001  # Value network learning rate
+  lr_policy: 0.001  # Policy network learning rate
+
+  # Network parameters
+  dropout: 0.5  # Dropout rate
+  batch_size: 32  # Training batch size
+  epochs: 10  # Number of training epochs
+
+  # Model selection
+  n_trials_per_model: 100  # Number of trials per model in validation
+
+  # Precision parameters
+  Pi_e_init: 1.0  # Initial exteroceptive precision
+  Pi_i_init: 1.0  # Initial interoceptive precision
+
+  # Threshold parameters
+  theta_init: 0.5  # Initial ignition threshold
+  theta_baseline: 0.5  # Baseline threshold
+
+  # Sigmoid parameters
+  alpha: 8.0  # Sigmoid steepness (clipped to prevent overflow)
+
+  # Surprise accumulator
+  tau_S: 0.3  # Surprise accumulation time constant
+
+  # Threshold adaptation
+  tau_theta: 10.0  # Threshold adaptation time constant
+  eta_theta: 0.01  # Threshold adaptation rate
+
+  # Somatic bias
+  beta: 1.2  # Somatic bias weight
+
+  # Reset dynamics
+  rho: 0.7  # Threshold reset fraction
+
+  # Hierarchical level dimensions
+  sensory_dim: 32
+  objects_dim: 16
+  context_dim_hier: 8
+  visceral_dim: 16
+  organ_dim: 8
+  homeostatic_dim: 4
+
+  # Hierarchical time constants
+  tau_sensory: 0.05
+  tau_objects: 0.2
+  tau_context: 1.0
+  tau_visceral: 0.1
+  tau_organ: 0.5
+  tau_homeostatic: 2.0
+
+  # Memory capacities
+  working_memory_capacity: 7
+  episodic_memory_capacity: 1000
+
+  # Genetic algorithm parameters
+  mutation_rate: 0.1
+  ignition_cost: 0.1

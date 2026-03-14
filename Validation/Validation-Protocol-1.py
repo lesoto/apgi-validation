@@ -8,6 +8,8 @@ synthetic data generation and multi-model comparison using deep learning.
 """
 
 import json
+import gc
+import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -41,13 +43,69 @@ from tqdm import tqdm
 # APGI imports
 try:
     from utils.logging_config import apgi_logger as logger
+    from utils.config_loader import (
+        get_tau_S,
+        get_tau_theta,
+        get_theta_0,
+        get_alpha,
+        get_gamma_M,
+        get_gamma_A,
+        get_rho,
+        get_sigma_S,
+        get_sigma_theta,
+        get_cumulative_reward_advantage_threshold,
+        get_cohens_d_threshold,
+        get_significance_level,
+    )
 except ImportError:
     import logging
 
     logger = logging.getLogger(__name__)
 
-# Random seed for reproducibility (set locally when needed)
+    # Fallback functions if config_loader not available
+    def get_tau_S(default=0.5):
+        return default
+
+    def get_tau_theta(default=30.0):
+        return default
+
+    def get_theta_0(default=0.5):
+        return default
+
+    def get_alpha(default=5.0):
+        return default
+
+    def get_gamma_M(default=0.1):
+        return default
+
+    def get_gamma_A(default=0.05):
+        return default
+
+    def get_rho(default=0.7):
+        return default
+
+    def get_sigma_S(default=0.1):
+        return default
+
+    def get_sigma_theta(default=0.05):
+        return default
+
+    def get_cumulative_reward_advantage_threshold(default=18.0):
+        return default
+
+    def get_cohens_d_threshold(default=0.60):
+        return default
+
+    def get_significance_level(default=0.01):
+        return default
+
+
+# Set random seeds
 RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(RANDOM_SEED)
 
 # Physiological constants
 PHYSIOLOGICAL_SURPRISE_MAX = 10.0  # Upper bound for surprise signal (σ units)
@@ -62,12 +120,18 @@ EEG_PZ_CHANNEL = 31  # Index of Pz channel (centro-parietal)
 class APGIDynamicalSystem:
     """Core APGI equations for surprise accumulation and ignition"""
 
-    def __init__(self, tau: float = 0.2, alpha: float = 5.0):
+    def __init__(self, tau: float = None, alpha: float = None):
         """
         Args:
-            tau: Surprise decay time constant (seconds)
-            alpha: Sigmoid steepness for ignition probability
+            tau: Surprise decay time constant (seconds) - loaded from config
+            alpha: Sigmoid steepness for ignition probability - loaded from config
         """
+        # Load from configuration if not provided
+        if tau is None:
+            tau = get_tau_S(0.2)  # Fallback to 0.2 if config not available
+        if alpha is None:
+            alpha = get_alpha(5.0)  # Fallback to 5.0 if config not available
+
         self.tau = tau
         self.alpha = alpha
 
@@ -128,8 +192,15 @@ class APGIDynamicalSystem:
         return S_trajectory, B_trajectory, ignition_occurred
 
     def _sigmoid(self, x: float) -> float:
-        """Sigmoid with steepness α"""
-        return 1.0 / (1.0 + np.exp(-self.alpha * x))
+        """Numerically stable sigmoid with steepness α"""
+        z = self.alpha * x
+        # Apply np.clip to prevent overflow in both directions
+        z = np.clip(z, -500, 500)  # Prevent exp() overflow/underflow
+        if z >= 0:
+            return 1.0 / (1.0 + np.exp(-z))
+        else:
+            z_exp = np.exp(z)
+            return z_exp / (1.0 + z_exp)
 
 
 class APGISyntheticSignalGenerator:
@@ -824,6 +895,11 @@ class APGIDatasetGenerator:
         dataset["S_values"] = np.array(dataset["S_values"])
         dataset["model_labels"] = np.array(dataset["model_labels"])
 
+        # Collect garbage after heavy generation
+        import gc
+
+        gc.collect()
+
         print("\nDataset generated:")
         print(f"  EEG shape: {dataset['eeg'].shape}")
         print(f"  HEP shape: {dataset['hep'].shape}")
@@ -1142,9 +1218,20 @@ def train_ignition_classifier(
 
         # Calculate AUC
         try:
-            val_auc = roc_auc_score(all_labels, all_probs)
-        except (ValueError, RuntimeError):
+            if len(np.unique(all_labels)) > 1:
+                val_auc = roc_auc_score(all_labels, all_probs)
+            else:
+                val_auc = 0.5
+                logger.warning(
+                    "AUC could not be calculated: only one class present in validation batch"
+                )
+        except (ValueError, RuntimeError) as e:
             val_auc = 0.5  # Random performance baseline
+            logger.error(f"Error calculating AUC: {e}")
+            # Explicitly log that we're using a baseline value due to computation failure
+            logger.warning(
+                f"Using baseline AUC value (0.5) due to computation error: {e}"
+            )
 
         # Update history
         history["train_loss"].append(train_loss)
@@ -1309,12 +1396,22 @@ def evaluate_ignition_classifier(
     accuracy = accuracy_score(all_labels, all_predictions)
     try:
         f1 = f1_score(all_labels, all_predictions, average="binary")
-    except (ValueError, RuntimeError):
+    except (ValueError, RuntimeError) as e:
         f1 = 0.0  # Default value when undefined
+        logger.error(f"Error calculating F1 score: {e}")
+        # Explicitly log that we're using a baseline value due to computation failure
+        logger.warning(f"Using baseline F1 value (0.0) due to computation error: {e}")
     try:
-        auc = roc_auc_score(all_labels, all_probs)
-    except (ValueError, RuntimeError):
+        if len(np.unique(all_labels)) > 1:
+            auc = roc_auc_score(all_labels, all_probs)
+        else:
+            auc = 0.5
+            logger.warning(
+                "AUC could not be calculated: only one class present in test set"
+            )
+    except (ValueError, RuntimeError) as e:
         auc = 0.5  # Random performance baseline
+        logger.error(f"Error calculating AUC: {e}")
 
     # Confusion matrix
     cm = confusion_matrix(all_labels, all_predictions)
@@ -1381,28 +1478,32 @@ class FalsificationChecker:
     """Check all falsification criteria for Protocol 1"""
 
     def __init__(self):
+        # Load thresholds from configuration
+        accuracy_threshold = 0.75  # This could also be loaded from config if needed
+        cumulative_reward_threshold = get_cumulative_reward_advantage_threshold(18.0)
+
         self.criteria = {
             "F1.1": {
                 "description": "APGI ignition classification accuracy < 75%",
-                "threshold": 0.75,
+                "threshold": accuracy_threshold,
                 "comparison": "less_than",
             },
             "F1.2": {
-                "description": "APGI-GWT confusion > 40%",
+                "description": "APGI GWT confusion < 40%",
                 "threshold": 0.40,
-                "comparison": "greater_than",
-            },
-            "F1.3": {
-                "description": "Generalization to real data < 55%",
-                "threshold": 0.55,
                 "comparison": "less_than",
             },
-            "F1.4": {
-                "description": "StandardPP accuracy >= APGI accuracy",
-                "threshold": None,
-                "comparison": "greater_equal",
+            "F2.1A": {
+                "description": "Level 1 interoceptive precision advantage",
+                "threshold": "≥25% higher than Level 3",
+                "comparison": "greater_than",
             },
-            "F2.1": {
+            "F3.1A": {
+                "description": "Overall Performance Advantage",
+                "threshold": f"≥{cumulative_reward_threshold}% higher cumulative reward",
+                "comparison": "greater_than",
+            },
+            "F2.1B": {
                 "description": "Somatic Marker Advantage Quantification",
                 "threshold": "≥22% higher selection for advantageous decks",
                 "comparison": "greater_than",
@@ -1427,7 +1528,7 @@ class FalsificationChecker:
                 "threshold": "APGI reaches 70% by trial 45",
                 "comparison": "less_than",
             },
-            "F3.1": {
+            "F3.1B": {
                 "description": "Overall Performance Advantage",
                 "threshold": "≥18% higher cumulative reward",
                 "comparison": "greater_than",
@@ -1598,7 +1699,10 @@ class FalsificationChecker:
         mean_apgi = np.mean(apgi_rewards)
         mean_baseline = np.mean(baseline_rewards)
         advantage_pct = ((mean_apgi - mean_baseline) / mean_baseline) * 100
-        falsified = advantage_pct >= 18
+
+        # Load threshold from configuration
+        cumulative_reward_threshold = get_cumulative_reward_advantage_threshold(18.0)
+        falsified = advantage_pct >= cumulative_reward_threshold
         return falsified, advantage_pct
 
     def check_F3_2(self, interoceptive_advantage: float = None) -> Tuple[bool, float]:
@@ -2242,6 +2346,15 @@ def plot_classification_results(
     save_path: str = "protocol1_results.png",
 ):
     """Generate comprehensive visualization of results"""
+    import gc
+
+    if not HAS_MATPLOTLIB:
+        logger.warning("Cannot plot results: matplotlib not installed")
+        return None
+
+    if not HAS_MATPLOTLIB:
+        logger.warning("Matplotlib not available, skipping visualization")
+        return None
 
     fig = plt.figure(figsize=(18, 12))
     gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
@@ -2423,11 +2536,30 @@ def plot_classification_results(
         table[(0, i)].set_text_props(weight="bold", color="white")
 
     ax7.set_title("Summary Metrics", fontsize=12, fontweight="bold", pad=20)
+    if HAS_MATPLOTLIB:
+        plt.tight_layout()
+        try:
+            # Ensure we have write access to the chosen path
+            # Check for common path traversal patterns even if though filedialog is used
+            if (
+                ".." in save_path
+                or save_path.startswith("/")
+                or save_path.startswith("\\")
+            ):
+                # Sanitize path to prevent log injection
+                safe_path = save_path.replace("{", "{{").replace("}", "}}")
+                logger.warning(f"Potential unsafe path detected in save: {safe_path}")
+                # We still proceed if the folder is writable, but log it.
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
+            safe_path = save_path.replace("{", "{{").replace("}", "}}")
+            logger.info(f"Results plot saved to {safe_path}")
+        except Exception as e:
+            logger.error(f"Failed to save results plot: {str(e)}")
+        finally:
+            plt.close(fig)
+            gc.collect()
 
-    plt.savefig(save_path, dpi=300, bbox_inches="tight")
-    print(f"Results visualization saved to: {save_path}")
-
-    plt.show()
+    # plt.show() # Disabled for automated runs
 
 
 def print_falsification_report(report: Dict):
@@ -2640,8 +2772,13 @@ def bootstrap_confidence_intervals(predictions, labels, n_bootstrap=1000):
         # AUC for bootstrap - handle case where only one class present
         try:
             metrics["auc"].append(roc_auc_score(boot_label, boot_pred))
-        except (ValueError, RuntimeError):
+        except (ValueError, RuntimeError) as e:
+            logger.warning(f"Error calculating AUC (using 0.5 baseline): {e}")
             metrics["auc"].append(0.5)  # Random performance baseline
+            # Explicitly log that we're using a baseline value due to computation failure
+            logger.warning(
+                f"Using baseline AUC value (0.5) due to computation error: {e}"
+            )
 
     ci_results = {}
     for metric, values in metrics.items():
@@ -2704,8 +2841,13 @@ def compute_feature_importance(trained_model, test_loader):
     """
     try:
         from captum.attr import IntegratedGradients
+
+        captum_available = True
     except ImportError:
         print("Warning: captum not installed. Install with: pip install captum")
+        return None, captum_available
+
+    if not captum_available:
         return None
 
     ig = IntegratedGradients(trained_model)
@@ -2743,6 +2885,7 @@ def analyze_classifier_calibration(predictions_proba, true_labels, n_bins=10):
     Add calibration curves (reliability diagrams)
     Check if predicted probabilities match empirical frequencies
     """
+    import gc
     from sklearn.calibration import calibration_curve
 
     fraction_of_positives, mean_predicted_value = calibration_curve(
@@ -2756,6 +2899,23 @@ def analyze_classifier_calibration(predictions_proba, true_labels, n_bins=10):
     brier = np.mean((predictions_proba - true_labels) ** 2)
 
     # Plot calibration curve
+    if not HAS_MATPLOTLIB:
+        logger.warning("Cannot plot calibration curve: matplotlib not installed")
+        return {
+            "ece": ece,
+            "brier": brier,
+            "calibration_curve": (mean_predicted_value, fraction_of_positives),
+            "figure": None,
+        }
+
+    if not HAS_MATPLOTLIB:
+        return {
+            "ece": ece,
+            "brier": brier,
+            "calibration_curve": (mean_predicted_value, fraction_of_positives),
+            "figure": None,
+        }
+
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.plot([0, 1], [0, 1], "k--", label="Perfect calibration")
     ax.plot(
@@ -2764,17 +2924,20 @@ def analyze_classifier_calibration(predictions_proba, true_labels, n_bins=10):
         "o-",
         label=f"Model (ECE={ece:.3f})",
     )
-    ax.set_xlabel("Mean Predicted Probability")
-    ax.set_ylabel("Fraction of Positives")
-    ax.set_title("Calibration Curve")
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    plt.xlabel("Mean predicted probability")
+    plt.ylabel("Fraction of positives")
+    plt.title("Classifier Calibration Curve")
+    plt.legend()
+    if HAS_MATPLOTLIB:
+        plt.savefig("classifier_calibration.png")
+        plt.close(fig)
+    gc.collect()
 
     return {
         "ece": ece,
         "brier": brier,
         "calibration_curve": (mean_predicted_value, fraction_of_positives),
-        "figure": fig,
+        "figure": None,
     }
 
 
@@ -2783,6 +2946,9 @@ def plot_learning_curves(history):
     Add training dynamics visualization
     Check for overfitting, underfitting, convergence
     """
+    if not HAS_MATPLOTLIB:
+        return None
+
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
     # Training vs validation loss
@@ -2848,7 +3014,9 @@ def plot_learning_curves(history):
             transform=axes[1, 1].transAxes,
         )
 
-    plt.tight_layout()
+    if HAS_MATPLOTLIB:
+        plt.tight_layout()
+        plt.close(fig)
     return fig
 
 
@@ -2982,6 +3150,14 @@ def main():
 
         results_task_1a[model_name] = results
 
+        # Memory optimization: free up model and data
+        del trained_model
+        del train_loader, val_loader, test_loader
+
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         print(f"\n{model_name} Results:")
         print(f"  Accuracy: {results['accuracy']:.3f}")
         print(f"  F1 Score: {results['f1_score']:.3f}")
@@ -3041,6 +3217,14 @@ def main():
     results_task_1b = evaluate_model_identifier(
         trained_identifier, test_loader, device=config["device"]
     )
+
+    # Memory optimization
+    del trained_identifier
+    del train_loader, val_loader, test_loader
+
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     print("\nModel Identification Results:")
     print(f"  Overall Accuracy: {results_task_1b['accuracy']:.3f}")
@@ -3119,10 +3303,19 @@ def main():
 
     json_compatible_results = convert_bools_to_strings(results_summary)
 
-    with open("protocol1_results.json", "w") as f:
-        json.dump(json_compatible_results, f, indent=2)
+    # Save results
 
-    print("✅ Results saved to: protocol1_results.json")
+    abs_save_path = os.path.abspath("protocol1_results.json")
+    try:
+        with open(abs_save_path, "w", encoding="utf-8") as f:
+            json.dump(json_compatible_results, f, indent=2)
+        print(f"✅ Results saved to: {abs_save_path}")
+    except IOError as e:
+        logger.error(f"Failed to save results to {abs_save_path}: {e}")
+    except OSError as e:
+        logger.error(f"OS error when saving results to {abs_save_path}: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error when saving results to {abs_save_path}: {e}")
 
     print("\n" + "=" * 80)
     print("PROTOCOL 1 EXECUTION COMPLETE")
@@ -3342,7 +3535,7 @@ def check_falsification(
     )
 
     logger.info(
-        f"\nValidation-Protocol-1 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
+        f"\nFalsification-Protocol-1 Summary: {results['summary']['passed'] if isinstance(results, dict) and 'summary' in results else 0}/{results['summary']['total'] if isinstance(results, dict) and 'summary' in results else 0} criteria passed"
     )
     return results
 

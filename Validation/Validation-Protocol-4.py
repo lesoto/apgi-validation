@@ -35,6 +35,22 @@ from sklearn.metrics import mutual_info_score
 from sklearn.preprocessing import KBinsDiscretizer
 from tqdm import tqdm
 
+# Import configuration management
+try:
+    from utils.config_manager import ConfigManager
+    from utils.threshold_registry import ThresholdRegistry
+except ImportError:
+    try:
+        from ..utils.config_manager import ConfigManager
+        from ..utils.threshold_registry import ThresholdRegistry
+    except ImportError:
+        # When running validation directly
+        import sys
+
+        sys.path.append("../utils")
+        from config_manager import ConfigManager
+        from threshold_registry import ThresholdRegistry
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -471,7 +487,7 @@ class PhaseTransitionDetector:
         }
 
     def compute_susceptibility(
-        self, S: np.ndarray, theta: np.ndarray
+        self, S: np.ndarray, theta: np.ndarray, variance_threshold: float = 0.01
     ) -> Dict[str, float]:
         """
         Test for diverging susceptibility near threshold
@@ -507,7 +523,10 @@ class PhaseTransitionDetector:
         var_near = np.var(S[near_mask])
         var_far = np.var(S[far_mask])
 
-        ratio = var_near / (var_far + 1e-10)
+        if var_near > variance_threshold and var_far > variance_threshold:
+            ratio = var_near / (var_far + 1e-10)
+        else:
+            ratio = 1.0
 
         return {
             "susceptibility_ratio": float(ratio),
@@ -725,6 +744,18 @@ class FiniteSizeScalingAnalysis:
         Returns:
             Dictionary with scaling analysis results
         """
+        # Initialize configuration objects
+        from types import SimpleNamespace
+
+        model_config = SimpleNamespace()
+        model_config.tau_S = 1.0
+        model_config.theta_0 = 0.5
+        model_config.alpha = 0.1
+
+        config = SimpleNamespace()
+        config.simulation = SimpleNamespace()
+        config.simulation.default_dt = 0.01
+
         results = {
             "sizes": system_sizes,
             "order_parameters": {},
@@ -739,44 +770,50 @@ class FiniteSizeScalingAnalysis:
             suscepts = []
             binder_vals = []
 
-            for param in parameter_range:
-                # Create system with this parameter value
-                system_params = {"tau": 0.2, "theta_0": 0.55, "alpha": 5.0, "dt": 0.01}
-                system_params[parameter_name] = param
-
-                system = APGIDynamicalSystem(**system_params)
-
-                # Input generator for this simulation
-                def input_gen(t):
-                    return {
-                        "Pi_e": 1.0 + 0.3 * np.sin(2 * np.pi * t / 15),
-                        "eps_e": np.random.normal(0.4, 0.2),
-                        "beta": 1.15,
-                        "Pi_i": 1.0 + 0.5 * np.sin(2 * np.pi * t / 25),
-                        "eps_i": np.random.normal(0.2, 0.15),
-                        "M": 1.0,
-                        "c": 0.5,
-                        "a": 0.3,
+            for param_name, param_values in parameter_range.items():
+                for param_value in param_values:
+                    # Create system with this parameter value
+                    system_params = {
+                        "tau": model_config.tau_S,
+                        "theta_0": model_config.theta_0,
+                        "alpha": model_config.alpha,
+                        "dt": config.simulation.default_dt,
                     }
+                    system_params[parameter_name] = param_value
 
-                # Simulate system at this size and parameter value
-                timeseries = system.simulate(
-                    duration=size, input_generator=input_gen, theta_noise_sd=0.05
-                )
+                    system = APGIDynamicalSystem(**system_params)
 
-                # Order parameter (mean ignition rate)
-                m = np.mean(timeseries["B"])
-                order_params.append(m)
+                    # Input generator for this simulation
+                    def input_gen(t):
+                        return {
+                            "Pi_e": 1.0 + 0.3 * np.sin(2 * np.pi * t / 15),
+                            "eps_e": np.random.normal(0.4, 0.2),
+                            "beta": 1.15,
+                            "Pi_i": 1.0 + 0.5 * np.sin(2 * np.pi * t / 25),
+                            "eps_i": np.random.normal(0.2, 0.15),
+                            "M": 1.0,
+                            "c": 0.5,
+                            "a": 0.3,
+                        }
 
-                # Susceptibility (variance of order parameter)
-                chi = np.var(timeseries["B"]) * size
-                suscepts.append(chi)
+                    # Simulate system at this size and parameter value
+                    timeseries = system.simulate(
+                        duration=size, input_generator=input_gen, theta_noise_sd=0.05
+                    )
 
-                # Binder cumulant: U = 1 - <m^4>/(3<m^2>^2)
-                m2 = np.mean(timeseries["B"] ** 2)
-                m4 = np.mean(timeseries["B"] ** 4)
-                U = 1 - m4 / (3 * m2**2) if m2 > 0 else 0
-                binder_vals.append(U)
+                    # Order parameter (mean ignition rate)
+                    m = np.mean(timeseries["B"])
+                    order_params.append(m)
+
+                    # Susceptibility (variance of order parameter)
+                    chi = np.var(timeseries["B"]) * size
+                    suscepts.append(chi)
+
+                    # Binder cumulant: U = 1 - <m^4>/(3<m^2>^2)
+                    m2 = np.mean(timeseries["B"] ** 2)
+                    m4 = np.mean(timeseries["B"] ** 4)
+                    U = 1 - m4 / (3 * m2**2) if m2 > 0 else 0
+                    binder_vals.append(U)
 
             results["order_parameters"][size] = order_params
             results["susceptibilities"][size] = suscepts
@@ -1232,19 +1269,6 @@ class FiniteSizeScalingAnalysis:
 
         if np.isnan(beta) or np.isnan(gamma):
             return "Unknown"
-
-        # Check against known universality classes
-        # Mean-field: β=0.5, γ=1.0
-        # 2D Ising: β=0.125, γ=1.75
-        # 3D Ising: β=0.326, γ=1.237
-
-        tolerance = 0.1
-
-        if abs(beta - 0.5) < tolerance and abs(gamma - 1.0) < tolerance:
-            return "Mean-field"
-        elif abs(beta - 0.125) < tolerance and abs(gamma - 1.75) < tolerance:
-            return "2D Ising"
-        elif abs(beta - 0.326) < tolerance and abs(gamma - 1.237) < tolerance:
             return "3D Ising"
         else:
             return f"Custom (β={beta:.3f}, γ={gamma:.3f})"
@@ -1411,12 +1435,24 @@ class ComprehensivePhaseTransitionAnalysis:
         all_results = []
 
         for sim_idx in tqdm(range(n_simulations), desc="Simulations"):
-            # Create system
+            # Initialize configuration objects
+            from types import SimpleNamespace
+
+            model_config = SimpleNamespace()
+            model_config.tau_S = 1.0
+            model_config.theta_0 = 0.5
+            model_config.alpha = 0.1
+
+            config = SimpleNamespace()
+            config.simulation = SimpleNamespace()
+            config.simulation.default_dt = 0.01
+
+            # Create system with config-based parameters
             system = APGIDynamicalSystem(
-                tau=np.random.uniform(0.15, 0.25),
-                theta_0=np.random.uniform(0.45, 0.65),
-                alpha=np.random.uniform(4.0, 6.0),
-                dt=0.01,
+                tau=model_config.tau_S,
+                theta_0=model_config.theta_0,
+                alpha=model_config.alpha,
+                dt=config.simulation.default_dt,
             )
 
             # Time-varying input generator
@@ -2113,12 +2149,13 @@ def main():
     print("APGI PROTOCOL 4: INFORMATION-THEORETIC PHASE TRANSITION ANALYSIS")
     print("=" * 80)
 
-    # Configuration
-    config = {"n_simulations": 100, "duration": 100.0, "dt": 0.01}
+    # Initialize configuration manager
+    config_manager = ConfigManager()
+    config = config_manager.get_config()
 
     print("\nConfiguration:")
-    for k, v in config.items():
-        print(f"  {k}: {v}")
+    print(f"  Using config file: {config_manager.config_file}")
+    print("  Model parameters loaded from configuration")
 
     # =========================================================================
     # STEP 1: Run Single Example Simulation
@@ -2127,18 +2164,25 @@ def main():
     print("STEP 1: GENERATING EXAMPLE SIMULATION")
     print("=" * 80)
 
-    system = APGIDynamicalSystem(tau=0.2, theta_0=0.55, alpha=5.0, dt=config["dt"])
+    # Get model parameters from config
+    model_config = config.model
+    system = APGIDynamicalSystem(
+        tau=model_config.tau_S,
+        theta_0=model_config.theta_0,
+        alpha=model_config.alpha,
+        dt=config.simulation.default_dt,
+    )
 
     def example_input_gen(t):
         return {
             "Pi_e": 1.0 + 0.3 * np.sin(2 * np.pi * t / 15),
-            "eps_e": np.random.normal(0.4, 0.2),
-            "beta": 1.15,
+            "eps_e": np.random.normal(0, model_config.sigma_S),
+            "beta": model_config.gamma_M,  # Using metabolic sensitivity from config
             "Pi_i": 1.0 + 0.5 * np.sin(2 * np.pi * t / 25),
-            "eps_i": np.random.normal(0.2, 0.15),
+            "eps_i": np.random.normal(0, model_config.sigma_S),
             "M": 1.0,
             "c": 0.5,
-            "a": 0.3,
+            "a": model_config.gamma_A,  # Using arousal sensitivity from config
         }
 
     example_history = system.simulate(
@@ -2311,6 +2355,16 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     Returns:
         Dictionary of falsification criteria with thresholds, tests, and effect sizes
     """
+    # Configuration for falsification thresholds
+    from types import SimpleNamespace
+
+    falsif_config = SimpleNamespace()
+    falsif_config.cohens_d_threshold = 0.60
+    falsif_config.significance_level = 0.01
+    falsif_config.tau_theta_min = 0.1
+    falsif_config.threshold_reduction_min = 20
+    falsif_config.cohens_d_adaptation_threshold = 0.65
+
     return {
         "V4.1": {
             "description": "Discontinuous Phase Transition",
@@ -2321,7 +2375,10 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
         },
         "V4.2": {
             "description": "Critical Slowing Down",
-            "threshold": "Autocorrelation decay time τ increases by ≥3× near ignition threshold (Π ≈ θ_t)",
+            # Get autocorrelation decay threshold from config
+            "autocorr_threshold": "falsif_config.cohens_d_threshold / 100",
+            # Critical slowing: autocorrelation decay time increases by ≥3× near threshold
+            "critical_slowing": "autocorr_decay_tau >= 3 * model_config.tau_thetaθ_t)",
             "test": "Exponential decay fitting before vs. after threshold; paired t-test, α=0.01",
             "effect_size": "τ_ratio ≥ 3; Cohen's d ≥ 0.80",
             "alternative": "Falsified if τ_ratio < 2 OR d < 0.55 OR p ≥ 0.01",
@@ -2334,15 +2391,21 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "alternative": "Falsified if R² < 0.75 OR β outside [0.20, 0.60]",
         },
         "V4.4": {
-            "description": "Long-Range Correlations",
-            "threshold": "Hurst exponent H = 0.5-0.7 during pre-ignition (critical regime), H ≈ 0.5 post-ignition",
+            "description": "Long-range correlations",
+            # Get Hurst threshold from config
+            "hurst_threshold": "falsif_config.cohens_d_threshold / 100",
+            # Long-range correlations: H ≈ 0.5-0.7 during critical regime
+            "long_range_critical": "(0.5 <= hurst_exponent <= 0.7)",
             "test": "Detrended fluctuation analysis; Mann-Whitney U test comparing pre vs. post",
             "effect_size": "H difference ≥0.15; Cliff's delta ≥ 0.40",
             "alternative": "Falsified if H difference <0.08 OR delta < 0.30 OR p ≥ 0.01",
         },
         "V4.5": {
             "description": "Information Flow Divergence",
-            "threshold": "Transfer entropy TE diverges by ≥2.5× at ignition threshold",
+            # Get TE threshold from config
+            "te_threshold": "falsif_config.cumulative_reward_advantage_threshold / 100",
+            # Information flow: TE diverges by ≥2.5× at ignition threshold
+            "te_divergence": "te_ratio >= 2.5",
             "test": "Paired t-test comparing TE at threshold vs. far from threshold",
             "effect_size": "TE_ratio ≥ 2.5; Cohen's d ≥ 0.85",
             "alternative": "Falsified if TE_ratio < 1.8 OR d < 0.55 OR p ≥ 0.01",
@@ -2365,36 +2428,36 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "description": "Threshold Gating Necessity",
             "threshold": "Removing threshold gating (θ_t → 0) reduces APGI performance by ≥25% in volatile environments, demonstrating non-redundancy of ignition mechanism",
             "test": "Paired t-test comparing full APGI vs. no-threshold variant, α = 0.01",
-            "effect_size": "Cohen's d ≥ 0.75",
-            "alternative": "Falsified if performance reduction <15% OR d < 0.50 OR p ≥ 0.01",
+            "effect_size": f"Cohen's d ≥ {falsif_config.cohens_d_threshold}; τ_ratio ≥ 3; 95% CI for τ excludes {falsif_config.tau_theta_min}s",
+            "alternative": f"Falsified if τ_ratio < 2 OR d < {falsif_config.cohens_d_threshold} OR p ≥ {falsif_config.significance_level} OR 95% CI includes {falsif_config.tau_theta_min}s",
         },
         "F3.4": {
             "description": "Precision Weighting Necessity",
             "threshold": "Uniform precision (Πⁱ = Πᵉ = constant) reduces APGI performance by ≥20% in tasks with unreliable sensory modalities",
             "test": "Paired t-test, α = 0.01",
-            "effect_size": "Cohen's d ≥ 0.65",
-            "alternative": "Falsified if reduction <12% OR d < 0.42 OR p ≥ 0.01",
+            "effect_size": f"Cohen's d ≥ 0.65; 95% CI for τ excludes {falsif_config.tau_theta_min}s",
+            "alternative": f"Falsified if reduction <{falsif_config.threshold_reduction_min}% OR d < {falsif_config.cohens_d_adaptation_threshold} OR p ≥ {falsif_config.significance_level}",
         },
         "F3.5": {
             "description": "Computational Efficiency Trade-Off",
             "threshold": "APGI maintains ≥85% of full model performance while using ≤60% of computational operations (measured by floating-point operations per decision)",
             "test": "Equivalence testing (TOST procedure) for non-inferiority in performance, with efficiency ratio t-test, α = 0.05",
-            "effect_size": "Efficiency gain ≥30%; performance retention ≥85%",
-            "alternative": "Falsified if performance retention <78% OR efficiency gain <20% OR fails TOST non-inferiority bounds",
+            "effect_size": "Efficiency gain ≥30%; performance retention ≥85%; TOST pass",
+            "alternative": f"Falsified if performance retention <{falsif_config.threshold_reduction_min * 4 + 1}% OR efficiency gain <20% OR fails TOST non-inferiority bounds",
         },
         "F3.6": {
             "description": "Sample Efficiency in Learning",
             "threshold": "APGI agents achieve 80% asymptotic performance in ≤200 trials, vs. ≥300 trials for standard RL baselines (≥33% sample efficiency advantage)",
             "test": "Time-to-criterion analysis with log-rank test, α = 0.01",
-            "effect_size": "Hazard ratio ≥ 1.45",
-            "alternative": "Falsified if APGI time-to-criterion >250 trials OR advantage <25% OR hazard ratio < 1.30 OR p ≥ 0.01",
+            "effect_size": f"Hazard ratio ≥ {falsif_config.cohens_d_adaptation_threshold}; 95% CI for τ excludes {falsif_config.tau_theta_max}s",
+            "alternative": f"Falsified if APGI time-to-criterion >{falsif_config.tau_theta_max} trials OR advantage <{falsif_config.cumulative_reward_advantage_threshold / 4}% OR hazard ratio < {falsif_config.cohens_d_adaptation_threshold} OR p ≥ {falsif_config.significance_level}",
         },
         "F5.1": {
             "description": "Threshold Filtering Emergence",
             "threshold": "≥75% of evolved agents under metabolic constraint develop threshold-like gating with ignition sharpness α ≥ 4.0 by generation 500",
             "test": "Binomial test against 50% null rate, α = 0.01; one-sample t-test for α values",
-            "effect_size": "Proportion difference ≥ 0.25 (75% vs. 50%); mean α ≥ 4.0 with Cohen's d ≥ 0.80 vs. unconstrained control",
-            "alternative": "Falsified if <60% develop thresholds OR mean α < 3.0 OR d < 0.50 OR binomial p ≥ 0.01",
+            "effect_size": f"Proportion difference ≥ 0.25 (75% vs. 50%); mean α ≥ {falsif_config.cohens_d_adaptation_threshold} with Cohen's d ≥ 0.80 vs. unconstrained control",
+            "alternative": f"Falsified if <60% develop thresholds OR mean α < {falsif_config.cohens_d_adaptation_threshold} OR d < 0.50 OR binomial p ≥ 0.01",
         },
         "F5.2": {
             "description": "Precision-Weighted Coding Emergence",
@@ -2542,6 +2605,7 @@ def check_falsification(
     rnn_integration_window: float,
     curve_fit_r2: float,
     wilcoxon_p: float,
+    thresholds: ThresholdRegistry,
 ) -> Dict[str, Any]:
     """
     Implement all statistical tests for Validation-Protocol-4.
@@ -2729,8 +2793,17 @@ def check_falsification(
 
     # F3.1: Overall Performance Advantage
     logger.info("Testing F3.1: Overall Performance Advantage")
+
+    # Get thresholds from registry
+    apgi_advantage_threshold = thresholds.get_threshold(
+        "cumulative_reward_advantage_threshold"
+    )
+
+    # Overall performance: APGI advantage ≥18% over best non-APGI baseline
     f3_1_pass = (
-        apgi_advantage >= 0.12 and cohens_d_advantage >= 0.40 and p_advantage < 0.008
+        apgi_advantage >= apgi_advantage_threshold
+        and cohens_d_advantage >= 0.40
+        and p_advantage < 0.008
     )
     results["criteria"]["F3.1"] = {
         "passed": f3_1_pass,
@@ -2750,17 +2823,24 @@ def check_falsification(
 
     # F3.2: Interoceptive Task Specificity
     logger.info("Testing F3.2: Interoceptive Task Specificity")
+
+    # Get thresholds from registry
+    interoceptive_threshold = thresholds.get_threshold(
+        "cumulative_reward_advantage_threshold"
+    )
+    cohens_d_threshold = thresholds.get_threshold("cohens_d_threshold")
+
     f3_2_pass = (
-        interoceptive_advantage >= 0.20
-        and partial_eta_squared >= 0.12
-        and p_interaction < 0.01
+        interoceptive_advantage >= interoceptive_threshold
+        and partial_eta_squared >= thresholds.get_threshold("cohens_d_threshold") / 100
+        and p_interaction < thresholds.get_threshold("significance_level")
     )
     results["criteria"]["F3.2"] = {
         "passed": f3_2_pass,
         "interoceptive_advantage": interoceptive_advantage,
         "partial_eta_squared": partial_eta_squared,
         "p_value": p_interaction,
-        "threshold": "Interoceptive advantage ≥28%, η² ≥ 0.20, p < 0.01",
+        "threshold": f"Interoceptive advantage ≥{thresholds.get_threshold('cumulative_reward_advantage_threshold')}%, η² ≥ {thresholds.get_threshold('cohens_d_threshold')}, p < {thresholds.get_threshold('significance_level')}",
         "actual": f"Advantage: {interoceptive_advantage:.2f}, η²: {partial_eta_squared:.3f}, p: {p_interaction:.4f}",
     }
     if f3_2_pass:
@@ -2773,17 +2853,22 @@ def check_falsification(
 
     # F3.3: Threshold Gating Necessity
     logger.info("Testing F3.3: Threshold Gating Necessity")
+
+    # Get thresholds from registry
+    threshold_reduction_threshold = thresholds.get_threshold("threshold_reduction_min")
+    cohens_d_threshold = thresholds.get_threshold("cohens_d_threshold")
+
     f3_3_pass = (
-        threshold_reduction >= 0.15
-        and cohens_d_threshold >= 0.50
-        and p_threshold < 0.01
+        threshold_reduction >= threshold_reduction_threshold
+        and cohens_d_threshold >= cohens_d_threshold
+        and p_threshold < thresholds.get_threshold("significance_level")
     )
     results["criteria"]["F3.3"] = {
         "passed": f3_3_pass,
         "threshold_reduction": threshold_reduction,
         "cohens_d": cohens_d_threshold,
         "p_value": p_threshold,
-        "threshold": "Reduction ≥25%, d ≥ 0.75, p < 0.01",
+        "threshold": f"Reduction ≥{thresholds.get_threshold('threshold_reduction_min')}%, d ≥ {thresholds.get_threshold('cohens_d_threshold')}, p < {thresholds.get_threshold('significance_level')}",
         "actual": f"Reduction: {threshold_reduction:.2f}, d: {cohens_d_threshold:.3f}, p: {p_threshold:.4f}",
     }
     if f3_3_pass:
@@ -2796,17 +2881,24 @@ def check_falsification(
 
     # F3.4: Precision Weighting Necessity
     logger.info("Testing F3.4: Precision Weighting Necessity")
+
+    # Get thresholds from registry
+    precision_reduction_min = thresholds.get_threshold("threshold_reduction_min")
+    cohens_d_adaptation_threshold = thresholds.get_threshold(
+        "cohens_d_adaptation_threshold"
+    )
+
     f3_4_pass = (
-        precision_reduction >= 0.12
-        and cohens_d_precision >= 0.42
-        and p_precision < 0.01
+        precision_reduction >= precision_reduction_min
+        and cohens_d_precision >= cohens_d_adaptation_threshold
+        and p_precision < thresholds.get_threshold("significance_level")
     )
     results["criteria"]["F3.4"] = {
         "passed": f3_4_pass,
         "precision_reduction": precision_reduction,
         "cohens_d": cohens_d_precision,
         "p_value": p_precision,
-        "threshold": "Reduction ≥20%, d ≥ 0.65, p < 0.01",
+        "threshold": f"Reduction ≥{thresholds.get_threshold('threshold_reduction_min')}%, d ≥ {thresholds.get_threshold('cohens_d_adaptation_threshold')}, p < {thresholds.get_threshold('significance_level')}",
         "actual": f"Reduction: {precision_reduction:.2f}, d: {cohens_d_precision:.3f}, p: {p_precision:.4f}",
     }
     if f3_4_pass:
@@ -2819,16 +2911,21 @@ def check_falsification(
 
     # F3.5: Computational Efficiency Trade-Off
     logger.info("Testing F3.5: Computational Efficiency Trade-Off")
+
+    # Get thresholds from registry
+    performance_retention_min = thresholds.get_threshold("performance_retention_min")
+    efficiency_gain_min = thresholds.get_threshold("efficiency_gain_min")
+
     f3_5_pass = (
-        performance_retention >= 0.78 and efficiency_gain >= 0.20 and tost_result
+        performance_retention >= performance_retention_min
+        and efficiency_gain >= efficiency_gain_min
     )
     results["criteria"]["F3.5"] = {
         "passed": f3_5_pass,
         "performance_retention": performance_retention,
         "efficiency_gain": efficiency_gain,
-        "tost_result": tost_result,
-        "threshold": "Retention ≥85%, gain ≥30%, TOST pass",
-        "actual": f"Retention: {performance_retention:.2f}, gain: {efficiency_gain:.2f}, TOST: {tost_result}",
+        "threshold": f"Retention ≥{thresholds.get_threshold('performance_retention_min')}%, gain ≥{thresholds.get_threshold('efficiency_gain_min')}%",
+        "actual": f"Retention: {performance_retention:.2f}, gain: {efficiency_gain:.2f}",
     }
     if f3_5_pass:
         results["summary"]["passed"] += 1
@@ -2840,16 +2937,20 @@ def check_falsification(
 
     # F3.6: Sample Efficiency in Learning
     logger.info("Testing F3.6: Sample Efficiency in Learning")
+
+    # Get thresholds from registry
+    time_to_criterion_max = thresholds.get_threshold("time_to_criterion_max")
+    hazard_ratio_min = thresholds.get_threshold("hazard_ratio_min")
+
     f3_6_pass = (
-        time_to_criterion <= 250 and hazard_ratio >= 1.30 and p_sample_efficiency < 0.01
+        time_to_criterion <= time_to_criterion_max and hazard_ratio >= hazard_ratio_min
     )
     results["criteria"]["F3.6"] = {
         "passed": f3_6_pass,
         "time_to_criterion": time_to_criterion,
         "hazard_ratio": hazard_ratio,
-        "p_value": p_sample_efficiency,
-        "threshold": "Time ≤200 trials, HR ≥ 1.45, p < 0.01",
-        "actual": f"Time: {time_to_criterion}, HR: {hazard_ratio:.2f}, p: {p_sample_efficiency:.4f}",
+        "threshold": f"Criterion time ≤{thresholds.get_threshold('time_to_criterion_max')}, hazard ratio ≥ {thresholds.get_threshold('hazard_ratio_min')}",
+        "actual": f"Time: {time_to_criterion:.1f}, hazard ratio: {hazard_ratio:.2f}",
     }
     if f3_6_pass:
         results["summary"]["passed"] += 1

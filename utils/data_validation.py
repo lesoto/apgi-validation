@@ -115,7 +115,15 @@ class DataValidator:
                 results["is_readable"] = True
                 results["format_valid"] = self._validate_csv_structure(df, results)
             elif file_path.suffix.lower() == ".json":
-                with open(file_path, "r") as f:
+                # Check file size before loading to prevent memory exhaustion
+                file_size_mb = file_path.stat().st_size / (1024 * 1024)
+                max_size_mb = getattr(self.config, "max_json_size_mb", 50)
+                if file_size_mb > max_size_mb:
+                    results["errors"].append(
+                        f"JSON file too large: {file_size_mb:.1f}MB (max: {max_size_mb}MB)"
+                    )
+                    return results
+                with open(file_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 results["is_readable"] = True
                 results["format_valid"] = self._validate_json_structure(data, results)
@@ -729,7 +737,14 @@ class DataPreprocessor(DataValidator):
         if file_path.suffix.lower() == ".csv":
             df = pd.read_csv(file_path)
         elif file_path.suffix.lower() == ".json":
-            with open(file_path, "r") as f:
+            # Check file size before loading to prevent memory exhaustion
+            file_size_mb = file_path.stat().st_size / (1024 * 1024)
+            max_size_mb = getattr(self.config, "max_json_size_mb", 50)
+            if file_size_mb > max_size_mb:
+                raise ValueError(
+                    f"JSON file too large: {file_size_mb:.1f}MB (max: {max_size_mb}MB)"
+                )
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             df = pd.DataFrame(data["data"])
         elif file_path.suffix.lower() in [".h5", ".hdf5"]:

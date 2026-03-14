@@ -740,7 +740,7 @@ def check_falsification(
     t_stat, p_value = stats.ttest_ind(apgi_rewards, pp_rewards)
     mean_apgi = np.mean(apgi_rewards)
     mean_pp = np.mean(pp_rewards)
-    advantage_pct = ((mean_apgi - mean_pp) / mean_pp) * 100
+    advantage_pct = ((mean_apgi - mean_pp) / mean_pp) * 100 if mean_pp != 0 else 0.0
 
     # Cohen's d
     pooled_std = np.sqrt(
@@ -750,9 +750,16 @@ def check_falsification(
         )
         / (len(apgi_rewards) + len(pp_rewards) - 2)
     )
-    cohens_d = (mean_apgi - mean_pp) / pooled_std
+    cohens_d = (mean_apgi - mean_pp) / pooled_std if pooled_std > 0 else 0.0
 
-    f1_1_pass = advantage_pct >= 18 and cohens_d >= 0.60 and p_value < 0.01
+    f1_1_pass = (
+        np.isfinite(advantage_pct)
+        and np.isfinite(cohens_d)
+        and np.isfinite(p_value)
+        and advantage_pct >= 18
+        and cohens_d >= 0.60
+        and p_value < 0.01
+    )
     results["criteria"]["F1.1"] = {
         "passed": f1_1_pass,
         "advantage_pct": advantage_pct,
@@ -778,7 +785,11 @@ def check_falsification(
     timescales_array = np.array(timescales).reshape(-1, 1)
     kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
     clusters = kmeans.fit_predict(timescales_array)
-    silhouette = silhouette_score(timescales_array, clusters)
+    silhouette = (
+        silhouette_score(timescales_array, clusters)
+        if len(np.unique(clusters)) > 1
+        else -1
+    )  # Silhouette requires >1 cluster
 
     # One-way ANOVA
     cluster_means = [timescales[clusters == i] for i in range(3)]
@@ -789,9 +800,16 @@ def check_falsification(
     ss_between = sum(
         len(cm) * (np.mean(cm) - np.mean(timescales)) ** 2 for cm in cluster_means
     )
-    eta_squared = ss_between / ss_total
+    eta_squared = ss_between / ss_total if ss_total > 0 else 0.0
 
-    f1_2_pass = silhouette >= 0.30 and eta_squared >= 0.50 and p_anova < 0.001
+    f1_2_pass = (
+        np.isfinite(silhouette)
+        and np.isfinite(eta_squared)
+        and np.isfinite(p_anova)
+        and silhouette >= 0.30
+        and eta_squared >= 0.50
+        and p_anova < 0.001
+    )
     results["criteria"]["F1.2"] = {
         "passed": f1_2_pass,
         "n_clusters": len(np.unique(clusters)),
@@ -815,17 +833,27 @@ def check_falsification(
     level1_precision = np.array([pw[0] for pw in precision_weights])
     level3_precision = np.array([pw[1] for pw in precision_weights])
     precision_diff_pct = (
-        (level1_precision - level3_precision) / level3_precision
-    ) * 100
+        ((level1_precision - level3_precision) / level3_precision) * 100
+        if np.all(level3_precision != 0)
+        else np.zeros_like(level1_precision)
+    )
     mean_diff = np.mean(precision_diff_pct)
 
     # Repeated-measures ANOVA (simplified as paired t-test for level comparison)
     t_stat, p_rm = stats.ttest_rel(level1_precision, level3_precision)
-    cohens_d_rm = np.mean(level1_precision - level3_precision) / np.std(
-        level1_precision - level3_precision, ddof=1
+    denom = np.std(level1_precision - level3_precision, ddof=1)
+    cohens_d_rm = (
+        np.mean(level1_precision - level3_precision) / denom if denom > 0 else 0.0
     )
 
-    f1_3_pass = mean_diff >= 15 and cohens_d_rm >= 0.35 and p_rm < 0.01
+    f1_3_pass = (
+        np.isfinite(mean_diff)
+        and np.isfinite(cohens_d_rm)
+        and np.isfinite(p_rm)
+        and mean_diff >= 15
+        and cohens_d_rm >= 0.35
+        and p_rm < 0.01
+    )
     results["criteria"]["F1.3"] = {
         "passed": f1_3_pass,
         "mean_precision_diff_pct": mean_diff,
@@ -850,11 +878,17 @@ def check_falsification(
     # Paired t-test (pre vs post adaptation)
     # Assuming threshold_adaptation contains reduction percentages
     t_stat, p_adapt = stats.ttest_1samp(threshold_adaptation, 0)
-    cohens_d_adapt = np.mean(threshold_adaptation) / np.std(
-        threshold_adaptation, ddof=1
-    )
+    denom = np.std(threshold_adaptation, ddof=1)
+    cohens_d_adapt = np.mean(threshold_adaptation) / denom if denom > 0 else 0.0
 
-    f1_4_pass = threshold_reduction >= 20 and cohens_d_adapt >= 0.70 and p_adapt < 0.01
+    f1_4_pass = (
+        np.isfinite(threshold_reduction)
+        and np.isfinite(cohens_d_adapt)
+        and np.isfinite(p_adapt)
+        and threshold_reduction >= 20
+        and cohens_d_adapt >= 0.70
+        and p_adapt < 0.01
+    )
     results["criteria"]["F1.4"] = {
         "passed": f1_4_pass,
         "threshold_reduction_pct": threshold_reduction,
@@ -876,14 +910,17 @@ def check_falsification(
     logger.info("Testing F1.5: Cross-Level Phase-Amplitude Coupling")
     pac_baseline = np.array([pac[0] for pac in pac_mi])
     pac_ignition = np.array([pac[1] for pac in pac_mi])
-    pac_increase = ((pac_ignition - pac_baseline) / pac_baseline) * 100
+    pac_increase = (
+        ((pac_ignition - pac_baseline) / pac_baseline) * 100
+        if np.all(pac_baseline != 0)
+        else np.zeros_like(pac_ignition)
+    )
     mean_pac_increase = np.mean(pac_increase)
 
     # Paired t-test
     t_stat, p_pac = stats.ttest_rel(pac_ignition, pac_baseline)
-    cohens_d_pac = np.mean(pac_ignition - pac_baseline) / np.std(
-        pac_ignition - pac_baseline, ddof=1
-    )
+    denom = np.std(pac_ignition - pac_baseline, ddof=1)
+    cohens_d_pac = np.mean(pac_ignition - pac_baseline) / denom if denom > 0 else 0.0
 
     # Permutation test (simplified)
     n_permutations = 10000
@@ -897,7 +934,11 @@ def check_falsification(
     )
 
     f1_5_pass = (
-        mean_pac_increase >= 30
+        np.isfinite(mean_pac_increase)
+        and np.isfinite(cohens_d_pac)
+        and np.isfinite(p_pac)
+        and np.isfinite(perm_p)
+        and mean_pac_increase >= 30
         and cohens_d_pac >= 0.50
         and p_pac < 0.01
         and perm_p < 0.01
@@ -930,18 +971,24 @@ def check_falsification(
 
     # Paired t-test
     t_stat, p_slope = stats.ttest_rel(low_arousal_slopes, active_slopes)
-    cohens_d_slope = np.mean(low_arousal_slopes - active_slopes) / np.std(
-        low_arousal_slopes - active_slopes, ddof=1
+    denom = np.std(low_arousal_slopes - active_slopes, ddof=1)
+    cohens_d_slope = (
+        np.mean(low_arousal_slopes - active_slopes) / denom if denom > 0 else 0.0
     )
 
     # Goodness of fit (R²)
     residuals = active_slopes - mean_active
     ss_res = np.sum(residuals**2)
     ss_tot = np.sum((active_slopes - np.mean(active_slopes)) ** 2)
-    r_squared = 1 - (ss_res / ss_tot)
+    r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
 
     f1_6_pass = (
-        mean_active <= 1.4
+        np.isfinite(mean_active)
+        and np.isfinite(mean_low_arousal)
+        and np.isfinite(delta_slope)
+        and np.isfinite(cohens_d_slope)
+        and np.isfinite(r_squared)
+        and mean_active <= 1.4
         and mean_low_arousal >= 1.3
         and delta_slope >= 0.25
         and cohens_d_slope >= 0.50
@@ -973,7 +1020,7 @@ def check_falsification(
     t_stat, p_value = stats.ttest_ind(apgi_rewards, pp_rewards, equal_var=False)
     mean_apgi = np.mean(apgi_rewards)
     mean_pp = np.mean(pp_rewards)
-    advantage_pct = ((mean_apgi - mean_pp) / mean_pp) * 100
+    advantage_pct = ((mean_apgi - mean_pp) / mean_pp) * 100 if mean_pp != 0 else 0.0
 
     # Cohen's d
     pooled_std = np.sqrt(
@@ -983,9 +1030,16 @@ def check_falsification(
         )
         / (len(apgi_rewards) + len(pp_rewards) - 2)
     )
-    cohens_d = (mean_apgi - mean_pp) / pooled_std
+    cohens_d = (mean_apgi - mean_pp) / pooled_std if pooled_std > 0 else 0.0
 
-    f3_1_pass = advantage_pct >= 18 and cohens_d >= 0.60 and p_value < 0.008
+    f3_1_pass = (
+        np.isfinite(advantage_pct)
+        and np.isfinite(cohens_d)
+        and np.isfinite(p_value)
+        and advantage_pct >= 18
+        and cohens_d >= 0.60
+        and p_value < 0.008
+    )
     results["criteria"]["F3.1"] = {
         "passed": f3_1_pass,
         "advantage_pct": advantage_pct,
@@ -1007,12 +1061,16 @@ def check_falsification(
     logger.info("Testing F3.2: Interoceptive Task Specificity")
     # Two-way mixed ANOVA (simplified as t-test for interoceptive advantage)
     t_stat, p_value = stats.ttest_1samp([interoceptive_task_advantage], 12)
-    cohens_d = (interoceptive_task_advantage - 12) / np.std(
-        [interoceptive_task_advantage, 12], ddof=1
-    )
+    denom = np.std([interoceptive_task_advantage, 12], ddof=1)
+    cohens_d = (interoceptive_task_advantage - 12) / denom if denom > 0 else 0.0
 
     f3_2_pass = (
-        interoceptive_task_advantage >= 28 and cohens_d >= 0.70 and p_value < 0.01
+        np.isfinite(interoceptive_task_advantage)
+        and np.isfinite(cohens_d)
+        and np.isfinite(p_value)
+        and interoceptive_task_advantage >= 28
+        and cohens_d >= 0.70
+        and p_value < 0.01
     )
     results["criteria"]["F3.2"] = {
         "passed": f3_2_pass,
@@ -1035,12 +1093,16 @@ def check_falsification(
     logger.info("Testing F3.3: Threshold Gating Necessity")
     # Paired t-test comparing full APGI vs. no-threshold variant
     t_stat, p_value = stats.ttest_1samp([threshold_removal_reduction], 0)
-    cohens_d = threshold_removal_reduction / np.std(
-        [threshold_removal_reduction], ddof=1
-    )
+    denom = np.std([threshold_removal_reduction], ddof=1)
+    cohens_d = threshold_removal_reduction / denom if denom > 0 else 0.0
 
     f3_3_pass = (
-        threshold_removal_reduction >= 25 and cohens_d >= 0.75 and p_value < 0.01
+        np.isfinite(threshold_removal_reduction)
+        and np.isfinite(cohens_d)
+        and np.isfinite(p_value)
+        and threshold_removal_reduction >= 25
+        and cohens_d >= 0.75
+        and p_value < 0.01
     )
     results["criteria"]["F3.3"] = {
         "passed": f3_3_pass,
@@ -1063,12 +1125,16 @@ def check_falsification(
     logger.info("Testing F3.4: Precision Weighting Necessity")
     # Paired t-test
     t_stat, p_value = stats.ttest_1samp([precision_uniform_reduction], 0)
-    cohens_d = precision_uniform_reduction / np.std(
-        [precision_uniform_reduction], ddof=1
-    )
+    denom = np.std([precision_uniform_reduction], ddof=1)
+    cohens_d = precision_uniform_reduction / denom if denom > 0 else 0.0
 
     f3_4_pass = (
-        precision_uniform_reduction >= 20 and cohens_d >= 0.65 and p_value < 0.01
+        np.isfinite(precision_uniform_reduction)
+        and np.isfinite(cohens_d)
+        and np.isfinite(p_value)
+        and precision_uniform_reduction >= 20
+        and cohens_d >= 0.65
+        and p_value < 0.01
     )
     results["criteria"]["F3.4"] = {
         "passed": f3_4_pass,
@@ -1116,7 +1182,12 @@ def check_falsification(
     hazard_ratio = 300 / sample_efficiency_trials if sample_efficiency_trials > 0 else 0
 
     f3_6_pass = (
-        sample_efficiency_trials <= 200 and hazard_ratio >= 1.45 and p_value < 0.01
+        np.isfinite(sample_efficiency_trials)
+        and np.isfinite(hazard_ratio)
+        and np.isfinite(p_value)
+        and sample_efficiency_trials <= 200
+        and hazard_ratio >= 1.45
+        and p_value < 0.01
     )
     results["criteria"]["F3.6"] = {
         "passed": f3_6_pass,
@@ -1145,7 +1216,11 @@ def check_falsification(
     cohens_d = (mean_alpha - 3.0) / 0.5  # vs. unconstrained control
 
     f5_1_pass = (
-        threshold_emergence_proportion >= 0.75
+        np.isfinite(threshold_emergence_proportion)
+        and np.isfinite(mean_alpha)
+        and np.isfinite(cohens_d)
+        and np.isfinite(result.pvalue)
+        and threshold_emergence_proportion >= 0.75
         and mean_alpha >= 4.0
         and cohens_d >= 0.80
         and result.pvalue < 0.01
@@ -1173,7 +1248,10 @@ def check_falsification(
     mean_r = 0.45  # Assume mean correlation
 
     f5_2_pass = (
-        precision_emergence_proportion >= 0.65
+        np.isfinite(precision_emergence_proportion)
+        and np.isfinite(mean_r)
+        and np.isfinite(result.pvalue)
+        and precision_emergence_proportion >= 0.65
         and mean_r >= 0.45
         and result.pvalue < 0.01
     )
@@ -1200,7 +1278,11 @@ def check_falsification(
     cohens_d = (mean_ratio - 1.15) / 0.1  # vs. no-survival control
 
     f5_3_pass = (
-        intero_gain_ratio_proportion >= 0.70
+        np.isfinite(intero_gain_ratio_proportion)
+        and np.isfinite(mean_ratio)
+        and np.isfinite(cohens_d)
+        and np.isfinite(result.pvalue)
+        and intero_gain_ratio_proportion >= 0.70
         and mean_ratio >= 1.3
         and cohens_d >= 0.60
         and result.pvalue < 0.01
@@ -1228,7 +1310,10 @@ def check_falsification(
     peak_separation = 3.0  # Assume separation in timescales
 
     f5_4_pass = (
-        multi_timescale_proportion >= 0.60
+        np.isfinite(multi_timescale_proportion)
+        and np.isfinite(peak_separation)
+        and np.isfinite(result.pvalue)
+        and multi_timescale_proportion >= 0.60
         and peak_separation >= 3.0
         and result.pvalue < 0.01
     )
@@ -1271,12 +1356,16 @@ def check_falsification(
     t_stat, p_value = stats.ttest_ind(
         [control_performance_difference], [0], equal_var=False
     )
-    cohens_d = control_performance_difference / np.std(
-        [control_performance_difference], ddof=1
-    )
+    denom = np.std([control_performance_difference], ddof=1)
+    cohens_d = control_performance_difference / denom if denom > 0 else 0.0
 
     f5_6_pass = (
-        control_performance_difference >= 40 and cohens_d >= 0.85 and p_value < 0.01
+        np.isfinite(control_performance_difference)
+        and np.isfinite(cohens_d)
+        and np.isfinite(p_value)
+        and control_performance_difference >= 40
+        and cohens_d >= 0.85
+        and p_value < 0.01
     )
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
@@ -1305,7 +1394,14 @@ def check_falsification(
         ltcn_transition_time, rnn_transition_time
     )
 
-    f6_1_pass = ltcn_transition_time <= 50 and cliff_delta >= 0.60 and p_value < 0.01
+    f6_1_pass = (
+        np.isfinite(ltcn_transition_time)
+        and np.isfinite(cliff_delta)
+        and np.isfinite(p_value)
+        and ltcn_transition_time <= 50
+        and cliff_delta >= 0.60
+        and p_value < 0.01
+    )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
         "ltcn_time": ltcn_transition_time,
@@ -1332,7 +1428,14 @@ def check_falsification(
         else 0
     )
 
-    f6_2_pass = ltcn_integration_window >= 200 and ratio >= 4.0 and p_value < 0.01
+    f6_2_pass = (
+        np.isfinite(ltcn_integration_window)
+        and np.isfinite(ratio)
+        and np.isfinite(p_value)
+        and ltcn_integration_window >= 200
+        and ratio >= 4.0
+        and p_value < 0.01
+    )
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
         "ltcn_window": ltcn_integration_window,
@@ -1355,11 +1458,19 @@ def check_falsification(
     t_stat, p_value = stats.ttest_rel(
         [ltcn_sparsity_reduction], [rnn_sparsity_reduction]
     )
-    cohens_d = (ltcn_sparsity_reduction - rnn_sparsity_reduction) / np.std(
-        [ltcn_sparsity_reduction, rnn_sparsity_reduction], ddof=1
+    denom = np.std([ltcn_sparsity_reduction, rnn_sparsity_reduction], ddof=1)
+    cohens_d = (
+        (ltcn_sparsity_reduction - rnn_sparsity_reduction) / denom if denom > 0 else 0.0
     )
 
-    f6_3_pass = ltcn_sparsity_reduction >= 30 and cohens_d >= 0.70 and p_value < 0.01
+    f6_3_pass = (
+        np.isfinite(ltcn_sparsity_reduction)
+        and np.isfinite(cohens_d)
+        and np.isfinite(p_value)
+        and ltcn_sparsity_reduction >= 30
+        and cohens_d >= 0.70
+        and p_value < 0.01
+    )
     results["criteria"]["F6.3"] = {
         "passed": f6_3_pass,
         "ltcn_reduction": ltcn_sparsity_reduction,

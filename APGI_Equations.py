@@ -246,7 +246,12 @@ class CoreIgnitionSystem:
         Returns:
             Broadcast probability B(t) ∈ [0, 1]
         """
-        return 1.0 / (1.0 + np.exp(-alpha * (S - theta)))
+        z = alpha * (S - theta)
+        if z >= 0:
+            return 1.0 / (1.0 + np.exp(-z))
+        else:
+            z_exp = np.exp(z)
+            return z_exp / (1.0 + z_exp)
 
 
 # =============================================================================
@@ -2599,8 +2604,13 @@ class EnhancedSurpriseIgnitionSystem:
             self.history[key].clear()
 
     def sigmoid(self, x: float) -> float:
-        """Sigmoid function with CORRECTED α range"""
-        return 1.0 / (1.0 + np.exp(-self.params.alpha * x))
+        """Sigmoid function with overflow protection"""
+        z = self.params.alpha * x
+        if z >= 0:
+            return 1.0 / (1.0 + np.exp(-z))
+        else:
+            z_exp = np.exp(z)
+            return z_exp / (1.0 + z_exp)
 
     def compute_domain_threshold(self, content_domain: str) -> float:
         """Compute threshold based on content domain"""

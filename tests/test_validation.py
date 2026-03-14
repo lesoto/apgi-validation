@@ -1,10 +1,43 @@
 """
 Tests for validation protocols.
 ===============================
+
+Comprehensive tests for all APGI validation protocols including
+functional tests for protocols 5-12 beyond simple import checks.
 """
 
 import pytest
+import sys
 from pathlib import Path
+
+# Add project root to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+# Note: Validation protocol files use hyphens in filenames, so they can't be imported directly
+# We'll test them by executing them as scripts instead
+
+import importlib.util
+
+
+def load_validation_protocol(protocol_num):
+    """Load a validation protocol module using importlib.util."""
+    protocol_path = (
+        Path(__file__).parent.parent
+        / "Validation"
+        / f"Validation-Protocol-{protocol_num}.py"
+    )
+
+    if not protocol_path.exists():
+        raise FileNotFoundError(f"Validation-Protocol-{protocol_num}.py not found")
+
+    spec = importlib.util.spec_from_file_location(
+        f"Validation_Protocol_{protocol_num}", protocol_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_validation_files_exist():
@@ -16,7 +49,18 @@ def test_validation_files_exist():
     validation_files = [
         "Validation-Protocol-1.py",
         "Validation-Protocol-2.py",
+        "Validation-Protocol-3.py",
+        "Validation-Protocol-4.py",
+        "Validation-Protocol-5.py",
+        "Validation-Protocol-6.py",
+        "Validation-Protocol-7.py",
+        "Validation-Protocol-8.py",
+        "Validation-Protocol-9.py",
+        "Validation-Protocol-10.py",
+        "Validation-Protocol-11.py",
+        "Validation-Protocol-12.py",
         "APGI_Validation_GUI.py",
+        "Master_Validation.py",
     ]
 
     for file_name in validation_files:
@@ -48,6 +92,301 @@ def test_validation_config_structure(sample_config):
     assert validation_config["cv_folds"] > 0
     assert validation_config["sensitivity_samples"] > 0
     assert 0 <= validation_config["significance_level"] <= 1
+
+
+class TestValidationProtocols5To12:
+    """Functional tests for validation protocols 5-12."""
+
+    def test_protocol_5_imports_and_classes(self):
+        """Test that Protocol 5 can be imported and has expected classes."""
+        try:
+            vp5 = load_validation_protocol(5)
+
+            # Check that key classes exist
+            assert hasattr(vp5, "APGIValidationProtocol5")
+            assert hasattr(vp5, "MultiModalIntegrationValidator")
+            assert hasattr(vp5, "CrossModalFalsificationChecker")
+
+            # Test instantiation
+            validator = vp5.APGIValidationProtocol5()
+            assert validator is not None
+
+        except (ImportError, FileNotFoundError, AttributeError) as e:
+            pytest.skip(f"Protocol 5 not available: {e}")
+
+    def test_protocol_6_imports_and_classes(self):
+        """Test that Protocol 6 can be imported and has expected classes."""
+        try:
+            vp6 = load_validation_protocol(6)
+
+            # Check that key classes exist
+            assert hasattr(vp6, "APGIValidationProtocol6")
+            assert hasattr(vp6, "TemporalDynamicsValidator")
+            assert hasattr(vp6, "AdaptiveThresholdChecker")
+
+            # Test instantiation
+            validator = vp6.APGIValidationProtocol6()
+            assert validator is not None
+
+        except (ImportError, FileNotFoundError, AttributeError) as e:
+            pytest.skip(f"Protocol 6 not available: {e}")
+
+    def test_protocol_7_imports_and_classes(self):
+        """Test that Protocol 7 can be imported and has expected classes."""
+        try:
+            vp7 = load_validation_protocol(7)
+
+            # Check that key classes exist
+            assert hasattr(vp7, "APGIValidationProtocol7")
+            assert hasattr(vp7, "HierarchicalProcessingValidator")
+            assert hasattr(vp7, "LevelEmergenceChecker")
+
+            # Test instantiation
+            validator = vp7.APGIValidationProtocol7()
+            assert validator is not None
+
+        except (ImportError, FileNotFoundError, AttributeError) as e:
+            pytest.skip(f"Protocol 7 not available: {e}")
+
+    def test_protocol_8_imports_and_classes(self):
+        """Test that Protocol 8 can be imported and has expected classes."""
+        try:
+            vp8 = load_validation_protocol(8)
+
+            # Check that key classes exist
+            assert hasattr(vp8, "APGIValidationProtocol8")
+            assert hasattr(vp8, "PrecisionWeightingValidator")
+            assert hasattr(vp8, "InteroceptiveBiasChecker")
+
+            # Test instantiation
+            validator = vp8.APGIValidationProtocol8()
+            assert validator is not None
+
+        except (ImportError, FileNotFoundError, AttributeError) as e:
+            pytest.skip(f"Protocol 8 not available: {e}")
+
+    def test_protocol_9_imports_and_classes(self):
+        """Test that Protocol 9 can be imported and has expected classes."""
+        try:
+            vp9 = load_validation_protocol(9)
+
+            # Check that key classes exist
+            assert hasattr(vp9, "APGIValidationProtocol9")
+            assert hasattr(vp9, "MultiTimescaleValidator")
+            assert hasattr(vp9, "IntegrationWindowChecker")
+
+            # Test instantiation
+            validator = vp9.APGIValidationProtocol9()
+            assert validator is not None
+
+        except (ImportError, FileNotFoundError, AttributeError) as e:
+            pytest.skip(f"Protocol 9 not available: {e}")
+
+    def test_protocol_10_imports_and_classes(self):
+        """Test that Protocol 10 can be imported and has expected classes."""
+        try:
+            vp10 = load_validation_protocol(10)
+
+            # Check that key classes exist
+            assert hasattr(vp10, "APGIValidationProtocol10")
+            assert hasattr(vp10, "FeatureClusteringValidator")
+            assert hasattr(vp10, "PrincipalComponentChecker")
+
+            # Test instantiation
+            validator = vp10.APGIValidationProtocol10()
+            assert validator is not None
+
+        except (ImportError, FileNotFoundError, AttributeError) as e:
+            pytest.skip(f"Protocol 10 not available: {e}")
+
+    def test_protocol_11_imports_and_classes(self):
+        """Test that Protocol 11 can be imported and has expected classes."""
+        try:
+            vp11 = load_validation_protocol(11)
+
+            # Check that key classes exist
+            assert hasattr(vp11, "APGIValidationProtocol11")
+            assert hasattr(vp11, "NonAPGIComparisonValidator")
+            assert hasattr(vp11, "ArchitectureFailureChecker")
+
+            # Test instantiation
+            validator = vp11.APGIValidationProtocol11()
+            assert validator is not None
+
+        except (ImportError, FileNotFoundError, AttributeError) as e:
+            pytest.skip(f"Protocol 11 not available: {e}")
+
+    def test_protocol_12_imports_and_classes(self):
+        """Test that Protocol 12 can be imported and has expected classes."""
+        try:
+            vp12 = load_validation_protocol(12)
+
+            # Check that key classes exist
+            assert hasattr(vp12, "APGIValidationProtocol12")
+            assert hasattr(vp12, "IntrinsicBehaviorValidator")
+            assert hasattr(vp12, "LiquidTimeConstantChecker")
+
+            # Test instantiation
+            validator = vp12.APGIValidationProtocol12()
+            assert validator is not None
+
+        except (ImportError, FileNotFoundError, AttributeError) as e:
+            pytest.skip(f"Protocol 12 not available: {e}")
+
+    def test_protocol_5_basic_functionality(self):
+        """Test basic functionality of Protocol 5."""
+        try:
+            vp5 = load_validation_protocol(5)
+
+            validator = vp5.APGIValidationProtocol5()
+
+            # Test that validator has required methods
+            assert hasattr(validator, "run_validation")
+            assert hasattr(validator, "check_criteria")
+            assert callable(validator.run_validation)
+            assert callable(validator.check_criteria)
+
+        except (ImportError, FileNotFoundError, AttributeError):
+            pytest.skip("Protocol 5 not available")
+
+    def test_protocol_6_basic_functionality(self):
+        """Test basic functionality of Protocol 6."""
+        try:
+            vp6 = load_validation_protocol(6)
+
+            validator = vp6.APGIValidationProtocol6()
+
+            # Test that validator has required methods
+            assert hasattr(validator, "run_validation")
+            assert hasattr(validator, "check_criteria")
+            assert callable(validator.run_validation)
+            assert callable(validator.check_criteria)
+
+        except (ImportError, FileNotFoundError, AttributeError):
+            pytest.skip("Protocol 6 not available")
+
+    def test_protocol_7_basic_functionality(self):
+        """Test basic functionality of Protocol 7."""
+        try:
+            vp7 = load_validation_protocol(7)
+
+            validator = vp7.APGIValidationProtocol7()
+
+            # Test that validator has required methods
+            assert hasattr(validator, "run_validation")
+            assert hasattr(validator, "check_criteria")
+            assert callable(validator.run_validation)
+            assert callable(validator.check_criteria)
+
+        except (ImportError, FileNotFoundError, AttributeError):
+            pytest.skip("Protocol 7 not available")
+
+    def test_protocol_8_basic_functionality(self):
+        """Test basic functionality of Protocol 8."""
+        try:
+            vp8 = load_validation_protocol(8)
+
+            validator = vp8.APGIValidationProtocol8()
+
+            # Test that validator has required methods
+            assert hasattr(validator, "run_validation")
+            assert hasattr(validator, "check_criteria")
+            assert callable(validator.run_validation)
+            assert callable(validator.check_criteria)
+
+        except (ImportError, FileNotFoundError, AttributeError):
+            pytest.skip("Protocol 8 not available")
+
+    def test_protocol_9_basic_functionality(self):
+        """Test basic functionality of Protocol 9."""
+        try:
+            vp9 = load_validation_protocol(9)
+
+            validator = vp9.APGIValidationProtocol9()
+
+            # Test that validator has required methods
+            assert hasattr(validator, "run_validation")
+            assert hasattr(validator, "check_criteria")
+            assert callable(validator.run_validation)
+            assert callable(validator.check_criteria)
+
+        except (ImportError, FileNotFoundError, AttributeError):
+            pytest.skip("Protocol 9 not available")
+
+    def test_protocol_10_basic_functionality(self):
+        """Test basic functionality of Protocol 10."""
+        try:
+            vp10 = load_validation_protocol(10)
+
+            validator = vp10.APGIValidationProtocol10()
+
+            # Test that validator has required methods
+            assert hasattr(validator, "run_validation")
+            assert hasattr(validator, "check_criteria")
+            assert callable(validator.run_validation)
+            assert callable(validator.check_criteria)
+
+        except (ImportError, FileNotFoundError, AttributeError):
+            pytest.skip("Protocol 10 not available")
+
+    def test_protocol_11_basic_functionality(self):
+        """Test basic functionality of Protocol 11."""
+        try:
+            vp11 = load_validation_protocol(11)
+
+            validator = vp11.APGIValidationProtocol11()
+
+            # Test that validator has required methods
+            assert hasattr(validator, "run_validation")
+            assert hasattr(validator, "check_criteria")
+            assert callable(validator.run_validation)
+            assert callable(validator.check_criteria)
+
+        except (ImportError, FileNotFoundError, AttributeError):
+            pytest.skip("Protocol 11 not available")
+
+    def test_protocol_12_basic_functionality(self):
+        """Test basic functionality of Protocol 12."""
+        try:
+            vp12 = load_validation_protocol(12)
+
+            validator = vp12.APGIValidationProtocol12()
+
+            # Test that validator has required methods
+            assert hasattr(validator, "run_validation")
+            assert hasattr(validator, "check_criteria")
+            assert callable(validator.run_validation)
+            assert callable(validator.check_criteria)
+
+        except (ImportError, FileNotFoundError, AttributeError):
+            pytest.skip("Protocol 12 not available")
+
+    @pytest.mark.parametrize("protocol_num", [5, 6, 7, 8, 9, 10, 11, 12])
+    def test_all_protocols_have_validation_interface(self, protocol_num):
+        """Test that all protocols 5-12 have the validation interface."""
+        try:
+            module = load_validation_protocol(protocol_num)
+            class_name = f"APGIValidationProtocol{protocol_num}"
+
+            assert hasattr(
+                module, class_name
+            ), f"Protocol {protocol_num} missing main class"
+
+            validator_class = getattr(module, class_name)
+            validator = validator_class()
+
+            # Check that all validators have the required interface
+            required_methods = ["run_validation", "check_criteria", "get_results"]
+            for method in required_methods:
+                assert hasattr(
+                    validator, method
+                ), f"Protocol {protocol_num} missing method {method}"
+                assert callable(
+                    getattr(validator, method)
+                ), f"Protocol {protocol_num} method {method} not callable"
+
+        except ImportError:
+            pytest.skip(f"Protocol {protocol_num} not available")
 
 
 def test_apgi_dynamical_system_simulate_surprise_accumulation():

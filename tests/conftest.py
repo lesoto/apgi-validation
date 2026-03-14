@@ -16,6 +16,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 import yaml
 
@@ -253,6 +254,26 @@ def exception_test_cases():
         "runtime_error": RuntimeError("Runtime error"),
         "assertion_error": AssertionError("Assertion failed"),
     }
+
+
+@pytest.fixture
+def random_seed():
+    """Provide a fixed random seed for reproducible tests."""
+    return 42
+
+
+@pytest.fixture
+def seeded_rng(random_seed):
+    """Provide a numpy RandomState with a fixed seed for reproducible tests."""
+    return np.random.RandomState(random_seed)
+
+
+@pytest.fixture(autouse=True)
+def reset_random_state_before_each_test():
+    """Reset random state before each test for reproducibility."""
+    original_state = np.random.get_state()
+    yield
+    np.random.set_state(original_state)
 
 
 @pytest.fixture

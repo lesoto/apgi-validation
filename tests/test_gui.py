@@ -8,8 +8,6 @@ Tests for tkinter GUI components with proper mocking and fixtures.
 import pytest
 from unittest.mock import Mock, patch
 
-import Validation  # noqa: F401
-
 
 @pytest.fixture
 def mock_tkinter():
@@ -116,23 +114,27 @@ class TestAPGIValidationGUI:
 
     @patch("Validation.APGIMasterValidator")
     @patch("Validation.safe_import_module")
-    def test_gui_initialization(self, mock_safe_import, mock_validator_class):
+    def test_gui_initialization(
+        self, mock_safe_import, mock_validator_class, mock_tkinter
+    ):
         """Test GUI initialization with mocked components."""
-        from Validation import APGIValidationGUI
 
-        with patch.object(APGIValidationGUI, "update_parameter_display"):
-            # Mock the validator import
-            mock_safe_import.return_value = Mock()
-            mock_validator_class.return_value = Mock()
+        with patch.dict("sys.modules", {"tkinter": mock_tkinter}):
+            from Validation import APGIValidationGUI
 
-            # Create GUI instance
-            root = Mock()
-            gui = APGIValidationGUI(root)
+            with patch.object(APGIValidationGUI, "update_parameter_display"):
+                # Mock the validator import
+                mock_safe_import.return_value = Mock()
+                mock_validator_class.return_value = Mock()
 
-            # Verify initialization
-            assert gui.root == root
-            assert hasattr(gui, "validator")
-            assert hasattr(gui, "_protocol_cache")
+                # Create GUI instance
+                root = mock_tkinter["root"]
+                gui = APGIValidationGUI(root)
+
+                # Verify initialization
+                assert gui.root == root
+                assert hasattr(gui, "validator")
+                assert hasattr(gui, "_protocol_cache")
 
     @patch("Validation.APGIMasterValidator")
     @patch("Validation.safe_import_module")
@@ -143,6 +145,7 @@ class TestAPGIValidationGUI:
         from Validation import APGIValidationGUI
 
         # Setup mocks
+        mock_validator = Mock()
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = mock_validator
 

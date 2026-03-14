@@ -16,7 +16,9 @@ This protocol implements:
 
 import json
 import logging
+import sys
 from collections import deque
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
@@ -28,14 +30,23 @@ import torch.nn.functional as F
 from sklearn.linear_model import LogisticRegression
 from tqdm import tqdm
 
+# Add parent directory to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from utils.constants import DIM_CONSTANTS
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Set random seeds
 RANDOM_SEED = 42
-# np.random.seed(RANDOM_SEED)  # Moved to local usage to avoid test isolation issues
-# torch.manual_seed(RANDOM_SEED)  # Moved to local usage to avoid test isolation issues
+np.random.seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(RANDOM_SEED)
 
 # =============================================================================
 # PART 1: NEURAL NETWORK COMPONENTS
@@ -461,8 +472,9 @@ class APGIActiveInferenceAgent:
 
         # Somatic markers
         self.somatic_markers = SomaticMarkerNetwork(
-            context_dim=12,  # 8 + 4
-            action_dim=config.get("n_actions", 4),
+            context_dim=DIM_CONSTANTS.CONTEXT_DIM
+            + DIM_CONSTANTS.HOMEOSTATIC_DIM,  # 8 + 4
+            action_dim=config.get("n_actions", DIM_CONSTANTS.ACTION_DIM),
             learning_rate=config.get("lr_somatic", 0.1),
         )
 
@@ -539,7 +551,9 @@ class APGIActiveInferenceAgent:
         self.theta_t = np.clip(self.theta_t, 0.1, 2.0)
 
         # 5. Ignition check
-        P_ignition = 1.0 / (1.0 + np.exp(-self.alpha * (self.S_t - self.theta_t)))
+        z = self.alpha * (self.S_t - self.theta_t)
+        z = np.clip(z, -500, 500)  # Prevent exp() overflow/underflow
+        P_ignition = 1.0 / (1.0 + np.exp(-z))
         self.conscious_access = np.random.random() < P_ignition
 
         if self.conscious_access:
@@ -829,7 +843,9 @@ class GWTOnlyAgent:
         self.S_t = torch.norm(eps_e).item()
 
         # Ignition
-        P_ignition = 1.0 / (1.0 + np.exp(-self.alpha * (self.S_t - self.theta_t)))
+        z = self.alpha * (self.S_t - self.theta_t)
+        z = np.clip(z, -500, 500)  # Prevent exp() overflow/underflow
+        P_ignition = 1.0 / (1.0 + np.exp(-z))
         self.conscious_access = np.random.random() < P_ignition
 
         if self.conscious_access:

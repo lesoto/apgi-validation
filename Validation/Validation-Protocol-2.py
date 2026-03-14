@@ -659,7 +659,7 @@ class BayesianModelComparison:
         self.traces = {}
         self.comparison_results = {}
 
-    def add_model(self, model_class, name: str):
+    def add_model(self, model_class, name: str) -> None:
         """Add a model to comparison"""
         self.models[name] = model_class
 
@@ -670,7 +670,7 @@ class BayesianModelComparison:
         n_tune: int = 1000,
         n_chains: int = 4,
         target_accept: float = 0.95,
-    ):
+    ) -> None:
         """
         Fit all models to the dataset
 
@@ -1124,7 +1124,7 @@ class FalsificationChecker:
 
     def generate_report(
         self, comparison_df: pd.DataFrame, apgi_trace, data: ConsciousnessDataset
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Generate comprehensive falsification report"""
 
         report = {
@@ -1589,7 +1589,7 @@ def prior_predictive_check(model, n_samples=1000):
     return prior_predictive, fig
 
 
-def posterior_predictive_check(trace, data, model):
+def posterior_predictive_check(trace, data, model) -> Dict[str, Any]:
     """
     Generate data from fitted model and compare to observed data
     Key test of model adequacy

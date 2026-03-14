@@ -8,6 +8,7 @@ with output display and error handling.
 """
 
 import json
+import logging
 import queue
 import select
 import subprocess
@@ -47,6 +48,9 @@ class UtilsRunnerGUI:
 
         # Store running processes
         self.running_processes: Dict[str, subprocess.Popen] = {}
+
+        # Track daemon threads for cleanup
+        self.daemon_threads: List[threading.Thread] = []
 
         # Output queue for thread-safe updates
         self.output_queue = queue.Queue()
@@ -326,13 +330,17 @@ class UtilsRunnerGUI:
         self.output_text.see(tk.END)
 
         # Limit output lines to prevent performance issues
-        line_count = int(self.output_text.index("end-1c").split(".")[0])
-        if (
-            line_count > self.max_output_lines + 100
-        ):  # Larger buffer to reduce frequent trimming
-            # Batch delete multiple lines at once for better performance
-            lines_to_delete = line_count - self.max_output_lines + 50
-            self.output_text.delete(1.0, f"{lines_to_delete + 1}.0")
+        try:
+            line_count = int(self.output_text.index("end-1c").split(".")[0])
+            if (
+                line_count > self.max_output_lines + 100
+            ):  # Larger buffer to reduce frequent trimming
+                # Batch delete multiple lines at once for better performance
+                lines_to_delete = line_count - self.max_output_lines + 50
+                self.output_text.delete(1.0, f"{lines_to_delete + 1}.0")
+        except (ValueError, tk.TclError):
+            # Handle edge cases where text widget is empty or has unexpected content
+            pass
 
     def process_output_queue(self):
         """Process queued output messages in the main thread."""
@@ -394,6 +402,7 @@ class UtilsRunnerGUI:
             return
 
         def run_all():
+            self.progress.start()
             for i, script in enumerate(self.scripts):
                 self.log_output(
                     f"Running script {i + 1}/{len(self.scripts)}: {script.name}",
@@ -415,6 +424,7 @@ class UtilsRunnerGUI:
                         f"Script {script.name} failed, stopping execution",
                         self.TAG_ERROR,
                     )
+                    self.progress.stop()
                     break
 
             self.log_output("All scripts execution completed", self.TAG_SUCCESS)
@@ -423,6 +433,7 @@ class UtilsRunnerGUI:
 
         # Run in separate thread to avoid blocking GUI
         thread = threading.Thread(target=run_all, daemon=True)
+        self.daemon_threads.append(thread)
         thread.start()
 
     def run_script(
@@ -480,6 +491,17 @@ class UtilsRunnerGUI:
 
         # Start process
         try:
+            # Validate CWD exists before using it
+            cwd_path = self.utils_dir.parent
+            if not cwd_path.exists():
+                self.log_output(
+                    f"Error: CWD does not exist: {cwd_path}", self.TAG_ERROR
+                )
+                self.progress.stop()
+                self.update_status("Error")
+                self._update_button_states()
+                return False
+
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -487,7 +509,7 @@ class UtilsRunnerGUI:
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
-                cwd=self.utils_dir.parent,
+                cwd=cwd_path,
             )
 
             self.running_processes[script_name] = process
@@ -496,13 +518,16 @@ class UtilsRunnerGUI:
             output_thread = threading.Thread(
                 target=self._read_output, args=(process, script_name), daemon=True
             )
+            self.daemon_threads.append(output_thread)
             output_thread.start()
 
             # Update button states
             self._update_button_states()
 
             if wait:
-                output_thread.join()
+                output_thread.join(
+                    timeout=30.0
+                )  # 30 second timeout to prevent GUI hangs
                 return process.returncode == 0
             else:
                 return True
@@ -550,7 +575,8 @@ class UtilsRunnerGUI:
                             ready = False
                     else:
                         ready = False
-                except Exception:
+                except (IOError, OSError) as e:
+                    logging.warning(f"Error reading process stdout: {e}")
                     ready = False
             else:
                 # On Unix-like systems, use select
@@ -570,6 +596,15 @@ class UtilsRunnerGUI:
                     self.TAG_ERROR,
                 )
                 process.terminate()
+                # Wait for graceful termination, then force kill if needed
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    self.log_output(
+                        "Process did not terminate gracefully, forcing kill",
+                        self.TAG_WARNING,
+                    )
+                    process.kill()
                 break
 
         # Get final return code
@@ -680,6 +715,15 @@ class UtilsRunnerGUI:
 
         # Clear running processes
         self.running_processes.clear()
+
+        # Clean up tracked daemon threads
+        for thread in self.daemon_threads:
+            if thread.is_alive():
+                try:
+                    thread.join(timeout=1.0)  # Wait up to 1 second for thread to finish
+                except Exception:
+                    pass
+        self.daemon_threads.clear()
 
         # Log quit message
         self.log_output("Quitting application...", self.TAG_INFO)

@@ -16,21 +16,37 @@ from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 try:
-    from utils.preprocessing_pipelines import (
+    from .preprocessing_pipelines import (
         MultimodalPreprocessingPipeline,
         PreprocessingConfig,
     )
 except ImportError:
-    # Fallback if utils.preprocessing_pipelines is not available
-    import warnings
+    try:
+        from preprocessing_pipelines import (
+            MultimodalPreprocessingPipeline,
+            PreprocessingConfig,
+        )
+    except ImportError:
+        try:
+            from utils.preprocessing_pipelines import (
+                MultimodalPreprocessingPipeline,
+                PreprocessingConfig,
+            )
+        except ImportError:
+            # Fallback if utils.preprocessing_pipelines is not available
+            import warnings
 
-    warnings.warn(
-        "utils.preprocessing_pipelines not available - pipeline connector may be limited",
-        ImportWarning,
-    )
-    MultimodalPreprocessingPipeline = None
-    PreprocessingConfig = None
+            warnings.warn(
+                "utils.preprocessing_pipelines not available - pipeline connector may be limited",
+                ImportWarning,
+            )
+            MultimodalPreprocessingPipeline = None
+            PreprocessingConfig = None
 try:
     from .sample_data_generator import (
         SampleDataGenerator,
@@ -38,10 +54,20 @@ try:
     )
 except ImportError:
     # Fallback for direct execution
-    from sample_data_generator import (
-        SampleDataGenerator,
-        generate_sample_multimodal_data,
-    )
+    try:
+        from sample_data_generator import (
+            SampleDataGenerator,
+            generate_sample_multimodal_data,
+        )
+    except ImportError:
+        import warnings
+
+        warnings.warn(
+            "sample_data_generator not available - synthetic data generation disabled",
+            ImportWarning,
+        )
+        SampleDataGenerator = None
+        generate_sample_multimodal_data = None
 
 # Configure logging
 logger = logging.getLogger(__name__)

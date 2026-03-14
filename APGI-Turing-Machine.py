@@ -805,7 +805,12 @@ class APGITuringMachine:
         P(ignite) = σ(α · (S - θ))
         """
         signal = self.state.S_continuous - self.state.theta_continuous
-        prob = 1.0 / (1.0 + np.exp(-self.params.alpha_sigmoid * signal))
+        z = self.params.alpha_sigmoid * signal
+        if z >= 0:
+            prob = 1.0 / (1.0 + np.exp(-z))
+        else:
+            z_exp = np.exp(z)
+            prob = z_exp / (1.0 + z_exp)
         return prob
 
     # =========================================================================

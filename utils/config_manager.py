@@ -57,6 +57,51 @@ PROFILES_DIR = CONFIG_DIR / "profiles"
 VERSIONS_DIR = CONFIG_DIR / "versions"
 
 
+def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
+    """Validate file path to prevent directory traversal attacks.
+
+    Args:
+        file_path: The file path to validate
+        allowed_dirs: List of allowed directory names (e.g., ["config", "data"])
+
+    Returns:
+        Validated Path object
+
+    Raises:
+        ValueError: If path validation fails
+    """
+    try:
+        path = Path(file_path).resolve()
+    except (OSError, RuntimeError) as e:
+        raise ValueError(f"Invalid file path: {file_path}") from e
+
+    # Check if path is within project root or allowed directories
+    if path.is_absolute():
+        # For absolute paths, ensure it's within project root or allowed subdirectories
+        if allowed_dirs:
+            # Check if path is within any allowed directory
+            allowed_paths = [PROJECT_ROOT / d for d in allowed_dirs]
+            if not any(
+                path.is_relative_to(allowed_path) for allowed_path in allowed_paths
+            ):
+                raise ValueError(
+                    f"File path must be within allowed directories: {allowed_dirs}"
+                )
+        else:
+            # If no allowed_dirs specified, allow only project root and immediate subdirectories
+            if not path.is_relative_to(PROJECT_ROOT):
+                raise ValueError(
+                    f"File path must be within project directory: {PROJECT_ROOT}"
+                )
+    else:
+        # For relative paths, resolve relative to project root
+        # Don't allow .. to escape project directory
+        if ".." in str(path):
+            raise ValueError("Path traversal not allowed")
+
+    return path
+
+
 @dataclass
 class ConfigProfile:
     """Enhanced configuration profile definition."""
@@ -109,6 +154,7 @@ class ModelParameters:
     # Timescales (in seconds)
     tau_S: float = 0.5  # 500 ms (Range: 100-1000ms)
     tau_theta: float = 30.0  # 30 s   (Range: 5-60s)
+    tau_M: float = 1.52  # Somatic marker time constant [seconds]
 
     # Threshold parameters
     theta_0: float = 0.5  # Baseline threshold (Range: 0.1-1.0 AU)
@@ -119,6 +165,12 @@ class ModelParameters:
     # Sensitivities
     gamma_M: float = -0.3  # Metabolic sensitivity (Range: -0.5 to 0.5)
     gamma_A: float = 0.1  # Arousal sensitivity (Range: -0.3 to 0.3)
+    beta: float = 1.2  # Somatic bias weight
+
+    # Precision parameters
+    Pi_e: float = 1.0  # Exteroceptive precision (baseline)
+    Pi_i_baseline: float = 1.0  # Interoceptive precision (baseline)
+    beta_Pi_i: float = 1.0  # Composite interoceptive parameter
 
     # Reset dynamics
     rho: float = 0.7  # Reset fraction (Range: 0.3-0.9)
@@ -126,6 +178,23 @@ class ModelParameters:
     # Noise strengths
     sigma_S: float = 0.05
     sigma_theta: float = 0.02
+    sigma_noise: float = 0.8  # Sensory noise amplitude
+
+    # Interoceptive parameters
+    somatic_gain: float = 1.0  # Somatic marker gain
+    homeostatic_cost_weight: float = 0.2  # Weight for homeostatic predictions
+
+    # Network architecture parameters
+    hidden_dim: int = 64  # Default hidden dimension
+    somatic_hidden_dim: int = 32  # Somatic marker hidden dimension
+
+    # Learning parameters
+    learning_rate: float = 0.01  # Network learning rate
+    value_learning_rate: float = 0.001  # Value network learning rate
+
+    # Simulation parameters
+    dt: float = 0.05  # Simulation time step
+    duration: float = 1.0  # Simulation duration
 
 
 @dataclass
@@ -140,6 +209,12 @@ class SimulationConfig:
     plot_dpi: int = 150
     save_results: bool = True
     results_format: str = "csv"
+    enable_cross_validation: bool = True
+    cv_folds: int = 5
+    enable_sensitivity_analysis: bool = True
+    sensitivity_samples: int = 100
+    enable_robustness_tests: bool = True
+    significance_level: float = 0.05
 
 
 @dataclass
@@ -151,6 +226,7 @@ class LoggingConfig:
     log_rotation: str = "10 MB"
     log_retention: str = "30 days"
     enable_performance_logging: bool = True
+    log_directory: str = "logs/"
     enable_structured_logging: bool = True
 
 
@@ -163,6 +239,11 @@ class DataConfig:
     max_file_size_mb: int = 100
     enable_caching: bool = True
     cache_dir: str = "cache"
+    sample_size: int = 1000
+    time_series_length: int = 100
+    eeg_channels: int = 32
+    sampling_rate: int = 1000
+    max_load_size_mb: int = 100  # Maximum file size for loading (in MB)
 
     def __post_init__(self):
         if self.supported_formats is None:
@@ -205,115 +286,49 @@ class ConfigManager:
 
     def _load_schema(self) -> Dict[str, Any]:
         """Load JSON schema for configuration validation."""
-        schema = {
+        schema_file = Path(__file__).parent.parent / "config" / "config_schema.json"
+        if schema_file.exists():
+            try:
+                with open(schema_file, "r") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                apgi_logger.logger.warning(
+                    f"Failed to load schema from {schema_file}: {e}"
+                )
+                return self._get_fallback_schema()
+        else:
+            apgi_logger.logger.warning(f"Schema file not found: {schema_file}")
+            return self._get_fallback_schema()
+
+    def _get_fallback_schema(self) -> Dict[str, Any]:
+        """Fallback schema if external schema file cannot be loaded."""
+        return {
             "type": "object",
             "properties": {
                 "model": {
                     "type": "object",
                     "properties": {
-                        "tau_S": {"type": "number", "minimum": 0.1, "maximum": 1.0},
-                        "tau_theta": {
-                            "type": "number",
-                            "minimum": 5.0,
-                            "maximum": 60.0,
-                        },
+                        "tau_S": {"type": "number", "minimum": 0.1},
+                        "tau_theta": {"type": "number", "minimum": 5.0},
                         "theta_0": {"type": "number", "minimum": 0.1, "maximum": 1.0},
-                        "alpha": {"type": "number", "minimum": 1.0, "maximum": 15.0},
-                        "gamma_M": {"type": "number", "minimum": -0.5, "maximum": 0.5},
-                        "gamma_A": {"type": "number", "minimum": -0.3, "maximum": 0.3},
+                        "alpha": {"type": "number", "minimum": 1.0},
+                        "gamma_M": {"type": "number"},
+                        "gamma_A": {"type": "number"},
                         "rho": {"type": "number", "minimum": 0.3, "maximum": 0.9},
-                        "sigma_S": {"type": "number", "minimum": 0.0, "maximum": 1.0},
-                        "sigma_theta": {
-                            "type": "number",
-                            "minimum": 0.0,
-                            "maximum": 1.0,
-                        },
+                        "sigma_S": {"type": "number", "minimum": 0.0},
+                        "sigma_theta": {"type": "number", "minimum": 0.0},
                     },
                 },
                 "simulation": {
                     "type": "object",
                     "properties": {
-                        "default_steps": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 1000000,
-                        },
-                        "default_dt": {
-                            "type": "number",
-                            "minimum": 0.001,
-                            "maximum": 1.0,
-                        },
-                        "max_steps": {"type": "integer", "minimum": 1},
+                        "default_steps": {"type": "integer", "minimum": 1},
+                        "default_dt": {"type": "number", "minimum": 0.001},
                         "enable_plots": {"type": "boolean"},
-                        "plot_format": {
-                            "type": "string",
-                            "enum": ["png", "jpg", "svg", "pdf"],
-                        },
-                        "plot_dpi": {"type": "integer", "minimum": 50, "maximum": 300},
-                        "save_results": {"type": "boolean"},
-                        "results_format": {
-                            "type": "string",
-                            "enum": ["csv", "json", "pkl"],
-                        },
-                    },
-                },
-                "logging": {
-                    "type": "object",
-                    "properties": {
-                        "level": {
-                            "type": "string",
-                            "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
-                        },
-                        "enable_console": {"type": "boolean"},
-                        "log_rotation": {"type": "string"},
-                        "log_retention": {"type": "string"},
-                        "enable_performance_logging": {"type": "boolean"},
-                        "enable_structured_logging": {"type": "boolean"},
-                    },
-                },
-                "data": {
-                    "type": "object",
-                    "properties": {
-                        "default_data_dir": {"type": "string"},
-                        "supported_formats": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                        },
-                        "max_file_size_mb": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 10000,
-                        },
-                        "enable_caching": {"type": "boolean"},
-                        "cache_dir": {"type": "string"},
-                    },
-                },
-                "validation": {
-                    "type": "object",
-                    "properties": {
-                        "enable_cross_validation": {"type": "boolean"},
-                        "cv_folds": {
-                            "type": "integer",
-                            "minimum": 2,
-                            "maximum": 20,
-                        },
-                        "enable_sensitivity_analysis": {"type": "boolean"},
-                        "sensitivity_samples": {
-                            "type": "integer",
-                            "minimum": 10,
-                            "maximum": 10000,
-                        },
-                        "enable_robustness_tests": {"type": "boolean"},
-                        "significance_level": {
-                            "type": "number",
-                            "minimum": 0.001,
-                            "maximum": 0.5,
-                        },
                     },
                 },
             },
         }
-        return schema
 
     def _load_environment(self):
         """Load environment variables from .env file."""
@@ -323,9 +338,21 @@ class ConfigManager:
 
     def _load_config(self):
         """Load configuration from file."""
+        # Validate config file path for security
+        try:
+            validated_config_path = _validate_file_path(
+                str(self.config_file), allowed_dirs=["config"]
+            )
+            self.config_file = validated_config_path
+        except ValueError as e:
+            apgi_logger.logger.warning(f"Config file path validation failed: {e}")
+            apgi_logger.logger.warning("Using default configuration")
+            self._save_default_config()
+            return
+
         if self.config_file.exists():
             try:
-                with open(self.config_file, "r") as f:
+                with open(self.config_file, "r", encoding="utf-8") as f:
                     if self.config_file.suffix.lower() == ".yaml":
                         config_data = yaml.safe_load(f)
                     elif self.config_file.suffix.lower() == ".json":
@@ -352,7 +379,11 @@ class ConfigManager:
                 KeyError,
             ) as e:
                 apgi_logger.log_error_with_context(
-                    e, {"operation": "load_config", "file": str(self.config_file)}
+                    e,
+                    {
+                        "operation": "load_config",
+                        "file": str(self.config_file),
+                    },
                 )
                 apgi_logger.logger.warning(
                     f"Using default configuration due to error: {e}"
@@ -637,7 +668,11 @@ class ConfigManager:
 
     # Configuration Profiles and Versioning
     def create_profile(
-        self, name: str, description: str, category: str, tags: List[str] = None
+        self,
+        name: str,
+        description: str,
+        category: str,
+        tags: List[str] = None,
     ) -> str:
         """Create a new configuration profile from current settings."""
         profile = ConfigProfile(
@@ -711,7 +746,12 @@ class ConfigManager:
                             "tags": profile_data.get("tags", []),
                         }
                     )
-            except (FileNotFoundError, PermissionError, yaml.YAMLError, KeyError) as e:
+            except (
+                FileNotFoundError,
+                PermissionError,
+                yaml.YAMLError,
+                KeyError,
+            ) as e:
                 apgi_logger.logger.warning(f"Error reading profile {profile_file}: {e}")
 
         return profiles
@@ -828,7 +868,11 @@ class ConfigManager:
                     deep_compare(dict1[key], dict2[key], current_path)
                 elif dict1[key] != dict2[key]:
                     differences["modified"].append(
-                        {"path": current_path, "old": dict1[key], "new": dict2[key]}
+                        {
+                            "path": current_path,
+                            "old": dict1[key],
+                            "new": dict2[key],
+                        }
                     )
 
             for key in dict2:
@@ -883,7 +927,10 @@ class ConfigManager:
                 "tags": ["default", "research", "general"],
                 "parameters": {
                     "simulation": {"default_steps": 10000, "default_dt": 0.01},
-                    "validation": {"enable_cross_validation": True, "cv_folds": 10},
+                    "validation": {
+                        "enable_cross_validation": True,
+                        "cv_folds": 10,
+                    },
                 },
             },
         ]
@@ -1053,7 +1100,11 @@ validation:
                         apgi_logger.logger.info(
                             f"Applied environment override: {env_var} -> {section}.{param} = {value}"
                         )
-            except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
+            except (
+                FileNotFoundError,
+                PermissionError,
+                UnicodeDecodeError,
+            ) as e:
                 apgi_logger.logger.warning(f"Could not read .env file: {e}")
                 # Fall back to regular environment variables
                 self._apply_env_mappings_from_system()
@@ -1220,11 +1271,19 @@ class EnhancedConfigManager(ConfigManager):
 
             if key not in dict1:
                 differences.append(
-                    {"path": current_path, "type": "added", "value": dict2[key]}
+                    {
+                        "path": current_path,
+                        "type": "added",
+                        "value": dict2[key],
+                    }
                 )
             elif key not in dict2:
                 differences.append(
-                    {"path": current_path, "type": "removed", "value": dict1[key]}
+                    {
+                        "path": current_path,
+                        "type": "removed",
+                        "value": dict1[key],
+                    }
                 )
             elif dict1[key] != dict2[key]:
                 if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
@@ -1399,7 +1458,11 @@ class EnhancedConfigManager(ConfigManager):
                 validation_errors.append("Profile parameters are required")
 
             # Validate parameter structure
-            built_in_profiles = ["adhd", "anxiety-disorder", "research-default"]
+            built_in_profiles = [
+                "adhd",
+                "anxiety-disorder",
+                "research-default",
+            ]
             if profile.name not in built_in_profiles:
                 # For custom profiles, require all sections
                 required_sections = [
@@ -1478,7 +1541,9 @@ def switch_config_profile(name: str) -> bool:
     return enhanced_config_manager.switch_to_profile(name)
 
 
-def list_config_profiles(category: Optional[str] = None) -> List[Dict[str, str]]:
+def list_config_profiles(
+    category: Optional[str] = None,
+) -> List[Dict[str, str]]:
     """List available configuration profiles."""
     profiles = enhanced_config_manager.list_profiles(category)
     return [
