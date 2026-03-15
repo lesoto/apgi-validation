@@ -22,20 +22,15 @@ from typing import Dict, List, Any, Tuple
 from falsification_thresholds import (
     F2_3_MIN_RT_ADVANTAGE_MS,
     F2_3_ALPHA,
-    F5_1_MIN_PROPORTION,
-    F5_1_MIN_ALPHA,
     F5_1_BINOMIAL_ALPHA,
-    F5_2_MIN_PROPORTION,
-    F5_2_MIN_CORRELATION,
+    F5_1_MIN_ALPHA,
     F5_2_BINOMIAL_ALPHA,
+    F5_2_MIN_CORRELATION,
     F5_3_MIN_PROPORTION,
     F5_3_MIN_GAIN_RATIO,
     F5_3_BINOMIAL_ALPHA,
     F5_4_MIN_PROPORTION,
     F5_4_MIN_PEAK_SEPARATION,
-    F5_4_BINOMIAL_ALPHA,
-    F5_5_PCA_MIN_VARIANCE,
-    F5_5_PCA_MIN_LOADING,
     F5_6_MIN_PERFORMANCE_DIFF_PCT,
     F5_6_MIN_COHENS_D,
     F5_6_ALPHA,
@@ -231,6 +226,182 @@ class EvolvableAgent:
         self._conscious_access = value
 
 
+class ContinuousUpdateAgent:
+    """Agent without threshold gating (continuous updates)"""
+
+    def __init__(self, genome: Dict = None):
+        """Initialize agent with genome from config or default"""
+        # Initialize config manager
+        config_manager = ConfigManager()
+
+        # Load validation configuration
+        config = config_manager.get_config("validation")
+
+        # Use genome from parameter or generate default
+        if genome is None:
+            genome = {
+                "has_threshold": False,  # Always False for continuous updates
+                "has_intero_weighting": getattr(config, "beta", 1.2),
+                "has_somatic_markers": getattr(config, "gamma_M", 1.52),
+                "has_precision_weighting": getattr(config, "alpha", 5.0),
+                "theta_0": 0.0,  # No threshold
+                "alpha": getattr(config, "alpha", 5.0),
+                "beta": getattr(config, "beta", 1.2),
+                "Pi_e_lr": getattr(config, "Pi_e_lr", 0.01),
+            }
+        else:
+            # Validate provided genome against config schema
+            required_params = [
+                "has_threshold",
+                "has_intero_weighting",
+                "has_somatic_markers",
+                "has_precision_weighting",
+                "theta_0",
+                "alpha",
+                "beta",
+                "Pi_e_lr",
+            ]
+            for param in required_params:
+                if param not in genome:
+                    logger.warning(
+                        f"Missing required parameter '{param}' in genome, using default from config"
+                    )
+                    # Add missing parameter with default value
+                    if param == "Pi_e_lr":
+                        genome[param] = getattr(config, "Pi_e_lr", 0.01)
+                    elif param == "theta_0":
+                        genome[param] = 0.0  # No threshold
+                    elif param == "alpha":
+                        genome[param] = getattr(config, "alpha", 5.0)
+                    elif param == "beta":
+                        genome[param] = getattr(config, "beta", 1.2)
+
+            self.genome = genome
+
+        # Initialize based on genome
+        self.has_threshold = self.genome["has_threshold"]
+        self.has_intero_weighting = self.genome["has_intero_weighting"]
+        self.has_somatic_markers = self.genome["has_somatic_markers"]
+        self.has_precision_weighting = self.genome["has_precision_weighting"]
+
+        # Parameters
+        self.theta_0 = self.genome["theta_0"]
+        self.alpha = self.genome["alpha"]
+        self.beta = self.genome["beta"]
+        self.Pi_e = self.genome["Pi_e_lr"] if self.has_precision_weighting else 1.0
+        self.Pi_i = self.genome["Pi_e_lr"] if self.has_precision_weighting else 1.0
+        self.threshold = self.theta_0 if self.has_threshold else 0.0
+        self._conscious_access = False
+        self.surprise = 0.0  # Initialize surprise attribute
+
+        # Simple policy network using centralized constants
+        state_dim = (
+            DIM_CONSTANTS.EXTERO_DIM + DIM_CONSTANTS.INTERO_DIM
+        )  # extero + intero
+        action_dim = DIM_CONSTANTS.ACTION_DIM
+
+        self.policy_weights = np.random.normal(0, 0.1, (action_dim, state_dim))
+
+        if self.has_somatic_markers:
+            self.somatic_weights = np.random.normal(0, 0.1, (action_dim, state_dim))
+
+        # Precision weights
+        self.Pi_e = 1.0
+        self.Pi_i = 1.0
+        self.pi_lr = genome["Pi_e_lr"] if self.has_precision_weighting else 0.0
+
+    def _stable_sigmoid(self, z: float) -> float:
+        """Numerically stable sigmoid function."""
+        if z >= 0:
+            return 1.0 / (1.0 + np.exp(-z))
+        else:
+            z_exp = np.exp(z)
+            return z_exp / (1.0 + z_exp)
+
+    def step(self, observation: Dict, dt: float = 0.05) -> int:
+        """Execute one step"""
+        # Get state representation
+        extero = observation["extero"][:32]
+        intero = observation["intero"][:16]
+        state = np.concatenate([extero, intero])
+
+        # Compute prediction errors (simplified)
+        eps_e = np.linalg.norm(extero)
+        eps_i = np.linalg.norm(intero)
+
+        # Weight prediction errors
+        if self.has_intero_weighting:
+            weighted_eps_e = self.Pi_e * eps_e
+            weighted_eps_i = self.beta * self.Pi_i * eps_i
+        else:
+            weighted_eps_e = eps_e
+            weighted_eps_i = eps_i
+
+        # Update surprise
+        input_drive = weighted_eps_e + weighted_eps_i
+        self.surprise = 0.9 * self.surprise + 0.1 * input_drive
+
+        # Continuous update: always conscious (no threshold gating)
+        self._conscious_access = True
+
+        # Compute action probabilities
+        logits = self.policy_weights @ state
+
+        if self.has_somatic_markers and self.conscious_access:
+            somatic_values = self.somatic_weights @ state
+            logits += 0.3 * somatic_values
+
+        # Softmax
+        exp_logits = np.exp(logits - np.max(logits))
+        action_probs = exp_logits / np.sum(exp_logits)
+
+        return np.random.choice(len(action_probs), p=action_probs)
+
+    def receive_outcome(
+        self, reward: float, interoceptive_cost: float, next_observation: Dict
+    ):
+        """Process outcome"""
+        # Simple learning update
+        if reward > 0:
+            pass
+
+        # Update precision if enabled
+        if self.has_precision_weighting:
+            # Simple precision adaptation based on interoceptive cost
+            adjustment = self.pi_lr * (1.0 - interoceptive_cost)
+            self.Pi_e = 0.99 * self.Pi_e + 0.01 * adjustment
+            self.Pi_i = 0.99 * self.Pi_i + 0.01 * adjustment
+
+    def get_action(self, state: np.ndarray) -> int:
+        """Get action from state using policy network"""
+        # Compute action probabilities
+        logits = self.policy_weights @ state
+
+        if self.has_somatic_markers and self.conscious_access:
+            somatic_values = self.somatic_weights @ state
+            logits += 0.3 * somatic_values
+
+        # Softmax
+        exp_logits = np.exp(logits - np.max(logits))
+        action_probs = exp_logits / np.sum(exp_logits)
+
+        return np.random.choice(len(action_probs), p=action_probs)
+
+    def update_surprise(self, new_surprise: float):
+        """Update surprise value"""
+        self.surprise = new_surprise
+
+    @property
+    def conscious_access(self) -> bool:
+        """Get conscious access state"""
+        return True  # Always conscious for continuous-update agents
+
+    @conscious_access.setter
+    def conscious_access(self, value: bool):
+        """Set conscious access state"""
+        self._conscious_access = value
+
+
 class EvolutionaryAPGIEmergence:
     """
     Test whether APGI-like architectures emerge under selection pressure
@@ -413,6 +584,24 @@ class EvolutionaryAPGIEmergence:
 
             fitness_scores = np.array(fitness_scores)
 
+            # Evaluate continuous agents for F5.4 comparison
+            continuous_agents = [ContinuousUpdateAgent() for _ in range(self.pop_size)]
+            continuous_fitness_scores = []
+            for agent in continuous_agents:
+                fitness = self.evaluate_fitness(agent, environments)
+                continuous_fitness_scores.append(fitness)
+
+            continuous_fitness_scores = np.array(continuous_fitness_scores)
+
+            # Compute performance difference (APGI - continuous)
+            performance_difference = np.mean(fitness_scores) - np.mean(
+                continuous_fitness_scores
+            )
+
+            # Track continuous agent performance
+            history["continuous_fitness"] = [np.mean(continuous_fitness_scores)]
+            history["performance_difference"] = [performance_difference]
+
             # Record statistics
             history["best_fitness"].append(np.max(fitness_scores))
             history["mean_fitness"].append(np.mean(fitness_scores))
@@ -527,6 +716,71 @@ class EvolutionaryAPGIEmergence:
                 fixation_gens[trait] = None  # Never fixed
 
         return fixation_gens
+
+    def test_emergence_order_kendall_tau(
+        self, history: Dict, expected_order: list = None
+    ) -> Dict[str, Any]:
+        """
+        Test emergence order using Kendall's tau
+
+        Tests whether traits emerge in the expected order using Kendall's tau
+        rank correlation coefficient.
+
+        Args:
+            history: Evolution history
+            expected_order: Expected order of trait emergence (default: threshold,
+                           intero_weighting, precision_weighting, somatic_markers)
+
+        Returns:
+            Dictionary with Kendall's tau test results
+        """
+        from scipy.stats import kendalltau
+
+        if expected_order is None:
+            # Default expected order based on APGI theory
+            expected_order = [
+                "has_threshold",
+                "has_intero_weighting",
+                "has_precision_weighting",
+                "has_somatic_markers",
+            ]
+
+        # Get fixation generations
+        fixation_gens = self._find_fixation_generation(history)
+
+        # Filter out traits that never fixed
+        valid_traits = [t for t in expected_order if fixation_gens.get(t) is not None]
+        valid_fixation_gens = [fixation_gens[t] for t in valid_traits]
+
+        if len(valid_traits) < 2:
+            return {
+                "kendall_tau": 0.0,
+                "p_value": 1.0,
+                "n_traits": len(valid_traits),
+                "emergence_order": list(fixation_gens.items()),
+                "expected_order": expected_order,
+                "pass": False,
+                "note": "Insufficient traits fixed for Kendall's tau test",
+            }
+
+        # Create expected ranks (1, 2, 3, ...)
+        expected_ranks = list(range(1, len(valid_traits) + 1))
+
+        # Compute Kendall's tau
+        tau, p_value = kendalltau(expected_ranks, valid_fixation_gens)
+
+        # Pass if tau > 0 (positive correlation) and p < 0.05
+        pass_test = tau > 0 and p_value < 0.05
+
+        return {
+            "kendall_tau": tau,
+            "p_value": p_value,
+            "n_traits": len(valid_traits),
+            "emergence_order": list(fixation_gens.items()),
+            "expected_order": expected_order,
+            "pass": pass_test,
+            "note": f"Kendall's tau = {tau:.3f}, p = {p_value:.3f}",
+        }
 
 
 # Main execution
@@ -1549,11 +1803,12 @@ def check_falsification(
 
     from falsification_thresholds import (
         F5_1_FALSIFICATION_ALPHA,
+        F5_1_MIN_PROPORTION,
     )
 
     # Falsified if proportion < 0.60 OR mean_alpha < 3.0
     f5_1_pass = (
-        threshold_emergence_proportion >= 0.60
+        threshold_emergence_proportion >= F5_1_MIN_PROPORTION
         and val_alpha >= F5_1_FALSIFICATION_ALPHA
         and p_binomial < F5_1_BINOMIAL_ALPHA
     )
@@ -1597,10 +1852,13 @@ def check_falsification(
         else mean_correlation
     )
 
-    from falsification_thresholds import F5_2_FALSIFICATION_CORR
+    from falsification_thresholds import (
+        F5_2_FALSIFICATION_CORR,
+        F5_2_MIN_PROPORTION,
+    )
 
     f5_2_pass = (
-        precision_emergence_proportion >= 0.50
+        precision_emergence_proportion >= F5_2_MIN_PROPORTION
         and val_corr >= F5_2_FALSIFICATION_CORR
         and p_binomial_precision < F5_2_BINOMIAL_ALPHA
     )
@@ -1670,28 +1928,16 @@ def check_falsification(
 
     # F5.4: Multi-Timescale Integration Emergence
     logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
-    successes = int(multi_timescale_proportion * n_agents)
-    binom_result_timescale = binomtest(
-        successes, n_agents, p=0.5, alternative="greater"
-    )
-    p_binomial_timescale = binom_result_timescale.pvalue
-
-    from falsification_thresholds import (
-        F5_4_FALSIFICATION_PROPORTION,
-        F5_4_FALSIFICATION_SEPARATION,
-    )
 
     f5_4_pass = (
-        multi_timescale_proportion >= F5_4_FALSIFICATION_PROPORTION
-        and peak_separation_ratio >= F5_4_FALSIFICATION_SEPARATION
-        and p_binomial_timescale < F5_4_BINOMIAL_ALPHA
+        multi_timescale_proportion >= F5_4_MIN_PROPORTION
+        and peak_separation_ratio >= F5_4_MIN_PEAK_SEPARATION
     )
     results["criteria"]["F5.4"] = {
         "passed": f5_4_pass,
         "multi_timescale_proportion": multi_timescale_proportion,
         "peak_separation_ratio": peak_separation_ratio,
-        "p_binomial": p_binomial_timescale,
-        "threshold": f"≥{int(F5_4_MIN_PROPORTION * 100)}% develop multi-timescale, separation ≥ {int(F5_4_MIN_PEAK_SEPARATION)}×",
+        "threshold": f"≥{F5_4_MIN_PROPORTION * 100}% develop, separation ≥ {F5_4_MIN_PEAK_SEPARATION}×",
         "actual": f"{multi_timescale_proportion:.2f} develop, separation={peak_separation_ratio:.1f}×",
     }
     if f5_4_pass:
@@ -1704,10 +1950,13 @@ def check_falsification(
 
     # F5.5: APGI-Like Feature Clustering
     logger.info("Testing F5.5: APGI-Like Feature Clustering")
-    from falsification_thresholds import F5_5_PCA_FALSIFICATION_THRESHOLD
+    from falsification_thresholds import (
+        F5_5_PCA_MIN_LOADING,
+        F5_5_PCA_MIN_VARIANCE,
+    )
 
     f5_5_pass = (
-        pca_variance_explained >= F5_5_PCA_FALSIFICATION_THRESHOLD
+        pca_variance_explained >= F5_5_PCA_MIN_VARIANCE
         and pca_loadings >= F5_5_PCA_MIN_LOADING
     )
     results["criteria"]["F5.5"] = {

@@ -1648,54 +1648,82 @@ class FalsificationChecker:
         return falsified, (apgi_acc, pp_acc)
 
     def check_F2_1(
-        self, apgi_advantageous_selection: List[float] = None
+        self, apgi_advantageous_selection: List[float]
     ) -> Tuple[bool, float]:
-        """F2.1: Somatic Marker Advantage Quantification"""
-        # Placeholder implementation - not directly testable with synthetic data
-        if apgi_advantageous_selection is None:
-            apgi_advantageous_selection = [25.0]  # Example value
+        """F2.1: Somatic Marker Advantage Quantification
+
+        Args:
+            apgi_advantageous_selection: List of advantageous selection proportions from APGI agent
+
+        Returns:
+            Tuple of (falsified, mean_advantage)
+        """
         mean_apgi = np.mean(apgi_advantageous_selection)
         falsified = mean_apgi >= 22  # Falsified if advantage is high (supports model)
         return falsified, mean_apgi
 
-    def check_F2_2(self, apgi_cost_correlation: float = None) -> Tuple[bool, float]:
-        """F2.2: Interoceptive Cost Sensitivity"""
-        if apgi_cost_correlation is None:
-            apgi_cost_correlation = -0.5  # Example value
+    def check_F2_2(self, apgi_cost_correlation: float) -> Tuple[bool, float]:
+        """F2.2: Interoceptive Cost Sensitivity
+
+        Args:
+            apgi_cost_correlation: Correlation between interoceptive precision and cost
+
+        Returns:
+            Tuple of (falsified, correlation)
+        """
         falsified = (
             -0.65 <= apgi_cost_correlation <= -0.45
         )  # Within range supports model
         return falsified, apgi_cost_correlation
 
-    def check_F2_3(self, rt_advantage_ms: float = None) -> Tuple[bool, float]:
-        """F2.3: vmPFC-Like Anticipatory Bias"""
-        if rt_advantage_ms is None:
-            rt_advantage_ms = 40.0  # Example value
+    def check_F2_3(self, rt_advantage_ms: float) -> Tuple[bool, float]:
+        """F2.3: vmPFC-Like Anticipatory Bias
+
+        Args:
+            rt_advantage_ms: Reaction time advantage in milliseconds
+
+        Returns:
+            Tuple of (falsified, rt_advantage)
+        """
         falsified = rt_advantage_ms >= 35
         return falsified, rt_advantage_ms
 
-    def check_F2_4(self, confidence_effect: float = None) -> Tuple[bool, float]:
-        """F2.4: Precision-Weighted Integration"""
-        if confidence_effect is None:
-            confidence_effect = 35.0  # Example value
+    def check_F2_4(self, confidence_effect: float) -> Tuple[bool, float]:
+        """F2.4: Precision-Weighted Integration
+
+        Args:
+            confidence_effect: Confidence effect size
+
+        Returns:
+            Tuple of (falsified, confidence_effect)
+        """
         falsified = confidence_effect >= 30
         return falsified, confidence_effect
 
-    def check_F2_5(self, apgi_time_to_criterion: float = None) -> Tuple[bool, float]:
-        """F2.5: Learning Trajectory Discrimination"""
-        if apgi_time_to_criterion is None:
-            apgi_time_to_criterion = 40.0  # Example value
+    def check_F2_5(self, apgi_time_to_criterion: float) -> Tuple[bool, float]:
+        """F2.5: Learning Trajectory Discrimination
+
+        Args:
+            apgi_time_to_criterion: Time to criterion for APGI agent
+
+        Returns:
+            Tuple of (falsified, time_to_criterion)
+        """
         falsified = apgi_time_to_criterion <= 55  # Lower is better
         return falsified, apgi_time_to_criterion
 
     def check_F3_1(
-        self, apgi_rewards: List[float] = None, baseline_rewards: List[float] = None
+        self, apgi_rewards: List[float], baseline_rewards: List[float]
     ) -> Tuple[bool, float]:
-        """F3.1: Overall Performance Advantage"""
-        if apgi_rewards is None:
-            apgi_rewards = [100.0]
-        if baseline_rewards is None:
-            baseline_rewards = [80.0]
+        """F3.1: Overall Performance Advantage
+
+        Args:
+            apgi_rewards: List of APGI agent rewards
+            baseline_rewards: List of baseline agent rewards
+
+        Returns:
+            Tuple of (falsified, advantage_percentage)
+        """
         mean_apgi = np.mean(apgi_rewards)
         mean_baseline = np.mean(baseline_rewards)
         advantage_pct = ((mean_apgi - mean_baseline) / mean_baseline) * 100
@@ -1705,42 +1733,66 @@ class FalsificationChecker:
         falsified = advantage_pct >= cumulative_reward_threshold
         return falsified, advantage_pct
 
-    def check_F3_2(self, interoceptive_advantage: float = None) -> Tuple[bool, float]:
-        """F3.2: Interoceptive Task Specificity"""
-        if interoceptive_advantage is None:
-            interoceptive_advantage = 30.0  # Example value
+    def check_F3_2(self, interoceptive_advantage: float) -> Tuple[bool, float]:
+        """F3.2: Interoceptive Task Specificity
+
+        Args:
+            interoceptive_advantage: Advantage in interoceptive tasks
+
+        Returns:
+            Tuple of (falsified, interoceptive_advantage)
+        """
         falsified = interoceptive_advantage >= 28
         return falsified, interoceptive_advantage
 
-    def check_F3_3(self, performance_reduction: float = None) -> Tuple[bool, float]:
-        """F3.3: Threshold Gating Necessity"""
-        if performance_reduction is None:
-            performance_reduction = 30.0  # Example value
+    def check_F3_3(self, performance_reduction: float) -> Tuple[bool, float]:
+        """F3.3: Threshold Gating Necessity
+
+        Args:
+            performance_reduction: Performance reduction when threshold is removed
+
+        Returns:
+            Tuple of (falsified, performance_reduction)
+        """
         falsified = performance_reduction >= 25
         return falsified, performance_reduction
 
-    def check_F3_4(self, precision_reduction: float = None) -> Tuple[bool, float]:
-        """F3.4: Precision Weighting Necessity"""
-        if precision_reduction is None:
-            precision_reduction = 25.0  # Example value
+    def check_F3_4(self, precision_reduction: float) -> Tuple[bool, float]:
+        """F3.4: Precision Weighting Necessity
+
+        Args:
+            precision_reduction: Performance reduction when precision is uniform
+
+        Returns:
+            Tuple of (falsified, precision_reduction)
+        """
         falsified = precision_reduction >= 20
         return falsified, precision_reduction
 
     def check_F3_5(
-        self, efficiency_ratio: float = None, performance_retention: float = None
+        self, efficiency_ratio: float, performance_retention: float
     ) -> Tuple[bool, Tuple[float, float]]:
-        """F3.5: Computational Efficiency Trade-Off"""
-        if efficiency_ratio is None:
-            efficiency_ratio = 0.5  # Example value
-        if performance_retention is None:
-            performance_retention = 90.0  # Example value
+        """F3.5: Computational Efficiency Trade-Off
+
+        Args:
+            efficiency_ratio: Efficiency ratio (operations saved)
+            performance_retention: Performance retention percentage
+
+        Returns:
+            Tuple of (falsified, (efficiency_ratio, performance_retention))
+        """
         falsified = efficiency_ratio <= 0.6 and performance_retention >= 85
         return falsified, (efficiency_ratio, performance_retention)
 
-    def check_F3_6(self, trials_to_80pct: float = None) -> Tuple[bool, float]:
-        """F3.6: Sample Efficiency in Learning"""
-        if trials_to_80pct is None:
-            trials_to_80pct = 180.0  # Example value
+    def check_F3_6(self, trials_to_80pct: float) -> Tuple[bool, float]:
+        """F3.6: Sample Efficiency in Learning
+
+        Args:
+            trials_to_80pct: Number of trials to reach 80% performance
+
+        Returns:
+            Tuple of (falsified, trials_to_80pct)
+        """
         falsified = trials_to_80pct <= 200
         return falsified, trials_to_80pct
 
@@ -3501,7 +3553,9 @@ def check_falsification(
     logger.info("Testing V1.3: Temporal Dynamics Signature")
     n_trials = 100
     successes = int(proportion_matching_trials * n_trials)
-    p_binomial = stats.binom_test(successes, n_trials, p=0.5, alternative="greater")
+    from scipy.stats import binomtest
+
+    p_binomial = binomtest(successes, n_trials, p=0.5, alternative="greater").pvalue
 
     v1_3_pass = (
         median_cross_correlation >= 0.70

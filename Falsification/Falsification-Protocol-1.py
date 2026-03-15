@@ -23,6 +23,83 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+def bootstrap_ci(
+    data: np.ndarray, n_bootstrap: int = 1000, ci: float = 0.95
+) -> Tuple[float, float, float]:
+    """
+    Compute bootstrap confidence interval for mean.
+
+    Args:
+        data: Sample data
+        n_bootstrap: Number of bootstrap samples
+        ci: Confidence interval level (e.g., 0.95 for 95% CI)
+
+    Returns:
+        Tuple of (mean, lower_bound, upper_bound)
+    """
+    if len(data) == 0:
+        return 0.0, 0.0, 0.0
+
+    bootstrap_means = []
+    for _ in range(n_bootstrap):
+        sample = np.random.choice(data, size=len(data), replace=True)
+        bootstrap_means.append(np.mean(sample))
+
+    bootstrap_means = np.array(bootstrap_means)
+    mean = np.mean(data)
+    lower = np.percentile(bootstrap_means, (1 - ci) / 2 * 100)
+    upper = np.percentile(bootstrap_means, (1 + ci) / 2 * 100)
+
+    return mean, lower, upper
+
+
+def bootstrap_one_sample_test(
+    data: np.ndarray,
+    null_value: float = 0.0,
+    n_bootstrap: int = 1000,
+    alpha: float = 0.05,
+) -> Tuple[float, float]:
+    """
+    Perform one-sample test using bootstrap.
+
+    Args:
+        data: Sample data
+        null_value: Null hypothesis value
+        n_bootstrap: Number of bootstrap samples
+        alpha: Significance level
+
+    Returns:
+        Tuple of (test_statistic, p_value)
+    """
+    if len(data) < 2:
+        return 0.0, 1.0
+
+    observed_mean = np.mean(data)
+    bootstrap_means = []
+
+    for _ in range(n_bootstrap):
+        sample = np.random.choice(data, size=len(data), replace=True)
+        bootstrap_means.append(np.mean(sample))
+
+    bootstrap_means = np.array(bootstrap_means)
+
+    # Two-sided p-value: proportion of bootstrap means as extreme as observed
+    if observed_mean >= null_value:
+        p_value = np.mean(bootstrap_means >= 2 * null_value - observed_mean)
+    else:
+        p_value = np.mean(bootstrap_means <= 2 * null_value - observed_mean)
+
+    # Test statistic is standardized difference
+    test_stat = (
+        (observed_mean - null_value) / (np.std(data) / np.sqrt(len(data)))
+        if np.std(data) > 0
+        else 0.0
+    )
+
+    return test_stat, min(2 * p_value, 1.0)
+
+
 # =====================
 # DIMENSION CONSTANTS
 # =====================
@@ -1846,16 +1923,23 @@ def check_falsification(
     threshold_array = np.asarray(threshold_adaptation, dtype=float)
     threshold_reduction = float(np.mean(threshold_array))
 
-    if len(threshold_array) >= 2:
+    if len(threshold_array) >= 30:
+        # Use standard t-test with sufficient sample size
         t_stat, p_adapt = stats.ttest_1samp(threshold_array, 0)
         adapt_std = float(np.std(threshold_array, ddof=1))
         if not np.isfinite(t_stat):
             t_stat = 0.0
-        if not np.isfinite(p_adapt):
-            p_adapt = 1.0
+    elif len(threshold_array) >= 2:
+        # Use bootstrap test for small samples
+        t_stat, p_adapt = bootstrap_one_sample_test(threshold_array, null_value=0.0)
+        adapt_std = float(np.std(threshold_array, ddof=1))
     else:
+        # Insufficient data - fail criterion
         t_stat, p_adapt = 0.0, 1.0
         adapt_std = 1.0  # fallback to avoid division by zero
+
+    if not np.isfinite(p_adapt):
+        p_adapt = 1.0
 
     cohens_d_adapt = threshold_reduction / max(1e-10, adapt_std)
 
@@ -2318,25 +2402,41 @@ def check_falsification(
 
     # F3.2: Interoceptive Task Specificity
     logger.info("Testing F3.2: Interoceptive Task Specificity")
-    # Two-way mixed ANOVA (simplified as distributed t-test if possible)
-    # interoceptive_task_advantage should be a list for non-degenerate t-test
+    # Use bootstrap test for proper statistical inference
     if (
         isinstance(interoceptive_task_advantage, (list, np.ndarray))
-        and len(interoceptive_task_advantage) >= 2
+        and len(interoceptive_task_advantage) >= 30
     ):
+        # Use standard t-test with sufficient sample size
         t_stat, p_value = stats.ttest_1samp(interoceptive_task_advantage, 12)
         mean_adv = float(np.mean(interoceptive_task_advantage))
         std_adv = float(np.std(interoceptive_task_advantage, ddof=1))
         cohens_d = (mean_adv - 12) / std_adv if std_adv > 0 else 0.0
+    elif (
+        isinstance(interoceptive_task_advantage, (list, np.ndarray))
+        and len(interoceptive_task_advantage) >= 2
+    ):
+        # Use bootstrap test for small samples
+        data_array = np.array(interoceptive_task_advantage)
+        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=12.0)
+        mean_adv = float(np.mean(data_array))
+        std_adv = float(np.std(data_array, ddof=1))
+        cohens_d = (mean_adv - 12) / std_adv if std_adv > 0 else 0.0
     else:
-        # Fallback for single observation
-        t_stat, p_value = 0.0, 1.0  # Degenerate
-        mean_adv = (
-            float(interoceptive_task_advantage)
-            if not isinstance(interoceptive_task_advantage, (list, np.ndarray))
-            else float(interoceptive_task_advantage[0])
-        )
-        cohens_d = 0.0
+        # Insufficient data - fail criterion
+        t_stat, p_value = 0.0, 1.0
+        mean_adv = float(interoceptive_task_advantage)
+        if not isinstance(interoceptive_task_advantage, (list, np.ndarray)):
+            mean_adv = float(interoceptive_task_advantage)
+        else:
+            mean_adv = float(interoceptive_task_advantage[0])
+
+        if len(interoceptive_task_advantage) > 0:
+            std_adv = float(np.std(interoceptive_task_advantage, ddof=1))
+            cohens_d = (mean_adv - 12) / std_adv if std_adv > 0 else 0.0
+        else:
+            std_adv = 0.0
+            cohens_d = 0.0
 
     f3_2_pass = (
         np.isfinite(mean_adv)
@@ -2368,22 +2468,37 @@ def check_falsification(
 
     # F3.3: Threshold Gating Necessity
     logger.info("Testing F3.3: Threshold Gating Necessity")
-    # Paired t-test comparing full APGI vs. no-threshold variant
-    # threshold_removal_reduction should be a list for non-degenerate t-test
+    # Use bootstrap test for proper statistical inference
     if (
         isinstance(threshold_removal_reduction, (list, np.ndarray))
-        and len(threshold_removal_reduction) >= 2
+        and len(threshold_removal_reduction) >= 30
     ):
+        # Use standard t-test with sufficient sample size
         t_stat, p_value = stats.ttest_1samp(threshold_removal_reduction, 0)
         mean_red = float(np.mean(threshold_removal_reduction))
         std_red = float(np.std(threshold_removal_reduction, ddof=1))
         cohens_d = mean_red / std_red if std_red > 0 else 0.0
+    elif (
+        isinstance(threshold_removal_reduction, (list, np.ndarray))
+        and len(threshold_removal_reduction) >= 2
+    ):
+        # Use bootstrap test for small samples
+        data_array = np.array(threshold_removal_reduction)
+        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=0.0)
+        mean_red = float(np.mean(data_array))
+        std_red = float(np.std(data_array, ddof=1))
+        cohens_d = mean_red / std_red if std_red > 0 else 0.0
     else:
+        # Insufficient data - fail criterion
         t_stat, p_value = 0.0, 1.0
         mean_red = (
             float(threshold_removal_reduction)
             if not isinstance(threshold_removal_reduction, (list, np.ndarray))
-            else float(threshold_removal_reduction[0])
+            else (
+                float(threshold_removal_reduction[0])
+                if len(threshold_removal_reduction) > 0
+                else 0.0
+            )
         )
         cohens_d = 0.0
 
@@ -2417,22 +2532,37 @@ def check_falsification(
 
     # F3.4: Precision Weighting Necessity
     logger.info("Testing F3.4: Precision Weighting Necessity")
-    # Paired t-test
-    # precision_uniform_reduction should be a list
+    # Use bootstrap test for proper statistical inference
     if (
         isinstance(precision_uniform_reduction, (list, np.ndarray))
-        and len(precision_uniform_reduction) >= 2
+        and len(precision_uniform_reduction) >= 30
     ):
+        # Use standard t-test with sufficient sample size
         t_stat, p_value = stats.ttest_1samp(precision_uniform_reduction, 0)
         mean_red = float(np.mean(precision_uniform_reduction))
         std_red = float(np.std(precision_uniform_reduction, ddof=1))
         cohens_d = mean_red / std_red if std_red > 0 else 0.0
+    elif (
+        isinstance(precision_uniform_reduction, (list, np.ndarray))
+        and len(precision_uniform_reduction) >= 2
+    ):
+        # Use bootstrap test for small samples
+        data_array = np.array(precision_uniform_reduction)
+        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=0.0)
+        mean_red = float(np.mean(data_array))
+        std_red = float(np.std(data_array, ddof=1))
+        cohens_d = mean_red / std_red if std_red > 0 else 0.0
     else:
+        # Insufficient data - fail criterion
         t_stat, p_value = 0.0, 1.0
         mean_red = (
             float(precision_uniform_reduction)
             if not isinstance(precision_uniform_reduction, (list, np.ndarray))
-            else float(precision_uniform_reduction[0])
+            else (
+                float(precision_uniform_reduction[0])
+                if len(precision_uniform_reduction) > 0
+                else 0.0
+            )
         )
         cohens_d = 0.0
 
@@ -2500,20 +2630,35 @@ def check_falsification(
 
     # F3.6: Sample Efficiency in Learning
     logger.info("Testing F3.6: Sample Efficiency in Learning")
-    # Time-to-criterion analysis (simplified t-test)
+    # Use bootstrap test for proper statistical inference
     if (
         isinstance(sample_efficiency_trials, (list, np.ndarray))
-        and len(sample_efficiency_trials) >= 2
+        and len(sample_efficiency_trials) >= 30
     ):
+        # Use standard t-test with sufficient sample size
         t_stat, p_value = stats.ttest_1samp(sample_efficiency_trials, 300)
         mean_trials = float(np.mean(sample_efficiency_trials))
         hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
+    elif (
+        isinstance(sample_efficiency_trials, (list, np.ndarray))
+        and len(sample_efficiency_trials) >= 2
+    ):
+        # Use bootstrap test for small samples
+        data_array = np.array(sample_efficiency_trials)
+        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=300.0)
+        mean_trials = float(np.mean(data_array))
+        hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
     else:
+        # Insufficient data - fail criterion
         t_stat, p_value = 0.0, 1.0
         mean_trials = (
             float(sample_efficiency_trials)
             if not isinstance(sample_efficiency_trials, (list, np.ndarray))
-            else float(sample_efficiency_trials[0])
+            else (
+                float(sample_efficiency_trials[0])
+                if len(sample_efficiency_trials) > 0
+                else 300.0
+            )
         )
         hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
 
@@ -2708,9 +2853,46 @@ def check_falsification(
 
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
-    t_stat, p_value = stats.ttest_ind(
-        [control_performance_difference], [0], equal_var=False
-    )
+    # Use bootstrap test for proper statistical inference
+    if (
+        isinstance(control_performance_difference, (list, np.ndarray))
+        and len(control_performance_difference) >= 30
+    ):
+        # Use standard t-test with sufficient sample size
+        t_stat, p_value = stats.ttest_1samp(control_performance_difference, 0)
+        mean_diff = float(np.mean(control_performance_difference))
+        cohens_d = (
+            float(np.mean(control_performance_difference))
+            / np.std(control_performance_difference, ddof=1)
+            if np.std(control_performance_difference, ddof=1) > 0
+            else 0
+        )
+    elif (
+        isinstance(control_performance_difference, (list, np.ndarray))
+        and len(control_performance_difference) >= 2
+    ):
+        # Use bootstrap test for small samples
+        data_array = np.array(control_performance_difference)
+        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=0.0)
+        mean_diff = float(np.mean(data_array))
+        cohens_d = (
+            float(np.mean(data_array)) / np.std(data_array, ddof=1)
+            if np.std(data_array, ddof=1) > 0
+            else 0
+        )
+    else:
+        # Insufficient data - fail criterion
+        t_stat, p_value = 0.0, 1.0
+        mean_diff = (
+            float(control_performance_difference)
+            if not isinstance(control_performance_difference, (list, np.ndarray))
+            else (
+                float(control_performance_difference[0])
+                if len(control_performance_difference) > 0
+                else 0.0
+            )
+        )
+        cohens_d = mean_diff / 0.1  # Mock cohens_d since we only have mean
     denom = np.std([control_performance_difference, 0], ddof=1)
     cohens_d = control_performance_difference / denom if denom > 0 else 0.0
 

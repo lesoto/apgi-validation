@@ -1,8 +1,13 @@
 import warnings
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
+import logging
 
 import numpy as np
 from scipy.stats import entropy
+from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix
+from sklearn.utils import resample
+
+logger = logging.getLogger(__name__)
 
 # Constants for better maintainability
 DEFAULT_SURPRISE_THRESHOLD = 0.5
@@ -30,6 +35,12 @@ DEFAULT_DISCONTINUITY_WINDOW = 10
 DEFAULT_PHI_LOOKBACK = 50
 DEFAULT_HISTOGRAM_BINS = 10
 DEFAULT_EPSILON = 1e-10
+
+# Clinical biomarker thresholds
+DOC_AUC_MIN = 0.75  # AUC target 0.75–0.85 for DoC classification
+DOC_AUC_MAX = 0.85
+BOOTSTRAP_N = 1000  # Number of bootstrap samples for CI
+BOOTSTRAP_ALPHA = 0.05  # Significance level for CI
 
 # Suppress deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -740,6 +751,221 @@ class InformationTheoreticAnalysis:
             return 0.0
 
         return autocorr[lag] / (autocorr[0] + DEFAULT_EPSILON)
+
+
+class ClinicalBiomarkerFalsification:
+    """
+    Clinical biomarker falsification for Prediction 4: DoC classification
+
+    Tests APGI-based biomarkers for distinguishing disorders of consciousness (DoC)
+    using ROC analysis with AUC target 0.75-0.85, bootstrap confidence intervals,
+    and sensitivity/specificity at optimal threshold.
+    """
+
+    def __init__(self, random_seed: Optional[int] = None):
+        if random_seed is not None:
+            np.random.seed(random_seed)
+
+    def generate_synthetic_biomarker_data(
+        self,
+        n_samples: int = 200,
+        n_features: int = 10,
+        doc_prevalence: float = 0.3,
+        signal_strength: float = 0.8,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Generate synthetic biomarker data for DoC classification
+
+        Args:
+            n_samples: Number of samples
+            n_features: Number of biomarker features
+            doc_prevalence: Prevalence of DoC in sample (0.0-1.0)
+            signal_strength: Strength of APGI signal (0.0-1.0)
+
+        Returns:
+            Tuple of (features, labels) arrays
+        """
+        # Generate baseline biomarker features
+        features = np.random.randn(n_samples, n_features) * 0.5
+
+        # Add APGI-specific signal to DoC samples
+        n_doc = int(n_samples * doc_prevalence)
+
+        # APGI biomarker signal: higher entropy, specific temporal patterns
+        doc_indices = np.random.choice(n_samples, n_doc, replace=False)
+
+        # Add signal to DoC samples
+        features[doc_indices, 0] += signal_strength * 1.2  # Higher entropy
+        features[doc_indices, 1] += signal_strength * 0.8  # Specific temporal pattern
+        features[doc_indices, 2] += signal_strength * 1.0  # Integration complexity
+        features[doc_indices, 3] += signal_strength * 0.6  # Threshold modulation
+
+        # Labels: 1 = DoC, 0 = Healthy
+        labels = np.zeros(n_samples)
+        labels[doc_indices] = 1
+
+        return features, labels
+
+    def compute_roc_analysis(
+        self,
+        features: np.ndarray,
+        labels: np.ndarray,
+        bootstrap_n: int = BOOTSTRAP_N,
+        bootstrap_alpha: float = BOOTSTRAP_ALPHA,
+    ) -> Dict[str, Any]:
+        """
+        Compute ROC analysis with bootstrap confidence intervals
+
+        Args:
+            features: Feature matrix (n_samples, n_features)
+            labels: True labels (n_samples,)
+            bootstrap_n: Number of bootstrap samples
+            bootstrap_alpha: Significance level for CI
+
+        Returns:
+            Dictionary with AUC, CI, sensitivity, specificity, optimal threshold
+        """
+        # Simple classifier: weighted sum of features
+        # In practice, this would be a trained model
+        feature_weights = np.array([1.2, 0.8, 1.0, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05])
+        scores = features @ feature_weights
+
+        # Compute ROC curve and AUC
+        fpr, tpr, thresholds = roc_curve(labels, scores)
+        auc = roc_auc_score(labels, scores)
+
+        # Bootstrap confidence interval for AUC
+        auc_bootstrap = []
+        for _ in range(bootstrap_n):
+            # Resample with replacement
+            indices = resample(np.arange(len(labels)), n_samples=len(labels))
+            labels_boot = labels[indices]
+            scores_boot = scores[indices]
+
+            try:
+                auc_boot = roc_auc_score(labels_boot, scores_boot)
+                auc_bootstrap.append(auc_boot)
+            except ValueError:
+                # Handle cases where only one class is present
+                auc_bootstrap.append(0.5)
+
+        auc_bootstrap = np.array(auc_bootstrap)
+        ci_lower = np.percentile(auc_bootstrap, (bootstrap_alpha / 2) * 100)
+        ci_upper = np.percentile(auc_bootstrap, (1 - bootstrap_alpha / 2) * 100)
+
+        # Find optimal threshold (Youden's J statistic)
+        youden_j = tpr - fpr
+        optimal_idx = np.argmax(youden_j)
+        optimal_threshold = thresholds[optimal_idx]
+        optimal_sensitivity = tpr[optimal_idx]
+        optimal_specificity = 1 - fpr[optimal_idx]
+
+        # Compute confusion matrix at optimal threshold
+        predictions = (scores >= optimal_threshold).astype(int)
+        tn, fp, fn, tp = confusion_matrix(labels, predictions).ravel()
+
+        return {
+            "auc": auc,
+            "auc_ci_lower": ci_lower,
+            "auc_ci_upper": ci_upper,
+            "auc_in_target_range": DOC_AUC_MIN <= auc <= DOC_AUC_MAX,
+            "optimal_threshold": optimal_threshold,
+            "sensitivity": optimal_sensitivity,
+            "specificity": optimal_specificity,
+            "true_positives": int(tp),
+            "false_positives": int(fp),
+            "true_negatives": int(tn),
+            "false_negatives": int(fn),
+            "fpr": fpr,
+            "tpr": tpr,
+            "thresholds": thresholds,
+            "scores": scores,
+        }
+
+    def check_falsification(
+        self,
+        features: np.ndarray,
+        labels: np.ndarray,
+        bootstrap_n: int = BOOTSTRAP_N,
+        bootstrap_alpha: float = BOOTSTRAP_ALPHA,
+    ) -> Dict[str, Any]:
+        """
+        Check falsification criteria for clinical biomarker prediction
+
+        Args:
+            features: Feature matrix (n_samples, n_features)
+            labels: True labels (n_samples,)
+            bootstrap_n: Number of bootstrap samples
+            bootstrap_alpha: Significance level for CI
+
+        Returns:
+            Dictionary with falsification results
+        """
+        results = self.compute_roc_analysis(
+            features, labels, bootstrap_n, bootstrap_alpha
+        )
+
+        # Falsification criteria
+        auc_in_range = DOC_AUC_MIN <= results["auc"] <= DOC_AUC_MAX
+        sensitivity_acceptable = results["sensitivity"] >= 0.70
+        specificity_acceptable = results["specificity"] >= 0.70
+
+        # Overall pass: AUC in range AND both sensitivity and specificity acceptable
+        falsification_pass = (
+            auc_in_range and sensitivity_acceptable and specificity_acceptable
+        )
+
+        results["falsification_pass"] = falsification_pass
+        results["auc_target_range"] = f"{DOC_AUC_MIN}-{DOC_AUC_MAX}"
+        results["sensitivity_target"] = "≥70%"
+        results["specificity_target"] = "≥70%"
+
+        return results
+
+    def run_clinical_biomarker_falsification(
+        self,
+        n_samples: int = 200,
+        n_features: int = 10,
+        doc_prevalence: float = 0.3,
+        signal_strength: float = 0.8,
+        bootstrap_n: int = BOOTSTRAP_N,
+        bootstrap_alpha: float = BOOTSTRAP_ALPHA,
+    ) -> Dict[str, Any]:
+        """
+        Run complete clinical biomarker falsification test
+
+        Args:
+            n_samples: Number of samples
+            n_features: Number of biomarker features
+            doc_prevalence: Prevalence of DoC in sample
+            signal_strength: Strength of APGI signal
+            bootstrap_n: Number of bootstrap samples
+            bootstrap_alpha: Significance level for CI
+
+        Returns:
+            Dictionary with complete falsification results
+        """
+        logger.info("Generating synthetic biomarker data...")
+        features, labels = self.generate_synthetic_biomarker_data(
+            n_samples, n_features, doc_prevalence, signal_strength
+        )
+
+        logger.info("Computing ROC analysis with bootstrap CI...")
+        results = self.check_falsification(
+            features, labels, bootstrap_n, bootstrap_alpha
+        )
+
+        logger.info(
+            f"AUC: {results['auc']:.3f} (95% CI: {results['auc_ci_lower']:.3f}-{results['auc_ci_upper']:.3f})"
+        )
+        logger.info(
+            f"Sensitivity: {results['sensitivity']:.3f}, Specificity: {results['specificity']:.3f}"
+        )
+        logger.info(
+            f"Falsification: {'PASS' if results['falsification_pass'] else 'FAIL'}"
+        )
+
+        return results
 
 
 # Main execution

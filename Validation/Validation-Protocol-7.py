@@ -1934,7 +1934,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     """
     Return complete falsification specifications for Validation-Protocol-7.
 
-    Tests: TMS/pharmacological intervention predictions, causal parameter effects
+    Tests: TMS/pharmacological intervention predictions, Protocol 2 paper criteria
 
     Returns:
         Dictionary of falsification criteria with thresholds, tests, and effect sizes
@@ -1954,249 +1954,62 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "effect_size": "Partial η² ≥ 0.20 for time × condition; Cohen's d ≥ 0.65 for ignition reduction",
             "alternative": "Falsified if Π_i increase <18% OR ignition reduction <20% OR η² < 0.12 OR p ≥ 0.01",
         },
-        "F1.1": {
-            "description": "APGI Agent Performance Advantage",
-            "threshold": "APGI agents achieve ≥18% higher cumulative reward than standard predictive processing agents over 1000 trials in multi-level decision tasks",
-            "test": "Independent samples t-test, two-tailed, α = 0.01 (Bonferroni-corrected for 6 comparisons, family-wise α = 0.05)",
-            "effect_size": "Cohen's d ≥ 0.6 (medium-to-large effect)",
-            "alternative": "Falsified if APGI advantage <10% OR d < 0.35 OR p ≥ 0.01",
+        "P7.1": {
+            "description": "Propofol P3b:MMN Ratio",
+            "threshold": "Propofol increases P3b:MMN amplitude ratio to ≥ 1.5:1, demonstrating thalamic gating mechanism",
+            "test": "Paired t-test comparing P3b:MMN ratio pre vs. post propofol, α = 0.01",
+            "effect_size": "Cohen's d ≥ 0.60 for ratio increase; ratio ≥ 1.5:1",
+            "alternative": "Falsified if ratio < 1.3:1 OR d < 0.40 OR p ≥ 0.01",
         },
-        "F1.2": {
-            "description": "Hierarchical Level Emergence",
-            "threshold": "Intrinsic timescale measurements show ≥3 distinct temporal clusters corresponding to Levels 1-3 (τ₁ ≈ 50-150ms, τ₂ ≈ 200-800ms, τ₃ ≈ 1-3s), with between-cluster separation >2× within-cluster standard deviation",
-            "test": "K-means clustering (k=3) with silhouette score validation; one-way ANOVA comparing cluster means, α = 0.001",
-            "effect_size": "η² ≥ 0.70 (large effect), silhouette score ≥ 0.45",
-            "alternative": "Falsified if <3 clusters emerge OR silhouette score < 0.30 OR between-cluster separation < 1.5× within-cluster SD OR η² < 0.50",
+        "P7.2": {
+            "description": "Ketamine MMN Suppression",
+            "threshold": "Ketamine suppresses MMN amplitude by ≥ 20% while P3b suppression < 50%, preserving conscious ignition",
+            "test": "Repeated-measures ANOVA (drug × component), α = 0.01; post-hoc t-tests",
+            "effect_size": "MMN suppression ≥ 20%; P3b suppression < 50%; interaction η² ≥ 0.15",
+            "alternative": "Falsified if MMN suppression < 15% OR P3b suppression ≥ 60% OR interaction p ≥ 0.01",
         },
-        "F1.3": {
-            "description": "Level-Specific Precision Weighting",
-            "threshold": "Precision weights (Πⁱ, Πᵉ) show differential modulation across hierarchical levels, with Level 1 interoceptive precision 25-40% higher than Level 3 during interoceptive salience tasks",
-            "test": "Repeated-measures ANOVA (Level × Precision Type), α = 0.001; post-hoc Tukey HSD",
-            "effect_size": "Partial η² ≥ 0.15 for Level × Type interaction",
-            "alternative": "Falsified if Level 1-3 interoceptive precision difference <15% OR interaction p ≥ 0.01 OR partial η² < 0.08",
-        },
-        "F1.4": {
-            "description": "Threshold Adaptation Dynamics",
-            "threshold": "Allostatic threshold θ_t adapts with time constant τ_θ = 10-100s, showing >20% reduction after sustained high prediction error exposure (>5min), with recovery time constant within 2-3× τ_θ",
-            "test": "Exponential decay curve fitting (R² ≥ 0.80); paired t-test comparing pre/post-exposure thresholds, α = 0.01",
-            "effect_size": "Cohen's d ≥ 0.7 for pre/post comparison; θ_t reduction ≥20%",
-            "alternative": "Falsified if threshold adaptation <12% OR τ_θ < 5s or >150s OR curve fit R² < 0.65 OR recovery time >5× τ_θ",
-        },
-        "F1.5": {
-            "description": "Cross-Level Phase-Amplitude Coupling (PAC)",
-            "threshold": "Theta-gamma PAC (Level 1-2 coupling) shows modulation index MI ≥ 0.012, with ≥30% increase during ignition events vs. baseline",
-            "test": "Permutation test (10,000 iterations) for PAC significance, α = 0.001; paired t-test for ignition vs. baseline, α = 0.01",
-            "effect_size": "Cohen's d ≥ 0.5 for ignition effect",
-            "alternative": "Falsified if MI < 0.008 OR ignition increase <15% OR permutation p ≥ 0.01 OR d < 0.30",
-        },
-        "F1.6": {
-            "description": "1/f Spectral Slope Predictions",
-            "threshold": "Aperiodic exponent α_spec = 0.8-1.2 during active task engagement, increasing to α_spec = 1.5-2.0 during low-arousal states (using FOOOF/specparam algorithm)",
-            "test": "Paired t-test comparing active vs. low-arousal states, α = 0.001; goodness-of-fit for spectral parameterization R² ≥ 0.90",
-            "effect_size": "Cohen's d ≥ 0.8 for state difference; Δα_spec ≥ 0.4",
-            "alternative": "Falsified if active α_spec > 1.4 OR low-arousal α_spec < 1.3 OR Δα_spec < 0.25 OR d < 0.50 OR spectral fit R² < 0.85",
-        },
-        "F3.1": {
-            "description": "Overall Performance Advantage",
-            "threshold": "APGI agents achieve ≥18% higher cumulative reward than the best non-APGI baseline (Standard PP, GWT-only, or Q-learning) across mixed task battery (n ≥ 100 trials per task, 3+ task types)",
-            "test": "Independent samples t-test with Welch correction for unequal variances, two-tailed, α = 0.008 (Bonferroni for 6 comparisons)",
-            "effect_size": "Cohen's d ≥ 0.60; 95% CI for advantage excludes 10%",
-            "alternative": "Falsified if APGI advantage <12% OR d < 0.40 OR p ≥ 0.008 OR 95% CI includes 8%",
-        },
-        "F3.2": {
-            "description": "Interoceptive Task Specificity",
-            "threshold": "APGI advantage increases to ≥28% in tasks with high interoceptive relevance (e.g., IGT, threat detection, effort allocation) vs. ≤12% in purely exteroceptive tasks",
-            "test": "Two-way mixed ANOVA (Agent Type × Task Category); test interaction, α = 0.01",
-            "effect_size": "Partial η² ≥ 0.20 for interaction; simple effects d ≥ 0.70 for interoceptive tasks",
-            "alternative": "Falsified if interoceptive advantage <20% OR interaction p ≥ 0.01 OR partial η² < 0.12 OR simple effects d < 0.45",
-        },
-        "F3.3": {
-            "description": "Threshold Gating Necessity",
-            "threshold": "Removing threshold gating (θ_t → 0) reduces APGI performance by ≥25% in volatile environments, demonstrating non-redundancy of ignition mechanism",
-            "test": "Paired t-test comparing full APGI vs. no-threshold variant, α = 0.01",
-            "effect_size": "Cohen's d ≥ 0.75",
-            "alternative": "Falsified if performance reduction <15% OR d < 0.50 OR p ≥ 0.01",
-        },
-        "F3.4": {
-            "description": "Precision Weighting Necessity",
-            "threshold": "Uniform precision (Πⁱ = Πᵉ = constant) reduces APGI performance by ≥20% in tasks with unreliable sensory modalities",
-            "test": "Paired t-test, α = 0.01",
-            "effect_size": "Cohen's d ≥ 0.65",
-            "alternative": "Falsified if reduction <12% OR d < 0.42 OR p ≥ 0.01",
-        },
-        "F3.5": {
-            "description": "Computational Efficiency Trade-Off",
-            "threshold": "APGI maintains ≥85% of full model performance while using ≤60% of computational operations (measured by floating-point operations per decision)",
-            "test": "Equivalence testing (TOST procedure) for non-inferiority in performance, with efficiency ratio t-test, α = 0.05",
-            "effect_size": "Efficiency gain ≥30%; performance retention ≥85%",
-            "alternative": "Falsified if performance retention <78% OR efficiency gain <20% OR fails TOST non-inferiority bounds",
-        },
-        "F3.6": {
-            "description": "Sample Efficiency in Learning",
-            "threshold": "APGI agents achieve 80% asymptotic performance in ≤200 trials, vs. ≥300 trials for standard RL baselines (≥33% sample efficiency advantage)",
-            "test": "Time-to-criterion analysis with log-rank test, α = 0.01",
-            "effect_size": "Hazard ratio ≥ 1.45",
-            "alternative": "Falsified if APGI time-to-criterion >250 trials OR advantage <25% OR hazard ratio < 1.30 OR p ≥ 0.01",
-        },
-        "F5.1": {
-            "description": "Threshold Filtering Emergence",
-            "threshold": "≥75% of evolved agents under metabolic constraint develop threshold-like gating with ignition sharpness α ≥ 4.0 by generation 500",
-            "test": "Binomial test against 50% null rate, α = 0.01; one-sample t-test for α values",
-            "effect_size": "Proportion difference ≥ 0.25 (75% vs. 50%); mean α ≥ 4.0 with Cohen's d ≥ 0.80 vs. unconstrained control",
-            "alternative": "Falsified if <60% develop thresholds OR mean α < 3.0 OR d < 0.50 OR binomial p ≥ 0.01",
-        },
-        "F5.2": {
-            "description": "Precision-Weighted Coding Emergence",
-            "threshold": "≥65% of evolved agents under noisy signaling constraints develop precision-like weighting (correlation between signal reliability and influence ≥0.45) by generation 400",
-            "test": "Binomial test, α = 0.01; Pearson correlation test",
-            "effect_size": "r ≥ 0.45; proportion difference ≥ 0.15 vs. no-noise control",
-            "alternative": "Falsified if <50% develop weighting OR mean r < 0.35 OR binomial p ≥ 0.01",
-        },
-        "F5.3": {
-            "description": "Interoceptive Prioritization Emergence",
-            "threshold": "Under survival pressure (resources tied to homeostasis), ≥70% of agents evolve interoceptive signal gain β_intero ≥ 1.3× exteroceptive gain by generation 600",
-            "test": "Binomial test, α = 0.01; paired t-test comparing β_intero vs. β_extero",
-            "effect_size": "Mean gain ratio ≥ 1.3; Cohen's d ≥ 0.60 for paired comparison",
-            "alternative": "Falsified if <55% show prioritization OR mean ratio < 1.15 OR d < 0.40 OR binomial p ≥ 0.01",
-        },
-        "F5.4": {
-            "description": "Multi-Timescale Integration Emergence",
-            "threshold": "≥60% of evolved agents develop ≥2 distinct temporal integration windows (fast: 50-200ms, slow: 500ms-2s) under multi-level environmental dynamics",
-            "test": "Autocorrelation function analysis with peak detection; binomial test for proportion, α = 0.01",
-            "effect_size": "Peak separation ≥3× fast window duration; proportion difference ≥ 0.10",
-            "alternative": "Falsified if <45% develop multi-timescale OR peak separation < 2× fast window OR binomial p ≥ 0.01",
-        },
-        "F5.5": {
-            "description": "APGI-Like Feature Clustering",
-            "threshold": "Principal component analysis on evolved agent parameters shows ≥70% of variance captured by first 3 PCs corresponding to threshold gating, precision weighting, and interoceptive bias dimensions",
-            "test": "Scree plot analysis; varimax rotation for interpretability; loadings ≥0.60 on predicted dimensions",
-            "effect_size": "Cumulative variance ≥70%; minimum loading ≥0.60",
-            "alternative": "Falsified if cumulative variance <60% OR loadings <0.45 OR PCs don't align with predicted dimensions (cosine similarity <0.65)",
-        },
-        "F5.6": {
-            "description": "Non-APGI Architecture Failure",
-            "threshold": "Control agents without evolved APGI features (threshold, precision, interoceptive bias) show ≥40% worse performance under combined metabolic + noise + survival constraints",
-            "test": "Independent samples t-test, α = 0.01",
-            "effect_size": "Cohen's d ≥ 0.85",
-            "alternative": "Falsified if performance difference <25% OR d < 0.55 OR p ≥ 0.01",
-        },
-        "F6.1": {
-            "description": "Intrinsic Threshold Behavior",
-            "threshold": "Liquid time-constant networks show sharp ignition transitions (10-90% firing rate increase within <50ms) without explicit threshold modules, whereas feedforward networks require added sigmoidal gates",
-            "test": "Transition time comparison (Mann-Whitney U test for non-normal distributions), α = 0.01",
-            "effect_size": "LTCN median transition time ≤50ms vs. >150ms for feedforward without gates; Cliff's delta ≥ 0.60",
-            "alternative": "Falsified if LTCN transition time >80ms OR Cliff's delta < 0.45 OR Mann-Whitney p ≥ 0.01",
-        },
-        "F6.2": {
-            "description": "Intrinsic Temporal Integration",
-            "threshold": "LTCNs naturally integrate information over 200-500ms windows (measured by autocorrelation decay to <0.37) without recurrent add-ons, vs. <50ms for standard RNNs",
-            "test": "Exponential decay curve fitting; Wilcoxon signed-rank test comparing integration windows, α = 0.01",
-            "effect_size": "LTCN integration window ≥4× standard RNN; curve fit R² ≥ 0.85",
-            "alternative": "Falsified if LTCN window <150ms OR ratio < 4.0× OR R² < 0.70 OR p ≥ 0.01",
+        "P7.3": {
+            "description": "Psilocybin P3b Enhancement",
+            "threshold": "Psilocybin increases P3b amplitude by ≥ 10% for low-salience stimuli, with HEP-embodiment correlation r ≥ 0.20",
+            "test": "Paired t-test for P3b increase; Pearson correlation for HEP-embodiment, α = 0.01",
+            "effect_size": "P3b increase ≥ 10%; correlation r ≥ 0.20; Cohen's d ≥ 0.45",
+            "alternative": "Falsified if P3b increase < 5% OR r < 0.15 OR d < 0.30 OR p ≥ 0.01",
         },
     }
 
 
 def check_falsification(
+    # V7.1 parameters (TMS Threshold Modulation)
     threshold_reduction: float,
     tms_effect_duration: float,
     cohens_d_threshold: float,
     p_tms: float,
+    # V7.2 parameters (Pharmacological Precision Modulation)
     precision_increase: float,
     ignition_reduction: float,
     eta_squared: float,
     cohens_d_ignition: float,
     p_pharm: float,
-    # F1.1 parameters
-    apgi_advantage_f1: float,
-    cohens_d_f1: float,
-    p_advantage_f1: float,
-    # F1.2 parameters
-    hierarchical_levels_detected: int,
-    peak_separation_ratio: float,
-    eta_squared_timescales: float,
-    # F1.3 parameters
-    level1_intero_precision: float,
-    level3_intero_precision: float,
-    partial_eta_squared_f1_3: float,
-    p_interaction_f1_3: float,
-    # F1.4 parameters
-    threshold_adaptation: float,
-    cohens_d_threshold_f1_4: float,
-    recovery_time_ratio: float,
-    curve_fit_r2_f1_4: float,
-    # F1.5 parameters
-    pac_modulation_index: float,
-    pac_increase: float,
-    cohens_d_pac: float,
-    permutation_p_pac: float,
-    # F1.6 parameters
-    active_alpha_spec: float,
-    low_arousal_alpha_spec: float,
-    cohens_d_spectral: float,
-    spectral_fit_r2: float,
-    # F3.1 parameters
-    apgi_advantage_f3: float,
-    cohens_d_f3: float,
-    p_advantage_f3: float,
-    # F3.2 parameters
-    interoceptive_advantage: float,
-    partial_eta_squared: float,
-    p_interaction: float,
-    # F3.3 parameters
-    threshold_reduction_f3: float,
-    cohens_d_threshold_f3: float,
-    p_threshold: float,
-    # F3.4 parameters
-    precision_reduction: float,
-    cohens_d_precision: float,
-    p_precision: float,
-    # F3.5 parameters
-    performance_retention: float,
-    efficiency_gain: float,
-    tost_result: bool,
-    # F3.6 parameters
-    time_to_criterion: int,
-    hazard_ratio: float,
-    p_sample_efficiency: float,
-    # F5.1 parameters
-    proportion_threshold_agents: float,
-    mean_alpha: float,
-    cohen_d_alpha: float,
-    binomial_p_f5_1: float,
-    # F5.2 parameters
-    proportion_precision_agents: float,
-    mean_correlation_r: float,
-    binomial_p_f5_2: float,
-    # F5.3 parameters
-    proportion_interoceptive_agents: float,
-    mean_gain_ratio: float,
-    cohen_d_gain: float,
-    binomial_p_f5_3: float,
-    # F5.4 parameters
-    proportion_multiscale_agents: float,
-    peak_separation_ratio_f5_4: float,
-    binomial_p_f5_4: float,
-    # F5.5 parameters
-    cumulative_variance: float,
-    min_loading: float,
-    # F5.6 parameters
-    performance_difference: float,
-    cohen_d_performance: float,
-    ttest_p_f5_6: float,
-    # F6.1 parameters
-    ltcn_transition_time: float,
-    feedforward_transition_time: float,
-    cliffs_delta: float,
-    mann_whitney_p: float,
-    # F6.2 parameters
-    ltcn_integration_window: float,
-    rnn_integration_window: float,
-    curve_fit_r2: float,
-    wilcoxon_p: float,
+    # P7.1 parameters (Propofol P3b:MMN Ratio)
+    p3b_mm_ratio_pre: float,
+    p3b_mm_ratio_post: float,
+    cohens_d_propofol: float,
+    p_propofol: float,
+    # P7.2 parameters (Ketamine MMN Suppression)
+    mmn_suppression_pct: float,
+    p3b_suppression_pct: float,
+    eta_squared_ketamine: float,
+    p_ketamine: float,
+    # P7.3 parameters (Psilocybin P3b Enhancement)
+    p3b_increase_pct: float,
+    hep_embodiment_correlation: float,
+    cohens_d_psilocybin: float,
+    p_psilocybin: float,
 ) -> Dict[str, Any]:
     """
     Implement all statistical tests for Validation-Protocol-7.
+
+    Tests: TMS/pharmacological intervention predictions, Protocol 2 paper criteria
 
     Args:
         threshold_reduction: Percentage reduction in ignition threshold after TMS
@@ -2208,73 +2021,18 @@ def check_falsification(
         eta_squared: Partial eta-squared for pharmacological effect
         cohens_d_ignition: Cohen's d for ignition reduction
         p_pharm: P-value for pharmacological test
-        apgi_advantage_f1: Percentage advantage for APGI agents
-        cohens_d_f1: Cohen's d for advantage
-        p_advantage_f1: P-value for advantage test
-        hierarchical_levels_detected: Number of hierarchical policy levels detected
-        peak_separation_ratio: Ratio of peak separation to lower timescale
-        eta_squared_timescales: Eta-squared for timescale ANOVA
-        level1_intero_precision: Level 1 interoceptive precision
-        level3_intero_precision: Level 3 interoceptive precision
-        partial_eta_squared_f1_3: Partial η² for interaction
-        p_interaction_f1_3: P-value for interaction
-        threshold_adaptation: Percentage threshold adaptation
-        cohens_d_threshold_f1_4: Cohen's d for threshold adaptation
-        recovery_time_ratio: Recovery time ratio
-        curve_fit_r2_f1_4: R² from curve fit
-        pac_modulation_index: PAC modulation index
-        pac_increase: PAC increase percentage
-        cohens_d_pac: Cohen's d for PAC
-        permutation_p_pac: P-value from permutation test
-        active_alpha_spec: Active state α_spec
-        low_arousal_alpha_spec: Low arousal α_spec
-        cohens_d_spectral: Cohen's d for spectral
-        spectral_fit_r2: R² from spectral fit
-        apgi_advantage_f3: APGI advantage
-        cohens_d_f3: Cohen's d
-        p_advantage_f3: P-value
-        interoceptive_advantage: Interoceptive advantage
-        partial_eta_squared: Partial η²
-        p_interaction: P-value for interaction
-        threshold_reduction_f3: Threshold reduction
-        cohens_d_threshold_f3: Cohen's d for threshold
-        p_threshold: P-value for threshold
-        precision_reduction: Precision reduction
-        cohens_d_precision: Cohen's d for precision
-        p_precision: P-value for precision
-        performance_retention: Performance retention
-        efficiency_gain: Efficiency gain
-        tost_result: TOST result
-        time_to_criterion: Time to criterion
-        hazard_ratio: Hazard ratio
-        p_sample_efficiency: P-value for sample efficiency
-        proportion_threshold_agents: Proportion with threshold
-        mean_alpha: Mean α
-        cohen_d_alpha: Cohen's d for α
-        binomial_p_f5_1: Binomial p-value
-        proportion_precision_agents: Proportion with precision
-        mean_correlation_r: Mean r
-        binomial_p_f5_2: Binomial p-value
-        proportion_interoceptive_agents: Proportion with interoceptive
-        mean_gain_ratio: Mean gain ratio
-        cohen_d_gain: Cohen's d for gain
-        binomial_p_f5_3: Binomial p-value
-        proportion_multiscale_agents: Proportion with multiscale
-        peak_separation_ratio_f5_4: Peak separation ratio
-        binomial_p_f5_4: Binomial p-value
-        cumulative_variance: Cumulative variance
-        min_loading: Min loading
-        performance_difference: Performance difference
-        cohen_d_performance: Cohen's d for performance
-        ttest_p_f5_6: t-test p-value
-        ltcn_transition_time: LTCN transition time
-        feedforward_transition_time: Feedforward transition time
-        cliffs_delta: Cliff's delta
-        mann_whitney_p: Mann-Whitney p-value
-        ltcn_integration_window: LTCN integration window
-        rnn_integration_window: RNN integration window
-        curve_fit_r2: Curve fit R²
-        wilcoxon_p: Wilcoxon p-value
+        p3b_mm_ratio_pre: P3b:MMN ratio before propofol
+        p3b_mm_ratio_post: P3b:MMN ratio after propofol
+        cohens_d_propofol: Cohen's d for propofol effect
+        p_propofol: P-value for propofol test
+        mmn_suppression_pct: Percentage MMN suppression by ketamine
+        p3b_suppression_pct: Percentage P3b suppression by ketamine
+        eta_squared_ketamine: Interaction eta-squared for ketamine
+        p_ketamine: P-value for ketamine test
+        p3b_increase_pct: Percentage P3b increase by psilocybin
+        hep_embodiment_correlation: Correlation between HEP and embodiment
+        cohens_d_psilocybin: Cohen's d for psilocybin effect
+        p_psilocybin: P-value for psilocybin test
 
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
@@ -2282,7 +2040,7 @@ def check_falsification(
     results: Dict[str, Any] = {
         "protocol": "Validation-Protocol-7",
         "criteria": {},
-        "summary": {"passed": 0, "failed": 0, "total": 21},
+        "summary": {"passed": 0, "failed": 0, "total": 5},
     }
 
     # V7.1: TMS Threshold Modulation
@@ -2337,494 +2095,76 @@ def check_falsification(
         f"V7.2: {'PASS' if v7_2_pass else 'FAIL'} - Π_i: {precision_increase:.2f}%, Ignition: {ignition_reduction:.2f}%, η²: {eta_squared:.3f}"
     )
 
-    # F1.1: APGI Agent Performance Advantage
-    logger.info("Testing F1.1: APGI Agent Performance Advantage")
-    f1_1_pass = (
-        apgi_advantage_f1 >= 0.10 and cohens_d_f1 >= 0.35 and p_advantage_f1 < 0.01
+    # P7.1: Propofol P3b:MMN Ratio
+    logger.info("Testing P7.1: Propofol P3b:MMN Ratio")
+    p7_1_pass = (
+        p3b_mm_ratio_post >= 1.5 and cohens_d_propofol >= 0.60 and p_propofol < 0.01
     )
-    results["criteria"]["F1.1"] = {
-        "passed": f1_1_pass,
-        "apgi_advantage": apgi_advantage_f1,
-        "cohens_d": cohens_d_f1,
-        "p_value": p_advantage_f1,
-        "threshold": "Advantage ≥18%, d ≥ 0.60",
-        "actual": f"Advantage: {apgi_advantage_f1:.2f}, d: {cohens_d_f1:.3f}",
+    results["criteria"]["P7.1"] = {
+        "passed": p7_1_pass,
+        "p3b_mm_ratio_pre": p3b_mm_ratio_pre,
+        "p3b_mm_ratio_post": p3b_mm_ratio_post,
+        "cohens_d": cohens_d_propofol,
+        "p_value": p_propofol,
+        "threshold": "Ratio ≥ 1.5:1, d ≥ 0.60",
+        "actual": f"Ratio: {p3b_mm_ratio_post:.2f}:1, d: {cohens_d_propofol:.3f}",
     }
-    if f1_1_pass:
+    if p7_1_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F1.1: {'PASS' if f1_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f1:.2f}, d: {cohens_d_f1:.3f}"
+        f"P7.1: {'PASS' if p7_1_pass else 'FAIL'} - Ratio: {p3b_mm_ratio_post:.2f}:1, d: {cohens_d_propofol:.3f}"
     )
 
-    # F1.2: Hierarchical Level Emergence
-    logger.info("Testing F1.2: Hierarchical Level Emergence")
-    f1_2_pass = (
-        hierarchical_levels_detected >= 3
-        and peak_separation_ratio >= 1.5
-        and eta_squared_timescales >= 0.45
+    # P7.2: Ketamine MMN Suppression
+    logger.info("Testing P7.2: Ketamine MMN Suppression")
+    p7_2_pass = (
+        mmn_suppression_pct >= 20.0
+        and p3b_suppression_pct < 50.0
+        and eta_squared_ketamine >= 0.15
+        and p_ketamine < 0.01
     )
-    results["criteria"]["F1.2"] = {
-        "passed": f1_2_pass,
-        "hierarchical_levels_detected": hierarchical_levels_detected,
-        "peak_separation_ratio": peak_separation_ratio,
-        "eta_squared": eta_squared_timescales,
-        "threshold": "≥3 levels, separation ≥2×, η² ≥ 0.60",
-        "actual": f"Levels: {hierarchical_levels_detected}, separation: {peak_separation_ratio:.1f}×, η²: {eta_squared_timescales:.3f}",
+    results["criteria"]["P7.2"] = {
+        "passed": p7_2_pass,
+        "mmn_suppression_pct": mmn_suppression_pct,
+        "p3b_suppression_pct": p3b_suppression_pct,
+        "eta_squared": eta_squared_ketamine,
+        "p_value": p_ketamine,
+        "threshold": "MMN ≥20% suppression, P3b <50% suppression, η² ≥ 0.15",
+        "actual": f"MMN: {mmn_suppression_pct:.1f}%, P3b: {p3b_suppression_pct:.1f}%, η²: {eta_squared_ketamine:.3f}",
     }
-    if f1_2_pass:
+    if p7_2_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F1.2: {'PASS' if f1_2_pass else 'FAIL'} - Levels: {hierarchical_levels_detected}, separation: {peak_separation_ratio:.1f}×"
+        f"P7.2: {'PASS' if p7_2_pass else 'FAIL'} - MMN: {mmn_suppression_pct:.1f}%, P3b: {p3b_suppression_pct:.1f}%, η²: {eta_squared_ketamine:.3f}"
     )
 
-    # F1.3: Level-Specific Precision Weighting
-    logger.info("Testing F1.3: Level-Specific Precision Weighting")
-    precision_difference = (
-        (level1_intero_precision - level3_intero_precision)
-        / level3_intero_precision
-        * 100
+    # P7.3: Psilocybin P3b Enhancement
+    logger.info("Testing P7.3: Psilocybin P3b Enhancement")
+    p7_3_pass = (
+        p3b_increase_pct >= 10.0
+        and hep_embodiment_correlation >= 0.20
+        and cohens_d_psilocybin >= 0.45
+        and p_psilocybin < 0.01
     )
-    f1_3_pass = (
-        precision_difference >= 15
-        and partial_eta_squared_f1_3 >= 0.08
-        and p_interaction_f1_3 < 0.01
-    )
-    results["criteria"]["F1.3"] = {
-        "passed": f1_3_pass,
-        "level1_intero_precision": level1_intero_precision,
-        "level3_intero_precision": level3_intero_precision,
-        "precision_difference_pct": precision_difference,
-        "partial_eta_squared": partial_eta_squared_f1_3,
-        "p_value": p_interaction_f1_3,
-        "threshold": "Difference ≥15%, η² ≥ 0.15",
-        "actual": f"Difference: {precision_difference:.1f}%, η²: {partial_eta_squared_f1_3:.3f}",
+    results["criteria"]["P7.3"] = {
+        "passed": p7_3_pass,
+        "p3b_increase_pct": p3b_increase_pct,
+        "hep_embodiment_correlation": hep_embodiment_correlation,
+        "cohens_d": cohens_d_psilocybin,
+        "p_value": p_psilocybin,
+        "threshold": "P3b ≥10% increase, HEP-embodiment r ≥ 0.20, d ≥ 0.45",
+        "actual": f"P3b: {p3b_increase_pct:.1f}%, r: {hep_embodiment_correlation:.2f}, d: {cohens_d_psilocybin:.3f}",
     }
-    if f1_3_pass:
+    if p7_3_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F1.3: {'PASS' if f1_3_pass else 'FAIL'} - Difference: {precision_difference:.1f}%, η²: {partial_eta_squared_f1_3:.3f}"
-    )
-
-    # F1.4: Threshold Adaptation Dynamics
-    logger.info("Testing F1.4: Threshold Adaptation Dynamics")
-    f1_4_pass = (
-        threshold_adaptation >= 12
-        and cohens_d_threshold_f1_4 >= 0.7
-        and recovery_time_ratio <= 5
-        and curve_fit_r2_f1_4 >= 0.65
-    )
-    results["criteria"]["F1.4"] = {
-        "passed": f1_4_pass,
-        "threshold_adaptation": threshold_adaptation,
-        "cohens_d": cohens_d_threshold_f1_4,
-        "recovery_time_ratio": recovery_time_ratio,
-        "curve_fit_r2": curve_fit_r2_f1_4,
-        "threshold": "Adaptation ≥20%, d ≥ 0.7, recovery ≤5×, R² ≥ 0.80",
-        "actual": f"Adaptation: {threshold_adaptation:.1f}%, d: {cohens_d_threshold_f1_4:.3f}, recovery: {recovery_time_ratio:.1f}×, R²: {curve_fit_r2_f1_4:.3f}",
-    }
-    if f1_4_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F1.4: {'PASS' if f1_4_pass else 'FAIL'} - Adaptation: {threshold_adaptation:.1f}%, recovery: {recovery_time_ratio:.1f}×"
-    )
-
-    # F1.5: Cross-Level Phase-Amplitude Coupling (PAC)
-    logger.info("Testing F1.5: Cross-Level Phase-Amplitude Coupling (PAC)")
-    f1_5_pass = (
-        pac_modulation_index >= 0.008
-        and pac_increase >= 15
-        and cohens_d_pac >= 0.30
-        and permutation_p_pac < 0.01
-    )
-    results["criteria"]["F1.5"] = {
-        "passed": f1_5_pass,
-        "pac_modulation_index": pac_modulation_index,
-        "pac_increase": pac_increase,
-        "cohens_d": cohens_d_pac,
-        "permutation_p": permutation_p_pac,
-        "threshold": "MI ≥ 0.012, increase ≥30%, d ≥ 0.50",
-        "actual": f"MI: {pac_modulation_index:.3f}, increase: {pac_increase:.1f}%, d: {cohens_d_pac:.3f}",
-    }
-    if f1_5_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F1.5: {'PASS' if f1_5_pass else 'FAIL'} - MI: {pac_modulation_index:.3f}, increase: {pac_increase:.1f}%"
-    )
-
-    # F1.6: 1/f Spectral Slope Predictions
-    logger.info("Testing F1.6: 1/f Spectral Slope Predictions")
-    delta_alpha = low_arousal_alpha_spec - active_alpha_spec
-    f1_6_pass = (
-        active_alpha_spec <= 1.4
-        and low_arousal_alpha_spec >= 1.3
-        and delta_alpha >= 0.25
-        and cohens_d_spectral >= 0.50
-        and spectral_fit_r2 >= 0.85
-    )
-    results["criteria"]["F1.6"] = {
-        "passed": f1_6_pass,
-        "active_alpha_spec": active_alpha_spec,
-        "low_arousal_alpha_spec": low_arousal_alpha_spec,
-        "delta_alpha": delta_alpha,
-        "cohens_d": cohens_d_spectral,
-        "spectral_fit_r2": spectral_fit_r2,
-        "threshold": "Active ≤1.2, low ≥1.5, Δα ≥0.4, d ≥0.8, R² ≥0.90",
-        "actual": f"Active: {active_alpha_spec:.2f}, Low: {low_arousal_alpha_spec:.2f}, Δα: {delta_alpha:.2f}, d: {cohens_d_spectral:.3f}",
-    }
-    if f1_6_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F1.6: {'PASS' if f1_6_pass else 'FAIL'} - Active: {active_alpha_spec:.2f}, Low: {low_arousal_alpha_spec:.2f}, Δα: {delta_alpha:.2f}"
-    )
-
-    # F3.1: Overall Performance Advantage
-    logger.info("Testing F3.1: Overall Performance Advantage")
-    f3_1_pass = (
-        apgi_advantage_f3 >= 0.12 and cohens_d_f3 >= 0.40 and p_advantage_f3 < 0.008
-    )
-    results["criteria"]["F3.1"] = {
-        "passed": f3_1_pass,
-        "apgi_advantage": apgi_advantage_f3,
-        "cohens_d": cohens_d_f3,
-        "p_value": p_advantage_f3,
-        "threshold": "Advantage ≥18%, d ≥ 0.60",
-        "actual": f"Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}",
-    }
-    if f3_1_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}"
-    )
-
-    # F3.2: Interoceptive Task Specificity
-    logger.info("Testing F3.2: Interoceptive Task Specificity")
-    f3_2_pass = (
-        interoceptive_advantage >= 0.20
-        and partial_eta_squared >= 0.12
-        and p_interaction < 0.01
-    )
-    results["criteria"]["F3.2"] = {
-        "passed": f3_2_pass,
-        "interoceptive_advantage": interoceptive_advantage,
-        "partial_eta_squared": partial_eta_squared,
-        "p_value": p_interaction,
-        "threshold": "Advantage ≥28%, η² ≥ 0.20",
-        "actual": f"Advantage: {interoceptive_advantage:.2f}, η²: {partial_eta_squared:.3f}",
-    }
-    if f3_2_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.2: {'PASS' if f3_2_pass else 'FAIL'} - Advantage: {interoceptive_advantage:.2f}, η²: {partial_eta_squared:.3f}"
-    )
-
-    # F3.3: Threshold Gating Necessity
-    logger.info("Testing F3.3: Threshold Gating Necessity")
-    f3_3_pass = (
-        threshold_reduction_f3 >= 0.15
-        and cohens_d_threshold_f3 >= 0.50
-        and p_threshold < 0.01
-    )
-    results["criteria"]["F3.3"] = {
-        "passed": f3_3_pass,
-        "threshold_reduction": threshold_reduction_f3,
-        "cohens_d": cohens_d_threshold_f3,
-        "p_value": p_threshold,
-        "threshold": "Reduction ≥25%, d ≥ 0.75",
-        "actual": f"Reduction: {threshold_reduction_f3:.2f}, d: {cohens_d_threshold_f3:.3f}",
-    }
-    if f3_3_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.3: {'PASS' if f3_3_pass else 'FAIL'} - Reduction: {threshold_reduction_f3:.2f}, d: {cohens_d_threshold_f3:.3f}"
-    )
-
-    # F3.4: Precision Weighting Necessity
-    logger.info("Testing F3.4: Precision Weighting Necessity")
-    f3_4_pass = (
-        precision_reduction >= 0.12
-        and cohens_d_precision >= 0.42
-        and p_precision < 0.01
-    )
-    results["criteria"]["F3.4"] = {
-        "passed": f3_4_pass,
-        "precision_reduction": precision_reduction,
-        "cohens_d": cohens_d_precision,
-        "p_value": p_precision,
-        "threshold": "Reduction ≥20%, d ≥ 0.65",
-        "actual": f"Reduction: {precision_reduction:.2f}, d: {cohens_d_precision:.3f}",
-    }
-    if f3_4_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.4: {'PASS' if f3_4_pass else 'FAIL'} - Reduction: {precision_reduction:.2f}, d: {cohens_d_precision:.3f}"
-    )
-
-    # F3.5: Computational Efficiency Trade-Off
-    logger.info("Testing F3.5: Computational Efficiency Trade-Off")
-    f3_5_pass = (
-        performance_retention >= 0.78 and efficiency_gain >= 0.20 and tost_result
-    )
-    results["criteria"]["F3.5"] = {
-        "passed": f3_5_pass,
-        "performance_retention": performance_retention,
-        "efficiency_gain": efficiency_gain,
-        "tost_result": tost_result,
-        "threshold": "Retention ≥85%, gain ≥30%",
-        "actual": f"Retention: {performance_retention:.2f}, gain: {efficiency_gain:.2f}",
-    }
-    if f3_5_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.5: {'PASS' if f3_5_pass else 'FAIL'} - Retention: {performance_retention:.2f}, gain: {efficiency_gain:.2f}"
-    )
-
-    # F3.6: Sample Efficiency in Learning
-    logger.info("Testing F3.6: Sample Efficiency in Learning")
-    f3_6_pass = (
-        time_to_criterion <= 250 and hazard_ratio >= 1.30 and p_sample_efficiency < 0.01
-    )
-    results["criteria"]["F3.6"] = {
-        "passed": f3_6_pass,
-        "time_to_criterion": time_to_criterion,
-        "hazard_ratio": hazard_ratio,
-        "p_value": p_sample_efficiency,
-        "threshold": "Time ≤200 trials, HR ≥ 1.45",
-        "actual": f"Time: {time_to_criterion}, HR: {hazard_ratio:.2f}",
-    }
-    if f3_6_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Time: {time_to_criterion}, HR: {hazard_ratio:.2f}"
-    )
-
-    # F5.1: Threshold Filtering Emergence
-    logger.info("Testing F5.1: Threshold Filtering Emergence")
-    f5_1_pass = (
-        proportion_threshold_agents >= 0.60
-        and mean_alpha >= 3.0
-        and cohen_d_alpha >= 0.50
-        and binomial_p_f5_1 < 0.01
-    )
-    results["criteria"]["F5.1"] = {
-        "passed": f5_1_pass,
-        "proportion_threshold_agents": proportion_threshold_agents,
-        "mean_alpha": mean_alpha,
-        "cohen_d_alpha": cohen_d_alpha,
-        "binomial_p": binomial_p_f5_1,
-        "threshold": "≥75% develop thresholds, mean α ≥ 4.0, d ≥ 0.80",
-        "actual": f"Prop: {proportion_threshold_agents:.2f}, α: {mean_alpha:.2f}, d: {cohen_d_alpha:.2f}",
-    }
-    if f5_1_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.1: {'PASS' if f5_1_pass else 'FAIL'} - Prop: {proportion_threshold_agents:.2f}, α: {mean_alpha:.2f}"
-    )
-
-    # F5.2: Precision-Weighted Coding Emergence
-    logger.info("Testing F5.2: Precision-Weighted Coding Emergence")
-    f5_2_pass = (
-        proportion_precision_agents >= 0.50
-        and mean_correlation_r >= 0.35
-        and binomial_p_f5_2 < 0.01
-    )
-    results["criteria"]["F5.2"] = {
-        "passed": f5_2_pass,
-        "proportion_precision_agents": proportion_precision_agents,
-        "mean_correlation_r": mean_correlation_r,
-        "binomial_p": binomial_p_f5_2,
-        "threshold": "≥65% develop weighting, r ≥ 0.45",
-        "actual": f"Prop: {proportion_precision_agents:.2f}, r: {mean_correlation_r:.2f}",
-    }
-    if f5_2_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.2: {'PASS' if f5_2_pass else 'FAIL'} - Prop: {proportion_precision_agents:.2f}, r: {mean_correlation_r:.2f}"
-    )
-
-    # F5.3: Interoceptive Prioritization Emergence
-    logger.info("Testing F5.3: Interoceptive Prioritization Emergence")
-    f5_3_pass = (
-        proportion_interoceptive_agents >= 0.55
-        and mean_gain_ratio >= 1.15
-        and cohen_d_gain >= 0.40
-        and binomial_p_f5_3 < 0.01
-    )
-    results["criteria"]["F5.3"] = {
-        "passed": f5_3_pass,
-        "proportion_interoceptive_agents": proportion_interoceptive_agents,
-        "mean_gain_ratio": mean_gain_ratio,
-        "cohen_d_gain": cohen_d_gain,
-        "binomial_p": binomial_p_f5_3,
-        "threshold": "≥70% show prioritization, ratio ≥ 1.3, d ≥ 0.60",
-        "actual": f"Prop: {proportion_interoceptive_agents:.2f}, ratio: {mean_gain_ratio:.2f}, d: {cohen_d_gain:.2f}",
-    }
-    if f5_3_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.3: {'PASS' if f5_3_pass else 'FAIL'} - Prop: {proportion_interoceptive_agents:.2f}, ratio: {mean_gain_ratio:.2f}"
-    )
-
-    # F5.4: Multi-Timescale Integration Emergence
-    logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
-    f5_4_pass = (
-        proportion_multiscale_agents >= 0.45
-        and peak_separation_ratio_f5_4 >= 2.0
-        and binomial_p_f5_4 < 0.01
-    )
-    results["criteria"]["F5.4"] = {
-        "passed": f5_4_pass,
-        "proportion_multiscale_agents": proportion_multiscale_agents,
-        "peak_separation_ratio": peak_separation_ratio_f5_4,
-        "binomial_p": binomial_p_f5_4,
-        "threshold": "≥60% develop multi-timescale, separation ≥3×",
-        "actual": f"Prop: {proportion_multiscale_agents:.2f}, ratio: {peak_separation_ratio_f5_4:.1f}",
-    }
-    if f5_4_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.4: {'PASS' if f5_4_pass else 'FAIL'} - Prop: {proportion_multiscale_agents:.2f}, ratio: {peak_separation_ratio_f5_4:.1f}"
-    )
-
-    # F5.5: APGI-Like Feature Clustering
-    logger.info("Testing F5.5: APGI-Like Feature Clustering")
-    f5_5_pass = cumulative_variance >= 0.60 and min_loading >= 0.45
-    results["criteria"]["F5.5"] = {
-        "passed": f5_5_pass,
-        "cumulative_variance": cumulative_variance,
-        "min_loading": min_loading,
-        "threshold": "Cumulative variance ≥70%, min loading ≥0.60",
-        "actual": f"Variance: {cumulative_variance:.2f}, loading: {min_loading:.2f}",
-    }
-    if f5_5_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.5: {'PASS' if f5_5_pass else 'FAIL'} - Variance: {cumulative_variance:.2f}, loading: {min_loading:.2f}"
-    )
-
-    # F5.6: Non-APGI Architecture Failure
-    logger.info("Testing F5.6: Non-APGI Architecture Failure")
-    from falsification_thresholds import (
-        F5_6_MIN_PERFORMANCE_DIFF_PCT,
-        F5_6_MIN_COHENS_D,
-        F5_6_ALPHA,
-    )
-
-    f5_6_pass = (
-        performance_difference >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0)
-        and cohen_d_performance >= F5_6_MIN_COHENS_D
-        and ttest_p_f5_6 < F5_6_ALPHA
-    )
-    results["criteria"]["F5.6"] = {
-        "passed": f5_6_pass,
-        "performance_difference": performance_difference,
-        "cohen_d_performance": cohen_d_performance,
-        "ttest_p": ttest_p_f5_6,
-        "threshold": "Difference ≥40%, d ≥ 0.85",
-        "actual": f"Diff: {performance_difference:.2f}, d: {cohen_d_performance:.2f}",
-    }
-    if f5_6_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.6: {'PASS' if f5_6_pass else 'FAIL'} - Diff: {performance_difference:.2f}, d: {cohen_d_performance:.2f}"
-    )
-
-    # F6.1: Intrinsic Threshold Behavior
-    logger.info("Testing F6.1: Intrinsic Threshold Behavior")
-    from falsification_thresholds import (
-        F6_1_LTCN_MAX_TRANSITION_MS,
-        F6_1_CLIFFS_DELTA_MIN,
-        F6_1_MANN_WHITNEY_ALPHA,
-    )
-
-    f6_1_pass = (
-        ltcn_transition_time <= F6_1_LTCN_MAX_TRANSITION_MS
-        and cliffs_delta >= F6_1_CLIFFS_DELTA_MIN
-        and mann_whitney_p < F6_1_MANN_WHITNEY_ALPHA
-    )
-    results["criteria"]["F6.1"] = {
-        "passed": f6_1_pass,
-        "ltcn_transition_time": ltcn_transition_time,
-        "feedforward_transition_time": feedforward_transition_time,
-        "cliffs_delta": cliffs_delta,
-        "mann_whitney_p": mann_whitney_p,
-        "threshold": "LTCN time ≤50ms, delta ≥ 0.60",
-        "actual": f"LTCN: {ltcn_transition_time:.1f}ms, Feedforward: {feedforward_transition_time:.1f}ms, delta: {cliffs_delta:.2f}",
-    }
-    if f6_1_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.1: {'PASS' if f6_1_pass else 'FAIL'} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}"
-    )
-
-    # F6.2: Intrinsic Temporal Integration
-    logger.info("Testing F6.2: Intrinsic Temporal Integration")
-    from falsification_thresholds import (
-        F6_2_LTCN_MIN_WINDOW_MS,
-        F6_2_MIN_INTEGRATION_RATIO,
-        F6_2_MIN_CURVE_FIT_R2,
-        F6_2_WILCOXON_ALPHA,
-    )
-
-    f6_2_pass = (
-        ltcn_integration_window >= F6_2_LTCN_MIN_WINDOW_MS
-        and (ltcn_integration_window / rnn_integration_window)
-        >= F6_2_MIN_INTEGRATION_RATIO
-        and curve_fit_r2 >= F6_2_MIN_CURVE_FIT_R2
-        and wilcoxon_p < F6_2_WILCOXON_ALPHA
-    )
-    results["criteria"]["F6.2"] = {
-        "passed": f6_2_pass,
-        "ltcn_integration_window": ltcn_integration_window,
-        "rnn_integration_window": rnn_integration_window,
-        "curve_fit_r2": curve_fit_r2,
-        "wilcoxon_p": wilcoxon_p,
-        "threshold": f"LTCN window ≥{int(F6_2_LTCN_MIN_WINDOW_MS)}ms, ratio ≥{int(F6_2_MIN_INTEGRATION_RATIO)}×, R² ≥ {F6_2_MIN_CURVE_FIT_R2}",
-        "actual": f"LTCN: {ltcn_integration_window:.1f}ms, RNN: {rnn_integration_window:.1f}ms, R²: {curve_fit_r2:.2f}",
-    }
-    if f6_2_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.2: {'PASS' if f6_2_pass else 'FAIL'} - LTCN: {ltcn_integration_window:.1f}ms, ratio: {ltcn_integration_window / rnn_integration_window:.1f}"
+        f"P7.3: {'PASS' if p7_3_pass else 'FAIL'} - P3b: {p3b_increase_pct:.1f}%, r: {hep_embodiment_correlation:.2f}, d: {cohens_d_psilocybin:.3f}"
     )
 
     logger.info(
