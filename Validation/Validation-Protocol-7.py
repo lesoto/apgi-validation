@@ -12,15 +12,33 @@ provides tools for analyzing intervention studies.
 """
 
 import json
-from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
-
 import logging
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+
+# Add parent directory to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from falsification_thresholds import (
+    V7_1_MIN_THRESHOLD_REDUCTION_PCT,
+    V7_1_MIN_EFFECT_DURATION_MIN,
+    V7_1_MIN_COHENS_D,
+    V7_1_ALPHA,
+    V7_2_MIN_PRECISION_INCREASE_PCT,
+    V7_2_MIN_IGNITION_REDUCTION_PCT,
+    V7_2_MIN_ETA_SQUARED,
+    V7_2_MIN_COHENS_D,
+    V7_2_ALPHA,
+)
 
 logger = logging.getLogger(__name__)
 from scipy import stats
@@ -855,6 +873,29 @@ class InterventionFalsificationChecker:
             }
 
             if f3_1_result:
+                report["falsified_criteria"].append(criterion)
+            else:
+                report["passed_criteria"].append(criterion)
+
+        # F3.2: Propranolol effect on interoceptive precision
+        if (
+            "baseline_beta" in intervention_results
+            and "intervention_beta" in intervention_results
+        ):
+            f3_2_result, f3_2_details = self.check_F3_2(
+                intervention_results["baseline_beta"],
+                intervention_results["intervention_beta"],
+                intervention_results.get("beta_se", 0.1),
+            )
+
+            criterion = {
+                "code": "F3.2",
+                "description": self.criteria["F3.2"]["description"],
+                "falsified": f3_2_result,
+                "details": f3_2_details,
+            }
+
+            if f3_2_result:
                 report["falsified_criteria"].append(criterion)
             else:
                 report["passed_criteria"].append(criterion)
@@ -2051,7 +2092,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "threshold": "LTCNs naturally integrate information over 200-500ms windows (measured by autocorrelation decay to <0.37) without recurrent add-ons, vs. <50ms for standard RNNs",
             "test": "Exponential decay curve fitting; Wilcoxon signed-rank test comparing integration windows, α = 0.01",
             "effect_size": "LTCN integration window ≥4× standard RNN; curve fit R² ≥ 0.85",
-            "alternative": "Falsified if LTCN window <150ms OR ratio < 2.5× OR R² < 0.70 OR p ≥ 0.01",
+            "alternative": "Falsified if LTCN window <150ms OR ratio < 4.0× OR R² < 0.70 OR p ≥ 0.01",
         },
     }
 
@@ -2238,7 +2279,7 @@ def check_falsification(
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
-    results = {
+    results: Dict[str, Any] = {
         "protocol": "Validation-Protocol-7",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "total": 21},
@@ -2247,10 +2288,10 @@ def check_falsification(
     # V7.1: TMS Threshold Modulation
     logger.info("Testing V7.1: TMS Threshold Modulation")
     v7_1_pass = (
-        threshold_reduction >= 10
-        and tms_effect_duration >= 45
-        and cohens_d_threshold >= 0.50
-        and p_tms < 0.01
+        threshold_reduction >= V7_1_MIN_THRESHOLD_REDUCTION_PCT
+        and tms_effect_duration >= V7_1_MIN_EFFECT_DURATION_MIN
+        and cohens_d_threshold >= V7_1_MIN_COHENS_D
+        and p_tms < V7_1_ALPHA
     )
     results["criteria"]["V7.1"] = {
         "passed": v7_1_pass,
@@ -2258,8 +2299,8 @@ def check_falsification(
         "tms_effect_duration_min": tms_effect_duration,
         "cohens_d": cohens_d_threshold,
         "p_value": p_tms,
-        "threshold": "≥15% reduction, ≥60min duration, d ≥ 0.70",
-        "actual": f"Reduction: {threshold_reduction:.2f}%, Duration: {tms_effect_duration:.1f}min, d: {cohens_d_threshold:.3f}",
+        "threshold": f"≥{int(V7_1_MIN_THRESHOLD_REDUCTION_PCT)}% reduction, ≥{int(V7_1_MIN_EFFECT_DURATION_MIN)}min duration, d ≥ {V7_1_MIN_COHENS_D}",
+        "actual": f"Reduction: {threshold_reduction:.1f}%, Duration: {tms_effect_duration:.1f}min, d: {cohens_d_threshold:.3f}",
     }
     if v7_1_pass:
         results["summary"]["passed"] += 1
@@ -2272,11 +2313,11 @@ def check_falsification(
     # V7.2: Pharmacological Precision Modulation
     logger.info("Testing V7.2: Pharmacological Precision Modulation")
     v7_2_pass = (
-        precision_increase >= 18
-        and ignition_reduction >= 20
-        and eta_squared >= 0.12
-        and cohens_d_ignition >= 0.50
-        and p_pharm < 0.01
+        precision_increase >= V7_2_MIN_PRECISION_INCREASE_PCT
+        and ignition_reduction >= V7_2_MIN_IGNITION_REDUCTION_PCT
+        and eta_squared >= V7_2_MIN_ETA_SQUARED
+        and cohens_d_ignition >= V7_2_MIN_COHENS_D
+        and p_pharm < V7_2_ALPHA
     )
     results["criteria"]["V7.2"] = {
         "passed": v7_2_pass,
@@ -2285,8 +2326,8 @@ def check_falsification(
         "eta_squared": eta_squared,
         "cohens_d": cohens_d_ignition,
         "p_value": p_pharm,
-        "threshold": "Π_i ≥25%, ignition ≥30% reduction, η² ≥ 0.20",
-        "actual": f"Π_i: {precision_increase:.2f}%, Ignition: {ignition_reduction:.2f}%, η²: {eta_squared:.3f}",
+        "threshold": f"Π_i ≥{int(V7_2_MIN_PRECISION_INCREASE_PCT)}%, ignition ≥{int(V7_2_MIN_IGNITION_REDUCTION_PCT)}% reduction, η² ≥ {V7_2_MIN_ETA_SQUARED}",
+        "actual": f"Π_i: {precision_increase:.1f}%, Ignition: {ignition_reduction:.1f}%, η²: {eta_squared:.3f}",
     }
     if v7_2_pass:
         results["summary"]["passed"] += 1
@@ -2696,10 +2737,16 @@ def check_falsification(
 
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
+    from falsification_thresholds import (
+        F5_6_MIN_PERFORMANCE_DIFF_PCT,
+        F5_6_MIN_COHENS_D,
+        F5_6_ALPHA,
+    )
+
     f5_6_pass = (
-        performance_difference >= 0.25
-        and cohen_d_performance >= 0.55
-        and ttest_p_f5_6 < 0.01
+        performance_difference >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0)
+        and cohen_d_performance >= F5_6_MIN_COHENS_D
+        and ttest_p_f5_6 < F5_6_ALPHA
     )
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
@@ -2719,8 +2766,16 @@ def check_falsification(
 
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
+    from falsification_thresholds import (
+        F6_1_LTCN_MAX_TRANSITION_MS,
+        F6_1_CLIFFS_DELTA_MIN,
+        F6_1_MANN_WHITNEY_ALPHA,
+    )
+
     f6_1_pass = (
-        ltcn_transition_time <= 80 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+        ltcn_transition_time <= F6_1_LTCN_MAX_TRANSITION_MS
+        and cliffs_delta >= F6_1_CLIFFS_DELTA_MIN
+        and mann_whitney_p < F6_1_MANN_WHITNEY_ALPHA
     )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
@@ -2741,11 +2796,19 @@ def check_falsification(
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
+    from falsification_thresholds import (
+        F6_2_LTCN_MIN_WINDOW_MS,
+        F6_2_MIN_INTEGRATION_RATIO,
+        F6_2_MIN_CURVE_FIT_R2,
+        F6_2_WILCOXON_ALPHA,
+    )
+
     f6_2_pass = (
-        ltcn_integration_window >= 150
-        and (ltcn_integration_window / rnn_integration_window) >= 2.5
-        and curve_fit_r2 >= 0.70
-        and wilcoxon_p < 0.01
+        ltcn_integration_window >= F6_2_LTCN_MIN_WINDOW_MS
+        and (ltcn_integration_window / rnn_integration_window)
+        >= F6_2_MIN_INTEGRATION_RATIO
+        and curve_fit_r2 >= F6_2_MIN_CURVE_FIT_R2
+        and wilcoxon_p < F6_2_WILCOXON_ALPHA
     )
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
@@ -2753,7 +2816,7 @@ def check_falsification(
         "rnn_integration_window": rnn_integration_window,
         "curve_fit_r2": curve_fit_r2,
         "wilcoxon_p": wilcoxon_p,
-        "threshold": "LTCN window ≥200ms, ratio ≥4×, R² ≥ 0.85",
+        "threshold": f"LTCN window ≥{int(F6_2_LTCN_MIN_WINDOW_MS)}ms, ratio ≥{int(F6_2_MIN_INTEGRATION_RATIO)}×, R² ≥ {F6_2_MIN_CURVE_FIT_R2}",
         "actual": f"LTCN: {ltcn_integration_window:.1f}ms, RNN: {rnn_integration_window:.1f}ms, R²: {curve_fit_r2:.2f}",
     }
     if f6_2_pass:

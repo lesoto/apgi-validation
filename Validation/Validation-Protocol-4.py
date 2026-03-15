@@ -1513,29 +1513,29 @@ class FalsificationChecker:
     def __init__(self):
         self.criteria = {
             "F4.1": {
-                "description": "Susceptibility ratio < 1.2 (no phase transition)",
+                "description": "Susceptibility ratio ≥ 1.2 (phase transition present)",
                 "threshold": 1.2,
-                "comparison": "less_than",
+                "comparison": "greater_than_or_equal",
             },
             "F4.2": {
-                "description": "Φ at ignition < 1.3× baseline (not informationally distinct)",
+                "description": "Φ at ignition ≥ 1.3× baseline (informationally distinct)",
                 "threshold": 1.3,
-                "comparison": "less_than",
+                "comparison": "greater_than_or_equal",
             },
             "F4.3": {
-                "description": "Critical slowing ratio < 1.2 (continuous, not discrete)",
+                "description": "Critical slowing ratio ≥ 1.2 (discrete transition)",
                 "threshold": 1.2,
-                "comparison": "less_than",
+                "comparison": "greater_than_or_equal",
             },
             "F4.4": {
-                "description": "Discontinuity effect size d < 0.5 (no sharp transition)",
+                "description": "Discontinuity effect size d ≥ 0.5 (sharp transition)",
                 "threshold": 0.5,
-                "comparison": "less_than",
+                "comparison": "greater_than_or_equal",
             },
             "F4.5": {
-                "description": "Hurst near threshold < 0.55 (no long-range correlations)",
+                "description": "Hurst near threshold ≥ 0.55 (long-range correlations present)",
                 "threshold": 0.55,
-                "comparison": "less_than",
+                "comparison": "greater_than_or_equal",
             },
         }
 
@@ -1560,7 +1560,7 @@ class FalsificationChecker:
         susc_ratio = results_df["susceptibility_susceptibility_ratio"].mean()
         susc_se = results_df["susceptibility_susceptibility_ratio"].sem()
 
-        f4_1_falsified = susc_ratio < self.criteria["F4.1"]["threshold"]
+        f4_1_falsified = susc_ratio >= self.criteria["F4.1"]["threshold"]
 
         criterion = {
             "code": "F4.1",
@@ -1573,16 +1573,16 @@ class FalsificationChecker:
         }
 
         if f4_1_falsified:
-            report["falsified_criteria"].append(criterion)
-        else:
             report["passed_criteria"].append(criterion)
+        else:
+            report["falsified_criteria"].append(criterion)
 
         # F4.2: Integrated information
         if "phi_ratio" in results_df.columns:
             phi_ratio = results_df["phi_ratio"].dropna().mean()
             phi_se = results_df["phi_ratio"].dropna().sem()
 
-            f4_2_falsified = phi_ratio < self.criteria["F4.2"]["threshold"]
+            f4_2_falsified = phi_ratio >= self.criteria["F4.2"]["threshold"]
 
             criterion = {
                 "code": "F4.2",
@@ -1594,15 +1594,15 @@ class FalsificationChecker:
             }
 
             if f4_2_falsified:
-                report["falsified_criteria"].append(criterion)
-            else:
                 report["passed_criteria"].append(criterion)
+            else:
+                report["falsified_criteria"].append(criterion)
 
         # F4.3: Critical slowing
         crit_slow_ratio = results_df["critical_slowing_critical_slowing_ratio"].mean()
         crit_slow_se = results_df["critical_slowing_critical_slowing_ratio"].sem()
 
-        f4_3_falsified = crit_slow_ratio < self.criteria["F4.3"]["threshold"]
+        f4_3_falsified = crit_slow_ratio >= self.criteria["F4.3"]["threshold"]
 
         criterion = {
             "code": "F4.3",
@@ -1614,16 +1614,16 @@ class FalsificationChecker:
         }
 
         if f4_3_falsified:
-            report["falsified_criteria"].append(criterion)
-        else:
             report["passed_criteria"].append(criterion)
+        else:
+            report["falsified_criteria"].append(criterion)
 
         # F4.4: Discontinuity
         if "discontinuity_cohens_d" in results_df.columns:
             disc_d = results_df["discontinuity_cohens_d"].dropna().mean()
             disc_se = results_df["discontinuity_cohens_d"].dropna().sem()
 
-            f4_4_falsified = disc_d < self.criteria["F4.4"]["threshold"]
+            f4_4_falsified = disc_d >= self.criteria["F4.4"]["threshold"]
 
             criterion = {
                 "code": "F4.4",
@@ -1635,15 +1635,22 @@ class FalsificationChecker:
             }
 
             if f4_4_falsified:
-                report["falsified_criteria"].append(criterion)
-            else:
                 report["passed_criteria"].append(criterion)
+            else:
+                report["falsified_criteria"].append(criterion)
 
         # F4.5: Hurst exponent
-        hurst_near = results_df["hurst_hurst_near"].mean()
-        hurst_se = results_df["hurst_hurst_near"].sem()
+        # Find the Hurst exponent column dynamically
+        hurst_cols = [col for col in results_df.columns if "hurst" in col.lower()]
+        if hurst_cols:
+            hurst_col = hurst_cols[0]  # Use the first Hurst column found
+            hurst_near = results_df[hurst_col].mean()
+            hurst_se = results_df[hurst_col].sem()
+        else:
+            hurst_near = 0.5  # Default value if no Hurst column found
+            hurst_se = 0.0
 
-        f4_5_falsified = hurst_near < self.criteria["F4.5"]["threshold"]
+        f4_5_falsified = hurst_near >= self.criteria["F4.5"]["threshold"]
 
         criterion = {
             "code": "F4.5",
@@ -1655,9 +1662,9 @@ class FalsificationChecker:
         }
 
         if f4_5_falsified:
-            report["falsified_criteria"].append(criterion)
-        else:
             report["passed_criteria"].append(criterion)
+        else:
+            report["falsified_criteria"].append(criterion)
 
         # Overall verdict
         report["overall_falsified"] = len(report["falsified_criteria"]) > 0
@@ -2506,7 +2513,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "threshold": "LTCNs naturally integrate information over 200-500ms windows (measured by autocorrelation decay to <0.37) without recurrent add-ons, vs. <50ms for standard RNNs",
             "test": "Exponential decay curve fitting; Wilcoxon signed-rank test comparing integration windows, α = 0.01",
             "effect_size": "LTCN integration window ≥4× standard RNN; curve fit R² ≥ 0.85",
-            "alternative": "Falsified if LTCN window <150ms OR ratio < 2.5× OR R² < 0.70 OR p ≥ 0.01",
+            "alternative": "Falsified if LTCN window <150ms OR ratio < 4.0× OR R² < 0.70 OR p ≥ 0.01",
         },
     }
 
@@ -3125,7 +3132,7 @@ def check_falsification(
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
     f6_2_pass = (
         ltcn_integration_window >= 150
-        and (ltcn_integration_window / rnn_integration_window) >= 2.5
+        and (ltcn_integration_window / rnn_integration_window) >= 4.0
         and curve_fit_r2 >= 0.70
         and wilcoxon_p < 0.01
     )

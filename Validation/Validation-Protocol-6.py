@@ -17,11 +17,13 @@ This protocol implements:
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats as stats
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -35,6 +37,38 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.constants import DIM_CONSTANTS
+from falsification_thresholds import (
+    V6_1_MIN_PROCESSING_RATE,
+    V6_1_MAX_LATENCY_MS,
+    V6_1_ALPHA,
+    F1_5_PAC_MI_MIN,
+    F1_5_PAC_INCREASE_MIN,
+    F1_5_COHENS_D_MIN,
+    F1_5_PERMUTATION_ALPHA,
+    F2_3_MIN_RT_ADVANTAGE_MS,
+    F2_3_MIN_BETA,
+    F2_3_MIN_STANDARDIZED_BETA,
+    F2_3_MIN_R2,
+    F5_2_MIN_CORRELATION,
+    F5_2_MIN_PROPORTION,
+    F5_3_MIN_GAIN_RATIO,
+    F5_3_MIN_PROPORTION,
+    F5_3_MIN_COHENS_D,
+    F5_4_MIN_PROPORTION,
+    F5_4_MIN_PEAK_SEPARATION,
+    F5_5_PCA_MIN_VARIANCE,
+    F5_5_MIN_LOADING,
+    F5_6_MIN_PERFORMANCE_DIFF_PCT,
+    F5_6_MIN_COHENS_D,
+    F5_6_ALPHA,
+    F6_1_LTCN_MAX_TRANSITION_MS,
+    F6_1_CLIFFS_DELTA_MIN,
+    F6_1_MANN_WHITNEY_ALPHA,
+    F6_2_LTCN_MIN_WINDOW_MS,
+    F6_2_MIN_INTEGRATION_RATIO,
+    F6_2_MIN_CURVE_FIT_R2,
+    F6_2_WILCOXON_ALPHA,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -957,6 +991,47 @@ class NetworkComparison:
             "alpha_abs": float(torch.abs(apgi_network.alpha).item()),
         }
 
+    def run_inference_benchmark(
+        self, n_trials: int = 200
+    ) -> Tuple[float, float, float]:
+        """
+        Benchmark real-time inference performance.
+        Returns: (processing_rate, mean_latency_ms, p_value)
+        """
+        logger.info(f"Running real-time inference benchmark ({n_trials} trials)...")
+        apgi_network = self.networks["APGI"]
+        apgi_network.eval()
+
+        # Create dummy input for benchmarking
+        # Assuming input shape (batch, seq, features)
+        # We'll use batch_size=1 for latency measurement
+        dummy_input = torch.randn(1, 10, DIM_CONSTANTS["input_size"]).to(self.device)
+
+        latencies = []
+        with torch.no_grad():
+            # Warm up
+            for _ in range(10):
+                _ = apgi_network(dummy_input)
+
+            start_total = time.time()
+            for _ in range(n_trials):
+                t0 = time.time()
+                _ = apgi_network(dummy_input)
+                latencies.append((time.time() - t0) * 1000)  # ms
+            end_total = time.time()
+
+        total_time = end_total - start_total
+        processing_rate = n_trials / total_time
+        mean_latency = np.mean(latencies)
+
+        # Statistical check for latency (one-sample t-test against threshold)
+        _, p_val = stats.ttest_1samp(latencies, V6_1_MAX_LATENCY_MS)
+
+        logger.info(
+            f"Benchmark: {processing_rate:.1f} trials/s, {mean_latency:.2f}ms latency"
+        )
+        return processing_rate, mean_latency, p_val
+
 
 # =============================================================================
 # PART 6: FALSIFICATION FRAMEWORK
@@ -1800,20 +1875,29 @@ def main():
 
     print_falsification_report(falsification_report)
 
-    # =========================================================================
-    # STEP 5: Visualization
-    # =========================================================================
-    print("\n" + "=" * 80)
-    print("STEP 5: GENERATING VISUALIZATIONS")
-    print("=" * 80)
-
     plot_comprehensive_results(results, apgi_params, "protocol6_results.png")
 
     # =========================================================================
-    # STEP 6: Save Results
+    # STEP 6: Real-Time Benchmark
     # =========================================================================
     print("\n" + "=" * 80)
-    print("STEP 6: SAVING RESULTS")
+    print("STEP 6: REAL-TIME INFERENCE BENCHMARK")
+    print("=" * 80)
+
+    proc_rate, avg_latency, bench_p = comparison.run_inference_benchmark()
+
+    # Update results with benchmark data
+    results["V6.1_benchmark"] = {
+        "processing_rate": proc_rate,
+        "latency_ms": avg_latency,
+        "p_value": bench_p,
+    }
+
+    # =========================================================================
+    # STEP 7: Save Results
+    # =========================================================================
+    print("\n" + "=" * 80)
+    print("STEP 7: SAVING RESULTS")
     print("=" * 80)
 
     # Prepare results summary
@@ -2300,14 +2384,18 @@ def check_falsification(
     }
 
     # V6.1: Real-Time Processing
-    logger.info("Testing V6.1: Real-Time Processing")
-    v6_1_pass = processing_rate >= 80 and latency_ms <= 75 and p_value_latency < 0.05
+    logger.info("Testing V6.1: Real-Time Processing benchmark")
+    v6_1_pass = (
+        processing_rate >= V6_1_MIN_PROCESSING_RATE
+        and latency_ms <= V6_1_MAX_LATENCY_MS
+        and p_value_latency < V6_1_ALPHA
+    )
     results["criteria"]["V6.1"] = {
         "passed": v6_1_pass,
         "processing_rate": processing_rate,
         "latency_ms": latency_ms,
         "p_value": p_value_latency,
-        "threshold": "≥100 trials/s, ≤50ms latency",
+        "threshold": f"≥{int(V6_1_MIN_PROCESSING_RATE)} trials/s, ≤{int(V6_1_MAX_LATENCY_MS)}ms latency",
         "actual": f"Rate: {processing_rate:.1f} trials/s, Latency: {latency_ms:.1f}ms",
     }
     if v6_1_pass:
@@ -2420,10 +2508,10 @@ def check_falsification(
     # F1.5: Cross-Level Phase-Amplitude Coupling (PAC)
     logger.info("Testing F1.5: Cross-Level Phase-Amplitude Coupling (PAC)")
     f1_5_pass = (
-        pac_modulation_index >= 0.008
-        and pac_increase >= 15
-        and cohens_d_pac >= 0.30
-        and permutation_p_pac < 0.01
+        pac_modulation_index >= F1_5_PAC_MI_MIN
+        and pac_increase >= F1_5_PAC_INCREASE_MIN
+        and cohens_d_pac >= F1_5_COHENS_D_MIN
+        and permutation_p_pac < F1_5_PERMUTATION_ALPHA
     )
     results["criteria"]["F1.5"] = {
         "passed": f1_5_pass,
@@ -2431,7 +2519,7 @@ def check_falsification(
         "pac_increase": pac_increase,
         "cohens_d": cohens_d_pac,
         "permutation_p": permutation_p_pac,
-        "threshold": "MI ≥ 0.012, increase ≥30%, d ≥ 0.50",
+        "threshold": f"MI ≥ {F1_5_PAC_MI_MIN}, increase ≥{int(F1_5_PAC_INCREASE_MIN)}%, d ≥ {F1_5_COHENS_D_MIN}",
         "actual": f"MI: {pac_modulation_index:.3f}, increase: {pac_increase:.1f}%, d: {cohens_d_pac:.3f}",
     }
     if f1_5_pass:
@@ -2525,10 +2613,10 @@ def check_falsification(
     # F2.3: vmPFC-Like Anticipatory Bias
     logger.info("Testing F2.3: vmPFC-Like Anticipatory Bias")
     f2_3_pass = (
-        rt_advantage >= 20
-        and rt_modulation_beta >= 15
-        and standardized_beta_rt >= 0.25
-        and marginal_r2_rt >= 0.10
+        rt_advantage >= F2_3_MIN_RT_ADVANTAGE_MS
+        and rt_modulation_beta >= F2_3_MIN_BETA
+        and standardized_beta_rt >= F2_3_MIN_STANDARDIZED_BETA
+        and marginal_r2_rt >= F2_3_MIN_R2
     )
     results["criteria"]["F2.3"] = {
         "passed": f2_3_pass,
@@ -2536,7 +2624,7 @@ def check_falsification(
         "rt_modulation_beta": rt_modulation_beta,
         "standardized_beta": standardized_beta_rt,
         "marginal_r2": marginal_r2_rt,
-        "threshold": "RT advantage ≥35ms, β ≥25ms, standardized β ≥0.40, R² ≥0.18",
+        "threshold": f"RT advantage ≥{int(F2_3_MIN_RT_ADVANTAGE_MS)}ms, β ≥{int(F2_3_MIN_BETA)}ms, std β ≥{F2_3_MIN_STANDARDIZED_BETA}, R² ≥{F2_3_MIN_R2}",
         "actual": f"RT advantage: {rt_advantage:.1f}ms, β: {rt_modulation_beta:.1f}ms, standardized β: {standardized_beta_rt:.3f}",
     }
     if f2_3_pass:
@@ -2759,8 +2847,8 @@ def check_falsification(
     # F5.2: Precision-Weighted Coding Emergence
     logger.info("Testing F5.2: Precision-Weighted Coding Emergence")
     f5_2_pass = (
-        proportion_precision_agents >= 0.50
-        and mean_correlation_r >= 0.35
+        proportion_precision_agents >= F5_2_MIN_PROPORTION
+        and mean_correlation_r >= F5_2_MIN_CORRELATION
         and binomial_p_f5_2 < 0.01
     )
     results["criteria"]["F5.2"] = {
@@ -2768,7 +2856,7 @@ def check_falsification(
         "proportion_precision_agents": proportion_precision_agents,
         "mean_correlation_r": mean_correlation_r,
         "binomial_p": binomial_p_f5_2,
-        "threshold": "≥65% develop weighting, r ≥ 0.45",
+        "threshold": f"≥{int(F5_2_MIN_PROPORTION * 100)}% develop weighting, r ≥ {F5_2_MIN_CORRELATION}",
         "actual": f"Prop: {proportion_precision_agents:.2f}, r: {mean_correlation_r:.2f}",
     }
     if f5_2_pass:
@@ -2782,9 +2870,9 @@ def check_falsification(
     # F5.3: Interoceptive Prioritization Emergence
     logger.info("Testing F5.3: Interoceptive Prioritization Emergence")
     f5_3_pass = (
-        proportion_interoceptive_agents >= 0.55
-        and mean_gain_ratio >= 1.15
-        and cohen_d_gain >= 0.40
+        proportion_interoceptive_agents >= F5_3_MIN_PROPORTION
+        and mean_gain_ratio >= F5_3_MIN_GAIN_RATIO
+        and cohen_d_gain >= F5_3_MIN_COHENS_D
         and binomial_p_f5_3 < 0.01
     )
     results["criteria"]["F5.3"] = {
@@ -2807,8 +2895,8 @@ def check_falsification(
     # F5.4: Multi-Timescale Integration Emergence
     logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
     f5_4_pass = (
-        proportion_multiscale_agents >= 0.45
-        and peak_separation_ratio_f5_4 >= 2.0
+        proportion_multiscale_agents >= F5_4_MIN_PROPORTION
+        and peak_separation_ratio_f5_4 >= F5_4_MIN_PEAK_SEPARATION
         and binomial_p_f5_4 < 0.01
     )
     results["criteria"]["F5.4"] = {
@@ -2816,7 +2904,7 @@ def check_falsification(
         "proportion_multiscale_agents": proportion_multiscale_agents,
         "peak_separation_ratio": peak_separation_ratio_f5_4,
         "binomial_p": binomial_p_f5_4,
-        "threshold": "≥60% develop multi-timescale, separation ≥3×",
+        "threshold": f"≥{int(F5_4_MIN_PROPORTION * 100)}% develop multi-timescale, separation ≥{F5_4_MIN_PEAK_SEPARATION}×",
         "actual": f"Prop: {proportion_multiscale_agents:.2f}, ratio: {peak_separation_ratio_f5_4:.1f}",
     }
     if f5_4_pass:
@@ -2829,12 +2917,14 @@ def check_falsification(
 
     # F5.5: APGI-Like Feature Clustering
     logger.info("Testing F5.5: APGI-Like Feature Clustering")
-    f5_5_pass = cumulative_variance >= 0.60 and min_loading >= 0.45
+    f5_5_pass = (
+        cumulative_variance >= F5_5_PCA_MIN_VARIANCE and min_loading >= F5_5_MIN_LOADING
+    )
     results["criteria"]["F5.5"] = {
         "passed": f5_5_pass,
         "cumulative_variance": cumulative_variance,
         "min_loading": min_loading,
-        "threshold": "Cumulative variance ≥70%, min loading ≥0.60",
+        "threshold": f"Cumulative variance ≥{int(F5_5_PCA_MIN_VARIANCE * 100)}%, min loading ≥{F5_5_MIN_LOADING}",
         "actual": f"Variance: {cumulative_variance:.2f}, loading: {min_loading:.2f}",
     }
     if f5_5_pass:
@@ -2848,16 +2938,16 @@ def check_falsification(
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
     f5_6_pass = (
-        performance_difference >= 0.25
-        and cohen_d_performance >= 0.55
-        and ttest_p_f5_6 < 0.01
+        performance_difference >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0)
+        and cohen_d_performance >= F5_6_MIN_COHENS_D
+        and ttest_p_f5_6 < F5_6_ALPHA
     )
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
         "performance_difference": performance_difference,
         "cohen_d_performance": cohen_d_performance,
         "ttest_p": ttest_p_f5_6,
-        "threshold": "Difference ≥40%, d ≥ 0.85",
+        "threshold": f"Difference ≥{int(F5_6_MIN_PERFORMANCE_DIFF_PCT)}%, d ≥ {F5_6_MIN_COHENS_D}",
         "actual": f"Diff: {performance_difference:.2f}, d: {cohen_d_performance:.2f}",
     }
     if f5_6_pass:
@@ -2871,7 +2961,9 @@ def check_falsification(
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     f6_1_pass = (
-        ltcn_transition_time <= 80 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+        ltcn_transition_time <= F6_1_LTCN_MAX_TRANSITION_MS
+        and cliffs_delta >= F6_1_CLIFFS_DELTA_MIN
+        and mann_whitney_p < F6_1_MANN_WHITNEY_ALPHA
     )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
@@ -2879,7 +2971,7 @@ def check_falsification(
         "feedforward_transition_time": feedforward_transition_time,
         "cliffs_delta": cliffs_delta,
         "mann_whitney_p": mann_whitney_p,
-        "threshold": "LTCN time ≤50ms, delta ≥ 0.60",
+        "threshold": f"LTCN time ≤{int(F6_1_LTCN_MAX_TRANSITION_MS)}ms, delta ≥ {F6_1_CLIFFS_DELTA_MIN}",
         "actual": f"LTCN: {ltcn_transition_time:.1f}ms, Feedforward: {feedforward_transition_time:.1f}ms, delta: {cliffs_delta:.2f}",
     }
     if f6_1_pass:
@@ -2893,10 +2985,11 @@ def check_falsification(
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
     f6_2_pass = (
-        ltcn_integration_window >= 150
-        and (ltcn_integration_window / rnn_integration_window) >= 2.5
-        and curve_fit_r2 >= 0.70
-        and wilcoxon_p < 0.01
+        ltcn_integration_window >= F6_2_LTCN_MIN_WINDOW_MS
+        and (ltcn_integration_window / rnn_integration_window)
+        >= F6_2_MIN_INTEGRATION_RATIO
+        and curve_fit_r2 >= F6_2_MIN_CURVE_FIT_R2
+        and wilcoxon_p < F6_2_WILCOXON_ALPHA
     )
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
@@ -2904,7 +2997,7 @@ def check_falsification(
         "rnn_integration_window": rnn_integration_window,
         "curve_fit_r2": curve_fit_r2,
         "wilcoxon_p": wilcoxon_p,
-        "threshold": "LTCN window ≥200ms, ratio ≥4×, R² ≥ 0.85",
+        "threshold": f"LTCN window ≥{int(F6_2_LTCN_MIN_WINDOW_MS)}ms, ratio ≥{int(F6_2_MIN_INTEGRATION_RATIO)}×, R² ≥ {F6_2_MIN_CURVE_FIT_R2}",
         "actual": f"LTCN: {ltcn_integration_window:.1f}ms, RNN: {rnn_integration_window:.1f}ms, R²: {curve_fit_r2:.2f}",
     }
     if f6_2_pass:

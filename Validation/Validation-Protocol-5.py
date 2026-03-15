@@ -27,6 +27,501 @@ import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
+
+# =============================================================================
+# ANALYTICAL SOLUTIONS FOR V5.1 VERIFICATION
+# =============================================================================
+
+
+class AnalyticalAPGISolutions:
+    """Analytical solutions for core APGI equations"""
+
+    @staticmethod
+    def steady_state_surprise(
+        Pi_e: float,
+        eps_e: float,
+        Pi_i_eff: float,
+        eps_i: float,
+        tau_S: float,
+    ) -> float:
+        """
+        Compute steady-state accumulated surprise (analytical solution):
+
+        S* = τ_S [½Π^e(ε^e)² + ½Π^i_eff(ε^i)²]
+
+        From steady-state condition dS/dt = 0
+
+        Args:
+            Pi_e: Exteroceptive precision
+            eps_e: Exteroceptive prediction error
+            Pi_i_eff: Effective interoceptive precision
+            eps_i: Interoceptive prediction error
+            tau_S: Time constant for surprise decay
+
+        Returns:
+            Steady-state accumulated surprise S*
+        """
+        input_rate = 0.5 * Pi_e * (eps_e**2) + 0.5 * Pi_i_eff * (eps_i**2)
+        return tau_S * input_rate
+
+    @staticmethod
+    def ignition_time(
+        S_0: float,
+        theta: float,
+        Pi_e: float,
+        eps_e: float,
+        Pi_i_eff: float,
+        eps_i: float,
+        tau_S: float,
+    ) -> float:
+        """
+        Compute time to ignition (analytical solution):
+
+        t* = τ_S ln((S* - S_0) / (S* - θ))
+
+        where S* is steady-state surprise
+
+        Args:
+            S_0: Initial accumulated surprise
+            theta: Ignition threshold
+            Pi_e: Exteroceptive precision
+            eps_e: Exteroceptive prediction error
+            Pi_i_eff: Effective interoceptive precision
+            eps_i: Interoceptive prediction error
+            tau_S: Time constant for surprise decay
+
+        Returns:
+            Time to ignition t* (seconds), or inf if no ignition
+        """
+        S_star = AnalyticalAPGISolutions.steady_state_surprise(
+            Pi_e, eps_e, Pi_i_eff, eps_i, tau_S
+        )
+
+        # Check if ignition is possible
+        if theta >= S_star:
+            return float("inf")
+
+        # Check if already above threshold
+        if S_0 >= theta:
+            return 0.0
+
+        # Analytical solution
+        t_star = tau_S * np.log((S_star - S_0) / (S_star - theta))
+        return max(0.0, t_star)
+
+    @staticmethod
+    def ignition_threshold_critical_point(
+        Pi_e: float,
+        eps_e: float,
+        Pi_i_eff: float,
+        eps_i: float,
+        tau_S: float,
+    ) -> float:
+        """
+        Compute critical threshold for ignition (analytical):
+
+        θ_c = S* = τ_S [½Π^e(ε^e)² + ½Π^i_eff(ε^i)²]
+
+        Threshold must be below steady-state surprise for ignition
+
+        Args:
+            Pi_e: Exteroceptive precision
+            eps_e: Exteroceptive prediction error
+            Pi_i_eff: Effective interoceptive precision
+            eps_i: Interoceptive prediction error
+            tau_S: Time constant for surprise decay
+
+        Returns:
+            Critical threshold θ_c
+        """
+        return AnalyticalAPGISolutions.steady_state_surprise(
+            Pi_e, eps_e, Pi_i_eff, eps_i, tau_S
+        )
+
+    @staticmethod
+    def phase_boundary(
+        theta: float,
+        tau_S: float,
+        Pi_e: float,
+        eps_e: float,
+        Pi_i_eff: float,
+        eps_i: float,
+    ) -> Dict[str, float]:
+        """
+        Compute phase boundary parameters (analytical):
+
+        Phase transition occurs when θ = S*
+
+        Returns:
+            Dictionary with phase boundary parameters
+        """
+        S_star = AnalyticalAPGISolutions.steady_state_surprise(
+            Pi_e, eps_e, Pi_i_eff, eps_i, tau_S
+        )
+
+        return {
+            "steady_state_surprise": S_star,
+            "threshold": theta,
+            "phase_gap": S_star - theta,
+            "ignition_possible": theta < S_star,
+        }
+
+    @staticmethod
+    def effective_interoceptive_precision_analytical(
+        Pi_i_baseline: float,
+        M: float,
+        M_0: float,
+        beta: float,
+    ) -> float:
+        """
+        Compute effective interoceptive precision (analytical):
+
+        Π^i_eff = Π^i_baseline · [1 + β_som·σ(M - M_0)]
+
+        where σ(x) = 1/(1 + e^(-x))
+
+        Args:
+            Pi_i_baseline: Baseline interoceptive precision
+            M: Current somatic marker
+            M_0: Reference somatic marker
+            beta: Somatic modulation strength
+
+        Returns:
+            Effective interoceptive precision
+        """
+        sigmoid = 1.0 / (1.0 + np.exp(-(M - M_0)))
+        return Pi_i_baseline * (1.0 + beta * sigmoid)
+
+    @staticmethod
+    def ignition_probability_analytical(
+        S: float,
+        theta: float,
+        alpha: float,
+    ) -> float:
+        """
+        Compute ignition probability (analytical):
+
+        P(ignition) = σ(α(S - θ)) = 1/(1 + exp(-α(S - θ)))
+
+        Args:
+            S: Accumulated surprise
+            theta: Ignition threshold
+            alpha: Sigmoid steepness
+
+        Returns:
+            Ignition probability [0, 1]
+        """
+        z = alpha * (S - theta)
+        if z >= 0:
+            return 1.0 / (1.0 + np.exp(-z))
+        else:
+            z_exp = np.exp(z)
+            return z_exp / (1.0 + z_exp)
+
+    @staticmethod
+    def critical_sigmoid_steepness(
+        S: float,
+        theta: float,
+        target_probability: float = 0.5,
+    ) -> float:
+        """
+        Compute critical sigmoid steepness for target probability:
+
+        P = σ(α(S - θ)) → α = ln(P/(1-P)) / (S - θ)
+
+        Args:
+            S: Accumulated surprise
+            theta: Ignition threshold
+            target_probability: Target ignition probability (default 0.5)
+
+        Returns:
+            Required sigmoid steepness α
+        """
+        if S == theta:
+            return 0.0  # Any α gives P = 0.5 at S = θ
+
+        if target_probability <= 0 or target_probability >= 1:
+            raise ValueError("Target probability must be in (0, 1)")
+
+        logit = np.log(target_probability / (1.0 - target_probability))
+        return logit / (S - theta)
+
+
+class AnalyticalValidationTestCases:
+    """Test cases with known analytical solutions for V5.1 verification"""
+
+    @staticmethod
+    def get_test_cases() -> List[Dict[str, any]]:
+        """
+        Return test cases with known analytical solutions
+
+        Each test case includes:
+        - Parameters
+        - Expected analytical results
+        - Tolerance for numerical verification
+        """
+        return [
+            {
+                "name": "Steady-state surprise - basic",
+                "parameters": {
+                    "Pi_e": 1.0,
+                    "eps_e": 0.5,
+                    "Pi_i_eff": 0.5,
+                    "eps_i": 0.3,
+                    "tau_S": 0.35,
+                },
+                "expected": {
+                    "steady_state_surprise": 0.35
+                    * (0.5 * 1.0 * 0.25 + 0.5 * 0.5 * 0.09),
+                },
+                "tolerance": 1e-6,
+            },
+            {
+                "name": "Ignition time - moderate",
+                "parameters": {
+                    "S_0": 0.1,
+                    "theta": 0.3,
+                    "Pi_e": 1.0,
+                    "eps_e": 0.5,
+                    "Pi_i_eff": 0.5,
+                    "eps_i": 0.3,
+                    "tau_S": 0.35,
+                },
+                "expected": {
+                    "ignition_time": 0.35
+                    * np.log(
+                        (0.35 * (0.5 * 1.0 * 0.25 + 0.5 * 0.5 * 0.09) - 0.1)
+                        / (0.35 * (0.5 * 1.0 * 0.25 + 0.5 * 0.5 * 0.09) - 0.3)
+                    ),
+                },
+                "tolerance": 1e-6,
+            },
+            {
+                "name": "Phase boundary - critical",
+                "parameters": {
+                    "theta": 0.5,
+                    "Pi_e": 1.0,
+                    "eps_e": 0.5,
+                    "Pi_i_eff": 0.5,
+                    "eps_i": 0.3,
+                    "tau_S": 0.35,
+                },
+                "expected": {
+                    "phase_gap": 0.35 * (0.5 * 1.0 * 0.25 + 0.5 * 0.5 * 0.09) - 0.5,
+                },
+                "tolerance": 1e-6,
+            },
+            {
+                "name": "Effective interoceptive precision",
+                "parameters": {
+                    "Pi_i_baseline": 1.0,
+                    "M": 0.5,
+                    "M_0": 0.0,
+                    "beta": 1.5,
+                },
+                "expected": {
+                    "Pi_i_eff": 1.0 * (1.0 + 1.5 * (1.0 / (1.0 + np.exp(-0.5)))),
+                },
+                "tolerance": 1e-6,
+            },
+            {
+                "name": "Ignition probability - 50%",
+                "parameters": {
+                    "S": 0.5,
+                    "theta": 0.5,
+                    "alpha": 5.0,
+                },
+                "expected": {
+                    "ignition_probability": 0.5,
+                },
+                "tolerance": 1e-6,
+            },
+            {
+                "name": "Ignition probability - high",
+                "parameters": {
+                    "S": 1.0,
+                    "theta": 0.5,
+                    "alpha": 5.0,
+                },
+                "expected": {
+                    "ignition_probability": 1.0 / (1.0 + np.exp(-5.0 * 0.5)),
+                },
+                "tolerance": 1e-6,
+            },
+        ]
+
+    @staticmethod
+    def verify_analytical_solution(
+        test_case: Dict[str, any],
+    ) -> Dict[str, any]:
+        """
+        Verify analytical solution against expected values
+
+        Args:
+            test_case: Test case with parameters and expected results
+
+        Returns:
+            Verification results with absolute and relative errors
+        """
+        results = {
+            "test_name": test_case["name"],
+            "passed": True,
+            "errors": [],
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+        }
+
+        params = test_case["parameters"]
+        expected = test_case["expected"]
+        tolerance = test_case["tolerance"]
+
+        # Run appropriate analytical computation
+        if "steady_state_surprise" in expected:
+            computed = AnalyticalAPGISolutions.steady_state_surprise(
+                params["Pi_e"],
+                params["eps_e"],
+                params["Pi_i_eff"],
+                params["eps_i"],
+                params["tau_S"],
+            )
+            abs_error = abs(computed - expected["steady_state_surprise"])
+            rel_error = (
+                abs_error / abs(expected["steady_state_surprise"])
+                if expected["steady_state_surprise"] != 0
+                else 0.0
+            )
+
+            results["max_absolute_error"] = max(
+                results["max_absolute_error"], abs_error
+            )
+            results["max_relative_error"] = max(
+                results["max_relative_error"], rel_error
+            )
+
+            if abs_error > tolerance:
+                results["passed"] = False
+                results["errors"].append(
+                    f"Steady-state surprise error: {abs_error:.2e} > {tolerance:.2e}"
+                )
+
+        if "ignition_time" in expected:
+            computed = AnalyticalAPGISolutions.ignition_time(
+                params["S_0"],
+                params["theta"],
+                params["Pi_e"],
+                params["eps_e"],
+                params["Pi_i_eff"],
+                params["eps_i"],
+                params["tau_S"],
+            )
+            abs_error = abs(computed - expected["ignition_time"])
+            rel_error = (
+                abs_error / abs(expected["ignition_time"])
+                if expected["ignition_time"] != 0
+                and not np.isinf(expected["ignition_time"])
+                else 0.0
+            )
+
+            results["max_absolute_error"] = max(
+                results["max_absolute_error"], abs_error
+            )
+            results["max_relative_error"] = max(
+                results["max_relative_error"], rel_error
+            )
+
+            if abs_error > tolerance:
+                results["passed"] = False
+                results["errors"].append(
+                    f"Ignition time error: {abs_error:.2e} > {tolerance:.2e}"
+                )
+
+        if "phase_gap" in expected:
+            computed = AnalyticalAPGISolutions.phase_boundary(
+                params["theta"],
+                params["Pi_e"],
+                params["eps_e"],
+                params["Pi_i_eff"],
+                params["eps_i"],
+                params["tau_S"],
+            )["phase_gap"]
+            abs_error = abs(computed - expected["phase_gap"])
+            rel_error = (
+                abs_error / abs(expected["phase_gap"])
+                if expected["phase_gap"] != 0
+                else 0.0
+            )
+
+            results["max_absolute_error"] = max(
+                results["max_absolute_error"], abs_error
+            )
+            results["max_relative_error"] = max(
+                results["max_relative_error"], rel_error
+            )
+
+            if abs_error > tolerance:
+                results["passed"] = False
+                results["errors"].append(
+                    f"Phase gap error: {abs_error:.2e} > {tolerance:.2e}"
+                )
+
+        if "Pi_i_eff" in expected:
+            computed = (
+                AnalyticalAPGISolutions.effective_interoceptive_precision_analytical(
+                    params["Pi_i_baseline"],
+                    params["M"],
+                    params["M_0"],
+                    params["beta"],
+                )
+            )
+            abs_error = abs(computed - expected["Pi_i_eff"])
+            rel_error = (
+                abs_error / abs(expected["Pi_i_eff"])
+                if expected["Pi_i_eff"] != 0
+                else 0.0
+            )
+
+            results["max_absolute_error"] = max(
+                results["max_absolute_error"], abs_error
+            )
+            results["max_relative_error"] = max(
+                results["max_relative_error"], rel_error
+            )
+
+            if abs_error > tolerance:
+                results["passed"] = False
+                results["errors"].append(
+                    f"Effective precision error: {abs_error:.2e} > {tolerance:.2e}"
+                )
+
+        if "ignition_probability" in expected:
+            computed = AnalyticalAPGISolutions.ignition_probability_analytical(
+                params["S"],
+                params["theta"],
+                params["alpha"],
+            )
+            abs_error = abs(computed - expected["ignition_probability"])
+            rel_error = (
+                abs_error / abs(expected["ignition_probability"])
+                if expected["ignition_probability"] != 0
+                else 0.0
+            )
+
+            results["max_absolute_error"] = max(
+                results["max_absolute_error"], abs_error
+            )
+            results["max_relative_error"] = max(
+                results["max_relative_error"], rel_error
+            )
+
+            if abs_error > tolerance:
+                results["passed"] = False
+                results["errors"].append(
+                    f"Ignition probability error: {abs_error:.2e} > {tolerance:.2e}"
+                )
+
+        return results
+
+
 # Set random seeds for reproducibility
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
@@ -2098,6 +2593,53 @@ def main() -> Dict[str, Any]:
     print("PROTOCOL 5 EXECUTION COMPLETE")
     print("=" * 80)
 
+    # =========================================================================
+    # STEP 6: V5.1 Analytical Verification (NEW)
+    # =========================================================================
+    print("\n" + "=" * 80)
+    print("STEP 6: V5.1 ANALYTICAL VERIFICATION")
+    print("=" * 80)
+
+    # Run analytical verification tests
+    test_cases = AnalyticalValidationTestCases.get_test_cases()
+    analytical_results = []
+
+    max_absolute_error = 0.0
+    max_relative_error = 0.0
+    test_cases_passed = 0
+    total_test_cases = len(test_cases)
+
+    print(f"\nRunning {total_test_cases} analytical verification tests...")
+
+    for test_case in test_cases:
+        result = AnalyticalValidationTestCases.verify_analytical_solution(test_case)
+        analytical_results.append(result)
+
+        if result["passed"]:
+            test_cases_passed += 1
+            print(f"  ✅ {result['test_name']}: PASSED")
+        else:
+            print(f"  ❌ {result['test_name']}: FAILED")
+            for error in result["errors"]:
+                print(f"     - {error}")
+
+        max_absolute_error = max(max_absolute_error, result["max_absolute_error"])
+        max_relative_error = max(max_relative_error, result["max_relative_error"])
+
+    print("\nAnalytical Verification Summary:")
+    print(f"  Tests passed: {test_cases_passed}/{total_test_cases}")
+    print(f"  Max absolute error: {max_absolute_error:.2e}")
+    print(f"  Max relative error: {max_relative_error:.2e}")
+
+    # Update results_summary with V5.1 verification data
+    results_summary["v5_1_analytical_verification"] = {
+        "test_cases_passed": test_cases_passed,
+        "total_test_cases": total_test_cases,
+        "max_absolute_error": max_absolute_error,
+        "max_relative_error": max_relative_error,
+        "test_results": analytical_results,
+    }
+
     return results_summary
 
 
@@ -2482,7 +3024,7 @@ def check_falsification(
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     f6_1_pass = (
-        ltcn_transition_time <= 80 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+        ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
     )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,

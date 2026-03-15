@@ -1487,16 +1487,14 @@ def plot_experiment_results(
 
     env_name = "IGT"
     agents = list(results[env_name].keys())
-    final_rewards = [
-        results[env_name]["APGI"]["mean_cumulative_reward"] for a in agents
-    ]
-    errors = [results[env_name]["APGI"]["std_cumulative_reward"] for a in agents]
+    final_rewards = [results[env_name][a]["mean_cumulative_reward"] for a in agents]
+    errors = [results[env_name][a]["std_cumulative_reward"] for a in agents]
 
     ax.bar(
         agents,
         final_rewards,
         yerr=errors,
-        color=["#2E86AB" for a in agents],
+        color=[colors.get(a, "gray") for a in agents],
         alpha=0.7,
         edgecolor="black",
         linewidth=2,
@@ -2634,7 +2632,7 @@ def check_falsification(
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     f6_1_pass = (
-        ltcn_transition_time <= 80 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+        ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
     )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
