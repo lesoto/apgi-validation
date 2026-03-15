@@ -207,7 +207,7 @@ class TestsRunnerGUI:
         scripts = []
         if self.tests_dir.exists() and self.tests_dir.is_dir():
             for file_path in self.tests_dir.rglob("*.py"):
-                if file_path.name != "__init__.py":
+                if file_path.name not in ["__init__.py", "conftest.py"]:
                     scripts.append(file_path)
         return sorted(scripts)
 
@@ -508,7 +508,7 @@ class TestsRunnerGUI:
         """Handle visualization tab selection event."""
         # Refresh visualization when tab is selected to ensure it displays properly
         if MATPLOTLIB_AVAILABLE and hasattr(self, "fig"):
-            self.root.after_idle(self._update_charts)
+            self.root.after_idle(self.update_visualization)
 
     def _setup_tab_order(self) -> None:
         """Configure tab order for consistent keyboard navigation."""
@@ -694,8 +694,12 @@ class TestsRunnerGUI:
                 self.ax_timeline.set_xlabel("Test Sequence")
                 self.ax_timeline.set_ylabel("Status")
                 self.ax_timeline.set_ylim(-1.5, 1.5)
-            self.canvas.draw()
-            return
+                # Ensure the canvas is properly sized and visible
+                self.fig.tight_layout()
+                if hasattr(self, "canvas") and self.canvas is not None:
+                    self.canvas.draw()
+                self.root.update_idletasks()
+                return
 
         except Exception as e:
             self.log_output(f"Error updating charts: {e}", self.TAG_ERROR)
@@ -1347,6 +1351,15 @@ class TestsRunnerGUI:
 def main() -> None:
     """Launch the tests runner GUI."""
     try:
+        # Set required environment variables before importing APGI modules
+        import os
+        import secrets
+
+        if "PICKLE_SECRET_KEY" not in os.environ:
+            os.environ["PICKLE_SECRET_KEY"] = secrets.token_hex(32)
+        if "APGI_BACKUP_HMAC_KEY" not in os.environ:
+            os.environ["APGI_BACKUP_HMAC_KEY"] = secrets.token_hex(32)
+
         # Create and run the GUI
         root = tk.Tk()
         app = TestsRunnerGUI(root)

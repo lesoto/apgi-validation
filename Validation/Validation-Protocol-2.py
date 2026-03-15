@@ -321,6 +321,230 @@ def validate_parameter_recovery(n_simulations: int = 100):
     return validation_passed, {"r_theta": r_theta, "r_Pi_i": r_Pi_i, "r_beta": r_beta}
 
 
+def compute_fisher_information_matrix(
+    trace, data: ConsciousnessDataset
+) -> Dict[str, np.ndarray]:
+    """
+    Compute Fisher Information Matrix for APGI parameters.
+
+    The FIM quantifies how much information the data provides about each parameter.
+    Diagonal elements indicate precision of individual parameter estimates.
+    Off-diagonal elements indicate parameter correlations.
+
+    Args:
+        trace: Posterior samples from PyMC
+        data: Consciousness dataset
+
+    Returns:
+        Dictionary with FIM and derived metrics
+    """
+    try:
+        import jax
+        import jax.numpy as jnp
+    except ImportError:
+        logger.warning("JAX not available for Fisher Information Matrix computation")
+        return {"fim": None, "eigenvalues": None, "condition_number": None}
+
+    # Extract posterior means as parameter estimates
+    param_names = ["theta_0", "Pi_i", "beta", "alpha"]
+    param_means = {}
+
+    for param in param_names:
+        if param in trace.posterior:
+            param_means[param] = trace.posterior[param].mean().item()
+        else:
+            logger.warning(f"Parameter {param} not found in trace")
+            return {"fim": None, "eigenvalues": None, "condition_number": None}
+
+    # Compute numerical Hessian of log-likelihood at posterior mean
+    def log_likelihood(theta_0, Pi_i, beta, alpha, data):
+        """Log-likelihood function for FIM computation"""
+        # Reconstruct model predictions
+        # APGI dynamics
+
+        # APGI dynamics
+        Pi_e = 1.0
+        eps_e = data.prediction_error
+
+        # Simplified interoceptive error (using posterior mean)
+        eps_i_mean = 0.0
+
+        S_t = Pi_e * data.stimulus_strength * np.abs(eps_e) + beta * Pi_i * np.abs(
+            eps_i_mean
+        )
+        theta_t = theta_0
+
+        logit_p = alpha * (S_t - theta_t)
+        p_ignition = 1 / (1 + np.exp(-logit_p))
+
+        # Log-likelihood
+        ll = data.conscious_report * np.log(p_ignition + 1e-10) + (
+            1 - data.conscious_report
+        ) * np.log(1 - p_ignition + 1e-10)
+
+        return ll.sum()
+
+    # Compute Hessian using JAX autodiff
+    def loss(params):
+        theta_0, Pi_i, beta, alpha = params
+        return -log_likelihood(theta_0, Pi_i, beta, alpha)
+
+    params_array = jnp.array(
+        [
+            param_means["theta_0"],
+            param_means["Pi_i"],
+            param_means["beta"],
+            param_means["alpha"],
+        ]
+    )
+
+    try:
+        hessian = jax.hessian(loss)(params_array)
+        fim = hessian  # Fisher Information Matrix is negative Hessian at MLE
+
+        # Compute eigenvalues
+        eigenvalues = jnp.linalg.eigvals(fim)
+        condition_number = jnp.max(jnp.abs(eigenvalues)) / jnp.min(jnp.abs(eigenvalues))
+
+        return {
+            "fim": np.array(fim),
+            "eigenvalues": np.array(eigenvalues),
+            "condition_number": float(condition_number),
+            "param_names": param_names,
+        }
+    except Exception as e:
+        logger.warning(f"Error computing Fisher Information Matrix: {e}")
+        return {"fim": None, "eigenvalues": None, "condition_number": None}
+
+
+def analyze_beta_pi_identifiability(
+    trace, data: ConsciousnessDataset
+) -> Dict[str, Any]:
+    """
+    Analyze identifiability of β (interoceptive weighting) and Πⁱ (interoceptive precision).
+
+    These parameters can be difficult to identify because they both modulate
+    the interoceptive contribution to surprise. This analysis checks:
+    1. Parameter correlation from posterior samples
+    2. Fisher Information Matrix diagonal elements
+    3. Sensitivity analysis: how predictions change when parameters vary
+
+    Args:
+        trace: Posterior samples from PyMC
+        data: Consciousness dataset
+
+    Returns:
+        Dictionary with identifiability metrics
+    """
+    results = {
+        "beta_pi_correlation": None,
+        "fim_diagonal": None,
+        "sensitivity_analysis": None,
+        "identifiable": False,
+    }
+
+    if "beta" not in trace.posterior or "Pi_i" not in trace.posterior:
+        logger.warning("beta or Pi_i not found in trace")
+        return results
+
+    # 1. Posterior correlation
+    beta_samples = trace.posterior["beta"].values.flatten()
+    Pi_i_samples = trace.posterior["Pi_i"].values.flatten()
+
+    correlation = np.corrcoef(beta_samples, Pi_i_samples)[0, 1]
+    results["beta_pi_correlation"] = float(correlation)
+
+    # 2. Fisher Information Matrix analysis
+    fim_results = compute_fisher_information_matrix(trace, data)
+    if fim_results["fim"] is not None:
+        # Find indices for beta and Pi_i
+        param_names = fim_results["param_names"]
+        beta_idx = param_names.index("beta") if "beta" in param_names else None
+        Pi_i_idx = param_names.index("Pi_i") if "Pi_i" in param_names else None
+
+        if beta_idx is not None and Pi_i_idx is not None:
+            fim_diagonal = np.diag(fim_results["fim"])
+            results["fim_diagonal"] = {
+                "beta": float(fim_diagonal[beta_idx]),
+                "Pi_i": float(fim_diagonal[Pi_i_idx]),
+            }
+
+    # 3. Sensitivity analysis
+    # Vary each parameter while holding others constant at posterior mean
+    param_means = {
+        "theta_0": trace.posterior["theta_0"].mean().item()
+        if "theta_0" in trace.posterior
+        else 0.5,
+        "Pi_i": trace.posterior["Pi_i"].mean().item(),
+        "beta": trace.posterior["beta"].mean().item(),
+        "alpha": trace.posterior["alpha"].mean().item()
+        if "alpha" in trace.posterior
+        else 5.0,
+    }
+
+    # Compute predictions with varied parameters
+    Pi_e = 1.0
+    eps_e = data.prediction_error
+    eps_i_mean = 0.0
+
+    # Baseline predictions
+    S_t_baseline = Pi_e * data.stimulus_strength * np.abs(eps_e) + param_means[
+        "beta"
+    ] * param_means["Pi_i"] * np.abs(eps_i_mean)
+    p_baseline = 1 / (
+        1 + np.exp(-param_means["alpha"] * (S_t_baseline - param_means["theta_0"]))
+    )
+
+    # Sensitivity to beta
+    S_t_beta_varied = Pi_e * data.stimulus_strength * np.abs(eps_e) + (
+        param_means["beta"] * 1.1
+    ) * param_means["Pi_i"] * np.abs(eps_i_mean)
+    p_beta_varied = 1 / (
+        1 + np.exp(-param_means["alpha"] * (S_t_beta_varied - param_means["theta_0"]))
+    )
+    sensitivity_beta = np.abs(p_beta_varied - p_baseline).mean()
+
+    # Sensitivity to Pi_i
+    S_t_Pi_i_varied = Pi_e * data.stimulus_strength * np.abs(eps_e) + param_means[
+        "beta"
+    ] * (param_means["Pi_i"] * 1.1) * np.abs(eps_i_mean)
+    p_Pi_i_varied = 1 / (
+        1 + np.exp(-param_means["alpha"] * (S_t_Pi_i_varied - param_means["theta_0"]))
+    )
+    sensitivity_Pi_i = np.abs(p_Pi_i_varied - p_baseline).mean()
+
+    results["sensitivity_analysis"] = {
+        "beta_sensitivity": float(sensitivity_beta),
+        "Pi_i_sensitivity": float(sensitivity_Pi_i),
+    }
+
+    # Assess identifiability
+    # Parameters are identifiable if:
+    # 1. Correlation is not too high (< 0.8)
+    # 2. Both have reasonable Fisher information
+    # 3. Both show sensitivity in predictions
+
+    identifiable = True
+    reasons = []
+
+    if abs(correlation) > 0.8:
+        identifiable = False
+        reasons.append(f"High correlation between beta and Pi_i: {correlation:.3f}")
+
+    if results["sensitivity_analysis"]["beta_sensitivity"] < 0.01:
+        identifiable = False
+        reasons.append(f"Low sensitivity to beta: {sensitivity_beta:.4f}")
+
+    if results["sensitivity_analysis"]["Pi_i_sensitivity"] < 0.01:
+        identifiable = False
+        reasons.append(f"Low sensitivity to Pi_i: {sensitivity_Pi_i:.4f}")
+
+    results["identifiable"] = identifiable
+    results["reasons"] = reasons
+
+    return results
+
+
 # =============================================================================
 # PART 2: APGI GENERATIVE MODEL
 # =============================================================================

@@ -424,6 +424,53 @@ class CausalManipulationsValidator:
                 )
                 drug_responses.append(drug_prob)
 
+            # Statistical test
+            t_stat, p_value = stats.ttest_rel(baseline_responses, drug_responses)
+
+            # Effect size (Cohen's d)
+            pooled_std = np.sqrt(
+                (np.var(baseline_responses, ddof=1) + np.var(drug_responses, ddof=1))
+                / 2
+            )
+            cohens_d = (
+                np.mean(drug_responses) - np.mean(baseline_responses)
+            ) / pooled_std
+
+            # Drug-specific predictions
+            if drug == "propranolol":
+                # Beta-blocker: should reduce precision (lower Pi), increase threshold
+                expected_precision_change = "decrease"
+                expected_threshold_change = "increase"
+                precision_passed = (
+                    drug_state["Pi_e_baseline"] < baseline_state["Pi_e_baseline"]
+                    and p_value < 0.05
+                )
+                threshold_passed = (
+                    drug_state["theta_t"] > baseline_state["theta_t"] and p_value < 0.05
+                )
+            elif drug == "atomoxetine":
+                # NE reuptake inhibitor: should increase precision (higher Pi), decrease threshold
+                expected_precision_change = "increase"
+                expected_threshold_change = "decrease"
+                precision_passed = (
+                    drug_state["Pi_e_baseline"] > baseline_state["Pi_e_baseline"]
+                    and p_value < 0.05
+                )
+                threshold_passed = (
+                    drug_state["theta_t"] < baseline_state["theta_t"] and p_value < 0.05
+                )
+            else:  # caffeine
+                # Stimulant: should increase both precision and threshold
+                expected_precision_change = "increase"
+                expected_threshold_change = "increase"
+                precision_passed = (
+                    drug_state["Pi_e_baseline"] > baseline_state["Pi_e_baseline"]
+                    and p_value < 0.05
+                )
+                threshold_passed = (
+                    drug_state["theta_t"] > baseline_state["theta_t"] and p_value < 0.05
+                )
+
             results[drug] = {
                 "baseline_responses": baseline_responses,
                 "drug_responses": drug_responses,
@@ -431,6 +478,14 @@ class CausalManipulationsValidator:
                 "threshold_shift": drug_state["theta_t"] - baseline_state["theta_t"],
                 "precision_change": drug_state["Pi_e_baseline"]
                 - baseline_state["Pi_e_baseline"],
+                "t_statistic": float(t_stat),
+                "p_value": float(p_value),
+                "cohens_d": float(cohens_d),
+                "expected_precision_change": expected_precision_change,
+                "expected_threshold_change": expected_threshold_change,
+                "precision_passed": precision_passed,
+                "threshold_passed": threshold_passed,
+                "validation_passed": precision_passed and threshold_passed,
             }
 
         return results
@@ -438,14 +493,41 @@ class CausalManipulationsValidator:
     def _validate_erp_invariance(self) -> Dict:
         """Validate ERP invariance null prediction - ERPs should remain unchanged during causal manipulations"""
         # Simulate ERP measurement before and after manipulation
+        np.random.seed(42)
         baseline_erp = np.random.normal(10.0, 2.0, 20)  # 20 trials baseline
         post_manipulation_erp = np.random.normal(10.2, 2.1, 20)  # Slight variation
 
         # Statistical test for invariance (paired t-test)
         t_stat, p_value = stats.ttest_rel(baseline_erp, post_manipulation_erp)
 
+        # Effect size (Cohen's d)
+        pooled_std = np.sqrt(
+            (np.var(baseline_erp, ddof=1) + np.var(post_manipulation_erp, ddof=1)) / 2
+        )
+        cohens_d = (np.mean(post_manipulation_erp) - np.mean(baseline_erp)) / pooled_std
+
         # ERP invariance: no significant change (p > 0.05)
         null_prediction_supported = p_value > 0.05
+
+        # Additional test: test specific ERP components
+        # N1/P1 should NOT change with interoceptive manipulation
+        # P3b SHOULD change (tested elsewhere)
+        baseline_n1 = np.random.normal(5.0, 1.5, 20)
+        post_n1 = np.random.normal(5.1, 1.6, 20)
+
+        baseline_p1 = np.random.normal(8.0, 2.0, 20)
+        post_p1 = np.random.normal(8.1, 2.1, 20)
+
+        # Test N1 invariance
+        t_n1, p_n1 = stats.ttest_rel(baseline_n1, post_n1)
+        n1_invariant = p_n1 > 0.05
+
+        # Test P1 invariance
+        t_p1, p_p1 = stats.ttest_rel(baseline_p1, post_p1)
+        p1_invariant = p_p1 > 0.05
+
+        # Overall invariance
+        erp_invariant = null_prediction_supported and n1_invariant and p1_invariant
 
         return {
             "baseline_erp_mean": np.mean(baseline_erp),
@@ -453,8 +535,12 @@ class CausalManipulationsValidator:
             "erp_change": np.mean(post_manipulation_erp) - np.mean(baseline_erp),
             "t_statistic": t_stat,
             "p_value": p_value,
+            "cohens_d": cohens_d,
             "null_prediction_supported": null_prediction_supported,
-            "validation_passed": null_prediction_supported,
+            "n1_invariant": n1_invariant,
+            "p1_invariant": p1_invariant,
+            "erp_invariant": erp_invariant,
+            "validation_passed": erp_invariant,
         }
 
     def _validate_metabolic_effects(self) -> Dict:
@@ -477,11 +563,45 @@ class CausalManipulationsValidator:
                 # Test threshold elevation prediction
                 threshold_elevation = metabolic_theta > baseline_theta
 
+                # Statistical test for threshold elevation
+                # Simulate multiple trials
+                np.random.seed(42)
+                baseline_thresholds = np.random.normal(baseline_theta, 0.05, 30)
+                metabolic_thresholds = np.random.normal(metabolic_theta, 0.05, 30)
+
+                # Paired t-test
+                t_stat, p_value = stats.ttest_rel(
+                    baseline_thresholds, metabolic_thresholds
+                )
+
+                # Effect size (Cohen's d)
+                pooled_std = np.sqrt(
+                    (
+                        np.var(baseline_thresholds, ddof=1)
+                        + np.var(metabolic_thresholds, ddof=1)
+                    )
+                    / 2
+                )
+                cohens_d = (
+                    np.mean(metabolic_thresholds) - np.mean(baseline_thresholds)
+                ) / pooled_std
+
+                # Prediction: hypoglycemia (glucose < 3.9) should elevate threshold
+                is_hypoglycemic = glucose < 3.9
+                prediction_passed = (
+                    threshold_elevation and cohens_d > 0.3 and p_value < 0.05
+                )
+
                 results[f"glucose_{glucose}_fasting_{fasting}"] = {
                     "metabolic_effects": effects,
                     "threshold_elevation": threshold_elevation,
                     "glucose_level": glucose,
                     "fasting_duration": fasting,
+                    "is_hypoglycemic": is_hypoglycemic,
+                    "t_statistic": float(t_stat),
+                    "p_value": float(p_value),
+                    "cohens_d": float(cohens_d),
+                    "prediction_passed": prediction_passed,
                 }
 
         return results
@@ -532,6 +652,37 @@ class CausalManipulationsValidator:
                 )
                 tacs_responses.append(tacs_prob)
 
+            # Statistical test for oscillatory modulation effect
+            t_stat, p_value = stats.ttest_rel(baseline_responses, tacs_responses)
+
+            # Effect size (Cohen's d)
+            pooled_std = np.sqrt(
+                (np.var(baseline_responses, ddof=1) + np.var(tacs_responses, ddof=1))
+                / 2
+            )
+            cohens_d = (
+                np.mean(tacs_responses) - np.mean(baseline_responses)
+            ) / pooled_std
+
+            # Frequency-specific prediction: theta band (4-8 Hz) should enhance precision
+            if 4.0 <= freq <= 8.0:
+                expected_effect = "precision_enhancement"
+                expected_direction = "increase"  # Higher precision → higher detection
+            elif 8.0 < freq <= 15.0:
+                expected_effect = "alpha_modulation"
+                expected_direction = "neutral"  # Alpha band has complex effects
+            else:
+                expected_effect = "gamma_suppression"
+                expected_direction = "decrease"  # High frequency may suppress
+
+            # Validate prediction
+            if expected_direction == "increase":
+                prediction_passed = cohens_d > 0.3 and p_value < 0.05
+            elif expected_direction == "decrease":
+                prediction_passed = cohens_d < -0.3 and p_value < 0.05
+            else:
+                prediction_passed = p_value > 0.05  # No significant change
+
             results[f"freq_{freq}hz"] = {
                 "baseline_responses": baseline_responses,
                 "tacs_responses": tacs_responses,
@@ -540,6 +691,11 @@ class CausalManipulationsValidator:
                 "precision_change": tacs_state["Pi_e_effective"]
                 - baseline_state["Pi_e_effective"],
                 "frequency": freq,
+                "t_statistic": float(t_stat),
+                "p_value": float(p_value),
+                "cohens_d": float(cohens_d),
+                "expected_effect": expected_effect,
+                "prediction_passed": prediction_passed,
             }
 
         return results
@@ -551,29 +707,72 @@ class CausalManipulationsValidator:
 
         # TMS ignition disruption (weight: 0.3)
         tms_result = results.get("tms_ignition_disruption", {})
-        scores.append(
-            0.3 * (1.0 if tms_result.get("validation_passed", False) else 0.0)
-        )
+        tms_score = 0.3 * (1.0 if tms_result.get("validation_passed", False) else 0.0)
+        scores.append(tms_score)
+        logger.info(f"TMS ignition disruption: {tms_score:.2f} (weight: 0.3)")
 
         # tACS oscillatory modulation (weight: 0.25)
         tacs_result = results.get("tacs_oscillatory_modulation", {})
-        scores.append(0.25 * (1.0 if len(tacs_result) > 0 else 0.0))  # Simplified
+        # Count passed predictions
+        tacs_passed = sum(
+            [
+                1.0
+                for freq_data in tacs_result.values()
+                if freq_data.get("prediction_passed", False)
+            ]
+        )
+        tacs_score = 0.25 * (
+            tacs_passed / len(tacs_result) if len(tacs_result) > 0 else 0
+        )
+        scores.append(tacs_score)
+        logger.info(f"tACS oscillatory modulation: {tacs_score:.2f} (weight: 0.25)")
 
         # Pharmacological effects (weight: 0.25)
         pharma_result = results.get("pharmacological_precision_modulation", {})
-        scores.append(0.25 * (1.0 if len(pharma_result) > 0 else 0.0))  # Simplified
+        # Count passed predictions
+        pharma_passed = sum(
+            [
+                1.0
+                for drug_data in pharma_result.values()
+                if drug_data.get("validation_passed", False)
+            ]
+        )
+        pharma_score = 0.25 * (
+            pharma_passed / len(pharma_result) if len(pharma_result) > 0 else 0
+        )
+        scores.append(pharma_score)
+        logger.info(
+            f"Pharmacological precision modulation: {pharma_score:.2f} (weight: 0.25)"
+        )
 
         # Metabolic effects (weight: 0.15)
         metabolic_result = results.get("metabolic_threshold_elevation", {})
-        scores.append(0.15 * (1.0 if len(metabolic_result) > 0 else 0.0))  # Simplified
-
-        # ERP invariance null prediction (weight: 0.1)
-        erp_result = results.get("erp_invariance_null_prediction", {})
-        scores.append(
-            0.1 * (1.0 if erp_result.get("null_prediction_supported", False) else 0.0)
+        # Count passed predictions
+        metabolic_passed = sum(
+            [
+                1.0
+                for condition_data in metabolic_result.values()
+                if condition_data.get("prediction_passed", False)
+            ]
+        )
+        metabolic_score = 0.15 * (
+            metabolic_passed / len(metabolic_result) if len(metabolic_result) > 0 else 0
+        )
+        scores.append(metabolic_score)
+        logger.info(
+            f"Metabolic threshold elevation: {metabolic_score:.2f} (weight: 0.15)"
         )
 
-        return sum(scores)
+        # ERP invariance null prediction (weight: 0.15)
+        erp_result = results.get("erp_invariance_null_prediction", {})
+        erp_score = 0.15 * (1.0 if erp_result.get("erp_invariant", False) else 0.0)
+        scores.append(erp_score)
+        logger.info(f"ERP invariance null prediction: {erp_score:.2f} (weight: 0.15)")
+
+        total_score = sum(scores)
+        logger.info(f"Overall causal validation score: {total_score:.3f}")
+
+        return total_score
 
 
 class SubliminalPrimingMeasure:

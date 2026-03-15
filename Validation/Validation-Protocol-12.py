@@ -243,6 +243,10 @@ class PsychiatricProfileAnalyzer:
                 "beta": 2.0,  # High somatic influence
                 "theta_t": 0.3,  # Low threshold (hypervigilant)
                 "arousal": 0.9,  # High baseline arousal
+                # Multi-Scale Paper predictions
+                "autocorrelation_timescale": 1.5,  # Normal range (1-2s)
+                "hep_elevation": 0.7,  # HEP elevation (d = 0.5-0.8)
+                "ultradian_compression": None,  # Not applicable to anxiety
             },
             "major_depressive_disorder": {
                 "precision_expectation_gap": -0.6,  # Π̂ < Π (underestimation)
@@ -251,6 +255,22 @@ class PsychiatricProfileAnalyzer:
                 "beta": 0.8,  # Low somatic influence
                 "theta_t": 1.2,  # High threshold (reduced responsiveness)
                 "arousal": 0.3,  # Low arousal
+                # Multi-Scale Paper predictions
+                "autocorrelation_timescale": 5.0,  # Elevated (4-6s vs normal 1-2s)
+                "hep_elevation": None,  # Not applicable to depression
+                "ultradian_compression": None,  # Not applicable to depression
+            },
+            "adhd": {
+                "precision_expectation_gap": 0.3,  # Moderate overestimation
+                "Pi_e_baseline": 0.8,  # High exteroceptive precision
+                "Pi_i_baseline": 0.5,  # Moderate interoceptive precision
+                "beta": 1.5,  # Moderate somatic influence
+                "theta_t": 0.4,  # Low threshold (distractible)
+                "arousal": 0.7,  # High baseline arousal
+                # Multi-Scale Paper predictions
+                "autocorrelation_timescale": 1.8,  # Slightly elevated
+                "hep_elevation": None,  # Not applicable to ADHD
+                "ultradian_compression": 50.0,  # Compressed (40-60 min vs normal 90-120 min)
             },
             "psychosis": {
                 "precision_expectation_gap": 1.2,  # Severe overestimation
@@ -259,6 +279,10 @@ class PsychiatricProfileAnalyzer:
                 "beta": 0.5,  # Low somatic modulation
                 "theta_t": 0.2,  # Very low threshold (hallucinations)
                 "arousal": 1.0,  # Very high arousal
+                # Multi-Scale Paper predictions
+                "autocorrelation_timescale": 2.5,  # Elevated
+                "hep_elevation": 0.9,  # High HEP elevation
+                "ultradian_compression": 45.0,  # Highly compressed
             },
             "healthy_controls": {
                 "precision_expectation_gap": 0.0,
@@ -267,6 +291,10 @@ class PsychiatricProfileAnalyzer:
                 "beta": 1.2,
                 "theta_t": 0.5,
                 "arousal": 0.6,
+                # Multi-Scale Paper predictions
+                "autocorrelation_timescale": 1.5,  # Normal range (1-2s)
+                "hep_elevation": 0.0,  # No elevation
+                "ultradian_compression": 105.0,  # Normal range (90-120 min)
             },
         }
 
@@ -433,6 +461,9 @@ class CrossSpeciesHomologyAnalyzer:
                 "theta_t_range": (0.3, 0.8),
                 "Pi_e_range": (0.6, 0.9),
                 "ignition_latency": 0.3,  # seconds
+                # Epistemic Architecture Paper P9–P12 predictions
+                "fatigue_elevation_factor": 1.2,  # Fatigue increases ignition latency by 20%
+                "cross_species_correlation": 0.85,  # High correlation with primates
             },
             "macaque": {
                 "cortical_thickness": 0.7,
@@ -440,6 +471,9 @@ class CrossSpeciesHomologyAnalyzer:
                 "theta_t_range": (0.4, 0.9),
                 "Pi_e_range": (0.5, 0.8),
                 "ignition_latency": 0.25,
+                # Epistemic Architecture Paper P9–P12 predictions
+                "fatigue_elevation_factor": 1.15,
+                "cross_species_correlation": 0.90,  # Very high correlation with humans
             },
             "mouse": {
                 "cortical_thickness": 0.3,
@@ -447,6 +481,9 @@ class CrossSpeciesHomologyAnalyzer:
                 "theta_t_range": (0.6, 1.2),
                 "Pi_e_range": (0.3, 0.6),
                 "ignition_latency": 0.15,
+                # Epistemic Architecture Paper P9–P12 predictions
+                "fatigue_elevation_factor": 1.1,
+                "cross_species_correlation": 0.75,  # Moderate correlation with primates
             },
             "zebrafish": {
                 "cortical_thickness": 0.1,
@@ -454,6 +491,9 @@ class CrossSpeciesHomologyAnalyzer:
                 "theta_t_range": (0.8, 1.5),
                 "Pi_e_range": (0.2, 0.4),
                 "ignition_latency": 0.1,
+                # Epistemic Architecture Paper P9–P12 predictions
+                "fatigue_elevation_factor": 1.05,
+                "cross_species_correlation": 0.60,  # Lower correlation with primates
             },
         }
 

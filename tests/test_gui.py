@@ -7,11 +7,64 @@ Tests for tkinter GUI components with proper mocking and fixtures.
 
 import pytest
 from unittest.mock import Mock, patch
+import sys
+
+# Mock tkinter at module level to prevent any real tkinter imports
+mock_tkinter_module = Mock()
+mock_tkinter_module.Tk = Mock()
+mock_tkinter_module.ttk = Mock()
+mock_tkinter_module.ttk.Frame = Mock()
+mock_tkinter_module.ttk.Button = Mock()
+mock_tkinter_module.ttk.Label = Mock()
+mock_tkinter_module.ttk.Spinbox = Mock()
+mock_tkinter_module.ttk.Checkbutton = Mock()
+mock_tkinter_module.ttk.Notebook = Mock()
+mock_tkinter_module.ttk.Progressbar = Mock()
+mock_tkinter_module.ttk.LabelFrame = Mock()
+mock_tkinter_module.StringVar = Mock()
+mock_tkinter_module.BooleanVar = Mock()
+mock_tkinter_module.DoubleVar = Mock()
+mock_tkinter_module.IntVar = Mock()
+mock_tkinter_module.Scale = Mock()
+mock_tkinter_module.ScrolledText = Mock()
+mock_tkinter_module.messagebox = Mock()
+mock_tkinter_module.filedialog = Mock()
+
+# Configure Tk mock
+mock_root = Mock()
+mock_child_ids = Mock()
+mock_child_ids.get = Mock(
+    side_effect=lambda key, default=0: default if isinstance(default, int) else 0
+)
+mock_root._last_child_ids = mock_child_ids
+mock_tkinter_module.Tk.return_value = mock_root
+
+# Configure variable mocks
+for var_type in ["StringVar", "BooleanVar", "DoubleVar", "IntVar"]:
+    mock_var = Mock()
+    mock_var.get = Mock(
+        return_value=0
+        if var_type == "IntVar"
+        else 0.0
+        if var_type == "DoubleVar"
+        else False
+        if var_type == "BooleanVar"
+        else ""
+    )
+    mock_var.set = Mock()
+    getattr(mock_tkinter_module, var_type).return_value = mock_var
+
+# Patch tkinter in sys.modules
+sys.modules["tkinter"] = mock_tkinter_module
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_tkinter():
     """Mock tkinter to avoid GUI creation in tests."""
+    # Remove tkinter from sys.modules if it exists to prevent any real imports
+    if "tkinter" in sys.modules:
+        del sys.modules["tkinter"]
+
     # Mock the entire tkinter module to prevent import on headless systems
     mock_tkinter_module = Mock()
     mock_tkinter_module.Tk = Mock()
@@ -114,27 +167,24 @@ class TestAPGIValidationGUI:
 
     @patch("Validation.APGIMasterValidator")
     @patch("Validation.safe_import_module")
-    def test_gui_initialization(
-        self, mock_safe_import, mock_validator_class, mock_tkinter
-    ):
+    def test_gui_initialization(self, mock_safe_import, mock_validator_class):
         """Test GUI initialization with mocked components."""
 
-        with patch.dict("sys.modules", {"tkinter": mock_tkinter}):
-            from Validation import APGIValidationGUI
+        from Validation import APGIValidationGUI
 
-            with patch.object(APGIValidationGUI, "update_parameter_display"):
-                # Mock the validator import
-                mock_safe_import.return_value = Mock()
-                mock_validator_class.return_value = Mock()
+        with patch.object(APGIValidationGUI, "update_parameter_display"):
+            # Mock the validator import
+            mock_safe_import.return_value = Mock()
+            mock_validator_class.return_value = Mock()
 
-                # Create GUI instance
-                root = mock_tkinter["root"]
-                gui = APGIValidationGUI(root)
+            # Create GUI instance
+            root = mock_root
+            gui = APGIValidationGUI(root)
 
-                # Verify initialization
-                assert gui.root == root
-                assert hasattr(gui, "validator")
-                assert hasattr(gui, "_protocol_cache")
+            # Verify initialization
+            assert gui.root == root
+            assert hasattr(gui, "validator")
+            assert hasattr(gui, "_protocol_cache")
 
     @patch("Validation.APGIMasterValidator")
     @patch("Validation.safe_import_module")

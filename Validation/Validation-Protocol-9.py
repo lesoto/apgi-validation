@@ -26,6 +26,17 @@ import pandas as pd
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
 
+# Ordinal logistic regression for clinical gradient analysis
+try:
+    import utils.ordinal_logistic_regression  # noqa: F401
+
+    ORDINAL_LOGISTIC_AVAILABLE = True
+except ImportError:
+    ORDINAL_LOGISTIC_AVAILABLE = False
+    warnings.warn(
+        "Ordinal logistic regression not available. Install utils/ordinal_logistic_regression.py"
+    )
+
 # MNE for EEG analysis
 if TYPE_CHECKING:
     import mne as MneModule
@@ -1545,6 +1556,7 @@ def check_falsification(
         "p_value": symptom_p_value,
         "threshold": "r ≥ 0.60, p < 0.01",
         "actual": f"r = {symptom_severity_correlation:.3f}, p = {symptom_p_value:.4f}",
+        "method": "Pearson correlation (ordinal logistic regression preferred for clinical gradient)",
     }
     if v9_1_pass:
         results["summary"]["passed"] += 1

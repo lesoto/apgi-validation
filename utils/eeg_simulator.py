@@ -85,7 +85,7 @@ class EEGSimulator:
             timing_jitter: Random timing jitter in seconds
 
         Returns:
-            R-wave waveform array
+            R-wave waveform array (aligned to full EEG duration)
         """
         t = np.linspace(0, self.r_wave_duration, self.r_wave_samples)
 
@@ -101,7 +101,14 @@ class EEGSimulator:
             -((t - self.r_wave_duration / 2) ** 2 / (0.01**2))
         )
 
-        return r_wave
+        # Pad to full EEG duration (R-wave at time 0)
+        r_wave_full = np.zeros(self.n_samples)
+        r_wave_end_sample = len(r_wave)
+
+        if r_wave_end_sample <= self.n_samples:
+            r_wave_full[0:r_wave_end_sample] = r_wave
+
+        return r_wave_full
 
     def generate_hep(
         self,
@@ -388,7 +395,7 @@ def create_default_simulator() -> EEGSimulator:
         cardiac_cycle_duration=0.9,
         r_wave_duration=0.05,
         hep_window_start=0.2,
-        hea_window_end=0.6,
+        hep_window_end=0.6,
         p3b_window_start=0.3,
         p3b_window_end=0.6,
         noise_level=0.1,

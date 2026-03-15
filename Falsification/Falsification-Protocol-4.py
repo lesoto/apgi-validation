@@ -7,6 +7,15 @@ from scipy.stats import entropy
 from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix
 from sklearn.utils import resample
 
+# Power analysis functions
+try:
+    from utils.statistical_tests import compute_power_analysis, compute_required_n
+
+    POWER_ANALYSIS_AVAILABLE = True
+except ImportError:
+    POWER_ANALYSIS_AVAILABLE = False
+    warnings.warn("Power analysis functions not available from utils.statistical_tests")
+
 logger = logging.getLogger(__name__)
 
 # Constants for better maintainability
@@ -964,6 +973,51 @@ class ClinicalBiomarkerFalsification:
         logger.info(
             f"Falsification: {'PASS' if results['falsification_pass'] else 'FAIL'}"
         )
+
+        # Add power analysis for clinical groups (N=30 per group)
+        if POWER_ANALYSIS_AVAILABLE:
+            logger.info(
+                "Computing power analysis for clinical groups (N=30 per group)..."
+            )
+            # Calculate effect size from AUC
+            # Convert AUC to Cohen's d approximation
+            # d = (2 * AUC - 1) / sqrt(3) for AUC to d conversion
+            cohens_d = (2 * results["auc"] - 1) / np.sqrt(3)
+
+            # Compute power for N=30 per group
+            power = compute_power_analysis(
+                effect_size=cohens_d, n_per_group=30, alpha=0.05, test_type="ttest_ind"
+            )
+
+            # Compute required N for 80% power
+            required_n = compute_required_n(
+                effect_size=cohens_d,
+                desired_power=0.80,
+                alpha=0.05,
+                test_type="ttest_ind",
+            )
+
+            results["power_analysis"] = {
+                "cohens_d": float(cohens_d),
+                "n_per_group": 30,
+                "power": float(power),
+                "required_n_for_80_power": int(required_n),
+                "power_sufficient": power >= 0.80,
+                "sample_size_adequate": 30 >= required_n,
+            }
+
+            logger.info(f"Effect size (Cohen's d): {cohens_d:.3f}")
+            logger.info(f"Power with N=30 per group: {power:.3f}")
+            logger.info(f"Required N for 80% power: {required_n}")
+            logger.info(
+                f"Power analysis: {'PASS' if power >= 0.80 else 'FAIL'} "
+                f"(power={power:.3f}, required_n={required_n})"
+            )
+        else:
+            logger.warning("Power analysis not available - skipping")
+            results["power_analysis"] = {
+                "error": "Power analysis functions not available"
+            }
 
         return results
 

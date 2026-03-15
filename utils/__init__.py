@@ -8,6 +8,14 @@ Utility modules for the APGI framework.
 import os
 import sys
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not installed, continue with system environment variables
+
 
 # Security: Check for required environment variables at import time
 def _check_required_env_vars():

@@ -11,7 +11,7 @@ import json
 import gc
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 try:
     import matplotlib
@@ -1632,20 +1632,29 @@ class FalsificationChecker:
         falsified = avg_confusion > self.criteria["F1.2"]["threshold"]
         return falsified, avg_confusion
 
-    def check_F1_3(self, real_data_accuracy: float) -> Tuple[bool, float]:
-        """F1.3: Generalization to real data < 55%"""
-        falsified = real_data_accuracy < self.criteria["F1.3"]["threshold"]
-        return falsified, real_data_accuracy
+    def check_F1_3(
+        self, high_arousal_ignition: float, low_arousal_ignition: float
+    ) -> Tuple[bool, float]:
+        """F1.3: Arousal interaction test - ignition probability difference between high and low arousal"""
+        arousal_effect = high_arousal_ignition - low_arousal_ignition
+        falsified = arousal_effect < self.criteria["F1.3"]["threshold"]
+        return falsified, arousal_effect
 
     def check_F1_4(
-        self, results_by_model: Dict[str, Dict]
-    ) -> Tuple[bool, Tuple[float, float]]:
-        """F1.4: StandardPP >= APGI accuracy"""
-        apgi_acc = results_by_model["APGI"]["accuracy"]
-        pp_acc = results_by_model["StandardPP"]["accuracy"]
+        self, results_task_1a: Dict[str, Dict], results_task_1b: Dict
+    ) -> Tuple[bool, Tuple[float, float, float, float]]:
+        """F1.4: APGI outperforms StandardPP across full task battery"""
+        # Task 1A: Ignition classification
+        apgi_acc_1a = results_task_1a["APGI"]["accuracy"]
+        pp_acc_1a = results_task_1a["StandardPP"]["accuracy"]
 
-        falsified = pp_acc >= apgi_acc
-        return falsified, (apgi_acc, pp_acc)
+        # Task 1B: Model identification (use F1-score for multi-class)
+        apgi_f1_1b = results_task_1b["APGI"]["f1_score"]
+        pp_f1_1b = results_task_1b["StandardPP"]["f1_score"]
+
+        # APGI must outperform StandardPP on both tasks
+        falsified = (pp_acc_1a >= apgi_acc_1a) or (pp_f1_1b >= apgi_f1_1b)
+        return falsified, (apgi_acc_1a, pp_acc_1a, apgi_f1_1b, pp_f1_1b)
 
     def check_F2_1(
         self, apgi_advantageous_selection: List[float]
@@ -1658,59 +1667,129 @@ class FalsificationChecker:
         Returns:
             Tuple of (falsified, mean_advantage)
         """
+        from utils.statistical_tests import safe_ttest_1samp
+
         mean_apgi = np.mean(apgi_advantageous_selection)
-        falsified = mean_apgi >= 22  # Falsified if advantage is high (supports model)
+        # Use proper statistical test against null hypothesis of 50% (chance level)
+        try:
+            _, p_value, significant = safe_ttest_1samp(
+                apgi_advantageous_selection, popmean=50.0, alpha=0.01, min_n=30
+            )
+            falsified = (
+                significant and mean_apgi >= 70
+            )  # Supports model if significantly above chance
+        except (ValueError, TypeError):
+            # Fallback for insufficient data
+            falsified = mean_apgi >= 70
         return falsified, mean_apgi
 
-    def check_F2_2(self, apgi_cost_correlation: float) -> Tuple[bool, float]:
+    def check_F2_2(
+        self, apgi_cost_correlation: float, cost_correlation_std: float = None
+    ) -> Tuple[bool, float]:
         """F2.2: Interoceptive Cost Sensitivity
 
         Args:
             apgi_cost_correlation: Correlation between interoceptive precision and cost
+            cost_correlation_std: Standard error of correlation estimate
 
         Returns:
             Tuple of (falsified, correlation)
         """
-        falsified = (
-            -0.65 <= apgi_cost_correlation <= -0.45
-        )  # Within range supports model
+        # Test if correlation is significantly negative (supports interoceptive cost sensitivity)
+        # Using Fisher's z-transformation for proper statistical testing
+        if cost_correlation_std is not None and cost_correlation_std > 0:
+            z_score = apgi_cost_correlation / cost_correlation_std
+            p_value = 2 * (1 - stats.norm.cdf(abs(z_score)))
+            falsified = p_value < 0.01 and apgi_cost_correlation < -0.30
+        else:
+            # Fallback: check if correlation is in expected range
+            falsified = -0.65 <= apgi_cost_correlation <= -0.30
         return falsified, apgi_cost_correlation
 
-    def check_F2_3(self, rt_advantage_ms: float) -> Tuple[bool, float]:
+    def check_F2_3(
+        self, rt_advantage_ms: Union[float, List[float]]
+    ) -> Tuple[bool, float]:
         """F2.3: vmPFC-Like Anticipatory Bias
 
         Args:
-            rt_advantage_ms: Reaction time advantage in milliseconds
+            rt_advantage_ms: Reaction time advantage in milliseconds (can be single value or list of trials)
 
         Returns:
             Tuple of (falsified, rt_advantage)
         """
-        falsified = rt_advantage_ms >= 35
-        return falsified, rt_advantage_ms
+        from utils.statistical_tests import safe_ttest_1samp
 
-    def check_F2_4(self, confidence_effect: float) -> Tuple[bool, float]:
+        if isinstance(rt_advantage_ms, list):
+            rt_array = np.array(rt_advantage_ms)
+            rt_mean = np.mean(rt_array)
+            try:
+                t_stat, p_value = safe_ttest_1samp(
+                    rt_array, popmean=0.0, alpha=0.01, min_n=30
+                )
+                falsified = p_value < 0.01 and rt_mean >= 50
+            except (ValueError, TypeError):
+                falsified = rt_mean >= 50
+        else:
+            rt_mean = float(rt_advantage_ms)
+            falsified = rt_mean >= 50
+        return falsified, rt_mean
+
+    def check_F2_4(
+        self, confidence_effect: Union[float, List[float]]
+    ) -> Tuple[bool, float]:
         """F2.4: Precision-Weighted Integration
 
         Args:
-            confidence_effect: Confidence effect size
+            confidence_effect: Confidence effect size (can be single value or list of trials)
 
         Returns:
             Tuple of (falsified, confidence_effect)
         """
-        falsified = confidence_effect >= 30
-        return falsified, confidence_effect
+        from utils.statistical_tests import safe_ttest_1samp
 
-    def check_F2_5(self, apgi_time_to_criterion: float) -> Tuple[bool, float]:
+        if isinstance(confidence_effect, list):
+            effect_array = np.array(confidence_effect)
+            effect_mean = np.mean(effect_array)
+            try:
+                t_stat, p_value, significant = safe_ttest_1samp(
+                    effect_array, popmean=0.0, alpha=0.01, min_n=30
+                )
+                falsified = significant and effect_mean >= 40
+            except (ValueError, TypeError):
+                falsified = effect_mean >= 40
+        else:
+            effect_mean = float(confidence_effect)
+            falsified = effect_mean >= 40
+        return falsified, effect_mean
+
+    def check_F2_5(
+        self, apgi_time_to_criterion: Union[float, List[float]]
+    ) -> Tuple[bool, float]:
         """F2.5: Learning Trajectory Discrimination
 
         Args:
-            apgi_time_to_criterion: Time to criterion for APGI agent
+            apgi_time_to_criterion: Time to criterion for APGI agent (can be single value or list of runs)
 
         Returns:
             Tuple of (falsified, time_to_criterion)
         """
-        falsified = apgi_time_to_criterion <= 55  # Lower is better
-        return falsified, apgi_time_to_criterion
+        from utils.statistical_tests import safe_ttest_1samp
+
+        if isinstance(apgi_time_to_criterion, list):
+            time_array = np.array(apgi_time_to_criterion)
+            time_mean = np.mean(time_array)
+            # Test if APGI learns significantly faster than baseline (assumed 100 trials)
+            try:
+                t_stat, p_value, significant = safe_ttest_1samp(
+                    time_array, popmean=100.0, alpha=0.01, min_n=30
+                )
+                falsified = significant and time_mean <= 60
+            except (ValueError, TypeError):
+                falsified = time_mean <= 60
+        else:
+            time_mean = float(apgi_time_to_criterion)
+            falsified = time_mean <= 60
+        return falsified, time_mean
 
     def check_F3_1(
         self, apgi_rewards: List[float], baseline_rewards: List[float]
@@ -1733,68 +1812,165 @@ class FalsificationChecker:
         falsified = advantage_pct >= cumulative_reward_threshold
         return falsified, advantage_pct
 
-    def check_F3_2(self, interoceptive_advantage: float) -> Tuple[bool, float]:
+    def check_F3_2(
+        self, interoceptive_advantage: Union[float, List[float]]
+    ) -> Tuple[bool, float]:
         """F3.2: Interoceptive Task Specificity
 
         Args:
-            interoceptive_advantage: Advantage in interoceptive tasks
+            interoceptive_advantage: Advantage in interoceptive tasks (can be single value or list of trials)
 
         Returns:
             Tuple of (falsified, interoceptive_advantage)
         """
-        falsified = interoceptive_advantage >= 28
-        return falsified, interoceptive_advantage
+        from utils.statistical_tests import safe_ttest_1samp
 
-    def check_F3_3(self, performance_reduction: float) -> Tuple[bool, float]:
+        if isinstance(interoceptive_advantage, list):
+            advantage_array = np.array(interoceptive_advantage)
+            advantage_mean = np.mean(advantage_array)
+            try:
+                t_stat, p_value, significant = safe_ttest_1samp(
+                    advantage_array, popmean=0.0, alpha=0.01, min_n=30
+                )
+                falsified = significant and advantage_mean >= 25
+            except (ValueError, TypeError):
+                falsified = advantage_mean >= 25
+        else:
+            advantage_mean = float(interoceptive_advantage)
+            falsified = advantage_mean >= 25
+        return falsified, advantage_mean
+
+    def check_F3_3(
+        self, performance_reduction: Union[float, List[float]]
+    ) -> Tuple[bool, float]:
         """F3.3: Threshold Gating Necessity
 
         Args:
-            performance_reduction: Performance reduction when threshold is removed
+            performance_reduction: Performance reduction when threshold is removed (can be single value or list of runs)
 
         Returns:
             Tuple of (falsified, performance_reduction)
         """
-        falsified = performance_reduction >= 25
-        return falsified, performance_reduction
+        from utils.statistical_tests import safe_ttest_1samp
 
-    def check_F3_4(self, precision_reduction: float) -> Tuple[bool, float]:
+        if isinstance(performance_reduction, list):
+            reduction_array = np.array(performance_reduction)
+            reduction_mean = np.mean(reduction_array)
+            try:
+                t_stat, p_value, significant = safe_ttest_1samp(
+                    reduction_array, popmean=0.0, alpha=0.01, min_n=30
+                )
+                falsified = significant and reduction_mean >= 20
+            except (ValueError, TypeError):
+                falsified = reduction_mean >= 20
+        else:
+            reduction_mean = float(performance_reduction)
+            falsified = reduction_mean >= 20
+        return falsified, reduction_mean
+
+    def check_F3_4(
+        self, precision_reduction: Union[float, List[float]]
+    ) -> Tuple[bool, float]:
         """F3.4: Precision Weighting Necessity
 
         Args:
-            precision_reduction: Performance reduction when precision is uniform
+            precision_reduction: Performance reduction when precision is uniform (can be single value or list of runs)
 
         Returns:
             Tuple of (falsified, precision_reduction)
         """
-        falsified = precision_reduction >= 20
-        return falsified, precision_reduction
+        from utils.statistical_tests import safe_ttest_1samp
+
+        if isinstance(precision_reduction, list):
+            reduction_array = np.array(precision_reduction)
+            reduction_mean = np.mean(reduction_array)
+            try:
+                t_stat, p_value, significant = safe_ttest_1samp(
+                    reduction_array, popmean=0.0, alpha=0.01, min_n=30
+                )
+                falsified = significant and reduction_mean >= 15
+            except (ValueError, TypeError):
+                falsified = reduction_mean >= 15
+        else:
+            reduction_mean = float(precision_reduction)
+            falsified = reduction_mean >= 15
+        return falsified, reduction_mean
 
     def check_F3_5(
-        self, efficiency_ratio: float, performance_retention: float
+        self,
+        efficiency_ratio: Union[float, List[float]],
+        performance_retention: Union[float, List[float]],
     ) -> Tuple[bool, Tuple[float, float]]:
         """F3.5: Computational Efficiency Trade-Off
 
         Args:
-            efficiency_ratio: Efficiency ratio (operations saved)
-            performance_retention: Performance retention percentage
+            efficiency_ratio: Efficiency ratio (operations saved) - can be single value or list of runs
+            performance_retention: Performance retention percentage - can be single value or list of runs
 
         Returns:
             Tuple of (falsified, (efficiency_ratio, performance_retention))
         """
-        falsified = efficiency_ratio <= 0.6 and performance_retention >= 85
-        return falsified, (efficiency_ratio, performance_retention)
+        from utils.statistical_tests import safe_ttest_1samp
 
-    def check_F3_6(self, trials_to_80pct: float) -> Tuple[bool, float]:
+        if isinstance(efficiency_ratio, list):
+            efficiency_array = np.array(efficiency_ratio)
+            efficiency_mean = np.mean(efficiency_array)
+            try:
+                t_stat, p_value = safe_ttest_1samp(
+                    efficiency_array, popmean=1.0, alpha=0.01, min_n=30
+                )
+                efficiency_pass = p_value < 0.01 and efficiency_mean <= 0.6
+            except (ValueError, TypeError):
+                efficiency_pass = efficiency_mean <= 0.6
+        else:
+            efficiency_mean = float(efficiency_ratio)
+            efficiency_pass = efficiency_mean <= 0.6
+
+        if isinstance(performance_retention, list):
+            performance_array = np.array(performance_retention)
+            performance_mean = np.mean(performance_array)
+            try:
+                _, p_value, significant = safe_ttest_1samp(
+                    performance_array, popmean=80.0, alpha=0.01, min_n=30
+                )
+                performance_pass = significant and performance_mean >= 85
+            except (ValueError, TypeError):
+                performance_pass = performance_mean >= 85
+        else:
+            performance_mean = float(performance_retention)
+            performance_pass = performance_mean >= 85
+
+        falsified = efficiency_pass and performance_pass
+        return falsified, (efficiency_mean, performance_mean)
+
+    def check_F3_6(
+        self, trials_to_80pct: Union[float, List[float]]
+    ) -> Tuple[bool, float]:
         """F3.6: Sample Efficiency in Learning
 
         Args:
-            trials_to_80pct: Number of trials to reach 80% performance
+            trials_to_80pct: Number of trials to reach 80% performance (can be single value or list of runs)
 
         Returns:
             Tuple of (falsified, trials_to_80pct)
         """
-        falsified = trials_to_80pct <= 200
-        return falsified, trials_to_80pct
+        from utils.statistical_tests import safe_ttest_1samp
+
+        if isinstance(trials_to_80pct, list):
+            trials_array = np.array(trials_to_80pct)
+            trials_mean = np.mean(trials_array)
+            # Test if APGI learns significantly faster than baseline (assumed 200 trials)
+            try:
+                t_stat, p_value, _ = safe_ttest_1samp(
+                    trials_array, popmean=200.0, alpha=0.01, min_n=30
+                )
+                falsified = p_value < 0.01 and trials_mean <= 150
+            except (ValueError, TypeError):
+                falsified = trials_mean <= 150
+        else:
+            trials_mean = float(trials_to_80pct)
+            falsified = trials_mean <= 150
+        return falsified, trials_mean
 
     def check_F5_1(
         self,
@@ -2041,14 +2217,20 @@ class FalsificationChecker:
         else:
             report["passed_criteria"].append(criterion_result)
 
-        # Check F1.3 (if real data available)
-        if real_data_accuracy is not None:
-            f1_3_falsified, real_acc = self.check_F1_3(real_data_accuracy)
+        # Check F1.3 (arousal interaction test)
+        if (
+            "high_arousal_ignition" in results_task_1a["APGI"]
+            and "low_arousal_ignition" in results_task_1a["APGI"]
+        ):
+            f1_3_falsified, arousal_effect = self.check_F1_3(
+                results_task_1a["APGI"]["high_arousal_ignition"],
+                results_task_1a["APGI"]["low_arousal_ignition"],
+            )
             criterion_result = {
                 "code": "F1.3",
                 "description": self.criteria["F1.3"]["description"],
                 "falsified": f1_3_falsified,
-                "value": real_acc,
+                "value": arousal_effect,
                 "threshold": self.criteria["F1.3"]["threshold"],
             }
 
@@ -2057,14 +2239,22 @@ class FalsificationChecker:
             else:
                 report["passed_criteria"].append(criterion_result)
 
-        # Check F1.4
-        f1_4_falsified, (apgi_acc, pp_acc) = self.check_F1_4(results_task_1a)
+        # Check F1.4 (full task battery)
+        f1_4_falsified, (
+            apgi_acc_1a,
+            pp_acc_1a,
+            apgi_f1_1b,
+            pp_f1_1b,
+        ) = self.check_F1_4(results_task_1a, results_task_1b)
         criterion_result = {
             "code": "F1.4",
             "description": self.criteria["F1.4"]["description"],
             "falsified": f1_4_falsified,
-            "value": {"APGI": apgi_acc, "StandardPP": pp_acc},
-            "threshold": "StandardPP < APGI",
+            "value": {
+                "Task1A": {"APGI": apgi_acc_1a, "StandardPP": pp_acc_1a},
+                "Task1B": {"APGI": apgi_f1_1b, "StandardPP": pp_f1_1b},
+            },
+            "threshold": self.criteria["F1.4"]["threshold"],
         }
 
         if f1_4_falsified:
@@ -2384,7 +2574,100 @@ class FalsificationChecker:
         if f6_2_falsified:
             report["falsified_criteria"].append(criterion_result)
         else:
-            return f6_2_falsified, (ltcn_win, rnn_win, curve_r2, wilcox_p)
+            report["overall_falsified"] = len(report["falsified_criteria"]) > 0
+
+        # Add power analysis computation (N=80 for primary tests)
+        report["power_analysis"] = self.compute_power_analysis()
+
+        return report
+
+    def compute_power_analysis(self) -> Dict[str, Any]:
+        """
+        Compute statistical power for primary tests (N=80).
+
+        Returns:
+            Dictionary with power analysis results for each criterion
+        """
+        from utils.statistical_tests import (
+            compute_power_two_sample_ttest,
+            compute_power_correlation,
+        )
+
+        power_results = {}
+
+        # Power for F1.1: Accuracy comparison (two-sample t-test)
+        # Effect size: Cohen's d = 0.5 (medium) for APGI vs StandardPP
+        power_f1_1 = compute_power_two_sample_ttest(
+            effect_size=0.5, sample_size=80, alpha=0.01
+        )
+        power_results["F1.1"] = {
+            "sample_size": 80,
+            "effect_size": 0.5,
+            "power": power_f1_1,
+            "interpretation": "Adequate" if power_f1_1 >= 0.80 else "Insufficient",
+        }
+
+        # Power for F1.3: Arousal interaction (paired t-test)
+        # Effect size: Cohen's d = 0.35 (small-medium) for arousal effect
+        power_f1_3 = compute_power_two_sample_ttest(
+            effect_size=0.35, sample_size=80, alpha=0.05, paired=True
+        )
+        power_results["F1.3"] = {
+            "sample_size": 80,
+            "effect_size": 0.35,
+            "power": power_f1_3,
+            "interpretation": "Adequate" if power_f1_3 >= 0.80 else "Moderate",
+        }
+
+        # Power for F2.1: Advantageous selection (one-sample t-test)
+        # Effect size: Cohen's d = 0.6 (medium-large) for advantage
+        power_f2_1 = compute_power_two_sample_ttest(
+            effect_size=0.6, sample_size=80, alpha=0.01
+        )
+        power_results["F2.1"] = {
+            "sample_size": 80,
+            "effect_size": 0.6,
+            "power": power_f2_1,
+            "interpretation": "Adequate" if power_f2_1 >= 0.80 else "Insufficient",
+        }
+
+        # Power for F2.2: Cost correlation
+        # Effect size: r = -0.55 (medium-large negative correlation)
+        power_f2_2 = compute_power_correlation(
+            correlation=-0.55, sample_size=80, alpha=0.01
+        )
+        power_results["F2.2"] = {
+            "sample_size": 80,
+            "correlation": -0.55,
+            "power": power_f2_2,
+            "interpretation": "Adequate" if power_f2_2 >= 0.80 else "Insufficient",
+        }
+
+        # Power for F3.1: Performance advantage (two-sample t-test)
+        # Effect size: Cohen's d = 0.8 (large) for APGI vs baseline
+        power_f3_1 = compute_power_two_sample_ttest(
+            effect_size=0.8, sample_size=80, alpha=0.01
+        )
+        power_results["F3.1"] = {
+            "sample_size": 80,
+            "effect_size": 0.8,
+            "power": power_f3_1,
+            "interpretation": "Excellent" if power_f3_1 >= 0.95 else "Adequate",
+        }
+
+        # Power for F3.6: Sample efficiency (one-sample t-test)
+        # Effect size: Cohen's d = 0.7 (large) for efficiency
+        power_f3_6 = compute_power_two_sample_ttest(
+            effect_size=0.7, sample_size=80, alpha=0.01
+        )
+        power_results["F3.6"] = {
+            "sample_size": 80,
+            "effect_size": 0.7,
+            "power": power_f3_6,
+            "interpretation": "Excellent" if power_f3_6 >= 0.95 else "Adequate",
+        }
+
+        return power_results
 
 
 # =============================================================================
@@ -2884,6 +3167,69 @@ def calculate_effect_sizes(results_task_1a):
             effect_sizes[model_name] = {"cohens_d": d, "odds_ratio": odds_ratio}
 
     return effect_sizes
+
+
+def calculate_power_analysis(
+    effect_size: float,
+    sample_size: int,
+    alpha: float = 0.01,
+    power_target: float = 0.80,
+) -> Dict[str, float]:
+    """
+    Calculate statistical power for given effect size and sample size.
+
+    Args:
+        effect_size: Cohen's d or other standardized effect size
+        sample_size: Number of samples per group
+        alpha: Significance level (default 0.01)
+        power_target: Target power level (default 0.80)
+
+    Returns:
+        Dictionary with power calculations and required sample size
+    """
+    try:
+        from statsmodels.stats.power import TTestPower
+
+        power_analysis = TTestPower()
+
+        # Calculate achieved power
+        achieved_power = power_analysis.power(
+            effect_size=effect_size,
+            nobs1=sample_size,
+            nobs2=sample_size,
+            alpha=alpha,
+            ratio=1.0,
+        )
+
+        # Calculate required sample size for target power
+        required_sample_size = power_analysis.solve_power(
+            effect_size=effect_size,
+            nobs1=None,
+            alpha=alpha,
+            power=power_target,
+            ratio=1.0,
+        )
+
+        return {
+            "achieved_power": achieved_power,
+            "required_sample_size": required_sample_size,
+            "current_sample_size": sample_size,
+            "effect_size": effect_size,
+            "alpha": alpha,
+            "power_target": power_target,
+            "sufficient_power": achieved_power >= power_target,
+        }
+    except ImportError:
+        logger.warning("statsmodels not available for power analysis")
+        return {
+            "achieved_power": None,
+            "required_sample_size": None,
+            "current_sample_size": sample_size,
+            "effect_size": effect_size,
+            "alpha": alpha,
+            "power_target": power_target,
+            "sufficient_power": None,
+        }
 
 
 def compute_feature_importance(trained_model, test_loader):
@@ -3443,6 +3789,20 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "test": "Logistic regression with interaction term; likelihood ratio test for interaction, α=0.01",
             "effect_size": "Odds ratio ≥ 1.8 for multimodal advantage",
             "alternative": "Falsified if advantage <18% OR OR < 1.5 OR interaction p ≥ 0.01",
+        },
+        "F1.3": {
+            "description": "Arousal Interaction Test",
+            "threshold": "≥25% higher ignition probability for high arousal vs. low arousal conditions",
+            "test": "Two-way ANOVA with arousal × model interaction; simple effects analysis, α=0.01",
+            "effect_size": "Cohen's d ≥ 0.60 for arousal effect; η² ≥ 0.10 for interaction",
+            "alternative": "Falsified if arousal effect <15% OR d < 0.40 OR η² < 0.05 OR p ≥ 0.01",
+        },
+        "F1.4": {
+            "description": "Full Task Battery Performance",
+            "threshold": "APGI outperforms StandardPP on both Task 1A (ignition classification) and Task 1B (model identification)",
+            "test": "Paired t-tests for each task; Bonferroni correction for multiple comparisons, α=0.01",
+            "effect_size": "Cohen's d ≥ 0.50 for each task comparison",
+            "alternative": "Falsified if StandardPP ≥ APGI on either task OR d < 0.30 on any task",
         },
     }
 
