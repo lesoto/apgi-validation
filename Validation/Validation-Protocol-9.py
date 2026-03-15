@@ -730,6 +730,320 @@ class APGINeuralSignaturesValidator:
 
         return sum(scores)
 
+    def check_P5_mutual_information(
+        self,
+        cued_stimulus_features: np.ndarray,
+        cued_neural_responses: np.ndarray,
+        uncued_stimulus_features: np.ndarray,
+        uncued_neural_responses: np.ndarray,
+    ) -> Dict[str, Any]:
+        """
+        Check P5: Mutual information between stimulus features and neural responses
+        in cued vs. uncued conditions.
+
+        Threshold: MI increase ≥ 1 bit with precision cueing
+
+        Args:
+            cued_stimulus_features: Stimulus feature vectors in cued condition (n_trials, n_features)
+            cued_neural_responses: Neural response vectors in cued condition (n_trials, n_neurons)
+            uncued_stimulus_features: Stimulus feature vectors in uncued condition
+            uncued_neural_responses: Neural response vectors in uncued condition
+
+        Returns:
+            Dictionary with MI values, comparison, and falsification result
+        """
+        try:
+            from sklearn.feature_selection import mutual_info_regression
+            from scipy.stats import permutation_test
+
+            # Compute MI for cued condition
+            mi_cued = []
+            for neuron_idx in range(cued_neural_responses.shape[1]):
+                mi = mutual_info_regression(
+                    cued_stimulus_features, cued_neural_responses[:, neuron_idx]
+                )
+                mi_cued.append(mi[0])
+
+            mi_cued = np.array(mi_cued)
+            mean_mi_cued = np.mean(mi_cued)
+
+            # Compute MI for uncued condition
+            mi_uncued = []
+            for neuron_idx in range(uncued_neural_responses.shape[1]):
+                mi = mutual_info_regression(
+                    uncued_stimulus_features, uncued_neural_responses[:, neuron_idx]
+                )
+                mi_uncued.append(mi[0])
+
+            mi_uncued = np.array(mi_uncued)
+            mean_mi_uncued = np.mean(mi_uncued)
+
+            # Compute MI increase
+            mi_increase = mean_mi_cued - mean_mi_uncued
+
+            # Test significance using permutation test
+            def _statistic(x, y, axis):
+                return np.mean(x) - np.mean(y)
+
+            def _permutation(x, y):
+                perm = np.random.permutation(len(x))
+                return x[perm], y
+
+            # Combine data for permutation test
+            combined_mi = np.concatenate([mi_cued, mi_uncued])
+            condition_labels = np.concatenate(
+                [np.ones(len(mi_cued)), np.zeros(len(mi_uncued))]
+            )
+
+            # Run permutation test
+            def _perm_stat(labels, mi):
+                return np.mean(mi[labels == 1]) - np.mean(mi[labels == 0])
+
+            perm_result = permutation_test(
+                _perm_stat,
+                (condition_labels, combined_mi),
+                n_resamples=1000,
+                alternative="greater",
+                random_state=42,
+            )
+
+            p_value = perm_result.pvalue
+
+            # Falsification criterion: MI increase < 1 bit OR not significant
+            falsified = mi_increase < 1.0 or p_value >= 0.05
+
+            return {
+                "mi_cued_mean": float(mean_mi_cued),
+                "mi_cued_std": float(np.std(mi_cued)),
+                "mi_uncued_mean": float(mean_mi_uncued),
+                "mi_uncued_std": float(np.std(mi_uncued)),
+                "mi_increase": float(mi_increase),
+                "p_value": float(p_value),
+                "threshold_met": mi_increase >= 1.0,
+                "significant": p_value < 0.05,
+                "falsified": falsified,
+                "criterion_code": "P5",
+                "description": "Mutual information increases ≥1 bit with precision cueing",
+            }
+
+        except Exception as e:
+            logger.error(f"P5 mutual information check failed: {e}")
+            return {
+                "error": str(e),
+                "falsified": True,
+                "criterion_code": "P5",
+                "description": "Mutual information increases ≥1 bit with precision cueing",
+            }
+
+    def check_P6_bandwidth_constraint(
+        self,
+        information_rates: np.ndarray,
+        training_phase: str = "post_training",
+    ) -> Dict[str, Any]:
+        """
+        Check P6: Information transmission rate asymptotes at ~40 bits/s.
+
+        Threshold: Rate should asymptote at ~40 bits/s; falsification if rate exceeds 100 bits/s after training
+
+        Args:
+            information_rates: Array of information transmission rates across modalities (bits/s)
+            training_phase: "pre_training" or "post_training"
+
+        Returns:
+            Dictionary with bandwidth analysis and falsification result
+        """
+        try:
+            from scipy.optimize import curve_fit
+
+            # Calculate statistics
+            mean_rate = np.mean(information_rates)
+            std_rate = np.std(information_rates)
+            median_rate = np.median(information_rates)
+
+            # Expected asymptotic rate from APGI theory
+            expected_asymptote = 40.0  # bits/s
+            tolerance = 20.0  # ±20 bits/s tolerance
+
+            # Check if rate is within expected range
+            within_expected_range = (
+                expected_asymptote - tolerance
+                <= mean_rate
+                <= expected_asymptote + tolerance
+            )
+
+            # Check for excessive rate (falsification condition)
+            excessive_rate = mean_rate > 100.0
+
+            # Fit asymptotic model: R(t) = R_asymptote * (1 - exp(-t/tau))
+            # Using trial index as proxy for time
+            if len(information_rates) > 5:
+                trial_indices = np.arange(len(information_rates))
+
+                def asymptotic_model(t, R_inf, tau):
+                    return R_inf * (1 - np.exp(-t / tau))
+
+                try:
+                    popt, pcov = curve_fit(
+                        asymptotic_model,
+                        trial_indices,
+                        information_rates,
+                        p0=[40.0, len(information_rates) / 3],
+                        maxfev=10000,
+                    )
+
+                    fitted_asymptote = popt[0]
+                    fitted_tau = popt[1]
+                    r_squared = 1 - np.sum(
+                        (information_rates - asymptotic_model(trial_indices, *popt))
+                        ** 2
+                    ) / np.sum((information_rates - np.mean(information_rates)) ** 2)
+
+                    # Check if fitted asymptote matches expected value
+                    asymptote_match = (
+                        expected_asymptote - tolerance
+                        <= fitted_asymptote
+                        <= expected_asymptote + tolerance
+                    )
+
+                except Exception as fit_error:
+                    logger.warning(f"Curve fitting failed: {fit_error}")
+                    fitted_asymptote = None
+                    fitted_tau = None
+                    r_squared = None
+                    asymptote_match = False
+            else:
+                fitted_asymptote = None
+                fitted_tau = None
+                r_squared = None
+                asymptote_match = False
+
+            # Falsification: excessive rate OR asymptote doesn't match expected value
+            falsified = excessive_rate or (
+                not asymptote_match and fitted_asymptote is not None
+            )
+
+            # Additional check: if post-training, rate should be stable (low variance)
+            if training_phase == "post_training":
+                stability_threshold = 15.0  # bits/s
+                rate_stable = std_rate < stability_threshold
+            else:
+                rate_stable = None
+
+            return {
+                "mean_rate_bits_per_sec": float(mean_rate),
+                "std_rate_bits_per_sec": float(std_rate),
+                "median_rate_bits_per_sec": float(median_rate),
+                "expected_asymptote": expected_asymptote,
+                "within_expected_range": within_expected_range,
+                "excessive_rate": excessive_rate,
+                "fitted_asymptote": float(fitted_asymptote)
+                if fitted_asymptote is not None
+                else None,
+                "fitted_tau": float(fitted_tau) if fitted_tau is not None else None,
+                "r_squared": float(r_squared) if r_squared is not None else None,
+                "asymptote_match": asymptote_match,
+                "rate_stable": rate_stable,
+                "training_phase": training_phase,
+                "falsified": falsified,
+                "criterion_code": "P6",
+                "description": "Information transmission rate asymptotes at ~40 bits/s",
+            }
+
+        except Exception as e:
+            logger.error(f"P6 bandwidth constraint check failed: {e}")
+            return {
+                "error": str(e),
+                "falsified": True,
+                "criterion_code": "P6",
+                "description": "Information transmission rate asymptotes at ~40 bits/s",
+            }
+
+    def check_P7_optimal_threshold(
+        self,
+        signal_distribution: np.ndarray,
+        noise_distribution: np.ndarray,
+        empirical_threshold: float,
+        n_bootstrap: int = 1000,
+    ) -> Dict[str, Any]:
+        """
+        P7: Optimal Threshold Test (Neyman-Pearson criterion)
+
+        Computes signal and noise distributions from simulated neural data,
+        derives the Neyman-Pearson optimal detection threshold, and compares
+        it to the empirical θₜ. Falsification condition: empirical threshold
+        deviates from optimal by > 2 SD across conditions.
+
+        Args:
+            signal_distribution: Neural responses during signal condition
+            noise_distribution: Neural responses during noise condition
+            empirical_threshold: Empirically measured threshold θₜ
+            n_bootstrap: Number of bootstrap samples for confidence intervals
+
+        Returns:
+            Dictionary with test results including optimal threshold and deviation
+        """
+        # Compute likelihood functions for signal and noise distributions
+        # Assuming Gaussian distributions for simplicity
+        signal_mean = np.mean(signal_distribution)
+        signal_std = np.std(signal_distribution)
+        noise_mean = np.mean(noise_distribution)
+        noise_std = np.std(noise_distribution)
+
+        # Neyman-Pearson optimal threshold: point where likelihood ratio = 1
+        # For equal-variance Gaussians: θ_opt = (μ_signal + μ_noise) / 2
+        optimal_threshold = (signal_mean + noise_mean) / 2
+
+        # Compute deviation of empirical from optimal
+        threshold_deviation = empirical_threshold - optimal_threshold
+        threshold_deviation_sd = threshold_deviation / np.sqrt(
+            signal_std**2 + noise_std**2
+        )
+
+        # Bootstrap confidence intervals for optimal threshold
+        bootstrap_thresholds = []
+        for _ in range(n_bootstrap):
+            signal_sample = np.random.choice(
+                signal_distribution, size=len(signal_distribution), replace=True
+            )
+            noise_sample = np.random.choice(
+                noise_distribution, size=len(noise_distribution), replace=True
+            )
+            signal_mean_boot = np.mean(signal_sample)
+            noise_mean_boot = np.mean(noise_sample)
+            bootstrap_threshold = (signal_mean_boot + noise_mean_boot) / 2
+            bootstrap_thresholds.append(bootstrap_threshold)
+
+        bootstrap_thresholds = np.array(bootstrap_thresholds)
+        optimal_ci_lower = np.percentile(bootstrap_thresholds, 2.5)
+        optimal_ci_upper = np.percentile(bootstrap_thresholds, 97.5)
+
+        # Falsification condition: empirical threshold deviates from optimal by > 2 SD
+        falsified = abs(threshold_deviation_sd) > 2.0
+
+        logger.info(
+            f"P7: Optimal threshold test - "
+            f"Optimal: {optimal_threshold:.4f}, "
+            f"Empirical: {empirical_threshold:.4f}, "
+            f"Deviation SD: {threshold_deviation_sd:.2f}, "
+            f"Falsified: {falsified}"
+        )
+
+        return {
+            "passed": not falsified,
+            "optimal_threshold": float(optimal_threshold),
+            "empirical_threshold": float(empirical_threshold),
+            "threshold_deviation": float(threshold_deviation),
+            "threshold_deviation_sd": float(threshold_deviation_sd),
+            "optimal_ci_lower": float(optimal_ci_lower),
+            "optimal_ci_upper": float(optimal_ci_upper),
+            "signal_mean": float(signal_mean),
+            "signal_std": float(signal_std),
+            "noise_mean": float(noise_mean),
+            "noise_std": float(noise_std),
+            "description": "Neyman-Pearson optimal threshold test",
+            "alternative": "Falsified if empirical threshold deviates >2 SD from optimal",
+        }
+
 
 def main():
     """Run neural signatures validation"""

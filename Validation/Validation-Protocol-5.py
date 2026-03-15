@@ -176,21 +176,20 @@ class AnalyticalAPGISolutions:
         """
         Compute effective interoceptive precision (analytical):
 
-        Π^i_eff = Π^i_baseline · [1 + β_som·σ(M - M_0)]
+        Π^i_eff = Π^i_baseline · exp(β·M)
 
-        where σ(x) = 1/(1 + e^(-x))
+        where M is the somatic marker value and β is the modulation strength
 
         Args:
             Pi_i_baseline: Baseline interoceptive precision
             M: Current somatic marker
-            M_0: Reference somatic marker
+            M_0: Reference somatic marker (unused in exponential formulation)
             beta: Somatic modulation strength
 
         Returns:
             Effective interoceptive precision
         """
-        sigmoid = 1.0 / (1.0 + np.exp(-(M - M_0)))
-        return Pi_i_baseline * (1.0 + beta * sigmoid)
+        return Pi_i_baseline * np.exp(beta * M)
 
     @staticmethod
     def ignition_probability_analytical(
@@ -320,7 +319,7 @@ class AnalyticalValidationTestCases:
                     "beta": 1.5,
                 },
                 "expected": {
-                    "Pi_i_eff": 1.0 * (1.0 + 1.5 * (1.0 / (1.0 + np.exp(-0.5)))),
+                    "Pi_i_eff": 1.0 * np.exp(1.5 * 0.5),
                 },
                 "tolerance": 1e-6,
             },

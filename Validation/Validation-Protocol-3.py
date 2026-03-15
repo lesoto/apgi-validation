@@ -2258,6 +2258,193 @@ def run_validation():
         return {"passed": False, "status": "failed", "error": str(e)}
 
 
+def compute_autocorrelation_with_surrogates(
+    behavior_timeseries: np.ndarray,
+    n_surrogates: int = 1000,
+    percentile_threshold: float = 95.0,
+) -> Dict[str, Any]:
+    """
+    Compute autocorrelation peaks with statistical significance via surrogate data analysis.
+
+    Generates phase-randomized surrogates of the behavior time series,
+    computes autocorrelation peaks on surrogates, and tests whether empirical
+    peaks exceed the specified percentile of the surrogate distribution.
+
+    Args:
+        behavior_timeseries: 1D array of behavior measurements over time
+        n_surrogates: Number of phase-randomized surrogates to generate (default: 1000)
+        percentile_threshold: Percentile threshold for significance (default: 95)
+
+    Returns:
+        Dictionary with autocorrelation analysis and significance testing results
+    """
+    try:
+        from scipy.fft import fft, ifft
+
+        # Compute empirical autocorrelation
+        n = len(behavior_timeseries)
+        empirical_autocorr = np.correlate(
+            behavior_timeseries - np.mean(behavior_timeseries),
+            behavior_timeseries - np.mean(behavior_timeseries),
+            mode="full",
+        )
+        empirical_autocorr = empirical_autocorr[n - 1 :] / empirical_autocorr[n - 1]
+
+        # Find peaks in empirical autocorrelation
+        from scipy.signal import find_peaks
+
+        peaks, peak_properties = find_peaks(
+            empirical_autocorr,
+            height=0.1,  # Minimum peak height
+            distance=10,  # Minimum distance between peaks
+        )
+
+        peak_lags = peaks
+        peak_values = empirical_autocorr[peaks]
+
+        # Generate phase-randomized surrogates
+        surrogate_peaks = []
+
+        for i in range(n_surrogates):
+            # Phase randomization: randomize phases while preserving power spectrum
+            fft_signal = fft(behavior_timeseries)
+            random_phases = np.exp(1j * np.random.uniform(0, 2 * np.pi, n))
+            fft_surrogate = fft_signal * random_phases
+            surrogate = np.real(ifft(fft_surrogate))
+
+            # Compute autocorrelation for surrogate
+            surrogate_autocorr = np.correlate(
+                surrogate - np.mean(surrogate),
+                surrogate - np.mean(surrogate),
+                mode="full",
+            )
+            surrogate_autocorr = surrogate_autocorr[n - 1 :] / surrogate_autocorr[n - 1]
+
+            # Find peaks in surrogate autocorrelation
+            surrogate_peaks_temp, _ = find_peaks(
+                surrogate_autocorr,
+                height=0.1,
+                distance=10,
+            )
+
+            # Store peak values
+            if len(surrogate_peaks_temp) > 0:
+                surrogate_peaks.extend(surrogate_autocorr[surrogate_peaks_temp])
+
+        # Convert to numpy array
+        surrogate_peaks = np.array(surrogate_peaks)
+
+        # Compute significance threshold from surrogate distribution
+        if len(surrogate_peaks) > 0:
+            significance_threshold = np.percentile(
+                surrogate_peaks, percentile_threshold
+            )
+        else:
+            significance_threshold = 0.0
+
+        # Test which empirical peaks are significant
+        significant_peaks = []
+        significant_lags = []
+
+        for lag, value in zip(peak_lags, peak_values):
+            if value > significance_threshold:
+                significant_peaks.append(value)
+                significant_lags.append(lag)
+
+        # Convert lags to timescales (assuming sampling rate)
+        sampling_rate = 1.0  # Hz (adjust if needed)
+        timescales = np.array(significant_lags) / sampling_rate
+
+        # Count hierarchical levels based on timescale separation
+        # Expected timescales: τ₁ < 0.5s, τ₂ = 1-3s, τ₃ = 5-20s
+        hierarchical_levels = 0
+        level_timescales = []
+
+        if len(timescales) >= 3:
+            # Sort timescales
+            sorted_timescales = np.sort(timescales)
+
+            # Check for characteristic timescale separation
+            level_1 = sorted_timescales[sorted_timescales < 0.5]
+            level_2 = sorted_timescales[
+                (sorted_timescales >= 1.0) & (sorted_timescales <= 3.0)
+            ]
+            level_3 = sorted_timescales[
+                (sorted_timescales >= 5.0) & (sorted_timescales <= 20.0)
+            ]
+
+            hierarchical_levels = sum(
+                [
+                    len(level_1) > 0,
+                    len(level_2) > 0,
+                    len(level_3) > 0,
+                ]
+            )
+
+            level_timescales = {
+                "level_1": level_1.tolist() if len(level_1) > 0 else [],
+                "level_2": level_2.tolist() if len(level_2) > 0 else [],
+                "level_3": level_3.tolist() if len(level_3) > 0 else [],
+            }
+
+        # Compute peak separation ratio
+        if len(timescales) >= 2:
+            sorted_timescales = np.sort(timescales)
+            peak_separation = sorted_timescales[1] / sorted_timescales[0]
+        else:
+            peak_separation = 0.0
+
+        # Compute eta-squared for ANOVA (simplified)
+        # In full implementation, this would use actual ANOVA on timescale groups
+        if len(timescales) >= 3 and hierarchical_levels >= 3:
+            # Simplified eta-squared calculation
+            total_variance = np.var(timescales)
+            if total_variance > 0:
+                # Between-group variance (simplified)
+                group_means = [
+                    np.mean(level_1) if len(level_1) > 0 else 0,
+                    np.mean(level_2) if len(level_2) > 0 else 0,
+                    np.mean(level_3) if len(level_3) > 0 else 0,
+                ]
+                between_variance = np.var(group_means)
+                eta_squared = between_variance / total_variance
+            else:
+                eta_squared = 0.0
+        else:
+            eta_squared = 0.0
+
+        return {
+            "empirical_autocorr": empirical_autocorr.tolist(),
+            "peak_lags": peak_lags.tolist(),
+            "peak_values": peak_values.tolist(),
+            "significant_peaks": significant_peaks,
+            "significant_lags": significant_lags,
+            "significant_timescales": timescales.tolist(),
+            "significance_threshold": float(significance_threshold),
+            "hierarchical_levels_detected": hierarchical_levels,
+            "level_timescales": level_timescales,
+            "peak_separation_ratio": float(peak_separation),
+            "eta_squared_timescales": float(eta_squared),
+            "n_surrogates": n_surrogates,
+            "percentile_threshold": percentile_threshold,
+            "surrogate_distribution_mean": float(np.mean(surrogate_peaks))
+            if len(surrogate_peaks) > 0
+            else 0.0,
+            "surrogate_distribution_std": float(np.std(surrogate_peaks))
+            if len(surrogate_peaks) > 0
+            else 0.0,
+        }
+
+    except Exception as e:
+        logger.error(f"Autocorrelation with surrogate analysis failed: {e}")
+        return {
+            "error": str(e),
+            "hierarchical_levels_detected": 0,
+            "peak_separation_ratio": 0.0,
+            "eta_squared_timescales": 0.0,
+        }
+
+
 # =============================================================================
 # FALSIFICATION CRITERIA IMPLEMENTATION
 # =============================================================================

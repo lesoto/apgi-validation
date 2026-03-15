@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional
 import logging
 
 import numpy as np
+import pandas as pd
 from scipy import stats
 
 logger = logging.getLogger(__name__)
@@ -573,6 +574,252 @@ class CausalManipulationsValidator:
         )
 
         return sum(scores)
+
+
+class SubliminalPrimingMeasure:
+    """
+    Track implicit priming strength separately from conscious detection.
+
+    This class implements the dissociation test required by P3:
+    TMS disrupts conscious report without equally disrupting subliminal behavioral effects.
+    """
+
+    def __init__(self, priming_threshold: float = 0.3):
+        """
+        Args:
+            priming_threshold: Threshold for classifying trials as subliminal (default: 0.3)
+        """
+        self.priming_threshold = priming_threshold
+        self.priming_history = []
+        self.conscious_detection_history = []
+
+    def measure_priming_strength(
+        self,
+        stimulus_features: np.ndarray,
+        response_features: np.ndarray,
+        is_subliminal: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Measure implicit priming strength from stimulus-response alignment.
+
+        Args:
+            stimulus_features: Feature vector of presented stimulus
+            response_features: Feature vector of behavioral response
+            is_subliminal: Whether the trial was subliminal (below awareness threshold)
+
+        Returns:
+            Dictionary with priming metrics
+        """
+        # Compute priming strength as feature similarity
+        priming_strength = self._compute_feature_similarity(
+            stimulus_features, response_features
+        )
+
+        # Store measurement
+        measurement = {
+            "priming_strength": priming_strength,
+            "is_subliminal": is_subliminal,
+            "timestamp": len(self.priming_history),
+        }
+        self.priming_history.append(measurement)
+
+        return measurement
+
+    def measure_conscious_detection(
+        self,
+        stimulus_intensity: float,
+        response_accuracy: float,
+        response_time: float,
+    ) -> Dict[str, Any]:
+        """
+        Measure conscious detection performance.
+
+        Args:
+            stimulus_intensity: Intensity of stimulus (0-1)
+            response_accuracy: Accuracy of response (0-1)
+            response_time: Reaction time in seconds
+
+        Returns:
+            Dictionary with detection metrics
+        """
+        # Compute detection confidence
+        detection_confidence = self._compute_detection_confidence(
+            stimulus_intensity, response_accuracy, response_time
+        )
+
+        # Store measurement
+        measurement = {
+            "detection_confidence": detection_confidence,
+            "stimulus_intensity": stimulus_intensity,
+            "response_accuracy": response_accuracy,
+            "response_time": response_time,
+            "timestamp": len(self.conscious_detection_history),
+        }
+        self.conscious_detection_history.append(measurement)
+
+        return measurement
+
+    def test_dissociation(
+        self,
+        tms_condition: str = "sham",
+        min_trials: int = 30,
+    ) -> Dict[str, Any]:
+        """
+        Test dissociation between conscious report and subliminal priming under TMS.
+
+        Tests the P3 falsification condition: TMS disrupts conscious report without
+        equally disrupting subliminal behavioral effects.
+
+        Args:
+            tms_condition: 'active' or 'sham' TMS condition
+            min_trials: Minimum number of trials required for analysis
+
+        Returns:
+            Dictionary with dissociation test results
+        """
+        if (
+            len(self.priming_history) < min_trials
+            or len(self.conscious_detection_history) < min_trials
+        ):
+            return {
+                "error": f"Insufficient trials: need {min_trials}, "
+                f"have {len(self.priming_history)} priming, "
+                f"{len(self.conscious_detection_history)} detection",
+                "falsified": True,
+                "criterion_code": "P3",
+            }
+
+        try:
+            from statsmodels.formula.api import ols
+
+            # Prepare data for analysis
+            data = []
+
+            # Align priming and detection data by timestamp
+            max_len = min(
+                len(self.priming_history), len(self.conscious_detection_history)
+            )
+
+            for i in range(max_len):
+                priming = self.priming_history[i]
+                detection = self.conscious_detection_history[i]
+
+                data.append(
+                    {
+                        "conscious_report": detection["detection_confidence"],
+                        "priming_strength": priming["priming_strength"],
+                        "is_subliminal": int(priming["is_subliminal"]),
+                        "tms_condition": 1 if tms_condition == "active" else 0,
+                    }
+                )
+
+            df = pd.DataFrame(data)
+
+            # Test 1: Conscious report × TMS condition interaction
+            # Model: conscious_report ~ tms_condition + priming_strength + tms_condition:priming_strength
+            model_conscious = ols(
+                "conscious_report ~ tms_condition * priming_strength", data=df
+            ).fit()
+
+            # Extract interaction coefficient
+            interaction_coef = model_conscious.params.get(
+                "tms_condition:priming_strength", 0
+            )
+            interaction_p = model_conscious.pvalues.get(
+                "tms_condition:priming_strength", 1.0
+            )
+
+            # Test 2: Subliminal priming should be relatively preserved under TMS
+            # Compare priming strength in subliminal trials across TMS conditions
+            subliminal_data = df[df["is_subliminal"] == 1]
+
+            if len(subliminal_data) < 10:
+                # Not enough subliminal trials
+                priming_preserved = False
+            else:
+                # For this analysis, we'd ideally have data from both TMS conditions
+                # Since we only have one condition per call, we check if priming is above baseline
+                baseline_priming = 0.3  # Expected baseline priming strength
+                priming_preserved = (
+                    subliminal_data["priming_strength"].mean() > baseline_priming
+                )
+
+            # Test 3: Conscious report should be significantly disrupted under active TMS
+            # Compare conscious report in suprathreshold trials
+            suprathreshold_data = df[df["is_subliminal"] == 0]
+
+            if len(suprathreshold_data) < 10:
+                conscious_disrupted = False
+            else:
+                # Active TMS should reduce conscious report
+                # (This would ideally be compared against sham condition)
+                baseline_conscious = 0.7  # Expected baseline conscious detection
+                conscious_disrupted = (
+                    suprathreshold_data["conscious_report"].mean() < baseline_conscious
+                )
+
+            # Falsification criterion: TMS disrupts both conscious and subliminal equally
+            # (i.e., no dissociation)
+            dissociation_present = conscious_disrupted and priming_preserved
+
+            falsified = not dissociation_present
+
+            return {
+                "interaction_coefficient": float(interaction_coef),
+                "interaction_p_value": float(interaction_p),
+                "conscious_disrupted": conscious_disrupted,
+                "priming_preserved": priming_preserved,
+                "dissociation_present": dissociation_present,
+                "falsified": falsified,
+                "model_summary": str(model_conscious.summary()),
+                "n_trials": len(df),
+                "n_subliminal": len(subliminal_data),
+                "n_suprathreshold": len(suprathreshold_data),
+                "tms_condition": tms_condition,
+                "criterion_code": "P3",
+                "description": "TMS disrupts conscious report without equally disrupting subliminal priming",
+            }
+
+        except Exception as e:
+            logger.error(f"P3 dissociation test failed: {e}")
+            return {
+                "error": str(e),
+                "falsified": True,
+                "criterion_code": "P3",
+                "description": "TMS disrupts conscious report without equally disrupting subliminal priming",
+            }
+
+    def _compute_feature_similarity(
+        self, features_a: np.ndarray, features_b: np.ndarray
+    ) -> float:
+        """Compute feature similarity as cosine similarity"""
+        norm_a = np.linalg.norm(features_a)
+        norm_b = np.linalg.norm(features_b)
+
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+
+        cosine_sim = np.dot(features_a, features_b) / (norm_a * norm_b)
+        return float(cosine_sim)
+
+    def _compute_detection_confidence(
+        self, stimulus_intensity: float, response_accuracy: float, response_time: float
+    ) -> float:
+        """
+        Compute detection confidence from multiple factors.
+
+        Higher confidence when:
+        - High stimulus intensity
+        - High response accuracy
+        - Fast response time (within reasonable range)
+        """
+        # Normalize response time (faster is better, but not too fast)
+        rt_score = 1.0 - min(abs(response_time - 0.6) / 0.4, 1.0)
+
+        # Combine factors
+        confidence = 0.4 * stimulus_intensity + 0.4 * response_accuracy + 0.2 * rt_score
+
+        return float(np.clip(confidence, 0.0, 1.0))
 
 
 def main():

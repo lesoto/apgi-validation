@@ -26,6 +26,82 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def bootstrap_ci(
+    data: np.ndarray, n_bootstrap: int = 1000, ci: float = 0.95
+) -> Tuple[float, float, float]:
+    """
+    Compute bootstrap confidence interval for mean.
+
+    Args:
+        data: Sample data
+        n_bootstrap: Number of bootstrap samples
+        ci: Confidence interval level (e.g., 0.95 for 95% CI)
+
+    Returns:
+        Tuple of (mean, lower_bound, upper_bound)
+    """
+    if len(data) == 0:
+        return 0.0, 0.0, 0.0
+
+    bootstrap_means = []
+    for _ in range(n_bootstrap):
+        sample = np.random.choice(data, size=len(data), replace=True)
+        bootstrap_means.append(np.mean(sample))
+
+    bootstrap_means = np.array(bootstrap_means)
+    mean = np.mean(data)
+    lower = np.percentile(bootstrap_means, (1 - ci) / 2 * 100)
+    upper = np.percentile(bootstrap_means, (1 + ci) / 2 * 100)
+
+    return mean, lower, upper
+
+
+def bootstrap_one_sample_test(
+    data: np.ndarray,
+    null_value: float = 0.0,
+    n_bootstrap: int = 1000,
+    alpha: float = 0.05,
+) -> Tuple[float, float]:
+    """
+    Perform one-sample test using bootstrap.
+
+    Args:
+        data: Sample data
+        null_value: Null hypothesis value
+        n_bootstrap: Number of bootstrap samples
+        alpha: Significance level
+
+    Returns:
+        Tuple of (test_statistic, p_value)
+    """
+    if len(data) < 2:
+        return 0.0, 1.0
+
+    observed_mean = np.mean(data)
+    bootstrap_means = []
+
+    for _ in range(n_bootstrap):
+        sample = np.random.choice(data, size=len(data), replace=True)
+        bootstrap_means.append(np.mean(sample))
+
+    bootstrap_means = np.array(bootstrap_means)
+
+    # Two-sided p-value: proportion of bootstrap means as extreme as observed
+    if observed_mean >= null_value:
+        p_value = np.mean(bootstrap_means >= 2 * null_value - observed_mean)
+    else:
+        p_value = np.mean(bootstrap_means <= 2 * null_value - observed_mean)
+
+    # Test statistic is standardized difference
+    test_stat = (
+        (observed_mean - null_value) / (np.std(data) / np.sqrt(len(data)))
+        if np.std(data) > 0
+        else 0.0
+    )
+
+    return test_stat, min(2 * p_value, 1.0)
+
+
 class APGIInspiredNetwork(nn.Module):
     """
     Neural network with APGI architectural constraints
@@ -833,16 +909,23 @@ def check_falsification(
     threshold_array = np.asarray(threshold_adaptation, dtype=float)
     threshold_reduction = float(np.mean(threshold_array))
 
-    if len(threshold_array) >= 2:
+    if len(threshold_array) >= 30:
+        # Use standard t-test with sufficient sample size
         t_stat, p_adapt = stats.ttest_1samp(threshold_array, 0)
         adapt_std = float(np.std(threshold_array, ddof=1))
         if not np.isfinite(t_stat):
             t_stat = 0.0
-        if not np.isfinite(p_adapt):
-            p_adapt = 1.0
+    elif len(threshold_array) >= 2:
+        # Use bootstrap test for small samples
+        t_stat, p_adapt = bootstrap_one_sample_test(threshold_array, null_value=0.0)
+        adapt_std = float(np.std(threshold_array, ddof=1))
     else:
+        # Insufficient data - fail criterion
         t_stat, p_adapt = 0.0, 1.0
         adapt_std = 1.0  # fallback to avoid division by zero
+
+    if not np.isfinite(p_adapt):
+        p_adapt = 1.0
 
     cohens_d_adapt = threshold_reduction / max(1e-10, adapt_std)
 
@@ -1039,23 +1122,22 @@ def check_falsification(
 
     # F2.3: RT Advantage Modulation
     logger.info("Testing F2.3: RT Advantage Modulation")
-    # Collect a distribution across trials so ttest_1samp is non-degenerate.
-    # rt_advantage_ms must contain ≥2 observations (per-trial RT advantages).
+    # Use bootstrap test for proper statistical inference
     rt_array = np.atleast_1d(np.asarray(rt_advantage_ms, dtype=float))
-    if len(rt_array) < 2:
-        logger.warning(
-            "F2.3: rt_advantage_ms has < 2 observations; t-test will be degenerate. "
-            "Ensure per-trial RT advantage values are passed, not a single scalar."
-        )
-
-    if len(rt_array) >= 2:
+    if len(rt_array) >= 30:
+        # Use standard t-test with sufficient sample size
         t_stat_rt, p_rt = stats.ttest_1samp(rt_array, 0)
         rt_mean = float(np.mean(rt_array))
         if not np.isfinite(t_stat_rt):
             t_stat_rt = 0.0
         if not np.isfinite(p_rt):
             p_rt = 1.0
+    elif len(rt_array) >= 2:
+        # Use bootstrap test for small samples
+        t_stat_rt, p_rt = bootstrap_one_sample_test(rt_array, null_value=0.0)
+        rt_mean = float(np.mean(rt_array))
     else:
+        # Insufficient data - fail criterion
         t_stat_rt, p_rt = 0.0, 1.0
         rt_mean = float(rt_array[0]) if len(rt_array) > 0 else 0.0
 
@@ -1128,19 +1210,18 @@ def check_falsification(
 
     # F2.5: Beta Interaction Effects
     logger.info("Testing F2.5: Beta Interaction Effects")
-    # Beta interaction test - use one-sample t-test on absolute value
-    # This tests whether beta_interaction is significantly different from zero
+    # Use bootstrap test for proper statistical inference
     beta_array = np.atleast_1d(np.asarray(beta_interaction, dtype=float))
-    if len(beta_array) >= 2:
+    if len(beta_array) >= 30:
+        # Use standard t-test with sufficient sample size
         t_stat_beta, p_beta = stats.ttest_1samp(beta_array, 0)
+    elif len(beta_array) >= 2:
+        # Use bootstrap test for small samples
+        t_stat_beta, p_beta = bootstrap_one_sample_test(beta_array, null_value=0.0)
     else:
-        # For single value, compute significance based on magnitude
-        t_stat_beta = abs(beta_interaction) / max(
-            1e-10, np.std(beta_array) if len(beta_array) > 1 else 1.0
-        )
-        p_beta = 2.0 * (
-            1.0 - stats.t.cdf(abs(t_stat_beta), df=max(1, len(beta_array) - 1))
-        )
+        # Insufficient data - fail criterion
+        t_stat_beta = 0.0
+        p_beta = 1.0
 
     # Effect size (eta-squared) - simplified for single value
     ss_total = np.sum(
@@ -1432,12 +1513,12 @@ def check_falsification(
 
     # F5.6: Control Performance Difference
     logger.info("Testing F5.6: Control Performance Difference")
-    # t-test for performance difference
-    # Assume control_performance_difference is the mean difference
+    # Use bootstrap test for proper statistical inference
     if (
         isinstance(control_performance_difference, (list, np.ndarray))
-        and len(control_performance_difference) >= 2
+        and len(control_performance_difference) >= 30
     ):
+        # Use standard t-test with sufficient sample size
         t_stat, p_value = stats.ttest_1samp(control_performance_difference, 0)
         cohens_d = (
             float(np.mean(control_performance_difference))
@@ -1446,13 +1527,28 @@ def check_falsification(
             else 0
         )
         mean_diff = float(np.mean(control_performance_difference))
+    elif (
+        isinstance(control_performance_difference, (list, np.ndarray))
+        and len(control_performance_difference) >= 2
+    ):
+        # Use bootstrap test for small samples
+        data_array = np.array(control_performance_difference)
+        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=0.0)
+        cohens_d = (
+            float(np.mean(data_array)) / np.std(data_array, ddof=1)
+            if np.std(data_array, ddof=1) > 0
+            else 0
+        )
+        mean_diff = float(np.mean(data_array))
     else:
+        # Insufficient data - fail criterion
         mean_diff = float(
             control_performance_difference[0]
             if isinstance(control_performance_difference, (list, np.ndarray))
+            and len(control_performance_difference) > 0
             else control_performance_difference
         )
-        t_stat, p_value = 0.0, 0.0001 if mean_diff >= 0.20 else 1.0
+        t_stat, p_value = 0.0, 1.0
         cohens_d = mean_diff / 0.1  # Mock cohens_d since we only have mean
 
     f5_6_pass = mean_diff >= 0.20 and cohens_d >= 0.50 and p_value < 0.01
