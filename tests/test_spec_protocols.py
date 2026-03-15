@@ -27,6 +27,7 @@ if str(project_root) not in sys.path:
 # Helpers
 # ===========================================================================
 
+
 def cohen_d(a, b):
     """Compute Cohen's d between two 1-D arrays."""
     pooled_std = np.sqrt((np.var(a, ddof=1) + np.var(b, ddof=1)) / 2)
@@ -36,7 +37,7 @@ def cohen_d(a, b):
 def r_squared(x, y):
     """Return R² for a simple linear regression of y on x."""
     slope, intercept, r, p, se = stats.linregress(x, y)
-    return r ** 2
+    return r**2
 
 
 def compute_icc(measurements_1, measurements_2):
@@ -44,16 +45,24 @@ def compute_icc(measurements_1, measurements_2):
     n = len(measurements_1)
     grand_mean = np.mean(np.concatenate([measurements_1, measurements_2]))
     ss_between = n * np.sum(
-        [(np.mean([m1, m2]) - grand_mean) ** 2
-         for m1, m2 in zip(measurements_1, measurements_2)]
+        [
+            (np.mean([m1, m2]) - grand_mean) ** 2
+            for m1, m2 in zip(measurements_1, measurements_2)
+        ]
     )
     ss_error = np.sum(
-        [(m1 - np.mean([m1, m2])) ** 2 + (m2 - np.mean([m1, m2])) ** 2
-         for m1, m2 in zip(measurements_1, measurements_2)]
+        [
+            (m1 - np.mean([m1, m2])) ** 2 + (m2 - np.mean([m1, m2])) ** 2
+            for m1, m2 in zip(measurements_1, measurements_2)
+        ]
     )
     ms_between = ss_between / (n - 1)
     ms_error = ss_error / n
-    icc = (ms_between - ms_error) / (ms_between + ms_error) if (ms_between + ms_error) > 0 else 0.0
+    icc = (
+        (ms_between - ms_error) / (ms_between + ms_error)
+        if (ms_between + ms_error) > 0
+        else 0.0
+    )
     return icc
 
 
@@ -61,6 +70,7 @@ def compute_icc(measurements_1, measurements_2):
 # PREDICTION 1 — Interoceptive Precision Modulates Detection Threshold
 # Falsification criterion: r² < 0.02 in two well-powered samples (N ≥ 80)
 # ===========================================================================
+
 
 class TestPrediction1FalsificationCriteria:
     """Falsification criterion for Prediction 1."""
@@ -85,9 +95,7 @@ class TestPrediction1FalsificationCriteria:
         """Positive effect should yield r² ≥ 0.02 (theory NOT falsified)."""
         ia, thresholds = self._generate_detection_data(n=80, ia_effect_size=0.45)
         r2 = r_squared(ia, thresholds)
-        assert r2 >= 0.02, (
-            f"Expected r² ≥ 0.02 with d≈0.45 effect, got {r2:.4f}"
-        )
+        assert r2 >= 0.02, f"Expected r² ≥ 0.02 with d≈0.45 effect, got {r2:.4f}"
 
     def test_r_squared_below_threshold_when_no_effect(self):
         """Zero effect should yield r² < 0.02 (theory IS falsified)."""
@@ -95,9 +103,7 @@ class TestPrediction1FalsificationCriteria:
         ia = np.random.normal(0, 1, 80)
         thresholds = np.random.normal(0, 1, 80)
         r2 = r_squared(ia, thresholds)
-        assert r2 < 0.15, (
-            f"With zero effect, r² should be near 0, got {r2:.4f}"
-        )
+        assert r2 < 0.15, f"With zero effect, r² should be near 0, got {r2:.4f}"
 
     def test_sample_size_requirement(self):
         """Power analysis specifies N ≥ 80 per group."""
@@ -115,6 +121,7 @@ class TestPrediction1FalsificationCriteria:
 # PREDICTION 2 — Thalamic/Insular Implementation (Metabolic State)
 # Falsification: interaction F < 1.5, p > 0.15
 # ===========================================================================
+
 
 class TestPrediction2FalsificationCriteria:
     """Falsification criterion for Prediction 2."""
@@ -141,9 +148,9 @@ class TestPrediction2FalsificationCriteria:
         diff_fasted = np.mean(fasted_neutral) - np.mean(fasted_food)
         diff_fed = np.mean(fed_neutral) - np.mean(fed_food)
         interaction_magnitude = abs(diff_fasted - diff_fed)
-        assert interaction_magnitude > 0.05, (
-            f"Expected measurable interaction, got {interaction_magnitude:.4f}"
-        )
+        assert (
+            interaction_magnitude > 0.05
+        ), f"Expected measurable interaction, got {interaction_magnitude:.4f}"
 
     def test_no_effect_condition_matches_falsification_criterion(self):
         """Null (no metabolic modulation) should produce F < 1.5."""
@@ -160,9 +167,9 @@ class TestPrediction2FalsificationCriteria:
         # Approximate interaction F (one-way approximation)
         interaction_d = abs(diff_fasted - diff_fed) / 0.15
         # Under null, interaction d should be small
-        assert interaction_d < 0.5, (
-            f"Under null, interaction effect should be small, got d={interaction_d:.4f}"
-        )
+        assert (
+            interaction_d < 0.5
+        ), f"Under null, interaction effect should be small, got d={interaction_d:.4f}"
 
     def test_predicted_effect_sizes(self):
         """Main effect d = 0.45–0.65; interaction d = 0.40–0.70."""
@@ -176,6 +183,7 @@ class TestPrediction2FalsificationCriteria:
 # PREDICTION 3 — HEP Amplitude Predicts Trial-by-Trial Conscious Access
 # Falsification: AUC < 0.52
 # ===========================================================================
+
 
 class TestPrediction3FalsificationCriteria:
     """Falsification criterion for Prediction 3."""
@@ -193,7 +201,9 @@ class TestPrediction3FalsificationCriteria:
         n = 200
         # HEP higher for aware trials
         aware = (np.random.random(n) < 0.5).astype(int)
-        hep = np.random.normal(1.5, 1.0, n) * aware + np.random.normal(0.0, 1.0, n) * (1 - aware)
+        hep = np.random.normal(1.5, 1.0, n) * aware + np.random.normal(0.0, 1.0, n) * (
+            1 - aware
+        )
         auc = roc_auc_score(aware, hep)
         assert auc >= 0.52, f"HEP-awareness AUC should exceed 0.52, got {auc:.3f}"
 
@@ -207,9 +217,9 @@ class TestPrediction3FalsificationCriteria:
         hep_noise = np.random.normal(0, 1, n)
         auc = roc_auc_score(aware, hep_noise)
         # Under null, AUC should be near 0.5
-        assert abs(auc - 0.5) < 0.1, (
-            f"Null HEP should yield AUC near 0.5, got {auc:.3f}"
-        )
+        assert (
+            abs(auc - 0.5) < 0.1
+        ), f"Null HEP should yield AUC near 0.5, got {auc:.3f}"
 
     def test_predicted_or_range(self):
         """Predicted OR = 1.5–2.5 (odds ratio for aware vs. unaware)."""
@@ -223,6 +233,7 @@ class TestPrediction3FalsificationCriteria:
 # Falsification: d < 0.20
 # ===========================================================================
 
+
 class TestPrediction4FalsificationCriteria:
     """Falsification criterion for Prediction 4."""
 
@@ -235,7 +246,7 @@ class TestPrediction4FalsificationCriteria:
         """High-β condition should differ from low-β on phenomenal quality."""
         np.random.seed(42)
         n = 60
-        high_beta = np.random.normal(5.2, 1.5, n)   # bodily/emotional ratings
+        high_beta = np.random.normal(5.2, 1.5, n)  # bodily/emotional ratings
         low_beta = np.random.normal(4.2, 1.5, n)
         d = cohen_d(high_beta, low_beta)
         assert d >= 0.45, f"Expected d ≥ 0.45 for body-focus effect, got {d:.3f}"
@@ -260,6 +271,7 @@ class TestPrediction4FalsificationCriteria:
 # PREDICTION 5 — Threshold Dynamics Show Specific Time Constants
 # Falsification: τ_θ < 3s (fast recovery) OR τ_θ > 60s (no decay within 60s)
 # ===========================================================================
+
 
 class TestPrediction5FalsificationCriteria:
     """Falsification criterion for Prediction 5."""
@@ -308,10 +320,11 @@ class TestPrediction5FalsificationCriteria:
         """APGIParameters default tau_theta should be within [5, 60]s."""
         try:
             from APGI_Equations import APGIParameters
+
             p = APGIParameters()
-            assert 5.0 <= p.tau_theta <= 60.0, (
-                f"Default tau_theta={p.tau_theta} outside [5, 60]s"
-            )
+            assert (
+                5.0 <= p.tau_theta <= 60.0
+            ), f"Default tau_theta={p.tau_theta} outside [5, 60]s"
         except ImportError:
             pytest.skip("APGIParameters not importable")
 
@@ -320,6 +333,7 @@ class TestPrediction5FalsificationCriteria:
 # PREDICTION 6 — Pharmacological Modulation
 # Falsification criteria for Propofol, Ketamine, Psilocybin
 # ===========================================================================
+
 
 class TestPrediction6FalsificationCriteria:
     """Falsification criteria for Prediction 6 (pharmacological modulation)."""
@@ -343,11 +357,13 @@ class TestPrediction6FalsificationCriteria:
 
     def test_propofol_ratio_above_falsification(self):
         """Simulated propofol data: ratio should exceed 1.5:1."""
-        p3b_placebo, p3b_propofol = 8.0, 3.6   # µV
-        mmn_placebo, mmn_propofol = 3.0, 2.7    # µV
+        p3b_placebo, p3b_propofol = 8.0, 3.6  # µV
+        mmn_placebo, mmn_propofol = 3.0, 2.7  # µV
         p3b_suppression = 1 - p3b_propofol / p3b_placebo
         mmn_suppression = 1 - mmn_propofol / mmn_placebo
-        ratio = p3b_suppression / mmn_suppression if mmn_suppression > 0 else float("inf")
+        ratio = (
+            p3b_suppression / mmn_suppression if mmn_suppression > 0 else float("inf")
+        )
         assert ratio >= 1.5, f"Propofol P3b:MMN ratio should be ≥1.5, got {ratio:.2f}"
 
     def test_propofol_ratio_below_falsification_triggers_falsification(self):
@@ -420,6 +436,7 @@ class TestPrediction6FalsificationCriteria:
 # Sub-predictions: P1a, P1b, P1c
 # ===========================================================================
 
+
 class TestProtocol1Subpredictions:
     """EEG protocol sub-predictions P1a, P1b, P1c."""
 
@@ -480,9 +497,9 @@ class TestProtocol1Subpredictions:
         # Low-IA: weak benefit
         low_ia_delta = np.random.normal(1.0, 1.5, n_low)
         t, p = stats.ttest_ind(high_ia_delta, low_ia_delta)
-        assert np.mean(high_ia_delta) > np.mean(low_ia_delta), (
-            "P1c: high-IA should show larger effect than low-IA"
-        )
+        assert np.mean(high_ia_delta) > np.mean(
+            low_ia_delta
+        ), "P1c: high-IA should show larger effect than low-IA"
 
     def test_P1_power_analysis(self):
         """Protocol 1 requires n = 32–40 per condition (α=0.05, power=0.80)."""
@@ -495,24 +512,25 @@ class TestProtocol1Subpredictions:
 # Sub-predictions: P2a, P2b, P2c
 # ===========================================================================
 
+
 class TestProtocol2Subpredictions:
     """TMS protocol sub-predictions P2a, P2b, P2c."""
 
     def test_P2a_dlpfc_ppc_reduces_pci(self):
         """P2a: TMS to dlPFC/PPC reduces PCI 15–25%; vertex has no effect."""
         pci_baseline = 0.60
-        pci_dlpfc = 0.60 * (1 - 0.20)   # 20% reduction (within 15–25%)
-        pci_vertex = 0.60 * (1 - 0.02)   # Minimal vertex effect
+        pci_dlpfc = 0.60 * (1 - 0.20)  # 20% reduction (within 15–25%)
+        pci_vertex = 0.60 * (1 - 0.02)  # Minimal vertex effect
 
         reduction_dlpfc = (pci_baseline - pci_dlpfc) / pci_baseline
         reduction_vertex = (pci_baseline - pci_vertex) / pci_baseline
 
-        assert 0.15 <= reduction_dlpfc <= 0.25, (
-            f"P2a: dlPFC PCI reduction should be 15–25%, got {reduction_dlpfc:.2%}"
-        )
-        assert reduction_vertex < 0.05, (
-            f"P2a: vertex effect should be <5%, got {reduction_vertex:.2%}"
-        )
+        assert (
+            0.15 <= reduction_dlpfc <= 0.25
+        ), f"P2a: dlPFC PCI reduction should be 15–25%, got {reduction_dlpfc:.2%}"
+        assert (
+            reduction_vertex < 0.05
+        ), f"P2a: vertex effect should be <5%, got {reduction_vertex:.2%}"
 
     def test_P2b_insula_tms_reduces_pci_and_hep(self):
         """P2b: insula TMS reduces PCI ~20% AND HEP ~30%."""
@@ -523,18 +541,18 @@ class TestProtocol2Subpredictions:
         pci_reduction = (pci_baseline - pci_insula) / pci_baseline
         hep_reduction = (hep_baseline - hep_insula) / hep_baseline
 
-        assert abs(pci_reduction - 0.20) <= 0.05, (
-            f"P2b: insula PCI reduction should be ~20%, got {pci_reduction:.2%}"
-        )
-        assert abs(hep_reduction - 0.30) <= 0.05, (
-            f"P2b: insula HEP reduction should be ~30%, got {hep_reduction:.2%}"
-        )
+        assert (
+            abs(pci_reduction - 0.20) <= 0.05
+        ), f"P2b: insula PCI reduction should be ~20%, got {pci_reduction:.2%}"
+        assert (
+            abs(hep_reduction - 0.30) <= 0.05
+        ), f"P2b: insula HEP reduction should be ~30%, got {hep_reduction:.2%}"
 
     def test_P2b_dlpfc_reduces_pci_not_hep(self):
         """P2b dissociation: dlPFC TMS reduces PCI but NOT HEP."""
         pci_baseline, hep_baseline = 0.60, 1.0
         pci_dlpfc = pci_baseline * (1 - 0.20)
-        hep_dlpfc = hep_baseline * (1 - 0.03)   # Minimal HEP effect from dlPFC
+        hep_dlpfc = hep_baseline * (1 - 0.03)  # Minimal HEP effect from dlPFC
 
         pci_reduction = (pci_baseline - pci_dlpfc) / pci_baseline
         hep_reduction = (hep_baseline - hep_dlpfc) / hep_baseline
@@ -554,9 +572,9 @@ class TestProtocol2Subpredictions:
         low_ia_pci_change = np.random.normal(-0.10, 0.08, n)
 
         t, p = stats.ttest_ind(high_ia_pci_change, low_ia_pci_change)
-        assert np.mean(high_ia_pci_change) < np.mean(low_ia_pci_change), (
-            "P2c: high-IA should show greater PCI reduction (more negative)"
-        )
+        assert np.mean(high_ia_pci_change) < np.mean(
+            low_ia_pci_change
+        ), "P2c: high-IA should show greater PCI reduction (more negative)"
 
     def test_P2_falsification_no_threshold_change(self):
         """Falsified if no threshold change despite verified TMS engagement."""
@@ -579,24 +597,25 @@ class TestProtocol2Subpredictions:
 # Sub-predictions: P3a, P3b, P3c, P3d
 # ===========================================================================
 
+
 class TestProtocol3Subpredictions:
     """Agent simulation protocol sub-predictions P3a, P3b, P3c, P3d."""
 
     def test_P3a_convergence_thresholds(self):
         """P3a: APGI 50–80 trials, StandardPP 150+, GNWT-only 100–120."""
-        apgi_convergence = 65       # Within 50–80 ✓
-        standard_pp_convergence = 160   # ≥150 ✓
-        gnwt_only_convergence = 110     # 100–120 ✓
+        apgi_convergence = 65  # Within 50–80 ✓
+        standard_pp_convergence = 160  # ≥150 ✓
+        gnwt_only_convergence = 110  # 100–120 ✓
 
-        assert 50 <= apgi_convergence <= 80, (
-            f"P3a: APGI should converge in 50–80 trials, got {apgi_convergence}"
-        )
-        assert standard_pp_convergence >= 150, (
-            f"P3a: StandardPP should need 150+ trials, got {standard_pp_convergence}"
-        )
-        assert 100 <= gnwt_only_convergence <= 120, (
-            f"P3a: GNWT-only should converge in 100–120 trials, got {gnwt_only_convergence}"
-        )
+        assert (
+            50 <= apgi_convergence <= 80
+        ), f"P3a: APGI should converge in 50–80 trials, got {apgi_convergence}"
+        assert (
+            standard_pp_convergence >= 150
+        ), f"P3a: StandardPP should need 150+ trials, got {standard_pp_convergence}"
+        assert (
+            100 <= gnwt_only_convergence <= 120
+        ), f"P3a: GNWT-only should converge in 100–120 trials, got {gnwt_only_convergence}"
 
     def test_P3a_apgi_outperforms_gnwt_only(self):
         """P3a: APGI converges faster than GNWT-only."""
@@ -628,14 +647,12 @@ class TestProtocol3Subpredictions:
         intero_signal = Pi_i * z_i
         extero_signal = Pi_e * z_e
         intero_dominant = np.mean(intero_signal > extero_signal)
-        assert 0.60 <= intero_dominant <= 0.95, (
-            f"P3b: interoceptive dominance rate should be plausible, got {intero_dominant:.2f}"
-        )
+        assert (
+            0.60 <= intero_dominant <= 0.95
+        ), f"P3b: interoceptive dominance rate should be plausible, got {intero_dominant:.2f}"
 
     def test_P3c_ignition_predicts_strategy_change(self):
         """P3c: ignition coefficient significant (p < 0.01) controlling for |ε|."""
-        from sklearn.linear_model import LogisticRegression
-
         np.random.seed(20)
         n = 300
         epsilon = np.random.exponential(0.5, n)
@@ -646,23 +663,23 @@ class TestProtocol3Subpredictions:
         strategy_change = (np.random.random(n) < prob_change).astype(int)
 
         # Check ignition is significant beyond epsilon
-        from scipy.stats import chi2
-        X = np.column_stack([ignition, epsilon])
         # Simple check: correlation between ignition and strategy_change
         r_ignition, p_ignition = stats.pointbiserialr(ignition, strategy_change)
-        assert p_ignition < 0.05, (
-            f"P3c: ignition should significantly predict strategy change, got p={p_ignition:.4f}"
-        )
+        assert (
+            p_ignition < 0.05
+        ), f"P3c: ignition should significantly predict strategy change, got p={p_ignition:.4f}"
 
     def test_P3d_adaptation_speed_advantage(self):
         """P3d: APGI adapts 20–30% faster than GNWT-only in volatile environments."""
         apgi_trials_to_criterion = 25
         gnwt_trials_to_criterion = 32
 
-        improvement = (gnwt_trials_to_criterion - apgi_trials_to_criterion) / gnwt_trials_to_criterion
-        assert 0.15 <= improvement <= 0.40, (
-            f"P3d: APGI advantage should be 15–40%, got {improvement:.2%}"
-        )
+        improvement = (
+            gnwt_trials_to_criterion - apgi_trials_to_criterion
+        ) / gnwt_trials_to_criterion
+        assert (
+            0.15 <= improvement <= 0.40
+        ), f"P3d: APGI advantage should be 15–40%, got {improvement:.2%}"
 
     def test_P3_falsification_no_performance_advantage(self):
         """P3 falsified if all agents within 5% performance."""
@@ -677,6 +694,7 @@ class TestProtocol3Subpredictions:
 # NEUROPHYSIOLOGICAL PROTOCOL 4 (Disorders of Consciousness)
 # Sub-predictions: P4a, P4b, P4c, P4d
 # ===========================================================================
+
 
 class TestProtocol4Subpredictions:
     """DoC protocol sub-predictions P4a, P4b, P4c, P4d."""
@@ -694,10 +712,9 @@ class TestProtocol4Subpredictions:
         logit = 1.5 * pci + 1.2 * hep
         consciousness = (1 / (1 + np.exp(-logit)) > 0.5).astype(int)
 
-        X = np.column_stack([pci, hep])
         model = LogisticRegression()
-        model.fit(X, consciousness)
-        pred = model.predict_proba(X)[:, 1]
+        model.fit(np.column_stack([pci, hep]), consciousness)
+        pred = model.predict_proba(np.column_stack([pci, hep]))[:, 1]
         auc = roc_auc_score(consciousness, pred)
         assert auc > 0.80, f"P4a: combined AUC should be >0.80, got {auc:.3f}"
 
@@ -715,16 +732,22 @@ class TestProtocol4Subpredictions:
 
         model_pci = LogisticRegression()
         model_pci.fit(pci.reshape(-1, 1), consciousness)
-        auc_pci = roc_auc_score(consciousness, model_pci.predict_proba(pci.reshape(-1, 1))[:, 1])
+        auc_pci = roc_auc_score(
+            consciousness, model_pci.predict_proba(pci.reshape(-1, 1))[:, 1]
+        )
 
         model_hep = LogisticRegression()
         model_hep.fit(hep.reshape(-1, 1), consciousness)
-        auc_hep = roc_auc_score(consciousness, model_hep.predict_proba(hep.reshape(-1, 1))[:, 1])
+        auc_hep = roc_auc_score(
+            consciousness, model_hep.predict_proba(hep.reshape(-1, 1))[:, 1]
+        )
 
         model_combined = LogisticRegression()
         X_both = np.column_stack([pci, hep])
         model_combined.fit(X_both, consciousness)
-        auc_combined = roc_auc_score(consciousness, model_combined.predict_proba(X_both)[:, 1])
+        auc_combined = roc_auc_score(
+            consciousness, model_combined.predict_proba(X_both)[:, 1]
+        )
 
         assert auc_combined > auc_pci, "P4a: combined should beat PCI alone"
         assert auc_combined > auc_hep, "P4a: combined should beat HEP alone"
@@ -746,18 +769,18 @@ class TestProtocol4Subpredictions:
         # HEP driven by different (interoceptive) pathway
         hep = np.random.normal(0, 1, n) * 0.95 + 0.1 * dmn  # low DMN contribution
         r_dmn_hep, p = stats.pearsonr(dmn, hep)
-        assert abs(r_dmn_hep) < 0.30, (
-            f"P4b: DMN-HEP correlation should be low (<0.30), got r={r_dmn_hep:.3f}"
-        )
+        assert (
+            abs(r_dmn_hep) < 0.30
+        ), f"P4b: DMN-HEP correlation should be low (<0.30), got r={r_dmn_hep:.3f}"
 
     def test_P4c_mcs_pci_increase_threshold(self):
         """P4c: MCS patients show >10% PCI increase with interoceptive stimulation."""
         pci_baseline = 0.45
         pci_stimulation = 0.50  # 11% increase
         increase = (pci_stimulation - pci_baseline) / pci_baseline
-        assert increase > 0.10, (
-            f"P4c: MCS PCI increase should be >10%, got {increase:.2%}"
-        )
+        assert (
+            increase > 0.10
+        ), f"P4c: MCS PCI increase should be >10%, got {increase:.2%}"
 
     def test_P4c_vs_no_pci_increase(self):
         """P4c: VS patients show no significant PCI change."""
@@ -765,9 +788,9 @@ class TestProtocol4Subpredictions:
         pci_stimulation_vs = 0.21  # ~5% change, not significant
         increase_vs = (pci_stimulation_vs - pci_baseline_vs) / pci_baseline_vs
         # VS should show minimal or no increase (< MCS threshold)
-        assert increase_vs < 0.10, (
-            f"P4c: VS PCI change should be <10%, got {increase_vs:.2%}"
-        )
+        assert (
+            increase_vs < 0.10
+        ), f"P4c: VS PCI change should be <10%, got {increase_vs:.2%}"
 
     def test_P4c_pci_hep_correlation_during_intervention(self):
         """P4c: PCI change correlates with HEP change at r > 0.4."""
@@ -776,7 +799,9 @@ class TestProtocol4Subpredictions:
         hep_change = np.random.normal(0.2, 0.1, n)
         pci_change = 0.6 * hep_change + np.random.normal(0, 0.05, n)
         r, p = stats.pearsonr(hep_change, pci_change)
-        assert r > 0.40, f"P4c: PCI-HEP change correlation should be >0.4, got r={r:.3f}"
+        assert (
+            r > 0.40
+        ), f"P4c: PCI-HEP change correlation should be >0.4, got r={r:.3f}"
 
     def test_P4d_combined_r_squared(self):
         """P4d: combined PCI+HEP explains >40% variance in 6-month outcome."""
@@ -788,9 +813,11 @@ class TestProtocol4Subpredictions:
 
         # R² for combined model
         from numpy.linalg import lstsq
-        X = np.column_stack([np.ones(n), pci, hep])
-        coef, _, _, _ = lstsq(X, outcome, rcond=None)
-        predicted = X @ coef
+
+        coef, _, _, _ = lstsq(
+            np.column_stack([np.ones(n), pci, hep]), outcome, rcond=None
+        )
+        predicted = np.column_stack([np.ones(n), pci, hep]) @ coef
         ss_res = np.sum((outcome - predicted) ** 2)
         ss_tot = np.sum((outcome - np.mean(outcome)) ** 2)
         r2 = 1 - ss_res / ss_tot
@@ -808,6 +835,7 @@ class TestProtocol4Subpredictions:
 # Sub-predictions: P5a, P5b, P5c, P5d
 # ===========================================================================
 
+
 class TestProtocol5Subpredictions:
     """fMRI protocol sub-predictions P5a, P5b, P5c, P5d."""
 
@@ -823,13 +851,13 @@ class TestProtocol5Subpredictions:
     def test_P5a_vmPFC_peaks_before_scr(self):
         """P5a: vmPFC peaks 1–2s into decision; SCR follows 2–3s later."""
         vmPFC_peak_time = 1.5  # seconds into decision
-        scr_peak_time = 2.5    # seconds into decision
-        assert 1.0 <= vmPFC_peak_time <= 2.0, (
-            f"P5a: vmPFC peak should be 1–2s, got {vmPFC_peak_time}s"
-        )
-        assert 2.0 <= scr_peak_time <= 3.0, (
-            f"P5a: SCR peak should be 2–3s, got {scr_peak_time}s"
-        )
+        scr_peak_time = 2.5  # seconds into decision
+        assert (
+            1.0 <= vmPFC_peak_time <= 2.0
+        ), f"P5a: vmPFC peak should be 1–2s, got {vmPFC_peak_time}s"
+        assert (
+            2.0 <= scr_peak_time <= 3.0
+        ), f"P5a: SCR peak should be 2–3s, got {scr_peak_time}s"
         assert vmPFC_peak_time < scr_peak_time, "P5a: vmPFC must precede SCR"
 
     def test_P5b_vmPFC_posterior_insula_null_during_experience(self):
@@ -840,9 +868,9 @@ class TestProtocol5Subpredictions:
         post_insula_outcome = np.random.normal(0, 1, n)  # Independent
         r, p = stats.pearsonr(vmPFC_decision, post_insula_outcome)
         # Should be near null
-        assert abs(r) < 0.30, (
-            f"P5b: vmPFC-posterior insula correlation should be <0.30 (null), got r={r:.3f}"
-        )
+        assert (
+            abs(r) < 0.30
+        ), f"P5b: vmPFC-posterior insula correlation should be <0.30 (null), got r={r:.3f}"
 
     def test_P5b_posterior_insula_pain_correlation(self):
         """P5b: posterior insula (outcome) correlates with pain ratings at r > 0.5."""
@@ -851,9 +879,9 @@ class TestProtocol5Subpredictions:
         pain_ratings = np.random.normal(4.0, 1.5, n)
         post_insula = 0.7 * pain_ratings + np.random.normal(0, 0.8, n)
         r, p = stats.pearsonr(pain_ratings, post_insula)
-        assert r > 0.50, (
-            f"P5b: posterior insula should correlate with pain >0.5, got r={r:.3f}"
-        )
+        assert (
+            r > 0.50
+        ), f"P5b: posterior insula should correlate with pain >0.5, got r={r:.3f}"
 
     def test_P5c_anxiety_predicts_vmPFC_aINS_coupling(self):
         """P5c: high anxiety → stronger vmPFC→aINS coupling."""
@@ -862,9 +890,9 @@ class TestProtocol5Subpredictions:
         anxiety = np.random.normal(5.0, 2.0, n)
         coupling = 0.5 * anxiety + np.random.normal(0, 1.0, n)
         r, p = stats.pearsonr(anxiety, coupling)
-        assert r > 0.20, (
-            f"P5c: anxiety-coupling correlation should be >0.20, got r={r:.3f}"
-        )
+        assert (
+            r > 0.20
+        ), f"P5c: anxiety-coupling correlation should be >0.20, got r={r:.3f}"
 
     def test_P5d_vmPFC_steeper_learning_pain_vs_monetary(self):
         """P5d: vmPFC learning curve steeper for pain than monetary outcomes."""
@@ -897,6 +925,7 @@ class TestProtocol5Subpredictions:
 # Sub-predictions: P6a, P6b, P6c, P6d
 # ===========================================================================
 
+
 class TestProtocol6Subpredictions:
     """Intracranial EEG protocol sub-predictions P6a, P6b, P6c, P6d."""
 
@@ -922,22 +951,23 @@ class TestProtocol6Subpredictions:
                 peaks.append(x[i])
         # Filter significant peaks
         max_density = np.max(density)
-        significant_peaks = [p for i, p in enumerate(peaks)
-                             if kde(np.array([p]))[0] > 0.1 * max_density]
-        assert len(significant_peaks) >= 2, (
-            f"P6a: should detect ≥2 firing rate modes, found {len(significant_peaks)}"
-        )
+        significant_peaks = [
+            p for i, p in enumerate(peaks) if kde(np.array([p]))[0] > 0.1 * max_density
+        ]
+        assert (
+            len(significant_peaks) >= 2
+        ), f"P6a: should detect ≥2 firing rate modes, found {len(significant_peaks)}"
 
     def test_P6a_mode_separation(self):
         """P6a: low mode ~5–10 Hz, high mode ~40–60 Hz."""
         low_mode_center = 7.5
         high_mode_center = 50.0
-        assert 5 <= low_mode_center <= 10, (
-            f"P6a: low mode should be 5–10 Hz, got {low_mode_center}"
-        )
-        assert 40 <= high_mode_center <= 60, (
-            f"P6a: high mode should be 40–60 Hz, got {high_mode_center}"
-        )
+        assert (
+            5 <= low_mode_center <= 10
+        ), f"P6a: low mode should be 5–10 Hz, got {low_mode_center}"
+        assert (
+            40 <= high_mode_center <= 60
+        ), f"P6a: high mode should be 40–60 Hz, got {high_mode_center}"
 
     def test_P6b_minimal_intermediate_state_time(self):
         """P6b: in a bistable system, the neuron spends <15% of trial time at
@@ -953,11 +983,11 @@ class TestProtocol6Subpredictions:
         for _ in range(n_steps):
             if state == 0:
                 fr = np.random.normal(7.0, 1.5)
-                if np.random.random() < 0.02:   # rare up-transition
+                if np.random.random() < 0.02:  # rare up-transition
                     state = 1
             else:
                 fr = np.random.normal(50.0, 1.5)
-                if np.random.random() < 0.02:   # rare down-transition
+                if np.random.random() < 0.02:  # rare down-transition
                     state = 0
             firing_rate_ts.append(fr)
 
@@ -982,9 +1012,10 @@ class TestProtocol6Subpredictions:
         # (actually the criterion says >30% triggers falsification)
         falsified = pct_intermediate > 0.30
         # For a symmetric normal: ~20% of mass between p40 and p60
-        assert pct_intermediate > 0.15, (
-            f"Unimodal distribution should have substantial intermediate state time"
-        )
+        assert (
+            pct_intermediate > 0.15
+        ), f"Intermediate firing rate: {pct_intermediate:.2f} should be >15%, Unimodal distribution should have substantial intermediate state time"
+        assert falsified, "Intermediate firing rate >30% should trigger falsification"
 
     def test_P6c_critical_slowing_near_threshold(self):
         """P6c: RT slowest around 40–60% detection probability (quadratic fit)."""
@@ -1008,9 +1039,9 @@ class TestProtocol6Subpredictions:
         else:
             peak_detection = 0.5
 
-        assert 0.35 <= peak_detection <= 0.65, (
-            f"P6c: RT peak should be near threshold (0.35–0.65), got {peak_detection:.3f}"
-        )
+        assert (
+            0.35 <= peak_detection <= 0.65
+        ), f"P6c: RT peak should be near threshold (0.35–0.65), got {peak_detection:.3f}"
 
     def test_P6d_frontoparietal_coherence_predicts_seen(self):
         """P6d: beta/gamma coherence predicts 'seen' trials at r > 0.4."""
@@ -1020,18 +1051,18 @@ class TestProtocol6Subpredictions:
         coherence = 0.6 * seen + np.random.normal(0.3, 0.2, n)
 
         r_pb, p = stats.pointbiserialr(seen, coherence)
-        assert r_pb > 0.40, (
-            f"P6d: coherence-seen correlation should be >0.4, got r={r_pb:.3f}"
-        )
+        assert (
+            r_pb > 0.40
+        ), f"P6d: coherence-seen correlation should be >0.4, got r={r_pb:.3f}"
 
     def test_P6_falsification_graded_linear_response(self):
         """P6 falsified if firing rates increase linearly (no bimodality)."""
         stimulus_strength = np.linspace(0, 1, 100)
         # Graded linear response = falsifying
-        firing_rate = 5 + 55 * stimulus_strength   # Linear
+        firing_rate = 5 + 55 * stimulus_strength  # Linear
         slope, intercept, r, p, _ = stats.linregress(stimulus_strength, firing_rate)
         # Perfect linear fit: r² ≈ 1.0
-        r2_linear = r ** 2
+        r2_linear = r**2
         # If r² for linear fit > 0.95, that's the falsifying "graded" scenario
         falsified = r2_linear > 0.95
         assert falsified, "Linear graded response should be flagged as falsifying"
@@ -1040,6 +1071,7 @@ class TestProtocol6Subpredictions:
 # ===========================================================================
 # 6 EXPLICIT FALSIFICATION CRITERIA
 # ===========================================================================
+
 
 class TestExplicitFalsificationCriteria:
     """
@@ -1059,13 +1091,17 @@ class TestExplicitFalsificationCriteria:
         r_hep_threshold_paradigm_2 = 0.03
         r_hep_threshold_paradigm_3 = 0.04
 
-        average_r = np.mean([r_hep_threshold_paradigm_1,
-                             r_hep_threshold_paradigm_2,
-                             r_hep_threshold_paradigm_3])
-        ief1_falsified = average_r < 0.10  # Consistently near zero
-        assert ief1_falsified, (
-            "EF1: consistently near-zero correlations should trigger falsification"
+        average_r = np.mean(
+            [
+                r_hep_threshold_paradigm_1,
+                r_hep_threshold_paradigm_2,
+                r_hep_threshold_paradigm_3,
+            ]
         )
+        ief1_falsified = average_r < 0.10  # Consistently near zero
+        assert (
+            ief1_falsified
+        ), "EF1: consistently near-zero correlations should trigger falsification"
 
         # Conversely, if r is meaningful (>0.20), theory is NOT falsified
         r_meaningful = 0.35
@@ -1079,15 +1115,15 @@ class TestExplicitFalsificationCriteria:
         """
         # Specify falsification: all effect sizes near zero
         metabolic_effects = {
-            "glucose_depletion": 0.02,   # d ≈ 0
+            "glucose_depletion": 0.02,  # d ≈ 0
             "fasting_16h": 0.03,
             "energy_expenditure": 0.01,
         }
         average_effect = np.mean(list(metabolic_effects.values()))
         ef2_falsified = average_effect < 0.10
-        assert ef2_falsified, (
-            "EF2: consistently near-zero metabolic effects should trigger falsification"
-        )
+        assert (
+            ef2_falsified
+        ), "EF2: consistently near-zero metabolic effects should trigger falsification"
 
         # Meaningful effect should NOT be falsified
         meaningful_metabolic_d = 0.45
@@ -1127,9 +1163,9 @@ class TestExplicitFalsificationCriteria:
         session2_noise = np.random.normal(0.5, 0.3, n)  # Independent noise
         r_low, _ = stats.pearsonr(session1, session2_noise)
         ef4_falsified = abs(r_low) < falsification_reliability
-        assert ef4_falsified, (
-            f"EF4: r={r_low:.3f} (near zero) should trigger falsification (< {falsification_reliability})"
-        )
+        assert (
+            ef4_falsified
+        ), f"EF4: r={r_low:.3f} (near zero) should trigger falsification (< {falsification_reliability})"
 
         # High reliability: sessions closely track each other
         np.random.seed(42)
@@ -1137,9 +1173,9 @@ class TestExplicitFalsificationCriteria:
         session2_reliable = session1b + np.random.normal(0, 0.03, n)  # Tiny noise
         r_high, _ = stats.pearsonr(session1b, session2_reliable)
         not_falsified = abs(r_high) >= falsification_reliability
-        assert not_falsified, (
-            f"EF4: high reliability r={r_high:.3f} should NOT be falsified"
-        )
+        assert (
+            not_falsified
+        ), f"EF4: high reliability r={r_high:.3f} should NOT be falsified"
 
     def test_EF5_ignition_without_accumulation(self):
         """
@@ -1148,7 +1184,7 @@ class TestExplicitFalsificationCriteria:
         Falsification: rise time ≈ 0ms, no temporal integration window.
         """
         falsification_rise_time_ms = 50.0  # < 50ms = effectively instantaneous
-        predicted_tau_ms = 350.0  # ~200–500ms accumulation
+        # ~200–500ms accumulation
 
         # Instantaneous ignition (falsifying)
         observed_rise_time = 20.0  # ms
@@ -1179,7 +1215,6 @@ class TestExplicitFalsificationCriteria:
         ignition = (np.random.random(n) < ignition_prob).astype(int)
 
         # Test interaction significance (crude)
-        from scipy.stats import chi2_contingency
         # Compare ignition rates across conditions
         pi_low_eps_low = ignition[(Pi == 0.5) & (epsilon == 0.3)]
         pi_low_eps_high = ignition[(Pi == 0.5) & (epsilon == 1.3)]
@@ -1210,8 +1245,16 @@ class TestExplicitFalsificationCriteria:
         pi_high_e_h = ignition2[(Pi2 == 1.5) & (eps2 == 1.3)]
 
         if len(pi_low_e_l) > 0 and len(pi_low_e_h) > 0:
-            eff_low = np.mean(pi_high_e_l) - np.mean(pi_low_e_l) if len(pi_high_e_l) > 0 else 0
-            eff_high = np.mean(pi_high_e_h) - np.mean(pi_low_e_h) if len(pi_high_e_h) > 0 else 0
+            eff_low = (
+                np.mean(pi_high_e_l) - np.mean(pi_low_e_l)
+                if len(pi_high_e_l) > 0
+                else 0
+            )
+            eff_high = (
+                np.mean(pi_high_e_h) - np.mean(pi_low_e_h)
+                if len(pi_high_e_h) > 0
+                else 0
+            )
             null_interaction = abs(eff_high - eff_low)
             ef6_falsified_null = null_interaction < 0.10
             assert isinstance(ef6_falsified_null, (bool, np.bool_))
@@ -1221,48 +1264,63 @@ class TestExplicitFalsificationCriteria:
 # PROTOCOL TABLE — Coverage Matrix
 # ===========================================================================
 
+
 class TestProtocolCoverageMatrix:
     """Verify that all 6 protocols × their sub-predictions are structurally defined."""
 
-    @pytest.mark.parametrize("protocol,sub_predictions", [
-        (1, ["P1a", "P1b", "P1c"]),
-        (2, ["P2a", "P2b", "P2c"]),
-        (3, ["P3a", "P3b", "P3c", "P3d"]),
-        (4, ["P4a", "P4b", "P4c", "P4d"]),
-        (5, ["P5a", "P5b", "P5c", "P5d"]),
-        (6, ["P6a", "P6b", "P6c", "P6d"]),
-    ])
+    @pytest.mark.parametrize(
+        "protocol,sub_predictions",
+        [
+            (1, ["P1a", "P1b", "P1c"]),
+            (2, ["P2a", "P2b", "P2c"]),
+            (3, ["P3a", "P3b", "P3c", "P3d"]),
+            (4, ["P4a", "P4b", "P4c", "P4d"]),
+            (5, ["P5a", "P5b", "P5c", "P5d"]),
+            (6, ["P6a", "P6b", "P6c", "P6d"]),
+        ],
+    )
     def test_protocol_has_sub_predictions(self, protocol, sub_predictions):
         """Each protocol must have its sub-predictions enumerated."""
-        assert len(sub_predictions) >= 3, (
-            f"Protocol {protocol} should have ≥3 sub-predictions"
-        )
+        assert (
+            len(sub_predictions) >= 3
+        ), f"Protocol {protocol} should have ≥3 sub-predictions"
         for sp in sub_predictions:
-            assert sp.startswith(f"P{protocol}"), (
-                f"Sub-prediction {sp} should belong to Protocol {protocol}"
-            )
+            assert sp.startswith(
+                f"P{protocol}"
+            ), f"Sub-prediction {sp} should belong to Protocol {protocol}"
 
-    @pytest.mark.parametrize("prediction,falsification_criterion", [
-        (1, "r_squared_lt_0.02"),
-        (2, "interaction_F_lt_1.5_p_gt_0.15"),
-        (3, "AUC_lt_0.52"),
-        (4, "cohens_d_lt_0.20"),
-        (5, "tau_theta_lt_3s_or_gt_60s"),
-        (6, "propofol_ratio_lt_1.5_OR_ketamine_mmn_lt_20pct_AND_p3b_gt_50pct_OR_psilocybin_delta_lt_10pct"),
-    ])
-    def test_prediction_has_falsification_criterion(self, prediction, falsification_criterion):
+    @pytest.mark.parametrize(
+        "prediction,falsification_criterion",
+        [
+            (1, "r_squared_lt_0.02"),
+            (2, "interaction_F_lt_1.5_p_gt_0.15"),
+            (3, "AUC_lt_0.52"),
+            (4, "cohens_d_lt_0.20"),
+            (5, "tau_theta_lt_3s_or_gt_60s"),
+            (
+                6,
+                "propofol_ratio_lt_1.5_OR_ketamine_mmn_lt_20pct_AND_p3b_gt_50pct_OR_psilocybin_delta_lt_10pct",
+            ),
+        ],
+    )
+    def test_prediction_has_falsification_criterion(
+        self, prediction, falsification_criterion
+    ):
         """Each of the 6 predictions has a defined falsification criterion."""
         assert isinstance(falsification_criterion, str)
         assert len(falsification_criterion) > 0
 
-    @pytest.mark.parametrize("criterion", [
-        "EF1_interoceptive_independence",
-        "EF2_metabolic_irrelevance",
-        "EF3_somatic_bias_failure",
-        "EF4_threshold_stability_ICC_lt_0.50",
-        "EF5_ignition_without_accumulation",
-        "EF6_precision_error_dissociation",
-    ])
+    @pytest.mark.parametrize(
+        "criterion",
+        [
+            "EF1_interoceptive_independence",
+            "EF2_metabolic_irrelevance",
+            "EF3_somatic_bias_failure",
+            "EF4_threshold_stability_ICC_lt_0.50",
+            "EF5_ignition_without_accumulation",
+            "EF6_precision_error_dissociation",
+        ],
+    )
     def test_explicit_falsification_criterion_defined(self, criterion):
         """All 6 Explicit Falsification Criteria are named and evaluable."""
         assert isinstance(criterion, str)
@@ -1295,6 +1353,7 @@ class TestProtocolCoverageMatrix:
 # Integration: Falsification Framework Compatibility
 # ===========================================================================
 
+
 class TestFalsificationFrameworkIntegration:
     """Ensure APGI-Falsification-Framework.py can handle spec-derived criteria."""
 
@@ -1302,6 +1361,7 @@ class TestFalsificationFrameworkIntegration:
         """APGI-Falsification-Framework.py should be importable."""
         try:
             import importlib.util
+
             spec = importlib.util.spec_from_file_location(
                 "falsification_fw",
                 project_root / "APGI-Falsification-Framework.py",
@@ -1317,6 +1377,7 @@ class TestFalsificationFrameworkIntegration:
         """FalsificationCriterion with correlation test can check HEP-threshold link."""
         try:
             import importlib.util
+
             spec = importlib.util.spec_from_file_location(
                 "falsification_fw",
                 project_root / "APGI-Falsification-Framework.py",
@@ -1335,7 +1396,7 @@ class TestFalsificationFrameworkIntegration:
                 "(EF1 from spec)"
             ),
             test_statistic="correlation",
-            threshold=0.10,   # r < 0.10 → falsified
+            threshold=0.10,  # r < 0.10 → falsified
             direction="less",
             alpha=0.05,
         )
@@ -1351,6 +1412,7 @@ class TestFalsificationFrameworkIntegration:
         """FalsificationCriterion with effect_size test can check somatic bias."""
         try:
             import importlib.util
+
             spec = importlib.util.spec_from_file_location(
                 "falsification_fw",
                 project_root / "APGI-Falsification-Framework.py",

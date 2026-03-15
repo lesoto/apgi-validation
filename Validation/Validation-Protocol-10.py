@@ -813,7 +813,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "threshold": "LTCNs naturally integrate information over 200-500ms windows (measured by autocorrelation decay to <0.37) without recurrent add-ons, vs. <50ms for standard RNNs",
             "test": "Exponential decay curve fitting; Wilcoxon signed-rank test comparing integration windows, α = 0.01",
             "effect_size": "LTCN integration window ≥4× standard RNN; curve fit R² ≥ 0.85",
-            "alternative": "Falsified if LTCN window <150ms OR ratio < 2.5× OR R² < 0.70 OR p ≥ 0.01",
+            "alternative": "Falsified if LTCN window <150ms OR ratio < 4.0× OR R² < 0.70 OR p ≥ 0.01",
         },
     }
 
@@ -870,6 +870,19 @@ def check_falsification(
     logger.info(
         f"\nValidation-Protocol-10 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
     )
+
+    # Add per-criterion pass/fail table
+    results["pass_fail_table"] = []
+    for criterion_code, criterion_data in results["criteria"].items():
+        results["pass_fail_table"].append(
+            {
+                "criterion": criterion_code,
+                "passed": criterion_data["passed"],
+                "threshold": criterion_data["threshold"],
+                "actual": criterion_data["actual"],
+            }
+        )
+
     return results
 
 

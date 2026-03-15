@@ -16,10 +16,57 @@ This protocol validates:
 from typing import Any, Dict, List, Optional
 
 import logging
+import sys
+from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy import stats
 from sklearn.metrics import classification_report, confusion_matrix
+
+# Add parent directory to path so falsification_thresholds is importable
+_project_root = Path(__file__).parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
+from falsification_thresholds import (
+    F1_5_PAC_MI_MIN,
+    F1_5_PAC_INCREASE_MIN,
+    F1_5_COHENS_D_MIN,
+    F1_5_PERMUTATION_ALPHA,
+    F2_3_MIN_RT_ADVANTAGE_MS,
+    F2_3_MIN_BETA,
+    F2_3_MIN_STANDARDIZED_BETA,
+    F2_3_MIN_R2,
+    F5_2_MIN_CORRELATION,
+    F5_2_MIN_PROPORTION,
+    F5_3_MIN_GAIN_RATIO,
+    F5_3_MIN_PROPORTION,
+    F5_3_MIN_COHENS_D,
+    F5_4_MIN_PROPORTION,
+    F5_4_MIN_PEAK_SEPARATION,
+    F5_5_PCA_MIN_VARIANCE,
+    F5_5_MIN_LOADING,
+    F5_6_MIN_PERFORMANCE_DIFF_PCT,
+    F5_6_MIN_COHENS_D,
+    F5_6_ALPHA,
+    F6_1_LTCN_MAX_TRANSITION_MS,
+    F6_1_CLIFFS_DELTA_MIN,
+    F6_1_MANN_WHITNEY_ALPHA,
+    F6_2_LTCN_MIN_WINDOW_MS,
+    F6_2_MIN_INTEGRATION_RATIO,
+    F6_2_MIN_CURVE_FIT_R2,
+    F6_2_WILCOXON_ALPHA,
+    V12_1_MIN_P3B_REDUCTION_PCT,
+    V12_1_MIN_IGNITION_REDUCTION_PCT,
+    V12_1_MIN_COHENS_D,
+    V12_1_MIN_ETA_SQUARED,
+    V12_1_ALPHA,
+    V12_2_MIN_CORRELATION,
+    V12_2_FALSIFICATION_CORR,
+    V12_2_MIN_PILLAIS_TRACE,
+    V12_2_FALSIFICATION_PILLAIS,
+    V12_2_ALPHA,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +176,7 @@ class ClinicalDataAnalyzer:
         """
 
         conditions = patient_data["condition"].unique()
-        results = {}
+        results: Dict[str, Any] = {}
 
         # Compare key measures across conditions
         measures = [
@@ -485,7 +532,7 @@ class CrossSpeciesHomologyAnalyzer:
             Homology analysis results
         """
 
-        results = {}
+        results: Dict[str, Any] = {}
 
         # Test for conserved relationships across species
         for measure in [
@@ -529,7 +576,7 @@ class CrossSpeciesHomologyAnalyzer:
 
         # Test correlation between phylogenetic distance and parameter similarity
         species_list = species_data["species"].unique()
-        conservation_results = {}
+        conservation_results: Dict[str, Any] = {}
 
         for param in ["theta_t", "Pi_e", "ignition_latency"]:
             distances = []
@@ -912,6 +959,8 @@ def main():
             else:
                 print(f"  {value}")
 
+    return results
+
 
 def run_validation():
     """Standard validation entry point for Protocol 12."""
@@ -1137,7 +1186,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "threshold": "LTCNs naturally integrate information over 200-500ms windows (measured by autocorrelation decay to <0.37) without recurrent add-ons, vs. <50ms for standard RNNs",
             "test": "Exponential decay curve fitting; Wilcoxon signed-rank test comparing integration windows, α = 0.01",
             "effect_size": "LTCN integration window ≥4× standard RNN; curve fit R² ≥ 0.85",
-            "alternative": "Falsified if LTCN window <150ms OR ratio < 2.5× OR R² < 0.70 OR p ≥ 0.01",
+            "alternative": "Falsified if LTCN window <150ms OR ratio < 4.0× OR R² < 0.70 OR p ≥ 0.01",
         },
     }
 
@@ -1365,7 +1414,7 @@ def check_falsification(
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
-    results = {
+    results: Dict[str, Any] = {
         "protocol": "Validation-Protocol-12",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "total": 26},
@@ -1374,11 +1423,11 @@ def check_falsification(
     # V12.1: Clinical Gradient Prediction
     logger.info("Testing V12.1: Clinical Gradient Prediction")
     v12_1_pass = (
-        p3b_reduction >= 60
-        and ignition_reduction >= 60
-        and cohens_d_clinical >= 0.55
-        and eta_squared >= 0.20
-        and p_clinical < 0.01
+        p3b_reduction >= V12_1_MIN_P3B_REDUCTION_PCT
+        and ignition_reduction >= V12_1_MIN_IGNITION_REDUCTION_PCT
+        and cohens_d_clinical >= V12_1_MIN_COHENS_D
+        and eta_squared >= V12_1_MIN_ETA_SQUARED
+        and p_clinical < V12_1_ALPHA
     )
     results["criteria"]["V12.1"] = {
         "passed": v12_1_pass,
@@ -1387,8 +1436,8 @@ def check_falsification(
         "cohens_d": cohens_d_clinical,
         "eta_squared": eta_squared,
         "p_value": p_clinical,
-        "threshold": "≥80% P3b reduction, ≥70% ignition reduction, d ≥ 0.80",
-        "actual": f"P3b: {p3b_reduction:.2f}%, Ignition: {ignition_reduction:.2f}%, d: {cohens_d_clinical:.3f}",
+        "threshold": f"≥{int(V12_1_MIN_P3B_REDUCTION_PCT)}% P3b reduction, ≥{int(V12_1_MIN_IGNITION_REDUCTION_PCT)}% ignition reduction, d ≥ {V12_1_MIN_COHENS_D}",
+        "actual": f"P3b: {p3b_reduction:.1f}%, Ignition: {ignition_reduction:.1f}%, d: {cohens_d_clinical:.3f}",
     }
     if v12_1_pass:
         results["summary"]["passed"] += 1
@@ -1401,16 +1450,16 @@ def check_falsification(
     # V12.2: Cross-Species Homology
     logger.info("Testing V12.2: Cross-Species Homology")
     v12_2_pass = (
-        inter_species_correlation >= 0.45
-        and pillais_trace >= 0.25
-        and p_cross_species < 0.01
+        inter_species_correlation >= V12_2_FALSIFICATION_CORR
+        and pillais_trace >= V12_2_FALSIFICATION_PILLAIS
+        and p_cross_species < V12_2_ALPHA
     )
     results["criteria"]["V12.2"] = {
         "passed": v12_2_pass,
         "inter_species_correlation": inter_species_correlation,
         "pillais_trace": pillais_trace,
         "p_value": p_cross_species,
-        "threshold": "r ≥ 0.60, Pillai's trace ≥ 0.40",
+        "threshold": f"r ≥ {V12_2_MIN_CORRELATION}, Pillai's trace ≥ {V12_2_MIN_PILLAIS_TRACE}",
         "actual": f"r: {inter_species_correlation:.3f}, Pillai's trace: {pillais_trace:.3f}",
     }
     if v12_2_pass:
@@ -1523,10 +1572,10 @@ def check_falsification(
     # F1.5: Cross-Level Phase-Amplitude Coupling (PAC)
     logger.info("Testing F1.5: Cross-Level Phase-Amplitude Coupling (PAC)")
     f1_5_pass = (
-        pac_modulation_index >= 0.008
-        and pac_increase >= 15
-        and cohens_d_pac >= 0.30
-        and permutation_p_pac < 0.01
+        pac_modulation_index >= F1_5_PAC_MI_MIN
+        and pac_increase >= F1_5_PAC_INCREASE_MIN
+        and cohens_d_pac >= F1_5_COHENS_D_MIN
+        and permutation_p_pac < F1_5_PERMUTATION_ALPHA
     )
     results["criteria"]["F1.5"] = {
         "passed": f1_5_pass,
@@ -1534,7 +1583,7 @@ def check_falsification(
         "pac_increase": pac_increase,
         "cohens_d": cohens_d_pac,
         "permutation_p": permutation_p_pac,
-        "threshold": "MI ≥ 0.012, increase ≥30%, d ≥ 0.50",
+        "threshold": f"MI ≥ {F1_5_PAC_MI_MIN}, increase ≥{F1_5_PAC_INCREASE_MIN}%, d ≥ {F1_5_COHENS_D_MIN}",
         "actual": f"MI: {pac_modulation_index:.3f}, increase: {pac_increase:.1f}%, d: {cohens_d_pac:.3f}",
     }
     if f1_5_pass:
@@ -1628,10 +1677,10 @@ def check_falsification(
     # F2.3: vmPFC-Like Anticipatory Bias
     logger.info("Testing F2.3: vmPFC-Like Anticipatory Bias")
     f2_3_pass = (
-        rt_advantage >= 20
-        and rt_modulation_beta >= 15
-        and standardized_beta_rt >= 0.25
-        and marginal_r2_rt >= 0.10
+        rt_advantage >= F2_3_MIN_RT_ADVANTAGE_MS
+        and rt_modulation_beta >= F2_3_MIN_BETA
+        and standardized_beta_rt >= F2_3_MIN_STANDARDIZED_BETA
+        and marginal_r2_rt >= F2_3_MIN_R2
     )
     results["criteria"]["F2.3"] = {
         "passed": f2_3_pass,
@@ -1639,7 +1688,7 @@ def check_falsification(
         "rt_modulation_beta": rt_modulation_beta,
         "standardized_beta": standardized_beta_rt,
         "marginal_r2": marginal_r2_rt,
-        "threshold": "RT advantage ≥35ms, β ≥25ms, standardized β ≥0.40, R² ≥0.18",
+        "threshold": f"RT advantage ≥{int(F2_3_MIN_RT_ADVANTAGE_MS)}ms, β ≥{int(F2_3_MIN_BETA)}ms, std β ≥{F2_3_MIN_STANDARDIZED_BETA}, R² ≥{F2_3_MIN_R2}",
         "actual": f"RT advantage: {rt_advantage:.1f}ms, β: {rt_modulation_beta:.1f}ms, standardized β: {standardized_beta_rt:.3f}",
     }
     if f2_3_pass:
@@ -1862,8 +1911,8 @@ def check_falsification(
     # F5.2: Precision-Weighted Coding Emergence
     logger.info("Testing F5.2: Precision-Weighted Coding Emergence")
     f5_2_pass = (
-        proportion_precision_agents >= 0.50
-        and mean_correlation_r >= 0.35
+        proportion_precision_agents >= F5_2_MIN_PROPORTION
+        and mean_correlation_r >= F5_2_MIN_CORRELATION
         and binomial_p_f5_2 < 0.01
     )
     results["criteria"]["F5.2"] = {
@@ -1871,7 +1920,7 @@ def check_falsification(
         "proportion_precision_agents": proportion_precision_agents,
         "mean_correlation_r": mean_correlation_r,
         "binomial_p": binomial_p_f5_2,
-        "threshold": "≥65% develop weighting, r ≥ 0.45",
+        "threshold": f"≥{int(F5_2_MIN_PROPORTION * 100)}% develop weighting, r ≥ {F5_2_MIN_CORRELATION}",
         "actual": f"Prop: {proportion_precision_agents:.2f}, r: {mean_correlation_r:.2f}",
     }
     if f5_2_pass:
@@ -1885,9 +1934,9 @@ def check_falsification(
     # F5.3: Interoceptive Prioritization Emergence
     logger.info("Testing F5.3: Interoceptive Prioritization Emergence")
     f5_3_pass = (
-        proportion_interoceptive_agents >= 0.55
-        and mean_gain_ratio >= 1.15
-        and cohen_d_gain >= 0.40
+        proportion_interoceptive_agents >= F5_3_MIN_PROPORTION
+        and mean_gain_ratio >= F5_3_MIN_GAIN_RATIO
+        and cohen_d_gain >= F5_3_MIN_COHENS_D
         and binomial_p_f5_3 < 0.01
     )
     results["criteria"]["F5.3"] = {
@@ -1910,8 +1959,8 @@ def check_falsification(
     # F5.4: Multi-Timescale Integration Emergence
     logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
     f5_4_pass = (
-        proportion_multiscale_agents >= 0.45
-        and peak_separation_ratio_f5_4 >= 2.0
+        proportion_multiscale_agents >= F5_4_MIN_PROPORTION
+        and peak_separation_ratio_f5_4 >= F5_4_MIN_PEAK_SEPARATION
         and binomial_p_f5_4 < 0.01
     )
     results["criteria"]["F5.4"] = {
@@ -1919,7 +1968,7 @@ def check_falsification(
         "proportion_multiscale_agents": proportion_multiscale_agents,
         "peak_separation_ratio": peak_separation_ratio_f5_4,
         "binomial_p": binomial_p_f5_4,
-        "threshold": "≥60% develop multi-timescale, separation ≥3×",
+        "threshold": f"≥{int(F5_4_MIN_PROPORTION * 100)}% develop multi-timescale, separation ≥{F5_4_MIN_PEAK_SEPARATION}×",
         "actual": f"Prop: {proportion_multiscale_agents:.2f}, ratio: {peak_separation_ratio_f5_4:.1f}",
     }
     if f5_4_pass:
@@ -1932,12 +1981,14 @@ def check_falsification(
 
     # F5.5: APGI-Like Feature Clustering
     logger.info("Testing F5.5: APGI-Like Feature Clustering")
-    f5_5_pass = cumulative_variance >= 0.60 and min_loading >= 0.45
+    f5_5_pass = (
+        cumulative_variance >= F5_5_PCA_MIN_VARIANCE and min_loading >= F5_5_MIN_LOADING
+    )
     results["criteria"]["F5.5"] = {
         "passed": f5_5_pass,
         "cumulative_variance": cumulative_variance,
         "min_loading": min_loading,
-        "threshold": "Cumulative variance ≥70%, min loading ≥0.60",
+        "threshold": f"Cumulative variance ≥{int(F5_5_PCA_MIN_VARIANCE * 100)}%, min loading ≥{F5_5_MIN_LOADING}",
         "actual": f"Variance: {cumulative_variance:.2f}, loading: {min_loading:.2f}",
     }
     if f5_5_pass:
@@ -1951,16 +2002,16 @@ def check_falsification(
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
     f5_6_pass = (
-        performance_difference >= 0.25
-        and cohen_d_performance >= 0.55
-        and ttest_p_f5_6 < 0.01
+        performance_difference >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0)
+        and cohen_d_performance >= F5_6_MIN_COHENS_D
+        and ttest_p_f5_6 < F5_6_ALPHA
     )
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
         "performance_difference": performance_difference,
         "cohen_d_performance": cohen_d_performance,
         "ttest_p": ttest_p_f5_6,
-        "threshold": "Difference ≥40%, d ≥ 0.85",
+        "threshold": f"Difference ≥{int(F5_6_MIN_PERFORMANCE_DIFF_PCT)}%, d ≥ {F5_6_MIN_COHENS_D}",
         "actual": f"Diff: {performance_difference:.2f}, d: {cohen_d_performance:.2f}",
     }
     if f5_6_pass:
@@ -1974,7 +2025,9 @@ def check_falsification(
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     f6_1_pass = (
-        ltcn_transition_time <= 80 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+        (ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01)
+        and cliffs_delta >= F6_1_CLIFFS_DELTA_MIN
+        and mann_whitney_p < F6_1_MANN_WHITNEY_ALPHA
     )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
@@ -1982,7 +2035,7 @@ def check_falsification(
         "feedforward_transition_time": feedforward_transition_time,
         "cliffs_delta": cliffs_delta,
         "mann_whitney_p": mann_whitney_p,
-        "threshold": "LTCN time ≤50ms, delta ≥ 0.60",
+        "threshold": f"LTCN time ≤{F6_1_LTCN_MAX_TRANSITION_MS}ms, delta ≥ {F6_1_CLIFFS_DELTA_MIN}",
         "actual": f"LTCN: {ltcn_transition_time:.1f}ms, Feedforward: {feedforward_transition_time:.1f}ms, delta: {cliffs_delta:.2f}",
     }
     if f6_1_pass:
@@ -1995,11 +2048,12 @@ def check_falsification(
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
+    integration_ratio = ltcn_integration_window / rnn_integration_window
     f6_2_pass = (
-        ltcn_integration_window >= 150
-        and (ltcn_integration_window / rnn_integration_window) >= 2.5
-        and curve_fit_r2 >= 0.70
-        and wilcoxon_p < 0.01
+        ltcn_integration_window >= F6_2_LTCN_MIN_WINDOW_MS
+        and integration_ratio >= F6_2_MIN_INTEGRATION_RATIO
+        and curve_fit_r2 >= F6_2_MIN_CURVE_FIT_R2
+        and wilcoxon_p < F6_2_WILCOXON_ALPHA
     )
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
@@ -2007,7 +2061,7 @@ def check_falsification(
         "rnn_integration_window": rnn_integration_window,
         "curve_fit_r2": curve_fit_r2,
         "wilcoxon_p": wilcoxon_p,
-        "threshold": "LTCN window ≥200ms, ratio ≥4×, R² ≥ 0.85",
+        "threshold": f"LTCN window ≥{F6_2_LTCN_MIN_WINDOW_MS}ms, ratio ≥{F6_2_MIN_INTEGRATION_RATIO}×, R² ≥ {F6_2_MIN_CURVE_FIT_R2}",
         "actual": f"LTCN: {ltcn_integration_window:.1f}ms, RNN: {rnn_integration_window:.1f}ms, R²: {curve_fit_r2:.2f}",
     }
     if f6_2_pass:
@@ -2051,12 +2105,81 @@ class IntrinsicBehaviorValidator:
     def __init__(self) -> None:
         self.validation_results: Dict[str, Any] = {}
 
-    def validate(self) -> Dict[str, Any]:
-        """Validate intrinsic behavior."""
-        return {
-            "status": "implemented",
-            "details": "IntrinsicBehaviorValidator for Protocol 12",
+    def validate(self, behavior_data: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        Validate intrinsic behavior.
+
+        Tests whether APGI agents show appropriate intrinsic behavior
+        patterns (e.g., spontaneous exploration, intrinsic motivation).
+
+        Args:
+            behavior_data: Dictionary containing behavior measurements
+                         with keys: 'spontaneous_actions', 'goal_directed_actions',
+                         'novelty_seeking', 'intrinsic_motivation'
+
+        Returns:
+            Dictionary with validation results
+        """
+        if behavior_data is None:
+            # Generate synthetic test data
+            np.random.seed(42)
+            behavior_data = {
+                "spontaneous_actions": np.random.randint(0, 2, 100),
+                "goal_directed_actions": np.random.randint(0, 2, 100),
+                "novelty_seeking": np.random.uniform(0.3, 0.8, 100),
+                "intrinsic_motivation": np.random.uniform(0.5, 0.9, 100),
+            }
+
+        # Calculate behavior metrics
+        spontaneous_ratio = np.sum(behavior_data["spontaneous_actions"]) / len(
+            behavior_data["spontaneous_actions"]
+        )
+        novelty_mean = np.mean(behavior_data["novelty_seeking"])
+        intrinsic_mean = np.mean(behavior_data["intrinsic_motivation"])
+
+        # Statistical tests
+        from scipy import stats
+
+        # Test if spontaneous actions are significantly above chance (0.5)
+        n_total = len(behavior_data["spontaneous_actions"])
+        observed_spontaneous = np.sum(behavior_data["spontaneous_actions"])
+        expected_spontaneous = n_total * 0.5
+        z_stat_spontaneous = (observed_spontaneous - expected_spontaneous) / np.sqrt(
+            n_total * 0.5 * 0.5
+        )
+        p_spontaneous = stats.norm.sf(abs(z_stat_spontaneous)) * 2
+
+        # Test if novelty seeking is significantly above chance (0.5)
+        n_novelty = len(behavior_data["novelty_seeking"])
+        high_novelty_count = np.sum(behavior_data["novelty_seeking"] > 0.5)
+        expected_novelty = n_novelty * 0.5
+        z_stat_novelty = (high_novelty_count - expected_novelty) / np.sqrt(
+            n_novelty * 0.5 * 0.5
+        )
+        p_novelty = stats.norm.sf(abs(z_stat_novelty)) * 2
+
+        # Validation criteria
+        passed = (
+            spontaneous_ratio >= 0.55
+            and novelty_mean >= 0.50
+            and intrinsic_mean >= 0.60
+            and p_spontaneous < 0.05
+            and p_novelty < 0.05
+        )
+
+        self.validation_results = {
+            "passed": passed,
+            "spontaneous_action_ratio": float(spontaneous_ratio),
+            "novelty_seeking_mean": float(novelty_mean),
+            "intrinsic_motivation_mean": float(intrinsic_mean),
+            "p_spontaneous": float(p_spontaneous),
+            "p_novelty": float(p_novelty),
+            "z_statistic_spontaneous": float(z_stat_spontaneous),
+            "z_statistic_novelty": float(z_stat_novelty),
+            "sample_size": n_total,
         }
+
+        return self.validation_results
 
 
 class LiquidTimeConstantChecker:

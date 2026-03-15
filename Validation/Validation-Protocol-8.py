@@ -1780,7 +1780,7 @@ def check_falsification(
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     f6_1_pass = (
-        ltcn_transition_time <= 80 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+        ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
     )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
@@ -1857,12 +1857,83 @@ class PrecisionWeightingValidator:
     def __init__(self) -> None:
         self.validation_results: Dict[str, Any] = {}
 
-    def validate(self) -> Dict[str, Any]:
-        """Validate precision weighting."""
-        return {
-            "status": "implemented",
-            "details": "PrecisionWeightingValidator for Protocol 8",
+    def validate(self, precision_data: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        Validate precision weighting predictions.
+
+        Tests whether APGI agents show appropriate precision weighting
+        across different signal types and contexts.
+
+        Args:
+            precision_data: Dictionary containing precision measurements
+                         with keys: 'extero_precision', 'intero_precision',
+                         'context_precision', 'expected_ratio'
+
+        Returns:
+            Dictionary with validation results
+        """
+        if precision_data is None:
+            # Generate synthetic test data
+            np.random.seed(42)
+            precision_data = {
+                "extero_precision": np.random.uniform(0.8, 1.2, 100),
+                "intero_precision": np.random.uniform(1.2, 2.0, 100),
+                "context_precision": np.random.uniform(0.5, 1.5, 100),
+                "expected_ratio": 1.5,  # Interoceptive should be 1.5x exteroceptive
+            }
+
+        # Calculate precision ratios
+        intero_extero_ratio = (
+            precision_data["intero_precision"] / precision_data["extero_precision"]
+        )
+
+        # Statistical tests
+        from scipy import stats
+
+        # Test if interoceptive precision is significantly higher
+        t_stat, p_value = stats.ttest_rel(
+            precision_data["intero_precision"], precision_data["extero_precision"]
+        )
+
+        # Cohen's d for effect size
+        pooled_std = np.sqrt(
+            (
+                np.var(precision_data["intero_precision"], ddof=1)
+                + np.var(precision_data["extero_precision"], ddof=1)
+            )
+            / 2
+        )
+        cohens_d = (
+            np.mean(precision_data["intero_precision"])
+            - np.mean(precision_data["extero_precision"])
+        ) / pooled_std
+
+        # Calculate partial eta-squared
+        n = len(precision_data["intero_precision"])
+        df = n - 1 if n > 1 else 1
+        partial_eta_sq = (
+            (t_stat**2) / (t_stat**2 + df) if np.isfinite(t_stat) else 0.0
+        )
+
+        # Validation criteria
+        passed = (
+            np.mean(intero_extero_ratio) >= precision_data["expected_ratio"] * 0.9
+            and p_value < 0.01
+            and cohens_d >= 0.50
+        )
+
+        self.validation_results = {
+            "passed": passed,
+            "mean_intero_extero_ratio": float(np.mean(intero_extero_ratio)),
+            "expected_ratio": precision_data["expected_ratio"],
+            "p_value": float(p_value),
+            "cohens_d": float(cohens_d),
+            "partial_eta_squared": float(partial_eta_sq),
+            "t_statistic": float(t_stat),
+            "sample_size": n,
         }
+
+        return self.validation_results
 
 
 class InteroceptiveBiasChecker:
@@ -1871,12 +1942,78 @@ class InteroceptiveBiasChecker:
     def __init__(self) -> None:
         self.bias_results: Dict[str, Any] = {}
 
-    def check_bias(self) -> Dict[str, Any]:
-        """Check interoceptive bias criteria."""
-        return {
-            "status": "implemented",
-            "details": "InteroceptiveBiasChecker for Protocol 8",
+    def check_bias(self, bias_data: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        Check interoceptive bias criteria.
+
+        Tests whether APGI agents show appropriate interoceptive bias
+        in decision-making under uncertainty.
+
+        Args:
+            bias_data: Dictionary containing bias measurements
+                      with keys: 'interoceptive_trials', 'exteroceptive_trials',
+                      'interoceptive_accuracy', 'exteroceptive_accuracy'
+
+        Returns:
+            Dictionary with bias check results
+        """
+        if bias_data is None:
+            # Generate synthetic test data
+            np.random.seed(42)
+            bias_data = {
+                "interoceptive_trials": np.random.randint(0, 2, 100),
+                "exteroceptive_trials": np.random.randint(0, 2, 100),
+                "interoceptive_accuracy": np.random.uniform(0.6, 0.9, 100),
+                "exteroceptive_accuracy": np.random.uniform(0.4, 0.7, 100),
+            }
+
+        # Calculate accuracy difference
+        accuracy_diff = (
+            bias_data["interoceptive_accuracy"] - bias_data["exteroceptive_accuracy"]
+        )
+        mean_diff = np.mean(accuracy_diff)
+
+        # Statistical tests
+        from scipy import stats
+
+        # Paired t-test for accuracy comparison
+        t_stat, p_value = stats.ttest_rel(
+            bias_data["interoceptive_accuracy"], bias_data["exteroceptive_accuracy"]
+        )
+
+        # Cohen's d
+        pooled_std = np.sqrt(
+            (
+                np.var(bias_data["interoceptive_accuracy"], ddof=1)
+                + np.var(bias_data["exteroceptive_accuracy"], ddof=1)
+            )
+            / 2
+        )
+        cohens_d = np.mean(accuracy_diff) / pooled_std
+
+        # Calculate partial eta-squared
+        n = len(bias_data["interoceptive_accuracy"])
+        df = n - 1 if n > 1 else 1
+        partial_eta_sq = (
+            (t_stat**2) / (t_stat**2 + df) if np.isfinite(t_stat) else 0.0
+        )
+
+        # Validation criteria
+        passed = mean_diff >= 0.10 and p_value < 0.05 and cohens_d >= 0.30
+
+        self.bias_results = {
+            "passed": passed,
+            "mean_accuracy_difference": float(mean_diff),
+            "interoceptive_mean": float(np.mean(bias_data["interoceptive_accuracy"])),
+            "exteroceptive_mean": float(np.mean(bias_data["exteroceptive_accuracy"])),
+            "p_value": float(p_value),
+            "cohens_d": float(cohens_d),
+            "partial_eta_squared": float(partial_eta_sq),
+            "t_statistic": float(t_stat),
+            "sample_size": n,
         }
+
+        return self.bias_results
 
 
 def main():

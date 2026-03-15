@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-APGI Theory Framework Setup Script
+APGI Framework Setup Script
 ==================================
 
 This script helps set up the APGI framework environment.
