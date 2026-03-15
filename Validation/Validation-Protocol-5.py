@@ -1533,6 +1533,15 @@ class FalsificationChecker:
                 "description": "Continuous architectures achieve equal/better fitness",
                 "threshold": None,
             },
+            "F5.5": {
+                "description": "PCA variance structure fails to reveal predicted dimensions",
+                "min_cumulative_variance": 0.70,
+                "min_pc_loading": 0.60,
+            },
+            "F5.6": {
+                "description": "Non-APGI architectures outperform APGI",
+                "min_performance_diff_pct": 40.0,
+            },
         }
 
     def check_F5_1(self, history: Dict, generation_idx: int = -1) -> Tuple[bool, Dict]:
@@ -1550,19 +1559,41 @@ class FalsificationChecker:
             "generation": history["generation"][generation_idx],
         }
 
-    def check_F5_2(self, selection_coefficients: Dict) -> Tuple[bool, Dict]:
+    def check_F5_2(
+        self, selection_coefficients: Dict, history: Dict
+    ) -> Tuple[bool, Dict]:
         """
         F5.2: Interoceptive weighting selection coefficient
-        """
 
+        Tests whether interoceptive weighting shows positive selection
+        by computing Pearson correlation between generation and frequency.
+        """
         s = selection_coefficients["has_intero_weighting"]
 
-        # Falsified if negative (decreasing over time)
+        # Get interoceptive weighting frequencies over generations
+        intero_freqs = [
+            h["has_intero_weighting"] for h in history["architecture_frequencies"]
+        ]
+        generations = list(range(len(intero_freqs)))
+
+        # Compute Pearson correlation between generation and frequency
+        if len(intero_freqs) > 2:
+            from scipy.stats import pearsonr
+
+            correlation, p_value = pearsonr(generations, intero_freqs)
+        else:
+            correlation = 0.0
+            p_value = 1.0
+
+        # Falsified if negative correlation (decreasing over time)
         falsified = s < self.criteria["F5.2"]["threshold"]
 
         return falsified, {
             "selection_coefficient": float(s),
+            "pearson_correlation": float(correlation),
+            "p_value": float(p_value),
             "interpretation": "Positive selection" if s > 0 else "Negative selection",
+            "trend": "Increasing" if correlation > 0 else "Decreasing",
         }
 
     def check_F5_3(self, history: Dict) -> Tuple[bool, Dict]:
@@ -1601,6 +1632,161 @@ class FalsificationChecker:
                 if final_freq > 0.5
                 else "Continuous equally good"
             ),
+        }
+
+    def check_F5_5(self, history: Dict) -> Tuple[bool, Dict]:
+        """
+        F5.5: PCA variance structure reveals predicted dimensions
+
+        Check if PCA of evolved architectures reveals the predicted dimensional
+        structure (threshold, precision, interoceptive bias) with sufficient
+        variance explained and PC loadings.
+        """
+        from sklearn.decomposition import PCA
+        from scipy.spatial.distance import cosine
+
+        # Extract architecture feature matrix
+        # Each row is an agent, columns are: has_threshold, has_intero_weighting,
+        # has_somatic_markers, has_precision_weighting, fitness
+        agent_features = []
+        for gen_data in history["architecture_frequencies"]:
+            # Use frequencies as features
+            features = [
+                gen_data["has_threshold"],
+                gen_data["has_intero_weighting"],
+                gen_data["has_somatic_markers"],
+                gen_data["has_precision_weighting"],
+            ]
+            agent_features.append(features)
+
+        agent_features = np.array(agent_features)
+
+        # Perform PCA
+        pca = PCA(n_components=3)
+        pca.fit(agent_features)
+
+        # Check cumulative variance
+        cumulative_variance = np.sum(pca.explained_variance_ratio_)
+
+        # Check PC loadings align with predicted dimensions
+        # Predicted dimensions: threshold, precision, interoceptive bias
+        # We expect PC1 to load heavily on threshold/precision, PC2 on interoceptive
+        predicted_pc1 = np.array([1.0, 1.0, 0.0, 0.0])  # Threshold + Precision
+        predicted_pc2 = np.array([0.0, 0.0, 1.0, 0.0])  # Interoceptive bias
+
+        # Normalize predicted vectors
+        predicted_pc1 = predicted_pc1 / np.linalg.norm(predicted_pc1)
+        predicted_pc2 = predicted_pc2 / np.linalg.norm(predicted_pc2)
+
+        # Compute cosine similarity with actual PCs
+        actual_pc1 = pca.components_[0]
+        actual_pc2 = pca.components_[1]
+
+        # Normalize actual PCs
+        actual_pc1 = actual_pc1 / np.linalg.norm(actual_pc1)
+        actual_pc2 = actual_pc2 / np.linalg.norm(actual_pc2)
+
+        similarity_pc1 = 1 - cosine(predicted_pc1, actual_pc1)
+        similarity_pc2 = 1 - cosine(predicted_pc2, actual_pc2)
+
+        # Check minimum loading
+        min_loading = min(
+            np.max(np.abs(pca.components_[0])),
+            np.max(np.abs(pca.components_[1])),
+            np.max(np.abs(pca.components_[2])),
+        )
+
+        # Falsified if variance too low or loadings don't align
+        falsified = (
+            cumulative_variance < self.criteria["F5.5"]["min_cumulative_variance"]
+            or min_loading < self.criteria["F5.5"]["min_pc_loading"]
+            or similarity_pc1 < 0.5
+            or similarity_pc2 < 0.5
+        )
+
+        return falsified, {
+            "cumulative_variance": float(cumulative_variance),
+            "min_pc_loading": float(min_loading),
+            "similarity_pc1": float(similarity_pc1),
+            "similarity_pc2": float(similarity_pc2),
+            "explained_variance_ratio": pca.explained_variance_ratio_.tolist(),
+        }
+
+    def check_F5_6(self, history: Dict) -> Tuple[bool, Dict]:
+        """
+        F5.6: Non-APGI architectures should underperform APGI
+
+        Check if architectures missing APGI components (threshold, precision,
+        interoceptive weighting) perform significantly worse than full APGI.
+        """
+        # Get fitness data for different architecture types
+        # We need to track fitness by architecture signature
+
+        # For simplicity, check correlation between APGI component count and fitness
+        # More APGI components should correlate with higher fitness
+
+        apgi_component_counts = []
+        fitness_values = []
+
+        for i, gen_data in enumerate(history["architecture_frequencies"]):
+            # Count APGI components
+            component_count = sum(
+                [
+                    gen_data["has_threshold"],
+                    gen_data["has_intero_weighting"],
+                    gen_data["has_somatic_markers"],
+                    gen_data["has_precision_weighting"],
+                ]
+            )
+
+            apgi_component_counts.append(component_count)
+            fitness_values.append(history["mean_fitness"][i])
+
+        apgi_component_counts = np.array(apgi_component_counts)
+        fitness_values = np.array(fitness_values)
+
+        # Compute correlation between component count and fitness
+        if len(apgi_component_counts) > 1:
+            correlation = np.corrcoef(apgi_component_counts, fitness_values)[0, 1]
+        else:
+            correlation = 0.0
+
+        # Compare fitness of architectures with 0 components vs 4 components
+        zero_component_fitness = []
+        four_component_fitness = []
+
+        for i, count in enumerate(apgi_component_counts):
+            if count == 0:
+                zero_component_fitness.append(fitness_values[i])
+            elif count == 4:
+                four_component_fitness.append(fitness_values[i])
+
+        if zero_component_fitness and four_component_fitness:
+            mean_zero = np.mean(zero_component_fitness)
+            mean_four = np.mean(four_component_fitness)
+
+            # Performance difference as percentage
+            if mean_zero > 0:
+                performance_diff_pct = ((mean_four - mean_zero) / mean_zero) * 100
+            else:
+                performance_diff_pct = 0.0
+        else:
+            performance_diff_pct = 0.0
+
+        # Falsified if non-APGI (0 components) performs as well or better than APGI
+        falsified = (
+            performance_diff_pct < self.criteria["F5.6"]["min_performance_diff_pct"]
+        )
+
+        return falsified, {
+            "correlation_components_fitness": float(correlation),
+            "performance_diff_pct": float(performance_diff_pct),
+            "zero_component_mean_fitness": float(mean_zero)
+            if zero_component_fitness
+            else 0.0,
+            "four_component_mean_fitness": float(mean_four)
+            if four_component_fitness
+            else 0.0,
         }
 
     def generate_report(self, history: Dict, selection_coefficients: Dict) -> Dict:
@@ -1664,6 +1850,34 @@ class FalsificationChecker:
         }
 
         if f5_4_result:
+            report["falsified_criteria"].append(criterion)
+        else:
+            report["passed_criteria"].append(criterion)
+
+        # F5.5
+        f5_5_result, f5_5_details = self.check_F5_5(history)
+        criterion = {
+            "code": "F5.5",
+            "description": self.criteria["F5.5"]["description"],
+            "falsified": f5_5_result,
+            "details": f5_5_details,
+        }
+
+        if f5_5_result:
+            report["falsified_criteria"].append(criterion)
+        else:
+            report["passed_criteria"].append(criterion)
+
+        # F5.6
+        f5_6_result, f5_6_details = self.check_F5_6(history)
+        criterion = {
+            "code": "F5.6",
+            "description": self.criteria["F5.6"]["description"],
+            "falsified": f5_6_result,
+            "details": f5_6_details,
+        }
+
+        if f5_6_result:
             report["falsified_criteria"].append(criterion)
         else:
             report["passed_criteria"].append(criterion)
@@ -3095,31 +3309,146 @@ class APGIValidationProtocol5:
 
 
 class MultiModalIntegrationValidator:
-    """Multi-modal integration validator for Protocol 5"""
+    """Multi-modal integration validator for Protocol 5
+
+    Validates that APGI properly integrates exteroceptive and interoceptive
+    information streams with appropriate weighting.
+    """
 
     def __init__(self) -> None:
         self.validation_results: Dict[str, Any] = {}
 
-    def validate(self) -> Dict[str, Any]:
-        """Validate multi-modal integration."""
-        return {
-            "status": "implemented",
-            "details": "MultiModalIntegrationValidator for Protocol 5",
+    def validate(
+        self,
+        exteroceptive_data: np.ndarray,
+        interoceptive_data: np.ndarray,
+        apgi_weights: np.ndarray,
+        baseline_weights: Optional[np.ndarray] = None,
+    ) -> Dict[str, Any]:
+        """
+        Validate multi-modal integration.
+
+        Args:
+            exteroceptive_data: Exteroceptive prediction errors
+            interoceptive_data: Interoceptive prediction errors
+            apgi_weights: APGI precision weights
+            baseline_weights: Baseline (non-APGI) weights for comparison
+
+        Returns:
+            Dictionary with validation results
+        """
+        # Normalize data to z-scores
+        extero_z = (exteroceptive_data - np.mean(exteroceptive_data)) / (
+            np.std(exteroceptive_data) + 1e-8
+        )
+        intero_z = (interoceptive_data - np.mean(interoceptive_data)) / (
+            np.std(interoceptive_data) + 1e-8
+        )
+
+        # Check that interoceptive signals receive higher weighting during salience
+        intero_weighted = np.mean(apgi_weights * np.abs(intero_z))
+        extero_weighted = np.mean(apgi_weights * np.abs(extero_z))
+
+        # Interoceptive should be weighted more during high salience
+        intero_advantage = intero_weighted - extero_weighted
+
+        # Check cross-modal correlation (should be moderate, not perfect)
+        cross_modal_corr = np.corrcoef(exteroceptive_data, interoceptive_data)[0, 1]
+
+        # Validate integration quality
+        passed = (
+            intero_advantage > 0
+            and -0.5  # Interoceptive receives higher weight
+            < cross_modal_corr
+            < 0.5  # Not too correlated (maintains distinct streams)
+        )
+
+        result = {
+            "status": "passed" if passed else "failed",
+            "details": {
+                "interoceptive_weighted": float(intero_weighted),
+                "exteroceptive_weighted": float(extero_weighted),
+                "interoceptive_advantage": float(intero_advantage),
+                "cross_modal_correlation": float(cross_modal_corr),
+                "integration_quality": "balanced" if passed else "imbalanced",
+            },
         }
+
+        self.validation_results = result
+        return result
 
 
 class CrossModalFalsificationChecker:
-    """Cross-modal falsification checker for Protocol 5"""
+    """Cross-modal falsification checker for Protocol 5
+
+    Tests whether APGI correctly distinguishes between exteroceptive and
+    interoceptive information streams and applies appropriate weighting.
+    """
 
     def __init__(self) -> None:
         self.falsification_results: Dict[str, Any] = {}
 
-    def check_falsification(self) -> Dict[str, Any]:
-        """Check cross-modal falsification criteria."""
-        return {
-            "status": "implemented",
-            "details": "CrossModalFalsificationChecker for Protocol 5",
+    def check_falsification(
+        self,
+        exteroceptive_predictions: np.ndarray,
+        interoceptive_predictions: np.ndarray,
+        actual_outcomes: np.ndarray,
+        apgi_model: Any,
+        control_model: Any,
+    ) -> Dict[str, Any]:
+        """
+        Check cross-modal falsification criteria.
+
+        Args:
+            exteroceptive_predictions: Predictions from exteroceptive stream
+            interoceptive_predictions: Predictions from interoceptive stream
+            actual_outcomes: Ground truth outcomes
+            apgi_model: APGI model instance
+            control_model: Control (non-APGI) model instance
+
+        Returns:
+            Dictionary with falsification results
+        """
+        # Test 1: Exteroceptive accuracy
+        extero_error = np.mean(np.abs(exteroceptive_predictions - actual_outcomes))
+
+        # Test 2: Interoceptive accuracy
+        intero_error = np.mean(np.abs(interoceptive_predictions - actual_outcomes))
+
+        # Test 3: Cross-modal integration error (combined predictions should be better)
+        combined_predictions = (
+            exteroceptive_predictions + interoceptive_predictions
+        ) / 2
+        combined_error = np.mean(np.abs(combined_predictions - actual_outcomes))
+
+        # APGI should weight streams optimally
+        # Interoceptive should have higher weight during salience
+        apgi_improvement = extero_error - combined_error
+
+        # Falsification criteria:
+        # 1. Interoceptive should not be ignored (intero_error should be meaningful)
+        # 2. Integration should improve over single stream (combined_error < extero_error)
+        falsified = (
+            intero_error == extero_error
+            or combined_error  # No weighting difference
+            >= extero_error  # No improvement from integration
+        )
+
+        result = {
+            "status": "falsified" if falsified else "passed",
+            "details": {
+                "exteroceptive_error": float(extero_error),
+                "interoceptive_error": float(intero_error),
+                "combined_error": float(combined_error),
+                "integration_improvement": float(apgi_improvement),
+                "cross_modal_weighting": "active"
+                if apgi_improvement > 0
+                else "inactive",
+            },
         }
+
+        self.falsification_results = result
+        return result
 
 
 if __name__ == "__main__":

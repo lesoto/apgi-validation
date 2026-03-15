@@ -2247,6 +2247,181 @@ def test_agent_generalization(trained_agent, test_environments):
     return generalization_results
 
 
+def compute_bic_comparison(results: Dict, analysis: Dict) -> Dict[str, float]:
+    """
+    Compute Bayesian Information Criterion (BIC) for model comparison.
+
+    BIC = k * ln(n) - 2 * ln(L)
+    where k = number of parameters, n = sample size, L = likelihood
+
+    Lower BIC indicates better model with penalty for complexity.
+
+    Args:
+        results: Dictionary of agent results
+        analysis: Analysis results
+
+    Returns:
+        Dictionary with BIC values for each agent
+    """
+    bic_values = {}
+
+    # Estimate number of parameters for each agent type
+    # This is approximate based on network architecture
+    n_params = {
+        "APGI": 250,  # Full hierarchical model with somatic markers
+        "StandardPP": 150,  # Simpler predictive processing
+        "GWTOnly": 180,  # Global workspace without interoception
+        "ActorCritic": 200,  # Reinforcement learning
+    }
+
+    # Use log-likelihood approximation from reward data
+    # Higher cumulative reward = higher likelihood
+    for env_name in results.keys():
+        bic_values[env_name] = {}
+
+        for agent_name, agent_results in results[env_name].items():
+            # Sample size = number of trials
+            n = agent_results.get("n_trials", 100)
+
+            # Log-likelihood approximation (using rewards as proxy)
+            # Convert rewards to pseudo-likelihood
+            rewards = agent_results.get("rewards", [])
+            if len(rewards) > 0:
+                # Use log of sum of positive rewards as likelihood proxy
+                positive_rewards = [r for r in rewards if r > 0]
+                if len(positive_rewards) > 0:
+                    log_likelihood = np.log(sum(positive_rewards) + 1e-10)
+                else:
+                    log_likelihood = np.log(1e-10)  # Very low likelihood
+            else:
+                # Use mean cumulative reward as proxy
+                mean_reward = agent_results.get("mean_cumulative_reward", 0)
+                log_likelihood = np.log(max(mean_reward, 1e-10))
+
+            k = n_params.get(agent_name, 200)
+            bic = k * np.log(n) - 2 * log_likelihood
+
+            bic_values[env_name][agent_name] = {
+                "bic": float(bic),
+                "n_params": k,
+                "log_likelihood": float(log_likelihood),
+                "n_trials": n,
+            }
+
+    # Compute relative BIC (delta from best model)
+    for env_name in bic_values:
+        best_bic = min([v["bic"] for v in bic_values[env_name].values()])
+
+        for agent_name in bic_values[env_name]:
+            delta_bic = bic_values[env_name][agent_name]["bic"] - best_bic
+            bic_values[env_name][agent_name]["delta_bic"] = float(delta_bic)
+
+            # Bayes factor approximation: BF ≈ exp(-0.5 * ΔBIC)
+            b_values = bic_values[env_name][agent_name]
+            if "delta_bic" in b_values:
+                bf = np.exp(-0.5 * b_values["delta_bic"])
+                b_values["bayes_factor_vs_best"] = float(bf)
+
+    return bic_values
+
+
+def verify_interoceptive_cost_weighting(results: Dict) -> Dict[str, Any]:
+    """
+    Verify that interoceptive costs are properly weighted in agent decisions.
+
+    This checks whether agents with higher interoceptive costs
+    appropriately avoid those options, indicating proper somatic
+    marker integration.
+
+    Args:
+        results: Dictionary of agent results
+
+    Returns:
+        Dictionary with cost weighting verification metrics
+    """
+    verification = {}
+
+    # For each environment, analyze cost-reward tradeoffs
+    for env_name in results.keys():
+        verification[env_name] = {}
+
+        if "APGI" not in results[env_name]:
+            verification[env_name]["error"] = "APGI agent not found"
+            continue
+
+        apgi_results = results[env_name]["APGI"]
+
+        # Extract cost and reward data from raw results
+        if "raw_results" not in apgi_results or len(apgi_results["raw_results"]) == 0:
+            verification[env_name]["error"] = "No raw results available"
+            continue
+
+        raw = apgi_results["raw_results"][0]
+
+        # Get costs and rewards
+        costs = raw.get("intero_costs", [])
+        rewards = raw.get("rewards", [])
+        actions = raw.get("actions", [])
+
+        if len(costs) == 0 or len(rewards) == 0:
+            verification[env_name]["error"] = "No cost/reward data"
+            continue
+
+        # Compute correlation between costs and action avoidance
+        # Higher cost should lead to lower selection probability
+        action_selection_counts = {}
+        for action in actions:
+            action_selection_counts[action] = action_selection_counts.get(action, 0) + 1
+
+        # Compute mean cost per action
+        action_mean_costs = {}
+        for i, action in enumerate(actions):
+            if action not in action_mean_costs:
+                action_mean_costs[action] = []
+            action_mean_costs[action].append(costs[i])
+
+        for action in action_mean_costs:
+            action_mean_costs[action] = np.mean(action_mean_costs[action])
+
+        # Correlation: higher mean cost should correlate with lower selection
+        if len(action_mean_costs) > 1:
+            actions_sorted = sorted(action_mean_costs.keys())
+            mean_costs = [action_mean_costs[a] for a in actions_sorted]
+            selection_counts = [
+                action_selection_counts.get(a, 0) for a in actions_sorted
+            ]
+
+            if len(mean_costs) > 1 and len(selection_counts) > 1:
+                correlation = np.corrcoef(mean_costs, selection_counts)[0, 1]
+                verification[env_name]["cost_avoidance_correlation"] = float(
+                    correlation
+                )
+                verification[env_name]["cost_weighting_verified"] = correlation < -0.3
+            else:
+                verification[env_name]["cost_weighting_verified"] = None
+        else:
+            verification[env_name]["cost_weighting_verified"] = None
+
+        # Check if APGI shows better cost-weighting than competitors
+        if env_name == "IGT":
+            # In IGT, good decks (C, D) have lower costs
+            # Bad decks (A, B) have higher costs
+            # APGI should prefer C and D
+            good_decks = [2, 3]  # C and D
+
+            apgi_good_selections = sum([1 for a in actions if a in good_decks])
+
+            total_selections = len(actions)
+            if total_selections > 0:
+                good_proportion = apgi_good_selections / total_selections
+                verification[env_name]["good_deck_preference"] = float(good_proportion)
+                verification[env_name]["cost_weighting_verified_igt"] = (
+                    good_proportion > 0.6
+                )
+
+    return verification
+
+
 def run_validation():
     """Entry point for CLI validation."""
     try:

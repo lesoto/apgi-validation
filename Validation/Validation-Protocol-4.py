@@ -714,6 +714,146 @@ class PhaseTransitionDetector:
 # =============================================================================
 
 
+class ClinicalPowerAnalysis:
+    """
+    Power analysis for clinical group comparisons in Protocol 4
+
+    Determines required sample sizes for detecting phase transition effects
+    in clinical populations (e.g., epilepsy patients vs. healthy controls).
+    """
+
+    @staticmethod
+    def compute_power_clinical_groups(
+        effect_size: float,
+        n_per_group: int = 30,
+        alpha: float = 0.01,
+        power: float = 0.80,
+    ) -> Dict[str, float]:
+        """
+        Compute statistical power for clinical group comparisons
+
+        Args:
+            effect_size: Expected Cohen's d for phase transition metrics
+            n_per_group: Sample size per clinical group (default: 30)
+            alpha: Type I error rate (default: 0.01 for clinical studies)
+            power: Desired power (default: 0.80)
+
+        Returns:
+            Dictionary with power analysis results
+        """
+        from statsmodels.stats.power import tt_ind_solve_power
+
+        # Calculate achieved power with given sample size
+        achieved_power = tt_ind_solve_power(
+            effect_size=effect_size,
+            nobs1=n_per_group,
+            alpha=alpha,
+            ratio=1.0,  # Equal group sizes
+            alternative="two-sided",
+        )
+
+        # Calculate required sample size for desired power
+        required_n = tt_ind_solve_power(
+            effect_size=effect_size,
+            alpha=alpha,
+            power=power,
+            ratio=1.0,
+            alternative="two-sided",
+        )
+
+        # Calculate minimum detectable effect with current sample size
+        min_effect = tt_ind_solve_power(
+            nobs1=n_per_group,
+            alpha=alpha,
+            power=power,
+            ratio=1.0,
+            alternative="two-sided",
+        )
+
+        return {
+            "effect_size": effect_size,
+            "n_per_group": n_per_group,
+            "alpha": alpha,
+            "achieved_power": float(achieved_power),
+            "required_n_for_desired_power": int(np.ceil(required_n)),
+            "min_detectable_effect": float(min_effect),
+            "power_sufficient": achieved_power >= 0.80,
+        }
+
+    @staticmethod
+    def analyze_clinical_group_power(
+        clinical_data: pd.DataFrame,
+        group_column: str = "condition",
+        metric_column: str = "susceptibility_ratio",
+        effect_size_target: float = 0.80,
+    ) -> Dict[str, Any]:
+        """
+        Analyze power for clinical group comparisons
+
+        Args:
+            clinical_data: DataFrame with clinical group data
+            group_column: Column containing group labels (e.g., "epilepsy", "healthy")
+            metric_column: Column containing phase transition metric
+            effect_size_target: Target effect size (Cohen's d)
+
+        Returns:
+            Dictionary with power analysis results
+        """
+        from scipy import stats
+
+        groups = clinical_data[group_column].unique()
+
+        if len(groups) != 2:
+            return {
+                "error": "Power analysis requires exactly 2 groups",
+                "n_groups_found": len(groups),
+            }
+
+        group1_data = clinical_data[clinical_data[group_column] == groups[0]][
+            metric_column
+        ]
+        group2_data = clinical_data[clinical_data[group_column] == groups[1]][
+            metric_column
+        ]
+
+        n1 = len(group1_data)
+        n2 = len(group2_data)
+
+        # Compute observed effect size
+        mean1, mean2 = np.mean(group1_data), np.mean(group2_data)
+        std1, std2 = np.std(group1_data, ddof=1), np.std(group2_data, ddof=1)
+        pooled_std = np.sqrt((std1**2 + std2**2) / 2)
+        observed_effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0
+
+        # Compute achieved power
+        achieved_power = stats.ttest_ind(group1_data, group2_data)[1]
+
+        # Compute required sample size for target effect size
+        from statsmodels.stats.power import tt_ind_solve_power
+
+        required_n = tt_ind_solve_power(
+            effect_size=effect_size_target,
+            alpha=0.01,
+            power=0.80,
+            ratio=1.0,
+            alternative="two-sided",
+        )
+
+        return {
+            "groups": list(groups),
+            "n_per_group": [n1, n2],
+            "mean_values": [float(mean1), float(mean2)],
+            "std_values": [float(std1), float(std2)],
+            "observed_effect_size": float(observed_effect_size),
+            "p_value": float(achieved_power),
+            "target_effect_size": effect_size_target,
+            "required_n_for_target": int(np.ceil(required_n)),
+            "current_n_sufficient": n1 >= required_n and n2 >= required_n,
+            "power_sufficient": achieved_power < 0.05
+            and observed_effect_size >= effect_size_target * 0.5,
+        }
+
+
 class FiniteSizeScalingAnalysis:
     """
     Finite-size scaling analysis to identify critical points and estimate exponents
@@ -1225,10 +1365,417 @@ class FiniteSizeScalingAnalysis:
 
         return float(parameter_values[min_idx])
 
+    def compute_hysteresis_width(self, timeseries: Dict) -> float:
+        """
+        Compute hysteresis width in phase transition.
+
+        Hysteresis is the difference between forward and backward transition points.
+        A first-order phase transition typically shows hysteresis.
+
+        Args:
+            timeseries: Time series data with S and theta
+
+        Returns:
+            Hysteresis width (difference in parameter values)
+        """
+        S = timeseries["S"]
+        theta = timeseries["theta"]
+
+        # Find forward crossing (S > theta)
+        forward_crossings = np.where((S[:-1] <= theta[:-1]) & (S[1:] > theta[1:]))[0]
+
+        # Find backward crossing (S < theta)
+        backward_crossings = np.where((S[:-1] >= theta[:-1]) & (S[1:] < theta[1:]))[0]
+
+        if len(forward_crossings) == 0 or len(backward_crossings) == 0:
+            return 0.0
+
+        # Use first crossing of each type
+        forward_idx = forward_crossings[0]
+        backward_idx = backward_crossings[0]
+
+        # Compute hysteresis as parameter difference
+        # (This is simplified - in practice would use parameter values at crossings)
+        hysteresis = abs(theta[forward_idx] - theta[backward_idx])
+
+        return float(hysteresis)
+
     def _bootstrap_exponent(
         self,
         params: np.ndarray,
         data: np.ndarray,
+        critical_point: float,
+        exponent_type: str = "beta",
+        n_bootstrap: int = 1000,
+    ) -> Tuple[float, float]:
+        """
+        Bootstrap confidence interval for critical exponent
+
+        Args:
+            params: Parameter values
+            data: Order parameter or susceptibility data
+            critical_point: Critical parameter value
+            exponent_type: Type of exponent ('beta' or 'gamma')
+            n_bootstrap: Number of bootstrap samples
+
+        Returns:
+            Tuple of (lower, upper) confidence interval bounds
+        """
+        bootstrap_exponents = []
+
+        for _ in range(n_bootstrap):
+            # Resample with replacement
+            n = len(params)
+            idx = np.random.choice(n, n, replace=True)
+            params_boot = params[idx]
+            data_boot = data[idx]
+
+            # Fit exponent on bootstrap sample
+            reduced_param = np.abs(params_boot - critical_point)
+            reduced_param = np.maximum(reduced_param, 1e-10)
+            data_safe = np.maximum(data_boot, 1e-10)
+
+            if len(reduced_param) > 3:
+                log_reduced = np.log(reduced_param)
+                log_data = np.log(data_safe)
+
+                try:
+                    fit = np.polyfit(log_reduced, log_data, 1)
+                    if exponent_type == "beta":
+                        bootstrap_exponents.append(fit[0])
+                    else:  # gamma
+                        bootstrap_exponents.append(-fit[0])
+                except (ValueError, np.linalg.LinAlgError):
+                    pass
+
+        if len(bootstrap_exponents) > 0:
+            bootstrap_exponents = np.array(bootstrap_exponents)
+            lower = np.percentile(bootstrap_exponents, 2.5)
+            upper = np.percentile(bootstrap_exponents, 97.5)
+            return float(lower), float(upper)
+        else:
+            return np.nan, np.nan
+
+    def detect_seizure_artifacts(
+        self, timeseries: Dict, threshold: float = 5.0
+    ) -> Dict:
+        """
+        Detect and exclude seizure artifacts from analysis.
+
+        Seizure artifacts are characterized by:
+        - Abrupt, high-amplitude spikes
+        - Sustained high-frequency activity
+        - Non-physiological patterns
+
+        Args:
+            timeseries: Time series data
+            threshold: Amplitude threshold for artifact detection
+
+        Returns:
+            Dictionary with artifact detection results and cleaned indices
+        """
+        S = timeseries["S"]
+        theta = timeseries.get("theta", np.zeros_like(S))
+
+        # Compute derivative to detect abrupt changes
+        dS = np.diff(S)
+
+        # Detect high-amplitude spikes
+        spike_threshold = threshold * np.std(S)
+        spike_indices = np.where(np.abs(dS) > spike_threshold)[0]
+
+        # Detect sustained high activity
+        high_activity_mask = S > (np.mean(S) + 3 * np.std(S))
+        sustained_high = self._find_sustained_periods(high_activity_mask, min_length=10)
+
+        # Combine artifact indices
+        artifact_indices = np.unique(np.concatenate([spike_indices, sustained_high]))
+
+        # Create clean indices (exclude artifacts)
+        clean_indices = np.setdiff1d(np.arange(len(S)), artifact_indices)
+
+        return {
+            "n_artifacts": len(artifact_indices),
+            "artifact_indices": artifact_indices.tolist(),
+            "clean_indices": clean_indices.tolist(),
+            "artifact_rate": float(len(artifact_indices) / len(S)),
+            "clean_S": S[clean_indices] if len(clean_indices) > 0 else S,
+            "clean_theta": theta[clean_indices]
+            if len(clean_indices) > 0 and len(theta) > 0
+            else theta,
+        }
+
+    def _find_sustained_periods(
+        self, mask: np.ndarray, min_length: int = 10
+    ) -> np.ndarray:
+        """Find sustained periods where mask is True"""
+        periods = []
+        in_period = False
+        period_start = 0
+
+        for i, val in enumerate(mask):
+            if val and not in_period:
+                period_start = i
+                in_period = True
+            elif not val and in_period:
+                period_length = i - period_start
+                if period_length >= min_length:
+                    periods.extend(range(period_start, i))
+                in_period = False
+
+        # Check if period extends to end
+        if in_period:
+            period_length = len(mask) - period_start
+            if period_length >= min_length:
+                periods.extend(range(period_start, len(mask)))
+
+        return np.array(periods)
+
+    def compute_bootstrap_confidence_intervals(
+        self, data: np.ndarray, n_bootstrap: int = 1000, ci_level: float = 0.95
+    ) -> Dict[str, Any]:
+        """
+        Compute bootstrap confidence intervals for a statistic.
+
+        Args:
+            data: Data array
+            n_bootstrap: Number of bootstrap samples
+            ci_level: Confidence interval level (e.g., 0.95 for 95% CI)
+
+        Returns:
+            Dictionary with CI results
+        """
+        bootstrap_stats = []
+
+        for _ in range(n_bootstrap):
+            # Resample with replacement
+            sample = np.random.choice(data, size=len(data), replace=True)
+            bootstrap_stats.append(np.mean(sample))
+
+        bootstrap_stats = np.array(bootstrap_stats)
+
+        alpha = 1 - ci_level
+        lower = np.percentile(bootstrap_stats, 100 * alpha / 2)
+        upper = np.percentile(bootstrap_stats, 100 * (1 - alpha / 2))
+
+        return {
+            "mean": float(np.mean(data)),
+            "std": float(np.std(data)),
+            "ci_lower": float(lower),
+            "ci_upper": float(upper),
+            "ci_level": ci_level,
+            "bootstrap_samples": n_bootstrap,
+        }
+
+
+class IntracranialRecordingPipeline:
+    """
+    Pipeline for processing intracranial EEG/LFP recordings.
+
+    Handles:
+    - Signal preprocessing
+    - Artifact rejection (including seizure artifacts)
+    - Frequency analysis
+    - Phase-amplitude coupling
+    """
+
+    def __init__(self, sampling_rate: float = 1000.0):
+        """
+        Args:
+            sampling_rate: Sampling rate in Hz
+        """
+        self.sampling_rate = sampling_rate
+
+    def preprocess_signal(self, raw_signal: np.ndarray) -> Dict:
+        """
+        Preprocess intracranial signal.
+
+        Steps:
+        1. Remove DC offset
+        2. Bandpass filter (1-100 Hz)
+        3. Notch filter at line noise (50/60 Hz)
+        4. Detect and remove artifacts
+
+        Args:
+            raw_signal: Raw intracranial recording
+
+        Returns:
+            Dictionary with processed signal and metadata
+        """
+        from scipy import signal
+
+        # Remove DC offset
+        signal_dc_removed = raw_signal - np.mean(raw_signal)
+
+        # Bandpass filter (1-100 Hz)
+        nyquist = self.sampling_rate / 2
+        low = 1.0 / nyquist
+        high = 100.0 / nyquist
+        b, a = signal.butter(4, [low, high], btype="band")
+        signal_filtered = signal.filtfilt(b, a, signal_dc_removed)
+
+        # Notch filter at 50 Hz (or 60 Hz)
+        notch_freq = 50.0
+        notch_width = 2.0
+        notch_low = (notch_freq - notch_width) / nyquist
+        notch_high = (notch_freq + notch_width) / nyquist
+        b_notch, a_notch = signal.butter(4, [notch_low, notch_high], btype="bandstop")
+        signal_clean = signal.filtfilt(b_notch, a_notch, signal_filtered)
+
+        # Detect artifacts
+        artifact_mask = self._detect_artifacts(signal_clean)
+        signal_final = signal_clean[~artifact_mask]
+
+        return {
+            "preprocessed": signal_final,
+            "artifact_mask": artifact_mask,
+            "artifact_rate": float(np.sum(artifact_mask) / len(artifact_mask)),
+            "raw": raw_signal,
+        }
+
+    def _detect_artifacts(
+        self, signal: np.ndarray, threshold: float = 5.0
+    ) -> np.ndarray:
+        """Detect artifacts in signal"""
+        # Detect spikes
+        d_signal = np.diff(signal)
+        spike_threshold = threshold * np.std(signal)
+        spike_mask = np.abs(d_signal) > spike_threshold
+
+        # Detect flat periods (equipment failure)
+        flat_mask = np.abs(np.diff(signal, n=10)) < 1e-6
+
+        # Detect saturations
+        saturation_mask = (signal > 0.95 * np.max(signal)) | (
+            signal < 0.95 * np.min(signal)
+        )
+
+        # Combine all artifact detections
+        artifact_mask = np.zeros(len(signal), dtype=bool)
+        artifact_mask[:-1] |= spike_mask
+        artifact_mask[:-10] |= flat_mask
+        artifact_mask |= saturation_mask
+
+        return artifact_mask
+
+    def compute_power_spectrum(self, signal: np.ndarray) -> Dict:
+        """
+        Compute power spectral density.
+
+        Args:
+            signal: Preprocessed signal
+
+        Returns:
+            Dictionary with frequency domain analysis
+        """
+        from scipy import signal
+
+        # Compute PSD using Welch's method
+        freqs, psd = signal.welch(signal, fs=self.sampling_rate, nperseg=1024)
+
+        # Find dominant frequencies
+        peak_indices = signal.find_peaks(psd, height=np.max(psd) * 0.1)[0]
+        dominant_freqs = freqs[peak_indices]
+        dominant_powers = psd[peak_indices]
+
+        # Compute band powers
+        bands = {
+            "delta": (1, 4),
+            "theta": (4, 8),
+            "alpha": (8, 13),
+            "beta": (13, 30),
+            "gamma": (30, 100),
+        }
+
+        band_powers = {}
+        for band_name, (f_low, f_high) in bands.items():
+            band_mask = (freqs >= f_low) & (freqs <= f_high)
+            band_powers[band_name] = float(np.sum(psd[band_mask]))
+
+        # Total power
+        total_power = float(np.sum(psd))
+
+        return {
+            "frequencies": freqs,
+            "psd": psd,
+            "dominant_freqs": dominant_freqs.tolist(),
+            "dominant_powers": dominant_powers.tolist(),
+            "band_powers": band_powers,
+            "total_power": total_power,
+        }
+
+    def compute_phase_amplitude_coupling(
+        self, phase_signal: np.ndarray, amplitude_signal: np.ndarray
+    ) -> Dict:
+        """
+        Compute phase-amplitude coupling (PAC).
+
+        PAC measures how the amplitude of a high-frequency signal
+        modulates with the phase of a low-frequency signal.
+
+        Args:
+            phase_signal: Low-frequency signal (e.g., theta, 4-8 Hz)
+            amplitude_signal: High-frequency signal (e.g., gamma, 30-100 Hz)
+
+        Returns:
+            Dictionary with PAC metrics
+        """
+        from scipy import signal
+
+        # Extract phase of low-frequency signal
+        analytic_phase = signal.hilbert(phase_signal)
+        phase = np.angle(analytic_phase)
+
+        # Extract amplitude envelope of high-frequency signal
+        analytic_amp = signal.hilbert(amplitude_signal)
+        amplitude = np.abs(analytic_amp)
+
+        # Bin phase into n_bins bins
+        n_bins = 18
+        phase_bins = np.linspace(-np.pi, np.pi, n_bins + 1)
+        bin_indices = np.digitize(phase, phase_bins[1:-1]) - 1
+
+        # Compute mean amplitude for each phase bin
+        bin_amplitudes = []
+        for i in range(n_bins):
+            mask = bin_indices == i
+            if np.sum(mask) > 0:
+                bin_amplitudes.append(np.mean(amplitude[mask]))
+            else:
+                bin_amplitudes.append(0)
+
+        bin_amplitudes = np.array(bin_amplitudes)
+
+        # Compute PAC modulation index
+        # MI between phase bins and amplitudes
+        from sklearn.metrics import mutual_info_score
+
+        # Discretize amplitudes for MI computation
+        n_amp_bins = 10
+        amp_discretized = np.digitize(
+            amplitude, np.linspace(0, np.max(amplitude), n_amp_bins + 1)[1:-1]
+        )
+
+        pac_mi = mutual_info_score(bin_indices, amp_discretized)
+
+        # Normalize by entropy of amplitude distribution
+        from scipy.stats import entropy
+
+        amp_entropy = entropy(np.bincount(amp_discretized))
+        pac_normalized = pac_mi / amp_entropy if amp_entropy > 0 else 0
+
+        return {
+            "pac_mi": float(pac_mi),
+            "pac_normalized": float(pac_normalized),
+            "phase_bins": phase_bins[:-1].tolist(),
+            "bin_amplitudes": bin_amplitudes.tolist(),
+            "n_bins": n_bins,
+        }
+
+    def compute_bootstrap_confidence_intervals(
+        self,
+        data: np.ndarray,
+        params: np.ndarray,
         critical_point: float,
         exponent_type: str,
         n_bootstrap: int = 100,
