@@ -1,0 +1,123 @@
+# APGI Validation Protocol Configuration
+# ========================================
+# Runtime parameters for all validation protocols
+# Nothing should be hardcoded in function bodies
+
+# General Settings
+general:
+  random_seed: 42  # Default seed for reproducibility
+  n_trials_per_condition: 100  # Default number of trials
+  confidence_level: 0.95  # For confidence intervals
+  alpha_level: 0.05  # For statistical tests
+
+# Protocol-Specific Parameters
+protocols:
+  # Validation Protocol 1: Synthetic Neural Data
+  protocol_1:
+    n_subjects: 30
+    n_trials: 1000
+    n_features: 10
+    noise_level: 0.1
+
+  # Validation Protocol 2: Behavioral Validation
+  protocol_2:
+    n_subjects: 30
+    n_trials: 500
+    stimulus_intensities: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+  # Validation Protocol 3: Agent Comparison
+  protocol_3:
+    n_agents: 5
+    n_trials: 1000
+    n_environments: 3
+    n_generations: 100
+
+  # Validation Protocol 4: Phase Transition
+  protocol_4:
+    n_simulations: 100
+    n_steps: 1000
+    dt: 0.001
+
+  # Validation Protocol 5: Evolutionary Emergence
+  protocol_5:
+    population_size: 500
+    n_generations: 1000
+    mutation_rate: 0.01
+    crossover_rate: 0.7
+    n_elites: 10
+
+  # Validation Protocol 6: Network Comparison
+  protocol_6:
+    n_networks: 10
+    n_layers: 3
+    n_neurons_per_layer: [100, 50, 10]
+    n_epochs: 100
+    batch_size: 32
+    learning_rate: 0.001
+
+  # Validation Protocol 7: Mathematical Consistency
+  protocol_7:
+    tolerance: 1e-6
+    max_iterations: 1000
+
+  # Validation Protocol 8: Parameter Sensitivity
+  protocol_8:
+    n_parameters: 10
+    n_samples: 1000
+    sensitivity_threshold: 0.1
+
+  # Validation Protocol 9: Neural Signatures
+  protocol_9:
+    n_subjects: 30
+    n_trials: 200
+    sampling_rate: 500  # Hz
+    epoch_duration: 1.0  # seconds
+    baseline_duration: 0.2  # seconds
+
+  # Validation Protocol 10: Cross-Species Scaling
+  protocol_10:
+    species: ["mouse", "rat", "monkey", "human"]
+    n_subjects_per_species: 10
+    brain_mass_range: [0.4, 1300.0]  # grams
+
+  # Validation Protocol 11: Bayesian Estimation
+  protocol_11:
+    n_chains: 4
+    n_draws: 2000
+    n_tune: 1000
+    target_accept: 0.65
+
+  # Validation Protocol 12: Clinical and Cross-Species
+  protocol_12:
+    n_patients_per_condition: 20
+    conditions: ["vegetative_state", "minimally_conscious", "healthy_controls"]
+    psychiatric_conditions: ["generalized_anxiety_disorder", "major_depressive_disorder", "psychosis", "healthy_controls"]
+
+# Epistemic Architecture Protocol (P4)
+protocol_p4:
+  n_trials: 1000
+  n_features: 10
+  n_permutations: 1000
+  n_bootstraps: 1000
+  n_measurements: 50
+  n_timepoints: 20
+
+# Data Generation Parameters
+data_generation:
+  synthetic_data_seed: 42
+  noise_distribution: "normal"
+  outlier_fraction: 0.05
+
+# Output Settings
+output:
+  save_intermediate_results: true
+  save_plots: true
+  plot_format: "png"
+  output_directory: "results"
+  reproducibility_directory: "reproducibility"
+
+# Logging Settings
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "validation.log"

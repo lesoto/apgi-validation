@@ -2696,6 +2696,321 @@ def plot_phase_transition_results(
 # =============================================================================
 
 
+class ClinicalDoCBiomarkerValidation:
+    """Clinical Disorder of Consciousness biomarker validation for APGI"""
+
+    def __init__(self):
+        # CRS-R calibrated multivariate Gaussian parameters for clinical populations
+        self.clinical_populations = {
+            "VS": {  # Vegetative State
+                "theta_mean": 2.0,
+                "theta_std": 0.3,
+                "Pi_i_mean": 0.3,
+                "Pi_i_std": 0.15,
+                "ignition_prob_mean": 0.02,
+                "ignition_prob_std": 0.01,
+                "correlation_matrix": np.array(
+                    [[1.0, 0.3, 0.2], [0.3, 1.0, 0.4], [0.2, 0.4, 1.0]]
+                ),
+            },
+            "MCS": {  # Minimally Conscious State
+                "theta_mean": 1.2,
+                "theta_std": 0.25,
+                "Pi_i_mean": 0.6,
+                "Pi_i_std": 0.2,
+                "ignition_prob_mean": 0.25,
+                "ignition_prob_std": 0.08,
+                "correlation_matrix": np.array(
+                    [[1.0, 0.4, 0.3], [0.4, 1.0, 0.5], [0.3, 0.5, 1.0]]
+                ),
+            },
+            "Healthy": {  # Healthy Controls
+                "theta_mean": 0.5,
+                "theta_std": 0.15,
+                "Pi_i_mean": 1.0,
+                "Pi_i_std": 0.2,
+                "ignition_prob_mean": 0.75,
+                "ignition_prob_std": 0.1,
+                "correlation_matrix": np.array(
+                    [[1.0, 0.2, 0.3], [0.2, 1.0, 0.4], [0.3, 0.4, 1.0]]
+                ),
+            },
+        }
+
+    def simulate_clinical_cohort(self, n_per_group: int = 30) -> pd.DataFrame:
+        """
+        Simulate VS/MCS/healthy cohort with APGI parameters from disorder-specific multivariate Gaussians
+
+        Args:
+            n_per_group: Number of subjects per clinical group
+
+        Returns:
+            DataFrame with simulated clinical cohort data
+        """
+        cohort_data = []
+
+        for group_name, params in self.clinical_populations.items():
+            # Extract parameters
+            means = np.array(
+                [
+                    params["theta_mean"],
+                    params["Pi_i_mean"],
+                    params["ignition_prob_mean"],
+                ]
+            )
+            stds = np.array(
+                [params["theta_std"], params["Pi_i_std"], params["ignition_prob_std"]]
+            )
+            corr_matrix = params["correlation_matrix"]
+
+            # Generate correlated samples using Cholesky decomposition
+            L = np.linalg.cholesky(corr_matrix)
+            uncorrelated_samples = np.random.randn(n_per_group, 3)
+            correlated_samples = uncorrelated_samples @ L.T
+
+            # Scale to match means and stds
+            theta_samples = means[0] + stds[0] * correlated_samples[:, 0]
+            Pi_i_samples = means[1] + stds[1] * correlated_samples[:, 1]
+            ignition_samples = means[2] + stds[2] * correlated_samples[:, 2]
+
+            # Ensure physical constraints
+            theta_samples = np.clip(theta_samples, 0.1, 3.0)
+            Pi_i_samples = np.clip(Pi_i_samples, 0.1, 2.0)
+            ignition_samples = np.clip(ignition_samples, 0.0, 1.0)
+
+            for i in range(n_per_group):
+                cohort_data.append(
+                    {
+                        "subject_id": f"{group_name}_{i}",
+                        "group": group_name,
+                        "theta_t": theta_samples[i],
+                        "Pi_i": Pi_i_samples[i],
+                        "ignition_probability": ignition_samples[i],
+                    }
+                )
+
+        return pd.DataFrame(cohort_data)
+
+    def logistic_regression_classification(
+        self, cohort_data: pd.DataFrame
+    ) -> Dict[str, Any]:
+        """
+        Logistic regression of APGI parameters onto VS/MCS classification
+
+        Args:
+            cohort_data: DataFrame with clinical cohort data
+
+        Returns:
+            Dict with classification results and metrics
+        """
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.metrics import (
+            roc_auc_score,
+            confusion_matrix,
+            accuracy_score,
+            precision_score,
+            recall_score,
+            f1_score,
+        )
+
+        # Prepare data: VS vs MCS classification
+        vs_mcs_data = cohort_data[cohort_data["group"].isin(["VS", "MCS"])].copy()
+        vs_mcs_data["target"] = (vs_mcs_data["group"] == "MCS").astype(int)
+
+        # Features
+        X = vs_mcs_data[["theta_t", "Pi_i", "ignition_probability"]].values
+        y = vs_mcs_data["target"].values
+
+        # Fit logistic regression
+        model = LogisticRegression(random_state=42, max_iter=1000)
+        model.fit(X, y)
+
+        # Predictions
+        y_pred = model.predict(X)
+        y_pred_proba = model.predict_proba(X)[:, 1]
+
+        # Metrics
+        accuracy = accuracy_score(y, y_pred)
+        sensitivity = recall_score(y, y_pred)  # True Positive Rate
+        specificity = recall_score(y, 1 - y_pred)  # True Negative Rate
+        precision = precision_score(y, y_pred)
+        npv = precision_score(1 - y, 1 - y_pred)  # Negative Predictive Value
+        roc_auc = roc_auc_score(y, y_pred_proba)
+        f1 = f1_score(y, y_pred)
+
+        # Confusion matrix
+        cm = confusion_matrix(y, y_pred)
+
+        return {
+            "model": model,
+            "coefficients": dict(
+                zip(["theta_t", "Pi_i", "ignition_probability"], model.coef_[0])
+            ),
+            "intercept": model.intercept_[0],
+            "accuracy": accuracy,
+            "sensitivity": sensitivity,
+            "specificity": specificity,
+            "precision": precision,
+            "npv": npv,
+            "roc_auc": roc_auc,
+            "f1_score": f1,
+            "confusion_matrix": cm,
+            "predictions": y_pred,
+            "probabilities": y_pred_proba,
+        }
+
+    def compute_pci_proxy(
+        self, cohort_data: pd.DataFrame, n_perturbations: int = 100
+    ) -> pd.DataFrame:
+        """
+        Implement PCI proxy as perturbational complexity of simulated EEG response
+
+        Args:
+            cohort_data: DataFrame with clinical cohort data
+            n_perturbations: Number of perturbations for complexity calculation
+
+        Returns:
+            DataFrame with PCI values
+        """
+        pci_values = []
+
+        for _, subject in cohort_data.iterrows():
+            # Simulate EEG response variability
+            theta = subject["theta_t"]
+            Pi_i = subject["Pi_i"]
+            ignition_prob = subject["ignition_probability"]
+
+            # Generate perturbations
+            perturbations = np.random.normal(0, 0.1, n_perturbations)
+
+            # Simulate response variability
+            responses = []
+            for perturbation in perturbations:
+                # Perturbed parameters
+                theta_perturbed = theta * (1 + perturbation)
+                Pi_i_perturbed = Pi_i * (1 + perturbation * 0.5)
+
+                # Compute response (simplified ignition probability)
+                S = 1.0 * Pi_i_perturbed  # Simplified signal
+                response = 1.0 / (1.0 + np.exp(-8.0 * (S - theta_perturbed)))
+                responses.append(response)
+
+            # PCI: perturbational complexity index
+            # Standard deviation of responses across perturbations
+            pci = np.std(responses)
+
+            pci_values.append(
+                {
+                    "subject_id": subject["subject_id"],
+                    "group": subject["group"],
+                    "theta_t": theta,
+                    "Pi_i": Pi_i,
+                    "ignition_probability": ignition_prob,
+                    "pci": pci,
+                }
+            )
+
+        return pd.DataFrame(pci_values)
+
+    def cross_modal_replication(
+        self, cohort_data: pd.DataFrame
+    ) -> Dict[str, pd.DataFrame]:
+        """
+        Cross-modal replication across visual, auditory, somatosensory modalities
+
+        Args:
+            cohort_data: DataFrame with clinical cohort data
+
+        Returns:
+            Dict with modality-specific results
+        """
+        modalities = ["visual", "auditory", "somatosensory"]
+
+        # Modality-specific precision adjustments
+        modality_adjustments = {
+            "visual": {"Pi_e_factor": 1.0, "Pi_i_factor": 1.0},
+            "auditory": {"Pi_e_factor": 0.9, "Pi_i_factor": 1.1},
+            "somatosensory": {"Pi_e_factor": 1.1, "Pi_i_factor": 0.9},
+        }
+
+        modality_results = {}
+
+        for modality in modalities:
+            adjustments = modality_adjustments[modality]
+
+            modality_data = cohort_data.copy()
+
+            # Apply modality-specific precision adjustments
+            modality_data["Pi_i_modality"] = (
+                modality_data["Pi_i"] * adjustments["Pi_i_factor"]
+            )
+
+            # Recalculate ignition probability with modality-specific parameters
+            S = 1.0 * modality_data["Pi_i_modality"]
+            modality_data["ignition_prob_modality"] = 1.0 / (
+                1.0 + np.exp(-8.0 * (S - modality_data["theta_t"]))
+            )
+
+            modality_results[modality] = modality_data
+
+        return modality_results
+
+    def compute_classification_metrics(
+        self, modality_results: Dict[str, pd.DataFrame]
+    ) -> Dict[str, Dict]:
+        """
+        Compute classification metrics across modalities
+
+        Args:
+            modality_results: Dict with modality-specific data
+
+        Returns:
+            Dict with metrics for each modality
+        """
+        from sklearn.metrics import (
+            roc_auc_score,
+            accuracy_score,
+            precision_score,
+            recall_score,
+        )
+
+        metrics = {}
+
+        for modality, data in modality_results.items():
+            # VS vs MCS classification
+            vs_mcs_data = data[data["group"].isin(["VS", "MCS"])].copy()
+            vs_mcs_data["target"] = (vs_mcs_data["group"] == "MCS").astype(int)
+
+            # Simple threshold-based classification
+            predictions = (vs_mcs_data["ignition_prob_modality"] > 0.15).astype(int)
+
+            # Metrics
+            accuracy = accuracy_score(vs_mcs_data["target"], predictions)
+            sensitivity = recall_score(vs_mcs_data["target"], predictions)
+            specificity = recall_score(1 - vs_mcs_data["target"], 1 - predictions)
+            precision = precision_score(vs_mcs_data["target"], predictions)
+            npv = precision_score(1 - vs_mcs_data["target"], 1 - predictions)
+
+            # ROC-AUC (using probability values)
+            try:
+                roc_auc = roc_auc_score(
+                    vs_mcs_data["target"], vs_mcs_data["ignition_prob_modality"]
+                )
+            except Exception:
+                roc_auc = 0.5  # Default if all predictions are the same
+
+            metrics[modality] = {
+                "accuracy": accuracy,
+                "sensitivity": sensitivity,
+                "specificity": specificity,
+                "precision": precision,
+                "npv": npv,
+                "roc_auc": roc_auc,
+            }
+
+        return metrics
+
+
 def main():
     """Main execution pipeline for Protocol 4"""
 

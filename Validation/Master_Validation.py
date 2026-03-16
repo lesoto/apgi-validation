@@ -8,7 +8,10 @@ Coordinates execution of all validation protocols and aggregates results.
 
 import importlib.util
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
+
+import numpy as np
+import pandas as pd
 
 # Try to import logging config
 try:
@@ -60,6 +63,21 @@ class APGIMasterValidator:
             "tertiary": [],
         }
         self.timeout_seconds = 30
+        # Protocol dependencies: protocols that must run before others
+        self.protocol_dependencies = {
+            "Protocol-1": [],  # No dependencies
+            "Protocol-2": [],
+            "Protocol-3": [],
+            "Protocol-4": [],
+            "Protocol-5": [],  # Evolutionary - independent
+            "Protocol-6": [],
+            "Protocol-7": [],
+            "Protocol-8": [],
+            "Protocol-9": [],
+            "Protocol-10": [],
+            "Protocol-11": [],
+            "Protocol-12": [],
+        }
         self.available_protocols = {
             "Protocol-1": {
                 "file": "Validation-Protocol-1.py",
@@ -233,8 +251,9 @@ class APGIMasterValidator:
         )
         success_rate = passed_protocols / total_protocols
 
-        # BUG-053: Weighted Scoring Implementation
-        tier_weights = {"primary": 0.5, "secondary": 0.3, "tertiary": 0.2}
+        # Equal weighting across all protocols (1/N) unless papers specify differential evidential weight
+        # This prevents systematic underweighting of protocols covering Paper 4's Level 1/2 predictions
+        tier_weights = {"primary": 1.0, "secondary": 1.0, "tertiary": 1.0}
         tier_stats = {
             "primary": {"passed": 0, "total": 0},
             "secondary": {"passed": 0, "total": 0},
@@ -295,3 +314,125 @@ class APGIMasterValidator:
     def clear_results(self):
         """Clear all protocol results"""
         self.protocol_results.clear()
+
+    def run_all_protocols(
+        self, seed: Optional[int] = None, **kwargs
+    ) -> Dict[str, Dict]:
+        """
+        Run all validation protocols in dependency order
+
+        Args:
+            seed: Random seed for reproducibility
+            **kwargs: Additional arguments passed to protocol functions
+
+        Returns:
+            Dictionary of all protocol results
+        """
+        if seed is not None:
+            np.random.seed(seed)
+            kwargs["seed"] = seed
+
+        # Get all available protocols
+        all_protocols = list(self.available_protocols.keys())
+
+        # Run in dependency order (topological sort)
+        executed = set()
+        results = {}
+
+        for protocol_name in all_protocols:
+            if protocol_name in executed:
+                continue
+
+            # Check dependencies
+            dependencies = self.protocol_dependencies.get(protocol_name, [])
+            for dep in dependencies:
+                if dep not in executed:
+                    # Run dependency first
+                    dep_results = self.run_validation([dep], **kwargs)
+                    results.update(dep_results)
+                    executed.add(dep)
+
+            # Run current protocol
+            protocol_results = self.run_validation([protocol_name], **kwargs)
+            results.update(protocol_results)
+            executed.add(protocol_name)
+
+        return results
+
+    def generate_reproducibility_package(self, output_dir: str = None) -> Dict:
+        """
+        Generate reproducibility package with all parameters, seeds, and outputs
+
+        Args:
+            output_dir: Directory to save reproducibility package
+
+        Returns:
+            Dictionary with reproducibility information
+        """
+        from pathlib import Path
+        import json
+        from datetime import datetime
+
+        if output_dir is None:
+            output_dir = Path(__file__).parent.parent / "reproducibility"
+        else:
+            output_dir = Path(output_dir)
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate reproducibility data
+        reproducibility_data = {
+            "timestamp": datetime.now().isoformat(),
+            "protocol_results": self.protocol_results,
+            "tier_classification": self.PROTOCOL_TIERS,
+            "tier_weights": {"primary": 1.0, "secondary": 1.0, "tertiary": 1.0},
+            "available_protocols": self.available_protocols,
+            "protocol_dependencies": self.protocol_dependencies,
+        }
+
+        # Save reproducibility data
+        output_file = (
+            output_dir
+            / f"validation_reproducibility_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
+        with open(output_file, "w") as f:
+            json.dump(reproducibility_data, f, indent=2)
+
+        # Save results as CSV
+        results_df = self._results_to_dataframe()
+        csv_file = (
+            output_dir
+            / f"validation_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        )
+        results_df.to_csv(csv_file, index=False)
+
+        return {
+            "reproducibility_data": reproducibility_data,
+            "output_files": {
+                "json": str(output_file),
+                "csv": str(csv_file),
+            },
+            "output_directory": str(output_dir),
+        }
+
+    def _results_to_dataframe(self) -> pd.DataFrame:
+        """Convert protocol results to pandas DataFrame"""
+        rows = []
+        for protocol_name, result in self.protocol_results.items():
+            row = {
+                "protocol": protocol_name,
+                "status": result.get("status", "unknown"),
+                "passed": result.get("passed", False),
+                "message": result.get("message", ""),
+            }
+
+            # Extract protocol number for tier classification
+            try:
+                p_num = int(protocol_name.split("-")[1])
+                row["tier"] = self.PROTOCOL_TIERS.get(p_num, "unknown")
+            except (ValueError, IndexError):
+                row["tier"] = "unknown"
+
+            rows.append(row)
+
+        return pd.DataFrame(rows)

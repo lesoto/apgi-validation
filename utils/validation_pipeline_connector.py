@@ -11,12 +11,12 @@ import json
 import logging
 import inspect
 import threading
+import signal
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import pandas as pd
-
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -418,29 +418,45 @@ def main():
     """Demonstrate validation pipeline connector."""
     print("APGI Framework - Validation Pipeline Connector")
     print("=" * 50)
-    # Initialize connector
-    connector = ValidationPipelineConnector()
-    # Test with Protocol 1 using synthetic data
-    print("\n1. Testing Protocol 1 with synthetic data...")
-    result1 = connector.run_validation_with_pipeline(
-        validation_protocol=1, use_synthetic=True, n_samples=500
-    )
 
-    print(f"Protocol 1 Status: {result1['status']}")
-    if result1["status"] == "success":
-        print(f"  Data shape: {result1['pipeline_metadata']['data_shape']}")
-        print(
-            f"  Compatibility: {result1['pipeline_metadata']['compatibility']['valid']}"
+    # Set up signal handler for graceful shutdown
+    def signal_handler(signum, frame):
+        print(f"\nReceived signal {signum}. Gracefully shutting down...")
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    try:
+        # Initialize connector
+        connector = ValidationPipelineConnector()
+
+        # Test with Protocol 1 using synthetic data
+        print("\n1. Testing Protocol 1 with synthetic data...")
+        result1 = connector.run_validation_with_pipeline(
+            validation_protocol=1, use_synthetic=True, n_samples=500
         )
-    else:
-        print(f"  Error: {result1['error']}")
-    # Get connection summary
-    summary = connector.get_connection_summary()
-    print("\n2. Connection Summary:")
-    print(f"  Total connections: {summary['total_connections']}")
-    print(f"  Supported protocols: {summary['supported_protocols']}")
 
-    print("\nValidation pipeline connector ready!")
+        print(f"Protocol 1 Status: {result1['status']}")
+        if result1["status"] == "success":
+            print(f"  Data shape: {result1['pipeline_metadata']['data_shape']}")
+            print(
+                f"  Compatibility: {result1['pipeline_metadata']['compatibility']['valid']}"
+            )
+        else:
+            print(f"  Error: {result1['error']}")
+
+        # Get connection summary
+        summary = connector.get_connection_summary()
+        print("\n2. Connection Summary:")
+        print(f"  Total connections: {summary['total_connections']}")
+        print(f"  Supported protocols: {summary['supported_protocols']}")
+
+        print("\nValidation pipeline connector ready!")
+
+    except Exception as e:
+        print(f"Error in validation pipeline connector: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

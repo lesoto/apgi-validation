@@ -3,34 +3,150 @@ Falsification Protocol 11: Bayesian Estimation
 =============================================
 
 This protocol implements Bayesian estimation for APGI model parameters.
+Per Step 1.8 - Upgrade FP-11 from MH to NUTS with PyMC.
 """
 
 import logging
 import numpy as np
 from typing import Dict, Tuple, Any
+import sys
+from pathlib import Path
+
+# Add project root to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+try:
+    import pymc as pm
+    import arviz as az
+
+    HAS_PYMC = True
+    HAS_ARVIZ = True
+except ImportError:
+    HAS_PYMC = False
+    HAS_ARVIZ = False
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        "PyMC not installed - Bayesian estimation will be limited to simple MH algorithm"
+    )
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def run_bayesian_estimation(
+def run_bayesian_estimation_nuts(
+    data: np.ndarray,
+    prior_params: Dict[str, Tuple[float, float]],
+    n_samples: int = 2000,
+    tune_samples: int = 1000,
+    n_chains: int = 4,
+) -> Dict[str, Any]:
+    """
+    Run Bayesian estimation using NUTS (No-U-Turn Sampler) via PyMC.
+    Per Step 1.8 - Replace MH with NUTS via pm.sample(init="nuts").
+    """
+    if not HAS_PYMC:
+        logger.warning("PyMC not available - falling back to simple MH algorithm")
+        return run_bayesian_estimation_mh(data, prior_params, n_iterations=n_samples)
+
+    try:
+        # Define PyMC model
+        with pm.Model():
+            # Priors for APGI parameters
+            theta_0 = pm.Normal(
+                "theta_0",
+                mu=prior_params["theta_0"][0],
+                sigma=prior_params["theta_0"][1],
+            )
+            alpha = pm.Normal(
+                "alpha", mu=prior_params["alpha"][0], sigma=prior_params["alpha"][1]
+            )
+            beta = pm.Normal(
+                "beta", mu=prior_params["beta"][0], sigma=prior_params["beta"][1]
+            )
+
+            # Likelihood: data ~ N(μ, σ²) where μ depends on APGI parameters
+            # Simplified APGI generative model
+            mu = theta_0 * alpha * beta
+            sigma = pm.HalfNormal("sigma", sigma=1.0)
+
+            # Likelihood
+            pm.Normal("likelihood", mu=mu, sigma=sigma, observed=data)
+
+            # Sample using NUTS
+            trace = pm.sample(
+                tune=tune_samples,
+                draws=n_samples,
+                chains=n_chains,
+                init="nuts",
+                return_inferencedata=False,
+                progressbar=True,
+            )
+
+        # Extract posterior samples
+        posterior_samples = {}
+        for param in ["theta_0", "alpha", "beta"]:
+            posterior_samples[param] = trace.posterior[param].values.flatten()
+
+        # Calculate convergence diagnostics
+        # R-hat should be < 1.1 for convergence
+        r_hat = az.rhat(trace)
+        mean_r_hat = np.mean([r_hat[param] for param in r_hat.keys()])
+
+        # Effective sample size (ESS)
+        ess = az.ess(trace)
+        mean_ess = np.mean([ess[param] for param in ess.keys()])
+
+        # Check convergence criteria
+        convergence_pass = mean_r_hat < 1.1 and mean_ess > 400
+
+        return {
+            "posterior_samples": posterior_samples,
+            "trace": trace,
+            "r_hat": {k: float(v) for k, v in r_hat.items()},
+            "ess": {k: float(v) for k, v in ess.items()},
+            "mean_r_hat": float(mean_r_hat),
+            "mean_ess": float(mean_ess),
+            "convergence_pass": convergence_pass,
+            "n_samples": n_samples,
+            "tune_samples": tune_samples,
+            "n_chains": n_chains,
+        }
+
+    except Exception as e:
+        logger.error(f"Error in NUTS sampling: {e}")
+        logger.warning("Falling back to simple MH algorithm")
+        return run_bayesian_estimation_mh(data, prior_params, n_iterations=n_samples)
+
+
+def run_bayesian_estimation_mh(
     data: np.ndarray,
     prior_params: Dict[str, Tuple[float, float]],
     n_iterations: int = 1000,
 ) -> Dict[str, Any]:
-    """Run Bayesian estimation of model parameters"""
+    """
+    Run Bayesian estimation using simple Metropolis-Hastings sampling.
+    Fallback when PyMC is not available.
+    """
 
     # Initialize posterior samples
     posterior_samples = {}
 
     for param_name, (mean, std) in prior_params.items():
-        # Simple MCMC sampling (placeholder)
+        # Simple MCMC sampling
         samples = metropolis_hastings_sampling(
             data, param_name, mean, std, n_iterations
         )
         posterior_samples[param_name] = samples
 
-    return posterior_samples
+    return {
+        "posterior_samples": posterior_samples,
+        "convergence_pass": False,
+        "mean_r_hat": 0.0,
+        "mean_ess": 0.0,
+        "n_samples": n_iterations,
+    }
 
 
 def metropolis_hastings_sampling(
@@ -132,8 +248,11 @@ def calculate_bayesian_factor(
 
 
 def run_bayesian_estimation_complete():
-    """Run complete Bayesian estimation analysis"""
-    logger.info("Running Bayesian estimation...")
+    """
+    Run complete Bayesian estimation analysis.
+    Per Step 1.8 - Upgrade FP-11 from MH to NUTS with PyMC.
+    """
+    logger.info("Running Bayesian estimation with NUTS...")
 
     # Generate synthetic data
     n_data_points = 100
@@ -147,11 +266,13 @@ def run_bayesian_estimation_complete():
         "beta": (1.2, 0.5),
     }
 
-    # Run Bayesian estimation
-    posterior_samples = run_bayesian_estimation(data, prior_params)
+    # Run Bayesian estimation with NUTS
+    nuts_results = run_bayesian_estimation_nuts(
+        data, prior_params, n_samples=2000, tune_samples=1000, n_chains=4
+    )
 
     # Compute posterior statistics
-    posterior_stats = compute_posterior_distributions(posterior_samples)
+    posterior_stats = compute_posterior_distributions(nuts_results["posterior_samples"])
 
     # Compare with alternative model (different priors)
     alternative_priors = {
@@ -160,14 +281,29 @@ def run_bayesian_estimation_complete():
         "beta": (1.0, 0.3),
     }
 
-    posterior_samples_alt = run_bayesian_estimation(data, alternative_priors)
-    bayes_factor = calculate_bayesian_factor(posterior_samples, posterior_samples_alt)
+    nuts_results_alt = run_bayesian_estimation_nuts(
+        data, alternative_priors, n_samples=2000, tune_samples=1000, n_chains=4
+    )
+    bayes_factor = calculate_bayesian_factor(
+        nuts_results["posterior_samples"],
+        nuts_results_alt["posterior_samples"],
+    )
 
     return {
-        "posterior_samples": {k: v.tolist() for k, v in posterior_samples.items()},
+        "posterior_samples": nuts_results["posterior_samples"],
         "posterior_statistics": posterior_stats,
         "bayes_factor": bayes_factor,
         "true_parameters": true_params,
+        "convergence_diagnostics": {
+            "r_hat": nuts_results["r_hat"],
+            "ess": nuts_results["ess"],
+            "mean_r_hat": nuts_results["mean_r_hat"],
+            "mean_ess": nuts_results["mean_ess"],
+            "convergence_pass": nuts_results["convergence_pass"],
+        },
+        "n_samples": nuts_results["n_samples"],
+        "tune_samples": nuts_results["tune_samples"],
+        "n_chains": nuts_results["n_chains"],
     }
 
 
@@ -183,10 +319,10 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     return {
         "F11.1": {
             "description": "Posterior Convergence",
-            "threshold": "Effective sample size ≥ 100, Gelman-Rubin R-hat ≤ 1.1",
-            "test": "MCMC convergence diagnostics, α=0.05",
-            "effect_size": "R-hat ≤ 1.1 indicates good mixing",
-            "alternative": "Falsified if ESS < 50 OR R-hat > 1.2",
+            "threshold": "ESS > 400 for all parameters, R-hat < 1.1 for convergence",
+            "test": "NUTS convergence diagnostics, α=0.05",
+            "effect_size": "R-hat < 1.1 indicates good mixing",
+            "alternative": "Falsified if ESS < 200 OR R-hat > 1.2",
         },
         "F11.2": {
             "description": "Posterior Calibration",
@@ -209,6 +345,7 @@ def check_falsification(
     posterior_samples: Dict[str, np.ndarray],
     true_params: Dict[str, float],
     bayes_factor: float,
+    convergence_diagnostics: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Implement all statistical tests for Falsification-Protocol-11.
@@ -217,6 +354,7 @@ def check_falsification(
         posterior_samples: Dictionary of posterior samples for each parameter
         true_params: Dictionary of true parameter values
         bayes_factor: Bayes factor comparing APGI model to null model
+        convergence_diagnostics: Dictionary containing R-hat and ESS values
 
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
@@ -229,30 +367,33 @@ def check_falsification(
 
     # F11.1: Posterior Convergence
     logger.info("Testing F11.1: Posterior Convergence")
-    ess_values = []
-    for param_name, samples in posterior_samples.items():
-        # Simple ESS estimation (autocorrelation-based)
-        acf = np.correlate(
-            samples - np.mean(samples), samples - np.mean(samples), mode="full"
-        )
-        acf = acf[len(acf) // 2 :] / acf[len(acf) // 2]
-        ess = len(samples) / (1 + 2 * np.sum(acf[1:]))
-        ess_values.append(ess)
+    r_hat = convergence_diagnostics.get("r_hat", {})
+    ess = convergence_diagnostics.get("ess", {})
 
-    mean_ess = np.mean(ess_values)
-    f11_1_pass = mean_ess >= 100
+    # Check ESS > 400 for all parameters
+    ess_values = list(ess.values())
+    min_ess = min(ess_values) if ess_values else 0
+    f11_1_pass = min_ess > 400
+
+    # Check R-hat < 1.1 for convergence
+    r_hat_values = list(r_hat.values())
+    max_r_hat = max(r_hat_values) if r_hat_values else 0
+    f11_1_pass = f11_1_pass and max_r_hat < 1.1
 
     results["criteria"]["F11.1"] = {
         "passed": f11_1_pass,
-        "mean_ess": mean_ess,
-        "threshold": "ESS ≥ 100",
-        "actual": f"Mean ESS: {mean_ess:.0f}",
+        "min_ess": min_ess,
+        "max_r_hat": max_r_hat,
+        "threshold": "ESS > 400, R-hat < 1.1",
+        "actual": f"Min ESS: {min_ess:.0f}, Max R-hat: {max_r_hat:.3f}",
     }
     if f11_1_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
-    logger.info(f"F11.1: {'PASS' if f11_1_pass else 'FAIL'} - Mean ESS: {mean_ess:.0f}")
+    logger.info(
+        f"F11.1: {'PASS' if f11_1_pass else 'FAIL'} - Min ESS: {min_ess:.0f}, Max R-hat: {max_r_hat:.3f}"
+    )
 
     # F11.2: Posterior Calibration
     logger.info("Testing F11.2: Posterior Calibration")
@@ -305,16 +446,16 @@ if __name__ == "__main__":
 
     # Run falsification checks
     falsification_results = check_falsification(
-        posterior_samples={
-            k: np.array(v) for k, v in results["posterior_samples"].items()
-        },
+        posterior_samples=results["posterior_samples"],
         true_params=results["true_parameters"],
         bayes_factor=results["bayes_factor"],
+        convergence_diagnostics=results["convergence_diagnostics"],
     )
 
     print("Bayesian estimation results:")
     print(f"Posterior statistics: {results['posterior_statistics']}")
     print(f"Bayes factor: {results['bayes_factor']:.4f}")
+    print(f"Convergence diagnostics: {results['convergence_diagnostics']}")
     print("\nFalsification results:")
     print(
         f"Passed: {falsification_results['summary']['passed']}/{falsification_results['summary']['total']}"

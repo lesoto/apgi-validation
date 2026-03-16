@@ -1289,6 +1289,15 @@ class EvolutionaryOptimizer:
         print(f"\n{'=' * 80}")
         print("STARTING EVOLUTIONARY OPTIMIZATION")
         print(f"{'=' * 80}")
+
+        # Enforce minimum population and generation requirements
+        assert (
+            self.pop_size >= 500
+        ), f"Population size {self.pop_size} < 500 minimum requirement"
+        assert (
+            self.n_generations >= 1000
+        ), f"Generations {self.n_generations} < 1000 minimum requirement"
+
         print(f"Population size: {self.pop_size}")
         print(f"Generations: {self.n_generations}")
         print(f"Environments: {len(self.environments)}")
@@ -1297,9 +1306,16 @@ class EvolutionaryOptimizer:
         self.initialize_population()
 
         for generation in tqdm(range(self.n_generations), desc="Generations"):
+            # Alternating multi-environment evolutionary pressure
+            env_cycle = generation % 3
+            current_env = self.environments[env_cycle]
+
             # Evaluate fitness
             fitness_scores = np.array(
-                [self.evaluate_fitness(genome) for genome in self.population]
+                [
+                    self.evaluate_fitness(genome, current_env)
+                    for genome in self.population
+                ]
             )
 
             # Record statistics

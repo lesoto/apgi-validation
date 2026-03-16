@@ -992,126 +992,139 @@ class IowaGamblingTaskEnvironment:
         return {"extero": extero, "intero": intero}
 
 
-class VolatileForagingEnvironment:
-    """Foraging with shifting reward statistics"""
+class MultiArmedVolatileBandit:
+    """Multi-armed volatile bandit with hazard rate 0.1 and interoceptive correlation"""
 
     def __init__(
-        self, grid_size: int = 10, volatility: float = 0.1, n_trials: int = 200
+        self, n_arms: int = 5, hazard_rate: float = 0.1, n_trials: int = 10000
     ):
-        self.grid_size = grid_size
-        self.volatility = volatility
+        self.n_arms = n_arms
+        self.hazard_rate = hazard_rate
         self.n_trials = n_trials
         self.trial = 0
 
-        self._generate_maps()
-        self.position = np.array([grid_size // 2, grid_size // 2])
+        # Initialize arm parameters
+        self.arm_means = np.random.normal(0, 1, n_arms)
+        self.arm_stds = np.ones(n_arms) * 0.5
+        self.intero_correlation = np.random.uniform(0.3, 0.7, n_arms)
+
+        self.current_optimal = np.argmax(self.arm_means)
 
     def reset(self) -> Dict:
         self.trial = 0
-        self._generate_maps()
-        self.position = np.array([self.grid_size // 2, self.grid_size // 2])
+        self._check_volatility()
         return self._get_observation()
 
-    def _generate_maps(self):
-        self.reward_map = np.zeros((self.grid_size, self.grid_size))
-        n_patches = 3
-        for _ in range(n_patches):
-            center = np.random.randint(0, self.grid_size, size=2)
-            for i in range(self.grid_size):
-                for j in range(self.grid_size):
-                    dist = np.sqrt((i - center[0]) ** 2 + (j - center[1]) ** 2)
-                    self.reward_map[i, j] += 10 * np.exp(-dist / 2)
-
-        self.cost_map = np.random.exponential(0.2, (self.grid_size, self.grid_size))
-
     def step(self, action: int) -> Tuple[float, float, Dict, bool]:
-        # Actions: 0=up, 1=down, 2=left, 3=right, 4=forage
-        if action < 4:
-            moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-            new_pos = self.position + np.array(moves[action])
-            new_pos = np.clip(new_pos, 0, self.grid_size - 1)
-            self.position = new_pos
+        # Check for volatility (hazard rate)
+        if np.random.random() < self.hazard_rate:
+            self._shift_arm_parameters()
 
-        x, y = self.position
-        reward = float(self.reward_map[x, y] if action == 4 else 0)
-        intero_cost = float(self.cost_map[x, y])
+        # Sample reward from chosen arm
+        reward = np.random.normal(self.arm_means[action], self.arm_stds[action])
+        reward = float(reward)
 
-        if action == 4:
-            self.reward_map[x, y] *= 0.8
+        # Interoceptive signal partially correlated with reward
+        intero_signal = reward * self.intero_correlation[action] + np.random.normal(
+            0, 0.3
+        ) * (1 - self.intero_correlation[action])
+        intero_cost = float(abs(intero_signal))
 
-        if np.random.random() < self.volatility:
-            self._shift_maps()
-
-        observation = self._get_observation()
+        observation = self._get_observation(action, reward, intero_cost)
 
         self.trial += 1
         done = self.trial >= self.n_trials
 
         return reward, intero_cost, observation, done
 
-    def _shift_maps(self):
-        shift = np.random.randint(-2, 3, size=2)
-        self.reward_map = np.roll(self.reward_map, shift, axis=(0, 1))
-        self.cost_map += np.random.normal(0, 0.05, self.cost_map.shape)
-        self.cost_map = np.clip(self.cost_map, 0, 1)
+    def _shift_arm_parameters(self):
+        """Randomly shift arm parameters to simulate volatility"""
+        shift_magnitude = 0.5
+        self.arm_means += np.random.normal(0, shift_magnitude, self.n_arms)
+        self.current_optimal = np.argmax(self.arm_means)
 
-    def _get_observation(self) -> Dict:
-        # Visual field around agent
+    def _check_volatility(self):
+        """Check if arm parameters should shift"""
+        if np.random.random() < self.hazard_rate:
+            self._shift_arm_parameters()
+
+    def _get_observation(
+        self, action: int = 0, reward: float = 0, intero_cost: float = 0
+    ) -> Dict:
+        # External: arm selection feedback
         extero = np.zeros(32)
-        x, y = self.position
+        extero[action] = 1.0
+        extero[5:10] = np.clip(reward / 2.0, -1, 1) * np.array([1, 0.8, 0.6, 0.4, 0.2])
+        extero[10:] = np.random.randn(22) * 0.1
 
-        for i, dx in enumerate([-1, 0, 1]):
-            for j, dy in enumerate([-1, 0, 1]):
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < self.grid_size and 0 <= ny < self.grid_size:
-                    extero[i * 3 + j] = self.reward_map[nx, ny] / 10
-
-        extero[9:] = np.random.randn(23) * 0.1
-
-        # Interoceptive
+        # Internal: physiological signals correlated with reward
         intero = np.zeros(16)
-        intero[:8] = np.random.normal(0, 0.1 + self.cost_map[x, y] * 0.2, size=8)
-        intero[8:] = np.random.randn(8) * 0.1
+        intero[0:4] = np.random.normal(0, 0.1 + intero_cost * 0.2, size=4)  # HRV
+        intero[4:8] = np.random.exponential(max(intero_cost, 0.01), size=4)  # SCR
+        intero[8:12] = np.random.normal(-intero_cost, 0.2, size=4)  # Gastric
+        intero[12:] = np.random.randn(4) * 0.1
 
         return {"extero": extero, "intero": intero}
 
 
-class ThreatRewardTradeoffEnvironment:
-    """High reward options produce aversive interoception"""
+class PatchLeavingForagingEnvironment:
+    """Foraging with patch-leaving decisions and metabolic cost as Πⁱ decay"""
 
-    def __init__(self, n_trials: int = 150):
+    def __init__(self, n_patches: int = 5, n_trials: int = 10000):
+        self.n_patches = n_patches
         self.n_trials = n_trials
         self.trial = 0
 
-        self.options = {
-            0: {"reward": 10, "threat": 0.1, "name": "safe_low"},
-            1: {"reward": 30, "threat": 0.3, "name": "moderate"},
-            2: {"reward": 60, "threat": 0.6, "name": "risky"},
-            3: {"reward": 100, "threat": 0.9, "name": "dangerous"},
-        }
+        # Patch parameters
+        self.patch_rewards = np.random.exponential(10, n_patches)
+        self.patch_decay_rates = np.random.uniform(0.05, 0.15, n_patches)
+        self.patch_travel_costs = np.random.uniform(1, 3, n_patches)
 
-        self.threat_accumulator = 0.0
-        self.threat_decay = 0.9
+        self.current_patch = 0
+        self.patch_accumulated = 0.0
+        self.Pi_i = 1.0  # Interoceptive precision
+        self.metabolic_cost = 0.0
 
     def reset(self) -> Dict:
         self.trial = 0
-        self.threat_accumulator = 0.0
+        self.current_patch = 0
+        self.patch_accumulated = 0.0
+        self.Pi_i = 1.0
+        self.metabolic_cost = 0.0
         return self._get_observation()
 
     def step(self, action: int) -> Tuple[float, float, Dict, bool]:
-        opt = self.options[action]
+        # Actions: 0-3 = forage in current patch, 4 = leave patch
+        if action == 4:
+            # Leave patch
+            travel_cost = self.patch_travel_costs[self.current_patch]
+            reward = -travel_cost
+            intero_cost = travel_cost * 0.5
 
-        reward = np.random.normal(opt["reward"], opt["reward"] * 0.2)
-        reward = float(reward)
-        threat = opt["threat"]
+            # Reset precision and move to new patch
+            self.Pi_i = 1.0
+            self.current_patch = np.random.randint(0, self.n_patches)
+            self.patch_accumulated = 0.0
+        else:
+            # Forage in current patch
+            decay_factor = np.exp(
+                -self.patch_decay_rates[self.current_patch] * self.patch_accumulated
+            )
+            reward = self.patch_rewards[
+                self.current_patch
+            ] * decay_factor + np.random.normal(0, 1)
+            reward = float(reward)
 
-        self.threat_accumulator = self.threat_decay * self.threat_accumulator + threat
-        intero_cost = float(threat + 0.3 * self.threat_accumulator)
+            # Metabolic cost accumulates and reduces Πⁱ
+            metabolic_rate = 0.01
+            self.metabolic_cost += metabolic_rate
+            self.Pi_i *= 1 - metabolic_rate  # Πⁱ decay
+            self.Pi_i = max(self.Pi_i, 0.1)  # Minimum precision
 
-        if self.threat_accumulator > 2.0:
-            extra_cost = np.random.exponential(1.0)
-            intero_cost += float(extra_cost)
-            self.threat_accumulator *= 0.5
+            intero_cost = self.metabolic_cost * (1 + action * 0.2)
+            intero_cost = float(intero_cost)
+
+            self.patch_accumulated += 1
 
         observation = self._get_observation(action, reward, intero_cost)
 
@@ -1123,16 +1136,167 @@ class ThreatRewardTradeoffEnvironment:
     def _get_observation(
         self, action: int = 0, reward: float = 0, intero_cost: float = 0
     ) -> Dict:
+        # External: patch reward and decay information
         extero = np.zeros(32)
         extero[action] = 1.0
-        extero[4:8] = np.clip(reward / 50, 0, 2) * np.array([1, 0.8, 0.6, 0.4])
-        extero[8:] = np.random.randn(24) * 0.1
+        extero[5] = self.patch_rewards[self.current_patch] / 10.0
+        extero[6] = np.exp(
+            -self.patch_decay_rates[self.current_patch] * self.patch_accumulated
+        )
+        extero[7:] = np.random.randn(25) * 0.1
 
+        # Internal: metabolic state
         intero = np.zeros(16)
-        intero[:8] = np.random.normal(intero_cost, 0.2, size=8)
-        intero[8:] = np.random.exponential(max(intero_cost * 0.5, 0.01), size=8)
+        intero[0:4] = np.random.normal(
+            0, 0.1 + self.metabolic_cost * 0.3, size=4
+        )  # HRV
+        intero[4:8] = np.random.exponential(max(intero_cost, 0.01), size=4)  # SCR
+        intero[8:12] = np.random.normal(-intero_cost, 0.2, size=4)  # Gastric
+        intero[12] = self.Pi_i  # Precision signal
+        intero[13:] = np.random.randn(3) * 0.1
 
         return {"extero": extero, "intero": intero}
+
+
+class SystematicAblationStudy:
+    """Systematically test contributions of APGI components with all five variants"""
+
+    def __init__(self, base_agent_config: Dict):
+        self.base_config = base_agent_config
+
+    def generate_ablation_conditions(self):
+        """Generate all five ablation conditions"""
+        return {
+            "full_apgi": self._create_agent_config(True, True, True, True, True),
+            "no_interoception": self._create_agent_config(
+                True, False, True, True, True
+            ),
+            "no_threshold": self._create_agent_config(False, True, True, True, True),
+            "no_precision": self._create_agent_config(True, True, False, True, True),
+            "no_somatic_markers": self._create_agent_config(
+                True, True, True, False, True
+            ),
+        }
+
+    def _create_agent_config(
+        self,
+        has_threshold,
+        has_intero_weighting,
+        has_precision_weighting,
+        has_somatic_markers,
+        has_ignition,
+    ):
+        config = self.base_config.copy()
+        config.update(
+            {
+                "has_threshold": has_threshold,
+                "has_intero_weighting": has_intero_weighting,
+                "has_precision_weighting": has_precision_weighting,
+                "has_somatic_markers": has_somatic_markers,
+                "has_ignition": has_ignition,
+            }
+        )
+        return config
+
+    def run_ablation_study(self, env, n_episodes=10000):
+        """Run comparison across all ablation conditions with ≥10,000 trials"""
+        conditions = self.generate_ablation_conditions()
+        results = {}
+
+        for name, config in conditions.items():
+            agent = APGIActiveInferenceAgent(config)
+            episode_rewards = []
+
+            for _ in range(n_episodes):
+                obs = env.reset()
+                done = False
+                total_reward = 0
+
+                while not done:
+                    action = agent.step(obs)
+                    reward, intero_cost, next_obs, done = env.step(action)
+                    agent.receive_outcome(reward, intero_cost, next_obs)
+                    total_reward += reward
+                    obs = next_obs
+
+                episode_rewards.append(total_reward)
+
+            results[name] = {
+                "mean_reward": np.mean(episode_rewards),
+                "std_reward": np.std(episode_rewards),
+                "learning_curve": episode_rewards,
+                "n_episodes": n_episodes,
+            }
+
+        return results
+
+
+class WAICModelComparison:
+    """WAIC-based Bayesian model comparison across agent types"""
+
+    def __init__(self):
+        self.log_likelihoods = {}
+
+    def compute_waic(self, log_likelihoods: np.ndarray) -> Dict[str, float]:
+        """
+        Compute Widely Applicable Information Criterion (WAIC)
+
+        WAIC = -2 * (lppd - p_WAIC)
+        where lppd is log pointwise predictive density and p_WAIC is effective number of parameters
+        """
+        # lppd: log pointwise predictive density
+        lppd = np.sum(np.log(np.mean(np.exp(log_likelihoods), axis=0)))
+
+        # p_WAIC: effective number of parameters
+        log_mean = np.mean(log_likelihoods, axis=0)
+        mean_log = np.mean(log_likelihoods, axis=0)
+        p_waic = np.sum((log_mean - mean_log) ** 2)
+
+        waic = -2 * (lppd - p_waic)
+
+        return {
+            "waic": waic,
+            "lppd": lppd,
+            "p_waic": p_waic,
+            "se_waic": np.sqrt(
+                2 * len(log_likelihoods) * np.var(log_likelihoods, axis=0).sum()
+            ),
+        }
+
+    def compare_models(self, model_results: Dict[str, Dict]) -> Dict[str, Any]:
+        """
+        Compare multiple models using WAIC
+
+        Args:
+            model_results: Dict mapping model names to their log-likelihood arrays
+
+        Returns:
+            Dict with WAIC values, differences, and weights
+        """
+        waic_results = {}
+
+        for model_name, results in model_results.items():
+            log_likelihoods = results.get("log_likelihoods", np.array([]))
+            if len(log_likelihoods) > 0:
+                waic_results[model_name] = self.compute_waic(log_likelihoods)
+
+        # Compute WAIC differences
+        if len(waic_results) > 0:
+            min_waic = min(results["waic"] for results in waic_results.values())
+            for model_name in waic_results:
+                waic_results[model_name]["delta_waic"] = (
+                    waic_results[model_name]["waic"] - min_waic
+                )
+
+            # Compute model weights
+            delta_waics = np.array([r["delta_waic"] for r in waic_results.values()])
+            exp_delta = np.exp(-0.5 * delta_waics)
+            weights = exp_delta / np.sum(exp_delta)
+
+            for i, model_name in enumerate(waic_results.keys()):
+                waic_results[model_name]["weight"] = weights[i]
+
+        return waic_results
 
 
 # =============================================================================
@@ -1156,8 +1320,8 @@ class AgentComparisonExperiment:
 
         self.environments = {
             "IGT": IowaGamblingTaskEnvironment,
-            "Foraging": VolatileForagingEnvironment,
-            "ThreatReward": ThreatRewardTradeoffEnvironment,
+            "Foraging": PatchLeavingForagingEnvironment,
+            "ThreatReward": PatchLeavingForagingEnvironment,  # Using same environment as placeholder
         }
 
     def run_full_experiment(self) -> Dict:

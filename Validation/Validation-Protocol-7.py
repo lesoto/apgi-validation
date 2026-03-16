@@ -1066,6 +1066,291 @@ class InterventionFalsificationChecker:
             "double_dissociation_confirmed": interaction_significant,
         }
 
+    def double_dissociation_anova(
+        self,
+        dlPFC_PCI_baseline: np.ndarray,
+        dlPFC_PCI_intervention: np.ndarray,
+        dlPFC_HEP_baseline: np.ndarray,
+        dlPFC_HEP_intervention: np.ndarray,
+        insula_PCI_baseline: np.ndarray,
+        insula_PCI_intervention: np.ndarray,
+        insula_HEP_baseline: np.ndarray,
+        insula_HEP_intervention: np.ndarray,
+    ) -> Dict[str, Any]:
+        """
+        2×2 ANOVA: site (dlPFC vs. insula) × measure (PCI vs. HEP) with required interaction
+
+        Required interaction:
+        - dlPFC: PCI d≥0.5, HEP d<0.2
+        - insula: both d≥0.4
+        Args:
+            control_HEP_baseline: Baseline HEP values for control subjects
+            control_HEP_intervention: Intervention HEP values for control subjects
+            insula_HEP_baseline: Baseline HEP values for insula subjects
+            insula_HEP_intervention: Intervention HEP values for insula subjects
+
+        Returns:
+            Dict with ANOVA results and effect sizes
+        """
+
+        # Calculate effect sizes (Cohen's d)
+        def cohens_d(group1, group2):
+            return np.mean(group1) - np.mean(group2) / np.sqrt(
+                (np.var(group1) + np.var(group2)) / 2
+            )
+
+        # dlPFC effects
+        dlPFC_PCI_d = cohens_d(dlPFC_PCI_intervention, dlPFC_PCI_baseline)
+        dlPFC_HEP_d = cohens_d(dlPFC_HEP_intervention, dlPFC_HEP_baseline)
+
+        # Insula effects
+        insula_PCI_d = cohens_d(insula_PCI_intervention, insula_PCI_baseline)
+        insula_HEP_d = cohens_d(insula_HEP_intervention, insula_HEP_baseline)
+
+        # Required thresholds
+        dlPFC_PCI_required = 0.5
+        dlPFC_HEP_required = 0.2
+        insula_PCI_required = 0.4
+        insula_HEP_required = 0.4
+
+        # Check required interaction pattern
+        dlPFC_PCI_pass = abs(dlPFC_PCI_d) >= dlPFC_PCI_required
+        dlPFC_HEP_pass = abs(dlPFC_HEP_d) < dlPFC_HEP_required
+        insula_PCI_pass = abs(insula_PCI_d) >= insula_PCI_required
+        insula_HEP_pass = abs(insula_HEP_d) >= insula_HEP_required
+
+        # Overall dissociation test
+        dissociation_confirmed = (
+            dlPFC_PCI_pass and dlPFC_HEP_pass and insula_PCI_pass and insula_HEP_pass
+        )
+
+        # Simple 2x2 ANOVA interaction test
+        # Create data structure for ANOVA
+        # Factor A: Site (dlPFC vs. insula)
+        # Factor B: Measure (PCI vs. HEP)
+        # DV: Effect size magnitude
+
+        effect_sizes = np.array(
+            [
+                abs(dlPFC_PCI_d),  # dlPFC, PCI
+                abs(dlPFC_HEP_d),  # dlPFC, HEP
+                abs(insula_PCI_d),  # insula, PCI
+                abs(insula_HEP_d),  # insula, HEP
+            ]
+        )
+
+        # Design matrix for 2x2 ANOVA
+        # Site: -1 for dlPFC, +1 for insula
+        # Measure: -1 for PCI, +1 for HEP
+        site = np.array([-1, -1, 1, 1])
+        measure = np.array([-1, 1, -1, 1])
+        interaction = site * measure
+
+        # Fit linear model
+        X = np.column_stack([np.ones(4), site, measure, interaction])
+        beta = np.linalg.lstsq(X, effect_sizes, rcond=None)[0]
+
+        # Interaction effect
+        interaction_effect = beta[3]
+
+        # Test significance (simplified)
+        interaction_significant = abs(interaction_effect) > 0.1
+
+        return {
+            "dlPFC_PCI_d": dlPFC_PCI_d,
+            "dlPFC_HEP_d": dlPFC_HEP_d,
+            "insula_PCI_d": insula_PCI_d,
+            "insula_HEP_d": insula_HEP_d,
+            "dlPFC_PCI_pass": dlPFC_PCI_pass,
+            "dlPFC_HEP_pass": dlPFC_HEP_pass,
+            "insula_PCI_pass": insula_PCI_pass,
+            "insula_HEP_pass": insula_HEP_pass,
+            "dissociation_confirmed": dissociation_confirmed,
+            "interaction_effect": interaction_effect,
+            "interaction_significant": interaction_significant,
+            "required_pattern": {
+                "dlPFC_PCI": f"d≥{dlPFC_PCI_required}",
+                "dlPFC_HEP": f"d<{dlPFC_HEP_required}",
+                "insula_PCI": f"d≥{insula_PCI_required}",
+                "insula_HEP": f"d≥{insula_HEP_required}",
+            },
+        }
+
+    def within_subject_crossover(
+        self,
+        n_subjects: int = 30,
+        drug_conditions: list = ["placebo", "propranolol", "ketamine", "psilocybin"],
+    ) -> pd.DataFrame:
+        """
+        Within-subject crossover design for pharmacological protocols
+
+        Each simulated subject receives all drug conditions in randomized order
+
+        Args:
+            n_subjects: Number of subjects
+            drug_conditions: List of drug conditions
+
+        Returns:
+            DataFrame with crossover design data
+        """
+        data = []
+
+        for subject_id in range(n_subjects):
+            # Randomize order of drug conditions
+            np.random.shuffle(drug_conditions)
+
+            for session, drug in enumerate(drug_conditions):
+                # Simulate baseline parameters
+                baseline_theta = np.random.normal(0.5, 0.1)
+                baseline_Pi_i = np.random.normal(1.0, 0.2)
+                baseline_ignition = 1.0 / (
+                    1.0 + np.exp(-8.0 * (baseline_Pi_i - baseline_theta))
+                )
+
+                # Apply drug effects
+                if drug == "placebo":
+                    theta = baseline_theta
+                    Pi_i = baseline_Pi_i
+                    ignition = baseline_ignition
+                elif drug == "propranolol":
+                    # Reduces interoceptive influence
+                    theta = baseline_theta
+                    Pi_i = baseline_Pi_i * 0.8
+                    ignition = 1.0 / (1.0 + np.exp(-8.0 * (Pi_i - theta)))
+                elif drug == "ketamine":
+                    # Elevates threshold
+                    theta = baseline_theta * 1.3
+                    Pi_i = baseline_Pi_i
+                    ignition = 1.0 / (1.0 + np.exp(-8.0 * (Pi_i - theta)))
+                elif drug == "psilocybin":
+                    # Flattens precision hierarchy
+                    theta = baseline_theta
+                    Pi_i = np.random.normal(1.0, 0.1)  # Reduced variance
+                    ignition = 1.0 / (1.0 + np.exp(-8.0 * (Pi_i - theta)))
+
+                data.append(
+                    {
+                        "subject_id": subject_id,
+                        "session": session,
+                        "drug_condition": drug,
+                        "theta_t": theta,
+                        "Pi_i": Pi_i,
+                        "ignition_probability": ignition,
+                    }
+                )
+
+        return pd.DataFrame(data)
+
+    def meta_analysis_with_heterogeneity(
+        self,
+        study_effects: np.ndarray,
+        study_variances: np.ndarray,
+    ) -> Dict[str, Any]:
+        """
+        Meta-analysis with I2 heterogeneity and prediction intervals
+
+        Args:
+            study_effects: Effect sizes from individual studies
+            study_variances: Variances of effect sizes
+
+        Returns:
+            Dict with meta-analysis results including I2 and prediction intervals
+        """
+        # Fixed-effects meta-analysis
+        weights = 1.0 / study_variances
+        weighted_mean = np.sum(weights * study_effects) / np.sum(weights)
+
+        # Random-effects meta-analysis (DerSimonian-Laird)
+        Q = np.sum(weights * (study_effects - weighted_mean) ** 2)
+        df = len(study_effects) - 1
+
+        # Between-study variance (tau2)
+        if Q > df:
+            tau_squared = (Q - df) / (
+                np.sum(weights) - np.sum(weights**2) / np.sum(weights)
+            )
+        else:
+            tau_squared = 0
+
+        # Random-effects weights
+        random_weights = 1.0 / (study_variances + tau_squared)
+        random_mean = np.sum(random_weights * study_effects) / np.sum(random_weights)
+        random_mean_var = 1.0 / np.sum(random_weights)
+
+        # I2 heterogeneity statistic
+        I_squared = max(0, (Q - df) / Q * 100) if Q > 0 else 0
+
+        # Prediction interval (95%)
+        prediction_interval = (
+            random_mean - 1.96 * np.sqrt(random_mean_var + tau_squared),
+            random_mean + 1.96 * np.sqrt(random_mean_var + tau_squared),
+        )
+
+        # Confidence interval (95%)
+        confidence_interval = (
+            random_mean - 1.96 * np.sqrt(random_mean_var),
+            random_mean + 1.96 * np.sqrt(random_mean_var),
+        )
+
+        return {
+            "fixed_effect_mean": weighted_mean,
+            "random_effect_mean": random_mean,
+            "tau_squared": tau_squared,
+            "I_squared": I_squared,
+            "Q_statistic": Q,
+            "confidence_interval": confidence_interval,
+            "prediction_interval": prediction_interval,
+            "heterogeneity_interpretation": self._interpret_heterogeneity(I_squared),
+        }
+
+    def _interpret_heterogeneity(self, I_squared: float) -> str:
+        """Interpret I2 heterogeneity statistic"""
+        if I_squared < 25:
+            return "Low heterogeneity"
+        elif I_squared < 50:
+            return "Moderate heterogeneity"
+        elif I_squared < 75:
+            return "Substantial heterogeneity"
+        else:
+            return "Considerable heterogeneity"
+
+    def leave_one_out_sensitivity(
+        self,
+        study_effects: np.ndarray,
+        study_variances: np.ndarray,
+    ) -> pd.DataFrame:
+        """
+        Leave-one-study-out sensitivity analysis
+
+        Args:
+            study_effects: Effect sizes from individual studies
+            study_variances: Variances of effect sizes
+
+        Returns:
+            DataFrame with results of leave-one-out analysis
+        """
+        results = []
+
+        for i in range(len(study_effects)):
+            # Exclude study i
+            effects_excluded = np.delete(study_effects, i)
+            variances_excluded = np.delete(study_variances, i)
+
+            # Recalculate meta-analysis
+            weights = 1.0 / variances_excluded
+            mean_excluded = np.sum(weights * effects_excluded) / np.sum(weights)
+
+            results.append(
+                {
+                    "excluded_study": i,
+                    "mean_without_study": mean_excluded,
+                    "original_mean": np.mean(study_effects),
+                    "difference": mean_excluded - np.mean(study_effects),
+                }
+            )
+
+        return pd.DataFrame(results)
+
     def generate_report(self, intervention_results: Dict) -> Dict:
         """Generate comprehensive falsification report"""
 
@@ -1757,7 +2042,7 @@ def meta_analysis_of_interventions(studies_data):
         overall_effect = trace.posterior["mu"].values.flatten()
         heterogeneity = trace.posterior["tau"].values.flatten()
 
-        # I² statistic (heterogeneity)
+        # I2 statistic (heterogeneity)
         Q = np.sum((effect_sizes - np.mean(effect_sizes)) ** 2 / se**2)
         df = len(effect_sizes) - 1
         if Q > 0:
@@ -1799,7 +2084,7 @@ def meta_analysis_of_interventions(studies_data):
         ax.set_yticks(list(range(-1, n_studies)))
         ax.set_yticklabels(["Overall"] + [s["study_name"] for s in studies_data])
         ax.set_xlabel("Effect Size (Cohen's d)")
-        ax.set_title(f"Meta-Analysis Forest Plot\nI² = {I_squared:.1%} (heterogeneity)")
+        ax.set_title(f"Meta-Analysis Forest Plot\nI2 = {I_squared:.1%} (heterogeneity)")
         ax.legend()
         ax.grid(True, alpha=0.3, axis="x")
 
@@ -1850,7 +2135,7 @@ def meta_analysis_of_interventions(studies_data):
         overall_effect_re = np.sum(weights_re * effect_sizes) / np.sum(weights_re)
         se_re = np.sqrt(1 / np.sum(weights_re))
 
-        # I²
+        # I2
         if Q > 0:
             I_squared = tau_squared / (tau_squared + np.var(effect_sizes))
         else:

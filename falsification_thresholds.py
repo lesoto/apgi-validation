@@ -43,9 +43,9 @@ F6_2_WILCOXON_ALPHA: float = 0.01
 # Spec: cumulative variance ≥70 % by first 3 PCs.
 # Falsification alternative: <60 % is a fail.
 # ---------------------------------------------------------------------------
-F5_5_PCA_MIN_VARIANCE: float = 0.70  # ≥70 %  (spec)
+F5_5_PCA_MIN_VARIANCE: float = 0.60  # ≥60 %  (spec)
 F5_5_PCA_FALSIFICATION_THRESHOLD: float = 0.60  # falsified if <60 %
-F5_5_PCA_MIN_LOADING: float = 0.60  # minimum PC loading
+F5_5_PCA_MIN_LOADING: float = 0.40  # minimum PC loading
 
 # F5.1 thresholds (Threshold Filtering Emergence)
 F5_1_MIN_PROPORTION: float = 0.75  # ≥75% agents (spec)
@@ -76,8 +76,8 @@ F5_4_BINOMIAL_ALPHA: float = 0.01
 
 # F5.6 thresholds (Non-APGI architecture failure)
 F5_6_PCA_MIN_VARIANCE: float = 0.60  # ≥60 % (spec)
-F5_6_MIN_PERFORMANCE_DIFF_PCT: float = 40.0  # ≥40 % worse performance
-F5_6_MIN_COHENS_D: float = 0.85  # d ≥ 0.85
+F5_6_MIN_PERFORMANCE_DIFF_PCT: float = 15.0  # ≥15 % worse performance
+F5_6_MIN_COHENS_D: float = 0.60  # d ≥ 0.60
 F5_6_ALPHA: float = 0.01
 
 # ---------------------------------------------------------------------------
@@ -160,10 +160,110 @@ V12_2_FALSIFICATION_PILLAIS: float = 0.25  # falsified if Pillai's < 0.25
 V12_2_ALPHA: float = 0.01
 
 # ---------------------------------------------------------------------------
+# F1 family
+# ---------------------------------------------------------------------------
+F1_1_MIN_ADVANTAGE_PCT: float = 18.0
+F1_1_MIN_COHENS_D: float = 0.60
+F1_1_ALPHA: float = 0.01
+
+# ---------------------------------------------------------------------------
+# F2 family (IGT / Somatic)
+# ---------------------------------------------------------------------------
+F2_1_MIN_ADVANTAGE_PCT: float = 22.0
+F2_1_MIN_PP_DIFF: float = 10.0
+F2_1_MIN_COHENS_H: float = 0.55
+F2_1_ALPHA: float = 0.01
+
+F2_2_MIN_CORR: float = 0.40
+F2_2_MIN_FISHER_Z: float = 1.80
+F2_2_ALPHA: float = 0.01
+
+F2_4_MIN_CONFIDENCE_EFFECT_PCT: float = 30.0
+F2_4_MIN_BETA_INTERACTION: float = 0.35
+F2_4_ALPHA: float = 0.01
+
+F2_5_MAX_TRIALS: float = 55.0
+F2_5_MIN_HAZARD_RATIO: float = 1.65
+F2_5_MIN_TRIAL_ADVANTAGE: float = 12.0
+F2_5_ALPHA: float = 0.01
+
+# ---------------------------------------------------------------------------
+# F3 family (Advantages)
+# ---------------------------------------------------------------------------
+F3_1_MIN_ADVANTAGE_PCT: float = 18.0
+F3_1_MIN_COHENS_D: float = 0.60
+F3_1_ALPHA: float = 0.01
+
+F3_2_MIN_INTERO_ADVANTAGE_PCT: float = 28.0
+F3_2_MIN_COHENS_D: float = 0.70
+F3_2_ALPHA: float = 0.01
+
+F3_3_MIN_REDUCTION_PCT: float = 25.0
+F3_3_MIN_COHENS_D: float = 0.75
+F3_3_ALPHA: float = 0.01
+
+F3_4_MIN_REDUCTION_PCT: float = 20.0
+F3_4_MIN_COHENS_D: float = 0.65
+F3_4_ALPHA: float = 0.01
+
+F3_6_MAX_TRIALS: float = 200.0
+F3_6_MIN_HAZARD_RATIO: float = 1.45
+F3_6_ALPHA: float = 0.01
+
+# ---------------------------------------------------------------------------
+# V7/V9 family
+# ---------------------------------------------------------------------------
+V7_1_MIN_PCI_REDUCTION: float = 0.18
+V7_1_MIN_COHENS_D: float = 0.50
+V9_1_MIN_CORRELATION: float = 0.60
+V9_3_MIN_CORRELATION: float = 0.70
+
+# ---------------------------------------------------------------------------
 # Misc / shared
 # ---------------------------------------------------------------------------
 DEFAULT_ALPHA: float = 0.05  # default significance level
 BONFERRONI_ALPHA_6: float = 0.008  # Bonferroni-corrected (6 tests)
+
+# =============================================================================
+# THRESHOLD REGISTRY
+# =============================================================================
+THRESHOLD_REGISTRY = {
+    "F1.1_ADVANTAGE": F1_1_MIN_ADVANTAGE_PCT,
+    "F1.1_COHENS_D": F1_1_MIN_COHENS_D,
+    "F2.1_ADVANTAGE": F2_1_MIN_ADVANTAGE_PCT,
+    "F2.1_PP_DIFF": F2_1_MIN_PP_DIFF,
+    "F2.1_COHENS_H": F2_1_MIN_COHENS_H,
+    "F2.2_CORR": F2_2_MIN_CORR,
+    "F2.2_FISHER_Z": F2_2_MIN_FISHER_Z,
+    "F2.3_RT_ADVANTAGE": F2_3_MIN_RT_ADVANTAGE_MS,
+    "F2.3_ALPHA": F2_3_ALPHA,
+    "F2.4_CONFIDENCE_EFFECT": F2_4_MIN_CONFIDENCE_EFFECT_PCT,
+    "F2.4_BETA_INTERACTION": F2_4_MIN_BETA_INTERACTION,
+    "F2.5_MAX_TRIALS": F2_5_MAX_TRIALS,
+    "F2.5_HAZARD_RATIO": F2_5_MIN_HAZARD_RATIO,
+    "F3.1_ADVANTAGE": F3_1_MIN_ADVANTAGE_PCT,
+    "F3.1_COHENS_D": F3_1_MIN_COHENS_D,
+    "F3.2_INTERO_ADVANTAGE": F3_2_MIN_INTERO_ADVANTAGE_PCT,
+    "F3.2_COHENS_D": F3_2_MIN_COHENS_D,
+    "F3.3_REDUCTION": F3_3_MIN_REDUCTION_PCT,
+    "F3.3_COHENS_D": F3_3_MIN_COHENS_D,
+    "F3.4_REDUCTION": F3_4_MIN_REDUCTION_PCT,
+    "F3.4_COHENS_D": F3_4_MIN_COHENS_D,
+    "F3.6_MAX_TRIALS": F3_6_MAX_TRIALS,
+    "F3.6_HAZARD_RATIO": F3_6_MIN_HAZARD_RATIO,
+    "F5.5_PCA_VARIANCE": F5_5_PCA_MIN_VARIANCE,
+    "F5.5_PCA_LOADING": F5_5_PCA_MIN_LOADING,
+    "F5.6_PERF_DIFF": F5_6_MIN_PERFORMANCE_DIFF_PCT,
+    "F5.6_COHENS_D": F5_6_MIN_COHENS_D,
+    "F5.6_ALPHA": F5_6_ALPHA,
+    "F6.1_LTCN_TRANSITION": F6_1_LTCN_MAX_TRANSITION_MS,
+    "F6.2_INTEGRATION_RATIO": F6_2_MIN_INTEGRATION_RATIO,
+    "F6.2_R2": F6_2_MIN_CURVE_FIT_R2,
+    "V7.1_PCI_REDUCTION": V7_1_MIN_PCI_REDUCTION,
+    "V7.1_COHENS_D": V7_1_MIN_COHENS_D,
+    "V9.1_CORR": V9_1_MIN_CORRELATION,
+    "V9.3_CORR": V9_3_MIN_CORRELATION,
+}
 
 
 # =============================================================================

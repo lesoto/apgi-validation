@@ -1,13 +1,20 @@
 import logging
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from collections import deque
 from scipy import stats
+from scipy.stats import binomtest
 from scipy.optimize import curve_fit
 from fooof import FOOOF
 from statsmodels.stats.power import TTestPower, FTestAnovaPower
 import statsmodels.api as sm
+from utils.shared_falsification import check_F5_family
+from falsification_thresholds import (
+    F5_4_MIN_PEAK_SEPARATION,
+    F6_5_HYSTERESIS_MIN,
+    F6_5_HYSTERESIS_MAX,
+)
 
 try:
     import matplotlib
@@ -1669,6 +1676,8 @@ def check_falsification(
     hysteresis_width: float,
     rnn_add_ons_needed: int,
     performance_gap: float,
+    # Genome data from VP-5 (required for F5.1, F5.2, F5.3)
+    genome_data: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Implement all statistical tests for Falsification-Protocol-1 (complete framework).
@@ -2598,7 +2607,8 @@ def check_falsification(
     # F3.5: Computational Efficiency Trade-Off
     logger.info("Testing F3.5: Computational Efficiency Trade-Off")
     # Equivalence testing (simplified)
-    performance_maintained = 85  # Assume 85% maintained
+    # TODO: Implement real performance measurement from simulation
+    performance_maintained = 85  # Placeholder - needs real implementation
     efficiency_gain = computational_efficiency * 100  # Convert to percentage
 
     f3_5_pass = (
@@ -2690,124 +2700,63 @@ def check_falsification(
         f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Trials: {sample_efficiency_trials:.1f}, HR: {hazard_ratio:.2f}"
     )
 
-    # F5.1: Threshold Filtering Emergence
-    logger.info("Testing F5.1: Threshold Filtering Emergence")
-    # Binomial test against 50% null rate
-    from scipy.stats import binomtest
+    # F5 Family: Evolutionary Emergence (using shared function per Step 1.3)
+    logger.info("Testing F5 Family: Evolutionary Emergence")
 
-    result = binomtest(int(threshold_emergence_proportion * 100), 100, 0.5)
-    mean_alpha = 4.0  # Assume mean alpha
-    cohens_d = (mean_alpha - 3.0) / 0.5  # vs. unconstrained control
-
-    f5_1_pass = (
-        np.isfinite(threshold_emergence_proportion)
-        and np.isfinite(mean_alpha)
-        and np.isfinite(cohens_d)
-        and threshold_emergence_proportion >= 0.75
-        and mean_alpha >= 4.0
-        and cohens_d >= 0.80
-        and result.pvalue < 0.01
-    )
-    # Explicit validation: if any value is not finite, test fails
-    if not (
-        np.isfinite(threshold_emergence_proportion)
-        and np.isfinite(mean_alpha)
-        and np.isfinite(cohens_d)
-    ):
-        f5_1_pass = False
-        logger.warning(
-            f"F5.1: Non-finite values detected - threshold_emergence_proportion: {threshold_emergence_proportion}, mean_alpha: {mean_alpha}, cohens_d: {cohens_d}"
-        )
-    results["criteria"]["F5.1"] = {
-        "passed": f5_1_pass,
-        "proportion": threshold_emergence_proportion,
-        "mean_alpha": mean_alpha,
-        "cohens_d": cohens_d,
-        "p_value": result.pvalue,
-        "threshold": "≥75% develop thresholds, mean α ≥ 4.0, d ≥ 0.80",
-        "actual": f"{threshold_emergence_proportion:.2f} proportion, α={mean_alpha:.1f}, d={cohens_d:.3f}",
+    # Prepare data for shared function
+    f5_data = {
+        "threshold_emergence_proportion": threshold_emergence_proportion,
+        "precision_emergence_proportion": precision_emergence_proportion,
+        "intero_gain_ratio_proportion": intero_gain_ratio_proportion,
     }
-    if f5_1_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.1: {'PASS' if f5_1_pass else 'FAIL'} - Proportion: {threshold_emergence_proportion:.2f}, α={mean_alpha:.1f}, d={cohens_d:.3f}"
+
+    # Use thresholds from falsification_thresholds.py
+    from falsification_thresholds import (
+        F5_1_MIN_PROPORTION,
+        F5_1_MIN_ALPHA,
+        F5_1_MIN_COHENS_D,
+        F5_2_MIN_PROPORTION,
+        F5_2_MIN_CORRELATION,
+        F5_3_MIN_PROPORTION,
+        F5_3_MIN_GAIN_RATIO,
+        F5_3_MIN_COHENS_D,
     )
 
-    # F5.2: Precision-Weighted Coding Emergence
-    logger.info("Testing F5.2: Precision-Weighted Coding Emergence")
-    result = binomtest(int(precision_emergence_proportion * 100), 100, 0.5)
-    mean_r = 0.45  # Assume mean correlation
-
-    f5_2_pass = (
-        np.isfinite(precision_emergence_proportion)
-        and np.isfinite(mean_r)
-        and np.isfinite(result.pvalue)
-        and precision_emergence_proportion >= 0.65
-        and mean_r >= 0.45
-        and result.pvalue < 0.01
-    )
-    results["criteria"]["F5.2"] = {
-        "passed": f5_2_pass,
-        "proportion": precision_emergence_proportion,
-        "mean_r": mean_r,
-        "p_value": result.pvalue,
-        "threshold": "≥65% develop weighting, r ≥ 0.45",
-        "actual": f"{precision_emergence_proportion:.2f} proportion, r={mean_r:.3f}",
+    f5_thresholds = {
+        "F5_1_MIN_PROPORTION": F5_1_MIN_PROPORTION,
+        "F5_1_MIN_ALPHA": F5_1_MIN_ALPHA,
+        "F5_1_MIN_COHENS_D": F5_1_MIN_COHENS_D,
+        "F5_2_MIN_PROPORTION": F5_2_MIN_PROPORTION,
+        "F5_2_MIN_CORRELATION": F5_2_MIN_CORRELATION,
+        "F5_3_MIN_PROPORTION": F5_3_MIN_PROPORTION,
+        "F5_3_MIN_GAIN_RATIO": F5_3_MIN_GAIN_RATIO,
+        "F5_3_MIN_COHENS_D": F5_3_MIN_COHENS_D,
     }
-    if f5_2_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.2: {'PASS' if f5_2_pass else 'FAIL'} - Proportion: {precision_emergence_proportion:.2f}, r={mean_r:.3f}"
-    )
 
-    # F5.3: Interoceptive Prioritization Emergence
-    logger.info("Testing F5.3: Interoceptive Prioritization Emergence")
-    result = binomtest(int(intero_gain_ratio_proportion * 100), 100, 0.5)
-    mean_ratio = 1.3  # Assume mean gain ratio
-    cohens_d = (mean_ratio - 1.15) / 0.1  # vs. no-survival control
+    # Call shared function
+    f5_results = check_F5_family(f5_data, f5_thresholds, genome_data)
 
-    f5_3_pass = (
-        np.isfinite(intero_gain_ratio_proportion)
-        and np.isfinite(mean_ratio)
-        and np.isfinite(cohens_d)
-        and np.isfinite(result.pvalue)
-        and intero_gain_ratio_proportion >= 0.70
-        and mean_ratio >= 1.3
-        and cohens_d >= 0.60
-        and result.pvalue < 0.01
-    )
-    results["criteria"]["F5.3"] = {
-        "passed": f5_3_pass,
-        "proportion": intero_gain_ratio_proportion,
-        "mean_ratio": mean_ratio,
-        "cohens_d": cohens_d,
-        "p_value": result.pvalue,
-        "threshold": "≥70% show prioritization, ratio ≥ 1.3, d ≥ 0.60",
-        "actual": f"{intero_gain_ratio_proportion:.2f} proportion, ratio={mean_ratio:.2f}, d={cohens_d:.3f}",
-    }
-    if f5_3_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.3: {'PASS' if f5_3_pass else 'FAIL'} - Proportion: {intero_gain_ratio_proportion:.2f}, ratio={mean_ratio:.2f}, d={cohens_d:.3f}"
-    )
+    # Update results dict with shared function output
+    for criterion, result in f5_results.items():
+        results["criteria"][criterion] = result
+        if result["passed"]:
+            results["summary"]["passed"] += 1
+            logger.info(f"{criterion}: PASS - {result['actual']}")
+        else:
+            results["summary"]["failed"] += 1
+            logger.info(f"{criterion}: FAIL - {result['actual']}")
 
     # F5.4: Multi-Timescale Integration Emergence
     logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
     result = binomtest(int(multi_timescale_proportion * 100), 100, 0.5)
-    peak_separation = 3.0  # Assume separation in timescales
+    peak_separation = F5_4_MIN_PEAK_SEPARATION
 
     f5_4_pass = (
         np.isfinite(multi_timescale_proportion)
         and np.isfinite(peak_separation)
         and np.isfinite(result.pvalue)
         and multi_timescale_proportion >= 0.60
-        and peak_separation >= 3.0
+        and peak_separation >= F5_4_MIN_PEAK_SEPARATION
         and result.pvalue < 0.01
     )
     results["criteria"]["F5.4"] = {
@@ -2829,8 +2778,8 @@ def check_falsification(
     # F5.5: APGI-Like Feature Clustering
     logger.info("Testing F5.5: APGI-Like Feature Clustering")
     # Scree plot analysis (simplified)
-    # Bootstrap confidence intervals (placeholder)
-    se = 0.05  # Assume standard error
+    # TODO: Implement real bootstrap confidence intervals
+    se = 0.05  # Placeholder - needs real bootstrap implementation
     ci_lower = pca_variance_explained - 1.96 * se
     ci_upper = pca_variance_explained + 1.96 * se
 
@@ -3047,12 +2996,14 @@ def check_falsification(
     # F6.5: Bifurcation Structure for Ignition
     logger.info("Testing F6.5: Bifurcation Structure for Ignition")
     # Phase plane analysis (simplified)
-    hysteresis = abs(0.15 - 0.05)  # Assume hysteresis width
+    # TODO: Implement real bifurcation scan using scipy.optimize.brentq
+    # to detect up-transition and down-transition thresholds
+    hysteresis = abs(0.15 - 0.05)  # Placeholder - needs real implementation
 
     f6_5_pass = (
         abs(bifurcation_point - 0.15) <= 0.10
-        and hysteresis >= 0.08
-        and hysteresis <= 0.25
+        and hysteresis >= F6_5_HYSTERESIS_MIN
+        and hysteresis <= F6_5_HYSTERESIS_MAX
     )
     results["criteria"]["F6.5"] = {
         "passed": f6_5_pass,

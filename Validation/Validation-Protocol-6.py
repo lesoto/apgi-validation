@@ -68,6 +68,8 @@ from falsification_thresholds import (
     F6_2_MIN_INTEGRATION_RATIO,
     F6_2_MIN_CURVE_FIT_R2,
     F6_2_WILCOXON_ALPHA,
+    F1_1_MIN_ADVANTAGE_PCT,
+    F1_1_MIN_COHENS_D,
 )
 
 # Configure logging
@@ -2152,14 +2154,14 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "threshold": "Liquid time-constant networks show sharp ignition transitions (10-90% firing rate increase within <50ms) without explicit threshold modules, whereas feedforward networks require added sigmoidal gates",
             "test": "Transition time comparison (Mann-Whitney U test for non-normal distributions), α = 0.01",
             "effect_size": "LTCN median transition time ≤50ms vs. >150ms for feedforward without gates; Cliff's delta ≥ 0.60",
-            "alternative": "Falsified if LTCN transition time >80ms OR Cliff's delta < 0.45 OR Mann-Whitney p ≥ 0.01",
+            "alternative": f"Falsified if LTCN transition time >{F6_1_LTCN_MAX_TRANSITION_MS}ms OR Cliff's delta < 0.45 OR Mann-Whitney p ≥ 0.01",
         },
         "F6.2": {
             "description": "Intrinsic Temporal Integration",
             "threshold": "LTCNs naturally integrate information over 200-500ms windows (measured by autocorrelation decay to <0.37) without recurrent add-ons, vs. <50ms for standard RNNs",
             "test": "Exponential decay curve fitting; Wilcoxon signed-rank test comparing integration windows, α = 0.01",
             "effect_size": "LTCN integration window ≥4× standard RNN; curve fit R² ≥ 0.85",
-            "alternative": "Falsified if LTCN window <150ms OR ratio < 2.5× OR R² < 0.70 OR p ≥ 0.01",
+            "alternative": f"Falsified if LTCN window <150ms OR ratio < {F6_2_MIN_INTEGRATION_RATIO}× OR R² < 0.70 OR p ≥ 0.01",
         },
     }
 
@@ -2409,7 +2411,9 @@ def check_falsification(
     # F1.1: APGI Agent Performance Advantage
     logger.info("Testing F1.1: APGI Agent Performance Advantage")
     f1_1_pass = (
-        apgi_advantage_f1 >= 0.10 and cohens_d_f1 >= 0.35 and p_advantage_f1 < 0.01
+        apgi_advantage_f1 >= F1_1_MIN_ADVANTAGE_PCT
+        and cohens_d_f1 >= F1_1_MIN_COHENS_D
+        and p_advantage_f1 < 0.01
     )
     results["criteria"]["F1.1"] = {
         "passed": f1_1_pass,
