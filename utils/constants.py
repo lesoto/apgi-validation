@@ -114,7 +114,7 @@ class SystemDefaults:
     timeout_seconds: float = 300.0
     max_cache_size_mb: int = 1024
     batch_size: int = 1000
-    validation_timeout_seconds: float = 300.0
+    validation_timeout_seconds: float = 600.0
 
 
 @dataclass

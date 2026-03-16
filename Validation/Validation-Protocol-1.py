@@ -762,7 +762,9 @@ class APGIDatasetGenerator:
             Pi_e=np.random.gamma(2.0, 0.5),  # Typically 0.5-3.0
             Pi_i=np.random.gamma(2.0, 0.5),
             beta=np.random.normal(1.15, 0.25),
-            theta_t=np.random.normal(0.55, 0.15),
+            theta_t=np.random.normal(
+                0.35, 0.15
+            ),  # Lower threshold for better ignition balance
             model_name="",
         )
 
@@ -3968,6 +3970,390 @@ def check_falsification(
         f"\nFalsification-Protocol-1 Summary: {results['summary']['passed'] if isinstance(results, dict) and 'summary' in results else 0}/{results['summary']['total'] if isinstance(results, dict) and 'summary' in results else 0} criteria passed"
     )
     return results
+
+
+class EEGPipeline:
+    """Real EEG pipeline for HEP, P3b, and VAN analysis"""
+
+    def __init__(self, fs: int = 1000):
+        self.fs = fs
+        try:
+            import mne
+
+            self.mne = mne
+            self.has_mne = True
+        except ImportError:
+            self.mne = None
+            self.has_mne = False
+            logger.warning("MNE not available, using simplified EEG processing")
+
+        try:
+            import pingouin
+
+            self.pingouin = pingouin
+            self.has_pingouin = True
+        except ImportError:
+            self.pingouin = None
+            self.has_pingouin = False
+            logger.warning("pingouin not available, using simplified statistics")
+
+    def extract_HEP(
+        self,
+        continuous_eeg: np.ndarray,
+        r_triggers: np.ndarray,
+        baseline_window: Tuple[float, float] = (-0.2, 0.0),
+        analysis_window: Tuple[float, float] = (0.0, 0.6),
+        reject_amplitude: float = 100.0,
+    ) -> Dict[str, np.ndarray]:
+        """
+        Extract Heartbeat-Evoked Potential (HEP) from continuous EEG.
+
+        Args:
+            continuous_eeg: Continuous EEG data (channels × timepoints)
+            r_triggers: R-wave trigger times in samples
+            baseline_window: Baseline correction window (pre-trigger) in seconds
+            analysis_window: Analysis window in seconds
+            reject_amplitude: Amplitude rejection threshold in μV
+
+        Returns:
+            Dict with epochs, averaged HEP, and metadata
+        """
+        n_channels, n_samples = continuous_eeg.shape
+
+        # Convert time windows to samples
+        baseline_start = int(baseline_window[0] * self.fs)
+        baseline_end = int(baseline_window[1] * self.fs)
+        # analysis_start = int(analysis_window[0] * self.fs)
+        analysis_end = int(analysis_window[1] * self.fs)
+
+        # Extract epochs around each R-trigger
+        epochs = []
+        for trigger in r_triggers:
+            epoch_start = trigger + baseline_start
+            epoch_end = trigger + analysis_end
+
+            if epoch_start < 0 or epoch_end > n_samples:
+                continue  # Skip incomplete epochs
+
+            epoch = continuous_eeg[:, epoch_start:epoch_end]
+
+            # Amplitude rejection
+            if np.max(np.abs(epoch)) > reject_amplitude:
+                continue  # Reject high-amplitude artifacts
+
+            epochs.append(epoch)
+
+        if len(epochs) == 0:
+            logger.warning("No valid HEP epochs found")
+            return {"epochs": None, "average": None, "n_epochs": 0}
+
+        epochs = np.array(epochs)
+
+        # Baseline correction
+        baseline_mean = np.mean(
+            epochs[:, :, baseline_start:baseline_end], axis=2, keepdims=True
+        )
+        epochs_corrected = epochs - baseline_mean
+
+        # Average across epochs
+        average_hep = np.mean(epochs_corrected, axis=0)
+
+        return {
+            "epochs": epochs_corrected,
+            "average": average_hep,
+            "n_epochs": len(epochs),
+            "baseline_window": baseline_window,
+            "analysis_window": analysis_window,
+        }
+
+    def measure_P3b(
+        self,
+        eeg_epochs: np.ndarray,
+        pz_channel: int = 31,
+        p3b_window: Tuple[float, float] = (0.3, 0.6),
+        conditions: Optional[np.ndarray] = None,
+    ) -> Dict[str, np.ndarray]:
+        """
+        Measure P3b amplitude from EEG epochs.
+
+        Args:
+            eeg_epochs: EEG epochs (trials × channels × timepoints)
+            pz_channel: Index of Pz channel
+            p3b_window: P3b analysis window in seconds
+            conditions: Condition labels for repeated-measures ANOVA
+
+        Returns:
+            Dict with P3b amplitudes and statistical results
+        """
+        # Convert time window to samples
+        p3b_start = int(p3b_window[0] * self.fs)
+        p3b_end = int(p3b_window[1] * self.fs)
+
+        # Extract Pz channel
+        pz_data = eeg_epochs[:, pz_channel, :]
+
+        # Calculate mean amplitude in P3b window
+        p3b_amplitudes = np.mean(pz_data[:, p3b_start:p3b_end], axis=1)
+
+        results = {"amplitudes": p3b_amplitudes, "window": p3b_window}
+
+        # Repeated-measures ANOVA if conditions provided
+        if conditions is not None and self.has_pingouin:
+            try:
+                import pandas as pd
+
+                df = pd.DataFrame(
+                    {
+                        "amplitude": p3b_amplitudes,
+                        "condition": conditions,
+                        "subject": np.arange(len(p3b_amplitudes)),
+                    }
+                )
+
+                anova_results = self.pingouin.rm_anova(
+                    data=df, dv="amplitude", within="condition", subject="subject"
+                )
+
+                results["anova"] = anova_results
+            except Exception as e:
+                logger.warning(f"RM-ANOVA failed: {e}")
+
+        return results
+
+    def analyze_VAN(
+        self,
+        eeg_epochs: np.ndarray,
+        frontal_channels: List[int],
+        van_window: Tuple[float, float] = (0.15, 0.25),
+        conditions: Optional[np.ndarray] = None,
+    ) -> Dict[str, np.ndarray]:
+        """
+        Analyze Visual Awareness Negativity (VAN) in frontal electrodes.
+
+        Args:
+            eeg_epochs: EEG epochs (trials × channels × timepoints)
+            frontal_channels: List of frontal channel indices
+            van_window: VAN analysis window in seconds
+            conditions: Condition labels for contrast analysis
+
+        Returns:
+            Dict with VAN amplitudes and contrast results
+        """
+        # Convert time window to samples
+        van_start = int(van_window[0] * self.fs)
+        van_end = int(van_window[1] * self.fs)
+
+        # Extract frontal channels
+        frontal_data = eeg_epochs[:, frontal_channels, :]
+
+        # Calculate mean amplitude in VAN window
+        van_amplitudes = np.mean(frontal_data[:, :, van_start:van_end], axis=2)
+        van_mean = np.mean(van_amplitudes, axis=1)
+
+        results = {
+            "amplitudes": van_amplitudes,
+            "mean_amplitudes": van_mean,
+            "window": van_window,
+        }
+
+        # Contrast interoceptive vs. exteroceptive if conditions provided
+        if conditions is not None:
+            unique_conditions = np.unique(conditions)
+            if len(unique_conditions) >= 2:
+                condition_means = {}
+                for cond in unique_conditions:
+                    mask = conditions == cond
+                    condition_means[cond] = np.mean(van_mean[mask])
+
+                results["condition_means"] = condition_means
+
+                # Statistical contrast
+                if self.has_pingouin:
+                    try:
+                        import pandas as pd
+
+                        df = pd.DataFrame(
+                            {
+                                "amplitude": van_mean,
+                                "condition": conditions,
+                                "subject": np.arange(len(van_mean)),
+                            }
+                        )
+
+                        ttest_results = self.pingouin.ttest(
+                            df[df["condition"] == unique_conditions[0]]["amplitude"],
+                            df[df["condition"] == unique_conditions[1]]["amplitude"],
+                        )
+
+                        results["contrast"] = ttest_results
+                    except Exception as e:
+                        logger.warning(f"VAN contrast test failed: {e}")
+
+        return results
+
+    def compute_partial_correlation(
+        self,
+        hep_amplitudes: np.ndarray,
+        p3b_amplitudes: np.ndarray,
+        pupil_diameters: np.ndarray,
+    ) -> Dict[str, float]:
+        """
+        Compute partial correlation between HEP and P3b controlling for pupil diameter.
+
+        Args:
+            hep_amplitudes: HEP amplitude values
+            p3b_amplitudes: P3b amplitude values
+            pupil_diameters: Pupil diameter values
+
+        Returns:
+            Dict with partial correlation coefficient and p-value
+        """
+        if self.has_pingouin:
+            try:
+                import pandas as pd
+
+                df = pd.DataFrame(
+                    {
+                        "HEP": hep_amplitudes,
+                        "P3b": p3b_amplitudes,
+                        "pupil": pupil_diameters,
+                    }
+                )
+
+                partial_corr = self.pingouin.partial_corr(
+                    data=df, x="HEP", y="P3b", covar="pupil"
+                )
+
+                return {
+                    "r": partial_corr["r"].values[0],
+                    "p": partial_corr["p-val"].values[0],
+                    "ci95": partial_corr["CI95%"].values[0],
+                }
+            except Exception as e:
+                logger.warning(f"Partial correlation failed: {e}")
+                return {"r": np.nan, "p": np.nan}
+        else:
+            # Fallback: simple correlation
+            from scipy import stats
+
+            # Residualize HEP and P3b for pupil
+            hep_resid = (
+                stats.linregress(pupil_diameters, hep_amplitudes).intercept
+                + stats.linregress(pupil_diameters, hep_amplitudes).slope
+                * pupil_diameters
+            )
+            p3b_resid = (
+                stats.linregress(pupil_diameters, p3b_amplitudes).intercept
+                + stats.linregress(pupil_diameters, p3b_amplitudes).slope
+                * pupil_diameters
+            )
+
+            hep_residuals = hep_amplitudes - hep_resid
+            p3b_residuals = p3b_amplitudes - p3b_resid
+
+            r, p = stats.pearsonr(hep_residuals, p3b_residuals)
+
+            return {"r": r, "p": p}
+
+    def tertile_split_analysis(
+        self,
+        heartbeat_scores: np.ndarray,
+        p3b_amplitudes: np.ndarray,
+        conditions: np.ndarray,
+    ) -> Dict[str, Any]:
+        """
+        Split participants by interoceptive accuracy tertiles and analyze P3b × condition interaction.
+
+        Args:
+            heartbeat_scores: Heartbeat counting accuracy scores
+            p3b_amplitudes: P3b amplitude values
+            conditions: Condition labels
+
+        Returns:
+            Dict with tertile groups and mixed ANOVA results
+        """
+        # Create tertiles from heartbeat scores
+        tertiles = np.percentile(heartbeat_scores, [33.33, 66.67])
+
+        tertile_labels = np.zeros_like(heartbeat_scores)
+        tertile_labels[heartbeat_scores <= tertiles[0]] = 0  # Low
+        tertile_labels[
+            (heartbeat_scores > tertiles[0]) & (heartbeat_scores <= tertiles[1])
+        ] = 1  # Medium
+        tertile_labels[heartbeat_scores > tertiles[1]] = 2  # High
+
+        results = {
+            "tertile_boundaries": tertiles,
+            "tertile_labels": tertile_labels,
+            "n_per_tertile": [np.sum(tertile_labels == i) for i in range(3)],
+        }
+
+        # Mixed ANOVA: P3b ~ condition * tertile
+        if self.has_pingouin:
+            try:
+                import pandas as pd
+
+                df = pd.DataFrame(
+                    {
+                        "P3b": p3b_amplitudes,
+                        "condition": conditions,
+                        "tertile": tertile_labels,
+                        "subject": np.arange(len(p3b_amplitudes)),
+                    }
+                )
+
+                mixed_anova = self.pingouin.mixed_anova(
+                    data=df,
+                    dv="P3b",
+                    within=["condition"],
+                    between=["tertile"],
+                    subject="subject",
+                )
+
+                results["mixed_anova"] = mixed_anova
+
+                # Post-hoc pairwise comparisons
+                posthoc = self.pingouin.pairwise_ttests(
+                    data=df,
+                    dv="P3b",
+                    within="condition",
+                    between="tertile",
+                    subject="subject",
+                    padjust="bonf",
+                )
+
+                results["posthoc"] = posthoc
+            except Exception as e:
+                logger.warning(f"Mixed ANOVA failed: {e}")
+
+        return results
+
+    def apply_bonferroni_correction(
+        self,
+        p_values: np.ndarray,
+        alpha: float = 0.05,
+        n_tests: int = 3,
+    ) -> Dict[str, np.ndarray]:
+        """
+        Apply Bonferroni correction for multiple comparisons.
+
+        Args:
+            p_values: Array of p-values
+            alpha: Family-wise error rate
+            n_tests: Number of tests (default 3 for P1a, P1b, P1c)
+
+        Returns:
+            Dict with corrected p-values and significance flags
+        """
+        corrected_alpha = alpha / n_tests
+        significant = p_values < corrected_alpha
+
+        return {
+            "p_values": p_values,
+            "corrected_alpha": corrected_alpha,
+            "significant": significant,
+            "n_tests": n_tests,
+        }
 
 
 if __name__ == "__main__":

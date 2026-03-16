@@ -1126,6 +1126,27 @@ class APGILogger:
 
         return stats
 
+    # Add standard logging interface methods for compatibility
+    def debug(self, message: str, **kwargs):
+        """Log a debug message."""
+        self.logger.debug(message, **kwargs)
+
+    def info(self, message: str, **kwargs):
+        """Log an info message."""
+        self.logger.info(message, **kwargs)
+
+    def warning(self, message: str, **kwargs):
+        """Log a warning message."""
+        self.logger.warning(message, **kwargs)
+
+    def error(self, message: str, **kwargs):
+        """Log an error message."""
+        self.logger.error(message, **kwargs)
+
+    def critical(self, message: str, **kwargs):
+        """Log a critical message."""
+        self.logger.critical(message, **kwargs)
+
     def set_up_alerts(self, error_threshold: int = 10, time_window: int = 300):
         """Set up log alerts for error monitoring."""
         # This would implement alerting logic

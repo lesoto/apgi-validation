@@ -1364,8 +1364,8 @@ def check_falsification(
     # F2.4: Confidence Effects
     logger.info("Testing F2.4: Confidence Effects")
     # Two-proportion z-test for confidence advantage
-    # Assume confidence_effect is proportion difference
-    n_total = 100  # Assume sample size, adjust if needed
+    # TODO: Derive n_total from actual data samples
+    n_total = 100  # Placeholder - needs real implementation
     p1 = 0.5 + confidence_effect / 2
     p2 = 0.5 - confidence_effect / 2
     n_safe = max(1, n_total)

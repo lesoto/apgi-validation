@@ -100,7 +100,6 @@ class APGIBayesianInversion:
             beta = pm.TruncatedNormal(
                 "beta", 1.2, 0.3, lower=0.5, upper=2.5
             )  # Somatic bias
-            tau_s = pm.Normal("tau_s", 0.3, 0.1)  # Surprise decay
             alpha = pm.Normal("alpha", 5.0, 1.0)  # Ignition slope
             sigma_noise = pm.HalfNormal("sigma_noise", 0.1)  # Process noise
 
@@ -156,7 +155,6 @@ class APGIBayesianInversion:
             "pi_e": np.mean(trace.posterior["pi_e"].values.flatten()),
             "pi_i": np.mean(trace.posterior["pi_i"].values.flatten()),
             "beta": np.mean(trace.posterior["beta"].values.flatten()),
-            "tau_s": np.mean(trace.posterior["tau_s"].values.flatten()),
             "alpha": np.mean(trace.posterior["alpha"].values.flatten()),
         }
         return recovered_params, trace
@@ -168,7 +166,7 @@ class APGIBayesianInversion:
         """
         print(f"Running SBC with {n_simulations} simulations...")
 
-        coverage = {"theta_0": [], "pi_e": [], "pi_i": [], "beta": [], "tau_s": []}
+        coverage = {"theta_0": [], "pi_e": [], "pi_i": [], "beta": []}
 
         for sim in range(n_simulations):
             if sim % 10 == 0:

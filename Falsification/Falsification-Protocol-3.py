@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 from scipy import stats
+from scipy.stats import binomtest
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.constants import DIM_CONSTANTS
+from utils.shared_falsification import check_F5_family
 from falsification_thresholds import (
     F1_1_MIN_ADVANTAGE_PCT,
     F1_1_MIN_COHENS_D,
@@ -927,7 +929,6 @@ class AgentComparisonExperiment:
 
     def check_falsification(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
         """Check all falsification criteria with proper statistical thresholds"""
-
         falsified = {}
         alpha = 0.05  # Family-wise error rate
         bonferroni_alpha = alpha / 6  # Adjust for multiple comparisons
@@ -2296,7 +2297,7 @@ def check_falsification(
 
     f1_6_pass = (
         mean_active <= 1.4
-        and mean_low_arousal >= 1.3
+        and mean_low_arousal >= 1.3  # TODO: Import from falsification_thresholds.py
         and delta_slope >= 0.25
         and cohens_d_slope >= 0.50
         and r_squared >= 0.85
@@ -2453,8 +2454,8 @@ def check_falsification(
     # F2.4: Confidence Effects
     logger.info("Testing F2.4: Confidence Effects")
     # Two-proportion z-test for confidence advantage
-    # Assume confidence_effect is proportion difference
-    n_total = 100  # Assume sample size, adjust if needed
+    # TODO: Derive n_total from actual data samples
+    n_total = 100  # Placeholder - needs real implementation
     p1 = 0.5 + confidence_effect / 2
     p2 = 0.5 - confidence_effect / 2
     se = np.sqrt(p1 * (1 - p1) / n_total + p2 * (1 - p2) / n_total)
@@ -2518,83 +2519,51 @@ def check_falsification(
         f"F2.5: {'PASS' if f2_5_pass else 'FAIL'} - β={beta_interaction:.3f}, η²={eta_squared:.3f}, p={p_beta:.4f}"
     )
 
-    # F5.1: Threshold Emergence Proportion
-    logger.info("Testing F5.1: Threshold Emergence Proportion")
-    # Binomial test for proportion >= 0.60
-    n_total = 100  # Assume sample size
-    n_success = int(threshold_emergence_proportion * n_total)
+    # F5 Family: Evolutionary Emergence (using shared function per Step 1.3)
+    logger.info("Testing F5 Family: Evolutionary Emergence")
 
-    # Binomial test
-    from scipy.stats import binomtest
-
-    binom_result = binomtest(n_success, n_total, p=0.60, alternative="greater")
-    p_binom = binom_result.pvalue
-
-    f5_1_pass = threshold_emergence_proportion >= 0.60 and p_binom < 0.01
-    results["criteria"]["F5.1"] = {
-        "passed": f5_1_pass,
-        "proportion": threshold_emergence_proportion,
-        "p_value": p_binom,
-        "n_success": n_success,
-        "n_total": n_total,
-        "threshold": "≥60% emergence",
-        "actual": f"{threshold_emergence_proportion:.1f} proportion, p={p_binom:.4f}",
+    # Prepare data for shared function
+    f5_data = {
+        "threshold_emergence_proportion": threshold_emergence_proportion,
+        "precision_emergence_proportion": precision_emergence_proportion,
+        "intero_gain_ratio_proportion": intero_gain_ratio_proportion,
     }
-    if f5_1_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.1: {'PASS' if f5_1_pass else 'FAIL'} - Proportion: {threshold_emergence_proportion:.1f}, p={p_binom:.4f}"
+
+    # Use thresholds from falsification_thresholds.py
+    from falsification_thresholds import (
+        F5_1_MIN_PROPORTION,
+        F5_1_MIN_ALPHA,
+        F5_1_MIN_COHENS_D,
+        F5_2_MIN_PROPORTION,
+        F5_2_MIN_CORRELATION,
+        F5_3_MIN_PROPORTION,
+        F5_3_MIN_GAIN_RATIO,
+        F5_3_MIN_COHENS_D,
     )
 
-    # F5.2: Precision Emergence Proportion
-    logger.info("Testing F5.2: Precision Emergence Proportion")
-    n_success = int(precision_emergence_proportion * n_total)
-    binom_result = binomtest(n_success, n_total, p=0.50, alternative="greater")
-    p_binom = binom_result.pvalue
-
-    f5_2_pass = precision_emergence_proportion >= 0.50 and p_binom < 0.01
-    results["criteria"]["F5.2"] = {
-        "passed": f5_2_pass,
-        "proportion": precision_emergence_proportion,
-        "p_value": p_binom,
-        "n_success": n_success,
-        "n_total": n_total,
-        "threshold": "≥50% emergence",
-        "actual": f"{precision_emergence_proportion:.1f} proportion, p={p_binom:.4f}",
+    f5_thresholds = {
+        "F5_1_MIN_PROPORTION": F5_1_MIN_PROPORTION,
+        "F5_1_MIN_ALPHA": F5_1_MIN_ALPHA,
+        "F5_1_MIN_COHENS_D": F5_1_MIN_COHENS_D,
+        "F5_2_MIN_PROPORTION": F5_2_MIN_PROPORTION,
+        "F5_2_MIN_CORRELATION": F5_2_MIN_CORRELATION,
+        "F5_3_MIN_PROPORTION": F5_3_MIN_PROPORTION,
+        "F5_3_MIN_GAIN_RATIO": F5_3_MIN_GAIN_RATIO,
+        "F5_3_MIN_COHENS_D": F5_3_MIN_COHENS_D,
     }
-    if f5_2_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.2: {'PASS' if f5_2_pass else 'FAIL'} - Proportion: {precision_emergence_proportion:.1f}, p={p_binom:.4f}"
-    )
 
-    # F5.3: Interoceptive Gain Ratio Proportion
-    logger.info("Testing F5.3: Interoceptive Gain Ratio Proportion")
-    n_success = int(intero_gain_ratio_proportion * n_total)
-    binom_result = binomtest(n_success, n_total, p=0.40, alternative="greater")
-    p_binom = binom_result.pvalue
+    # Call shared function
+    f5_results = check_F5_family(f5_data, f5_thresholds, genome_data=None)
 
-    f5_3_pass = intero_gain_ratio_proportion >= 0.40 and p_binom < 0.01
-    results["criteria"]["F5.3"] = {
-        "passed": f5_3_pass,
-        "proportion": intero_gain_ratio_proportion,
-        "p_value": p_binom,
-        "n_success": n_success,
-        "n_total": n_total,
-        "threshold": "≥40% emergence",
-        "actual": f"{intero_gain_ratio_proportion:.1f} proportion, p={p_binom:.4f}",
-    }
-    if f5_3_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.3: {'PASS' if f5_3_pass else 'FAIL'} - Proportion: {intero_gain_ratio_proportion:.1f}, p={p_binom:.4f}"
-    )
+    # Update results dict with shared function output
+    for criterion, result in f5_results.items():
+        results["criteria"][criterion] = result
+        if result["passed"]:
+            results["summary"]["passed"] += 1
+            logger.info(f"{criterion}: PASS - {result['actual']}")
+        else:
+            results["summary"]["failed"] += 1
+            logger.info(f"{criterion}: FAIL - {result['actual']}")
 
     # F5.4: Multi-Timescale Proportion
     logger.info("Testing F5.4: Multi-Timescale Proportion")
@@ -2856,27 +2825,33 @@ def check_falsification(
 
     # F6.5: Bifurcation Structure for Ignition
     logger.info("Testing F6.5: Bifurcation Structure for Ignition")
-    # Phase plane analysis (simplified)
-    hysteresis = abs(0.15 - 0.05)  # Assume hysteresis width
+    # Use the provided hysteresis_width parameter instead of hardcoded value
+    # The hysteresis should be computed from the model's response function
+    # using scipy.optimize.brentq on increasing vs. decreasing input drives
+    if hysteresis_width <= 0:
+        raise ValueError(
+            "hysteresis_width must be computed from bifurcation scan "
+            "using scipy.optimize.brentq on model response function"
+        )
 
     f6_5_pass = (
         abs(bifurcation_point - 0.15) <= 0.10
-        and hysteresis >= 0.08
-        and hysteresis <= 0.25
+        and hysteresis_width >= 0.08
+        and hysteresis_width <= 0.25
     )
     results["criteria"]["F6.5"] = {
         "passed": f6_5_pass,
         "bifurcation_point": bifurcation_point,
-        "hysteresis_width": hysteresis,
+        "hysteresis_width": hysteresis_width,
         "threshold": "Bifurcation at Π·|ε| = θ_t ± 0.15, hysteresis 0.1-0.2",
-        "actual": f"Point {bifurcation_point:.3f}, hysteresis {hysteresis:.3f}",
+        "actual": f"Point {bifurcation_point:.3f}, hysteresis {hysteresis_width:.3f}",
     }
     if f6_5_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F6.5: {'PASS' if f6_5_pass else 'FAIL'} - Point: {bifurcation_point:.3f}, hysteresis: {hysteresis:.3f}"
+        f"F6.5: {'PASS' if f6_5_pass else 'FAIL'} - Point: {bifurcation_point:.3f}, hysteresis: {hysteresis_width:.3f}"
     )
 
     # F6.6: Alternative Architectures Require Add-Ons
