@@ -47,8 +47,9 @@ DEFAULT_EPSILON = 1e-10
 
 # Falsification thresholds
 LEVEL2_TE_THRESHOLD = 0.1  # Transfer entropy threshold for Level 2 falsification
-LEVEL2_MI_THRESHOLD = (
-    100.0  # Mutual information threshold (bits/s) for bandwidth falsification
+LEVEL2_MI_THRESHOLD = 40.0  # Mutual information threshold (bits/s) for bandwidth falsification - expected ceiling
+LEVEL2_MI_FALSIFICATION_THRESHOLD = (
+    100.0  # Mutual information falsification threshold (bits/s) - extreme outlier test
 )
 NULL_BOOTSTRAP_N = 100  # Number of shuffled baselines for null comparison
 SHUFFLE_SEED_OFFSET = 1000  # Seed offset for shuffled baselines
@@ -1161,12 +1162,16 @@ class InformationTheoreticAnalysis:
         try:
             mi_values = self.compute_mutual_information(history, "S", "theta")
             mi_mean = np.mean(mi_values)
-            mi_falsified = mi_mean > LEVEL2_MI_THRESHOLD
+            # P6: Passing condition is bandwidth ≤ 40.0 bits/s (expected ceiling)
+            # Falsified if bandwidth > 100.0 bits/s (extreme outlier test)
+            mi_falsified = mi_mean > LEVEL2_MI_FALSIFICATION_THRESHOLD
             results["mutual_info_falsified"] = mi_falsified
             results["details"]["mutual_info"] = {
                 "mean_bits_per_second": float(mi_mean),
-                "threshold": LEVEL2_MI_THRESHOLD,
+                "expected_ceiling": LEVEL2_MI_THRESHOLD,
+                "falsification_threshold": LEVEL2_MI_FALSIFICATION_THRESHOLD,
                 "falsified": mi_falsified,
+                "passes_ceiling": mi_mean <= LEVEL2_MI_THRESHOLD,
             }
         except Exception as e:
             logger.warning(f"Mutual information computation failed: {e}")
@@ -1204,7 +1209,8 @@ class InformationTheoreticAnalysis:
         """
         Level 1 falsification stubs (metabolic cost measurement protocols)
 
-        Placeholder implementations for metabolic cost falsification criteria
+        Implements metabolic cost falsification criteria using Attwell & Laughlin (2001)
+        ~10⁹ ATP molecules per spike as the biological baseline.
 
         Args:
             history: Dictionary containing time series data
@@ -1219,50 +1225,101 @@ class InformationTheoreticAnalysis:
             "details": {},
         }
 
-        # Stub 1: Metabolic cost measurement
-        # TODO: Implement actual metabolic cost calculation
-        # For now, use placeholder based on surprise accumulation
         S = history["S"]
         B = history["B"]
+        time = history["time"]
 
-        # Placeholder: high surprise accumulation without ignition = inefficient
-        surprise_cost = np.sum(S[B < DEFAULT_IGNITION_THRESHOLD])
-        ignition_benefit = np.sum(B)
-        cost_benefit_ratio = surprise_cost / (ignition_benefit + DEFAULT_EPSILON)
+        # Metabolic cost constants from Attwell & Laughlin (2001)
+        ATP_PER_SPIKE = 1e9  # ~10⁹ ATP molecules per spike
+        BASELINE_METABOLIC_RATE = 1.0  # Normalized baseline metabolic rate
+        BIOLOGICAL_CEILING = 1.2  # 20% above baseline (1.0 + 0.2)
 
-        metabolic_falsified = cost_benefit_ratio > 10.0  # Placeholder threshold
+        # Stub 1: Metabolic cost measurement
+        # Implement actual metabolic cost calculation based on spike count and ATP consumption
+        n_ignitions = np.sum(B > DEFAULT_IGNITION_THRESHOLD)
+        total_atp_consumed = n_ignitions * ATP_PER_SPIKE
+
+        # Compute metabolic cost per unit time (normalized)
+        duration = time[-1] - time[0] if len(time) > 1 else 1.0
+        metabolic_rate = total_atp_consumed / duration
+
+        # Compute information value: bits of mutual information per ignition
+        # Approximate as surprise reduction at ignition events
+        ignition_surprise = S[B > DEFAULT_IGNITION_THRESHOLD]
+        information_value = (
+            np.sum(ignition_surprise) if len(ignition_surprise) > 0 else 1.0
+        )
+
+        # Energy per correct detection (ATP per bit of information)
+        energy_per_detection = total_atp_consumed / (
+            information_value + DEFAULT_EPSILON
+        )
+
+        # Normalize to biological baseline
+        normalized_metabolic_cost = metabolic_rate / BASELINE_METABOLIC_RATE
+
+        # Falsified if metabolic cost exceeds biological ceiling (>20% above baseline)
+        metabolic_falsified = normalized_metabolic_cost > BIOLOGICAL_CEILING
+
         results["metabolic_cost_falsified"] = metabolic_falsified
         results["details"]["metabolic_cost"] = {
-            "cost_benefit_ratio": float(cost_benefit_ratio),
+            "total_atp_consumed": float(total_atp_consumed),
+            "metabolic_rate": float(metabolic_rate),
+            "normalized_cost": float(normalized_metabolic_cost),
+            "energy_per_detection": float(energy_per_detection),
+            "biological_ceiling": BIOLOGICAL_CEILING,
             "falsified": metabolic_falsified,
-            "note": "Placeholder implementation - needs actual metabolic model",
         }
 
         # Stub 2: Energy efficiency measurement
-        # TODO: Implement actual energy efficiency calculation
-        # Placeholder based on ignition frequency vs. input drive
-        ignition_rate = np.mean(B)
-        input_drive = np.mean(S)
-        efficiency = ignition_rate / (input_drive + DEFAULT_EPSILON)
+        # Implement actual energy efficiency based on information gain per ATP spent
+        # Information gain: ratio of information value to metabolic cost
+        information_gain = information_value / (total_atp_consumed + DEFAULT_EPSILON)
 
-        efficiency_falsified = efficiency < 0.1  # Placeholder threshold
+        # Normalize efficiency to biological baseline
+        baseline_efficiency = 1.0 / (BASELINE_METABOLIC_RATE * ATP_PER_SPIKE)
+        efficiency_ratio = information_gain / baseline_efficiency
+
+        # Falsified if efficiency is significantly below baseline (<50% of expected)
+        efficiency_falsified = efficiency_ratio < 0.5
+
         results["energy_efficiency_falsified"] = efficiency_falsified
         results["details"]["energy_efficiency"] = {
-            "efficiency": float(efficiency),
+            "information_value": float(information_value),
+            "information_gain": float(information_gain),
+            "efficiency_ratio": float(efficiency_ratio),
+            "baseline_efficiency": float(baseline_efficiency),
             "falsified": efficiency_falsified,
-            "note": "Placeholder implementation - needs actual energy model",
         }
 
         # Stub 3: Thermodynamic plausibility
-        # TODO: Implement actual thermodynamic analysis
-        # Placeholder based on entropy production
-        entropy_production = np.std(S)  # Placeholder
-        thermodynamic_falsified = entropy_production < 0.01  # Placeholder threshold
+        # Implement actual thermodynamic analysis based on entropy production
+        # Compute entropy rate of the system
+        # Using Shannon entropy of discretized surprise signal
+        from sklearn.preprocessing import KBinsDiscretizer
+
+        S_binned = (
+            KBinsDiscretizer(n_bins=20, encode="ordinal", strategy="uniform")
+            .fit_transform(S.reshape(-1, 1))
+            .flatten()
+        )
+        probs = np.bincount(S_binned, minlength=20) / len(S_binned)
+        probs = probs[probs > 0]
+        entropy_rate = -np.sum(probs * np.log(probs + 1e-10))
+
+        # Entropy production rate (change in entropy over time)
+        entropy_production = entropy_rate / duration
+
+        # Thermodynamic plausibility: entropy production should be positive but bounded
+        # Falsified if entropy production is too low (system not processing information)
+        # or too high (system dissipating energy inefficiently)
+        thermodynamic_falsified = entropy_production < 0.01 or entropy_production > 10.0
+
         results["thermodynamic_plausibility_falsified"] = thermodynamic_falsified
         results["details"]["thermodynamic_plausibility"] = {
+            "entropy_rate": float(entropy_rate),
             "entropy_production": float(entropy_production),
             "falsified": thermodynamic_falsified,
-            "note": "Placeholder implementation - needs actual thermodynamic model",
         }
 
         return results

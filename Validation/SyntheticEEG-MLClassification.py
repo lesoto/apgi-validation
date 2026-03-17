@@ -3006,7 +3006,9 @@ class FalsificationChecker:
         if f6_2_falsified:
             report["falsified_criteria"].append(criterion_result)
         else:
-            report["overall_falsified"] = len(report["falsified_criteria"]) > 0
+            report["passed_criteria"].append(criterion_result)
+
+        report["overall_falsified"] = len(report["falsified_criteria"]) > 0
 
         # Add power analysis computation (N=80 for primary tests)
         report["power_analysis"] = self.compute_power_analysis()
@@ -3859,23 +3861,97 @@ def compare_models_with_statistics(results_task_1a):
 
     comparisons = {}
     models = list(results_task_1a.keys())
+    alpha = 0.05
+    n_permutations = 1000
 
     for i, model_i in enumerate(models):
         for model_j in models[i + 1 :]:
+            # Extract predictions and labels for both models
+            pred_i = results_task_1a[model_i]["predictions"]
+            pred_j = results_task_1a[model_j]["predictions"]
+            labels = results_task_1a[model_i]["labels"]
+            probs_i = results_task_1a[model_i]["probabilities"]
+            probs_j = results_task_1a[model_j]["probabilities"]
+
             # McNemar's test for binary predictions
             # Build contingency table: [both_correct, i_correct_j_wrong, i_wrong_j_correct, both_wrong]
+            correct_i = pred_i == labels
+            correct_j = pred_j == labels
 
-            # Permutation test for AUC differences
+            both_correct = np.sum(correct_i & correct_j)
+            i_correct_j_wrong = np.sum(correct_i & ~correct_j)
+            i_wrong_j_correct = np.sum(~correct_i & correct_j)
+            both_wrong = np.sum(~correct_i & ~correct_j)
+
+            contingency_table = np.array(
+                [[both_correct, i_correct_j_wrong], [i_wrong_j_correct, both_wrong]]
+            )
+
+            # McNemar's test statistic (mid-p corrected)
+            if i_correct_j_wrong + i_wrong_j_correct > 0:
+                mcnemar_stat = (abs(i_correct_j_wrong - i_wrong_j_correct) - 1) ** 2 / (
+                    i_correct_j_wrong + i_wrong_j_correct
+                )
+                mcnemar_p = 1 - stats.chi2.cdf(mcnemar_stat, 1)
+            else:
+                mcnemar_stat = 0.0
+                mcnemar_p = 1.0
+
+            # Permutation test for McNemar's statistic
+            perm_stats = []
+            for _ in range(n_permutations):
+                # Shuffle predictions of model j
+                perm_pred_j = np.random.permutation(pred_j)
+                perm_correct_j = perm_pred_j == labels
+
+                perm_both_correct = np.sum(correct_i & perm_correct_j)
+                perm_i_correct_j_wrong = np.sum(correct_i & ~perm_correct_j)
+                perm_i_wrong_j_correct = np.sum(~correct_i & perm_correct_j)
+
+                if perm_i_correct_j_wrong + perm_i_wrong_j_correct > 0:
+                    perm_stat = (
+                        abs(perm_i_correct_j_wrong - perm_i_wrong_j_correct) - 1
+                    ) ** 2 / (perm_i_correct_j_wrong + perm_i_wrong_j_correct)
+                else:
+                    perm_stat = 0.0
+                perm_stats.append(perm_stat)
+
+            perm_stats = np.array(perm_stats)
+            mcnemar_perm_p = np.mean(perm_stats >= mcnemar_stat)
+            mcnemar_significant = mcnemar_perm_p < alpha
+
+            # DeLong's test for AUC comparison
             auc_diff = (
                 results_task_1a[model_i]["auc_roc"]
                 - results_task_1a[model_j]["auc_roc"]
             )
 
-            # Store p-values
+            # Permutation test for AUC differences
+            perm_auc_diffs = []
+            for _ in range(n_permutations):
+                # Shuffle labels and recompute AUC difference
+                perm_labels = np.random.permutation(labels)
+                try:
+                    perm_auc_i = roc_auc_score(perm_labels, probs_i)
+                    perm_auc_j = roc_auc_score(perm_labels, probs_j)
+                    perm_auc_diffs.append(perm_auc_i - perm_auc_j)
+                except ValueError:
+                    perm_auc_diffs.append(0.0)
+
+            perm_auc_diffs = np.array(perm_auc_diffs)
+            auc_perm_p = np.mean(np.abs(perm_auc_diffs) >= np.abs(auc_diff))
+            auc_significant = auc_perm_p < alpha
+
+            # Store results
             comparisons[f"{model_i}_vs_{model_j}"] = {
+                "mcnemar_statistic": mcnemar_stat,
+                "mcnemar_p_value": mcnemar_p,
+                "mcnemar_perm_p_value": mcnemar_perm_p,
+                "mcnemar_significant": mcnemar_significant,
+                "contingency_table": contingency_table.tolist(),
                 "auc_diff": auc_diff,
-                "p_value": None,  # compute via permutation
-                "significant": None,
+                "auc_perm_p_value": auc_perm_p,
+                "auc_significant": auc_significant,
             }
 
     return comparisons

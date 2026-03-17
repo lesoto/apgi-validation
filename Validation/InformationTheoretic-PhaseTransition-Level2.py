@@ -683,69 +683,82 @@ class PhaseTransitionDetector:
 
     def _hurst_exponent(self, series: np.ndarray) -> float:
         """
-        Estimate Hurst exponent via R/S analysis
+        Estimate Hurst exponent via Detrended Fluctuation Analysis (DFA)
 
-        R/S = (R/S)_expected * n^H
-        where H is Hurst exponent
+        DFA is more robust than R/S analysis for non-stationary time series.
+
+        Algorithm:
+        1. Integrate the time series
+        2. Divide into windows of size n
+        3. Detrend each window (subtract linear fit)
+        4. Compute RMS fluctuation F(n)
+        5. Fit log(F(n)) vs log(n) to get Hurst exponent H
+
+        Returns:
+            Hurst exponent H (0.5 = random walk, >0.5 = persistent, <0.5 = anti-persistent)
         """
 
         if len(series) < 20:
             return 0.5
 
         n = len(series)
-        max_lag = n // 4
 
-        if max_lag < 10:
+        # Step 1: Integrate the series (cumulative sum)
+        integrated = np.cumsum(series - np.mean(series))
+
+        # Step 2: Define window sizes (scales)
+        # Use logarithmically spaced scales from ~10 to n/4
+        min_scale = max(10, n // 20)
+        max_scale = n // 4
+        if max_scale < min_scale:
             return 0.5
 
-        lags = np.logspace(1, np.log10(max_lag), num=10, dtype=int)
-        lags = np.unique(lags)
+        scales = np.logspace(
+            np.log10(min_scale), np.log10(max_scale), num=10, dtype=int
+        )
+        scales = np.unique(scales)
 
-        rs_values = []
+        fluctuations = []
 
-        for lag in lags:
-            if lag >= n:
+        # Step 3-4: For each scale, compute RMS fluctuation
+        for scale in scales:
+            # Number of windows
+            n_windows = n // scale
+
+            if n_windows < 2:
                 continue
 
-            # Number of subseries
-            n_subseries = n // lag
+            window_fluctuations = []
 
-            if n_subseries < 1:
-                continue
+            for i in range(n_windows):
+                # Extract window
+                window = integrated[i * scale : (i + 1) * scale]
 
-            rs_sub = []
-
-            for i in range(n_subseries):
-                subseries = series[i * lag : (i + 1) * lag]
-
-                if len(subseries) < 2:
+                if len(window) < 2:
                     continue
 
-                # Mean-adjusted cumulative sum
-                mean = np.mean(subseries)
-                cumsum = np.cumsum(subseries - mean)
+                # Step 3: Detrend window (subtract linear fit)
+                x = np.arange(len(window))
+                coeffs = np.polyfit(x, window, 1)
+                trend = np.polyval(coeffs, x)
+                detrended = window - trend
 
-                # Range
-                R = np.max(cumsum) - np.min(cumsum)
+                # Step 4: Compute RMS fluctuation
+                rms = np.sqrt(np.mean(detrended**2))
+                window_fluctuations.append(rms)
 
-                # Standard deviation
-                S = np.std(subseries)
+            if window_fluctuations:
+                fluctuations.append(np.mean(window_fluctuations))
 
-                if S > 1e-10:
-                    rs_sub.append(R / S)
-
-            if len(rs_sub) > 0:
-                rs_values.append(np.mean(rs_sub))
-
-        if len(rs_values) < 3:
+        if len(fluctuations) < 3:
             return 0.5
 
-        # Fit log(R/S) vs log(n)
-        log_lags = np.log(lags[: len(rs_values)])
-        log_rs = np.log(rs_values)
+        # Step 5: Fit log(F(n)) vs log(n)
+        log_scales = np.log(scales[: len(fluctuations)])
+        log_fluctuations = np.log(fluctuations)
 
-        # Linear regression
-        slope, _ = np.polyfit(log_lags, log_rs, 1)
+        # Linear regression: log(F(n)) = H * log(n) + constant
+        slope, _ = np.polyfit(log_scales, log_fluctuations, 1)
 
         # Hurst exponent is the slope
         return np.clip(slope, 0.0, 1.0)

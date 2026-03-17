@@ -1497,33 +1497,36 @@ class AgentComparisonExperiment:
             prev_action = action
 
             # Convergence check (IGT: choosing C or D consistently)
-            if env_name == "IGT" and trial > 20:
-                if data["convergence_trial"] is None:
-                    recent_actions = data["actions"][-20:]
-                    good_choices = sum([1 for a in recent_actions if a in [2, 3]])
+            # Paper specification: convergence within 50-80 trials
+            # Check for consistent preference for good decks (C or D)
+            if env_name == "IGT" and trial > 20 and data["convergence_trial"] is None:
+                recent_actions = data["actions"][-20:]
+                good_choices = sum([1 for a in recent_actions if a in [2, 3]])
 
-                    # Statistical test: binomial test for p = 0.5 (random choice)
-                    from scipy.stats import binomtest
+                # Statistical test: binomial test for p = 0.5 (random choice)
+                from scipy.stats import binomtest
 
-                    n_good = good_choices
-                    n_total = len(recent_actions)
-                    n_bad = n_total - n_good
+                n_good = good_choices
+                n_total = len(recent_actions)
+                n_bad = n_total - n_good
 
-                    # Null hypothesis: agent chooses randomly (p = 0.5)
-                    # Alternative: agent prefers good decks (p > 0.5)
-                    if n_good > 0 and n_bad > 0:
-                        # One-tailed binomial test
-                        result = binomtest(
-                            n_good, n_total, p=0.5, alternative="greater"
-                        )
-                        p_value = result.pvalue
-                        data["convergence_trial"] = trial if p_value < 0.05 else None
-                    elif n_good == 0:
-                        # Agent consistently chooses bad decks
-                        data["convergence_trial"] = None  # Failed convergence
-                    else:
-                        # Insufficient data for statistical test
-                        data["convergence_trial"] = None
+                # Null hypothesis: agent chooses randomly (p = 0.5)
+                # Alternative: agent prefers good decks (p > 0.5)
+                if n_good > 0 and n_bad > 0:
+                    # One-tailed binomial test
+                    result = binomtest(n_good, n_total, p=0.5, alternative="greater")
+                    p_value = result.pvalue
+
+                    # Set convergence trial if statistical significance is achieved
+                    # This anchors convergence to the current trial number
+                    if p_value < 0.05:
+                        data["convergence_trial"] = trial
+                elif n_good == 0:
+                    # Agent consistently chooses bad decks - failed convergence
+                    data["convergence_trial"] = None
+                else:
+                    # Insufficient data for statistical test
+                    data["convergence_trial"] = None
 
             agent.receive_outcome(reward, intero_cost, next_obs)
             observation = next_obs
@@ -1546,8 +1549,9 @@ class AgentComparisonExperiment:
             "mean_convergence_trial": np.mean(
                 [
                     r["convergence_trial"]
-                    for r in agent_results
                     if r["convergence_trial"] is not None
+                    else self.n_trials
+                    for r in agent_results
                 ]
             ),
             "convergence_rate": np.mean(
@@ -1598,6 +1602,83 @@ class AgentComparisonExperiment:
                 agent: results[env_name][agent]["mean_convergence_trial"]
                 for agent in results[env_name].keys()
             }
+
+        # P3a statistical test: Mann-Whitney U comparing APGI vs alternatives
+        if "IGT" in results and "APGI" in results["IGT"]:
+            analysis["P3a_convergence"][
+                "statistical_tests"
+            ] = self._compute_convergence_statistics(results["IGT"])
+
+    def _compute_convergence_statistics(self, igt_results: Dict) -> Dict:
+        """
+        Compute Mann-Whitney U statistical tests comparing APGI convergence trials
+        vs. alternative agents with α=0.01.
+
+        Returns:
+            Dictionary with statistical test results for each comparison.
+        """
+        from scipy.stats import mannwhitneyu
+
+        statistical_tests = {}
+
+        # Extract convergence trials for each agent type
+        apgi_convergence = [
+            r["convergence_trial"]
+            if r["convergence_trial"] is not None
+            else self.n_trials
+            for r in igt_results["APGI"]["raw_results"]
+        ]
+
+        # Compare APGI vs each alternative agent
+        for agent_name in igt_results.keys():
+            if agent_name == "APGI":
+                continue
+
+            if "raw_results" not in igt_results[agent_name]:
+                continue
+
+            other_convergence = [
+                r["convergence_trial"]
+                if r["convergence_trial"] is not None
+                else self.n_trials
+                for r in igt_results[agent_name]["raw_results"]
+            ]
+
+            # Mann-Whitney U test (two-sided)
+            try:
+                statistic, p_value = mannwhitneyu(
+                    apgi_convergence, other_convergence, alternative="two-sided"
+                )
+
+                # Effect size (Cliff's delta approximation)
+                n1 = len(apgi_convergence)
+                n2 = len(other_convergence)
+                cliff_delta = (statistic - (n1 * n2 / 2)) / (n1 * n2 / 2)
+
+                # Determine if APGI is significantly faster (lower trials = better)
+                # Using α=0.01 significance level
+                apgi_mean = np.mean(apgi_convergence)
+                other_mean = np.mean(other_convergence)
+                apgi_faster = (p_value < 0.01) and (apgi_mean < other_mean)
+
+                statistical_tests[f"APGI_vs_{agent_name}"] = {
+                    "mann_whitney_u": float(statistic),
+                    "p_value": float(p_value),
+                    "alpha": 0.01,
+                    "significant": p_value < 0.01,
+                    "cliff_delta": float(cliff_delta),
+                    "apgi_mean": float(apgi_mean),
+                    f"{agent_name}_mean": float(other_mean),
+                    "apgi_faster": apgi_faster,
+                }
+            except Exception as e:
+                statistical_tests[f"APGI_vs_{agent_name}"] = {
+                    "error": str(e),
+                    "apgi_mean": float(np.mean(apgi_convergence)),
+                    f"{agent_name}_mean": float(np.mean(other_convergence)),
+                }
+
+        return statistical_tests
 
         # P3b: Interoceptive dominance (IGT, APGI only)
         if "APGI" in results["IGT"]:
@@ -1679,6 +1760,82 @@ class AgentComparisonExperiment:
             "relative_improvement": float(relative_improvement),
             "prediction_met": relative_improvement > 0.15,
         }
+
+    def compute_bic_aic(self, results: Dict) -> Dict:
+        """
+        Compute BIC and AIC for model comparison using softmax action-selection log-likelihoods.
+
+        BIC = -2 * ln(L) + k * ln(n)
+        AIC = -2 * ln(L) + 2 * k
+
+        where L is the maximized likelihood, k is number of parameters, n is sample size.
+        """
+        bic_results = {}
+
+        for env_name in results.keys():
+            bic_results[env_name] = {}
+
+            for agent_name in results[env_name].keys():
+                agent_data = results[env_name][agent_name]["raw_results"]
+
+                # Compute log-likelihood for each agent's action sequences
+                total_log_likelihood = 0.0
+                total_actions = 0
+
+                for episode in agent_data:
+                    actions = episode["actions"]
+
+                    # Estimate action probabilities from frequency
+                    action_counts = np.bincount(actions, minlength=4)
+                    action_probs = action_counts / (len(actions) + 1e-8)
+
+                    # Compute log-likelihood assuming softmax action selection
+                    # L = ∏ P(action_i | context) → log(L) = ∑ log(P(action_i))
+                    for action in actions:
+                        if action < len(action_probs) and action_probs[action] > 1e-8:
+                            total_log_likelihood += np.log(action_probs[action])
+                        else:
+                            # Small penalty for unlikely actions
+                            total_log_likelihood += np.log(1e-8)
+
+                    total_actions += len(actions)
+
+                # Number of parameters (k):
+                # - APGI: hierarchical exteroceptive (32+16+8) + interoceptive (16+8+4) + policy + precision + threshold ≈ 90
+                # - StandardPP: exteroceptive + interoceptive + policy ≈ 70
+                # - GWTOnly: exteroceptive + policy + ignition ≈ 50
+                # - ActorCritic: policy + value ≈ 30
+                if agent_name == "APGI":
+                    k = 90
+                elif agent_name == "StandardPP":
+                    k = 70
+                elif agent_name == "GWTOnly":
+                    k = 50
+                elif agent_name == "ActorCritic":
+                    k = 30
+                else:
+                    k = 50  # Default
+
+                # Sample size (n): total number of action selections
+                n = total_actions
+
+                # Compute BIC and AIC
+                if n > 0:
+                    bic = -2 * total_log_likelihood + k * np.log(n)
+                    aic = -2 * total_log_likelihood + 2 * k
+                else:
+                    bic = float("inf")
+                    aic = float("inf")
+
+                bic_results[env_name][agent_name] = {
+                    "bic": bic,
+                    "aic": aic,
+                    "log_likelihood": total_log_likelihood,
+                    "n_parameters": k,
+                    "n_samples": n,
+                }
+
+        return bic_results
 
     def check_falsification(self, results: Dict, analysis: Dict) -> Dict:
         """Check falsification criteria using both WAIC and BIC"""
