@@ -333,19 +333,40 @@ class CausalManipulationsValidator:
 
                 # Find timing closest to current timing
                 timing_idx = np.argmin(np.abs(tms_results["timings"] - timing))
-                detection_rate = np.mean(
-                    tms_results["detection_rates"][timing_idx - 2 : timing_idx + 3]
-                )
+
+                # Ensure indices are within bounds to avoid empty slices
+                start_idx = max(0, timing_idx - 2)
+                end_idx = min(len(tms_results["detection_rates"]), timing_idx + 3)
+
+                # Check if we have valid data
+                if end_idx > start_idx:
+                    detection_rates_slice = tms_results["detection_rates"][
+                        start_idx:end_idx
+                    ]
+                    p3b_amplitudes_slice = tms_results["p3b_amplitudes"][
+                        start_idx:end_idx
+                    ]
+
+                    # Only compute mean if we have valid data
+                    detection_rate = (
+                        np.mean(detection_rates_slice)
+                        if detection_rates_slice
+                        else np.nan
+                    )
+                    p3b_amplitude = (
+                        np.mean(p3b_amplitudes_slice)
+                        if p3b_amplitudes_slice
+                        else np.nan
+                    )
+                else:
+                    detection_rate = np.nan
+                    p3b_amplitude = np.nan
 
                 region_results.append(
                     {
                         "timing": timing,
                         "detection_rate": detection_rate,
-                        "p3b_amplitude": np.mean(
-                            tms_results["p3b_amplitudes"][
-                                timing_idx - 2 : timing_idx + 3
-                            ]
-                        ),
+                        "p3b_amplitude": p3b_amplitude,
                     }
                 )
 
@@ -367,18 +388,33 @@ class CausalManipulationsValidator:
                 ):
                     control_window_results.append(trial_data["detection_rate"])
 
-        # Statistical test
-        t_stat, p_value = stats.ttest_ind(
-            ignition_window_results, control_window_results
-        )
+        # Statistical test - filter out NaN values first
+        ignition_clean = [x for x in ignition_window_results if not np.isnan(x)]
+        control_clean = [x for x in control_window_results if not np.isnan(x)]
+
+        if len(ignition_clean) > 1 and len(control_clean) > 1:
+            _, p_value = stats.ttest_ind(ignition_clean, control_clean)
+            ignition_mean = np.mean(ignition_clean)
+            control_mean = np.mean(control_clean)
+        else:
+            p_value = np.nan
+            ignition_mean = np.nan
+            control_mean = np.nan
 
         return {
             "region_specific_effects": results,
-            "ignition_window_disruption": np.mean(ignition_window_results)
-            < np.mean(control_window_results),
-            "statistical_significance": p_value < 0.05,
-            "validation_passed": p_value < 0.05
-            and np.mean(ignition_window_results) < np.mean(control_window_results),
+            "ignition_window_disruption": ignition_mean < control_mean
+            if not np.isnan(ignition_mean) and not np.isnan(control_mean)
+            else False,
+            "statistical_significance": p_value < 0.05
+            if not np.isnan(p_value)
+            else False,
+            "validation_passed": (p_value < 0.05 if not np.isnan(p_value) else False)
+            and (
+                ignition_mean < control_mean
+                if not np.isnan(ignition_mean) and not np.isnan(control_mean)
+                else False
+            ),
         }
 
     def _validate_pharmacological_effects(self) -> Dict:

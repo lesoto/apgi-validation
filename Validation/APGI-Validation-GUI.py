@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import queue
+import sys
 import threading
 import tkinter as tk
 from concurrent.futures import ThreadPoolExecutor
@@ -34,6 +35,10 @@ def safe_import_module(module_name: str, file_path: Path) -> Optional[Any]:
     try:
         if not file_path.exists():
             return None
+
+        # Ensure project root is in Python path for imports
+        if str(PROJECT_ROOT) not in sys.path:
+            sys.path.insert(0, str(PROJECT_ROOT))
 
         spec = importlib.util.spec_from_file_location(module_name, file_path)
         if spec is None or spec.loader is None:
@@ -65,14 +70,18 @@ else:
 
 # Try to import individual protocols
 protocol_files = [
-    ("APGI_Protocol_1", "Validation-Protocol-1.py"),
-    ("APGI_Protocol_2", "Validation-Protocol-2.py"),
-    ("APGI_Protocol_3", "Validation-Protocol-3.py"),
-    ("APGI_Protocol_4", "Validation-Protocol-4.py"),
-    ("APGI_Protocol_5", "Validation-Protocol-5.py"),
-    ("APGI_Protocol_6", "Validation-Protocol-6.py"),
-    ("APGI_Protocol_7", "Validation-Protocol-7.py"),
-    ("APGI_Protocol_8", "Validation-Protocol-8.py"),
+    ("APGI_Protocol_1", "SyntheticEEG-MLClassification.py"),
+    ("APGI_Protocol_2", "BayesianModelComparison-ParameterRecovery.py"),
+    ("APGI_Protocol_3", "ActiveInference-AgentSimulations-Protocol3.py"),
+    ("APGI_Protocol_4", "InformationTheoretic-PhaseTransition-Level2.py"),
+    ("APGI_Protocol_5", "EvolutionaryEmergence-AnalyticalValidation.py"),
+    ("APGI_Protocol_6", "NeuralNetwork-InductiveBias-ComputationalBenchmark.py"),
+    ("APGI_Protocol_7", "TMS-Pharmacological-CausalIntervention-Protocol2.py"),
+    ("APGI_Protocol_8", "Psychophysical-ThresholdEstimation-Protocol1.py"),
+    ("APGI_Protocol_9", "ConvergentNeuralSignatures-Priority1-EmpiricalRoadmap.py"),
+    ("APGI_Protocol_10", "CausalManipulations-TMS-Pharmacological-Priority2.py"),
+    ("APGI_Protocol_11", "QuantitativeModelFits-SpikingLNN-Priority3.py"),
+    ("APGI_Protocol_12", "Clinical-CrossSpecies-Convergence-Protocol4.py"),
 ]
 
 for protocol_name, filename in protocol_files:
@@ -1389,7 +1398,34 @@ Interpretation:
 
         try:
             # Execute actual protocol in isolated environment
-            protocol_file = f"Validation-Protocol-{protocol_num}.py"
+            protocol_files = [
+                ("APGI_Protocol_1", "SyntheticEEG-MLClassification.py"),
+                ("APGI_Protocol_2", "BayesianModelComparison-ParameterRecovery.py"),
+                ("APGI_Protocol_3", "ActiveInference-AgentSimulations-Protocol3.py"),
+                ("APGI_Protocol_4", "InformationTheoretic-PhaseTransition-Level2.py"),
+                ("APGI_Protocol_5", "EvolutionaryEmergence-AnalyticalValidation.py"),
+                (
+                    "APGI_Protocol_6",
+                    "NeuralNetwork-InductiveBias-ComputationalBenchmark.py",
+                ),
+                (
+                    "APGI_Protocol_7",
+                    "TMS-Pharmacological-CausalIntervention-Protocol2.py",
+                ),
+                ("APGI_Protocol_8", "Psychophysical-ThresholdEstimation-Protocol1.py"),
+                (
+                    "APGI_Protocol_9",
+                    "ConvergentNeuralSignatures-Priority1-EmpiricalRoadmap.py",
+                ),
+                (
+                    "APGI_Protocol_10",
+                    "CausalManipulations-TMS-Pharmacological-Priority2.py",
+                ),
+                ("APGI_Protocol_11", "QuantitativeModelFits-SpikingLNN-Priority3.py"),
+                ("APGI_Protocol_12", "Clinical-CrossSpecies-Convergence-Protocol4.py"),
+            ]
+
+            protocol_file = protocol_files[protocol_num - 1][1]
             protocol_path = Path(__file__).parent / protocol_file
 
             if not protocol_path.exists():

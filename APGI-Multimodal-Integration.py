@@ -23,8 +23,6 @@ Alternative Script Names:
 """
 
 import warnings
-
-# from typing import Union  # Commented out - unused
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple

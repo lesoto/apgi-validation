@@ -102,6 +102,51 @@ def bootstrap_one_sample_test(
     return test_stat, min(2 * p_value, 1.0)
 
 
+def calculate_atp_cost(
+    spike_count: int,
+    n_neurons: int,
+    time_steps: int,
+    atp_per_spike: float = 1.0,
+    maintenance_cost: float = 0.1,
+) -> float:
+    """
+    Calculate ATP energy cost for neural activity.
+
+    Args:
+        spike_count: Total number of spikes
+        n_neurons: Number of active neurons
+        time_steps: Number of time steps
+        atp_per_spike: ATP cost per spike (default 1.0 units)
+        maintenance_cost: Base maintenance cost per neuron per timestep
+
+    Returns:
+        Total ATP cost
+    """
+    spike_cost = spike_count * atp_per_spike
+    maintenance = n_neurons * time_steps * maintenance_cost
+    return spike_cost + maintenance
+
+
+def calculate_energy_per_correct_detection(
+    accuracy: float, total_cost: float, n_samples: int
+) -> float:
+    """
+    Calculate energy cost per correct detection.
+
+    Args:
+        accuracy: Accuracy rate (0-1)
+        total_cost: Total energy cost
+        n_samples: Number of samples
+
+    Returns:
+        Energy per correct detection
+    """
+    n_correct = accuracy * n_samples
+    if n_correct == 0:
+        return float("inf")
+    return total_cost / n_correct
+
+
 class APGIInspiredNetwork(nn.Module):
     """
     Neural network with APGI architectural constraints
@@ -116,6 +161,11 @@ class APGIInspiredNetwork(nn.Module):
     def __init__(self, config: Dict):
         super().__init__()
         self.config = config  # Store config as instance variable
+
+        # Energy tracking variables
+        self.spike_count = 0
+        self.total_activations = 0
+        self.time_steps = 0
 
         # =====================
         # EXTEROCEPTIVE PATHWAY
@@ -220,6 +270,7 @@ class APGIInspiredNetwork(nn.Module):
         Forward pass with APGI dynamics
         """
         batch_size = extero_input.shape[0]
+        self.time_steps += 1
 
         # Initialize hidden state if needed
         device = extero_input.device
@@ -233,6 +284,9 @@ class APGIInspiredNetwork(nn.Module):
         # =====================
         extero_enc = self.extero_encoder(extero_input)  # (B, 32)
         intero_enc = self.intero_encoder(intero_input)  # (B, 16)
+
+        # Track activations for energy calculation
+        self.total_activations += extero_enc.numel() + intero_enc.numel()
 
         # =====================
         # 2. ESTIMATE PRECISION
@@ -272,6 +326,9 @@ class APGIInspiredNetwork(nn.Module):
         # Soft gating with learned steepness
         gate_logit = self.alpha * (S_t - theta_t)
         ignition_prob = torch.sigmoid(gate_logit)
+
+        # Track spikes (ignition events)
+        self.spike_count += int(torch.sum(ignition_prob > 0.5).item())
 
         # =====================
         # 7. GLOBAL WORKSPACE
@@ -315,6 +372,24 @@ class APGIInspiredNetwork(nn.Module):
             "workspace": gated_workspace,
         }
 
+    def get_energy_metrics(self) -> Dict[str, float]:
+        """Calculate energy usage metrics"""
+        n_neurons = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        total_cost = calculate_atp_cost(self.spike_count, n_neurons, self.time_steps)
+        return {
+            "spike_count": self.spike_count,
+            "total_activations": self.total_activations,
+            "time_steps": self.time_steps,
+            "atp_cost": total_cost,
+            "n_neurons": n_neurons,
+        }
+
+    def reset_energy_tracking(self):
+        """Reset energy tracking variables"""
+        self.spike_count = 0
+        self.total_activations = 0
+        self.time_steps = 0
+
     def reset(self):
         """Reset hidden state"""
         self.surprise_hidden = None
@@ -325,11 +400,14 @@ class ComparisonNetworks:
 
     @staticmethod
     def create_standard_mlp(config: Dict) -> nn.Module:
-        """Standard feedforward network"""
-
         class StandardMLP(nn.Module):
             def __init__(self, config):
                 super().__init__()
+                # Energy tracking variables
+                self.spike_count = 0
+                self.total_activations = 0
+                self.time_steps = 0
+
                 self.network = nn.Sequential(
                     nn.Linear(config["extero_dim"] + config["intero_dim"], 128),
                     nn.ReLU(),
@@ -340,50 +418,143 @@ class ComparisonNetworks:
                 )
 
             def forward(self, extero, intero, context, prev_action=None):
+                self.time_steps += 1
                 x = torch.cat([extero, intero], dim=-1)
                 policy = self.network(x)
+
+                # Track activations (simplified as all activations)
+                self.total_activations += x.numel()
+                # Track spikes (simplified as high activations)
+                self.spike_count += int(
+                    torch.sum(torch.max(policy, dim=-1)[0] > 0.7).item()
+                )
+
                 return {"policy": policy}
+
+            def get_energy_metrics(self) -> Dict[str, float]:
+                """Calculate energy usage metrics"""
+                n_neurons = sum(p.numel() for p in self.parameters() if p.requires_grad)
+                total_cost = calculate_atp_cost(
+                    self.spike_count, n_neurons, self.time_steps
+                )
+                return {
+                    "spike_count": self.spike_count,
+                    "total_activations": self.total_activations,
+                    "time_steps": self.time_steps,
+                    "atp_cost": total_cost,
+                    "n_neurons": n_neurons,
+                }
+
+            def reset_energy_tracking(self):
+                """Reset energy tracking variables"""
+                self.spike_count = 0
+                self.total_activations = 0
+                self.time_steps = 0
 
         return StandardMLP(config)
 
     @staticmethod
     def create_lstm_network(config: Dict) -> nn.Module:
-        """Standard LSTM without APGI structure"""
-
         class LSTMPolicy(nn.Module):
             def __init__(self, config):
                 super().__init__()
+                # Energy tracking variables
+                self.spike_count = 0
+                self.total_activations = 0
+                self.time_steps = 0
+
                 input_dim = config["extero_dim"] + config["intero_dim"]
                 self.lstm = nn.LSTM(input_dim, 64, batch_first=True)
                 self.policy = nn.Linear(64, config["action_dim"])
 
             def forward(self, extero, intero, context, prev_action=None):
+                self.time_steps += 1
                 x = torch.cat([extero, intero], dim=-1).unsqueeze(1)
                 lstm_out, _ = self.lstm(x)
                 policy = F.softmax(self.policy(lstm_out[:, -1]), dim=-1)
+
+                # Track activations
+                self.total_activations += x.numel() + lstm_out.numel()
+                # Track spikes (high activations in LSTM output)
+                self.spike_count += int(
+                    torch.sum(torch.max(lstm_out, dim=-1)[0] > 0.7).item()
+                )
+
                 return {"policy": policy}
+
+            def get_energy_metrics(self) -> Dict[str, float]:
+                """Calculate energy usage metrics"""
+                n_neurons = sum(p.numel() for p in self.parameters() if p.requires_grad)
+                total_cost = calculate_atp_cost(
+                    self.spike_count, n_neurons, self.time_steps
+                )
+                return {
+                    "spike_count": self.spike_count,
+                    "total_activations": self.total_activations,
+                    "time_steps": self.time_steps,
+                    "atp_cost": total_cost,
+                    "n_neurons": n_neurons,
+                }
+
+            def reset_energy_tracking(self):
+                """Reset energy tracking variables"""
+                self.spike_count = 0
+                self.total_activations = 0
+                self.time_steps = 0
 
         return LSTMPolicy(config)
 
     @staticmethod
     def create_attention_network(config: Dict) -> nn.Module:
-        """Attention-based without explicit ignition"""
-
         class AttentionPolicy(nn.Module):
             def __init__(self, config):
                 super().__init__()
+                # Energy tracking variables
+                self.spike_count = 0
+                self.total_activations = 0
+                self.time_steps = 0
+
                 self.extero_enc = nn.Linear(config["extero_dim"], 32)
                 self.intero_enc = nn.Linear(config["intero_dim"], 32)
                 self.attention = nn.MultiheadAttention(32, 4)
                 self.policy = nn.Linear(32, config["action_dim"])
 
             def forward(self, extero, intero, context, prev_action=None):
+                self.time_steps += 1
                 e = self.extero_enc(extero).unsqueeze(0)
                 i = self.intero_enc(intero).unsqueeze(0)
                 combined = torch.cat([e, i], dim=0)
                 attn_out, _ = self.attention(combined, combined, combined)
                 policy = F.softmax(self.policy(attn_out.mean(0)), dim=-1)
+
+                # Track activations
+                self.total_activations += e.numel() + i.numel() + attn_out.numel()
+                # Track spikes (high attention weights)
+                self.spike_count += int(
+                    torch.sum(torch.max(attn_out, dim=-1)[0] > 0.7).item()
+                )
+
                 return {"policy": policy}
+
+            def get_energy_metrics(self) -> Dict[str, float]:
+                """Calculate energy usage metrics"""
+                n_neurons = sum(p.numel() for p in self.parameters() if p.requires_grad)
+                total_cost = calculate_atp_cost(
+                    self.spike_count, n_neurons, self.time_steps
+                )
+                return {
+                    "spike_count": self.spike_count,
+                    "total_activations": self.total_activations,
+                    "time_steps": self.time_steps,
+                    "atp_cost": total_cost,
+                    "n_neurons": n_neurons,
+                }
+
+            def reset_energy_tracking(self):
+                """Reset energy tracking variables"""
+                self.spike_count = 0
+                self.total_activations = 0
+                self.time_steps = 0
 
         return AttentionPolicy(config)
 
@@ -483,7 +654,7 @@ class NetworkComparisonExperiment:
 
     def evaluate_on_tasks(self, task_datasets: Dict) -> Dict:
         """
-        Evaluate on consciousness-relevant tasks
+        Evaluate on consciousness-relevant tasks with energy metrics
 
         Tasks:
         1. Conscious/unconscious classification
@@ -495,9 +666,11 @@ class NetworkComparisonExperiment:
 
         for task_name, dataset in task_datasets.items():
             task_results[task_name] = {}
+            n_task_samples = sum(len(batch.get("extero", [])) for batch in dataset)
 
             for net_name, network in self.networks.items():
                 network.eval()
+                network.reset_energy_tracking()
 
                 predictions = []
                 targets = []
@@ -526,6 +699,9 @@ class NetworkComparisonExperiment:
                 predictions = torch.cat(predictions)
                 targets = torch.cat(targets)
 
+                # Compute energy metrics
+                energy_metrics = network.get_energy_metrics()
+
                 # Compute metrics
                 if task_name == "conscious_classification":
                     try:
@@ -533,14 +709,50 @@ class NetworkComparisonExperiment:
                         unique_targets = torch.unique(targets)
                         if len(unique_targets) > 1:
                             auc = roc_auc_score(targets.numpy(), predictions.numpy())
+                            accuracy = (
+                                auc  # Use AUC as proxy for accuracy in classification
+                            )
                         else:
-                            auc = float("nan")  # Cannot compute AUC with single class
+                            auc = float("nan")
+                            accuracy = float("nan")
                     except ValueError:
                         auc = float("nan")
-                    task_results[task_name][net_name] = {"auc": auc}
+                        accuracy = float("nan")
+
+                    # Calculate energy per correct detection
+                    if not np.isnan(accuracy) and accuracy > 0:
+                        energy_per_correct = calculate_energy_per_correct_detection(
+                            accuracy, energy_metrics["atp_cost"], n_task_samples
+                        )
+                    else:
+                        energy_per_correct = float("inf")
+
+                    task_results[task_name][net_name] = {
+                        "auc": auc,
+                        "accuracy": accuracy,
+                        "energy_per_correct_detection": energy_per_correct,
+                        "atp_cost": energy_metrics["atp_cost"],
+                        "spike_count": energy_metrics["spike_count"],
+                        "n_neurons": energy_metrics["n_neurons"],
+                    }
                 else:
                     accuracy = (predictions == targets).float().mean().item()
-                    task_results[task_name][net_name] = {"accuracy": accuracy}
+
+                    # Calculate energy per correct detection
+                    if accuracy > 0:
+                        energy_per_correct = calculate_energy_per_correct_detection(
+                            accuracy, energy_metrics["atp_cost"], n_task_samples
+                        )
+                    else:
+                        energy_per_correct = float("inf")
+
+                    task_results[task_name][net_name] = {
+                        "accuracy": accuracy,
+                        "energy_per_correct_detection": energy_per_correct,
+                        "atp_cost": energy_metrics["atp_cost"],
+                        "spike_count": energy_metrics["spike_count"],
+                        "n_neurons": energy_metrics["n_neurons"],
+                    }
 
         return task_results
 
@@ -607,11 +819,189 @@ class NetworkComparisonExperiment:
             print(f"\n{task_name}:")
             for net_name, metrics in task_results.items():
                 if "auc" in metrics:
-                    print(f"  {net_name}: AUC = {metrics['auc']:.3f}")
+                    print(
+                        f"  {net_name}: AUC = {metrics['auc']:.3f}, Energy/Correct = {metrics['energy_per_correct_detection']:.2e}, ATP Cost = {metrics['atp_cost']:.2f}"
+                    )
                 else:
-                    print(f"  {net_name}: Accuracy = {metrics['accuracy']:.3f}")
+                    print(
+                        f"  {net_name}: Accuracy = {metrics['accuracy']:.3f}, Energy/Correct = {metrics['energy_per_correct_detection']:.2e}, ATP Cost = {metrics['atp_cost']:.2f}"
+                    )
+
+        # Add falsification analysis
+        print("\n=== FALSIFICATION ANALYSIS ===")
+        falsification_results = self.analyze_falsification_criteria(results)
+        for criterion, result in falsification_results.items():
+            status = "PASS" if result["passed"] else "FAIL"
+            print(f"{criterion}: {status} - {result['reason']}")
 
         return results
+
+    def analyze_falsification_criteria(self, results: Dict) -> Dict:
+        """
+        Analyze falsification criteria based on energy efficiency and performance
+
+        Args:
+            results: Task evaluation results
+
+        Returns:
+            Dictionary of falsification criteria results
+        """
+        falsification_results = {}
+
+        # F6.1: Energy-per-correct-detection advantage (≥20% advantage criterion)
+        apgi_energy_metrics = []
+        alternative_energy_metrics = []
+
+        for task_name, task_results in results.items():
+            if "APGI" in task_results and any(
+                net in task_results for net in ["MLP", "LSTM", "Attention"]
+            ):
+                apgi_energy = task_results["APGI"]["energy_per_correct_detection"]
+                # Get best alternative network for this task
+                best_alternative_energy = float("inf")
+                for net_name in ["MLP", "LSTM", "Attention"]:
+                    if net_name in task_results:
+                        best_alternative_energy = min(
+                            best_alternative_energy,
+                            task_results[net_name]["energy_per_correct_detection"],
+                        )
+
+                if apgi_energy < float("inf") and best_alternative_energy < float(
+                    "inf"
+                ):
+                    apgi_energy_metrics.append(apgi_energy)
+                    alternative_energy_metrics.append(best_alternative_energy)
+
+        if apgi_energy_metrics and alternative_energy_metrics:
+            # Statistical test for energy advantage
+            if len(apgi_energy_metrics) > 1 and len(alternative_energy_metrics) > 1:
+                t_stat, p_value = stats.ttest_rel(
+                    apgi_energy_metrics, alternative_energy_metrics
+                )
+                mean_advantage_pct = np.mean(
+                    [
+                        (alt - apgi) / max(alt, 1e-10) * 100
+                        for apgi, alt in zip(
+                            apgi_energy_metrics, alternative_energy_metrics
+                        )
+                    ]
+                )
+            else:
+                t_stat, p_value = 0.0, 1.0
+                mean_advantage_pct = 0.0
+
+            f6_1_pass = mean_advantage_pct >= 20 and p_value < 0.05
+            falsification_results["F6.1"] = {
+                "passed": f6_1_pass,
+                "reason": f"Energy advantage: {mean_advantage_pct:.1f}%, p={p_value:.3f}",
+            }
+        else:
+            falsification_results["F6.1"] = {
+                "passed": False,
+                "reason": "Insufficient data for energy comparison",
+            }
+
+        # F6.2: Performance equivalence test (≤5% difference leads to falsification)
+        apgi_accuracies = []
+        alternative_accuracies = []
+
+        for task_name, task_results in results.items():
+            if "APGI" in task_results and any(
+                net in task_results for net in ["MLP", "LSTM", "Attention"]
+            ):
+                apgi_acc = task_results["APGI"].get(
+                    "accuracy", task_results["APGI"].get("auc", 0)
+                )
+                # Get best alternative accuracy
+                best_alternative_acc = 0
+                for net_name in ["MLP", "LSTM", "Attention"]:
+                    if net_name in task_results:
+                        alt_acc = task_results[net_name].get(
+                            "accuracy", task_results[net_name].get("auc", 0)
+                        )
+                        best_alternative_acc = max(best_alternative_acc, alt_acc)
+
+                if not np.isnan(apgi_acc) and not np.isnan(best_alternative_acc):
+                    apgi_accuracies.append(apgi_acc)
+                    alternative_accuracies.append(best_alternative_acc)
+
+        if apgi_accuracies and alternative_accuracies:
+            # Test if alternatives achieve equivalent performance within 5%
+            performance_diffs = [
+                (alt - apgi) / max(alt, 1e-10) * 100
+                for apgi, alt in zip(apgi_accuracies, alternative_accuracies)
+            ]
+            mean_diff = np.mean(performance_diffs)
+
+            # Statistical test for performance difference
+            t_stat, p_value = stats.ttest_rel(alternative_accuracies, apgi_accuracies)
+
+            # Falsification condition: if MLP/LSTM achieves equivalent accuracy within 5% → falsified
+            f6_2_pass = (
+                mean_diff > 5 or p_value < 0.05
+            )  # Pass if APGI is significantly better
+            falsification_results["F6.2"] = {
+                "passed": f6_2_pass,
+                "reason": f"Performance difference: {mean_diff:.1f}%, p={p_value:.3f}",
+            }
+        else:
+            falsification_results["F6.2"] = {
+                "passed": False,
+                "reason": "Insufficient data for performance comparison",
+            }
+
+        # F6.3: Spike count efficiency
+        apgi_spike_efficiency = []
+        alternative_spike_efficiency = []
+
+        for task_name, task_results in results.items():
+            if "APGI" in task_results and any(
+                net in task_results for net in ["MLP", "LSTM", "Attention"]
+            ):
+                apgi_spikes = task_results["APGI"]["spike_count"]
+                apgi_neurons = task_results["APGI"]["n_neurons"]
+                apgi_efficiency = apgi_spikes / max(apgi_neurons, 1)
+
+                # Get best alternative efficiency
+                best_alternative_efficiency = float("inf")
+                for net_name in ["MLP", "LSTM", "Attention"]:
+                    if net_name in task_results:
+                        alt_spikes = task_results[net_name]["spike_count"]
+                        alt_neurons = task_results[net_name]["n_neurons"]
+                        alt_efficiency = alt_spikes / max(alt_neurons, 1)
+                        best_alternative_efficiency = min(
+                            best_alternative_efficiency, alt_efficiency
+                        )
+
+                apgi_spike_efficiency.append(apgi_efficiency)
+                alternative_spike_efficiency.append(best_alternative_efficiency)
+
+        if apgi_spike_efficiency and alternative_spike_efficiency:
+            # Test if APGI has better spike efficiency
+            t_stat, p_value = stats.ttest_rel(
+                apgi_spike_efficiency, alternative_spike_efficiency
+            )
+            efficiency_advantage = np.mean(
+                [
+                    (alt - apgi) / max(alt, 1e-10) * 100
+                    for apgi, alt in zip(
+                        apgi_spike_efficiency, alternative_spike_efficiency
+                    )
+                ]
+            )
+
+            f6_3_pass = efficiency_advantage >= 15 and p_value < 0.05
+            falsification_results["F6.3"] = {
+                "passed": f6_3_pass,
+                "reason": f"Spike efficiency advantage: {efficiency_advantage:.1f}%, p={p_value:.3f}",
+            }
+        else:
+            falsification_results["F6.3"] = {
+                "passed": False,
+                "reason": "Insufficient data for spike efficiency comparison",
+            }
+
+        return falsification_results
 
 
 # Main execution

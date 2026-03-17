@@ -14,7 +14,7 @@ Functions:
 
 import numpy as np
 from scipy import signal
-from scipy.integrate import simps
+from scipy.integrate import trapezoid  # Use trapezoid instead of deprecated simps
 from typing import Dict, Any, Tuple
 
 
@@ -57,11 +57,11 @@ def detect_gamma_band_power(
         # Integrate gamma band power using Simpson's rule
         gamma_idx = (f >= gamma_band[0]) & (f <= gamma_band[1])
         if np.any(gamma_idx):
-            gamma_power_ch = simps(Pxx[gamma_idx], f[gamma_idx])
+            gamma_power_ch = trapezoid(Pxx[gamma_idx], f[gamma_idx])
             gamma_power += gamma_power_ch
 
         # Total power
-        total_power_ch = simps(Pxx, f)
+        total_power_ch = trapezoid(Pxx, f)
         total_power += total_power_ch
 
     # Normalize
@@ -115,7 +115,7 @@ def _permutation_test_gamma(
             )
             gamma_idx = (f >= gamma_band[0]) & (f <= gamma_band[1])
             if np.any(gamma_idx):
-                gamma_power_perm += simps(Pxx[gamma_idx], f[gamma_idx])
+                gamma_power_perm += trapezoid(Pxx[gamma_idx], f[gamma_idx])
 
         permuted_powers.append(gamma_power_perm)
 
@@ -181,8 +181,9 @@ def compute_theta_gamma_pac(
         gamma_amp_by_phase = []
         for i in range(n_bins):
             # Find time points where theta phase is in this bin
+            next_bin_idx = (i + 1) % n_bins  # Wrap around for last bin
             in_bin = (theta_phase[ch] >= theta_bins[i]) & (
-                theta_phase[ch] < theta_bins[i + 1]
+                theta_phase[ch] < theta_bins[next_bin_idx]
             )
             if np.any(in_bin):
                 gamma_amp = gamma_envelope[ch, in_bin]
@@ -213,10 +214,14 @@ def compute_theta_gamma_pac(
     theta_amplitude = np.mean(theta_envelope)
     gamma_amplitude = np.mean(gamma_envelope)
 
-    # Permutation test
-    p_value = _permutation_test_pac(
-        eeg_data, fs, theta_band, gamma_band, n_permutations, modulation_index
-    )
+    # Permutation test (only if n_permutations > 1)
+    if n_permutations > 1:
+        p_value = _permutation_test_pac(
+            eeg_data, fs, theta_band, gamma_band, n_permutations, modulation_index
+        )
+    else:
+        # For single computation, return nominal p-value
+        p_value = 1.0
 
     is_significant = p_value < alpha
 
@@ -364,9 +369,9 @@ def detect_p3_amplitude(
     )
 
     # Extract peak amplitudes and times
-    peak_amplitudes = properties["peak_heights"]
+    peak_amplitudes = properties["prominences"]
     peak_times = (
-        properties["left_edges"] + properties["right_edges"]
+        properties["left_ips"] + properties["right_ips"]
     ) / 2 / fs + p3_window[0]
 
     # Mean P3b amplitude

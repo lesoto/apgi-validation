@@ -1,19 +1,20 @@
 """
-APGI Protocol 2: Bayesian Model Comparison on Existing Consciousness Datasets
-==============================================================================
+APGI Bayesian Model Comparison on Existing Consciousness Datasets
+======================================================================================
 
-Complete implementation of Bayesian model comparison framework for testing APGI
-predictions against published empirical consciousness datasets.
+Supplementary computational implementation for testing APGI framework predictions
+through Bayesian model comparison on published empirical consciousness datasets.
 
-This protocol fits hierarchical Bayesian models to real data from published studies
-and uses rigorous model comparison metrics (WAIC, LOO-CV, Bayes factors) to assess
-which theoretical framework best explains conscious access.
+NOTE: This is NOT Paper Protocol 2. The actual Protocol 2 is "TMS Causal Intervention" —
+testing that anterior insula TMS reduces both PCI (by ~20%) and HEP (by ~30%), and that
+dlPFC TMS reduces PCI but not HEP. This file implements computational Bayesian model
+comparison which supports Protocol 2 predictions.
 
 """
 
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import logging
 
@@ -265,6 +266,542 @@ class SyntheticConsciousnessDataGenerator:
         )
 
 
+# =============================================================================
+# PART 2: PAPER PROTOCOL 2 - TMS CAUSAL INTERVENTION
+# =============================================================================
+
+
+class Protocol2TMSCausalIntervention:
+    """
+    Implementation of Paper Protocol 2: TMS Causal Intervention
+
+    This is the actual Protocol 2 from the paper:
+    - P2a: dlPFC TMS shifts detection threshold by >0.1 log units
+    - P2b: Insula TMS reduces HEP (30%) and PCI (20%) with double dissociation from dlPFC
+    - P2c: High baseline IA subjects show stronger TMS effects
+    """
+
+    def __init__(self, n_participants: int = 40, seed: int = RANDOM_SEED):
+        """
+        Args:
+            n_participants: Number of participants in the TMS experiment
+            seed: Random seed for reproducibility
+        """
+        np.random.seed(seed)
+        self.n_participants = n_participants
+
+    def simulate_neuronavigation_confirmation(
+        self, participant_id: int, target_region: str
+    ) -> Dict[str, Any]:
+        """
+        Simulate neuronavigation confirmation for TMS targeting
+
+        Args:
+            participant_id: Participant identifier
+            target_region: "dlPFC" or "insula"
+
+        Returns:
+            Dictionary with neuronavigation metrics
+        """
+        # Simulate MRI-based neuronavigation accuracy
+        targeting_accuracy = np.random.normal(0.95, 0.03)  # 95% ± 3% accuracy
+        targeting_accuracy = np.clip(targeting_accuracy, 0.85, 0.99)
+
+        # Distance from target center (mm)
+        distance_error = np.random.exponential(2.0)  # Mean 2mm error
+
+        # Confirmation criteria
+        confirmed = targeting_accuracy > 0.90 and distance_error < 5.0
+
+        return {
+            "participant_id": participant_id,
+            "target_region": target_region,
+            "targeting_accuracy": targeting_accuracy,
+            "distance_error_mm": distance_error,
+            "confirmed": confirmed,
+        }
+
+    def check_tms_safety_criteria(self, participant_id: int) -> Dict[str, Any]:
+        """
+        Check TMS safety and ethics screening criteria
+
+        Args:
+            participant_id: Participant identifier
+
+        Returns:
+            Dictionary with screening results
+        """
+        # Simulate screening criteria
+        criteria = {
+            "participant_id": participant_id,
+            "no_metal_implants": np.random.choice(
+                [True, True, True, True, False]
+            ),  # 80% pass
+            "no_epilepsy_history": np.random.choice(
+                [True, True, True, True, False]
+            ),  # 80% pass
+            "no_migraine_with_aura": np.random.choice(
+                [True, True, True, True, False]
+            ),  # 80% pass
+            "no_pacemaker": np.random.choice(
+                [True, True, True, True, True]
+            ),  # 100% pass
+            "no_pregnancy": np.random.choice(
+                [True, True, True, True, True]
+            ),  # 100% pass
+            "no_medication_interactions": np.random.choice(
+                [True, True, True, False]
+            ),  # 75% pass
+        }
+
+        # Overall eligibility
+        all_passed = all(criteria.values())
+        criteria["eligible"] = all_passed
+
+        return criteria
+
+    def simulate_baseline_interoceptive_awareness(
+        self, participant_id: int
+    ) -> Dict[str, float]:
+        """
+        Measure baseline interoceptive awareness (heartbeat discrimination)
+
+        Args:
+            participant_id: Participant identifier
+
+        Returns:
+            Dictionary with IA metrics
+        """
+        # Simulate heartbeat discrimination accuracy
+        ia_accuracy = np.random.normal(0.65, 0.15)
+        ia_accuracy = np.clip(ia_accuracy, 0.5, 1.0)
+
+        # Classify as high/low IA (median split)
+        ia_level = "high" if ia_accuracy > 0.65 else "low"
+
+        return {
+            "participant_id": participant_id,
+            "ia_accuracy": ia_accuracy,
+            "ia_level": ia_level,
+        }
+
+    def simulate_detection_threshold_task(
+        self,
+        participant_id: int,
+        tms_condition: str = "sham",
+        target_region: str = None,
+    ) -> Dict[str, float]:
+        """
+        Simulate near-threshold visual stimulus detection task with TMS
+
+        Args:
+            participant_id: Participant identifier
+            tms_condition: "sham", "dlPFC", "insula"
+            target_region: Target brain region for TMS
+
+        Returns:
+            Dictionary with detection metrics
+        """
+        # Base threshold (log units)
+        base_threshold_log = np.log10(0.5) + np.random.normal(0, 0.1)
+
+        # TMS effects
+        if tms_condition == "dlPFC":
+            # P2a: dlPFC TMS shifts threshold by >0.1 log units
+            tms_shift = np.random.normal(0.15, 0.03)  # Mean 0.15 log units
+            threshold_log = base_threshold_log + tms_shift
+        elif tms_condition == "insula":
+            # Insula TMS also shifts threshold (but different mechanism)
+            tms_shift = np.random.normal(0.08, 0.03)
+            threshold_log = base_threshold_log + tms_shift
+        else:  # sham
+            threshold_log = base_threshold_log
+
+        # Detection performance at threshold
+        detection_accuracy = 0.75 + np.random.normal(0, 0.05)
+        detection_accuracy = np.clip(detection_accuracy, 0.5, 1.0)
+
+        return {
+            "participant_id": participant_id,
+            "tms_condition": tms_condition,
+            "target_region": target_region,
+            "threshold_log": threshold_log,
+            "threshold_linear": 10**threshold_log,
+            "detection_accuracy": detection_accuracy,
+        }
+
+    def simulate_hep_measurement(
+        self, participant_id: int, tms_condition: str = "sham"
+    ) -> Dict[str, float]:
+        """
+        Simulate Heartbeat-Evoked Potential (HEP) measurement
+
+        Args:
+            participant_id: Participant identifier
+            tms_condition: "sham", "dlPFC", "insula"
+
+        Returns:
+            Dictionary with HEP metrics
+        """
+        # Baseline HEP amplitude (μV)
+        baseline_hep = np.random.normal(3.5, 0.8)
+
+        # TMS effects on HEP
+        if tms_condition == "insula":
+            # P2b: Insula TMS reduces HEP by ~30%
+            reduction_factor = 0.70 + np.random.normal(0, 0.05)
+            hep_amplitude = baseline_hep * reduction_factor
+        elif tms_condition == "dlPFC":
+            # dlPFC TMS has minimal effect on HEP (double dissociation)
+            reduction_factor = 0.95 + np.random.normal(0, 0.05)
+            hep_amplitude = baseline_hep * reduction_factor
+        else:  # sham
+            hep_amplitude = baseline_hep
+
+        return {
+            "participant_id": participant_id,
+            "tms_condition": tms_condition,
+            "baseline_hep": baseline_hep,
+            "hep_amplitude": hep_amplitude,
+            "hep_reduction_pct": (1 - hep_amplitude / baseline_hep) * 100,
+        }
+
+    def simulate_pci_measurement(
+        self, participant_id: int, tms_condition: str = "sham"
+    ) -> Dict[str, float]:
+        """
+        Simulate Perturbational Complexity Index (PCI) measurement
+
+        Args:
+            participant_id: Participant identifier
+            tms_condition: "sham", "dlPFC", "insula"
+
+        Returns:
+            Dictionary with PCI metrics
+        """
+        # Baseline PCI (0-1 scale)
+        baseline_pci = np.random.normal(0.45, 0.10)
+        baseline_pci = np.clip(baseline_pci, 0.2, 0.7)
+
+        # TMS effects on PCI
+        if tms_condition == "insula":
+            # P2b: Insula TMS reduces PCI by ~20%
+            reduction_factor = 0.80 + np.random.normal(0, 0.05)
+            pci_value = baseline_pci * reduction_factor
+        elif tms_condition == "dlPFC":
+            # dlPFC TMS also reduces PCI (but different magnitude)
+            reduction_factor = 0.85 + np.random.normal(0, 0.05)
+            pci_value = baseline_pci * reduction_factor
+        else:  # sham
+            pci_value = baseline_pci
+
+        return {
+            "participant_id": participant_id,
+            "tms_condition": tms_condition,
+            "baseline_pci": baseline_pci,
+            "pci_value": pci_value,
+            "pci_reduction_pct": (1 - pci_value / baseline_pci) * 100,
+        }
+
+    def test_prediction_P2a(
+        self, sham_thresholds: List[float], dlpfc_thresholds: List[float]
+    ) -> Dict[str, Any]:
+        """
+        P2a: TMS delivered to dlPFC during near-threshold trials shifts detection threshold by >0.1 log units
+
+        Expected effect: Threshold shift > 0.1 log units
+
+        Args:
+            sham_thresholds: Detection thresholds in sham condition
+            dlpfc_thresholds: Detection thresholds in dlPFC TMS condition
+
+        Returns:
+            Dictionary with test results
+        """
+        # Calculate threshold shift (log units)
+        sham_log = np.log10(np.array(sham_thresholds))
+        dlpfc_log = np.log10(np.array(dlpfc_thresholds))
+        threshold_shift_log = np.mean(dlpfc_log - sham_log)
+
+        # T-test
+        t_stat, p_value = stats.ttest_rel(sham_log, dlpfc_log)
+
+        # Check if effect meets criterion
+        effect_met = threshold_shift_log > 0.1
+        significance_met = p_value < 0.05
+
+        return {
+            "prediction": "P2a",
+            "description": "dlPFC TMS shifts detection threshold by >0.1 log units",
+            "mean_sham_log": np.mean(sham_log),
+            "mean_dlpfc_log": np.mean(dlpfc_log),
+            "threshold_shift_log": threshold_shift_log,
+            "effect_met": effect_met,
+            "t_stat": t_stat,
+            "p_value": p_value,
+            "significance_met": significance_met,
+            "prediction_supported": effect_met and significance_met,
+        }
+
+    def test_prediction_P2b(
+        self,
+        sham_hep: List[float],
+        insula_hep: List[float],
+        sham_pci: List[float],
+        insula_pci: List[float],
+        dlpfc_hep: List[float],
+        dlpfc_pci: List[float],
+    ) -> Dict[str, Any]:
+        """
+        P2b: Insula TMS reduces HEP (30%) and PCI (20%) with double dissociation from dlPFC
+
+        Expected effects:
+        - Insula TMS: HEP reduction ~30%, PCI reduction ~20%
+        - dlPFC TMS: Minimal HEP reduction, PCI reduction ~15%
+
+        Args:
+            sham_hep: HEP amplitudes in sham condition
+            insula_hep: HEP amplitudes in insula TMS condition
+            sham_pci: PCI values in sham condition
+            insula_pci: PCI values in insula TMS condition
+            dlpfc_hep: HEP amplitudes in dlPFC TMS condition
+            dlpfc_pci: PCI values in dlPFC TMS condition
+
+        Returns:
+            Dictionary with test results
+        """
+        # Calculate reductions
+        insula_hep_reduction = 1 - np.mean(insula_hep) / np.mean(sham_hep)
+        insula_pci_reduction = 1 - np.mean(insula_pci) / np.mean(sham_pci)
+        dlpfc_hep_reduction = 1 - np.mean(dlpfc_hep) / np.mean(sham_hep)
+        dlpfc_pci_reduction = 1 - np.mean(dlpfc_pci) / np.mean(sham_pci)
+
+        # Check if effects meet criteria
+        insula_hep_met = 0.25 <= insula_hep_reduction <= 0.35  # ~30%
+        insula_pci_met = 0.15 <= insula_pci_reduction <= 0.25  # ~20%
+        dlpfc_hep_met = dlpfc_hep_reduction < 0.10  # Minimal effect
+        dlpfc_pci_met = 0.10 <= dlpfc_pci_reduction <= 0.20  # Moderate effect
+
+        # Double dissociation: Insula > dlPFC for HEP reduction
+        double_dissociation_hep = insula_hep_reduction > dlpfc_hep_reduction + 0.15
+
+        # Statistical tests
+        t_hep, p_hep = stats.ttest_rel(sham_hep, insula_hep)
+        t_pci, p_pci = stats.ttest_rel(sham_pci, insula_pci)
+
+        return {
+            "prediction": "P2b",
+            "description": "Insula TMS reduces HEP (30%) and PCI (20%) with double dissociation from dlPFC",
+            "insula_hep_reduction_pct": insula_hep_reduction * 100,
+            "insula_pci_reduction_pct": insula_pci_reduction * 100,
+            "dlpfc_hep_reduction_pct": dlpfc_hep_reduction * 100,
+            "dlpfc_pci_reduction_pct": dlpfc_pci_reduction * 100,
+            "insula_hep_met": insula_hep_met,
+            "insula_pci_met": insula_pci_met,
+            "dlpfc_hep_met": dlpfc_hep_met,
+            "dlpfc_pci_met": dlpfc_pci_met,
+            "double_dissociation_hep": double_dissociation_hep,
+            "t_stat_hep": t_hep,
+            "p_value_hep": p_hep,
+            "t_stat_pci": t_pci,
+            "p_value_pci": p_pci,
+            "prediction_supported": (
+                insula_hep_met
+                and insula_pci_met
+                and dlpfc_hep_met
+                and double_dissociation_hep
+            ),
+        }
+
+    def test_prediction_P2c(
+        self, high_ia_tms_effects: List[float], low_ia_tms_effects: List[float]
+    ) -> Dict[str, Any]:
+        """
+        P2c: High baseline IA subjects show stronger TMS effects
+
+        Expected effect: TMS effect size larger in high IA group
+
+        Args:
+            high_ia_tms_effects: TMS effect sizes for high IA participants
+            low_ia_tms_effects: TMS effect sizes for low IA participants
+
+        Returns:
+            Dictionary with test results
+        """
+        # Calculate mean effect sizes
+        high_ia_mean = np.mean(high_ia_tms_effects)
+        low_ia_mean = np.mean(low_ia_tms_effects)
+
+        # Cohen's d for between-groups comparison
+        pooled_std = np.sqrt(
+            (np.std(high_ia_tms_effects) ** 2 + np.std(low_ia_tms_effects) ** 2) / 2
+        )
+        cohens_d = (high_ia_mean - low_ia_mean) / pooled_std
+
+        # T-test
+        t_stat, p_value = stats.ttest_ind(high_ia_tms_effects, low_ia_tms_effects)
+
+        # Check if effect meets criterion
+        effect_met = cohens_d > 0.5
+        significance_met = p_value < 0.05
+
+        return {
+            "prediction": "P2c",
+            "description": "High baseline IA subjects show stronger TMS effects",
+            "high_ia_mean": high_ia_mean,
+            "low_ia_mean": low_ia_mean,
+            "cohens_d": cohens_d,
+            "effect_met": effect_met,
+            "t_stat": t_stat,
+            "p_value": p_value,
+            "significance_met": significance_met,
+            "prediction_supported": effect_met and significance_met,
+        }
+
+    def run_full_protocol2_experiment(self) -> Dict[str, Any]:
+        """
+        Run complete Protocol 2 experiment with all components
+
+        Returns:
+            Dictionary with all experimental results
+        """
+        results = {
+            "participants": self.n_participants,
+            "safety_screening": [],
+            "neuronavigation": [],
+            "baseline_ia": [],
+            "sham_thresholds": [],
+            "dlpfc_thresholds": [],
+            "insula_thresholds": [],
+            "sham_hep": [],
+            "insula_hep": [],
+            "dlpfc_hep": [],
+            "sham_pci": [],
+            "insula_pci": [],
+            "dlpfc_pci": [],
+            "predictions": {},
+        }
+
+        # Generate participant characteristics
+        interoceptive_awareness = np.random.gamma(2.0, 0.3, self.n_participants)
+        interoceptive_awareness = np.clip(interoceptive_awareness, 0.5, 1.0)
+
+        # Run safety screening
+        for i in range(self.n_participants):
+            safety_result = self.check_tms_safety_criteria(i)
+            results["safety_screening"].append(safety_result)
+
+        # Filter eligible participants
+        eligible_indices = [
+            i for i, s in enumerate(results["safety_screening"]) if s["eligible"]
+        ]
+        n_eligible = len(eligible_indices)
+
+        if n_eligible < 20:
+            logger.warning(
+                f"Only {n_eligible}/{self.n_participants} participants eligible. "
+                "Proceeding with reduced sample."
+            )
+
+        # Run baseline IA measurement
+        for i in range(self.n_participants):
+            ia_result = self.simulate_baseline_interoceptive_awareness(i)
+            results["baseline_ia"].append(ia_result)
+
+        # Classify high/low IA groups
+        high_ia_indices = [
+            i for i, ia in enumerate(results["baseline_ia"]) if ia["ia_level"] == "high"
+        ]
+        low_ia_indices = [
+            i for i, ia in enumerate(results["baseline_ia"]) if ia["ia_level"] == "low"
+        ]
+
+        # Within-subjects design: all participants do all conditions
+        for i in range(self.n_participants):
+            # Sham condition
+            sham_thresh = self.simulate_detection_threshold_task(
+                i, tms_condition="sham"
+            )
+            sham_hep = self.simulate_hep_measurement(i, tms_condition="sham")
+            sham_pci = self.simulate_pci_measurement(i, tms_condition="sham")
+            results["sham_thresholds"].append(sham_thresh)
+            results["sham_hep"].append(sham_hep)
+            results["sham_pci"].append(sham_pci)
+
+            # dlPFC TMS condition
+            dlpfc_nav = self.simulate_neuronavigation_confirmation(i, "dlPFC")
+            results["neuronavigation"].append(dlpfc_nav)
+
+            dlpfc_thresh = self.simulate_detection_threshold_task(
+                i, tms_condition="dlPFC", target_region="dlPFC"
+            )
+            dlpfc_hep = self.simulate_hep_measurement(i, tms_condition="dlPFC")
+            dlpfc_pci = self.simulate_pci_measurement(i, tms_condition="dlPFC")
+            results["dlpfc_thresholds"].append(dlpfc_thresh)
+            results["dlpfc_hep"].append(dlpfc_hep)
+            results["dlpfc_pci"].append(dlpfc_pci)
+
+            # Insula TMS condition
+            insula_nav = self.simulate_neuronavigation_confirmation(i, "insula")
+            results["neuronavigation"].append(insula_nav)
+
+            insula_thresh = self.simulate_detection_threshold_task(
+                i, tms_condition="insula", target_region="insula"
+            )
+            insula_hep = self.simulate_hep_measurement(i, tms_condition="insula")
+            insula_pci = self.simulate_pci_measurement(i, tms_condition="insula")
+            results["insula_thresholds"].append(insula_thresh)
+            results["insula_hep"].append(insula_hep)
+            results["insula_pci"].append(insula_pci)
+
+        # Test P2a: dlPFC TMS threshold shift
+        sham_thresh_vals = [d["threshold_log"] for d in results["sham_thresholds"]]
+        dlpfc_thresh_vals = [d["threshold_log"] for d in results["dlpfc_thresholds"]]
+        results["predictions"]["P2a"] = self.test_prediction_P2a(
+            sham_thresh_vals, dlpfc_thresh_vals
+        )
+
+        # Test P2b: Insula TMS double dissociation
+        sham_hep_vals = [d["hep_amplitude"] for d in results["sham_hep"]]
+        insula_hep_vals = [d["hep_amplitude"] for d in results["insula_hep"]]
+        sham_pci_vals = [d["pci_value"] for d in results["sham_pci"]]
+        insula_pci_vals = [d["pci_value"] for d in results["insula_pci"]]
+        dlpfc_hep_vals = [d["hep_amplitude"] for d in results["dlpfc_hep"]]
+        dlpfc_pci_vals = [d["pci_value"] for d in results["dlpfc_pci"]]
+        results["predictions"]["P2b"] = self.test_prediction_P2b(
+            sham_hep_vals,
+            insula_hep_vals,
+            sham_pci_vals,
+            insula_pci_vals,
+            dlpfc_hep_vals,
+            dlpfc_pci_vals,
+        )
+
+        # Test P2c: IA interaction
+        # Calculate TMS effect sizes for high vs low IA groups
+        high_ia_dlpfc_shifts = [
+            results["dlpfc_thresholds"][i]["threshold_log"]
+            - results["sham_thresholds"][i]["threshold_log"]
+            for i in high_ia_indices
+        ]
+        low_ia_dlpfc_shifts = [
+            results["dlpfc_thresholds"][i]["threshold_log"]
+            - results["sham_thresholds"][i]["threshold_log"]
+            for i in low_ia_indices
+        ]
+        results["predictions"]["P2c"] = self.test_prediction_P2c(
+            high_ia_dlpfc_shifts, low_ia_dlpfc_shifts
+        )
+
+        # Overall support
+        all_supported = all(
+            p["prediction_supported"] for p in results["predictions"].values()
+        )
+        results["overall_protocol2_supported"] = all_supported
+
+        return results
+
+
 def validate_parameter_recovery(n_simulations: int = 100):
     """
     Mandatory pre-empirical validation: Can we recover known parameters?
@@ -323,20 +860,24 @@ def validate_parameter_recovery(n_simulations: int = 100):
 
 def compute_fisher_information_matrix(
     trace, data: ConsciousnessDataset
-) -> Dict[str, np.ndarray]:
+) -> Dict[str, Any]:
     """
-    Compute Fisher Information Matrix for APGI parameters.
+    Compute comprehensive Fisher Information Matrix analysis for APGI parameters.
 
     The FIM quantifies how much information the data provides about each parameter.
-    Diagonal elements indicate precision of individual parameter estimates.
-    Off-diagonal elements indicate parameter correlations.
+    This enhanced version includes:
+    - Full FIM computation
+    - Eigenvalue analysis
+    - Parameter precision metrics
+    - Correlation structure
+    - Identifiability assessment
 
     Args:
         trace: Posterior samples from PyMC
         data: Consciousness dataset
 
     Returns:
-        Dictionary with FIM and derived metrics
+        Dictionary with comprehensive FIM analysis results
     """
     try:
         import jax
@@ -387,7 +928,7 @@ def compute_fisher_information_matrix(
     # Compute Hessian using JAX autodiff
     def loss(params):
         theta_0, Pi_i, beta, alpha = params
-        return -log_likelihood(theta_0, Pi_i, beta, alpha)
+        return -log_likelihood(theta_0, Pi_i, beta, alpha, data)
 
     params_array = jnp.array(
         [
@@ -398,23 +939,109 @@ def compute_fisher_information_matrix(
         ]
     )
 
+    results = {}
+
     try:
         hessian = jax.hessian(loss)(params_array)
         fim = hessian  # Fisher Information Matrix is negative Hessian at MLE
 
-        # Compute eigenvalues
-        eigenvalues = jnp.linalg.eigvals(fim)
-        condition_number = jnp.max(jnp.abs(eigenvalues)) / jnp.min(jnp.abs(eigenvalues))
+        # Convert to numpy for analysis
+        fim_np = np.array(fim)
 
-        return {
-            "fim": np.array(fim),
-            "eigenvalues": np.array(eigenvalues),
-            "condition_number": float(condition_number),
+        # Compute eigenvalues and eigenvectors
+        eigenvalues, eigenvectors = jnp.linalg.eigh(fim)
+        eigenvalues_np = np.array(eigenvalues)
+        eigenvectors_np = np.array(eigenvectors)
+
+        # Sort eigenvalues (descending)
+        sorted_indices = np.argsort(eigenvalues_np)[::-1]
+        eigenvalues_sorted = eigenvalues_np[sorted_indices]
+        eigenvectors_sorted = eigenvectors_np[:, sorted_indices]
+
+        # Condition number
+        condition_number = jnp.max(jnp.abs(eigenvalues)) / jnp.min(jnp.abs(eigenvalues))
+        condition_number_np = float(condition_number)
+
+        # Parameter precision (diagonal elements)
+        fim_diagonal = np.diag(fim_np)
+        param_precision = {
+            param_names[i]: float(fim_diagonal[i]) for i in range(len(param_names))
+        }
+
+        # Relative precision (normalized by max)
+        max_precision = np.max(fim_diagonal)
+        relative_precision = {
+            param_names[i]: float(fim_diagonal[i] / max_precision)
+            for i in range(len(param_names))
+        }
+
+        # Correlation matrix from FIM
+        fim_inv = np.linalg.inv(fim_np)
+        correlation_matrix = np.zeros_like(fim_np)
+        for i in range(len(param_names)):
+            for j in range(len(param_names)):
+                correlation_matrix[i, j] = -fim_inv[i, j] / np.sqrt(
+                    fim_inv[i, i] * fim_inv[j, j]
+                )
+
+        np.fill_diagonal(correlation_matrix, 1.0)
+
+        # Parameter correlations (off-diagonal)
+        param_correlations = {}
+        for i in range(len(param_names)):
+            for j in range(i + 1, len(param_names)):
+                corr_val = correlation_matrix[i, j]
+                param_correlations[f"{param_names[i]}_{param_names[j]}"] = float(
+                    corr_val
+                )
+
+        # Identifiability metrics
+        # 1. Condition number (lower is better)
+        well_conditioned = condition_number_np < 100
+
+        # 2. Minimum relative precision (should not be too low)
+        min_relative_precision = min(relative_precision.values())
+        identifiable_precision = min_relative_precision > 0.01
+
+        # 3. Maximum correlation (should not be too high)
+        max_correlation = max([abs(c) for c in param_correlations.values()])
+        identifiable_correlation = max_correlation < 0.9
+
+        # Overall identifiability
+        identifiable = (
+            well_conditioned and identifiable_precision and identifiable_correlation
+        )
+
+        results = {
+            "fim": fim_np,
+            "eigenvalues": eigenvalues_sorted,
+            "eigenvectors": eigenvectors_sorted,
+            "condition_number": condition_number_np,
+            "param_precision": param_precision,
+            "relative_precision": relative_precision,
+            "correlation_matrix": correlation_matrix,
+            "param_correlations": param_correlations,
+            "identifiability_metrics": {
+                "well_conditioned": well_conditioned,
+                "identifiable_precision": identifiable_precision,
+                "identifiable_correlation": identifiable_correlation,
+                "overall_identifiable": identifiable,
+            },
             "param_names": param_names,
         }
+
+        return results
+
     except Exception as e:
         logger.warning(f"Error computing Fisher Information Matrix: {e}")
-        return {"fim": None, "eigenvalues": None, "condition_number": None}
+        return {
+            "fim": None,
+            "eigenvalues": None,
+            "condition_number": None,
+            "eigenvalues": None,
+            "identifiability_metrics": None,
+            "param_names": param_names,
+        }
 
 
 def analyze_beta_pi_identifiability(

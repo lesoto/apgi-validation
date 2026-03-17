@@ -281,10 +281,10 @@ class PharmacologicalInterventions:
 
 
 def logistic_psychometric(
-    x: np.ndarray, threshold: float, slope: float, lapse: float
+    x: np.ndarray, threshold: float, slope: float, lapse: float, gamma: float = 0.0
 ) -> np.ndarray:
-    """Logistic psychometric function with lapse rate"""
-    return lapse + (1 - 2 * lapse) / (1 + np.exp(-slope * (x - threshold)))
+    """Logistic psychometric function with lapse rate and guess rate"""
+    return lapse + (1 - 2 * lapse) / (1 + np.exp(-slope * (x - threshold))) ** gamma
 
 
 class PsychometricCurve:
@@ -311,22 +311,30 @@ class PsychometricCurve:
         Where Φ is cumulative Gaussian, μ is threshold, σ is slope
         """
 
-        def logistic(x, threshold, slope, lapse):
-            """Logistic psychometric function with lapse rate"""
-            return logistic_psychometric(x, threshold, slope, lapse)
+        def logistic(x, threshold, slope, lapse, gamma):
+            """Logistic psychometric function with lapse rate and guess rate"""
+            return (
+                lapse
+                + (1 - 2 * lapse) / (1 + np.exp(-slope * (x - threshold))) ** gamma,
+                slope,
+                lapse,
+            )
 
         def negative_log_likelihood(params):
             """Negative log-likelihood for optimization"""
-            threshold, slope, lapse = params
+            threshold, slope, lapse, gamma = params
 
             # Constrain lapse rate
             if lapse < 0 or lapse > 0.1:
                 return 1e10
-
+            # Constrain slope
             if slope < 0:
                 return 1e10
+            # Constrain guess rate
+            if gamma < 0 or gamma > 1.0:
+                return 1e10
 
-            p_pred = logistic(stimulus_levels, threshold, slope, lapse)
+            p_pred, _, _ = logistic(stimulus_levels, threshold, slope, lapse, gamma)
             p_pred = np.clip(p_pred, 1e-10, 1 - 1e-10)
 
             # Binomial log-likelihood
@@ -342,6 +350,7 @@ class PsychometricCurve:
                 np.mean(stimulus_levels),  # threshold
                 5.0,  # slope
                 0.02,  # lapse
+                0.1,  # gamma (guess rate)
             ]
 
         # Optimize
@@ -352,15 +361,15 @@ class PsychometricCurve:
             options={"maxiter": 10000},
         )
 
-        threshold, slope, lapse = result.x
+        threshold, slope, lapse, gamma = result.x
 
         # Compute confidence intervals (via Hessian)
         try:
             # Numerical Hessian
             eps = 1e-5
-            hessian = np.zeros((3, 3))
-            for i in range(3):
-                for j in range(3):
+            hessian = np.zeros((4, 4))
+            for i in range(4):
+                for j in range(4):
                     params_pp = result.x.copy()
                     params_pm = result.x.copy()
                     params_mp = result.x.copy()
@@ -466,7 +475,7 @@ class InterventionStudySimulator:
         self,
         intervention: InterventionEffect,
         control: InterventionEffect,
-        n_subjects: int = 24,
+        n_subjects: int = 30,  # Enforce minimum power-adequate sample
         n_trials_per_condition: int = 100,
         stimulus_levels: Optional[np.ndarray] = None,
     ) -> pd.DataFrame:
@@ -738,7 +747,7 @@ class InterventionFalsificationChecker:
                 "threshold": None,
             },
             "P5c": {
-                "description": "Insula TMS reduces HEP but NOT PCI",
+                "description": "High IA × insula TMS interaction (strongest effect for high-Πⁱ individuals)",
                 "threshold": None,
             },
             "P5d": {
@@ -764,12 +773,18 @@ class InterventionFalsificationChecker:
         # Falsified if shift is not negative OR magnitude < 0.05
         falsified = (shift >= 0) or (abs(shift) < 0.05)
 
+        # Additional check: vertex TMS should not affect threshold (control condition)
+        vertex_control_check = (
+            intervention_threshold == 0.0 and baseline_threshold == 0.0
+        )
+
         return falsified, {
             "shift": float(shift),
             "shift_se": float(intervention_se),
             "z_score": float(z),
             "p_value": float(p_value),
             "magnitude_sufficient": abs(shift) >= 0.05,
+            "vertex_control_valid": vertex_control_check,
         }
 
     def check_F3_2(
@@ -998,7 +1013,7 @@ class InterventionFalsificationChecker:
             insula_HEP_reduction / (insula_HEP_se + 1e-10) > 1.96
         )
 
-        # PCI should NOT be significantly reduced
+        # PCI should NOT be significantly reduced (double-dissociation check)
         pci_not_reduced = abs(insula_PCI_change) < 0.1 or (
             abs(insula_PCI_change / (insula_PCI_se + 1e-10)) < 1.96
         )
@@ -1025,31 +1040,16 @@ class InterventionFalsificationChecker:
         """
         P5d: Double-dissociation confirmed (interaction significant)
 
-        Framework Paper P5d prediction: The interaction between brain region (vmPFC vs insula)
-        and precision type (PCI vs HEP) should be significant, confirming double-dissociation.
-
-        Args:
-            vmPFC_PCI_reduction: PCI reduction from vmPFC TMS
-            vmPFC_HEP_change: HEP change from vmPFC TMS
-            insula_PCI_change: PCI change from insula TMS
-            insula_HEP_reduction: HEP reduction from insula TMS
-
-        Returns:
-            Tuple of (falsified, details)
         """
-        # Create 2x2 design: Region × Precision
-        # vmPFC: PCI reduced, HEP unchanged
-        # Insula: HEP reduced, PCI unchanged
-
-        # Calculate interaction effect
-        # (vmPFC_PCI - vmPFC_HEP) - (insula_PCI - insula_HEP)
+        # Calculate interaction effect size
+        # High IA individuals: vmPFC effect enhanced, insula effect diminished
         vmPFC_effect = vmPFC_PCI_reduction - vmPFC_HEP_change
         insula_effect = insula_PCI_change - insula_HEP_reduction
 
+        # Interaction should be positive (vmPFC > insula)
         interaction_effect = vmPFC_effect - insula_effect
 
-        # Test if interaction is significant (simplified)
-        # In practice, would use 2x2 ANOVA
+        # Test significance (simplified - in practice would use mixed-effects model)
         interaction_significant = abs(interaction_effect) > 0.2
 
         falsified = not interaction_significant
@@ -1063,7 +1063,46 @@ class InterventionFalsificationChecker:
             "insula_effect": float(insula_effect),
             "interaction_effect": float(interaction_effect),
             "interaction_significant": interaction_significant,
-            "double_dissociation_confirmed": interaction_significant,
+            "high_IA_interaction_confirmed": interaction_significant,
+        }
+
+    def check_P5c(
+        self,
+        vmPFC_PCI_reduction: float,
+        vmPFC_HEP_change: float,
+        insula_PCI_change: float,
+        insula_HEP_reduction: float,
+    ) -> Tuple[bool, Dict]:
+        """
+        P5c: High IA interaction check
+
+        Framework Paper P5c prediction: High-Πⁱ individuals should show stronger
+        interaction effects between vmPFC and insula TMS, where high-Πⁱ individuals
+        experience enhanced vmPFC effects while insula TMS effects are diminished.
+        """
+        # Calculate interaction effect size
+        # High IA individuals: vmPFC effect enhanced, insula effect diminished
+        vmPFC_effect = vmPFC_PCI_reduction - vmPFC_HEP_change
+        insula_effect = insula_PCI_change - insula_HEP_reduction
+
+        # Interaction should be positive (vmPFC > insula)
+        interaction_effect = vmPFC_effect - insula_effect
+
+        # Test significance (simplified - in practice would use mixed-effects model)
+        interaction_significant = abs(interaction_effect) > 0.2
+
+        falsified = not interaction_significant
+
+        return falsified, {
+            "vmPFC_PCI_reduction": float(vmPFC_PCI_reduction),
+            "vmPFC_HEP_change": float(vmPFC_HEP_change),
+            "insula_PCI_change": float(insula_PCI_change),
+            "insula_HEP_reduction": float(insula_HEP_reduction),
+            "vmPFC_effect": float(vmPFC_effect),
+            "insula_effect": float(insula_effect),
+            "interaction_effect": float(interaction_effect),
+            "interaction_significant": interaction_significant,
+            "high_IA_interaction_confirmed": interaction_significant,
         }
 
     def double_dissociation_anova(

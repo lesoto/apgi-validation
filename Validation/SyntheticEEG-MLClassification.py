@@ -1,9 +1,14 @@
 """
-APGI Protocol 1: Synthetic Neural Data Generation and Machine Learning Classification
-=====================================================================================
+APGI Computational Tool: Synthetic Neural Data Generation and Machine Learning Classification
+==============================================================================================
 
-Complete implementation of falsifiable predictions for the APGI framework through
+Supplementary computational implementation for testing APGI framework predictions through
 synthetic data generation and multi-model comparison using deep learning.
+
+NOTE: This is NOT Protocol 1. The actual Protocol 1 is "Interoceptive Precision Modulates 
+Detection Threshold" - a psychophysics paradigm with human participants using heartbeat 
+discrimination and near-threshold visual stimuli. This file implements computational 
+simulations that support Protocol 1 predictions.
 
 """
 
@@ -120,11 +125,12 @@ EEG_PZ_CHANNEL = 31  # Index of Pz channel (centro-parietal)
 class APGIDynamicalSystem:
     """Core APGI equations for surprise accumulation and ignition"""
 
-    def __init__(self, tau: float = None, alpha: float = None):
+    def __init__(self, tau: float = None, alpha: float = None, eta: float = 0.01):
         """
         Args:
             tau: Surprise decay time constant (seconds) - loaded from config
             alpha: Sigmoid steepness for ignition probability - loaded from config
+            eta: Threshold adaptation learning rate
         """
         # Load from configuration if not provided
         if tau is None:
@@ -134,6 +140,7 @@ class APGIDynamicalSystem:
 
         self.tau = tau
         self.alpha = alpha
+        self.eta = eta  # Threshold adaptation rate
 
     def simulate_surprise_accumulation(
         self,
@@ -145,22 +152,28 @@ class APGIDynamicalSystem:
         theta_t: float,
         dt: float = 0.001,
         duration: float = 1.0,
-    ) -> Tuple[np.ndarray, np.ndarray, bool]:
+        C_metabolic: float = 0.5,
+        V_information: float = 0.5,
+    ) -> Tuple[np.ndarray, np.ndarray, bool, np.ndarray]:
         """
         Simulate APGI surprise accumulation dynamics
 
         Equation: dS/dt = -S/τ + Π_e·|ε_e| + β_som·Π_i·|ε_i|
+        Threshold adaptation: θₜ₊₁ = θₜ + η(C_metabolic - V_information)
 
         Returns:
             S_trajectory: Surprise over time
             B_trajectory: Ignition probability over time
             ignition_occurred: Whether ignition threshold was crossed
+            theta_trajectory: Threshold adaptation over time
         """
         n_steps = int(duration / dt)
         S_trajectory = np.zeros(n_steps)
         B_trajectory = np.zeros(n_steps)
+        theta_trajectory = np.zeros(n_steps)
 
         S = 0.0
+        theta_current = theta_t
         ignition_occurred = False
 
         for i in range(1, n_steps):
@@ -182,14 +195,20 @@ class APGIDynamicalSystem:
 
             S_trajectory[i] = S
 
-            # Ignition probability
-            B_trajectory[i] = self._sigmoid(S - theta_t)
+            # Threshold adaptation equation: θₜ₊₁ = θₜ + η(C_metabolic - V_information)
+            # This adjusts threshold based on metabolic cost vs. information value
+            dtheta_dt = self.eta * (C_metabolic - V_information)
+            theta_current += dt * dtheta_dt
+            theta_trajectory[i] = theta_current
 
-            # Check for ignition (threshold crossing)
-            if S > theta_t and not ignition_occurred:
+            # Ignition probability with adaptive threshold
+            B_trajectory[i] = self._sigmoid(S - theta_current)
+
+            # Check for ignition (threshold crossing with adaptive threshold)
+            if S > theta_current and not ignition_occurred:
                 ignition_occurred = True
 
-        return S_trajectory, B_trajectory, ignition_occurred
+        return S_trajectory, B_trajectory, ignition_occurred, theta_trajectory
 
     def _sigmoid(self, x: float) -> float:
         """Numerically stable sigmoid with steepness α"""
@@ -621,7 +640,7 @@ class GlobalWorkspaceOnlyGenerator:
         P3b present, but HEP not modulated by ignition
         """
         # Only exteroceptive signals
-        S_traj, B_traj, ignition = self.apgi_system.simulate_surprise_accumulation(
+        S_traj, B_traj, ignition, _ = self.apgi_system.simulate_surprise_accumulation(
             epsilon_e=epsilon_e,
             epsilon_i=0.0,  # No interoceptive contribution
             Pi_e=Pi_e,
@@ -771,7 +790,12 @@ class APGIDatasetGenerator:
     def _generate_apgi_trial(self, params: TrialParameters) -> Dict:
         """Generate APGI trial with full dynamics"""
         # Run APGI dynamics
-        S_traj, B_traj, ignition = self.apgi_system.simulate_surprise_accumulation(
+        (
+            S_traj,
+            B_traj,
+            ignition,
+            theta_traj,
+        ) = self.apgi_system.simulate_surprise_accumulation(
             epsilon_e=params.epsilon_e,
             epsilon_i=params.epsilon_i,
             Pi_e=params.Pi_e,
@@ -916,7 +940,390 @@ class APGIDatasetGenerator:
 
 
 # =============================================================================
-# PART 4: PYTORCH DATASETS
+# PART 4: PROTOCOL 1 PSYCHOPHYSICS PARADIGM IMPLEMENTATION
+# =============================================================================
+
+
+class Protocol1Psychophysics:
+    """
+    Implementation of Protocol 1: Interoceptive Precision Modulates Detection Threshold
+
+    This is the actual Protocol 1 psychophysics paradigm with human participants:
+    - Heartbeat discrimination task
+    - Near-threshold visual stimuli detection
+    - Garfinkel et al. (2015) SD-split group comparison
+    - Arousal interaction design
+    """
+
+    def __init__(self, n_participants: int = 100, seed: int = RANDOM_SEED):
+        """
+        Args:
+            n_participants: Number of participants in the experiment
+            seed: Random seed for reproducibility
+        """
+        np.random.seed(seed)
+        self.n_participants = n_participants
+        self.significance_level = get_significance_level(
+            0.01
+        )  # Bonferroni-corrected threshold
+
+    def simulate_heartbeat_discrimination(
+        self, participant_id: int, interoceptive_precision: float
+    ) -> Dict[str, float]:
+        """
+        Simulate heartbeat discrimination task
+
+        Participants judge whether a tone occurred synchronous or asynchronous
+        with their heartbeat. Performance depends on interoceptive precision.
+
+        Args:
+            participant_id: Participant identifier
+            interoceptive_precision: Interoceptive precision (Pi_i)
+
+        Returns:
+            Dictionary with discrimination accuracy and reaction time
+        """
+        # Simulate heartbeat discrimination accuracy based on precision
+        # Higher precision = better discrimination
+        base_accuracy = 0.5 + 0.4 * interoceptive_precision / 2.5  # Range: 0.5-0.9
+        noise = np.random.normal(0, 0.05)
+        accuracy = np.clip(base_accuracy + noise, 0.5, 1.0)
+
+        # Reaction time decreases with precision
+        rt_ms = 800 - 200 * interoceptive_precision / 2.5 + np.random.normal(0, 50)
+        rt_ms = np.clip(rt_ms, 500, 1000)
+
+        return {
+            "participant_id": participant_id,
+            "accuracy": accuracy,
+            "reaction_time_ms": rt_ms,
+            "interoceptive_precision": interoceptive_precision,
+        }
+
+    def simulate_detection_threshold_task(
+        self,
+        participant_id: int,
+        interoceptive_precision: float,
+        arousal_level: str = "normal",
+    ) -> Dict[str, float]:
+        """
+        Simulate near-threshold visual stimulus detection task
+
+        Detection threshold depends on interoceptive precision and arousal level.
+
+        Args:
+            participant_id: Participant identifier
+            interoceptive_precision: Interoceptive precision (Pi_i)
+            arousal_level: "normal", "high" (HR 100-120 bpm)
+
+        Returns:
+            Dictionary with detection threshold and performance metrics
+        """
+        # Base detection threshold (lower = more sensitive)
+        # Higher precision = lower threshold (better detection)
+        base_threshold = 0.3 - 0.15 * interoceptive_precision / 2.5
+
+        # Arousal interaction: high arousal increases threshold
+        if arousal_level == "high":
+            arousal_effect = 0.08  # Higher threshold with high arousal
+        else:
+            arousal_effect = 0.0
+
+        threshold = np.clip(
+            base_threshold + arousal_effect + np.random.normal(0, 0.02), 0.1, 0.6
+        )
+
+        # Detection performance at threshold
+        detection_accuracy = 0.75 + np.random.normal(0, 0.05)
+        detection_accuracy = np.clip(detection_accuracy, 0.5, 1.0)
+
+        return {
+            "participant_id": participant_id,
+            "detection_threshold": threshold,
+            "detection_accuracy": detection_accuracy,
+            "interoceptive_precision": interoceptive_precision,
+            "arousal_level": arousal_level,
+        }
+
+    def classify_sd_split_groups(
+        self, heartbeat_data: List[Dict]
+    ) -> Tuple[List[int], List[int]]:
+        """
+        Classify participants into SD-split groups following Garfinkel et al. (2015)
+
+        Groups:
+        - High interoceptive awareness: >1 SD above mean heartbeat discrimination accuracy
+        - Low interoceptive awareness: <1 SD below mean heartbeat discrimination accuracy
+
+        Args:
+            heartbeat_data: List of heartbeat discrimination results
+
+        Returns:
+            Tuple of (high_awareness_indices, low_awareness_indices)
+        """
+        accuracies = [d["accuracy"] for d in heartbeat_data]
+        mean_acc = np.mean(accuracies)
+        std_acc = np.std(accuracies)
+
+        high_awareness = []
+        low_awareness = []
+
+        for i, acc in enumerate(accuracies):
+            if acc > mean_acc + std_acc:
+                high_awareness.append(i)
+            elif acc < mean_acc - std_acc:
+                low_awareness.append(i)
+
+        return high_awareness, low_awareness
+
+    def simulate_arousal_manipulation(self, participant_id: int) -> Dict[str, float]:
+        """
+        Simulate arousal manipulation via exercise (HR 100-120 bpm)
+
+        Args:
+            participant_id: Participant identifier
+
+        Returns:
+            Dictionary with arousal metrics
+        """
+        # Simulate heart rate increase due to exercise
+        baseline_hr = np.random.normal(70, 5)
+        exercise_hr = np.random.normal(110, 5)  # Target: 100-120 bpm
+        exercise_hr = np.clip(exercise_hr, 100, 120)
+
+        # Arousal increases interoceptive precision
+        precision_increase = 0.3 * (exercise_hr - baseline_hr) / 40.0
+
+        return {
+            "participant_id": participant_id,
+            "baseline_hr": baseline_hr,
+            "exercise_hr": exercise_hr,
+            "precision_increase": precision_increase,
+        }
+
+    def test_prediction_P1_1(
+        self, high_awareness_data: List[Dict], low_awareness_data: List[Dict]
+    ) -> Dict[str, Any]:
+        """
+        P1.1: High interoceptive awareness participants have lower detection thresholds
+
+        Expected effect: Cohen's d = 0.40-0.60
+
+        Args:
+            high_awareness_data: Detection data for high awareness group
+            low_awareness_data: Detection data for low awareness group
+
+        Returns:
+            Dictionary with test results
+        """
+        high_thresholds = [d["detection_threshold"] for d in high_awareness_data]
+        low_thresholds = [d["detection_threshold"] for d in low_awareness_data]
+
+        # Calculate Cohen's d
+        pooled_std = np.sqrt(
+            (np.std(high_thresholds) ** 2 + np.std(low_thresholds) ** 2) / 2
+        )
+        cohens_d = (np.mean(low_thresholds) - np.mean(high_thresholds)) / pooled_std
+
+        # T-test with Bonferroni correction
+        t_stat, p_value = stats.ttest_ind(high_thresholds, low_thresholds)
+        bonferroni_p = p_value * 3  # Correct for 3 comparisons (P1.1, P1.2, P1.3)
+
+        # Check if effect size meets criterion
+        effect_size_met = 0.40 <= cohens_d <= 0.60
+        significance_met = bonferroni_p < self.significance_level
+
+        return {
+            "prediction": "P1.1",
+            "description": "High awareness participants have lower detection thresholds",
+            "mean_high": np.mean(high_thresholds),
+            "mean_low": np.mean(low_thresholds),
+            "cohens_d": cohens_d,
+            "effect_size_met": effect_size_met,
+            "t_stat": t_stat,
+            "p_value": p_value,
+            "bonferroni_p": bonferroni_p,
+            "significance_met": significance_met,
+            "prediction_supported": effect_size_met and significance_met,
+        }
+
+    def test_prediction_P1_2(
+        self, detection_data: List[Dict], heartbeat_data: List[Dict]
+    ) -> Dict[str, Any]:
+        """
+        P1.2: Detection threshold correlates with heartbeat discrimination accuracy
+
+        Expected effect: r = -0.30 to -0.50 (negative correlation)
+
+        Args:
+            detection_data: Detection threshold data
+            heartbeat_data: Heartbeat discrimination data
+
+        Returns:
+            Dictionary with test results
+        """
+        # Match participants by ID
+        thresholds_by_id = {
+            d["participant_id"]: d["detection_threshold"] for d in detection_data
+        }
+        accuracies_by_id = {d["participant_id"]: d["accuracy"] for d in heartbeat_data}
+
+        common_ids = set(thresholds_by_id.keys()) & set(accuracies_by_id.keys())
+        thresholds = [thresholds_by_id[i] for i in common_ids]
+        accuracies = [accuracies_by_id[i] for i in common_ids]
+
+        # Pearson correlation
+        correlation, p_value = stats.pearsonr(accuracies, thresholds)
+
+        # Bonferroni correction
+        bonferroni_p = p_value * 3
+
+        # Check if correlation meets criterion
+        correlation_met = -0.50 <= correlation <= -0.30
+        significance_met = bonferroni_p < self.significance_level
+
+        return {
+            "prediction": "P1.2",
+            "description": "Detection threshold correlates with heartbeat discrimination accuracy",
+            "correlation": correlation,
+            "correlation_met": correlation_met,
+            "p_value": p_value,
+            "bonferroni_p": bonferroni_p,
+            "significance_met": significance_met,
+            "prediction_supported": correlation_met and significance_met,
+        }
+
+    def test_prediction_P1_3(
+        self, normal_arousal_data: List[Dict], high_arousal_data: List[Dict]
+    ) -> Dict[str, Any]:
+        """
+        P1.3: High arousal increases detection thresholds
+
+        Expected effect: Cohen's d = 0.40-0.60
+
+        Args:
+            normal_arousal_data: Detection data at normal arousal
+            high_arousal_data: Detection data at high arousal (exercise)
+
+        Returns:
+            Dictionary with test results
+        """
+        normal_thresholds = [d["detection_threshold"] for d in normal_arousal_data]
+        high_thresholds = [d["detection_threshold"] for d in high_arousal_data]
+
+        # Calculate Cohen's d
+        pooled_std = np.sqrt(
+            (np.std(normal_thresholds) ** 2 + np.std(high_thresholds) ** 2) / 2
+        )
+        cohens_d = (np.mean(high_thresholds) - np.mean(normal_thresholds)) / pooled_std
+
+        # Paired t-test (within-subjects design)
+        t_stat, p_value = stats.ttest_rel(normal_thresholds, high_thresholds)
+        bonferroni_p = p_value * 3  # Bonferroni correction
+
+        # Check if effect size meets criterion
+        effect_size_met = 0.40 <= cohens_d <= 0.60
+        significance_met = bonferroni_p < self.significance_level
+
+        return {
+            "prediction": "P1.3",
+            "description": "High arousal increases detection thresholds",
+            "mean_normal": np.mean(normal_thresholds),
+            "mean_high": np.mean(high_thresholds),
+            "cohens_d": cohens_d,
+            "effect_size_met": effect_size_met,
+            "t_stat": t_stat,
+            "p_value": p_value,
+            "bonferroni_p": bonferroni_p,
+            "significance_met": significance_met,
+            "prediction_supported": effect_size_met and significance_met,
+        }
+
+    def run_full_protocol1_experiment(self) -> Dict[str, Any]:
+        """
+        Run complete Protocol 1 experiment with all components
+
+        Returns:
+            Dictionary with all experimental results
+        """
+        results = {
+            "participants": self.n_participants,
+            "heartbeat_discrimination": [],
+            "detection_normal_arousal": [],
+            "detection_high_arousal": [],
+            "arousal_manipulation": [],
+            "predictions": {},
+        }
+
+        # Generate participant characteristics
+        interoceptive_precisions = np.random.gamma(2.0, 0.5, self.n_participants)
+
+        # Run heartbeat discrimination task
+        for i in range(self.n_participants):
+            hb_result = self.simulate_heartbeat_discrimination(
+                i, interoceptive_precisions[i]
+            )
+            results["heartbeat_discrimination"].append(hb_result)
+
+        # Classify SD-split groups
+        high_awareness_idx, low_awareness_idx = self.classify_sd_split_groups(
+            results["heartbeat_discrimination"]
+        )
+
+        # Run detection threshold task (normal arousal)
+        for i in range(self.n_participants):
+            det_result = self.simulate_detection_threshold_task(
+                i, interoceptive_precisions[i], arousal_level="normal"
+            )
+            results["detection_normal_arousal"].append(det_result)
+
+        # Run arousal manipulation and detection task (high arousal)
+        for i in range(self.n_participants):
+            arousal_result = self.simulate_arousal_manipulation(i)
+            results["arousal_manipulation"].append(arousal_result)
+
+            # Adjust precision based on arousal
+            adjusted_precision = (
+                interoceptive_precisions[i] + arousal_result["precision_increase"]
+            )
+
+            det_result = self.simulate_detection_threshold_task(
+                i, adjusted_precision, arousal_level="high"
+            )
+            results["detection_high_arousal"].append(det_result)
+
+        # Test P1.1: SD-split group comparison
+        high_awareness_detection = [
+            results["detection_normal_arousal"][i] for i in high_awareness_idx
+        ]
+        low_awareness_detection = [
+            results["detection_normal_arousal"][i] for i in low_awareness_idx
+        ]
+        results["predictions"]["P1.1"] = self.test_prediction_P1_1(
+            high_awareness_detection, low_awareness_detection
+        )
+
+        # Test P1.2: Correlation between tasks
+        results["predictions"]["P1.2"] = self.test_prediction_P1_2(
+            results["detection_normal_arousal"], results["heartbeat_discrimination"]
+        )
+
+        # Test P1.3: Arousal interaction
+        results["predictions"]["P1.3"] = self.test_prediction_P1_3(
+            results["detection_normal_arousal"], results["detection_high_arousal"]
+        )
+
+        # Overall support
+        all_supported = all(
+            p["prediction_supported"] for p in results["predictions"].values()
+        )
+        results["overall_protocol1_supported"] = all_supported
+
+        return results
+
+
+# =============================================================================
+# PART 5: PYTORCH DATASETS
 # =============================================================================
 
 
@@ -1483,8 +1890,31 @@ class FalsificationChecker:
         # Load thresholds from configuration
         accuracy_threshold = 0.75  # This could also be loaded from config if needed
         cumulative_reward_threshold = get_cumulative_reward_advantage_threshold(18.0)
+        significance_level = get_significance_level(
+            0.01
+        )  # Bonferroni-corrected threshold
 
         self.criteria = {
+            # P1.1-P1.3: Actual Protocol 1 predictions (mapped from paper)
+            "P1.1": {
+                "description": "High interoceptive awareness participants have lower detection thresholds",
+                "threshold": "Cohen's d = 0.40-0.60",
+                "comparison": "effect_size_range",
+                "significance_level": significance_level,
+            },
+            "P1.2": {
+                "description": "Detection threshold correlates with heartbeat discrimination accuracy",
+                "threshold": "r = -0.30 to -0.50",
+                "comparison": "correlation_range",
+                "significance_level": significance_level,
+            },
+            "P1.3": {
+                "description": "High arousal increases detection thresholds",
+                "threshold": "Cohen's d = 0.40-0.60",
+                "comparison": "effect_size_range",
+                "significance_level": significance_level,
+            },
+            # F1.1-F1.2: Computational tool falsification criteria (internal)
             "F1.1": {
                 "description": "APGI ignition classification accuracy < 75%",
                 "threshold": accuracy_threshold,

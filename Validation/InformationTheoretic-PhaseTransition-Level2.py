@@ -1,11 +1,34 @@
 """
-APGI Protocol 4: Information-Theoretic Phase Transition Analysis
-==================================================================
+APGI Protocol 4: Information-Theoretic Phase Transition Analysis (Level 2)
+==========================================================================
 
-Complete implementation of information-theoretic testing framework for APGI's
-phase transition predictions. Tests whether conscious ignition represents a
-genuine computational phase transition with distinctive information-theoretic
-signatures.
+LEVEL 2 FALSIFICATION TEST: Information-Theoretic Phase Transition Analysis
+---------------------------------------------------------------------------
+
+This is a Level 2 (information-theoretic) falsification test per the epistemic
+validation framework. It tests whether APGI's phase transition predictions manifest
+at the information-theoretic level, independent of specific neural implementations.
+
+FORMAL BRIDGE PRINCIPLE: Level 3 (Neural) → Level 2 (Information-Theoretic)
+-------------------------------------------------------------------------
+The bridge principle establishes that neural-level phase transitions (Level 3) must
+manifest as information-theoretic discontinuities (Level 2). Specifically:
+
+1. Neural ignition events (sudden increases in neural activity and connectivity)
+   must correspond to information-theoretic phase transitions where:
+   - Transfer entropy diverges at the phase boundary
+   - Integrated information Φ shows discontinuous jumps
+   - Mutual information increases by >30% across the transition
+
+2. The phase boundary equation Π·|ε| = θ_t (where Π is precision-weighted interoceptive
+   salience and θ_t is the ignition threshold) must predict both neural and
+   information-theoretic signatures.
+
+3. Critical phenomena (susceptibility divergence, critical slowing) must be observable
+   in both neural firing patterns and information-theoretic measures.
+
+This bridge ensures that Level 3 neural implementations are not mere epiphenomena
+but correspond to genuine computational phase transitions at the information level.
 
 This protocol implements:
 - Transfer entropy analysis (information flow)
@@ -259,6 +282,18 @@ class InformationTheoreticAnalysis:
         Φ ≈ MI(system) = H(X₁) + H(X₂) + ... - H(X₁, X₂, ...)
 
         Prediction: Φ spikes at ignition
+
+        IIT Φ METRIC COMPARISON:
+        This measure is designed to be comparable to Integrated Information Theory's Φ,
+        which quantifies the irreducible causal power of a system. In IIT, Φ measures
+        how much integrated information exists above and beyond the information in the
+        parts. Our Φ computation here implements the same mathematical principle but
+        operates on the APGI dynamical variables rather than neural elements.
+
+        Key differences from IIT Φ:
+        - Operates on time series (surprise, precision, thresholds) rather than neurons
+        - Uses mutual information instead of effective information
+        - Windowed computation for dynamical systems
 
         Args:
             variables: List of time series (e.g., [S, theta, Pi_i])
@@ -546,6 +581,12 @@ class PhaseTransitionDetector:
 
         Near phase transition, relaxation time diverges → increased autocorrelation
 
+        CONNECTION TO PHASE BOUNDARY EQUATION:
+        The phase boundary is defined by Π·|ε| > θ_t (where Π is precision-weighted
+        interoceptive salience). Critical slowing occurs when the system approaches
+        this boundary from below, showing increased temporal correlations as the
+        effective relaxation time τ_relax → ∞ at criticality.
+
         Args:
             S: Surprise time series
             theta: Threshold time series
@@ -576,6 +617,7 @@ class PhaseTransitionDetector:
             "acf_near": float(acf_near),
             "acf_far": float(acf_far),
             "lag": lag,
+            "phase_boundary_connection": "τ_relax diverges as Π·|ε| → θ_t from below",
         }
 
     def compute_hurst_exponent(
@@ -2084,6 +2126,17 @@ class FalsificationChecker:
                 "threshold": 0.55,
                 "comparison": "greater_than_or_equal",
             },
+            "P5": {
+                "description": "Mutual information increase >30% at ignition threshold",
+                "threshold": 0.30,
+                "comparison": "greater_than",
+            },
+            "P6": {
+                "description": "Information bandwidth asymptote ≤40 bits/s (falsified if >100 bits/s)",
+                "threshold": 100.0,  # bits/s - falsification threshold
+                "comparison": "less_than_or_equal",
+                "ceiling": 40.0,  # bits/s - expected ceiling
+            },
         }
 
     def check_all_criteria(self, results_df: pd.DataFrame) -> Dict:
@@ -3055,11 +3108,11 @@ def main():
         }
 
     example_history = system.simulate(
-        config["duration"], example_input_gen, theta_noise_sd=0.08
+        config.model.duration, example_input_gen, theta_noise_sd=0.08
     )
 
     print("\n✅ Example simulation complete")
-    print(f"   Duration: {config['duration']}s")
+    print(f"   Duration: {config.model.duration}s")
     print(f"   Ignition events: {len(example_history['ignition_events'])}")
 
     # =========================================================================
@@ -3096,8 +3149,8 @@ def main():
     print("=" * 80)
 
     results_df = analyzer.run_monte_carlo(
-        n_simulations=config["n_simulations"],
-        duration=config["duration"],
+        n_simulations=config.validation.n_simulations,
+        duration=config.model.duration,
         save_results=True,
     )
 

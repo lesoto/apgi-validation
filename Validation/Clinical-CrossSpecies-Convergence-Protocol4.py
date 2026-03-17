@@ -22,13 +22,16 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.linear_model import LinearRegression
+from scipy.stats import ttest_ind
+from statsmodels.stats.power import TTestIndPower
 
 # Add parent directory to path so falsification_thresholds is importable
 _project_root = Path(__file__).parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
-from falsification_thresholds import (
+from utils.falsification_thresholds import (
     F1_5_PAC_MI_MIN,
     F1_5_PAC_INCREASE_MIN,
     F1_5_COHENS_D_MIN,
@@ -260,6 +263,18 @@ class PsychiatricProfileAnalyzer:
                 "hep_elevation": None,  # Not applicable to depression
                 "ultradian_compression": None,  # Not applicable to depression
             },
+            "panic_disorder": {
+                "precision_expectation_gap": 1.0,  # Severe overestimation (catastrophic)
+                "Pi_e_baseline": 1.0,  # Very high exteroceptive precision
+                "Pi_i_baseline": 0.3,  # Low interoceptive precision
+                "beta": 1.85,  # β parameter abnormality signature (1.5–2.2)
+                "theta_t": 0.25,  # Very low threshold (hyperreactive)
+                "arousal": 0.95,  # Very high arousal
+                # Multi-Scale Paper predictions
+                "autocorrelation_timescale": 1.3,  # Slightly compressed (hyperreactive)
+                "hep_elevation": 0.85,  # High HEP elevation
+                "ultradian_compression": None,  # Not applicable to panic
+            },
             "adhd": {
                 "precision_expectation_gap": 0.3,  # Moderate overestimation
                 "Pi_e_baseline": 0.8,  # High exteroceptive precision
@@ -325,11 +340,14 @@ class PsychiatricProfileAnalyzer:
 
             # Add profile parameters with noise
             for param, value in profile.items():
-                noise_scale = (
-                    0.2 if "gap" in param else 0.15
-                )  # More noise for expectation gap
-                noise = np.random.normal(0, noise_scale)
-                subject_data[param] = value + noise
+                if value is not None:
+                    noise_scale = (
+                        0.2 if "gap" in param else 0.15
+                    )  # More noise for expectation gap
+                    noise = np.random.normal(0, noise_scale)
+                    subject_data[param] = value + noise
+                else:
+                    subject_data[param] = None
 
             # Calculate derived measures
             subject_data.update(self._calculate_psychiatric_measures(subject_data))
@@ -750,6 +768,633 @@ class IITConvergenceAnalyzer:
         return correct_predictions / total_predictions
 
 
+class LongitudinalOutcomePredictor:
+    """P4d: Longitudinal prediction of clinical outcomes using baseline APGI measures"""
+
+    def __init__(self):
+        # CRS-R outcome ranges (Coma Recovery Scale-Revised)
+        self.crsr_outcome_ranges = {
+            "emergence_from_minimally_conscious_state": (21, 23),
+            "minimally_conscious_state": (10, 20),
+            "vegetative_state": (0, 9),
+        }
+
+        # Structural imaging predictors (simplified)
+        self.structural_measures = {
+            "frontal_volume_ratio": 0.7,  # Normalized frontal lobe volume
+            "thalamus_connectivity": 0.6,  # Thalamocortical connectivity
+            "brainstem_integrity": 0.8,  # Brainstem structural integrity
+        }
+
+    def simulate_longitudinal_data(
+        self, n_patients: int = 100, follow_up_months: int = 6
+    ) -> pd.DataFrame:
+        """
+        Simulate longitudinal clinical outcome data
+
+        Args:
+            n_patients: Number of patients to simulate
+            follow_up_months: Follow-up duration (default 6 months for P4d)
+
+        Returns:
+            DataFrame with baseline and outcome data
+        """
+        data = []
+        for patient_id in range(n_patients):
+            # Baseline APGI measures (PCI and HEP)
+            pci_baseline = np.random.normal(
+                0.35, 0.12
+            )  # Perturbational Complexity Index
+            hep_baseline = np.random.normal(0.28, 0.10)  # High-entropy perturbation
+
+            # Structural imaging measures
+            frontal_vol = np.random.normal(0.7, 0.15)
+            thalamus_conn = np.random.normal(0.6, 0.12)
+            brainstem_int = np.random.normal(0.8, 0.10)
+
+            # Simulate 6-month CRS-R outcome based on baseline predictors
+            # True relationship: outcome = 0.4*PCI + 0.3*HEP + 0.2*frontal + 0.1*thalamus + noise
+            true_outcome_score = (
+                0.4 * pci_baseline
+                + 0.3 * hep_baseline
+                + 0.2 * frontal_vol
+                + 0.1 * thalamus_conn
+                + np.random.normal(0, 2.0)
+            )
+            crsr_outcome = np.clip(true_outcome_score, 0, 23)
+
+            # Determine outcome category
+            if crsr_outcome >= 21:
+                outcome_category = "emergence_from_minimally_conscious_state"
+            elif crsr_outcome >= 10:
+                outcome_category = "minimally_conscious_state"
+            else:
+                outcome_category = "vegetative_state"
+
+            patient_data = {
+                "patient_id": patient_id,
+                "pci_baseline": pci_baseline,
+                "hep_baseline": hep_baseline,
+                "frontal_volume_ratio": frontal_vol,
+                "thalamus_connectivity": thalamus_conn,
+                "brainstem_integrity": brainstem_int,
+                "crsr_outcome_6mo": crsr_outcome,
+                "outcome_category": outcome_category,
+                "follow_up_months": follow_up_months,
+            }
+
+            data.append(patient_data)
+
+        return pd.DataFrame(data)
+
+    def fit_longitudinal_model(self, longitudinal_data: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Fit longitudinal prediction model: baseline (PCI + HEP) → 6-month CRS-R outcome
+
+        Args:
+            longitudinal_data: DataFrame with baseline and outcome data
+
+        Returns:
+            Model fitting results including R², coefficients, and predictions
+        """
+
+        # Prepare features and target
+        X = longitudinal_data[["pci_baseline", "hep_baseline"]].values
+        y = longitudinal_data["crsr_outcome_6mo"].values
+
+        # Remove any rows with NaN or infinite values
+        valid_mask = np.isfinite(X[:, 0]) & np.isfinite(X[:, 1]) & np.isfinite(y)
+        X_clean = X[valid_mask]
+        y_clean = y[valid_mask]
+
+        if len(X_clean) < 2:
+            return {
+                "model": None,
+                "r_squared": 0.0,
+                "r_squared_baseline": 0.0,
+                "delta_r_squared": 0.0,
+                "coefficients": {"pci": 0.0, "hep": 0.0},
+                "validation_passed": False,
+                "error": "Insufficient valid data points",
+            }
+
+        # Fit linear regression model with regularization to prevent overflow
+        model = LinearRegression()
+        model.fit(X_clean, y_clean)
+
+        # Calculate R²
+        y_pred = model.predict(X_clean)
+        r_squared = model.score(X_clean, y_clean)
+
+        # Fit baseline model (CRS-R + structural imaging only)
+        X_baseline = longitudinal_data[
+            ["frontal_volume_ratio", "thalamus_connectivity", "brainstem_integrity"]
+        ].values
+        X_baseline_clean = X_baseline[valid_mask]
+        model_baseline = LinearRegression()
+        model_baseline.fit(X_baseline_clean, y_clean)
+        r_squared_baseline = model_baseline.score(X_baseline_clean, y_clean)
+
+        # Calculate ΔR² (improvement over baseline)
+        delta_r_squared = r_squared - r_squared_baseline
+
+        return {
+            "model": model,
+            "r_squared": r_squared,
+            "r_squared_baseline": r_squared_baseline,
+            "delta_r_squared": delta_r_squared,
+            "coefficients": {
+                "pci": float(model.coef_[0]),
+                "hep": float(model.coef_[1]),
+            },
+            "intercept": float(model.intercept_),
+            "predictions": y_pred,
+            "target_improvement_met": 0.10 <= delta_r_squared <= 0.15,
+        }
+
+    def validate_delta_r_squared(
+        self, longitudinal_data: pd.DataFrame, n_bootstraps: int = 1000
+    ) -> Dict[str, Any]:
+        """
+        Validate ΔR² ≈ 0.10–0.15 improvement test against CRS-R + structural imaging baseline
+
+        Args:
+            longitudinal_data: DataFrame with baseline and outcome data
+            n_bootstraps: Number of bootstrap iterations for confidence intervals
+
+        Returns:
+            Validation results with confidence intervals and significance tests
+        """
+        model_results = self.fit_longitudinal_model(longitudinal_data)
+
+        # Bootstrap for confidence intervals
+        delta_r_squared_bootstrap = []
+        for _ in range(n_bootstraps):
+            sample = longitudinal_data.sample(frac=1.0, replace=True)
+            sample_results = self.fit_longitudinal_model(sample)
+            delta_r_squared_bootstrap.append(sample_results["delta_r_squared"])
+
+        delta_r_squared_bootstrap = np.array(delta_r_squared_bootstrap)
+        ci_lower = np.percentile(delta_r_squared_bootstrap, 2.5)
+        ci_upper = np.percentile(delta_r_squared_bootstrap, 97.5)
+
+        # Test if ΔR² is in target range [0.10, 0.15]
+        target_range_met = (
+            model_results["delta_r_squared"] >= 0.10
+            and model_results["delta_r_squared"] <= 0.15
+        )
+
+        # Test if confidence interval overlaps target range
+        ci_overlaps_target = ci_lower <= 0.15 and ci_upper >= 0.10
+
+        return {
+            "delta_r_squared": model_results["delta_r_squared"],
+            "delta_r_squared_ci": (float(ci_lower), float(ci_upper)),
+            "target_range": (0.10, 0.15),
+            "target_range_met": target_range_met,
+            "ci_overlaps_target": ci_overlaps_target,
+            "r_squared_apgi": model_results["r_squared"],
+            "r_squared_baseline": model_results["r_squared_baseline"],
+            "validation_passed": target_range_met and ci_overlaps_target,
+        }
+
+
+class AutonomicPerturbationAnalyzer:
+    """Analyze autonomic perturbation interventions (cold pressor, breathlessness)"""
+
+    def __init__(self):
+        # Temporal parameters for measurements
+        self.time_points = {
+            "pre": 0,  # Baseline
+            "post_30s": 30,  # +30 seconds
+            "post_5min": 300,  # +5 minutes
+            "post_30min": 1800,  # +30 minutes
+        }
+
+        # Intervention profiles
+        self.intervention_profiles = {
+            "cold_pressor": {
+                "autonomic_activation": 0.8,  # Strong sympathetic activation
+                "interoceptive_salience": 0.9,  # High interoceptive salience
+                "stress_response": 0.85,  # Stress response magnitude
+                "duration_seconds": 60,  # Typical duration
+            },
+            "breathlessness": {
+                "autonomic_activation": 0.7,
+                "interoceptive_salience": 0.95,  # Very high interoceptive salience
+                "stress_response": 0.75,
+                "duration_seconds": 90,
+            },
+            "tactile_sham": {
+                "autonomic_activation": 0.2,  # Minimal activation
+                "interoceptive_salience": 0.3,
+                "stress_response": 0.15,
+                "duration_seconds": 60,
+            },
+            "auditory_sham": {
+                "autonomic_activation": 0.15,
+                "interoceptive_salience": 0.2,
+                "stress_response": 0.1,
+                "duration_seconds": 90,
+            },
+        }
+
+    def simulate_perturbation_data(
+        self, intervention: str, n_subjects: int = 30
+    ) -> pd.DataFrame:
+        """
+        Simulate autonomic perturbation response data
+
+        Args:
+            intervention: Type of intervention ('cold_pressor', 'breathlessness', 'tactile_sham', 'auditory_sham')
+            n_subjects: Number of subjects
+
+        Returns:
+            DataFrame with time-series response data
+        """
+        if intervention not in self.intervention_profiles:
+            raise ValueError(f"Unknown intervention: {intervention}")
+
+        profile = self.intervention_profiles[intervention]
+        data = []
+
+        for subject_id in range(n_subjects):
+            # Baseline (pre) measures
+            baseline_theta_t = np.random.normal(0.5, 0.1)
+            baseline_pi_i = np.random.normal(0.6, 0.12)
+            baseline_hr = np.random.normal(70, 8)  # Heart rate
+            baseline_scr = np.random.exponential(0.5)  # Skin conductance response
+
+            for time_point, time_seconds in self.time_points.items():
+                # Time-dependent response dynamics
+                if time_point == "pre":
+                    # No change at baseline
+                    theta_t = baseline_theta_t
+                    pi_i = baseline_pi_i
+                    hr = baseline_hr
+                    scr = baseline_scr
+                else:
+                    # Exponential decay from intervention peak
+                    decay_factor = np.exp(
+                        -time_seconds / 300
+                    )  # 5-minute decay constant
+
+                    # APGI parameter changes
+                    theta_t = (
+                        baseline_theta_t
+                        + profile["autonomic_activation"] * 0.3 * decay_factor
+                    )
+                    pi_i = (
+                        baseline_pi_i
+                        + profile["interoceptive_salience"] * 0.4 * decay_factor
+                    )
+
+                    # Physiological changes
+                    hr_change = profile["stress_response"] * 20 * decay_factor
+                    scr_change = profile["stress_response"] * 2.0 * decay_factor
+
+                    hr = baseline_hr + hr_change + np.random.normal(0, 3)
+                    scr = baseline_scr + scr_change + np.random.exponential(0.3)
+
+                subject_data = {
+                    "subject_id": subject_id,
+                    "intervention": intervention,
+                    "time_point": time_point,
+                    "time_seconds": time_seconds,
+                    "theta_t": theta_t,
+                    "pi_i": pi_i,
+                    "heart_rate": hr,
+                    "skin_conductance": scr,
+                }
+
+                data.append(subject_data)
+
+        return pd.DataFrame(data)
+
+    def analyze_temporal_dynamics(
+        self, perturbation_data: pd.DataFrame
+    ) -> Dict[str, Any]:
+        """
+        Analyze temporal dynamics of autonomic perturbation responses
+
+        Args:
+            perturbation_data: DataFrame with time-series response data
+
+        Returns:
+            Analysis of response dynamics across time points
+        """
+        results = {}
+
+        for intervention in perturbation_data["intervention"].unique():
+            intervention_data = perturbation_data[
+                perturbation_data["intervention"] == intervention
+            ]
+
+            # Calculate changes from baseline at each time point
+            baseline_data = intervention_data[intervention_data["time_point"] == "pre"]
+
+            time_point_changes = {}
+            for time_point in self.time_points.keys():
+                if time_point == "pre":
+                    continue
+
+                time_data = intervention_data[
+                    intervention_data["time_point"] == time_point
+                ]
+
+                # Calculate mean changes
+                theta_t_change = (
+                    time_data["theta_t"].values - baseline_data["theta_t"].values
+                )
+                pi_i_change = time_data["pi_i"].values - baseline_data["pi_i"].values
+                hr_change = (
+                    time_data["heart_rate"].values - baseline_data["heart_rate"].values
+                )
+                scr_change = (
+                    time_data["skin_conductance"].values
+                    - baseline_data["skin_conductance"].values
+                )
+
+                # Statistical tests
+                theta_t_t, theta_t_p = ttest_ind(
+                    time_data["theta_t"], baseline_data["theta_t"]
+                )
+                pi_i_t, pi_i_p = ttest_ind(time_data["pi_i"], baseline_data["pi_i"])
+
+                time_point_changes[time_point] = {
+                    "theta_t_mean_change": float(np.mean(theta_t_change)),
+                    "theta_t_t_stat": float(theta_t_t),
+                    "theta_t_p_value": float(theta_t_p),
+                    "pi_i_mean_change": float(np.mean(pi_i_change)),
+                    "pi_i_t_stat": float(pi_i_t),
+                    "pi_i_p_value": float(pi_i_p),
+                    "hr_mean_change": float(np.mean(hr_change)),
+                    "scr_mean_change": float(np.mean(scr_change)),
+                    "significant_theta_t": theta_t_p < 0.05,
+                    "significant_pi_i": pi_i_p < 0.05,
+                }
+
+            results[intervention] = time_point_changes
+
+        return results
+
+    def compare_sham_vs_active(
+        self, active_intervention: str, sham_intervention: str
+    ) -> Dict[str, Any]:
+        """
+        Compare active intervention vs. sham control
+
+        Args:
+            active_intervention: Active intervention ('cold_pressor' or 'breathlessness')
+            sham_intervention: Corresponding sham ('tactile_sham' or 'auditory_sham')
+
+        Returns:
+            Comparison results with effect sizes and significance tests
+        """
+        results = {}
+
+        for time_point in self.time_points.keys():
+            if time_point == "pre":
+                continue
+
+            # Get data for both interventions
+            active_data = self.simulate_perturbation_data(
+                active_intervention, n_subjects=30
+            )
+            sham_data = self.simulate_perturbation_data(
+                sham_intervention, n_subjects=30
+            )
+
+            active_tp = active_data[active_data["time_point"] == time_point]
+            sham_tp = sham_data[sham_data["time_point"] == time_point]
+
+            # Compare APGI parameters
+            theta_t_diff = active_tp["theta_t"].values - sham_tp["theta_t"].values
+            pi_i_diff = active_tp["pi_i"].values - sham_tp["pi_i"].values
+
+            # Statistical tests
+            theta_t_t, theta_t_p = ttest_ind(active_tp["theta_t"], sham_tp["theta_t"])
+            pi_i_t, pi_i_p = ttest_ind(active_tp["pi_i"], sham_tp["pi_i"])
+
+            # Cohen's d
+            theta_t_d = self._cohens_d(active_tp["theta_t"], sham_tp["theta_t"])
+            pi_i_d = self._cohens_d(active_tp["pi_i"], sham_tp["pi_i"])
+
+            results[time_point] = {
+                "theta_t_mean_diff": float(np.mean(theta_t_diff)),
+                "theta_t_t_stat": float(theta_t_t),
+                "theta_t_p_value": float(theta_t_p),
+                "theta_t_cohens_d": float(theta_t_d),
+                "pi_i_mean_diff": float(np.mean(pi_i_diff)),
+                "pi_i_t_stat": float(pi_i_t),
+                "pi_i_p_value": float(pi_i_p),
+                "pi_i_cohens_d": float(pi_i_d),
+                "significant_theta_t": theta_t_p < 0.05,
+                "significant_pi_i": pi_i_p < 0.05,
+                "large_effect_theta_t": theta_t_d >= 0.8,
+                "large_effect_pi_i": pi_i_d >= 0.8,
+            }
+
+        return results
+
+    def _cohens_d(self, group1: np.ndarray, group2: np.ndarray) -> float:
+        """Calculate Cohen's d effect size"""
+        mean1, mean2 = np.mean(group1), np.mean(group2)
+        std1, std2 = np.std(group1, ddof=1), np.std(group2, ddof=1)
+        pooled_std = np.sqrt((std1**2 + std2**2) / 2)
+        return (mean1 - mean2) / pooled_std if pooled_std > 0 else 0
+
+
+class ClinicalPowerAnalyzer:
+    """Power analysis for clinical protocol validation"""
+
+    def __init__(self):
+        # Minimum sample size per group
+        self.min_sample_size_per_group = 30
+
+        # Target effect sizes for clinical validation
+        self.target_effect_sizes = {
+            "p3b_reduction": 0.80,  # Cohen's d for P3b reduction
+            "ignition_reduction": 0.80,  # Cohen's d for ignition reduction
+            "cross_species_correlation": 0.60,  # Correlation threshold
+            "longitudinal_delta_r2": 0.10,  # Minimum ΔR² improvement
+        }
+
+    def calculate_power(
+        self,
+        effect_size: float,
+        n_per_group: int,
+        alpha: float = 0.01,
+        test_type: str = "two_sample",
+    ) -> float:
+        """
+        Calculate statistical power for given effect size and sample size
+
+        Args:
+            effect_size: Cohen's d or correlation coefficient
+            n_per_group: Sample size per group
+            alpha: Significance level
+            test_type: Type of statistical test ('two_sample', 'correlation', 'paired')
+
+        Returns:
+            Statistical power (0-1)
+        """
+        if test_type == "two_sample":
+            # Two-sample t-test power
+            power_analysis = TTestIndPower()
+            power_val = power_analysis.solve_power(
+                effect_size=effect_size,
+                nobs1=n_per_group,
+                alpha=alpha,
+                alternative="two-sided",
+            )
+        elif test_type == "correlation":
+            # Correlation test power
+            n = n_per_group
+            power_analysis = TTestIndPower()
+            power_val = power_analysis.solve_power(
+                effect_size=effect_size / np.sqrt(1 - effect_size**2),
+                nobs1=n - 2,
+                alpha=alpha,
+                alternative="two-sided",
+            )
+        elif test_type == "paired":
+            # Paired t-test power
+            power_analysis = TTestIndPower()
+            power_val = power_analysis.solve_power(
+                effect_size=effect_size,
+                nobs1=n_per_group,
+                alpha=alpha,
+                alternative="two-sided",
+            )
+        else:
+            raise ValueError(f"Unknown test type: {test_type}")
+
+        return float(power_val)
+
+    def recommend_sample_size(
+        self,
+        effect_size: float,
+        target_power: float = 0.80,
+        alpha: float = 0.01,
+        test_type: str = "two_sample",
+    ) -> Dict[str, Any]:
+        """
+        Recommend sample size to achieve target power
+
+        Args:
+            effect_size: Expected effect size
+            target_power: Target statistical power (default 0.80)
+            alpha: Significance level
+            test_type: Type of statistical test
+
+        Returns:
+            Recommended sample size and power analysis
+        """
+        # Binary search for sample size
+        n_low, n_high = 10, 500
+        recommended_n = self.min_sample_size_per_group
+
+        while n_low <= n_high:
+            n_mid = (n_low + n_high) // 2
+            power_val = self.calculate_power(effect_size, n_mid, alpha, test_type)
+
+            if power_val >= target_power:
+                recommended_n = n_mid
+                n_high = n_mid - 1
+            else:
+                n_low = n_mid + 1
+
+        # Calculate actual power at recommended sample size
+        actual_power = self.calculate_power(
+            effect_size, recommended_n, alpha, test_type
+        )
+
+        return {
+            "recommended_n_per_group": recommended_n,
+            "total_n": 2 * recommended_n
+            if test_type == "two_sample"
+            else recommended_n,
+            "target_power": target_power,
+            "actual_power": actual_power,
+            "effect_size": effect_size,
+            "alpha": alpha,
+            "meets_minimum": recommended_n >= self.min_sample_size_per_group,
+        }
+
+    def analyze_clinical_protocol_power(self, n_per_group: int = 30) -> Dict[str, Any]:
+        """
+        Analyze power for all clinical protocol tests
+
+        Args:
+            n_per_group: Sample size per group
+
+        Returns:
+            Power analysis for all protocol criteria
+        """
+        power_results = {}
+
+        # P3b reduction power
+        power_results["p3b_reduction"] = {
+            "effect_size": self.target_effect_sizes["p3b_reduction"],
+            "n_per_group": n_per_group,
+            "power": self.calculate_power(
+                self.target_effect_sizes["p3b_reduction"],
+                n_per_group,
+                test_type="two_sample",
+            ),
+            "meets_minimum": n_per_group >= self.min_sample_size_per_group,
+        }
+
+        # Ignition reduction power
+        power_results["ignition_reduction"] = {
+            "effect_size": self.target_effect_sizes["ignition_reduction"],
+            "n_per_group": n_per_group,
+            "power": self.calculate_power(
+                self.target_effect_sizes["ignition_reduction"],
+                n_per_group,
+                test_type="two_sample",
+            ),
+            "meets_minimum": n_per_group >= self.min_sample_size_per_group,
+        }
+
+        # Cross-species correlation power
+        power_results["cross_species_correlation"] = {
+            "effect_size": self.target_effect_sizes["cross_species_correlation"],
+            "n_per_group": n_per_group,
+            "power": self.calculate_power(
+                self.target_effect_sizes["cross_species_correlation"],
+                n_per_group,
+                test_type="correlation",
+            ),
+            "meets_minimum": n_per_group >= self.min_sample_size_per_group,
+        }
+
+        # Longitudinal ΔR² power (simplified)
+        power_results["longitudinal_delta_r2"] = {
+            "effect_size": self.target_effect_sizes["longitudinal_delta_r2"],
+            "n_per_group": n_per_group,
+            "power": self.calculate_power(
+                self.target_effect_sizes["longitudinal_delta_r2"],
+                n_per_group,
+                test_type="correlation",
+            ),
+            "meets_minimum": n_per_group >= self.min_sample_size_per_group,
+        }
+
+        # Overall power assessment
+        min_power = min(r["power"] for r in power_results.values())
+        all_meets_minimum = all(r["meets_minimum"] for r in power_results.values())
+
+        return {
+            "individual_tests": power_results,
+            "minimum_power": min_power,
+            "all_meets_minimum": all_meets_minimum,
+            "recommended_n_per_group": self.min_sample_size_per_group,
+            "overall_assessment": "adequate" if min_power >= 0.80 else "insufficient",
+        }
+
+
 class ClinicalConvergenceValidator:
     """Complete clinical and cross-species validation"""
 
@@ -758,6 +1403,9 @@ class ClinicalConvergenceValidator:
         self.psychiatric_analyzer = PsychiatricProfileAnalyzer()
         self.species_analyzer = CrossSpeciesHomologyAnalyzer()
         self.iit_analyzer = IITConvergenceAnalyzer()
+        self.longitudinal_predictor = LongitudinalOutcomePredictor()
+        self.autonomic_analyzer = AutonomicPerturbationAnalyzer()
+        self.power_analyzer = ClinicalPowerAnalyzer()
 
     def validate_clinical_convergence(self) -> Dict:
         """
@@ -772,6 +1420,9 @@ class ClinicalConvergenceValidator:
             "psychiatric_disorder_profiles": self._validate_psychiatric_profiles(),
             "cross_species_homologies": self._validate_cross_species_homologies(),
             "iit_apgi_convergence": self._validate_iit_convergence(),
+            "longitudinal_prediction": self._validate_longitudinal_prediction(),
+            "autonomic_perturbation": self._validate_autonomic_perturbation(),
+            "power_analysis": self._validate_power_analysis(),
             "overall_clinical_score": 0.0,
         }
 
@@ -970,7 +1621,134 @@ class ClinicalConvergenceValidator:
             0.1 * (1.0 if iit_result.get("validation_passed", False) else 0.0)
         )
 
+        # Longitudinal prediction (weight: 0.1)
+        longitudinal_result = results.get("longitudinal_prediction", {})
+        scores.append(
+            0.1 * (1.0 if longitudinal_result.get("validation_passed", False) else 0.0)
+        )
+
+        # Autonomic perturbation (weight: 0.05)
+        autonomic_result = results.get("autonomic_perturbation", {})
+        scores.append(
+            0.05 * (1.0 if autonomic_result.get("validation_passed", False) else 0.0)
+        )
+
+        # Power analysis (weight: 0.05)
+        power_result = results.get("power_analysis", {})
+        scores.append(0.05 * (1.0 if power_result.get("meets_minimum", False) else 0.0))
+
         return sum(scores)
+
+    def _validate_longitudinal_prediction(self) -> Dict:
+        """Validate P4d longitudinal prediction model"""
+
+        # Simulate longitudinal data
+        longitudinal_data = self.longitudinal_predictor.simulate_longitudinal_data(
+            n_patients=100, follow_up_months=6
+        )
+
+        # Validate ΔR² improvement test
+        delta_r2_validation = self.longitudinal_predictor.validate_delta_r_squared(
+            longitudinal_data, n_bootstraps=1000
+        )
+
+        # Test key predictions
+        predictions_tested = {
+            "delta_r2_in_target_range": delta_r2_validation["target_range_met"],
+            "ci_overlaps_target": delta_r2_validation["ci_overlaps_target"],
+            "apgi_outperforms_baseline": delta_r2_validation["delta_r_squared"] > 0,
+        }
+
+        return {
+            "longitudinal_data": longitudinal_data,
+            "delta_r2_validation": delta_r2_validation,
+            "key_predictions": predictions_tested,
+            "validation_passed": delta_r2_validation["validation_passed"],
+        }
+
+    def _validate_autonomic_perturbation(self) -> Dict:
+        """Validate autonomic perturbation interventions"""
+
+        # Simulate data for all interventions
+        interventions = [
+            "cold_pressor",
+            "breathlessness",
+            "tactile_sham",
+            "auditory_sham",
+        ]
+        all_perturbation_data = []
+
+        for intervention in interventions:
+            intervention_data = self.autonomic_analyzer.simulate_perturbation_data(
+                intervention, n_subjects=30
+            )
+            all_perturbation_data.append(intervention_data)
+
+        all_perturbation_data = pd.concat(all_perturbation_data, ignore_index=True)
+
+        # Analyze temporal dynamics
+        temporal_dynamics = self.autonomic_analyzer.analyze_temporal_dynamics(
+            all_perturbation_data
+        )
+
+        # Compare sham vs active interventions
+        cold_pressor_vs_sham = self.autonomic_analyzer.compare_sham_vs_active(
+            "cold_pressor", "tactile_sham"
+        )
+        breathlessness_vs_sham = self.autonomic_analyzer.compare_sham_vs_active(
+            "breathlessness", "auditory_sham"
+        )
+
+        # Test key predictions
+        predictions_tested = {
+            "cold_pressor_activates_theta_t": any(
+                tp["significant_theta_t"]
+                for tp in temporal_dynamics["cold_pressor"].values()
+            ),
+            "breathlessness_activates_pi_i": any(
+                tp["significant_pi_i"]
+                for tp in temporal_dynamics["breathlessness"].values()
+            ),
+            "cold_pressor_sham_difference": any(
+                tp["significant_theta_t"] for tp in cold_pressor_vs_sham.values()
+            ),
+            "breathlessness_sham_difference": any(
+                tp["significant_pi_i"] for tp in breathlessness_vs_sham.values()
+            ),
+        }
+
+        return {
+            "perturbation_data": all_perturbation_data,
+            "temporal_dynamics": temporal_dynamics,
+            "sham_comparisons": {
+                "cold_pressor_vs_tactile": cold_pressor_vs_sham,
+                "breathlessness_vs_auditory": breathlessness_vs_sham,
+            },
+            "key_predictions": predictions_tested,
+            "validation_passed": all(predictions_tested.values()),
+        }
+
+    def _validate_power_analysis(self) -> Dict:
+        """Validate power analysis for clinical protocol"""
+
+        # Analyze power for all protocol tests
+        power_analysis = self.power_analyzer.analyze_clinical_protocol_power(
+            n_per_group=30
+        )
+
+        # Test key predictions
+        predictions_tested = {
+            "minimum_sample_size_met": power_analysis["all_meets_minimum"],
+            "adequate_power": power_analysis["minimum_power"] >= 0.80,
+            "overall_assessment_adequate": power_analysis["overall_assessment"]
+            == "adequate",
+        }
+
+        return {
+            "power_analysis": power_analysis,
+            "key_predictions": predictions_tested,
+            "meets_minimum": power_analysis["all_meets_minimum"],
+        }
 
 
 def main():

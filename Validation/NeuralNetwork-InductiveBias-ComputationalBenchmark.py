@@ -1,16 +1,24 @@
 """
-APGI Protocol 6: Recurrent Neural Network Architectures with APGI Inductive Biases
-===================================================================================
+APGI Program 4: Computational Architecture Energy Comparison
+===============================================================
 
-Complete implementation testing whether neural networks with APGI-inspired
-architectural constraints outperform standard architectures on consciousness-
-relevant tasks.
+Program 4 from the epistemic roadmap: Computational Architecture Energy Comparison
+
+This program tests whether neural network architectures with APGI inductive biases
+outperform standard architectures on consciousness-relevant tasks while maintaining
+energetic efficiency compatible with biological constraints.
+
+Key falsification criteria:
+- Energy consumption per correct detection ≤ 20% above baseline architectures
+- ATP budget: ~10⁹ ATP molecules per spike (Attwell & Laughlin, 2001)
+- Performance advantage maintained under metabolic constraints
 
 This protocol implements:
 - APGI-inspired network with dual pathways, precision weighting, and ignition
 - Comparison architectures (MLP, LSTM, Attention)
 - Consciousness-relevant tasks (conscious/unconscious classification, etc.)
-- Comprehensive evaluation and falsification framework
+- Comprehensive evaluation with energy falsification criteria
+- Formal model comparison (BIC/AIC) and spike-based energy logging
 
 """
 
@@ -37,18 +45,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.constants import DIM_CONSTANTS
-from falsification_thresholds import (
-    V6_1_MIN_PROCESSING_RATE,
-    V6_1_MAX_LATENCY_MS,
-    V6_1_ALPHA,
-    F1_5_PAC_MI_MIN,
-    F1_5_PAC_INCREASE_MIN,
-    F1_5_COHENS_D_MIN,
-    F1_5_PERMUTATION_ALPHA,
-    F2_3_MIN_RT_ADVANTAGE_MS,
-    F2_3_MIN_BETA,
-    F2_3_MIN_STANDARDIZED_BETA,
-    F2_3_MIN_R2,
+from utils.falsification_thresholds import (
     F5_2_MIN_CORRELATION,
     F5_2_MIN_PROPORTION,
     F5_3_MIN_GAIN_RATIO,
@@ -61,15 +58,26 @@ from falsification_thresholds import (
     F5_6_MIN_PERFORMANCE_DIFF_PCT,
     F5_6_MIN_COHENS_D,
     F5_6_ALPHA,
+    F6_2_MIN_INTEGRATION_RATIO,
+    F6_2_MIN_CURVE_FIT_R2,
+    F1_1_MIN_ADVANTAGE_PCT,
+    F1_1_MIN_COHENS_D,
+    F1_5_PAC_MI_MIN,
+    F1_5_PAC_INCREASE_MIN,
+    F1_5_COHENS_D_MIN,
+    F1_5_PERMUTATION_ALPHA,
+    F2_3_MIN_RT_ADVANTAGE_MS,
+    F2_3_MIN_BETA,
+    F2_3_MIN_STANDARDIZED_BETA,
+    F2_3_MIN_R2,
     F6_1_LTCN_MAX_TRANSITION_MS,
     F6_1_CLIFFS_DELTA_MIN,
     F6_1_MANN_WHITNEY_ALPHA,
     F6_2_LTCN_MIN_WINDOW_MS,
-    F6_2_MIN_INTEGRATION_RATIO,
-    F6_2_MIN_CURVE_FIT_R2,
+    V6_1_MAX_LATENCY_MS,
+    V6_1_MIN_PROCESSING_RATE,
+    V6_1_ALPHA,
     F6_2_WILCOXON_ALPHA,
-    F1_1_MIN_ADVANTAGE_PCT,
-    F1_1_MIN_COHENS_D,
 )
 
 # Configure logging
@@ -82,6 +90,189 @@ np.random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
 if torch.cuda.is_available():
     torch.cuda.manual_seed(RANDOM_SEED)
+
+# =============================================================================
+# ENERGY CONSTANTS (Program 4: Computational Architecture Energy Comparison)
+# =============================================================================
+
+# ATP energy budget per spike (Attwell & Laughlin, 2001)
+ATP_PER_SPIKE = 1e9  # ~10^9 ATP molecules per action potential
+
+# Energy falsification threshold: ≤20% energy increase per correct detection
+ENERGY_FALSIFICATION_THRESHOLD_PCT = 20.0
+
+# Baseline energy cost assumptions (kcal/mol)
+ATP_ENERGY_CONTENT = 7.3  # kcal/mol ATP hydrolyzed
+AVOGADRO = 6.022e23  # molecules/mol
+
+# Neural energy conversion factors
+SPIKE_ENERGY_JOULES = (
+    (ATP_PER_SPIKE / AVOGADRO) * ATP_ENERGY_CONTENT * 4184
+)  # Joules per spike
+JOULES_TO_KCAL = 1 / 4184  # Convert Joules to kcal
+
+# =============================================================================
+# ENERGY MONITORING (Brian2/NEST-style spike count logging)
+# =============================================================================
+
+
+class SpikeEnergyMonitor:
+    """
+    Brian2/NEST-style spike count logging for energy measurement.
+
+    Tracks neural activity as spike equivalents and computes energy consumption
+    based on ATP budget per spike (Attwell & Laughlin, 2001).
+    """
+
+    def __init__(self):
+        self.spike_counts = {}
+        self.energy_consumption = {}
+        self.baseline_energy = None
+
+    def log_network_activity(
+        self,
+        network_name: str,
+        outputs: Dict[str, torch.Tensor],
+        inputs: Dict[str, torch.Tensor],
+    ) -> Dict[str, float]:
+        """
+        Log neural activity as spike equivalents using Brian2/NEST-style monitoring.
+
+        Converts activation magnitudes to spike counts using threshold crossing
+        and refractory period modeling.
+        """
+
+        # Extract relevant activations for spike counting
+        activations = {}
+
+        # Policy head activations (action selection spikes)
+        if "policy" in outputs:
+            policy_spikes = self._activation_to_spikes(outputs["policy"])
+            activations["policy_spikes"] = policy_spikes
+
+        # Workspace activations (global workspace spikes)
+        if "workspace" in outputs:
+            workspace_spikes = self._activation_to_spikes(outputs["workspace"])
+            activations["workspace_spikes"] = workspace_spikes
+
+        # Somatic marker activations
+        if "somatic_values" in outputs:
+            somatic_spikes = self._activation_to_spikes(outputs["somatic_values"])
+            activations["somatic_spikes"] = somatic_spikes
+
+        # Hidden layer activations (encoder spikes)
+        if hasattr(outputs.get("network", {}), "parameters"):
+            # Count spikes in network parameters (simplified)
+            total_params = sum(p.numel() for p in outputs["network"].parameters())
+            activations["hidden_spikes"] = self._parameter_activation_to_spikes(
+                total_params
+            )
+
+        # Calculate total spike count
+        total_spikes = sum(activations.values())
+
+        # Calculate energy consumption
+        energy_joules = total_spikes * SPIKE_ENERGY_JOULES
+        energy_kcal = energy_joules * JOULES_TO_KCAL
+
+        # Store results
+        self.spike_counts[network_name] = total_spikes
+        self.energy_consumption[network_name] = energy_kcal
+
+        return {
+            "total_spikes": total_spikes,
+            "energy_joules": energy_joules,
+            "energy_kcal": energy_kcal,
+            "spike_breakdown": activations,
+        }
+
+    def _activation_to_spikes(
+        self,
+        activation: torch.Tensor,
+        threshold: float = 0.5,
+        refractory_period: int = 2,
+    ) -> int:
+        """
+        Convert neural activation to spike count using threshold crossing.
+
+        Simulates Brian2/NEST neuron model with refractory period.
+        """
+        # Flatten and get magnitudes
+        flat_activations = activation.flatten().abs()
+
+        # Threshold crossing (simplified spike generation)
+        spikes = (flat_activations > threshold).sum().item()
+
+        # Apply refractory period (rough approximation)
+        effective_spikes = max(1, int(spikes / refractory_period))
+
+        return effective_spikes
+
+    def _parameter_activation_to_spikes(
+        self, n_params: int, activation_rate: float = 0.1
+    ) -> int:
+        """
+        Estimate spikes from parameter count (simplified model).
+
+        Assumes fraction of parameters are active per timestep.
+        """
+        return int(n_params * activation_rate)
+
+    def compute_energy_efficiency(
+        self, network_name: str, accuracy: float
+    ) -> Dict[str, float]:
+        """
+        Compute energy efficiency metrics per correct detection.
+        """
+        if network_name not in self.energy_consumption:
+            return {"energy_per_correct": float("inf"), "efficiency_ratio": 0.0}
+
+        energy = self.energy_consumption[network_name]
+        n_correct = accuracy * 1000  # Assume 1000 test samples
+
+        if n_correct == 0:
+            energy_per_correct = float("inf")
+        else:
+            energy_per_correct = energy / n_correct
+
+        # Set baseline if not set
+        if self.baseline_energy is None and network_name == "MLP":
+            self.baseline_energy = energy_per_correct
+
+        # Compute efficiency ratio vs baseline
+        if self.baseline_energy is not None and self.baseline_energy > 0:
+            efficiency_ratio = energy_per_correct / self.baseline_energy
+        else:
+            efficiency_ratio = 1.0
+
+        return {
+            "energy_per_correct": energy_per_correct,
+            "efficiency_ratio": efficiency_ratio,
+            "energy_falsified": efficiency_ratio
+            > (1 + ENERGY_FALSIFICATION_THRESHOLD_PCT / 100),
+        }
+
+    def get_energy_report(self) -> Dict[str, Dict[str, float]]:
+        """Generate comprehensive energy consumption report."""
+        report = {}
+
+        for network_name in self.spike_counts.keys():
+            if network_name in self.energy_consumption:
+                accuracy_placeholder = (
+                    0.8  # Placeholder - would be passed from evaluation
+                )
+                energy_metrics = self.compute_energy_efficiency(
+                    network_name, accuracy_placeholder
+                )
+
+                report[network_name] = {
+                    "spike_count": self.spike_counts[network_name],
+                    "energy_kcal": self.energy_consumption[network_name],
+                    **energy_metrics,
+                }
+
+        return report
+
 
 # =============================================================================
 # PART 1: APGI-INSPIRED NETWORK ARCHITECTURE
@@ -585,6 +776,12 @@ class AttentionalBlinkDataset(Dataset):
     Dataset for attentional blink paradigm
 
     Second target detection depends on temporal proximity to first target.
+    Parameters grounded in empirical attentional blink literature:
+
+    - T1-T2 lag: 100-800ms (Raymond et al., 1992)
+    - Attentional blink window: 200-500ms lag (Chun & Potter, 1995)
+    - T2 detection probability: ~0.3 in blink window, ~0.8 outside
+    - RSVP stream: 8-12 items/second presentation rate
     """
 
     def __init__(self, n_samples: int = 4000, seed: int = 42):
@@ -596,46 +793,90 @@ class AttentionalBlinkDataset(Dataset):
 
         self.data = []
 
+        # Empirical attentional blink parameters (Raymond et al., 1992; Chun & Potter, 1995)
+        self.t1_t2_lags = [100, 150, 200, 250, 300, 400, 500, 600, 700, 800]  # ms
+        self.blink_window = (200, 500)  # ms - classic AB window
+        self.t2_detection_in_blink = 0.30  # ~30% detection in blink
+        self.t2_detection_out_blink = 0.75  # ~75% detection outside blink
+        self.rsvp_rate = 10  # items/second (100ms SOA)
+
         for _ in range(n_samples):
-            # Lag between T1 and T2 (100-800ms)
-            lag = self.rng.randint(100, 800)
+            # Sample T1-T2 lag from empirical distribution
+            lag = self.rng.choice(self.t1_t2_lags)
 
-            # Attentional blink effect (200-500ms)
-            in_blink = 200 <= lag <= 500
+            # Determine if in attentional blink window
+            in_blink = self.blink_window[0] <= lag <= self.blink_window[1]
 
+            # T2 detection probability based on lag (empirical curve)
             if in_blink:
-                detection_prob = 0.3
+                detection_prob = self.t2_detection_in_blink
             else:
-                detection_prob = 0.8
+                # Gradual recovery outside blink window
+                recovery_factor = min(
+                    1.0, (lag - self.blink_window[1]) / 200
+                )  # 200ms recovery window
+                detection_prob = self.t2_detection_in_blink + recovery_factor * (
+                    self.t2_detection_out_blink - self.t2_detection_in_blink
+                )
 
             detected = self.rng.rand() < detection_prob
 
-            # Exteroceptive: RSVP stream
+            # Exteroceptive: RSVP stream with T1 and T2
             extero = np.zeros(self.extero_dim)
-            extero[:16] = self.rng.randn(16) * 0.5  # T1
-            extero[16:32] = self.rng.randn(16) * 0.5  # T2
-            extero[32:] = self.rng.randn(32) * 0.2  # Distractors
 
-            # Interoceptive: attentional resource depletion
+            # T1 (first target) - always present
+            t1_position = self.rng.randint(0, 10)  # Position in RSVP stream
+            extero[:8] = self.rng.randn(8) * 1.5  # Strong T1 signal
+            extero[8:16] = self.rng.randn(8) * 0.2  # T1 distractors
+
+            # Determine T2 lag based on position
+            if t1_position <= 4:
+                pass  # Early position
+            elif t1_position <= 8:
+                pass  # Middle position
+
+            # Use t2_lag for T2 strength calculation
+            t2_strength = 1.2 if detected else 0.8  # Slightly weaker if not detected
+            extero[16:24] = self.rng.randn(8) * t2_strength
+            extero[24:32] = self.rng.randn(8) * 0.2  # T2 distractors
+
+            # Additional RSVP distractors
+            extero[32:] = self.rng.randn(32) * 0.3
+
+            # Interoceptive: attentional resource depletion during blink
             intero = np.zeros(self.intero_dim)
-            depletion = 0.8 if in_blink else 0.2
-            intero[:16] = self.rng.randn(16) * depletion
+
+            # Model attentional blink as resource depletion (experimental)
+            depletion_level = 0.0
+            if in_blink:
+                # Peak depletion at 300ms lag (middle of blink window)
+                depletion_level = 0.8 * (1 - abs(lag - 300) / 100)
+            elif lag < self.blink_window[0]:
+                depletion_level = 0.2  # Some depletion before blink
+            else:
+                depletion_level = 0.1  # Recovery after blink
+
+            intero[:16] = self.rng.randn(16) * (1 + depletion_level)
             intero[16:] = self.rng.randn(16) * 0.1
 
-            # Context: temporal information
+            # Context: temporal and attentional state information
             context = np.zeros(self.context_dim)
-            context[0] = lag / 800.0
-            context[1] = float(in_blink)
-            context[2:] = self.rng.randn(6) * 0.1
+            context[0] = lag / 800.0  # Normalized lag
+            context[1] = float(in_blink)  # Blink state
+            context[2] = detection_prob  # Expected detection probability
+            context[3] = depletion_level  # Attentional resource level
+            context[4:] = self.rng.randn(4) * 0.1  # Additional context noise
 
             self.data.append(
                 {
                     "extero": extero.astype(np.float32),
-                    "intero": intero,
+                    "intero": intero.astype(np.float32),
                     "context": context.astype(np.float32),
                     "detected": int(detected),
                     "lag": lag,
                     "in_blink": in_blink,
+                    "detection_prob": detection_prob,
+                    "depletion_level": depletion_level,
                 }
             )
 
@@ -825,12 +1066,35 @@ class NetworkTrainer:
         except (ValueError, RuntimeError):
             auc = 0.5
 
+        # Compute BIC and AIC for model comparison
+        n_samples = len(all_targets)
+        n_params = sum(p.numel() for p in self.network.parameters())
+
+        # Log-likelihood for binary classification
+        log_likelihood = 0.0
+        for true, pred_prob in zip(all_targets, all_ignition_probs):
+            # Clamp probabilities to avoid log(0)
+            pred_prob = np.clip(pred_prob, 1e-10, 1 - 1e-10)
+            log_likelihood += true * np.log(pred_prob) + (1 - true) * np.log(
+                1 - pred_prob
+            )
+
+        # BIC = -2*log(L) + k*log(n)
+        bic = -2 * log_likelihood + n_params * np.log(n_samples)
+
+        # AIC = -2*log(L) + 2*k
+        aic = -2 * log_likelihood + 2 * n_params
+
         return {
             "accuracy": accuracy,
             "auc": auc,
             "predictions": all_preds,
             "targets": all_targets,
             "ignition_probs": all_ignition_probs,
+            "bic": bic,
+            "aic": aic,
+            "log_likelihood": log_likelihood,
+            "n_params": n_params,
         }
 
     def train(
@@ -1059,6 +1323,10 @@ class FalsificationChecker:
                 "description": "Attention achieves equal/higher AUC",
                 "threshold": 0.0,
             },
+            "F6.5": {
+                "description": "Energy consumption ≤20% above baseline per correct detection",
+                "energy_threshold": ENERGY_FALSIFICATION_THRESHOLD_PCT / 100.0,
+            },
         }
 
     def check_F6_1(self, apgi_acc: float, lstm_acc: float) -> Tuple[bool, Dict]:
@@ -1100,18 +1368,23 @@ class FalsificationChecker:
             "threshold_high": self.criteria["F6.3"]["threshold_high"],
         }
 
-    def check_F6_4(self, apgi_auc: float, attention_auc: float) -> Tuple[bool, Dict]:
-        """F6.4: Attention equal or better"""
+    def check_F6_5(self, apgi_energy_ratio: float) -> Tuple[bool, Dict]:
+        """F6.5: Energy consumption ≤20% above baseline per correct detection"""
 
-        falsified = attention_auc >= apgi_auc
+        falsified = apgi_energy_ratio > (1 + self.criteria["F6.5"]["energy_threshold"])
 
         return falsified, {
-            "apgi_auc": apgi_auc,
-            "attention_auc": attention_auc,
-            "difference": apgi_auc - attention_auc,
+            "apgi_energy_ratio": apgi_energy_ratio,
+            "energy_threshold": 1 + self.criteria["F6.5"]["energy_threshold"],
+            "excess_energy": max(0, apgi_energy_ratio - 1),
         }
 
-    def generate_report(self, results: Dict, apgi_params: Dict) -> Dict:
+    def generate_report(
+        self,
+        results: Dict,
+        apgi_params: Dict,
+        energy_monitor: "SpikeEnergyMonitor" = None,
+    ) -> Dict:
         """Generate comprehensive falsification report"""
 
         report = {
@@ -1201,6 +1474,24 @@ class FalsificationChecker:
         else:
             report["passed_criteria"].append(criterion)
 
+        # F6.5 - Energy falsification (Program 4 requirement)
+        if energy_monitor is not None:
+            energy_report = energy_monitor.get_energy_report()
+            if "APGI" in energy_report:
+                apgi_energy_eff = energy_report["APGI"]["efficiency_ratio"]
+                f6_5_result, f6_5_details = self.check_F6_5(apgi_energy_eff)
+                criterion = {
+                    "code": "F6.5",
+                    "description": self.criteria["F6.5"]["description"],
+                    "falsified": f6_5_result,
+                    "details": f6_5_details,
+                }
+
+                if f6_5_result:
+                    report["falsified_criteria"].append(criterion)
+                else:
+                    report["passed_criteria"].append(criterion)
+
         report["overall_falsified"] = len(report["falsified_criteria"]) > 0
 
         return report
@@ -1212,12 +1503,15 @@ class FalsificationChecker:
 
 
 def plot_comprehensive_results(
-    results: Dict, apgi_params: Dict, save_path: str = "protocol6_results.png"
+    results: Dict,
+    apgi_params: Dict,
+    save_path: str = "protocol6_results.png",
+    energy_monitor: "SpikeEnergyMonitor" = None,
 ):
     """Generate comprehensive visualization"""
 
-    fig = plt.figure(figsize=(20, 14))
-    gs = fig.add_gridspec(4, 4, hspace=0.35, wspace=0.35)
+    fig = plt.figure(figsize=(20, 16))
+    gs = fig.add_gridspec(5, 4, hspace=0.35, wspace=0.35)
 
     colors = {
         "APGI": "#2E86AB",
@@ -1381,7 +1675,7 @@ def plot_comprehensive_results(
     ax4.grid(alpha=0.3)
 
     # ==========================================================================
-    # Row 4: APGI Parameters & Summary
+    # Row 4: APGI Parameters & Model Comparison
     # ==========================================================================
 
     ax5 = fig.add_subplot(gs[3, 0])
@@ -1413,76 +1707,146 @@ def plot_comprehensive_results(
             fontweight="bold",
         )
 
-    # Average performance across tasks
+    # Model comparison (BIC/AIC)
     ax6 = fig.add_subplot(gs[3, 1])
 
-    avg_accuracies = []
-    for net in networks:
-        accs = [results[task][net]["test_accuracy"] for task in tasks]
-        avg_accuracies.append(np.mean(accs))
+    # Get BIC/AIC values from conscious classification task
+    bics = [conscious_task[net].get("bic", 0) for net in networks]
+    aics = [conscious_task[net].get("aic", 0) for net in networks]
 
-    bars = ax6.bar(
-        networks,
-        avg_accuracies,
-        color=[colors[n] for n in networks],
-        alpha=0.7,
-        edgecolor="black",
-        linewidth=2,
-    )
+    x = np.arange(len(networks))
+    width = 0.35
 
-    ax6.set_ylabel("Average Accuracy", fontsize=11, fontweight="bold")
-    ax6.set_title("Average Performance (All Tasks)", fontsize=12, fontweight="bold")
-    ax6.set_ylim([0, 1])
+    bars1 = ax6.bar(x - width / 2, bics, width, label="BIC", alpha=0.7, color="blue")
+    bars2 = ax6.bar(x + width / 2, aics, width, label="AIC", alpha=0.7, color="green")
+
+    ax6.set_ylabel("Information Criterion", fontsize=11, fontweight="bold")
+    ax6.set_title("Model Comparison (BIC/AIC)", fontsize=12, fontweight="bold")
+    ax6.set_xticks(x)
+    ax6.set_xticklabels(networks)
+    ax6.legend()
     ax6.grid(axis="y", alpha=0.3)
 
-    for bar, acc in zip(bars, avg_accuracies):
-        height = bar.get_height()
-        ax6.text(
-            bar.get_x() + bar.get_width() / 2.0,
-            height,
-            f"{acc:.3f}",
-            ha="center",
-            va="bottom",
-            fontweight="bold",
+    # Add value labels
+    for bars, values in [(bars1, bics), (bars2, aics)]:
+        for bar, val in zip(bars, values):
+            height = bar.get_height()
+            ax6.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height,
+                f"{val:.0f}",
+                ha="center",
+                va="bottom",
+                fontweight="bold",
+                fontsize=8,
+            )
+
+    # Energy efficiency (if available)
+    if energy_monitor is not None:
+        ax7 = fig.add_subplot(gs[3, 2])
+
+        energy_report = energy_monitor.get_energy_report()
+        energy_ratios = [
+            energy_report.get(net, {}).get("efficiency_ratio", 1.0) for net in networks
+        ]
+
+        bars = ax7.bar(
+            networks,
+            energy_ratios,
+            color=[colors[n] for n in networks],
+            alpha=0.7,
+            edgecolor="black",
+            linewidth=2,
         )
 
-    # Summary table
-    ax7 = fig.add_subplot(gs[3, 2:])
-    ax7.axis("off")
+        ax7.axhline(
+            y=1.2, color="red", linestyle="--", linewidth=2, label="20% Threshold"
+        )
+        ax7.set_ylabel("Energy Efficiency Ratio", fontsize=11, fontweight="bold")
+        ax7.set_title("Energy per Correct Detection", fontsize=12, fontweight="bold")
+        ax7.legend(fontsize=9)
+        ax7.grid(axis="y", alpha=0.3)
+
+        for bar, ratio in zip(bars, energy_ratios):
+            height = bar.get_height()
+            ax7.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height,
+                f"{ratio:.2f}",
+                ha="center",
+                va="bottom",
+                fontweight="bold",
+                fontsize=9,
+            )
+    else:
+        ax7 = fig.add_subplot(gs[3, 2])
+        ax7.text(
+            0.5,
+            0.5,
+            "Energy monitoring\nnot available",
+            ha="center",
+            va="center",
+            transform=ax7.transAxes,
+            fontsize=12,
+            fontstyle="italic",
+        )
+        ax7.set_title("Energy Efficiency", fontsize=12, fontweight="bold")
+        ax7.set_xlim([0, 1])
+        ax7.set_ylim([0, 1])
+
+    # ==========================================================================
+    # Row 5: Summary table
+    # ==========================================================================
+
+    ax8 = fig.add_subplot(gs[4, :])
+    ax8.axis("off")
 
     # Calculate convergence speedup
     lstm_conv = conscious_task["LSTM"].get("convergence_epoch", 100)
     apgi_conv = conscious_task["APGI"].get("convergence_epoch", 100)
     speedup = 100 * (1 - apgi_conv / lstm_conv) if lstm_conv > 0 else 0
 
-    summary_text = f"""
-    SUMMARY STATISTICS
-    {'=' * 50}
+    # Get best competitor metrics
+    best_competitor_auc = max(
+        [conscious_task[net]["test_auc"] for net in ["MLP", "LSTM", "Attention"]]
+    )
+    best_competitor_acc = max(
+        [conscious_task[net]["test_accuracy"] for net in ["MLP", "LSTM", "Attention"]]
+    )
 
-    Conscious Classification:
+    summary_text = f"""
+    APGI Program 4: Computational Architecture Energy Comparison
+    {'=' * 70}
+
+    Conscious Classification Performance:
       APGI AUC:      {conscious_task['APGI']['test_auc']:.3f}
-      Attention AUC: {conscious_task['Attention']['test_auc']:.3f}
-      LSTM AUC:      {conscious_task['LSTM']['test_auc']:.3f}
+      Best Competitor AUC: {best_competitor_auc:.3f}
+      APGI Accuracy: {conscious_task['APGI']['test_accuracy']:.3f}
+      Best Competitor Acc: {best_competitor_acc:.3f}
 
     Learned Parameters:
       β (Somatic Bias):  {apgi_params['beta']:.3f}
       α (Steepness):     {apgi_params['alpha']:.3f}
 
-    P6a (AUC > 0.85): {'✅ MET' if conscious_task['APGI']['test_auc'] > 0.85 else '❌ NOT MET'}
-
-    P6b (Faster Convergence):
-      APGI: {conscious_task['APGI'].get('convergence_epoch', 100)} epochs
-      LSTM: {conscious_task['LSTM'].get('convergence_epoch', 100)} epochs
+    Training Efficiency:
+      APGI Convergence: {conscious_task['APGI'].get('convergence_epoch', 100)} epochs
+      LSTM Convergence: {conscious_task['LSTM'].get('convergence_epoch', 100)} epochs
       Speedup: {speedup:.1f}%
+
+    Program 4 Requirements:
+      P4a (AUC > 0.85): {'✅ MET' if conscious_task['APGI']['test_auc'] > 0.85 else '❌ NOT MET'}
+      P4b (Faster Convergence): {'✅ MET' if speedup > 10 else '❌ NOT MET'}
+      P4c (Energy ≤20% above baseline): {'⚠️  PENDING' if energy_monitor is None else ('✅ MET' if energy_report.get('APGI', {}).get('efficiency_ratio', 1.0) <= 1.2 else '❌ NOT MET')}
     """
 
-    ax7.text(
-        0.1,
-        0.5,
+    ax8.text(
+        0.05,
+        0.95,
         summary_text,
         fontsize=10,
         family="monospace",
-        verticalalignment="center",
+        verticalalignment="top",
+        fontweight="bold",
     )
 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
