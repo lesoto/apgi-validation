@@ -9,6 +9,14 @@ from scipy.optimize import curve_fit
 from fooof import FOOOF
 from statsmodels.stats.power import TTestPower, FTestAnovaPower
 import statsmodels.api as sm
+from pathlib import Path
+import sys
+
+# Add project root to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 from utils.shared_falsification import check_F5_family
 from falsification_thresholds import (
     F5_4_MIN_PEAK_SEPARATION,
@@ -724,7 +732,7 @@ class APGIActiveInferenceAgent:
 
         # M(context, action) → expected interoceptive outcome
         self.somatic_markers = SomaticMarkerNetwork(
-            context_dim=CONTEXT_DIM
+            state_dim=CONTEXT_DIM
             + HOMEOSTATIC_DIM,  # extero_context + intero_homeostatic
             action_dim=config.get("n_actions", 4),
             hidden_dim=SOMATIC_HIDDEN_DIM,

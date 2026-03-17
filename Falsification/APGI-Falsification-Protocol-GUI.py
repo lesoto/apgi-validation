@@ -40,13 +40,13 @@ class ProtocolRunnerGUI:
         if THEME_MANAGER_AVAILABLE:
             self.theme_manager = ThemeManager(initial_theme="normal")
 
-        # Add current directory to Python path
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        # Add project root directory to Python path
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
         # Protocol definitions with parameters
         self.protocols = {
             "Protocol 1: APGI Agent": {
-                "file": "Falsification-Protocol-1.py",
+                "file": "Falsification-ActiveInferenceAgents-F1F2.py",
                 "class": "APGIActiveInferenceAgent",
                 "description": "Complete APGI-based active inference agent",
                 "parameters": {
@@ -144,7 +144,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 2: Iowa Gambling": {
-                "file": "Falsification-Protocol-2.py",
+                "file": "Falsification-AgentComparison-ConvergenceBenchmark.py",
                 "class": "IowaGamblingTaskEnvironment",
                 "description": "IGT variant with simulated interoceptive costs",
                 "parameters": {
@@ -179,7 +179,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 3: Agent Comparison": {
-                "file": "Falsification-Protocol-3.py",
+                "file": "Falsification-FrameworkLevel-MultiProtocol.py",
                 "class": "AgentComparisonExperiment",
                 "description": "Run complete agent comparison experiment",
                 "parameters": {
@@ -207,7 +207,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 4: Phase Transition": {
-                "file": "Falsification-Protocol-4.py",
+                "file": "Falsification-InformationTheoretic-PhaseTransition.py",
                 "class": "InformationTheoreticAnalysis",
                 "description": "Test APGI ignition phase transition signatures",
                 "parameters": {
@@ -240,7 +240,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 5: Evolutionary": {
-                "file": "Falsification-Protocol-5.py",
+                "file": "Falsification-EvolutionaryPlausibility-Standard6.py",
                 "class": "EvolutionaryAPGIEmergence",
                 "description": "Test APGI emergence under selection pressure",
                 "parameters": {
@@ -275,7 +275,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 6: Network Comparison": {
-                "file": "Falsification-Protocol-6.py",
+                "file": "Falsification-NeuralNetwork-EnergyBenchmark.py",
                 "class": "NetworkComparisonExperiment",
                 "description": "Compare APGI-inspired vs standard architectures",
                 "parameters": {
@@ -321,6 +321,9 @@ class ProtocolRunnerGUI:
         # Thread management
         self.stop_event = threading.Event()
         self.running_thread = None
+
+        # Parameter storage
+        self.parameter_values = {}
 
         # Add window close handler for proper thread cleanup
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
@@ -810,7 +813,6 @@ class ProtocolRunnerGUI:
         except Exception as e:
             messagebox.showerror("Save Error", f"Failed to save parameters: {e}")
             self.log_message(f"Error saving parameters: {e}")
-            messagebox.showwarning("Warning", "Please select a protocol first")
             return
 
         # Update parameter values from widgets with validation
@@ -1011,6 +1013,13 @@ class ProtocolRunnerGUI:
             try:
                 self.set_status(f"Running {protocol_info['file']}...")
                 self.log_message(f"=== Running {protocol_info['file']} ===")
+
+                # Ensure project root is in sys.path for imports
+                project_root = os.path.dirname(
+                    os.path.dirname(os.path.abspath(__file__))
+                )
+                if project_root not in sys.path:
+                    sys.path.insert(0, project_root)
 
                 # Load the protocol module
                 file_path = os.path.join(

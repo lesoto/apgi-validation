@@ -254,7 +254,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # Load modules with hyphens using importlib
 formal_model_spec = importlib.util.spec_from_file_location(
     "SurpriseIgnitionSystem",
-    PROJECT_ROOT / "Falsification" / "Falsification-Protocol-4.py",
+    PROJECT_ROOT
+    / "Falsification"
+    / "Falsification-InformationTheoretic-PhaseTransition.py",
 )
 formal_model_module = importlib.util.module_from_spec(formal_model_spec)
 formal_model_spec.loader.exec_module(formal_model_module)

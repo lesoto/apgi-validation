@@ -1,12 +1,12 @@
 # falsification_thresholds.py — canonical threshold constants
-F1_1_MIN_ADVANTAGE_PCT = 18.0    # Iowa Gambling convergence advantage
-F1_1_MIN_COHENS_D = 0.60        # Effect size from paper
-F1_1_ALPHA = 0.01               # Significance level
+F1_1_MIN_ADVANTAGE_PCT = 18.0  # Iowa Gambling convergence advantage
+F1_1_MIN_COHENS_D = 0.60  # Effect size from paper
+F1_1_ALPHA = 0.01  # Significance level
 F2_1_MIN_ADVANTAGE_PCT = 15.0
 F2_1_MIN_PP_DIFF = 10.0
 F2_1_MIN_COHENS_H = 0.40
 F2_1_ALPHA = 0.01
-F2_2_MIN_CORR = 0.30            # r > 0.30 for metabolic-threshold correlation
+F2_2_MIN_CORR = 0.30  # r > 0.30 for metabolic-threshold correlation
 F2_2_MIN_FISHER_Z = 0.31
 F2_2_ALPHA = 0.05
 F2_3_MIN_RT_ADVANTAGE_MS = 50.0
