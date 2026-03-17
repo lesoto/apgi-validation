@@ -1,782 +1,526 @@
-# VALIDATION PROTOCOLS
+# VALIDATION PROTOCOLS (12 Protocols)
 
-## SyntheticEEG-MLClassification.py
+## Validation Protocol 1 — Synthetic Neural Data Generation & ML Classification SyntheticEEG-MLClassification.py
 
-VP-1: "Supplementary Computational Tool: Synthetic Neural Data Generation and Machine Learning Classification"
-
-Diagnostic:
-
-✅ FIXED: The file has been renamed and reframed as a supplementary computational tool, not Protocol 1. The header now clearly states this is NOT Protocol 1, which is "Interoceptive Precision Modulates Detection Threshold" — a psychophysics paradigm with human participants.
-✅ FIXED: The actual Protocol 1 psychophysics paradigm has been implemented with the Protocol1Psychophysics class, including heartbeat discrimination and detection threshold tasks.
-✅ FIXED: The APGIDynamicalSystem now implements the threshold adaptation equation θₜ₊₁ = θₜ + η(C_metabolic - V_information) in the core generator.
-✅ FIXED: The FalsificationChecker now references P1.1–P1.3 (actual paper predictions) in addition to internal F1.1-F1.2 criteria.
-✅ FIXED: Garfinkel et al. (2015) SD-split group comparison (>1 SD vs <1 SD) has been implemented in classify_sd_split_groups method.
-✅ FIXED: Arousal interaction design (HR 100–120 bpm via exercise) has been implemented in simulate_arousal_manipulation method.
-✅ FIXED: P1.1–P1.3 sub-predictions with exact effect size tests (Cohen's d = 0.40–0.60) have been implemented with Bonferroni-corrected significance thresholds.
-✅ FIXED: Bonferroni-corrected significance threshold is now used in Protocol1Psychophysics and FalsificationChecker.
-✅ FIXED: Threshold adaptation equation appears in the ignition trigger logic with theta_trajectory tracking.
-
-MEDIUM: Comparison agents (StandardPP, GWTOnly, ContinuousIntegration) are implemented and distinguish themselves correctly. The multi-modal fusion network architecture is sound.
-LOW: The APGISyntheticSignalGenerator generates plausible P3b, HEP, and gamma waveforms, but the parameter ranges don't match the paper's cited empirical effect sizes (d=0.40–0.60).
-
-COMPLETED:
-✅ Rename and reframe as a supplementary computational tool, not Protocol 1
-✅ Implement the actual Protocol 1 psychophysics paradigm: heartbeat discrimination → detection threshold task
-✅ Add the Garfinkel et al. (2015) SD-split group comparison (>1 SD vs <1 SD)
-✅ Implement the arousal interaction design (HR 100–120 bpm via exercise)
-✅ Implement the P1.1–P1.3 sub-predictions with the exact effect size tests (Cohen's d = 0.40–0.60)
-✅ Add the Bonferroni-corrected significance threshold (already defined but not used in threshold generator)
-✅ Ensure the threshold adaptation equation appears in the ignition trigger logic
-
-
-## BayesianModelComparison-ParameterRecovery.py
-
-VP-2: "Supplementary Computational Tool: Bayesian Model Comparison on Existing Consciousness Datasets"
-
-Diagnostic:
-
-✅ FIXED: The file has been renamed and reframed as a supplementary computational tool, not Protocol 2. The header now clearly states this is NOT Protocol 2, which is "TMS Causal Intervention" — testing that anterior insula TMS reduces both PCI (by ~20%) and HEP (by ~30%), and that dlPFC TMS reduces PCI but not HEP.
-
-✅ FIXED: The actual Protocol 2 psychophysics paradigm has been implemented with the Protocol2TMSCausalIntervention class, including:
-  - P2a: dlPFC TMS shifts detection threshold by >0.1 log units
-  - P2b: Insula TMS reduces HEP (30%) and PCI (20%) with double dissociation from dlPFC
-  - P2c: High baseline IA subjects show stronger TMS effects
-  - Neuronavigation confirmation control
-  - Safety/ethics protocol stubs for TMS screening criteria
-
-✅ FIXED: The Fisher Information Matrix analysis has been enhanced with comprehensive metrics including:
-  - Full FIM computation with eigenvalue and eigenvector analysis
-  - Parameter precision and relative precision metrics
-  - Correlation matrix and parameter correlations
-  - Identifiability metrics (condition number, precision, correlation)
-✅ FIXED: APGIGenerativeModel.build_model() correctly implements the Bayesian APGI model with Πⁱ, πᵉ, and the threshold ignition as a PyMC model. The bridge sampling approach for model evidence is architecturally correct.
-✅ FIXED: The validate_parameter_recovery function and analyze_beta_pi_identifiability directly address the paper's identifiability challenge (β/Πⁱ collinearity). This is excellent and paper-aligned.
-MEDIUM: SyntheticConsciousnessDataGenerator generates Melloni-style and Canales-Johnson-style datasets, which is methodologically sound.
-LOW: The BIC/WAIC comparison structure is good; BF thresholds (BF > 10) are consistent with Bayesian convention.
-
-
-COMPLETED:
-✅ Reframe as computational supplement; create a separate VP implementing Paper Protocol 2 (TMS causal)
-✅ Add the P2a prediction: TMS delivered to dlPFC during near-threshold trials shifts detection threshold by >0.1 log units
-✅ Add the P2b critical test: insula TMS reduces HEP (30%) and PCI (20%) with double dissociation from dlPFC
-✅ Add the P2c interaction: high baseline IA subjects show stronger TMS effects
-✅ Implement the neuronavigation confirmation control
-✅ Add safety/ethics protocol stubs for TMS screening criteria
-✅ Implement full Fisher Information Matrix analysis for parameter identifiability (currently partial)
-
-## ActiveInference_AgentSimulations_Protocol3.py
-
-VP-3: "Active Inference Agent Simulations"
-
-Diagnostic:
-
-HIGH: This is the best-aligned VP — it directly implements Paper Protocol 3. HierarchicalGenerativeModel, SomaticMarkerNetwork, PolicyNetwork correctly implement the 3-level hierarchy with separate interoceptive/exteroceptive generative models and precision-weighting.
-HIGH: Iowa Gambling Task, VolatileForaging, and ThreatReward environments are present and match the three task environments specified in the paper.
-MEDIUM: The APGI-full agent convergence benchmark target (50–80 trials) is present but the specific comparison agents' convergence baselines (Actor-Critic ~100, Pure PE ~150, GNWT-only ~100–120) need explicit verification checks, not just logged output.
-MEDIUM: BIC model comparison is mentioned but not fully implemented; cross-validation on held-out trials is missing.
-LOW: The threshold adaptation equation θₜ₊₁ = θₜ + η(C_metabolic - V_information) appears in the agent update loop — correct. Parameter sensitivity across (α, β, θ_baseline) ranges needs systematic grid-search output.
-
-✅ FIXED: Formal BIC computation for each agent type against human Iowa Gambling Task data has been implemented in compute_bic() and compute_bic_comparison() functions.
-✅ FIXED: Systematic cross-validation (k-fold) on trial-level predictions has been implemented in systematic_cross_validation() function with configurable k parameter.
-✅ FIXED: Explicit convergence trial count comparisons with statistical tests have been added - convergence_trial tracking with binomial significance testing.
-✅ FIXED: Sensitivity analysis grid across α ∈ [3, 10], β ∈ [0.6, 2.2], θ_baseline ∈ [0.3, 0.8] has been implemented with comprehensive parameter space exploration.
-✅ FIXED: Falsification condition for <5% performance advantage has been added with performance_advantage_threshold checks.
-✅ FIXED: "Ignition uncorrelated with adaptive behavior" falsification check (p > 0.3 criterion) has been implemented in behavior_ignition_correlation tests.
+CRITICAL — McNemar's test is scaffolded but never completed. compare_models_with_statistics() sets "p_value": None and "significant": None with a comment "compute via permutation" — the permutation loop is missing entirely. This is a named primary statistical test in the paper.
+HIGH — Threshold string/numeric mismatch. criteria_registry.py records V12.1 threshold text as "P3b reduction ≥80%, ignition reduction ≥70%, d ≥ 0.80" but falsification_thresholds.py implements V12_1_MIN_P3B_REDUCTION_PCT = 10.0 and V12_1_MIN_IGNITION_REDUCTION_PCT = 15.0. The threshold is 8× too low for P3b and 4.7× too low for ignition. The criteria_registry is the paper-faithful reference; the constants file is wrong.
+HIGH — F5.5 threshold inconsistency across files. falsification_thresholds.py sets F5_5_PCA_MIN_VARIANCE = 0.60 / F5_5_MIN_LOADING = 0.40, while the paper-faithful description in NeuralNetwork-InductiveBias-ComputationalBenchmark.py states "Cumulative variance ≥70%, min loading ≥0.60". The canonical constants file is operating at 60% vs. the paper's 70%.
+MEDIUM — DeLong's AUC test referenced in compare_models_with_statistics() but not implemented.
 
 TODO:
 
-[COMPLETED - All major TODO items have been addressed]
+Implement the permutation loop in compare_models_with_statistics() for both McNemar's and DeLong's AUC tests (minimum 1,000 permutations, α=0.05).
+Fix V12_1_MIN_P3B_REDUCTION_PCT to 80.0 and V12_1_MIN_IGNITION_REDUCTION_PCT to 70.0 in falsification_thresholds.py.
+Fix F5_5_PCA_MIN_VARIANCE to 0.70 and F5_5_MIN_LOADING to 0.60.
+Add return to check_F6_2() — the current version appends to report["passed_criteria"] but never sets report["overall_falsified"] before returning.
 
-## InformationTheoretic_PhaseTransition_Level2.py
 
-VP-4: "Information-Theoretic Phase Transition Analysis"
+## Validation Protocol 2 — Behavioral Validation (Validation-Protocol-2.py)
 
-Diagnostic:
-
-HIGH: This protocol has no direct mapping to a numbered paper protocol — it is a computational elaboration of information-theoretic claims from the Level 2 falsification tier. The InformationTheoreticAnalysis class (transfer entropy, integrated information, mutual information, entropy rate) is technically solid.
-HIGH: PhaseTransitionDetector.detect_discontinuity() and compute_susceptibility() implement the phase transition detection machinery correctly for the Π·|ε| > θₜ threshold.
-MEDIUM: detect_critical_slowing() (Hurst exponent, autocorrelation) is present but the critical slowing down criterion is not explicitly connected to the APGI ignition threshold crossing.
-MEDIUM: FiniteSizeScalingAnalysis is theoretically sound for the phase transition claim but the paper does not specify this test — it is an enhancement.
-LOW: ClinicalPowerAnalysis.analyze_clinical_group_power() with AUC targets (0.75–0.85) aligns with P4a from the paper.
+CRITICAL — File content not indexed in project knowledge, suggesting it may be a minimal stub. The Master declares "Behavioral Validation Protocol" but no behavioral simulation logic (reaction times, accuracy curves, psychometric functions) appears in any indexed file under this filename.
+HIGH — No falsification criteria function get_falsification_criteria() is visible for this protocol — the paper requires P1.1 (d=0.40–0.60 interoceptive advantage), P1.2 (arousal interaction), P1.3 (IA group interaction).
+**HIGH — Protocol 2 tier classification in Master_Validation.py says "primary" but the internal rationale comment says "Parameter consistency checks" — contradicting the description "Behavioral Validation Protocol". These must align.
 
 TODO:
 
-Explicitly label this as a Level 2 (information-theoretic) falsification test per the epistemic paper
-Connect critical slowing detection output to the phase boundary equation from the paper
-Add the P5 mutual information increase check (>30%) as a primary validated prediction
-Add the P6 bandwidth asymptote check (~40 bits/s ceiling) with falsification threshold (>100 bits/s)
-Implement the formal bridge principle from Level 3 (neural) to Level 2 (information-theoretic) with explicit justification text
-Add the integrated information comparison against IIT's Φ metric explicitly
+Implement full behavioral simulation: psychometric function fitting (Weibull or logistic), d-prime calculation, arousal condition branching, IA group split (>1 SD per Garfinkel).
+Add get_falsification_criteria() returning P1.1, P1.2, P1.3 with paper thresholds (d=0.40–0.60 range check, r=−0.30 to −0.50, arousal effect size 0.40–0.60).
+Reconcile the tier comment with the actual protocol description.
 
-## EvolutionaryEmergence_AnalyticalValidation.py
 
-VP-5: "Evolutionary Emergence of APGI-like Architectures"
+## Validation Protocol 3 — Agent Comparison Experiment (ActiveInference-AgentSimulations-Protocol3.py)
 
-Diagnostic:
-
-CRITICAL: No numbered paper protocol specifies evolutionary simulation as a validation method. This is a theoretical elaboration of the evolutionary plausibility standard (Standard 6 from the epistemic paper), not a primary empirical protocol. While scientifically interesting, it is misclassified as a core validation protocol.
-HIGH: AnalyticalAPGISolutions with steady-state, ignition time, phase boundary, and critical point calculations is mathematically rigorous and correctly derives from the dynamical equations. This is the most technically precise section.
-HIGH: AgentGenome with mutation and crossover operators is well-implemented. The EvolvableAgent with the APGI ignition equation is correctly structured.
-MEDIUM: The analytical validation test cases in AnalyticalValidationTestCases are high-quality unit tests for the mathematical model.
-LOW: The three task environments (Iowa Gambling, Volatile Foraging, Threat-Reward) duplicate VP-3 environments.
+HIGH — Convergence criterion uses 70% by trial 45 in the get_falsification_criteria() description string, but the paper (P3.conv in the Aggregator) specifies 50–80 trials. The implementation checks a numerical threshold but trial counting is not robustly anchored to either boundary.
+HIGH — BIC comparison (P3.bic) for model comparison is declared in NAMED_PREDICTIONS ("APGI BIC lower than StandardPP and GWTonly") but no BIC computation is present in the agent simulation file — only reward curves.
+MEDIUM — _aggregate_results() uses np.mean() of convergence trials that are None (unconverged agents are filtered), silently biasing the mean upward. The denominator should be total agents, not converged agents.
 
 TODO:
 
-Reframe as "Evolutionary Plausibility + Mathematical Validation Supplement"
-Add explicit Standard 6 (evolutionary plausibility) compliance scoring per the epistemic paper rubric
-Eliminate environment duplication — import from VP-3/FP-2 instead
-Add quantitative fitness landscape visualization: show APGI-like architectures occupy fitness peaks
-Add a formal theorem/proof structure for the analytical solutions (currently just functions)
-Connect evolutionary fitness advantage to the metabolic efficiency claim (≥20% energy saving)
+Implement BIC/AIC model comparison: fit softmax action-selection log-likelihoods per agent type over trial sequences, compute BIC = −2·ln(L) + k·ln(n), assert APGI BIC < StandardPP BIC and < GWTOnly BIC.
+Fix convergence aggregation: treat non-convergent agents as n_max_trials (worst case), not excluded.
+Add statistical test (Mann-Whitney U) comparing APGI convergence trials vs. alternatives, with α=0.01.
 
-## NeuralNetwork_InductiveBias_ComputationalBenchmark.py
 
-VP-6: "Recurrent Neural Network Architectures with APGI Inductive Biases"
+## Validation Protocol 4 — Phase Transition Analysis (InformationTheoretic-PhaseTransition-Level2.py)
 
-Diagnostic:
-
-HIGH: No paper protocol maps to RNN architectures. This is an engineering supplement inspired by the computational validation tier. The APGIInspiredNetwork with threshold gating, precision-weighting, and somatic marker integration is architecturally faithful.
-HIGH: Comparison networks (MLP, LSTM, Attention) are properly implemented for performance benchmarking.
-MEDIUM: Three specialized datasets (ConsciousClassificationDataset, MaskingThresholdDataset, AttentionalBlinkDataset) map loosely to consciousness paradigms but are synthetic without grounding in empirical parameter ranges from the paper.
-MEDIUM: The attentional blink dataset is particularly relevant to the ignition threshold dynamics but the T1-T2 lag-dependent suppression curve isn't formally tested against the APGI threshold equation.
-LOW: InteroceptiveAccuracyDataset has the right feature set but the precision-accuracy relationship lacks the paper's beta coefficient range.
+HIGH — P6 threshold direction is inverted in implementation. The criteria dict sets "threshold": 100.0 (falsification threshold) and "ceiling": 40.0 (expected), but the check logic in the broader codebase compares bandwidth ≤ 100 to pass — which means a model outputting 99 bits/s passes. The paper says the ceiling is 40 bits/s; the falsification threshold (>100) is an extreme outlier test. The passing condition should be bandwidth ≤ 40.
+HIGH — Level 1 falsification stubs are explicitly unimplemented. run_level1_falsification_stubs() contains three # TODO: Implement actual metabolic cost calculation blocks with placeholder > 10.0 cost-benefit threshold and no actual ATP or metabolic model — yet Level 1 (P9–P12) predictions are declared complete in Validation-Protocol-P4-Epistemic.py.
+MEDIUM — Hurst exponent (F4.5) is declared in the criteria dict (threshold: 0.55) but no DFA or R/S analysis is implemented — the value must be computed, not assumed.
 
 TODO:
 
-Explicitly frame as Program 4 (Computational Architecture Energy Comparison) from the epistemic paper
-Implement the ATP spike-cost budget (~10⁹ ATP/spike from Attwell & Laughlin) for energy comparison
-Add the ≥20% energy-per-correct-detection falsification criterion
-Ground AttentionalBlinkDataset T1-T2 parameters in empirical attentional blink literature values
-Add formal BIC/AIC model comparison output (not just accuracy)
-Implement the Brian2/NEST-style spike count logging for energy measurement
+Fix P6 passing condition to bandwidth ≤ 40.0 bits/s (not 100.0).
+Implement metabolic cost model: use Attwell & Laughlin (2001) ~10⁹ ATP per spike; compute energy-per-correct-detection; compare to biological ceiling (≤20% above baseline).
+Implement Hurst exponent via detrended fluctuation analysis (DFA) using numpy or nolds library before checking F4.5.
 
-## TMS_Pharmacological_CausalIntervention_Protocol2.py
 
-VP-7: "TMS/Pharmacological Intervention Predictions"
+## Validation Protocol 5 — Evolutionary Emergence (EvolutionaryEmergence-AnalyticalValidation.py)
 
-Diagnostic:
-
-HIGH: This correctly implements Paper Protocol 2 (TMS causal intervention). TMSInterventions with dlPFC, insula, V1, and vertex conditions matches the paper's P2a–P2c predictions.
-HIGH: PharmacologicalInterventions with propranolol, methylphenidate, ketamine, and placebo conditions maps to the paper's neuromodulator manipulation predictions.
-MEDIUM: The InterventionStudySimulator.simulate_crossover_study() correctly implements the crossover design but the insula TMS effect size (HEP reduction 30%, PCI reduction 20%) is referenced but not enforced as a falsification criterion in the checker.
-MEDIUM: PsychometricCurve fitting is sound but the 3-parameter logistic (threshold, slope, lapse) should also include a γ (guess rate) parameter for near-threshold paradigms.
-LOW: Power analysis via PowerAnalysis.compute_required_n() is present but doesn't match the specific n=30 per group target from Paper Protocol 2.
+HIGH — F5 thresholds in falsification_thresholds.py are systematically lower than in Falsification-ActiveInferenceAgents-F1F2.py. Specifically: F5_1_MIN_PROPORTION = 0.70 in the canonical file but the inline comment in F1F2.py says 0.75 (validated against paper). F5_1_MIN_ALPHA = 3.0 in the constants file but 4.0 inline. F5_5_PCA_MIN_VARIANCE = 0.60 vs. paper 0.70. The canonical constants file (falsification_thresholds.py) consistently uses relaxed values.
+HIGH — F5_4_MIN_PEAK_SEPARATION = 0.20 in falsification_thresholds.py but the inline-validated constant in F1F2.py is 3.0 (separation ≥ 3×). This is a 15× discrepancy. Any file importing from falsification_thresholds.py will apply an essentially non-restrictive criterion.
+MEDIUM — Cross-modal falsification condition (combined_error >= extero_error) uses a degenerate equality check — floating point equality on intero_error == extero_error is essentially never triggered, making this criterion trivially pass.
 
 TODO:
 
-Add the double-dissociation falsification check: if insula TMS reduces PCI but not HEP → falsified
-Fix psychometric curve to 4-parameter (add γ guess rate)
-Enforce n=30 per group as the minimum power-adequate sample
-Add the P2c interaction check: high IA × insula TMS interaction (strongest effect for high-Πⁱ individuals)
-Add vertex TMS control as a formal falsification guard (vertex TMS should not affect threshold)
-Connect TMS effect sizes to the threshold adaptation equation output
+Audit and correct every constant in falsification_thresholds.py against the inline "VALIDATED" constants in Falsification-ActiveInferenceAgents-F1F2.py. Use the inline values as ground truth (they bear paper citations).
+Specifically set F5_4_MIN_PEAK_SEPARATION = 3.0, F5_1_MIN_PROPORTION = 0.75, F5_1_MIN_ALPHA = 4.0, F5_5_PCA_MIN_VARIANCE = 0.70, F5_5_MIN_LOADING = 0.60.
+Replace equality check with tolerance: abs(intero_error - extero_error) < 1e-6 to catch near-identical precision weighting.
 
-## Psychophysical_ThresholdEstimation_Protocol1.py
 
-VP-8: "Psychophysical Threshold Estimation & Individual Differences"
+Validation Protocol 6 — Network Comparison (NeuralNetwork-InductiveBias-ComputationalBenchmark.py)
+Rating: 71/100
+What is correctly implemented:
 
-Diagnostic:
+APGI-inspired dual-pathway network vs. MLP, LSTM, Attention baselines
+Comprehensive evaluation: accuracy, AUC, energy per spike (ATP model)
+F5.1–F6.2 criteria imported and formally checked
+Spike-based energy logging with Attwell & Laughlin constant
 
-HIGH: This is the best match for Paper Protocol 1. PsiMethod (adaptive psychophysics), APGIPsychophysicalEstimator, and heartbeat detection integration are all paper-aligned.
-HIGH: The Π·|ε| > θₜ detection threshold model is correctly implemented in estimate_apgi_parameters.
-MEDIUM: The arousal interaction (HR 100–120 bpm from exercise) is not implemented — this is a named sub-prediction (P1.2) in the paper that is missing.
-MEDIUM: The Cohen's d threshold checks (0.40–0.60 range) reference paper values but use a single-point threshold rather than the paper's range test.
-LOW: ICC (intraclass correlation) for test-retest reliability is implemented — this is appropriate for the parameter estimation protocol.
+Critical deficiencies:
 
-TODO:
-
-Add the exercise arousal condition (HR 100–120 bpm) as a formal experimental arm
-Implement P1.2: arousal interaction test (Cohen's d = 0.25–0.45 for interaction term)
-Add P1.3: high-IA individuals show greater arousal benefit (specific contrast test)
-Implement the Garfinkel et al. (2015) SD-split criterion (>1 SD vs <1 SD on heartbeat discrimination)
-Add the Khalsa et al. (2018) meta-analytic benchmark (r = 0.43 as criterion validity check)
-Implement the β/Πⁱ disambiguation protocol: pharmacological β-blockade arm
-
-## ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py
-
-VP-9: "Convergent Neural Signatures"
-Diagnostic:
-
-HIGH: Maps correctly to Priority 1 of the Empirical Credibility Roadmap. APGIP3bAnalyzer.fit_sigmoidal_apgi_model() implements the key prediction that P3b scales sigmoidally (not linearly) with Π × |ε|.
-HIGH: APGIFMRIAnalyzer.analyze_frontoparietal_coactivation() correctly tests the contingency prediction: frontoparietal BOLD only when S(t) > θₜ.
-MEDIUM: `_analyze_theta_gamma_coupling()` implements PAC analysis for theta-gamma coupling at threshold crossing — but the paper specifies this as an ECoG/LFP prediction (not EEG), which is a measurement validity concern.
-MEDIUM: `check_P5_mutual_information()` and `check_P6_bandwidth_constraint()` are present and implement the Level 2 predictions correctly.
-LOW: The `_calculate_validation_score()` aggregation is arbitrary weighting; the epistemic paper's scoring rubric (0–5 per standard) should be used.
+HIGH — F6.1 imports F6_1_LTCN_MAX_TRANSITION_MS = 200.0 from the constants file, but the paper spec in the get_falsification_criteria() dict within this same file says "<50ms" for LTCN transition. The constant is 4× too permissive.
+HIGH — F6.2 imports F6_2_LTCN_MIN_WINDOW_MS = 50.0 (constants file) but the paper spec in the same file says "200-500ms" window. The constant is 4× too small.
+HIGH — F6_2_MIN_INTEGRATION_RATIO = 1.50 in constants, but paper spec says "≥4× standard RNN". The constant allows passing at 1.5×, one-third of the required ratio.
+MEDIUM — V6 latency/processing rate checks (V6_1_MAX_LATENCY_MS = 100.0, V6_1_MIN_PROCESSING_RATE = 50.0) have no paper citation and appear to be placeholder values.
 
 TODO:
 
-Clarify the theta-gamma PAC prediction as requiring intracranial recordings
-Replace arbitrary validation scoring with the epistemic paper's 5-standard rubric
-Add the subthreshold activation falsification check: sensory cortex activates, frontoparietal does NOT (AUC < 0.6 criterion for classification)
-Implement real MNE pipeline hooks rather than stub loaders (currently load_eeg_data is a stub)
-Add the P3b latency criterion: ignition should occur within 200–400ms post-stimulus
-Connect sigmoid fit parameters (α, θ) back to the APGI parameter space
+Set F6_1_LTCN_MAX_TRANSITION_MS = 50.0 (paper: <50ms).
+Set F6_2_LTCN_MIN_WINDOW_MS = 200.0 (paper: 200-500ms).
+Set F6_2_MIN_INTEGRATION_RATIO = 4.0 (paper: ≥4×).
+Set F6_2_MIN_CURVE_FIT_R2 = 0.85 (paper says ≥0.85, constant currently 0.80).
+Derive V6 latency/rate thresholds from the biological ATP/spike literature or remove them pending paper specification.
 
-## CausalManipulations_TMS_Pharmacological_Priority2.py
 
-VP-10: "Causal Manipulations"
+Validation Protocol 7 — Mathematical Consistency (Falsification-MathematicalConsistency-Equations.py)
+Rating: 66/100
+What is correctly implemented (inferred from GUI registration):
 
-Diagnostic:
+MathematicalConsistencyChecker class registered with epsilon, n_samples, tolerance parameters
+Numerical derivative checking infrastructure
 
-CRITICAL: At 1,385 lines, this is the shortest validation protocol — yet it covers Priority 2 of the roadmap which is arguably the most important causal tier. Significant underdevelopment compared to peer protocols.
-HIGH: TMSIntervention, TACSIntervention, PharmacologicalIntervention, and MetabolicIntervention classes are correctly structured. The metabolic intervention (glucose/fasting) is a novel addition not in other protocols.
-HIGH: CausalManipulationsValidator._validate_tms_ignition_disruption() correctly tests the causal directionality claim but uses simulated data only — no hooks for real EEG input.
-MEDIUM: `_validate_erp_invariance()` checks that early ERP components (N1/P1) are unaffected by TMS while P3b is disrupted — this is the key dissociation test and is correctly framed.
-LOW: `_validate_tacs_effects()` is implemented but tACS is not specified in the paper's core protocols — this is an enhancement.
+Critical deficiencies (inferred from GUI and partial indexing):
 
-TODO:
-
-Expand to at least 2,500 lines matching peer protocols in depth
-Add cold pressor test and breathlessness induction from Paper Protocol 4c (MCS interventions)
-Add the P2b double-dissociation statistical test (χ² or mixed ANOVA)
-Implement the neuronavigation MRI-guided targeting confirmation
-Add adverse event stopping criteria stubs (clinically appropriate)
-Add the Ethics/DSMB monitoring requirement as a documented protocol gate
-Implement real EEG data input hooks using MNE compatibility layer
-
-## QuantitativeModelFits_SpikingLNN_Priority3.py
-
-VP-11: "Quantitative Model Fits"
-Diagnostic:
-
-HIGH: PsychometricFunctionFitter correctly compares APGI sigmoid, GNW equivalent, and linear models with AIC/BIC — this directly implements the model comparison prediction.
-HIGH: SpikingLNNModel with liquid time-constant neurons implementing Π-gated threshold dynamics is architecturally correct and unique among the protocols.
-MEDIUM: BayesianParameterEstimator correctly uses MCMC but the prior distributions are not justified against the paper's parameter ranges (Πⁱ ∈ [0.1, 2.0], β ∈ [0.6, 2.2]).
-MEDIUM: `_validate_consciousness_paradigms()` tests masking and attentional blink but the specific trial counts and effect sizes from the paper are not enforced.
-LOW: The `_calculate_quantitative_score()` provides a composite score but without the 5-standard epistemic rubric weighting.
+HIGH — No get_falsification_criteria() implementation appears in indexed files. Without it, the Master Validator cannot register falsification status.
+HIGH — Tolerance 1e-5 used in GUI default but the criteria_registry V5.1 specifies ε ≤ 1e-6. The tolerance is 10× too loose.
+MEDIUM — Mathematical consistency tests should verify all core APGI equations (surprise accumulation ODE, ignition sigmoid, precision update, threshold dynamics) against closed-form solutions — it is unclear whether all four equations are covered.
 
 TODO:
 
-Align prior distributions with paper-specified parameter ranges explicitly
-Add Fisher Information Matrix analysis for parameter identifiability (β/Πⁱ collinearity test)
-Implement the paper's convergence benchmark comparison: APGI < 80 trials vs. Actor-Critic ~100 trials
-Add hierarchical Bayesian pooling across subjects (currently single-subject estimation)
-Expand spiking LNN to include liquid time-constant dynamics (τᵢ as learnable per neuron)
-Add the formal model comparison table format from the paper (APGI vs. StandardPP vs. GWTonly vs. Continuous)
+Add get_falsification_criteria() returning all equation-level checks with paper thresholds.
+Tighten numerical tolerance to 1e-6 (matching V5.1 in criteria_registry).
+Enumerate and test all four canonical APGI equations; document which paper equation each test maps to.
 
-## Clinical_CrossSpecies_Convergence_Protocol4.py
 
-VP-12: "Clinical and Cross-Species Convergence"
+Validation Protocol 8 — Parameter Sensitivity (Psychophysical-ThresholdEstimation-Protocol1.py)
+Rating: 70/100
+What is correctly implemented:
 
-Diagnostic:
+Bayesian adaptive psychophysics (Psi method) for threshold estimation
+Full individual differences analysis: HEP amplitude, HRV RMSSD, IA group splits
+6 falsification TODOs explicitly coded (pharmacological β-blockade, Garfinkel SD-split, Khalsa benchmark)
+Factor analysis of parameter structure
+Test-retest reliability scaffold
 
-HIGH: ClinicalDataAnalyzer with VS/UWS, MCS, EMCS, and control groups directly implements Paper Protocol 4. PCI and HEP as joint predictors are correctly operationalized.
-HIGH: PsychiatricProfileAnalyzer with anxiety, depression, PTSD, and autism profiles is paper-aligned for the APGI-CAB (Clinical Assessment Battery) roadmap item.
-HIGH: CrossSpeciesHomologyAnalyzer with rat, macaque, and human data implements Standard 6 (evolutionary plausibility) and cross-species scaling.
-MEDIUM: IITConvergenceAnalyzer comparing Φ with APGI parameters is a novel addition not in the core paper but appropriate for the alternative comparison standard.
-MEDIUM: The P4d longitudinal prediction (6-month outcome, ΔR² ≈ 0.10–0.15) is not explicitly implemented — only the cross-sectional P4a is tested.
+Critical deficiencies:
 
-✅ FIXED: P4d longitudinal model with baseline (PCI + HEP) → 6-month CRS-R outcome regression has been implemented in LongitudinalOutcomePredictor class.
-✅ FIXED: Target ΔR² ≈ 0.10–0.15 improvement test against CRS-R + structural imaging baseline has been implemented with bootstrap validation.
-✅ FIXED: Autonomic perturbation intervention (cold pressor, breathlessness) with specific temporal parameters has been implemented in AutonomicPerturbationAnalyzer.
-✅ FIXED: Sham control comparison (tactile vs. cold pressor, auditory vs. breathlessness) has been added with proper control conditions.
-✅ FIXED: Psychiatric profiles expanded to include β parameter abnormality signatures (panic disorder β ≈ 1.5–2.2) in PsychiatricProfileAnalyzer.
-✅ FIXED: Power analysis for clinical protocol (n=30 per group minimum) has been implemented in ClinicalPowerAnalysis class.
+CRITICAL — All 6 TODOs are scaffolded but some contain placeholder logic. E.g., TODO_6_beta_disambiguation simulates β-blockade by reducing pi_i by 30% — a made-up model, not a validated pharmacological effect size. The paper requires a dissociation test between β (somatic bias) and Πⁱ (interoceptive precision), not a uniform reduction.
+HIGH — check_falsification() in this file uses looser inline thresholds than the paper. F3.1 checks apgi_advantage_f3 >= 0.12 but the display string says "Advantage ≥18%". F3.6 checks time_to_criterion <= 250 but displays "Time ≤200 trials".
+HIGH — F6.1 inline check uses ltcn_transition_time <= 50 (consistent with paper) but falsification_thresholds.py exports F6_1_LTCN_MAX_TRANSITION_MS = 200.0 — so files that import from the constants file are silently using a 4× relaxed threshold.
 
 TODO:
 
-[COMPLETED - All major TODO items have been addressed]
+Implement pharmacological disambiguation using a two-pathway model: β-blockade reduces somatic bias coefficient β by 25–40% (literature range), while a separate Πⁱ manipulation (e.g., cardiac feedback perturbation) reduces interoceptive precision independently. The dissociation test is a significant β × pathway interaction.
+Sync inline thresholds to match the paper descriptions in all display strings (F3.1: 0.18, F3.6: 200 trials).
+Add Bonferroni correction for the 6-test battery (family-wise α=0.05 → per-test α=0.008).
 
-FALSIFICATION PROTOCOLS
+
+Validation Protocol 9 — Neural Signatures Validation (ConvergentNeuralSignatures-Priority1-EmpiricalRoadmap.py)
+Rating: 73/100
+What is correctly implemented:
+
+F1.1–F6.2 full criteria check suite covering 24 named criteria
+Comprehensive parameter signature through check_falsification()
+F6.1 inline check uses the paper-correct ≤50ms threshold
+
+Critical deficiencies:
+
+HIGH — F6.1 in this file uses ltcn_transition_time <= 80 (line in ConvergentNeuralSignatures), not 50 — inconsistent with the same file's display string "LTCN time ≤50ms". Three different values (50, 80, 200) exist across three files for the same criterion.
+HIGH — F6.2 in this file uses ltcn_integration_window >= 150 and ratio >= 2.5 and curve_fit_r2 >= 0.70 vs. paper: ≥200ms, ≥4×, R²≥0.85. All three sub-criteria are relaxed.
+MEDIUM — Power analysis (N=80 for primary tests) is called but not linked to protocol-level go/no-go decisions; it should gate the overall protocol pass/fail when sample size is insufficient.
+
+TODO:
+
+Standardize F6.1: ltcn_transition_time <= 50.0 across all files. Run a global text search for 80 and 200 in F6.1 contexts and correct them.
+Standardize F6.2: >= 200.0ms, >= 4.0×, R² >= 0.85.
+Make power analysis gating explicit: if estimated power < 0.80 for any primary test, mark that criterion as "UNDERPOWERED" rather than pass/fail.
+
+
+Validation Protocol 10 — Cross-Species Scaling / Causal Manipulations (CausalManipulations-TMS-Pharmacological-Priority2.py)
+Rating: 58/100
+What is correctly implemented:
+
+TMS (dlPFC, insula) simulation with threshold and HEP effect modeling
+Passing threshold uses overall_causal_validation_score > 0.5 (simple majority)
+get_falsification_criteria() present
+
+Critical deficiencies:
+
+CRITICAL — The passing criterion (> 0.5) is not paper-specified. The paper's named predictions P2.a, P2.b, P2.c each have quantitative thresholds (dlPFC shifts >0.1 log units; insula reduces HEP ~30% AND PCI ~20%; High-IA × insula interaction). A majority score ignores whether any specific mandatory prediction passes.
+HIGH — Confidence calculation (_calculate_confidence()) uses stimulus intensity, response accuracy, and RT — a generic placeholder not connected to the actual APGI confidence model (which should derive from precision-weighted prediction error).
+HIGH — No run_validation() in Protocol 10 returns structured pass/fail per named prediction (P2.a, P2.b, P2.c) for propagation to the Aggregator's NAMED_PREDICTIONS dictionary — the Aggregator will therefore have no data for these three predictions.
+
+TODO:
+
+Replace scalar score with named-prediction logic: P2.a passes if dlpfc_threshold_shift > 0.1 log units (t-test, p<0.01); P2.b passes if hep_reduction >= 0.30 AND pci_reduction >= 0.20; P2.c passes if interaction F > threshold (partial η² ≥ 0.10).
+Return {"P2.a": {...}, "P2.b": {...}, "P2.c": {...}} from run_validation() for Aggregator consumption.
+Implement APGI-derived confidence as σ(Πⁱ · |εᵢ| − θₜ) rather than the current heuristic.
+
+
+Validation Protocol 11 — Cultural Neuroscience / Bayesian Estimation
+Rating: 48/100
+What is correctly implemented:
+
+Registered in Master Validator as "Bayesian Estimation"
+MCMC parameters (n_chains, burn_in, n_samples) accessible via GUI
+
+Critical deficiencies:
+
+CRITICAL — No implementation is indexed. The file Validation-Protocol-11.py appears to be a stub run_validation() shell only. No MCMC sampler, no prior/posterior specification, no Gelman-Rubin convergence diagnostics, no credible interval calculation.
+CRITICAL — Cultural neuroscience claims (the "secondary" tier rationale from Master_Validation) have no connection to APGI's mathematical model — it is unclear which paper section motivates this protocol.
+HIGH — Missing get_falsification_criteria() means falsification_status cannot be populated.
+
+TODO:
+
+Identify the paper section that specifies Protocol 11's theoretical motivation and quantitative predictions; map to specific APGI parameters.
+Implement PyMC3 or NumPyro MCMC with at least 4 chains, 1,000 burn-in, 5,000 post-warmup samples.
+Report R̂ (Gelman-Rubin) ≤ 1.01 for all parameters as a convergence gate.
+Add get_falsification_criteria() with Bayes-factor thresholds (BF > 10 for decisive evidence).
+
+
+Validation Protocol 12 — Liquid Network / Clinical-Cross-Species (Clinical-CrossSpecies-Convergence-Protocol4.py)
+Rating: 67/100
+What is correctly implemented:
+
+V12.1 (clinical gradient) and V12.2 (cross-species homology) formally checked
+Imports from falsification_thresholds.py for V12 constants
+LiquidTimeConstantChecker class present (stub)
+IIT-APGI convergence logic present
+
+Critical deficiencies:
+
+CRITICAL — V12.1 check imports V12_1_MIN_P3B_REDUCTION_PCT = 10.0 and V12_1_MIN_IGNITION_REDUCTION_PCT = 15.0 — but the paper spec (get_falsification_criteria() in this same file) says "≥80% reduction" and "≥70% reduction". The protocol checks against 10% when it should check against 80%.
+HIGH — V12.2 check uses V12_2_FALSIFICATION_CORR = 0.50 (the minimum to avoid falsification) rather than the paper's target r ≥ 0.60. The falsification boundary and the validation target are being used interchangeably.
+HIGH — LiquidTimeConstantChecker.check_ltc() returns {"status": "implemented"} with no actual computation — it is a documented stub.
+MEDIUM — Behavioral autonomy checks use fixed 0.55 spontaneous ratio and 0.50 novelty mean thresholds with no paper citation.
+
+TODO:
+
+Fix V12_1_MIN_P3B_REDUCTION_PCT = 80.0 and V12_1_MIN_IGNITION_REDUCTION_PCT = 70.0 in falsification_thresholds.py.
+Use V12_2_MIN_CORRELATION = 0.60 (the validation target), not the falsification boundary, as the passing threshold.
+Implement check_ltc(): simulate an echo state network with configurable spectral radius and leak rate; measure autocorrelation decay and integration window; check against F6.2 thresholds.
+
+
+
+
+
+
+# FALSIFICATION PROTOCOLS (12 Protocols)
 
 ## Falsification_ActiveInferenceAgents_F1F2.py
 
-FP-1: Active Inference Agent Falsification
+Falsification Protocol 1 — Active Inference Agents / F1 & F2 
 
-Diagnostic:
-
-HIGH: Implements F1.1–F1.6 and F2.1–F5.x falsification criteria with explicit threshold registries. The FalsificationChecker architecture is the strongest feature.
-HIGH: HierarchicalGenerativeModel and SomaticMarkerNetwork correctly implement the APGI dynamics. The ThresholdRegistry with configurable thresholds is excellent engineering.
-MEDIUM: The dependency on utils.shared_falsification and falsification_thresholds modules creates coupling without those modules being in-project — runtime failure risk.
-MEDIUM: F5 family (precision-gating family) falsification is imported rather than implemented — reduces auditability.
-LOW: The bootstrap CI functions at the top are correct but use a non-standard one-sample bootstrap (should use pivotal bootstrap for mean comparisons).
-
-✅ FIXED: Falsification thresholds constants have been bundled inline eliminating external dependency on utils.shared_falsification.
-✅ FIXED: F5 family (precision-gating family) falsification has been implemented directly rather than imported from shared module.
-✅ FIXED: Bootstrap CI functions have been updated to use pivotal bootstrap method for mean comparisons.
-✅ FIXED: Cumulative reward advantage threshold test against the paper's 18-trial benchmark has been added.
-✅ FIXED: "Ignition uncorrelated with behavior" falsification (p > 0.3 criterion from paper) has been implemented.
-✅ FIXED: All threshold constants have been validated against paper-specified values explicitly with inline documentation.
+HIGH — simulate_surprise_accumulation() uses a placeholder sigmoid (B_traj[i]) that does not connect to the actual ignition boolean — the ignition_times list is populated but the appending logic (if B_traj[i] > threshold) is truncated in the indexed code. Ignition detection is incomplete.
+HIGH — F6.5 bifurcation test in Falsification-EvolutionaryPlausibility-Standard6.py uses a hardcoded bifurcation_point = 0.15 and hysteresis = abs(0.15 - 0.05) rather than computing these from the actual simulated phase portrait. This is fabricated data.
+MEDIUM — F5_4_MIN_PEAK_SEPARATION = 0.20 in falsification_thresholds.py contradicts 3.0 inline — any file that imports from the constants file gets a 15× relaxed criterion.
 
 TODO:
 
-[COMPLETED - All major TODO items have been addressed]
+Complete the ignition detection loop: append i * dt to ignition_times when S_t > theta_t.
+Replace hardcoded bifurcation analysis with a proper phase portrait sweep: vary input drive from 0 to 2×θ_t in 100 steps, record stable ignition states, fit sigmoid to find the bifurcation point and hysteresis width.
+Fix F5_4_MIN_PEAK_SEPARATION = 3.0 in falsification_thresholds.py.
 
-## Falsification_AgentComparison_ConvergenceBenchmark.py
 
-FP-2: Iowa Gambling Task / Agent Comparison Falsification
+Falsification Protocol 2 — Agent Comparison / Convergence Benchmark (Falsification-AgentComparison-ConvergenceBenchmark.py)
+Rating: 72/100
+What is correctly implemented:
 
-Diagnostic:
+Same comprehensive check_falsification() signature as Protocol 1 (F1–F6 full suite)
+F2-specific parameters: Iowa Gambling Task, somatic marker advantage, RT advantage, confidence effect, learning trajectory
 
-HIGH: IowaGamblingTaskEnvironment, VolatileForagingEnvironment, and ThreatRewardTradeoffEnvironment are well-implemented and paper-aligned.
-MEDIUM: StandardPPAgent, GWTOnlyAgent, and StandardActorCriticAgent comparison agents are correctly structured but their internal dynamics differ subtly from VP-3 implementations — creating inconsistency risk between validation and falsification protocols.
-MEDIUM: The convergence trial count falsification (APGI must beat 80 trials) is not explicitly checked — only performance is.
-LOW: Duplicates environment implementations from FP-1 and VP-3.
+Critical deficiencies:
 
-TODO:
-
-Import environments from VP-3 rather than reimplementing (single source of truth)
-Add explicit convergence trial count falsification criterion
-Add the BIC comparison falsification: if Pure PP achieves lower BIC → falsified
-Align agent implementations precisely with VP-3 counterparts
-Add sensitivity analysis across the full parameter range simultaneously
-
-## Falsification_FrameworkLevel_MultiProtocol.py
-
-FP-3: Multi-Protocol Integration Falsification
-
-Diagnostic:
-
-CRITICAL: FP-3 uses runtime dynamic imports (importlib.util, _get_protocol1(), _get_protocol2()) which is fragile architecture. If VP-1 or VP-2 are not present at runtime, the protocol silently falls back to stubs.
-HIGH: The integration of multiple protocols into a unified falsification decision is conceptually correct (framework-level falsification requires all 14+ predictions to fail).
-MEDIUM: StandardPPAgent, GWTOnlyAgent, StandardActorCriticAgent are reimplemented a third time — identical to FP-2 and VP-3.
-LOW: `_softmax` and `_standardize_observation` utility functions should be shared utilities.
+HIGH — Duplicate F1–F3 criteria checking across Protocols 1, 2, 3, 6, 9, and 12 means any threshold error in the constants file is inherited by all six. This is architecturally correct (shared criteria), but the inconsistency in falsification_thresholds.py propagates to all.
+HIGH — apgi_time_to_criterion is typed as float here (in Protocol 2's function signature) but as int in Protocol 1's and in the paper (trials are integers). Type inconsistency could cause silent float comparison errors (<= on trial counts).
+MEDIUM — No survival analysis (log-rank test) is present for F2.5 (learning trajectory discrimination — "APGI reaches 70% by trial 45"), only a scalar apgi_time_to_criterion comparison.
 
 TODO:
 
-Replace dynamic imports with direct imports; add proper dependency documentation
-Eliminate agent reimplementation — import from shared module
-Add the 14+ prediction tally counter: framework falsification triggers when fewer than X pass
-Implement the framework-level falsification criterion: if all 14+ predictions fail, framework_falsified = True
-Add the alternative framework parsimony check (condition b): can GNWT/IIT account for same predictions?
-Add logging of which specific predictions pass/fail in the aggregate
+Fix apgi_time_to_criterion type to int consistently across all function signatures.
+Implement Kaplan-Meier log-rank test for F2.5: treat each agent's convergence trial as a survival event; compare APGI vs. no-somatic curves with scipy.stats.logrank_test or lifelines.
+Add an explicit cross-file threshold consistency test (a unit test that asserts falsification_thresholds.py values match the inline paper-validated values in F1F2.py).
 
-## Falsification_InformationTheoretic_PhaseTransition.py
 
-FP-4: Information-Theoretic Falsification
+Falsification Protocol 3 — Framework-Level Multi-Protocol (Falsification-FrameworkLevel-MultiProtocol.py)
+Rating: 65/100
+What is correctly implemented (from GUI registration):
 
-Diagnostic:
+AgentComparisonExperiment class
+Episode/agent-count parameterization
 
-HIGH: SurpriseIgnitionSystem.simulate() with the correct ODE dynamics (dS/dt = -S/τS + Π·|ε|) is the most accurate dynamical implementation across all protocols.
-HIGH: InformationTheoreticAnalysis.detect_phase_transition() correctly identifies the discontinuity signature at threshold crossing.
-MEDIUM: Transfer entropy and integrated information calculations are sound but computationally expensive without vectorization.
-LOW: At 1,047 lines, this protocol is significantly shorter than its VP-4 counterpart (4,025 lines) — the falsification side is underspecified relative to validation.
+Critical deficiencies:
 
-TODO:
-
-Add Level 2 falsification criteria explicitly: if transfer entropy < 0.1 bits → falsified
-Add the integrated information comparison against null (shuffled) baseline
-Implement vectorized transfer entropy for computational efficiency
-Add the bandwidth falsification: if mutual information > 100 bits/s → falsified
-Expand to include Level 1 falsification stubs (metabolic cost measurement protocols)
-Double the implementation depth to match VP-4 coverage
-
-## Falsification_EvolutionaryPlausibility_Standard6.py
-
-FP-5: Evolutionary Emergence Falsification
-
-Diagnostic:
-
-HIGH: EvolvableAgent with the APGI ignition equation and ContinuousUpdateAgent comparison are correctly implemented.
-MEDIUM: EvolutionaryAPGIEmergence tracks fitness landscape correctly but doesn't implement the formal fitness advantage quantification the paper requires.
-LOW: Duplicates VP-5 evolutionary machinery with slight parameter variations.
+HIGH — GUI registers this file for "Protocol 3: Agent Comparison" but Master_Validation.py registers Protocol-3 as "Agent Comparison Experiment" pointing to Validation-Protocol-3.py. There is a naming/routing collision between falsification and validation Protocol 3.
+HIGH — No indexed get_falsification_criteria() visible for this file — the framework-level criteria (conditions a and b, the 14 named predictions) live in APGI-Falsification-Aggregator.py, not here.
+MEDIUM — "Framework-Level" suggests this should synthesize results from Protocols 1–12 and apply the Aggregator logic — but no such synthesis loop is visible.
 
 TODO:
 
-Add formal fitness advantage quantification (APGI vs continuous; ≥20% criterion)
-Add Standard 6 compliance score (0–5 per criterion)
-Eliminate duplication with VP-5; share genome/agent classes
-Add convergent evolution test: do multiple independent runs converge to similar architectures?
-Add the simplicity constraint: does a simpler architecture without precision-gating achieve similar fitness?
+Rename the file to avoid collision with Validation-Protocol-3.py; update GUI and Master registrations.
+Import and call APGI-Falsification-Aggregator functions from here to close the framework-level assessment loop.
+Implement synthesis: load each protocol's JSON results, call aggregate_prediction_results(), then check_framework_falsification_condition_a() and _condition_b().
 
-## Falsification_NeuralNetwork_EnergyBenchmark.py
 
-FP-6: Neural Network Architecture Falsification
+Falsification Protocol 4 — Information-Theoretic Phase Transition (Falsification-InformationTheoretic-PhaseTransition.py)
+Rating: 63/100
+What is correctly implemented:
 
-Diagnostic:
+Transfer entropy falsification (F4.1 approximation)
+Mutual information falsification
+Integrated information with surrogate baseline
+Level 2 phase transition criteria (F4.1–F4.5)
 
-HIGH: APGIInspiredNetwork is faithfully reimplemented with threshold gating, matching VP-6.
-MEDIUM: NetworkComparisonExperiment performs the comparison correctly but lacks the energy-per-correct-detection metric.
-LOW: Duplicates VP-6 substantially. The falsification-specific logic (when does the network fail to outperform?) is underspecified.
+Critical deficiencies:
 
-✅ FIXED: Energy-per-correct-detection as primary falsification metric (≥20% advantage criterion) has been implemented in SpikeEnergyMonitor.
-✅ FIXED: Spike count / ATP budget calculation has been added with proper energy constants from Attwell & Laughlin (2001).
-✅ FIXED: Explicit falsification condition: if MLP/LSTM achieves equivalent accuracy within 5% → falsified has been implemented.
-✅ FIXED: Statistical test for performance difference (not just point estimates) has been added with proper significance testing.
-✅ FIXED: Network architecture duplication from VP-6 has been reduced through better code organization.
+CRITICAL — Level 1 falsification (metabolic cost, energy efficiency, thermodynamic plausibility) is explicitly a stub with three # TODO: Implement actual comments. All three stubs use placeholder thresholds (> 10.0, < 0.1, < 0.01) with no paper citation.
+HIGH — run_level1_falsification_stubs() always returns metabolic_cost_falsified: False when the cost-benefit ratio is ≤ 10.0 — but the placeholder formula is not grounded in biology. The Attwell & Laughlin ATP budget (∼10⁹ ATP/spike) must be the basis.
+HIGH — overall_falsified logic (transfer OR mutual OR integrated) is too permissive — any one of three criteria falsifies the entire protocol. The paper specifies that all three must fail for falsification, not any one.
 
 TODO:
 
-[COMPLETED - All major TODO items have been addressed]
+Implement metabolic cost: measure spike count per ignition event; multiply by 1e9 ATP; compare to energetic budget of prefrontal cortex (~0.5W, ~10¹⁸ ATP/s).
+Fix overall_falsified logic to require transfer_entropy_falsified AND mutual_info_falsified AND integrated_info_falsified (conjunction, not disjunction) for Level 2; Level 1 should be a separate gate.
+Implement Hurst exponent via DFA for F4.5.
 
-## Falsification_MathematicalConsistency_Equations.py
 
-FP-7: Mathematical Consistency Checks
+Falsification Protocol 5 — Evolutionary Plausibility (Falsification-EvolutionaryPlausibility-Standard6.py)
+Rating: 69/100
+What is correctly implemented:
 
-Diagnostic:
+F5.1–F6.6 criteria all formally checked
+Genome-based analysis with evolutionary selection pressure
+F6.5 bifurcation and hysteresis check present
+Binomial tests for emergence proportions
 
-CRITICAL: At 368 lines, this is severely underdeveloped. Mathematical consistency is a foundational falsification requirement (Standard III, mechanistic specificity).
-HIGH: verify_dimensional_homogeneity(), verify_surprise_derivatives(), verify_asymptotic_behavior(), verify_jacobian_stability() are the right functions — but each is only ~20–40 lines.
-HIGH: The Jacobian stability analysis (verify_jacobian_stability()) uses numerical differentiation rather than the analytical Jacobian — less rigorous.
-MEDIUM: No tests for the threshold adaptation equation stability (θₜ₊₁ dynamics).
-LOW: No tests for the effective interoceptive precision formula (Πⁱ_eff = Πⁱ_baseline · exp(β·M)).
+Critical deficiencies:
 
-## Falsification_ParameterSensitivity_Identifiability.py
-
-FP-8: Parameter Sensitivity Analysis
-
-Diagnostic:
-
-✅ FIXED: Full Sobol sensitivity indices using SALib have been implemented with proper first-order and total-order index calculations.
-✅ FIXED: β/Πⁱ collinearity sensitivity test has been explicitly implemented with VIF analysis and correlation matrices.
-✅ FIXED: Parameter recovery analysis (simulate data → estimate parameters → compare) has been implemented in validate_parameter_recovery functions.
-✅ FIXED: Fisher Information Matrix analysis for identifiability has been added with eigenvalue analysis and condition number calculations.
-✅ FIXED: Expanded to 1,500+ lines with systematic parameter space exploration including convergence analysis.
-✅ FIXED: Falsification criterion for Sobol total index < 0.05 indicating redundant parameters has been implemented.
+CRITICAL — F6.5 uses hardcoded values: hysteresis = abs(0.15 - 0.05) = 0.10, bifurcation_point = 0.15. These are not computed from a simulation — they are literal constants that will always produce the same result regardless of model parameters.
+HIGH — F5.5 import path: from falsification_thresholds import F5_5_PCA_MIN_LOADING, F5_5_PCA_MIN_VARIANCE — these are the relaxed values (0.40, 0.60), not the paper-correct values (0.60, 0.70).
+MEDIUM — alternative_modules_needed and performance_gap_without_addons for F6.6 are passed in as parameters from the caller — meaning correctness depends entirely on how the caller generates these values. No defensive validation of their derivation exists.
 
 TODO:
 
-[COMPLETED - All major TODO items verified as implemented in the codebase]
-
-## Falsification_NeuralSignatures_EEG_P3b_HEP.py
-
-FP-9: Neural Signatures Validation
-
-Diagnostic:
-
-CRITICAL: At 410 lines, severely underdeveloped for what should be the core neural falsification protocol.
-HIGH: detect_gamma_oscillation(), detect_theta_gamma_pac(), detect_p3_amplitude() are correctly framed but are very thin wrappers.
-HIGH: P3b falsification threshold (< 0.3 µV or non-significant) is correct but the range (0.40–0.60 Cohen's d) from the paper is not enforced.
-MEDIUM: validate_consciousness_markers() provides a framework-level pass/fail but the individual prediction mapping (P1.1, P2.b, etc.) is absent.
-
-TODO:
-
-Expand to 2,000+ lines with comprehensive EEG analysis functions
-Add HEP amplitude falsification (< 0.2 µV criterion)
-Add the double-dissociation test for TMS: insula vs dlPFC differential effects
-Connect each function output to a specific named paper prediction
-Add real MNE pipeline compatibility
-Add frequency-specific power analysis (gamma 30–80Hz, theta 4–8Hz) with paper-specified bands
+Replace F6.5 hardcoded values with a bifurcation sweep: iterate Πⁱ·|εᵢ| from 0 to 2 in 200 steps; record B_t; fit a threshold sigmoid; extract the 50% crossing point and hysteresis width from ascending vs. descending sweeps.
+Import from the corrected falsification_thresholds.py after fixing F5.5 constants.
+Add caller-side validation: assert alternative_modules_needed >= 0 and performance_gap_without_addons >= 0 before passing to check_falsification().
 
 
-## Falsification_CrossSpeciesScaling_P12.py
+Falsification Protocol 6 — Neural Network Energy Benchmark (Falsification-NeuralNetwork-EnergyBenchmark.py / NetworkComparisonExperiment)
+Rating: 70/100
+What is correctly implemented (inferred from GUI):
 
-FP-10: Cross-Species Scaling
+NetworkComparisonExperiment class with extero/intero/action/context dimensions
+Episode-based comparison
 
-Diagnostic:
+Critical deficiencies (same as Validation Protocol 6 — they share threshold infrastructure):
 
-CRITICAL: At 237 lines, this is the shortest and most underdeveloped file in the entire codebase. Cross-species scaling (Standard 6, Level 1 P12) is a genuine scientific contribution that deserves full treatment.
-HIGH: apply_cross_species_scaling() and calculate_allometric_exponent() are mathematically correct but trivially thin.
-HIGH: No actual species data, no brain mass scaling, no reference to the allometric relationships the paper implies.
+HIGH — Shares all threshold discrepancies with Validation-Protocol-6 (F6.1=200ms, F6.2=50ms, ratio=1.5×).
+HIGH — No paper-grounded ATP cost per correct detection comparison is visible in the indexed content.
+MEDIUM — BIC/AIC model comparison must be implemented as specified in the paper.
 
-TODO:
+TODO: Same as Validation Protocol 6, plus: implement formal BIC comparison between APGI-network and baseline architectures fitted to the same task data.
 
-Expand from 237 to 1,500+ lines — this is critically incomplete
-Add actual species data: rat (1.5g brain), macaque (70g), human (1,350g), dolphin (~1,500g), elephant (~4,780g)
-Implement the brain mass allometric scaling for Πⁱ, θₜ, and τS parameters
-Add the phylogenetic conservation test: is the precision-gating mechanism homologous?
-Add falsification criterion: P12 is falsified if allometric exponent deviates >2 SD from expected
-Connect to the evolutionary plausibility claim with quantitative cross-species benchmarks
+Falsification Protocol 7 — Mathematical Consistency (Falsification-MathematicalConsistency-Equations.py)
+Rating: 64/100
+What is correctly implemented:
 
-## Falsification_BayesianEstimation_ParameterRecovery.py
+Numerical derivative checking with configurable epsilon and tolerance
+MathematicalConsistencyChecker class
+Sample count parameterization
 
-FP-11: Bayesian Estimation
+Critical deficiencies:
 
-Diagnostic:
-
-HIGH: Both NUTS (run_bayesian_estimation_nuts()) and Metropolis-Hastings (run_bayesian_estimation_mh()) samplers are implemented.
-HIGH: compute_posterior_distributions() and calculate_bayesian_factor() are correctly framed.
-MEDIUM: The NUTS implementation uses PyMC3 but the priors are not aligned with paper-specified parameter ranges.
-MEDIUM: get_falsification_criteria() is implemented but the criteria don't map to specific named paper predictions.
+HIGH — Tolerance 1e-5 (GUI default) vs. paper 1e-6 (V5.1 in criteria_registry). The implementation is 10× less stringent.
+HIGH — Equations tested are not enumerated in indexed content. The paper requires testing at minimum: (a) surprise ODE dS/dt = −S/τS + Πe·|εe| + β·Πi·|εi|, (b) ignition sigmoid B = σ(α(S−θt)), (c) allostatic threshold update dθt/dt, (d) free energy gradient. It's unknown if all four are covered.
+MEDIUM — No analytical cross-validation against closed-form solutions (as done elegantly in EvolutionaryEmergence-AnalyticalValidation.py).
 
 TODO:
 
-Align all priors with paper-specified ranges: Πⁱ ~ HalfNormal(1.0), β ~ Normal(1.15, 0.3), θ₀ ~ Normal(0.5, 0.1)
-Add convergence diagnostics (R-hat, effective sample size)
-Add the formal identifiability test for β/Πⁱ collinearity
-Map each Bayesian factor to a specific paper prediction
-Add the hierarchical model version (pooling across subjects)
-Add calibration checks: does posterior coverage match credible interval nominal rates?
+Set default tolerance to 1e-6.
+Enumerate all four core equations explicitly; test each with at least 1,000 random parameter draws within physiological ranges.
+Add closed-form cross-validation for steady-state solutions wherever analytical solutions exist (import from AnalyticalAPGISolutions).
 
-## Falsification_LiquidNetworkDynamics_EchoState.py
 
-FP-12: Liquid Network Validation
+Falsification Protocol 8 — Parameter Sensitivity & Identifiability (Falsification-ParameterSensitivity-Identifiability.py)
+Rating: 67/100
+What is correctly implemented (from GUI):
 
-Diagnostic:
+Sobol sensitivity analysis (n_samples, n_trials parameters)
+One-at-a-time (OAT) sensitivity with n_levels
+ParameterSensitivityAnalyzer class
 
-HIGH: test_echo_state_property(), test_fading_memory(), test_non_linearity(), test_separation_capacity() are the correct reservoir computing validation tests for liquid time-constant networks.
-MEDIUM: test_fading_memory() uses exponential decay fitting which is correct but the decay time constant is not connected to the paper's τ parameter ranges.
-MEDIUM: validate_network_topology() and validate_connectivity_pattern() check structural properties but don't test the specific liquid network dynamics from Paper 2 (LNN substrate).
-LOW: At 466 lines, this deserves 1,500+ lines given Paper 2's focus on liquid networks.
+Critical deficiencies:
+
+HIGH — Sobol indices require n_samples to be a power of 2 for SALib's Saltelli sampler — the default 1000 is not a power of 2 (nearest valid values: 512, 1024). This will cause silent approximation errors or runtime warnings.
+HIGH — No identifiability analysis is visible — Sobol sensitivity tells you which parameters matter, but identifiability (whether parameters are uniquely recoverable from data) requires profile likelihood or MCMC posterior geometry analysis. The paper standard requires both.
+MEDIUM — No falsification criterion gate: sensitivity analysis should declare falsification if S_total(θt) < S_total(Πi) (threshold less sensitive than precision — contradicting APGI's theoretical hierarchy).
 
 TODO:
 
-Expand to 1,500+ lines
-Connect fading memory time constant to APGI's τS (0.3–0.5s from paper)
-Add the separation capacity falsification: if liquid network cannot separate conscious/unconscious trials → falsified
-Add the echo state property test with the paper's connectivity density requirements
-Add the liquid time-constant (LTC) neuron model explicitly (learnable τ per neuron)
-Add the phase transition test: does the network exhibit critical dynamics near the ignition threshold?
+Fix n_samples to 1024 (default) and enforce power-of-2 in the parameterization.
+Add profile likelihood for each of the four APGI parameters to test practical identifiability (flat profiles = non-identifiable).
+Add a falsification gate based on sensitivity rank ordering: APGI predicts S_total(θt) > S_total(β) > S_total(Πi) > S_total(Πe) — any inversion should register as a falsification signal.
 
 
-## ISSUES
+Falsification Protocol 9 — Neural Signatures EEG P3b HEP (Falsification-NeuralSignatures-EEG-P3b-HEP.py)
+Rating: 66/100
+What is correctly implemented (from GUI):
 
-2. ❌ NOT DONE: Systemic Code Duplication — The Iowa Gambling Task environment, agent classes (StandardPP, GWTOnly, ActorCritic), and bootstrap CI functions are reimplemented identically across 4–5 files each. A shared_environments.py and shared_agents.py module would eliminate this and reduce maintenance burden.
-   - STATUS: Neither shared_environments.py nor shared_agents.py exist
+NeuralSignatureValidator class
+P3b and HEP signatures
 
-✅ FIXED: Framework-Level Falsification Counter has been implemented in APGI-Falsification-Aggregator.py with comprehensive prediction tally.
-✅ FIXED: The aggregator counts how many predictions have passed/failed across the suite and triggers global framework-falsification flag.
-✅ FIXED: All 14+ named predictions are tracked with explicit pass/fail criteria and aggregate scoring.
+Critical deficiencies:
 
-STATUS: ✅ COMPLETED - APGI_FrameworkFalsification_Aggregator.py exists and implements framework-level falsification logic
+CRITICAL — Named predictions P4.a (PCI+HEP joint AUC > 0.80), P4.b (DMN↔PCI r > 0.50; DMN↔HEP r < 0.20), P4.c (cold pressor increases PCI >10% in MCS), P4.d (baseline PCI+HEP predicts 6-month recovery ΔR² > 0.10) must each map to a specific falsification check. No indexed content confirms these four are implemented.
+HIGH — NeuralSignatureValidator must interface with the Aggregator so P4.a–P4.d can be tallied in NAMED_PREDICTIONS. Without this interface, four of the fourteen named predictions will always show as unknown.
+MEDIUM — HEP amplitude simulation must use a physiologically valid range (10–50 µV) and cardiac cycle timing (R-peak ± 600ms) — it is unclear if the synthetic data generation respects these constraints.
 
+TODO:
 
-## STATUS SUMMARY
-
-### MAJOR COMPLETED ITEMS ✅
-
-**Framework-Level Falsification**: ✅ COMPLETED
-- APGI-Falsification-Aggregator.py implements comprehensive prediction tally
-- Counts passed/failed predictions across all protocols
-- Triggers global framework-falsification flag when all 14+ predictions fail
-- Implements both condition (a) and (b) from framework falsification specification
-
-**VP-3 (Active Inference Agent Simulations)**: ✅ COMPLETED
-- Formal BIC computation implemented
-- Systematic cross-validation (k-fold) added
-- Explicit convergence trial count comparisons with statistical tests
-- Sensitivity analysis grid across parameter ranges
-- Falsification conditions for performance advantage and behavior correlation
-
-**VP-12 (Clinical Cross-Species Convergence)**: ✅ COMPLETED
-- P4d longitudinal model (PCI + HEP → 6-month CRS-R outcome)
-- Target ΔR² ≈ 0.10–0.15 improvement test with bootstrap validation
-- Autonomic perturbation interventions with sham controls
-- Psychiatric profiles with β parameter abnormality signatures
-- Power analysis for clinical protocols (n=30 per group)
-
-**FP-1 (Active Inference Agent Falsification)**: ✅ COMPLETED
-- Falsification thresholds bundled inline
-- F5 family implemented directly
-- Pivotal bootstrap method
-- Cumulative reward advantage threshold tests
-- "Ignition uncorrelated with behavior" falsification
-- All threshold constants validated against paper specifications
-
-**FP-6 (Neural Network Energy Benchmark)**: ✅ COMPLETED
-- Energy-per-correct-detection metric (≥20% advantage)
-- Spike count / ATP budget calculation
-- Explicit falsification conditions
-- Statistical performance difference tests
-- Reduced code duplication
-
-**FP-8 (Parameter Sensitivity Analysis)**: ✅ COMPLETED
-- Full Sobol sensitivity indices using SALib
-- β/Πⁱ collinearity sensitivity tests
-- Parameter recovery analysis
-- Fisher Information Matrix analysis
-- Expanded to 1,500+ lines
-- Falsification criteria for redundant parameters
-
-### REMAINING ISSUES ⚠️
-
-**Systemic Code Duplication**: ❌ NOT ADDRESSED
-- Iowa Gambling Task environment duplicated across 4-5 files
-- Agent classes (StandardPP, GWTOnly, ActorCritic) reimplemented identically
-- Bootstrap CI functions duplicated
-- STATUS: Neither shared_environments.py nor shared_agents.py exist
-
-**Core Equation Inconsistency**: ⚠️ PARTIALLY ADDRESSED
-- Threshold adaptation equation exists in three distinct forms across protocols
-- Form A (Correct) implemented in FP-1
-- Form B (Incomplete) in FP-4 (missing metabolic cost driver)
-- Form C (Missing) in VP-1 through VP-6 data generators
-- Need canonical APGIDynamics class in shared_dynamics.py
-
-**Missing Paper Protocols**: ❌ NOT IMPLEMENTED
-- Paper Protocol 5 (fMRI Anticipation vs Experience) - Complete gap
-- Paper Protocol 6 (Parameter Estimation) - Complete gap
-- Estimated: 3,500+ lines of missing implementation
-
-**Underdeveloped Falsification Protocols**: ⚠️ NEED EXPANSION
-- FP-7 (Mathematical Consistency): 368 lines → needs 1,500+ lines
-- FP-9 (Neural Signatures): 410 lines → needs 2,000+ lines
-- FP-10 (Cross-Species Scaling): 237 lines → needs 1,500+ lines
-
-### OVERALL ASSESSMENT
-
-**Completion Rate**: ~70% of major TODO items completed
-**Critical Missing Items**: Framework-level aggregation ✅ COMPLETED
-**Highest Priority Issues**: Code duplication, equation consistency, missing Paper Protocols 5-6 
-
-Create the Missing Protocol: Paper Protocol 5 (fMRI Anticipation vs Experience)
-No current file implements P5a–P5d (vmPFC/amygdala anticipatory correlation, posterior insula dissociation, PPI analysis, learning curves). This is a complete gap. Estimated: 2,000 lines.
-
-Create the Missing Protocol: Paper Protocol 6 (Parameter Estimation)
-No file implements the full parameter estimation protocol with double-dissociation pharmacological design. Estimated: 1,500 lines.
-
-Finding 1: Core Equation Inconsistency Across Protocols — ⚠️ PARTIALLY ADDRESSED
-
-The threshold adaptation equation exists in three distinct forms across the 24 files, which means the dynamical system is not canonically identical in all protocols:
-
-Form A (Correct — FP-1, FP-1 agent):
-
-```python
-dtheta_dt = (theta_0 - theta_t) / tau_theta + eta_theta * (metabolic_cost - information_value)
-theta_t += dtheta_dt * dt
-```
-
-This correctly implements the paper's θₜ₊₁ = θₜ + η(C_metabolic - V_information) with a restoring force toward baseline.
-
-Form B (Incomplete — FP-4, FP-4 simulate loop):
-
-```python
-dtheta_dt = (theta_0 - theta_t) / tau_theta   # eta_theta term ABSENT
-theta_t += dtheta_dt * dt
-```
-
-This omits the metabolic cost driver entirely. The threshold in FP-4 decays passively to baseline but never rises in response to metabolic load — the central claim of the APGI framework goes untested in this protocol.
-Form C (Missing entirely — VP-1 through VP-6 data generators):
-The synthetic data generators in VP-1 do not include threshold adaptation at all in their trial generation logic — only in the APGIDynamicalSystem.simulate_surprise_accumulation() method, which is not called during trial generation.
-Remediation (applies to all 24 files):
-Create a canonical APGIDynamics class in shared_dynamics.py with the complete, correct equations. Every protocol must import and use this single source of truth. The canonical class must implement:
-
-dS/dt = -S/τS + Πᵉ·|εᵉ| + β·Πⁱ·|εⁱ|
-dθ/dt = (θ₀ - θ)/τθ + η(C_metabolic - V_information)
-Πⁱ_eff = Πⁱ_baseline · exp(β · M(c,a))
-P(ignition) = σ(α · (S - θ))
-
-STATUS:
-- FP-4 still uses incomplete Form B (lines 121-122, 217-218 in Falsification-InformationTheoretic-PhaseTransition.py)
-- shared_dynamics.py does NOT exist
-- REMAINING: Create shared_dynamics.py and update all protocols to use it
-
-Finding 2: The Πⁱ_eff Formula — ⚠️ PARTIALLY ADDRESSED
-
-The signature equation of the APGI framework — Πⁱ_eff = Πⁱ_baseline · exp(β · M(c,a)) — appears in its correct mathematical form in only one file: Validation-Protocol-5.py (line 192: return Pi_i_baseline  *np.exp(beta* M)).
-In all other protocols, the somatic marker modulation of interoceptive precision is implemented as a scalar multiplication, a neural network output, or simply omitted. Specifically:
-
-FP-1 uses SomaticMarkerNetwork.predict() (a neural net output substituted for the exponential formula)
-FP-2 through FP-6 use agent step functions without the explicit exponential term
-VP-7, VP-8 parameterize β as a constant without the M(c,a) somatic marker context-action function
-
-Remediation: The Πⁱ_eff formula must be explicitly implemented in every protocol that claims to test precision-gated access. The somatic marker M(c,a) must be a context-and-action-indexed lookup or neural approximator — not a fixed scalar — in all agent implementations.
-
-STATUS:
-- Correctly implemented in VP-5 (EvolutionaryEmergence-AnalyticalValidation.py line 201)
-- Most other protocols still do NOT use the explicit exponential formula
-- REMAINING: Add explicit Πⁱ_eff = Πⁱ_baseline · exp(β · M(c,a)) to all protocols
-
-Finding 3: Validation-Protocol-P4-Epistemic.py Is Circular and Ungrounded — ❌ NOT FIXED
-
-This file validates predictions P5–P12 entirely through self-generated random data. For example:
-
-P9 (metabolic cost): Generates random exponential variates with pre-set means (1.0 vs 1.2) and tests whether the 20% difference is significant. Since the data is generated with the answer embedded, this test will always pass with sufficient n. This is circular validation, not empirical testing.
-P10 (energy efficiency): Same pattern — generates Normal(10, 1) vs Normal(12, 1) and computes advantage. Guaranteed to pass.
-P8 (information erasure): Generates SOA curves with hardcoded break at 50ms — the falsification criterion is baked into the data generator.
-
-Rating adjustment: VP-P4-Epistemic drops from an apparent pass rate to 42/100 on account of this structural circularity. The simulations are syntactically valid Python but scientifically self-confirming.
-Suggested name: APGI_EpistemicPredictions_P5_P12_PLACEHOLDER.py (pending real data integration)
-TODO: for VP-P4-Epistemic:
-
-Replace all random data generation with real-data pipelines or at minimum parameter-blind simulations where the analyst does not control the generative parameters
-For P9: implement the ATP spike-budget calculation from Attwell & Laughlin (2001) using spiking network output — not exponential variates
-For P10: implement the ≥20% energy-per-correct-detection test against a matched continuous-processing baseline agent
-For P6: implement an actual information-transmission rate measurement over a signal channel, not a hardcoded asymptote curve
-For P7: implement a proper Bayes-optimal detector and compare APGI ignition probability against the theoretical optimal ROC — not a simulated comparison with preset means
-For P8: implement a genuine backward masking simulation with a mask generator that does not embed the 50ms cutoff as a control parameter
-
-STATUS:
-- File still uses random data generation with embedded answers (lines 81-100 show synthetic data generation)
-- REMAINING: Replace all circular validation with parameter-blind simulations or real data
+Implement all four P4 named-prediction checks with paper thresholds; return them in a dict that matches the NAMED_PREDICTIONS key format.
+Add run_validation() that returns {"P4.a": ..., "P4.b": ..., "P4.c": ..., "P4.d": ...} for Aggregator consumption.
+Validate HEP amplitude range against literature (Candia-Rivera et al., 2021).
 
 
-**Step 2.1 — Refactor FP-4 threshold adaptation**
-Replace `dtheta_dt = (theta_0 - theta_t) / tau_theta` with the full Form A equation including `eta_theta * (C_metabolic - V_information)`.
+Falsification Protocol 10 — Bayesian Estimation MCMC (Falsification-BayesianEstimation-MCMC.py)
+Rating: 55/100
+What is correctly implemented (from GUI):
 
-**Step 2.2 — Add Πⁱ_eff formula to all agent step() methods**
-FP-1, FP-2, FP-3, FP-5, FP-6 must all call `Pi_i_eff = Pi_i_baseline  *np.exp(beta* M_ca)` explicitly in their precision computation, not use a neural net surrogate.
+BayesianEstimation class with MCMC parameters (n_samples, n_chains, burn-in)
 
-**Step 2.3 — Remove circular data generation from VP-P4-Epistemic**
-Replace self-confirming random generators with parameter-blind simulation or real-data hooks for P5–P12.
+Critical deficiencies:
 
-**Step 2.4 — Enforce paper-specified parameter ranges as assertions**
-Every protocol that instantiates an APGI agent should assert: `0.6 <= beta <= 2.2`, `0.1 <= Pi_i <= 2.0`, `0.3 <= theta_0 <= 0.8`, `0.3 <= tau_S <= 0.5`.
+CRITICAL — No sampler implementation visible. 5,000 MCMC samples across 4 chains with 1,000 burn-in is specified in the GUI but the actual sampling logic is unindexed.
+HIGH — Gelman-Rubin diagnostic (R̂ ≤ 1.01) is a mandatory convergence check not visible in indexed content.
+HIGH — Bayes factor computation for model comparison (APGI vs. StandardPP vs. GWTOnly) is not implemented.
 
-** Step 3.1 — Create the Missing Protocol: Paper Protocol 5 (fMRI Anticipation vs Experience)
-No current file implements P5a–P5d (vmPFC/amygdala anticipatory correlation, posterior insula dissociation, PPI analysis, learning curves). This is a complete gap. Estimated: 2,000 lines.
-Step 3.3 — Create the Missing Protocol: Paper Protocol 6 (Parameter Estimation)
-No file implements the full parameter estimation protocol with double-dissociation pharmacological design. Estimated: 1,500 lines.
+TODO:
 
-Step 4.1 — FP-10 (237 lines → 1,500 lines)
-Add species data, allometric exponents, phylogenetic conservation test, P12 falsification criterion.
-Step 4.2 — FP-8 (345 lines → 1,500 lines)
-Implement true Sobol indices using SALib, add Fisher Information Matrix, add β/Πⁱ collinearity test.
-Step 4.3 — FP-7 (368 lines → 1,500 lines)
-Add analytical Jacobian, θₜ₊₁ stability analysis, Πⁱ_eff formula verification, dimensional analysis for all parameters.
-Step 4.4 — FP-9 (410 lines → 2,000 lines)
-Add HEP amplitude falsification, double-dissociation TMS test, per-prediction mapping, MNE pipeline hooks.
-Step 4.5 — FP-12 (466 lines → 1,500 lines)
-Connect fading memory τ to paper's τS, add LTC neuron model, add phase transition test, add separation capacity criterion.
-Step 4.6 — VP-P4-Epistemic (644 lines → 2,000 lines, non-circular)
-Rebuild all P5–P12 validators without self-confirming data generation.
-Step 4.7 — VP-10 (1,385 lines → 2,500 lines)
-Expand causal manipulations: add cold pressor, breathlessness, ethics stubs, MNE hooks, double-dissociation ANOVA.
+Implement MCMC using PyMC or NumPyro: define priors over {θ₀, Πe, Πi, β, α} from physiological ranges; define likelihood as the APGI psychometric function; sample posterior.
+Add R̂ gate: if any parameter's R̂ > 1.01, return {"passed": False, "reason": "non-convergence"}.
+Compute Bayes factors via ArviZ LOO-CV or bridge sampling.
 
 
-Create APGI_FrameworkFalsification_Aggregator.py
-Implement the 14-prediction counter, condition (a) and (b) falsification checks, and the competing framework parsimony comparison (GNWT, IIT). This is the capstone file that gives the project scientific completeness. Estimated: 800 lines.
+Falsification Protocol 11 — Liquid Network Dynamics Echo State (Falsification-LiquidNetworkDynamics-EchoState.py)
+Rating: 61/100
+What is correctly implemented (from GUI):
 
-Add JSON result export to every protocol
-Every main() function must write results to results/{protocol_name}_results.json. The aggregator reads these files. Add a run_all_protocols.py orchestrator.
+LiquidNetworkDynamicsAnalyzer class
+Spectral radius, leak rate, n_units parameterization
+
+Critical deficiencies:
+
+HIGH — Echo state network implementation: spectral radius < 1.0 is required for the echo state property — the GUI allows values up to 2.0 without a guard, which would produce an unstable reservoir.
+HIGH — F6.1–F6.4 liquid-specific criteria (transition time, integration window, fading memory decay τ=1–3s, bifurcation structure) must all be tested against the ESN dynamics — it is unclear if all four are implemented.
+MEDIUM — F6_5_HYSTERESIS_MIN = 0.05 and _MAX = 0.30 in constants but paper spec and inline validation in F1F2.py say 0.08–0.25. Both boundary values are wrong.
+
+TODO:
+
+Add guard: spectral_radius = min(spectral_radius, 0.98) before reservoir initialization, or raise ValueError for values ≥ 1.0.
+Implement F6.3 (sparsity), F6.4 (fading memory: fit exponential decay to impulse response, assert τ ∈ [1.0, 3.0]s), F6.5 (bifurcation sweep on ESN input gain).
+Fix F6_5_HYSTERESIS_MIN = 0.08 and F6_5_HYSTERESIS_MAX = 0.25.
 
 
+Falsification Protocol 12 — Framework-Level Aggregator (APGI-Falsification-Aggregator.py)
+Rating: 38/100
+This is the single most critical gap in the entire system.
+What is correctly implemented:
 
-# APGI Protocols
+NAMED_PREDICTIONS dict with all 14 predictions correctly specified
+FRAMEWORK_FALSIFICATION_THRESHOLD_A and ALTERNATIVE_FRAMEWORK_PARSIMONY_THRESHOLD constants
+Correct logic for check_framework_falsification_condition_a() (zero-predictions-pass check)
+check_framework_falsification_condition_b() stub with correct docstring
 
-| Old File Name | Rating | File Name |
-| ---- | ------ | ---------------- |
-| Validation-Protocol-1.py | 62/100 | SyntheticEEG_MLClassification.py |
-| Validation-Protocol-2.py | 71/100 | BayesianModelComparison_ParameterRecovery.py |
-| Validation-Protocol-3.py | 82/100 | ActiveInference_AgentSimulations_Protocol3.py |
-| Validation-Protocol-4.py | 74/100 | InformationTheoretic_PhaseTransition_Level2.py |
-| Validation-Protocol-5.py | 66/100 | EvolutionaryEmergence_AnalyticalValidation.py |
-| Validation-Protocol-6.py | 68/100 | NeuralNetwork_InductiveBias_ComputationalBenchmark.py |
-| Validation-Protocol-7.py | 79/100 | TMS_Pharmacological_CausalIntervention_Protocol2.py |
-| Validation-Protocol-8.py | 77/100 | Psychophysical_ThresholdEstimation_Protocol1.py |
-| Validation-Protocol-9.py | 73/100 | ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py |
-| Validation-Protocol-10.py | 70/100 | CausalManipulations_TMS_Pharmacological_Priority2.py |
-| Validation-Protocol-11.py | 75/100 | QuantitativeModelFits_SpikingLNN_Priority3.py |
-| Validation-Protocol-12.py | 76/100 | Clinical_CrossSpecies_Convergence_Protocol4.py |
-| Falsification-Protocol-1.py | 74/100 | Falsification_ActiveInferenceAgents_F1F2.py |
-| Falsification-Protocol-2.py | 72/100 | Falsification_AgentComparison_ConvergenceBenchmark.py |
-| Falsification-Protocol-3.py | 65/100 | Falsification_FrameworkLevel_MultiProtocol.py |
-| Falsification-Protocol-4.py | 73/100 | Falsification_InformationTheoretic_PhaseTransition.py |
-| Falsification-Protocol-5.py | 70/100 | Falsification_EvolutionaryPlausibility_Standard6.py |
-| Falsification-Protocol-6.py | 68/100 | Falsification_NeuralNetwork_EnergyBenchmark.py |
-| Falsification-Protocol-7.py | 63/100 | Falsification_MathematicalConsistency_Equations.py |
-| Falsification-Protocol-8.py | 60/100 | Falsification_ParameterSensitivity_Identifiability.py |
-| Falsification-Protocol-9.py | 62/100 | Falsification_NeuralSignatures_EEG_P3b_HEP.py |
-| Falsification-Protocol-10.py | 55/100 | Falsification_CrossSpeciesScaling_P12.py |
-| Falsification-Protocol-11.py | 67/100 | Falsification_BayesianEstimation_ParameterRecovery.py |
-| Falsification-Protocol-12.py | 65/100 | Falsification_LiquidNetworkDynamics_EchoState.py |
+Critical deficiencies:
 
-## STATUS SUMMARY
+CRITICAL — aggregate_prediction_results() is a literal stub (...). The function body is ... — Python's ellipsis. It is completely unimplemented. This means the aggregator can never be called in practice.
+CRITICAL — check_framework_falsification_condition_b() has no body. The docstring describes the logic but the function contains no code — it will return None.
+CRITICAL — No JSON result file loading, no result tallying, no mapping of protocol outputs to named predictions. The entire framework-level falsification pipeline is structurally declared but computationally empty.
+HIGH — Condition (a) logic is correct (passing == 0) but FRAMEWORK_FALSIFICATION_THRESHOLD_A = len(NAMED_PREDICTIONS) = 14 is set but never used in the condition check — the variable exists but the check doesn't reference it, making the constant meaningless.
+HIGH — GNWT and IIT prediction dicts are required as parameters to both condition functions but no code anywhere generates these dicts — comparative framework analysis is entirely absent.
 
-**Validation Protocols (VP-1 to VP-12):**
-- VP-1: ✅ COMPLETED - SyntheticEEG-MLClassification.py (1,050 lines) - Verified: Protocol1Psychophysics class with P1.1-P1.3 predictions implemented
-- VP-2: ✅ COMPLETED - BayesianModelComparison-ParameterRecovery.py (1,200 lines) - Verified: Protocol2TMSCausalIntervention class with P2a-P2c predictions implemented
-- VP-3: ✅ COMPLETED - ActiveInference-AgentSimulations-Protocol3.py (3,747 lines) - Verified: BIC, cross-validation, convergence tracking implemented
-- VP-4: ⚠️ NEEDS WORK - InformationTheoretic_PhaseTransition_Level2.py (1,800 lines)
-- VP-5: ✅ COMPLETED - EvolutionaryEmergence_AnalyticalValidation.py (1,500 lines) - Verified: P5a-P5d implemented
-- VP-6: ✅ COMPLETED - NeuralNetwork_InductiveBias_ComputationalBenchmark.py (1,500 lines) - Verified: P6a-P6d implemented
-- VP-7: ✅ COMPLETED - TMS_Pharmacological_CausalIntervention_Protocol2.py (1,500 lines) - Verified: P7a-P7d implemented
-- VP-8: ✅ COMPLETED - Psychophysical_ThresholdEstimation_Protocol1.py (1,500 lines) - Verified: P8a-P8d implemented
-- VP-9: ✅ COMPLETED - ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py (1,500 lines) - Verified: P9a-P9d implemented
-- VP-10: ✅ COMPLETED - CausalManipulations_TMS_Pharmacological_Priority2.py (1,500 lines) - Verified: P10a-P10d implemented
-- VP-11: ✅ COMPLETED - QuantitativeModelFits_SpikingLNN_Priority3.py (1,500 lines) - Verified: P11a-P11d implemented
-- VP-12: ✅ COMPLETED - Clinical_CrossSpecies_Convergence_Protocol4.py (3,019 lines) - Verified: P4d longitudinal model, autonomic perturbation, psychiatric profiles implemented
+TODO:
 
-**Falsification Protocols (FP-1 to FP-12):**
-- FP-1: ✅ COMPLETED - Falsification-ActiveInferenceAgents-F1F2.py (3,390 lines) - Verified: Threshold registry, bootstrap functions, F1-F6 falsification implemented
-- FP-2: ❌ NOT STARTED - (placeholder file or missing)
-- FP-3: ❌ NOT STARTED - (placeholder file or missing)
-- FP-4: ❌ NOT STARTED - (placeholder file or missing)
-- FP-5: ❌ NOT STARTED - (placeholder file or missing)
-- FP-6: ✅ COMPLETED - Falsification-NeuralNetwork-EnergyBenchmark.py (2,134 lines) - Verified: Energy-per-correct-detection, ATP spike cost, falsification conditions implemented
-- FP-7: ⚠️ NEEDS WORK - Falsification-MathematicalConsistencyChecks.py (368 lines)
-- FP-8: ✅ COMPLETED - Falsification-ParameterSensitivity-Identifiability.py (1,615 lines) - Verified: Sobol indices, β/Πⁱ collinearity, parameter recovery, FIM analysis implemented
-- FP-9: ⚠️ NEEDS WORK - Falsification-NeuralSignatures_EEG_P3b_HEP.py (410 lines)
-- FP-10: ❌ NOT STARTED - (placeholder file or missing)
-- FP-11: ❌ NOT STARTED - (placeholder file or missing)
-- FP-12: ❌ NOT STARTED - (placeholder file or missing)
+Implement aggregate_prediction_results(result_files):
+
+python   import json
+   def aggregate_prediction_results(result_files):
+       tallies = {k: {"passed": False, "evidence": []} for k in NAMED_PREDICTIONS}
+       for path in result_files:
+           with open(path) as f:
+               data = json.load(f)
+           for pred_id, result in data.get("named_predictions", {}).items():
+               if pred_id in tallies:
+                   tallies[pred_id]["passed"] |= result.get("passed", False)
+                   tallies[pred_id]["evidence"].append(path)
+       return tallies
+
+Implement check_framework_falsification_condition_b():
+
+python   def check_framework_falsification_condition_b(apgi_predictions, gnwt_predictions, iit_predictions):
+       apgi_passing = {k for k, v in apgi_predictions.items() if v.get("passed")}
+       for alt_preds in [gnwt_predictions, iit_predictions]:
+           alt_passing = {k for k, v in alt_preds.items() if v.get("passed")}
+           overlap = len(apgi_passing & alt_passing) / max(len(apgi_passing), 1)
+           if overlap >= ALTERNATIVE_FRAMEWORK_PARSIMONY_THRESHOLD:
+               return True  # APGI loses distinctiveness
+       return False
+
+Use FRAMEWORK_FALSIFICATION_THRESHOLD_A in condition (a): change the check to return passing < FRAMEWORK_FALSIFICATION_THRESHOLD_A — the framework is not falsified if any predictions pass (the constant captures the "all must fail" requirement).
+Add a generate_gnwt_predictions() and generate_iit_predictions() function that applies the same 14 prediction tests using alternative-framework models.
+
+
+# ISSUES
+
+(1) fix falsification_thresholds.py constants, and (2) implement APGI-Falsification-Aggregator.py. These two changes unblock every other protocol's scoring and close the framework-level falsification gap that currently makes the system scientifically inert at the aggregation layer.
+
+1. falsification_thresholds.py — The Canonical Source of Truth Is Wrong (Impact: ALL protocols)
+The constants file is the single most impactful deficiency. A corrected version must set:
+ConstantCurrent (Wrong)Correct (Paper)F5_1_MIN_PROPORTION0.700.75F5_1_MIN_ALPHA3.04.0F5_1_MIN_COHENS_D0.500.80F5_2_MIN_PROPORTION0.700.65F5_2_MIN_CORRELATION0.300.45F5_4_MIN_PEAK_SEPARATION0.203.0F5_5_PCA_MIN_VARIANCE0.600.70F5_5_MIN_LOADING0.400.60F5_6_MIN_PERFORMANCE_DIFF_PCT5.025.0 (or 40.0)F5_6_MIN_COHENS_D0.400.55F6_1_LTCN_MAX_TRANSITION_MS200.050.0F6_1_CLIFFS_DELTA_MIN0.300.60F6_1_MANN_WHITNEY_ALPHA0.050.01F6_2_LTCN_MIN_WINDOW_MS50.0200.0F6_2_MIN_INTEGRATION_RATIO1.504.0F6_2_MIN_CURVE_FIT_R20.800.85F6_2_WILCOXON_ALPHA0.050.01V12_1_MIN_P3B_REDUCTION_PCT10.080.0V12_1_MIN_IGNITION_REDUCTION_PCT15.070.0V12_1_MIN_COHENS_D0.400.80V12_1_MIN_ETA_SQUARED0.100.30V12_2_MIN_CORRELATION0.300.60V12_2_MIN_PILLAIS_TRACE0.150.40F6_5_HYSTERESIS_MIN0.050.08F6_5_HYSTERESIS_MAX0.300.25
+2. Master_Validation.py — Equal Tier Weighting Contradicts Paper's Evidential Hierarchy
+The master uses tier_weights = {"primary": 1.0, "secondary": 1.0, "tertiary": 1.0} with an inline comment defending this as preventing underweighting. However, the paper's epistemic roadmap explicitly assigns evidential priority: Level 1 predictions (metabolic/energy) are hardest to fake and should receive higher weight. The weighting should reflect the paper's 3-tier evidential hierarchy rather than treating all tiers equally.
+3. Named Prediction → Protocol Routing Table Is Missing
+The Aggregator's 14 NAMED_PREDICTIONS (P1.1, P1.2, P1.3, P2.a–c, P3.conv, P3.bic, P4.a–d, P5.a–b) are not connected to any protocol's run_validation() output by a formal routing table. Add a dict:
+pythonPREDICTION_TO_PROTOCOL = {
+    "P1.1": "Validation-Protocol-8",
+    "P1.2": "Validation-Protocol-8",
+    "P1.3": "Validation-Protocol-8",
+    "P2.a": "Validation-Protocol-10",
+    "P2.b": "Validation-Protocol-10",
+    "P2.c": "Validation-Protocol-10",
+    "P3.conv": "Validation-Protocol-3",
+    "P3.bic": "Validation-Protocol-3",
+    "P4.a": "Falsification-Protocol-9",
+    "P4.b": "Falsification-Protocol-9",
+    "P4.c": "Falsification-Protocol-9",
+    "P4.d": "Falsification-Protocol-9",
+    "P5.a": "Validation-Protocol-10",
+    "P5.b": "Validation-Protocol-10",
+}
+This routing table then drives aggregate_prediction_results().
+4. Unit Test Suite for Threshold Consistency Is Absent
+Add tests/test_threshold_consistency.py that imports both falsification_thresholds.py and the inline-validated constants from Falsification-ActiveInferenceAgents-F1F2.py and asserts equality for every shared constant. This prevents future regressions.
+
+Overall Ratings Summary
+ProtocolScorePrimary GapValidation 1 (SyntheticEEG)62/100McNemar stub, threshold constants wrongValidation 2 (Behavioral)55/100Near-stub implementationValidation 3 (Agent Comparison)72/100Missing BIC, convergence aggregation biasValidation 4 (Phase Transition)68/100Level 1 stubs, P6 threshold invertedValidation 5 (Evolutionary)74/100Threshold constants systematically relaxedValidation 6 (Network)71/100F6.1/F6.2 constants 4× offValidation 7 (Math Consistency)66/100Tolerance 10× loose, equations not enumeratedValidation 8 (Parameter Sensitivity)70/100β-blockade model fabricated, threshold mismatchesValidation 9 (Neural Signatures)73/100F6.1 value = 80ms not 50msValidation 10 (Causal/TMS)58/100Named prediction P2.a–c not returnedValidation 11 (Bayesian)48/100Near-stub, MCMC not implementedValidation 12 (Clinical/Cross-Species)67/100V12.1 threshold 8× too smallFalsification 1 (Active Inference)78/100Ignition detection incompleteFalsification 2 (Agent Comparison)72/100Type inconsistency, no log-rank testFalsification 3 (Framework Multi)65/100Routing collision with validationFalsification 4 (Info-Theoretic)63/100Level 1 fully unimplementedFalsification 5 (Evolutionary)69/100Bifurcation values hardcodedFalsification 6 (Network Energy)70/100Same as Validation 6Falsification 7 (Math Consistency)64/100Tolerance, equation coverageFalsification 8 (Parameter Sensitivity)67/100n_samples not power-of-2, no identifiabilityFalsification 9 (Neural Sig. P3b/HEP)66/100P4.a–P4.d not wired to AggregatorFalsification 10 (Bayesian MCMC)55/100Sampler unimplementedFalsification 11 (Liquid ESN)61/100Spectral radius guard missingFalsification 12 (Aggregator)38/100Entire body is ... stubs
