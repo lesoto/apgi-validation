@@ -67,6 +67,17 @@ class ParticipantData:
     hrv_rmssd: float
     reaction_time: float
     confidence_rating: float
+    # TODO 1: Exercise arousal condition
+    heart_rate_rest: float
+    heart_rate_exercise: float
+    arousal_condition: str  # 'rest', 'exercise'
+    psychometric_threshold_arousal: float  # Threshold under arousal
+    # TODO 4: Garfinkel SD-split criterion
+    ia_group: str  # 'high_IA', 'low_IA' based on >1 SD heartbeat discrimination
+    # TODO 6: Pharmacological β-blockade
+    beta_blocker_condition: str  # 'placebo', 'beta_blocker'
+    psychometric_threshold_blockade: float  # Threshold under β-blockade
+    pi_i_blockade: float  # Πⁱ under β-blockade (disambiguated from β)
 
     def to_dict(self) -> Dict[str, Any]:
         result = self.apgi_params.to_dict()
@@ -80,6 +91,14 @@ class ParticipantData:
                 "hrv_rmssd": self.hrv_rmssd,
                 "reaction_time": self.reaction_time,
                 "confidence_rating": self.confidence_rating,
+                "heart_rate_rest": self.heart_rate_rest,
+                "heart_rate_exercise": self.heart_rate_exercise,
+                "arousal_condition": self.arousal_condition,
+                "psychometric_threshold_arousal": self.psychometric_threshold_arousal,
+                "ia_group": self.ia_group,
+                "beta_blocker_condition": self.beta_blocker_condition,
+                "psychometric_threshold_blockade": self.psychometric_threshold_blockade,
+                "pi_i_blockade": self.pi_i_blockade,
             }
         )
         return result
@@ -215,6 +234,41 @@ class APGIPsychophysicalEstimator:
         confidence_rating = 3.0 + 2.0 * (1 - theta_0) + np.random.normal(0, 0.5)
         confidence_rating = np.clip(confidence_rating, 1, 5)
 
+        # TODO 1: Exercise arousal condition (HR 100-120 bpm)
+        heart_rate_rest = np.random.normal(70, 10)  # Resting HR
+        heart_rate_rest = np.clip(heart_rate_rest, 55, 90)
+
+        # Exercise HR: 100-120 bpm range
+        heart_rate_exercise = np.random.normal(110, 8)  # Exercise HR
+        heart_rate_exercise = np.clip(heart_rate_exercise, 100, 120)
+
+        # Arousal reduces threshold (simulated effect)
+        arousal_benefit = 0.05 + 0.1 * pi_i  # Higher pi_i = greater arousal benefit
+        psychometric_threshold_arousal = (
+            psychometric_threshold - arousal_benefit + np.random.normal(0, 0.02)
+        )
+
+        # TODO 4: Garfinkel et al. (2015) SD-split criterion
+        # Classify as high_IA if heartbeat_detection > 1 SD above mean
+        # We'll compute this after all participants are generated
+        ia_group = "high_IA" if heartbeat_detection > 0.65 else "low_IA"
+
+        # TODO 6: Pharmacological β-blockade condition
+        # β-blocker reduces β effect, isolating Πⁱ
+        beta_blocker_condition = (
+            "placebo" if np.random.random() < 0.5 else "beta_blocker"
+        )
+
+        if beta_blocker_condition == "beta_blocker":
+            # Under β-blocker, β effect is reduced by ~70%
+            psychometric_threshold_blockade = theta_0 + 0.05 + np.random.normal(0, 0.03)
+            # Πⁱ can be estimated more directly without β confound
+            pi_i_blockade = pi_i + np.random.normal(0, 0.1)
+            pi_i_blockade = np.clip(pi_i_blockade, 0.5, 2.5)
+        else:
+            psychometric_threshold_blockade = psychometric_threshold
+            pi_i_blockade = pi_i
+
         return ParticipantData(
             participant_id=len(self.participants) + 1,
             apgi_params=apgi_params,
@@ -225,6 +279,14 @@ class APGIPsychophysicalEstimator:
             hrv_rmssd=hrv_rmssd,
             reaction_time=reaction_time,
             confidence_rating=confidence_rating,
+            heart_rate_rest=heart_rate_rest,
+            heart_rate_exercise=heart_rate_exercise,
+            arousal_condition="rest",
+            psychometric_threshold_arousal=psychometric_threshold_arousal,
+            ia_group=ia_group,
+            beta_blocker_condition=beta_blocker_condition,
+            psychometric_threshold_blockade=psychometric_threshold_blockade,
+            pi_i_blockade=pi_i_blockade,
         )
 
     def run_psychophysical_experiment(
@@ -338,6 +400,10 @@ class APGIPsychophysicalEstimator:
             "falsification_tests": {},
             "reliability_analysis": {},
             "factor_analysis": {},
+            "arousal_analysis": {},  # TODO 1, 2, 3
+            "garfinkel_sd_split": {},  # TODO 4
+            "khalsa_benchmark": {},  # TODO 5
+            "beta_disambiguation": {},  # TODO 6
         }
 
         # Test P3a: Interoceptive Precision Correlates
@@ -376,6 +442,154 @@ class APGIPsychophysicalEstimator:
             "correlation": r_theta_beta,
             "negative_relationship": r_theta_beta < 0,
         }
+
+        # TODO 4: Garfinkel et al. (2015) SD-split criterion
+        # Recompute IA groups based on actual SD of heartbeat_detection
+        hb_mean = df["heartbeat_detection"].mean()
+        hb_sd = df["heartbeat_detection"].std()
+        df.loc[:, "ia_group_computed"] = df["heartbeat_detection"].apply(
+            lambda x: "high_IA" if x > hb_mean + hb_sd else "low_IA"
+        )
+
+        high_ia = df[df["ia_group_computed"] == "high_IA"]
+        low_ia = df[df["ia_group_computed"] == "low_IA"]
+
+        results["garfinkel_sd_split"] = {
+            "mean_heartbeat_detection": hb_mean,
+            "sd_heartbeat_detection": hb_sd,
+            "high_ia_count": len(high_ia),
+            "low_ia_count": len(low_ia),
+            "high_ia_mean_pi_i": high_ia["pi_i"].mean() if len(high_ia) > 0 else None,
+            "low_ia_mean_pi_i": low_ia["pi_i"].mean() if len(low_ia) > 0 else None,
+            "passed": len(high_ia) > 0 and len(low_ia) > 0,
+        }
+
+        # TODO 5: Khalsa et al. (2018) meta-analytic benchmark (r = 0.43)
+        # Test correlation between heartbeat detection and psychometric threshold
+        r_hb_threshold, p_hb_threshold = stats.pearsonr(
+            df["heartbeat_detection"].values, df["psychometric_threshold"].values
+        )
+        results["khalsa_benchmark"] = {
+            "correlation": r_hb_threshold,
+            "p_value": p_hb_threshold,
+            "target_r": 0.43,
+            "passed": abs(r_hb_threshold) >= 0.35 and p_hb_threshold < 0.05,
+        }
+
+        # TODO 1 & 2: Exercise arousal condition and P1.2 arousal interaction test
+        # Calculate arousal benefit
+        df = df.copy()  # Ensure we're working with a copy
+        print(f"DEBUG: Available columns: {list(df.columns)}")
+        df.loc[:, "arousal_benefit"] = (
+            df["psychometric_threshold_arousal"] - df["psychometric_threshold_arousal"]
+        )
+
+        # Test if arousal reduces threshold (main effect)
+        mean_arousal_benefit = df["arousal_benefit"].mean()
+        t_arousal, p_arousal = stats.ttest_1samp(df["arousal_benefit"], 0)
+
+        # P1.2: Arousal interaction test (arousal × precision interaction)
+        # Test if high pi_i individuals show greater arousal benefit
+        median_pi_i = df["pi_i"].median()
+        df.loc[:, "pi_i_group"] = df["pi_i"].apply(
+            lambda x: "high_pi" if x > median_pi_i else "low_pi"
+        )
+
+        high_pi = df[df["pi_i_group"] == "high_pi"]
+        low_pi = df[df["pi_i_group"] == "low_pi"]
+
+        arousal_benefit_high_pi = high_pi["arousal_benefit"].values
+        arousal_benefit_low_pi = low_pi["arousal_benefit"].values
+
+        # Cohen's d for interaction effect
+        pooled_sd = np.sqrt(
+            (
+                (len(arousal_benefit_high_pi) - 1) * np.var(arousal_benefit_high_pi)
+                + (len(arousal_benefit_low_pi) - 1) * np.var(arousal_benefit_low_pi)
+            )
+            / (len(arousal_benefit_high_pi) + len(arousal_benefit_low_pi) - 2)
+        )
+        cohens_d_interaction = (
+            np.mean(arousal_benefit_high_pi) - np.mean(arousal_benefit_low_pi)
+        ) / pooled_sd
+
+        t_interaction, p_interaction = stats.ttest_ind(
+            arousal_benefit_high_pi, arousal_benefit_low_pi
+        )
+
+        results["arousal_analysis"] = {
+            "mean_arousal_benefit": mean_arousal_benefit,
+            "t_arousal": t_arousal,
+            "p_arousal": p_arousal,
+            "high_pi_arousal_benefit": np.mean(arousal_benefit_high_pi),
+            "low_pi_arousal_benefit": np.mean(arousal_benefit_low_pi),
+            "cohens_d_interaction": cohens_d_interaction,
+            "p_interaction": p_interaction,
+            "P1_2_passed": 0.25 <= cohens_d_interaction <= 0.45
+            and p_interaction < 0.05,
+        }
+
+        # P1.3: High-IA individuals show greater arousal benefit
+        high_ia_arousal = (
+            high_ia["arousal_benefit"].values if len(high_ia) > 0 else np.array([])
+        )
+        low_ia_arousal = (
+            low_ia["arousal_benefit"].values if len(low_ia) > 0 else np.array([])
+        )
+
+        if len(high_ia_arousal) > 0 and len(low_ia_arousal) > 0:
+            cohens_d_ia = (
+                np.mean(high_ia_arousal) - np.mean(low_ia_arousal)
+            ) / np.sqrt((np.var(high_ia_arousal) + np.var(low_ia_arousal)) / 2)
+            t_ia, p_ia = stats.ttest_ind(high_ia_arousal, low_ia_arousal)
+            results["arousal_analysis"]["P1_3"] = {
+                "high_ia_arousal_benefit": np.mean(high_ia_arousal),
+                "low_ia_arousal_benefit": np.mean(low_ia_arousal),
+                "cohens_d": cohens_d_ia,
+                "p_value": p_ia,
+                "passed": cohens_d_ia > 0.30 and p_ia < 0.05,
+            }
+        else:
+            results["arousal_analysis"]["P1_3"] = {
+                "passed": False,
+                "error": "Insufficient data for IA groups",
+            }
+
+        # TODO 6: β/Πⁱ disambiguation protocol (pharmacological β-blockade)
+        placebo = df[df["beta_blocker_condition"] == "placebo"]
+        beta_blocker = df[df["beta_blocker_condition"] == "beta_blocker"]
+
+        if len(placebo) > 0 and len(beta_blocker) > 0:
+            # Test if β-blocker increases threshold (reduces β effect)
+            threshold_diff = (
+                beta_blocker["psychometric_threshold_blockade"].mean()
+                - placebo["psychometric_threshold_blockade"].mean()
+            )
+            t_blockade, p_blockade = stats.ttest_ind(
+                beta_blocker["psychometric_threshold_blockade"].values,
+                placebo["psychometric_threshold_blockade"].values,
+            )
+
+            # Test if pi_i_blockade correlates with pi_i (should be high)
+            r_pi_blockade, p_pi_blockade = stats.pearsonr(
+                df["pi_i"].values, df["pi_i_blockade"].values
+            )
+
+            results["beta_disambiguation"] = {
+                "threshold_increase": threshold_diff,
+                "t_blockade": t_blockade,
+                "p_blockade": p_blockade,
+                "pi_i_blockade_correlation": r_pi_blockade,
+                "pi_i_blockade_p": p_pi_blockade,
+                "passed": threshold_diff > 0.02
+                and p_blockade < 0.05
+                and r_pi_blockade > 0.60,
+            }
+        else:
+            results["beta_disambiguation"] = {
+                "passed": False,
+                "error": "Insufficient data for blockade conditions",
+            }
 
         # Test P3c: Test-Retest Reliability (simulated)
         # Simulate test-retest by adding noise
@@ -501,6 +715,66 @@ class APGIPsychophysicalEstimator:
             "total_tests": len(results["falsification_tests"]),
         }
 
+        # Add TODO tests to falsification criteria
+        # TODO 1: Exercise arousal condition
+        results["falsification_tests"]["TODO_1_arousal"] = {
+            "passed": mean_arousal_benefit > 0.03 and p_arousal < 0.05,
+            "description": "Exercise arousal reduces threshold",
+            "mean_benefit": mean_arousal_benefit,
+            "p_value": p_arousal,
+        }
+
+        # TODO 2: P1.2 arousal interaction test
+        results["falsification_tests"]["TODO_2_P1_2_interaction"] = {
+            "passed": results["arousal_analysis"]["P1_2_passed"],
+            "description": "Arousal × precision interaction (Cohen's d = 0.25-0.45)",
+            "cohens_d": cohens_d_interaction,
+            "p_value": p_interaction,
+        }
+
+        # TODO 3: P1.3 high-IA arousal benefit
+        results["falsification_tests"]["TODO_3_P1_3_high_ia"] = {
+            "passed": results["arousal_analysis"]["P1_3"]["passed"]
+            if "P1_3" in results["arousal_analysis"]
+            else False,
+            "description": "High-IA individuals show greater arousal benefit",
+            "cohens_d": results["arousal_analysis"]["P1_3"]["cohens_d"]
+            if "P1_3" in results["arousal_analysis"]
+            else 0,
+            "p_value": results["arousal_analysis"]["P1_3"]["p_value"]
+            if "P1_3" in results["arousal_analysis"]
+            else 1,
+        }
+
+        # TODO 4: Garfinkel SD-split criterion
+        results["falsification_tests"]["TODO_4_garfinkel_sd_split"] = {
+            "passed": results["garfinkel_sd_split"]["passed"],
+            "description": "Garfinkel et al. (2015) SD-split criterion (>1 SD vs <1 SD)",
+            "high_ia_count": results["garfinkel_sd_split"]["high_ia_count"],
+            "low_ia_count": results["garfinkel_sd_split"]["low_ia_count"],
+        }
+
+        # TODO 5: Khalsa meta-analytic benchmark
+        results["falsification_tests"]["TODO_5_khalsa_benchmark"] = {
+            "passed": results["khalsa_benchmark"]["passed"],
+            "description": "Khalsa et al. (2018) meta-analytic benchmark (r = 0.43)",
+            "correlation": results["khalsa_benchmark"]["correlation"],
+            "target_r": 0.43,
+            "p_value": results["khalsa_benchmark"]["p_value"],
+        }
+
+        # TODO 6: β/Πⁱ disambiguation protocol
+        results["falsification_tests"]["TODO_6_beta_disambiguation"] = {
+            "passed": results["beta_disambiguation"]["passed"],
+            "description": "β/Πⁱ disambiguation protocol (pharmacological β-blockade)",
+            "threshold_increase": results["beta_disambiguation"].get(
+                "threshold_increase", 0
+            ),
+            "pi_i_blockade_correlation": results["beta_disambiguation"].get(
+                "pi_i_blockade_correlation", 0
+            ),
+        }
+
         return results
 
     def save_results(self, results: Dict[str, Any]):
@@ -545,10 +819,10 @@ class APGIPsychophysicalEstimator:
         data = [p.to_dict() for p in self.participants]
         df = pd.DataFrame(data)
 
-        # Create large figure with multiple subplots
-        fig, axes = plt.subplots(3, 4, figsize=(20, 14))
+        # Create larger figure with additional subplots for TODO items
+        fig, axes = plt.subplots(4, 4, figsize=(24, 18))
         fig.suptitle(
-            "APGI Protocol 8: Individual Differences Analysis",
+            "APGI Protocol 8: Individual Differences Analysis (with TODO implementations)",
             fontsize=16,
             fontweight="bold",
         )
@@ -578,43 +852,143 @@ class APGIPsychophysicalEstimator:
         axes[1, 2].set_xlabel("θ₀")
         axes[1, 2].set_ylabel("β")
 
-        # Psychometric function example
-        stimulus_range = np.linspace(0, 1, 100)
-        for i in range(min(5, len(self.participants))):
-            p = self.participants[i]
-            # Use lapse parameter of 0.01 to match psychometric_function signature
+        # TODO 5: Khalsa et al. (2018) meta-analytic benchmark
+        axes[1, 3].scatter(
+            df["heartbeat_detection"], df["psychometric_threshold"], alpha=0.6
+        )
+        axes[1, 3].set_title("Khalsa Benchmark: HB Detection vs Threshold")
+        axes[1, 3].set_xlabel("Heartbeat Detection")
+        axes[1, 3].set_ylabel("Psychometric Threshold")
+        r_hb = results["khalsa_benchmark"]["correlation"]
+        axes[1, 3].text(
+            0.05,
+            0.95,
+            f"r = {r_hb:.3f}",
+            transform=axes[1, 3].transAxes,
+            verticalalignment="top",
+            bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+        )
+        axes[2, 1].set_xlabel("Resting HR (bpm)")
+        axes[2, 1].set_ylabel("Exercise HR (bpm)")
+        axes[2, 1].legend()
+        axes[2, 0].set_ylabel("Frequency")
+        axes[2, 0].axvline(
+            df["arousal_benefit"].mean(),
+            color="red",
+            linestyle="--",
+            label=f"Mean: {df['arousal_benefit'].mean():.3f}",
+        )
+        axes[2, 0].legend()
 
-            def psych_func(x):
-                return 0.01 + (1 - 2 * 0.01) / (
-                    1 + np.exp(-p.psychometric_slope * (x - p.psychometric_threshold))
-                )
+        # TODO 1: HR comparison
+        axes[2, 1].scatter(
+            df["heart_rate_rest"], df["heart_rate_exercise"], alpha=0.6, color="red"
+        )
+        axes[2, 1].plot([55, 90], [100, 120], "k--", label="Target range")
+        axes[2, 1].set_title("Exercise HR Condition (TODO 1)")
+        axes[2, 1].set_xlabel("Resting HR (bpm)")
+        axes[2, 1].set_ylabel("Exercise HR (bpm)")
+        axes[2, 1].legend()
 
-            axes[1, 3].plot(
-                stimulus_range,
-                psych_func(stimulus_range),
-                alpha=0.7,
-                label=f"P{p.participant_id}",
-            )
-        axes[1, 3].set_title("Example Psychometric Functions")
-        axes[1, 3].set_xlabel("Stimulus Intensity")
-        axes[1, 3].set_ylabel("P(Response)")
-        axes[1, 3].legend()
+        # TODO 2 & 3: P1.2 and P1.3 Arousal interaction tests
+        median_pi_i = df["pi_i"].median()
+        df["pi_i_group"] = df["pi_i"].apply(
+            lambda x: "High Π_i" if x > median_pi_i else "Low Π_i"
+        )
+        high_pi = df[df["pi_i_group"] == "High Π_i"]
+        low_pi = df[df["pi_i_group"] == "Low Π_i"]
 
-        # 3. Correlation heatmap
+        axes[2, 2].bar(
+            ["Low Π_i", "High Π_i"],
+            [low_pi["arousal_benefit"].mean(), high_pi["arousal_benefit"].mean()],
+            color=["lightblue", "lightcoral"],
+            edgecolor="black",
+        )
+        axes[2, 2].set_title("P1.2: Arousal × Π_i Interaction (TODO 2)")
+        axes[2, 2].set_ylabel("Arousal Benefit")
+        cohens_d = results["arousal_analysis"]["cohens_d_interaction"]
+        axes[2, 2].text(
+            0.5,
+            0.95,
+            f"Cohen's d = {cohens_d:.3f}",
+            transform=axes[2, 2].transAxes,
+            ha="center",
+            va="top",
+            bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+        )
+
+        # TODO 4: Garfinkel SD-split criterion
+        df["ia_group_computed"] = df["heartbeat_detection"].apply(
+            lambda x: "High IA"
+            if x > df["heartbeat_detection"].mean() + df["heartbeat_detection"].std()
+            else "Low IA"
+        )
+        high_ia = df[df["ia_group_computed"] == "High IA"]
+        low_ia = df[df["ia_group_computed"] == "Low IA"]
+
+        axes[2, 3].bar(
+            ["Low IA", "High IA"],
+            [
+                low_ia["arousal_benefit"].mean() if len(low_ia) > 0 else 0,
+                high_ia["arousal_benefit"].mean() if len(high_ia) > 0 else 0,
+            ],
+            color=["lightgreen", "lightpink"],
+            edgecolor="black",
+        )
+        axes[2, 3].set_title("P1.3: IA × Arousal Interaction (TODO 3)")
+        axes[2, 3].set_ylabel("Arousal Benefit")
+
+        # 4. TODO 6: β/Πⁱ disambiguation protocol
+        placebo = df[df["beta_blocker_condition"] == "placebo"]
+        beta_blocker = df[df["beta_blocker_condition"] == "beta_blocker"]
+
+        axes[3, 0].bar(
+            ["Placebo", "β-blocker"],
+            [
+                placebo["psychometric_threshold_blockade"].mean()
+                if len(placebo) > 0
+                else 0,
+                beta_blocker["psychometric_threshold_blockade"].mean()
+                if len(beta_blocker) > 0
+                else 0,
+            ],
+            color=["lightblue", "salmon"],
+            edgecolor="black",
+        )
+        axes[3, 0].set_title("β-blockade Effect on Threshold (TODO 6)")
+        axes[3, 0].set_ylabel("Psychometric Threshold")
+
+        axes[3, 1].scatter(df["pi_i"], df["pi_i_blockade"], alpha=0.6, color="purple")
+        axes[3, 1].plot([0.5, 2.5], [0.5, 2.5], "k--", label="Identity line")
+        axes[3, 1].set_title("Πⁱ Blockade Validation (TODO 6)")
+        axes[3, 1].set_xlabel("Πⁱ (baseline)")
+        axes[3, 1].set_ylabel("Πⁱ (under β-blocker)")
+        r_pi = results["beta_disambiguation"].get("pi_i_blockade_correlation", 0)
+        axes[3, 1].text(
+            0.05,
+            0.95,
+            f"r = {r_pi:.3f}",
+            transform=axes[3, 1].transAxes,
+            verticalalignment="top",
+            bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+        )
+        axes[3, 1].legend()
+
+        # Correlation heatmap
         correlation_matrix = df[param_names].corr()
-        axes[2, 0].imshow(
+        axes[3, 2].imshow(
             correlation_matrix, cmap="coolwarm", aspect="auto", vmin=-1, vmax=1
         )
-        axes[2, 0].set_xticks(range(len(param_names)))
-        axes[2, 0].set_yticks(range(len(param_names)))
-        axes[2, 0].set_xticklabels(param_names, rotation=45)
-        axes[2, 0].set_yticklabels(param_names)
-        axes[2, 0].set_title("Parameter Correlations")
+        axes[3, 2].set_xticks(range(len(param_names)))
+        axes[3, 2].set_yticks(range(len(param_names)))
+        axes[3, 2].set_xticklabels(param_names, rotation=45)
+        axes[3, 2].set_yticklabels(param_names)
+        axes[3, 2].set_title("Parameter Correlations")
 
         # Add correlation values to heatmap
         for i in range(len(param_names)):
             for j in range(len(param_names)):
-                axes[2, 0].text(
+                axes[3, 2].text(
                     j,
                     i,
                     f"{correlation_matrix.iloc[i, j]:.2f}",
@@ -624,65 +998,20 @@ class APGIPsychophysicalEstimator:
                     fontsize=8,
                 )
 
-        # 4. Test-retest reliability
+        # Test-retest reliability
         iccs = results["reliability_analysis"]["test_retest_icc"]
-        axes[2, 1].bar(
+        axes[3, 3].bar(
             iccs.keys(),
             iccs.values(),
             color=["skyblue", "lightgreen", "salmon", "gold"],
         )
-        axes[2, 1].set_title("Test-Retest Reliability (ICC)")
-        axes[2, 1].set_ylabel("ICC")
-        axes[2, 1].tick_params(axis="x", rotation=45)
-        axes[2, 1].axhline(
-            y=0.7, color="red", linestyle="--", alpha=0.7, label="Minimum threshold"
+        axes[3, 3].set_title("Test-Retest Reliability (ICC)")
+        axes[3, 3].set_ylabel("ICC")
+        axes[3, 3].tick_params(axis="x", rotation=45)
+        axes[3, 3].axhline(
+            y=0.7, color="red", linestyle="--", alpha=0.7, label="Min threshold"
         )
-        axes[2, 1].legend()
-
-        # 5. Falsification results summary
-        test_names = list(results["falsification_tests"].keys())[:-1]  # Exclude overall
-        test_results = [
-            results["falsification_tests"][test]["passed"] for test in test_names
-        ]
-        colors = ["green" if result else "red" for result in test_results]
-
-        axes[2, 2].barh(test_names, [1] * len(test_names), color=colors)
-        axes[2, 2].set_title("Falsification Test Results")
-        axes[2, 2].set_xlim(0, 1)
-        axes[2, 2].set_xticks([])
-        for i, (name, result) in enumerate(zip(test_names, test_results)):
-            axes[2, 2].text(
-                0.5,
-                i,
-                "PASS" if result else "FAIL",
-                ha="center",
-                va="center",
-                fontweight="bold",
-            )
-
-        # 6. Overall summary text
-        overall = results["overall_falsification"]
-        summary_text = f"""Overall Results:
-
-Tests Passed: {overall['tests_passed']}/{overall['total_tests']}
-Framework Status: {'SUPPORTED' if overall['framework_supported'] else 'FALSIFIED'}
-
-Key Findings:
-• Π_i-HEP correlation: r={results['correlations']['pi_i_hep']['r']:.3f}
-• θ₀-β correlation: r={results['correlations']['theta_0_beta']['r']:.3f}
-• Max parameter correlation: {results['falsification_tests']['F3_4']['max_correlation']:.3f}
-• Factors identified: {results['falsification_tests']['F3_5']['n_factors']}
-"""
-        axes[2, 3].text(
-            0.05,
-            0.95,
-            summary_text,
-            transform=axes[2, 3].transAxes,
-            fontsize=10,
-            verticalalignment="top",
-            fontfamily="monospace",
-        )
-        axes[2, 3].axis("off")
+        axes[3, 3].legend()
 
         plt.tight_layout()
         plt.savefig(
@@ -732,7 +1061,51 @@ def run_validation():
     for param, icc in results["reliability_analysis"]["test_retest_icc"].items():
         print(f"• {param}: {icc:.3f}")
 
-    print("\nIndividual Test Results:")
+    print("\n" + "=" * 80)
+    print("TODO IMPLEMENTATIONS")
+    print("=" * 80)
+
+    print("\nTODO 1: Exercise Arousal Condition (HR 100-120 bpm)")
+    arousal_test = results["falsification_tests"]["TODO_1_arousal"]
+    print(f"• Status: {'✓ PASS' if arousal_test['passed'] else '✗ FAIL'}")
+    print(f"• Mean arousal benefit: {arousal_test['mean_benefit']:.4f}")
+    print(f"• p-value: {arousal_test['p_value']:.4f}")
+
+    print("\nTODO 2: P1.2 Arousal × Precision Interaction")
+    p1_2_test = results["falsification_tests"]["TODO_2_P1_2_interaction"]
+    print(f"• Status: {'✓ PASS' if p1_2_test['passed'] else '✗ FAIL'}")
+    print(f"• Cohen's d: {p1_2_test['cohens_d']:.3f} (target: 0.25-0.45)")
+    print(f"• p-value: {p1_2_test['p_value']:.4f}")
+
+    print("\nTODO 3: P1.3 High-IA Arousal Benefit")
+    p1_3_test = results["falsification_tests"]["TODO_3_P1_3_high_ia"]
+    print(f"• Status: {'✓ PASS' if p1_3_test['passed'] else '✗ FAIL'}")
+    print(f"• Cohen's d: {p1_3_test['cohens_d']:.3f}")
+    print(f"• p-value: {p1_3_test['p_value']:.4f}")
+
+    print("\nTODO 4: Garfinkel et al. (2015) SD-Split Criterion")
+    garfinkel_test = results["falsification_tests"]["TODO_4_garfinkel_sd_split"]
+    print(f"• Status: {'✓ PASS' if garfinkel_test['passed'] else '✗ FAIL'}")
+    print(f"• High-IA participants: {garfinkel_test['high_ia_count']}")
+    print(f"• Low-IA participants: {garfinkel_test['low_ia_count']}")
+
+    print("\nTODO 5: Khalsa et al. (2018) Meta-Analytic Benchmark")
+    khalsa_test = results["falsification_tests"]["TODO_5_khalsa_benchmark"]
+    print(f"• Status: {'✓ PASS' if khalsa_test['passed'] else '✗ FAIL'}")
+    print(f"• Correlation: {khalsa_test['correlation']:.3f} (target: r = 0.43)")
+    print(f"• p-value: {khalsa_test['p_value']:.4f}")
+
+    print("\nTODO 6: β/Πⁱ Disambiguation Protocol")
+    beta_test = results["falsification_tests"]["TODO_6_beta_disambiguation"]
+    print(f"• Status: {'✓ PASS' if beta_test['passed'] else '✗ FAIL'}")
+    print(
+        f"• Threshold increase under β-blockade: {beta_test['threshold_increase']:.4f}"
+    )
+    print(f"• Πⁱ blockade correlation: {beta_test['pi_i_blockade_correlation']:.3f}")
+
+    print("\n" + "=" * 80)
+    print("Individual Test Results")
+    print("=" * 80)
     for test_name, test_result in results["falsification_tests"].items():
         if test_name != "overall_falsification":
             status = "✓ PASS" if test_result["passed"] else "✗ FAIL"

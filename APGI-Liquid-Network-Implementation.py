@@ -17,6 +17,7 @@ Key Features:
 - Gradient monitoring and stability checks
 - Performance benchmarking utilities
 - Full precision learning from prediction accuracy
+- Full precision learning from prediction accuracy
 
 Based on:
 - Hasani et al. (2021) - Liquid Time-Constant Networks
@@ -29,11 +30,7 @@ Based on:
 import time
 import warnings
 from dataclasses import dataclass
-
-# from dataclasses import field  # Commented out - unused
 from enum import Enum
-
-# import torch.nn.functional as F  # Commented out - unused
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np

@@ -1,14 +1,23 @@
 """
-APGI Protocol 5: Evolutionary Emergence of APGI-like Architectures
+APGI Evolutionary Plausibility + Mathematical Validation Supplement
 ===================================================================
 
-Complete implementation of evolutionary testing framework to determine whether
-APGI-like computational architectures emerge under selection pressure in complex
-environments.
+This supplement provides evolutionary plausibility analysis and mathematical validation
+for APGI computational architectures under Standard 6 (evolutionary plausibility) of the
+epistemic validation framework.
 
-This protocol uses genetic algorithms to evolve agent architectures and tests
-whether APGI components (threshold ignition, interoceptive weighting, somatic
-markers, precision gating) provide selective advantages.
+While scientifically interesting, evolutionary simulation is not a core empirical validation
+protocol but rather a theoretical elaboration demonstrating how APGI-like architectures
+could emerge under selection pressure.
+
+Standard 6 Compliance Scoring:
+- Component Emergence (0-4 points): Threshold, precision weighting, interoceptive bias, somatic markers
+- Fitness Advantage (>2 points): APGI architectures show selective advantage over non-APGI
+- Metabolic Efficiency (>2 points): ≥20% energy savings through ignition gating
+- Convergent Evolution (>1 point): APGI components emerge repeatedly across independent runs
+- Mathematical Rigor (>3 points): Analytical solutions match numerical simulations
+
+Total Standard 6 Score: Target ≥12/15 points for evolutionary plausibility validation.
 
 """
 
@@ -1182,17 +1191,23 @@ class EvolutionaryOptimizer:
         """Create initial random population"""
         self.population = [AgentGenome.random() for _ in range(self.pop_size)]
 
-    def evaluate_fitness(self, genome: AgentGenome) -> float:
+    def evaluate_fitness(self, genome: AgentGenome, env=None) -> float:
         """
-        Evaluate fitness of genome across all environments
+        Evaluate fitness of genome across all environments or a specific environment
 
         Fitness = reward - metabolic_cost - homeostatic_violations
+
+        Args:
+            genome: Agent genome to evaluate
+            env: Optional specific environment to evaluate in. If None, evaluates across all environments.
         """
         agent = EvolvableAgent(genome)
 
         total_fitness = 0.0
 
-        for env in self.environments:
+        environments_to_use = [env] if env is not None else self.environments
+
+        for env in environments_to_use:
             obs = env.reset()
             episode_reward = 0.0
             episode_cost = 0.0
@@ -2664,9 +2679,9 @@ def main() -> Dict[str, Any]:
 
     # Configuration
     config = {
-        "population_size": 100,
-        "n_generations": 500,
-        "mutation_rate": 0.1,
+        "population_size": 500,
+        "n_generations": 1000,
+        "mutation_rate": 0.01,
         "crossover_rate": 0.7,
         "tournament_size": 5,
         "elitism": 5,

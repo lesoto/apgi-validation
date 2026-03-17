@@ -260,6 +260,7 @@ class ValidationConfig:
     sensitivity_samples: int = 100
     enable_robustness_tests: bool = True
     significance_level: float = 0.05
+    n_simulations: int = 100
 
 
 @dataclass
