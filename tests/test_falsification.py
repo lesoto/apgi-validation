@@ -17,15 +17,25 @@ def test_falsification_files_exist():
     project_root = Path(__file__).parent.parent
     falsification_dir = project_root / "Falsification"
 
-    # Check falsification protocol files
+    # Check falsification protocol files - use actual filenames from directory
     falsification_files = [
-        "Falsification-Protocol-1.py",
-        "Falsification-Protocol-2.py",
-        "Falsification-Protocol-3.py",
-        "Falsification-Protocol-4.py",
-        "Falsification-Protocol-5.py",
-        "Falsification-Protocol-6.py",
-        "APGI-Falsification-Protocol-GUI.py",
+        "APGI-Falsification-Aggregator.py",
+        "APGI-Falsification-Protocols-GUI.py",
+        "CausalManipulations-TMS-Pharmacological-Priority2.py",
+        "Falsification-ActiveInferenceAgents-F1F2.py",
+        "Falsification-AgentComparison-ConvergenceBenchmark.py",
+        "Falsification-BayesianEstimation-MCMC.py",
+        "Falsification-BayesianEstimation-ParameterRecovery.py",
+        "Falsification-CrossSpeciesScaling-P12.py",
+        "Falsification-EvolutionaryPlausibility-Standard6.py",
+        "Falsification-FrameworkLevel-MultiProtocol.py",
+        "Falsification-InformationTheoretic-PhaseTransition.py",
+        "Falsification-LiquidNetworkDynamics-EchoState.py",
+        "Falsification-MathematicalConsistency-Equations.py",
+        "Falsification-NeuralNetwork-EnergyBenchmark.py",
+        "Falsification-NeuralSignatures-EEG-P3b-HEP.py",
+        "Falsification-ParameterSensitivity-Identifiability.py",
+        "Falsification_AgentComparison_ConvergenceBenchmark.py",
     ]
 
     for file_name in falsification_files:

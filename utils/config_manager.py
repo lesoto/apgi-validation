@@ -264,6 +264,17 @@ class ValidationConfig:
 
 
 @dataclass
+class BatchConfig:
+    """Batch processing configuration settings."""
+
+    max_workers: int = 4
+    use_processes: bool = False
+    chunk_size: int = 100
+    timeout: int = 300  # 5 minutes
+    auto_scale: bool = True
+
+
+@dataclass
 class APGIConfig:
     """Main configuration container."""
 
@@ -272,6 +283,7 @@ class APGIConfig:
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     data: DataConfig = field(default_factory=DataConfig)
     validation: ValidationConfig = field(default_factory=ValidationConfig)
+    batch: BatchConfig = field(default_factory=BatchConfig)
 
 
 class ConfigManager:
@@ -306,6 +318,31 @@ class ConfigManager:
         return {
             "type": "object",
             "properties": {
+                "validation": {
+                    "type": "object",
+                    "properties": {
+                        "enable_cross_validation": {"type": "boolean"},
+                        "cv_folds": {"type": "integer", "minimum": 2},
+                        "enable_sensitivity_analysis": {"type": "boolean"},
+                        "sensitivity_samples": {"type": "integer", "minimum": 10},
+                        "enable_robustness_tests": {"type": "boolean"},
+                        "significance_level": {
+                            "type": "number",
+                            "minimum": 0.0,
+                            "maximum": 1.0,
+                        },
+                    },
+                },
+                "batch": {
+                    "type": "object",
+                    "properties": {
+                        "max_workers": {"type": "integer", "minimum": 1},
+                        "use_processes": {"type": "boolean"},
+                        "chunk_size": {"type": "integer", "minimum": 10},
+                        "timeout": {"type": "integer", "minimum": 60},
+                        "auto_scale": {"type": "boolean"},
+                    },
+                },
                 "model": {
                     "type": "object",
                     "properties": {
@@ -416,6 +453,8 @@ class ConfigManager:
             self._update_dataclass(config.data, config_dict["data"])
         if "validation" in config_dict:
             self._update_dataclass(config.validation, config_dict["validation"])
+        if "batch" in config_dict:
+            self._update_dataclass(config.batch, config_dict["batch"])
 
         return config
 
@@ -431,6 +470,8 @@ class ConfigManager:
             self._update_dataclass(self.config.data, config_data["data"])
         if "validation" in config_data:
             self._update_dataclass(self.config.validation, config_data["validation"])
+        if "batch" in config_data:
+            self._update_dataclass(self.config.batch, config_data["batch"])
 
     def _update_dataclass(self, dataclass_instance, data: Dict[str, Any]):
         """Update dataclass fields from dictionary with validation."""
@@ -465,6 +506,7 @@ class ConfigManager:
                 "logging": "logging",
                 "data": "data",
                 "validation": "validation",
+                "batch": "batch",
             }
 
             schema_section = schema_mapping.get(class_name)
@@ -1590,9 +1632,41 @@ def reset_config(section: Optional[str] = None):
     config_manager.reset_to_defaults(section)
 
 
-def save_config(file_path: Optional[str] = None):
-    """Save current configuration."""
-    config_manager.save_config(file_path)
+def get_batch_config():
+    """Get batch processing configuration."""
+    return config_manager.get_config("batch")
+
+
+def set_batch_parameter(parameter: str, value: Any):
+    """Set a batch processing parameter."""
+    try:
+        config_manager.set_parameter("batch", parameter, value)
+        return True
+    except (ValueError, KeyError, AttributeError, TypeError):
+        return False
+
+
+def get_max_workers() -> int:
+    """Get optimal number of workers based on batch configuration and system."""
+    batch_config = config_manager.get_config("batch")
+    max_workers = batch_config.max_workers
+
+    if batch_config.auto_scale:
+        # Scale based on CPU count
+        cpu_count = os.cpu_count() or 4
+        max_workers = min(max_workers, cpu_count)
+
+        # Reduce workers if system is under load (simple heuristic)
+        try:
+            import psutil
+
+            cpu_percent = psutil.cpu_percent(interval=1)
+            if cpu_percent > 80:
+                max_workers = max(1, max_workers // 2)
+        except ImportError:
+            pass  # psutil not available, use configured value
+
+    return max_workers
 
 
 if __name__ == "__main__":

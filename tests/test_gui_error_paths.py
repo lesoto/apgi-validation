@@ -6,6 +6,10 @@ Comprehensive tests for GUI error handling paths in APGI Validation GUI.
 Tests error scenarios, UI updates, queue handling, and thread safety.
 """
 
+import pytest
+
+tkinter = pytest.importorskip("tkinter")
+
 import time
 import sys
 from pathlib import Path

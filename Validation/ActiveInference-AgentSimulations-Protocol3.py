@@ -1609,6 +1609,40 @@ class AgentComparisonExperiment:
                 "statistical_tests"
             ] = self._compute_convergence_statistics(results["IGT"])
 
+        # P3b: Interoceptive dominance analysis
+        if "IGT" in results and "APGI" in results["IGT"]:
+            apgi_intero_rate = results["IGT"]["APGI"].get("intero_dominance_rate", 0)
+            analysis["P3b_intero_dominance"] = {
+                "rate": apgi_intero_rate,
+                "prediction_met": apgi_intero_rate
+                > 0.5,  # Prediction: >50% interoceptive dominance
+            }
+
+        # P3d: Adaptation analysis (Foraging environment)
+        if "Foraging" in results and "APGI" in results["Foraging"]:
+            apgi_reward = results["Foraging"]["APGI"].get("mean_cumulative_reward", 0)
+            # Compare with best alternative agent
+            best_alternative = 0
+            for agent in results["Foraging"]:
+                if agent != "APGI":
+                    reward = results["Foraging"][agent].get("mean_cumulative_reward", 0)
+                    best_alternative = max(best_alternative, reward)
+
+            if best_alternative > 0:
+                relative_improvement = (
+                    apgi_reward - best_alternative
+                ) / best_alternative
+            else:
+                relative_improvement = 0
+
+            analysis["P3d_adaptation"] = {
+                "relative_improvement": relative_improvement,
+                "prediction_met": relative_improvement
+                > 0.1,  # Prediction: >10% improvement
+            }
+
+        return analysis
+
     def _compute_convergence_statistics(self, igt_results: Dict) -> Dict:
         """
         Compute Mann-Whitney U statistical tests comparing APGI convergence trials
@@ -1862,6 +1896,45 @@ class AgentComparisonExperiment:
                 "best_other_bic": float(best_other_bic),
             }
 
+        # F3.2: Ignition uncorrelated with adaptive behavior (p > 0.3 criterion)
+        if "P3c_ignition_strategy" in analysis:
+            p3c = analysis["P3c_ignition_strategy"]
+            if "error" not in p3c:
+                ignition_correlation = p3c.get("ignition_coefficient", 0)
+                ci = p3c.get("ci_95", [0, 0])
+
+                # Check if correlation coefficient is statistically significant
+                # Null hypothesis: ignition is uncorrelated with adaptive behavior (ρ = 0)
+                # If |correlation| > 0 and CI doesn't include 0, then correlated
+                # Falsified if p > 0.3 (correlation > 0.3 or < -0.3)
+                correlation_significant = ci[0] > 0 or ci[1] < 0
+                correlation_magnitude = abs(ignition_correlation) > 0.3
+
+                falsified["F3.2"] = {
+                    "falsified": correlation_magnitude,
+                    "coefficient": float(ignition_correlation),
+                    "ci_95": ci,
+                    "significant": correlation_significant,
+                    "magnitude_exceeds_threshold": correlation_magnitude,
+                    "method": "ignition_adaptive_correlation_test",
+                    "threshold": 0.3,
+                }
+
+        # F3.3: StandardPP outperforms (using BIC)
+        if bic_comparison_available:
+            standardpp_bic = results["bic_results"]["IGT"]["StandardPP"]["bic"]
+            bic_outperformance = standardpp_bic - apgi_bic
+            falsified["F3.3"] = {
+                "falsified": bic_outperformance
+                > 0,  # Any positive BIC difference favors StandardPP
+                "method": "BIC_comparison",
+                "apgi_bic": float(apgi_bic),
+                "standardpp_bic": float(standardpp_bic),
+                "bic_difference": float(bic_outperformance),
+            }
+
+        return falsified
+
 
 def _analyze_adaptation(self, foraging_results: Dict) -> Dict:
     """Analyze adaptation speed in volatile environment"""
@@ -1879,88 +1952,6 @@ def _analyze_adaptation(self, foraging_results: Dict) -> Dict:
     }
 
 
-def check_falsification(self, results: Dict, analysis: Dict) -> Dict:
-    """Check falsification criteria using both WAIC and BIC"""
-
-    falsified = {}
-
-    # F3.1: No performance advantage (using BIC)
-    igt_rewards = {
-        agent: results["IGT"][agent]["mean_cumulative_reward"]
-        for agent in results["IGT"].keys()
-    }
-    apgi_reward = igt_rewards["APGI"]
-    best_other = max([v for k, v in igt_rewards.items() if k != "APGI"])
-    _ = (apgi_reward - best_other) / abs(best_other)
-
-    # Check if APGI is statistically better using BIC
-    bic_comparison_available = (
-        "bic_results" in results
-        and "IGT" in results["bic_results"]
-        and "APGI" in results["bic_results"]["IGT"]
-    )
-
-    if bic_comparison_available:
-        apgi_bic = results["bic_results"]["IGT"]["APGI"]["bic"]
-        best_other_bic = min(
-            [
-                results["bic_results"]["IGT"][agent]["bic"]
-                for agent in results["IGT"].keys()
-                if agent != "APGI"
-            ]
-        )
-        bic_improvement = apgi_bic - best_other_bic
-
-        # APGI is falsified if it's not statistically better (BIC difference < 2 is weak evidence)
-        falsified["F3.1"] = {
-            "falsified": bic_improvement < 2.0,
-            "improvement": float(bic_improvement),
-            "threshold": 2.0,
-            "method": "BIC_comparison",
-            "apgi_bic": float(apgi_bic),
-            "best_other_bic": float(best_other_bic),
-        }
-
-    # F3.2: Ignition uncorrelated with adaptive behavior (p > 0.3 criterion)
-    if "P3c_ignition_strategy" in analysis:
-        p3c = analysis["P3c_ignition_strategy"]
-        if "error" not in p3c:
-            ignition_correlation = p3c.get("ignition_coefficient", 0)
-            ci = p3c.get("ci_95", [0, 0])
-
-            # Check if correlation coefficient is statistically significant
-            # Null hypothesis: ignition is uncorrelated with adaptive behavior (ρ = 0)
-            # If |correlation| > 0 and CI doesn't include 0, then correlated
-            # Falsified if p > 0.3 (correlation > 0.3 or < -0.3)
-            correlation_significant = ci[0] > 0 or ci[1] < 0
-            correlation_magnitude = abs(ignition_correlation) > 0.3
-
-            falsified["F3.2"] = {
-                "falsified": correlation_magnitude,
-                "coefficient": float(ignition_correlation),
-                "ci_95": ci,
-                "significant": correlation_significant,
-                "magnitude_exceeds_threshold": correlation_magnitude,
-                "method": "ignition_adaptive_correlation_test",
-                "threshold": 0.3,
-            }
-
-    # F3.3: StandardPP outperforms (using BIC)
-    if bic_comparison_available:
-        standardpp_bic = results["bic_results"]["IGT"]["StandardPP"]["bic"]
-        bic_outperformance = standardpp_bic - apgi_bic
-        falsified["F3.3"] = {
-            "falsified": bic_outperformance
-            > 0,  # Any positive BIC difference favors StandardPP
-            "method": "BIC_comparison",
-            "apgi_bic": float(apgi_bic),
-            "standardpp_bic": float(standardpp_bic),
-            "bic_difference": float(bic_outperformance),
-        }
-
-    return falsified
-
-
 # =============================================================================
 # PART 7: VISUALIZATION
 # =============================================================================
@@ -1968,7 +1959,7 @@ def check_falsification(self, results: Dict, analysis: Dict) -> Dict:
 
 def plot_experiment_results(
     results: Dict, analysis: Dict, save_path: str = "protocol3_results.png"
-):
+) -> None:
     """Generate comprehensive visualization"""
 
     fig = plt.figure(figsize=(20, 12))
@@ -2074,9 +2065,9 @@ def plot_experiment_results(
 
     if "P3c_ignition_strategy" in analysis:
         p3c = analysis["P3c_ignition_strategy"]
-        if "error" not in p3c:
+        if "error" not in p3c and "ignition_coefficient" in p3c:
             coef = p3c["ignition_coefficient"]
-            ci = p3c["ci_95"]
+            ci = p3c.get("ci_95", [0, 0])
 
             ax.barh(
                 ["Ignition\nCoefficient"],
@@ -2094,6 +2085,18 @@ def plot_experiment_results(
             )
             ax.set_title("Ignition → Strategy Change", fontsize=11, fontweight="bold")
             ax.grid(axis="x", alpha=0.3)
+        else:
+            # Skip this subplot if data not available
+            ax.text(
+                0.5,
+                0.5,
+                "Ignition-Strategy\nAnalysis Not Available",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+                fontsize=10,
+            )
+            ax.axis("off")
 
     # Row 3: Action distributions
     for i, env_name in enumerate(["IGT", "Foraging", "ThreatReward"]):
@@ -2363,6 +2366,21 @@ def check_go_no_go_criteria(results):
 # =============================================================================
 
 
+def convert(obj):
+    """Convert numpy types to JSON-serializable types"""
+    if isinstance(obj, (bool, np.bool_)):
+        return bool(obj)
+    elif isinstance(obj, (np.integer, np.floating)):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {k: convert(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert(item) for item in obj]
+    return obj
+
+
 def main():
     """Main execution pipeline"""
 
@@ -2439,32 +2457,8 @@ def main():
             print("=" * 80)
 
             # Convert to JSON-serializable
-            def convert(obj):
-                if isinstance(obj, (bool, np.bool_)):
-                    return bool(obj)
-                elif isinstance(obj, (np.integer, np.floating)):
-                    return float(obj)
-                elif isinstance(obj, np.ndarray):
-                    return obj.tolist()
-                elif isinstance(obj, dict):
-                    return {k: convert(v) for k, v in obj.items()}
-                elif isinstance(obj, list):
-                    return [convert(item) for item in obj]
-                return obj
-
-            # Save failure report
-            failure_report = {
-                "status": "FAILED",
-                "gate": "PRIMARY",
-                "results": summary_for_gate,
-                "recommendation": "Framework requires fundamental revision",
-            }
-
-            # Convert to JSON-serializable
-            failure_report = convert(failure_report)
-
             with open("protocol3_FAILED.json", "w") as f:
-                json.dump(failure_report, f, indent=2)
+                json.dump(falsification, f, indent=2)
 
             print("\n🚨 Failure report saved to: protocol3_FAILED.json")
             return None

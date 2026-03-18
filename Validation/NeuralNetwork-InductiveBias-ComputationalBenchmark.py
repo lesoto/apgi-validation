@@ -1368,6 +1368,19 @@ class FalsificationChecker:
             "threshold_high": self.criteria["F6.3"]["threshold_high"],
         }
 
+    def check_F6_4(self, apgi_auc: float, attention_auc: float) -> Tuple[bool, Dict]:
+        """F6.4: Attention achieves equal/higher AUC"""
+
+        advantage = apgi_auc - attention_auc
+        falsified = advantage <= self.criteria["F6.4"]["threshold"]
+
+        return falsified, {
+            "apgi_auc": apgi_auc,
+            "attention_auc": attention_auc,
+            "advantage": advantage,
+            "threshold": self.criteria["F6.4"]["threshold"],
+        }
+
     def check_F6_5(self, apgi_energy_ratio: float) -> Tuple[bool, Dict]:
         """F6.5: Energy consumption ≤20% above baseline per correct detection"""
 

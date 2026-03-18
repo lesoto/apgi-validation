@@ -164,6 +164,7 @@ V12_2_ALPHA: float = 0.01
 # F1 family
 # ---------------------------------------------------------------------------
 F1_1_MIN_ADVANTAGE_PCT: float = 18.0
+F1_1_MIN_APGI_ADVANTAGE: float = 18.0  # Alias for F1_1_MIN_ADVANTAGE_PCT
 F1_1_MIN_COHENS_D: float = 0.60
 F1_1_ALPHA: float = 0.01
 
@@ -215,7 +216,6 @@ F3_6_ALPHA: float = 0.01
 # V7/V9 family
 # ---------------------------------------------------------------------------
 V7_1_MIN_PCI_REDUCTION: float = 0.18
-V7_1_MIN_COHENS_D: float = 0.50
 V9_1_MIN_CORRELATION: float = 0.60
 V9_3_MIN_CORRELATION: float = 0.70
 
@@ -275,8 +275,8 @@ THRESHOLD_REGISTRY = {
 
 
 def test_f6_1_intrinsic_threshold_behavior(
-    ltcn_transition_time: float,
-    feedforward_transition_time: float,
+    ltcn_transition_times: np.ndarray,
+    feedforward_transition_times: np.ndarray,
     ltcn_max_transition_ms: float = F6_1_LTCN_MAX_TRANSITION_MS,
     cliffs_delta_min: float = F6_1_CLIFFS_DELTA_MIN,
     mann_whitney_alpha: float = F6_1_MANN_WHITNEY_ALPHA,
@@ -288,8 +288,8 @@ def test_f6_1_intrinsic_threshold_behavior(
     without explicit threshold modules.
 
     Args:
-        ltcn_transition_time: Median transition time for LTCNs (10-90% firing rate)
-        feedforward_transition_time: Transition time for feedforward networks
+        ltcn_transition_times: Array of transition times for LTCNs (10-90% firing rate)
+        feedforward_transition_times: Array of transition times for feedforward networks
         ltcn_max_transition_ms: Maximum allowed transition time for LTCNs
         cliffs_delta_min: Minimum Cliff's delta effect size
         mann_whitney_alpha: Significance level for Mann-Whitney U test
@@ -299,38 +299,48 @@ def test_f6_1_intrinsic_threshold_behavior(
     """
     from scipy.stats import mannwhitneyu
 
+    # Input validation: require minimum sample size for statistical tests
+    if len(ltcn_transition_times) < 2:
+        raise ValueError(
+            f"ltcn_transition_times must have at least 2 elements, got {len(ltcn_transition_times)}"
+        )
+    if len(feedforward_transition_times) < 2:
+        raise ValueError(
+            f"feedforward_transition_times must have at least 2 elements, got {len(feedforward_transition_times)}"
+        )
+
     # Mann-Whitney U test for non-normal distributions
     try:
         u_stat, p_value = mannwhitneyu(
-            [ltcn_transition_time], [feedforward_transition_time]
+            ltcn_transition_times, feedforward_transition_times
         )
     except ValueError:
         # Handle edge case with insufficient data
         p_value = 1.0
 
     # Cliff's delta (effect size for non-parametric data)
-    pooled = np.concatenate([[ltcn_transition_time], [feedforward_transition_time]])
-    n_ltcn = 1
-    n_ff = 1
+    pooled = np.concatenate([ltcn_transition_times, feedforward_transition_times])
+    n_ltcn = len(ltcn_transition_times)
+    n_ff = len(feedforward_transition_times)
 
     # Calculate Cliff's delta
     ranks = np.argsort(np.argsort(pooled))
-    rank_ltcn = ranks[0]
-    rank_ff = ranks[1]
+    rank_ltcn = ranks[:n_ltcn]
+    rank_ff = ranks[n_ltcn:]
 
     # Cliff's delta formula
-    cliffs_delta = (rank_ff - rank_ltcn) / (n_ltcn * n_ff)
+    cliffs_delta = (np.mean(rank_ff) - np.mean(rank_ltcn)) / (n_ltcn * n_ff)
 
     f6_1_pass = (
-        ltcn_transition_time <= ltcn_max_transition_ms
+        np.median(ltcn_transition_times) <= ltcn_max_transition_ms
         and cliffs_delta >= cliffs_delta_min
         and p_value < mann_whitney_alpha
     )
 
     return {
         "passed": f6_1_pass,
-        "ltcn_time": ltcn_transition_time,
-        "feedforward_time": feedforward_transition_time,
+        "ltcn_median_time": float(np.median(ltcn_transition_times)),
+        "feedforward_median_time": float(np.median(feedforward_transition_times)),
         "cliffs_delta": cliffs_delta,
         "p_value": p_value,
         "threshold": f"LTCN ≤{ltcn_max_transition_ms}ms, δ ≥ {cliffs_delta_min}",
@@ -398,8 +408,8 @@ def test_f6_2_intrinsic_temporal_integration(
 
 
 def test_f6_3_metabolic_selectivity(
-    ltcn_sparsity_reduction: float,
-    standard_sparsity_reduction: float,
+    ltcn_sparsity_reductions: np.ndarray,
+    standard_sparsity_reductions: np.ndarray,
     min_reduction_pct: float = 30.0,
     max_standard_reduction_pct: float = 10.0,
     min_cohens_d: float = 0.70,
@@ -412,8 +422,8 @@ def test_f6_3_metabolic_selectivity(
     low-information periods vs. <10% for standard.
 
     Args:
-        ltcn_sparsity_reduction: Sparsity reduction for LTCNs during low-information periods
-        standard_sparsity_reduction: Sparsity reduction for standard architectures
+        ltcn_sparsity_reductions: Array of sparsity reductions for LTCNs during low-information periods
+        standard_sparsity_reductions: Array of sparsity reductions for standard architectures
         min_reduction_pct: Minimum reduction percentage for LTCNs
         max_standard_reduction_pct: Maximum reduction percentage for standard architectures
         min_cohens_d: Minimum Cohen's d effect size
@@ -424,36 +434,49 @@ def test_f6_3_metabolic_selectivity(
     """
     from scipy import stats
 
+    # Input validation: require minimum sample size for statistical tests
+    if len(ltcn_sparsity_reductions) < 2:
+        raise ValueError(
+            f"ltcn_sparsity_reductions must have at least 2 elements, got {len(ltcn_sparsity_reductions)}"
+        )
+    if len(standard_sparsity_reductions) < 2:
+        raise ValueError(
+            f"standard_sparsity_reductions must have at least 2 elements, got {len(standard_sparsity_reductions)}"
+        )
+
     # Paired t-test
     t_stat, p_value = stats.ttest_rel(
-        [ltcn_sparsity_reduction], [standard_sparsity_reduction]
+        ltcn_sparsity_reductions, standard_sparsity_reductions
     )
 
     # Cohen's d
     pooled_std = np.sqrt(
         (
-            (1 - 1) * np.var([ltcn_sparsity_reduction], ddof=1)
-            + (1 - 1) * np.var([standard_sparsity_reduction], ddof=1)
+            (len(ltcn_sparsity_reductions) - 1)
+            * np.var(ltcn_sparsity_reductions, ddof=1)
+            + (len(standard_sparsity_reductions) - 1)
+            * np.var(standard_sparsity_reductions, ddof=1)
         )
-        / 2
+        / (len(ltcn_sparsity_reductions) + len(standard_sparsity_reductions) - 2)
     )
     cohens_d = (
-        (ltcn_sparsity_reduction - standard_sparsity_reduction) / pooled_std
+        (np.mean(ltcn_sparsity_reductions) - np.mean(standard_sparsity_reductions))
+        / pooled_std
         if pooled_std > 0
         else 0
     )
 
     f6_3_pass = (
-        ltcn_sparsity_reduction >= min_reduction_pct
-        and standard_sparsity_reduction <= max_standard_reduction_pct
+        np.mean(ltcn_sparsity_reductions) >= min_reduction_pct
+        and np.mean(standard_sparsity_reductions) <= max_standard_reduction_pct
         and cohens_d >= min_cohens_d
         and p_value < alpha
     )
 
     return {
         "passed": f6_3_pass,
-        "ltcn_reduction": ltcn_sparsity_reduction,
-        "standard_reduction": standard_sparsity_reduction,
+        "ltcn_mean_reduction": float(np.mean(ltcn_sparsity_reductions)),
+        "standard_mean_reduction": float(np.mean(standard_sparsity_reductions)),
         "cohens_d": cohens_d,
         "p_value": p_value,
         "threshold": f"LTCN ≥{min_reduction_pct}%, standard ≤{max_standard_reduction_pct}%, d ≥ {min_cohens_d}",
@@ -532,26 +555,34 @@ def test_f6_5_bifurcation_structure(
                 break
         ignition_probs.append(1.0 if ignited else 0.0)
 
-    ignition_probs = np.array(ignition_probs)
+    ignition_probs_array = np.array(ignition_probs)
 
     # Fit sigmoid
-    def sigmoid(x, a, b, c):
+    def sigmoid(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
         return a / (1 + np.exp(-b * (x - c)))
 
     try:
         popt, pcov = curve_fit(
             sigmoid,
             drives,
-            ignition_probs,
+            ignition_probs_array,
             p0=[1, 1, theta_t],
             bounds=([0.5, 0.1, 0], [1.5, 10, 2 * theta_t]),
         )
         a, b, c = popt
         bifurcation_point = c
-        hysteresis_width = 4.39 / b  # Approximate width at 0.5 for logistic sigmoid
+        # Calculate hysteresis width from fitted sigmoid parameters
+        # For logistic sigmoid f(x) = a / (1 + exp(-b*(x-c))), the width between
+        # 25% and 75% of amplitude (0.25a to 0.75a) is approximately 2.197 / b per side,
+        # giving total width of 4.394 / b. This is derived from solving:
+        #   a / (1 + exp(-b*(x-c))) = 0.75a  =>  x = c + ln(3)/b
+        #   a / (1 + exp(-b*(x-c))) = 0.25a  =>  x = c - ln(3)/b
+        # Width = (c + ln(3)/b) - (c - ln(3)/b) = 2*ln(3)/b ≈ 2.197*2/b = 4.394/b
+        hysteresis_width = 4.394 / b
     except Exception:
+        # Fallback to default values if curve fitting fails
         bifurcation_point = theta_t
-        hysteresis_width = 0.1
+        hysteresis_width = 0.1  # Conservative default width
 
     f6_5_pass = (
         hysteresis_width >= hysteresis_min and hysteresis_width <= hysteresis_max

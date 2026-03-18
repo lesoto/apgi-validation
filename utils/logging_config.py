@@ -39,6 +39,51 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 # Ensure logs directory exists - moved to lazy creation in _setup_logging
 
 
+class SecretsRedactionFilter:
+    """Loguru filter to redact sensitive information from log messages."""
+
+    # Patterns for sensitive data
+    SECRET_PATTERNS = [
+        # API keys and tokens
+        (
+            r'(api[_-]?key|apikey|token|secret|password|passwd)[\'":\s]*([\'"]?)[a-zA-Z0-9+/=_-]{20,}\2',
+            r"\1[REDACTED]",
+        ),
+        # JWT tokens
+        (r"eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+", "[JWT_REDACTED]"),
+        # Bearer tokens
+        (r"Bearer\s+[a-zA-Z0-9+/=_-]{20,}", "Bearer [REDACTED]"),
+        # Database URLs
+        (
+            r"(postgres|mysql|mongodb|redis)://[^\s]+@[^\s]+",
+            r"\1://[REDACTED]@[REDACTED]",
+        ),
+        # Email addresses
+        (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "[EMAIL_REDACTED]"),
+        # IP addresses (optional, can be enabled if needed)
+        # (r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', '[IP_REDACTED]'),
+        # Credit card numbers (basic pattern)
+        (r"\b[0-9]{13,19}\b", "[CARD_REDACTED]"),
+        # Authorization headers
+        (r"authorization[:\s]+[^\s]+", "authorization: [REDACTED]"),
+    ]
+
+    def __call__(self, record):
+        """Filter log record to redact sensitive information."""
+        message = record["message"]
+        redacted_message = self._redact_secrets(message)
+        record["message"] = redacted_message
+        return True
+
+    @classmethod
+    def _redact_secrets(cls, text: str) -> str:
+        """Redact sensitive patterns from text."""
+        redacted = text
+        for pattern, replacement in cls.SECRET_PATTERNS:
+            redacted = re.sub(pattern, replacement, redacted, flags=re.IGNORECASE)
+        return redacted
+
+
 @dataclass
 class LogEntry:
     """Structured log entry for search and analysis."""
@@ -280,6 +325,9 @@ class APGILogger:
         # Remove default logger
         logger.remove()
 
+        # Create secrets redaction filter instance
+        secrets_filter = SecretsRedactionFilter()
+
         # Console logger
         if self.enable_console:
             logger.add(
@@ -290,6 +338,7 @@ class APGILogger:
                 "<level>{message}</level>",
                 level=self.log_level,
                 colorize=True,
+                filter=secrets_filter,
             )
 
         # Main log file with rotation and queue limit
@@ -302,6 +351,7 @@ class APGILogger:
             retention="30 days",
             compression="zip",
             enqueue=True,
+            filter=secrets_filter,
         )
 
         # Error-specific log file with queue limit
@@ -316,6 +366,7 @@ class APGILogger:
             enqueue=True,
             backtrace=True,
             diagnose=True,
+            filter=secrets_filter,
         )
 
         # Performance metrics log with queue limit
@@ -340,6 +391,7 @@ class APGILogger:
             retention="30 days",
             serialize=True,
             enqueue=True,
+            filter=secrets_filter,
         )
 
         self.log_files = {
@@ -1146,14 +1198,6 @@ class APGILogger:
     def critical(self, message: str, **kwargs):
         """Log a critical message."""
         self.logger.critical(message, **kwargs)
-
-    def set_up_alerts(self, error_threshold: int = 10, time_window: int = 300):
-        """Set up log alerts for error monitoring."""
-        # This would implement alerting logic
-        # For now, just log that alerts are configured
-        self.logger.info(
-            f"Log alerts configured: {error_threshold} errors in {time_window}s"
-        )
 
     def __del__(self):
         """Cleanup when logger is destroyed."""

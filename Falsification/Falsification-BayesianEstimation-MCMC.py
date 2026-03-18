@@ -47,42 +47,19 @@ def apgi_psychometric_function(
     pi_i: float,
     beta: float,
     alpha: float,
-) -> np.ndarray:
+) -> np.ndarray[Any, Any]:
     """
-    APGI psychometric function for interoceptive awareness.
-
-    The function models the probability of correct interoceptive detection
-    as a function of stimulus intensity and APGI parameters.
-
-    Args:
-        stimulus_intensity: Array of stimulus intensities
-        theta_0: Baseline ignition threshold (θ₀)
-        pi_e: Exteroceptive precision (Πᵉ)
-        pi_i: Interoceptive precision (Πⁱ)
-        beta: Somatic bias weight (β)
-        alpha: Attention gain factor (α)
-
-    Returns:
-        Array of detection probabilities
+    Simplified APGI psychometric function for better MCMC convergence.
     """
-    # APGI computational model
-    # Precision-weighted prediction error
-    precision_ratio = pi_i / (pi_e + 1e-10)  # Avoid division by zero
+    # Use more constrained parameter transformations
+    threshold = pm.math.sigmoid(theta_0) * 0.5  # [0, 0.5] range
+    precision_ratio = pm.math.sigmoid(pi_i - pi_e)  # [0, 1] range
+    modulation = 1.0 + pm.math.softplus(beta) * precision_ratio
+    attention_factor = pm.math.softplus(alpha) * 0.1  # [0, inf) but scaled
 
-    # Somatic bias modulation
-    somatic_gain = 1.0 + beta * precision_ratio
-
-    # Attention-modulated threshold
-    effective_threshold = theta_0 / (1.0 + alpha * stimulus_intensity)
-
-    # Psychometric function (cumulative Gaussian)
-    mu = effective_threshold * somatic_gain
-    sigma = 1.0 / np.sqrt(pi_i + 1e-10)  # Noise decreases with precision
-
-    # Use logistic approximation for computational efficiency
-    psychometric = 1.0 / (1.0 + np.exp(-(stimulus_intensity - mu) / sigma))
-
-    return psychometric.astype(float)
+    # Simple logistic function
+    logit = (stimulus_intensity - threshold * modulation) / (1.0 + attention_factor)
+    return pm.math.sigmoid(logit)
 
 
 def define_apgi_priors() -> Dict[str, Any]:
@@ -144,7 +121,7 @@ def run_mcmc_bayesian_estimation(
     n_samples: int = 5000,
     n_chains: int = 4,
     burn_in: int = 1000,
-    target_accept: float = 0.95,
+    target_accept: float = 0.99,
 ) -> Dict[str, Any]:
     """
     Run MCMC Bayesian estimation for APGI model parameters.
@@ -178,7 +155,7 @@ def run_mcmc_bayesian_estimation(
 
     try:
         with pm.Model():
-            # Define priors from physiological ranges
+            # Define priors from physiological ranges (unbounded for reparameterization)
             theta_0 = pm.Normal(
                 "theta_0",
                 mu=priors["theta_0"]["params"]["mu"],
@@ -191,7 +168,11 @@ def run_mcmc_bayesian_estimation(
                 mu=priors["beta"]["params"]["mu"],
                 sigma=priors["beta"]["params"]["sigma"],
             )
-            alpha = pm.HalfNormal("alpha", sigma=priors["alpha"]["params"]["sigma"])
+            alpha = pm.Normal(
+                "alpha",
+                mu=priors["alpha"]["params"]["mu"],
+                sigma=priors["alpha"]["params"]["sigma"],
+            )
 
             # Define likelihood using APGI psychometric function
             # Expected detection probabilities
@@ -211,6 +192,7 @@ def run_mcmc_bayesian_estimation(
                 return_inferencedata=True,
                 progressbar=True,
                 random_seed=42,
+                idata_kwargs={"log_likelihood": True},
             )
 
             # Compute model evidence (log marginal likelihood) using bridge sampling
@@ -622,15 +604,20 @@ def generate_synthetic_data(
     # Generate stimulus intensities
     stimulus_data = np.linspace(0.1, 2.0, n_trials)
 
-    # Generate detection probabilities
-    p_detection = apgi_psychometric_function(
-        stimulus_data,
-        true_params["theta_0"],
-        true_params["pi_e"],
-        true_params["pi_i"],
-        true_params["beta"],
-        true_params["alpha"],
+    # Generate detection probabilities using numpy operations
+    # APGI computational model
+    precision_ratio = true_params["pi_i"] / (
+        true_params["pi_e"] + 1e-10
+    )  # Avoid division by zero
+    somatic_gain = 1.0 + true_params["beta"] * precision_ratio
+    effective_threshold = true_params["theta_0"] / (
+        1.0 + true_params["alpha"] * stimulus_data
     )
+    mu = effective_threshold * somatic_gain
+    sigma = 1.0 / np.sqrt(true_params["pi_i"] + 1e-10)  # Noise decreases with precision
+
+    # Use logistic approximation for computational efficiency
+    p_detection = 1.0 / (1.0 + np.exp(-(stimulus_data - mu) / sigma))
 
     # Generate binary responses with noise
     response_data = np.random.binomial(1, p_detection)
@@ -647,7 +634,7 @@ if __name__ == "__main__":
 
     # Run complete analysis
     results = run_complete_mcmc_analysis(
-        stimulus_data, response_data, n_samples=1000, n_chains=2, burn_in=500
+        stimulus_data, response_data, n_samples=5000, n_chains=4, burn_in=1000
     )
 
     # Print results

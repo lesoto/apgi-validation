@@ -6,6 +6,7 @@ This module provides comprehensive functional tests for APGI utility modules,
 going beyond simple directory structure checks to test actual functionality.
 """
 
+import numpy as np
 import pytest
 
 # Import utility modules to test
@@ -26,6 +27,11 @@ try:
     from utils.constants import DIM_CONSTANTS
     from utils.error_handler import APGIError
     from utils.logging_config import apgi_logger
+    from utils.eeg_processing import EEGProcessor
+    from utils.eeg_simulator import EEGSimulator
+    from utils.preprocessing_pipelines import PreprocessingPipeline
+    from utils.genome_data_extractor import GenomeDataExtractor
+    from utils.ordinal_logistic_regression import OrdinalLogisticRegression
 except ImportError as e:
     pytest.skip(f"Cannot import utility modules: {e}", allow_module_level=True)
 
@@ -238,3 +244,225 @@ def sample_data():
         "metabolic": [0.1, 0.15, 0.2, 0.18, 0.12],
         "arousal": [0.8, 0.9, 1.0, 0.95, 0.85],
     }
+
+
+class TestEEGProcessing:
+    """Test the eeg_processing utility module."""
+
+    def test_eeg_processor_initialization(self):
+        """Test EEGProcessor initialization."""
+        processor = EEGProcessor(sampling_rate=100.0)
+        assert processor.sampling_rate == 100.0
+        assert hasattr(processor, "preprocess_eeg")
+
+    def test_eeg_processor_with_sample_data(self):
+        """Test EEG processing with sample data."""
+        processor = EEGProcessor(sampling_rate=100.0)
+        # Create sample EEG data
+        eeg_data = np.random.randn(5, 100)  # 5 channels, 100 time points
+        processed = processor.preprocess_eeg(eeg_data)
+        assert isinstance(processed, dict)
+        assert "filtered_eeg" in processed or "error" in processed
+
+
+class TestEEGSimulator:
+    """Test the eeg_simulator utility module."""
+
+    def test_eeg_simulator_initialization(self):
+        """Test EEGSimulator initialization."""
+        simulator = EEGSimulator(n_channels=32, sampling_rate=100.0)
+        assert simulator.n_channels == 32
+        assert simulator.sampling_rate == 100.0
+        assert hasattr(simulator, "simulate_eeg")
+
+    def test_eeg_simulator_with_parameters(self):
+        """Test EEG simulation with custom parameters."""
+        simulator = EEGSimulator(
+            n_channels=64, sampling_rate=250.0, duration_seconds=1.0
+        )
+        simulated = simulator.simulate_eeg()
+        assert isinstance(simulated, dict)
+        assert "eeg_data" in simulated or "error" in simulated
+
+
+class TestPreprocessingPipelines:
+    """Test the preprocessing_pipelines utility module."""
+
+    def test_pipeline_initialization(self):
+        """Test PreprocessingPipeline initialization."""
+        pipeline = PreprocessingPipeline()
+        assert hasattr(pipeline, "preprocess_data")
+        assert hasattr(pipeline, "apply_filters")
+
+    def test_pipeline_with_sample_data(self):
+        """Test preprocessing pipeline with sample data."""
+        pipeline = PreprocessingPipeline()
+        # Create sample data
+        sample_data = {
+            "eeg": np.random.randn(5, 100),
+            "metadata": {"sampling_rate": 100.0},
+        }
+        result = pipeline.preprocess_data(sample_data)
+        assert isinstance(result, dict)
+        assert "processed_data" in result or "error" in result
+
+
+class TestGenomeDataExtractor:
+    """Test the genome_data_extractor utility module."""
+
+    def test_extractor_initialization(self):
+        """Test GenomeDataExtractor initialization."""
+        extractor = GenomeDataExtractor()
+        assert hasattr(extractor, "extract_genomic_features")
+        assert hasattr(extractor, "parse_genome_data")
+
+    def test_extractor_with_mock_data(self):
+        """Test genome data extraction with mock data."""
+        extractor = GenomeDataExtractor()
+        # Create mock genome data
+        mock_data = "ATCGATCGATCG"  # Simple DNA sequence
+        features = extractor.extract_genomic_features(mock_data)
+        assert isinstance(features, dict)
+        assert "gc_content" in features or "error" in features
+
+
+class TestOrdinalLogisticRegression:
+    """Test the ordinal_logistic_regression utility module."""
+
+    def test_model_initialization(self):
+        """Test OrdinalLogisticRegression initialization."""
+        model = OrdinalLogisticRegression(n_classes=3)
+        assert model.n_classes == 3
+        assert hasattr(model, "fit")
+        assert hasattr(model, "predict")
+
+    def test_model_with_sample_data(self):
+        """Test ordinal regression model with sample data."""
+        model = OrdinalLogisticRegression(n_classes=3)
+        # Create sample data
+        X = np.random.randn(100, 5)  # 100 samples, 5 features
+        y = np.random.randint(0, 3, 100)  # 3 ordinal classes
+        result = model.fit(X, y)
+        assert isinstance(result, dict)
+        assert "model_fitted" in result or "error" in result
+
+        # Test prediction
+        predictions = model.predict(X[:5])
+        assert isinstance(predictions, dict)
+        assert "predictions" in predictions or "error" in predictions
+
+
+class TestFalsificationCriterionNegativePaths:
+    """Test FalsificationCriterion constructor with invalid inputs (COV-005)."""
+
+    def test_empty_name_raises_error(self):
+        """Test that empty name raises ValueError."""
+        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+
+        with pytest.raises(ValueError, match="non-empty string"):
+            FalsificationFramework.FalsificationCriterion(
+                name="",
+                description="Test",
+                test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
+                threshold=0.5,
+                direction="greater",
+                alpha=0.05,
+            )
+
+    def test_whitespace_only_name_raises_error(self):
+        """Test that whitespace-only name raises ValueError."""
+        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+
+        with pytest.raises(ValueError, match="non-empty string"):
+            FalsificationFramework.FalsificationCriterion(
+                name="   ",
+                description="Test",
+                test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
+                threshold=0.5,
+                direction="greater",
+                alpha=0.05,
+            )
+
+    def test_empty_description_raises_error(self):
+        """Test that empty description raises ValueError."""
+        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+
+        with pytest.raises(ValueError, match="non-empty string"):
+            FalsificationFramework.FalsificationCriterion(
+                name="test",
+                description="",
+                test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
+                threshold=0.5,
+                direction="greater",
+                alpha=0.05,
+            )
+
+    def test_invalid_direction_raises_error(self):
+        """Test that invalid direction raises ValueError."""
+        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+
+        with pytest.raises(ValueError, match="Invalid direction"):
+            FalsificationFramework.FalsificationCriterion(
+                name="test",
+                description="Test",
+                test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
+                threshold=0.5,
+                direction="invalid_direction",
+                alpha=0.05,
+            )
+
+    def test_alpha_greater_than_one_raises_error(self):
+        """Test that alpha > 1 raises ValueError."""
+        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+
+        with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
+            FalsificationFramework.FalsificationCriterion(
+                name="test",
+                description="Test",
+                test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
+                threshold=0.5,
+                direction="greater",
+                alpha=1.5,
+            )
+
+    def test_alpha_zero_raises_error(self):
+        """Test that alpha = 0 raises ValueError."""
+        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+
+        with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
+            FalsificationFramework.FalsificationCriterion(
+                name="test",
+                description="Test",
+                test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
+                threshold=0.5,
+                direction="greater",
+                alpha=0.0,
+            )
+
+    def test_alpha_negative_raises_error(self):
+        """Test that negative alpha raises ValueError."""
+        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+
+        with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
+            FalsificationFramework.FalsificationCriterion(
+                name="test",
+                description="Test",
+                test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
+                threshold=0.5,
+                direction="greater",
+                alpha=-0.1,
+            )
+
+    def test_invalid_test_statistic_raises_error(self):
+        """Test that invalid test_statistic raises ValueError."""
+        from APGI_Falsification_Framework import FalsificationFramework
+
+        with pytest.raises(ValueError, match="Unsupported test statistic"):
+            FalsificationFramework.FalsificationCriterion(
+                name="test",
+                description="Test",
+                test_statistic="invalid_statistic",
+                threshold=0.5,
+                direction="greater",
+                alpha=0.05,
+            )

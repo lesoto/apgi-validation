@@ -26,6 +26,8 @@ import fnmatch
 import os
 import shutil
 import sys
+import time
+import errno
 from typing import Iterable, List, Optional
 
 DEFAULT_DIR_NAMES = {
@@ -199,21 +201,43 @@ def _remove_directory(
     dry_run: bool,
     verbose: bool,
     stats: dict,
+    max_retries: int = 3,
+    initial_delay: float = 0.1,
 ) -> None:
-    """Remove a directory and update stats."""
+    """Remove a directory and update stats with retry logic for concurrent access."""
     full_d = os.path.join(dirpath, dirname)
     if dry_run:
         if verbose:
             print(f"Would remove directory: {full_d}")
     else:
-        try:
-            shutil.rmtree(full_d, ignore_errors=False)
-            stats["dirs_removed"] += 1
-            if verbose:
-                print(f"Removed directory: {full_d}")
-        except Exception as e:
-            stats["errors"] += 1
-            print(f"Error removing directory {full_d}: {e}")
+        # Retry logic with exponential backoff for concurrent access
+        for attempt in range(max_retries):
+            try:
+                shutil.rmtree(full_d, ignore_errors=False)
+                stats["dirs_removed"] += 1
+                if verbose:
+                    print(f"Removed directory: {full_d}")
+                break
+            except OSError as e:
+                if (
+                    e.errno in (errno.EBUSY, errno.EACCES, errno.ENOTEMPTY)
+                    and attempt < max_retries - 1
+                ):
+                    # Concurrent access - wait and retry with exponential backoff
+                    delay = initial_delay * (2**attempt)
+                    if verbose:
+                        print(
+                            f"Concurrent access detected for {full_d}, retrying in {delay:.2f}s..."
+                        )
+                    time.sleep(delay)
+                else:
+                    stats["errors"] += 1
+                    print(f"Error removing directory {full_d}: {e}")
+                    break
+            except Exception as e:
+                stats["errors"] += 1
+                print(f"Error removing directory {full_d}: {e}")
+                break
 
 
 def _remove_file(
@@ -221,20 +245,48 @@ def _remove_file(
     dry_run: bool,
     verbose: bool,
     stats: dict,
+    max_retries: int = 3,
+    initial_delay: float = 0.1,
 ) -> None:
-    """Remove a file and update stats."""
+    """Remove a file and update stats with retry logic for concurrent access."""
     if dry_run:
         if verbose:
             print(f"Would remove file: {filepath}")
     else:
-        try:
-            os.remove(filepath)
-            stats["files_removed"] += 1
-            if verbose:
-                print(f"Removed file: {filepath}")
-        except Exception as e:
-            stats["errors"] += 1
-            print(f"Error removing file {filepath}: {e}")
+        # Retry logic with exponential backoff for concurrent access
+        for attempt in range(max_retries):
+            try:
+                os.remove(filepath)
+                stats["files_removed"] += 1
+                if verbose:
+                    print(f"Removed file: {filepath}")
+                break
+            except OSError as e:
+                if (
+                    e.errno in (errno.EBUSY, errno.EACCES, errno.ENOENT)
+                    and attempt < max_retries - 1
+                ):
+                    # Concurrent access or file not found - wait and retry with exponential backoff
+                    delay = initial_delay * (2**attempt)
+                    if verbose:
+                        print(
+                            f"Concurrent access detected for {filepath}, retrying in {delay:.2f}s..."
+                        )
+                    time.sleep(delay)
+                elif e.errno == errno.ENOENT:
+                    # File was deleted by another process - consider this a success
+                    stats["files_removed"] += 1
+                    if verbose:
+                        print(f"File already removed: {filepath}")
+                    break
+                else:
+                    stats["errors"] += 1
+                    print(f"Error removing file {filepath}: {e}")
+                    break
+            except Exception as e:
+                stats["errors"] += 1
+                print(f"Error removing file {filepath}: {e}")
+                break
 
 
 def _process_directories(

@@ -1739,7 +1739,8 @@ class LiquidNetworkDynamicsAnalyzer:
         """Run liquid network dynamics analysis"""
         try:
             # Run the liquid network analysis
-            results = run_liquid_network_dynamics_analysis()
+            analyzer = LiquidNetworkDynamicsAnalyzer()
+            results = analyzer.run_analysis()
             return results
         except Exception as e:
             logger.error(f"Liquid network dynamics analysis failed: {e}")

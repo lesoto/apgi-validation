@@ -2,9 +2,11 @@
 """
 Unit Test Suite for Threshold Consistency
 
-Validates that falsification_thresholds.py constants match paper specifications.
+Validates that falsification_thresholds.py constants match paper specifications
+and tests boundary conditions for threshold functions.
 """
 
+import numpy as np
 import pytest
 
 
@@ -174,6 +176,125 @@ def test_f1_f3_criteria_consistency():
     assert F3_6_MAX_TRIALS == 200.0, "F3.6_MAX_TRIALS should be 200.0"
     assert F3_6_MIN_HAZARD_RATIO == 1.45, "F3.6_MIN_HAZARD_RATIO should be 1.45"
     assert F3_6_ALPHA == 0.01, "F3.6_ALPHA should be 0.01"
+
+
+def test_f6_1_boundary_conditions():
+    """Test F6.1 function handles boundary conditions correctly."""
+    from utils.falsification_thresholds import test_f6_1_intrinsic_threshold_behavior
+
+    # Test at exact threshold boundary (should pass)
+    ltcn_at_threshold = np.array([50.0, 50.0, 50.0, 50.0, 50.0])
+    feedf_below_threshold = np.array([60.0, 60.0, 60.0, 60.0, 60.0])
+    result = test_f6_1_intrinsic_threshold_behavior(
+        ltcn_at_threshold, feedf_below_threshold
+    )
+    assert isinstance(result, dict)
+    assert "passed" in result
+    # At threshold, should pass (median <= threshold)
+    assert result["passed"] is True
+
+    # Test just above threshold (should fail)
+    ltcn_above_threshold = np.array([51.0, 51.0, 51.0, 51.0, 51.0])
+    result = test_f6_1_intrinsic_threshold_behavior(
+        ltcn_above_threshold, feedf_below_threshold
+    )
+    assert isinstance(result, dict)
+    assert "passed" in result
+    # Above threshold, should fail (median > threshold)
+    assert result["passed"] is False
+
+    # Test with minimum sample size (2 elements)
+    ltcn_min = np.array([40.0, 40.0])
+    feedf_min = np.array([60.0, 60.0])
+    result = test_f6_1_intrinsic_threshold_behavior(ltcn_min, feedf_min)
+    assert isinstance(result, dict)
+    assert "passed" in result
+
+
+def test_f6_3_boundary_conditions():
+    """Test F6.3 function handles boundary conditions correctly."""
+    from utils.falsification_thresholds import test_f6_3_metabolic_selectivity
+
+    # Test at exact reduction boundary (should pass)
+    ltcn_at_boundary = np.array([30.0, 30.0, 30.0, 30.0, 30.0])
+    standard_below_boundary = np.array([10.0, 10.0, 10.0, 10.0, 10.0])
+    result = test_f6_3_metabolic_selectivity(ltcn_at_boundary, standard_below_boundary)
+    assert isinstance(result, dict)
+    assert "passed" in result
+    # At boundary, should pass
+    assert result["passed"] is True
+
+    # Test just below boundary (should fail)
+    ltcn_below_boundary = np.array([29.9, 29.9, 29.9, 29.9, 29.9])
+    result = test_f6_3_metabolic_selectivity(
+        ltcn_below_boundary, standard_below_boundary
+    )
+    assert isinstance(result, dict)
+    assert "passed" in result
+    # Below boundary, should fail
+    assert result["passed"] is False
+
+    # Test with minimum sample size (2 elements)
+    ltcn_min = np.array([30.0, 30.0])
+    standard_min = np.array([10.0, 10.0])
+    result = test_f6_3_metabolic_selectivity(ltcn_min, standard_min)
+    assert isinstance(result, dict)
+    assert "passed" in result
+
+
+def test_f6_5_boundary_conditions():
+    """Test F6.5 function handles boundary conditions correctly."""
+    from utils.falsification_thresholds import test_f6_5_bifurcation_structure
+
+    # Test with theta_t at boundary
+    theta_t = 0.5
+    result = test_f6_5_bifurcation_structure(theta_t)
+    assert isinstance(result, dict)
+    assert "passed" in result
+    assert "hysteresis_width" in result
+    assert "bifurcation_point" in result
+
+    # Test with very small theta_t
+    theta_t_small = 0.1
+    result = test_f6_5_bifurcation_structure(theta_t_small)
+    assert isinstance(result, dict)
+    assert "hysteresis_width" in result
+
+    # Test with large theta_t
+    theta_t_large = 2.0
+    result = test_f6_5_bifurcation_structure(theta_t_large)
+    assert isinstance(result, dict)
+    assert "hysteresis_width" in result
+
+
+def test_threshold_function_input_validation():
+    """Test threshold functions validate input correctly."""
+    from utils.falsification_thresholds import (
+        test_f6_1_intrinsic_threshold_behavior,
+        test_f6_3_metabolic_selectivity,
+    )
+
+    # Test with arrays of different lengths (should handle gracefully or raise error)
+    ltcn = np.array([40.0, 40.0, 40.0])
+    feedf = np.array([60.0, 60.0])  # Different length
+
+    try:
+        result = test_f6_1_intrinsic_threshold_behavior(ltcn, feedf)
+        # If it doesn't raise, check result structure
+        assert isinstance(result, dict)
+    except (ValueError, IndexError):
+        # Or raise appropriate error
+        pass
+
+    # Test with minimum sample size (should raise ValueError)
+    ltcn_single = np.array([40.0])
+    feedf_single = np.array([60.0])
+
+    with pytest.raises(ValueError):
+        test_f6_1_intrinsic_threshold_behavior(ltcn_single, feedf_single)
+
+    with pytest.raises(ValueError):
+        test_f6_3_metabolic_selectivity(ltcn_single, feedf_single)
 
 
 if __name__ == "__main__":

@@ -969,12 +969,14 @@ def test_apgi_dynamical_system_parameter_ranges(tau_S, tau_theta, alpha):
         import numpy as np
 
         spec = importlib.util.spec_from_file_location(
-            "protocol1",
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-1.py",
+            "synthetic_eeg",
+            Path(__file__).parent.parent
+            / "Validation"
+            / "SyntheticEEG-MLClassification.py",
         )
-        protocol1 = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(protocol1)
-        APGIDynamicalSystem = protocol1.APGIDynamicalSystem
+        synthetic_eeg = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(synthetic_eeg)
+        APGIDynamicalSystem = synthetic_eeg.APGIDynamicalSystem
     except ImportError:
         pytest.skip("APGIDynamicalSystem import failed")
 
