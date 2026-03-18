@@ -51,7 +51,7 @@ except ImportError:
         class APGILogger:
             logger = logging.getLogger(__name__)
 
-        apgi_logger = APGILogger()
+        apgi_logger = APGILogger()  # type: ignore[assignment]
 
 
 @dataclass
@@ -91,7 +91,7 @@ class BackupManager:
                 )
 
             # Calculate Shannon entropy
-            byte_counts = {}
+            byte_counts: dict[int, int] = {}
             for byte in key_bytes:
                 byte_counts[byte] = byte_counts.get(byte, 0) + 1
 
@@ -307,10 +307,28 @@ class BackupManager:
 
                 if path.exists():
                     if path.is_file():
+                        # Validate file is within project root
+                        try:
+                            path.resolve().relative_to(self.project_root.resolve())
+                        except ValueError:
+                            apgi_logger.logger.warning(
+                                f"Path traversal detected in backup component: {path_pattern}"
+                            )
+                            continue
                         files_to_backup.append(path)
                     elif path.is_dir():
                         for file_path in path.rglob("*"):
                             if file_path.is_file():
+                                # Validate file is within project root
+                                try:
+                                    file_path.resolve().relative_to(
+                                        self.project_root.resolve()
+                                    )
+                                except ValueError:
+                                    apgi_logger.logger.warning(
+                                        f"Path traversal detected in backup component: {file_path}"
+                                    )
+                                    continue
                                 if not os.access(file_path, os.R_OK):
                                     apgi_logger.logger.warning(
                                         f"No read permission for {file_path}"
@@ -781,7 +799,6 @@ class BackupManager:
                     # Use tarfile.data_filter for Python 3.12+ or manual validation
                     if hasattr(tarfile, "data_filter"):
                         tarfile.extractall(
-                            member=file_path,
                             path=str(target_dir),
                             filter="data",
                         )
@@ -807,9 +824,11 @@ class BackupManager:
                         target_path.parent.mkdir(parents=True, exist_ok=True)
 
                         # Extract file manually with path validation
-                        with tarf.extractfile(file_path) as source:
-                            with open(target_path, "wb") as target:
-                                shutil.copyfileobj(source, target)
+                        source = tarf.extractfile(file_path)
+                        if source is not None:
+                            with source:
+                                with open(target_path, "wb") as target:
+                                    shutil.copyfileobj(source, target)
 
                 except (OSError, PermissionError) as e:
                     apgi_logger.logger.error(f"Error extracting {file_path}: {e}")

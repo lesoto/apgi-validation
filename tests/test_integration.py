@@ -368,3 +368,82 @@ def test_end_to_end_workflow():
 
         # Clean up
         tmp_path.unlink()
+
+
+@pytest.mark.integration
+def test_run_comprehensive_falsification_pipeline():
+    """Test full run_comprehensive_falsification pipeline across all priorities."""
+    import sys
+    from pathlib import Path
+
+    # Add project root to path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+
+    from APGI_Falsification_Framework import FalsificationFramework
+
+    # Create falsification framework instance
+    framework = FalsificationFramework()
+
+    # Generate test data for all priorities
+    # Create sample data that matches the expected structure
+    all_test_data = {
+        "P1": {
+            "advantage_metric": np.array([25.0, 22.0, 28.0, 24.0, 26.0]),
+            "comparison_metric": np.array([5.0, 4.0, 6.0, 5.0, 5.5]),
+            "effect_size": np.array([0.75, 0.68, 0.82, 0.70, 0.78]),
+        },
+        "P2": {
+            "pp_difference": np.array([12.0, 11.0, 13.0, 12.5, 11.5]),
+            "cohens_h": np.array([0.60, 0.55, 0.65, 0.58, 0.62]),
+            "correlation": np.array([0.45, 0.42, 0.48, 0.44, 0.46]),
+            "rt_advantage": np.array([60.0, 55.0, 65.0, 58.0, 62.0]),
+            "beta_interaction": np.array([0.38, 0.35, 0.41, 0.36, 0.39]),
+        },
+        "P3": {
+            "intero_advantage": np.array([30.0, 28.0, 32.0, 29.0, 31.0]),
+            "reduction_metric": np.array([27.0, 25.0, 29.0, 26.0, 28.0]),
+            "cohens_d": np.array([0.72, 0.68, 0.76, 0.70, 0.74]),
+        },
+    }
+
+    # Run comprehensive falsification
+    results = framework.run_comprehensive_falsification(all_test_data)
+
+    # Verify results structure
+    assert isinstance(results, dict)
+    assert "priority_results" in results
+    assert "overall_falsification" in results
+    assert "falsification_summary" in results
+    assert "theory_status" in results
+
+    # Verify priority results
+    assert isinstance(results["priority_results"], list)
+    assert len(results["priority_results"]) > 0
+
+    # Verify overall falsification metrics
+    if "total_criteria" in results:
+        assert "total_falsified_criteria" in results
+        assert "overall_falsification_rate" in results
+        assert 0 <= results["overall_falsification_rate"] <= 1
+
+    # Verify theory status is one of expected values
+    expected_statuses = [
+        "supported",
+        "weakly_falsified",
+        "strongly_falsified",
+        "not_tested",
+    ]
+    assert results["theory_status"] in expected_statuses
+
+    # Verify each priority result has expected structure
+    for priority_result in results["priority_results"]:
+        if "error" not in priority_result:
+            assert "priority" in priority_result
+            assert "falsified_criteria" in priority_result
+            assert "total_criteria" in priority_result
+            assert isinstance(priority_result["falsified_criteria"], int)
+            assert isinstance(priority_result["total_criteria"], int)
+            assert (
+                priority_result["falsified_criteria"]
+                <= priority_result["total_criteria"]
+            )

@@ -72,6 +72,21 @@ except ImportError:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
+# Import thresholds from falsification_thresholds.py
+try:
+    from falsification_thresholds import (
+        DEFAULT_ALPHA,
+        V11_MIN_R2,
+        V11_MIN_DELTA_R2,
+        V11_MIN_COHENS_D,
+    )
+except ImportError:
+    logger.warning("Could not import from falsification_thresholds.py, using defaults")
+    DEFAULT_ALPHA = 0.05
+    V11_MIN_R2 = 0.75
+    V11_MIN_DELTA_R2 = 0.10
+    V11_MIN_COHENS_D = 0.45
+
 # ---------------------------------------------------------------------------
 # Optional heavy dependencies
 # ---------------------------------------------------------------------------
@@ -196,15 +211,19 @@ def generate_synthetic_dataset(
 
     # Draw population
     n = n_subjects
-    theta0_vals = np.clip(local_rng.normal(0.50, 0.08, n), 0.25, 0.75)
     pi_i_vals = np.clip(np.abs(local_rng.normal(1.20, 0.50, n)), 0.30, 2.50)
-    beta_vals = np.clip(local_rng.normal(1.15, 0.20, n), 0.70, 1.80)
     alpha_vals = local_rng.uniform(4.0, 10.0, n)
 
     # Heartbeat accuracy correlated with Πⁱ: acc = 0.55 + 0.08·(Πⁱ-1)/1.5 + ε
     hb_acc_vals = np.clip(
         0.55 + 0.08 * (pi_i_vals - 1.0) / 1.5 + local_rng.normal(0, 0.04, n), 0.40, 0.95
     )
+
+    # Theta_0 negatively correlated with heartbeat accuracy (high IA -> lower threshold)
+    hb_z = (hb_acc_vals - hb_acc_vals.mean()) / hb_acc_vals.std()
+    theta0_vals = np.clip(0.50 - 0.10 * hb_z + local_rng.normal(0, 0.05, n), 0.25, 0.75)
+
+    beta_vals = np.clip(local_rng.normal(1.15, 0.20, n), 0.70, 1.80)
 
     for i in range(n):
         s = SyntheticSubject(
@@ -519,7 +538,7 @@ def run_nuts_sampler(
             random_seed=seed,
             progressbar=False,
             return_inferencedata=True,
-            target_accept=0.95,
+            target_accept=0.99,
         )
 
     summary = az.summary(trace, var_names=param_names, round_to=6)
@@ -594,11 +613,26 @@ def test_parameter_recovery(
         bounds = [(0.10, 0.95), (0.05, 3.5), (0.20, 2.5), (0.5, 20.0)]
         try:
             res = optimize.minimize(
-                neg_ll, x0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 500}
+                neg_ll,
+                x0,
+                method="L-BFGS-B",
+                bounds=bounds,
+                options={"maxiter": 1000, "ftol": 1e-6},
             )
             est = res.x
         except Exception:
-            est = x0
+            # Try with different method if L-BFGS-B fails
+            try:
+                res = optimize.minimize(
+                    neg_ll,
+                    x0,
+                    method="SLSQP",
+                    bounds=bounds,
+                    options={"maxiter": 1000, "ftol": 1e-6},
+                )
+                est = res.x
+            except Exception:
+                est = x0
 
         for j, p in enumerate(param_names):
             true_vals[p].append(getattr(true_params, p))

@@ -75,14 +75,19 @@ def run_bayesian_estimation_nuts(
                 sigma=0.3,  # Paper-specified std
             )
 
-            # Likelihood: data ~ N(μ, σ²) where μ depends on APGI parameters
-            # APGI generative model: μ = θ₀ * Πⁱ * (1 + β * M)
-            # Simplified for demonstration: μ = θ₀ * Πⁱ * β
-            mu = theta_0 * pi_i * beta
-            sigma = pm.HalfNormal("sigma", sigma=1.0)
+            # Generate proper synthetic data for parameter recovery
+            n_trials = len(data)
+            stimulus_intensity = np.linspace(0.1, 2.0, n_trials)
 
-            # Likelihood
-            pm.Normal("likelihood", mu=mu, sigma=sigma, observed=data)
+            # APGI psychometric function
+            # p(detection) = 1 / (1 + exp(-(stimulus - mu)/sigma))
+            # where mu = theta_0 / (1 + pi_i * stimulus) * (1 + beta * pi_i)
+            mu = pm.Deterministic(
+                "mu", theta_0 / (1.0 + pi_i * stimulus_intensity) * (1.0 + beta * pi_i)
+            )
+
+            # Likelihood: responses ~ Bernoulli(p_detection)
+            pm.Bernoulli("likelihood", p=mu, observed=data)
 
             # Sample using NUTS
             trace = pm.sample(
@@ -807,14 +812,25 @@ def run_bayesian_estimation_complete():
     """
     logger.info("Running Bayesian estimation with NUTS...")
 
-    # Generate synthetic data
-    n_data_points = 100
-    true_params = {
-        "theta_0": 0.5,
-        "pi_i": 1.0,
-        "beta": 1.15,
-    }  # Updated with paper values
-    data = np.random.normal(0, 1, n_data_points)
+    # Generate synthetic data using APGI psychometric function
+    n_data_points = 200
+    stimulus_intensity = np.linspace(0.1, 2.0, n_data_points)
+
+    # True APGI parameters
+    true_theta_0 = 0.5
+    true_pi_i = 1.0
+    true_beta = 1.15
+
+    # Generate detection probabilities using APGI model
+    p_detection = (
+        true_theta_0
+        / (1.0 + true_pi_i * stimulus_intensity)
+        * (1.0 + true_beta * true_pi_i)
+    )
+    p_detection = np.clip(p_detection, 0.01, 0.99)  # Ensure valid probabilities
+
+    # Generate binary responses (0/1) based on detection probabilities
+    data = np.random.binomial(1, p_detection)
 
     # Paper-specified priors (for reference, not used in NUTS)
     prior_params = {
@@ -857,8 +873,13 @@ def run_bayesian_estimation_complete():
     )
 
     # Run calibration checks
+    true_params_dict = {
+        "theta_0": true_theta_0,
+        "pi_i": true_pi_i,
+        "beta": true_beta,
+    }
     calibration_results = check_posterior_calibration(
-        nuts_results["posterior_samples"], true_params
+        nuts_results["posterior_samples"], true_params_dict
     )
 
     return {
@@ -866,7 +887,7 @@ def run_bayesian_estimation_complete():
         "posterior_statistics": posterior_stats,
         "bayes_factor": bayes_factor,
         "bayes_factor_mapping": bf_mapping,
-        "true_parameters": true_params,
+        "true_parameters": true_params_dict,
         "convergence_diagnostics": {
             "r_hat": nuts_results["r_hat"],
             "ess": nuts_results["ess"],

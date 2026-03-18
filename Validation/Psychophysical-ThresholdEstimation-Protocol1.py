@@ -505,6 +505,11 @@ class APGIPsychophysicalEstimator:
             lambda x: "high_IA" if x > hb_mean + hb_sd else "low_IA"
         )
 
+        # Calculate arousal benefit before filtering dataframes
+        df.loc[:, "arousal_benefit"] = (
+            df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
+        )
+
         high_ia = df[df["ia_group_computed"] == "high_IA"]
         low_ia = df[df["ia_group_computed"] == "low_IA"]
 
@@ -535,7 +540,7 @@ class APGIPsychophysicalEstimator:
         df = df.copy()  # Ensure we're working with a copy
         print(f"DEBUG: Available columns: {list(df.columns)}")
         df.loc[:, "arousal_benefit"] = (
-            df["psychometric_threshold_arousal"] - df["psychometric_threshold_arousal"]
+            df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
         )
 
         # Test if arousal reduces threshold (main effect)
@@ -978,6 +983,11 @@ class APGIPsychophysicalEstimator:
         data = [p.to_dict() for p in self.participants]
         df = pd.DataFrame(data)
 
+        # Calculate arousal benefit for visualization
+        df.loc[:, "arousal_benefit"] = (
+            df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
+        )
+
         # Create larger figure with additional subplots for TODO items
         fig, axes = plt.subplots(4, 4, figsize=(24, 18))
         fig.suptitle(
@@ -1032,10 +1042,12 @@ class APGIPsychophysicalEstimator:
         axes[2, 1].legend()
         axes[2, 0].set_ylabel("Frequency")
         axes[2, 0].axvline(
-            df["arousal_benefit"].mean(),
+            (
+                df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
+            ).mean(),
             color="red",
             linestyle="--",
-            label=f"Mean: {df['arousal_benefit'].mean():.3f}",
+            label=f"Mean: {(df['psychometric_threshold'] - df['psychometric_threshold_arousal']).mean():.3f}",
         )
         axes[2, 0].legend()
 

@@ -7,6 +7,8 @@ Utility modules for the APGI framework.
 
 import os
 import sys
+import secrets
+import warnings
 
 # Load environment variables from .env file
 try:
@@ -19,7 +21,7 @@ except ImportError:
 
 # Security: Check for required environment variables at import time
 def _check_required_env_vars():
-    """Check for required security environment variables."""
+    """Check for required security environment variables and generate ephemeral keys if missing."""
     missing_vars = []
 
     # Check for PICKLE_SECRET_KEY
@@ -31,18 +33,26 @@ def _check_required_env_vars():
         missing_vars.append("APGI_BACKUP_HMAC_KEY")
 
     if missing_vars:
-        print("ERROR: Missing required environment variables:", file=sys.stderr)
+        # Generate ephemeral development keys
         for var in missing_vars:
             if var == "PICKLE_SECRET_KEY":
-                print(
-                    f"  - {var}: Generate with: openssl rand -hex 32", file=sys.stderr
+                ephemeral_key = secrets.token_hex(32)
+                os.environ["PICKLE_SECRET_KEY"] = ephemeral_key
+                warnings.warn(
+                    "Generated ephemeral development key for PICKLE_SECRET_KEY. "
+                    "Set a persistent key in .env or environment for production use.",
+                    UserWarning,
+                    stacklevel=2,
                 )
             elif var == "APGI_BACKUP_HMAC_KEY":
-                print(
-                    f"  - {var}: Generate with: openssl rand -hex 32", file=sys.stderr
+                ephemeral_key = secrets.token_hex(32)
+                os.environ["APGI_BACKUP_HMAC_KEY"] = ephemeral_key
+                warnings.warn(
+                    "Generated ephemeral development key for APGI_BACKUP_HMAC_KEY. "
+                    "Set a persistent key in .env or environment for production use.",
+                    UserWarning,
+                    stacklevel=2,
                 )
-        print("Set these variables before importing APGI modules.", file=sys.stderr)
-        # Don't raise error here, just warn - let individual modules handle the requirement
 
 
 _check_required_env_vars()

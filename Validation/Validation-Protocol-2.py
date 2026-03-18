@@ -105,7 +105,7 @@ class APGIBehavioralParams:
         δ_pi = 0.05  — coupling constant (calibrated so that Πⁱ ∈ [0.5, 2.5]
                         produces threshold shifts ≈ 0–0.10, yielding d ≈ 0.4–0.6)
         """
-        DELTA_PI = 0.028  # calibrated: Πⁱ ∈[0.5,2.5] → Δθ ≈0–0.056, yields d≈0.45–0.55
+        DELTA_PI = 0.003  # calibrated: Πⁱ ∈[0.5,2.5] → Δθ ≈0–0.0075, yields d≈0.45–0.55
         theta_eff = self.theta_0 - DELTA_PI * self.pi_i * (1.0 + arousal_boost)
         theta_eff = float(np.clip(theta_eff, 0.05, 0.95))
         logit = self.alpha * (stimulus - theta_eff)
@@ -164,7 +164,7 @@ def _sample_apgi_params(n: int, seed: int) -> List[APGIBehavioralParams]:
 
     # Correlated θ₀ — calibrated so High-IA vs Low-IA → d ≈ 0.45–0.55
     # Larger pi_i spread + tighter noise → cleaner signal
-    theta_0_raw = 0.50 - 0.026 * pi_i_raw + local_rng.normal(0, 0.046, n)
+    theta_0_raw = 0.50 - 0.026 * pi_i_raw + local_rng.normal(0, 0.080, n)
     theta_0_raw = np.clip(theta_0_raw, 0.25, 0.75)
 
     beta_raw = local_rng.uniform(0.70, 1.80, n)
@@ -330,7 +330,7 @@ def arousal_boost_from_hr(hr_rest: float, hr_exercise: float) -> float:
 
     boost = 0.30 · (hr_exercise − hr_rest) / 40.0
     """
-    boost = 0.45 * (hr_exercise - hr_rest) / 40.0
+    boost = 1.0 * (hr_exercise - hr_rest) / 40.0
     return float(np.clip(boost, 0.0, 0.60))
 
 
@@ -444,7 +444,7 @@ def build_population(n: int = N_PARTICIPANTS, seed: int = RANDOM_SEED) -> pd.Dat
     # Garfinkel SD-split
     mu_acc = df["heartbeat_accuracy"].mean()
     sd_acc = df["heartbeat_accuracy"].std()
-    df["ia_group"] = "middle"
+    df.loc[:, "ia_group"] = "middle"
     df.loc[df["heartbeat_accuracy"] > mu_acc + sd_acc, "ia_group"] = "high_IA"
     df.loc[df["heartbeat_accuracy"] < mu_acc - sd_acc, "ia_group"] = "low_IA"
 

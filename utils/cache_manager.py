@@ -17,7 +17,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
-import joblib
+try:
+    import msgpack
+
+    HAS_MSGPACK = True
+except ImportError:
+    HAS_MSGPACK = False
+
 import numpy as np
 import pandas as pd
 from rich.console import Console
@@ -201,20 +207,21 @@ class CacheManager:
                     if json_path.exists():
                         data = self._load_json(json_path)
                     else:
-                        # Fall back to joblib for complex objects
+                        # Fall back to msgpack for complex objects (more efficient than pickle)
                         with open(cache_path, "rb") as f:
-                            data = joblib.load(f)
+                            data = msgpack.unpack(f, raw=False)
 
                     self._update_access_time(cache_key)
                     self.stats["hits"] += 1
                     return data
 
                 except (
-                    joblib.JoblibException,
+                    msgpack.UnpackException,
                     FileNotFoundError,
                     PermissionError,
                     OSError,
                     EOFError,
+                    Exception,
                 ) as e:
                     print(
                         f"Error loading cache entry {cache_key}: {type(e).__name__}: {e}"
@@ -242,9 +249,10 @@ class CacheManager:
                     self._save_json(json_path, value)
                     file_size = json_path.stat().st_size
                 else:
-                    # Fall back to joblib for complex objects
+                    # Fall back to msgpack for complex objects (more efficient than pickle)
                     with open(cache_path, "wb") as f:
-                        joblib.dump(value, f, compress=3)
+                        packed_data = msgpack.pack(value, use_bin_type=True)
+                        f.write(packed_data)
                     file_size = cache_path.stat().st_size
 
                 # Update metadata
@@ -264,10 +272,12 @@ class CacheManager:
                 self._evict_if_needed()
 
             except (
-                joblib.JoblibException,
+                msgpack.UnpackException,
+                msgpack.PackException,
                 FileNotFoundError,
                 PermissionError,
                 OSError,
+                Exception,
             ) as e:
                 print(f"Error saving cache entry {cache_key}: {type(e).__name__}: {e}")
 
@@ -391,7 +401,7 @@ class CacheManager:
     def clear(self):
         """Clear all cache entries."""
         with self._lock:
-            # Clear both JSON and joblib cache files
+            # Clear both JSON and msgpack cache files
             for cache_file in self.cache_dir.glob("*.cache"):
                 cache_file.unlink()
             for json_file in self.cache_dir.glob("*.json"):

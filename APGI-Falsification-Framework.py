@@ -12,6 +12,7 @@ Complete falsification testing framework for APGI theory including:
 
 import logging
 import warnings
+from enum import Enum
 from typing import Dict, List, Union
 
 import numpy as np
@@ -23,6 +24,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+
+class TestStatistic(Enum):
+    """Enum for supported test statistics"""
+
+    MEAN_DIFFERENCE = "mean_difference"
+    CORRELATION = "correlation"
+    MODEL_COMPARISON = "model_comparison"
+    EFFECT_SIZE = "effect_size"
 
 
 class FalsificationCriterion:
@@ -51,13 +61,14 @@ class FalsificationCriterion:
             raise ValueError("Criterion name must be a non-empty string")
         if not isinstance(description, str) or not description.strip():
             raise ValueError("Criterion description must be a non-empty string")
-        if test_statistic not in [
-            "mean_difference",
-            "correlation",
-            "model_comparison",
-            "effect_size",
-        ]:
-            raise ValueError(f"Unsupported test statistic: {test_statistic}")
+        # Validate test_statistic using enum
+        try:
+            TestStatistic(test_statistic)
+        except ValueError as e:
+            raise ValueError(
+                f"Unsupported test statistic: {test_statistic}. "
+                f"Supported values: {[s.value for s in TestStatistic]}"
+            ) from e
         if direction not in ["greater", "less", "two_sided"]:
             raise ValueError(
                 f"Invalid direction: {direction}. Must be 'greater', 'less', or 'two_sided'"
@@ -212,7 +223,6 @@ class FalsificationCriterion:
                 "threshold": self.threshold,
                 "direction": self.direction,
                 "sample_size": len(x),
-                "correlation": float(corr),  # Keep for backward compatibility
             }
 
         except Exception as e:

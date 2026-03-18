@@ -31,6 +31,9 @@ def extract_genome_data_from_vp5(
     with open(results_path, "r") as f:
         vp5_results = json.load(f)
 
+    # Initialize n_agents with default value
+    n_agents = 100
+
     # Extract evolved parameters from final population
     # For now, we'll extract from the final statistics and selection coefficients
     # In a full implementation, this would parse the actual population genomes
@@ -95,9 +98,21 @@ def extract_genome_data_from_vp5(
         )
 
     genome_data = {
-        "evolved_alpha_values": evolved_alpha_values.tolist(),
-        "timescale_correlations": timescale_correlations.tolist(),
-        "intero_gain_ratios": intero_gain_ratios.tolist(),
+        "evolved_alpha_values": (
+            evolved_alpha_values
+            if isinstance(evolved_alpha_values, list)
+            else evolved_alpha_values.tolist()
+        ),
+        "timescale_correlations": (
+            timescale_correlations
+            if isinstance(timescale_correlations, list)
+            else timescale_correlations.tolist()
+        ),
+        "intero_gain_ratios": (
+            intero_gain_ratios
+            if isinstance(intero_gain_ratios, list)
+            else intero_gain_ratios.tolist()
+        ),
         "n_agents": n_agents,
         "n_generations": vp5_results.get("config", {}).get("n_generations", 500),
     }

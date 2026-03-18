@@ -83370,7 +83370,7 @@
     "Removed 553 outliers using iqr method",
     "Normalized Index(['time_seconds', 'eeg_fz', 'eeg_pz', 'pupil_diameter', 'eda',\n       'heart_rate', 'event_marker'],\n      dtype='object') using zscore method"
   ],
-  "processing_timestamp": "2026-03-17T21:07:27.804551",
+  "processing_timestamp": "2026-03-18T17:36:58.035282",
   "metadata": {
     "shape": [
       6947,

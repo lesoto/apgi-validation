@@ -108,6 +108,20 @@ class APGIDynamicalSystem:
             alpha: Sigmoid steepness for ignition probability
             dt: Integration timestep (seconds)
         """
+        # Validate parameter ranges
+        if tau <= 0:
+            raise ValueError(f"tau must be positive, got {tau}")
+        if not (0 < theta_0 < 1):
+            raise ValueError(f"theta_0 must be in (0, 1), got {theta_0}")
+        if alpha <= 0:
+            raise ValueError(f"alpha must be positive, got {alpha}")
+        if dt <= 0:
+            raise ValueError(f"dt must be positive, got {dt}")
+        if dt > tau:
+            raise ValueError(
+                f"dt ({dt}) must be smaller than tau ({tau}) for numerical stability"
+            )
+
         self.tau = tau
         self.theta_0 = theta_0
         self.alpha = alpha
@@ -375,6 +389,15 @@ class InformationTheoreticAnalysis:
         )
         return discretizer.fit_transform(data).astype(int).flatten()
 
+    @staticmethod
+    def _discretize_static(data: np.ndarray, n_bins: int = 10) -> np.ndarray:
+        """Static method to discretize continuous data into bins"""
+        data = data.reshape(-1, 1)
+        discretizer = KBinsDiscretizer(
+            n_bins=n_bins, encode="ordinal", strategy="uniform"
+        )
+        return discretizer.fit_transform(data).astype(int).flatten()
+
     def _entropy(self, binned_data: np.ndarray) -> float:
         """Compute entropy of discretized data"""
         counts = np.bincount(binned_data, minlength=self.n_bins)
@@ -616,7 +639,7 @@ class PhaseTransitionDetector:
             "critical_slowing_ratio": float(ratio),
             "acf_near": float(acf_near),
             "acf_far": float(acf_far),
-            "lag": lag,
+            "lag": int(lag),
             "phase_boundary_connection": "τ_relax diverges as Π·|ε| → θ_t from below",
         }
 
@@ -679,7 +702,7 @@ class PhaseTransitionDetector:
         acf = np.correlate(series_norm[:-lag], series_norm[lag:], mode="valid")[0]
         acf /= n - lag
 
-        return acf
+        return float(acf)
 
     def _hurst_exponent(self, series: np.ndarray) -> float:
         """
@@ -761,7 +784,7 @@ class PhaseTransitionDetector:
         slope, _ = np.polyfit(log_scales, log_fluctuations, 1)
 
         # Hurst exponent is the slope
-        return np.clip(slope, 0.0, 1.0)
+        return float(np.clip(slope, 0.0, 1.0))
 
 
 # =============================================================================
@@ -922,7 +945,7 @@ class FiniteSizeScalingAnalysis:
     def finite_size_scaling_analysis(
         self,
         system_sizes: List[int],
-        parameter_range: np.ndarray,
+        parameter_range: Dict[str, np.ndarray],
         parameter_name: str = "theta_0",
     ) -> Dict:
         """
@@ -979,7 +1002,7 @@ class FiniteSizeScalingAnalysis:
                     system = APGIDynamicalSystem(**system_params)
 
                     # Input generator for this simulation
-                    def input_gen(t):
+                    def input_gen(t: float) -> Dict[str, float]:
                         return {
                             "Pi_e": 1.0 + 0.3 * np.sin(2 * np.pi * t / 15),
                             "eps_e": np.random.normal(0.4, 0.2),
@@ -1017,7 +1040,7 @@ class FiniteSizeScalingAnalysis:
         # Find crossing point of Binder cumulants (identifies critical point)
         # At criticality, Binder cumulant becomes size-independent
         crossing_point = self._find_binder_crossing(
-            results["binder_cumulants"], parameter_range
+            results["binder_cumulants"], parameter_range[parameter_name]
         )
         results["critical_point_estimate"] = crossing_point
 
@@ -1114,6 +1137,47 @@ class FiniteSizeScalingAnalysis:
             "universality_class": universality_class,
             "critical_point": critical_point,
         }
+
+    def _classify_universality_class(self, exponents: Dict[str, float]) -> str:
+        """Classify universality class based on critical exponents"""
+        beta = exponents.get("beta", np.nan)
+        gamma = exponents.get("gamma", np.nan)
+
+        # Known universality classes
+        if not np.isnan(beta) and not np.isnan(gamma):
+            # Mean-field (β=0.5, γ=1.0)
+            if 0.3 <= beta <= 0.7 and 0.7 <= gamma <= 1.3:
+                return "mean_field"
+            # Ising 2D (β≈0.125, γ≈1.75)
+            elif 0.05 <= beta <= 0.2 and 1.5 <= gamma <= 2.0:
+                return "ising_2d"
+            # Ising 3D (β≈0.33, γ≈1.24)
+            elif 0.25 <= beta <= 0.4 and 1.0 <= gamma <= 1.5:
+                return "ising_3d"
+            else:
+                return "unknown"
+
+        return "unknown"
+
+    def _embed_sequence(
+        self, series: np.ndarray, embedding_dim: int, delay: int
+    ) -> np.ndarray:
+        """Embed time series for permutation entropy"""
+        n = len(series)
+        embedded = []
+        for i in range(n - (embedding_dim - 1) * delay):
+            pattern = tuple(series[i + j * delay] for j in range(embedding_dim))
+            embedded.append(pattern)
+        return np.array(embedded)
+
+    def _ordinal_patterns(self, embedded: np.ndarray) -> List[tuple]:
+        """Extract ordinal patterns from embedded sequence"""
+        patterns = []
+        for pattern in embedded:
+            # Get permutation pattern
+            ranks = np.argsort(pattern)
+            patterns.append(tuple(ranks))
+        return patterns
 
     def analyze_autocorrelation_functions(
         self, timeseries: Dict, max_lag: int = 100
@@ -1497,9 +1561,9 @@ class FiniteSizeScalingAnalysis:
                 try:
                     fit = np.polyfit(log_reduced, log_data, 1)
                     if exponent_type == "beta":
-                        bootstrap_exponents.append(fit[0])
+                        bootstrap_exponents.append(float(fit[0]))
                     else:  # gamma
-                        bootstrap_exponents.append(-fit[0])
+                        bootstrap_exponents.append(float(-fit[0]))
                 except (ValueError, np.linalg.LinAlgError):
                     pass
 

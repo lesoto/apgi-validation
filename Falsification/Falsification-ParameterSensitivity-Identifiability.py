@@ -7,7 +7,7 @@ This protocol implements parameter sensitivity analysis for APGI models.
 
 import logging
 import numpy as np
-from typing import Dict, Tuple, Any, List
+from typing import Dict, Tuple, Any, List, Optional
 import sys
 from pathlib import Path
 import warnings
