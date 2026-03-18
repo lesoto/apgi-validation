@@ -97,6 +97,22 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 6: {e}")
     Protocol_6 = None
 
+# Framework-Level Aggregator
+try:
+    _spec_aggregator = importlib.util.spec_from_file_location(
+        "APGI_Falsification_Aggregator", _dir / "APGI-Falsification-Aggregator.py"
+    )
+    if _spec_aggregator and _spec_aggregator.loader:
+        APGI_Falsification_Aggregator = importlib.util.module_from_spec(
+            _spec_aggregator
+        )
+        _spec_aggregator.loader.exec_module()
+    else:
+        raise ImportError("Could not load APGI_Falsification_Aggregator")
+except Exception as e:
+    warnings.warn(f"Failed to load APGI_Falsification_Aggregator: {e}")
+    APGI_Falsification_Aggregator = None
+
 # GUI Components - Not loaded at import to avoid tkinter side effects
 ProtocolRunnerGUI = None
 
@@ -210,6 +226,8 @@ __all__ = [
     "Protocol_4",
     "Protocol_5",
     "Protocol_6",
+    # Framework-Level Aggregator
+    "APGI_Falsification_Aggregator",
     # Protocol 1
     "HierarchicalGenerativeModel",
     "SomaticMarkerNetwork",

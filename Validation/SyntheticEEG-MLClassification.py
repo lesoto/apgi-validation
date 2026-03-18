@@ -2558,7 +2558,7 @@ class FalsificationChecker:
         if mann_whitney_p is None:
             mann_whitney_p = 0.005  # Example value
         falsified = (
-            ltcn_transition_time <= 80
+            ltcn_transition_time <= 50.0
             and cliffs_delta >= 0.45
             and mann_whitney_p < 0.01
         )
@@ -2591,9 +2591,9 @@ class FalsificationChecker:
             else 0
         )
         falsified = (
-            ltcn_integration_window >= 150
+            ltcn_integration_window >= 200.0
             and ratio >= 4.0
-            and curve_fit_r2 >= 0.70
+            and curve_fit_r2 >= 0.85
             and wilcoxon_p < 0.01
         )
         return falsified, (
@@ -3877,17 +3877,13 @@ def compare_models_with_statistics(results_task_1a):
             # Build contingency table: [both_correct, i_correct_j_wrong, i_wrong_j_correct, both_wrong]
             correct_i = pred_i == labels
             correct_j = pred_j == labels
-
             both_correct = np.sum(correct_i & correct_j)
             i_correct_j_wrong = np.sum(correct_i & ~correct_j)
             i_wrong_j_correct = np.sum(~correct_i & correct_j)
             both_wrong = np.sum(~correct_i & ~correct_j)
-
             contingency_table = np.array(
-                [[both_correct, i_correct_j_wrong], [i_wrong_j_correct, both_wrong]]
+                [[both_correct, i_correct_j_wrong, i_wrong_j_correct, both_wrong]]
             )
-
-            # McNemar's test statistic (mid-p corrected)
             if i_correct_j_wrong + i_wrong_j_correct > 0:
                 mcnemar_stat = (abs(i_correct_j_wrong - i_wrong_j_correct) - 1) ** 2 / (
                     i_correct_j_wrong + i_wrong_j_correct
@@ -3904,7 +3900,6 @@ def compare_models_with_statistics(results_task_1a):
                 perm_pred_j = np.random.permutation(pred_j)
                 perm_correct_j = perm_pred_j == labels
 
-                perm_both_correct = np.sum(correct_i & perm_correct_j)
                 perm_i_correct_j_wrong = np.sum(correct_i & ~perm_correct_j)
                 perm_i_wrong_j_correct = np.sum(~correct_i & perm_correct_j)
 
@@ -3948,9 +3943,13 @@ def compare_models_with_statistics(results_task_1a):
                 "mcnemar_p_value": mcnemar_p,
                 "mcnemar_perm_p_value": mcnemar_perm_p,
                 "mcnemar_significant": mcnemar_significant,
+                "p_value": mcnemar_p,  # Add p_value field
+                "significant": mcnemar_significant,  # Add significant field
                 "contingency_table": contingency_table.tolist(),
                 "auc_diff": auc_diff,
                 "auc_perm_p_value": auc_perm_p,
+                "mcnemar_perm_p_value": mcnemar_perm_p,
+                "mcnemar_significant": mcnemar_significant,
                 "auc_significant": auc_significant,
             }
 

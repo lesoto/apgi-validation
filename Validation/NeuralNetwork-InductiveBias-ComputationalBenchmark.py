@@ -2582,8 +2582,8 @@ def check_falsification(
     semi_partial_r2_f2_4: float,
     p_interaction_f2_4: float,
     # F2.5 parameters
-    apgi_time_to_criterion: int,
-    no_intero_time_to_criterion: int,
+    apgi_time_to_criterion: float,
+    no_intero_time_to_criterion: float,
     hazard_ratio_f2_5: float,
     log_rank_p: float,
     # F3.1 parameters

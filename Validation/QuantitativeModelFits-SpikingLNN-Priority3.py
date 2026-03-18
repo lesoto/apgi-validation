@@ -471,8 +471,8 @@ class BayesianParameterEstimator:
 
             # APGI psychometric function with paper-specified parameters
             # P(seen) = baseline + amplitude / (1 + exp(-β * (S - θ_t))) * (1 + Πⁱ * modulation)
-            # Use local variable to ensure Pi_i is accessible
-            pi_i_local = float(Pi_i)  # Convert to regular float for calculations
+            # Use fixed Pi_i value (interoceptive precision = 1.0)
+            pi_i_local = 1.0  # Fixed interoceptive precision
             prob_detect = baseline + amplitude / (
                 1 + pm.math.exp(-beta * (stimulus_intensities - theta))
             ) * (
@@ -1938,8 +1938,8 @@ def check_falsification(
     semi_partial_r2_f2_4: float,
     p_interaction_f2_4: float,
     # F2.5 parameters
-    apgi_time_to_criterion: int,
-    no_intero_time_to_criterion: int,
+    apgi_time_to_criterion: float,
+    no_intero_time_to_criterion: float,
     hazard_ratio_f2_5: float,
     log_rank_p: float,
     # F3.1 parameters

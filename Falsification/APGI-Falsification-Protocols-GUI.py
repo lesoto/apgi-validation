@@ -336,11 +336,11 @@ class ProtocolRunnerGUI:
                         "description": "Number of test samples",
                     },
                     "tolerance": {
-                        "default": 1e-5,
+                        "default": 1e-6,
                         "min": 1e-8,
                         "max": 1e-3,
                         "type": "float",
-                        "description": "Tolerance for equality checks",
+                        "description": "Tolerance for equality checks (V5.1 spec: ε ≤ 1e-6)",
                     },
                 },
             },

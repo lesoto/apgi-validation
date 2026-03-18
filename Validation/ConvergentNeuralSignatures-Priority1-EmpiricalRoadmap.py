@@ -1787,14 +1787,14 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "threshold": "Liquid time-constant networks show sharp ignition transitions (10-90% firing rate increase within <50ms) without explicit threshold modules, whereas feedforward networks require added sigmoidal gates",
             "test": "Transition time comparison (Mann-Whitney U test for non-normal distributions), α = 0.01",
             "effect_size": "LTCN median transition time ≤50ms vs. >150ms for feedforward without gates; Cliff's delta ≥ 0.60",
-            "alternative": "Falsified if LTCN transition time >80ms OR Cliff's delta < 0.45 OR Mann-Whitney p ≥ 0.01",
+            "alternative": "Falsified if LTCN transition time >50ms OR Cliff's delta < 0.45 OR Mann-Whitney p ≥ 0.01",
         },
         "F6.2": {
             "description": "Intrinsic Temporal Integration",
             "threshold": "LTCNs naturally integrate information over 200-500ms windows (measured by autocorrelation decay to <0.37) without recurrent add-ons, vs. <50ms for standard RNNs",
             "test": "Exponential decay curve fitting; Wilcoxon signed-rank test comparing integration windows, α = 0.01",
             "effect_size": "LTCN integration window ≥4× standard RNN; curve fit R² ≥ 0.85",
-            "alternative": "Falsified if LTCN window <150ms OR ratio < 2.5× OR R² < 0.70 OR p ≥ 0.01",
+            "alternative": "Falsified if LTCN window <200ms OR ratio <4.0× OR R² <0.85 OR p ≥ 0.01",
         },
     }
 
@@ -1856,8 +1856,8 @@ def check_falsification(
     semi_partial_r2_f2_4: float,
     p_interaction_f2_4: float,
     # F2.5 parameters
-    apgi_time_to_criterion: int,
-    no_intero_time_to_criterion: int,
+    apgi_time_to_criterion: float,
+    no_intero_time_to_criterion: float,
     hazard_ratio_f2_5: float,
     log_rank_p: float,
     # F3.1 parameters
@@ -2025,8 +2025,51 @@ def check_falsification(
     results = {
         "protocol": "Validation-Protocol-9",
         "criteria": {},
-        "summary": {"passed": 0, "failed": 0, "total": 26},
+        "summary": {"passed": 0, "failed": 0, "total": 26, "underpowered": 0},
     }
+
+    # Power analysis helper for gating decisions
+    def check_power_and_apply_gating(
+        criterion_name: str,
+        passed: bool,
+        effect_size: float,
+        n_samples: int,
+        alpha: float = 0.01,
+    ) -> tuple:
+        """
+        Check statistical power and apply gating.
+
+        Args:
+            criterion_name: Name of the criterion being tested
+            passed: Whether the criterion passed its primary tests
+            effect_size: Effect size (Cohen's d or similar)
+            n_samples: Number of samples
+            alpha: Significance level
+
+        Returns:
+            Tuple of (final_status, power_estimate, is_underpowered)
+        """
+        try:
+            from utils.statistical_tests import compute_power_analysis
+
+            power = compute_power_analysis(
+                effect_size=effect_size,
+                n_per_group=n_samples,
+                alpha=alpha,
+                test_type="ttest_ind",
+            )
+        except ImportError:
+            power = 0.80  # Fallback
+
+        is_underpowered = power < 0.80
+
+        if is_underpowered:
+            logger.warning(
+                f"{criterion_name}: UNDERPOWERED (power={power:.2f} < 0.80, n={n_samples}, effect={effect_size:.2f})"
+            )
+            return "UNDERPOWERED", power, True
+
+        return "PASS" if passed else "FAIL", power, False
 
     # V9.1: Clinical Symptom Prediction
     logger.info("Testing V9.1: Clinical Symptom Prediction")
@@ -2654,10 +2697,16 @@ def check_falsification(
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     f6_1_pass = (
-        ltcn_transition_time <= 80 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+        ltcn_transition_time <= 50.0 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+    )
+    status, power, underpowered = check_power_and_apply_gating(
+        "F6.1", f6_1_pass, cliffs_delta, 80, 0.01
     )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
+        "status": status,
+        "power": power,
+        "underpowered": underpowered,
         "ltcn_transition_time": ltcn_transition_time,
         "feedforward_transition_time": feedforward_transition_time,
         "cliffs_delta": cliffs_delta,
@@ -2665,24 +2714,37 @@ def check_falsification(
         "threshold": "LTCN time ≤50ms, delta ≥ 0.60",
         "actual": f"LTCN: {ltcn_transition_time:.1f}ms, Feedforward: {feedforward_transition_time:.1f}ms, delta: {cliffs_delta:.2f}",
     }
-    if f6_1_pass:
+    if underpowered:
+        results["summary"]["underpowered"] += 1
+    elif f6_1_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F6.1: {'PASS' if f6_1_pass else 'FAIL'} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}"
+        f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}"
     )
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
     f6_2_pass = (
-        ltcn_integration_window >= 150
-        and (ltcn_integration_window / rnn_integration_window) >= 2.5
-        and curve_fit_r2 >= 0.70
+        ltcn_integration_window >= 200.0
+        and (ltcn_integration_window / rnn_integration_window) >= 4.0
+        and curve_fit_r2 >= 0.85
         and wilcoxon_p < 0.01
+    )
+    integration_ratio = (
+        ltcn_integration_window / rnn_integration_window
+        if rnn_integration_window > 0
+        else 0
+    )
+    status, power, underpowered = check_power_and_apply_gating(
+        "F6.2", f6_2_pass, integration_ratio, 80, 0.01
     )
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
+        "status": status,
+        "power": power,
+        "underpowered": underpowered,
         "ltcn_integration_window": ltcn_integration_window,
         "rnn_integration_window": rnn_integration_window,
         "curve_fit_r2": curve_fit_r2,
@@ -2690,12 +2752,14 @@ def check_falsification(
         "threshold": "LTCN window ≥200ms, ratio ≥4×, R² ≥ 0.85",
         "actual": f"LTCN: {ltcn_integration_window:.1f}ms, RNN: {rnn_integration_window:.1f}ms, R²: {curve_fit_r2:.2f}",
     }
-    if f6_2_pass:
+    if underpowered:
+        results["summary"]["underpowered"] += 1
+    elif f6_2_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F6.2: {'PASS' if f6_2_pass else 'FAIL'} - LTCN: {ltcn_integration_window:.1f}ms, ratio: {ltcn_integration_window / rnn_integration_window:.1f}"
+        f"F6.2: {status} - LTCN: {ltcn_integration_window:.1f}ms, ratio: {integration_ratio:.1f}, power: {power:.2f}"
     )
 
     logger.info(

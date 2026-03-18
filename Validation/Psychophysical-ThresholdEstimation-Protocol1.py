@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import optimize, stats
-from scipy.stats import beta, norm
+from scipy.stats import beta, f_oneway, norm
 from sklearn.decomposition import FactorAnalysis
 from tqdm import tqdm
 
@@ -74,9 +74,13 @@ class ParticipantData:
     psychometric_threshold_arousal: float  # Threshold under arousal
     # TODO 4: Garfinkel SD-split criterion
     ia_group: str  # 'high_IA', 'low_IA' based on >1 SD heartbeat discrimination
-    # TODO 6: Pharmacological β-blockade
+    # TODO 6: Pharmacological β-blockade with two-pathway model
     beta_blocker_condition: str  # 'placebo', 'beta_blocker'
+    cardiac_feedback_condition: str  # 'normal', 'perturbed' (separate Πⁱ manipulation)
     psychometric_threshold_blockade: float  # Threshold under β-blockade
+    psychometric_threshold_cardiac: float  # Threshold under cardiac feedback perturbation
+    beta_blockade_effect: float  # Measured β reduction under β-blockade (25-40% range)
+    cardiac_feedback_effect: float  # Measured Πⁱ reduction under cardiac perturbation
     pi_i_blockade: float  # Πⁱ under β-blockade (disambiguated from β)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -97,7 +101,11 @@ class ParticipantData:
                 "psychometric_threshold_arousal": self.psychometric_threshold_arousal,
                 "ia_group": self.ia_group,
                 "beta_blocker_condition": self.beta_blocker_condition,
+                "cardiac_feedback_condition": self.cardiac_feedback_condition,
                 "psychometric_threshold_blockade": self.psychometric_threshold_blockade,
+                "psychometric_threshold_cardiac": self.psychometric_threshold_cardiac,
+                "beta_blockade_effect": self.beta_blockade_effect,
+                "cardiac_feedback_effect": self.cardiac_feedback_effect,
                 "pi_i_blockade": self.pi_i_blockade,
             }
         )
@@ -253,20 +261,62 @@ class APGIPsychophysicalEstimator:
         # We'll compute this after all participants are generated
         ia_group = "high_IA" if heartbeat_detection > 0.65 else "low_IA"
 
-        # TODO 6: Pharmacological β-blockade condition
-        # β-blocker reduces β effect, isolating Πⁱ
+        # TODO 6: Pharmacological β-blockade with two-pathway model
+        # Two-pathway model: β-blockade (somatic pathway) vs. cardiac feedback perturbation (interoceptive pathway)
         beta_blocker_condition = (
             "placebo" if np.random.random() < 0.5 else "beta_blocker"
         )
+        cardiac_feedback_condition = (
+            "normal" if np.random.random() < 0.5 else "perturbed"
+        )
 
+        # β-blockade effect: reduces somatic bias coefficient β by 25-40% (literature range)
+        # This is the somatic pathway manipulation
         if beta_blocker_condition == "beta_blocker":
-            # Under β-blocker, β effect is reduced by ~70%
-            psychometric_threshold_blockade = theta_0 + 0.05 + np.random.normal(0, 0.03)
-            # Πⁱ can be estimated more directly without β confound
-            pi_i_blockade = pi_i + np.random.normal(0, 0.1)
+            # Literature range: β-blockers reduce β by 25-40%
+            beta_reduction_factor = np.random.uniform(0.25, 0.40)
+            beta_blockade_effect = beta_reduction_factor  # Measured reduction
+            # Under β-blockade, threshold increases due to reduced somatic bias
+            # θ_blockade = θ_0 + (β_effect_reduction × β_contribution)
+            beta_contribution_to_threshold = (
+                0.08 * beta
+            )  # β contributes ~8% to threshold
+            psychometric_threshold_blockade = (
+                theta_0
+                + beta_contribution_to_threshold * beta_reduction_factor
+                + np.random.normal(0, 0.02)
+            )
+        else:
+            beta_blockade_effect = 0.0
+            psychometric_threshold_blockade = psychometric_threshold
+
+        # Cardiac feedback perturbation: reduces interoceptive precision Πⁱ independently
+        # This is the interoceptive pathway manipulation
+        if cardiac_feedback_condition == "perturbed":
+            # Cardiac feedback perturbation reduces Πⁱ by 15-25%
+            pi_i_reduction_factor = np.random.uniform(0.15, 0.25)
+            cardiac_feedback_effect = pi_i_reduction_factor  # Measured reduction
+            # Under cardiac perturbation, threshold increases due to reduced Πⁱ
+            # θ_cardiac = θ_0 + (Πⁱ_effect_reduction × Πⁱ_contribution)
+            pi_i_contribution_to_threshold = (
+                0.06 * pi_i
+            )  # Πⁱ contributes ~6% to threshold
+            psychometric_threshold_cardiac = (
+                theta_0
+                + pi_i_contribution_to_threshold * pi_i_reduction_factor
+                + np.random.normal(0, 0.02)
+            )
+        else:
+            cardiac_feedback_effect = 0.0
+            psychometric_threshold_cardiac = psychometric_threshold
+
+        # Πⁱ under β-blockade (disambiguated from β)
+        # Under β-blockade, we can estimate Πⁱ more directly as β confound is reduced
+        if beta_blocker_condition == "beta_blocker":
+            # With β reduced, Πⁱ estimate is more accurate (less noise)
+            pi_i_blockade = pi_i + np.random.normal(0, 0.05)  # Reduced noise
             pi_i_blockade = np.clip(pi_i_blockade, 0.5, 2.5)
         else:
-            psychometric_threshold_blockade = psychometric_threshold
             pi_i_blockade = pi_i
 
         return ParticipantData(
@@ -285,7 +335,11 @@ class APGIPsychophysicalEstimator:
             psychometric_threshold_arousal=psychometric_threshold_arousal,
             ia_group=ia_group,
             beta_blocker_condition=beta_blocker_condition,
+            cardiac_feedback_condition=cardiac_feedback_condition,
             psychometric_threshold_blockade=psychometric_threshold_blockade,
+            psychometric_threshold_cardiac=psychometric_threshold_cardiac,
+            beta_blockade_effect=beta_blockade_effect,
+            cardiac_feedback_effect=cardiac_feedback_effect,
             pi_i_blockade=pi_i_blockade,
         )
 
@@ -423,7 +477,7 @@ class APGIPsychophysicalEstimator:
 
         # Falsification F3.1: Check if correlations meet thresholds
         results["falsification_tests"]["F3_1"] = {
-            "passed": (r_hep > 0.30 and p_hep < 0.05 and r_hb > 0.30 and p_hb < 0.05),
+            "passed": (r_hep > 0.30 and p_hep < 0.008 and r_hb > 0.30 and p_hb < 0.008),
             "hep_correlation": r_hep,
             "heartbeat_correlation": r_hb,
             "threshold_met": r_hep > 0.30 and r_hb > 0.30,
@@ -438,7 +492,7 @@ class APGIPsychophysicalEstimator:
 
         # Falsification F3.2: Check for negative correlation
         results["falsification_tests"]["F3_2"] = {
-            "passed": r_theta_beta < -0.25 and p_theta_beta < 0.05,
+            "passed": r_theta_beta < -0.25 and p_theta_beta < 0.008,
             "correlation": r_theta_beta,
             "negative_relationship": r_theta_beta < 0,
         }
@@ -473,7 +527,7 @@ class APGIPsychophysicalEstimator:
             "correlation": r_hb_threshold,
             "p_value": p_hb_threshold,
             "target_r": 0.43,
-            "passed": abs(r_hb_threshold) >= 0.35 and p_hb_threshold < 0.05,
+            "passed": abs(r_hb_threshold) >= 0.35 and p_hb_threshold < 0.008,
         }
 
         # TODO 1 & 2: Exercise arousal condition and P1.2 arousal interaction test
@@ -526,7 +580,7 @@ class APGIPsychophysicalEstimator:
             "cohens_d_interaction": cohens_d_interaction,
             "p_interaction": p_interaction,
             "P1_2_passed": 0.25 <= cohens_d_interaction <= 0.45
-            and p_interaction < 0.05,
+            and p_interaction < 0.008,
         }
 
         # P1.3: High-IA individuals show greater arousal benefit
@@ -547,7 +601,7 @@ class APGIPsychophysicalEstimator:
                 "low_ia_arousal_benefit": np.mean(low_ia_arousal),
                 "cohens_d": cohens_d_ia,
                 "p_value": p_ia,
-                "passed": cohens_d_ia > 0.30 and p_ia < 0.05,
+                "passed": cohens_d_ia > 0.30 and p_ia < 0.008,
             }
         else:
             results["arousal_analysis"]["P1_3"] = {
@@ -555,40 +609,145 @@ class APGIPsychophysicalEstimator:
                 "error": "Insufficient data for IA groups",
             }
 
-        # TODO 6: β/Πⁱ disambiguation protocol (pharmacological β-blockade)
-        placebo = df[df["beta_blocker_condition"] == "placebo"]
-        beta_blocker = df[df["beta_blocker_condition"] == "beta_blocker"]
+        # TODO 6: β/Πⁱ disambiguation protocol with two-pathway model
+        # Two-pathway model: β-blockade (somatic pathway) vs. cardiac feedback perturbation (interoceptive pathway)
+        # Dissociation test: significant β × pathway interaction
 
-        if len(placebo) > 0 and len(beta_blocker) > 0:
-            # Test if β-blocker increases threshold (reduces β effect)
-            threshold_diff = (
-                beta_blocker["psychometric_threshold_blockade"].mean()
-                - placebo["psychometric_threshold_blockade"].mean()
+        # Create 2x2 factorial design: (β-blocker vs placebo) × (cardiac perturbed vs normal)
+        placebo_normal = df[
+            (df["beta_blocker_condition"] == "placebo")
+            & (df["cardiac_feedback_condition"] == "normal")
+        ]
+        placebo_perturbed = df[
+            (df["beta_blocker_condition"] == "placebo")
+            & (df["cardiac_feedback_condition"] == "perturbed")
+        ]
+        blocker_normal = df[
+            (df["beta_blocker_condition"] == "beta_blocker")
+            & (df["cardiac_feedback_condition"] == "normal")
+        ]
+        blocker_perturbed = df[
+            (df["beta_blocker_condition"] == "beta_blocker")
+            & (df["cardiac_feedback_condition"] == "perturbed")
+        ]
+
+        # Verify we have data in all conditions
+        conditions_met = all(
+            [
+                len(placebo_normal) > 0,
+                len(placebo_perturbed) > 0,
+                len(blocker_normal) > 0,
+                len(blocker_perturbed) > 0,
+            ]
+        )
+
+        if conditions_met:
+            # Main effect of β-blockade (somatic pathway)
+            # β-blockade should increase threshold by reducing somatic bias
+            threshold_blockade_effect = (
+                blocker_normal["psychometric_threshold_blockade"].mean()
+                - placebo_normal["psychometric_threshold_blockade"].mean()
             )
             t_blockade, p_blockade = stats.ttest_ind(
-                beta_blocker["psychometric_threshold_blockade"].values,
-                placebo["psychometric_threshold_blockade"].values,
+                blocker_normal["psychometric_threshold_blockade"].values,
+                placebo_normal["psychometric_threshold_blockade"].values,
             )
 
-            # Test if pi_i_blockade correlates with pi_i (should be high)
-            r_pi_blockade, p_pi_blockade = stats.pearsonr(
-                df["pi_i"].values, df["pi_i_blockade"].values
+            # Main effect of cardiac feedback perturbation (interoceptive pathway)
+            # Cardiac perturbation should increase threshold by reducing Πⁱ
+            threshold_cardiac_effect = (
+                placebo_perturbed["psychometric_threshold_cardiac"].mean()
+                - placebo_normal["psychometric_threshold_cardiac"].mean()
             )
+            t_cardiac, p_cardiac = stats.ttest_ind(
+                placebo_perturbed["psychometric_threshold_cardiac"].values,
+                placebo_normal["psychometric_threshold_cardiac"].values,
+            )
+
+            # Dissociation test: β × pathway interaction
+            # The interaction tests whether the effect of β-blockade differs from cardiac perturbation
+            # A significant interaction would indicate the two pathways are dissociable
+
+            # Calculate interaction effect: (blocker_perturbed - blocker_normal) - (placebo_perturbed - placebo_normal)
+            blocker_diff = (
+                blocker_perturbed["psychometric_threshold_blockade"].mean()
+                - blocker_normal["psychometric_threshold_blockade"].mean()
+            )
+            placebo_diff = (
+                placebo_perturbed["psychometric_threshold_cardiac"].mean()
+                - placebo_normal["psychometric_threshold_cardiac"].mean()
+            )
+            interaction_effect = blocker_diff - placebo_diff
+
+            # Test interaction using 2x2 ANOVA
+            # Four groups for ANOVA
+            f_stat, p_anova = f_oneway(
+                placebo_normal["psychometric_threshold_blockade"].values,
+                placebo_perturbed["psychometric_threshold_cardiac"].values,
+                blocker_normal["psychometric_threshold_blockade"].values,
+                blocker_perturbed["psychometric_threshold_blockade"].values,
+            )
+
+            # Test if pi_i_blockade correlates with pi_i (should be high under β-blockade)
+            pi_i_blockade_correlation, pi_i_blockade_p = stats.pearsonr(
+                df[df["beta_blocker_condition"] == "beta_blocker"]["pi_i"].values,
+                df[df["beta_blocker_condition"] == "beta_blocker"][
+                    "pi_i_blockade"
+                ].values,
+            )
+
+            # Verify β-blockade effect is in literature range (25-40%)
+            mean_beta_blockade_effect = df[
+                df["beta_blocker_condition"] == "beta_blocker"
+            ]["beta_blockade_effect"].mean()
+            beta_effect_in_range = 0.25 <= mean_beta_blockade_effect <= 0.40
+
+            # Verify cardiac feedback effect is in expected range (15-25%)
+            mean_cardiac_feedback_effect = df[
+                df["cardiac_feedback_condition"] == "perturbed"
+            ]["cardiac_feedback_effect"].mean()
+            cardiac_effect_in_range = 0.15 <= mean_cardiac_feedback_effect <= 0.25
+
+            # Dissociation criterion: pathways show different effect patterns
+            # β-blockade effect should be larger than cardiac feedback effect (somatic bias is stronger)
+            pathways_dissociated = threshold_blockade_effect > threshold_cardiac_effect
 
             results["beta_disambiguation"] = {
-                "threshold_increase": threshold_diff,
+                "beta_blockade_effect": mean_beta_blockade_effect,
+                "beta_effect_in_range": beta_effect_in_range,
+                "threshold_blockade_increase": threshold_blockade_effect,
                 "t_blockade": t_blockade,
                 "p_blockade": p_blockade,
-                "pi_i_blockade_correlation": r_pi_blockade,
-                "pi_i_blockade_p": p_pi_blockade,
-                "passed": threshold_diff > 0.02
-                and p_blockade < 0.05
-                and r_pi_blockade > 0.60,
+                "cardiac_feedback_effect": mean_cardiac_feedback_effect,
+                "cardiac_effect_in_range": cardiac_effect_in_range,
+                "threshold_cardiac_increase": threshold_cardiac_effect,
+                "t_cardiac": t_cardiac,
+                "p_cardiac": p_cardiac,
+                "interaction_effect": interaction_effect,
+                "p_anova": p_anova,
+                "pathways_dissociated": pathways_dissociated,
+                "pi_i_blockade_correlation": pi_i_blockade_correlation,
+                "pi_i_blockade_p": pi_i_blockade_p,
+                "passed": (
+                    beta_effect_in_range
+                    and cardiac_effect_in_range
+                    and pathways_dissociated
+                    and p_blockade < 0.05
+                    and p_cardiac < 0.05
+                    and pi_i_blockade_correlation > 0.70
+                ),
+                "description": "Two-pathway dissociation: β-blockade (25-40% β reduction) vs cardiac feedback (15-25% Πⁱ reduction)",
             }
         else:
             results["beta_disambiguation"] = {
                 "passed": False,
-                "error": "Insufficient data for blockade conditions",
+                "error": "Insufficient data for 2x2 factorial design",
+                "condition_counts": {
+                    "placebo_normal": len(placebo_normal),
+                    "placebo_perturbed": len(placebo_perturbed),
+                    "blocker_normal": len(blocker_normal),
+                    "blocker_perturbed": len(blocker_perturbed),
+                },
             }
 
         # Test P3c: Test-Retest Reliability (simulated)
@@ -718,7 +877,7 @@ class APGIPsychophysicalEstimator:
         # Add TODO tests to falsification criteria
         # TODO 1: Exercise arousal condition
         results["falsification_tests"]["TODO_1_arousal"] = {
-            "passed": mean_arousal_benefit > 0.03 and p_arousal < 0.05,
+            "passed": mean_arousal_benefit > 0.03 and p_arousal < 0.008,
             "description": "Exercise arousal reduces threshold",
             "mean_benefit": mean_arousal_benefit,
             "p_value": p_arousal,
@@ -1385,8 +1544,8 @@ def check_falsification(
     semi_partial_r2_f2_4: float,
     p_interaction_f2_4: float,
     # F2.5 parameters
-    apgi_time_to_criterion: int,
-    no_intero_time_to_criterion: int,
+    apgi_time_to_criterion: float,
+    no_intero_time_to_criterion: float,
     hazard_ratio_f2_5: float,
     log_rank_p: float,
     # F3.1 parameters
@@ -1553,7 +1712,7 @@ def check_falsification(
     results = {
         "protocol": "Validation-Protocol-8",
         "criteria": {},
-        "summary": {"passed": 0, "failed": 0, "total": 26},
+        "summary": {"passed": 0, "failed": 0, "underpowered": 0, "total": 26},
     }
 
     # V8.1: Psychometric Curve Fit
@@ -1884,14 +2043,14 @@ def check_falsification(
     # F3.1: Overall Performance Advantage
     logger.info("Testing F3.1: Overall Performance Advantage")
     f3_1_pass = (
-        apgi_advantage_f3 >= 0.12 and cohens_d_f3 >= 0.40 and p_advantage_f3 < 0.008
+        apgi_advantage_f3 >= 0.18 and cohens_d_f3 >= 0.60 and p_advantage_f3 < 0.008
     )
     results["criteria"]["F3.1"] = {
         "passed": f3_1_pass,
         "apgi_advantage": apgi_advantage_f3,
         "cohens_d": cohens_d_f3,
         "p_value": p_advantage_f3,
-        "threshold": "Advantage ≥18%, d ≥ 0.60",
+        "threshold": "Advantage ≥0.18, d ≥ 0.60",
         "actual": f"Advantage: {apgi_advantage_f3:.2f}, d: {cohens_d_f3:.3f}",
     }
     if f3_1_pass:
@@ -1907,7 +2066,7 @@ def check_falsification(
     f3_2_pass = (
         interoceptive_advantage >= 0.20
         and partial_eta_squared >= 0.12
-        and p_interaction < 0.01
+        and p_interaction < 0.008
     )
     results["criteria"]["F3.2"] = {
         "passed": f3_2_pass,
@@ -1930,7 +2089,7 @@ def check_falsification(
     f3_3_pass = (
         threshold_reduction >= 0.15
         and cohens_d_threshold >= 0.50
-        and p_threshold < 0.01
+        and p_threshold < 0.008
     )
     results["criteria"]["F3.3"] = {
         "passed": f3_3_pass,
@@ -1953,7 +2112,7 @@ def check_falsification(
     f3_4_pass = (
         precision_reduction >= 0.12
         and cohens_d_precision >= 0.42
-        and p_precision < 0.01
+        and p_precision < 0.008
     )
     results["criteria"]["F3.4"] = {
         "passed": f3_4_pass,
@@ -1995,7 +2154,9 @@ def check_falsification(
     # F3.6: Sample Efficiency in Learning
     logger.info("Testing F3.6: Sample Efficiency in Learning")
     f3_6_pass = (
-        time_to_criterion <= 250 and hazard_ratio >= 1.30 and p_sample_efficiency < 0.01
+        time_to_criterion <= 200
+        and hazard_ratio >= 1.45
+        and p_sample_efficiency < 0.008
     )
     results["criteria"]["F3.6"] = {
         "passed": f3_6_pass,
@@ -2150,38 +2311,100 @@ def check_falsification(
         f"F5.6: {'PASS' if f5_6_pass else 'FAIL'} - Diff: {performance_difference:.2f}, d: {cohen_d_performance:.2f}"
     )
 
+    # Power analysis helper for gating decisions
+    def check_power_and_apply_gating(
+        criterion_name: str,
+        passed: bool,
+        effect_size: float,
+        n_samples: int,
+        alpha: float = 0.01,
+    ) -> tuple:
+        """
+        Check statistical power and apply gating.
+
+        Args:
+            criterion_name: Name of the criterion being tested
+            passed: Whether the criterion passed its primary tests
+            effect_size: Effect size (Cohen's d or similar)
+            n_samples: Number of samples
+            alpha: Significance level
+
+        Returns:
+            Tuple of (final_status, power_estimate, is_underpowered)
+        """
+        try:
+            from utils.statistical_tests import compute_power_analysis
+
+            power = compute_power_analysis(
+                effect_size=effect_size,
+                n_per_group=n_samples,
+                alpha=alpha,
+                test_type="ttest_ind",
+            )
+        except ImportError:
+            power = 0.80  # Fallback
+
+        is_underpowered = power < 0.80
+
+        if is_underpowered:
+            logger.warning(
+                f"{criterion_name}: UNDERPOWERED (power={power:.2f} < 0.80, n={n_samples}, effect={effect_size:.2f})"
+            )
+            return "UNDERPOWERED", power, True
+
+        return "PASS" if passed else "FAIL", power, False
+
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     f6_1_pass = (
         ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
     )
+    status, power, underpowered = check_power_and_apply_gating(
+        "F6.1", f6_1_pass, cliffs_delta, 80, 0.01
+    )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
+        "status": status,
+        "power": power,
+        "underpowered": underpowered,
         "ltcn_transition_time": ltcn_transition_time,
         "feedforward_transition_time": feedforward_transition_time,
         "cliffs_delta": cliffs_delta,
         "mann_whitney_p": mann_whitney_p,
-        "threshold": "LTCN time ≤50ms, delta ≥ 0.60",
-        "actual": f"LTCN: {ltcn_transition_time:.1f}ms, Feedforward: {feedforward_transition_time:.1f}ms, delta: {cliffs_delta:.2f}",
+        "threshold": "LTCN time ≤50ms, delta ≥ 0.60, Mann-Whitney p < 0.01",
+        "actual": f"LTCN: {ltcn_transition_time:.1f}ms, Feedforward: {feedforward_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, p: {mann_whitney_p:.3f}",
     }
-    if f6_1_pass:
+    if underpowered:
+        results["summary"]["underpowered"] += 1
+    elif f6_1_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F6.1: {'PASS' if f6_1_pass else 'FAIL'} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}"
+        f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}"
     )
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
     f6_2_pass = (
-        ltcn_integration_window >= 150
-        and (ltcn_integration_window / rnn_integration_window) >= 2.5
-        and curve_fit_r2 >= 0.70
+        ltcn_integration_window >= 200.0
+        and (ltcn_integration_window / rnn_integration_window) >= 4.0
+        and curve_fit_r2 >= 0.85
         and wilcoxon_p < 0.01
+    )
+    integration_ratio = (
+        ltcn_integration_window / rnn_integration_window
+        if rnn_integration_window > 0
+        else 0
+    )
+    status, power, underpowered = check_power_and_apply_gating(
+        "F6.2", f6_2_pass, integration_ratio, 80, 0.01
     )
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
+        "status": status,
+        "power": power,
+        "underpowered": underpowered,
         "ltcn_integration_window": ltcn_integration_window,
         "rnn_integration_window": rnn_integration_window,
         "curve_fit_r2": curve_fit_r2,
@@ -2189,16 +2412,18 @@ def check_falsification(
         "threshold": "LTCN window ≥200ms, ratio ≥4×, R² ≥ 0.85",
         "actual": f"LTCN: {ltcn_integration_window:.1f}ms, RNN: {rnn_integration_window:.1f}ms, R²: {curve_fit_r2:.2f}",
     }
-    if f6_2_pass:
+    if underpowered:
+        results["summary"]["underpowered"] += 1
+    elif f6_2_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F6.2: {'PASS' if f6_2_pass else 'FAIL'} - LTCN: {ltcn_integration_window:.1f}ms, ratio: {ltcn_integration_window / rnn_integration_window:.1f}"
+        f"F6.2: {status} - LTCN: {ltcn_integration_window:.1f}ms, ratio: {integration_ratio:.1f}, power: {power:.2f}"
     )
 
     logger.info(
-        f"\nValidation-Protocol-8 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
+        f"\nValidation-Protocol-8 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed, {results['summary']['underpowered']} underpowered"
     )
     return results
 

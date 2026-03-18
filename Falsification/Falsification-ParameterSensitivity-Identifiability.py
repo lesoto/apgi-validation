@@ -390,6 +390,188 @@ def analyze_parameter_recovery(
     }
 
 
+def analyze_profile_likelihood(
+    base_params: Dict[str, float],
+    param_bounds: Dict[str, Tuple[float, float]],
+    n_points: int = 50,
+    n_trials: int = 1000,
+) -> Dict[str, Any]:
+    """
+    Profile likelihood analysis for practical identifiability testing.
+
+    For each parameter, fix all other parameters at their baseline values and
+    vary the target parameter across its plausible range to examine the likelihood profile.
+    Flat profiles indicate non-identifiable parameters.
+
+    Parameters:
+    -----------
+    base_params : dict
+        Baseline parameter values
+    param_bounds : dict
+        Parameter bounds (min, max) for each parameter
+    n_points : int
+        Number of points to evaluate for each parameter profile
+    n_trials : int
+        Number of simulation trials per evaluation
+
+    Returns:
+    --------
+    dict
+        Profile likelihood analysis results for each parameter
+    """
+    logger.info("Running profile likelihood analysis...")
+
+    # Focus on the four core APGI parameters
+    core_apgi_params = ["theta_0", "alpha", "beta", "Pi_i"]
+    available_params = [
+        p for p in core_apgi_params if p in base_params and p in param_bounds
+    ]
+
+    if len(available_params) == 0:
+        return {
+            "profile_likelihood": False,
+            "error": "No core APGI parameters available",
+        }
+
+    profile_results = {}
+
+    for param_name in available_params:
+        logger.info(f"Computing profile likelihood for {param_name}...")
+
+        # Create parameter range
+        min_val, max_val = param_bounds[param_name]
+        param_range = np.linspace(min_val, max_val, n_points)
+
+        # Evaluate likelihood at each parameter value
+        likelihood_values = []
+        performance_values = []
+
+        for param_value in param_range:
+            # Create parameter set with current parameter varied
+            test_params = base_params.copy()
+            test_params[param_name] = param_value
+
+            # Run multiple trials and collect performance metrics
+            trial_performances = []
+            for _ in range(n_trials):
+                perf = simulate_model_performance_with_agent(test_params, n_trials=1)
+                trial_performances.append(perf)
+
+            # Calculate mean performance and likelihood
+            mean_performance = np.mean(trial_performances)
+            performance_values.append(mean_performance)
+
+            # Simple likelihood model: assume performance follows normal distribution
+            # with mean based on parameter value and constant variance
+            # Higher performance = higher likelihood
+            # Use exponential likelihood: L ∝ exp(performance)
+            likelihood = np.exp(mean_performance)  # Simple likelihood model
+            likelihood_values.append(likelihood)
+
+        # Normalize likelihood to [0, 1] for easier interpretation
+        likelihood_values = np.array(likelihood_values)
+        if np.max(likelihood_values) > 0:
+            likelihood_values = likelihood_values / np.max(likelihood_values)
+
+        # Calculate profile characteristics
+        # 1. Profile flatness (lower = more flat = less identifiable)
+        likelihood_range = np.max(likelihood_values) - np.min(likelihood_values)
+
+        # 2. Profile width at half-maximum (wider = less identifiable)
+        half_max = 0.5
+        half_max_indices = np.where(likelihood_values >= half_max)[0]
+        if len(half_max_indices) > 0:
+            profile_width = (
+                param_range[half_max_indices[-1]] - param_range[half_max_indices[0]]
+            )
+            relative_width = profile_width / (max_val - min_val)
+        else:
+            profile_width = 0
+            relative_width = 0
+
+        # 3. Peak sharpness (higher = more identifiable)
+        peak_idx = np.argmax(likelihood_values)
+        peak_value = likelihood_values[peak_idx]
+
+        # Calculate local curvature around peak (second derivative approximation)
+        if 1 < peak_idx < len(likelihood_values) - 1:
+            left_diff = likelihood_values[peak_idx] - likelihood_values[peak_idx - 1]
+            right_diff = likelihood_values[peak_idx] - likelihood_values[peak_idx + 1]
+            curvature = -(left_diff + right_diff)  # Negative for peak
+        else:
+            curvature = 0
+
+        # 4. Identifiability assessment
+        # Combine multiple metrics for robust assessment
+        flatness_score = 1.0 - likelihood_range  # Higher = less flat
+        width_score = 1.0 - relative_width  # Higher = narrower (better)
+        curvature_score = min(curvature * 10, 1.0)  # Scale and cap at 1
+
+        identifiability_score = (flatness_score + width_score + curvature_score) / 3
+
+        # Classify identifiability
+        if identifiability_score > 0.7:
+            identifiability_class = "HIGH"
+        elif identifiability_score > 0.4:
+            identifiability_class = "MODERATE"
+        else:
+            identifiability_class = "LOW"
+
+        # Check for flat profiles (clearly non-identifiable)
+        is_flat_profile = likelihood_range < 0.1 or relative_width > 0.8
+
+        profile_results[param_name] = {
+            "param_range": param_range.tolist(),
+            "likelihood_values": likelihood_values.tolist(),
+            "performance_values": performance_values,
+            "peak_parameter_value": float(param_range[peak_idx]),
+            "peak_likelihood": float(peak_value),
+            "likelihood_range": float(likelihood_range),
+            "profile_width": float(profile_width),
+            "relative_width": float(relative_width),
+            "curvature": float(curvature),
+            "identifiability_score": float(identifiability_score),
+            "identifiability_class": identifiability_class,
+            "is_flat_profile": is_flat_profile,
+            "is_identifiable": not is_flat_profile and identifiability_score > 0.3,
+            "n_points": n_points,
+            "n_trials": n_trials,
+        }
+
+    # Summary statistics
+    identifiable_params = [
+        p for p, results in profile_results.items() if results["is_identifiable"]
+    ]
+    flat_profile_params = [
+        p for p, results in profile_results.items() if results["is_flat_profile"]
+    ]
+
+    summary = {
+        "profile_likelihood": True,
+        "parameters_analyzed": available_params,
+        "n_identifiable": len(identifiable_params),
+        "n_flat_profiles": len(flat_profile_params),
+        "identifiable_params": identifiable_params,
+        "flat_profile_params": flat_profile_params,
+        "overall_identifiability_rate": len(identifiable_params)
+        / len(available_params),
+        "profile_results": profile_results,
+    }
+
+    # Add falsification criterion
+    # If any core parameter is non-identifiable, this is a falsification signal
+    summary["identifiability_falsification"] = {
+        "falsified": len(flat_profile_params) > 0,
+        "falsification_reason": (
+            f"Non-identifiable core parameters: {flat_profile_params}"
+            if flat_profile_params
+            else "All core parameters are identifiable"
+        ),
+    }
+
+    return summary
+
+
 def analyze_fisher_information_matrix(
     base_params: Dict[str, float],
     param_bounds: Dict[str, Tuple[float, float]],
@@ -491,16 +673,32 @@ def analyze_fisher_information_matrix(
 def analyze_sobol_sensitivity(
     base_params: Dict[str, float],
     param_bounds: Dict[str, Tuple[float, float]],
-    n_samples: int = 1000,
+    n_samples: int = 1024,
     n_trials: int = 1000,
 ) -> Dict[str, Any]:
     """
     Compute Sobol first-order and total-order sensitivity indices using SALib.
     Per Step 1.5 - Full implementation with falsification criteria.
+
+    Parameters:
+    -----------
+    n_samples : int
+        Number of samples for Sobol analysis. Must be a power of 2 for Saltelli sampler.
+        Default: 1024 (2^10). Valid values: 512, 1024, 2048, 4096, etc.
     """
     if not HAS_SALIB:
         logger.warning("SALib not available - skipping Sobol analysis")
         return {"sobol_analysis": False}
+
+    # Validate n_samples is power of 2
+    if n_samples <= 0 or (n_samples & (n_samples - 1)) != 0:  # Check if power of 2
+        # Find nearest valid power of 2
+        valid_powers = [512, 1024, 2048, 4096]  # Common valid values
+        nearest_valid = min(valid_powers, key=lambda x: abs(x - n_samples))
+        logger.warning(
+            f"n_samples={n_samples} is not a power of 2. Using {nearest_valid} instead."
+        )
+        n_samples = nearest_valid
 
     try:
         # Define problem for SALib
@@ -581,6 +779,80 @@ def analyze_sobol_sensitivity(
             ),
         }
 
+        # NEW: APGI theoretical hierarchy falsification gate
+        # APGI predicts: S_total(θt) > S_total(β) > S_total(Πi) > S_total(Πe)
+        apgi_hierarchy_params = ["theta_0", "beta", "Pi_i", "Pi_e"]
+        available_hierarchy_params = [
+            p for p in apgi_hierarchy_params if p in param_bounds.keys()
+        ]
+
+        if len(available_hierarchy_params) >= 3:  # Need at least 3 to test hierarchy
+            param_st_indices = {
+                param: float(st_indices[list(param_bounds.keys()).index(param)])
+                for param in available_hierarchy_params
+            }
+
+            # Sort by ST indices (descending)
+            sorted_params = sorted(
+                available_hierarchy_params,
+                key=lambda x: param_st_indices[x],
+                reverse=True,
+            )
+
+            # Check if hierarchy is violated
+            hierarchy_violations = []
+            expected_order = [
+                "theta_0",
+                "beta",
+                "Pi_i",
+                "Pi_e",
+            ]  # Expected from high to low sensitivity
+
+            for i in range(len(sorted_params) - 1):
+                current_param = sorted_params[i]
+                next_param = sorted_params[i + 1]
+
+                # Find expected positions
+                current_expected_pos = next(
+                    (
+                        pos
+                        for pos, p in enumerate(expected_order)
+                        if p in available_hierarchy_params and p == current_param
+                    ),
+                    None,
+                )
+                next_expected_pos = next(
+                    (
+                        pos
+                        for pos, p in enumerate(expected_order)
+                        if p in available_hierarchy_params and p == next_param
+                    ),
+                    None,
+                )
+
+                if current_expected_pos is not None and next_expected_pos is not None:
+                    if current_expected_pos > next_expected_pos:  # Hierarchy violation
+                        hierarchy_violations.append(
+                            f"{current_param} should be > {next_param}"
+                        )
+
+            results["apgi_hierarchy_falsification"] = {
+                "expected_hierarchy": expected_order,
+                "observed_ranking": sorted_params,
+                "hierarchy_violations": hierarchy_violations,
+                "hierarchy_falsified": len(hierarchy_violations) > 0,
+                "falsification_reason": (
+                    f"APGI hierarchy violated: {hierarchy_violations}"
+                    if hierarchy_violations
+                    else "APGI hierarchy preserved"
+                ),
+            }
+        else:
+            results["apgi_hierarchy_falsification"] = {
+                "hierarchy_falsified": False,
+                "falsification_reason": "Insufficient parameters to test hierarchy",
+            }
+
         # Additional sensitivity analysis
         results["sensitivity_summary"] = {
             "high_sensitivity_params": [
@@ -613,6 +885,7 @@ def generate_comprehensive_sensitivity_report(
     collinearity_results: Dict[str, Any],
     recovery_results: Dict[str, Any],
     fim_results: Dict[str, Any],
+    profile_likelihood_results: Dict[str, Any] = None,
 ) -> str:
     """Generate a comprehensive sensitivity analysis report"""
 
@@ -748,6 +1021,52 @@ def generate_comprehensive_sensitivity_report(
             else:
                 report += f"{param}: Undefined (non-identifiable)\n"
 
+    # Profile Likelihood Results (NEW)
+    if profile_likelihood_results and profile_likelihood_results.get(
+        "profile_likelihood", False
+    ):
+        report += "\n\nProfile Likelihood Analysis (Practical Identifiability)\n"
+        report += "-" * 40 + "\n\n"
+
+        report += f"Overall Identifiability Rate: {profile_likelihood_results['overall_identifiability_rate']:.2%}\n"
+        report += f"Identifiable Parameters: {profile_likelihood_results['identifiable_params']}\n"
+        report += f"Flat Profile Parameters: {profile_likelihood_results['flat_profile_params']}\n\n"
+
+        report += "Individual Parameter Results:\n"
+        for param, results in profile_likelihood_results["profile_results"].items():
+            report += f"{param}:\n"
+            report += f"  Identifiability Class: {results['identifiability_class']}\n"
+            report += (
+                f"  Identifiability Score: {results['identifiability_score']:.3f}\n"
+            )
+            report += f"  Peak Parameter Value: {results['peak_parameter_value']:.3f}\n"
+            report += f"  Profile Width: {results['relative_width']:.2%} of range\n"
+            report += f"  Flat Profile: {results['is_flat_profile']}\n"
+            report += f"  Status: {'IDENTIFIABLE' if results['is_identifiable'] else 'NON-IDENTIFIABLE'}\n\n"
+
+        # Profile likelihood falsification
+        if "identifiability_falsification" in profile_likelihood_results:
+            pl_falsification = profile_likelihood_results[
+                "identifiability_falsification"
+            ]
+            report += "PROFILE LIKELIHOOD FALSIFICATION:\n"
+            report += f"Model Falsified: {pl_falsification['falsified']}\n"
+            report += f"Reason: {pl_falsification['falsification_reason']}\n"
+
+    # APGI Hierarchy Falsification (NEW)
+    if sobol_results.get("apgi_hierarchy_falsification"):
+        hierarchy_results = sobol_results["apgi_hierarchy_falsification"]
+        report += "\n\nAPGI Theoretical Hierarchy Test\n"
+        report += "-" * 40 + "\n\n"
+
+        report += f"Expected Hierarchy: {hierarchy_results['expected_hierarchy']}\n"
+        report += f"Observed Ranking: {hierarchy_results['observed_ranking']}\n"
+        report += f"Hierarchy Falsified: {hierarchy_results['hierarchy_falsified']}\n"
+        report += f"Reason: {hierarchy_results['falsification_reason']}\n"
+
+        if hierarchy_results.get("hierarchy_violations"):
+            report += f"Violations: {hierarchy_results['hierarchy_violations']}\n"
+
     # Overall Assessment
     report += "\n\nOVERALL ASSESSMENT\n"
     report += "=" * 40 + "\n\n"
@@ -757,6 +1076,18 @@ def generate_comprehensive_sensitivity_report(
 
     if sobol_results.get("falsification_criteria", {}).get("falsified", False):
         issues.append("Model falsified due to redundant core parameters")
+
+    if sobol_results.get("apgi_hierarchy_falsification", {}).get(
+        "hierarchy_falsified", False
+    ):
+        issues.append("APGI theoretical hierarchy violated")
+
+    if profile_likelihood_results and profile_likelihood_results.get(
+        "identifiability_falsification", {}
+    ).get("falsified", False):
+        issues.append(
+            "Profile likelihood analysis indicates non-identifiable parameters"
+        )
 
     if collinearity_results.get("high_vif_params"):
         issues.append(
@@ -847,17 +1178,17 @@ def run_comprehensive_parameter_sensitivity_analysis():
     )
     results["oat_sensitivity"] = oat_results
 
-    # 2. Sobol sensitivity analysis (enhanced with more samples)
+    # 2. Sobol sensitivity analysis (enhanced with power-of-2 samples)
     logger.info("Running Sobol sensitivity analysis...")
     sobol_results = analyze_sobol_sensitivity(
-        base_params, param_bounds, n_samples=2000, n_trials=1000
+        base_params, param_bounds, n_samples=1024, n_trials=1000
     )
     results["sobol_sensitivity"] = sobol_results
 
     # 3. β/Πⁱ collinearity analysis
     logger.info("Running collinearity analysis...")
     collinearity_results = analyze_beta_pi_collinearity(
-        base_params, param_std_devs, n_samples=2000
+        base_params, param_std_devs, n_samples=1024
     )
     results["collinearity_analysis"] = collinearity_results
 
@@ -868,7 +1199,14 @@ def run_comprehensive_parameter_sensitivity_analysis():
     )
     results["parameter_recovery"] = recovery_results
 
-    # 5. Fisher Information Matrix analysis
+    # 5. Profile likelihood analysis (NEW - practical identifiability)
+    logger.info("Running profile likelihood analysis...")
+    profile_likelihood_results = analyze_profile_likelihood(
+        base_params, param_bounds, n_points=50, n_trials=500
+    )
+    results["profile_likelihood"] = profile_likelihood_results
+
+    # 6. Fisher Information Matrix analysis
     logger.info("Running Fisher Information Matrix analysis...")
     fim_results = analyze_fisher_information_matrix(
         base_params, param_bounds, epsilon=1e-6
@@ -904,7 +1242,12 @@ def run_comprehensive_parameter_sensitivity_analysis():
     # 10. Generate comprehensive report
     logger.info("Generating comprehensive report...")
     report = generate_comprehensive_sensitivity_report(
-        oat_results, sobol_results, collinearity_results, recovery_results, fim_results
+        oat_results,
+        sobol_results,
+        collinearity_results,
+        recovery_results,
+        fim_results,
+        profile_likelihood_results,
     )
     results["comprehensive_report"] = report
 
@@ -917,6 +1260,14 @@ def run_comprehensive_parameter_sensitivity_analysis():
         "model_falsified": sobol_results.get("falsification_criteria", {}).get(
             "falsified", False
         ),
+        "hierarchy_falsified": sobol_results.get(
+            "apgi_hierarchy_falsification", {}
+        ).get("hierarchy_falsified", False),
+        "identifiability_falsified": profile_likelihood_results.get(
+            "identifiability_falsification", {}
+        ).get("falsified", False)
+        if profile_likelihood_results
+        else False,
         "identifiability_score": fim_results.get("identifiability_score", 0),
         "parameter_recovery_rate": recovery_results.get("recovery_rate", 0),
         "collinearity_issues": len(collinearity_results.get("high_vif_params", [])),

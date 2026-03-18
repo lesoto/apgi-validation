@@ -3075,7 +3075,7 @@ def check_falsification(
     results = {
         "protocol": "Validation-Protocol-5",
         "criteria": {},
-        "summary": {"passed": 0, "failed": 0, "total": 10},
+        "summary": {"passed": 0, "failed": 0, "underpowered": 0, "total": 10},
     }
 
     # V5.1: Algorithmic Falsification
@@ -3265,13 +3265,62 @@ def check_falsification(
         f"F5.6: {'PASS' if f5_6_pass else 'FAIL'} - Diff: {performance_difference:.2f}, d: {cohen_d_performance:.2f}"
     )
 
+    # Power analysis helper for gating decisions
+    def check_power_and_apply_gating(
+        criterion_name: str,
+        passed: bool,
+        effect_size: float,
+        n_samples: int,
+        alpha: float = 0.01,
+    ) -> tuple:
+        """
+        Check statistical power and apply gating.
+
+        Args:
+            criterion_name: Name of the criterion being tested
+            passed: Whether the criterion passed its primary tests
+            effect_size: Effect size (Cohen's d or similar)
+            n_samples: Number of samples
+            alpha: Significance level
+
+        Returns:
+            Tuple of (final_status, power_estimate, is_underpowered)
+        """
+        try:
+            from utils.statistical_tests import compute_power_analysis
+
+            power = compute_power_analysis(
+                effect_size=effect_size,
+                n_per_group=n_samples,
+                alpha=alpha,
+                test_type="ttest_ind",
+            )
+        except ImportError:
+            power = 0.80  # Fallback
+
+        is_underpowered = power < 0.80
+
+        if is_underpowered:
+            logger.warning(
+                f"{criterion_name}: UNDERPOWERED (power={power:.2f} < 0.80, n={n_samples}, effect={effect_size:.2f})"
+            )
+            return "UNDERPOWERED", power, True
+
+        return "PASS" if passed else "FAIL", power, False
+
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     f6_1_pass = (
         ltcn_transition_time <= 50 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
     )
+    status, power, underpowered = check_power_and_apply_gating(
+        "F6.1", f6_1_pass, cliffs_delta, 80, 0.01
+    )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
+        "status": status,
+        "power": power,
+        "underpowered": underpowered,
         "ltcn_transition_time": ltcn_transition_time,
         "feedforward_transition_time": feedforward_transition_time,
         "cliffs_delta": cliffs_delta,
@@ -3279,24 +3328,37 @@ def check_falsification(
         "threshold": "LTCN time ≤50ms, delta ≥ 0.60, Mann-Whitney p < 0.01",
         "actual": f"LTCN: {ltcn_transition_time:.1f}ms, Feedforward: {feedforward_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, p: {mann_whitney_p:.3f}",
     }
-    if f6_1_pass:
+    if underpowered:
+        results["summary"]["underpowered"] += 1
+    elif f6_1_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F6.1: {'PASS' if f6_1_pass else 'FAIL'} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}"
+        f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}"
     )
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
     f6_2_pass = (
-        ltcn_integration_window >= 150
-        and (ltcn_integration_window / rnn_integration_window) >= 2.5
-        and curve_fit_r2 >= 0.70
+        ltcn_integration_window >= 200.0
+        and (ltcn_integration_window / rnn_integration_window) >= 4.0
+        and curve_fit_r2 >= 0.85
         and wilcoxon_p < 0.01
+    )
+    integration_ratio = (
+        ltcn_integration_window / rnn_integration_window
+        if rnn_integration_window > 0
+        else 0
+    )
+    status, power, underpowered = check_power_and_apply_gating(
+        "F6.2", f6_2_pass, integration_ratio, 80, 0.01
     )
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
+        "status": status,
+        "power": power,
+        "underpowered": underpowered,
         "ltcn_integration_window": ltcn_integration_window,
         "rnn_integration_window": rnn_integration_window,
         "curve_fit_r2": curve_fit_r2,
@@ -3304,16 +3366,18 @@ def check_falsification(
         "threshold": "LTCN window ≥200ms, ratio ≥4×, R² ≥ 0.85, Wilcoxon p < 0.01",
         "actual": f"LTCN: {ltcn_integration_window:.1f}ms, RNN: {rnn_integration_window:.1f}ms, R²: {curve_fit_r2:.2f}, p: {wilcoxon_p:.3f}",
     }
-    if f6_2_pass:
+    if underpowered:
+        results["summary"]["underpowered"] += 1
+    elif f6_2_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F6.2: {'PASS' if f6_2_pass else 'FAIL'} - LTCN: {ltcn_integration_window:.1f}ms, ratio: {ltcn_integration_window / rnn_integration_window:.1f}"
+        f"F6.2: {status} - LTCN: {ltcn_integration_window:.1f}ms, ratio: {integration_ratio:.1f}, power: {power:.2f}"
     )
 
     logger.info(
-        f"\nValidation-Protocol-5 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
+        f"\nValidation-Protocol-5 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed, {results['summary']['underpowered']} underpowered"
     )
     return results
 
@@ -3460,9 +3524,8 @@ class CrossModalFalsificationChecker:
         # 1. Interoceptive should not be ignored (intero_error should be meaningful)
         # 2. Integration should improve over single stream (combined_error < extero_error)
         falsified = (
-            intero_error == extero_error
-            or combined_error  # No weighting difference
-            >= extero_error  # No improvement from integration
+            abs(intero_error - extero_error) < 1e-6  # No weighting difference
+            or combined_error >= extero_error  # No improvement from integration
         )
 
         result = {

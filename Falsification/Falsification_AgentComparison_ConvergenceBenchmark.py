@@ -31,17 +31,28 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-# Import from VP-3 (single source of truth)
-from Validation.ActiveInference_AgentSimulations_Protocol3 import (
-    APGIActiveInferenceAgent,
-    StandardPPAgent,
-    GWTOnlyAgent,
-    ActorCriticAgent,
-    IowaGamblingTaskEnvironment,
-    MultiArmedVolatileBandit,
-    PatchLeavingForagingEnvironment,
-    WAICModelComparison,
+# Import from VP-3 (single source of truth) - using importlib for hyphenated filename
+import importlib.util
+
+# Load ActiveInference-AgentSimulations-Protocol3.py
+protocol3_path = (
+    project_root / "Validation" / "ActiveInference-AgentSimulations-Protocol3.py"
 )
+spec = importlib.util.spec_from_file_location(
+    "ActiveInference_AgentSimulations_Protocol3", protocol3_path
+)
+protocol3_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(protocol3_module)
+
+# Extract classes and functions
+APGIActiveInferenceAgent = protocol3_module.APGIActiveInferenceAgent
+StandardPPAgent = protocol3_module.StandardPPAgent
+GWTOnlyAgent = protocol3_module.GWTOnlyAgent
+ActorCriticAgent = protocol3_module.ActorCriticAgent
+IowaGamblingTaskEnvironment = protocol3_module.IowaGamblingTaskEnvironment
+MultiArmedVolatileBandit = protocol3_module.MultiArmedVolatileBandit
+PatchLeavingForagingEnvironment = protocol3_module.PatchLeavingForagingEnvironment
+WAICModelComparison = protocol3_module.WAICModelComparison
 
 from tqdm import tqdm
 
@@ -847,6 +858,8 @@ def main():
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
+        elif isinstance(obj, (bool, np.bool_)):
+            return bool(obj)  # Convert both Python bool and numpy bool to Python bool
         elif isinstance(obj, dict):
             return {k: convert_for_json(v) for k, v in obj.items()}
         elif isinstance(obj, list):

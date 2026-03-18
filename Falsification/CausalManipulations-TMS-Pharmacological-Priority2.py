@@ -166,7 +166,7 @@ class PharmacologicalIntervention:
     fasting_state: bool = False  # Whether fasting protocol
 
     # Uncertainty
-    effect_se: float  # Standard error
+    effect_se: float = 0.1  # Standard error (default value)
 
     def compute_time_course(self, t: np.ndarray) -> np.ndarray:
         """

@@ -3477,8 +3477,8 @@ def check_falsification(
     semi_partial_r2_f2_4: float,
     p_interaction_f2_4: float,
     # F2.5 parameters
-    apgi_time_to_criterion: int,
-    no_intero_time_to_criterion: int,
+    apgi_time_to_criterion: float,
+    no_intero_time_to_criterion: float,
     hazard_ratio_f2_5: float,
     log_rank_p: float,
     # F3.1 parameters
@@ -4035,7 +4035,7 @@ def check_falsification(
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     f6_1_pass = (
-        ltcn_transition_time <= 80
+        ltcn_transition_time <= 50.0
         and cliffs_delta_f6_1 >= 0.45
         and mann_whitney_p < 0.01
     )
@@ -4059,9 +4059,9 @@ def check_falsification(
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
     f6_2_pass = (
-        ltcn_integration_window >= 150
+        ltcn_integration_window >= 200.0
         and (ltcn_integration_window / rnn_integration_window) >= 4.0
-        and curve_fit_r2 >= 0.70
+        and curve_fit_r2 >= 0.85
         and wilcoxon_p < 0.01
     )
     results["criteria"]["F6.2"] = {

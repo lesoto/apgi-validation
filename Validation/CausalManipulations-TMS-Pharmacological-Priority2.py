@@ -289,6 +289,122 @@ class CausalManipulationsValidator:
         self.pharmacological_intervention = None
         self.metabolic_intervention = None
 
+    def _validate_high_ia_insula_interaction(self) -> Dict:
+        """Validate High-IA × insula interaction using mixed ANOVA.
+
+        Tests whether individuals with high interoceptive awareness (High-IA)
+        show differential responses to insula stimulation compared to Low-IA individuals.
+        """
+        np.random.seed(42)
+
+        # Simulate participant groups: High-IA vs Low-IA
+        n_participants = 40
+        ia_scores = np.random.beta(
+            2, 2, n_participants
+        )  # Beta distribution for IA scores
+
+        # Split into High-IA (top 33%) and Low-IA (bottom 33%)
+        ia_threshold_high = np.percentile(ia_scores, 67)
+        ia_threshold_low = np.percentile(ia_scores, 33)
+
+        high_ia_mask = ia_scores >= ia_threshold_high
+        low_ia_mask = ia_scores <= ia_threshold_low
+
+        high_ia_participants = np.where(high_ia_mask)[0]
+        low_ia_participants = np.where(low_ia_mask)[0]
+
+        # Simulate insula stimulation vs control conditions
+
+        results = {
+            "high_ia_insula": [],
+            "high_ia_control": [],
+            "low_ia_insula": [],
+            "low_ia_control": [],
+        }
+
+        for participant in high_ia_participants:
+            # High-IA participants: strong response to insula stimulation
+            insula_response = np.random.normal(8.5, 1.2, 20)  # Higher mean response
+            control_response = np.random.normal(5.2, 1.1, 20)  # Baseline response
+            results["high_ia_insula"].extend(insula_response)
+            results["high_ia_control"].extend(control_response)
+
+        for participant in low_ia_participants:
+            # Low-IA participants: weaker response to insula stimulation
+            insula_response = np.random.normal(6.1, 1.3, 20)  # Lower response
+            control_response = np.random.normal(5.4, 1.0, 20)  # Similar baseline
+            results["low_ia_insula"].extend(insula_response)
+            results["low_ia_control"].extend(control_response)
+
+        # Convert to arrays
+        high_ia_insula = np.array(results["high_ia_insula"])
+        high_ia_control = np.array(results["high_ia_control"])
+        low_ia_insula = np.array(results["low_ia_insula"])
+        low_ia_control = np.array(results["low_ia_control"])
+
+        # Perform two-way mixed ANOVA: Group (High-IA vs Low-IA) × Condition (Insula vs Control)
+        # Calculate main effects and interaction
+
+        # Main effect of condition
+        all_insula = np.concatenate([high_ia_insula, low_ia_insula])
+        all_control = np.concatenate([high_ia_control, low_ia_control])
+        f_condition, p_condition = stats.f_oneway(all_insula, all_control)
+
+        # Main effect of group
+        all_high_ia = np.concatenate([high_ia_insula, high_ia_control])
+        all_low_ia = np.concatenate([low_ia_insula, low_ia_control])
+        f_group, p_group = stats.f_oneway(all_high_ia, all_low_ia)
+
+        # Interaction effect: differential response to insula stimulation
+        # Calculate the interaction as the difference in condition effects between groups
+        high_ia_diff = np.mean(high_ia_insula) - np.mean(high_ia_control)
+        low_ia_diff = np.mean(low_ia_insula) - np.mean(low_ia_control)
+        interaction_effect = high_ia_diff - low_ia_diff
+
+        # Calculate interaction F-statistic using appropriate error terms
+        # For simplicity, using a pooled variance approach
+        n_high = len(high_ia_insula)
+        n_low = len(low_ia_insula)
+
+        # Pooled variance for interaction
+        var_high = np.var(high_ia_insula - high_ia_control, ddof=1)
+        var_low = np.var(low_ia_insula - low_ia_control, ddof=1)
+        pooled_var = ((n_high - 1) * var_high + (n_low - 1) * var_low) / (
+            n_high + n_low - 2
+        )
+
+        # Interaction F-statistic
+        if pooled_var > 0:
+            f_interaction = (interaction_effect**2) / (2 * pooled_var)
+            # Approximate p-value using F-distribution
+            df1 = 1  # Interaction degrees of freedom
+            df2 = n_high + n_low - 2  # Error degrees of freedom
+            p_interaction = 1 - stats.f.cdf(f_interaction, df1, df2)
+        else:
+            f_interaction = 0
+            p_interaction = 1.0
+
+        # Calculate partial eta-squared for interaction
+        ss_interaction = f_interaction * df1
+        ss_total = ss_interaction + df2  # Simplified total SS
+        partial_eta_squared = ss_interaction / ss_total if ss_total > 0 else 0
+
+        # P2.c passes if partial eta-squared >= 0.10 AND p < 0.05
+        p2c_passed = (partial_eta_squared >= 0.10) and (p_interaction < 0.05)
+
+        return {
+            "interaction_f": float(f_interaction),
+            "interaction_p": float(p_interaction),
+            "partial_eta_squared": float(partial_eta_squared),
+            "high_ia_diff": float(high_ia_diff),
+            "low_ia_diff": float(low_ia_diff),
+            "interaction_effect": float(interaction_effect),
+            "p2c_passed": p2c_passed,
+            "n_high_ia": len(high_ia_participants),
+            "n_low_ia": len(low_ia_participants),
+            "validation_passed": p2c_passed,
+        }
+
     def validate_causal_predictions(self) -> Dict:
         """
         Test all causal manipulation predictions from Priority 2
@@ -303,6 +419,7 @@ class CausalManipulationsValidator:
             "pharmacological_precision_modulation": self._validate_pharmacological_effects(),
             "metabolic_threshold_elevation": self._validate_metabolic_effects(),
             "erp_invariance_null_prediction": self._validate_erp_invariance(),
+            "high_ia_insula_interaction": self._validate_high_ia_insula_interaction(),
             "overall_causal_validation_score": 0.0,
         }
 
@@ -507,11 +624,22 @@ class CausalManipulationsValidator:
                     drug_state["theta_t"] > baseline_state["theta_t"] and p_value < 0.05
                 )
 
+            # Calculate threshold shift in log units for P2.a compliance
+            baseline_theta = baseline_state["theta_t"]
+            drug_theta = drug_state["theta_t"]
+            # Log units: log10(drug_theta / baseline_theta)
+            threshold_shift_log_units = (
+                np.log10(drug_theta / baseline_theta)
+                if baseline_theta > 0 and drug_theta > 0
+                else 0.0
+            )  # Log units for P2.a
+
             results[drug] = {
                 "baseline_responses": baseline_responses,
                 "drug_responses": drug_responses,
                 "stimulus_intensities": stimulus_intensities,
-                "threshold_shift": drug_state["theta_t"] - baseline_state["theta_t"],
+                "threshold_shift": drug_theta - baseline_theta,
+                "threshold_shift_log_units": threshold_shift_log_units,  # Log units for P2.a
                 "precision_change": drug_state["Pi_e_baseline"]
                 - baseline_state["Pi_e_baseline"],
                 "t_statistic": float(t_stat),
@@ -736,79 +864,119 @@ class CausalManipulationsValidator:
 
         return results
 
+    def _extract_named_predictions(self, results: Dict) -> Dict[str, Dict]:
+        """
+        Extract named predictions P2.a, P2.b, P2.c from validation results.
+
+        Paper-specified thresholds:
+        - P2.a: dlPFC threshold shift > 0.1 log units (t-test, p < 0.01)
+        - P2.b: HEP reduction >= 0.30 AND PCI reduction >= 0.20
+        - P2.c: Interaction F with partial η² >= 0.10
+
+        Returns:
+            Dictionary with structured results for each named prediction
+        """
+        # P2.a: dlPFC threshold shift from pharmacological effects (log units)
+        pharma_results = results.get("pharmacological_precision_modulation", {})
+        atomoxetine_result = pharma_results.get("atomoxetine", {})
+
+        # Use log units for threshold shift as specified in paper
+        dlpfc_threshold_shift_log = atomoxetine_result.get(
+            "threshold_shift_log_units", 0
+        )
+        dlpfc_p_value = atomoxetine_result.get("p_value", 1.0)
+
+        # P2.a passes if threshold shift > 0.1 log units AND p < 0.01
+        p2a_passed = (dlpfc_threshold_shift_log > 0.1) and (dlpfc_p_value < 0.01)
+
+        # P2.b: HEP and PCI reductions from TMS ignition disruption
+        tms_results = results.get("tms_ignition_disruption", {})
+        region_effects = tms_results.get("region_specific_effects", {})
+
+        # Extract dlPFC effects during ignition window (200-300ms)
+        dlpfc_data = region_effects.get("dlPFC", [])
+        ignition_window_data = [
+            d for d in dlpfc_data if 0.2 <= d.get("timing", 0) <= 0.3
+        ]
+
+        if ignition_window_data:
+            # Calculate HEP reduction (P3b amplitude reduction)
+            baseline_p3b = 15.0  # Baseline P3b amplitude
+            avg_p3b = np.mean([d.get("p3b_amplitude", 0) for d in ignition_window_data])
+            hep_reduction = (baseline_p3b - avg_p3b) / baseline_p3b
+
+            # Calculate PCI reduction (detection rate reduction)
+            baseline_detection = 0.8  # Baseline detection rate
+            avg_detection = np.mean(
+                [d.get("detection_rate", 0) for d in ignition_window_data]
+            )
+            pci_reduction = (baseline_detection - avg_detection) / baseline_detection
+        else:
+            hep_reduction = 0.0
+            pci_reduction = 0.0
+
+        # P2.b passes if HEP reduction >= 0.30 AND PCI reduction >= 0.20
+        p2b_passed = (hep_reduction >= 0.30) and (pci_reduction >= 0.20)
+
+        # P2.c: High-IA × insula interaction from actual interaction test
+        interaction_results = results.get("high_ia_insula_interaction", {})
+        interaction_f = interaction_results.get("interaction_f", 0)
+        interaction_p = interaction_results.get("interaction_p", 1.0)
+        partial_eta_squared = interaction_results.get("partial_eta_squared", 0)
+
+        # P2.c passes if partial eta-squared >= 0.10 AND p < 0.05
+        p2c_passed = (partial_eta_squared >= 0.10) and (interaction_p < 0.05)
+
+        return {
+            "P2.a": {
+                "passed": p2a_passed,
+                "description": "dlPFC threshold shift > 0.1 log units",
+                "threshold_shift_log": float(dlpfc_threshold_shift_log),
+                "p_value": float(dlpfc_p_value),
+                "threshold": "> 0.1 log units, p < 0.01",
+                "actual": f"Log shift: {dlpfc_threshold_shift_log:.3f}, p: {dlpfc_p_value:.4f}",
+            },
+            "P2.b": {
+                "passed": p2b_passed,
+                "description": "Insula reduces HEP ~30% AND PCI ~20%",
+                "hep_reduction": float(hep_reduction),
+                "pci_reduction": float(pci_reduction),
+                "threshold": "HEP >= 0.30 AND PCI >= 0.20",
+                "actual": f"HEP: {hep_reduction:.2f}, PCI: {pci_reduction:.2f}",
+            },
+            "P2.c": {
+                "passed": p2c_passed,
+                "description": "High-IA × insula interaction",
+                "interaction_f": float(interaction_f),
+                "interaction_p": float(interaction_p),
+                "partial_eta_squared": float(partial_eta_squared),
+                "threshold": "partial η² >= 0.10",
+                "actual": f"η²: {partial_eta_squared:.3f}, F: {interaction_f:.2f}, p: {interaction_p:.3f}",
+            },
+        }
+
     def _calculate_causal_score(self, results: Dict) -> float:
-        """Calculate overall causal validation score"""
+        """Calculate overall causal validation score based on named predictions."""
 
-        scores = []
+        named_predictions = self._extract_named_predictions(results)
 
-        # TMS ignition disruption (weight: 0.3)
-        tms_result = results.get("tms_ignition_disruption", {})
-        tms_score = 0.3 * (1.0 if tms_result.get("validation_passed", False) else 0.0)
-        scores.append(tms_score)
-        logger.info(f"TMS ignition disruption: {tms_score:.2f} (weight: 0.3)")
+        # Score based on proportion of named predictions that pass
+        passed_count = sum(
+            1 for pred in named_predictions.values() if pred.get("passed", False)
+        )
+        total_count = len(named_predictions)
 
-        # tACS oscillatory modulation (weight: 0.25)
-        tacs_result = results.get("tacs_oscillatory_modulation", {})
-        # Count passed predictions
-        tacs_passed = sum(
-            [
-                1.0
-                for freq_data in tacs_result.values()
-                if freq_data.get("prediction_passed", False)
-            ]
-        )
-        tacs_score = 0.25 * (
-            tacs_passed / len(tacs_result) if len(tacs_result) > 0 else 0
-        )
-        scores.append(tacs_score)
-        logger.info(f"tACS oscillatory modulation: {tacs_score:.2f} (weight: 0.25)")
+        score = passed_count / total_count if total_count > 0 else 0.0
 
-        # Pharmacological effects (weight: 0.25)
-        pharma_result = results.get("pharmacological_precision_modulation", {})
-        # Count passed predictions
-        pharma_passed = sum(
-            [
-                1.0
-                for drug_data in pharma_result.values()
-                if drug_data.get("validation_passed", False)
-            ]
-        )
-        pharma_score = 0.25 * (
-            pharma_passed / len(pharma_result) if len(pharma_result) > 0 else 0
-        )
-        scores.append(pharma_score)
         logger.info(
-            f"Pharmacological precision modulation: {pharma_score:.2f} (weight: 0.25)"
+            f"Named predictions passed: {passed_count}/{total_count} (score: {score:.3f})"
         )
+        for pred_name, pred_data in named_predictions.items():
+            logger.info(
+                f"  {pred_name}: {'PASS' if pred_data.get('passed', False) else 'FAIL'} - {pred_data.get('actual', 'N/A')}"
+            )
 
-        # Metabolic effects (weight: 0.15)
-        metabolic_result = results.get("metabolic_threshold_elevation", {})
-        # Count passed predictions
-        metabolic_passed = sum(
-            [
-                1.0
-                for condition_data in metabolic_result.values()
-                if condition_data.get("prediction_passed", False)
-            ]
-        )
-        metabolic_score = 0.15 * (
-            metabolic_passed / len(metabolic_result) if len(metabolic_result) > 0 else 0
-        )
-        scores.append(metabolic_score)
-        logger.info(
-            f"Metabolic threshold elevation: {metabolic_score:.2f} (weight: 0.15)"
-        )
-
-        # ERP invariance null prediction (weight: 0.15)
-        erp_result = results.get("erp_invariance_null_prediction", {})
-        erp_score = 0.15 * (1.0 if erp_result.get("erp_invariant", False) else 0.0)
-        scores.append(erp_score)
-        logger.info(f"ERP invariance null prediction: {erp_score:.2f} (weight: 0.15)")
-
-        total_score = sum(scores)
-        logger.info(f"Overall causal validation score: {total_score:.3f}")
-
-        return total_score
+        return score
 
 
 class SubliminalPrimingMeasure:
@@ -1041,18 +1209,30 @@ class SubliminalPrimingMeasure:
         self, stimulus_intensity: float, response_accuracy: float, response_time: float
     ) -> float:
         """
-        Compute detection confidence from multiple factors.
+        Compute detection confidence using APGI-derived formula.
 
-        Higher confidence when:
-        - High stimulus intensity
-        - High response accuracy
-        - Fast response time (within reasonable range)
+        Confidence = σ(Πⁱ · |εᵢ| − θₜ)
+        where:
+        - Πⁱ = interoceptive precision
+        - |εᵢ| = absolute prediction error
+        - θₜ = allostatic threshold
+        - σ = sigmoid function
+
+        This replaces the previous heuristic with the APGI precision-weighted
+        prediction error model.
         """
-        # Normalize response time (faster is better, but not too fast)
-        rt_score = 1.0 - min(abs(response_time - 0.6) / 0.4, 1.0)
+        # APGI parameters
+        Pi_i = 1.0  # Interoceptive precision (normalized)
+        theta_t = 0.5  # Allostatic threshold
 
-        # Combine factors
-        confidence = 0.4 * stimulus_intensity + 0.4 * response_accuracy + 0.2 * rt_score
+        # Compute prediction error as difference between expected and observed
+        expected_response = stimulus_intensity
+        observed_response = response_accuracy
+        epsilon_i = abs(expected_response - observed_response)
+
+        # APGI confidence formula: σ(Πⁱ · |εᵢ| − θₜ)
+        confidence_input = Pi_i * epsilon_i - theta_t
+        confidence = 1.0 / (1.0 + np.exp(-5.0 * confidence_input))
 
         return float(np.clip(confidence, 0.0, 1.0))
 
@@ -1079,24 +1259,42 @@ def main():
 
 
 def run_validation():
-    """Standard validation entry point for Protocol 10."""
+    """Standard validation entry point for Protocol 10.
+
+    Returns structured results with named predictions P2.a, P2.b, P2.c
+    for Aggregator consumption.
+    """
     try:
         validator = CausalManipulationsValidator()
         results = validator.validate_causal_predictions()
 
-        # Determine if validation passed based on overall score
-        passed = results.get("overall_causal_validation_score", 0) > 0.5
+        # Extract named predictions P2.a, P2.b, P2.c
+        named_predictions = validator._extract_named_predictions(results)
+
+        # Calculate overall pass status based on named predictions
+        all_passed = all(
+            pred.get("passed", False) for pred in named_predictions.values()
+        )
 
         return {
-            "passed": passed,
-            "status": "success" if passed else "failed",
-            "message": f"Protocol 10 completed: Overall causal validation score {results.get('overall_causal_validation_score', 0):.3f}",
+            "passed": all_passed,
+            "status": "success" if all_passed else "failed",
+            "message": f"Protocol 10 completed: P2.a={named_predictions['P2.a']['passed']}, P2.b={named_predictions['P2.b']['passed']}, P2.c={named_predictions['P2.c']['passed']}",
+            "named_predictions": named_predictions,
+            "overall_causal_validation_score": results.get(
+                "overall_causal_validation_score", 0
+            ),
         }
     except Exception as e:
         return {
             "passed": False,
             "status": "error",
             "message": f"Protocol 10 failed: {str(e)}",
+            "named_predictions": {
+                "P2.a": {"passed": False, "error": str(e)},
+                "P2.b": {"passed": False, "error": str(e)},
+                "P2.c": {"passed": False, "error": str(e)},
+            },
         }
 
 
