@@ -1725,3 +1725,25 @@ if __name__ == "__main__":
     )
     print(f"OVERALL VALIDATION STATUS: {overall_status}")
     print("=" * 80)
+
+
+class LiquidNetworkDynamicsAnalyzer:
+    """Liquid network dynamics analyzer class for GUI compatibility"""
+
+    def __init__(self, spectral_radius=0.9, leak_rate=0.3, reservoir_size=200):
+        self.spectral_radius = spectral_radius
+        self.leak_rate = leak_rate
+        self.reservoir_size = reservoir_size
+
+    def run_analysis(self, data=None):
+        """Run liquid network dynamics analysis"""
+        try:
+            # Run the liquid network analysis
+            results = run_liquid_network_dynamics_analysis()
+            return results
+        except Exception as e:
+            logger.error(f"Liquid network dynamics analysis failed: {e}")
+            return {
+                "error": str(e),
+                "falsification_status": {"overall_falsified": False},
+            }

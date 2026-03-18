@@ -2444,22 +2444,20 @@ def run_mathematical_consistency_check() -> Dict[str, Any]:
     passed = sum(
         1
         for check in checks
-        if any(
-            isinstance(check, dict)
-            and (
-                check.get("dimensional_homogeneity", False)
-                or check.get("surprise_derivatives", False)
-                or check.get("asymptotic_behavior", False)
-                or check.get("jacobian_stability", False)
-                or check.get("analytical_jacobian_success", False)
-                or check.get("threshold_stability_success", False)
-                or check.get("effective_precision_success", False)
-                or check.get("paper_predictions_success", False)
-                or check.get("formal_proofs_success", False)
-                or check.get(
-                    "four_core_equations_success", False
-                )  # NEW: Add success condition
-            )
+        if isinstance(check, dict)
+        and (
+            check.get("dimensional_homogeneity", False)
+            or check.get("surprise_derivatives", False)
+            or check.get("asymptotic_behavior", False)
+            or check.get("jacobian_stability", False)
+            or check.get("analytical_jacobian_success", False)
+            or check.get("threshold_stability_success", False)
+            or check.get("effective_precision_success", False)
+            or check.get("paper_predictions_success", False)
+            or check.get("formal_proofs_success", False)
+            or check.get(
+                "four_core_equations_success", False
+            )  # NEW: Add success condition
         )
     )
 

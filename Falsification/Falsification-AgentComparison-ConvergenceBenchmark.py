@@ -16,10 +16,9 @@ try:
     from utils.shared_falsification import check_F5_family
 except ImportError:
     # Fallback implementation if utils.shared_falsification not available
-    def check_F5_family(f5_data, f5_thresholds, genome_data=None):
+    def check_F5_family(f5_data, f5_thresholds, genome_data=None) -> Dict[str, Any]:
         """Fallback F5 family implementation"""
         results = {}
-        
         # F5.1: Threshold Filtering Emergence
         threshold_proportion = f5_data.get("threshold_emergence_proportion", 0.0)
         min_prop = f5_thresholds.get("F5_1_MIN_PROPORTION", 0.75)
@@ -29,7 +28,7 @@ except ImportError:
             "threshold": f"≥{min_prop * 100:.0f}% agents",
             "actual": f"{threshold_proportion:.2f} proportion",
         }
-        
+
         # F5.2: Precision-Weighted Coding Emergence
         precision_proportion = f5_data.get("precision_emergence_proportion", 0.0)
         min_corr = f5_thresholds.get("F5_2_MIN_CORRELATION", 0.45)
@@ -40,7 +39,7 @@ except ImportError:
             "threshold": f"≥65% agents, r ≥ {min_corr}",
             "actual": f"{precision_proportion:.2f} proportion, r={min_corr:.3f}",
         }
-        
+
         # F5.3: Interoceptive Prioritization Emergence
         intero_proportion = f5_data.get("intero_gain_ratio_proportion", 0.0)
         min_ratio = f5_thresholds.get("F5_3_MIN_GAIN_RATIO", 1.30)
@@ -51,8 +50,9 @@ except ImportError:
             "threshold": f"≥70% agents, ratio ≥ {min_ratio}",
             "actual": f"{intero_proportion:.2f} proportion, ratio={min_ratio:.2f}",
         }
-        
+
         return results
+
 
 from falsification_thresholds import (
     F1_1_MIN_ADVANTAGE_PCT,
