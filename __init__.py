@@ -16,10 +16,7 @@ try:
     from Validation.Master_Validation import APGIMasterValidator
 
     __all__ = ["APGIMasterValidator"]
-except ImportError as e:
-    # Re-raise import error with helpful message instead of silently failing
-    raise ImportError(
-        f"Failed to import APGIMasterValidator from Validation.Master_Validation. "
-        f"This usually means the Validation module is missing or corrupted. "
-        f"Original error: {e}"
-    ) from e
+except ImportError:
+    # Silently ignore import failures — optional heavy dependencies (pandas, torch, etc.)
+    # may not be installed in all environments.
+    __all__ = []
