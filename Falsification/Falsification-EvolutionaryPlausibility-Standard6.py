@@ -8,8 +8,65 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from utils.constants import DIM_CONSTANTS
-from utils.config_manager import ConfigManager
+try:
+    from utils.constants import DIM_CONSTANTS
+    from utils.config_manager import ConfigManager
+except ImportError:
+    # Fallback if utils not available
+    class MockDimConstants:
+        def __init__(self):
+            self.n_actions = 4
+            self.n_extero_states = 32
+            self.n_intero_states = 16
+            self.n_hidden = 64
+
+    DIM_CONSTANTS = MockDimConstants()
+
+    class MockConfigManager:
+        def get(self, key, default=None):
+            return default
+
+    ConfigManager = MockConfigManager
+
+try:
+    from utils.falsification_thresholds import (
+        F2_3_MIN_RT_ADVANTAGE_MS,
+        F2_3_ALPHA,
+        F5_1_BINOMIAL_ALPHA,
+        F5_1_MIN_ALPHA,
+        F5_2_BINOMIAL_ALPHA,
+        F5_2_MIN_CORRELATION,
+        F5_3_MIN_PROPORTION,
+        F5_3_MIN_GAIN_RATIO,
+        F5_4_MIN_PROPORTION,
+        F5_4_MIN_PEAK_SEPARATION,
+        F5_6_MIN_PERFORMANCE_DIFF_PCT,
+        F5_6_MIN_COHENS_D,
+        F5_6_ALPHA,
+        F6_5_HYSTERESIS_MIN,
+        F6_5_HYSTERESIS_MAX,
+    )
+except ImportError:
+    # Fallback thresholds
+    F2_3_MIN_RT_ADVANTAGE_MS = 50.0
+    F2_3_ALPHA = 0.05
+    F5_1_BINOMIAL_ALPHA = 0.05
+    F5_1_MIN_ALPHA = 0.01
+    F5_2_BINOMIAL_ALPHA = 0.05
+    F5_2_MIN_CORRELATION = 0.3
+    F5_3_MIN_PROPORTION = 0.6
+    F5_3_MIN_GAIN_RATIO = 1.5
+    F5_4_MIN_PROPORTION = 0.6
+    F5_4_MIN_PEAK_SEPARATION = 3.0
+    F5_6_MIN_PERFORMANCE_DIFF_PCT = 5.0
+    F5_6_MIN_COHENS_D = 0.40
+    F5_6_ALPHA = 0.05
+    F6_5_HYSTERESIS_MIN = 0.08
+    F6_5_HYSTERESIS_MAX = 0.25
+
+# Additional constants not in falsification_thresholds.py
+F5_3_BINOMIAL_ALPHA = 0.05
+F6_5_BIFURCATION_ERROR_MAX = 0.15
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,26 +75,6 @@ import numpy as np
 import scipy.stats as stats
 import time
 from typing import Dict, List, Any, Tuple
-
-from falsification_thresholds import (
-    F2_3_MIN_RT_ADVANTAGE_MS,
-    F2_3_ALPHA,
-    F5_1_BINOMIAL_ALPHA,
-    F5_1_MIN_ALPHA,
-    F5_2_BINOMIAL_ALPHA,
-    F5_2_MIN_CORRELATION,
-    F5_3_MIN_PROPORTION,
-    F5_3_MIN_GAIN_RATIO,
-    F5_3_BINOMIAL_ALPHA,
-    F5_4_MIN_PROPORTION,
-    F5_4_MIN_PEAK_SEPARATION,
-    F5_6_MIN_PERFORMANCE_DIFF_PCT,
-    F5_6_MIN_COHENS_D,
-    F5_6_ALPHA,
-    F6_5_BIFURCATION_ERROR_MAX,
-    F6_5_HYSTERESIS_MIN,
-    F6_5_HYSTERESIS_MAX,
-)
 
 
 class EvolvableAgent:
@@ -252,6 +289,7 @@ class ContinuousUpdateAgent:
                 "beta": getattr(config, "beta", 1.2),
                 "Pi_e_lr": getattr(config, "Pi_e_lr", 0.01),
             }
+            self.genome = genome
         else:
             # Validate provided genome against config schema
             required_params = [
@@ -533,7 +571,10 @@ class EvolutionaryAPGIEmergence:
 
             spec2 = importlib.util.spec_from_file_location(
                 "Protocol_2",
-                os.path.join(os.path.dirname(__file__), "Falsification-Protocol-2.py"),
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "Falsification-AgentComparison-ConvergenceBenchmark.py",
+                ),
             )
             protocol2 = importlib.util.module_from_spec(spec2)
             spec2.loader.exec_module(protocol2)

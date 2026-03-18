@@ -6,6 +6,7 @@ from collections import deque
 from scipy import stats
 from scipy.stats import binomtest
 from scipy.optimize import curve_fit
+
 try:
     from specparam import FOOOF
 except ImportError:
@@ -13,13 +14,14 @@ except ImportError:
     try:
         from fooof import FOOOF
         import warnings
+
         warnings.warn(
             "The `fooof` package is being deprecated and replaced by the `specparam` "
             "(spectral parameterization) package. This version of `fooof` (1.1) is fully "
             "functional, but will not be further updated. New projects are recommended to "
             "update to using `specparam` (see Changelog for details).",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
     except ImportError:
         # Fallback if neither package is available
@@ -56,7 +58,7 @@ except ImportError:
         GRAD_CLIP_VALUE = 1.0
         WEIGHT_CLIP_VALUE = 2.0
         POLICY_GRAD_CLIP = 5.0
-    
+
     DIM_CONSTANTS = MockDIM_CONSTANTS()
 
 # FALSIFICATION THRESHOLDS CONSTANTS (bundled inline per TODO-1)
@@ -71,6 +73,7 @@ F5_4_MIN_PEAK_SEPARATION: float = 3.0  # separation ≥ 3x (spec)
 # VALIDATED: Paper spec defines hysteresis range 0.08-0.25 for ignition dynamics
 F6_5_HYSTERESIS_MIN: float = 0.08  # hysteresis ≥ 0.08
 F6_5_HYSTERESIS_MAX: float = 0.25  # hysteresis ≤ 0.25
+F6_5_BIFURCATION_ERROR_MAX: float = 0.10  # bifurcation point error tolerance
 
 # F5.1 thresholds (Threshold Filtering Emergence)
 # VALIDATED: Evolutionary paper requires ≥75% agents develop threshold filtering
@@ -3378,10 +3381,10 @@ def check_falsification(
     logger.info("Testing F6.5: Bifurcation Structure for Ignition")
     # Use proper phase portrait sweep to compute bifurcation point and hysteresis
     bifurcation_analysis = analyze_bifurcation_structure(
-        theta_t=theta_t,
-        tau_S=tau_S,
-        dt=dt,
-        beta=beta,
+        theta_t=0.5,  # Default ignition threshold
+        tau_S=0.3,  # Default surprise decay time constant
+        dt=0.05,  # Default time step
+        beta=1.2,  # Default somatic bias
         hysteresis_min=F6_5_HYSTERESIS_MIN,
         hysteresis_max=F6_5_HYSTERESIS_MAX,
     )

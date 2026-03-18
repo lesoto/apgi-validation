@@ -612,8 +612,10 @@ class InformationTheoreticAnalysis:
 
                 # Integrated information
                 phi = self.compute_integrated_information(history)
-                ignition_indices = np.where(history["B"] > DEFAULT_IGNITION_THRESHOLD)[0]
-                
+                ignition_indices = np.where(history["B"] > DEFAULT_IGNITION_THRESHOLD)[
+                    0
+                ]
+
                 if len(ignition_indices) > 0:
                     # Φ at ignition - ensure integer indices
                     ignition_phi = [
@@ -626,7 +628,9 @@ class InformationTheoreticAnalysis:
                         results["phi_at_ignition"].append(np.mean(ignition_phi))
 
                     # Baseline Φ - ensure integer indices
-                    non_ignition = np.where(history["B"] < DEFAULT_IGNITION_THRESHOLD)[0]
+                    non_ignition = np.where(history["B"] < DEFAULT_IGNITION_THRESHOLD)[
+                        0
+                    ]
                     valid_indices = non_ignition[non_ignition < len(phi)]
                     if len(valid_indices) > 0:
                         baseline_phi = phi[valid_indices]

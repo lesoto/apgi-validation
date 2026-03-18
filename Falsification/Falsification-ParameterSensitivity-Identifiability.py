@@ -64,19 +64,23 @@ def simulate_model_performance_with_agent(
             spec = importlib.util.spec_from_file_location(
                 "Validation_Protocol_3", validation_path
             )
+            if spec is None:
+                raise ImportError(f"Could not load spec from {validation_path}")
             validation_module = importlib.util.module_from_spec(spec)
+            if spec.loader is None:
+                raise ImportError(f"Spec has no loader for {validation_path}")
             spec.loader.exec_module(validation_module)
             # APGIAgent = validation_module.APGIAgent  # Available if needed
 
         # Run IGT simulation for n_trials
-        total_reward = 0
+        total_reward: float = 0.0
         for _ in range(n_trials):
             # Simulate IGT trial (enhanced placeholder)
             reward = np.random.normal(0.5, 0.15)  # Placeholder for IGT performance
             total_reward += reward
 
         avg_performance = total_reward / n_trials
-        return np.clip(avg_performance, 0.0, 1.0)
+        return float(np.clip(avg_performance, 0.0, 1.0))
 
     except ImportError:
         logger.warning("Could not import APGIAgent - using placeholder simulation")
@@ -104,7 +108,7 @@ def simulate_model_performance_placeholder(params: Dict[str, float]) -> float:
     noise = np.random.normal(0, 0.05)
     performance = base_performance + noise
 
-    return np.clip(performance, 0.0, 1.0)
+    return float(np.clip(performance, 0.0, 1.0))
 
 
 def analyze_oat_sensitivity(
@@ -315,8 +319,8 @@ def analyze_parameter_recovery(
         parameter_sets.append(test_params)
 
     # Prepare data for machine learning
-    X = []
-    y = []
+    X: List[List[float]] = []
+    y: List[List[float]] = []
     param_names = list(param_bounds.keys())
 
     for i, params in enumerate(parameter_sets):
@@ -373,7 +377,7 @@ def analyze_parameter_recovery(
     recoverable_params = []
     poorly_recoverable_params = []
 
-    for param, results in recovery_results.items():
+    for i, (param, results) in enumerate(recovery_results.items()):
         if results["correlation"] > 0.7 and results["rmse"] < 0.1 * np.std(y[:, i]):
             recoverable_params.append(param)
         elif results["correlation"] < 0.3:
@@ -443,8 +447,8 @@ def analyze_profile_likelihood(
         param_range = np.linspace(min_val, max_val, n_points)
 
         # Evaluate likelihood at each parameter value
-        likelihood_values = []
-        performance_values = []
+        likelihood_values: List[float] = []
+        performance_values: List[float] = []
 
         for param_value in param_range:
             # Create parameter set with current parameter varied
@@ -475,11 +479,12 @@ def analyze_profile_likelihood(
 
         # Calculate profile characteristics
         # 1. Profile flatness (lower = more flat = less identifiable)
-        likelihood_range = np.max(likelihood_values) - np.min(likelihood_values)
+        likelihood_array = np.array(likelihood_values)
+        likelihood_range = np.max(likelihood_array) - np.min(likelihood_array)
 
         # 2. Profile width at half-maximum (wider = less identifiable)
         half_max = 0.5
-        half_max_indices = np.where(likelihood_values >= half_max)[0]
+        half_max_indices = np.where(likelihood_array >= half_max)[0]
         if len(half_max_indices) > 0:
             profile_width = (
                 param_range[half_max_indices[-1]] - param_range[half_max_indices[0]]
@@ -885,7 +890,7 @@ def generate_comprehensive_sensitivity_report(
     collinearity_results: Dict[str, Any],
     recovery_results: Dict[str, Any],
     fim_results: Dict[str, Any],
-    profile_likelihood_results: Dict[str, Any] = None,
+    profile_likelihood_results: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Generate a comprehensive sensitivity analysis report"""
 
@@ -1116,7 +1121,7 @@ def generate_comprehensive_sensitivity_report(
     return report
 
 
-def run_comprehensive_parameter_sensitivity_analysis():
+def run_comprehensive_parameter_sensitivity_analysis() -> Dict[str, Any]:
     """
     Run comprehensive parameter sensitivity and identifiability analysis.
     Expanded to 1,500+ lines with systematic parameter space exploration.
@@ -1958,6 +1963,23 @@ def run_systematic_parameter_space_exploration(
         "non_linearity_score": float(non_linearity_score),
         "n_grid_points": n_grid_points,
     }
+
+
+class ParameterSensitivityAnalyzer:
+    """Parameter sensitivity analyzer class for GUI compatibility"""
+
+    def __init__(self, n_samples=1000, sensitivity_method="sobol"):
+        self.n_samples = n_samples
+        self.sensitivity_method = sensitivity_method
+
+    def run_analysis(self, data=None):
+        """Run parameter sensitivity analysis"""
+        try:
+            results = run_comprehensive_parameter_sensitivity_analysis()
+            return results
+        except Exception as e:
+            logger.error(f"Parameter sensitivity analysis failed: {e}")
+            return {"error": str(e), "comprehensive_report": "Analysis failed"}
 
 
 if __name__ == "__main__":

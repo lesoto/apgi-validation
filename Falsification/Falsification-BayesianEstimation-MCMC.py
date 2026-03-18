@@ -82,7 +82,7 @@ def apgi_psychometric_function(
     # Use logistic approximation for computational efficiency
     psychometric = 1.0 / (1.0 + np.exp(-(stimulus_intensity - mu) / sigma))
 
-    return psychometric
+    return psychometric.astype(float)
 
 
 def define_apgi_priors() -> Dict[str, Any]:
@@ -217,12 +217,12 @@ def run_mcmc_bayesian_estimation(
             log_evidence = None
             try:
                 # Try to compute bridge sampling evidence
-                log_evidence = az.loo(trace, pointwise=False, reff=1.0)
+                log_evidence = az.loo(trace, pointwise=False, reff=1.0)  # type: ignore
             except Exception as e:
                 logger.warning(f"Could not compute LOO evidence: {e}")
                 # Fallback to WAIC
                 try:
-                    log_evidence = az.waic(trace, pointwise=False, scale="log")
+                    log_evidence = az.waic(trace, pointwise=False, scale="log")  # type: ignore
                 except Exception as e2:
                     logger.warning(f"Could not compute WAIC evidence: {e2}")
 
@@ -237,8 +237,8 @@ def run_mcmc_bayesian_estimation(
                 posterior_samples[param] = samples.flatten()
 
         # Calculate convergence diagnostics
-        r_hat = az.rhat(trace)
-        ess = az.ess(trace)
+        r_hat = az.rhat(trace)  # type: ignore
+        ess = az.ess(trace)  # type: ignore
 
         # Check Gelman-Rubin diagnostic (R̂ ≤ 1.01)
         max_r_hat = max(
@@ -450,7 +450,7 @@ def run_alternative_models(
 
             # Compute evidence
             try:
-                evidence = az.loo(trace, pointwise=False, reff=1.0)
+                evidence = az.loo(trace, pointwise=False, reff=1.0)  # type: ignore
                 log_evidence = float(evidence.iloc[0])
             except Exception:
                 log_evidence = None
@@ -489,7 +489,7 @@ def run_alternative_models(
 
             # Compute evidence
             try:
-                evidence = az.loo(trace, pointwise=False, reff=1.0)
+                evidence = az.loo(trace, pointwise=False, reff=1.0)  # type: ignore
                 log_evidence = float(evidence.iloc[0])
             except Exception:
                 log_evidence = None
@@ -661,9 +661,14 @@ if __name__ == "__main__":
         print(f"Max R̂: {conv_diag['max_r_hat']:.4f}")
         print(f"Min ESS: {conv_diag['min_ess']:.0f}")
 
-        if "bayes_factor_comparison" in results:
+        if (
+            "bayes_factor_comparison" in results
+            and results["bayes_factor_comparison"] is not None
+        ):
             bf_comp = results["bayes_factor_comparison"]
             print(f"Best model: {bf_comp['best_model']}")
             print(f"Model ranking: {bf_comp['model_ranking']}")
+        else:
+            print("Bayes factor comparison: Not available (insufficient evidence)")
 
     print("\n=== Test Complete ===")

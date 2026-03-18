@@ -25,18 +25,46 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+# Add current directory to path for imports
+current_dir = Path(__file__).parent
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
+
 # Import centralized falsification aggregator
-from utils.error_handler import handle_import_error
+try:
+    from utils.error_handler import handle_import_error
+except ImportError:
+    # Fallback if utils.error_handler not available
+    def handle_import_error(
+        module_name: str, error: Exception, context: str = ""
+    ) -> None:
+        logger.warning(f"Could not import {module_name}: {error}")
+        if context:
+            logger.warning(f"Context: {context}")
+
 
 try:
-    from APGI_Falsification_Aggregator import (
-        get_falsification_criteria,
-        aggregate_prediction_results,
-        check_framework_falsification_condition_a,
-        check_framework_falsification_condition_b,
-        NAMED_PREDICTIONS,
-        FRAMEWORK_FALSIFICATION_THRESHOLD_A,
-        ALTERNATIVE_FRAMEWORK_PARSIMONY_THRESHOLD,
+    # Import using dynamic import since filename has hyphens
+    spec = importlib.util.spec_from_file_location(
+        "APGI_Falsification_Aggregator",
+        os.path.join(os.path.dirname(__file__), "APGI-Falsification-Aggregator.py"),
+    )
+    aggregator_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(aggregator_module)
+
+    aggregate_prediction_results = aggregator_module.aggregate_prediction_results
+    check_framework_falsification_condition_a = (
+        aggregator_module.check_framework_falsification_condition_a
+    )
+    check_framework_falsification_condition_b = (
+        aggregator_module.check_framework_falsification_condition_b
+    )
+    NAMED_PREDICTIONS = aggregator_module.NAMED_PREDICTIONS
+    FRAMEWORK_FALSIFICATION_THRESHOLD_A = (
+        aggregator_module.FRAMEWORK_FALSIFICATION_THRESHOLD_A
+    )
+    ALTERNATIVE_FRAMEWORK_PARSIMONY_THRESHOLD = (
+        aggregator_module.ALTERNATIVE_FRAMEWORK_PARSIMONY_THRESHOLD
     )
 
     logger.info("Successfully imported APGI-Falsification-Aggregator functions")
