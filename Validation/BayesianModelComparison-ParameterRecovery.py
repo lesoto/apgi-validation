@@ -3368,7 +3368,7 @@ def check_falsification(
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
     f6_1_pass = (
-        ltcn_transition_time <= 80 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
+        ltcn_transition_time <= 50.0 and cliffs_delta >= 0.45 and mann_whitney_p < 0.01
     )
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
@@ -3390,9 +3390,9 @@ def check_falsification(
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
     f6_2_pass = (
-        ltcn_integration_window >= 150
-        and (ltcn_integration_window / rnn_integration_window) >= 2.5
-        and curve_fit_r2 >= 0.70
+        ltcn_integration_window >= 200.0
+        and (ltcn_integration_window / rnn_integration_window) >= 4.0
+        and curve_fit_r2 >= 0.85
         and wilcoxon_p < 0.01
     )
     results["criteria"]["F6.2"] = {

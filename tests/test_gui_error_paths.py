@@ -23,9 +23,11 @@ class TestGUIErrorPaths:
 
     def test_gui_initialization_with_mocks(self):
         """Test GUI initialization with mocked dependencies"""
-        with patch("tkinter.messagebox.showerror") as mock_showerror:
-            with patch("tkinter.scrolledtext.ScrolledText") as mock_scrolled:
-                with patch("tkinter.ttk.Progressbar") as mock_progress:
+        with patch("tkinter.messagebox.showerror") as _mock_showerror:  # noqa: F841
+            with patch(
+                "tkinter.scrolledtext.ScrolledText"
+            ) as _mock_scrolled:  # noqa: F841
+                with patch("tkinter.ttk.Progressbar") as _mock_progress:  # noqa: F841
                     # Mock tkinter components to prevent actual GUI creation
                     root = tk.Tk()  # Create mock root
                     gui = APGIValidationGUI(root)

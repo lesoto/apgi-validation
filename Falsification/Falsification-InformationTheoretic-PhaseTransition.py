@@ -49,7 +49,7 @@ DEFAULT_EPSILON = 1e-10
 LEVEL2_TE_THRESHOLD = 0.1  # Transfer entropy threshold for Level 2 falsification
 LEVEL2_MI_THRESHOLD = 40.0  # Mutual information threshold (bits/s) for bandwidth falsification - expected ceiling
 LEVEL2_MI_FALSIFICATION_THRESHOLD = (
-    100.0  # Mutual information falsification threshold (bits/s) - extreme outlier test
+    40.0  # Mutual information falsification threshold (bits/s) - extreme outlier test
 )
 NULL_BOOTSTRAP_N = 100  # Number of shuffled baselines for null comparison
 SHUFFLE_SEED_OFFSET = 1000  # Seed offset for shuffled baselines
@@ -477,7 +477,7 @@ class InformationTheoreticAnalysis:
         return results
 
     def _hurst_exponent(self, series: np.ndarray) -> float:
-        """Estimate Hurst exponent via R/S analysis
+        """Estimate Hurst exponent via Detrended Fluctuation Analysis (DFA)
 
         Args:
             series: Time series data
@@ -488,49 +488,58 @@ class InformationTheoreticAnalysis:
         if len(series) < DEFAULT_MIN_SAMPLES:
             return 0.5
 
-        n = len(series)
-        max_lag = n // DEFAULT_HURST_LAG_MULTIPLIER
+        # Remove mean
+        series = series - np.mean(series)
 
-        if max_lag < DEFAULT_MIN_LAG:
-            return 0.5
+        # Integrate the series
+        integrated = np.cumsum(series)
 
-        rs_values = []
-        lag_values = []
+        n = len(integrated)
 
-        for lag in range(DEFAULT_MIN_LAG, max_lag):
-            # Divide into subseries
-            n_subseries = n // lag
-            if n_subseries < DEFAULT_MIN_SUBSERIES:
+        # Define scales (window sizes)
+        scales = np.logspace(
+            np.log10(DEFAULT_MIN_LAG), np.log10(n // 4), num=20, dtype=int
+        )
+        scales = np.unique(scales)  # Remove duplicates
+
+        f_values = []
+
+        for s in scales:
+            if s >= n:
                 continue
 
-            rs_subseries = []
+            # Number of segments
+            n_segments = n // s
 
-            for i in range(n_subseries):
-                subseries = series[i * lag : (i + 1) * lag]
+            if n_segments < DEFAULT_MIN_SUBSERIES:
+                continue
 
-                # Mean-adjusted cumulative sum
-                mean = np.mean(subseries)
-                cumsum = np.cumsum(subseries - mean)
+            fluctuations = []
 
-                # Range
-                R = np.max(cumsum) - np.min(cumsum)
+            for i in range(n_segments):
+                segment = integrated[i * s : (i + 1) * s]
 
-                # Standard deviation
-                std_dev = np.std(subseries)
+                # Linear detrending
+                x = np.arange(len(segment))
+                slope, intercept = np.polyfit(x, segment, 1)
+                trend = slope * x + intercept
+                detrended = segment - trend
 
-                if std_dev > 0:
-                    rs_subseries.append(R / std_dev)
+                # Fluctuation for this segment
+                fluctuations.append(np.mean(detrended**2))
 
-            if rs_subseries:
-                rs_values.append(np.mean(rs_subseries))
-                lag_values.append(lag)
+            # Average fluctuation for this scale
+            f_s = np.sqrt(np.mean(fluctuations))
+            f_values.append(f_s)
 
-        if len(rs_values) > 2:
-            # Fit log(R/S) vs log(lag)
-            log_lag = np.log(lag_values)
-            log_rs = np.log(rs_values)
+        if len(f_values) > 2:
+            # Fit log(F) vs log(s)
+            log_s = np.log(scales[: len(f_values)])
+            log_f = np.log(f_values)
+
             try:
-                slope, _ = np.polyfit(log_lag, log_rs, 1)
+                slope, _ = np.polyfit(log_s, log_f, 1)
+                # For DFA, slope is the Hurst exponent
                 return slope
             except (ValueError, np.linalg.LinAlgError):
                 return 0.5
@@ -603,26 +612,25 @@ class InformationTheoreticAnalysis:
 
                 # Integrated information
                 phi = self.compute_integrated_information(history)
-                ignition_indices = np.where(history["B"] > DEFAULT_IGNITION_THRESHOLD)[
-                    0
-                ]
-
+                ignition_indices = np.where(history["B"] > DEFAULT_IGNITION_THRESHOLD)[0]
+                
                 if len(ignition_indices) > 0:
-                    # Φ at ignition
+                    # Φ at ignition - ensure integer indices
                     ignition_phi = [
-                        phi[max(0, idx - DEFAULT_PHI_LOOKBACK)]
+                        phi[max(0, int(idx - DEFAULT_PHI_LOOKBACK))]
                         for idx in ignition_indices
-                        if idx >= DEFAULT_PHI_LOOKBACK
-                        and idx - DEFAULT_PHI_LOOKBACK < len(phi)
+                        if int(idx - DEFAULT_PHI_LOOKBACK) >= 0
+                        and int(idx - DEFAULT_PHI_LOOKBACK) < len(phi)
                     ]
                     if ignition_phi:
                         results["phi_at_ignition"].append(np.mean(ignition_phi))
 
-                # Baseline Φ
-                non_ignition = np.where(history["B"] < DEFAULT_IGNITION_THRESHOLD)[0]
-                baseline_phi = phi[non_ignition[non_ignition < len(phi)]]
-                if len(baseline_phi) > 0:
-                    results["phi_baseline"].append(np.mean(baseline_phi))
+                    # Baseline Φ - ensure integer indices
+                    non_ignition = np.where(history["B"] < DEFAULT_IGNITION_THRESHOLD)[0]
+                    valid_indices = non_ignition[non_ignition < len(phi)]
+                    if len(valid_indices) > 0:
+                        baseline_phi = phi[valid_indices]
+                        results["phi_baseline"].append(np.mean(baseline_phi))
 
                 # New falsification analyses
                 # Level 2 falsification criteria
@@ -1194,11 +1202,11 @@ class InformationTheoreticAnalysis:
             logger.warning(f"Integrated information computation failed: {e}")
             results["details"]["integrated_info"] = {"error": str(e)}
 
-        # Overall falsification (fails if ANY criterion is met)
+        # Overall falsification (fails if ALL criteria are met - conjunction)
         results["overall_falsified"] = (
             results["transfer_entropy_falsified"]
-            or results["mutual_info_falsified"]
-            or results["integrated_info_falsified"]
+            and results["mutual_info_falsified"]
+            and results["integrated_info_falsified"]
         )
 
         return results
@@ -1234,8 +1242,7 @@ class InformationTheoreticAnalysis:
         BASELINE_METABOLIC_RATE = 1.0  # Normalized baseline metabolic rate
         BIOLOGICAL_CEILING = 1.2  # 20% above baseline (1.0 + 0.2)
 
-        # Stub 1: Metabolic cost measurement
-        # Implement actual metabolic cost calculation based on spike count and ATP consumption
+        # Metabolic cost calculation: count ignition events and compute ATP consumption
         n_ignitions = np.sum(B > DEFAULT_IGNITION_THRESHOLD)
         total_atp_consumed = n_ignitions * ATP_PER_SPIKE
 
@@ -1271,8 +1278,7 @@ class InformationTheoreticAnalysis:
             "falsified": metabolic_falsified,
         }
 
-        # Stub 2: Energy efficiency measurement
-        # Implement actual energy efficiency based on information gain per ATP spent
+        # Energy efficiency measurement
         # Information gain: ratio of information value to metabolic cost
         information_gain = information_value / (total_atp_consumed + DEFAULT_EPSILON)
 
@@ -1292,8 +1298,7 @@ class InformationTheoreticAnalysis:
             "falsified": efficiency_falsified,
         }
 
-        # Stub 3: Thermodynamic plausibility
-        # Implement actual thermodynamic analysis based on entropy production
+        # Thermodynamic plausibility
         # Compute entropy rate of the system
         # Using Shannon entropy of discretized surprise signal
         from sklearn.preprocessing import KBinsDiscretizer

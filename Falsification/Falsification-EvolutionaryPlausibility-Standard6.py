@@ -34,6 +34,9 @@ from falsification_thresholds import (
     F5_6_MIN_PERFORMANCE_DIFF_PCT,
     F5_6_MIN_COHENS_D,
     F5_6_ALPHA,
+    F6_5_BIFURCATION_ERROR_MAX,
+    F6_5_HYSTERESIS_MIN,
+    F6_5_HYSTERESIS_MAX,
 )
 
 
@@ -951,6 +954,14 @@ def check_falsification(
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
+    # Defensive validation for F6.6 parameters
+    assert (
+        alternative_modules_needed >= 0
+    ), f"alternative_modules_needed must be >= 0, got {alternative_modules_needed}"
+    assert (
+        performance_gap_without_addons >= 0
+    ), f"performance_gap_without_addons must be >= 0, got {performance_gap_without_addons}"
+
     results = {
         "protocol": "Falsification-Protocol-5",
         "criteria": {},
@@ -1730,14 +1741,28 @@ def check_falsification(
 
     # F6.5: Bifurcation Structure for Ignition
     logger.info("Testing F6.5: Bifurcation Structure for Ignition")
-    # Phase plane analysis (simplified)
-    hysteresis = abs(0.15 - 0.05)  # Assume hysteresis width
-    bifurcation_point = 0.15  # Define missing variable
+
+    # Import proper bifurcation analysis function
+    from Falsification.ActiveInferenceAgents_F1F2 import analyze_bifurcation_structure
+
+    # Compute bifurcation point and hysteresis using proper phase portrait analysis
+    # Use theta_t derived from threshold parameters and perform actual phase sweep
+    theta_t = 0.5  # Ignition threshold parameter
+    bifurcation_analysis = analyze_bifurcation_structure(
+        theta_t=theta_t,
+        tau_S=0.3,
+        dt=0.05,
+        beta=1.0,
+        hysteresis_min=F6_5_HYSTERESIS_MIN,
+        hysteresis_max=F6_5_HYSTERESIS_MAX,
+    )
+
+    bifurcation_point = bifurcation_analysis["bifurcation_point"]
+    hysteresis = bifurcation_analysis["hysteresis_width"]
 
     f6_5_pass = (
-        abs(bifurcation_point - 0.15) <= 0.10
-        and hysteresis >= 0.08
-        and hysteresis <= 0.25
+        abs(bifurcation_point - theta_t) <= F6_5_BIFURCATION_ERROR_MAX
+        and bifurcation_analysis["f6_5_pass"]
     )
     results["criteria"]["F6.5"] = {
         "passed": f6_5_pass,
