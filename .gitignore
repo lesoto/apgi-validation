@@ -147,3 +147,5 @@ dashboards/
 reports/
 *.html
 .DS_Store
+cache/
+*.db
