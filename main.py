@@ -148,18 +148,7 @@ except ImportError as e:
     )
     sys.exit(1)
 
-# Initialize rich console with better width handling
-console = Console(
-    width=None,  # Auto-detect terminal width
-    file=None,  # Use stdout
-    force_terminal=True,  # Force terminal mode
-    force_interactive=False,  # Don't force interactive mode
-    legacy_windows=False,  # Use modern Windows handling
-    color_system="auto",  # Auto-detect color support
-    no_color=False,  # Enable colors
-)
-
-# Import pandasl configuration
+# Import pandas configuration
 global_config = {
     "version": "1.3.0",
     "project_name": "APGI Theory Framework",
@@ -876,8 +865,15 @@ def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
 
 def _check_file_size(file_path: Union[str, Path], max_mb: Optional[int] = None) -> None:
     """Check file size to prevent memory exhaustion DoS attacks."""
+    # Hardcoded absolute maximum that cannot be overridden (1 GB)
+    ABSOLUTE_MAX_MB = 1024
+
     if max_mb is None:
         max_mb = get_config_value("max_load_size_mb", 100)
+
+    # Enforce absolute maximum
+    if max_mb > ABSOLUTE_MAX_MB:
+        max_mb = ABSOLUTE_MAX_MB
 
     size_mb = os.path.getsize(str(file_path)) / (1024 * 1024)
     if size_mb > max_mb:
@@ -984,9 +980,9 @@ def _validate_input_file(input_data: Optional[str]) -> Optional[str]:
         return None
 
     # Check file format
-    if not input_data or not input_data.lower().endswith((".csv", ".json", ".pkl")):
+    if not input_data or not input_data.lower().endswith((".csv", ".json")):
         console.print("[red]❌ Error: Unsupported file format[/red]")
-        console.print("[blue]Supported formats: .csv, .json, .pkl[/blue]")
+        console.print("[blue]Supported formats: .csv, .json[/blue]")
         return None
 
     console.print(f"[green]✓[/green] Input file validated: {input_data}")

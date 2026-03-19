@@ -73,9 +73,9 @@ class APGINormalizer:
         """
         # Default transformations for non-Gaussian variables
         default_transforms = {
-            "gamma_power": lambda x: np.log10(x + 1e-12),  # Avoid log(0)
-            "SCR": lambda x: np.log10(x + 1e-6),
             "alpha_power": lambda x: np.log10(x + 1e-12),
+            "heart_rate": lambda x: np.log(x + 1e-12),  # Log transform for heart_rate
+            "SCR": lambda x: np.log10(x + 1e-6),
         }
 
         self.transforms = transforms if transforms is not None else default_transforms
@@ -155,13 +155,39 @@ class APGINormalizer:
                     transformed_data
                 )
 
-            # Check normality
-            if len(transformed_data) < 5000:
+            # Check normality with appropriate test based on sample size
+            if len(transformed_data) < 50:
+                # Use Shapiro-Wilk for small samples
                 _, p_value = stats.shapiro(transformed_data)
-                if p_value < 0.05 and var_name not in self.transforms:
-                    warnings.warn(
-                        f"{var_name} is non-Gaussian (p={p_value:.4f}). Consider adding a transformation."
-                    )
+                test_used = "Shapiro-Wilk"
+            elif len(transformed_data) < 5000:
+                # Use Kolmogorov-Smirnov for medium samples
+                _, p_value = stats.kstest(transformed_data, "norm")
+                test_used = "Kolmogorov-Smirnov"
+            else:
+                # Use Anderson-Darling for large samples (more reliable than Shapiro-Wilk)
+                try:
+                    result = stats.anderson(transformed_data, dist="norm")
+                    # Convert Anderson-Darling statistic to approximate p-value
+                    if result.statistic > result.critical_values[2]:  # 5% significance
+                        p_value = 0.01  # Conservative estimate
+                    else:
+                        p_value = 0.1  # Conservative estimate
+                    test_used = "Anderson-Darling"
+                except (ValueError, RuntimeError, TypeError):
+                    # Fallback to Kolmogorov-Smirnov if Anderson-Darling fails
+                    _, p_value = stats.kstest(transformed_data, "norm")
+                    test_used = "Kolmogorov-Smirnov (fallback)"
+                    p_value = max(p_value, 0.001)  # Conservative bound
+
+            if (
+                isinstance(p_value, (int, float))
+                and p_value < 0.05
+                and var_name not in self.transforms
+            ):
+                warnings.warn(
+                    f"{var_name} is non-Gaussian (p={p_value:.4f}, test={test_used}). Consider adding a transformation."
+                )
 
     def transform(
         self,
@@ -3222,8 +3248,14 @@ class APGIBatchProcessor:
         # 3. Z-scoring
         # Fit normalizer if not already fitted for these features
         if not self.normalizer.is_fitted():
-            # Fit with the raw data directly
+            # Fit with raw data directly
             self.normalizer.fit(subject_data)
+
+        # Ensure normalizer is fitted before transformation
+        if not self.normalizer.is_fitted():
+            raise RuntimeError(
+                "Normalizer fitting failed - cannot proceed with z-scoring"
+            )
 
         # Transform features, handling unfitted variables gracefully
         z_scores = {}

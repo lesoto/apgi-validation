@@ -4,70 +4,51 @@ Validation Pipeline Connector
 ==========================
 
 Connects preprocessing pipelines with validation protocols to enable end-to-end
-workflow automation for the APGI framework.
+workflow automation for APGI framework.
 """
 
 import json
 import logging
 import inspect
-import threading
 import signal
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+# Add project root to Python path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
+# Import preprocessing pipelines with proper fallback
 try:
-    from .preprocessing_pipelines import (
-        MultimodalPreprocessingPipeline,
+    from utils.preprocessing_pipelines import (
         PreprocessingConfig,
+        MultimodalPreprocessingPipeline,
     )
 except ImportError:
-    try:
-        from preprocessing_pipelines import (
-            MultimodalPreprocessingPipeline,
-            PreprocessingConfig,
-        )
-    except ImportError:
-        try:
-            from utils.preprocessing_pipelines import (
-                MultimodalPreprocessingPipeline,
-                PreprocessingConfig,
-            )
-        except ImportError:
-            # Fallback if utils.preprocessing_pipelines is not available
-            import warnings
+    raise ImportError(
+        "Could not import preprocessing pipelines. "
+        "Ensure that utils.preprocessing_pipelines module exists."
+    )
 
-            warnings.warn(
-                "utils.preprocessing_pipelines not available - pipeline connector may be limited",
-                ImportWarning,
-            )
-            MultimodalPreprocessingPipeline = None
-            PreprocessingConfig = None
 try:
-    from .sample_data_generator import (
+    from utils.sample_data_generator import (
         SampleDataGenerator,
         generate_sample_multimodal_data,
     )
 except ImportError:
-    # Fallback for direct execution
-    try:
-        from sample_data_generator import (
-            SampleDataGenerator,
-            generate_sample_multimodal_data,
-        )
-    except ImportError:
-        import warnings
+    import warnings
 
-        warnings.warn(
-            "sample_data_generator not available - synthetic data generation disabled",
-            ImportWarning,
-        )
-        SampleDataGenerator = None
-        generate_sample_multimodal_data = None
+    warnings.warn(
+        "sample_data_generator not available - synthetic data generation disabled",
+        ImportWarning,
+    )
+    SampleDataGenerator = None
+    generate_sample_multimodal_data = None
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -76,7 +57,7 @@ logger = logging.getLogger(__name__)
 class ValidationPipelineConnector:
     """Connects preprocessing pipelines with validation protocols."""
 
-    def __init__(self, config: Optional[PreprocessingConfig] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize connector with optional preprocessing configuration."""
         self.config = config or PreprocessingConfig()
         self.preprocessor = MultimodalPreprocessingPipeline(self.config)

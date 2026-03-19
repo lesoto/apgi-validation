@@ -151,8 +151,8 @@ class FoundationalEquations:
         Returns:
             Z-score normalized prediction error
         """
-        if std <= 0:
-            return 0.0  # Handle zero or negative standard deviation
+        if abs(std) < 1e-10:
+            return 0.0  # Handle zero or near-zero standard deviation
         return (error - mean) / std
 
     @staticmethod
@@ -509,7 +509,9 @@ class DynamicalSystemEquations:
         A_circ = 0.5 + 0.5 * np.cos(2 * np.pi * (t - t_peak) / 24.0)
 
         # Stimulus-driven component
-        g_stim = min(1.0, 0.1 + 0.5 * (1.0 / (1.0 + np.exp(-5.0 * max_eps))))
+        g_stim = min(
+            1.0, 0.1 + 0.5 * (1.0 / (1.0 + np.exp(np.clip(-5.0 * max_eps, -500, 500))))
+        )
 
         # Interoceptive component (convolution with exponential kernel)
         if len(eps_i_history) > 0:
@@ -999,7 +1001,7 @@ class PsychologicalState:
         # ========== COMPUTE ACTUAL EFFECTIVE PRECISION ==========
         # Π_i_eff_actual = Π_i_baseline_actual · [1 + β·σ(M_ca - M₀)]
         M_0 = 0.0  # Reference somatic marker level
-        sigmoid = 1.0 / (1.0 + np.exp(-(self.M_ca - M_0)))
+        sigmoid = 1.0 / (1.0 + np.exp(np.clip(-(self.M_ca - M_0), -500, 500)))
         self.Pi_i_eff_actual = self.Pi_i_baseline_actual * (1.0 + self.beta * sigmoid)
         self.Pi_i_eff_actual = np.clip(self.Pi_i_eff_actual, 0.1, 10.0)
 
@@ -1028,7 +1030,9 @@ class PsychologicalState:
         else:
             effective_theta = self.theta_t
 
-        return 1.0 / (1.0 + np.exp(-5.5 * (self.S_t - effective_theta)))
+        return 1.0 / (
+            1.0 + np.exp(np.clip(-5.5 * (self.S_t - effective_theta), -500, 500))
+        )
 
     def get_anxiety_index(self) -> float:
         """Compute anxiety index based on precision expectation gap"""
@@ -2239,12 +2243,9 @@ class MeasurementEquations:
             )
 
         # Latency reduction with surprise excess and precision
-        latency_reduction = (
-            P3B_LATENCY_REDUCTION_FACTOR
-            * (1.0 / (1.0 + np.exp(-surprise_excess)))
-            * (Pi_e / P3B_PRECISION_NORMALIZATION)
-        )
-
+        exp_term = 1.0 / (1.0 + np.exp(np.clip(-surprise_excess, -500, 500)))
+        precision_term = Pi_e / P3B_PRECISION_NORMALIZATION
+        latency_reduction = P3B_LATENCY_REDUCTION_FACTOR * exp_term * precision_term
         P3b_latency = baseline_latency - latency_reduction
 
         # Add noise
