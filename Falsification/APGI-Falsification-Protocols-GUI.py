@@ -12,15 +12,6 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, scrolledtext, ttk
 
-# Import theme manager
-try:
-    from utils.theme_manager import ThemeManager
-
-    THEME_MANAGER_AVAILABLE = True
-except ImportError:
-    THEME_MANAGER_AVAILABLE = False
-    print("Warning: Theme manager not available. Theme support disabled.")
-
 # Set up logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -34,11 +25,6 @@ class ProtocolRunnerGUI:
         self.root.title("APGI Falsification Protocols")
         self.root.geometry("800x600")
         self.root.minsize(640, 480)  # Prevent resizing below usable size
-
-        # Initialize theme manager
-        self.theme_manager = None
-        if THEME_MANAGER_AVAILABLE:
-            self.theme_manager = ThemeManager(initial_theme="normal")
 
         # Add project root directory to Python path
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -499,7 +485,7 @@ class ProtocolRunnerGUI:
         self.setup_ui()
 
     def _create_menu_bar(self):
-        """Create menu bar with theme options."""
+        """Create menu bar"""
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
 
@@ -507,28 +493,6 @@ class ProtocolRunnerGUI:
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="File", menu=file_menu)
         file_menu.add_command(label="Exit", command=self.root.quit)
-
-        # Theme menu (only if theme manager is available)
-        if self.theme_manager:
-            theme_menu = tk.Menu(menubar, tearoff=0)
-            menubar.add_cascade(label="Theme", menu=theme_menu)
-
-            # Add theme options
-            for theme_name in self.theme_manager.get_available_themes():
-                theme_menu.add_radiobutton(
-                    label=theme_name.capitalize(),
-                    command=lambda t=theme_name: self._set_theme(t),  # type: ignore
-                    variable=tk.StringVar(value=self.theme_manager.current_theme),
-                    value=theme_name,
-                )
-
-    def _set_theme(self, theme_name: str):
-        """Set the current theme."""
-        if not self.theme_manager:
-            return
-
-        if self.theme_manager.set_theme(theme_name):
-            self._apply_theme_to_widgets()
 
     def _on_closing(self):
         """Handle window close event with proper thread cleanup."""
@@ -540,54 +504,6 @@ class ProtocolRunnerGUI:
             if self.running_thread.is_alive():
                 logging.warning("Thread did not stop cleanly on exit")
         self.root.destroy()
-
-    def _apply_theme_to_widgets(self):
-        """Apply current theme to all widgets."""
-        if not self.theme_manager:
-            return
-
-        theme = self.theme_manager.get_current_theme()
-
-        # Apply theme to root window
-        self.root.configure(bg=theme["background"])
-
-        # Apply theme to text widgets
-        if hasattr(self, "output_console"):
-            try:
-                self.output_console.config(
-                    bg=theme["background"],
-                    fg=theme["foreground"],
-                    insertbackground=theme["foreground"],
-                )
-            except tk.TclError:
-                pass
-
-        # Apply theme to status label
-        if hasattr(self, "status_var"):
-            try:
-                self.status_label.config(fg=theme["foreground"])
-            except tk.TclError:
-                pass
-
-        # Apply theme to notebook tabs
-        if hasattr(self, "notebook"):
-            try:
-                style = ttk.Style()
-                style.configure("TNotebook", background=theme["background"])
-                style.configure(
-                    "TNotebook.Tab",
-                    background=theme["button"],
-                    foreground=theme["foreground"],
-                )
-                style.configure("TFrame", background=theme["background"])
-                style.configure(
-                    "TLabel",
-                    background=theme["background"],
-                    foreground=theme["foreground"],
-                )
-                style.configure("TButton", background=theme["button"])
-            except tk.TclError:
-                pass
 
     def setup_ui(self):
         """Setup the user interface."""
@@ -684,10 +600,6 @@ class ProtocolRunnerGUI:
 
         # Configure tab order for keyboard navigation
         self._setup_tab_order()
-
-        # Apply initial theme
-        if self.theme_manager:
-            self._apply_theme_to_widgets()
 
     def setup_protocols_tab(self, parent_frame):
         """Setup the protocols selection tab."""
@@ -1388,11 +1300,11 @@ class ProtocolRunnerGUI:
             try:
                 instance = cls(**params)
             except tk.TclError as e:
-                logger.warning(f"TclError in theme application: {e}")
+                logger.warning(f"TclError in application: {e}")
                 pass  # Widget configuration errors are non-critical
             except Exception as e:
                 # Log unexpected errors but don't suppress them
-                logger.warning(f"Unexpected error in theme application: {e}")
+                logger.warning(f"Unexpected error in application: {e}")
                 instance = cls()  # Create instance with defaults
                 self.log_message(
                     "Warning: Could not apply configured parameters, using defaults"

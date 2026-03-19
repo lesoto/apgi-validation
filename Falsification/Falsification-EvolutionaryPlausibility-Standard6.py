@@ -29,7 +29,7 @@ except ImportError:
     ConfigManager = MockConfigManager
 
 try:
-    from utils.falsification_thresholds import (
+    from falsification_thresholds import (
         F2_3_MIN_RT_ADVANTAGE_MS,
         F2_3_ALPHA,
         F5_1_BINOMIAL_ALPHA,

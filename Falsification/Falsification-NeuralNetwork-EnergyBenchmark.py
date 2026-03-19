@@ -9,7 +9,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from utils.falsification_thresholds import (
+    from falsification_thresholds import (
         F2_3_MIN_RT_ADVANTAGE_MS,
         F2_3_ALPHA,
         F6_1_LTCN_MAX_TRANSITION_MS,

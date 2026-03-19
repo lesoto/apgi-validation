@@ -62,6 +62,33 @@ except ImportError:
     logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Import falsification thresholds
+# ---------------------------------------------------------------------------
+try:
+    from falsification_thresholds import (
+        DEFAULT_ALPHA,
+        F1_1_MIN_ADVANTAGE_PCT,
+        F1_1_MIN_COHENS_D,
+        F1_1_ALPHA,
+        F2_3_MIN_RT_ADVANTAGE_MS,
+        F2_3_MIN_BETA,
+        F2_3_MIN_STANDARDIZED_BETA,
+        F2_3_MIN_R2,
+        F2_3_ALPHA,
+    )
+except ImportError:
+    logger.warning("falsification_thresholds not available, using default values")
+    DEFAULT_ALPHA = 0.05
+    F1_1_MIN_ADVANTAGE_PCT = 20.0
+    F1_1_MIN_COHENS_D = 0.5
+    F1_1_ALPHA = 0.05
+    F2_3_MIN_RT_ADVANTAGE_MS = 50.0
+    F2_3_MIN_BETA = 0.3
+    F2_3_MIN_STANDARDIZED_BETA = 0.3
+    F2_3_MIN_R2 = 0.1
+    F2_3_ALPHA = 0.05
+
+# ---------------------------------------------------------------------------
 # Reproducibility
 # ---------------------------------------------------------------------------
 RANDOM_SEED = 42

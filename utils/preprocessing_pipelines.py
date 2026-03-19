@@ -191,9 +191,8 @@ class EEGPreprocessor:
         try:
             b, a = signal.butter(4, [low, high], btype="band")
             filtered_data = signal.filtfilt(b, a, signal_data.dropna())
-
             result = signal_data.copy()
-            result.loc[signal_data.dropna().index] = filtered_data
+            result.loc[signal_data.dropna().index, :] = filtered_data
             self.preprocessing_log.append(
                 f"Applied bandpass filter ({self.config.eeg_bandpass_low}-{self.config.eeg_bandpass_high} Hz)"
             )

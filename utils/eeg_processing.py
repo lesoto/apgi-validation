@@ -13,6 +13,7 @@ Functions:
 """
 
 import numpy as np
+import pandas as pd
 from scipy import signal
 from scipy.integrate import trapezoid  # Use trapezoid instead of deprecated simps
 from typing import Dict, Any, Tuple
@@ -237,30 +238,58 @@ def compute_theta_gamma_pac(
 
 
 def _bandpass_filter(
-    data: np.ndarray,
+    data: pd.Series,
     fs: float,
     band: Tuple[float, float],
     order: int = 4,
-) -> np.ndarray:
+) -> pd.Series:
     """Apply Butterworth bandpass filter to data."""
+    # Convert Series to numpy array for scipy
+    data_array = data.values if isinstance(data, pd.Series) else data
+
     nyquist = fs / 2
     low = band[0] / nyquist
     high = band[1] / nyquist
-
     b, a = signal.butter(order, [low, high], btype="band")
-    filtered = signal.filtfilt(b, a, data, axis=1)
 
-    return filtered
+    # Handle both 1D and 2D data
+    if data_array.ndim == 1:
+        # 1D data - use axis=0
+        filtered_data = signal.filtfilt(b, a, data_array, axis=0)
+    else:
+        # 2D data - use axis=1 (channels along rows)
+        filtered_data = signal.filtfilt(b, a, data_array, axis=1)
+
+    # Convert back to original shape if needed
+    if data_array.ndim == 2 and data_array.shape[0] == 1:
+        filtered_data = filtered_data.flatten()
+
+    return pd.Series(filtered_data, index=data.index, name=data.name)
 
 
 def _amplitude_envelope(
-    data: np.ndarray,
+    data: pd.Series,
     fs: float,
-) -> np.ndarray:
+) -> pd.Series:
     """Extract amplitude envelope using Hilbert transform."""
-    analytic = signal.hilbert(data, axis=1)
+    # Convert Series to numpy array for scipy
+    data_array = data.values if isinstance(data, pd.Series) else data
+
+    # Handle both 1D and 2D data
+    if data_array.ndim == 1:
+        # 1D data - use axis=0
+        analytic = signal.hilbert(data_array, axis=0)
+    else:
+        # 2D data - use axis=1 (channels along rows)
+        analytic = signal.hilbert(data_array, axis=1)
+
     envelope = np.abs(analytic)
-    return envelope
+
+    # Convert back to original shape if needed
+    if data_array.ndim == 2 and data_array.shape[0] == 1:
+        envelope = envelope.flatten()
+
+    return pd.Series(envelope, index=data.index, name=data.name)
 
 
 def _permutation_test_pac(

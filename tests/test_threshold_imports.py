@@ -38,8 +38,7 @@ def extract_float_literals(file_path: Path) -> list:
     for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and isinstance(node.value, float):
             literals.append(node.value)
-        elif isinstance(node, ast.Num):  # For older Python versions
-            literals.append(node.n)
+        # Note: ast.Num was removed in Python 3.8, so we only handle ast.Constant now
 
     return literals
 
@@ -48,7 +47,9 @@ def test_all_protocols_use_threshold_registry():
     """Test that all protocol files import thresholds from the registry"""
     threshold_registry = get_threshold_registry()
     validation_dir = project_root / "Validation"
-    protocol_files = list(validation_dir.glob("Validation-Protocol-*.py"))
+    # Check both hyphenated and underscored protocol files
+    protocol_files = list(validation_dir.glob("Validation-Protocol*.py"))
+    protocol_files.extend(validation_dir.glob("Validation_Protocol*.py"))
 
     for protocol_file in protocol_files:
         # Read the file content

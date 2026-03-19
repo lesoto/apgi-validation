@@ -45,7 +45,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.constants import DIM_CONSTANTS
-from utils.falsification_thresholds import (
+from falsification_thresholds import (
     F5_2_MIN_CORRELATION,
     F5_2_MIN_PROPORTION,
     F5_3_MIN_GAIN_RATIO,
@@ -54,7 +54,7 @@ from utils.falsification_thresholds import (
     F5_4_MIN_PROPORTION,
     F5_4_MIN_PEAK_SEPARATION,
     F5_5_PCA_MIN_VARIANCE,
-    F5_5_MIN_LOADING,
+    F5_5_PCA_MIN_LOADING,
     F5_6_MIN_PERFORMANCE_DIFF_PCT,
     F5_6_MIN_COHENS_D,
     F5_6_ALPHA,
@@ -3299,13 +3299,14 @@ def check_falsification(
     # F5.5: APGI-Like Feature Clustering
     logger.info("Testing F5.5: APGI-Like Feature Clustering")
     f5_5_pass = (
-        cumulative_variance >= F5_5_PCA_MIN_VARIANCE and min_loading >= F5_5_MIN_LOADING
+        cumulative_variance >= F5_5_PCA_MIN_VARIANCE
+        and min_loading >= F5_5_PCA_MIN_LOADING
     )
     results["criteria"]["F5.5"] = {
         "passed": f5_5_pass,
         "cumulative_variance": cumulative_variance,
         "min_loading": min_loading,
-        "threshold": f"Cumulative variance ≥{int(F5_5_PCA_MIN_VARIANCE * 100)}%, min loading ≥{F5_5_MIN_LOADING}",
+        "threshold": f"Cumulative variance ≥{int(F5_5_PCA_MIN_VARIANCE * 100)}%, min loading ≥{F5_5_PCA_MIN_LOADING}",
         "actual": f"Variance: {cumulative_variance:.2f}, loading: {min_loading:.2f}",
     }
     if f5_5_pass:

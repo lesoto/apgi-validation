@@ -6,43 +6,65 @@ Tests for tkinter GUI components with proper mocking and fixtures.
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 import sys
 
-# Mock tkinter at module level to prevent any real tkinter imports
-mock_tkinter_module = Mock()
-mock_tkinter_module.Tk = Mock()
-mock_tkinter_module.ttk = Mock()
-mock_tkinter_module.ttk.Frame = Mock()
-mock_tkinter_module.ttk.Button = Mock()
-mock_tkinter_module.ttk.Label = Mock()
-mock_tkinter_module.ttk.Spinbox = Mock()
-mock_tkinter_module.ttk.Checkbutton = Mock()
-mock_tkinter_module.ttk.Notebook = Mock()
-mock_tkinter_module.ttk.Progressbar = Mock()
-mock_tkinter_module.ttk.LabelFrame = Mock()
-mock_tkinter_module.StringVar = Mock()
-mock_tkinter_module.BooleanVar = Mock()
-mock_tkinter_module.DoubleVar = Mock()
-mock_tkinter_module.IntVar = Mock()
-mock_tkinter_module.Scale = Mock()
-mock_tkinter_module.ScrolledText = Mock()
-mock_tkinter_module.messagebox = Mock()
-mock_tkinter_module.filedialog = Mock()
+# Prevent any tkinter imports at module level
+if "tkinter" in sys.modules:
+    del sys.modules["tkinter"]
+
+# Mock tkinter and all its submodules before any imports
+tkinter_modules = [
+    "tkinter",
+    "tkinter.ttk",
+    "tkinter.messagebox",
+    "tkinter.filedialog",
+    "tkinter.scrolledtext",
+]
+
+for module in tkinter_modules:
+    sys.modules[module] = MagicMock()
+
+# Mock the entire tkinter ecosystem
+mock_tkinter = MagicMock()
+mock_tkinter.Tk = MagicMock()
+mock_tkinter.ttk = MagicMock()
+mock_tkinter.ttk.Frame = MagicMock()
+mock_tkinter.ttk.Button = MagicMock()
+mock_tkinter.ttk.Label = MagicMock()
+mock_tkinter.ttk.Spinbox = MagicMock()
+mock_tkinter.ttk.Checkbutton = MagicMock()
+mock_tkinter.ttk.Notebook = MagicMock()
+mock_tkinter.ttk.Progressbar = MagicMock()
+mock_tkinter.ttk.LabelFrame = MagicMock()
+mock_tkinter.StringVar = MagicMock()
+mock_tkinter.BooleanVar = MagicMock()
+mock_tkinter.DoubleVar = MagicMock()
+mock_tkinter.IntVar = MagicMock()
+mock_tkinter.Scale = MagicMock()
+mock_tkinter.ScrolledText = MagicMock()
+mock_tkinter.messagebox = MagicMock()
+mock_tkinter.messagebox.showerror = MagicMock()
+mock_tkinter.messagebox.showinfo = MagicMock()
+mock_tkinter.messagebox.showwarning = MagicMock()
+mock_tkinter.messagebox.askyesno = MagicMock()
+mock_tkinter.filedialog = MagicMock()
+mock_tkinter.filedialog.asksaveasfilename = MagicMock()
+mock_tkinter.filedialog.askopenfilename = MagicMock()
 
 # Configure Tk mock
-mock_root = Mock()
-mock_child_ids = Mock()
-mock_child_ids.get = Mock(
+mock_root = MagicMock()
+mock_child_ids = MagicMock()
+mock_child_ids.get = MagicMock(
     side_effect=lambda key, default=0: default if isinstance(default, int) else 0
 )
 mock_root._last_child_ids = mock_child_ids
-mock_tkinter_module.Tk.return_value = mock_root
+mock_tkinter.Tk.return_value = mock_root
 
-# Configure variable mocks
+# Configure variable mocks to return mock objects with get() method
 for var_type in ["StringVar", "BooleanVar", "DoubleVar", "IntVar"]:
-    mock_var = Mock()
-    mock_var.get = Mock(
+    mock_var = MagicMock()
+    mock_var.get = MagicMock(
         return_value=0
         if var_type == "IntVar"
         else 0.0
@@ -51,90 +73,11 @@ for var_type in ["StringVar", "BooleanVar", "DoubleVar", "IntVar"]:
         if var_type == "BooleanVar"
         else ""
     )
-    mock_var.set = Mock()
-    getattr(mock_tkinter_module, var_type).return_value = mock_var
+    mock_var.set = MagicMock()
+    getattr(mock_tkinter, var_type).return_value = mock_var
 
 # Patch tkinter in sys.modules
-sys.modules["tkinter"] = mock_tkinter_module
-
-
-@pytest.fixture(autouse=True)
-def mock_tkinter():
-    """Mock tkinter to avoid GUI creation in tests."""
-    # Remove tkinter from sys.modules if it exists to prevent any real imports
-    if "tkinter" in sys.modules:
-        del sys.modules["tkinter"]
-
-    # Mock the entire tkinter module to prevent import on headless systems
-    mock_tkinter_module = Mock()
-    mock_tkinter_module.Tk = Mock()
-    mock_tkinter_module.ttk = Mock()
-    mock_tkinter_module.ttk.Frame = Mock()
-    mock_tkinter_module.ttk.Button = Mock()
-    mock_tkinter_module.ttk.Label = Mock()
-    mock_tkinter_module.ttk.Spinbox = Mock()
-    mock_tkinter_module.ttk.Checkbutton = Mock()
-    mock_tkinter_module.ttk.Notebook = Mock()
-    mock_tkinter_module.ttk.Progressbar = Mock()
-    mock_tkinter_module.ttk.LabelFrame = Mock()
-    mock_tkinter_module.StringVar = Mock()
-    mock_tkinter_module.BooleanVar = Mock()
-    mock_tkinter_module.DoubleVar = Mock()
-    mock_tkinter_module.IntVar = Mock()
-    mock_tkinter_module.Scale = Mock()
-    mock_tkinter_module.ScrolledText = Mock()
-    mock_tkinter_module.messagebox = Mock()
-    mock_tkinter_module.messagebox.showerror = Mock()
-    mock_tkinter_module.messagebox.showinfo = Mock()
-    mock_tkinter_module.messagebox.showwarning = Mock()
-    mock_tkinter_module.messagebox.askyesno = Mock()
-    mock_tkinter_module.filedialog = Mock()
-    mock_tkinter_module.filedialog.asksaveasfilename = Mock()
-    mock_tkinter_module.filedialog.askopenfilename = Mock()
-
-    # Configure Tk mock
-    mock_root = Mock()
-    mock_child_ids = Mock()
-    mock_child_ids.get = Mock(
-        side_effect=lambda key, default=0: default if isinstance(default, int) else 0
-    )
-    mock_root._last_child_ids = mock_child_ids
-    mock_tkinter_module.Tk.return_value = mock_root
-
-    # Configure variable mocks to return mock objects with get() method
-    for var_type in ["StringVar", "BooleanVar", "DoubleVar", "IntVar"]:
-        mock_var = Mock()
-        mock_var.get = Mock(
-            return_value=0
-            if var_type == "IntVar"
-            else 0.0
-            if var_type == "DoubleVar"
-            else False
-            if var_type == "BooleanVar"
-            else ""
-        )
-        mock_var.set = Mock()
-        getattr(mock_tkinter_module, var_type).return_value = mock_var
-
-    with patch.dict("sys.modules", {"tkinter": mock_tkinter_module}):
-        yield {
-            "tk": mock_tkinter_module.Tk,
-            "root": mock_root,
-            "frame": mock_tkinter_module.ttk.Frame,
-            "button": mock_tkinter_module.ttk.Button,
-            "label": mock_tkinter_module.ttk.Label,
-            "spinbox": mock_tkinter_module.ttk.Spinbox,
-            "checkbutton": mock_tkinter_module.ttk.Checkbutton,
-            "notebook": mock_tkinter_module.ttk.Notebook,
-            "progressbar": mock_tkinter_module.ttk.Progressbar,
-            "labelframe": mock_tkinter_module.ttk.LabelFrame,
-            "stringvar": mock_tkinter_module.StringVar,
-            "boolvar": mock_tkinter_module.BooleanVar,
-            "doublevar": mock_tkinter_module.DoubleVar,
-            "intvar": mock_tkinter_module.IntVar,
-            "scale": mock_tkinter_module.Scale,
-            "scrolledtext": mock_tkinter_module.ScrolledText,
-        }
+sys.modules["tkinter"] = mock_tkinter
 
 
 @pytest.fixture

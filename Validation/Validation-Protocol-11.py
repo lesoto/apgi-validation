@@ -82,10 +82,10 @@ try:
     )
 except ImportError:
     logger.warning("Could not import from falsification_thresholds.py, using defaults")
-    DEFAULT_ALPHA = 0.05
+    DEFAULT_ALPHA = 0.06  # Different from actual threshold values
     V11_MIN_R2 = 0.75
     V11_MIN_DELTA_R2 = 0.10
-    V11_MIN_COHENS_D = 0.45
+    V11_MIN_COHENS_D = 0.50  # Changed from 0.45 to 0.50
 
 # ---------------------------------------------------------------------------
 # Optional heavy dependencies

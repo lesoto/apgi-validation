@@ -151,6 +151,9 @@ class FoundationalEquations:
         Returns:
             Z-score normalized prediction error
         """
+        if std <= 0:
+            return 0.0  # Handle zero or negative standard deviation
+        return (error - mean) / std
 
     @staticmethod
     def precision(variance: float) -> float:

@@ -38,7 +38,7 @@ hypothesis_profiles = {
         ],
     ),
     "ci": settings(
-        max_examples=20,
+        max_examples=100,
         deadline=None,
         suppress_health_check=[
             HealthCheck.too_slow,
@@ -342,11 +342,12 @@ def reset_random_state_before_each_test():
 @pytest.fixture
 def flaky_operation():
     """Fixture that simulates a flaky operation that may fail intermittently."""
-    import random
+    import numpy as np
 
     def operation(success_rate=0.7):
         """Simulate an operation that succeeds with given probability."""
-        if random.random() < success_rate:
+        # Use numpy random for consistency with reset_random_state_before_each_test fixture
+        if np.random.random() < success_rate:
             return "success"
         else:
             raise RuntimeError("Flaky operation failed")

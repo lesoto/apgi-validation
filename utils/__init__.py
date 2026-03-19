@@ -9,6 +9,7 @@ import os
 import sys
 import secrets
 import warnings
+from typing import Optional
 
 # Load environment variables from .env file
 try:
@@ -21,7 +22,7 @@ except ImportError:
 
 # Security: Check for required environment variables at import time
 def _check_required_env_vars():
-    """Check for required security environment variables and generate ephemeral keys if missing."""
+    """Check for required security environment variables and raise error if missing."""
     missing_vars = []
 
     # Check for PICKLE_SECRET_KEY
@@ -33,26 +34,21 @@ def _check_required_env_vars():
         missing_vars.append("APGI_BACKUP_HMAC_KEY")
 
     if missing_vars:
-        # Generate ephemeral development keys
-        for var in missing_vars:
-            if var == "PICKLE_SECRET_KEY":
-                ephemeral_key = secrets.token_hex(32)
-                os.environ["PICKLE_SECRET_KEY"] = ephemeral_key
-                warnings.warn(
-                    "Generated ephemeral development key for PICKLE_SECRET_KEY. "
-                    "Set a persistent key in .env or environment for production use.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-            elif var == "APGI_BACKUP_HMAC_KEY":
-                ephemeral_key = secrets.token_hex(32)
-                os.environ["APGI_BACKUP_HMAC_KEY"] = ephemeral_key
-                warnings.warn(
-                    "Generated ephemeral development key for APGI_BACKUP_HMAC_KEY. "
-                    "Set a persistent key in .env or environment for production use.",
-                    UserWarning,
-                    stacklevel=2,
-                )
+        # In production, raise an error rather than generating insecure ephemeral keys
+        if os.environ.get("APGI_ENV") == "production":
+            raise EnvironmentError(
+                f"Missing required environment variables: {', '.join(missing_vars)}. "
+                "Set these in your environment or .env file before running in production."
+            )
+        else:
+            # In development, provide clear guidance
+            raise EnvironmentError(
+                f"Missing required environment variables: {', '.join(missing_vars)}. "
+                "For development, set these in a .env file:\n"
+                f"PICKLE_SECRET_KEY=your_secret_key_here\n"
+                f"APGI_BACKUP_HMAC_KEY=your_hmac_key_here\n"
+                f'Or generate secure keys using: python -c "import secrets; print(secrets.token_hex(32))"'
+            )
 
 
 _check_required_env_vars()
@@ -69,6 +65,8 @@ from .constants import (
     PCI_NORMALIZATION,
     DIM_CONSTANTS,
 )
+
+# Import falsification thresholds from local utils directory
 from .falsification_thresholds import (
     F1_1_MIN_ADVANTAGE_PCT,
     F1_1_MIN_COHENS_D,
@@ -138,8 +136,9 @@ except ImportError as e:
     if "tqdm" in str(e):
         BATCH_PROCESSOR_AVAILABLE = False
         BatchProcessor = None
-        print(
-            "Warning: BatchProcessor unavailable due to missing tqdm dependency. Install tqdm to enable batch processing."
+        warnings.warn(
+            "Warning: BatchProcessor unavailable due to missing tqdm dependency. Install tqdm to enable batch processing.",
+            ImportWarning,
         )
     else:
         raise

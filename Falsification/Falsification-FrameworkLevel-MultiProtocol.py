@@ -2605,29 +2605,27 @@ def check_falsification(
 
     # F2.3: RT Advantage Modulation
     logger.info("Testing F2.3: RT Advantage Modulation")
+    # Validate input: rt_advantage_ms must be a list/array with at least 2 observations
+    # to avoid degenerate t-test (NaN p-value for single element)
+    rt_array = np.atleast_1d(np.asarray(rt_advantage_ms, dtype=float))
+    if len(rt_array) < 2:
+        raise ValueError(
+            f"F2.3: rt_advantage_ms must contain at least 2 observations for statistical testing. "
+            f"Got {len(rt_array)} observation(s). "
+            f"Accumulate RT advantages across trials into a list before calling this test."
+        )
+
     # Use bootstrap test for proper statistical inference
-    if isinstance(rt_advantage_ms, (list, np.ndarray)) and len(rt_advantage_ms) >= 30:
+    if len(rt_array) >= 30:
         # Use standard t-test with sufficient sample size
-        rt_mean = float(np.mean(rt_advantage_ms))
-        t_stat_rt, p_rt = stats.ttest_1samp(rt_advantage_ms, 0)
-        corr_rt_cost, p_rt_cost = stats.pearsonr(rt_advantage_ms, rt_cost_modulation)
-    elif isinstance(rt_advantage_ms, (list, np.ndarray)) and len(rt_advantage_ms) >= 2:
-        # Use bootstrap test for small samples
-        rt_array = np.array(rt_advantage_ms)
+        rt_mean = float(np.mean(rt_array))
+        t_stat_rt, p_rt = stats.ttest_1samp(rt_array, 0)
+        corr_rt_cost, p_rt_cost = stats.pearsonr(rt_array, rt_cost_modulation)
+    else:
+        # Use bootstrap test for small samples (2-29 observations)
         t_stat_rt, p_rt = bootstrap_one_sample_test(rt_array, null_value=0.0)
         rt_mean = float(np.mean(rt_array))
-        corr_rt_cost, p_rt_cost = stats.pearsonr(rt_advantage_ms, rt_cost_modulation)
-    else:
-        # Insufficient data - fail criterion
-        rt_mean = float(
-            rt_advantage_ms[0]
-            if isinstance(rt_advantage_ms, (list, np.ndarray))
-            and len(rt_advantage_ms) > 0
-            else rt_advantage_ms
-        )
-        t_stat_rt, p_rt = 0.0, 1.0
-        corr_rt_cost = 0.5  # Mock correlation to pass if values are scalars
-        p_rt_cost = 1.0
+        corr_rt_cost, p_rt_cost = stats.pearsonr(rt_array, rt_cost_modulation)
 
     f2_3_pass = (
         rt_mean <= -50

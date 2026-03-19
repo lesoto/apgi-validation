@@ -49,15 +49,6 @@ except ImportError:
     MATPLOTLIB_AVAILABLE = False
     print("Warning: matplotlib not available. Advanced visualization disabled.")
 
-# Import theme manager
-try:
-    from utils.theme_manager import ThemeManager
-
-    THEME_MANAGER_AVAILABLE = True
-except ImportError:
-    THEME_MANAGER_AVAILABLE = False
-    print("Warning: Theme manager not available. Theme support disabled.")
-
 
 class ToolTip:
     """Consistent tooltip implementation for tkinter widgets"""
@@ -155,11 +146,6 @@ class TestsRunnerGUI:
         self.root.geometry("800x600")
         self.root.minsize(640, 480)  # Prevent resizing below usable size
 
-        # Initialize theme manager
-        self.theme_manager = None
-        if THEME_MANAGER_AVAILABLE:
-            self.theme_manager = ThemeManager(initial_theme="normal")
-
         # Get tests directory
         self.tests_dir = Path(__file__).parent / "tests"
         self.scripts = self.get_script_list()
@@ -212,7 +198,7 @@ class TestsRunnerGUI:
         return sorted(scripts)
 
     def _create_menu_bar(self) -> None:
-        """Create menu bar with theme options."""
+        """Create menu bar."""
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
 
@@ -220,56 +206,6 @@ class TestsRunnerGUI:
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="File", menu=file_menu)
         file_menu.add_command(label="Quit", command=self.quit_application)
-
-        # Theme menu (only if theme manager is available)
-        if self.theme_manager:
-            theme_menu = tk.Menu(menubar, tearoff=0)
-            menubar.add_cascade(label="Theme", menu=theme_menu)
-
-            # Add theme options
-            for theme_name in self.theme_manager.get_available_themes():
-                theme_menu.add_radiobutton(
-                    label=theme_name.capitalize(),
-                    command=lambda t=theme_name: self._set_theme(t),  # type: ignore
-                    variable=tk.StringVar(value=self.theme_manager.current_theme),
-                    value=theme_name,
-                )
-
-    def _set_theme(self, theme_name: str) -> None:
-        """Set the current theme.
-
-        Args:
-            theme_name: Name of the theme to apply
-        """
-        if not self.theme_manager:
-            return
-
-        if self.theme_manager.set_theme(theme_name):
-            self._apply_theme_to_widgets()
-
-    def _apply_theme_to_widgets(self) -> None:
-        """Apply current theme to all widgets."""
-        if not self.theme_manager:
-            return
-
-        # Apply theme to output text widget
-        if hasattr(self, "output_text"):
-            bg_color = self.theme_manager.get_theme_color("bg")
-            fg_color = self.theme_manager.get_theme_color("fg")
-            try:
-                self.output_text.config(
-                    bg=bg_color, fg=fg_color, insertbackground=fg_color
-                )
-            except tk.TclError:
-                pass
-
-        # Apply theme to status label
-        if hasattr(self, "status_label"):
-            fg_color = self.theme_manager.get_theme_color("fg")
-            try:
-                self.status_label.config(fg=fg_color)  # type: ignore
-            except tk.TclError:
-                pass
 
     def setup_ui(self) -> None:
         """Setup the user interface.
