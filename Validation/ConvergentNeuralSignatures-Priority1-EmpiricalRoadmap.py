@@ -757,18 +757,8 @@ class APGINeuralSignaturesValidator:
             }
 
         # Compute ignition probabilities using APGI model
-        import importlib.util
-        from pathlib import Path
-
-        # Load the APGI equations module (filename has hyphen)
-        equations_path = Path(__file__).parent.parent / "APGI-Equations.py"
-        spec = importlib.util.spec_from_file_location("APGI_Equations", equations_path)
-        if spec and spec.loader:
-            equations_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(equations_module)
-            CoreIgnitionSystem = equations_module.CoreIgnitionSystem
-        else:
-            raise ImportError("Could not load APGI equations module")
+        # Import APGI equations module
+        from APGI_Equations import CoreIgnitionSystem
 
         ignition_system = CoreIgnitionSystem()
 

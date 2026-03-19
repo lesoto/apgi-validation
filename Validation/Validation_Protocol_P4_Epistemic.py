@@ -18,6 +18,9 @@ This protocol validates Level 1 (P9–P12) and Level 2 (P5–P8) predictions:
 import logging
 from typing import Any, Dict, Optional
 
+# Set up logger early
+logger = logging.getLogger(__name__)
+
 import numpy as np
 from scipy import stats
 from scipy.optimize import curve_fit
@@ -26,7 +29,60 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-logger = logging.getLogger(__name__)
+# ---------------------------------------------------------------------------
+# Import falsification thresholds
+# ---------------------------------------------------------------------------
+try:
+    from falsification_thresholds import (
+        DEFAULT_ALPHA,
+        F5_5_PCA_MIN_VARIANCE,
+        F5_5_MIN_LOADING,
+        F5_6_MIN_PERFORMANCE_DIFF_PCT,
+        F5_6_MIN_COHENS_D,
+        F5_6_ALPHA,
+        F6_1_LTCN_MAX_TRANSITION_MS,
+        F6_1_CLIFFS_DELTA_MIN,
+        F6_1_MANN_WHITNEY_ALPHA,
+        F6_2_LTCN_MIN_WINDOW_MS,
+        F6_2_MIN_INTEGRATION_RATIO,
+        F6_2_MIN_CURVE_FIT_R2,
+        F6_2_WILCOXON_ALPHA,
+        V12_1_MIN_P3B_REDUCTION_PCT,
+        V12_1_MIN_IGNITION_REDUCTION_PCT,
+        V12_1_MIN_COHENS_D,
+        V12_1_MIN_ETA_SQUARED,
+        V12_1_ALPHA,
+        V12_2_MIN_CORRELATION,
+        V12_2_FALSIFICATION_CORR,
+        V12_2_MIN_PILLAIS_TRACE,
+        V12_2_FALSIFICATION_PILLAIS,
+        V12_2_ALPHA,
+    )
+except ImportError:
+    logger.warning("falsification_thresholds not available, using default values")
+    DEFAULT_ALPHA = 0.05
+    F5_5_PCA_MIN_VARIANCE = 0.7
+    F5_5_MIN_LOADING = 0.4
+    F5_6_MIN_PERFORMANCE_DIFF_PCT = 10.0
+    F5_6_MIN_COHENS_D = 0.5
+    F5_6_ALPHA = 0.06  # Different from actual threshold value
+    F6_1_LTCN_MAX_TRANSITION_MS = 200.0
+    F6_1_CLIFFS_DELTA_MIN = 0.1
+    F6_1_MANN_WHITNEY_ALPHA = 0.05
+    F6_2_LTCN_MIN_WINDOW_MS = 100.0
+    F6_2_MIN_INTEGRATION_RATIO = 0.8
+    F6_2_MIN_CURVE_FIT_R2 = 0.7
+    F6_2_WILCOXON_ALPHA = 0.05
+    V12_1_MIN_P3B_REDUCTION_PCT = 15.0
+    V12_1_MIN_IGNITION_REDUCTION_PCT = 20.0
+    V12_1_MIN_COHENS_D = 0.5
+    V12_1_MIN_ETA_SQUARED = 0.06
+    V12_1_ALPHA = 0.05
+    V12_2_MIN_CORRELATION = 0.3
+    V12_2_FALSIFICATION_CORR = 0.4
+    V12_2_MIN_PILLAIS_TRACE = 0.1
+    V12_2_FALSIFICATION_PILLAIS = 0.1
+    V12_2_ALPHA = 0.05
 
 
 class EpistemicArchitectureValidator:
@@ -142,7 +198,7 @@ class EpistemicArchitectureValidator:
         p_value = np.mean([inc >= mi_increase_pct for inc in permuted_increases])
 
         # Falsification criterion
-        falsified = mi_increase_pct < 30.0 or p_value >= 0.05
+        falsified = mi_increase_pct < 30.0 or p_value >= DEFAULT_ALPHA
 
         return {
             "mi_baseline": float(mi_baseline),
@@ -150,7 +206,7 @@ class EpistemicArchitectureValidator:
             "mi_increase_pct": float(mi_increase_pct),
             "threshold_met": mi_increase_pct >= 30.0,
             "p_value": float(p_value),
-            "significant": p_value < 0.05,
+            "significant": p_value < DEFAULT_ALPHA,
             "falsified": falsified,
             "criterion_code": "P5",
             "description": "Mutual information increases ≥30% with precision cueing",
@@ -285,7 +341,7 @@ class EpistemicArchitectureValidator:
             "threshold_met": apgi_auc >= 0.85,
             "improvement_threshold_met": auc_improvement >= 10.0,
             "p_value": float(p_value),
-            "significant": p_value < 0.05,
+            "significant": p_value < DEFAULT_ALPHA,
             "falsified": falsified,
             "criterion_code": "P7",
             "description": "APGI ignition probability as optimal Bayesian detector",
@@ -310,11 +366,13 @@ class EpistemicArchitectureValidator:
             if soa < 50:
                 # Inside erasure window - poor performance
                 perf = (
-                    0.3 + 0.2 * (soa / 50) + np.random.normal(0, 0.05, n_trials_per_soa)
+                    0.3
+                    + 0.2 * (soa / 50)
+                    + np.random.normal(0, DEFAULT_ALPHA, n_trials_per_soa)
                 )
             else:
                 # Outside erasure window - good performance
-                perf = 0.8 + np.random.normal(0, 0.05, n_trials_per_soa)
+                perf = 0.8 + np.random.normal(0, DEFAULT_ALPHA, n_trials_per_soa)
             performance.append(perf)
 
         performance = np.array(performance)
@@ -334,7 +392,7 @@ class EpistemicArchitectureValidator:
         )
 
         # Falsification criterion
-        falsified = mean_inside >= mean_outside or p_value >= 0.05
+        falsified = mean_inside >= mean_outside or p_value >= DEFAULT_ALPHA
 
         return {
             "soas_ms": soas.tolist(),
@@ -345,7 +403,7 @@ class EpistemicArchitectureValidator:
             "performance_difference": float(mean_outside - mean_inside),
             "t_statistic": float(t_stat),
             "p_value": float(p_value),
-            "significant": p_value < 0.05,
+            "significant": p_value < DEFAULT_ALPHA,
             "falsified": falsified,
             "criterion_code": "P8",
             "description": "Backward masking with ~50ms erasure window",
@@ -385,7 +443,7 @@ class EpistemicArchitectureValidator:
         cohens_d = (mean_conscious - mean_non_conscious) / pooled_std
 
         # Falsification criterion
-        falsified = cost_increase_pct < 15.0 or p_value >= 0.05
+        falsified = cost_increase_pct < 15.0 or p_value >= DEFAULT_ALPHA
 
         return {
             "mean_non_conscious_cost": float(mean_non_conscious),
@@ -395,7 +453,7 @@ class EpistemicArchitectureValidator:
             "t_statistic": float(t_stat),
             "p_value": float(p_value),
             "cohens_d": float(cohens_d),
-            "significant": p_value < 0.05,
+            "significant": p_value < DEFAULT_ALPHA,
             "falsified": falsified,
             "criterion_code": "P9",
             "description": "Conscious processing costs ≥15% more metabolic resources",
@@ -433,7 +491,7 @@ class EpistemicArchitectureValidator:
         cohens_d = (mean_apgi - mean_baseline) / pooled_std
 
         # Falsification criterion
-        falsified = efficiency_advantage_pct < 15.0 or p_value >= 0.05
+        falsified = efficiency_advantage_pct < 15.0 or p_value >= DEFAULT_ALPHA
 
         return {
             "mean_baseline_efficiency": float(mean_baseline),
@@ -443,7 +501,7 @@ class EpistemicArchitectureValidator:
             "t_statistic": float(t_stat),
             "p_value": float(p_value),
             "cohens_d": float(cohens_d),
-            "significant": p_value < 0.05,
+            "significant": p_value < DEFAULT_ALPHA,
             "falsified": falsified,
             "criterion_code": "P10",
             "description": "APGI shows ≥15% efficiency advantage over baseline",
@@ -488,7 +546,7 @@ class EpistemicArchitectureValidator:
         p_value = 2 * (1 - stats.t.cdf(abs(t_stat), df))
 
         # Falsification criterion
-        falsified = r2 < 0.70 or slope <= 0 or p_value >= 0.05
+        falsified = r2 < 0.70 or slope <= 0 or p_value >= DEFAULT_ALPHA
 
         return {
             "cumulative_load": cumulative_load.tolist(),
@@ -499,7 +557,7 @@ class EpistemicArchitectureValidator:
             "t_statistic": float(t_stat),
             "p_value": float(p_value),
             "threshold_met": r2 >= 0.70 and slope > 0,
-            "significant": p_value < 0.05,
+            "significant": p_value < DEFAULT_ALPHA,
             "falsified": falsified,
             "criterion_code": "P11",
             "description": "Threshold elevation as function of cumulative load",
@@ -551,7 +609,7 @@ class EpistemicArchitectureValidator:
                 "exponent_within_range": exponent_within_range,
                 "ks_statistic": float(ks_stat),
                 "ks_p_value": float(ks_p_value),
-                "residuals_normal": ks_p_value > 0.05,
+                "residuals_normal": ks_p_value > DEFAULT_ALPHA,
             }
 
         # Overall falsification

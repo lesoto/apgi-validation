@@ -12,11 +12,11 @@ import pytest
 
 def test_f5_1_constants():
     """Test F5.1 constants match paper specifications"""
-    from utils.falsification_thresholds import (
+    from falsification_thresholds import (
         F5_1_MIN_PROPORTION,
         F5_1_MIN_ALPHA,
         F5_5_PCA_MIN_VARIANCE,
-        F5_5_MIN_LOADING,
+        F5_5_PCA_MIN_LOADING,
         F5_4_MIN_PEAK_SEPARATION,
     )
 
@@ -35,8 +35,8 @@ def test_f5_1_constants():
 
     # Test loading threshold - should be 0.60 per paper spec
     assert (
-        F5_5_MIN_LOADING == 0.60
-    ), f"F5_5_MIN_LOADING should be 0.60, got {F5_5_MIN_LOADING}"
+        F5_5_PCA_MIN_LOADING == 0.60
+    ), f"F5_5_PCA_MIN_LOADING should be 0.60, got {F5_5_PCA_MIN_LOADING}"
 
     # Test peak separation threshold - should be 3.0 per paper spec
     assert (
@@ -46,7 +46,7 @@ def test_f5_1_constants():
 
 def test_f6_1_constants():
     """Test F6.1 constants match paper specifications"""
-    from utils.falsification_thresholds import F6_1_LTCN_MAX_TRANSITION_MS
+    from falsification_thresholds import F6_1_LTCN_MAX_TRANSITION_MS
 
     # Test LTCN transition threshold - should be 50.0ms per paper spec
     assert (
@@ -56,7 +56,7 @@ def test_f6_1_constants():
 
 def test_v12_1_constants():
     """Test V12.1 constants match paper specifications"""
-    from utils.falsification_thresholds import (
+    from falsification_thresholds import (
         V12_1_MIN_P3B_REDUCTION_PCT,
         V12_1_MIN_IGNITION_REDUCTION_PCT,
         V12_1_MIN_COHENS_D,
@@ -86,7 +86,7 @@ def test_v12_1_constants():
 
 def test_f1_f3_criteria_consistency():
     """Test that F1-F3 criteria are consistent across Protocols 1, 2, 3, 6, 9, and 12"""
-    from utils.falsification_thresholds import (
+    from falsification_thresholds import (
         F1_1_MIN_ADVANTAGE_PCT,
         F1_1_MIN_COHENS_D,
         F1_1_ALPHA,
@@ -180,11 +180,11 @@ def test_f1_f3_criteria_consistency():
 
 def test_f6_1_boundary_conditions():
     """Test F6.1 function handles boundary conditions correctly."""
-    from utils.falsification_thresholds import test_f6_1_intrinsic_threshold_behavior
+    from falsification_thresholds import test_f6_1_intrinsic_threshold_behavior
 
     # Test at exact threshold boundary (should pass)
-    ltcn_at_threshold = np.array([50.0, 50.0, 50.0, 50.0, 50.0])
-    feedf_below_threshold = np.array([60.0, 60.0, 60.0, 60.0, 60.0])
+    ltcn_at_threshold = np.array([50.0, 50.0, 50.0, 50.0])
+    feedf_below_threshold = np.array([60.0, 60.0, 60.0, 60.0])
     result = test_f6_1_intrinsic_threshold_behavior(
         ltcn_at_threshold, feedf_below_threshold
     )
@@ -192,6 +192,13 @@ def test_f6_1_boundary_conditions():
     assert "passed" in result
     # At threshold, should pass (median <= threshold)
     assert result["passed"] is True
+
+    # Test with single element arrays (edge case - should still pass if median <= threshold)
+    single_ltcn = np.array([50.0])
+    single_feedf = np.array([60.0])
+    result_single = test_f6_1_intrinsic_threshold_behavior(single_ltcn, single_feedf)
+    assert isinstance(result_single, dict)
+    assert result_single["passed"] is True
 
     # Test just above threshold (should fail)
     ltcn_above_threshold = np.array([51.0, 51.0, 51.0, 51.0, 51.0])
@@ -213,7 +220,7 @@ def test_f6_1_boundary_conditions():
 
 def test_f6_3_boundary_conditions():
     """Test F6.3 function handles boundary conditions correctly."""
-    from utils.falsification_thresholds import test_f6_3_metabolic_selectivity
+    from falsification_thresholds import test_f6_3_metabolic_selectivity
 
     # Test at exact reduction boundary (should pass)
     ltcn_at_boundary = np.array([30.0, 30.0, 30.0, 30.0, 30.0])
@@ -244,7 +251,7 @@ def test_f6_3_boundary_conditions():
 
 def test_f6_5_boundary_conditions():
     """Test F6.5 function handles boundary conditions correctly."""
-    from utils.falsification_thresholds import test_f6_5_bifurcation_structure
+    from falsification_thresholds import test_f6_5_bifurcation_structure
 
     # Test with theta_t at boundary
     theta_t = 0.5
@@ -269,7 +276,7 @@ def test_f6_5_boundary_conditions():
 
 def test_threshold_function_input_validation():
     """Test threshold functions validate input correctly."""
-    from utils.falsification_thresholds import (
+    from falsification_thresholds import (
         test_f6_1_intrinsic_threshold_behavior,
         test_f6_3_metabolic_selectivity,
     )

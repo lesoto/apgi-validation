@@ -224,7 +224,7 @@ python take_screenshots.py
 
 1. **Title keyword matching**
 2. **File extension detection**
-3. **Visual pattern analysis** (dark themes, text patterns)
+3. **Visual pattern analysis**
 4. **Window behavior analysis**
 5. **Screenshot content verification**
 

@@ -85,7 +85,7 @@ class APGIMasterValidator:
                 "description": "Synthetic Neural Data Generation and ML Classification",
             },
             "Protocol-2": {
-                "file": "Validation-Protocol-2.py",
+                "file": "Validation_Protocol_2.py",
                 "function": "run_validation",
                 "description": "Behavioral Validation Protocol",
             },
@@ -95,7 +95,7 @@ class APGIMasterValidator:
                 "description": "Agent Comparison Experiment",
             },
             "Protocol-4": {
-                "file": "Validation-Protocol-4.py",
+                "file": "Validation_Protocol_P4_Epistemic.py",
                 "function": "run_validation",
                 "description": "Phase Transition Analysis",
             },
