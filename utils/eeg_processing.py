@@ -169,7 +169,10 @@ def compute_theta_gamma_pac(
     gamma_envelope = _amplitude_envelope(gamma_filtered, fs)
 
     # Compute phase of theta
-    theta_phase = np.angle(signal.hilbert(theta_filtered, axis=1))
+    if theta_filtered.ndim == 1:
+        theta_phase = np.angle(signal.hilbert(theta_filtered))
+    else:
+        theta_phase = np.angle(signal.hilbert(theta_filtered, axis=1))
 
     # Bin theta phases into bins
     n_bins = 18  # 18 bins for 0-360 degrees
@@ -260,11 +263,12 @@ def _bandpass_filter(
         # 2D data - use axis=1 (channels along rows)
         filtered_data = signal.filtfilt(b, a, data_array, axis=1)
 
-    # Convert back to original shape if needed
-    if data_array.ndim == 2 and data_array.shape[0] == 1:
-        filtered_data = filtered_data.flatten()
-
-    return pd.Series(filtered_data, index=data.index, name=data.name)
+    # Preserve original shape - don't flatten 2D data even if it has only one channel
+    # Return appropriate type based on input
+    if isinstance(data, pd.Series):
+        return pd.Series(filtered_data, index=data.index, name=data.name)
+    else:
+        return filtered_data
 
 
 def _amplitude_envelope(
@@ -285,11 +289,12 @@ def _amplitude_envelope(
 
     envelope = np.abs(analytic)
 
-    # Convert back to original shape if needed
-    if data_array.ndim == 2 and data_array.shape[0] == 1:
-        envelope = envelope.flatten()
-
-    return pd.Series(envelope, index=data.index, name=data.name)
+    # Preserve original shape - don't flatten 2D data even if it has only one channel
+    # Return appropriate type based on input
+    if isinstance(data, pd.Series):
+        return pd.Series(envelope, index=data.index, name=data.name)
+    else:
+        return envelope
 
 
 def _permutation_test_pac(
@@ -369,8 +374,8 @@ def detect_p3_amplitude(
     baseline_end = int(baseline_window[1] * fs)
     p3_start = int(p3_window[0] * fs)
     p3_end = int(p3_window[1] * fs)
-    peak_start = int(peak_window[0] * fs)
-    peak_end = int(peak_window[1] * fs)
+    peak_start = int((peak_window[0] - p3_window[0]) * fs)
+    peak_end = int((peak_window[1] - p3_window[0]) * fs)
 
     # Bandpass filter (0.5-30 Hz)
     bandpass = (0.5, 30.0)

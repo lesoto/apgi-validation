@@ -12,7 +12,6 @@ import importlib.util
 import json
 import logging
 import math
-import pickle
 import sys
 import time
 import hashlib
@@ -29,7 +28,7 @@ import os
 
 
 # Load environment variables from .env file if it exists
-def load_env_file():
+def load_env_file() -> None:
     """Load environment variables from .env file in project root."""
     env_path = Path(__file__).parent.parent / ".env"
     if env_path.exists():
@@ -40,8 +39,10 @@ def load_env_file():
                     if line and not line.startswith("#") and "=" in line:
                         key, value = line.split("=", 1)
                         os.environ[key.strip()] = value.strip()
-        except Exception as e:
-            print(f"Warning: Could not load .env file: {e}")
+        except (IOError, OSError, PermissionError) as e:
+            logging.warning(f"Could not load .env file: {e}")
+            if logging.getLogger().isEnabledFor(logging.DEBUG):
+                logging.debug("Stack trace for .env file loading error:", exc_info=True)
 
 
 # Load .env file before other imports
@@ -83,7 +84,7 @@ PICKLE_SECRET_KEY = None
 APGI_BACKUP_HMAC_KEY = None
 
 
-def _ensure_secure_keys():
+def _ensure_secure_keys() -> None:
     """Ensure secure keys are available, reading from environment variables."""
     global PICKLE_SECRET_KEY, APGI_BACKUP_HMAC_KEY
 
@@ -107,7 +108,7 @@ def _ensure_secure_keys():
 _ensure_secure_keys()
 
 
-def _get_pickle_secret_key():
+def _get_pickle_secret_key() -> bytes:
     """Get the pickle secret key as bytes."""
     with _keys_lock:
         key = PICKLE_SECRET_KEY
@@ -168,12 +169,14 @@ def _validate_secret_key(key_bytes: bytes) -> None:
         )
 
 
-def secure_pickle_dump(obj: Any, file_path: Path) -> None:
-    """Securely pickle an object with HMAC signature"""
-    key_bytes = _get_pickle_secret_key()
-    _validate_secret_key(key_bytes)
+def secure_json_dump(obj: Any, file_path: Path) -> None:
+    """Securely dump an object with JSON serialization and HMAC verification"""
+    # Validate path before writing
+    try:
+        _validate_secure_path(file_path, PROJECT_ROOT)
+    except ValueError as e:
+        raise ValueError(f"Path validation failed for {file_path}: {e}")
 
-    # Get key bytes for HMAC (already thread-safe from _get_pickle_secret_key)
     with _keys_lock:
         if PICKLE_SECRET_KEY is None:
             from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
@@ -182,29 +185,35 @@ def secure_pickle_dump(obj: Any, file_path: Path) -> None:
                 category=ErrorCategory.IMPORT,
                 severity=ErrorSeverity.CRITICAL,
                 code="MISSING_ENV_VAR",
-                message="PICKLE_SECRET_KEY environment variable not set. Cannot use secure pickle.",
+                message="PICKLE_SECRET_KEY environment variable not set. Cannot use secure serialization.",
                 suggestions=["Set PICKLE_SECRET_KEY environment variable"],
-                user_action="Set the required environment variable before using secure pickle functions",
+                user_action="Set the required environment variable before using secure serialization functions",
             )
-        pickle_key_bytes = (
+        key_bytes = (
             PICKLE_SECRET_KEY.encode()
             if isinstance(PICKLE_SECRET_KEY, str)
             else PICKLE_SECRET_KEY
         )
 
-    # Generate HMAC signature
-    pickle_data = pickle.dumps(obj)
-    signature = hmac.new(pickle_key_bytes, pickle_data, hashlib.sha256).digest()
+    # Generate HMAC signature for JSON data
+    json_data = json.dumps(obj, default=str, indent=2).encode("utf-8")
+    signature = hmac.new(key_bytes, json_data, hashlib.sha256).digest()
 
     # Write signature + data
     with open(file_path, "wb") as f:
         f.write(len(signature).to_bytes(4, "big"))  # Signature length
         f.write(signature)
-        f.write(pickle_data)
+        f.write(json_data)
 
 
-def secure_pickle_load(file_path: Path) -> Any:
-    """Securely load a pickled object with HMAC verification"""
+def secure_json_load(file_path: Path) -> Any:
+    """Securely load an object with JSON deserialization and HMAC verification"""
+    # Validate path before reading
+    try:
+        _validate_secure_path(file_path, PROJECT_ROOT)
+    except ValueError as e:
+        raise ValueError(f"Path validation failed for {file_path}: {e}")
+
     with _keys_lock:
         if PICKLE_SECRET_KEY is None:
             from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
@@ -213,11 +222,11 @@ def secure_pickle_load(file_path: Path) -> Any:
                 category=ErrorCategory.IMPORT,
                 severity=ErrorSeverity.CRITICAL,
                 code="MISSING_ENV_VAR",
-                message="PICKLE_SECRET_KEY environment variable not set. Cannot use secure pickle.",
+                message="PICKLE_SECRET_KEY environment variable not set. Cannot use secure serialization.",
                 suggestions=["Set PICKLE_SECRET_KEY environment variable"],
-                user_action="Set the required environment variable before using secure pickle functions",
+                user_action="Set the required environment variable before using secure serialization functions",
             )
-        pickle_key_bytes = (
+        key_bytes = (
             PICKLE_SECRET_KEY.encode()
             if isinstance(PICKLE_SECRET_KEY, str)
             else PICKLE_SECRET_KEY
@@ -227,24 +236,22 @@ def secure_pickle_load(file_path: Path) -> Any:
         # Read signature length
         sig_len_bytes = f.read(4)
         if len(sig_len_bytes) != 4:
-            raise ValueError("Invalid pickle file format")
+            raise ValueError("Invalid file format")
 
         sig_len = int.from_bytes(sig_len_bytes, "big")
+        if sig_len < 0 or sig_len > 1024:
+            raise ValueError("Invalid signature length")
 
         # Read signature and data
         signature = f.read(sig_len)
-        pickle_data = f.read()
+        json_data = f.read()
 
         # Verify signature
-        expected_signature = hmac.new(
-            pickle_key_bytes, pickle_data, hashlib.sha256
-        ).digest()
+        expected_signature = hmac.new(key_bytes, json_data, hashlib.sha256).digest()
         if not hmac.compare_digest(signature, expected_signature):
-            raise ValueError(
-                "Pickle file signature verification failed - possible tampering"
-            )
+            raise ValueError("File signature verification failed - possible tampering")
 
-        return pickle.loads(pickle_data)
+        return json.loads(json_data.decode("utf-8"))
 
 
 # Add project root to Python path
@@ -273,6 +280,51 @@ apgi_logger = logging_config.apgi_logger
 
 # Global cache for loaded validation modules to prevent cycles and improve performance
 _loaded_validation_modules = {}
+
+
+def _validate_secure_path(path: Path, allowed_root: Path) -> None:
+    """
+    Validate that a path is secure and within allowed boundaries.
+
+    Args:
+        path: Path to validate
+        allowed_root: Root directory within which paths must stay
+
+    Raises:
+        ValueError: If path is invalid or outside allowed boundaries
+    """
+    import os
+
+    # Convert to string for path operations
+    path_str = str(path)
+
+    # Reject paths with .. sequences
+    if ".." in path_str:
+        raise ValueError(f"Path contains '..' sequence: {path}")
+
+    # Resolve the path to its canonical form
+    try:
+        resolved_path = Path(os.path.realpath(path_str))
+    except (OSError, ValueError) as e:
+        raise ValueError(f"Cannot resolve path {path}: {e}")
+
+    # Ensure resolved path is within allowed root
+    try:
+        resolved_path.relative_to(allowed_root)
+    except ValueError:
+        raise ValueError(
+            f"Path resolves outside allowed directory: {resolved_path} not within {allowed_root}"
+        )
+
+    # Additional check: ensure no symlinks point outside
+    if resolved_path != path.resolve():
+        # Re-validate the resolved path
+        try:
+            resolved_path.relative_to(allowed_root)
+        except ValueError:
+            raise ValueError(
+                f"Symlink resolves outside allowed directory: {resolved_path} not within {allowed_root}"
+            )
 
 
 def load_validation_module(protocol):
@@ -311,12 +363,7 @@ def load_validation_module(protocol):
                 )
             # Resolve and validate it's within PROJECT_ROOT
             full_path = PROJECT_ROOT / path_value
-            try:
-                full_path.resolve().relative_to(PROJECT_ROOT.resolve())
-            except ValueError:
-                raise ValueError(
-                    f"Invalid protocol path for {protocol_name}: {path_value} (outside PROJECT_ROOT)"
-                )
+            _validate_secure_path(full_path, PROJECT_ROOT)
 
         if protocol not in module_map:
             raise ValueError(f"Unknown validation protocol: {protocol}")
@@ -328,10 +375,7 @@ def load_validation_module(protocol):
             )
 
         # Validate that path is within PROJECT_ROOT to prevent traversal
-        try:
-            module_path.resolve().relative_to(PROJECT_ROOT.resolve())
-        except ValueError:
-            raise ValueError(f"Invalid protocol module path: {module_path}")
+        _validate_secure_path(module_path, PROJECT_ROOT)
 
         spec = importlib.util.spec_from_file_location(protocol, module_path)
         if spec is None or spec.loader is None:
@@ -615,13 +659,20 @@ class BatchProcessor:
     def _save_result(self, job: BatchJob):
         """Save job result to file."""
         output_path = Path(job.output_file)
+
+        # Validate output path is within project root
+        try:
+            _validate_secure_path(output_path, PROJECT_ROOT)
+        except ValueError as e:
+            raise ValueError(f"Invalid output path {output_path}: {e}")
+
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         if job.output_file.endswith(".json"):
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(job.result, f, indent=2, default=str)
         elif job.output_file.endswith(".pkl"):
-            secure_pickle_dump(job.result, output_path)
+            secure_json_dump(job.result, output_path)
         elif job.output_file.endswith(".csv"):
             if isinstance(job.result, dict) and "results" in job.result:
                 # Save simulation results as CSV

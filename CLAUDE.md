@@ -108,7 +108,7 @@ Minimum for development (see `.env` for full list):
 
 ```bash
 ENVIRONMENT=development
-DATABASE_URL=postgresql://apgi_dev:dev_password@localhost:5432/apgi_api_dev
+DATABASE_URL=postgresql://<username>:<password>@localhost:5432/<database_name>
 REDIS_URL=redis://localhost:6379/0
 JWT_SECRET_KEY=<random string, min 32 chars>
 CURSOR_SIGNING_KEY=<random string, min 32 chars>

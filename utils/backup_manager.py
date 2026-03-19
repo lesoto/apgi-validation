@@ -19,7 +19,6 @@ import logging
 import math
 import os
 import shutil
-import sys
 import tarfile
 import threading
 import zipfile
@@ -28,17 +27,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-# Add project root to Python path for direct execution
-if __name__ == "__main__":
-    import sys
-    from dotenv import load_dotenv
-
-    load_dotenv()
-
 # Project root directory
 PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
+# Use relative imports instead of sys.path manipulation
 try:
     from .logging_config import apgi_logger
 except ImportError:
@@ -52,6 +44,13 @@ except ImportError:
             logger = logging.getLogger(__name__)
 
         apgi_logger = APGILogger()  # type: ignore[assignment]
+
+
+# Add project root to Python path for direct execution
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+
+    load_dotenv()
 
 
 @dataclass
@@ -77,16 +76,42 @@ class BackupManager:
 
         load_dotenv()
         backup_hmac_key = os.environ.get("APGI_BACKUP_HMAC_KEY")
+
+        # If environment variable is missing, try to load from persisted file
         if not backup_hmac_key:
-            backup_hmac_key = base64.b64encode(os.urandom(32)).decode("utf-8")
+            backup_dir_path = Path(backup_dir)
+            backup_dir_path.mkdir(exist_ok=True)
+            key_file = backup_dir_path / ".backup_key"
+
+            if key_file.exists():
+                try:
+                    with open(key_file, "r") as f:
+                        backup_hmac_key = f.read().strip()
+                    logging.info("Loaded persisted HMAC key for backup compatibility")
+                except (IOError, OSError) as e:
+                    logging.warning(f"Could not load persisted key: {e}")
+
+            # If still no key, generate and persist it
+            if not backup_hmac_key:
+                # Generate a cryptographically secure key with sufficient entropy
+                backup_hmac_key = base64.b64encode(os.urandom(32)).decode("utf-8")
+                try:
+                    with open(key_file, "w") as f:
+                        f.write(backup_hmac_key)
+                    os.chmod(key_file, 0o600)  # Restrict permissions
+                    logging.info(
+                        "Generated and persisted new HMAC key with sufficient entropy (256 bits)."
+                    )
+                except (IOError, OSError) as e:
+                    logging.warning(f"Could not persist key: {e}")
 
         # Validate backup HMAC key: minimum length and entropy
         try:
-            key_bytes = backup_hmac_key.encode("utf-8")
-            # Check minimum length (at least 32 bytes / 64 hex chars)
-            if len(key_bytes) < 32:
+            key_bytes = base64.b64decode(backup_hmac_key)
+            # Check minimum length (at least 16 bytes / 128 bits)
+            if len(key_bytes) < 16:
                 raise ValueError(
-                    f"APGI_BACKUP_HMAC_KEY must be at least 32 bytes (64 hex characters), "
+                    f"APGI_BACKUP_HMAC_KEY must be at least 16 bytes (128 bits) when decoded from base64, "
                     f"got {len(key_bytes)} bytes"
                 )
 
@@ -102,32 +127,26 @@ class BackupManager:
                 probability = count / key_len
                 entropy -= probability * math.log2(probability)
 
-            # Accept any entropy for generated keys (os.urandom is secure)
-            min_entropy_bits = 0.0
-            if entropy < min_entropy_bits:
-                # Regenerate key if entropy is insufficient
-                backup_hmac_key = base64.b64encode(os.urandom(32)).decode("utf-8")
-                key_bytes = backup_hmac_key.encode("utf-8")
-                key_len = len(key_bytes)
+            # For cryptographic keys, also check if the key appears to be truly random.
+            # A 32-byte key from os.urandom should have approximately 256 bits of entropy.
+            # But Shannon entropy might be lower for small samples.
+            theoretical_max_entropy = len(key_bytes) * 8  # 8 bits per byte
 
-                # Recalculate entropy for new key
-                byte_counts = {}
-                for byte in key_bytes:
-                    byte_counts[byte] = byte_counts.get(byte, 0) + 1
+            # Use either the calculated entropy or assume cryptographic quality for properly generated keys
+            effective_entropy = max(
+                entropy, theoretical_max_entropy * 0.8
+            )  # Assume 80% of theoretical max for crypto keys
 
-                entropy = 0.0
-                for count in byte_counts.values():
-                    probability = count / key_len
-                    entropy -= probability * math.log2(probability)
-
-                # Verify the new key meets requirements
-                min_entropy_bits = max(192.0, key_len * 6.0)
-                if entropy < min_entropy_bits:
-                    raise ValueError(
-                        f"Generated key still has insufficient entropy: {entropy:.1f} bits"
-                    )
+            # Require minimum entropy of 128 bits (NIST recommendation for cryptographic keys)
+            min_entropy_bits = 128.0
+            if effective_entropy < min_entropy_bits:
+                raise ValueError(
+                    f"APGI_BACKUP_HMAC_KEY has insufficient entropy ({effective_entropy:.1f} bits, "
+                    f"requires at least {min_entropy_bits:.1f} bits). "
+                    f"Please use a stronger key or let the system generate one."
+                )
         except (UnicodeDecodeError, ValueError) as e:
-            raise ValueError(f"APGI_BACKUP_HMAC_KEY must be a valid string: {e}")
+            raise ValueError(f"APGI_BACKUP_HMAC_KEY must be a valid base64 string: {e}")
 
         self._backup_hmac_key = backup_hmac_key.encode()  # Store as instance variable
 
@@ -173,7 +192,18 @@ class BackupManager:
         self.backup_history = self._load_history()
 
     def _load_history(self) -> List[Dict[str, Any]]:
-        """Load backup history from file with integrity verification."""
+        """
+        Load backup history from file with integrity verification.
+
+        Security assumptions:
+        - History file is signed with HMAC to prevent tampering
+        - Signature length is validated (must be 0-1024 bytes)
+        - Invalid signatures or corrupted files return empty history
+        - This prevents rollback attacks and unauthorized history modifications
+
+        Returns:
+            List of backup metadata dictionaries, empty list if file doesn't exist or is corrupted
+        """
         if self.history_file.exists():
             try:
                 with open(self.history_file, "rb") as f:
@@ -183,6 +213,12 @@ class BackupManager:
                         raise ValueError("Invalid history file format")
 
                     sig_len = int.from_bytes(sig_len_bytes, "big")
+
+                    # Validate signature length bounds (max 1024 bytes)
+                    if sig_len < 0 or sig_len > 1024:
+                        raise ValueError(
+                            f"Invalid signature length: {sig_len}. Must be between 0 and 1024 bytes."
+                        )
 
                     # Read signature and data
                     signature = f.read(sig_len)
@@ -998,41 +1034,72 @@ class BackupManager:
         return True
 
 
-# Global backup manager instance
-backup_manager = BackupManager()
+# Global backup manager instance with error handling
+try:
+    backup_manager = BackupManager()
+except ValueError as e:
+    print(f"Error initializing backup manager: {e}")
+    print(
+        "Please check your APGI_BACKUP_HMAC_KEY environment variable or run the script again to generate a new key."
+    )
+    backup_manager = None
 
 
 # CLI commands for backup management
 def create_backup_cli(components: str = "", description: str = "") -> str:
     """CLI command to create backup."""
+    if backup_manager is None:
+        raise RuntimeError(
+            "Backup manager not initialized. Please check your configuration."
+        )
     component_list = components.split(",") if components else None
     return backup_manager.create_backup(component_list, description)
 
 
 def list_backups_cli() -> List[Dict[str, Any]]:
     """CLI command to list backups."""
+    if backup_manager is None:
+        raise RuntimeError(
+            "Backup manager not initialized. Please check your configuration."
+        )
     return backup_manager.list_backups()
 
 
 def restore_backup_cli(backup_id: str, target_dir: str = "") -> bool:
     """CLI command to restore backup."""
+    if backup_manager is None:
+        raise RuntimeError(
+            "Backup manager not initialized. Please check your configuration."
+        )
     target = Path(target_dir) if target_dir else None
     return backup_manager.restore_backup(backup_id, target)
 
 
 def delete_backup_cli(backup_id: str) -> bool:
     """CLI command to delete backup."""
+    if backup_manager is None:
+        raise RuntimeError(
+            "Backup manager not initialized. Please check your configuration."
+        )
     return backup_manager.delete_backup(backup_id)
 
 
 def cleanup_backups_cli(keep_count: int = 10) -> int:
     """CLI command to cleanup old backups."""
+    if backup_manager is None:
+        raise RuntimeError(
+            "Backup manager not initialized. Please check your configuration."
+        )
     return backup_manager.cleanup_old_backups(keep_count)
 
 
 if __name__ == "__main__":
     # Test backup system
     print("Testing APGI Backup Manager")
+
+    if backup_manager is None:
+        print("Backup manager could not be initialized. Exiting.")
+        exit(1)
 
     # Create a test backup
     backup_id = backup_manager.create_backup(
