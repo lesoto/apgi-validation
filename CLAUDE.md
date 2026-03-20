@@ -4,114 +4,151 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-APGI System  Stack:  PostgreSQL + Redis + Celery, with JWT authentication and RBAC.
+APGI (Active Perception and General Inference) Validation Framework - A CLI-based scientific computing framework for validating and falsifying active inference models through computational neuroscience protocols.
 
 ## Development Commands
 
-### Start development environment (Docker)
+### Run the CLI application
 
 ```bash
-./scripts/start.sh
-# Starts PostgreSQL, Redis and Celery worker via Docker Compose
-# http://localhost:8000 | Docs: http://localhost:8000/docs
-```
-
-### Run locally (without Docker)
-
-```bash
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-celery -A app.celery_app worker --loglevel=info --concurrency=2
-```
-
-### Database migrations
-
-```bash
-alembic upgrade head                          # Apply all migrations
-alembic revision --autogenerate -m "message"  # Generate new migration
-# Migrations live in app/alembic/versions/
+python main.py --help                    # Show all available commands
+python main.py validate --data data.csv     # Run validation protocol
+python main.py falsify --model model.pkl    # Run falsification protocol
+python main.py visualize --output plot.png  # Generate visualizations
+python main.py benchmark --iterations 100   # Run computational benchmarks
 ```
 
 ### Install dependencies
 
 ```bash
-pip install -r requirements-dev.txt  # Includes test/lint tools
+pip install -r requirements.txt              # Core dependencies
+pip install -r requirements-dev.txt          # Development dependencies (includes test/lint tools)
 ```
 
 ### Testing
 
 ```bash
 pytest                                              # All tests
-pytest tests/unit/                                  # Unit tests only
-pytest tests/integration/                           # Integration tests
-pytest tests/property/                              # Property-based (Hypothesis)
-pytest tests/unit/test_task_registry.py             # Single test file
-pytest tests/unit/test_task_registry.py::TestClass::test_method  # Single test
+pytest tests/test_cli_integration_comprehensive.py    # CLI integration tests
+pytest tests/test_utility_modules_comprehensive.py   # Utility module tests
+pytest tests/test_file_io_real.py                  # Real file I/O tests
+pytest tests/test_data_pipeline_end_to_end.py      # Data pipeline tests
+pytest tests/test_property_based_comprehensive.py   # Property-based tests (Hypothesis)
+pytest tests/test_validation_falsification_protocols_individual.py  # Protocol tests
+pytest tests/test_fixtures_utilization.py          # Fixture tests
+pytest tests/test_performance_regression.py        # Performance tests
+pytest tests/test_concurrent_config_access.py      # Concurrency tests
+pytest tests/test_persistent_audit_logger.py       # Audit logger tests
 pytest --hypothesis-profile=ci                      # Full Hypothesis runs (100 examples)
 ```
 
 ### Linting and formatting
 
 ```bash
-black app/ tests/
-isort app/ tests/
-flake8 app/ tests/    # Config in .flake8 (max-line-length=120)
-mypy app/
+black .                                            # Format code
+isort .                                           # Sort imports
+flake8 .                                          # Lint code (Config in .flake8)
 ```
 
 ## Architecture
 
-### Application factory
+### Main entry point
 
-`app/main.py` defines `create_app(test_mode=False)` which wires all middleware and routers. `test_mode=True` disables AuthenticationMiddleware, CSRFMiddleware, and ResponseSchemaValidationMiddleware. The `lifespan` context manager handles startup/shutdown: initializes DB, Redis, then calls `init_*()` on routes that need it.
+`main.py` defines the unified CLI interface using `typer` with commands for validation, falsification, visualization, and benchmarking. It includes secure module loading (`secure_load_module`, `secure_load_module_from_path`) with path validation to prevent directory traversal attacks.
 
 ### Configuration
 
-`app/config.py` — a `Settings` class that reads all config from environment variables. It validates security settings on init and **raises `ValueError` in production** if `JWT_SECRET_KEY`, `CURSOR_SIGNING_KEY`, or `DATABASE_URL`/`REDIS_URL` are missing or insecure. Both keys must be ≥32 characters.
+`config/` directory contains YAML configuration files:
 
-### Middleware stack (outermost to innermost)
-
-`RequestSizeLimitMiddleware` → `GZipMiddleware` → `PrometheusMetricsMiddleware` → `ProfilingMiddleware` (optional) → `RequestLoggingMiddleware` → `ResponseSchemaValidationMiddleware` → `CSRFMiddleware` → `AuthenticationMiddleware` → `DeprecationMiddleware` → `RateLimitingMiddleware` → `CORSMiddleware`
-
-### Route initialization pattern
-
-Several routers require explicit initialization during lifespan (not at import time):
-
-- `sessions.init_session_routes(redis_client)` — provides Redis for session storage
-- `tasks.init_task_routes()` — sets up task registry
-- `export.init_export_routes(session_mgr)` — provides session manager
-- `health.init_health_routes(redis_client)` — provides Redis for health checks
+- `default.yaml` - Default configuration settings
+- `config_schema.json` - Configuration schema validation
+- `profiles/` - Environment-specific profiles (adhd.yaml, anxiety-disorder.yaml, etc.)
+- `versions/` - Version-specific configurations
 
 ### Key directories
 
-- `app/services/` — Business logic: `auth_manager`, `session_manager`, `user_management`, `task_executor`, `webhook_manager`, `cache_service`, `rate_limiter`, `authorization`
-- `app/middleware/` — Starlette middleware classes
-- `app/database/models.py` — SQLAlchemy ORM (`User`, `Session`, `Task`, and related models)
-- `app/database/connection.py` — Engine and `SessionLocal` factory
-- `app/tasks/` — Celery task definitions (`experimental_tasks.py`) and `task_registry.py`
-- `app/celery_app.py` — Celery app configured to use Redis broker (db/1) and backend (db/2)
+- `Validation/` - Validation protocols (APGI-Validation-GUI.py, ActiveInference-AgentSimulations-Protocol3.py, etc.)
+- `Falsification/` - Falsification protocols (APGI-Falsification-Aggregator.py, CausalManipulations-TMS-Pharmacological-Priority2.py, etc.)
+- `utils/` - Utility modules (dependency_scanner.py, security_audit_logger.py, backup_manager.py, batch_processor.py, etc.)
+- `data/` - Data directory for input/output files
+- `tests/` - Comprehensive test suite with property-based testing (Hypothesis)
+- `docs/` - Documentation (APGI-Equations.md, APGI-Parameter-Specifications.md, etc.)
 
-### Database
+### Security features
 
-PostgreSQL via SQLAlchemy (sync ORM). Redis db/0 for caching/sessions, db/1 for Celery broker, db/2 for Celery results. Optional database sharding via `app/database/sharded_connection.py` (disabled by default; enable with `DATABASE_SHARDS_ENABLED=true`).
+- Secure module loading with path validation
+- Audit logging via `SecurityAuditLogger` and persistent audit logging
+- Environment variable validation for required keys (`PICKLE_SECRET_KEY`, `APGI_BACKUP_HMAC_KEY`)
+- Dependency vulnerability scanning via `DependencyScanner` (pip-audit)
+- Thread-safe configuration access with `_config_lock`
 
-### Authentication flow
+### Key Python modules
 
-JWT tokens obtained via `POST /v1/auth/login`. All endpoints except `/health`, `/docs`, `/openapi.json` require `Authorization: Bearer <token>`. Refresh via `POST /v1/auth/refresh`. TOTP/MFA supported via `pyotp`.
+- `APGI_Equations.py` - Core mathematical equations (entropy, KL divergence, free energy, etc.)
+- `APGI-Entropy-Implementation.py` - Entropy implementation
+- `APGI-Full-Dynamic-Model.py` - Full dynamic model
+- `APGI-Liquid-Network-Implementation.py` - Liquid network implementation
+- `APGI-Multimodal-Classifier.py` - Multimodal classifier
+- `APGI-Multimodal-Integration.py` - Multimodal integration
 
 ### Test setup
 
-Unit tests use SQLite in-memory (`sqlite:///:memory:`). The `conftest.py` at `tests/` provides fixtures for DB engine, session, mock DB connection, and environment variables. Hypothesis profiles: `dev` (20 examples, default locally), `ci` (100 examples), `thorough` (1000 examples).
+Unit tests use pytest with Hypothesis for property-based testing. The `conftest.py` provides fixtures including `temp_dir`, `sample_config`, `sample_data`, `raises_fixture`, `oom_fixture`, and `flaky_operation`. Hypothesis profiles: `dev` (20 examples, default locally), `ci` (100 examples), `thorough` (1000 examples).
 
 ## Required Environment Variables
 
-Minimum for development (see `.env` for full list):
+Minimum for development:
 
 ```bash
-ENVIRONMENT=development
-DATABASE_URL=postgresql://<username>:<password>@localhost:5432/<database_name>
-REDIS_URL=redis://localhost:6379/0
-JWT_SECRET_KEY=<random string, min 32 chars>
-CURSOR_SIGNING_KEY=<random string, min 32 chars>
+PICKLE_SECRET_KEY=<random 64-character hex string>
+APGI_BACKUP_HMAC_KEY=<random 64-character hex string>
 ```
 
-Generate keys: `python -c "import secrets; print(secrets.token_urlsafe(32))"`
+Generate keys: `python -c "import os; print(os.urandom(32).hex())"`
+
+For production, additional security keys and settings may be required.
+
+## CLI Commands
+
+### Validation commands
+
+- `validate` - Run validation protocols on data
+- `validate-entropy` - Validate entropy calculations
+- `validate-active-inference` - Validate active inference models
+- `validate-parameter-recovery` - Validate parameter recovery
+
+### Falsification commands
+
+- `falsify` - Run falsification protocols
+- `falsify-entropy` - Falsify entropy models
+- `falsify-active-inference` - Falsify active inference models
+- `falsify-causal` - Falsify causal manipulation models
+
+### Visualization commands
+
+- `visualize` - Generate visualizations from data
+- `visualize-time-series` - Create time series plots
+- `visualize-scatter` - Create scatter plots
+- `visualize-heatmap` - Create heatmaps
+- `visualize-distribution` - Create distribution plots
+
+### Utility commands
+
+- `benchmark` - Run computational benchmarks
+- `audit-dependencies` - Scan for dependency vulnerabilities
+- `backup` - Create backups of data and configuration
+- `restore` - Restore from backups
+
+## Data formats
+
+Input data formats:
+
+- JSON files for structured data
+- CSV files for time series and tabular data
+- Pickle files for serialized Python objects
+
+Output formats:
+
+- JSON reports for validation/falsification results
+- PNG/SVG plots for visualizations
+- Pickle files for model checkpoints
