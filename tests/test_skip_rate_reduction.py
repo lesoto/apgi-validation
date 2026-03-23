@@ -23,6 +23,53 @@ This file documents the approach to reduce test skip rate from 32% to below 10%.
 # 4. Consolidate duplicate tests
 # 5. Remove obsolete tests
 
+
+def test_threshold_dynamics():
+    """Test threshold dynamics with proper implementation."""
+    import numpy as np
+    from APGI_Full_Dynamic_Model import APGIFullDynamicModel
+    from APGI_Equations import APGIParameters
+
+    # Test positive change case
+    model = APGIFullDynamicModel(APGIParameters())
+    initial_theta = model.state.theta_0
+    model.step(signal_magnitude=2.0)  # high signal → metabolic cost
+    # Threshold should increase after high-cost processing
+    assert model.state.theta_t > initial_theta
+
+    # Test negative change case
+    model_negative = APGIFullDynamicModel(APGIParameters())
+    initial_theta_neg = model_negative.state.theta_t
+    model_negative.step(signal_magnitude=-1.0)  # low signal → energy efficiency
+    # Threshold should decrease after energy-efficient processing
+    assert model_negative.state.theta_t < initial_theta_neg
+
+    # Test boundary conditions
+    model_boundary = APGIFullDynamicModel(APGIParameters())
+    # Test with extreme parameters
+    theta_high = model_boundary.step(signal_magnitude=5.0)
+    assert isinstance(theta_high, float)
+    assert theta_high > 0
+
+    # Test integration consistency
+    model_integration = APGIFullDynamicModel(APGIParameters())
+    initial_S = model_integration.state.S
+    initial_theta = model_integration.state.theta_t
+    initial_eta = model_integration.state.eta_m
+
+    model_integration.step(signal_magnitude=1.5)
+
+    # All components should be updated consistently
+    assert model_integration.state.S != initial_S  # Signal should change
+    assert model_integration.state.theta_t != initial_theta  # Threshold should change
+    assert model_integration.state.eta_m != initial_eta  # Metabolic state should change
+
+    # Values should be physically plausible
+    assert model_integration.state.S > 0
+    assert model_integration.state.theta_t > 0
+    assert np.isfinite(model_integration.state.eta_m)
+
+
 # Priority actions:
 # - HIGH: Remove assert True placeholders (60+ instances)
 # - HIGH: Implement functional tests instead of MagicMock-only tests

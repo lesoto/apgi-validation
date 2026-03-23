@@ -31,6 +31,8 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
 
 # from scipy.signal import welch, windows  # Commented out - unused
 from scipy import signal, stats
@@ -478,17 +480,16 @@ class APGICoreIntegration:
         beta = np.clip(beta, 0.3, 0.8)
         Pi_i_baseline = np.clip(Pi_i_baseline, 0.1, 10.0)
 
-        # Sigmoid modulation (per specification)
-        M_0 = 0.0  # Reference somatic marker level
-        z = -(M_ca - M_0)
-        if z >= 0:
-            sigmoid = 1.0 / (1.0 + np.exp(-z))
-        else:
-            z_exp = np.exp(z)
-            sigmoid = z_exp / (1.0 + z_exp)
-        Pi_i_eff = Pi_i_baseline * (
-            1.0 + beta * sigmoid
-        )  # beta represents β_som (somatic gain)
+        # Pure exponential modulation (per pre-registered specification)
+        # Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a))
+        # Bounds apply to the multiplier: exp(β·M) ∈ [exp(-2), exp(2)]
+        Pi_i_eff = Pi_i_baseline * np.exp(beta * M_ca)
+
+        # Enforce bounds on the multiplier as per document
+        # This ensures falsifiability of Innovation 1's F2 criterion
+        Pi_i_eff = np.clip(
+            Pi_i_eff, Pi_i_baseline * np.exp(-2.0), Pi_i_baseline * np.exp(2.0)
+        )
 
         # Maintain physiological bounds after modulation
         return np.clip(Pi_i_eff, 0.1, 10.0)
@@ -1038,12 +1039,33 @@ class APGISpectralAnalysis:
 
     def __init__(self, fs: int = 250, method: str = "multitaper"):
         """
+        Initialize spectral analysis with PAC band configuration.
+
         Args:
-            fs: Sampling frequency
-            method: 'welch', 'multitaper', or 'wavelet'
+            fs: Sampling frequency in Hz
+            method: Method for PSD computation ('multitaper' or 'welch')
         """
         self.fs = fs
         self.method = method
+        self.pac_bands = self._load_pac_bands()
+
+    def _load_pac_bands(self):
+        """Load PAC band configuration from config file."""
+        try:
+            from pathlib import Path
+            import yaml
+
+            config_path = Path(__file__).parent / "config" / "default.yaml"
+            with open(config_path, "r") as f:
+                config = yaml.safe_load(f)
+                return config.get("pac_bands", {})
+        except Exception:
+            # Fallback configuration
+            return {
+                "L1_L2": {"phase": [4, 8], "amplitude": [30, 80]},
+                "L2_L3": {"phase": [1, 4], "amplitude": [4, 8]},
+                "L3_L4": {"phase": [1, 4], "amplitude": [4, 8]},
+            }
 
     def compute_band_power(
         self,
@@ -1166,6 +1188,7 @@ class APGISpectralAnalysis:
         eeg: np.ndarray,
         phase_band: str = "theta",
         amplitude_band: str = "gamma_low",
+        level_boundary: str = None,
     ) -> float:
         """
         Compute phase-amplitude coupling (PAC)
@@ -1174,18 +1197,31 @@ class APGISpectralAnalysis:
         suggests precision-weighted integration
 
         Reference: Tort et al. (2010) J Neurophysiol
+
+        Args:
+            eeg: EEG data array (channels × timepoints)
+            phase_band: Name of phase frequency band
+            amplitude_band: Name of amplitude frequency band
+            level_boundary: Optional hierarchical level boundary for PAC bands
         """
         from scipy.signal import hilbert
 
+        # Use PAC configuration if level boundary is specified
+        if level_boundary and level_boundary in self.pac_bands:
+            phase_range = tuple(self.pac_bands[level_boundary]["phase"])
+            amplitude_range = tuple(self.pac_bands[level_boundary]["amplitude"])
+        else:
+            # Use standard band definitions
+            phase_range = self.BANDS[phase_band]
+            amplitude_range = self.BANDS[amplitude_band]
+
         # Filter for phase frequency
-        phase_range = self.BANDS[phase_band]
         b_phase, a_phase = signal.butter(3, phase_range, btype="band", fs=self.fs)
         phase_signal = signal.filtfilt(b_phase, a_phase, eeg, axis=1)
         phase = np.angle(hilbert(phase_signal, axis=1))
 
         # Filter for amplitude frequency
-        amp_range = self.BANDS[amplitude_band]
-        b_amp, a_amp = signal.butter(3, amp_range, btype="band", fs=self.fs)
+        b_amp, a_amp = signal.butter(3, amplitude_range, btype="band", fs=self.fs)
         amp_signal = signal.filtfilt(b_amp, a_amp, eeg, axis=1)
         amplitude = np.abs(hilbert(amp_signal, axis=1))
 
@@ -1196,35 +1232,45 @@ class APGISpectralAnalysis:
         # Vectorized binning using digitize
         phase_flat = phase.flatten()
         amplitude_flat = amplitude.flatten()
-        phase_indices = np.digitize(phase_flat, phase_bins) - 1
 
-        # Mask valid indices (exclude edge cases)
-        valid_mask = (phase_indices >= 0) & (phase_indices < n_bins)
+        phase_bin_indices = np.digitize(phase_flat, phase_bins) - 1
+        phase_bin_indices = np.clip(phase_bin_indices, 0, n_bins - 1)
 
-        # Vectorized mean amplitude per bin using bincount
-        mean_amp_per_bin = np.zeros(n_bins)
+        # Compute amplitude distribution across phase bins
+        amp_by_phase = np.zeros(n_bins)
         for i in range(n_bins):
-            mask = valid_mask & (phase_indices == i)
+            mask = phase_bin_indices == i
             if np.any(mask):
-                mean_amp_per_bin[i] = np.mean(amplitude_flat[mask])
+                amp_by_phase[i] = np.mean(amplitude_flat[mask])
 
-        # Handle empty bins
-        mean_amp_per_bin[mean_amp_per_bin == 0] = np.mean(
-            mean_amp_per_bin[mean_amp_per_bin > 0]
+        # Normalize and compute modulation index
+        amp_by_phase = amp_by_phase / (np.sum(amp_by_phase) + 1e-12)
+        uniform_dist = np.ones(n_bins) / n_bins
+        modulation_index = np.sum(
+            amp_by_phase * np.log(amp_by_phase / uniform_dist + 1e-12)
         )
 
-        # Normalize to create probability distribution
-        p = mean_amp_per_bin / mean_amp_per_bin.sum()
+        return modulation_index
 
-        # Compute Kullback-Leibler divergence from uniform
-        uniform = np.ones(n_bins) / n_bins
-        kl_div = np.sum(p * np.log((p + 1e-12) / uniform))
+    def compute_all_pac_bands(self, eeg: np.ndarray) -> Dict[str, float]:
+        """
+        Compute PAC for all configured level boundaries.
 
-        # Normalize by maximum possible KL (uniform vs. delta)
-        kl_max = np.log(n_bins)
-        modulation_index = kl_div / kl_max
+        Args:
+            eeg: EEG data array (channels × timepoints)
 
-        return float(modulation_index)
+        Returns:
+            Dictionary with PAC values for each level boundary
+        """
+        results = {}
+
+        for level_boundary in self.pac_bands.keys():
+            pac_value = self.compute_phase_amplitude_coupling(
+                eeg, level_boundary=level_boundary
+            )
+            results[level_boundary] = pac_value
+
+        return results
 
 
 # ======================
@@ -3723,3 +3769,372 @@ if __name__ == "__main__":
             )
 
     print("\nAPGI multi-modal integration pipeline ready for use.")
+
+
+# =============================
+# CARDIAC PHASE-DEPENDENT DETECTION PROTOCOL
+# =============================
+
+
+def test_cardiac_phase_dependent_detection(
+    high_hep_detection_rates: np.ndarray,
+    low_hep_detection_rates: np.ndarray,
+    cardiac_detection_advantage_min: float = 0.12,
+    alpha: float = 0.01,
+) -> dict:
+    """
+    Test F2 Cardiac Phase-Dependent Detection criterion
+
+    Document specifies: ≥12% higher detection during high-HEP vs low-HEP phases.
+
+    Args:
+        high_hep_detection_rates: Detection rates during high-HEP phases (array of proportions)
+        low_hep_detection_rates: Detection rates during low-HEP phases (array of proportions)
+        cardiac_detection_advantage_min: Minimum advantage threshold (default: 0.12 = 12%)
+        alpha: Significance level for statistical test
+
+    Returns:
+        Dictionary with pass/fail result and metrics
+
+    References:
+        - falsification_thresholds.F2_CARDIAC_DETECTION_ADVANTAGE_MIN
+        - config/default.yaml falsification.F2.cardiac_detection_advantage_min
+    """
+    from scipy.stats import ttest_rel
+
+    # Input validation
+    if len(high_hep_detection_rates) != len(low_hep_detection_rates):
+        raise ValueError("High-HEP and low-HEP arrays must have same length")
+    if len(high_hep_detection_rates) < 2:
+        raise ValueError("Need at least 2 observations for statistical test")
+
+    # Validate range (detection rates should be proportions 0-1)
+    if np.any(high_hep_detection_rates < 0) or np.any(high_hep_detection_rates > 1):
+        raise ValueError("High-HEP detection rates must be in [0, 1] range")
+    if np.any(low_hep_detection_rates < 0) or np.any(low_hep_detection_rates > 1):
+        raise ValueError("Low-HEP detection rates must be in [0, 1] range")
+
+    # Compute mean advantage
+    mean_high_hep = np.mean(high_hep_detection_rates)
+    mean_low_hep = np.mean(low_hep_detection_rates)
+    detection_advantage = mean_high_hep - mean_low_hep
+
+    # Paired t-test (same subjects across cardiac phases)
+    t_stat, p_value = ttest_rel(high_hep_detection_rates, low_hep_detection_rates)
+
+    # Effect size (Cohen's d for paired samples)
+    differences = high_hep_detection_rates - low_hep_detection_rates
+    cohens_d = (
+        np.mean(differences) / np.std(differences, ddof=1)
+        if np.std(differences, ddof=1) > 0
+        else 0
+    )
+
+    # Falsification criterion
+    passes_criterion = (
+        detection_advantage >= cardiac_detection_advantage_min and p_value < alpha
+    )
+
+    return {
+        "passed": passes_criterion,
+        "detection_advantage_pct": detection_advantage * 100,  # Convert to percentage
+        "mean_high_hep_pct": mean_high_hep * 100,
+        "mean_low_hep_pct": mean_low_hep * 100,
+        "cohens_d": cohens_d,
+        "p_value": p_value,
+        "t_statistic": t_stat,
+        "threshold": f"≥{cardiac_detection_advantage_min * 100:.0f}% advantage, p < {alpha}",
+        "interpretation": (
+            f"Cardiac phase-dependent detection {'passes' if passes_criterion else 'fails'} "
+            f"F2 criterion with {detection_advantage * 100:.1f}% advantage"
+        ),
+    }
+
+
+def demonstrate_cardiac_phase_detection():
+    """
+    Demonstrate cardiac phase-dependent detection analysis with synthetic data
+    """
+    print("=" * 70)
+    print("CARDIAC PHASE-DEPENDENT DETECTION PROTOCOL DEMONSTRATION")
+    print("=" * 70)
+
+    # Import threshold from falsification thresholds
+    try:
+        from falsification_thresholds import F2_CARDIAC_DETECTION_ADVANTAGE_MIN
+
+        threshold = F2_CARDIAC_DETECTION_ADVANTAGE_MIN
+        print(f"Using registered threshold: {threshold * 100:.0f}% minimum advantage")
+    except ImportError:
+        threshold = 0.12  # Fallback to documented value
+        print(f"Using fallback threshold: {threshold * 100:.0f}% minimum advantage")
+
+    # Generate synthetic data demonstrating the effect
+    np.random.seed(42)
+    n_subjects = 20
+
+    # Simulate detection rates with cardiac phase effect
+    # Low-HEP phases: baseline detection ~40%
+    low_hep_rates = np.random.beta(8, 12, n_subjects)  # Mean ~0.4
+
+    # High-HEP phases: enhanced detection ~55% (15% advantage > 12% threshold)
+    high_hep_rates = np.random.beta(11, 9, n_subjects)  # Mean ~0.55
+
+    # Add individual subject variability (paired design)
+    subject_effects = np.random.normal(0, 0.05, n_subjects)
+    high_hep_rates += subject_effects
+    low_hep_rates += subject_effects
+
+    # Ensure valid range [0, 1]
+    high_hep_rates = np.clip(high_hep_rates, 0, 1)
+    low_hep_rates = np.clip(low_hep_rates, 0, 1)
+
+    print(f"\nSynthetic data ({n_subjects} subjects):")
+    print(
+        f"  High-HEP detection: {np.mean(high_hep_rates) * 100:.1f}% ± {np.std(high_hep_rates) * 100:.1f}%"
+    )
+    print(
+        f"  Low-HEP detection:  {np.mean(low_hep_rates) * 100:.1f}% ± {np.std(low_hep_rates) * 100:.1f}%"
+    )
+
+    # Test the criterion
+    result = test_cardiac_phase_dependent_detection(
+        high_hep_rates, low_hep_rates, threshold
+    )
+
+    print("\nF2 Cardiac Phase-Dependent Detection Test:")
+    print(f"  Detection advantage: {result['detection_advantage_pct']:.1f}%")
+    print(f"  Cohen's d: {result['cohens_d']:.3f}")
+    print(
+        f"  Paired t-test: t({len(high_hep_rates) - 1}) = {result['t_statistic']:.3f}, p = {result['p_value']:.4f}"
+    )
+    print(f"  Result: {'PASS' if result['passed'] else 'FAIL'}")
+    print(f"  Threshold: {result['threshold']}")
+    print(f"  {result['interpretation']}")
+
+    return result
+
+
+def validate_joint_biomarker_advantage(
+    HEP_features: np.ndarray,
+    PCI_features: np.ndarray,
+    joint_features: np.ndarray,
+    target: np.ndarray,
+    delta_r2_threshold: float = 0.05,
+) -> Dict[str, Any]:
+    """
+    Validate that joint HEP + PCI biomarker outperforms single markers alone.
+
+    Document specification: joint model must outperform single markers alone,
+    ΔR² > 0.05 pre-registered.
+
+    Args:
+        HEP_features: Matrix of HEP-only features (n_samples, n_features)
+        PCI_features: Matrix of PCI-only features (n_samples, n_features)
+        joint_features: Matrix of joint HEP+PCI features (n_samples, n_features)
+        target: Target variable (conscious access or related outcome)
+        delta_r2_threshold: Minimum ΔR² advantage required (default: 0.05)
+
+    Returns:
+        Dictionary containing:
+        - r2_hep: R² for HEP-only model
+        - r2_pci: R² for PCI-only model
+        - r2_joint: R² for joint model
+        - delta_r2: Best single vs joint R² difference
+        - passed: Whether ΔR² > threshold
+        - interpretation: Summary of results
+
+    Raises:
+        ValueError: If input arrays have incompatible shapes
+    """
+
+    # Input validation
+    n_samples = len(target)
+    if not (len(HEP_features) == len(PCI_features) == len(joint_features) == n_samples):
+        raise ValueError(
+            "All feature matrices and target must have same number of samples"
+        )
+
+    if n_samples < 10:
+        raise ValueError("Need at least 10 samples for reliable R² estimation")
+
+    print("=" * 70)
+    print("JOINT HEP + PCI BIOMARKER VALIDATION")
+    print("=" * 70)
+    print(f"Sample size: {n_samples}")
+    print(f"ΔR² threshold: {delta_r2_threshold}")
+    print("-" * 70)
+
+    # Initialize models
+    hep_model = LinearRegression()
+    pci_model = LinearRegression()
+    joint_model = LinearRegression()
+
+    # Fit HEP-only model
+    try:
+        hep_model.fit(HEP_features, target)
+        hep_pred = hep_model.predict(HEP_features)
+        r2_hep = r2_score(target, hep_pred)
+        print(f"HEP-only model R²: {r2_hep:.4f}")
+    except Exception as e:
+        print(f"HEP model fitting failed: {e}")
+        r2_hep = 0.0
+        hep_pred = np.zeros_like(target)
+
+    # Fit PCI-only model
+    try:
+        pci_model.fit(PCI_features, target)
+        pci_pred = pci_model.predict(PCI_features)
+        r2_pci = r2_score(target, pci_pred)
+        print(f"PCI-only model R²: {r2_pci:.4f}")
+    except Exception as e:
+        print(f"PCI model fitting failed: {e}")
+        r2_pci = 0.0
+        pci_pred = np.zeros_like(target)
+
+    # Fit joint model
+    try:
+        joint_model.fit(joint_features, target)
+        joint_pred = joint_model.predict(joint_features)
+        r2_joint = r2_score(target, joint_pred)
+        print(f"Joint model R²: {r2_joint:.4f}")
+    except Exception as e:
+        print(f"Joint model fitting failed: {e}")
+        r2_joint = 0.0
+        joint_pred = np.zeros_like(target)
+
+    # Calculate ΔR² advantage
+    best_single_r2 = max(r2_hep, r2_pci)
+    delta_r2 = r2_joint - best_single_r2
+
+    print(f"\nBest single model R²: {best_single_r2:.4f}")
+    print(f"Joint model advantage (ΔR²): {delta_r2:.4f}")
+
+    # Determine if criterion is met
+    passed = delta_r2 > delta_r2_threshold
+
+    # Generate interpretation
+    if passed:
+        interpretation = f"Joint biomarker shows significant advantage (ΔR² = {delta_r2:.4f} > {delta_r2_threshold})"
+    else:
+        interpretation = f"Joint biomarker fails to show required advantage (ΔR² = {delta_r2:.4f} ≤ {delta_r2_threshold})"
+
+    print(f"Result: {'PASS' if passed else 'FAIL'}")
+    print(f"Interpretation: {interpretation}")
+
+    # Additional validation: check if joint model is actually better than both singles
+    joint_beats_both = (r2_joint > r2_hep) and (r2_joint > r2_pci)
+    print(f"Joint model beats both singles: {'YES' if joint_beats_both else 'NO'}")
+
+    return {
+        "r2_hep": float(r2_hep),
+        "r2_pci": float(r2_pci),
+        "r2_joint": float(r2_joint),
+        "delta_r2": float(delta_r2),
+        "best_single_r2": float(best_single_r2),
+        "passed": passed,
+        "joint_beats_both": joint_beats_both,
+        "threshold": delta_r2_threshold,
+        "interpretation": interpretation,
+        "n_samples": n_samples,
+        # Include model coefficients for inspection
+        "hep_coefficients": hep_model.coef_.tolist()
+        if hasattr(hep_model, "coef_")
+        else None,
+        "pci_coefficients": pci_model.coef_.tolist()
+        if hasattr(pci_model, "coef_")
+        else None,
+        "joint_coefficients": joint_model.coef_.tolist()
+        if hasattr(joint_model, "coef_")
+        else None,
+    }
+
+
+def create_joint_biomarker_test_data(
+    n_samples: int = 100,
+    effect_size: float = 0.3,
+    noise_level: float = 0.5,
+    random_seed: int = 42,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Create synthetic test data for joint biomarker validation.
+
+    Generates data where the combination of HEP and PCI features provides
+    better prediction than either alone, simulating the expected synergistic effect.
+
+    Args:
+        n_samples: Number of samples to generate
+        effect_size: True effect size for joint advantage
+        noise_level: Amount of random noise to add
+        random_seed: Random seed for reproducibility
+
+    Returns:
+        Tuple of (HEP_features, PCI_features, joint_features, target)
+    """
+    np.random.seed(random_seed)
+
+    # Generate base HEP and PCI features (uncorrelated)
+    HEP_features = np.random.randn(n_samples, 3)  # 3 HEP-related features
+    PCI_features = np.random.randn(n_samples, 2)  # 2 PCI-related features
+
+    # Create target with some relationship to individual modalities
+    # But with additional benefit from the combination
+    hep_contribution = 0.3 * np.sum(HEP_features, axis=1)
+    pci_contribution = 0.2 * np.sum(PCI_features, axis=1)
+
+    # Add synergistic interaction effect (this creates the joint advantage)
+    interaction_effect = effect_size * np.sum(
+        HEP_features[:, :2] * PCI_features[:, :1], axis=1
+    )
+
+    # Combine all contributions
+    target = hep_contribution + pci_contribution + interaction_effect
+
+    # Add noise
+    target += noise_level * np.random.randn(n_samples)
+
+    # Create joint feature matrix (concatenated HEP + PCI)
+    joint_features = np.concatenate([HEP_features, PCI_features], axis=1)
+
+    return HEP_features, PCI_features, joint_features, target
+
+
+def demonstrate_joint_biomarker_validation():
+    """
+    Demonstrate the joint biomarker validation with synthetic data.
+    """
+    print("\n" + "=" * 70)
+    print("DEMONSTRATION: Joint HEP + PCI Biomarker Validation")
+    print("=" * 70)
+
+    # Create test data with known joint advantage
+    HEP_feat, PCI_feat, joint_feat, target = create_joint_biomarker_test_data(
+        n_samples=150, effect_size=0.4, noise_level=0.3
+    )
+
+    # Run validation
+    results = validate_joint_biomarker_advantage(
+        HEP_features=HEP_feat,
+        PCI_features=PCI_feat,
+        joint_features=joint_feat,
+        target=target,
+        delta_r2_threshold=0.05,
+    )
+
+    print("\nValidation Summary:")
+    print(f"  Sample size: {results['n_samples']}")
+    print(f"  HEP R²: {results['r2_hep']:.4f}")
+    print(f"  PCI R²: {results['r2_pci']:.4f}")
+    print(f"  Joint R²: {results['r2_joint']:.4f}")
+    print(f"  ΔR² advantage: {results['delta_r2']:.4f}")
+    print(f"  Criterion met: {'YES' if results['passed'] else 'NO'}")
+
+    return results
+
+
+if __name__ == "__main__":
+    # Run cardiac phase detection demonstration
+    demonstrate_cardiac_phase_detection()
+
+    # Run joint biomarker validation demonstration
+    demonstrate_joint_biomarker_validation()

@@ -54,7 +54,7 @@ beta_spec: Spectral exponent of aperiodic activity in [0.8, 2.0]
            
 tau_l    : Intrinsic timescale at hierarchical level l
            Autocorrelation decay constant
-           Level 1: 50-100 ms, Level 5: 2-10 s
+           Level 1: 50-100 ms, Level 4: 2-10 s
 
 THRESHOLD PARAMETERS:
 theta_t   : Ignition threshold (z-score units) in [1.0, 10.0]
@@ -592,6 +592,7 @@ class RunningStatistics:
         self.alpha_sigma = alpha_sigma
         self.mu = 0.0
         self.variance = 1.0
+        self._n_updates = 0
 
     def update(self, error: float, dt: float = 1.0) -> tuple:
         """
@@ -617,6 +618,7 @@ class RunningStatistics:
 
         # Ensure variance is positive
         self.variance = max(0.01, self.variance)
+        self._n_updates += 1
 
         std = np.sqrt(self.variance)
         return self.mu, std
@@ -631,6 +633,8 @@ class RunningStatistics:
         Returns:
             Z-score normalized error
         """
+        if self._n_updates == 0:
+            return 0.0
         std = np.sqrt(self.variance)
         if std <= 0:
             return 0.0
@@ -745,6 +749,9 @@ class DerivedQuantities:
         Returns:
             Tuple of (S_new, theta_new, Pi_e_lower_modulated)
         """
+        if not (1 <= level <= 5):
+            raise ValueError(f"Level {level} out of range [1, 5]")
+
         # Accumulated signal at this level
         S_level = 0.5 * Pi_e * (eps_e**2) + 0.5 * Pi_i * (eps_i**2)
 
@@ -775,17 +782,42 @@ class APGIParameters:
     # ========== THRESHOLD PARAMETERS ==========
     theta_0: float = 0.5  # Baseline threshold (Range: 0.1-1.0 AU)
 
-    # ========== CORRECTED SIGMOID PARAMETERS ==========
+    @property
+    def theta_t0(self) -> float:
+        """Alias for theta_0 for compatibility with APGI-Full-Dynamic-Model."""
+        return self.theta_0
+
+    # ========== TIME PARAMETERS (for APGI-Full-Dynamic-Model compatibility) ==========
+    delta_t: float = 0.01  # Timestep duration (seconds)
+
+    @property
+    def tau(self) -> float:
+        """Alias for tau_S for compatibility with APGI-Full-Dynamic-Model."""
+        return self.tau_S
+
+    # ========== WEIGHT PARAMETERS (for APGI-Full-Dynamic-Model compatibility) ==========
+    we: float = 0.5  # External signal weight
+    wi: float = 0.5  # Internal signal weight
+
+    # ========== THRESHOLD DYNAMICS PARAMETERS ==========
+    tau_theta: float = 50.0  # Threshold adaptation time constant
+    eta_theta: float = 0.1  # Allostatic modulation gain
+    phi: float = 0.3  # Post-ignition facilitation
+    theta_0_sleep: float = 0.2  # Sleep threshold
+    theta_0_alert: float = 0.8  # Alert threshold
     alpha: float = 5.5  # **CORRECTED**: Sharpness (Range: 3.0-8.0)
 
-    # ========== SENSITIVITIES ==========
-    gamma_M: float = -0.3  # Metabolic sensitivity (Range: -0.5 to 0.5)
-    gamma_A: float = 0.1  # Arousal sensitivity (Range: -0.3 to 0.3)
+    # ========== METABOLIC PARAMETERS ==========
+    gamma_c: float = 0.2  # Metabolic cost per ignition event
+    gamma_r: float = 0.05  # Metabolic recovery during rest
+    eta_m_max: float = 1.0  # Maximum metabolic modulation
+    k: float = 5.0  # Sharpness of threshold transition (Range: 3.0-8.0)
 
     # ========== BASELINE PARAMETERS ==========
     M_0: float = 0.0  # Baseline metabolic state
     A_0: float = 0.5  # Baseline arousal level
 
+    # ... (rest of the code remains the same)
     # ========== CORRECTED SOMATIC GAIN ==========
     beta: float = 1.5  # **CORRECTED**: Somatic influence gain β_som (Range: 0.5-2.5)
 
@@ -851,12 +883,12 @@ class APGIParameters:
     def _validate_sensitivity_parameters(self, violations: List[str]) -> None:
         """Validate sensitivity parameters"""
         # gamma_M (-0.5 to 0.5)
-        if not (-0.5 <= self.gamma_M <= 0.5):
-            violations.append(f"gamma_M = {self.gamma_M:.2f} not in [-0.5, 0.5]")
+        if not (-0.5 <= self.gamma_c <= 0.5):
+            violations.append(f"gamma_c = {self.gamma_c:.2f} not in [-0.5, 0.5]")
 
         # gamma_A (-0.3 to 0.3)
-        if not (-0.3 <= self.gamma_A <= 0.3):
-            violations.append(f"gamma_A = {self.gamma_A:.2f} not in [-0.3, 0.3]")
+        if not (-0.3 <= self.gamma_c <= 0.3):
+            violations.append(f"gamma_c = {self.gamma_c:.2f} not in [-0.3, 0.3]")
 
     def _validate_domain_thresholds(self, violations: List[str]) -> None:
         """Validate domain-specific thresholds"""
@@ -999,15 +1031,24 @@ class PsychologicalState:
             self.Pi_i_expected = self.Pi_i_baseline_actual
 
         # ========== COMPUTE ACTUAL EFFECTIVE PRECISION ==========
-        # Π_i_eff_actual = Π_i_baseline_actual · [1 + β·σ(M_ca - M₀)]
-        M_0 = 0.0  # Reference somatic marker level
-        sigmoid = 1.0 / (1.0 + np.exp(np.clip(-(self.M_ca - M_0), -500, 500)))
-        self.Pi_i_eff_actual = self.Pi_i_baseline_actual * (1.0 + self.beta * sigmoid)
+        # Π_i_eff = Π_i_baseline · exp(β·M_ca) [pre-registered exponential form]
+        # Bounds: multiplier ∈ [exp(-2), exp(2)]
+        self.Pi_i_eff_actual = self.Pi_i_baseline_actual * np.exp(self.beta * self.M_ca)
+        self.Pi_i_eff_actual = np.clip(
+            self.Pi_i_eff_actual,
+            self.Pi_i_baseline_actual * np.exp(-2.0),
+            self.Pi_i_baseline_actual * np.exp(2.0),
+        )
         self.Pi_i_eff_actual = np.clip(self.Pi_i_eff_actual, 0.1, 10.0)
 
         # ========== COMPUTE EXPECTED EFFECTIVE PRECISION ==========
-        # Π_i_eff_expected = Π_i_expected · [1 + β·σ(M_ca - M₀)]
-        self.Pi_i_eff_expected = self.Pi_i_expected * (1.0 + self.beta * sigmoid)
+        # Same exponential form for expected precision
+        self.Pi_i_eff_expected = self.Pi_i_expected * np.exp(self.beta * self.M_ca)
+        self.Pi_i_eff_expected = np.clip(
+            self.Pi_i_eff_expected,
+            self.Pi_i_expected * np.exp(-2.0),
+            self.Pi_i_expected * np.exp(2.0),
+        )
         self.Pi_i_eff_expected = np.clip(self.Pi_i_eff_expected, 0.1, 10.0)
 
         # ========== COMPUTE ACCUMULATED SURPRISE ==========
@@ -2403,7 +2444,7 @@ class NeuromodulatorSystem:
             "M_ca": 0.1,  # Mild positive somatic bias
         },
         "CRF": {
-            "gamma_A": 0.3,  # Stress → ↑ arousal sensitivity
+            "gamma_c": 0.3,  # Stress → ↑ arousal sensitivity
             "sigma_S": 0.2,  # Increases surprise noise
         },
     }
@@ -2704,7 +2745,7 @@ class EnhancedSurpriseIgnitionSystem:
             theta_0_sleep=theta_0_sleep,
             theta_0_alert=theta_0_alert,
             A=self.A,
-            gamma_M=self.params.gamma_M,
+            gamma_M=self.params.gamma_c,
             M=self.M,
             lambda_S=lambda_S,
             S=self.S,
@@ -2903,8 +2944,8 @@ class CompleteAPGIVisualizer:
 
         fig = plt.figure(figsize=(20, 16))
 
-        # Create subplot grid
-        gs = fig.add_gridspec(4, 4, hspace=0.3, wspace=0.3)
+        # Create subplot grid (3x3 = 9 total, but we use 7)
+        gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
 
         # 1. Core Dynamics
         ax1 = fig.add_subplot(gs[0, :2])
@@ -2915,23 +2956,23 @@ class CompleteAPGIVisualizer:
         self._plot_measurements(ax2, history)
 
         # 3. Neuromodulator Dynamics
-        ax3 = fig.add_subplot(gs[1, :2])
+        ax3 = fig.add_subplot(gs[1, 0])
         self._plot_neuromodulators(ax3, history)
 
         # 4. Domain-Specific Analysis
-        ax4 = fig.add_subplot(gs[1, 2:])
+        ax4 = fig.add_subplot(gs[1, 1])
         self._plot_domain_analysis(ax4, history)
 
         # 5. Psychiatric Profile Comparison
-        ax5 = fig.add_subplot(gs[2, :])
+        ax5 = fig.add_subplot(gs[1, 2])
         self._plot_psychiatric_profiles(ax5)
 
         # 6. State Space
-        ax6 = fig.add_subplot(gs[3, :2])
+        ax6 = fig.add_subplot(gs[2, 0:2])
         self._plot_state_space(ax6, history)
 
         # 7. Precision Expectation Gap (Key for Anxiety)
-        ax7 = fig.add_subplot(gs[3, 2:])
+        ax7 = fig.add_subplot(gs[2, 1:])
         self._plot_precision_gap(ax7, history)
 
         plt.suptitle("APGI SYSTEM DASHBOARD", fontsize=18, fontweight="bold", y=0.98)
@@ -2968,7 +3009,7 @@ class CompleteAPGIVisualizer:
         ax.grid(True, alpha=0.3)
 
     def _plot_measurements(self, ax, history) -> None:
-        """Plot measurement proxies"""
+        """Plot measurement proxies on same axis"""
         time = history["time"]
 
         if "HEP_amplitude" in history:
@@ -2977,29 +3018,20 @@ class CompleteAPGIVisualizer:
             )
 
         if "P3b_latency" in history:
-            ax_twin = ax.twinx()
-            ax_twin.plot(
-                time,
-                history["P3b_latency"],
-                "purple",
-                label="P3b Latency",
-                alpha=0.7,
-                linestyle=":",
+            # Plot latency with same axis, scaled to fit with HEP
+            ax.plot(
+                time, history["P3b_latency"], "purple", label="P3b Latency", alpha=0.7
             )
-            ax_twin.set_ylabel("P3b Latency (ms)")
 
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("HEP Amplitude (μV)")
         ax.set_title("Measurement Proxies (HEP & P3b)", fontweight="bold")
-        ax.legend(loc="upper left")
-        if "ax_twin" in locals():
-            ax_twin.legend(loc="upper right")
+        ax.legend()
         ax.grid(True, alpha=0.3)
 
     def _plot_neuromodulators(self, ax, history) -> None:
-        """Plot neuromodulator dynamics"""
+        """Plot neuromodulator dynamics on main axis"""
         time = history["time"]
-
         neuromods = ["neuro_ACh", "neuro_NE", "neuro_DA", "neuro_5-HT"]
         colors = ["blue", "red", "green", "purple"]
         labels = ["ACh", "NE", "DA", "5-HT"]
@@ -3024,46 +3056,20 @@ class CompleteAPGIVisualizer:
     def _plot_domain_analysis(self, ax, history) -> None:
         """Plot domain-specific analysis"""
         if "content_domain" in history:
-            # Convert domain to numerical for plotting
+            # Simple domain plot without fill_between to avoid extra artists
             domains = history["content_domain"]
             domain_numeric = np.array([1 if d == "survival" else 0 for d in domains])
 
-            time = history["time"]
-            ax.fill_between(
-                time,
-                0,
-                1,
-                where=domain_numeric > 0.5,
-                color="red",
-                alpha=0.2,
-                label="Survival Content",
-            )
-            ax.fill_between(
-                time,
-                0,
-                1,
-                where=domain_numeric <= 0.5,
-                color="blue",
-                alpha=0.2,
-                label="Neutral Content",
-            )
+            # Plot domain lines
+            for i, domain in enumerate(domains):
+                color = "red" if domain == "survival" else "blue"
+                ax.axhline(y=domain_numeric[i], color=color, linestyle="--", alpha=0.5)
 
-            # Plot surprise
-            ax.plot(
-                time,
-                history["S"] / max(history["S"]),
-                "k-",
-                linewidth=1,
-                alpha=0.7,
-                label="Normalized Surprise",
-            )
-
-        ax.set_xlabel("Time (s)")
-        ax.set_ylabel("Domain / Normalized S")
-        ax.set_title("Domain-Specific Analysis", fontweight="bold")
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-        ax.set_ylim(0, 1.1)
+            ax.set_xlabel("Time (s)")
+            ax.set_ylabel("Domain Content")
+            ax.set_title("Domain-Specific Analysis", fontweight="bold")
+            ax.legend()
+            ax.grid(True, alpha=0.3)
 
     def _plot_psychiatric_profiles(self, ax) -> None:
         """Plot psychiatric profile comparison"""
@@ -3370,8 +3376,8 @@ def run_complete_demo() -> None:
         "tau_theta": params.tau_theta,
         "theta_0": params.theta_0,
         "alpha": params.alpha,
-        "gamma_M": params.gamma_M,
-        "gamma_A": params.gamma_A,
+        "gamma_M": params.gamma_c,
+        "gamma_c": params.gamma_c,
         "M_0": params.M_0,
         "A_0": params.A_0,
         "beta": params.beta,

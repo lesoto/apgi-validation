@@ -15,6 +15,9 @@ torchvision>=0.15.0,<1.0.0
 # EEG processing - use recent stable versions
 mne>=1.6.0,<2.0.0
 
+# Spectral parameterization (for 1/f spectral slope analysis)
+specparam>=2.0.0,<3.0.0
+
 # Progress bars
 tqdm>=4.62.0,<5.0.0
 
@@ -68,3 +71,6 @@ reportlab>=4.0.0,<5.0.0
 
 # Profiling 
 numba>=0.56.0,<1.0.0
+
+# Nonlinear time series analysis (for DFA)
+nolds>=0.5.2,<1.0.0

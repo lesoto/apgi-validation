@@ -195,7 +195,7 @@ APGI-Entropy-Implementation.py (APGILiquidNetwork), APGI-Liquid-Network-Implemen
 
 Features like threshold filtering, predictive hierarchy, precision-weighted population coding, interoceptive prioritization, and multi-timescale integration are selected by biological constraints (finite ATP, slow conduction, stochastic synapses).
 
-## 22. Developmental Trajectory of Hierarchical Level Emergence from Level 1 to Level 5
+## 22. Developmental Trajectory of Hierarchical Level Emergence from Level 1 to Level 4
 
 The developmental trajectory is implemented in the hierarchical generative models of Falsification-Protocol-1.py, predicting level emergence sequence from Level 1 (birth, τ₁≈50ms) to Level 2 (6–12 months, τ₂≈200–500ms), Level 3 (2–4 years, τ₃≈1–2s), and Level 4 (12–16 years, τ₄≈5–20s), with level transitions defined by >50% increase in intrinsic timescale and >30% increase in inter-level PAC strength, falsifiable if no such transitions occur or if sequence order differs.
 

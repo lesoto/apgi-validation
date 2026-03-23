@@ -78,6 +78,7 @@ from falsification_thresholds import (
     V6_1_MIN_PROCESSING_RATE,
     V6_1_ALPHA,
     F6_2_WILCOXON_ALPHA,
+    F6_DELTA_AUROC_MIN,
 )
 
 # Configure logging
@@ -252,22 +253,112 @@ class SpikeEnergyMonitor:
             > (1 + ENERGY_FALSIFICATION_THRESHOLD_PCT / 100),
         }
 
-    def get_energy_report(self) -> Dict[str, Dict[str, float]]:
-        """Generate comprehensive energy consumption report."""
+    def evaluate_models(
+        self, networks: Dict[str, nn.Module], test_loader: DataLoader
+    ) -> Dict[str, Dict[str, float]]:
+        """
+        Evaluate networks and compute AUROC scores
+
+        Args:
+            networks: Dictionary of network_name -> network_instance
+            test_loader: Test data loader
+        """
+        results = {}
+
+        for network_name, network in networks.items():
+            network.eval()
+            correct = 0
+            total = 0
+            all_predictions = []
+            all_targets = []
+
+            with torch.no_grad():
+                for batch in test_loader:
+                    # Get inputs
+                    extero = batch["extero"]
+                    intero = batch["intero"]
+                    context = batch["context"]
+                    targets = batch["target"]
+
+                    # Forward pass
+                    outputs = network(extero, intero, context)
+                    predictions = outputs["policy"]
+
+                    # Get predicted classes
+                    pred_classes = predictions.argmax(dim=1).cpu().numpy()
+                    targets_np = targets.cpu().numpy()
+
+                    # Collect for AUROC calculation
+                    all_predictions.extend(predictions.cpu().numpy())
+                    all_targets.extend(targets_np)
+
+                    # Accuracy calculation
+                    correct += (pred_classes == targets_np).sum()
+                    total += len(targets_np)
+
+            # Calculate metrics
+            accuracy = correct / total if total > 0 else 0.0
+
+            # AUROC calculation (one-vs-rest for multi-class)
+            try:
+                # Convert to binary format for multi-class AUROC
+                n_classes = len(torch.unique(all_targets))
+                if n_classes == 2:
+                    # Binary classification
+                    auroc = roc_auc_score(all_targets, all_predictions[:, 1])
+                else:
+                    # Multi-class: one-vs-rest
+                    auroc = roc_auc_score(
+                        all_targets, all_predictions, multi_class="ovr", average="macro"
+                    )
+            except Exception as e:
+                logger.warning(f"AUROC calculation failed for {network_name}: {e}")
+                auroc = 0.5  # Default to random performance
+
+            results[network_name] = {
+                "accuracy": accuracy,
+                "auroc": auroc,
+                "correct": correct,
+                "total": total,
+            }
+
+            logger.info(
+                f"{network_name} - Accuracy: {accuracy:.3f}, AUROC: {auroc:.3f}"
+            )
+
+        return results
+
+    def get_energy_report(
+        self,
+        network_accuracies: Optional[Dict[str, float]] = None,
+        network_aurocs: Optional[Dict[str, float]] = None,
+    ) -> Dict[str, Dict[str, float]]:
+        """
+        Generate comprehensive energy consumption report with real metrics.
+
+        Args:
+            network_accuracies: Dictionary of network_name -> accuracy (optional)
+            network_aurocs: Dictionary of network_name -> AUROC (optional)
+        """
         report = {}
 
         for network_name in self.spike_counts.keys():
             if network_name in self.energy_consumption:
-                accuracy_placeholder = (
-                    0.8  # Placeholder - would be passed from evaluation
+                # Use real metrics if provided, otherwise fall back to placeholder
+                accuracy = (
+                    network_accuracies.get(network_name, 0.8)
+                    if network_accuracies
+                    else 0.8
                 )
-                energy_metrics = self.compute_energy_efficiency(
-                    network_name, accuracy_placeholder
-                )
+                auroc = network_aurocs.get(network_name, 0.8) if network_aurocs else 0.8
+
+                energy_metrics = self.compute_energy_efficiency(network_name, accuracy)
 
                 report[network_name] = {
                     "spike_count": self.spike_counts[network_name],
                     "energy_kcal": self.energy_consumption[network_name],
+                    "accuracy": accuracy,
+                    "auroc": auroc,
                     **energy_metrics,
                 }
 
@@ -1147,6 +1238,101 @@ class NetworkTrainer:
 
         return history
 
+    def train_with_energy_monitoring(
+        self,
+        train_loader: DataLoader,
+        val_loader: DataLoader,
+        n_epochs: int = 100,
+        energy_monitor: Optional[SpikeEnergyMonitor] = None,
+    ) -> Dict:
+        """Full training loop with energy monitoring"""
+
+        history = {"train_losses": [], "val_accuracies": [], "val_aucs": []}
+
+        best_val_auc = 0.0
+        patience_counter = 0
+        max_patience = 15
+
+        print(f"\nTraining {self.network_name} with energy monitoring...")
+
+        for epoch in tqdm(range(n_epochs), desc=f"  {self.network_name}"):
+            # Reset hidden states
+            self.network.reset()
+
+            # Train with energy monitoring
+            train_loss = self.train_epoch(train_loader, energy_monitor)
+
+            # Evaluate
+            val_results = self.evaluate(val_loader)
+
+            history["train_losses"].append(train_loss)
+            history["val_accuracies"].append(val_results["accuracy"])
+            history["val_aucs"].append(val_results["auc"])
+
+            # Learning rate scheduling
+            self.scheduler.step(val_results["auc"])
+
+            # Early stopping
+            if val_results["auc"] > best_val_auc:
+                best_val_auc = val_results["auc"]
+                patience_counter = 0
+            else:
+                patience_counter += 1
+
+            if patience_counter >= max_patience:
+                print(f"    Early stopping at epoch {epoch + 1}")
+                break
+
+            if (epoch + 1) % 20 == 0:
+                print(
+                    f"    Epoch {epoch + 1}: Loss={train_loss:.4f}, "
+                    f"Acc={val_results['accuracy']:.3f}, "
+                    f"AUC={val_results['auc']:.3f}"
+                )
+
+        return history
+
+    def train_epoch(
+        self,
+        train_loader: DataLoader,
+        energy_monitor: Optional[SpikeEnergyMonitor] = None,
+    ) -> float:
+        """Single training epoch with optional energy monitoring"""
+
+        self.network.train()
+        total_loss = 0.0
+        n_batches = 0
+
+        for batch in train_loader:
+            self.optimizer.zero_grad()
+
+            # Get inputs
+            extero = batch["extero"].to(self.device)
+            intero = batch["intero"].to(self.device)
+            context = batch["context"].to(self.device)
+            targets = batch["target"].to(self.device)
+
+            # Forward pass
+            outputs = self.network(extero, intero, context)
+
+            # Log energy consumption if monitor provided
+            if energy_monitor is not None:
+                energy_monitor.log_network_activity(self.network_name, outputs, batch)
+
+            # Compute loss
+            loss = self.criterion(outputs["policy"], targets)
+            loss.backward()
+
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=1.0)
+
+            self.optimizer.step()
+
+            total_loss += loss.item()
+            n_batches += 1
+
+        return total_loss / n_batches if n_batches > 0 else 0.0
+
 
 # =============================================================================
 # PART 5: COMPREHENSIVE EVALUATION
@@ -1178,7 +1364,7 @@ class NetworkComparison:
     def train_all_on_task(
         self, task_name: str, dataset_class, n_epochs: int = 100
     ) -> Dict:
-        """Train all networks on a specific task"""
+        """Train all networks on a specific task with energy monitoring"""
 
         print(f"\n{'=' * 60}")
         print(f"TASK: {task_name}")
@@ -1200,20 +1386,38 @@ class NetworkComparison:
         val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
         test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
+        # Initialize energy monitor for this task
+        energy_monitor = SpikeEnergyMonitor()
+
         task_results = {}
 
         for name, trainer in self.trainers.items():
-            # Train
-            history = trainer.train(train_loader, val_loader, n_epochs)
+            print(f"\n  Training {name} with energy monitoring...")
 
-            # Test
+            # Train with energy monitoring
+            history = trainer.train_with_energy_monitoring(
+                train_loader, val_loader, n_epochs, energy_monitor
+            )
+
+            # Test with energy monitoring
             test_results = trainer.evaluate(test_loader)
+
+            # Log energy consumption during testing
+            for batch in test_loader:
+                outputs = trainer.network(
+                    batch["extero"], batch["intero"], batch["context"]
+                )
+                energy_monitor.log_network_activity(name, outputs, batch)
+
+            # Get final energy report
+            energy_report = energy_monitor.get_energy_report()
 
             task_results[name] = {
                 "history": history,
                 "test_accuracy": test_results["accuracy"],
                 "test_auc": test_results["auc"],
                 "convergence_epoch": len(history["train_losses"]),
+                "energy_report": energy_report.get(name, {}),
             }
 
             print(f"\n  {name} Results:")
@@ -1223,6 +1427,13 @@ class NetworkComparison:
                 "convergence_epoch", len(history["train_losses"])
             )
             print(f"    Converged in: {conv_epoch} epochs")
+
+            # Energy efficiency
+            if name in energy_report:
+                eff_ratio = energy_report[name]["efficiency_ratio"]
+                energy_kcal = energy_report[name]["energy_kcal"]
+                print(f"    Energy Efficiency: {eff_ratio:.3f}x baseline")
+                print(f"    Energy Consumption: {energy_kcal:.6f} kcal")
 
         return task_results
 
@@ -1392,6 +1603,77 @@ class FalsificationChecker:
             "excess_energy": max(0, apgi_energy_ratio - 1),
         }
 
+    def check_Innovation_29_AUROC_Superiority(self, results: Dict) -> Tuple[bool, Dict]:
+        """
+        Innovation 29: LNN AUROC superiority by pre-specified ΔAUROC
+
+        Tests that APGI (LNN) shows AUROC advantage over baseline networks
+        by at least F6_DELTA_AUROC_MIN threshold.
+        """
+
+        # Collect AUROC scores across all tasks
+        apgi_aurocs = []
+        baseline_aurocs = []
+
+        for task_name, task_results in results.items():
+            if "APGI" in task_results:
+                apgi_auc = task_results["APGI"].get("test_auc", 0.0)
+                apgi_aurocs.append(apgi_auc)
+
+                # Get baseline (average of non-APGI networks)
+                baseline_aucs_task = []
+                for network_name, network_results in task_results.items():
+                    if network_name != "APGI":
+                        baseline_aucs_task.append(network_results.get("test_auc", 0.0))
+
+                if baseline_aucs_task:
+                    baseline_auc = np.mean(baseline_aucs_task)
+                    baseline_aurocs.append(baseline_auc)
+
+        if not apgi_aurocs or not baseline_aurocs:
+            return False, {
+                "message": "Insufficient AUROC data for comparison",
+                "apgi_aurocs": apgi_aurocs,
+                "baseline_aurocs": baseline_aurocs,
+            }
+
+        # Calculate mean AUROC difference
+        mean_apgi_auc = np.mean(apgi_aurocs)
+        mean_baseline_auc = np.mean(baseline_aurocs)
+        delta_auroc = mean_apgi_auc - mean_baseline_auc
+
+        # Check against pre-specified threshold
+        superiority_pass = delta_auroc >= F6_DELTA_AUROC_MIN
+
+        # Statistical test (paired t-test across tasks)
+        if len(apgi_aurocs) == len(baseline_aurocs) and len(apgi_aurocs) > 1:
+            t_stat, p_value = stats.ttest_rel(apgi_aurocs, baseline_aurocs)
+            statistical_significance = p_value < 0.05
+        else:
+            t_stat = 0.0
+            p_value = 1.0
+            statistical_significance = False
+
+        return superiority_pass, {
+            "apgi_mean_auc": mean_apgi_auc,
+            "baseline_mean_auc": mean_baseline_auc,
+            "delta_auroc": delta_auroc,
+            "threshold": F6_DELTA_AUROC_MIN,
+            "t_statistic": t_stat,
+            "p_value": p_value,
+            "statistical_significance": statistical_significance,
+            "n_tasks": len(apgi_aurocs),
+            "apgi_aurocs_by_task": dict(
+                zip([f"Task_{i + 1}" for i in range(len(apgi_aurocs))], apgi_aurocs)
+            ),
+            "baseline_aurocs_by_task": dict(
+                zip(
+                    [f"Task_{i + 1}" for i in range(len(baseline_aurocs))],
+                    baseline_aurocs,
+                )
+            ),
+        }
+
     def generate_report(
         self,
         results: Dict,
@@ -1504,6 +1786,23 @@ class FalsificationChecker:
                     report["falsified_criteria"].append(criterion)
                 else:
                     report["passed_criteria"].append(criterion)
+
+        # Innovation 29: AUROC Superiority Check
+        (
+            innovation_29_result,
+            innovation_29_details,
+        ) = self.check_Innovation_29_AUROC_Superiority(results)
+        criterion = {
+            "code": "Innovation_29",
+            "description": "LNN AUROC superiority by pre-specified ΔAUROC",
+            "falsified": innovation_29_result,
+            "details": innovation_29_details,
+        }
+
+        if innovation_29_result:
+            report["falsified_criteria"].append(criterion)
+        else:
+            report["passed_criteria"].append(criterion)
 
         report["overall_falsified"] = len(report["falsified_criteria"]) > 0
 

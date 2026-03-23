@@ -40,6 +40,16 @@ model:
   dt: 0.05          # Simulation time step
   duration: 1.0     # Simulation duration
 
+  # F6.2 parameters
+  F6_2_MIN_INTEGRATION_RATIO: 4.0  # ≥4× RNN  (spec criterion)
+  F6_2_FALSIFICATION_RATIO: 2.5  # falsified if ratio < 2.5×
+  F6_2_MIN_CURVE_FIT_R2: 0.85  # R² ≥ 0.85
+  F6_2_WILCOXON_ALPHA: 0.05
+
+  # Innovation 29 (LNN AUROC superiority) parameters
+  F6:
+    delta_auroc_min: 0.05  # ΔAUROC ≥ 0.05 (pre-specified threshold for LNN superiority)
+
 simulation:
   default_steps: 1000
   default_dt: 0.05
@@ -87,6 +97,18 @@ falsification:
   cohens_d_adaptation_threshold: 0.70  # Minimum effect size for adaptation (F1.4)
   tau_theta_min: 10  # Minimum threshold adaptation time constant (seconds)
   tau_theta_max: 100  # Maximum threshold adaptation time constant (seconds)
+  
+  # F1 Cross-Level Bidirectional Coupling thresholds
+  F1:
+    inter_intra_coupling_ratio: 1.5  # inter must exceed intra by 50%
+    pac_coherence_increase_min: 0.20  # 20% increase on conscious trials
+    pac_baseline_mi_min: 0.012  # Minimum baseline PAC MI for theta-gamma coupling
+    pac_ignition_increase_min: 30  # Minimum % increase during ignition vs baseline
+    pac_delta_theta_baseline_min: 0.008  # Minimum baseline PAC MI for delta-theta coupling
+  
+  # F2 Cardiac Phase-Dependent Detection thresholds
+  F2:
+    cardiac_detection_advantage_min: 0.12  # Minimum 12% higher detection during high-HEP vs low-HEP phases
 
 network:
   # Neural network architecture dimensions
@@ -167,3 +189,23 @@ network:
   # Genetic algorithm parameters
   mutation_rate: 0.1
   ignition_cost: 0.1
+
+# Phase-Amplitude Coupling (PAC) frequency band specifications
+pac_bands:
+  # Level 1-2 coupling: theta-gamma PAC
+  L1_L2:
+    phase: [4, 8]      # theta band (4-8 Hz)
+    amplitude: [30, 80] # gamma band (30-80 Hz)
+    description: "theta-gamma coupling for Level 1-2"
+  
+  # Level 2-3 coupling: delta-theta PAC  
+  L2_L3:
+    phase: [1, 4]      # delta band (1-4 Hz)
+    amplitude: [4, 8]  # theta band (4-8 Hz)
+    description: "delta-theta coupling for Level 2-3"
+  
+  # Level 3-4 coupling: delta-theta PAC (same as L2_L3)
+  L3_L4:
+    phase: [1, 4]      # delta band (1-4 Hz) 
+    amplitude: [4, 8]  # theta band (4-8 Hz)
+    description: "delta-theta coupling for Level 3-4"

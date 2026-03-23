@@ -16,6 +16,8 @@ This protocol implements:
 
 import json
 import logging
+import os
+import psutil
 import sys
 from collections import deque
 from pathlib import Path
@@ -23,12 +25,15 @@ from typing import Any, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import psutil
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.linear_model import LogisticRegression
 from tqdm import tqdm
+
+# Add parent directory to path for utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.constants import LEVEL_TIMESCALES
 
 # Add parent directory to path for imports
 project_root = Path(__file__).parent.parent
@@ -66,6 +71,9 @@ class HierarchicalGenerativeModel(nn.Module):
         self.levels = levels
         self.n_levels = len(levels)
 
+        # Validate tau values against LEVEL_TIMESCALES constant
+        self._validate_tau_values()
+
         # Create networks for each level
         self.level_networks = nn.ModuleList()
 
@@ -92,6 +100,21 @@ class HierarchicalGenerativeModel(nn.Module):
         self.taus = torch.tensor([level["tau"] for level in levels])
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+
+    def _validate_tau_values(self):
+        """Validate that tau values match LEVEL_TIMESCALES specification"""
+        for i, level in enumerate(self.levels):
+            expected_tau = LEVEL_TIMESCALES.LEVEL_TIMESCALES.get(i + 1)
+            if expected_tau is not None:
+                actual_tau = level.get("tau")
+                if actual_tau is None:
+                    raise ValueError(f"Level {i + 1} missing tau value")
+                # Allow small tolerance for floating point comparison
+                if abs(actual_tau - expected_tau) > 0.001:
+                    raise ValueError(
+                        f"Level {i + 1} tau value {actual_tau} does not match "
+                        f"expected {expected_tau} from LEVEL_TIMESCALES"
+                    )
 
     def predict(self, level: int = 0) -> torch.Tensor:
         """Generate prediction for given level from level above"""
@@ -448,18 +471,22 @@ class APGIActiveInferenceAgent:
         # Generative models
         self.extero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "sensory", "dim": 32, "tau": 0.05},
-                {"name": "objects", "dim": 16, "tau": 0.2},
-                {"name": "context", "dim": 8, "tau": 1.0},
+                {"name": "sensory", "dim": 32, "tau": LEVEL_TIMESCALES.TAU_SENSORY},
+                {"name": "objects", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
+                {"name": "context", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
             ],
             learning_rate=config.get("lr_extero", 0.01),
         )
 
         self.intero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "visceral", "dim": 16, "tau": 0.1},
-                {"name": "organ", "dim": 8, "tau": 0.5},
-                {"name": "homeostatic", "dim": 4, "tau": 2.0},
+                {"name": "visceral", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
+                {"name": "organ", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
+                {
+                    "name": "homeostatic",
+                    "dim": 4,
+                    "tau": LEVEL_TIMESCALES.TAU_HOMEOSTATIC,
+                },
             ],
             learning_rate=config.get("lr_intero", 0.01),
         )
@@ -750,17 +777,21 @@ class StandardPPAgent:
 
         self.extero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "sensory", "dim": 32, "tau": 0.05},
-                {"name": "objects", "dim": 16, "tau": 0.2},
-                {"name": "context", "dim": 8, "tau": 1.0},
+                {"name": "sensory", "dim": 32, "tau": LEVEL_TIMESCALES.TAU_SENSORY},
+                {"name": "objects", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
+                {"name": "context", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
             ]
         )
 
         self.intero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "visceral", "dim": 16, "tau": 0.1},
-                {"name": "organ", "dim": 8, "tau": 0.5},
-                {"name": "homeostatic", "dim": 4, "tau": 2.0},
+                {"name": "visceral", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
+                {"name": "organ", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
+                {
+                    "name": "homeostatic",
+                    "dim": 4,
+                    "tau": LEVEL_TIMESCALES.TAU_HOMEOSTATIC,
+                },
             ]
         )
 
@@ -810,9 +841,9 @@ class GWTOnlyAgent:
 
         self.extero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "sensory", "dim": 32, "tau": 0.05},
-                {"name": "objects", "dim": 16, "tau": 0.2},
-                {"name": "context", "dim": 8, "tau": 1.0},
+                {"name": "sensory", "dim": 32, "tau": LEVEL_TIMESCALES.TAU_SENSORY},
+                {"name": "objects", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
+                {"name": "context", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
             ]
         )
 

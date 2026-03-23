@@ -155,6 +155,78 @@
         "mutation_rate": {"type": "number", "minimum": 0, "maximum": 1},
         "ignition_cost": {"type": "number", "minimum": 0}
       }
+    },
+    "pac_bands": {
+      "type": "object",
+      "description": "Phase-Amplitude Coupling frequency band specifications",
+      "properties": {
+        "L1_L2": {
+          "type": "object",
+          "description": "Level 1-2 coupling: theta-gamma PAC",
+          "properties": {
+            "phase": {
+              "type": "array",
+              "items": {"type": "number", "minimum": 0},
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "Phase frequency band [low, high] in Hz"
+            },
+            "amplitude": {
+              "type": "array", 
+              "items": {"type": "number", "minimum": 0},
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "Amplitude frequency band [low, high] in Hz"
+            },
+            "description": {"type": "string", "description": "Description of this PAC configuration"}
+          },
+          "required": ["phase", "amplitude"]
+        },
+        "L2_L3": {
+          "type": "object",
+          "description": "Level 2-3 coupling: delta-theta PAC",
+          "properties": {
+            "phase": {
+              "type": "array",
+              "items": {"type": "number", "minimum": 0},
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "Phase frequency band [low, high] in Hz"
+            },
+            "amplitude": {
+              "type": "array",
+              "items": {"type": "number", "minimum": 0},
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "Amplitude frequency band [low, high] in Hz"
+            },
+            "description": {"type": "string", "description": "Description of this PAC configuration"}
+          },
+          "required": ["phase", "amplitude"]
+        },
+        "L3_L4": {
+          "type": "object",
+          "description": "Level 3-4 coupling: delta-theta PAC",
+          "properties": {
+            "phase": {
+              "type": "array",
+              "items": {"type": "number", "minimum": 0},
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "Phase frequency band [low, high] in Hz"
+            },
+            "amplitude": {
+              "type": "array",
+              "items": {"type": "number", "minimum": 0},
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "Amplitude frequency band [low, high] in Hz"
+            },
+            "description": {"type": "string", "description": "Description of this PAC configuration"}
+          },
+          "required": ["phase", "amplitude"]
+        }
+      }
     }
   },
   "additionalProperties": false

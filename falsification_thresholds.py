@@ -123,6 +123,13 @@ F6_5_HYSTERESIS_MIN: float = 0.08  # hysteresis ≥ 0.08
 F6_5_HYSTERESIS_MAX: float = 0.25  # hysteresis ≤ 0.25
 
 # ---------------------------------------------------------------------------
+# Innovation 29 – LNN AUROC superiority threshold
+# ---------------------------------------------------------------------------
+F6_DELTA_AUROC_MIN: float = (
+    0.05  # ΔAUROC ≥ 0.05 (pre-specified threshold for LNN superiority)
+)
+
+# ---------------------------------------------------------------------------
 # V7.1 – TMS Intervention Thresholds
 # ---------------------------------------------------------------------------
 V7_1_MIN_THRESHOLD_REDUCTION_PCT: float = 15.0  # ≥15 % reduction
@@ -184,6 +191,12 @@ F2_2_MIN_CORR: float = 0.40
 F2_2_MIN_FISHER_Z: float = 1.80
 F2_2_ALPHA: float = 0.01
 
+F2_3_MIN_RT_ADVANTAGE_MS: float = 50.0  # ≥50 ms RT advantage (spec)
+F2_3_MIN_BETA: float = 25.0  # β ≥ 25 ms
+F2_3_MIN_STANDARDIZED_BETA: float = 0.40  # std β ≥ 0.40
+F2_3_MIN_R2: float = 0.18  # R² ≥ 0.18
+F2_3_ALPHA: float = 0.01
+
 F2_4_MIN_CONFIDENCE_EFFECT_PCT: float = 30.0
 F2_4_MIN_BETA_INTERACTION: float = 0.35
 F2_4_ALPHA: float = 0.01
@@ -192,6 +205,11 @@ F2_5_MAX_TRIALS: float = 55.0
 F2_5_MIN_HAZARD_RATIO: float = 1.65
 F2_5_MIN_TRIAL_ADVANTAGE: float = 12.0
 F2_5_ALPHA: float = 0.01
+
+# Cardiac Phase-Dependent Detection threshold
+F2_CARDIAC_DETECTION_ADVANTAGE_MIN: float = (
+    0.12  # Minimum 12% higher detection during high-HEP vs low-HEP phases
+)
 
 # ---------------------------------------------------------------------------
 # F3 family (Advantages)
@@ -246,6 +264,7 @@ THRESHOLD_REGISTRY = {
     "F2.4_BETA_INTERACTION": F2_4_MIN_BETA_INTERACTION,
     "F2.5_MAX_TRIALS": F2_5_MAX_TRIALS,
     "F2.5_HAZARD_RATIO": F2_5_MIN_HAZARD_RATIO,
+    "F2.CARDIAC_DETECTION_ADVANTAGE": F2_CARDIAC_DETECTION_ADVANTAGE_MIN,
     "F3.1_ADVANTAGE": F3_1_MIN_ADVANTAGE_PCT,
     "F3.1_COHENS_D": F3_1_MIN_COHENS_D,
     "F3.2_INTERO_ADVANTAGE": F3_2_MIN_INTERO_ADVANTAGE_PCT,

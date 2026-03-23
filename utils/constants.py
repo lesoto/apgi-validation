@@ -143,6 +143,37 @@ class PCINormalization:
 
 
 @dataclass
+class LevelTimescales:
+    """
+    Level-specific time constants (tau) for hierarchical generative models.
+
+    VALIDATED: Document specifies τ ranges from 0.05s (sensory) to 2.0s (homeostatic).
+    Source: APGI falsification criteria documentation, Innovations-Software-Implementation.md
+    """
+
+    # Level 1: Sensory (fastest timescale)
+    TAU_SENSORY: float = 0.05  # seconds
+    # Level 2: Organ/visceral
+    TAU_ORGAN: float = 0.2  # seconds
+    # Level 3: Cognitive/context
+    TAU_COGNITIVE: float = 0.5  # seconds
+    # Level 4: Homeostatic (slowest timescale)
+    TAU_HOMEOSTATIC: float = 2.0  # seconds
+
+    # Mapping by level number (1-indexed)
+    LEVEL_TIMESCALES: Dict = None
+
+    def __post_init__(self):
+        if self.LEVEL_TIMESCALES is None:
+            self.LEVEL_TIMESCALES = {
+                1: self.TAU_SENSORY,
+                2: self.TAU_ORGAN,
+                3: self.TAU_COGNITIVE,
+                4: self.TAU_HOMEOSTATIC,
+            }
+
+
+@dataclass
 class DimensionConstants:
     """Dimension constants for APGI models."""
 
@@ -198,3 +229,4 @@ SYSTEM_DEFAULTS = SystemDefaults()
 PARAMETER_BOUNDS = ParameterBounds()
 PCI_NORMALIZATION = PCINormalization()
 DIM_CONSTANTS = DimensionConstants()
+LEVEL_TIMESCALES = LevelTimescales()

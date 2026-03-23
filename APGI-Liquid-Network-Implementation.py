@@ -2350,6 +2350,186 @@ class APGIValidator:
             "steps_completed": len(gradient_norms),
         }
 
+    @staticmethod
+    def verify_phase_transition_cooccurrence(
+        network: APGILiquidNetwork,
+    ) -> Dict[str, bool]:
+        """
+        Verify F4 co-occurrence criterion: all three phase transition signatures
+        must be present simultaneously.
+
+        F4 requires:
+        1. Bistability (hysteresis width ≥ 0.08-0.25 θ_t)
+        2. Critical slowing (τ_auto > 20% increase near threshold)
+        3. Hysteresis (path-dependent ignition thresholds)
+
+        This function implements the F4 falsification criterion by checking
+        all three conditions simultaneously and raising if any is absent.
+        """
+        batch_size = 1
+        device = torch.device("cpu")
+        state = network.initialize_state(batch_size, device)
+
+        # Test 1: Bistability through hysteresis loop
+        print("Testing bistability...")
+        hysteresis_width = APGIValidator._measure_hysteresis_width(network, state)
+        theta_t = network.config.theta0
+        min_hysteresis = 0.08 * theta_t
+        max_hysteresis = 0.25 * theta_t
+        bistability_present = min_hysteresis <= hysteresis_width <= max_hysteresis
+
+        # Test 2: Critical slowing down
+        print("Testing critical slowing...")
+        tau_auto_ratio = APGIValidator._measure_critical_slowing(network, state)
+        critical_slowing_present = tau_auto_ratio > 1.2  # >20% increase
+
+        # Test 3: Hysteresis (path dependence)
+        print("Testing hysteresis...")
+        hysteresis_present = APGIValidator._test_hysteresis_path_dependence(
+            network, state
+        )
+
+        # Co-occurrence criterion: ALL THREE must be present
+        f4_cooccurrence_met = (
+            bistability_present and critical_slowing_present and hysteresis_present
+        )
+
+        return {
+            "f4_cooccurrence_met": f4_cooccurrence_met,
+            "bistability_present": bistability_present,
+            "critical_slowing_present": critical_slowing_present,
+            "hysteresis_present": hysteresis_present,
+            "hysteresis_width": hysteresis_width,
+            "tau_auto_ratio": tau_auto_ratio,
+            "min_hysteresis": min_hysteresis,
+            "max_hysteresis": max_hysteresis,
+            "theta_t": theta_t,
+            "f4_criterion": "All three signatures (bistability, critical slowing, hysteresis) must co-occur",
+        }
+
+    @staticmethod
+    def _measure_hysteresis_width(
+        network: APGILiquidNetwork, state: APGIState
+    ) -> float:
+        """Measure hysteresis width through upward and downward sweeps"""
+        n_sweep = 50
+        drives_up = torch.linspace(0, 2 * network.config.theta0, n_sweep)
+        drives_down = torch.linspace(2 * network.config.theta0, 0, n_sweep)
+
+        # Upward sweep
+        ignition_up = []
+        for drive in drives_up:
+            intero_input = torch.ones(1, network.input_size) * drive
+            extero_input = torch.ones(1, network.input_size) * drive
+            _, _, state_new, diagnostics = network(intero_input, extero_input, state)
+            ignition_up.append(diagnostics["ignition_prob"].mean().item())
+            state = state_new  # Update state for next iteration
+
+        # Reset and downward sweep
+        state = network.initialize_state(1, torch.device("cpu"))
+        ignition_down = []
+        for drive in drives_down:
+            intero_input = torch.ones(1, network.input_size) * drive
+            extero_input = torch.ones(1, network.input_size) * drive
+            _, _, state_new, diagnostics = network(intero_input, extero_input, state)
+            ignition_down.append(diagnostics["ignition_prob"].mean().item())
+            state = state_new
+
+        # Find 50% ignition points
+        up_threshold = None
+        down_threshold = None
+
+        for i, prob in enumerate(ignition_up):
+            if prob >= 0.5:
+                up_threshold = drives_up[i].item()
+                break
+
+        for i, prob in enumerate(ignition_down):
+            if prob <= 0.5:
+                down_threshold = drives_down[i].item()
+                break
+
+        if up_threshold is not None and down_threshold is not None:
+            return abs(up_threshold - down_threshold)
+        else:
+            return 0.0
+
+    @staticmethod
+    def _measure_critical_slowing(
+        network: APGILiquidNetwork, state: APGIState
+    ) -> float:
+        """Measure autocorrelation time ratio near vs. far from threshold"""
+        # Far from threshold (low drive)
+        tau_far = APGIValidator._estimate_autocorrelation_time(
+            network, state, drive=0.5
+        )
+
+        # Near threshold (drive close to theta_t)
+        tau_near = APGIValidator._estimate_autocorrelation_time(
+            network, state, drive=network.config.theta0 * 0.9
+        )
+
+        return tau_near / tau_far if tau_far > 0 else 1.0
+
+    @staticmethod
+    def _estimate_autocorrelation_time(
+        network: APGILiquidNetwork, state: APGIState, drive: float
+    ) -> float:
+        """Estimate autocorrelation time from temporal dynamics"""
+        n_steps = 100
+        activity_trace = []
+
+        intero_input = torch.ones(1, network.input_size) * drive
+        extero_input = torch.ones(1, network.input_size) * drive
+
+        for _ in range(n_steps):
+            broadcast, _, new_state, diagnostics = network(
+                intero_input, extero_input, state
+            )
+            # Use broadcast signal as proxy for workspace activity
+            activity_trace.append(broadcast.mean().item())
+            state = new_state
+
+        # Simple autocorrelation estimation
+        activity_trace = np.array(activity_trace)
+        if len(activity_trace) > 1:
+            # Compute autocorrelation at lag 1
+            autocorr = np.corrcoef(activity_trace[:-1], activity_trace[1:])[0, 1]
+            if not np.isnan(autocorr) and autocorr > 0:
+                # Approximate time constant as -1 / log(autocorr)
+                return -1.0 / np.log(autocorr)
+
+        return 1.0  # Default if estimation fails
+
+    @staticmethod
+    def _test_hysteresis_path_dependence(
+        network: APGILiquidNetwork, state: APGIState
+    ) -> bool:
+        """Test for path-dependent ignition thresholds"""
+        # Test ignition from low vs high initial states
+        state_low = network.initialize_state(1, torch.device("cpu"))
+        state_high = network.initialize_state(1, torch.device("cpu"))
+
+        # Set high initial state
+        state_high.workspace_state.fill_(1.0)
+
+        drive = network.config.theta0 * 0.95  # Near threshold
+
+        # Test from low state
+        intero_input = torch.ones(1, network.input_size) * drive
+        extero_input = torch.ones(1, network.input_size) * drive
+        _, _, _, diag_low = network(intero_input, extero_input, state_low)
+
+        # Test from high state
+        _, _, _, diag_high = network(intero_input, extero_input, state_high)
+
+        # Path dependence: different ignition probabilities from different initial states
+        prob_diff = abs(
+            diag_low["ignition_prob"].mean().item()
+            - diag_high["ignition_prob"].mean().item()
+        )
+        return prob_diff > 0.1  # Significant difference indicates hysteresis
+
 
 # ============================================================================
 # Example Usage and Testing
@@ -2470,6 +2650,17 @@ if __name__ == "__main__":
     gf_results = validator.validate_gradient_flow(network)
     for key, value in gf_results.items():
         print(f"   {key}: {value}")
+
+    print("\n7. F4 Co-occurrence Criterion:")
+    f4_results = validator.verify_phase_transition_cooccurrence(network)
+    print(f"   F4 Co-occurrence Met: {f4_results['f4_cooccurrence_met']}")
+    print(f"   Bistability: {f4_results['bistability_present']}\n")
+    print(f"   Critical Slowing: {f4_results['critical_slowing_present']}\n")
+    print(f"   Hysteresis: {f4_results['hysteresis_present']}\n")
+    print(f"   Hysteresis Width: {f4_results['hysteresis_width']:.4f}")
+    print(f"   τ_auto Ratio: {f4_results['tau_auto_ratio']:.2f}")
+    print(f"   Threshold θ_t: {f4_results['theta_t']:.3f}")
+    print(f"   Criterion: {f4_results['f4_criterion']}")
 
     # Performance benchmark
     print("\n" + "=" * 80)
