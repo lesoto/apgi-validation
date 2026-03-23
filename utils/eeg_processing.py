@@ -10,6 +10,7 @@ Functions:
 - detect_gamma_band_power: Welch PSD with Simpson integration over 30-80 Hz
 - compute_theta_gamma_pac: Modulation Index (Tort et al., 2010) for theta-gamma coupling
 - detect_p3_amplitude: Bandpass filtering and peak detection for P3b component
+- get_pac_bands: Load PAC band configuration from config file
 """
 
 import numpy as np
@@ -17,6 +18,38 @@ import pandas as pd
 from scipy import signal
 from scipy.integrate import trapezoid  # Use trapezoid instead of deprecated simps
 from typing import Dict, Any, Tuple
+from pathlib import Path
+import yaml
+
+
+def get_pac_bands() -> Dict[str, Dict[str, Tuple[float, float]]]:
+    """
+    Load PAC band configuration from default.yaml config file.
+
+    Returns:
+        Dictionary with PAC band specifications for different level boundaries
+    """
+    try:
+        config_path = Path(__file__).parent.parent / "config" / "default.yaml"
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+            pac_bands = config.get("pac_bands", {})
+
+        # Convert lists to tuples for consistency
+        for level, bands in pac_bands.items():
+            if "phase" in bands and isinstance(bands["phase"], list):
+                bands["phase"] = tuple(bands["phase"])
+            if "amplitude" in bands and isinstance(bands["amplitude"], list):
+                bands["amplitude"] = tuple(bands["amplitude"])
+
+        return pac_bands
+    except Exception:
+        # Fallback configuration if file not found
+        return {
+            "L1_L2": {"phase": (4, 8), "amplitude": (30, 80)},
+            "L2_L3": {"phase": (1, 4), "amplitude": (4, 8)},
+            "L3_L4": {"phase": (1, 4), "amplitude": (4, 8)},
+        }
 
 
 def detect_gamma_band_power(
@@ -125,6 +158,108 @@ def _permutation_test_gamma(
     p_value = (n_greater + 1) / (n_permutations + 1)
 
     return p_value
+
+
+def compute_pac_with_bands(
+    eeg_data: np.ndarray,
+    fs: float = 1000.0,
+    phase_band: Tuple[float, float] = (4.0, 8.0),
+    amplitude_band: Tuple[float, float] = (30.0, 80.0),
+    n_permutations: int = 1000,
+    alpha: float = 0.01,
+    level_boundary: str = "L1_L2",
+) -> Dict[str, Any]:
+    """
+    Compute phase-amplitude coupling using configurable frequency bands.
+
+    Args:
+        eeg_data: EEG data array (channels × timepoints or timepoints)
+        fs: Sampling frequency in Hz
+        phase_band: Frequency range for phase band (low, high) in Hz
+        amplitude_band: Frequency range for amplitude band (low, high) in Hz
+        n_permutations: Number of permutations for significance testing
+        alpha: Significance level for permutation test
+        level_boundary: Which hierarchical level boundary this PAC represents
+
+    Returns:
+        Dictionary with PAC metrics and band information
+    """
+    # Ensure 2D array
+    if eeg_data.ndim == 1:
+        eeg_data = eeg_data.reshape(1, -1)
+
+    n_channels, n_samples = eeg_data.shape
+
+    # Filter phase and amplitude bands
+    phase_filtered = _bandpass_filter(eeg_data, fs, phase_band)
+    amplitude_filtered = _bandpass_filter(eeg_data, fs, amplitude_band)
+
+    # Extract phase from phase band
+    if phase_filtered.ndim == 1:
+        phase = np.angle(signal.hilbert(phase_filtered))
+    else:
+        phase = np.angle(signal.hilbert(phase_filtered, axis=1))
+
+    # Extract amplitude envelope from amplitude band
+    amplitude_envelope = _amplitude_envelope(amplitude_filtered, fs)
+
+    # Compute Modulation Index for each channel
+    mi_values = []
+    n_bins = 18  # 18 bins for 0-360 degrees
+    phase_bins = np.linspace(0, 2 * np.pi, n_bins, endpoint=False)
+
+    for ch in range(n_channels):
+        # Compute amplitude for each phase bin
+        amp_by_phase = []
+        for i in range(n_bins):
+            next_bin_idx = (i + 1) % n_bins  # Wrap around for last bin
+            in_bin = (phase[ch] >= phase_bins[i]) & (
+                phase[ch] < phase_bins[next_bin_idx]
+            )
+            if np.any(in_bin):
+                amp = amplitude_envelope[ch, in_bin]
+                amp_by_phase.append(np.mean(amp) if len(amp) > 0 else 0.0)
+            else:
+                amp_by_phase.append(0.0)
+
+        # Normalize amplitudes
+        amp_by_phase = np.array(amp_by_phase)
+        if np.sum(amp_by_phase) > 0:
+            amp_by_phase = amp_by_phase / np.sum(amp_by_phase)
+
+        # Compute MI using KL divergence from uniform distribution
+        uniform_dist = np.ones(n_bins) / n_bins
+        mi = np.sum(amp_by_phase * np.log(amp_by_phase / uniform_dist + 1e-10))
+        mi_values.append(mi)
+
+    # Mean MI across channels
+    modulation_index = np.mean(mi_values)
+
+    # Phase and amplitude amplitudes
+    phase_amplitude = np.mean(np.abs(phase_filtered))
+    amplitude_amplitude = np.mean(amplitude_envelope)
+
+    # Permutation test (only if n_permutations > 1)
+    if n_permutations > 1:
+        p_value = _permutation_test_pac(
+            eeg_data, fs, phase_band, amplitude_band, n_permutations, modulation_index
+        )
+    else:
+        p_value = 1.0
+
+    is_significant = p_value < alpha
+
+    return {
+        "modulation_index": modulation_index,
+        "p_value": p_value,
+        "is_significant": is_significant,
+        "phase_amplitude": phase_amplitude,
+        "amplitude_amplitude": amplitude_amplitude,
+        "phase_band": phase_band,
+        "amplitude_band": amplitude_band,
+        "level_boundary": level_boundary,
+        "description": f"{phase_band[0]}-{phase_band[1]}Hz phase × {amplitude_band[0]}-{amplitude_band[1]}Hz amplitude coupling",
+    }
 
 
 def compute_theta_gamma_pac(
@@ -426,6 +561,46 @@ def detect_p3_amplitude(
     }
 
 
+def compute_all_pac_bands(
+    eeg_data: np.ndarray,
+    fs: float = 1000.0,
+    n_permutations: int = 1000,
+    alpha: float = 0.01,
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Compute phase-amplitude coupling for all configured level boundaries.
+
+    Args:
+        eeg_data: EEG data array (channels × timepoints or timepoints)
+        fs: Sampling frequency in Hz
+        n_permutations: Number of permutations for significance testing
+        alpha: Significance level for permutation test
+
+    Returns:
+        Dictionary with PAC results for each level boundary
+    """
+    pac_bands = get_pac_bands()
+    results = {}
+
+    for level_boundary, bands in pac_bands.items():
+        phase_band = tuple(bands["phase"])
+        amplitude_band = tuple(bands["amplitude"])
+
+        result = compute_pac_with_bands(
+            eeg_data=eeg_data,
+            fs=fs,
+            phase_band=phase_band,
+            amplitude_band=amplitude_band,
+            n_permutations=n_permutations,
+            alpha=alpha,
+            level_boundary=level_boundary,
+        )
+
+        results[level_boundary] = result
+
+    return results
+
+
 def process_real_eeg(
     eeg_data: np.ndarray,
     fs: float = 1000.0,
@@ -443,6 +618,7 @@ def process_real_eeg(
     results = {
         "gamma": detect_gamma_band_power(eeg_data, fs),
         "pac": compute_theta_gamma_pac(eeg_data, fs),
+        "pac_all": compute_all_pac_bands(eeg_data, fs),
         "p3": detect_p3_amplitude(eeg_data, fs),
     }
 
@@ -461,10 +637,13 @@ if __name__ == "__main__":
     # Create synthetic EEG with gamma and theta components
     gamma_component = 5.0 * np.sin(2 * np.pi * 50 * t) * np.exp(-t / 0.5)
     theta_component = 3.0 * np.sin(2 * np.pi * 6 * t) * np.exp(-t / 0.3)
+    delta_component = 2.0 * np.sin(2 * np.pi * 2 * t) * np.exp(-t / 0.4)
     p3_component = 8.0 * np.exp(-((t - 0.5) ** 2) / 0.1) * (t > 0.3) * (t < 0.8)
     noise = 0.5 * np.random.randn(n_samples)
 
-    eeg_data = (gamma_component + theta_component + p3_component + noise).reshape(1, -1)
+    eeg_data = (
+        gamma_component + theta_component + delta_component + p3_component + noise
+    ).reshape(1, -1)
 
     # Process EEG
     results = process_real_eeg(eeg_data, fs)
@@ -485,8 +664,24 @@ if __name__ == "__main__":
     print(f"  Theta amplitude: {results['pac']['theta_amplitude']:.4f}")
     print(f"  Gamma amplitude: {results['pac']['gamma_amplitude']:.4f}")
 
+    print("\nAll PAC Bands:")
+    for level_boundary, pac_result in results["pac_all"].items():
+        print(f"  {level_boundary}:")
+        print(f"    Modulation Index: {pac_result['modulation_index']:.4f}")
+        print(f"    Description: {pac_result['description']}")
+        print(f"    Significant: {pac_result['is_significant']}")
+
     print("\nP3b Detection:")
     print(f"  P3b amplitude: {results['p3']['p3_amplitude']:.4f}")
     print(f"  Number of peaks: {results['p3']['n_peaks']}")
     print(f"  Significant: {results['p3']['is_significant']}")
+
+    # Test PAC band configuration
+    print("\nPAC Band Configuration:")
+    pac_bands = get_pac_bands()
+    for level, bands in pac_bands.items():
+        print(
+            f"  {level}: phase {bands['phase']} Hz, amplitude {bands['amplitude']} Hz"
+        )
+
     print("=" * 80)

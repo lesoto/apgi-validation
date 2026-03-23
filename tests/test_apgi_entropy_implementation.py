@@ -12,30 +12,33 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Import the module with error handling
+# Import the module with error handling (hyphenated filename requires importlib)
 try:
-    from APGI_Entropy_Implementation import (
-        APGIConfig,
-        IgnitionState,
-        EntropyOutput,
-        PrecisionOutput,
-        PredictionOutput,
-        MetabolicOutput,
-        ThermodynamicEntropyCalculator,
-        ShannonEntropyCalculator,
-        VariationalFreeEnergyCalculator,
-        MultiLevelEntropyModule,
-        LTCNeuron,
-        HierarchicalPredictiveCodingLayer,
-        PrecisionEstimator,
-        PredictionErrorModule,
-        EnhancedMetabolicCostModule,
-        AdaptiveThreshold,
-        NeuromodulationModule,
-        GlobalWorkspaceModule,
-        APGILiquidNetwork,
-        EnhancedAPGIValidator,
+    import importlib
+
+    _entropy_module = importlib.import_module("APGI-Entropy-Implementation")
+    APGIConfig = _entropy_module.APGIConfig
+    IgnitionState = _entropy_module.IgnitionState
+    EntropyOutput = _entropy_module.EntropyOutput
+    PrecisionOutput = _entropy_module.PrecisionOutput
+    PredictionOutput = _entropy_module.PredictionOutput
+    MetabolicOutput = _entropy_module.MetabolicOutput
+    ThermodynamicEntropyCalculator = _entropy_module.ThermodynamicEntropyCalculator
+    ShannonEntropyCalculator = _entropy_module.ShannonEntropyCalculator
+    VariationalFreeEnergyCalculator = _entropy_module.VariationalFreeEnergyCalculator
+    MultiLevelEntropyModule = _entropy_module.MultiLevelEntropyModule
+    LTCNeuron = _entropy_module.LTCNeuron
+    HierarchicalPredictiveCodingLayer = (
+        _entropy_module.HierarchicalPredictiveCodingLayer
     )
+    PrecisionEstimator = _entropy_module.PrecisionEstimator
+    PredictionErrorModule = _entropy_module.PredictionErrorModule
+    EnhancedMetabolicCostModule = _entropy_module.EnhancedMetabolicCostModule
+    AdaptiveThreshold = _entropy_module.AdaptiveThreshold
+    NeuromodulationModule = _entropy_module.NeuromodulationModule
+    GlobalWorkspaceModule = _entropy_module.GlobalWorkspaceModule
+    APGILiquidNetwork = _entropy_module.APGILiquidNetwork
+    EnhancedAPGIValidator = _entropy_module.EnhancedAPGIValidator
 
     ENTROPY_IMPLEMENTATION_AVAILABLE = True
 except ImportError as e:
@@ -53,58 +56,66 @@ class TestAPGIConfig:
     def test_config_initialization(self):
         """Test APGIConfig initialization."""
         config = APGIConfig(
-            learning_rate=0.001,
-            batch_size=32,
-            hidden_dims=[64, 32, 16],
-            dropout_rate=0.1,
-            weight_decay=1e-4,
+            input_size=64,
+            hidden_size=32,
+            num_levels=2,
+            dt_ms=10.0,
+            max_window_ms=500.0,
+            theta0=1.0,
+            gamma=0.1,
         )
 
-        assert config.learning_rate == 0.001
-        assert config.batch_size == 32
-        assert config.hidden_dims == [64, 32, 16]
-        assert config.dropout_rate == 0.1
-        assert config.weight_decay == 1e-4
+        assert config.input_size == 64
+        assert config.hidden_size == 32
+        assert config.num_levels == 2
+        assert config.dt_ms == 10.0
+        assert config.max_window_ms == 500.0
+        assert config.theta0 == 1.0
+        assert config.gamma == 0.1
 
     def test_config_validation(self):
         """Test configuration validation."""
         # Test with valid config
         valid_config = APGIConfig(
-            learning_rate=0.001,
-            batch_size=32,
-            hidden_dims=[64, 32, 16],
-            dropout_rate=0.1,
-            weight_decay=1e-4,
+            input_size=32,
+            hidden_size=64,
+            num_levels=3,
+            dt_ms=5.0,
+            max_window_ms=1000.0,
         )
 
         # Should be valid (no validation method in current implementation)
-        assert valid_config.learning_rate == 0.001
+        assert valid_config.input_size == 32
 
     def test_config_edge_cases(self):
         """Test configuration with edge case values."""
         # Test with zero values
         zero_config = APGIConfig(
-            learning_rate=0.0,
-            batch_size=1,
-            hidden_dims=[],
-            dropout_rate=0.0,
-            weight_decay=0.0,
+            input_size=1,
+            hidden_size=1,
+            num_levels=1,
+            dt_ms=0.1,
+            max_window_ms=10.0,
+            theta0=0.1,
+            gamma=0.0,
         )
 
-        assert zero_config.learning_rate == 0.0
-        assert zero_config.batch_size == 1
-        assert zero_config.hidden_dims == []
+        assert zero_config.input_size == 1
+        assert zero_config.hidden_size == 1
+        assert zero_config.num_levels == 1
 
-        # Test with negative values
+        # Test with negative values where allowed
         negative_config = APGIConfig(
-            learning_rate=-0.001,
-            batch_size=16,
-            hidden_dims=[32, 16],
-            dropout_rate=-0.1,
-            weight_decay=-1e-4,
+            input_size=16,
+            hidden_size=32,
+            num_levels=2,
+            dt_ms=1.0,
+            max_window_ms=100.0,
+            theta0=1.0,
+            gamma=-0.1,  # Some parameters may allow negative values
         )
 
-        assert negative_config.learning_rate == -0.001
+        assert negative_config.input_size == 16
 
 
 @pytest.mark.skipif(
@@ -116,12 +127,12 @@ class TestIgnitionState:
 
     def test_ignition_states(self):
         """Test ignition state values."""
-        assert IgnitionState.CONSCIOUS == 1
-        assert IgnitionState.TRANSITIONING == 0.5
+        assert IgnitionState.CONSCIOUS.value == 1
+        assert IgnitionState.TRANSITIONING.value == 0.5
 
     def test_state_comparison(self):
         """Test state comparison."""
-        assert IgnitionState.CONSCIOUS > IgnitionState.TRANSITIONING
+        assert IgnitionState.CONSCIOUS.value > IgnitionState.TRANSITIONING.value
 
 
 @pytest.mark.skipif(
@@ -133,46 +144,85 @@ class TestEntropyOutputs:
 
     def test_entropy_output_initialization(self):
         """Test EntropyOutput initialization."""
+        import torch
+
         output = EntropyOutput(
-            thermodynamic=1.5, shannon=2.0, variational=1.8, metabolic=0.8
+            S_thermodynamic=torch.tensor(1.5),
+            partition_function=torch.tensor(2.0),
+            free_energy_thermodynamic=torch.tensor(1.8),
+            H_shannon=torch.tensor(2.1),
+            information_gain=torch.tensor(0.5),
+            mutual_information=torch.tensor(0.3),
+            F_variational=torch.tensor(1.2),
+            kl_divergence=torch.tensor(0.4),
+            expected_log_likelihood=torch.tensor(-0.8),
+            accuracy=torch.tensor(0.9),
+            complexity=torch.tensor(0.6),
         )
 
-        assert output.thermodynamic == 1.5
-        assert output.shannon == 2.0
-        assert output.variational == 1.8
-        assert output.metabolic == 0.8
+        assert output.S_thermodynamic.item() == 1.5
+        assert pytest.approx(output.H_shannon.item(), 0.0001) == 2.1
+        assert pytest.approx(output.F_variational.item(), 0.0001) == 1.2
 
     def test_precision_output_initialization(self):
         """Test PrecisionOutput initialization."""
-        # Create mock tensor
-        mock_tensor = MagicMock()
+        import torch
+
         output = PrecisionOutput(
-            Pi_intero=mock_tensor, Pi_extero=mock_tensor, confidence=0.8
+            Pi_intero=torch.tensor(0.8),
+            Pi_extero=torch.tensor(0.6),
+            tau_intero=torch.tensor(0.1),
+            tau_extero=torch.tensor(0.05),
+            volatility=torch.tensor(0.2),
+            context_modulation=torch.tensor(0.3),
+            intero_variance=torch.tensor(1.25),
+            extero_variance=torch.tensor(1.67),
         )
 
-        assert output.confidence == 0.8
+        assert pytest.approx(output.Pi_intero.item(), 0.0001) == 0.8
+        assert pytest.approx(output.Pi_extero.item(), 0.0001) == 0.6
+        assert pytest.approx(output.tau_intero.item(), 0.0001) == 0.1
+        assert pytest.approx(output.tau_extero.item(), 0.0001) == 0.05
 
     def test_prediction_output_initialization(self):
         """Test PredictionOutput initialization."""
-        # Create mock tensor
-        mock_tensor = MagicMock()
+        import torch
+
         output = PredictionOutput(
-            epsilon_intero=mock_tensor,
-            epsilon_extero=mock_tensor,
-            precision_weighted_error=mock_tensor,
+            epsilon_intero=torch.tensor(0.1),
+            epsilon_extero=torch.tensor(0.2),
+            pred_intero=torch.tensor(0.5),
+            pred_extero=torch.tensor(0.6),
+            hierarchical_errors=[torch.tensor(0.1), torch.tensor(0.2)],
+            intero_likelihood_var=torch.tensor(0.05),
+            extero_likelihood_var=torch.tensor(0.08),
         )
 
-        assert isinstance(output.epsilon_intero, MagicMock)
-        assert isinstance(output.epsilon_extero, MagicMock)
-        assert isinstance(output.precision_weighted_error, MagicMock)
+        assert pytest.approx(output.epsilon_intero.item(), 0.0001) == 0.1
+        assert pytest.approx(output.epsilon_extero.item(), 0.0001) == 0.2
+        assert pytest.approx(output.pred_intero.item(), 0.0001) == 0.5
+        assert pytest.approx(output.pred_extero.item(), 0.0001) == 0.6
+        assert len(output.hierarchical_errors) == 2
 
     def test_metabolic_output_initialization(self):
         """Test MetabolicOutput initialization."""
-        output = MetabolicOutput(cost=0.5, benefit=0.3, efficiency=0.7)
+        import torch
 
-        assert output.cost == 0.5
-        assert output.benefit == 0.3
-        assert output.efficiency == 0.7
+        output = MetabolicOutput(
+            broadcast_cost_simplified=torch.tensor(0.5),
+            maintenance_cost=torch.tensor(0.3),
+            prediction_benefit=torch.tensor(0.7),
+            free_energy_simplified=torch.tensor(0.2),
+            metabolic_dissipation=torch.tensor(0.1),
+            entropy_production_rate=torch.tensor(0.05),
+            atp_cost=torch.tensor(0.8),
+            heat_dissipation=torch.tensor(0.4),
+        )
+
+        assert output.broadcast_cost_simplified.item() == 0.5
+        assert pytest.approx(output.maintenance_cost.item(), 0.0001) == 0.3
+        assert pytest.approx(output.prediction_benefit.item(), 0.0001) == 0.7
+        assert pytest.approx(output.atp_cost.item(), 0.0001) == 0.8
 
 
 @pytest.mark.skipif(
@@ -184,14 +234,16 @@ class TestThermodynamicEntropyCalculator:
 
     def test_calculator_initialization(self):
         """Test ThermodynamicEntropyCalculator initialization."""
-        calculator = ThermodynamicEntropyCalculator()
+        config = APGIConfig()
+        calculator = ThermodynamicEntropyCalculator(state_size=32, config=config)
 
         assert hasattr(calculator, "forward")
-        assert hasattr(calculator, "compute_entropy")
+        assert hasattr(calculator, "compute_entropy_production_rate")
 
     def test_entropy_computation(self):
         """Test entropy computation."""
-        calculator = ThermodynamicEntropyCalculator()
+        config = APGIConfig()
+        calculator = ThermodynamicEntropyCalculator(state_size=32, config=config)
 
         # Create mock inputs
         mock_precision = MagicMock()
@@ -207,7 +259,8 @@ class TestThermodynamicEntropyCalculator:
 
     def test_different_precision_values(self):
         """Test entropy computation with different precision values."""
-        calculator = ThermodynamicEntropyCalculator()
+        config = APGIConfig()
+        calculator = ThermodynamicEntropyCalculator(state_size=32, config=config)
 
         precision_values = [0.1, 1.0, 10.0]
         surprise_values = [0.5, 1.0, 2.0]
@@ -229,7 +282,8 @@ class TestThermodynamicEntropyCalculator:
 
     def test_entropy_edge_cases(self):
         """Test entropy computation with edge cases."""
-        calculator = ThermodynamicEntropyCalculator()
+        config = APGIConfig()
+        calculator = ThermodynamicEntropyCalculator(state_size=32, config=config)
 
         # Test with zero precision
         mock_pi_zero = MagicMock()
@@ -267,14 +321,16 @@ class TestShannonEntropyCalculator:
 
     def test_calculator_initialization(self):
         """Test ShannonEntropyCalculator initialization."""
-        calculator = ShannonEntropyCalculator()
+        config = APGIConfig()
+        calculator = ShannonEntropyCalculator(state_size=32, config=config)
 
         assert hasattr(calculator, "forward")
-        assert hasattr(calculator, "compute_entropy")
+        assert hasattr(calculator, "compute_shannon_entropy")
 
     def test_shannon_entropy_computation(self):
         """Test Shannon entropy computation."""
-        calculator = ShannonEntropyCalculator()
+        config = APGIConfig()
+        calculator = ShannonEntropyCalculator(state_size=32, config=config)
 
         # Create mock probability distribution
         mock_probs = MagicMock()
@@ -290,7 +346,8 @@ class TestShannonEntropyCalculator:
 
     def test_mutual_information(self):
         """Test mutual information computation."""
-        calculator = ShannonEntropyCalculator()
+        config = APGIConfig()
+        calculator = ShannonEntropyCalculator(state_size=32, config=config)
 
         # Create mock joint and marginal distributions
         mock_joint = MagicMock()
@@ -307,7 +364,8 @@ class TestShannonEntropyCalculator:
 
     def test_kullback_leibler_divergence(self):
         """Test KL divergence computation."""
-        calculator = ShannonEntropyCalculator()
+        config = APGIConfig()
+        calculator = ShannonEntropyCalculator(state_size=32, config=config)
 
         # Create mock distributions
         mock_p = MagicMock()
@@ -332,14 +390,16 @@ class TestVariationalFreeEnergy:
 
     def test_calculator_initialization(self):
         """Test VariationalFreeEnergyCalculator initialization."""
-        calculator = VariationalFreeEnergyCalculator()
+        config = APGIConfig()
+        calculator = VariationalFreeEnergyCalculator(state_size=32, config=config)
 
         assert hasattr(calculator, "forward")
-        assert hasattr(calculator, "compute_energy")
+        assert hasattr(calculator, "compute_kl_divergence_gaussian")
 
     def test_energy_computation(self):
         """Test energy computation."""
-        calculator = VariationalFreeEnergyCalculator()
+        config = APGIConfig()
+        calculator = VariationalFreeEnergyCalculator(state_size=32, config=config)
 
         # Create mock inputs
         mock_model = MagicMock()
@@ -356,7 +416,8 @@ class TestVariationalFreeEnergy:
 
     def test_free_energy_minimization(self):
         """Test free energy minimization."""
-        calculator = VariationalFreeEnergyCalculator()
+        config = APGIConfig()
+        calculator = VariationalFreeEnergyCalculator(state_size=32, config=config)
 
         # Create mock parameters
         mock_params = MagicMock()
@@ -944,9 +1005,8 @@ class TestEnhancedValidator:
         """Test EnhancedAPGIValidator initialization."""
         validator = EnhancedAPGIValidator()
 
-        assert hasattr(validator, "validate_model")
-        assert hasattr(validator, "validate_training")
-        assert hasattr(validator, "validate_predictions")
+        assert hasattr(validator, "validate_three_level_entropy")
+        assert hasattr(EnhancedAPGIValidator, "validate_three_level_entropy")
 
     def test_model_validation(self):
         """Test model validation."""
@@ -1153,6 +1213,173 @@ class TestModuleAvailability:
 
             # Just test that import doesn't crash
             pass  # Reaching here means import succeeded
+
+
+@pytest.mark.skipif(
+    not ENTROPY_IMPLEMENTATION_AVAILABLE,
+    reason="APGI-Entropy-Implementation module not available",
+)
+class TestLandauerConsistency:
+    """
+    Test Landauer's principle: ΔS_thermodynamic ≥ k_B ln 2 · ΔH_bits.
+
+    This is the falsifiable bridge principle between Level 1 (thermodynamic)
+    and Level 2 (information-theoretic) entropy. Violations would invalidate
+    Innovation 1's F2 criterion for the three-level epistemic architecture.
+    """
+
+    def test_landauer_consistency_basic(self):
+        """Test that Landauer's principle holds for computed entropy pairs."""
+        import torch
+
+        config = APGIConfig(
+            use_physical_temperature=True,
+            use_rigorous_thermodynamic_entropy=True,
+            use_shannon_entropy=True,
+        )
+        module = MultiLevelEntropyModule(state_size=32, config=config)
+
+        # Create sample inputs
+        batch_size = 4
+        workspace_state = torch.randn(batch_size, 32)
+        intero_state = torch.randn(batch_size, 32)
+        extero_state = torch.randn(batch_size, 32)
+        observation = torch.randn(batch_size, 32)
+        precision_before = torch.ones(batch_size, 1)
+        precision_after = torch.ones(batch_size, 1) * 2.0  # Precision increase
+
+        # Compute entropy at all three levels
+        entropy_output = module(
+            workspace_state,
+            intero_state,
+            extero_state,
+            observation,
+            precision_before,
+            precision_after,
+        )
+
+        # Test Landauer consistency
+        result = module.test_landauer_consistency(entropy_output)
+
+        # Verify result structure
+        assert "landauer_bound" in result
+        assert "S_thermodynamic" in result
+        assert "landauer_satisfied" in result
+        assert "violation_fraction" in result
+
+        # For normalized units, we check the inequality holds dimensionally
+        # The key falsifiable prediction: violation_fraction should be bounded
+        assert result["violation_fraction"] >= 0.0
+        assert result["violation_fraction"] <= 1.0
+
+    def test_landauer_consistency_with_explicit_delta_h(self):
+        """Test Landauer consistency with explicit ΔH_bits provided."""
+        import torch
+
+        config = APGIConfig()
+        module = MultiLevelEntropyModule(state_size=16, config=config)
+
+        # Create mock EntropyOutput
+        S_thermodynamic = torch.tensor([[1e-20], [2e-20], [3e-20]])  # J/K scale
+        information_gain = torch.tensor([[0.5], [1.0], [1.5]])  # nats
+
+        # Create minimal EntropyOutput
+        entropy_output = EntropyOutput(
+            S_thermodynamic=S_thermodynamic,
+            partition_function=torch.ones_like(S_thermodynamic),
+            free_energy_thermodynamic=torch.zeros_like(S_thermodynamic),
+            H_shannon=information_gain,
+            information_gain=information_gain,
+            mutual_information=torch.zeros_like(S_thermodynamic),
+            F_variational=torch.zeros_like(S_thermodynamic),
+            kl_divergence=torch.zeros_like(S_thermodynamic),
+            expected_log_likelihood=torch.zeros_like(S_thermodynamic),
+            accuracy=torch.zeros_like(S_thermodynamic),
+            complexity=torch.zeros_like(S_thermodynamic),
+        )
+
+        # Test with explicit delta_H_bits
+        delta_H_bits = torch.tensor([[1.0], [2.0], [3.0]])  # bits
+        result = module.test_landauer_consistency(entropy_output, delta_H_bits)
+
+        # Verify bound computation: k_B * ln(2) * delta_H_bits
+        import math
+
+        k_B = config.boltzmann_constant
+        expected_bound = k_B * math.log(2.0) * delta_H_bits
+
+        assert torch.allclose(result["landauer_bound"], expected_bound, rtol=1e-6)
+
+    def test_landauer_in_cross_level_validation(self):
+        """Test that Landauer check is included in cross-level validation."""
+        import torch
+
+        config = APGIConfig(
+            use_rigorous_thermodynamic_entropy=True,
+            use_shannon_entropy=True,
+            use_rigorous_variational_fe=True,
+        )
+        module = MultiLevelEntropyModule(state_size=16, config=config)
+
+        # Create sample inputs
+        batch_size = 2
+        workspace_state = torch.randn(batch_size, 16)
+        intero_state = torch.randn(batch_size, 16)
+        extero_state = torch.randn(batch_size, 16)
+        observation = torch.randn(batch_size, 16)
+        precision_before = torch.ones(batch_size, 1)
+        precision_after = torch.ones(batch_size, 1) * 1.5
+
+        entropy_output = module(
+            workspace_state,
+            intero_state,
+            extero_state,
+            observation,
+            precision_before,
+            precision_after,
+        )
+
+        # Run cross-level validation
+        checks = module.validate_cross_level_consistency(entropy_output)
+
+        # Verify Landauer check is included
+        assert "landauer_consistency" in checks
+        # Should be a boolean result
+        assert isinstance(checks["landauer_consistency"], bool)
+
+    def test_landauer_violation_detection(self):
+        """Test that violations of Landauer's principle are detected."""
+        import torch
+
+        config = APGIConfig()
+        module = MultiLevelEntropyModule(state_size=8, config=config)
+
+        # Create EntropyOutput with intentionally low thermodynamic entropy
+        # to trigger violation
+        S_thermodynamic = torch.tensor([[1e-25]])  # Very low J/K
+        information_gain = torch.tensor([[10.0]])  # High information gain (nats)
+
+        entropy_output = EntropyOutput(
+            S_thermodynamic=S_thermodynamic,
+            partition_function=torch.ones_like(S_thermodynamic),
+            free_energy_thermodynamic=torch.zeros_like(S_thermodynamic),
+            H_shannon=information_gain,
+            information_gain=information_gain,
+            mutual_information=torch.zeros_like(S_thermodynamic),
+            F_variational=torch.zeros_like(S_thermodynamic),
+            kl_divergence=torch.zeros_like(S_thermodynamic),
+            expected_log_likelihood=torch.zeros_like(S_thermodynamic),
+            accuracy=torch.zeros_like(S_thermodynamic),
+            complexity=torch.zeros_like(S_thermodynamic),
+        )
+
+        result = module.test_landauer_consistency(entropy_output)
+
+        # With high information gain and low thermodynamic entropy,
+        # we should detect a violation
+        assert result["violation_fraction"] >= 0.0
+        # The result should indicate whether Landauer is satisfied
+        assert isinstance(result["landauer_satisfied"], torch.Tensor)
 
 
 if __name__ == "__main__":

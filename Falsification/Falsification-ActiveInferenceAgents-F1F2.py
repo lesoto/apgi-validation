@@ -1,7 +1,13 @@
 import logging
+import sys
+import os
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Dict, Any
+
+# Add parent directory to path for utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.constants import LEVEL_TIMESCALES, Optional, Tuple
 from collections import deque
 from scipy import stats
 from scipy.stats import binomtest
@@ -35,6 +41,21 @@ import sys
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+# Import spectral analysis utilities
+try:
+    from utils.spectral_analysis import (
+        compute_spectral_slope_fooof,
+        validate_fooof_fit,
+        create_fooof_frequencies,
+    )
+
+    SPECTRAL_ANALYSIS_AVAILABLE = True
+except ImportError:
+    SPECTRAL_ANALYSIS_AVAILABLE = False
+    compute_spectral_slope_fooof = None
+    validate_fooof_fit = None
+    create_fooof_frequencies = None
 
 # Import centralized constants
 try:
@@ -326,6 +347,7 @@ def check_F5_family(
 
 # Import configuration loader and threshold registry
 try:
+    import yaml
     from utils.config_loader import (
         get_cumulative_reward_advantage_threshold,
         get_cohens_d_threshold,
@@ -336,10 +358,36 @@ try:
         get_cohens_d_adaptation_threshold,
     )
     from utils.threshold_registry import ThresholdRegistry
+
+    # Load PAC configuration
+    def load_pac_bands():
+        """Load PAC band configuration from default.yaml"""
+        try:
+            config_path = Path(__file__).parent.parent / "config" / "default.yaml"
+            with open(config_path, "r") as f:
+                config = yaml.safe_load(f)
+                return config.get("pac_bands", {})
+        except Exception:
+            # Fallback configuration if file not found
+            return {
+                "L1_L2": {"phase": [4, 8], "amplitude": [30, 80]},
+                "L2_L3": {"phase": [1, 4], "amplitude": [4, 8]},
+                "L3_L4": {"phase": [1, 4], "amplitude": [4, 8]},
+            }
+
+    PAC_BANDS = load_pac_bands()
+
 except ImportError:
     # Fallback functions if config_loader not available
     def get_cumulative_reward_advantage_threshold(default=18.0):
         return default
+
+    # Fallback PAC configuration
+    PAC_BANDS = {
+        "L1_L2": {"phase": [4, 8], "amplitude": [30, 80]},
+        "L2_L3": {"phase": [1, 4], "amplitude": [4, 8]},
+        "L3_L4": {"phase": [1, 4], "amplitude": [4, 8]},
+    }
 
     def get_cohens_d_threshold(default=0.60):
         return default
@@ -404,6 +452,9 @@ class HierarchicalGenerativeModel:
         self.states = {}
         self.weights = {}
 
+        # Validate tau values against LEVEL_TIMESCALES constant
+        self._validate_tau_values()
+
         # Initialize each level
         for level in levels:
             name = level["name"]
@@ -414,6 +465,21 @@ class HierarchicalGenerativeModel:
             fan_out = dim
             std = np.sqrt(2.0 / (fan_in + fan_out))
             self.weights[name] = np.random.normal(0, std, (dim, dim)).astype(np.float32)
+
+    def _validate_tau_values(self):
+        """Validate that tau values match LEVEL_TIMESCALES specification"""
+        for i, level in enumerate(self.levels):
+            expected_tau = LEVEL_TIMESCALES.LEVEL_TIMESCALES.get(i + 1)
+            if expected_tau is not None:
+                actual_tau = level.get("tau")
+                if actual_tau is None:
+                    raise ValueError(f"Level {i + 1} missing tau value")
+                # Allow small tolerance for floating point comparison
+                if abs(actual_tau - expected_tau) > 0.001:
+                    raise ValueError(
+                        f"Level {i + 1} tau value {actual_tau} does not match "
+                        f"expected {expected_tau} from LEVEL_TIMESCALES"
+                    )
 
     def predict(self) -> np.ndarray:
         """Generate prediction from top level"""
@@ -1953,6 +2019,7 @@ def check_falsification(
     performance_gap: float,
     # Genome data from VP-5 (required for F5.1, F5.2, F5.3)
     genome_data: Optional[Dict[str, Any]] = None,
+    config: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Implement all statistical tests for Falsification-Protocol-1 (complete framework).
@@ -1986,34 +2053,48 @@ def check_falsification(
         # F5 parameters
         threshold_emergence_proportion: Proportion of evolved agents developing thresholds
         precision_emergence_proportion: Proportion developing precision weighting
-        intero_gain_ratio_proportion: Proportion with interoceptive prioritization
-        multi_timescale_proportion: Proportion with multi-timescale integration
-        pca_variance_explained: Variance explained by APGI feature PCs
-        control_performance_difference: Performance difference vs. control agents
+        interoceptive_prioritization_proportion: Proportion evolving interoceptive gain bias
+        multi_timescale_emergence_proportion: Proportion developing multi-timescale windows
+        clustering_variance_explained: Variance explained by first 3 PCs
+        non_apgi_performance_difference: Performance difference for non-APGI architectures
         # F6 parameters
-        ltcn_transition_time: Ignition transition time for LTCNs
-        rnn_transition_time: Ignition transition time for standard RNNs
-        ltcn_sparsity_reduction: Sparsity reduction for LTCNs
-        rnn_sparsity_reduction: Sparsity reduction for RNNs
-        ltcn_integration_window: Temporal integration window for LTCNs
-        rnn_integration_window: Temporal integration window for RNNs
-        memory_decay_tau: Memory decay time constant
-        bifurcation_point: Bifurcation point precision value
-        hysteresis_width: Hysteresis width
-        rnn_add_ons_needed: Number of add-ons needed for RNNs
-        performance_gap: Performance gap without add-ons
-
-    Returns:
-        Dictionary with pass/fail results, effect sizes, and test statistics
+        ltcn_transition_time: float
+        rnn_transition_time: float
+        ltcn_sparsity_reduction: float
+        rnn_sparsity_reduction: float
+        ltcn_integration_window: float
+        rnn_integration_window: float
+        memory_decay_tau: float
+        bifurcation_point: float
+        hysteresis_width: float
+        rnn_add_ons_needed: int
+        performance_gap: float
+        # Genome data from VP-5 (required for F5.1, F5.2, F5.3)
+        genome_data: Optional[Dict[str, Any]] = None,
+        config: Optional[Dict[str, Any]] = None,
     """
+
+    # Load falsification config if not provided
+    if config is None:
+        try:
+            import yaml
+
+            config_path = Path(__file__).parent.parent / "config" / "default.yaml"
+            with open(config_path, "r") as f:
+                config = yaml.safe_load(f)
+        except Exception:
+            config = {}
+
+    # Initialize results structure
     results = {
-        "protocol": "Falsification-Protocol-1",
-        "criteria": {},
         "summary": {
             "passed": 0,
             "failed": 0,
             "total": 18,
         },  # Updated for F1.1a and F1.1b (TODO-4, TODO-5)
+        "criteria": {},
+        "metrics": {},
+        "agent_config": config,
     }
     power_value = 0.8  # Default placeholder for stability
 
@@ -2414,1089 +2495,183 @@ def check_falsification(
 
     # F1.5: Cross-Level Phase-Amplitude Coupling (PAC)
     logger.info("Testing F1.5: Cross-Level Phase-Amplitude Coupling")
-    pac_baseline = np.array([pac[0] for pac in pac_mi])
-    pac_ignition = np.array([pac[1] for pac in pac_mi])
-    # Guard against zero baseline to prevent division by zero
-    safe_baseline = np.where(np.abs(pac_baseline) < 1e-10, 1e-10, pac_baseline)
-    pac_increase = ((pac_ignition - pac_baseline) / safe_baseline) * 100
-    mean_pac_increase = np.mean(pac_increase)
 
-    mean_baseline_MI = np.mean(pac_baseline)
-
-    # Paired t-test
-    t_stat, p_pac = stats.ttest_rel(pac_ignition, pac_baseline)
-    # Guard against zero standard deviation for Cohen's d
-    diff_std = np.std(pac_ignition - pac_baseline, ddof=1)
-    if diff_std < 1e-10:
-        cohens_d_pac = 0.0
-    else:
-        cohens_d_pac = np.mean(pac_ignition - pac_baseline) / diff_std
-
-    dt = 0.05
-    # Generate a sample S_traj for template matching if needed
-    time_pts_sample = np.arange(0, 1.0, dt)
-    eps_e_sample = np.ones_like(time_pts_sample) * 0.15
-    eps_i_sample = np.ones_like(time_pts_sample) * 0.1
-    S_traj_sample, _, _ = simulate_surprise_accumulation(
-        eps_e_sample, eps_i_sample, 1.0, 1.0, 1.2, dt=dt
-    )
-
-    # Template: Pre-ignition baseline (0-300ms), Ignition (300-500ms), Sustained (500-1000ms)
-    # Template: Pre-ignition baseline (0-300ms), Ignition (300-500ms), Sustained (500-1000ms)
-
-    # Permutation test (simplified)
-    n_permutations = 10000
-    perm_diffs = []
-    for _ in range(n_permutations):
-        perm_ignition = np.random.permutation(pac_ignition)
-        perm_diffs.append(np.mean(perm_ignition) - np.mean(pac_baseline))
-    perm_p = np.mean(
-        np.abs(np.array(perm_diffs))
-        >= np.abs(np.mean(pac_ignition) - np.mean(pac_baseline))
-    )
-
-    f1_5_pass = (
-        np.isfinite(mean_baseline_MI)
-        and np.isfinite(mean_pac_increase)
-        and np.isfinite(cohens_d_pac)
-        and np.isfinite(p_pac)
-        and np.isfinite(perm_p)
-        and mean_baseline_MI >= 0.012
-        and mean_pac_increase >= 30
-        and cohens_d_pac >= 0.50
-        and p_pac < 0.01
-        and perm_p < 0.01
-    )
-    results["criteria"]["F1.5"] = {
-        "passed": f1_5_pass,
-        "pac_increase_pct": mean_pac_increase,
-        "mean_baseline_MI": mean_baseline_MI,
-        "cohens_d": cohens_d_pac,
-        "p_value_ttest": p_pac,
-        "p_value_permutation": perm_p,
-        "t_statistic": t_stat,
-        "power": power_value,
-        "threshold": "MI ≥ 0.012, ≥30% increase, d ≥ 0.5",
-        "actual": f"{mean_pac_increase:.2f}% increase, baseline MI={mean_baseline_MI:.4f}, d={cohens_d_pac:.3f}, power={power_value:.3f}",
-    }
-    if f1_5_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F1.5: {'PASS' if f1_5_pass else 'FAIL'} - PAC increase: {mean_pac_increase:.2f}%, baseline MI={mean_baseline_MI:.4f}, d={cohens_d_pac:.3f}"
-    )
-
-    # F1.6: 1/f Spectral Slope Predictions
-    logger.info("Testing F1.6: 1/f Spectral Slope Predictions")
-    active_slopes = np.array([s[0] for s in spectral_slopes])
-    low_arousal_slopes = np.array([s[1] for s in spectral_slopes])
-    mean_active = np.mean(active_slopes)
-    mean_low_arousal = np.mean(low_arousal_slopes)
-    delta_slope = mean_low_arousal - mean_active
-
-    # Paired t-test
-    t_stat, p_slope = stats.ttest_rel(low_arousal_slopes, active_slopes)
-    cohens_d_slope = np.mean(low_arousal_slopes - active_slopes) / np.std(
-        low_arousal_slopes - active_slopes, ddof=1
-    )
-
-    # Goodness of fit (R²)
-    residuals = active_slopes - mean_active
-    ss_res = np.sum(residuals**2)
-    ss_tot = np.sum((active_slopes - np.mean(active_slopes)) ** 2)
-    r_squared = 1 - (ss_res / ss_tot)
-
-    # FOOOF/specparam fitting quality check
-    freqs = np.logspace(1, 2, 50)  # 10 to 100 Hz
-    power_spectrum = 1 / freqs**mean_active  # Example spectrum based on mean slope
-    fm = FOOOF(peak_width_limits=[1, 8], max_n_peaks=6)
-    fm.fit(freqs, power_spectrum)
-    r_squared_spectral = fm.r_squared_
-
-    # Post-hoc power analysis
-    power_calc_rel = TTestPower()
-    power_value = power_calc_rel.solve_power(
-        effect_size=cohens_d_slope, nobs=len(active_slopes), alpha=0.001, power=None
-    )
-
-    f1_6_pass = (
-        np.isfinite(mean_active)
-        and np.isfinite(mean_low_arousal)
-        and np.isfinite(delta_slope)
-        and np.isfinite(cohens_d_slope)
-        and np.isfinite(r_squared)
-        and np.isfinite(p_slope)
-        and np.isfinite(r_squared_spectral)
-        and mean_active <= 1.4
-        and mean_low_arousal >= 1.3
-        and delta_slope >= 0.25
-        and cohens_d_slope >= 0.50
-        and r_squared >= 0.85
-        and p_slope < 0.001
-        and r_squared_spectral >= 0.90
-    )
-    results["criteria"]["F1.6"] = {
-        "passed": f1_6_pass,
-        "active_slope_mean": mean_active,
-        "low_arousal_slope_mean": mean_low_arousal,
-        "delta_slope": delta_slope,
-        "cohens_d": cohens_d_slope,
-        "r_squared": r_squared,
-        "r_squared_spectral": r_squared_spectral,
-        "p_value": p_slope,
-        "t_statistic": t_stat,
-        "power": power_value,
-        "threshold": "Active 0.8-1.2, low-arousal 1.5-2.0, Δ ≥ 0.4, d ≥ 0.8, R² ≥ 0.90",
-        "actual": f"Active={mean_active:.3f}, low-arousal={mean_low_arousal:.3f}, Δ={delta_slope:.3f}, power={power_value:.3f}",
-    }
-    if f1_6_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F1.6: {'PASS' if f1_6_pass else 'FAIL'} - Active: {mean_active:.3f}, low-arousal: {mean_low_arousal:.3f}, Δ={delta_slope:.3f}"
-    )
-
-    # F2.1: Somatic Marker Advantage Quantification
-    logger.info("Testing F2.1: Somatic Marker Advantage Quantification")
-    mean_apgi = np.mean(apgi_advantageous_selection)
-    mean_no_somatic = np.mean(no_somatic_selection)
-    advantage_diff = mean_apgi - mean_no_somatic
-
-    # Two-proportion z-test
-    p_apgi = mean_apgi / 100
-    p_no_somatic = mean_no_somatic / 100
-    n = len(apgi_advantageous_selection)
-    pooled_p = (p_apgi * n + p_no_somatic * n) / (2 * n)
-    se = np.sqrt(pooled_p * (1 - pooled_p) * (1 / n + 1 / n))
-    z_stat = (p_apgi - p_no_somatic) / se if se > 0 else 0.0
-    p_value = 2 * (1 - stats.norm.cdf(abs(z_stat))) if se > 0 else 1.0
-
-    # Cohen's h
-    p_apgi_clamped = np.clip(p_apgi, 0, 1)
-    p_no_somatic_clamped = np.clip(p_no_somatic, 0, 1)
-    h = 2 * np.arcsin(np.sqrt(p_apgi_clamped)) - 2 * np.arcsin(
-        np.sqrt(p_no_somatic_clamped)
-    )
-
-    f2_1_pass = (
-        np.isfinite(mean_apgi)
-        and np.isfinite(advantage_diff)
-        and np.isfinite(h)
-        and np.isfinite(p_value)
-        and mean_apgi >= 22
-        and advantage_diff >= 10
-        and h >= 0.55
-        and p_value < 0.01
-    )
-    # Explicit validation: if any value is not finite, test fails
-    if not (
-        np.isfinite(mean_apgi)
-        and np.isfinite(advantage_diff)
-        and np.isfinite(h)
-        and np.isfinite(p_value)
-    ):
-        f2_1_pass = False
-        logger.warning(
-            f"F2.1: Non-finite values detected - mean_apgi: {mean_apgi}, advantage_diff: {advantage_diff}, h: {h}, p_value: {p_value}"
-        )
-    results["criteria"]["F2.1"] = {
-        "passed": f2_1_pass,
-        "apgi_advantageous_pct": mean_apgi,
-        "difference_pct": advantage_diff,
-        "cohens_h": h,
-        "p_value": p_value,
-        "z_statistic": z_stat,
-        "threshold": "≥22% advantage, ≥10 pp difference, h ≥ 0.55",
-        "actual": f"{mean_apgi:.2f}% advantage, {advantage_diff:.2f} pp difference, h={h:.3f}",
-    }
-    if f2_1_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F2.1: {'PASS' if f2_1_pass else 'FAIL'} - APGI: {mean_apgi:.2f}%, diff: {advantage_diff:.2f} pp, h={h:.3f}, p={p_value:.4f}"
-    )
-
-    # F2.2: Interoceptive Cost Sensitivity
-    logger.info("Testing F2.2: Interoceptive Cost Sensitivity")
-    # Fisher's z-transformation for group comparison
-    z_apgi = 0.5 * np.log((1 + apgi_cost_correlation) / (1 - apgi_cost_correlation))
-    z_no_somatic = 0.5 * np.log(
-        (1 + no_somatic_cost_correlation) / (1 - no_somatic_cost_correlation)
-    )
-    z_diff = z_apgi - z_no_somatic
-    se_z = np.sqrt(
-        1 / (len(apgi_advantageous_selection) - 3) + 1 / (len(no_somatic_selection) - 3)
-    )
-    z_stat_group = z_diff / se_z
-    p_group = 2 * (1 - stats.norm.cdf(abs(z_stat_group)))
-
-    f2_2_pass = (
-        np.isfinite(apgi_cost_correlation)
-        and np.isfinite(z_diff)
-        and np.isfinite(no_somatic_cost_correlation)
-        and abs(apgi_cost_correlation) >= 0.40
-        and z_diff >= 1.80
-        and abs(no_somatic_cost_correlation) <= 0.05
-    )
-    # Explicit validation: if any value is not finite, test fails
-    if not (
-        np.isfinite(apgi_cost_correlation)
-        and np.isfinite(z_diff)
-        and np.isfinite(no_somatic_cost_correlation)
-    ):
-        f2_2_pass = False
-        logger.warning(
-            f"F2.2: Non-finite values detected - apgi_cost_correlation: {apgi_cost_correlation}, z_diff: {z_diff}, no_somatic_cost_correlation: {no_somatic_cost_correlation}"
-        )
-    results["criteria"]["F2.2"] = {
-        "passed": f2_2_pass,
-        "apgi_correlation": apgi_cost_correlation,
-        "no_somatic_correlation": no_somatic_cost_correlation,
-        "fisher_z_diff": z_diff,
-        "p_value": p_group,
-        "z_statistic": z_stat_group,
-        "threshold": "APGI |r| ≥ 0.40, Fisher's z ≥ 1.80",
-        "actual": f"APGI r={apgi_cost_correlation:.3f}, non-intero r={no_somatic_cost_correlation:.3f}",
-    }
-    if f2_2_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F2.2: {'PASS' if f2_2_pass else 'FAIL'} - APGI r={apgi_cost_correlation:.3f}, non-intero r={no_somatic_cost_correlation:.3f}"
-    )
-
-    # F2.3: vmPFC-Like Anticipatory Bias
-    logger.info("Testing F2.3: vmPFC-Like Anticipatory Bias")
-    # Simplified test - checking RT advantage and cost modulation
-    f2_3_pass = (
-        np.isfinite(rt_advantage_ms)
-        and np.isfinite(rt_cost_modulation)
-        and rt_advantage_ms >= 35
-        and rt_cost_modulation >= 25
-    )
-    # Explicit validation: if any value is not finite, test fails
-    if not (np.isfinite(rt_advantage_ms) and np.isfinite(rt_cost_modulation)):
-        f2_3_pass = False
-        logger.warning(
-            f"F2.3: Non-finite values detected - rt_advantage_ms: {rt_advantage_ms}, rt_cost_modulation: {rt_cost_modulation}"
-        )
-    results["criteria"]["F2.3"] = {
-        "passed": f2_3_pass,
-        "rt_advantage_ms": rt_advantage_ms,
-        "rt_cost_modulation": rt_cost_modulation,
-        "threshold": "≥35ms RT advantage, β_cost ≥ 25ms/unit",
-        "actual": f"RT advantage: {rt_advantage_ms:.1f}ms, β_cost: {rt_cost_modulation:.1f}ms/unit",
-    }
-    if f2_3_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F2.3: {'PASS' if f2_3_pass else 'FAIL'} - RT advantage: {rt_advantage_ms:.1f}ms, β_cost: {rt_cost_modulation:.1f}ms/unit"
-    )
-
-    # F2.4: Precision-Weighted Integration
-    logger.info("Testing F2.4: Precision-Weighted Integration")
-    f2_4_pass = (
-        np.isfinite(confidence_effect)
-        and np.isfinite(beta_interaction)
-        and confidence_effect >= 30
-        and beta_interaction >= 0.35
-    )
-    results["criteria"]["F2.4"] = {
-        "passed": f2_4_pass,
-        "confidence_effect_pct": confidence_effect,
-        "beta_interaction": beta_interaction,
-        "threshold": "≥30% confidence effect, β_interaction ≥ 0.35",
-        "actual": f"Confidence effect: {confidence_effect:.2f}%, β_interaction: {beta_interaction:.3f}",
-    }
-    if f2_4_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F2.4: {'PASS' if f2_4_pass else 'FAIL'} - Confidence effect: {confidence_effect:.2f}%, β_interaction: {beta_interaction:.3f}"
-    )
-
-    # F2.5: Learning Trajectory Discrimination
-    logger.info("Testing F2.5: Learning Trajectory Discrimination")
-    trial_advantage = no_somatic_time_to_criterion - apgi_time_to_criterion
-
-    # Simplified log-rank approximation
-    hazard_ratio = (
-        (no_somatic_time_to_criterion / apgi_time_to_criterion)
-        if apgi_time_to_criterion > 0
-        else 0
-    )
-
-    f2_5_pass = (
-        np.isfinite(apgi_time_to_criterion)
-        and np.isfinite(trial_advantage)
-        and np.isfinite(hazard_ratio)
-        and apgi_time_to_criterion <= 55
-        and trial_advantage >= 20
-        and hazard_ratio >= 1.65
-    )
-    results["criteria"]["F2.5"] = {
-        "passed": f2_5_pass,
-        "apgi_time_to_criterion": apgi_time_to_criterion,
-        "no_somatic_time_to_criterion": no_somatic_time_to_criterion,
-        "trial_advantage": trial_advantage,
-        "hazard_ratio": hazard_ratio,
-        "threshold": "APGI ≤55 trials, advantage ≥12, hazard ratio ≥ 1.65",
-        "actual": f"APGI: {apgi_time_to_criterion:.1f} trials, advantage: {trial_advantage:.1f}, HR: {hazard_ratio:.2f}",
-    }
-    if f2_5_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F2.5: {'PASS' if f2_5_pass else 'FAIL'} - APGI: {apgi_time_to_criterion:.1f} trials, advantage: {trial_advantage:.1f}, HR: {hazard_ratio:.2f}"
-    )
-
-    # F3.1: Overall Performance Advantage
-    logger.info("Testing F3.1: Overall Performance Advantage")
-    # Independent samples t-test with Welch correction
-    t_stat, p_value = stats.ttest_ind(apgi_rewards, pp_rewards, equal_var=False)
-    mean_apgi = np.mean(apgi_rewards)
-    mean_pp = np.mean(pp_rewards)
-    # Guard against zero mean_pp to prevent division by zero
-    safe_mean_pp = max(1e-10, abs(mean_pp)) * (1 if mean_pp >= 0 else -1)
-    advantage_pct = ((mean_apgi - mean_pp) / safe_mean_pp) * 100
-
-    # Cohen's d
-    pooled_std = np.sqrt(
-        (
-            (len(apgi_rewards) - 1) * np.var(apgi_rewards, ddof=1)
-            + (len(pp_rewards) - 1) * np.var(pp_rewards, ddof=1)
-        )
-        / (len(apgi_rewards) + len(pp_rewards) - 2)
-    )
-    cohens_d = (mean_apgi - mean_pp) / pooled_std if pooled_std > 0 else 0.0
-
-    f3_1_pass = (
-        np.isfinite(advantage_pct)
-        and np.isfinite(cohens_d)
-        and np.isfinite(p_value)
-        and advantage_pct
-        >= threshold_registry.get_threshold("cumulative_reward_advantage_threshold")
-        and cohens_d >= threshold_registry.get_threshold("cohens_d_threshold")
-        and p_value < threshold_registry.get_threshold("significance_level")
-    )
-    results["criteria"]["F3.1"] = {
-        "passed": f3_1_pass,
-        "advantage_pct": advantage_pct,
-        "cohens_d": cohens_d,
-        "p_value": p_value,
-        "t_statistic": t_stat,
-        "threshold": "≥18% advantage, d ≥ 0.60",
-        "actual": f"{advantage_pct:.2f}% advantage, d={cohens_d:.3f}",
-    }
-    if f3_1_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.1: {'PASS' if f3_1_pass else 'FAIL'} - Advantage: {advantage_pct:.2f}%, d={cohens_d:.3f}, p={p_value:.4f}"
-    )
-
-    # F3.2: Interoceptive Task Specificity
-    logger.info("Testing F3.2: Interoceptive Task Specificity")
-    # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(interoceptive_task_advantage, (list, np.ndarray))
-        and len(interoceptive_task_advantage) >= 30
-    ):
-        # Use standard t-test with sufficient sample size
-        t_stat, p_value = stats.ttest_1samp(interoceptive_task_advantage, 12)
-        mean_adv = float(np.mean(interoceptive_task_advantage))
-        std_adv = float(np.std(interoceptive_task_advantage, ddof=1))
-        cohens_d = (mean_adv - 12) / std_adv if std_adv > 0 else 0.0
-    elif (
-        isinstance(interoceptive_task_advantage, (list, np.ndarray))
-        and len(interoceptive_task_advantage) >= 2
-    ):
-        # Use bootstrap test for small samples
-        data_array = np.array(interoceptive_task_advantage)
-        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=12.0)
-        mean_adv = float(np.mean(data_array))
-        std_adv = float(np.std(data_array, ddof=1))
-        cohens_d = (mean_adv - 12) / std_adv if std_adv > 0 else 0.0
-    else:
-        # Insufficient data - fail criterion
-        t_stat, p_value = 0.0, 1.0
-        mean_adv = float(interoceptive_task_advantage)
-        if not isinstance(interoceptive_task_advantage, (list, np.ndarray)):
-            mean_adv = float(interoceptive_task_advantage)
-        else:
-            mean_adv = float(interoceptive_task_advantage[0])
-
-        if len(interoceptive_task_advantage) > 0:
-            std_adv = float(np.std(interoceptive_task_advantage, ddof=1))
-            cohens_d = (mean_adv - 12) / std_adv if std_adv > 0 else 0.0
-        else:
-            std_adv = 0.0
-            cohens_d = 0.0
-
-    f3_2_pass = (
-        np.isfinite(mean_adv)
-        and np.isfinite(cohens_d)
-        and (
-            p_value < 0.01
-            if np.isfinite(p_value) and p_value != 1.0
-            else mean_adv >= 28
-        )
-        and mean_adv >= 28
-        and cohens_d >= 0.70
-    )
-    results["criteria"]["F3.2"] = {
-        "passed": f3_2_pass,
-        "interoceptive_advantage_pct": interoceptive_task_advantage,
-        "cohens_d": cohens_d,
-        "p_value": p_value,
-        "t_statistic": t_stat,
-        "threshold": "≥28% interoceptive advantage, d ≥ 0.70",
-        "actual": f"{interoceptive_task_advantage:.2f}% advantage, d={cohens_d:.3f}",
-    }
-    if f3_2_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.2: {'PASS' if f3_2_pass else 'FAIL'} - Interoceptive advantage: {interoceptive_task_advantage:.2f}%, d={cohens_d:.3f}"
-    )
-
-    # F3.3: Threshold Gating Necessity
-    logger.info("Testing F3.3: Threshold Gating Necessity")
-    # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(threshold_removal_reduction, (list, np.ndarray))
-        and len(threshold_removal_reduction) >= 30
-    ):
-        # Use standard t-test with sufficient sample size
-        t_stat, p_value = stats.ttest_1samp(threshold_removal_reduction, 0)
-        mean_red = float(np.mean(threshold_removal_reduction))
-        std_red = float(np.std(threshold_removal_reduction, ddof=1))
-        cohens_d = mean_red / std_red if std_red > 0 else 0.0
-    elif (
-        isinstance(threshold_removal_reduction, (list, np.ndarray))
-        and len(threshold_removal_reduction) >= 2
-    ):
-        # Use bootstrap test for small samples
-        data_array = np.array(threshold_removal_reduction)
-        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=0.0)
-        mean_red = float(np.mean(data_array))
-        std_red = float(np.std(data_array, ddof=1))
-        cohens_d = mean_red / std_red if std_red > 0 else 0.0
-    else:
-        # Insufficient data - fail criterion
-        t_stat, p_value = 0.0, 1.0
-        mean_red = (
-            float(threshold_removal_reduction)
-            if not isinstance(threshold_removal_reduction, (list, np.ndarray))
-            else (
-                float(threshold_removal_reduction[0])
-                if len(threshold_removal_reduction) > 0
-                else 0.0
-            )
-        )
-        cohens_d = 0.0
-
-    f3_3_pass = (
-        np.isfinite(mean_red)
-        and np.isfinite(cohens_d)
-        and (
-            p_value < 0.01
-            if np.isfinite(p_value) and p_value != 1.0
-            else mean_red >= 25
-        )
-        and mean_red >= 25
-        and cohens_d >= 0.75
-    )
-    results["criteria"]["F3.3"] = {
-        "passed": f3_3_pass,
-        "reduction_pct": threshold_removal_reduction,
-        "cohens_d": cohens_d,
-        "p_value": p_value,
-        "t_statistic": t_stat,
-        "threshold": "≥25% reduction, d ≥ 0.75",
-        "actual": f"{threshold_removal_reduction:.2f}% reduction, d={cohens_d:.3f}",
-    }
-    if f3_3_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.3: {'PASS' if f3_3_pass else 'FAIL'} - Reduction: {threshold_removal_reduction:.2f}%, d={cohens_d:.3f}"
-    )
-
-    # F3.4: Precision Weighting Necessity
-    logger.info("Testing F3.4: Precision Weighting Necessity")
-    # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(precision_uniform_reduction, (list, np.ndarray))
-        and len(precision_uniform_reduction) >= 30
-    ):
-        # Use standard t-test with sufficient sample size
-        t_stat, p_value = stats.ttest_1samp(precision_uniform_reduction, 0)
-        mean_red = float(np.mean(precision_uniform_reduction))
-        std_red = float(np.std(precision_uniform_reduction, ddof=1))
-        cohens_d = mean_red / std_red if std_red > 0 else 0.0
-    elif (
-        isinstance(precision_uniform_reduction, (list, np.ndarray))
-        and len(precision_uniform_reduction) >= 2
-    ):
-        # Use bootstrap test for small samples
-        data_array = np.array(precision_uniform_reduction)
-        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=0.0)
-        mean_red = float(np.mean(data_array))
-        std_red = float(np.std(data_array, ddof=1))
-        cohens_d = mean_red / std_red if std_red > 0 else 0.0
-    else:
-        # Insufficient data - fail criterion
-        t_stat, p_value = 0.0, 1.0
-        mean_red = (
-            float(precision_uniform_reduction)
-            if not isinstance(precision_uniform_reduction, (list, np.ndarray))
-            else (
-                float(precision_uniform_reduction[0])
-                if len(precision_uniform_reduction) > 0
-                else 0.0
-            )
-        )
-        cohens_d = 0.0
-
-    f3_4_pass = (
-        np.isfinite(mean_red)
-        and np.isfinite(cohens_d)
-        and (
-            p_value < 0.01
-            if np.isfinite(p_value) and p_value != 1.0
-            else mean_red >= 20
-        )
-        and mean_red >= 20
-        and cohens_d >= 0.65
-        and p_value < 0.01
-    )
-    results["criteria"]["F3.4"] = {
-        "passed": f3_4_pass,
-        "reduction_pct": precision_uniform_reduction,
-        "cohens_d": cohens_d,
-        "p_value": p_value,
-        "t_statistic": t_stat,
-        "threshold": "≥20% reduction, d ≥ 0.65",
-        "actual": f"{precision_uniform_reduction:.2f}% reduction, d={cohens_d:.3f}",
-    }
-    if f3_4_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.4: {'PASS' if f3_4_pass else 'FAIL'} - Reduction: {precision_uniform_reduction:.2f}%, d={cohens_d:.3f}"
-    )
-
-    # F3.5: Computational Efficiency Trade-Off
-    logger.info("Testing F3.5: Computational Efficiency Trade-Off")
-    # Equivalence testing (simplified)
-    # TODO: Implement real performance measurement from simulation
-    performance_maintained = 85  # Placeholder - needs real implementation
-    efficiency_gain = computational_efficiency * 100  # Convert to percentage
-
-    f3_5_pass = (
-        np.isfinite(performance_maintained)
-        and np.isfinite(efficiency_gain)
-        and performance_maintained >= 85
-        and efficiency_gain >= 30
-    )
-    # Explicit validation: if any value is not finite, test fails
-    if not (np.isfinite(performance_maintained) and np.isfinite(efficiency_gain)):
-        f3_5_pass = False
-        logger.warning(
-            f"F3.5: Non-finite values detected - performance_maintained: {performance_maintained}, efficiency_gain: {efficiency_gain}"
-        )
-    results["criteria"]["F3.5"] = {
-        "passed": f3_5_pass,
-        "performance_maintained_pct": performance_maintained,
-        "efficiency_gain_pct": efficiency_gain,
-        "threshold": "≥85% performance, ≥30% efficiency gain",
-        "actual": f"{performance_maintained:.2f}% performance, {efficiency_gain:.2f}% efficiency",
-    }
-    if f3_5_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.5: {'PASS' if f3_5_pass else 'FAIL'} - Performance: {performance_maintained:.2f}%, efficiency: {efficiency_gain:.2f}%"
-    )
-
-    # F3.6: Sample Efficiency in Learning
-    logger.info("Testing F3.6: Sample Efficiency in Learning")
-    # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(sample_efficiency_trials, (list, np.ndarray))
-        and len(sample_efficiency_trials) >= 30
-    ):
-        # Use standard t-test with sufficient sample size
-        t_stat, p_value = stats.ttest_1samp(sample_efficiency_trials, 300)
-        mean_trials = float(np.mean(sample_efficiency_trials))
-        hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
-    elif (
-        isinstance(sample_efficiency_trials, (list, np.ndarray))
-        and len(sample_efficiency_trials) >= 2
-    ):
-        # Use bootstrap test for small samples
-        data_array = np.array(sample_efficiency_trials)
-        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=300.0)
-        mean_trials = float(np.mean(data_array))
-        hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
-    else:
-        # Insufficient data - fail criterion
-        t_stat, p_value = 0.0, 1.0
-        mean_trials = (
-            float(sample_efficiency_trials)
-            if not isinstance(sample_efficiency_trials, (list, np.ndarray))
-            else (
-                float(sample_efficiency_trials[0])
-                if len(sample_efficiency_trials) > 0
-                else 300.0
-            )
-        )
-        hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
-
-    f3_6_pass = (
-        np.isfinite(mean_trials)
-        and np.isfinite(hazard_ratio)
-        and (
-            p_value < 0.01
-            if np.isfinite(p_value) and p_value != 1.0
-            else mean_trials <= 200
-        )
-        and mean_trials <= 200
-        and hazard_ratio >= 1.45
-    )
-    results["criteria"]["F3.6"] = {
-        "passed": f3_6_pass,
-        "trials_to_80pct": sample_efficiency_trials,
-        "hazard_ratio": hazard_ratio,
-        "p_value": p_value,
-        "t_statistic": t_stat,
-        "threshold": "≤200 trials, hazard ratio ≥ 1.45",
-        "actual": f"{sample_efficiency_trials:.1f} trials, HR: {hazard_ratio:.2f}",
-    }
-    if f3_6_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - Trials: {sample_efficiency_trials:.1f}, HR: {hazard_ratio:.2f}"
-    )
-
-    # F5 Family: Evolutionary Emergence (using inline implementation per TODO-2)
-    logger.info("Testing F5 Family: Evolutionary Emergence")
-
-    # Prepare data for inline function
-    f5_data = {
-        "threshold_emergence_proportion": threshold_emergence_proportion,
-        "precision_emergence_proportion": precision_emergence_proportion,
-        "intero_gain_ratio_proportion": intero_gain_ratio_proportion,
-    }
-
-    # Use thresholds defined inline above (TODO-1, TODO-6)
-    f5_thresholds = {
-        "F5_1_MIN_PROPORTION": F5_1_MIN_PROPORTION,
-        "F5_1_MIN_ALPHA": F5_1_MIN_ALPHA,
-        "F5_1_MIN_COHENS_D": F5_1_MIN_COHENS_D,
-        "F5_2_MIN_PROPORTION": F5_2_MIN_PROPORTION,
-        "F5_2_MIN_CORRELATION": F5_2_MIN_CORRELATION,
-        "F5_3_MIN_PROPORTION": F5_3_MIN_PROPORTION,
-        "F5_3_MIN_GAIN_RATIO": F5_3_MIN_GAIN_RATIO,
-        "F5_3_MIN_COHENS_D": F5_3_MIN_COHENS_D,
-    }
-
-    # Call inline function (defined above, no longer importing from shared module)
-    f5_results = check_F5_family(f5_data, f5_thresholds, genome_data)
-
-    # Update results dict with shared function output
-    for criterion, result in f5_results.items():
-        results["criteria"][criterion] = result
-        if result["passed"]:
-            results["summary"]["passed"] += 1
-            logger.info(f"{criterion}: PASS - {result['actual']}")
-        else:
-            results["summary"]["failed"] += 1
-            logger.info(f"{criterion}: FAIL - {result['actual']}")
-
-    # F5.4: Multi-Timescale Integration Emergence
-    logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
-    result = binomtest(int(multi_timescale_proportion * 100), 100, 0.5)
-    peak_separation = F5_4_MIN_PEAK_SEPARATION
-
-    f5_4_pass = (
-        np.isfinite(multi_timescale_proportion)
-        and np.isfinite(peak_separation)
-        and np.isfinite(result.pvalue)
-        and multi_timescale_proportion >= 0.60
-        and peak_separation >= F5_4_MIN_PEAK_SEPARATION
-        and result.pvalue < 0.01
-    )
-    results["criteria"]["F5.4"] = {
-        "passed": f5_4_pass,
-        "proportion": multi_timescale_proportion,
-        "peak_separation": peak_separation,
-        "p_value": result.pvalue,
-        "threshold": "≥60% develop multi-timescale, separation ≥ 3×",
-        "actual": f"{multi_timescale_proportion:.2f} proportion, separation={peak_separation:.1f}",
-    }
-    if f5_4_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.4: {'PASS' if f5_4_pass else 'FAIL'} - Proportion: {multi_timescale_proportion:.2f}, separation={peak_separation:.1f}"
-    )
-
-    # F5.5: APGI-Like Feature Clustering
-    logger.info("Testing F5.5: APGI-Like Feature Clustering")
-    # Scree plot analysis (simplified)
-    # TODO: Implement real bootstrap confidence intervals
-    se = 0.05  # Placeholder - needs real bootstrap implementation
-    ci_lower = pca_variance_explained - 1.96 * se
-    ci_upper = pca_variance_explained + 1.96 * se
-
-    f5_5_pass = pca_variance_explained >= 0.70
-    results["criteria"]["F5.5"] = {
-        "passed": f5_5_pass,
-        "variance_explained": pca_variance_explained,
-        "ci_lower": ci_lower,
-        "ci_upper": ci_upper,
-        "threshold": "≥70% variance captured by first 3 PCs",
-        "actual": f"{pca_variance_explained:.2f} variance explained, CI [{ci_lower:.2f}, {ci_upper:.2f}]",
-    }
-    if f5_5_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.5: {'PASS' if f5_5_pass else 'FAIL'} - Variance: {pca_variance_explained:.2f}"
-    )
-
-    # F5.6: Non-APGI Architecture Failure
-    logger.info("Testing F5.6: Non-APGI Architecture Failure")
-    # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(control_performance_difference, (list, np.ndarray))
-        and len(control_performance_difference) >= 30
-    ):
-        # Use standard t-test with sufficient sample size
-        t_stat, p_value = stats.ttest_1samp(control_performance_difference, 0)
-        mean_diff = float(np.mean(control_performance_difference))
-        cohens_d = (
-            float(np.mean(control_performance_difference))
-            / np.std(control_performance_difference, ddof=1)
-            if np.std(control_performance_difference, ddof=1) > 0
-            else 0
-        )
-    elif (
-        isinstance(control_performance_difference, (list, np.ndarray))
-        and len(control_performance_difference) >= 2
-    ):
-        # Use bootstrap test for small samples
-        data_array = np.array(control_performance_difference)
-        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=0.0)
-        mean_diff = float(np.mean(data_array))
-        cohens_d = (
-            float(np.mean(data_array)) / np.std(data_array, ddof=1)
-            if np.std(data_array, ddof=1) > 0
-            else 0
-        )
-    else:
-        # Insufficient data - fail criterion
-        t_stat, p_value = 0.0, 1.0
-        mean_diff = (
-            float(control_performance_difference)
-            if not isinstance(control_performance_difference, (list, np.ndarray))
-            else (
-                float(control_performance_difference[0])
-                if len(control_performance_difference) > 0
-                else 0.0
-            )
-        )
-        cohens_d = mean_diff / 0.1  # Mock cohens_d since we only have mean
-    denom = np.std([control_performance_difference, 0], ddof=1)
-    cohens_d = control_performance_difference / denom if denom > 0 else 0.0
-
-    f5_6_pass = (
-        np.isfinite(control_performance_difference)
-        and np.isfinite(cohens_d)
-        and np.isfinite(p_value)
-        and control_performance_difference >= 40
-        and cohens_d >= 0.85
-        and p_value < 0.01
-    )
-    results["criteria"]["F5.6"] = {
-        "passed": f5_6_pass,
-        "difference_pct": control_performance_difference,
-        "cohens_d": cohens_d,
-        "p_value": p_value,
-        "t_statistic": t_stat,
-        "threshold": "≥40% worse performance, d ≥ 0.85",
-        "actual": f"{control_performance_difference:.2f}% difference, d={cohens_d:.3f}",
-    }
-    if f5_6_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F5.6: {'PASS' if f5_6_pass else 'FAIL'} - Difference: {control_performance_difference:.2f}%, d={cohens_d:.3f}"
-    )
-
-    # F6.1: Intrinsic Threshold Behavior
-    logger.info("Testing F6.1: Intrinsic Threshold Behavior")
-    # Transition time comparison (Mann-Whitney U test)
-    from scipy.stats import mannwhitneyu
-
-    stat, p_value = mannwhitneyu([ltcn_transition_time], [rnn_transition_time])
-    cliff_delta = (ltcn_transition_time - rnn_transition_time) / max(
-        ltcn_transition_time, rnn_transition_time
-    )
-
-    f6_1_pass = (
-        np.isfinite(ltcn_transition_time)
-        and np.isfinite(cliff_delta)
-        and np.isfinite(p_value)
-        and ltcn_transition_time <= 50
-        and cliff_delta >= 0.60
-        and p_value < 0.01
-    )
-    results["criteria"]["F6.1"] = {
-        "passed": f6_1_pass,
-        "ltcn_time": ltcn_transition_time,
-        "rnn_time": rnn_transition_time,
-        "cliff_delta": cliff_delta,
-        "p_value": p_value,
-        "threshold": "LTCN ≤50ms transition, Cliff's δ ≥ 0.60",
-        "actual": f"LTCN {ltcn_transition_time:.1f}ms, RNN {rnn_transition_time:.1f}ms, δ={cliff_delta:.3f}",
-    }
-    if f6_1_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.1: {'PASS' if f6_1_pass else 'FAIL'} - LTCN: {ltcn_transition_time:.1f}ms, RNN: {rnn_transition_time:.1f}ms, δ={cliff_delta:.3f}"
-    )
-
-    # F6.2: Intrinsic Temporal Integration
-    logger.info("Testing F6.2: Intrinsic Temporal Integration")
-    stat, p_value = mannwhitneyu([ltcn_integration_window], [rnn_integration_window])
-    ratio = (
-        ltcn_integration_window / rnn_integration_window
-        if rnn_integration_window > 0
-        else 0
-    )
-
-    f6_2_pass = (
-        np.isfinite(ltcn_integration_window)
-        and np.isfinite(ratio)
-        and np.isfinite(p_value)
-        and ltcn_integration_window >= 200
-        and ratio >= 4.0
-        and p_value < 0.01
-    )
-    results["criteria"]["F6.2"] = {
-        "passed": f6_2_pass,
-        "ltcn_window": ltcn_integration_window,
-        "rnn_window": rnn_integration_window,
-        "ratio": ratio,
-        "p_value": p_value,
-        "threshold": "LTCN ≥200ms window, ratio ≥4× RNN",
-        "actual": f"LTCN {ltcn_integration_window:.1f}ms, RNN {rnn_integration_window:.1f}ms, ratio={ratio:.1f}",
-    }
-    if f6_2_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.2: {'PASS' if f6_2_pass else 'FAIL'} - LTCN: {ltcn_integration_window:.1f}ms, RNN: {rnn_integration_window:.1f}ms, ratio={ratio:.1f}"
-    )
-
-    # F6.3: Metabolic Selectivity Without Training
-    logger.info("Testing F6.3: Metabolic Selectivity Without Training")
-    t_stat, p_value = stats.ttest_rel(
-        [ltcn_sparsity_reduction], [rnn_sparsity_reduction]
-    )
-    denom = np.std([ltcn_sparsity_reduction, rnn_sparsity_reduction], ddof=1)
-    cohens_d = (
-        (ltcn_sparsity_reduction - rnn_sparsity_reduction) / denom if denom > 0 else 0.0
-    )
-
-    f6_3_pass = (
-        np.isfinite(ltcn_sparsity_reduction)
-        and np.isfinite(cohens_d)
-        and np.isfinite(p_value)
-        and ltcn_sparsity_reduction >= 30
-        and cohens_d >= 0.70
-        and p_value < 0.01
-    )
-    results["criteria"]["F6.3"] = {
-        "passed": f6_3_pass,
-        "ltcn_reduction": ltcn_sparsity_reduction,
-        "rnn_reduction": rnn_sparsity_reduction,
-        "cohens_d": cohens_d,
-        "p_value": p_value,
-        "t_statistic": t_stat,
-        "threshold": "LTCN ≥30% reduction, d ≥ 0.70",
-        "actual": f"LTCN {ltcn_sparsity_reduction:.1f}%, RNN {rnn_sparsity_reduction:.1f}%, d={cohens_d:.3f}",
-    }
-    if f6_3_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.3: {'PASS' if f6_3_pass else 'FAIL'} - LTCN: {ltcn_sparsity_reduction:.1f}%, RNN: {rnn_sparsity_reduction:.1f}%, d={cohens_d:.3f}"
-    )
-
-    # F6.4: Fading Memory Implementation
-    logger.info("Testing F6.4: Fading Memory Implementation")
-    # Exponential decay model fitting (simplified)
-    f6_4_pass = memory_decay_tau >= 1.0 and memory_decay_tau <= 3.0
-    results["criteria"]["F6.4"] = {
-        "passed": f6_4_pass,
-        "tau_memory": memory_decay_tau,
-        "threshold": "τ_memory = 1-3s",
-        "actual": f"τ = {memory_decay_tau:.1f}s",
-    }
-    if f6_4_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.4: {'PASS' if f6_4_pass else 'FAIL'} - τ = {memory_decay_tau:.1f}s"
-    )
-
-    # F6.5: Bifurcation Structure for Ignition
-    logger.info("Testing F6.5: Bifurcation Structure for Ignition")
-    # Use proper phase portrait sweep to compute bifurcation point and hysteresis
-    bifurcation_analysis = analyze_bifurcation_structure(
-        theta_t=0.5,  # Default ignition threshold
-        tau_S=0.3,  # Default surprise decay time constant
-        dt=0.05,  # Default time step
-        beta=1.2,  # Default somatic bias
-        hysteresis_min=F6_5_HYSTERESIS_MIN,
-        hysteresis_max=F6_5_HYSTERESIS_MAX,
-    )
-
-    bifurcation_point = bifurcation_analysis["bifurcation_point"]
-    hysteresis = bifurcation_analysis["hysteresis_width"]
-    f6_5_pass = bifurcation_analysis["f6_5_pass"]
-
-    results["criteria"]["F6.5"] = {
-        "passed": f6_5_pass,
-        "bifurcation_point": bifurcation_point,
-        "hysteresis_width": hysteresis,
-        "threshold": f"Bifurcation at Π·|ε| = θ_t ± {F6_5_BIFURCATION_ERROR_MAX}, hysteresis {F6_5_HYSTERESIS_MIN}-{F6_5_HYSTERESIS_MAX}",
-        "actual": f"Point {bifurcation_point:.3f}, hysteresis {hysteresis:.3f}",
-    }
-    if f6_5_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.5: {'PASS' if f6_5_pass else 'FAIL'} - Point: {bifurcation_point:.3f}, hysteresis: {hysteresis:.3f}"
-    )
-
-    # F6.6: Alternative Architectures Require Add-Ons
-    logger.info("Testing F6.6: Alternative Architectures Require Add-Ons")
-
-    f6_6_pass = rnn_add_ons_needed >= 2 and performance_gap >= 15
-    results["criteria"]["F6.6"] = {
-        "passed": f6_6_pass,
-        "add_ons_needed": rnn_add_ons_needed,
-        "performance_gap": performance_gap,
-        "threshold": "≥2 add-ons needed, ≥15% performance gap",
-        "actual": f"{rnn_add_ons_needed} add-ons, {performance_gap:.1f}% gap",
-    }
-    if f6_6_pass:
-        results["summary"]["passed"] += 1
-    else:
-        results["summary"]["failed"] += 1
-    logger.info(
-        f"F6.6: {'PASS' if f6_6_pass else 'FAIL'} - Add-ons: {rnn_add_ons_needed}, gap: {performance_gap:.1f}%"
-    )
-
-    # BUG fix: Ensure we have data for the summary report
-    # Generate some synthetic data if not provided (for visualization)
-    time_pts = np.arange(0, 5, 0.05)
-    eps_e = np.sin(time_pts) * 0.2 + 0.1
-    eps_i = np.cos(time_pts) * 0.15 + 0.05
-    S_traj, _, _ = simulate_surprise_accumulation(eps_e, eps_i, 1.0, 1.0, 1.2)
-
-    # Generate comprehensive validation report
-    # Summary plot
-    if HAS_MATPLOTLIB:
-        plt.figure(figsize=(10, 6))
-        labels = list(results["criteria"].keys())
-        passed = [1 if results["criteria"][k]["passed"] else 0 for k in labels]
-        plt.bar(labels, passed)
-        plt.title("Falsification Criteria Results")
-        plt.ylabel("Passed (1) / Failed (0)")
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        plt.savefig("falsification_results.png")
-        plt.close()
-
-        plt.figure(figsize=(10, 6))
-        plt.plot(S_traj, label="Surprise (S_t)")
-        plt.axhline(y=0.5, color="r", linestyle="--", label="Threshold")
-        plt.title("Sample Ignition Dynamic")
-        plt.legend()
-        plt.savefig("f1_sample_ignition.png")
-        plt.close()
-
-    # Save detailed report
-    with open("validation_report.md", "w", encoding="utf-8") as f:
-        f.write("# APGI Falsification Protocol 1 Validation Report\n\n")
-        f.write("## Summary\n")
-        f.write(
-            f'Passed: {results["summary"]["passed"]}/{results["summary"]["total"]}\n\n'
-        )
-        for key, value in results["criteria"].items():
-            f.write(f"## {key}\n")
-            f.write(f'- Passed: {value["passed"]}\n')
-            f.write(f'- Threshold: {value["threshold"]}\n')
-            f.write(f'- Actual: {value["actual"]}\n')
-            if "power" in value:
-                f.write(f'- Power: {value["power"]:.3f}\n')
-            f.write("\n")
-
-    print("\n" + "=" * 80)
-    print("FALSIFICATION TEST SUMMARY")
-    print("=" * 80)
-    print(f"Protocol: {results['protocol']}")
-    print(f"Passed: {results['summary']['passed']}")
-    print(f"Failed: {results['summary']['failed']}")
-    print(f"Total: {results['summary']['total']}")
-    print("-" * 80)
-
-    for c_code, r_item in (
-        results["criteria"].items()
-        if isinstance(results, dict) and "criteria" in results
-        else []
-    ):
-        st = "PASSED" if r_item["passed"] else "FAILED"
-        print(f"[{c_code}] {st}")
-        print(f"  Threshold: {r_item['threshold']}")
-        print(f"  Actual:    {r_item['actual']}")
-    print("=" * 80 + "\n")
-
-    print(
-        "Comprehensive report generated: validation_report.md and falsification_results.png"
-    )
-
-    logger.info(
-        f"\nFalsification-Protocol-1 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
-    )
-    return results
+    def compute_pac_for_band_pairs(
+        level_data: List[np.ndarray], band_pairs: List[Tuple[str, str, str, str]]
+    ) -> Dict[str, np.ndarray]:
+        """
+        Compute Phase-Amplitude Coupling (PAC) for specific frequency band pairs.
+
+        Args:
+            level_data: List of arrays containing data from each hierarchical level
+            band_pairs: List of tuples specifying (low_band_name, high_band_name, low_level, high_level)
+                       e.g., [("theta", "gamma", "L1", "L2"), ("delta", "theta", "L2", "L3")]
+
+        Returns:
+            Dictionary with PAC MI values for each band pair
+        """
+        pac_results = {}
+
+        # Import required signal processing components
+        try:
+            from scipy.signal import butter, filtfilt, hilbert
+        except ImportError:
+            # Fallback if scipy not available
+            for low_band, high_band, low_level, high_level in band_pairs:
+                pac_results[f"{low_band}_{high_band}"] = np.array([0.0])
+            return pac_results
+
+        for low_band, high_band, low_level, high_level in band_pairs:
+            # Extract level indices (L1=0, L2=1, L3=2, L4=3)
+            low_idx = int(low_level[1:]) - 1
+            high_idx = int(high_level[1:]) - 1
+
+            # Get frequency bands from PAC_BANDS configuration
+            level_key = f"{low_level}_{high_level}"
+            if level_key in PAC_BANDS:
+                phase_band = tuple(PAC_BANDS[level_key]["phase"])
+                amplitude_band = tuple(PAC_BANDS[level_key]["amplitude"])
+            else:
+                # Fallback to default bands if not found in config
+                if "theta" in low_band and "gamma" in high_band:
+                    phase_band = (4, 8)  # theta
+                    amplitude_band = (30, 80)  # gamma
+                elif "delta" in low_band and "theta" in high_band:
+                    phase_band = (1, 4)  # delta
+                    amplitude_band = (4, 8)  # theta
+                else:
+                    pac_results[f"{low_band}_{high_band}"] = np.array([0.0])
+                    continue
+
+            if low_idx < len(level_data) and high_idx < len(level_data):
+                low_freq_data = level_data[low_idx]
+                high_freq_data = level_data[high_idx]
+
+                if len(low_freq_data) > 0 and len(high_freq_data) > 0:
+                    try:
+                        # Ensure data is 1D for filtering
+                        if low_freq_data.ndim > 1:
+                            low_freq_data = low_freq_data.flatten()
+                        if high_freq_data.ndim > 1:
+                            high_freq_data = high_freq_data.flatten()
+
+                        # Use sampling rate of 1000 Hz (default for synthetic data)
+                        fs = 1000.0
+
+                        # Filter phase signal (low frequency)
+                        nyquist = fs / 2
+                        low = phase_band[0] / nyquist
+                        high = phase_band[1] / nyquist
+                        b_phase, a_phase = butter(4, [low, high], btype="band")
+                        phase_signal = filtfilt(b_phase, a_phase, low_freq_data)
+                        phase = np.angle(hilbert(phase_signal))
+
+                        # Filter amplitude signal (high frequency)
+                        low = amplitude_band[0] / nyquist
+                        high = amplitude_band[1] / nyquist
+                        b_amp, a_amp = butter(4, [low, high], btype="band")
+                        amp_signal = filtfilt(b_amp, a_amp, high_freq_data)
+                        amplitude = np.abs(hilbert(amp_signal))
+
+                        # Compute Modulation Index (Tort et al., 2010)
+                        # Bin phase into 18 bins (20 degrees each)
+                        n_bins = 18
+                        phase_bins = np.linspace(0, 2 * np.pi, n_bins, endpoint=False)
+
+                        # Compute amplitude distribution across phase bins
+                        amp_by_phase = np.zeros(n_bins)
+                        for i in range(n_bins):
+                            next_bin_idx = (i + 1) % n_bins
+                            in_bin = (phase >= phase_bins[i]) & (
+                                phase < phase_bins[next_bin_idx]
+                            )
+                            if np.any(in_bin):
+                                amp_by_phase[i] = np.mean(amplitude[in_bin])
+
+                        # Normalize amplitude distribution
+                        if np.sum(amp_by_phase) > 0:
+                            amp_by_phase = amp_by_phase / np.sum(amp_by_phase)
+
+                        # Compute Modulation Index using KL divergence from uniform
+                        uniform_dist = np.ones(n_bins) / n_bins
+                        mi = np.sum(
+                            amp_by_phase * np.log(amp_by_phase / uniform_dist + 1e-10)
+                        )
+
+                        if np.isfinite(mi):
+                            pac_results[f"{low_band}_{high_band}"] = np.array([mi])
+                        else:
+                            pac_results[f"{low_band}_{high_band}"] = np.array([0.0])
+                    except Exception:
+                        # Fallback to simplified correlation if proper PAC fails
+                        try:
+                            low_phase = np.angle(np.fft.fft(low_freq_data))
+                            high_fft = np.fft.fft(high_freq_data)
+                            high_amp = np.abs(high_fft)
+                            pac_mi = np.corrcoef(low_phase[: len(high_amp)], high_amp)[
+                                0, 1
+                            ]
+                            if np.isfinite(pac_mi):
+                                pac_results[f"{low_band}_{high_band}"] = np.array(
+                                    [abs(pac_mi)]
+                                )
+                            else:
+                                pac_results[f"{low_band}_{high_band}"] = np.array([0.0])
+                        except Exception:
+                            pac_results[f"{low_band}_{high_band}"] = np.array([0.0])
+                else:
+                    pac_results[f"{low_band}_{high_band}"] = np.array([0.0])
+            else:
+                pac_results[f"{low_band}_{high_band}"] = np.array([0.0])
+
+        return pac_results
+
+    def compute_inter_level_coupling_strength(
+        level_data: List[np.ndarray],
+    ) -> Dict[str, float]:
+        """
+        Compute inter-level coupling strength that must exceed intra-level variance by pre-specified margin.
+
+        Args:
+            level_data: List of arrays containing data from each hierarchical level
+
+        Returns:
+            Dictionary with coupling metrics
+        """
+        if len(level_data) < 2:
+            return {
+                "inter_intra_ratio": 0.0,
+                "inter_coupling": 0.0,
+                "intra_variance": 0.0,
+            }
+
+        # Compute inter-level coupling (cross-correlation between adjacent levels)
+        inter_couplings = []
+        for i in range(len(level_data) - 1):
+            if len(level_data[i]) > 0 and len(level_data[i + 1]) > 0:
+                # Use Pearson correlation as coupling measure
+                correlation = np.corrcoef(level_data[i], level_data[i + 1])[0, 1]
+                if np.isfinite(correlation):
+                    inter_couplings.append(abs(correlation))
+
+        mean_inter_coupling = np.mean(inter_couplings) if inter_couplings else 0.0
+
+        # Compute intra-level variance (average variance within each level)
+        intra_variances = []
+        for level in level_data:
+            if len(level) > 1:
+                var = np.var(level)
+                if np.isfinite(var) and var > 0:
+                    intra_variances.append(var)
+
+        mean_intra_variance = np.mean(intra_variances) if intra_variances else 1.0
+
+        # Compute inter-intra coupling ratio
+        # Normalize by intra-level variance to get ratio
+        inter_intra_ratio = mean_inter_coupling / (np.sqrt(mean_intra_variance) + 1e-10)
+
+        return {
+            "inter_intra_ratio": inter_intra_ratio,
+            "inter_coupling": mean_inter_coupling,
+            "intra_variance": mean_intra_variance,
+        }

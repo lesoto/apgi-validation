@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
+import nolds
 from scipy.special import expit
 
 
@@ -50,6 +51,10 @@ class APGIParameters:
     theta_t0: float = 3.0  # Baseline threshold [1.0, 10.0], typical 2.0-4.0σ
     alpha: float = 0.9  # Threshold recovery rate (0,1), typical 0.8-0.95
     phi: float = 0.4  # Post-ignition facilitation [0.0, 1.0], typical 0.3-0.5σ
+    tau_theta: float = (
+        20.0  # Threshold adaptation time constant (seconds), typical 10-100s
+    )
+    eta_theta: float = 0.1  # Allostatic modulation gain [0.01, 1.0], typical 0.05-0.2
 
     # Metabolic parameters
     gamma_c: float = 0.2  # Metabolic cost per ignition [0.05, 0.5], typical 0.1-0.3σ
@@ -78,6 +83,10 @@ class APGIParameters:
             raise ValueError(f"alpha must be in (0,1), got {self.alpha}")
         if not (0.0 <= self.phi <= 1.0):
             raise ValueError(f"phi must be in [0.0, 1.0], got {self.phi}")
+        if not (5.0 <= self.tau_theta <= 200.0):
+            raise ValueError(f"tau_theta must be in [5.0, 200.0], got {self.tau_theta}")
+        if not (0.01 <= self.eta_theta <= 1.0):
+            raise ValueError(f"eta_theta must be in [0.01, 1.0], got {self.eta_theta}")
         if not (0.05 <= self.gamma_c <= 0.5):
             raise ValueError(f"gamma_c must be in [0.05, 0.5], got {self.gamma_c}")
         if not (0.01 <= self.gamma_r <= 0.2):
@@ -188,6 +197,8 @@ class APGIState:
     eta_m: float = 0.0  # Metabolic modulation (threshold elevation in σ)
     I: int = 0  # Binary ignition indicator
     ignition_probability: float = 0.0  # P(ignition|t)
+    C_metabolic: float = 0.0  # Anticipated metabolic cost of ignition
+    V_information: float = 0.0  # Predicted information value of ignition
 
     def to_dict(self) -> Dict[str, Union[int, float]]:
         """
@@ -202,6 +213,8 @@ class APGIState:
             "eta_m": self.eta_m,
             "I": self.I,
             "ignition_probability": self.ignition_probability,
+            "C_metabolic": self.C_metabolic,
+            "V_information": self.V_information,
         }
 
 
@@ -293,24 +306,222 @@ class APGIFullDynamicModel:
 
         return S_next
 
+    def compute_metabolic_cost(self, S: float, theta_t: float) -> float:
+        """
+        Compute anticipated metabolic cost of ignition.
+
+        C_metabolic represents the expected energy cost if ignition occurs,
+        scaled by the distance above threshold and current metabolic state.
+
+        Args:
+            S: Accumulated signal
+            theta_t: Current threshold
+
+        Returns:
+            Metabolic cost estimate
+        """
+        if S <= theta_t:
+            return 0.0
+
+        # Cost scales with how far above threshold we are and current metabolic modulation
+        excess_signal = S - theta_t
+        base_cost = self.params.gamma_c * excess_signal
+
+        # Modulate by current metabolic state (higher eta_m means higher baseline cost)
+        metabolic_factor = 1.0 + self.state.eta_m / self.params.eta_m_max
+
+        return base_cost * metabolic_factor
+
+    def compute_information_value(
+        self, Pi_e: float, Pi_i: float, epsilon_e: float, epsilon_i: float
+    ) -> float:
+        """
+        Compute predicted information value of ignition.
+
+        V_information represents the expected informational gain if ignition occurs,
+        based on precision-weighted prediction error magnitudes.
+
+        Args:
+            Pi_e: External precision/reliability [0,1]
+            Pi_i: Internal precision/reliability [0,1]
+            epsilon_e: External prediction error magnitude (z-score)
+            epsilon_i: Internal prediction error magnitude (z-score)
+
+        Returns:
+            Information value estimate
+        """
+        # Information value scales with precision-weighted prediction errors
+        external_value = Pi_e * abs(epsilon_e)
+        internal_value = self.params.beta * Pi_i * abs(epsilon_i)
+
+        # Total information value is the sum
+        total_value = external_value + internal_value
+
+        return total_value
+
+    def compute_hurst_exponent_dfa(self, time_series: np.ndarray) -> float:
+        """
+        Compute Hurst exponent using Detrended Fluctuation Analysis (DFA).
+
+        DFA is more robust than R/S analysis for neural data and non-stationary time series.
+
+        Args:
+            time_series: Input time series for Hurst exponent calculation
+
+        Returns:
+            Hurst exponent H where:
+            - H ≈ 0.5: Random walk (no correlations)
+            - H > 0.5: Persistent (positive autocorrelations, healthy)
+            - H < 0.5: Anti-persistent (negative autocorrelations)
+
+        References:
+            - Peng et al. 1995: DFA methodology for quantifying long-range correlations
+            - Hardstone et al. 2012: DFA for neural time series analysis
+        """
+        if len(time_series) < 100:
+            raise ValueError(
+                "Time series must have at least 100 points for reliable DFA"
+            )
+
+        try:
+            # Use nolds.dfa for robust Hurst exponent estimation
+            H = nolds.dfa(time_series)
+            return float(np.clip(H, 0.0, 1.0))
+        except Exception:
+            # Fallback to simple R/S analysis if DFA fails
+            return self._hurst_rs_fallback(time_series)
+
+    def _hurst_rs_fallback(self, time_series: np.ndarray) -> float:
+        """
+        Fallback R/S analysis for Hurst exponent estimation.
+
+        Args:
+            time_series: Input time series
+
+        Returns:
+            Hurst exponent estimate using R/S method
+        """
+        try:
+            H = nolds.hurst_rs(time_series)
+            return float(np.clip(H, 0.0, 1.0))
+        except Exception:
+            # Final fallback - return random walk value
+            return 0.5
+
+    def compute_fractional_dimension_biomarker(
+        self,
+        signal_time_series: np.ndarray,
+        threshold_time_series: Optional[np.ndarray] = None,
+    ) -> Dict[str, float]:
+        """
+        Compute Fractional Dimension Biomarker for clinical assessment.
+
+        Document specification:
+        - H significantly above 0.5: Healthy (persistent correlations)
+        - H reduced below 0.5: Depression (anti-persistent correlations)
+        - H elevated variance: ADHD (irregular correlation patterns)
+
+        Args:
+            signal_time_series: Signal accumulation time series (S)
+            threshold_time_series: Optional threshold time series for proximity analysis
+
+        Returns:
+            Dictionary containing:
+            - hurst_exponent: DFA-based Hurst exponent
+            - variance_h: Variance of H across sliding windows (ADHD marker)
+            - clinical_interpretation: Assessment based on H values
+        """
+        if len(signal_time_series) < 100:
+            raise ValueError("Signal time series must have at least 100 points")
+
+        # Compute global Hurst exponent using DFA
+        H_global = self.compute_hurst_exponent_dfa(signal_time_series)
+
+        # Compute sliding window Hurst exponents for variance analysis (ADHD marker)
+        window_size = max(100, min(200, len(signal_time_series) // 4))
+        if len(signal_time_series) >= window_size * 2:
+            H_windows = []
+            step_size = max(50, window_size // 2)
+
+            for i in range(0, len(signal_time_series) - window_size + 1, step_size):
+                window = signal_time_series[i : i + window_size]
+                H_window = self.compute_hurst_exponent_dfa(window)
+                H_windows.append(H_window)
+
+            variance_H = np.var(H_windows) if H_windows else 0.0
+        else:
+            variance_H = 0.0
+
+        # Clinical interpretation based on document specifications
+        if H_global > 0.55:
+            if variance_H > 0.02:  # High variance suggests ADHD
+                interpretation = "elevated_H_variance_AHDH"
+            else:
+                interpretation = "healthy_persistent"
+        elif H_global < 0.45:
+            interpretation = "depression_reduced_H"
+        else:
+            if variance_H > 0.02:
+                interpretation = "borderline_high_variance_AHDH"
+            else:
+                interpretation = "borderline_random_walk"
+
+        # Optional proximity analysis if threshold provided
+        proximity_effects = {}
+        if threshold_time_series is not None and len(threshold_time_series) == len(
+            signal_time_series
+        ):
+            proximity = np.abs(signal_time_series - threshold_time_series)
+            near_threshold_mask = proximity < np.percentile(
+                proximity, 25
+            )  # Bottom 25% closest to threshold
+
+            if np.sum(near_threshold_mask) >= 100:
+                H_near = self.compute_hurst_exponent_dfa(
+                    signal_time_series[near_threshold_mask]
+                )
+                proximity_effects = {
+                    "hurst_near_threshold": H_near,
+                    "proximity_effect": H_near - H_global,
+                }
+
+        results = {
+            "hurst_exponent": H_global,
+            "variance_h": variance_H,
+            "clinical_interpretation": interpretation,
+        }
+
+        if proximity_effects:
+            results.update(proximity_effects)
+
+        return results
+
     def threshold_dynamics(self, I_prev: int) -> float:
         """
-        Compute threshold dynamics equation.
+        Compute threshold dynamics using continuous-time differential equation.
 
-        θt(t+Δt) = θt0 + ηm(t) + α·[θt(t) − (θt0 + ηm(t))] + φ·I(t)
+        Implements: dθ_t/dt = (θ_0 - θ_t)/τ_θ + η_θ · (C_metabolic - V_information)
 
         Args:
             I_prev: Ignition indicator from previous timestep
 
         Returns:
-            New threshold θt(t+Δt)
+            New threshold θ_t(t+Δt)
         """
-        target_threshold = self.params.theta_t0 + self.state.eta_m
-        theta_t_next = (
-            target_threshold
-            + self.params.alpha * (self.state.theta_t - target_threshold)
-            + self.params.phi * I_prev
+        # Continuous-time dynamics: dθ_t/dt = (θ_0 - θ_t)/τ_θ + η_θ · (C_metabolic - V_information)
+        return_to_baseline = (
+            self.params.theta_t0 - self.state.theta_t
+        ) / self.params.tau_theta
+        allostatic_modulation = self.params.eta_theta * (
+            self.state.C_metabolic - self.state.V_information
         )
+
+        # Euler integration for timestep Δt
+        dtheta_dt = return_to_baseline + allostatic_modulation
+        theta_t_next = self.state.theta_t + dtheta_dt * self.params.delta_t
+
+        # Add post-ignition facilitation (discrete component)
+        theta_t_next += self.params.phi * I_prev
 
         return theta_t_next
 
@@ -380,28 +591,34 @@ class APGIFullDynamicModel:
         # 1. Compute new signal accumulation
         S_next = self.signal_accumulation(Pi_e, Pi_i, epsilon_e, epsilon_i, beta)
 
-        # 2. Compute new threshold
+        # 2. Compute C_metabolic and V_information for threshold dynamics
+        C_metabolic = self.compute_metabolic_cost(S_next, self.state.theta_t)
+        V_information = self.compute_information_value(Pi_e, Pi_i, epsilon_e, epsilon_i)
+
+        # 3. Compute new threshold using continuous-time dynamics
         theta_t_next = self.threshold_dynamics(I_prev)
 
-        # 3. Compute new metabolic state
+        # 4. Compute new metabolic state
         eta_m_next = self.metabolic_dynamics(I_prev)
 
-        # 4. Compute ignition probability
+        # 5. Compute ignition probability
         prob_ignition = self.ignition_probability(S_next, theta_t_next)
 
-        # 5. Determine ignition (stochastic or deterministic)
+        # 6. Determine ignition (stochastic or deterministic)
         if deterministic_ignition:
             I_next = 1 if prob_ignition > 0.5 else 0
         else:
             I_next = 1 if np.random.random() < prob_ignition else 0
 
-        # Update state
+        # Update state with all tracked quantities
         self.state = APGIState(
             S=S_next,
             theta_t=theta_t_next,
             eta_m=eta_m_next,
             I=I_next,
             ignition_probability=prob_ignition,
+            C_metabolic=C_metabolic,
+            V_information=V_information,
         )
 
         self.timestep += 1
@@ -473,6 +690,8 @@ class APGIFullDynamicModel:
             "eta_m": np.zeros(window_size),
             "I": np.zeros(window_size, dtype=int),
             "ignition_probability": np.zeros(window_size),
+            "C_metabolic": np.zeros(window_size),
+            "V_information": np.zeros(window_size),
             "window_size": window_size,
             "total_steps": n_steps,
         }
@@ -498,6 +717,8 @@ class APGIFullDynamicModel:
             history["eta_m"][t] = state.eta_m
             history["I"][t] = state.I
             history["ignition_probability"][t] = state.ignition_probability
+            history["C_metabolic"][t] = state.C_metabolic
+            history["V_information"][t] = state.V_information
 
         return history
 
@@ -510,11 +731,14 @@ class APGIFullDynamicModel:
         """
         return {
             "signal_accumulation": r"$S(t+\Delta t) = \exp(-\Delta t/\tau) \cdot S(t) + w_e \cdot \Pi_e(t) \cdot |\varepsilon_e(t)| + w_i \cdot \beta(t) \cdot \Pi_i(t) \cdot |\varepsilon_i(t)|$",
-            "threshold_dynamics": r"$\theta_t(t+\Delta t) = \theta_{t0} + \eta_m(t) + \alpha \cdot [\theta_t(t) - (\theta_{t0} + \eta_m(t))] + \phi \cdot I(t)$",
+            "threshold_dynamics_continuous": r"$\frac{d\theta_t}{dt} = \frac{\theta_0 - \theta_t}{\tau_\theta} + \eta_\theta \cdot (C_{metabolic} - V_{information})$",
+            "threshold_dynamics_discrete": r"$\theta_t(t+\Delta t) = \theta_t(t) + \Delta t \cdot \left[\frac{\theta_0 - \theta_t(t)}{\tau_\theta} + \eta_\theta \cdot (C_{metabolic} - V_{information})\right] + \phi \cdot I(t)$",
             "ignition_probability": r"$P(\text{ignition}|t) = \frac{1}{1 + \exp(-k \cdot (S(t) - \theta_t(t)))}$",
             "metabolic_dynamics": r"$\eta_m(t+\Delta t) = \eta_m(t) + \gamma_c \cdot I(t) - \gamma_r \cdot (1 - I(t))$",
             "signal_standardization": r"$\varepsilon_{\text{normalized}} = \frac{\varepsilon_{\text{raw}} - \mu_{\text{baseline}}}{\sigma_{\text{baseline}}}$",
             "core_criterion": r"$(\Pi_e \cdot |\varepsilon_e| + \beta \cdot \Pi_i \cdot |\varepsilon_i|) > \theta_t$",
+            "metabolic_cost": r"$C_{metabolic} = \gamma_c \cdot \max(0, S - \theta_t) \cdot \left(1 + \frac{\eta_m}{\eta_{m,max}}\right)$",
+            "information_value": r"$V_{information} = \Pi_e \cdot |\varepsilon_e| + \beta \cdot \Pi_i \cdot |\varepsilon_i|$",
         }
 
     def get_parameter_summary(self) -> Dict[str, Dict[str, Any]]:
@@ -555,6 +779,18 @@ class APGIFullDynamicModel:
                 "typical": "0.3-0.5σ",
                 "description": "Post-ignition facilitation",
             },
+            "tau_theta": {
+                "value": self.params.tau_theta,
+                "range": "[5.0, 200.0]",
+                "typical": "10-100s",
+                "description": "Threshold adaptation time constant (λ_θ = 1/τ_θ ≈ 0.01-0.1 s⁻¹)",
+            },
+            "eta_theta": {
+                "value": self.params.eta_theta,
+                "range": "[0.01, 1.0]",
+                "typical": "0.05-0.2",
+                "description": "Allostatic modulation gain for C_metabolic - V_information",
+            },
             "gamma_c": {
                 "value": self.params.gamma_c,
                 "range": "[0.05, 0.5]",
@@ -590,6 +826,40 @@ class APGIFullDynamicModel:
                 "range": "[0, 1]",
                 "typical": "0.5",
                 "description": "Internal signal weight (we + wi = 1)",
+            },
+        }
+
+    def get_time_constants(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Return time constants for Innovation 27 verification.
+
+        Returns:
+            Dictionary with time constants and their two-orders-of-magnitude separation
+        """
+        lambda_S = 1.0 / self.params.tau  # Signal accumulation rate
+        lambda_theta = 1.0 / self.params.tau_theta  # Threshold adaptation rate
+
+        return {
+            "lambda_S": {
+                "value": lambda_S,
+                "range": "[2.0, 5.0] s⁻¹",
+                "typical": "2-5 s⁻¹",
+                "description": "Signal accumulation rate (fast, seconds scale)",
+                "tau_equivalent": self.params.tau,
+            },
+            "lambda_theta": {
+                "value": lambda_theta,
+                "range": "[0.01, 0.1] s⁻¹",
+                "typical": "0.01-0.1 s⁻¹",
+                "description": "Threshold adaptation rate (slow, minutes scale)",
+                "tau_equivalent": self.params.tau_theta,
+            },
+            "separation_ratio": {
+                "value": lambda_S / lambda_theta,
+                "range": "[20, 500]",
+                "typical": "≈100",
+                "description": "Two-orders-of-magnitude timescale separation (λ_S/λ_θ)",
+                "innovation_27_criterion": "Separation > 10 confirms two-timescales",
             },
         }
 
@@ -661,6 +931,23 @@ if __name__ == "__main__":
     print(f"Peak threshold: {np.max(history['theta_t']):.3f}σ")
     print(f"Peak metabolic modulation: {np.max(history['eta_m']):.3f}σ")
     print(f"Mean ignition probability: {np.mean(history['ignition_probability']):.3f}")
+
+    # Demonstrate Fractional Dimension Biomarker
+    print("\nFractional Dimension Biomarker Analysis:")
+    print("-" * 70)
+
+    # Compute biomarker from signal time series
+    biomarker_results = model.compute_fractional_dimension_biomarker(
+        signal_time_series=history["S"], threshold_time_series=history["theta_t"]
+    )
+
+    print(f"Hurst Exponent (DFA): {biomarker_results['hurst_exponent']:.3f}")
+    print(f"H Variance (ADHD marker): {biomarker_results['variance_h']:.4f}")
+    print(f"Clinical Interpretation: {biomarker_results['clinical_interpretation']}")
+
+    if "hurst_near_threshold" in biomarker_results:
+        print(f"H near threshold: {biomarker_results['hurst_near_threshold']:.3f}")
+        print(f"Proximity effect: {biomarker_results['proximity_effect']:+.3f}")
 
     print("\n" + "=" * 70)
     print("Simulation complete.")

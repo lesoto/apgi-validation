@@ -105,7 +105,7 @@ HEP amplitude as proxy for Πⁱ and PCI as proxy for global ignition capacity, 
 **Location**: APGI-Entropy-Implementation.py (APGILiquidNetwork), APGI-Liquid-Network-Implementation.py  
 Features like threshold filtering, predictive hierarchy, precision-weighted population coding, interoceptive prioritization, and multi-timescale integration are selected by biological constraints (finite ATP, slow conduction, stochastic synapses).
 
-## 22. Developmental Trajectory of Hierarchical Level Emergence from Level 1 to Level 5
+## 22. Developmental Trajectory of Hierarchical Level Emergence from Level 1 to Level 4
 
 **Location**: Falsification/Falsification-Protocol-1.py, hierarchical generative models  
 Predicts level emergence sequence from Level 1 (birth) to Level 4 (adolescence), with transitions trackable via intrinsic timescale lengthening.

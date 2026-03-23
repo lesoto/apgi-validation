@@ -254,10 +254,10 @@ class APGIBayesianModel:
 
             # Amplitude and baseline (fixed across subjects for simplicity)
             pm.Beta("amplitude", alpha=5, beta=1)
-            pm.Beta("baseline", alpha=1, beta=3)
+            pm.Beta("baseline_fixed", alpha=1, beta=3)
 
             # APGI psychometric function for each subject
-            prob_detect = pm.Beta("baseline", alpha=1, beta=3) + pm.Beta(
+            prob_detect = pm.Beta("baseline_fixed", alpha=1, beta=3) + pm.Beta(
                 "amplitude", alpha=5, beta=1
             ) / (
                 1
@@ -505,7 +505,7 @@ class ModelComparisonFramework:
             pm.Beta("baseline", alpha=1, beta=3)
 
             # GNW psychometric function (different functional form)
-            prob_detect = pm.Beta("baseline", alpha=1, beta=3) + amplitude / (
+            prob_detect = pm.Beta("baseline_fixed", alpha=1, beta=3) + amplitude / (
                 1 + pm.math.exp(-slope * (stimulus_intensities - threshold))
             )
 

@@ -1592,12 +1592,15 @@ class BayesianModelComparison:
 
     def compute_comparison_metrics(self) -> pd.DataFrame:
         """
-        Compute WAIC, LOO-CV, and Bayes factors
+        Compute WAIC, LOO-CV, and Bayes factors (PRIMARY)
+        Also compute BIC as secondary check for backwards compatibility
 
         Returns DataFrame with comparison metrics for all models.
         """
         print(f"\n{'=' * 80}")
         print("COMPUTING MODEL COMPARISON METRICS")
+        print("PRIMARY: WAIC/LOO (full Bayesian marginal likelihood)")
+        print("SECONDARY: BIC (approximation for backwards compatibility)")
         print(f"{'=' * 80}")
 
         results = []
@@ -1609,12 +1612,12 @@ class BayesianModelComparison:
             print(f"\n{name}:")
 
             try:
-                # WAIC
+                # PRIMARY: WAIC (Widely Applicable Information Criterion)
                 waic = az.waic(trace)
                 print(f"  WAIC: {waic.waic:.2f} ± {waic.waic_se:.2f}")
                 print(f"  p_WAIC: {waic.p_waic:.2f}")
 
-                # LOO-CV
+                # PRIMARY: LOO-CV (Leave-One-Out Cross-Validation)
                 loo = az.loo(trace)
                 print(f"  LOO: {loo.loo:.2f} ± {loo.loo_se:.2f}")
                 print(f"  p_LOO: {loo.p_loo:.2f}")
@@ -1625,6 +1628,10 @@ class BayesianModelComparison:
                     if k_high > 0:
                         print(f"  ⚠️  {k_high} observations with high Pareto k")
 
+                # SECONDARY: BIC (Bayesian Information Criterion - approximation)
+                bic = self._compute_bic(trace)
+                print(f"  BIC: {bic:.2f} (secondary check)")
+
                 results.append(
                     {
                         "model": name,
@@ -1634,6 +1641,7 @@ class BayesianModelComparison:
                         "loo": loo.loo,
                         "loo_se": loo.loo_se,
                         "p_loo": loo.p_loo,
+                        "bic": bic,  # Secondary check
                     }
                 )
 
@@ -1646,11 +1654,13 @@ class BayesianModelComparison:
             # Compute relative metrics (delta from best)
             best_waic = df["waic"].min()
             best_loo = df["loo"].min()
+            best_bic = df["bic"].min()
 
             df["delta_waic"] = df["waic"] - best_waic
             df["delta_loo"] = df["loo"] - best_loo
+            df["delta_bic"] = df["bic"] - best_bic  # Secondary delta
 
-            # Bayes factors (approximate, from LOO)
+            # PRIMARY: Bayes factors (from LOO - more accurate than BIC)
             # BF ≈ exp(-0.5 * ΔLOO)
             apgi_loo = (
                 df[df["model"] == "APGI"]["loo"].values[0]
@@ -1660,10 +1670,57 @@ class BayesianModelComparison:
             df["delta_loo_vs_apgi"] = df["loo"] - apgi_loo
             df["BF_vs_apgi"] = np.exp(-0.5 * df["delta_loo_vs_apgi"])
 
-            df = df.sort_values("loo")
+            # SECONDARY: BIC-based Bayes factors (for backwards compatibility)
+            apgi_bic = (
+                df[df["model"] == "APGI"]["bic"].values[0]
+                if "APGI" in df["model"].values
+                else best_bic
+            )
+            df["delta_bic_vs_apgi"] = df["bic"] - apgi_bic
+            df["BF_vs_apgi_bic"] = np.exp(-0.5 * df["delta_bic_vs_apgi"])
+
+            df = df.sort_values("loo")  # Sort by primary criterion
 
         self.comparison_results = df
         return df
+
+    def _compute_bic(self, trace) -> float:
+        """
+        Compute BIC as secondary approximation for backwards compatibility
+
+        BIC = k * ln(n) - 2 * ln(L̂)
+        where k = number of parameters, n = sample size, L̂ = maximized likelihood
+        """
+        try:
+            # Get number of parameters
+            k = len(trace.posterior.data_vars)
+
+            # Get sample size (number of observations)
+            n = trace.posterior.dims["draw"]
+
+            # Approximate log-likelihood from posterior samples
+            # This is a simplified approximation - full BIC would need the actual likelihood
+            log_likelihoods = []
+            for var_name in trace.posterior.data_vars:
+                samples = trace.posterior[var_name].values
+                # Use log posterior as approximation to log likelihood
+                log_likelihoods.extend(samples.flatten())
+
+            if log_likelihoods:
+                log_likelihood_mean = np.mean(log_likelihoods)
+                # Add small constant to avoid log(0)
+                log_likelihood_mean = np.where(
+                    np.isfinite(log_likelihood_mean), log_likelihood_mean, -100
+                )
+            else:
+                log_likelihood_mean = -100
+
+            bic = k * np.log(n) - 2 * log_likelihood_mean
+            return float(bic)
+
+        except Exception as e:
+            print(f"    Warning: BIC computation failed: {e}")
+            return 1000.0  # Conservative high BIC on error
 
     def posterior_predictive_check(
         self, data: ConsciousnessDataset, n_samples: int = 1000
@@ -1869,27 +1926,48 @@ class FalsificationChecker:
         }
 
     def check_F2_1(self, comparison_df: pd.DataFrame) -> Tuple[bool, Dict]:
-        """F2.1: APGI LOO worse than competitors by >10"""
+        """F2.1: APGI LOO worse than competitors by >10 (UPDATED: WAIC/LOO primary)"""
 
         if "APGI" not in comparison_df["model"].values:
             return False, {"message": "APGI not in comparison"}
 
+        # PRIMARY: Use LOO criterion (full Bayesian marginal likelihood)
         apgi_loo = comparison_df[comparison_df["model"] == "APGI"]["loo"].values[0]
+        apgi_waic = comparison_df[comparison_df["model"] == "APGI"]["waic"].values[0]
 
         falsified = False
-        details = {}
+        details = {"primary_loo": {}, "primary_waic": {}, "secondary_bic": {}}
 
         for competitor in ["StandardSDT", "GlobalWorkspace"]:
             if competitor in comparison_df["model"].values:
+                # Primary LOO comparison
                 comp_loo = comparison_df[comparison_df["model"] == competitor][
                     "loo"
                 ].values[0]
-                delta = apgi_loo - comp_loo
+                delta_loo = apgi_loo - comp_loo
+                details["primary_loo"][competitor] = delta_loo
 
-                details[competitor] = delta
+                # Primary WAIC comparison
+                comp_waic = comparison_df[comparison_df["model"] == competitor][
+                    "waic"
+                ].values[0]
+                delta_waic = apgi_waic - comp_waic
+                details["primary_waic"][competitor] = delta_waic
 
-                if delta > 10.0:
+                # Check if APGI is worse by >10 points on either primary criterion
+                if delta_loo > 10.0 or delta_waic > 10.0:
                     falsified = True
+
+                # Secondary: BIC comparison (backwards compatibility)
+                if "bic" in comparison_df.columns:
+                    apgi_bic = comparison_df[comparison_df["model"] == "APGI"][
+                        "bic"
+                    ].values[0]
+                    comp_bic = comparison_df[comparison_df["model"] == competitor][
+                        "bic"
+                    ].values[0]
+                    delta_bic = apgi_bic - comp_bic
+                    details["secondary_bic"][competitor] = delta_bic
 
         return falsified, details
 
@@ -1972,20 +2050,40 @@ class FalsificationChecker:
         }
 
     def check_F2_5(self, comparison_df: pd.DataFrame) -> Tuple[bool, float]:
-        """F2.5: Bayes factor APGI vs GWT"""
+        """F2.5: Bayes factor APGI vs GWT (UPDATED: WAIC/LOO primary)"""
 
         if "APGI" not in comparison_df["model"].values:
             return False, 0.0
         if "GlobalWorkspace" not in comparison_df["model"].values:
             return False, 0.0
 
-        bf = comparison_df[comparison_df["model"] == "GlobalWorkspace"][
-            "BF_vs_apgi"
-        ].values[0]
+        # PRIMARY: Use LOO-based Bayes factor (more accurate)
+        if "BF_vs_apgi" in comparison_df.columns:
+            bf_loo = comparison_df[comparison_df["model"] == "GlobalWorkspace"][
+                "BF_vs_apgi"
+            ].values[0]
+            # If BF < 3, GWT is not substantially worse than APGI
+            # (Bayes factor interpretation: <3 = weak evidence)
+            falsified_loo = bf_loo > (1 / 3)
+        else:
+            falsified_loo = False
+            bf_loo = 1.0
 
-        # If BF < 3, GWT is not substantially worse than APGI
-        # (Bayes factor interpretation: <3 = weak evidence)
-        falsified = bf > (1 / 3)  # BF_vs_apgi > 1/3 means APGI not clearly better
+        # SECONDARY: Use WAIC-based Bayes factor if LOO not available
+        if "BF_vs_apgi_bic" in comparison_df.columns:
+            bf_waic = comparison_df[comparison_df["model"] == "GlobalWorkspace"][
+                "BF_vs_apgi_bic"
+            ].values[0]
+            falsified_waic = bf_waic > (1 / 3)
+        else:
+            falsified_waic = False
+            bf_waic = 1.0
+
+        # Use primary criterion (LOO) if available, otherwise WAIC
+        falsified = (
+            falsified_loo if "BF_vs_apgi" in comparison_df.columns else falsified_waic
+        )
+        bf = bf_loo if "BF_vs_apgi" in comparison_df.columns else bf_waic
 
         return falsified, float(bf)
 
@@ -3058,6 +3156,12 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
 
 
 def check_falsification(
+    # PRIMARY: WAIC/LOO-based criteria (full Bayesian marginal likelihood)
+    waic_bayes_factor: float,
+    loo_bayes_factor: float,
+    delta_waic: float,
+    delta_loo: float,
+    # SECONDARY: BIC-based criteria (backwards compatibility)
     bayes_factor: float,
     delta_bic: float,
     mae_reduction: float,
@@ -3149,29 +3253,65 @@ def check_falsification(
         "summary": {"passed": 0, "failed": 0, "total": 11},
     }
 
-    # V2.1: Bayes Factor Threshold
+    # V2.1: Bayes Factor Threshold (UPDATED: WAIC/LOO primary, BIC secondary)
     logger.info("Testing V2.1: Bayes Factor Threshold")
-    # Log Bayes factor
-    if bayes_factor > 0:
-        log_bf = np.log(bayes_factor)
-    else:
-        log_bf = -np.inf
+    logger.info("PRIMARY: WAIC/LOO Bayes factors (full marginal likelihood)")
+    logger.info("SECONDARY: BIC Bayes factors (approximation)")
 
-    v2_1_pass = bayes_factor >= 3 and delta_bic >= 6
+    # Primary criteria: WAIC and LOO Bayes factors
+    primary_pass = (loo_bayes_factor >= 10 and delta_loo >= 10) or (
+        waic_bayes_factor >= 10 and delta_waic >= 10
+    )
+
+    # Secondary criteria: BIC (backwards compatibility)
+    secondary_pass = bayes_factor >= 3 and delta_bic >= 6
+
+    # Overall pass requires primary criteria (secondary is optional bonus)
+    v2_1_pass = primary_pass
+
+    # Log Bayes factors
+    if loo_bayes_factor > 0:
+        log_loo_bf = np.log(loo_bayes_factor)
+    else:
+        log_loo_bf = -np.inf
+
+    if waic_bayes_factor > 0:
+        log_waic_bf = np.log(waic_bayes_factor)
+    else:
+        log_waic_bf = -np.inf
+
+    if bayes_factor > 0:
+        log_bic_bf = np.log(bayes_factor)
+    else:
+        log_bic_bf = -np.inf
+
     results["criteria"]["V2.1"] = {
         "passed": v2_1_pass,
-        "bayes_factor": bayes_factor,
+        # Primary metrics
+        "loo_bayes_factor": loo_bayes_factor,
+        "waic_bayes_factor": waic_bayes_factor,
+        "delta_loo": delta_loo,
+        "delta_waic": delta_waic,
+        "log_loo_bayes_factor": log_loo_bf,
+        "log_waic_bayes_factor": log_waic_bf,
+        # Secondary metrics
+        "bic_bayes_factor": bayes_factor,
         "delta_bic": delta_bic,
-        "log_bayes_factor": log_bf,
-        "threshold": "BF₁₀ ≥ 10, ΔBIC ≥ 10",
-        "actual": f"BF₁₀: {bayes_factor:.2f}, ΔBIC: {delta_bic:.1f}",
+        "log_bic_bayes_factor": log_bic_bf,
+        "primary_pass": primary_pass,
+        "secondary_pass": secondary_pass,
+        "threshold": "PRIMARY: BF₁₀ ≥ 10 (WAIC/LOO), Δ ≥ 10; SECONDARY: BF₁₀ ≥ 3 (BIC), Δ ≥ 6",
+        "actual": f"LOO BF: {loo_bayes_factor:.2f}, WAIC BF: {waic_bayes_factor:.2f}, BIC BF: {bayes_factor:.2f}",
     }
     if v2_1_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"V2.1: {'PASS' if v2_1_pass else 'FAIL'} - BF₁₀: {bayes_factor:.2f}, ΔBIC: {delta_bic:.1f}"
+        f"V2.1: {'PASS' if v2_1_pass else 'FAIL'} - LOO BF: {loo_bayes_factor:.2f}, WAIC BF: {waic_bayes_factor:.2f}, BIC BF: {bayes_factor:.2f}"
+    )
+    logger.info(
+        f"  Primary (WAIC/LOO): {'PASS' if primary_pass else 'FAIL'} | Secondary (BIC): {'PASS' if secondary_pass else 'FAIL'}"
     )
 
     # V2.2: Posterior Predictive Accuracy

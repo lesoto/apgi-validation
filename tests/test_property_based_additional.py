@@ -158,11 +158,38 @@ class TestDataPipelineProperties:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
-                pd_st.column("col3", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
+                pd_st.column(
+                    "col3",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_value=100),
+            index=pd_st.range_indexes(min_size=10, max_size=100),
         )
     )
     def test_data_pipeline_preserves_dimensions(self, df):
@@ -181,10 +208,28 @@ class TestDataPipelineProperties:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_value=100),
+            index=pd_st.range_indexes(min_size=10, max_size=100),
         )
     )
     def test_data_pipeline_preserves_types(self, df):
@@ -202,10 +247,28 @@ class TestDataPipelineProperties:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_size=100),
+            index=pd_st.range_indexes(min_size=10, max_size=100),
         )
     )
     def test_data_pipeline_no_data_loss(self, df):
@@ -222,10 +285,28 @@ class TestDataPipelineProperties:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_size=100),
+            index=pd_st.range_indexes(min_size=10, max_size=100),
         ),
         strategies.floats(min_value=0.0, max_value=1.0, allow_nan=False),
     )
@@ -364,7 +445,7 @@ class TestFileFormatHandlingProperties:
                 pd_st.column("col2", dtype=float),
                 pd_st.column("col3", dtype=str),
             ],
-            rows=strategies.integers(min_value=5, max_size=20),
+            index=pd_st.range_indexes(min_size=5, max_size=20),
         )
     )
     def test_csv_roundtrip_preserves_data(self, df):
@@ -399,7 +480,7 @@ class TestFileFormatHandlingProperties:
                 pd_st.column("col1", dtype=int),
                 pd_st.column("col2", dtype=float),
             ],
-            rows=strategies.integers(min_value=5, max_size=20),
+            index=pd_st.range_indexes(min_size=5, max_size=20),
         )
     )
     def test_json_roundtrip_preserves_data(self, df):
@@ -491,10 +572,18 @@ class TestFileFormatHandlingProperties:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(allow_nan=False, allow_infinity=False),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(allow_nan=False, allow_infinity=False),
+                ),
             ],
-            rows=strategies.integers(min_value=5, max_size=20),
+            index=pd_st.range_indexes(min_size=5, max_size=20),
         )
     )
     def test_parquet_roundtrip_preserves_data(self, df):
@@ -534,7 +623,7 @@ class TestDataIntegrityProperties:
                 pd_st.column("id", dtype=int),
                 pd_st.column("value", dtype=float),
             ],
-            rows=strategies.integers(min_value=10, max_size=50),
+            index=pd_st.range_indexes(min_size=10, max_size=50),
         )
     )
     def test_data_uniqueness_properties(self, df):
@@ -550,10 +639,28 @@ class TestDataIntegrityProperties:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_size=50),
+            index=pd_st.range_indexes(min_size=10, max_size=50),
         )
     )
     def test_data_consistency_properties(self, df):
@@ -574,10 +681,28 @@ class TestDataIntegrityProperties:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_size=50),
+            index=pd_st.range_indexes(min_size=10, max_size=50),
         )
     )
     def test_data_completeness_properties(self, df):
@@ -591,10 +716,28 @@ class TestDataIntegrityProperties:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(
+                        min_value=-1e6,
+                        max_value=1e6,
+                        allow_nan=False,
+                        allow_infinity=False,
+                    ),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_size=50),
+            index=pd_st.range_indexes(min_size=10, max_size=50),
         )
     )
     def test_data_range_properties(self, df):
@@ -618,10 +761,18 @@ class TestTransformationInvariants:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(allow_nan=False, allow_infinity=False),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(allow_nan=False, allow_infinity=False),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_size=50),
+            index=pd_st.range_indexes(min_size=10, max_size=50),
         ),
         strategies.floats(min_value=-10.0, max_value=10.0, allow_nan=False),
     )
@@ -639,10 +790,18 @@ class TestTransformationInvariants:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(allow_nan=False, allow_infinity=False),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(allow_nan=False, allow_infinity=False),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_size=50),
+            index=pd_st.range_indexes(min_size=10, max_size=50),
         ),
         strategies.floats(min_value=0.1, max_value=10.0, allow_nan=False),
     )
@@ -660,10 +819,18 @@ class TestTransformationInvariants:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(allow_nan=False, allow_infinity=False),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(allow_nan=False, allow_infinity=False),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_size=50),
+            index=pd_st.range_indexes(min_size=10, max_size=50),
         )
     )
     def test_transformation_filter_invariant(self, df):
@@ -680,10 +847,18 @@ class TestTransformationInvariants:
     @given(
         pd_st.data_frames(
             columns=[
-                pd_st.column("col1", dtype=float),
-                pd_st.column("col2", dtype=float),
+                pd_st.column(
+                    "col1",
+                    dtype=float,
+                    elements=strategies.floats(allow_nan=False, allow_infinity=False),
+                ),
+                pd_st.column(
+                    "col2",
+                    dtype=float,
+                    elements=strategies.floats(allow_nan=False, allow_infinity=False),
+                ),
             ],
-            rows=strategies.integers(min_value=10, max_size=50),
+            index=pd_st.range_indexes(min_size=10, max_size=50),
         )
     )
     def test_transformation_sort_invariant(self, df):

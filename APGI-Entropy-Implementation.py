@@ -1029,6 +1029,61 @@ class MultiLevelEntropyModule(nn.Module):
             complexity=variational_results["complexity"],
         )
 
+    def test_landauer_consistency(
+        self, entropy_output: EntropyOutput, delta_H_bits: Optional[torch.Tensor] = None
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Verify Landauer's principle: ΔS_thermodynamic ≥ k_B ln 2 · ΔH_bits.
+
+        This is the computable bridge between Level 1 (thermodynamic) and
+        Level 2 (information-theoretic) entropy. Landauer's principle states
+        that erasing one bit of information requires minimum thermodynamic
+        entropy cost of k_B T ln 2.
+
+        Args:
+            entropy_output: EntropyOutput containing S_thermodynamic and H_shannon
+            delta_H_bits: Change in Shannon entropy in bits. If None, uses
+                          entropy_output.information_gain as proxy.
+
+        Returns:
+            Dict with:
+            - 'landauer_bound': k_B ln 2 · ΔH_bits (minimum thermodynamic cost)
+            - 'S_thermodynamic': actual thermodynamic entropy
+            - 'landauer_satisfied': bool tensor where inequality holds
+            - 'violation_fraction': fraction of samples violating Landauer
+        """
+        # Boltzmann constant in J/K
+        k_B = self.config.boltzmann_constant
+
+        # ln(2) for bit-to-nat conversion
+        ln2 = math.log(2.0)
+
+        # Use information gain as ΔH if not provided
+        # Convert from nats to bits: H_bits = H_nats / ln(2)
+        if delta_H_bits is None:
+            # information_gain is in nats, convert to bits
+            delta_H_bits = entropy_output.information_gain / ln2
+
+        # Landauer bound: minimum thermodynamic entropy cost
+        # ΔS_min = k_B * ln(2) * ΔH_bits
+        landauer_bound = k_B * ln2 * delta_H_bits
+
+        # Check inequality: S_thermodynamic ≥ landauer_bound
+        # Note: S_thermodynamic is in J/K units when use_physical_temperature=True
+        # For normalized units, the inequality still holds dimensionally
+        landauer_satisfied = entropy_output.S_thermodynamic >= landauer_bound
+
+        # Compute violation fraction
+        violation_fraction = 1.0 - landauer_satisfied.float().mean()
+
+        return {
+            "landauer_bound": landauer_bound,
+            "S_thermodynamic": entropy_output.S_thermodynamic,
+            "landauer_satisfied": landauer_satisfied,
+            "violation_fraction": violation_fraction,
+            "delta_H_bits": delta_H_bits,
+        }
+
     def validate_cross_level_consistency(
         self, entropy_output: EntropyOutput
     ) -> Dict[str, bool]:
@@ -1039,6 +1094,7 @@ class MultiLevelEntropyModule(nn.Module):
         1. Second Law: Entropy production ≥ 0 (thermodynamic)
         2. Data Processing Inequality: I(X;Y) ≥ 0 (information theory)
         3. Free Energy Bound: F ≥ -log p(o) (variational)
+        4. Landauer's Principle: ΔS ≥ k_B ln 2 · ΔH (Level 1-2 bridge)
         """
         checks = {}
 
@@ -1065,6 +1121,12 @@ class MultiLevelEntropyModule(nn.Module):
         # We approximate: F ≥ accuracy (since accuracy = -E[log p(o|s)])
         checks["F_bounds_surprisal"] = bool(
             (entropy_output.F_variational >= entropy_output.accuracy - 1.0).all()
+        )
+
+        # Check 6: Landauer's principle (Level 1-2 bridge)
+        landauer_result = self.test_landauer_consistency(entropy_output)
+        checks["landauer_consistency"] = bool(
+            landauer_result["landauer_satisfied"].all()
         )
 
         checks["all_passed"] = all(checks.values())
