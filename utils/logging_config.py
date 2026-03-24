@@ -44,14 +44,16 @@ class SecretsRedactionFilter:
 
     # Patterns for sensitive data
     SECRET_PATTERNS = [
-        # API keys and tokens
+        # API keys, tokens, secrets (broad coverage)
         (
-            r'(api[_-]?key|apikey|token|secret|password|passwd)[\'":\s]*([\'"]?)[a-zA-Z0-9+/=_-]{20,}\2',
-            r"\1[REDACTED]",
+            r"(api[_-]?key|apikey|api[_-]?token|auth[_-]?key|client[_-]?secret"
+            r"|token|secret|password|passwd|private[_-]?key)"
+            r"[\'\"]?[:\s=]+[\'\"]?([a-zA-Z0-9+/=_\-]{20,})[\'\"]?",
+            r"\1=[REDACTED]",
         ),
         # JWT tokens
         (r"eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+", "[JWT_REDACTED]"),
-        # Bearer tokens
+        # Bearer tokens (Authorization header values)
         (r"Bearer\s+[a-zA-Z0-9+/=_-]{20,}", "Bearer [REDACTED]"),
         # Database URLs
         (
@@ -64,8 +66,8 @@ class SecretsRedactionFilter:
         # (r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', '[IP_REDACTED]'),
         # Credit card numbers (basic pattern)
         (r"\b[0-9]{13,19}\b", "[CARD_REDACTED]"),
-        # Authorization headers
-        (r"authorization[:\s]+[^\s]+", "authorization: [REDACTED]"),
+        # Authorization headers (generic)
+        (r"(?i)(authorization|x-api-key|x-auth-token)[:\s]+[^\s]+", r"\1: [REDACTED]"),
     ]
 
     def __call__(self, record):
@@ -724,23 +726,27 @@ class APGILogger:
 
         for pattern in patterns:
             try:
-                # Add timeout to prevent ReDoS attacks
+                # Add timeout to prevent ReDoS attacks.
+                # Save and restore the previous SIGALRM handler so we don't
+                # permanently overwrite any handler installed by the caller.
                 import signal
 
                 def timeout_handler(signum, frame):
                     raise TimeoutError("Regex matching timed out")
 
-                signal.signal(signal.SIGALRM, timeout_handler)
+                previous_handler = signal.signal(signal.SIGALRM, timeout_handler)
                 signal.alarm(1)  # 1 second timeout
 
                 try:
                     match = re.match(pattern, first_line)
                     signal.alarm(0)  # Cancel alarm
+                    signal.signal(signal.SIGALRM, previous_handler)  # Restore
 
                     if match:
                         return match.groups()
                 except TimeoutError:
                     signal.alarm(0)  # Cancel alarm
+                    signal.signal(signal.SIGALRM, previous_handler)  # Restore
                     continue  # Try next pattern
 
             except re.error:

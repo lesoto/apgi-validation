@@ -21,7 +21,7 @@ class TestDataPipelineEndToEnd:
         """Test complete pipeline from CSV to JSON."""
         # Create test CSV file
         csv_file = temp_dir / "input.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["timestamp", "surprise", "threshold", "metabolic"])
             for i in range(100):
@@ -54,7 +54,7 @@ class TestDataPipelineEndToEnd:
     def test_pipeline_with_missing_values(self, temp_dir):
         """Test pipeline handling of missing values."""
         csv_file = temp_dir / "missing_values.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["timestamp", "surprise", "threshold"])
             writer.writerow([0, 0.1, 0.5])
@@ -77,7 +77,7 @@ class TestDataPipelineEndToEnd:
     def test_pipeline_with_outliers(self, temp_dir):
         """Test pipeline handling of outliers."""
         csv_file = temp_dir / "outliers.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["value"])
             for i in range(100):
@@ -96,7 +96,7 @@ class TestDataPipelineEndToEnd:
     def test_pipeline_data_transformation(self, temp_dir):
         """Test data transformation pipeline."""
         csv_file = temp_dir / "transform.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["x", "y"])
             for i in range(50):
@@ -118,7 +118,7 @@ class TestDataPipelineEndToEnd:
     def test_pipeline_data_aggregation(self, temp_dir):
         """Test data aggregation pipeline."""
         csv_file = temp_dir / "aggregate.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["category", "value"])
             for i in range(100):
@@ -143,7 +143,7 @@ class TestDataPipelineEndToEnd:
     def test_pipeline_filter_operations(self, temp_dir):
         """Test data filtering pipeline."""
         csv_file = temp_dir / "filter.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["id", "score", "status"])
             for i in range(100):
@@ -165,7 +165,7 @@ class TestDataPipelineEndToEnd:
     def test_pipeline_time_series_processing(self, temp_dir):
         """Test time series processing pipeline."""
         csv_file = temp_dir / "timeseries.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["timestamp", "value"])
             for i in range(100):
@@ -191,7 +191,7 @@ class TestDataPipelineEndToEnd:
         # Create multiple CSV files
         for i in range(3):
             csv_file = temp_dir / f"file_{i}.csv"
-            with open(csv_file, "w", newline="") as f:
+            with open(csv_file, ', encoding="utf-8"w', newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["id", "value"])
                 for j in range(50):
@@ -214,7 +214,7 @@ class TestDataPipelineEndToEnd:
     def test_pipeline_large_file_handling(self, temp_dir):
         """Test handling of large CSV files."""
         csv_file = temp_dir / "large.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["id", "value1", "value2", "value3", "value4", "value5"])
             for i in range(10000):
@@ -233,7 +233,7 @@ class TestDataPipelineEndToEnd:
     def test_pipeline_data_validation(self, temp_dir):
         """Test data validation in pipeline."""
         csv_file = temp_dir / "validate.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["age", "score", "name"])
             writer.writerow([25, 85.5, "Alice"])
@@ -263,7 +263,7 @@ class TestDataPipelineEndToEnd:
     def test_pipeline_export_formats(self, temp_dir):
         """Test exporting to multiple formats."""
         csv_file = temp_dir / "input.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["id", "value"])
             for i in range(10):
@@ -299,7 +299,7 @@ class TestDataPipelineEndToEnd:
         """Test pipeline error recovery."""
         # Create a file with some invalid rows
         csv_file = temp_dir / "errors.csv"
-        with open(csv_file, "w", newline="") as f:
+        with open(csv_file, ', encoding="utf-8"w', newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["id", "value"])
             writer.writerow([0, 1.0])
@@ -333,7 +333,7 @@ class TestDataPipelineEndToEnd:
         # Create multiple files
         for i in range(5):
             csv_file = temp_dir / f"parallel_{i}.csv"
-            with open(csv_file, "w", newline="") as f:
+            with open(csv_file, ', encoding="utf-8"w', newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["id", "value"])
                 for j in range(100):

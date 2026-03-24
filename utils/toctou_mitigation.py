@@ -139,7 +139,7 @@ class SecureFileOperations:
             if lock.acquire():
                 # Double-check file still exists and is accessible
                 if path.exists() and os.access(path, os.R_OK):
-                    with open(path, "r") as f:
+                    with open(path, ', encoding="utf-8"r') as f:
                         content = f.read()
                     return content
                 else:
@@ -173,7 +173,7 @@ class SecureFileOperations:
             if lock.acquire():
                 # Write to temporary file first
                 temp_file = path.with_suffix(".tmp")
-                with open(temp_file, "w") as f:
+                with open(temp_file, "w", encoding="utf-8") as f:
                     f.write(content)
 
                 # Atomic rename

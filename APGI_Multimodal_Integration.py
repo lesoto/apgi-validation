@@ -78,6 +78,18 @@ class APGINormalizer:
             "alpha_power": lambda x: np.log10(x + 1e-12),
             "heart_rate": lambda x: np.log(x + 1e-12),  # Log transform for heart_rate
             "SCR": lambda x: np.log10(x + 1e-6),
+            "gamma_power": lambda x: np.log10(
+                x + 1e-12
+            ),  # Log transform for gamma power
+            "HEP_amplitude": lambda x: np.log10(
+                x + 1e-12
+            ),  # Log transform for HEP amplitude
+            "pupil_diameter": lambda x: np.log(
+                x + 1e-6
+            ),  # Log transform for pupil diameter
+            "P3b_amplitude": lambda x: np.log10(
+                x + 1e-12
+            ),  # Log transform for P3b amplitude
         }
 
         self.transforms = transforms if transforms is not None else default_transforms
@@ -178,9 +190,24 @@ class APGINormalizer:
                     test_used = "Anderson-Darling"
                 except (ValueError, RuntimeError, TypeError):
                     # Fallback to Kolmogorov-Smirnov if Anderson-Darling fails
-                    _, p_value = stats.kstest(transformed_data, "norm")
-                    test_used = "Kolmogorov-Smirnov (fallback)"
-                    p_value = max(p_value, 0.001)  # Conservative bound
+                    try:
+                        # Add safeguards against numerical issues
+                        if len(transformed_data) < 3:
+                            p_value = 0.5  # Cannot assess with very small samples
+                        else:
+                            # Standardize data to avoid numerical overflow
+                            standardized_data = (
+                                transformed_data - np.mean(transformed_data)
+                            ) / (np.std(transformed_data) + 1e-12)
+                            _, p_value = stats.kstest(standardized_data, "norm")
+                            p_value = max(
+                                min(p_value, 1.0), 0.001
+                            )  # Bound to [0.001, 1.0]
+                        test_used = "Kolmogorov-Smirnov (fallback)"
+                    except (ValueError, RuntimeError, OverflowError):
+                        # Ultimate fallback - assume non-Gaussian
+                        p_value = 0.01
+                        test_used = "Fallback (assumed non-Gaussian)"
 
             if (
                 isinstance(p_value, (int, float))
@@ -1056,7 +1083,7 @@ class APGISpectralAnalysis:
             import yaml
 
             config_path = Path(__file__).parent / "config" / "default.yaml"
-            with open(config_path, "r") as f:
+            with open(config_path, ', encoding="utf-8"r') as f:
                 config = yaml.safe_load(f)
                 return config.get("pac_bands", {})
         except Exception:
@@ -2495,12 +2522,22 @@ def compute_threshold_composite(
         warnings.warn("Normalizer not fitted, using default threshold", UserWarning)
         return 0.0
 
+    # Check specific required variables
+    missing_vars = []
     if (
         "pupil_diameter" not in normalizer.norms
-        or "alpha_power" not in normalizer.norms
+        or normalizer.norms["pupil_diameter"]["mean"] is None
     ):
+        missing_vars.append("pupil_diameter")
+    if (
+        "alpha_power" not in normalizer.norms
+        or normalizer.norms["alpha_power"]["mean"] is None
+    ):
+        missing_vars.append("alpha_power")
+
+    if missing_vars:
         warnings.warn(
-            "Required variables not fitted in normalizer, using default threshold",
+            f"Variables not fitted in normalizer: {', '.join(missing_vars)}. Using default threshold",
             UserWarning,
         )
         return 0.0

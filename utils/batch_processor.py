@@ -687,6 +687,40 @@ class BatchProcessor:
             with open(output_path.with_suffix(".json"), "w") as f:
                 json.dump(job.result, f, indent=2, default=str)
 
+    def _save_result(self, job: BatchJob) -> None:
+        """Save job result to output file."""
+        if not job.output_file:
+            return
+
+        output_path = Path(job.output_file)
+
+        # Validate output path is within project root
+        try:
+            _validate_secure_path(output_path, PROJECT_ROOT)
+        except ValueError as e:
+            raise ValueError(f"Invalid output path {output_path}: {e}")
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if job.output_file.endswith(".json"):
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(job.result, f, indent=2, default=str)
+        elif job.output_file.endswith(".pkl"):
+            secure_json_dump(job.result, output_path)
+        elif job.output_file.endswith(".csv"):
+            if isinstance(job.result, dict) and "results" in job.result:
+                # Save simulation results as CSV
+                df = pd.DataFrame(job.result["results"])
+                df.to_csv(output_path, index=False)
+            else:
+                # Save summary as CSV
+                df = pd.DataFrame([job.result])
+                df.to_csv(output_path, index=False)
+        else:
+            # Default to JSON
+            with open(output_path.with_suffix(".json"), "w", encoding="utf-8") as f:
+                json.dump(job.result, f, indent=2, default=str)
+
     def run_batch(self, show_progress: bool = True) -> Dict[str, Any]:
         """Run all jobs in the batch."""
         if not self.jobs:
@@ -857,6 +891,50 @@ class BatchProcessor:
             json.dump(report, f, indent=2, default=str)
 
         print(f"Batch report saved to: {output_file}")
+
+
+def secure_load_json(file_path: Path) -> Any:
+    """Securely load JSON with validation and error handling.
+
+    Args:
+        file_path: Path to JSON file
+
+    Returns:
+        Parsed JSON data or None if file doesn't exist
+
+    Raises:
+        ValueError: If file is invalid or contains malicious content
+    """
+    # Validate path first
+    try:
+        _validate_secure_path(file_path, PROJECT_ROOT)
+    except ValueError as e:
+        raise ValueError(f"Path validation failed for {file_path}: {e}")
+
+    if not file_path.exists():
+        return None
+
+    try:
+        # Check file size to prevent memory exhaustion
+        file_size = file_path.stat().st_size
+        max_size = 100 * 1024 * 1024  # 100MB limit
+        if file_size > max_size:
+            raise ValueError(f"File too large: {file_size} bytes (max {max_size})")
+
+        # Load and validate JSON
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Basic validation - ensure it's a dict if not empty
+        if data is not None and not isinstance(data, dict):
+            raise ValueError("JSON must be a dictionary")
+
+        return data
+
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in {file_path}: {e}")
+    except (IOError, OSError, PermissionError) as e:
+        raise ValueError(f"Cannot read file {file_path}: {e}")
 
 
 def create_parameter_grid(param_ranges: Dict[str, List[Any]]) -> List[Dict[str, Any]]:

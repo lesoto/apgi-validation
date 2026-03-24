@@ -44,7 +44,7 @@ def save_golden_output(test_name: str, output: Dict[str, Any]) -> None:
         else:
             serializable_output[key] = value
 
-    with open(output_file, "w") as f:
+    with open(output_file, ', encoding="utf-8"w') as f:
         json.dump(serializable_output, f, indent=2)
 
 
@@ -63,7 +63,7 @@ def load_golden_output(test_name: str) -> Dict[str, Any]:
     if not output_file.exists():
         raise FileNotFoundError(f"Golden output not found: {output_file}")
 
-    with open(output_file, "r") as f:
+    with open(output_file, ', encoding="utf-8"r') as f:
         loaded_data = json.load(f)
 
     # Convert back to numpy arrays

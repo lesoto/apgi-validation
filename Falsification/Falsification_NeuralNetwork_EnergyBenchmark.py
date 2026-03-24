@@ -33,11 +33,20 @@ except ImportError:
     F6_2_WILCOXON_ALPHA = 0.05
 
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from scipy import stats
 from sklearn.metrics import roc_auc_score
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    torch = None  # type: ignore
+    nn = None  # type: ignore
+    F = None  # type: ignore
 
 try:
     from utils.constants import DIM_CONSTANTS

@@ -543,11 +543,11 @@ class TestThroughputBenchmarks:
             start_time = time.time()
 
             # Write data
-            with open(temp_path, "wb") as f:
+            with open(temp_path, ', encoding="utf-8"wb') as f:
                 f.write(test_data)
 
             # Read data
-            with open(temp_path, "rb") as f:
+            with open(temp_path, ', encoding="utf-8"rb') as f:
                 read_data = f.read()
 
             end_time = time.time()
@@ -601,7 +601,7 @@ class TestResourceUtilization:
                 f.close()
 
             # Write data
-            with open(temp_path, "wb") as f:
+            with open(temp_path, ', encoding="utf-8"wb') as f:
                 f.write(test_data)
 
             # Get file size

@@ -163,7 +163,7 @@ class FoundationalEquations:
         From Section 1.3 of APGI_Equations.md
 
         Args:
-            variance: Variance of prediction errors (must be > 0)
+            variance: Variance of prediction errors (must be >= 0)
 
         Returns:
             Precision Π (capped at 1e6 to prevent overflow)
@@ -3390,7 +3390,7 @@ def run_complete_demo() -> None:
         "HEP_amplitude": params.HEP_amplitude,
         "P3b_latency": params.P3b_latency,
     }
-    with open(output_dir / "corrected_parameters.json", "w") as f:
+    with open(output_dir / "corrected_parameters.json", "w", encoding="utf-8") as f:
         json.dump(params_dict, f, indent=2)
 
     # Save simulation summary
@@ -3409,7 +3409,7 @@ def run_complete_demo() -> None:
         "psychiatric_profiles_implemented": True,
     }
 
-    with open(output_dir / "simulation_summary.json", "w") as f:
+    with open(output_dir / "simulation_summary.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
     # Show dashboard

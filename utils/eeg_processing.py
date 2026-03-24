@@ -31,7 +31,7 @@ def get_pac_bands() -> Dict[str, Dict[str, Tuple[float, float]]]:
     """
     try:
         config_path = Path(__file__).parent.parent / "config" / "default.yaml"
-        with open(config_path, "r") as f:
+        with open(config_path, ', encoding="utf-8"r') as f:
             config = yaml.safe_load(f)
             pac_bands = config.get("pac_bands", {})
 

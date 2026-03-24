@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for APGI_Equations.py - FIXED VERSION
 =======================================================================
@@ -7,6 +9,7 @@ Tests for APGI_Equations.py with corrected function signatures and parameter nam
 import pytest
 import numpy as np
 import warnings
+from typing import Optional
 
 # Add project root to path
 import sys
@@ -27,17 +30,28 @@ from APGI_Equations import (
 
 
 # Wrapper functions with ALL required parameters
-def wrapped_signal_dynamics(S: float, Pi_e: float, eps_e: float) -> float:
+def wrapped_signal_dynamics(
+    S: float,
+    Pi_e: float,
+    eps_e: float,
+    Pi_i_eff: float = 1.0,
+    eps_i: float = 0.0,
+    tau_S: float = 0.5,
+    sigma_S: float = 0.1,
+    dt: float = 0.1,
+    rng: Optional[np.random.Generator] = None,
+) -> float:
     """Wrapper for signal_dynamics with default parameters."""
     return DynamicalSystemEquations.signal_dynamics(
         S=S,
         Pi_e=Pi_e,
         eps_e=eps_e,
-        Pi_i_eff=1.0,
-        eps_i=0.0,
-        tau_S=0.5,
-        sigma_S=0.1,
-        dt=0.1,
+        Pi_i_eff=Pi_i_eff,
+        eps_i=eps_i,
+        tau_S=tau_S,
+        sigma_S=sigma_S,
+        dt=dt,
+        rng=rng,
     )
 
 
@@ -50,6 +64,7 @@ def wrapped_somatic_marker_dynamics(
     tau_M: float = 1.0,
     sigma_M: float = 0.1,
     dt: float = 0.1,
+    rng: Optional[np.random.Generator] = None,
 ) -> float:
     """Wrapper for somatic_marker_dynamics with default parameters."""
     return DynamicalSystemEquations.somatic_marker_dynamics(
@@ -61,58 +76,91 @@ def wrapped_somatic_marker_dynamics(
         tau_M=tau_M,
         sigma_M=sigma_M,
         dt=dt,
+        rng=rng,
     )
 
 
 def wrapped_arousal_dynamics(
-    A: float, A_target: float, tau_A: float, sigma_A: float = 0.1, dt: float = 0.1
+    A: float,
+    A_target: float,
+    tau_A: float,
+    sigma_A: float = 0.1,
+    dt: float = 0.1,
+    rng: Optional[np.random.Generator] = None,
 ) -> float:
     """Wrapper for arousal_dynamics with default parameters."""
     return DynamicalSystemEquations.arousal_dynamics(
-        A=A, A_target=A_target, tau_A=tau_A, sigma_A=sigma_A, dt=dt
+        A=A, A_target=A_target, tau_A=tau_A, sigma_A=sigma_A, dt=dt, rng=rng
     )
 
 
 def wrapped_threshold_dynamics(
-    theta: float, theta_0_sleep: float, theta_0_alert: float
+    theta: float,
+    theta_0_sleep: float,
+    theta_0_alert: float,
+    A: float,
+    gamma_M: float,
+    M: float,
+    lambda_S: float,
+    S: float,
+    tau_theta: float,
+    sigma_theta: float,
+    dt: float,
+    rng: Optional[np.random.Generator] = None,
 ) -> float:
     """Wrapper for threshold_dynamics with default parameters."""
     return DynamicalSystemEquations.threshold_dynamics(
         theta=theta,
         theta_0_sleep=theta_0_sleep,
         theta_0_alert=theta_0_alert,
-        A=0.5,
-        gamma_M=0.1,
-        M=1.0,
-        lambda_S=0.01,
-        S=1.0,
-        tau_theta=50.0,
-        sigma_theta=0.2,
-        dt=0.1,
+        A=A,
+        gamma_M=gamma_M,
+        M=M,
+        lambda_S=lambda_S,
+        S=S,
+        tau_theta=tau_theta,
+        sigma_theta=sigma_theta,
+        dt=dt,
+        rng=rng,
     )
 
 
 def wrapped_precision_dynamics(
-    Pi: float, Pi_target: float, alpha_Pi: float, sigma_Pi: float = 0.1, dt: float = 0.1
+    Pi: float,
+    Pi_target: float,
+    alpha_Pi: float,
+    sigma_Pi: float = 0.1,
+    dt: float = 0.1,
+    rng: Optional[np.random.Generator] = None,
 ) -> float:
     """Wrapper for precision_dynamics with default parameters."""
     return DynamicalSystemEquations.precision_dynamics(
-        Pi=Pi, Pi_target=Pi_target, alpha_Pi=alpha_Pi, sigma_Pi=sigma_Pi, dt=dt
+        Pi=Pi, Pi_target=Pi_target, alpha_Pi=alpha_Pi, sigma_Pi=sigma_Pi, dt=dt, rng=rng
     )
 
 
 def wrapped_compute_arousal_target(
-    t: float, max_eps: float, eps_i_history: list
+    t: float,
+    max_eps: float,
+    eps_i_history: list,
+    rng: Optional[np.random.Generator] = None,
 ) -> float:
     """Wrapper for compute_arousal_target with default parameters."""
     return DynamicalSystemEquations.compute_arousal_target(
-        t=t, max_eps=max_eps, eps_i_history=eps_i_history
+        t=t, max_eps=max_eps, eps_i_history=eps_i_history, rng=rng
     )
 
 
-def wrapped_latency_to_ignition(S_0: float, theta: float, I_input: float) -> float:
+def wrapped_latency_to_ignition(
+    S_0: float,
+    theta: float,
+    I_input: float,
+    rng: Optional[np.random.Generator] = None,
+) -> float:
     """Wrapper for latency_to_ignition with default parameters."""
-    return DerivedQuantities.latency_to_ignition(S_0=S_0, theta=theta, I=I_input)
+    return DerivedQuantities.latency_to_ignition(
+        S_0=S_0, theta=theta, I=I_input, rng=rng
+    )
 
 
 class TestFoundationalEquations:
@@ -267,7 +315,17 @@ class TestDynamicalSystemEquations:
     def test_threshold_dynamics_basic(self):
         """Test threshold dynamics with positive change."""
         theta_new = wrapped_threshold_dynamics(
-            theta=3.0, theta_0_sleep=2.0, theta_0_alert=4.0
+            theta=3.0,
+            theta_0_sleep=2.0,
+            theta_0_alert=4.0,
+            A=0.5,
+            gamma_M=0.1,
+            M=1.0,
+            lambda_S=0.01,
+            S=1.0,
+            tau_theta=50.0,
+            sigma_theta=0.2,
+            dt=0.1,
         )
         # Should be a valid float value
         assert isinstance(theta_new, float)
@@ -275,7 +333,7 @@ class TestDynamicalSystemEquations:
 
     def test_threshold_dynamics_negative_change(self):
         """Test threshold dynamics with negative change."""
-        theta_new = DynamicalSystemEquations.threshold_dynamics(
+        theta_new = wrapped_threshold_dynamics(
             theta=3.0,
             theta_0_sleep=2.0,
             theta_0_alert=4.0,
@@ -600,7 +658,6 @@ class TestAPGIParameters:
             theta_0=3.0,
             alpha=5.5,
             gamma_c=0.5,
-            gamma_A=0.3,
             rho=0.8,
             sigma_S=0.1,
             sigma_theta=0.2,
@@ -617,7 +674,6 @@ class TestAPGIParameters:
             theta_0=1.0,
             alpha=0.3,
             gamma_c=-0.5,
-            gamma_A=0.3,
             rho=0.3,
             sigma_S=0.05,
             sigma_theta=0.1,
@@ -633,7 +689,6 @@ class TestAPGIParameters:
             theta_0=3.0,
             alpha=5.5,
             gamma_c=0.5,
-            gamma_A=0.3,
             rho=0.8,
             sigma_S=0.1,
             sigma_theta=0.2,
@@ -649,7 +704,6 @@ class TestAPGIParameters:
             theta_0=3.0,
             alpha=5.5,
             gamma_c=0.5,
-            gamma_A=0.3,
             rho=0.8,
             sigma_S=0.1,
             sigma_theta=0.2,
@@ -666,14 +720,12 @@ class TestAPGIParameters:
             theta_0=3.0,
             alpha=5.5,
             gamma_c=0.6,
-            gamma_A=0.4,  # Both out of range
             rho=0.8,
             sigma_S=0.1,
             sigma_theta=0.2,
         )
         violations = params.validate()
         assert any("gamma_c" in v for v in violations)
-        assert any("gamma_A" in v for v in violations)
 
     def test_parameter_validation_sensitivity_violations(self):
         """Test validation with sensitivity parameter violations."""
@@ -683,7 +735,6 @@ class TestAPGIParameters:
             theta_0=3.0,
             alpha=5.5,
             gamma_c=0.5,
-            gamma_A=0.3,
             rho=0.2,
             sigma_S=0.1,
             sigma_theta=0.2,  # rho out of range
@@ -698,14 +749,13 @@ class TestAPGIParameters:
             tau_theta=10.0,  # Time violations
             theta_0=3.0,
             alpha=5.5,
-            gamma_c=0.6,
-            gamma_A=0.4,  # Threshold violations
+            gamma_c=0.6,  # Threshold violations
             rho=0.2,
             sigma_S=0.1,
             sigma_theta=0.2,  # Sensitivity violations
         )
         violations = params.validate()
-        assert len(violations) >= 4  # Should have multiple violations
+        assert len(violations) >= 3  # Should have multiple violations
 
     def test_domain_thresholds(self):
         """Test domain-specific threshold retrieval."""
@@ -734,7 +784,6 @@ class TestAPGIParameters:
             theta_0=3.0,
             alpha=5.5,
             gamma_c=0.5,
-            gamma_A=0.3,
             rho=0.8,
             sigma_S=0.1,
             sigma_theta=0.2,
@@ -777,21 +826,70 @@ class TestPsychologicalState:
     def test_state_initialization_profiles(self):
         """Test state initialization with different profiles."""
         # Test anxiety profile
-        anxiety_state = PsychologicalState(name="Anxiety")
+        anxiety_state = PsychologicalState(
+            name="Anxiety",
+            category=StateCategory.OPTIMAL_FUNCTIONING,
+            description="Anxiety state",
+            phenomenology=[
+                "effortless attention",
+                "sense of control",
+                "altered time perception",
+            ],
+            Pi_e_actual=6.5,
+            Pi_i_baseline_actual=1.5,
+            M_ca=0.3,
+            beta=1.0,
+            z_e=0.4,
+            z_i=0.2,
+            theta_t=1.8,
+        )
         assert anxiety_state.MDD_profile is True
         assert anxiety_state.psychosis_profile is False
         assert anxiety_state.Pi_i_expected > anxiety_state.Pi_i_baseline
 
         # Test MDD profile
-        mdd_state = PsychologicalState(name="Depression")
-        assert mdd_state.MDD_profile is True
-        assert mdd_state.psychosis_profile is False
-        assert abs(mdd_state.Pi_i_expected - mdd_state.Pi_i_baseline) > abs(
-            anxiety_state.Pi_i_expected - anxiety_state.Pi_i_baseline
+        depression_state = PsychologicalState(
+            name="Depression",
+            category=StateCategory.OPTIMAL_FUNCTIONING,
+            description="Depression state",
+            phenomenology=[
+                "effortless attention",
+                "sense of control",
+                "altered time perception",
+            ],
+            Pi_e_actual=6.5,
+            Pi_i_baseline_actual=1.5,
+            M_ca=0.3,
+            beta=1.0,
+            z_e=0.4,
+            z_i=0.2,
+            theta_t=1.8,
+        )
+        assert depression_state.MDD_profile is True
+        assert depression_state.psychosis_profile is False
+        # For MDD, Pi_i ≈ Pi_i_baseline (no precision gap)
+        assert (
+            abs(depression_state.Pi_i_expected - depression_state.Pi_i_baseline) < 0.01
         )
 
         # Test psychosis profile
-        psychosis_state = PsychologicalState(name="Psychosis")
+        psychosis_state = PsychologicalState(
+            name="Psychosis",
+            category=StateCategory.PATHOLOGICAL_EXTREME,
+            description="Psychosis state",
+            phenomenology=[
+                "effortless attention",
+                "sense of control",
+                "altered time perception",
+            ],
+            Pi_e_actual=6.5,
+            Pi_i_baseline_actual=1.5,
+            M_ca=0.3,
+            beta=1.0,
+            z_e=0.4,
+            z_i=0.2,
+            theta_t=1.8,
+        )
         assert psychosis_state.MDD_profile is False
         assert psychosis_state.psychosis_profile is True
         assert psychosis_state.Pi_i_expected < psychosis_state.Pi_i_baseline

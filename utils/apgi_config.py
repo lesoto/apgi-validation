@@ -100,6 +100,15 @@ class APGIConfig:
     # Performance tracking
     performance_tracking_enabled: bool = False  # Enable performance benchmarking
 
+    # Cross-level validation
+    cross_level_validation_enabled: bool = True  # Enable cross-level consistency checks
+
+    # F6.2: Intrinsic Temporal Integration parameters
+    F6_2_MIN_INTEGRATION_RATIO: float = 4.0  # Minimum LTCN/RNN integration ratio
+    F6_2_MIN_CURVE_FIT_R2: float = 0.70  # Minimum curve fit R²
+    F6_2_WILCOXON_ALPHA: float = 0.01  # Wilcoxon signed-rank test alpha
+    F6_2_LTCN_MIN_WINDOW_MS: float = 200.0  # Minimum LTCN window in milliseconds
+
     # Numerical stability
     eps: float = 1e-8  # Small epsilon for numerical stability
 
@@ -120,6 +129,9 @@ class APGIConfig:
     reservoir_sparsity: float = 0.9  # Sparsity level for reservoir connections
     reservoir_scaling: float = 1.0  # Scaling factor for reservoir weights
     volatility_history_max: int = 100  # Maximum volatility history length
+
+    # Entropy calculation parameters
+    entropy_calculation_interval: int = 10  # Interval for entropy calculations
 
     def __post_init__(self):
         """Validate configuration parameters"""

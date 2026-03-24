@@ -1212,7 +1212,7 @@ class MultimodalPreprocessingPipeline:
             - initial_validation["data_quality"].get("overall_score", 0),
         }
 
-        with open(report_file, "w") as f:
+        with open(report_file, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, default=str)
 
 

@@ -549,7 +549,7 @@ class AgentComparisonExperiment:
                 output_dir, f"framework_falsification_{timestamp}.json"
             )
 
-            with open(output_file, "w") as f:
+            with open(output_file, ', encoding="utf-8"w') as f:
                 json.dump(falsification, f, indent=2)
 
             logger.info(f"Framework-level results saved to {output_file}")

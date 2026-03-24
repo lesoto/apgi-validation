@@ -232,7 +232,7 @@ class TestFileOperationErrors:
             restricted_path = "/root/restricted_file.txt"
 
             try:
-                with open(restricted_path, "w") as f:
+                with open(restricted_path, ', encoding="utf-8"w') as f:
                     f.write("test")
                 # Should raise PermissionError
                 assert False  # Should not reach here
@@ -261,7 +261,7 @@ class TestFileOperationErrors:
             import json
 
             try:
-                with open(temp_path, "r") as f:
+                with open(temp_path, ', encoding="utf-8"r') as f:
                     json.load(f)
                 assert False  # Should not reach here
 

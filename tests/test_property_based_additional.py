@@ -528,11 +528,11 @@ class TestFileFormatHandlingProperties:
 
         try:
             # Write to YAML
-            with open(temp_file, "w") as f:
+            with open(temp_file, ', encoding="utf-8"w') as f:
                 yaml.dump(data_dict, f)
 
             # Read from YAML
-            with open(temp_file, "r") as f:
+            with open(temp_file, ', encoding="utf-8"r') as f:
                 loaded_data = yaml.safe_load(f)
 
             # Should be equal
@@ -555,11 +555,11 @@ class TestFileFormatHandlingProperties:
 
         try:
             # Write data
-            with open(temp_file, "w", encoding="utf-8") as f:
+            with open(temp_file, ', encoding="utf-8"w', encoding="utf-8") as f:
                 f.write(",".join(map(str, data_list)))
 
             # Read data
-            with open(temp_file, "r", encoding="utf-8") as f:
+            with open(temp_file, ', encoding="utf-8"r', encoding="utf-8") as f:
                 content = f.read()
 
             # Should preserve data

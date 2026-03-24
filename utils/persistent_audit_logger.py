@@ -121,21 +121,28 @@ class PersistentAuditLogger:
         try:
             log_line = json.dumps(log_entry)
             self.logger.info(log_line)
-        except Exception:
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except (TypeError, ValueError, OSError) as primary_err:
             # Fallback: write directly to file
             try:
-                with open(self.log_file, "a") as f:
+                with open(self.log_file, ', encoding="utf-8"a') as f:
                     f.write(f"{json.dumps(log_entry)}\n")
-            except Exception as e2:
-                print(f"Failed to write audit log: {e2}")
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except (OSError, TypeError, ValueError) as e2:
+                print(f"Failed to write audit log (primary={primary_err!r}): {e2}")
 
     def _check_rotation(self) -> None:
         """Check if log file needs rotation."""
         try:
             if self.log_file.stat().st_size > self.max_file_size:
                 self._rotate_log()
-        except Exception:
-            pass
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except OSError as e:
+            # Log at warning level; rotating is best-effort, never silent
+            print(f"Audit log rotation check failed: {e}")
 
     def _rotate_log(self) -> None:
         """Rotate log file."""
@@ -220,7 +227,7 @@ class PersistentAuditLogger:
             output_path = Path(output_file)
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(output_path, "w") as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(
                     {
                         "exported_at": datetime.utcnow().isoformat(),

@@ -54,7 +54,7 @@ class CacheManager:
         """Load cache metadata from file."""
         if self.metadata_file.exists():
             try:
-                with open(self.metadata_file, "r") as f:
+                with open(self.metadata_file, "r", encoding="utf-8") as f:
                     return json.load(f)
             except (json.JSONDecodeError, FileNotFoundError, PermissionError) as e:
                 print(f"Error loading cache metadata: {type(e).__name__}: {e}")
@@ -66,7 +66,7 @@ class CacheManager:
         try:
             # Write to temporary file first
             temp_file = self.metadata_file.with_suffix(".tmp")
-            with open(temp_file, "w") as f:
+            with open(temp_file, "w", encoding="utf-8") as f:
                 json.dump(self.metadata, f, indent=2)
 
             # Atomic replace
@@ -91,12 +91,12 @@ class CacheManager:
 
     def _save_json(self, path: Path, data: Any):
         """Save data as JSON if possible."""
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, separators=(",", ":"), sort_keys=True)
 
     def _load_json(self, path: Path) -> Any:
         """Load data from JSON file."""
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _generate_key(self, key_data: Any) -> str:
@@ -209,7 +209,8 @@ class CacheManager:
                     else:
                         # Fall back to msgpack for complex objects (more efficient than pickle)
                         with open(cache_path, "rb") as f:
-                            data = msgpack.unpack(f, raw=False)
+                            packed_data = f.read()
+                            data = msgpack.unpackb(packed_data, raw=False)
 
                     self._update_access_time(cache_key)
                     self.stats["hits"] += 1
@@ -251,7 +252,7 @@ class CacheManager:
                 else:
                     # Fall back to msgpack for complex objects (more efficient than pickle)
                     with open(cache_path, "wb") as f:
-                        packed_data = msgpack.pack(value, use_bin_type=True)
+                        packed_data = msgpack.packb(value, use_bin_type=True)
                         f.write(packed_data)
                     file_size = cache_path.stat().st_size
 

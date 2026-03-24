@@ -29,9 +29,17 @@ except ImportError:
     plt = None
     HAS_MATPLOTLIB = False
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from torch.utils.data import DataLoader, Dataset, random_split
+
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+
 from scipy import stats
 from sklearn.metrics import (
     accuracy_score,
@@ -4015,7 +4023,7 @@ def main():
 
     abs_save_path = os.path.abspath("protocol1_results.json")
     try:
-        with open(abs_save_path, "w", encoding="utf-8") as f:
+        with open(abs_save_path, ', encoding="utf-8"w', encoding="utf-8") as f:
             json.dump(json_compatible_results, f, indent=2)
         print(f"✅ Results saved to: {abs_save_path}")
     except IOError as e:

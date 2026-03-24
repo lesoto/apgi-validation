@@ -3026,7 +3026,7 @@ def main():
 
     json_compatible_results = convert_for_json(results_summary)
 
-    with open("protocol2_results.json", "w") as f:
+    with open("protocol2_results.json", ', encoding="utf-8"w') as f:
         json.dump(json_compatible_results, f, indent=2)
 
     print("✅ Results saved to: protocol2_results.json")

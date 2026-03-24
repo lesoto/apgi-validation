@@ -34,7 +34,7 @@ def secure_file_read(file_path: str) -> str:
     log_read(str(path))
 
     try:
-        with open(path, "r") as f:
+        with open(path, ', encoding="utf-8"r') as f:
             content = f.read()
         return content
     except Exception as e:
@@ -52,7 +52,7 @@ def secure_file_write(file_path: str, content: str) -> None:
     log_write(str(path))
 
     try:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content)
     except Exception as e:
         log_write(str(path), success=False, error=str(e))
@@ -137,7 +137,7 @@ def secure_resolve_path(path_str: str) -> str:
 # Example of using decorators:
 # @audit_file_operation("read")
 # def read_config(file_path: str) -> dict:
-#     with open(file_path, "r") as f:
+#     with open(file_path, ", encoding=\"utf-8\"r") as f:
 #         return json.load(f)
 
 # The decorator will automatically log the operation, success/failure, and any errors

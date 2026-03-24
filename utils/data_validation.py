@@ -123,8 +123,14 @@ class DataValidator:
                         f"JSON file too large: {file_size_mb:.1f}MB (max: {max_size_mb}MB)"
                     )
                     return results
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
+                with open(file_path, ', encoding="utf-8"r', encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except RecursionError:
+                        results["errors"].append(
+                            "JSON file rejected: nesting depth exceeds safe limit (possible DoS)"
+                        )
+                        return results
                 results["is_readable"] = True
                 results["format_valid"] = self._validate_json_structure(data, results)
             elif (
@@ -544,7 +550,7 @@ class DataValidator:
                         report["data_quality"][
                             "warning"
                         ] = f"Large JSON file detected ({file_size_mb:.1f}MB). Memory usage may be high."
-                    with open(file_path, "r") as f:
+                    with open(file_path, ', encoding="utf-8"r') as f:
                         data = json.load(f)
                     df = pd.DataFrame(data["data"])
                 elif file_path.suffix.lower() in [".h5", ".hdf5"]:
@@ -744,7 +750,7 @@ class DataPreprocessor(DataValidator):
                 raise ValueError(
                     f"JSON file too large: {file_size_mb:.1f}MB (max: {max_size_mb}MB)"
                 )
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, ', encoding="utf-8"r', encoding="utf-8") as f:
                 data = json.load(f)
             df = pd.DataFrame(data["data"])
         elif file_path.suffix.lower() in [".h5", ".hdf5"]:
@@ -1007,7 +1013,7 @@ class DataPreprocessor(DataValidator):
                     "dtypes": {col: str(dtype) for col, dtype in df.dtypes.items()},
                 }
 
-            with open(output_path, "w") as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(data_dict, f, indent=2, default=str)
         else:
             raise ValueError(f"Unsupported output format: {format}")

@@ -58,7 +58,21 @@ class TestAPGIParameters:
 
     def test_parameters_initialization(self):
         """Test APGIParameters initialization."""
-        params = APGIParameters(Pi_e=2.0, Pi_i=1.5, alpha=5.0, z_i=0.8)
+        params = APGIParameters(
+            Pi_e=2.0,
+            Pi_i=1.5,
+            alpha=5.0,
+            z_i=0.8,
+            # Additional required parameters for multimodal integration
+            Pi_i_baseline=0.8,
+            Pi_i_eff=1.0,
+            theta_t=3.0,
+            S_t=1.0,
+            M_ca=0.5,
+            beta=0.5,
+            z_e=0.3,
+            z_i=0.2,
+        )
 
         assert params.Pi_e == 2.0
         assert params.Pi_i == 1.5

@@ -98,140 +98,152 @@ class ThermodynamicConfig:
     eps: float = 1e-8
 
 
-class ThermodynamicEntropyCalculator(nn.Module):
-    """
-    Computes TRUE thermodynamic entropy via statistical mechanics.
+if HAS_TORCH:
 
-    Implements:
-        S = k_B * ln(Z) + <E>/T
-        Z = Σ_i exp(-E_i / k_B*T)  [partition function]
-        F_thermo = -k_B*T * ln(Z)   [Helmholtz free energy]
-        dS/dt = Σ_i (dE_i/dt) * (∂S/∂E_i)  [entropy production rate]
+    class ThermodynamicEntropyCalculator(nn.Module):
+        """
+        Computes TRUE thermodynamic entropy via statistical mechanics.
 
-    This is LEVEL 1 entropy: counting accessible microstates.
-    """
+        Implements:
+            S = k_B * ln(Z) + <E>/T
+            Z = Σ_i exp(-E_i / k_B*T)  [partition function]
+            F_thermo = -k_B*T * ln(Z)   [Helmholtz free energy]
+            dS/dt = Σ_i (dE_i/dt) * (∂S/∂E_i)  [entropy production rate]
 
-    def __init__(self, state_size: int, config: ThermodynamicConfig):
-        super().__init__()
-        self.state_size = state_size
-        self.config = config
+        This is LEVEL 1 entropy: counting accessible microstates.
+        """
 
-        # Use physical temperature if enabled
-        if config.use_physical_temperature:
-            self.kB_T = config.boltzmann_constant * config.temperature_kelvin
-        else:
-            self.kB_T = config.temperature_normalized
+        def __init__(self, state_size: int, config: ThermodynamicConfig):
+            super().__init__()
+            self.state_size = state_size
+            self.config = config
 
-        # Energy function: physically grounded neural energy
-        self.energy_function = nn.Sequential(
-            nn.Linear(state_size, 32),
-            nn.Tanh(),
-            nn.Linear(32, state_size),
-        )
+            # Use physical temperature if enabled
+            if config.use_physical_temperature:
+                self.kB_T = config.boltzmann_constant * config.temperature_kelvin
+            else:
+                self.kB_T = config.temperature_normalized
 
-        # Energy scale factor for physical units
-        self.register_buffer("energy_scale", torch.tensor(config.energy_scale_factor))
-        self.register_buffer("entropy_scale", torch.tensor(config.entropy_scale_factor))
+            # Energy function: physically grounded neural energy
+            self.energy_function = nn.Sequential(
+                nn.Linear(state_size, 32),
+                nn.Tanh(),
+                nn.Linear(32, state_size),
+            )
 
-        # Previous state for entropy production calculation
-        self.prev_state = None
-        self.prev_energies = None
+            # Energy scale factor for physical units
+            self.register_buffer(
+                "energy_scale", torch.tensor(config.energy_scale_factor)
+            )
+            self.register_buffer(
+                "entropy_scale", torch.tensor(config.entropy_scale_factor)
+            )
 
-    def compute_physical_energy(self, state: torch.Tensor) -> torch.Tensor:
-        """Compute physical energy of neural state."""
-        # Kinetic energy component (thermal fluctuations)
-        kinetic_energy = 0.5 * self.kB_T * state.pow(2).sum(dim=-1, keepdim=True)
+            # Previous state for entropy production calculation
+            self.prev_state = None
+            self.prev_energies = None
 
-        # Interaction energy (learned but bounded)
-        interaction_energy = self.energy_function(state).sum(dim=-1, keepdim=True)
+        def compute_physical_energy(self, state: torch.Tensor) -> torch.Tensor:
+            """Compute physical energy of neural state."""
+            # Kinetic energy component (thermal fluctuations)
+            kinetic_energy = 0.5 * self.kB_T * state.pow(2).sum(dim=-1, keepdim=True)
 
-        # Total energy in physical units
-        total_energy = (kinetic_energy + interaction_energy) * self.energy_scale
+            # Interaction energy (learned but bounded)
+            interaction_energy = self.energy_function(state).sum(dim=-1, keepdim=True)
 
-        return total_energy
+            # Total energy in physical units
+            total_energy = (kinetic_energy + interaction_energy) * self.energy_scale
 
-    def compute_partition_function(self, energies: torch.Tensor) -> torch.Tensor:
-        """Compute partition function Z = Σ exp(-E_i/kT)."""
-        # Normalize energies to prevent numerical overflow
-        energies_norm = energies - torch.max(energies, dim=-1, keepdim=True)[0]
+            return total_energy
 
-        # Boltzmann factors: exp(-E/kT) with proper scaling
-        scaled_energies = energies_norm / (self.kB_T * self.energy_scale)
-        boltzmann_factors = torch.exp(-torch.clamp(scaled_energies, min=-50, max=50))
+        def compute_partition_function(self, energies: torch.Tensor) -> torch.Tensor:
+            """Compute partition function Z = Σ exp(-E_i/kT)."""
+            # Normalize energies to prevent numerical overflow
+            energies_norm = energies - torch.max(energies, dim=-1, keepdim=True)[0]
 
-        # Sum over all accessible states
-        Z = boltzmann_factors.sum(dim=-1, keepdim=True)
+            # Boltzmann factors: exp(-E/kT) with proper scaling
+            scaled_energies = energies_norm / (self.kB_T * self.energy_scale)
+            boltzmann_factors = torch.exp(
+                -torch.clamp(scaled_energies, min=-50, max=50)
+            )
 
-        # Prevent division by zero
-        Z = torch.clamp(Z, min=self.config.eps)
+            # Sum over all accessible states
+            Z = boltzmann_factors.sum(dim=-1, keepdim=True)
 
-        return Z
+            # Prevent division by zero
+            Z = torch.clamp(Z, min=self.config.eps)
 
-    def compute_entropy_production_rate(
-        self, current_state: torch.Tensor, current_energies: torch.Tensor, dt: float
-    ) -> torch.Tensor:
-        """Compute true entropy production rate from state transitions."""
-        if self.prev_state is None or self.prev_energies is None or dt <= 0:
+            return Z
+
+        def compute_entropy_production_rate(
+            self, current_state: torch.Tensor, current_energies: torch.Tensor, dt: float
+        ) -> torch.Tensor:
+            """Compute true entropy production rate from state transitions."""
+            if self.prev_state is None or self.prev_energies is None or dt <= 0:
+                self.prev_state = current_state.detach().clone()
+                self.prev_energies = current_energies.detach().clone()
+                return torch.zeros_like(current_energies)
+
+            # Energy change rate
+            dE_dt = (current_energies - self.prev_energies) / dt
+
+            # Heat dissipation component (always positive)
+            heat_dissipation = torch.abs(dE_dt) / (self.kB_T * self.energy_scale)
+
+            # Total entropy production (always non-negative by Second Law)
+            entropy_production = heat_dissipation * self.entropy_scale.item()
+
+            # Update previous states
             self.prev_state = current_state.detach().clone()
             self.prev_energies = current_energies.detach().clone()
-            return torch.zeros_like(current_energies)
 
-        # Energy change rate
-        dE_dt = (current_energies - self.prev_energies) / dt
+            return torch.clamp(entropy_production, min=0.0)
 
-        # Heat dissipation component (always positive)
-        heat_dissipation = torch.abs(dE_dt) / (self.kB_T * self.energy_scale)
+        def forward(
+            self, state: torch.Tensor, dt: float = 0.01
+        ) -> Dict[str, torch.Tensor]:
+            """Compute thermodynamic entropy and related quantities."""
+            # Compute physical energy
+            total_energy = self.compute_physical_energy(state)
 
-        # Total entropy production (always non-negative by Second Law)
-        entropy_production = heat_dissipation * self.entropy_scale.item()
+            # Compute partition function from energy distribution
+            energy_samples = self.energy_function(state)
+            Z = self.compute_partition_function(energy_samples)
 
-        # Update previous states
-        self.prev_state = current_state.detach().clone()
-        self.prev_energies = current_energies.detach().clone()
+            # Thermodynamic entropy: S = k_B * ln(Z) + <E>/T
+            if self.config.use_physical_temperature:
+                log_Z = torch.log(Z)
+                mean_energy = total_energy.mean(dim=-1, keepdim=True)
 
-        return torch.clamp(entropy_production, min=0.0)
+                S_thermo = (
+                    self.config.boltzmann_constant * log_Z * self.entropy_scale.item()
+                    + mean_energy
+                    / (self.config.boltzmann_constant * self.config.temperature_kelvin)
+                )
+                F_thermo = (
+                    -self.config.boltzmann_constant
+                    * self.config.temperature_kelvin
+                    * log_Z
+                )
+            else:
+                log_Z = torch.log(Z)
+                mean_energy = energy_samples.mean(dim=-1, keepdim=True)
+                S_thermo = log_Z + mean_energy / self.kB_T
+                F_thermo = -self.kB_T * log_Z
 
-    def forward(self, state: torch.Tensor, dt: float = 0.01) -> Dict[str, torch.Tensor]:
-        """Compute thermodynamic entropy and related quantities."""
-        # Compute physical energy
-        total_energy = self.compute_physical_energy(state)
-
-        # Compute partition function from energy distribution
-        energy_samples = self.energy_function(state)
-        Z = self.compute_partition_function(energy_samples)
-
-        # Thermodynamic entropy: S = k_B * ln(Z) + <E>/T
-        if self.config.use_physical_temperature:
-            log_Z = torch.log(Z)
-            mean_energy = total_energy.mean(dim=-1, keepdim=True)
-
-            S_thermo = (
-                self.config.boltzmann_constant * log_Z * self.entropy_scale.item()
-                + mean_energy
-                / (self.config.boltzmann_constant * self.config.temperature_kelvin)
+            # True entropy production rate from state transitions
+            entropy_production_rate = self.compute_entropy_production_rate(
+                state, total_energy, dt
             )
-            F_thermo = (
-                -self.config.boltzmann_constant * self.config.temperature_kelvin * log_Z
-            )
-        else:
-            log_Z = torch.log(Z)
-            mean_energy = energy_samples.mean(dim=-1, keepdim=True)
-            S_thermo = log_Z + mean_energy / self.kB_T
-            F_thermo = -self.kB_T * log_Z
 
-        # True entropy production rate from state transitions
-        entropy_production_rate = self.compute_entropy_production_rate(
-            state, total_energy, dt
-        )
-
-        return {
-            "S_thermodynamic": S_thermo,
-            "F_thermodynamic": F_thermo,
-            "Z": Z,
-            "mean_energy": mean_energy,
-            "entropy_production_rate": entropy_production_rate,
-            "total_energy": total_energy,
-        }
+            return {
+                "S_thermodynamic": S_thermo,
+                "F_thermodynamic": F_thermo,
+                "Z": Z,
+                "mean_energy": mean_energy,
+                "entropy_production_rate": entropy_production_rate,
+                "total_energy": total_energy,
+            }
 
 
 class SurpriseIgnitionSystem:

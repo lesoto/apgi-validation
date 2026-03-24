@@ -72,7 +72,7 @@ class TestCLIArgumentParsing:
         # Create a temporary config file
         config_data = {"version": "test-version", "project_name": "Test Project"}
         config_file = tmp_path / "test_config.json"
-        with open(config_file, "w") as f:
+        with open(config_file, ', encoding="utf-8"w') as f:
             json.dump(config_data, f)
 
         runner = CliRunner()
@@ -166,7 +166,7 @@ class TestMainExecutionFlow:
 
         # Create minimal valid parameters file
         params_file = tmp_path / "test_params.json"
-        with open(params_file, "w") as f:
+        with open(params_file, ', encoding="utf-8"w') as f:
             json.dump({"tau_S": 0.5, "alpha": 5.0}, f)
 
         result = runner.invoke(
@@ -196,7 +196,7 @@ class TestMainExecutionFlow:
 
         # Create invalid parameters file
         params_file = tmp_path / "invalid_params.json"
-        with open(params_file, "w") as f:
+        with open(params_file, ', encoding="utf-8"w') as f:
             json.dump({"invalid_param": "value"}, f)
 
         result = runner.invoke(
@@ -214,7 +214,7 @@ class TestMainExecutionFlow:
         # Create a large temporary file
         large_file = tmp_path / "large_params.json"
         large_data = {"data": "x" * (200 * 1024 * 1024)}  # > 200MB
-        with open(large_file, "w") as f:
+        with open(large_file, ', encoding="utf-8"w') as f:
             json.dump(large_data, f)
 
         result = runner.invoke(
@@ -341,7 +341,7 @@ class TestUtilityFunctions:
         # Create test file of known size
         test_file = tmp_path / "test_file.json"
         test_data = {"test": "data" * 1000}  # Small file
-        with open(test_file, "w") as f:
+        with open(test_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         # Should not raise exception for small file
@@ -353,7 +353,7 @@ class TestUtilityFunctions:
         # Test large file
         large_file = tmp_path / "large_file.json"
         large_data = {"data": "x" * (50 * 1024 * 1024)}  # ~50MB
-        with open(large_file, "w") as f:
+        with open(large_file, ', encoding="utf-8"w') as f:
             json.dump(large_data, f)
 
         with pytest.raises(ValueError, match="exceeds maximum limit"):

@@ -74,7 +74,7 @@ class CrashRecovery:
         )
 
         try:
-            with open(self.state_file, "w") as f:
+            with open(self.state_file, "w", encoding="utf-8") as f:
                 json.dump(asdict(self.current_state), f, indent=2, default=str)
         except Exception as e:
             print(f"Failed to save recovery state: {e}")
@@ -85,7 +85,7 @@ class CrashRecovery:
             return None
 
         try:
-            with open(self.state_file, "r") as f:
+            with open(self.state_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             return RecoveryState(**data)
@@ -117,7 +117,7 @@ class CrashRecovery:
         self.current_state = state
 
         try:
-            with open(self.state_file, "w") as f:
+            with open(self.state_file, "w", encoding="utf-8") as f:
                 json.dump(asdict(state), f, indent=2, default=str)
         except Exception as e:
             print(f"Failed to update recovery attempts: {e}")
@@ -200,7 +200,7 @@ class CrashRecovery:
     def _log_crash(self, crash_info: Dict[str, Any]):
         """Log crash information."""
         try:
-            with open(self.crash_log_file, "a") as f:
+            with open(self.crash_log_file, ', encoding="utf-8"a') as f:
                 f.write(f"\n=== Crash at {datetime.now().isoformat()} ===\n")
                 f.write(f"Application: {self.app_name}\n")
                 f.write(f"Error: {crash_info.get('error', 'Unknown')}\n")
@@ -255,7 +255,7 @@ class CrashRecovery:
             return None
 
         try:
-            with open(self.crash_log_file, "r") as f:
+            with open(self.crash_log_file, ', encoding="utf-8"r') as f:
                 return f.read()
         except Exception as e:
             print(f"Failed to read crash log: {e}")
