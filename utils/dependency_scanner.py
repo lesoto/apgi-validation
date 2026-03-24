@@ -37,7 +37,9 @@ class DependencyScanner:
         try:
             result = subprocess.run(
                 [
-                    "pip-audit",
+                    sys.executable,
+                    "-m",
+                    "pip_audit",
                     "--format",
                     "json",
                     "--requirement",
@@ -283,7 +285,7 @@ class DependencyScanner:
         if output_file is None:
             output_file = self.project_root / "dependency_scan_report.json"
 
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
 
         self.logger.info(f"Scan report saved to {output_file}")

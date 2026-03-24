@@ -1180,10 +1180,10 @@ def plot_cultural_parameter_comparison(save_path: Optional[str] = None):
 
 def validate_cultural_modulation_effects() -> Dict[str, float]:
     """
-    Validate that cultural modulation produces expected effects.
+    Validate that cultural modulation produces expected effects with realistic criteria.
 
     Returns:
-        Validation metrics
+        Validation metrics with more nuanced evaluation
     """
 
     modulator = CulturalParameterModulator()
@@ -1200,15 +1200,23 @@ def validate_cultural_modulation_effects() -> Dict[str, float]:
     western_params = modulator.compute_cultural_apgi_parameters(western)
     eastern_params = modulator.compute_cultural_apgi_parameters(eastern)
 
-    # Check if individualist cultures have higher Pi_e
+    # Check if individualist cultures have higher Pi_e (with minimum effect size)
     pi_e_diff = western_params["Pi_e"] - eastern_params["Pi_e"]
-    validation_results["individualism_pi_e_effect"] = pi_e_diff > 0
+    pi_e_effect_size = pi_e_diff / eastern_params["Pi_e"]  # Relative effect size
+    validation_results["individualism_pi_e_effect"] = (
+        pi_e_diff > 0.1
+    )  # Minimum 0.1 difference
+    validation_results["individualism_pi_e_effect_size"] = pi_e_effect_size
 
-    # Check if collectivist cultures have higher coupling
+    # Check if collectivist cultures have higher coupling (with minimum effect size)
     coupling_diff = (
         eastern_params["coupling_strength"] - western_params["coupling_strength"]
     )
-    validation_results["collectivism_coupling_effect"] = coupling_diff > 0
+    coupling_effect_size = coupling_diff / western_params["coupling_strength"]
+    validation_results["collectivism_coupling_effect"] = (
+        coupling_diff > 0.05
+    )  # Minimum 0.05 difference
+    validation_results["collectivism_coupling_effect_size"] = coupling_effect_size
 
     # Test contemplative effects (compare with/without practice)
     western_no_meditate = western
@@ -1216,14 +1224,66 @@ def validate_cultural_modulation_effects() -> Dict[str, float]:
     baseline_params = modulator.compute_cultural_apgi_parameters(western_no_meditate)
 
     theta_diff = western_params["theta"] - baseline_params["theta"]
-    validation_results["contemplative_theta_effect"] = theta_diff > 0
+    theta_effect_size = theta_diff / baseline_params["theta"]
+    validation_results["contemplative_theta_effect"] = (
+        theta_diff > 0.02
+    )  # Minimum 0.02 difference
+    validation_results["contemplative_theta_effect_size"] = theta_effect_size
 
     beta_diff = baseline_params["beta"] - western_params["beta"]
-    validation_results["contemplative_beta_effect"] = beta_diff > 0
+    beta_effect_size = beta_diff / baseline_params["beta"]
+    validation_results["contemplative_beta_effect"] = (
+        beta_diff > 0.05
+    )  # Minimum 0.05 difference
+    validation_results["contemplative_beta_effect_size"] = beta_effect_size
 
-    # Calculate overall validation score
-    validation_score = sum(validation_results.values()) / len(validation_results)
-    validation_results["overall_validation_score"] = validation_score
+    # Add cross-cultural consistency checks
+    # Test if Middle Eastern culture shows intermediate values
+    middle_eastern = next(c for c in cultures if c.culture_name == "Middle Eastern")
+    me_params = modulator.compute_cultural_apgi_parameters(middle_eastern)
+
+    # Check if ME falls between Western and East Asian on individualism-collectivism spectrum
+    me_pi_e_intermediate = (
+        western_params["Pi_e"] > me_params["Pi_e"] > eastern_params["Pi_e"]
+    )
+    validation_results["middle_eastern_intermediate_pi_e"] = me_pi_e_intermediate
+
+    # Add linguistic complexity validation
+    # Test if languages with higher embedding depth show higher coupling
+    arabic_culture = next(c for c in cultures if c.culture_name == "Middle Eastern")
+    arabic_params = modulator.compute_cultural_apgi_parameters(arabic_culture)
+
+    embedding_depth_effect = (
+        arabic_params["coupling_strength"] > western_params["coupling_strength"]
+    )
+    validation_results["embedding_depth_coupling_effect"] = embedding_depth_effect
+
+    # Calculate overall validation score (weighted by effect sizes)
+    binary_validations = [
+        validation_results["individualism_pi_e_effect"],
+        validation_results["collectivism_coupling_effect"],
+        validation_results["contemplative_theta_effect"],
+        validation_results["contemplative_beta_effect"],
+        validation_results["middle_eastern_intermediate_pi_e"],
+        validation_results["embedding_depth_coupling_effect"],
+    ]
+
+    effect_sizes = [
+        validation_results["individualism_pi_e_effect_size"],
+        validation_results["collectivism_coupling_effect_size"],
+        validation_results["contemplative_theta_effect_size"],
+        validation_results["contemplative_beta_effect_size"],
+    ]
+
+    binary_score = sum(binary_validations) / len(binary_validations)
+    avg_effect_size = sum(effect_sizes) / len(effect_sizes)
+
+    # Overall score combines binary success with effect magnitude
+    validation_results["overall_validation_score"] = 0.7 * binary_score + 0.3 * min(
+        avg_effect_size, 1.0
+    )
+    validation_results["average_effect_size"] = avg_effect_size
+    validation_results["binary_success_rate"] = binary_score
 
     return validation_results
 
@@ -1239,7 +1299,7 @@ if __name__ == "__main__":
     # Generate cultural comparison
     comparison_df = generate_cross_cultural_comparison()
     print("\nCross-Cultural APGI Parameter Comparison:")
-    print(comparison_df.to_string(index=False, float_format=".3f"))
+    print(comparison_df.to_string(index=False, float_format="%.3f"))
 
     # Save comparison to file
     comparison_df.to_csv("cultural_apgi_comparison.csv", index=False)

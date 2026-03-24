@@ -364,7 +364,7 @@ try:
         """Load PAC band configuration from default.yaml"""
         try:
             config_path = Path(__file__).parent.parent / "config" / "default.yaml"
-            with open(config_path, "r") as f:
+            with open(config_path, ', encoding="utf-8"r') as f:
                 config = yaml.safe_load(f)
                 return config.get("pac_bands", {})
         except Exception:
@@ -2080,7 +2080,7 @@ def check_falsification(
             import yaml
 
             config_path = Path(__file__).parent.parent / "config" / "default.yaml"
-            with open(config_path, "r") as f:
+            with open(config_path, ', encoding="utf-8"r') as f:
                 config = yaml.safe_load(f)
         except Exception:
             config = {}

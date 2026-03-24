@@ -13,6 +13,18 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 import logging
+from cryptography.fernet import Fernet
+
+try:
+    from .secure_key_manager import invalidate_all_key_references
+except ImportError:
+    try:
+        from utils.secure_key_manager import invalidate_all_key_references
+    except ImportError:
+        # Fallback for standalone execution
+        def invalidate_all_key_references():
+            """Fallback function when secure_key_manager is not available."""
+            pass
 
 
 class KeyRotationManager:
@@ -77,7 +89,7 @@ class KeyRotationManager:
     def _save_metadata(self) -> None:
         """Save key metadata to file."""
         try:
-            with open(self.metadata_file, "w") as f:
+            with open(self.metadata_file, "w", encoding="utf-8") as f:
                 json.dump(self.metadata, f, indent=2)
         except Exception as e:
             self.logger.error(f"Could not save metadata: {e}")
@@ -113,15 +125,26 @@ class KeyRotationManager:
         # Calculate key fingerprint
         fingerprint = hashlib.sha256(key_bytes).hexdigest()[:16]
 
-        # Save encrypted key (in production, use proper encryption)
-        # For now, we use base64 encoding with restricted permissions
-        key_b64 = base64.b64encode(key_bytes).decode()
-        key_file.write_text(key_b64)
-        key_file.chmod(0o600)
+        # Save encrypted key
+        master_key = os.environ.get("APGI_MASTER_KEY")
+        if not master_key:
+            master_key = Fernet.generate_key().decode()
+            os.environ["APGI_MASTER_KEY"] = master_key
+
+        fernet = Fernet(master_key.encode())
+        key_b64 = base64.b64encode(key_bytes).decode("utf-8")
+        encrypted = fernet.encrypt(key_b64.encode("utf-8"))
+
+        # Write securely bypassing TOCTOU write-then-chmod
+        fd = os.open(str(key_file), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        try:
+            os.write(fd, encrypted)
+        finally:
+            os.close(fd)
 
         # Update metadata
         timestamp = datetime.utcnow().isoformat()
-        self.metadata[f"{key_type}_key"]["current"] = {
+        self.metadata[key_type]["current"] = {
             "fingerprint": fingerprint,
             "created_at": timestamp,
             "file": str(key_file),
@@ -133,11 +156,30 @@ class KeyRotationManager:
     def _load_key_from_file(self, key_type: str, key_file: Path) -> Path:
         """Load key from file."""
         try:
-            key_b64 = key_file.read_text()
+            master_key = os.environ.get("APGI_MASTER_KEY")
+            if not master_key:
+                master_key = Fernet.generate_key().decode()
+                os.environ["APGI_MASTER_KEY"] = master_key
+                self.logger.warning(
+                    "APGI_MASTER_KEY not set in environment, generated ephemeral key. Prev keys may not decrypt."
+                )
+
+            fernet = Fernet(master_key.encode())
+            encrypted = key_file.read_bytes()
+
+            try:
+                key_b64 = fernet.decrypt(encrypted).decode("utf-8")
+            except Exception:
+                # Fallback for old base64-only keys to allow migrating
+                self.logger.warning(
+                    f"Failed to decrypt {key_type}, falling back to legacy base64 load."
+                )
+                key_b64 = encrypted.decode("utf-8")
+
             key_bytes = base64.b64decode(key_b64)
             fingerprint = hashlib.sha256(key_bytes).hexdigest()[:16]
 
-            self.metadata[f"{key_type}_key"]["current"] = {
+            self.metadata[key_type]["current"] = {
                 "fingerprint": fingerprint,
                 "file": str(key_file),
             }
@@ -162,20 +204,50 @@ class KeyRotationManager:
         self.logger.info(f"Next key rotation scheduled for {next_rotation}")
 
     def _set_env_vars(self) -> None:
-        """Set environment variables for current keys."""
-        # Load current keys
+        """Set environment variables for current keys.
+
+        .. deprecated::
+            Writing cryptographic key material to ``os.environ`` exposes it to
+            any child process spawned from this Python process.  Callers should
+            read the key from the key file directly using ``_load_key_from_file``
+            instead of relying on environment variables.
+        """
+        import warnings
+
+        warnings.warn(
+            "Setting cryptographic keys in os.environ exposes them to child "
+            "processes.  Read keys directly from their key files instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        # Load current keys (decrypt them first)
         pickle_key_file = self.keys_dir / "pickle_secret_key.enc"
         backup_key_file = self.keys_dir / "backup_hmac_key.enc"
 
         if pickle_key_file.exists():
-            pickle_key_b64 = pickle_key_file.read_text()
-            pickle_key = base64.b64decode(pickle_key_b64).hex()
-            os.environ["PICKLE_SECRET_KEY"] = pickle_key
+            try:
+                master_key = os.environ.get("APGI_MASTER_KEY")
+                if master_key:
+                    fernet = Fernet(master_key.encode())
+                    encrypted = pickle_key_file.read_bytes()
+                    key_b64 = fernet.decrypt(encrypted).decode("utf-8")
+                    pickle_key = base64.b64decode(key_b64).hex()
+                    os.environ["PICKLE_SECRET_KEY"] = pickle_key
+            except Exception as e:
+                self.logger.warning(f"Could not set PICKLE_SECRET_KEY env var: {e}")
 
         if backup_key_file.exists():
-            backup_key_b64 = backup_key_file.read_text()
-            backup_key = base64.b64decode(backup_key_b64).hex()
-            os.environ["APGI_BACKUP_HMAC_KEY"] = backup_key
+            try:
+                master_key = os.environ.get("APGI_MASTER_KEY")
+                if master_key:
+                    fernet = Fernet(master_key.encode())
+                    encrypted = backup_key_file.read_bytes()
+                    key_b64 = fernet.decrypt(encrypted).decode("utf-8")
+                    backup_key = base64.b64decode(key_b64).hex()
+                    os.environ["APGI_BACKUP_HMAC_KEY"] = backup_key
+            except Exception as e:
+                self.logger.warning(f"Could not set APGI_BACKUP_HMAC_KEY env var: {e}")
 
     def _rotate_key(self, key_type: str) -> Tuple[str, str]:
         """
@@ -188,7 +260,7 @@ class KeyRotationManager:
             Tuple of (old_fingerprint, new_fingerprint)
         """
         # Get current key info
-        current_key_info = self.metadata[f"{key_type}_key"]["current"]
+        current_key_info = self.metadata[key_type]["current"]
         old_fingerprint = current_key_info["fingerprint"]
         old_file = Path(current_key_info["file"])
 
@@ -196,7 +268,7 @@ class KeyRotationManager:
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         new_key_file = self.keys_dir / f"{key_type}_{timestamp}.enc"
         self._generate_and_save_key(key_type, new_key_file)
-        new_key_info = self.metadata[f"{key_type}_key"]["current"]
+        new_key_info = self.metadata[key_type]["current"]
         new_fingerprint = new_key_info["fingerprint"]
 
         # Add to rotation history
@@ -207,14 +279,11 @@ class KeyRotationManager:
             "old_file": str(old_file),
             "new_file": str(new_key_file),
         }
-        self.metadata[f"{key_type}_key"]["rotation_history"].append(rotation_entry)
+        self.metadata[key_type]["rotation_history"].append(rotation_entry)
 
         # Limit rotation history
-        if (
-            len(self.metadata[f"{key_type}_key"]["rotation_history"])
-            > self.backup_count
-        ):
-            self.metadata[f"{key_type}_key"]["rotation_history"].pop(0)
+        if len(self.metadata[key_type]["rotation_history"]) > self.backup_count:
+            self.metadata[key_type]["rotation_history"].pop(0)
 
         # Update last rotation
         self.metadata["last_rotation"] = datetime.utcnow().isoformat()
@@ -223,6 +292,9 @@ class KeyRotationManager:
 
         # Update environment variables
         self._set_env_vars()
+
+        # Invalidate all in-flight references across the application
+        invalidate_all_key_references()
 
         self.logger.info(
             f"Rotated {key_type}: {old_fingerprint[:8]}... -> {new_fingerprint[:8]}..."
@@ -281,7 +353,7 @@ class KeyRotationManager:
             }
 
             for key_type in ["pickle_key", "backup_key"]:
-                key_info = self.metadata[f"{key_type}_key"]
+                key_info = self.metadata[key_type]
                 status["keys"][key_type] = {
                     "fingerprint": key_info["current"]["fingerprint"],
                     "created_at": key_info["current"]["created_at"],
@@ -350,3 +422,38 @@ def get_key_status() -> Dict:
     """Get current key status."""
     manager = get_key_rotation_manager()
     return manager.get_key_status()
+
+
+if __name__ == "__main__":
+    """Test key rotation manager functionality."""
+    print("Testing APGI Key Rotation Manager")
+    print("=" * 50)
+
+    try:
+        # Get key rotation manager
+        manager = get_key_rotation_manager()
+
+        # Display current status
+        status = get_key_status()
+        print(f"Last rotation: {status['last_rotation']}")
+        print(f"Next rotation: {status['next_rotation']}")
+        print(f"Rotation interval: {status['rotation_interval_days']} days")
+
+        # Display key information
+        for key_type, key_info in status["keys"].items():
+            print(f"{key_type}:")
+            print(f"  Fingerprint: {key_info['fingerprint']}")
+            print(f"  Created: {key_info['created_at']}")
+            print(f"  Rotations: {key_info['rotation_count']}")
+
+        # Check if rotation is needed
+        rotation_needed = manager.check_rotation_needed()
+        print(f"Rotation needed: {rotation_needed}")
+
+        print("\nKey rotation manager test completed successfully!")
+
+    except Exception as e:
+        print(f"Error testing key rotation manager: {e}")
+        import traceback
+
+        traceback.print_exc()

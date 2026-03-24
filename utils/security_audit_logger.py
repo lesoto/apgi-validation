@@ -232,12 +232,12 @@ class SecurityAuditLogger:
             format: Export format (json or csv)
         """
         if format == "json":
-            with open(output_file, "w") as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(self.audit_trail, f, indent=2)
         elif format == "csv":
             import csv
 
-            with open(output_file, "w", newline="") as f:
+            with open(output_file, "w", newline="", encoding="utf-8") as f:
                 if self.audit_trail:
                     writer = csv.DictWriter(f, fieldnames=self.audit_trail[0].keys())
                     writer.writeheader()

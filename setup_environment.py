@@ -52,7 +52,7 @@ def install_dependencies(venv_python: Path) -> bool:
 
     # Validate requirements.txt is readable and not empty
     try:
-        with open(requirements_file, "r", encoding="utf-8") as f:
+        with open(requirements_file, ', encoding="utf-8"r', encoding="utf-8") as f:
             content = f.read().strip()
             if not content:
                 print("✗ requirements.txt is empty")
@@ -91,11 +91,11 @@ def create_activation_script() -> None:
 
     if sys.platform == "win32":
         activate_script = PROJECT_ROOT / "activate.bat"
-        with open(activate_script, "w") as f:
+        with open(activate_script, ', encoding="utf-8"w') as f:
             f.write(f"@echo off\n{venv_path}\\Scripts\\activate.bat\n")
     else:
         activate_script = PROJECT_ROOT / "activate.sh"
-        with open(activate_script, "w") as f:
+        with open(activate_script, ', encoding="utf-8"w') as f:
             f.write(f"#!/bin/bash\nsource {venv_path}/bin/activate\n")
         activate_script.chmod(0o755)
 

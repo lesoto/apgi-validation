@@ -85,7 +85,7 @@ class BackupManager:
 
             if key_file.exists():
                 try:
-                    with open(key_file, "r") as f:
+                    with open(key_file, "r", encoding="utf-8") as f:
                         backup_hmac_key = f.read().strip()
                     logging.info("Loaded persisted HMAC key for backup compatibility")
                 except (IOError, OSError) as e:
@@ -96,9 +96,16 @@ class BackupManager:
                 # Generate a cryptographically secure key with sufficient entropy
                 backup_hmac_key = base64.b64encode(os.urandom(32)).decode("utf-8")
                 try:
-                    with open(key_file, "w") as f:
-                        f.write(backup_hmac_key)
-                    os.chmod(key_file, 0o600)  # Restrict permissions
+                    # Use atomic open with mode 0o600 — file is private from creation
+                    fd = os.open(
+                        str(key_file),
+                        os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
+                        0o600,
+                    )
+                    try:
+                        os.write(fd, backup_hmac_key.encode("utf-8"))
+                    finally:
+                        os.close(fd)
                     logging.info(
                         "Generated and persisted new HMAC key with sufficient entropy (256 bits)."
                     )
@@ -214,10 +221,12 @@ class BackupManager:
 
                     sig_len = int.from_bytes(sig_len_bytes, "big")
 
-                    # Validate signature length bounds (max 1024 bytes)
-                    if sig_len < 0 or sig_len > 1024:
+                    # Validate signature length: SHA-256 produces exactly 32 bytes.
+                    # Reject anything outside that to prevent memory exhaustion attacks.
+                    EXPECTED_SIG_LEN = 32  # SHA-256 digest size
+                    if sig_len != EXPECTED_SIG_LEN:
                         raise ValueError(
-                            f"Invalid signature length: {sig_len}. Must be between 0 and 1024 bytes."
+                            f"Invalid signature length: {sig_len}. Expected {EXPECTED_SIG_LEN} bytes (SHA-256)."
                         )
 
                     # Read signature and data
@@ -451,7 +460,7 @@ class BackupManager:
             metadata_file = self.backup_dir / f"{backup_id}_metadata.json"
             temp_file = metadata_file.with_suffix(".tmp")
             try:
-                with open(temp_file, "w") as f:
+                with open(temp_file, "w", encoding="utf-8") as f:
                     json.dump(asdict(metadata), f, indent=2)
                 os.replace(temp_file, metadata_file)
             except Exception:
@@ -754,7 +763,7 @@ class BackupManager:
                 apgi_logger.logger.warning(f"No metadata file found for {backup_file}")
                 return True  # Allow restore without verification if no metadata
 
-            with open(metadata_file, "r") as f:
+            with open(metadata_file, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
 
             expected_checksum = metadata.get("checksum")
@@ -818,14 +827,19 @@ class BackupManager:
 
                     # Check for symlinks and validate target
                     if tarinfo.issym() or tarinfo.islnk():
-                        # Validate symlink target
+                        # Validate symlink target using proper Path resolution
                         link_target = tarinfo.linkname
-                        resolved_link = (target_dir / link_target).resolve()
                         try:
-                            resolved_link.relative_to(target_dir.resolve())
-                        except ValueError:
+                            # Create Path objects for proper resolution
+                            target_path = Path(link_target)
+                            resolved_target = (target_dir / target_path).resolve()
+                            resolved_target_dir = target_dir.resolve()
+
+                            # Check if resolved target is within target directory
+                            resolved_target_dir in resolved_target.parents or resolved_target == resolved_target_dir
+                        except (ValueError, OSError) as e:
                             raise ValueError(
-                                f"Symlink bypass detected: {file_path} -> {link_target}"
+                                f"Symlink bypass detected: {file_path} -> {link_target} (error: {e})"
                             )
                         # Skip symlinks for safety
                         apgi_logger.logger.warning(f"Skipping symlink: {file_path}")
@@ -970,7 +984,7 @@ class BackupManager:
             return False
 
         try:
-            with open(metadata_file, "r") as f:
+            with open(metadata_file, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
         except (json.JSONDecodeError, FileNotFoundError):
             return False

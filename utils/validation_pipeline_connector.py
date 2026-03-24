@@ -195,7 +195,7 @@ class ValidationPipelineConnector:
         # Load processed data
         processed_file = preprocessing_result["output_file"]
         if processed_file.suffix == ".json":
-            with open(processed_file, "r") as f:
+            with open(processed_file, ', encoding="utf-8"r') as f:
                 data = json.load(f)
                 return pd.DataFrame(data)
         else:

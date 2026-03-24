@@ -302,8 +302,18 @@ class ConfigManager:
         schema_file = Path(__file__).parent.parent / "config" / "config_schema.json"
         if schema_file.exists():
             try:
-                with open(schema_file, "r") as f:
-                    return json.load(f)
+                with open(schema_file, "r", encoding="utf-8") as f:
+                    schema_data = json.load(f)
+
+                # Verify schema integrity before using it
+                if not self._verify_schema_integrity(schema_file, schema_data):
+                    apgi_logger.logger.error(
+                        f"Schema integrity verification failed for {schema_file}. "
+                        "Using fallback schema for security."
+                    )
+                    return self._get_fallback_schema()
+
+                return schema_data
             except (json.JSONDecodeError, IOError) as e:
                 apgi_logger.logger.warning(
                     f"Failed to load schema from {schema_file}: {e}"
@@ -367,6 +377,45 @@ class ConfigManager:
                 },
             },
         }
+
+    def _verify_schema_integrity(
+        self, schema_file: Path, schema_data: Dict[str, Any]
+    ) -> bool:
+        """Verify schema file integrity using SHA-256 hash.
+
+        Args:
+            schema_file: Path to the schema file
+            schema_data: Loaded schema data to verify
+
+        Returns:
+            True if schema integrity is verified, False otherwise
+        """
+        # Expected SHA-256 hash of the legitimate schema
+        # This hash should be updated when schema changes are made
+        EXPECTED_SCHEMA_HASH = (
+            "32534202f6e9ade2ff241fe637e470cfdb8f06a3854f15eb2af39b933c96ced5"
+        )
+
+        try:
+            # Calculate hash of the loaded schema data
+            schema_json = json.dumps(schema_data, sort_keys=True, separators=(",", ":"))
+            actual_hash = hashlib.sha256(schema_json.encode("utf-8")).hexdigest()
+
+            if actual_hash != EXPECTED_SCHEMA_HASH:
+                apgi_logger.logger.error(
+                    f"Schema integrity check failed for {schema_file}: "
+                    f"expected {EXPECTED_SCHEMA_HASH}, got {actual_hash}"
+                )
+                return False
+
+            apgi_logger.logger.info(f"Schema integrity verified for {schema_file}")
+            return True
+
+        except Exception as e:
+            apgi_logger.logger.error(
+                f"Error during schema integrity verification for {schema_file}: {e}"
+            )
+            return False
 
     def _load_environment(self):
         """Load environment variables from .env file."""

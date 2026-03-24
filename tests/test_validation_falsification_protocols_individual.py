@@ -24,7 +24,7 @@ class TestValidationProtocolsIndividual:
             "threshold": np.random.randn(100).tolist(),
         }
         data_file = temp_dir / "entropy_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         # Import and run entropy validation
@@ -50,7 +50,7 @@ class TestValidationProtocolsIndividual:
             "observation": np.random.randn(100).tolist(),
         }
         data_file = temp_dir / "active_inference_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -75,7 +75,7 @@ class TestValidationProtocolsIndividual:
             "estimated_params": {"tau_S": 0.48, "tau_theta": 29.5},
         }
         data_file = temp_dir / "params_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -101,7 +101,7 @@ class TestValidationProtocolsIndividual:
             "rodent": {"surprise": np.random.randn(100).tolist()},
         }
         data_file = temp_dir / "cross_species_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -127,7 +127,7 @@ class TestValidationProtocolsIndividual:
             "fmri": np.random.randn(100, 20).tolist(),
         }
         data_file = temp_dir / "multimodal_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -156,7 +156,7 @@ class TestValidationProtocolsIndividual:
             },
         }
         data_file = temp_dir / "cultural_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -184,7 +184,7 @@ class TestFalsificationProtocolsIndividual:
             "observations": np.random.randn(100).tolist(),
         }
         data_file = temp_dir / "falsification_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -210,7 +210,7 @@ class TestFalsificationProtocolsIndividual:
             "threshold": np.random.randn(100).tolist(),
         }
         data_file = temp_dir / "entropy_falsification_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -235,7 +235,7 @@ class TestFalsificationProtocolsIndividual:
             "post_tms": np.random.randn(50).tolist(),
         }
         data_file = temp_dir / "tms_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -260,7 +260,7 @@ class TestFalsificationProtocolsIndividual:
             "drug": np.random.randn(50).tolist(),
         }
         data_file = temp_dir / "pharmacological_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -285,7 +285,7 @@ class TestFalsificationProtocolsIndividual:
             "fmri_patterns": np.random.randn(100, 20).tolist(),
         }
         data_file = temp_dir / "neural_signatures_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -311,7 +311,7 @@ class TestFalsificationProtocolsIndividual:
             "empirical_data": np.random.randn(100).tolist(),
         }
         data_file = temp_dir / "quantitative_fits_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -331,7 +331,7 @@ class TestFalsificationProtocolsIndividual:
             ]
         }
         data_file = temp_dir / "clinical_convergence_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -350,7 +350,7 @@ class TestProtocolCorrectness:
         """Test protocol behavior with empty data."""
         test_data = {"surprise": [], "threshold": []}
         data_file = temp_dir / "empty_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -375,7 +375,7 @@ class TestProtocolCorrectness:
             "threshold": [0.5, 0.5, 0.5, 0.5],
         }
         data_file = temp_dir / "nan_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -400,7 +400,7 @@ class TestProtocolCorrectness:
             "threshold": [0.5, 0.5, 0.5, 0.5],
         }
         data_file = temp_dir / "inf_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -425,7 +425,7 @@ class TestProtocolCorrectness:
             "threshold": [0.5, 0.5],  # Mismatched length
         }
         data_file = temp_dir / "mismatched_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -450,7 +450,7 @@ class TestProtocolCorrectness:
             "threshold": np.random.randn(100).tolist(),
         }
         data_file = temp_dir / "format_test_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:
@@ -482,7 +482,7 @@ class TestProtocolCorrectness:
             "threshold": [0.5, 0.5, 0.5, 0.5, 0.5],
         }
         data_file = temp_dir / "reproducibility_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         try:

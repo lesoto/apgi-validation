@@ -41,6 +41,15 @@ class UtilsRunnerGUI:
             print(f"Warning: Utils directory not found at {self.utils_dir}")
             self.utils_dir = None
 
+        # Output tag constants
+        self.TAG_INFO = "info"
+        self.TAG_ERROR = "error"
+        self.TAG_SUCCESS = "success"
+        self.TAG_WARNING = "warning"
+
+        # Output queue for thread-safe updates
+        self.output_queue = queue.Queue()
+
         # Load configuration
         self.config = self.load_config()
 
@@ -52,17 +61,8 @@ class UtilsRunnerGUI:
         # Track daemon threads for cleanup
         self.daemon_threads: List[threading.Thread] = []
 
-        # Output queue for thread-safe updates
-        self.output_queue = queue.Queue()
-
         # Maximum lines to keep in output to prevent performance issues
         self.max_output_lines = 2000
-
-        # Output tag constants
-        self.TAG_INFO = "info"
-        self.TAG_ERROR = "error"
-        self.TAG_SUCCESS = "success"
-        self.TAG_WARNING = "warning"
 
         self.setup_ui()
 
@@ -115,11 +115,11 @@ class UtilsRunnerGUI:
 
         try:
             if config_path.exists():
-                with open(config_path, "r") as f:
+                with open(config_path, "r", encoding="utf-8") as f:
                     return json.load(f)
             else:
                 # Create default config file
-                with open(config_path, "w") as f:
+                with open(config_path, "w", encoding="utf-8") as f:
                     json.dump(default_config, f, indent=2)
                 return default_config
         except Exception as e:

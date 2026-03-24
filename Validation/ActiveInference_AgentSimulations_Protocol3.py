@@ -25,9 +25,18 @@ from typing import Any, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    torch = None  # type: ignore
+    nn = None  # type: ignore
+    F = None  # type: ignore
 from sklearn.linear_model import LogisticRegression
 from tqdm import tqdm
 
@@ -2488,7 +2497,7 @@ def main():
             print("=" * 80)
 
             # Convert to JSON-serializable
-            with open("protocol3_FAILED.json", "w") as f:
+            with open("protocol3_FAILED.json", ', encoding="utf-8"w') as f:
                 json.dump(falsification, f, indent=2)
 
             print("\n🚨 Failure report saved to: protocol3_FAILED.json")
@@ -2518,7 +2527,7 @@ def main():
 
     summary = convert(summary)
 
-    with open("protocol3_results.json", "w") as f:
+    with open("protocol3_results.json", ', encoding="utf-8"w') as f:
         json.dump(summary, f, indent=2)
 
     print("✅ Results saved to: protocol3_results.json")
@@ -2614,7 +2623,7 @@ def run_validation_with_cross_validation():
                     "results": summary_for_gate,
                     "recommendation": "Framework requires fundamental revision",
                 }
-                with open("protocol3_FAILED.json", "w") as f:
+                with open("protocol3_FAILED.json", ', encoding="utf-8"w') as f:
                     json.dump(failure_report, f, indent=2)
                 print("\n🚨 Failure report saved to: protocol3_FAILED.json")
                 return None
@@ -2657,7 +2666,7 @@ def run_validation_with_cross_validation():
             return obj
 
         summary = convert(summary)
-        with open("protocol3_results.json", "w") as f:
+        with open("protocol3_results.json", ', encoding="utf-8"w') as f:
             json.dump(summary, f, indent=2)
         print("✅ Results with cross-validation saved to: protocol3_results.json")
 

@@ -370,7 +370,7 @@ class MetaFalsificationEngine:
         report_text = "\n".join(report_lines)
 
         if save_path:
-            with open(save_path, "w") as f:
+            with open(save_path, "w", encoding="utf-8") as f:
                 f.write(report_text)
 
         return report_text

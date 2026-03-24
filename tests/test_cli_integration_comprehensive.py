@@ -49,7 +49,7 @@ class TestValidateCommand:
             "metabolic": [1.0, 1.1, 1.2],
         }
         data_file = temp_dir / "test_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -83,7 +83,7 @@ class TestFalsifyCommand:
         """Test falsify command with a valid protocol."""
         test_data = {"surprise": [0.1, 0.2, 0.3], "threshold": [0.5, 0.5, 0.5]}
         data_file = temp_dir / "test_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -113,7 +113,7 @@ class TestEstimateParamsCommand:
             "threshold": np.random.randn(100).tolist(),
         }
         data_file = temp_dir / "test_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -130,7 +130,7 @@ class TestEstimateParamsCommand:
         """Test parameter estimation with custom bounds."""
         test_data = {"surprise": np.random.randn(100).tolist()}
         data_file = temp_dir / "test_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -155,7 +155,7 @@ class TestCrossSpeciesCommand:
             "rodent": {"surprise": np.random.randn(100).tolist()},
         }
         data_file = temp_dir / "species_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(species_data, f)
 
         with patch("main.console.print"):
@@ -235,7 +235,7 @@ class TestProcessDataCommand:
         """Test data processing with JSON input."""
         test_data = {"data": np.random.randn(100).tolist()}
         json_file = temp_dir / "test.json"
-        with open(json_file, "w") as f:
+        with open(json_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -284,7 +284,7 @@ class TestNeuralSignaturesCommand:
         """Test neural signature analysis."""
         test_data = {"eeg": np.random.randn(100, 10).tolist()}
         data_file = temp_dir / "eeg_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -307,7 +307,7 @@ class TestCausalManipulationsCommand:
             "post_manipulation": np.random.randn(100).tolist(),
         }
         data_file = temp_dir / "causal_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -331,7 +331,7 @@ class TestQuantitativeFitsCommand:
             "predicted": np.random.randn(100).tolist(),
         }
         data_file = temp_dir / "fit_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -357,7 +357,7 @@ class TestClinicalConvergenceCommand:
             ]
         }
         data_file = temp_dir / "clinical_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -377,7 +377,7 @@ class TestOpenScienceCommand:
         """Test open science data export."""
         test_data = {"results": np.random.randn(100).tolist()}
         data_file = temp_dir / "results.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -409,7 +409,7 @@ class TestBayesianEstimationCommand:
         """Test Bayesian parameter estimation."""
         test_data = {"observations": np.random.randn(100).tolist()}
         data_file = temp_dir / "bayesian_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -434,7 +434,7 @@ class TestComprehensiveValidationCommand:
             "falsification_data": np.random.randn(100).tolist(),
         }
         data_file = temp_dir / "comprehensive_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -464,7 +464,7 @@ class TestGUICommand:
     def test_gui_with_config(self, temp_dir):
         """Test GUI launch with custom config."""
         config_file = temp_dir / "gui_config.json"
-        with open(config_file, "w") as f:
+        with open(config_file, ', encoding="utf-8"w') as f:
             json.dump({"theme": "dark"}, f)
 
         with patch("main.console.print"):
@@ -539,7 +539,7 @@ class TestMultimodalCommand:
         """Test multimodal integration with missing data."""
         test_data = {"eeg": np.random.randn(100, 10).tolist()}
         data_file = temp_dir / "multimodal_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):
@@ -560,7 +560,7 @@ class TestMultimodalCommand:
             "fmri": np.random.randn(50, 20).tolist(),  # Different dimensions
         }
         data_file = temp_dir / "multimodal_data.json"
-        with open(data_file, "w") as f:
+        with open(data_file, ', encoding="utf-8"w') as f:
             json.dump(test_data, f)
 
         with patch("main.console.print"):

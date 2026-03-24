@@ -287,7 +287,7 @@ class InputValidator:
         # Try to open the file to verify it's actually accessible
         # This reduces the TOCTOU window by validating while file is open
         try:
-            with open(path_str, "rb"):
+            with open(path_str, ', encoding="utf-8"rb'):
                 # Just verify we can open it, don't read content
                 pass
         except (IOError, OSError, PermissionError) as e:
@@ -513,6 +513,29 @@ _global_validator = InputValidator()
 def get_validator() -> InputValidator:
     """Get the global input validator instance."""
     return _global_validator
+
+
+def validate_env_key(key: str) -> bool:
+    """Validate environment variable key format.
+
+    Args:
+        key: Environment variable key to validate
+
+    Returns:
+        True if key is valid, False otherwise
+    """
+    if not isinstance(key, str):
+        return False
+
+    # Empty key is invalid
+    if not key:
+        return False
+
+    # Must match pattern:^[A-Z_][A-Z0-9_]*$
+    import re
+
+    pattern = r"^[A-Z_][A-Z0-9_]*$"
+    return bool(re.match(pattern, key))
 
 
 # Common validation schemas

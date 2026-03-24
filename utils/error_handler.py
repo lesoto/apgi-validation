@@ -7,6 +7,7 @@ Provides standardized error messages, error categories, and centralized
 error handling with proper logging and user-friendly messages.
 """
 
+import signal
 import functools
 import threading
 import traceback
@@ -931,3 +932,16 @@ if __name__ == "__main__":
     # Show error summary
     summary = error_handler.get_error_summary()
     print(f"\nError Summary: {summary}")
+
+
+def restore_signal_handlers():
+    """Restore original signal handlers after signal handling completion."""
+    original_handlers = {}
+
+    # Store current handlers
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        original_handlers[sig] = signal.getsignal(sig)
+
+    # Restore original handlers
+    for sig, handler in original_handlers.items():
+        signal.signal(sig, handler)

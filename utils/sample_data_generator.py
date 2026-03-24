@@ -430,13 +430,13 @@ class SampleDataGenerator:
         # Save as JSON
         json_file = output_path / f"{base_filename}.json"
         json_data = {"metadata": metadata, "data": df.to_dict("records")}
-        with open(json_file, "w") as f:
+        with open(json_file, "w", encoding="utf-8") as f:
             json.dump(json_data, f, indent=2, default=str)
         print(f"Saved JSON: {json_file}")
 
         # Save metadata separately
         meta_file = output_path / f"{base_filename}_metadata.json"
-        with open(meta_file, "w") as f:
+        with open(meta_file, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=4)
         print(f"Saved metadata: {meta_file}")
 
@@ -650,7 +650,7 @@ def save_sample_data(output_dir: Path = None) -> Dict[str, Path]:
     }
 
     metadata_file = output_dir / "sample_data_metadata.json"
-    with open(metadata_file, "w") as f:
+    with open(metadata_file, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
     saved_files["metadata"] = metadata_file
     print(f"Saved metadata to {metadata_file}")

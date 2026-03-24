@@ -248,13 +248,38 @@ def run_with_timeout(
     return result[0] if result else None
 
 
+# Allowlisted safe keyword arguments for subprocess.Popen
+_POPEN_SAFE_KWARGS = frozenset({"cwd", "env", "encoding"})
+
+
 def run_subprocess_with_timeout(
-    command: List[str], timeout_seconds: float = 300.0, **kwargs
+    command: List[str],
+    timeout_seconds: float = 300.0,
+    cwd: Optional[str] = None,
+    env: Optional[dict] = None,
+    encoding: Optional[str] = None,
 ) -> subprocess.CompletedProcess:
-    """Run a subprocess with a timeout."""
+    """Run a subprocess with a timeout.
+
+    Only accepts an explicit allowlist of Popen parameters to prevent
+    injection of dangerous options such as ``shell=True``.
+    """
+    popen_kwargs = {}
+    if cwd is not None:
+        popen_kwargs["cwd"] = cwd
+    if env is not None:
+        popen_kwargs["env"] = env
+    if encoding is not None:
+        popen_kwargs["encoding"] = encoding
+
     try:
         process = subprocess.Popen(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, **kwargs
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            shell=False,  # Explicitly disable shell to prevent injection
+            **popen_kwargs,
         )
 
         stdout, stderr = process.communicate(timeout=timeout_seconds)

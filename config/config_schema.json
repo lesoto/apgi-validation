@@ -101,7 +101,49 @@
         "threshold_reduction_min": {"type": "number", "minimum": 0, "maximum": 100},
         "cohens_d_adaptation_threshold": {"type": "number", "minimum": 0, "maximum": 2},
         "tau_theta_min": {"type": "number", "minimum": 0.01},
-        "tau_theta_max": {"type": "number", "minimum": 0.01}
+        "tau_theta_max": {"type": "number", "minimum": 0.01},
+        "F6_2_MIN_INTEGRATION_RATIO": {"type": "number", "minimum": 0, "description": "Minimum integration ratio for F6.2 criterion (≥4× RNN)"},
+        "F6_2_FALSIFICATION_RATIO": {"type": "number", "minimum": 0, "description": "Minimum ratio for F6.2 falsification (<2.5×)"},
+        "F6_2_MIN_CURVE_FIT_R2": {"type": "number", "minimum": 0, "maximum": 1, "description": "Minimum R² for F6.2 curve fit (≥0.85)"},
+        "F6_2_WILCOXON_ALPHA": {"type": "number", "minimum": 0, "maximum": 1, "description": "Alpha level for Wilcoxon test in F6.2"},
+        "F6": {
+          "type": "object",
+          "description": "Innovation 29 (LNN AUROC superiority) parameters",
+          "properties": {
+            "delta_auroc_min": {"type": "number", "minimum": 0, "description": "Minimum ΔAUROC for LNN superiority (≥0.05)"}
+          }
+        },
+        "F6_2_LTCN_MIN_WINDOW_MS": {"type": "number", "minimum": 0, "description": "Minimum LTCN integration window for F6.2 (≥200ms)"},
+        "F6_2_MIN_R2": {"type": "number", "minimum": 0, "description": "Alias for F6.2_MIN_CURVE_FIT_R2"},
+        "F6_1_LTCN_MAX_TRANSITION_MS": {"type": "number", "minimum": 0, "description": "Maximum LTCN transition time for F6.1 (≤50ms)"},
+        "F6_1_CLIFFS_DELTA_MIN": {"type": "number", "minimum": 0, "description": "Minimum Cliff's delta for F6.1 (≥0.30)"},
+        "F6_1_MANN_WHITNEY_ALPHA": {"type": "number", "minimum": 0, "description": "Alpha level for Mann-Whitney test in F6.1"},
+        "F5_5_PCA_MIN_VARIANCE": {"type": "number", "minimum": 0, "description": "Minimum PCA variance for F5.5 (≥70%)"},
+        "F5_5_PCA_FALSIFICATION_THRESHOLD": {"type": "number", "minimum": 0, "description": "PCA variance threshold for F5.5 falsification (<60%)"},
+        "F5_5_MIN_LOADING": {"type": "number", "minimum": 0, "description": "Minimum PC loading for F5.5 analysis"},
+        "V6_1_MIN_P3B_REDUCTION_PCT": {"type": "number", "minimum": 0, "description": "Minimum P3b reduction for V6.1 (≥12%)"},
+        "V6_1_MIN_IGNITION_REDUCTION_PCT": {"type": "number", "minimum": 0, "description": "Minimum ignition reduction for V6.1 (≥30%)"},
+        "V6_1_MIN_COHENS_D": {"type": "number", "minimum": 0, "description": "Minimum coherence effect size for V6.1 (≥0.60)"},
+        "F1_1_MIN_ADVANTAGE_PCT": {"type": "number", "minimum": 0, "description": "Minimum advantage for F1.1 (≥18%)"},
+        "F1_1_MIN_COHENS_D": {"type": "number", "minimum": 0, "description": "Minimum coherence effect size for F1.1 (≥0.60)"},
+        "F1_2_MIN_ADVANTAGE_PCT": {"type": "number", "minimum": 0, "description": "Minimum advantage for F1.2 (≥18%)"}
+      }
+    },
+    "F1": {
+      "type": "object",
+      "description": "F1 Cross-Level Bidirectional Coupling thresholds",
+      "properties": {
+        "inter_intra_coupling_ratio": {"type": "number", "minimum": 0, "description": "Inter-level coupling must exceed intra-level by 50%"},
+        "pac_coherence_increase_min": {"type": "number", "minimum": 0, "description": "Minimum 20% PAC coherence increase on conscious trials"},
+        "pac_baseline_mi_min": {"type": "number", "minimum": 0, "description": "Minimum baseline PAC MI for theta-gamma coupling"},
+        "pac_delta_theta_baseline_min": {"type": "number", "minimum": 0, "description": "Minimum baseline PAC MI for delta-theta coupling"}
+      }
+    },
+    "F2": {
+      "type": "object",
+      "description": "F2 Cardiac Phase-Dependent Detection thresholds",
+      "properties": {
+        "cardiac_detection_advantage_min": {"type": "number", "minimum": 0, "description": "Minimum 12% higher detection during high-HEP vs low-HEP phases"}
       }
     },
     "network": {

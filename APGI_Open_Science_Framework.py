@@ -13,7 +13,6 @@ Complete open science framework for APGI theory validation including:
 
 import json
 import logging
-import numpy as np
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -194,7 +193,7 @@ class DataSharingProtocol:
             metadata_file = self.metadata_path / f"{dataset_name}_metadata.json"
 
             try:
-                with open(metadata_file, "w") as f:
+                with open(metadata_file, ', encoding="utf-8"w') as f:
                     json.dump(metadata, f, indent=2, default=self._serialize_metadata)
                 logger.info(f"Metadata created successfully: {metadata_file}")
                 return str(metadata_file)
@@ -234,7 +233,7 @@ class DataSharingProtocol:
             compliance_checks["has_metadata"] = True
 
             # Load metadata to check other fields
-            with open(metadata_file, "r") as f:
+            with open(metadata_file, ', encoding="utf-8"r') as f:
                 metadata = json.load(f)
 
             compliance_checks["license_specified"] = "license" in metadata
@@ -959,7 +958,7 @@ def main():
     print(report[:500] + "...")
 
     # Save preregistration
-    with open("sample_preregistration.json", "w") as f:
+    with open("sample_preregistration.json", "w", encoding="utf-8") as f:
         f.write(prereg.to_json())
 
     print("\nSample preregistration saved to: sample_preregistration.json")

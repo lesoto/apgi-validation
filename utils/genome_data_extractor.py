@@ -28,7 +28,7 @@ def extract_genome_data_from_vp5(
         Dictionary containing genome_data with evolved_alpha_values,
         timescale_correlations, and intero_gain_ratios
     """
-    with open(results_path, "r") as f:
+    with open(results_path, "r", encoding="utf-8") as f:
         vp5_results = json.load(f)
 
     # Initialize n_agents with default value
@@ -130,7 +130,7 @@ def save_genome_data(
         genome_data: Dictionary containing genome_data
         output_path: Path to save JSON file
     """
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(genome_data, f, indent=2)
     print(f"✅ Genome data saved to: {output_path}")
 
@@ -145,7 +145,7 @@ def load_genome_data(genome_data_path: str = "genome_data.json") -> Dict[str, An
     Returns:
         Dictionary containing genome_data
     """
-    with open(genome_data_path, "r") as f:
+    with open(genome_data_path, "r", encoding="utf-8") as f:
         genome_data = json.load(f)
     print(f"✅ Genome data loaded from: {genome_data_path}")
     return genome_data

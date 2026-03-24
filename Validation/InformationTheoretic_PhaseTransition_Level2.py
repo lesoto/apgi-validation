@@ -3315,7 +3315,7 @@ def main():
 
     results_summary = convert_to_serializable(results_summary)
 
-    with open("protocol4_results.json", "w") as f:
+    with open("protocol4_results.json", ', encoding="utf-8"w') as f:
         json.dump(results_summary, f, indent=2)
 
     print("✅ Results saved to: protocol4_results.json")

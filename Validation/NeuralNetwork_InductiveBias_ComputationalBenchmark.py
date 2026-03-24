@@ -32,11 +32,18 @@ from typing import Any, Dict, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from torch.utils.data import DataLoader, Dataset, random_split
+
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+
 from sklearn.metrics import accuracy_score, roc_auc_score
-from torch.utils.data import DataLoader, Dataset, random_split
 from tqdm import tqdm
 
 # Add parent directory to path for imports
@@ -2598,7 +2605,7 @@ def main():
         }
 
     # Save to JSON
-    with open("protocol6_results.json", "w") as f:
+    with open("protocol6_results.json", ', encoding="utf-8"w') as f:
         json.dump(results_summary, f, indent=2)
 
     print("✅ Results saved to: protocol6_results.json")

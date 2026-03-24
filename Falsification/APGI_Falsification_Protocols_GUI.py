@@ -884,7 +884,7 @@ class ProtocolRunnerGUI:
             config_file = (
                 config_dir / f"{selected.lower().replace(' ', '_')}_params.json"
             )
-            with open(config_file, "w") as f:
+            with open(config_file, ', encoding="utf-8"w') as f:
                 json.dump(self.parameter_values[selected], f, indent=2)
 
             messagebox.showinfo("Success", f"Parameters saved to {config_file}")

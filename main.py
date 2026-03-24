@@ -162,6 +162,9 @@ global_config = {
 }
 
 
+import copy
+
+
 def get_config_value(key: str, default: Any = None) -> Any:
     """Thread-safe way to get configuration values.
 
@@ -170,10 +173,11 @@ def get_config_value(key: str, default: Any = None) -> Any:
         default: Default value if key not found
 
     Returns:
-        Configuration value or default
+        Configuration value or default (deep-copied to prevent mutable state contamination)
     """
     with _config_lock:
-        return global_config.get(key, default)
+        value = global_config.get(key, default)
+        return copy.deepcopy(value)
 
 
 def set_config_value(key: str, value: Any) -> None:
@@ -184,7 +188,7 @@ def set_config_value(key: str, value: Any) -> None:
         value: Value to assign to the key
     """
     with _config_lock:
-        global_config[key] = value
+        global_config[key] = copy.deepcopy(value)
 
 
 def verbose_print(message: str, level: str = "info") -> None:
@@ -322,7 +326,7 @@ class APGIModuleLoader:
                 "class": None,
                 "description": "Psychological states analysis",
             },
-            "cross_species": {
+            "APGI_Cross_Species_Scaling": {
                 "file": "APGI_Cross_Species_Scaling.py",
                 "class": "CrossSpeciesScaling",
                 "description": "Cross-species scaling analysis",
@@ -334,11 +338,22 @@ class APGIModuleLoader:
             if module_path.exists():
                 try:
                     module = secure_load_module(name, module_path)
+
+                    # Validate module interface
+                    expected_class = config["class"]
+                    if expected_class and not hasattr(module, expected_class):
+                        raise AttributeError(
+                            f"Module {name} is missing expected class '{expected_class}'"
+                        )
+
                     self.modules[name] = {"module": module, "config": config}
                 except (ImportError, AttributeError, OSError, TypeError) as e:
                     console.print(
-                        f"[yellow]Warning: Could not load {config['file']}: {e}[/yellow]"
+                        f"[red]Fatal Error: Could not load {config['file']}: {e}[/red]"
                     )
+                    raise RuntimeError(
+                        f"Critical module '{name}' failed to load or validate"
+                    ) from e
 
     def get_module(self, name):
         """Get loaded module by name."""
@@ -504,8 +519,10 @@ def formal_model(
                     )
 
                     # Load JSON file with size check
-                    _check_file_size(validated_params_path)
-                    with open(validated_params_path, "r", encoding="utf-8") as f:
+                    # Load JSON file with secure size check to prevent TOCTOU
+                    with secure_open_file(
+                        validated_params_path, "r", encoding="utf-8"
+                    ) as f:
                         custom_params = json.load(f)
 
                 except FileNotFoundError:
@@ -524,18 +541,15 @@ def formal_model(
                         "info",
                     )
                 except json.JSONDecodeError as e:
-                    quiet_print(
-                        f"Error: Invalid JSON in parameter file: {params}",
-                        "error",
-                        force=True,
+                    apgi_logger.log_error_with_context(
+                        e,
+                        {"operation": "load_parameters", "file": str(params)},
+                        fallback_msg=f"Invalid JSON in parameter file: {params}",
                     )
-                    verbose_print(f"JSON error details: {str(e)}", "warning")
-                    quiet_print(
-                        f"Error loading parameter file: {type(e).__name__}: {e}",
-                        "error",
-                        force=True,
+                    console.print(
+                        f"[red]❌ Invalid JSON in parameter file: {params} ({type(e).__name__}: {e})[/red]"
                     )
-                    quiet_print("Using default parameters instead", "warning")
+                    console.print("[yellow]Using default parameters instead[/yellow]")
 
                 # Validate and apply custom parameters if loaded successfully
                 if custom_params is not None:
@@ -849,14 +863,31 @@ def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
     # Additional checks for allowed directories
     if allowed_dirs:
         allowed = False
-        for allowed_dir in allowed_dirs:
-            allowed_path = (project_root / allowed_dir).resolve()
+
+        # Use a class-level or function-level cache to avoid repeated resolves
+        if not hasattr(_validate_file_path, "_resolved_dir_cache"):
+            _validate_file_path._resolved_dir_cache = {}
+
+        cache_key = tuple(allowed_dirs)
+        if cache_key not in _validate_file_path._resolved_dir_cache:
+            resolved_dirs = []
+            for d in allowed_dirs:
+                try:
+                    resolved_dirs.append((project_root / d).resolve())
+                except Exception:
+                    pass
+            _validate_file_path._resolved_dir_cache[cache_key] = resolved_dirs
+
+        cached_allowed_paths = _validate_file_path._resolved_dir_cache[cache_key]
+
+        for allowed_path in cached_allowed_paths:
             try:
                 resolved_path.relative_to(allowed_path)
                 allowed = True
                 break
             except ValueError:
                 continue
+
         if not allowed:
             raise ValueError(
                 f"File path '{file_path}' not in allowed directories: {allowed_dirs}"
@@ -865,7 +896,9 @@ def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
     return resolved_path
 
 
-def _check_file_size(file_path: Union[str, Path], max_mb: Optional[int] = None) -> None:
+def _check_file_size(
+    file_path: Union[str, Path], max_mb: Optional[int] = None, fd: Optional[int] = None
+) -> None:
     """Check file size to prevent memory exhaustion DoS attacks."""
     # Hardcoded absolute maximum that cannot be overridden (1 GB)
     ABSOLUTE_MAX_MB = 1024
@@ -877,11 +910,43 @@ def _check_file_size(file_path: Union[str, Path], max_mb: Optional[int] = None) 
     if max_mb > ABSOLUTE_MAX_MB:
         max_mb = ABSOLUTE_MAX_MB
 
-    size_mb = os.path.getsize(str(file_path)) / (1024 * 1024)
+    try:
+        if fd is not None:
+            size_mb = os.fstat(fd).st_size / (1024 * 1024)
+        else:
+            size_mb = os.stat(str(file_path), follow_symlinks=False).st_size / (
+                1024 * 1024
+            )
+    except OSError as e:
+        raise ValueError(f"Cannot determine size of file {file_path!r}: {e}") from e
     if size_mb > max_mb:
         raise ValueError(
             f"File size ({size_mb:.1f}MB) exceeds maximum limit ({max_mb}MB)"
         )
+
+
+import contextlib
+
+
+@contextlib.contextmanager
+def secure_open_file(
+    file_path: Union[str, Path], mode: str = "r", max_mb: Optional[int] = None, **kwargs
+):
+    """Securely open a file with O_NOFOLLOW and validate its size via fstat to prevent TOCTOU race conditions."""
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    if "w" in mode or "a" in mode:
+        flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    if "b" not in mode:
+        pass  # Handle text mode
+
+    fd = os.open(str(file_path), flags)
+    try:
+        # Re-validate size securely using file descriptor
+        _check_file_size(file_path, max_mb=max_mb, fd=fd)
+        yield open(fd, mode, **kwargs)
+    except Exception:
+        os.close(fd)
+        raise
 
 
 def _validate_output_file_path(output_file: str) -> Path:
@@ -970,8 +1035,7 @@ def _validate_input_file(input_data: Optional[str]) -> Optional[str]:
 
     # Check if file is readable and size is acceptable
     try:
-        _check_file_size(validated_path)
-        with open(validated_path, "rb") as f:
+        with secure_open_file(validated_path, "rb") as f:
             f.read(1)
     except (FileNotFoundError, PermissionError):
         console.print(f"[red]❌ Error: Cannot read input file '{input_data}'[/red]")
@@ -1005,13 +1069,8 @@ def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
 
     # Check file size to prevent DoS attacks
     try:
-        _check_file_size(input_data)
-    except ValueError as e:
-        console.print(f"[red]❌ Error: {e}[/red]")
-        return
-
-    try:
-        data = pd.read_csv(input_data)
+        with secure_open_file(input_data, "r") as f:
+            data = pd.read_csv(f)
     except (pd.errors.EmptyDataError, FileNotFoundError) as e:
         if isinstance(e, pd.errors.EmptyDataError):
             console.print(
@@ -1474,7 +1533,7 @@ def estimate_params(
 
                         # Save results
                         if output_file:
-                            with open(output_file, "w", encoding="utf-8") as f:
+                            with open(output_file, ', encoding="utf-8"w') as f:
                                 json.dump(
                                     {
                                         k: float(v)
@@ -1547,7 +1606,7 @@ def estimate_params(
                         # Save results
                         if output_file:
                             results_dict = dict(zip(param_names, params_optimized))
-                            with open(output_file, "w", encoding="utf-8") as f:
+                            with open(output_file, ', encoding="utf-8"w') as f:
                                 json.dump(results_dict, f, indent=2)
                             console.print(
                                 f"[green]✓[/green] Results saved to {output_file}"
@@ -1679,7 +1738,7 @@ def cross_species(
     """Run cross-species scaling analysis for consciousness measures."""
     console.print(Panel.fit("🐒 Cross-Species Scaling Analysis", style="bold green"))
 
-    module_info = module_loader.get_module("cross_species")
+    module_info = module_loader.get_module("APGI_Cross_Species_Scaling")
     if not module_info:
         console.print("[red]Error: Cross-species scaling module not found[/red]")
         return
@@ -1769,7 +1828,7 @@ def cross_species(
 
                 if output_file:
                     # BUG-047: Add explicit file encoding specification
-                    with open(output_file, "w", encoding="utf-8") as f:
+                    with open(output_file, ', encoding="utf-8"w') as f:
                         json.dump(predictions, f, indent=2)
                     console.print(f"[green]✓[/green] Results saved to {output_file}")
             else:
@@ -1785,7 +1844,7 @@ def cross_species(
 
             if output_file:
                 # BUG-047: Add explicit file encoding specification
-                with open(output_file, "w", encoding="utf-8") as f:
+                with open(output_file, ', encoding="utf-8"w') as f:
                     f.write(report)
                 console.print(f"[green]✓[/green] Report saved to {output_file}")
 
@@ -1852,7 +1911,7 @@ def analyze_logs(
 
         for log_path in log_files:
             try:
-                with open(log_path, "r", encoding="utf-8") as f:
+                with open(log_path, ', encoding="utf-8"r', encoding="utf-8") as f:
                     for line in f:
                         total_lines += 1
 
@@ -1921,7 +1980,7 @@ def analyze_logs(
                 "analysis_timestamp": datetime.now().isoformat(),
             }
             # BUG-047: Add explicit file encoding specification
-            with open(output_file, "w", encoding="utf-8") as f:
+            with open(output_file, ', encoding="utf-8"w') as f:
                 json.dump(results, f, indent=2)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -1973,7 +2032,7 @@ def process_data(
 
         # Load configuration
         if config_file:
-            with open(config_file, "r", encoding="utf-8") as f:
+            with open(config_file, ', encoding="utf-8"r', encoding="utf-8") as f:
                 config_dict = yaml.safe_load(f)
             config = PreprocessingConfig(**config_dict)
         else:
@@ -2140,7 +2199,7 @@ def process_data(
 
         summary_file = output_path / "processing_summary.json"
         # BUG-047: Add explicit file encoding specification
-        with open(summary_file, "w", encoding="utf-8") as f:
+        with open(summary_file, ', encoding="utf-8"w') as f:
             json.dump(summary, f, indent=2)
 
         console.print("[green]✓[/green] Processing complete!")
@@ -2211,7 +2270,7 @@ def monitor_performance(
                         time.sleep(0.1)  # Simulate processing time
                         # Import the cross-species scaling module
                         spec = importlib.util.spec_from_file_location(
-                            "cross_species_scaling",
+                            "APGI_Cross_Species_Scaling",
                             PROJECT_ROOT / "APGI_Cross_Species_Scaling.py",
                         )
                         cross_species_module = importlib.util.module_from_spec(spec)
@@ -2361,7 +2420,7 @@ def monitor_performance(
         # Save results if requested
         if output_file:
             # BUG-047: Add explicit file encoding specification
-            with open(output_file, "w", encoding="utf-8") as f:
+            with open(output_file, ', encoding="utf-8"w') as f:
                 json.dump(results, f, indent=2)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -2425,12 +2484,7 @@ def _run_single_protocol(
                 return protocol_num, str(result), None
             else:
                 return protocol_num, "No validation function", None
-        except (
-            ImportError,
-            ModuleNotFoundError,
-            AttributeError,
-            RuntimeError,
-        ) as e:
+        except Exception as e:
             return protocol_num, f"Error: {e}", str(e)
 
     try:
@@ -2525,12 +2579,7 @@ def _run_sequential(protocols: List[str], validation_dir: Path) -> Dict[str, Any
                 )
                 results[protocol_num] = "No validation function"
 
-        except (
-            ImportError,
-            ModuleNotFoundError,
-            AttributeError,
-            RuntimeError,
-        ) as e:
+        except Exception as e:
             console.print(f"[red]❌ Error in Protocol {protocol_num}: {e}[/red]")
             results[protocol_num] = f"Error: {e}"
 
@@ -2554,7 +2603,7 @@ def _save_results(results: Dict[str, Any], output_dir: Optional[str]):
         results_file = default_output_dir / f"validation_results_{uuid.uuid4()}.json"
 
     # BUG-047: Add explicit file encoding specification
-    with open(results_file, "w", encoding="utf-8") as f:
+    with open(results_file, ', encoding="utf-8"w') as f:
         json.dump(results, f, indent=2)
     console.print(f"[green]✓[/green] Results saved to {results_file}")
 
@@ -2706,7 +2755,7 @@ def falsify(
 
                         # Save results
                         if output_file:
-                            with open(output_file, "w", encoding="utf-8") as f:
+                            with open(output_file, ', encoding="utf-8"w') as f:
                                 json.dump(result, f, indent=2, default=str)
                             console.print(
                                 f"[green]✓[/green] Results saved to {output_file}"
@@ -3000,7 +3049,7 @@ def neural_signatures(
                 print(f"{key}: {value}")
 
         if output_file:
-            with open(output_file, "w", encoding="utf-8") as f:
+            with open(output_file, ', encoding="utf-8"w') as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3059,7 +3108,7 @@ def causal_manipulations(
         )
 
         if output_file:
-            with open(output_file, "w", encoding="utf-8") as f:
+            with open(output_file, ', encoding="utf-8"w') as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3104,7 +3153,7 @@ def quantitative_fits(
         )
 
         if output_file:
-            with open(output_file, "w", encoding="utf-8") as f:
+            with open(output_file, ', encoding="utf-8"w') as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3159,7 +3208,7 @@ def clinical_convergence(
         )
 
         if output_file:
-            with open(output_file, "w", encoding="utf-8") as f:
+            with open(output_file, ', encoding="utf-8"w') as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3244,7 +3293,7 @@ def open_science(
             )
 
             if output_file:
-                with open(output_file, "w", encoding="utf-8") as f:
+                with open(output_file, ', encoding="utf-8"w') as f:
                     f.write(prereg.to_json())
                 console.print(
                     f"[green]✓[/green] Preregistration saved to {output_file}"
@@ -3330,7 +3379,7 @@ def falsification(
             )
 
         if output_file:
-            with open(output_file, "w", encoding="utf-8") as f:
+            with open(output_file, ', encoding="utf-8"w') as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3508,7 +3557,7 @@ def bayesian_estimation(
         print(f"Overall Bayesian Score: {results['overall_bayesian_score']:.3f}")
 
         if output_file:
-            with open(output_file, "w", encoding="utf-8") as f:
+            with open(output_file, ', encoding="utf-8"w') as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3698,7 +3747,7 @@ def comprehensive_validation(
         console.print(f"Score: {final_score:.1f}%")
 
         if output_file:
-            with open(output_file, "w", encoding="utf-8") as f:
+            with open(output_file, ', encoding="utf-8"w') as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(
                 f"[green]✓[/green] Comprehensive results saved to {output_file}"
@@ -3711,7 +3760,7 @@ def comprehensive_validation(
         # Log full traceback to file, show sanitized message to console
         error_log_path = PROJECT_ROOT / "logs" / "error.log"
         error_log_path.parent.mkdir(exist_ok=True)
-        with open(error_log_path, "a", encoding="utf-8") as f:
+        with open(error_log_path, ', encoding="utf-8"a', encoding="utf-8") as f:
             f.write(
                 f"\n[{datetime.now().isoformat()}] Error in comprehensive validation:\n"
             )
@@ -3754,7 +3803,9 @@ def _run_gui_module(gui_path, gui_name, debug):
 
                     error_log_path = PROJECT_ROOT / "logs" / "error.log"
                     error_log_path.parent.mkdir(exist_ok=True)
-                    with open(error_log_path, "a", encoding="utf-8") as f:
+                    with open(
+                        error_log_path, ', encoding="utf-8"a', encoding="utf-8"
+                    ) as f:
                         f.write(
                             f"\n[{datetime.now().isoformat()}] Error in {gui_name} GUI:\n"
                         )
@@ -3772,7 +3823,7 @@ def _run_gui_module(gui_path, gui_name, debug):
 
             error_log_path = PROJECT_ROOT / "logs" / "error.log"
             error_log_path.parent.mkdir(exist_ok=True)
-            with open(error_log_path, "a", encoding="utf-8") as f:
+            with open(error_log_path, ', encoding="utf-8"a', encoding="utf-8") as f:
                 f.write(
                     f"\n[{datetime.now().isoformat()}] Error launching {gui_name} GUI:\n"
                 )
@@ -4731,7 +4782,7 @@ def export_data(ctx, input_file, output_file, format, compress):
             try:
                 # Use a temporary name for the partial write
                 temp_compressed = f"{compressed_file}.tmp"
-                with open(output_file, "rb") as f_in:
+                with open(output_file, ', encoding="utf-8"rb') as f_in:
                     with gzip.open(temp_compressed, "wb", compresslevel=6) as f_out:
                         shutil.copyfileobj(f_in, f_out)
 
@@ -5388,7 +5439,7 @@ def config_diff() -> None:
 
         if version_file.exists():
             _check_file_size(version_file)
-            with open(version_file, "r", encoding="utf-8") as f:
+            with open(version_file, ', encoding="utf-8"r', encoding="utf-8") as f:
                 version_data = json.load(f)
                 version_config = version_data.get("config", {})
 
@@ -5594,7 +5645,7 @@ def validate_pipeline(
             if output_file:
                 import json
 
-                with open(output_file, "w", encoding="utf-8") as f:
+                with open(output_file, ', encoding="utf-8"w') as f:
                     json.dump(result, f, indent=2, default=str)
                 console.print(f"[green]✓[/green] Results saved to {output_file}")
 

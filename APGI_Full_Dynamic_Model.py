@@ -29,8 +29,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
-import nolds
 from scipy.special import expit
+import nolds
 
 
 @dataclass

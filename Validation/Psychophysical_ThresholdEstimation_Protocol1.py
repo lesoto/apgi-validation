@@ -968,7 +968,7 @@ class APGIPsychophysicalEstimator:
         results_serializable = convert_to_serializable(results)
 
         # Save analysis results
-        with open("protocol8_results.json", "w") as f:
+        with open("protocol8_results.json", ', encoding="utf-8"w') as f:
             json.dump(results_serializable, f, indent=2)
 
         print("Results saved to:")
@@ -2702,7 +2702,7 @@ def validate_disorder_parameters(
     # Load custom disorder config if provided
     if disorder_config_path is not None:
         try:
-            with open(disorder_config_path, "r") as f:
+            with open(disorder_config_path, ', encoding="utf-8"r') as f:
                 custom_disorder_table = json.load(f)
                 default_disorder_table.update(custom_disorder_table)
                 logger.info(

@@ -1353,7 +1353,7 @@ def main():
     # Create data directory if it doesn't exist
     output_file.parent.mkdir(exist_ok=True)
 
-    with open(output_file, "w") as f:
+    with open(output_file, ', encoding="utf-8"w') as f:
         json.dump(results, f, indent=2)
 
     print(f"\nDetailed results saved to: {output_file}")

@@ -94,27 +94,37 @@ class APGIBayesianInversion:
         """
         with pm.Model() as model:
             # Priors constrained by APGI empirical operational ranges
-            theta_0 = pm.Uniform("theta_0", 0.25, 0.85)  # Baseline threshold
-            pi_e = pm.Normal("pi_e", 1.5, 0.5)  # Exteroceptive precision
-            pi_i = pm.Normal("pi_i", 1.5, 0.5)  # Interoceptive precision
+            # Use more conservative priors to improve sampling
+            theta_0 = (
+                pm.Beta("theta_0", 2, 2) * 0.6 + 0.25
+            )  # Beta scaled to [0.25, 0.85]
+            pi_e = pm.LogNormal(
+                "pi_e", pm.math.log(1.5), 0.3
+            )  # LogNormal for positive precision
+            pi_i = pm.LogNormal(
+                "pi_i", pm.math.log(1.5), 0.3
+            )  # LogNormal for positive precision
             beta = pm.TruncatedNormal(
-                "beta", 1.2, 0.3, lower=0.5, upper=2.5
-            )  # Somatic bias
-            alpha = pm.Normal("alpha", 5.0, 1.0)  # Ignition slope
-            sigma_noise = pm.HalfNormal("sigma_noise", 0.1)  # Process noise
+                "beta", 1.2, 0.2, lower=0.5, upper=2.5
+            )  # Reduced std for somatic bias
+            alpha = pm.Normal("alpha", 5.0, 0.5)  # Reduced std for ignition slope
+            sigma_noise = pm.HalfCauchy(
+                "sigma_noise", 0.05
+            )  # HalfCauchy for scale parameter
 
             # Vectorized computation of surprise evolution
             # Precision-weighted surprise inputs for all time steps
             surprise_inputs = pi_e * pm.math.abs(z_e) + beta * pi_i * pm.math.abs(z_i)
 
-            # Initialize S_t array
-            S_t = pt.zeros_like(observed_S)
+            # Initialize S_t array with compatible shape
+            S_t = pt.zeros_like(observed_B)  # Match observed_B shape
             S_t = pt.set_subtensor(S_t[0], 0.0)  # Initial surprise
 
             # Vectorized computation of surprise evolution without scan
             # Using cumulative approach to avoid scan slicing issues
-            noise = pm.Normal("noise", 0, sigma_noise, shape=observed_S.shape)
-
+            noise = pm.Normal(
+                "noise", 0, sigma_noise, shape=observed_B.shape
+            )  # Match observed_B shape
             # Use a simplified model: compute surprise directly without time evolution
             # S_t = precision-weighted prediction error + noise
             # This avoids the scan length determination issue
@@ -149,7 +159,15 @@ class APGIBayesianInversion:
         """
         model = self.apgi_model_inversion(observed_S, observed_B, z_e, z_i)
         with model:
-            trace = pm.sample(self.draws, tune=self.tune, chains=4, cores=4)
+            # Improved sampling parameters to reduce divergences
+            trace = pm.sample(
+                self.draws,
+                tune=self.tune,
+                chains=4,
+                cores=4,
+                target_accept=0.95,  # Higher target acceptance to reduce divergences
+                return_inferencedata=True,
+            )
         recovered_params = {
             "theta_0": np.mean(trace.posterior["theta_0"].values.flatten()),
             "pi_e": np.mean(trace.posterior["pi_e"].values.flatten()),
