@@ -1,5 +1,5 @@
 """
-Tests for APGI-Entropy-Implementation.py - information theory functions and statistical distributions.
+Tests for APGI_Entropy_Implementation.py - information theory functions and statistical distributions.
 ===============================================================================
 """
 
@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
     import importlib
 
-    _entropy_module = importlib.import_module("APGI-Entropy-Implementation")
+    _entropy_module = importlib.import_module("APGI_Entropy_Implementation")
     APGIConfig = _entropy_module.APGIConfig
     IgnitionState = _entropy_module.IgnitionState
     EntropyOutput = _entropy_module.EntropyOutput
@@ -43,12 +43,12 @@ try:
     ENTROPY_IMPLEMENTATION_AVAILABLE = True
 except ImportError as e:
     ENTROPY_IMPLEMENTATION_AVAILABLE = False
-    print(f"Warning: APGI-Entropy-Implementation not available: {e}")
+    print(f"Warning: APGI_Entropy_Implementation not available: {e}")
 
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestAPGIConfig:
     """Test APGI configuration dataclass."""
@@ -89,7 +89,7 @@ class TestAPGIConfig:
 
     def test_config_edge_cases(self):
         """Test configuration with edge case values."""
-        # Test with zero values
+        # Test with zero values (but positive gamma as required)
         zero_config = APGIConfig(
             input_size=1,
             hidden_size=1,
@@ -97,14 +97,14 @@ class TestAPGIConfig:
             dt_ms=0.1,
             max_window_ms=10.0,
             theta0=0.1,
-            gamma=0.0,
+            gamma=0.1,  # Must be positive
         )
 
         assert zero_config.input_size == 1
         assert zero_config.hidden_size == 1
         assert zero_config.num_levels == 1
 
-        # Test with negative values where allowed
+        # Test with valid values (gamma must be positive)
         negative_config = APGIConfig(
             input_size=16,
             hidden_size=32,
@@ -112,7 +112,7 @@ class TestAPGIConfig:
             dt_ms=1.0,
             max_window_ms=100.0,
             theta0=1.0,
-            gamma=-0.1,  # Some parameters may allow negative values
+            gamma=0.5,  # Must be positive
         )
 
         assert negative_config.input_size == 16
@@ -120,7 +120,7 @@ class TestAPGIConfig:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestIgnitionState:
     """Test ignition state enumeration."""
@@ -137,7 +137,7 @@ class TestIgnitionState:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestEntropyOutputs:
     """Test entropy output dataclasses."""
@@ -227,7 +227,7 @@ class TestEntropyOutputs:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestThermodynamicEntropyCalculator:
     """Test thermodynamic entropy calculation."""
@@ -314,7 +314,7 @@ class TestThermodynamicEntropyCalculator:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestShannonEntropyCalculator:
     """Test Shannon entropy calculation."""
@@ -383,7 +383,7 @@ class TestShannonEntropyCalculator:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestVariationalFreeEnergy:
     """Test variational free energy calculation."""
@@ -435,7 +435,7 @@ class TestVariationalFreeEnergy:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestMultiLevelEntropyModule:
     """Test multi-level entropy module."""
@@ -492,7 +492,7 @@ class TestMultiLevelEntropyModule:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestLTCNeuron:
     """Test Liquid Time-Constant neuron."""
@@ -542,7 +542,7 @@ class TestLTCNeuron:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestHierarchicalPredictiveCoding:
     """Test hierarchical predictive coding layer."""
@@ -599,7 +599,7 @@ class TestHierarchicalPredictiveCoding:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestPrecisionEstimator:
     """Test precision estimation module."""
@@ -655,7 +655,7 @@ class TestPrecisionEstimator:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestPredictionErrorModule:
     """Test prediction error computation."""
@@ -712,7 +712,7 @@ class TestPredictionErrorModule:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestEnhancedMetabolicCost:
     """Test enhanced metabolic cost modeling."""
@@ -768,7 +768,7 @@ class TestEnhancedMetabolicCost:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestAdaptiveThreshold:
     """Test adaptive threshold module."""
@@ -823,7 +823,7 @@ class TestAdaptiveThreshold:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestNeuromodulation:
     """Test neuromodulation module."""
@@ -880,7 +880,7 @@ class TestNeuromodulation:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestGlobalWorkspace:
     """Test global workspace module."""
@@ -921,7 +921,7 @@ class TestGlobalWorkspace:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestAPGILiquidNetwork:
     """Test complete APGI liquid network."""
@@ -996,7 +996,7 @@ class TestAPGILiquidNetwork:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestEnhancedValidator:
     """Test enhanced APGI validator."""
@@ -1057,7 +1057,7 @@ class TestEnhancedValidator:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestNumericalStability:
     """Test numerical stability and edge cases."""
@@ -1217,7 +1217,7 @@ class TestModuleAvailability:
 
 @pytest.mark.skipif(
     not ENTROPY_IMPLEMENTATION_AVAILABLE,
-    reason="APGI-Entropy-Implementation module not available",
+    reason="APGI_Entropy_Implementation module not available",
 )
 class TestLandauerConsistency:
     """

@@ -18,17 +18,17 @@ SPECIALIZED_MODULES = {}
 
 # List of all specialized APGI modules to test (excluding already tested ones)
 SPECIALIZED_MODULE_NAMES = [
-    "APGI-Bayesian-Estimation-Framework",
-    "APGI-Computational-Benchmarking",
-    "APGI-Cross-Species-Scaling",
-    "APGI-Cultural-Neuroscience",
-    "APGI-Falsification-Framework",
-    "APGI-Full-Dynamic-Model",
-    "APGI-Liquid-Network-Implementation",
-    "APGI-Multimodal-Classifier",
-    "APGI-Open-Science-Framework",
-    "APGI-Psychological-States",
-    "APGI-Turing-Machine",
+    "APGI_Bayesian_Estimation_Framework",
+    "APGI_Computational_Benchmarking",
+    "APGI_Cross_Species_Scaling",
+    "APGI_Cultural_Neuroscience",
+    "APGI_Falsification_Framework",
+    "APGI_Full_Dynamic_Model",
+    "APGI_Liquid_Network_Implementation",
+    "APGI_Multimodal_Classifier",
+    "APGI_Open_Science_Framework",
+    "APGI_Psychological_States",
+    "APGI_Turing_Machine",
     "falsification_thresholds",
     "Tests-GUI",
     "Utils-GUI",
@@ -54,12 +54,12 @@ class TestBayesianEstimationFramework:
     """Test APGI Bayesian estimation framework."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Bayesian-Estimation-Framework"] is None,
-        reason="APGI-Bayesian-Estimation-Framework module not available",
+        SPECIALIZED_MODULES["APGI_Bayesian_Estimation_Framework"] is None,
+        reason="APGI_Bayesian_Estimation_Framework module not available",
     )
     def test_framework_initialization(self):
         """Test Bayesian estimation framework initialization."""
-        module = SPECIALIZED_MODULES["APGI-Bayesian-Estimation-Framework"]
+        module = SPECIALIZED_MODULES["APGI_Bayesian_Estimation_Framework"]
 
         try:
             framework = module.BayesianEstimationFramework()
@@ -70,12 +70,12 @@ class TestBayesianEstimationFramework:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Bayesian-Estimation-Framework"] is None,
-        reason="APGI-Bayesian-Estimation-Framework module not available",
+        SPECIALIZED_MODULES["APGI_Bayesian_Estimation_Framework"] is None,
+        reason="APGI_Bayesian_Estimation_Framework module not available",
     )
     def test_bayesian_estimation(self):
         """Test Bayesian parameter estimation."""
-        module = SPECIALIZED_MODULES["APGI-Bayesian-Estimation-Framework"]
+        module = SPECIALIZED_MODULES["APGI_Bayesian_Estimation_Framework"]
 
         try:
             framework = module.BayesianEstimationFramework()
@@ -96,12 +96,12 @@ class TestComputationalBenchmarking:
     """Test APGI computational benchmarking."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Computational-Benchmarking"] is None,
-        reason="APGI-Computational-Benchmarking module not available",
+        SPECIALIZED_MODULES["APGI_Computational_Benchmarking"] is None,
+        reason="APGI_Computational_Benchmarking module not available",
     )
     def test_benchmarking_initialization(self):
         """Test computational benchmarking initialization."""
-        module = SPECIALIZED_MODULES["APGI-Computational-Benchmarking"]
+        module = SPECIALIZED_MODULES["APGI_Computational_Benchmarking"]
 
         try:
             benchmark = module.ComputationalBenchmark()
@@ -112,12 +112,12 @@ class TestComputationalBenchmarking:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Computational-Benchmarking"] is None,
-        reason="APGI-Computational-Benchmarking module not available",
+        SPECIALIZED_MODULES["APGI_Computational_Benchmarking"] is None,
+        reason="APGI_Computational_Benchmarking module not available",
     )
     def test_benchmark_execution(self):
         """Test computational benchmark execution."""
-        module = SPECIALIZED_MODULES["APGI-Computational-Benchmarking"]
+        module = SPECIALIZED_MODULES["APGI_Computational_Benchmarking"]
 
         try:
             benchmark = module.ComputationalBenchmark()
@@ -139,12 +139,12 @@ class TestCrossSpeciesScaling:
     """Test APGI cross-species scaling."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Cross-Species-Scaling"] is None,
-        reason="APGI-Cross-Species-Scaling module not available",
+        SPECIALIZED_MODULES["APGI_Cross_Species_Scaling"] is None,
+        reason="APGI_Cross_Species_Scaling module not available",
     )
     def test_scaling_initialization(self):
         """Test cross-species scaling initialization."""
-        module = SPECIALIZED_MODULES["APGI-Cross-Species-Scaling"]
+        module = SPECIALIZED_MODULES["APGI_Cross_Species_Scaling"]
 
         try:
             scaling = module.CrossSpeciesScaling()
@@ -155,12 +155,12 @@ class TestCrossSpeciesScaling:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Cross-Species-Scaling"] is None,
-        reason="APGI-Cross-Species-Scaling module not available",
+        SPECIALIZED_MODULES["APGI_Cross_Species_Scaling"] is None,
+        reason="APGI_Cross_Species_Scaling module not available",
     )
     def test_species_scaling(self):
         """Test species parameter scaling."""
-        module = SPECIALIZED_MODULES["APGI-Cross-Species-Scaling"]
+        module = SPECIALIZED_MODULES["APGI_Cross_Species_Scaling"]
 
         try:
             scaling = module.CrossSpeciesScaling()
@@ -184,12 +184,12 @@ class TestCulturalNeuroscience:
     """Test APGI cultural neuroscience."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Cultural-Neuroscience"] is None,
-        reason="APGI-Cultural-Neuroscience module not available",
+        SPECIALIZED_MODULES["APGI_Cultural_Neuroscience"] is None,
+        reason="APGI_Cultural_Neuroscience module not available",
     )
     def test_cultural_initialization(self):
         """Test cultural neuroscience initialization."""
-        module = SPECIALIZED_MODULES["APGI-Cultural-Neuroscience"]
+        module = SPECIALIZED_MODULES["APGI_Cultural_Neuroscience"]
 
         try:
             cultural = module.CulturalNeuroscience()
@@ -200,12 +200,12 @@ class TestCulturalNeuroscience:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Cultural-Neuroscience"] is None,
-        reason="APGI-Cultural-Neuroscience module not available",
+        SPECIALIZED_MODULES["APGI_Cultural_Neuroscience"] is None,
+        reason="APGI_Cultural_Neuroscience module not available",
     )
     def test_cultural_modeling(self):
         """Test cultural effects modeling."""
-        module = SPECIALIZED_MODULES["APGI-Cultural-Neuroscience"]
+        module = SPECIALIZED_MODULES["APGI_Cultural_Neuroscience"]
 
         try:
             cultural = module.CulturalNeuroscience()
@@ -230,12 +230,12 @@ class TestFalsificationFramework:
     """Test APGI falsification framework."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Falsification-Framework"] is None,
-        reason="APGI-Falsification-Framework module not available",
+        SPECIALIZED_MODULES["APGI_Falsification_Framework"] is None,
+        reason="APGI_Falsification_Framework module not available",
     )
     def test_framework_initialization(self):
         """Test falsification framework initialization."""
-        module = SPECIALIZED_MODULES["APGI-Falsification-Framework"]
+        module = SPECIALIZED_MODULES["APGI_Falsification_Framework"]
 
         try:
             framework = module.FalsificationFramework()
@@ -246,12 +246,12 @@ class TestFalsificationFramework:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Falsification-Framework"] is None,
-        reason="APGI-Falsification-Framework module not available",
+        SPECIALIZED_MODULES["APGI_Falsification_Framework"] is None,
+        reason="APGI_Falsification_Framework module not available",
     )
     def test_falsification_execution(self):
         """Test falsification framework execution."""
-        module = SPECIALIZED_MODULES["APGI-Falsification-Framework"]
+        module = SPECIALIZED_MODULES["APGI_Falsification_Framework"]
 
         try:
             framework = module.FalsificationFramework()
@@ -275,12 +275,12 @@ class TestFullDynamicModel:
     """Test APGI full dynamic model."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Full-Dynamic-Model"] is None,
-        reason="APGI-Full-Dynamic-Model module not available",
+        SPECIALIZED_MODULES["APGI_Full_Dynamic_Model"] is None,
+        reason="APGI_Full_Dynamic_Model module not available",
     )
     def test_dynamic_model_initialization(self):
         """Test full dynamic model initialization."""
-        module = SPECIALIZED_MODULES["APGI-Full-Dynamic-Model"]
+        module = SPECIALIZED_MODULES["APGI_Full_Dynamic_Model"]
 
         try:
             model = module.FullDynamicModel()
@@ -291,12 +291,12 @@ class TestFullDynamicModel:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Full-Dynamic-Model"] is None,
-        reason="APGI-Full-Dynamic-Model module not available",
+        SPECIALIZED_MODULES["APGI_Full_Dynamic_Model"] is None,
+        reason="APGI_Full_Dynamic_Model module not available",
     )
     def test_dynamic_simulation(self):
         """Test dynamic model simulation."""
-        module = SPECIALIZED_MODULES["APGI-Full-Dynamic-Model"]
+        module = SPECIALIZED_MODULES["APGI_Full_Dynamic_Model"]
 
         try:
             model = module.FullDynamicModel()
@@ -320,12 +320,12 @@ class TestLiquidNetworkImplementation:
     """Test APGI liquid network implementation."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Liquid-Network-Implementation"] is None,
-        reason="APGI-Liquid-Network-Implementation module not available",
+        SPECIALIZED_MODULES["APGI_Liquid_Network_Implementation"] is None,
+        reason="APGI_Liquid_Network_Implementation module not available",
     )
     def test_liquid_network_initialization(self):
         """Test liquid network initialization."""
-        module = SPECIALIZED_MODULES["APGI-Liquid-Network-Implementation"]
+        module = SPECIALIZED_MODULES["APGI_Liquid_Network_Implementation"]
 
         try:
             network = module.LiquidNetwork()
@@ -336,12 +336,12 @@ class TestLiquidNetworkImplementation:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Liquid-Network-Implementation"] is None,
-        reason="APGI-Liquid-Network-Implementation module not available",
+        SPECIALIZED_MODULES["APGI_Liquid_Network_Implementation"] is None,
+        reason="APGI_Liquid_Network_Implementation module not available",
     )
     def test_liquid_dynamics(self):
         """Test liquid network dynamics."""
-        module = SPECIALIZED_MODULES["APGI-Liquid-Network-Implementation"]
+        module = SPECIALIZED_MODULES["APGI_Liquid_Network_Implementation"]
 
         try:
             network = module.LiquidNetwork()
@@ -361,12 +361,12 @@ class TestMultimodalClassifier:
     """Test APGI multimodal classifier."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Multimodal-Classifier"] is None,
-        reason="APGI-Multimodal-Classifier module not available",
+        SPECIALIZED_MODULES["APGI_Multimodal_Classifier"] is None,
+        reason="APGI_Multimodal_Classifier module not available",
     )
     def test_classifier_initialization(self):
         """Test multimodal classifier initialization."""
-        module = SPECIALIZED_MODULES["APGI-Multimodal-Classifier"]
+        module = SPECIALIZED_MODULES["APGI_Multimodal_Classifier"]
 
         try:
             classifier = module.MultimodalClassifier()
@@ -377,12 +377,12 @@ class TestMultimodalClassifier:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Multimodal-Classifier"] is None,
-        reason="APGI-Multimodal-Classifier module not available",
+        SPECIALIZED_MODULES["APGI_Multimodal_Classifier"] is None,
+        reason="APGI_Multimodal_Classifier module not available",
     )
     def test_classifier_training(self):
         """Test multimodal classifier training."""
-        module = SPECIALIZED_MODULES["APGI-Multimodal-Classifier"]
+        module = SPECIALIZED_MODULES["APGI_Multimodal_Classifier"]
 
         try:
             classifier = module.MultimodalClassifier()
@@ -407,12 +407,12 @@ class TestOpenScienceFramework:
     """Test APGI open science framework."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Open-Science-Framework"] is None,
-        reason="APGI-Open-Science-Framework module not available",
+        SPECIALIZED_MODULES["APGI_Open_Science_Framework"] is None,
+        reason="APGI_Open_Science_Framework module not available",
     )
     def test_framework_initialization(self):
         """Test open science framework initialization."""
-        module = SPECIALIZED_MODULES["APGI-Open-Science-Framework"]
+        module = SPECIALIZED_MODULES["APGI_Open_Science_Framework"]
 
         try:
             framework = module.OpenScienceFramework()
@@ -423,12 +423,12 @@ class TestOpenScienceFramework:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Open-Science-Framework"] is None,
-        reason="APGI-Open-Science-Framework module not available",
+        SPECIALIZED_MODULES["APGI_Open_Science_Framework"] is None,
+        reason="APGI_Open_Science_Framework module not available",
     )
     def test_open_science_operations(self):
         """Test open science operations."""
-        module = SPECIALIZED_MODULES["APGI-Open-Science-Framework"]
+        module = SPECIALIZED_MODULES["APGI_Open_Science_Framework"]
 
         try:
             framework = module.OpenScienceFramework()
@@ -449,12 +449,12 @@ class TestPsychologicalStates:
     """Test APGI psychological states."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Psychological-States"] is None,
-        reason="APGI-Psychological-States module not available",
+        SPECIALIZED_MODULES["APGI_Psychological_States"] is None,
+        reason="APGI_Psychological_States module not available",
     )
     def test_states_initialization(self):
         """Test psychological states initialization."""
-        module = SPECIALIZED_MODULES["APGI-Psychological-States"]
+        module = SPECIALIZED_MODULES["APGI_Psychological_States"]
 
         try:
             states = module.PsychologicalStates()
@@ -465,12 +465,12 @@ class TestPsychologicalStates:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Psychological-States"] is None,
-        reason="APGI-Psychological-States module not available",
+        SPECIALIZED_MODULES["APGI_Psychological_States"] is None,
+        reason="APGI_Psychological_States module not available",
     )
     def test_psychological_computation(self):
         """Test psychological state computation."""
-        module = SPECIALIZED_MODULES["APGI-Psychological-States"]
+        module = SPECIALIZED_MODULES["APGI_Psychological_States"]
 
         try:
             states = module.PsychologicalStates()
@@ -495,12 +495,12 @@ class TestTuringMachine:
     """Test APGI Turing machine."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Turing-Machine"] is None,
-        reason="APGI-Turing-Machine module not available",
+        SPECIALIZED_MODULES["APGI_Turing_Machine"] is None,
+        reason="APGI_Turing_Machine module not available",
     )
     def test_turing_machine_initialization(self):
         """Test Turing machine initialization."""
-        module = SPECIALIZED_MODULES["APGI-Turing-Machine"]
+        module = SPECIALIZED_MODULES["APGI_Turing_Machine"]
 
         try:
             turing = module.TuringMachine()
@@ -511,12 +511,12 @@ class TestTuringMachine:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["APGI-Turing-Machine"] is None,
-        reason="APGI-Turing-Machine module not available",
+        SPECIALIZED_MODULES["APGI_Turing_Machine"] is None,
+        reason="APGI_Turing_Machine module not available",
     )
     def test_turing_computation(self):
         """Test Turing machine computation."""
-        module = SPECIALIZED_MODULES["APGI-Turing-Machine"]
+        module = SPECIALIZED_MODULES["APGI_Turing_Machine"]
 
         try:
             turing = module.TuringMachine()

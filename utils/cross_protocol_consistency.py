@@ -33,7 +33,7 @@ class CrossProtocolConsistencyChecker:
         Add validation results from a protocol.
 
         Args:
-            protocol_name: Name of the protocol (e.g., "Validation-Protocol-1")
+            protocol_name: Name of the protocol (e.g., "Validation_Protocol_1")
             results: Dictionary containing the protocol's validation results
         """
         self.protocol_results[protocol_name] = results
@@ -566,7 +566,7 @@ if __name__ == "__main__":
 
     # Create mock protocol results
     mock_results = {
-        "Validation-Protocol-1": {
+        "Validation_Protocol_1": {
             "criteria": {
                 "F1.1": {"passed": True, "p_value": 0.01, "threshold": "r ≥ 0.70"},
                 "F1.2": {"passed": True, "p_value": 0.02, "threshold": "h ≥ 0.30"},
@@ -581,7 +581,7 @@ if __name__ == "__main__":
                 "theta": {"mean": 0.5, "std": 0.08},
             },
         },
-        "Validation-Protocol-2": {
+        "Validation_Protocol_2": {
             "criteria": {
                 "F1.1": {"passed": True, "p_value": 0.01, "threshold": "r ≥ 0.70"},
                 "F1.2": {"passed": True, "p_value": 0.02, "threshold": "h ≥ 0.30"},
@@ -591,7 +591,7 @@ if __name__ == "__main__":
                 "theta": {"mean": 0.52, "std": 0.09},
             },
         },
-        "Validation-Protocol-3": {
+        "Validation_Protocol_3": {
             "criteria": {
                 "F1.1": {"passed": True, "p_value": 0.01, "threshold": "r ≥ 0.70"},
                 "F1.2": {"passed": True, "p_value": 0.02, "threshold": "h ≥ 0.30"},

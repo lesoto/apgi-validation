@@ -100,13 +100,13 @@ except Exception as e:
 # Framework-Level Aggregator
 try:
     _spec_aggregator = importlib.util.spec_from_file_location(
-        "APGI_Falsification_Aggregator", _dir / "APGI-Falsification-Aggregator.py"
+        "APGI_Falsification_Aggregator", _dir / "APGI_Falsification_Aggregator.py"
     )
     if _spec_aggregator and _spec_aggregator.loader:
         APGI_Falsification_Aggregator = importlib.util.module_from_spec(
             _spec_aggregator
         )
-        _spec_aggregator.loader.exec_module()
+        _spec_aggregator.loader.exec_module(APGI_Falsification_Aggregator)
     else:
         raise ImportError("Could not load APGI_Falsification_Aggregator")
 except Exception as e:

@@ -31,7 +31,7 @@ Tier: PRIMARY — tests core interoceptive-precision-to-threshold link,
 
 Master_Validation.py registration:
     "Protocol-2": {
-        "file": "Validation-Protocol-2.py",
+        "file": "Validation_Protocol_2.py",
         "function": "run_validation",
         "description": "Behavioral Validation Protocol — P1.1/P1.2/P1.3",
     }
@@ -741,7 +741,7 @@ def test_dprime_consistency(df: pd.DataFrame) -> Dict[str, Any]:
 
 def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     """
-    Complete falsification specifications for Validation-Protocol-2.
+    Complete falsification specifications for Validation_Protocol_2.
 
     Criteria IDs follow the project's criteria_registry convention.
     Used by Master_Validation.generate_master_report() to populate

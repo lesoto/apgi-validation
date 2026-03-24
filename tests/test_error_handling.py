@@ -22,7 +22,7 @@ try:
     APGI_EQUATIONS_AVAILABLE = True
 except ImportError as e:
     APGI_EQUATIONS_AVAILABLE = False
-    print(f"Warning: APGI-Equations not available for error testing: {e}")
+    print(f"Warning: APGI_Equations not available for error testing: {e}")
 
 try:
     # Import error handler utilities if available
@@ -66,7 +66,7 @@ class TestErrorHandlingPatterns:
             assert True  # Error was handled
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_mathematical_error_handling(self):
         """Test error handling in mathematical functions."""
@@ -96,7 +96,7 @@ class TestErrorHandlingPatterns:
             assert True  # Expected if module structure different
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_numerical_stability_errors(self):
         """Test numerical stability and error handling."""
@@ -123,7 +123,7 @@ class TestErrorHandlingPatterns:
             assert True  # Expected if module structure different
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_parameter_validation_errors(self):
         """Test parameter validation and error handling."""

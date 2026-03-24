@@ -1351,23 +1351,23 @@ class TestProtocolCoverageMatrix:
 
 
 class TestFalsificationFrameworkIntegration:
-    """Ensure APGI-Falsification-Framework.py can handle spec-derived criteria."""
+    """Ensure APGI_Falsification_Framework.py can handle spec-derived criteria."""
 
     def test_framework_importable(self):
-        """APGI-Falsification-Framework.py should be importable."""
+        """APGI_Falsification_Framework.py should be importable."""
         try:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
                 "falsification_fw",
-                project_root / "APGI-Falsification-Framework.py",
+                project_root / "APGI_Falsification_Framework.py",
             )
             fw = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(fw)
             assert hasattr(fw, "FalsificationCriterion")
             assert hasattr(fw, "APGIFalsificationProtocol")
         except ImportError as e:
-            pytest.skip(f"APGI-Falsification-Framework import failed: {e}")
+            pytest.skip(f"APGI_Falsification_Framework import failed: {e}")
 
     def test_correlation_criterion_can_test_hep_threshold(self):
         """FalsificationCriterion with correlation test can check HEP-threshold link."""
@@ -1376,7 +1376,7 @@ class TestFalsificationFrameworkIntegration:
 
             spec = importlib.util.spec_from_file_location(
                 "falsification_fw",
-                project_root / "APGI-Falsification-Framework.py",
+                project_root / "APGI_Falsification_Framework.py",
             )
             fw = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(fw)
@@ -1411,7 +1411,7 @@ class TestFalsificationFrameworkIntegration:
 
             spec = importlib.util.spec_from_file_location(
                 "falsification_fw",
-                project_root / "APGI-Falsification-Framework.py",
+                project_root / "APGI_Falsification_Framework.py",
             )
             fw = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(fw)

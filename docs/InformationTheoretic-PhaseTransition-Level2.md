@@ -136,7 +136,7 @@ Multi-panel plots showing:
 
 
 ```python
-python APGI-Protocol-4.py
+python APGI_Protocol_4.py
 ```text
 
 This runs the full pipeline:

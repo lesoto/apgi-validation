@@ -32,7 +32,7 @@ class TestValidationProtocolsIndividual:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "validation_gui", "Validation/APGI-Validation-GUI.py"
+                "validation_gui", "Validation/APGI_Validation_GUI.py"
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -58,7 +58,7 @@ class TestValidationProtocolsIndividual:
 
             spec = importlib.util.spec_from_file_location(
                 "active_inference",
-                "Validation/ActiveInference-AgentSimulations-Protocol3.py",
+                "Validation/ActiveInference_AgentSimulations_Protocol3.py",
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -83,7 +83,7 @@ class TestValidationProtocolsIndividual:
 
             spec = importlib.util.spec_from_file_location(
                 "parameter_recovery",
-                "Validation/BayesianModelComparison-ParameterRecovery.py",
+                "Validation/BayesianModelComparison_ParameterRecovery.py",
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -108,7 +108,7 @@ class TestValidationProtocolsIndividual:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "cross_species", "APGI-Cross-Species-Scaling.py"
+                "cross_species", "APGI_Cross_Species_Scaling.py"
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -134,7 +134,7 @@ class TestValidationProtocolsIndividual:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "multimodal", "APGI-Multimodal-Integration.py"
+                "multimodal", "APGI_Multimodal_Integration.py"
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -163,7 +163,7 @@ class TestValidationProtocolsIndividual:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "cultural", "APGI-Cultural-Neuroscience.py"
+                "cultural", "APGI_Cultural_Neuroscience.py"
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -171,7 +171,7 @@ class TestValidationProtocolsIndividual:
                 result = validation_module.validate_cultural_patterns(str(data_file))
                 assert result is not None
         except (ImportError, FileNotFoundError):
-            pytest.skip("Cultural neuroscience validation not available")
+            pytest.skip("Cultural validation not available")
 
 
 class TestFalsificationProtocolsIndividual:
@@ -192,7 +192,7 @@ class TestFalsificationProtocolsIndividual:
 
             spec = importlib.util.spec_from_file_location(
                 "falsification_ai",
-                "Falsification/Falsification-ActiveInferenceAgents-F1F2.py",
+                "Falsification/Falsification_ActiveInferenceAgents_F1F2.py",
             )
             if spec and spec.loader:
                 falsification_module = importlib.util.module_from_spec(spec)
@@ -218,7 +218,7 @@ class TestFalsificationProtocolsIndividual:
 
             spec = importlib.util.spec_from_file_location(
                 "falsification_entropy",
-                "Falsification/APGI-Falsification-Aggregator.py",
+                "Falsification/APGI_Falsification_Aggregator.py",
             )
             if spec and spec.loader:
                 falsification_module = importlib.util.module_from_spec(spec)
@@ -243,7 +243,7 @@ class TestFalsificationProtocolsIndividual:
 
             spec = importlib.util.spec_from_file_location(
                 "falsification_tms",
-                "Falsification/CausalManipulations-TMS-Pharmacological-Priority2.py",
+                "Falsification/CausalManipulations_TMS_Pharmacological_Priority2.py",
             )
             if spec and spec.loader:
                 falsification_module = importlib.util.module_from_spec(spec)
@@ -251,7 +251,7 @@ class TestFalsificationProtocolsIndividual:
                 result = falsification_module.falsify_tms_causal(str(data_file))
                 assert result is not None
         except (ImportError, FileNotFoundError):
-            pytest.skip("TMS falsification not available")
+            pytest.skip("SyntheticEEG_MLClassification not available")
 
     def test_pharmacological_falsification_protocol(self, temp_dir):
         """Test pharmacological falsification protocol individually."""
@@ -268,7 +268,7 @@ class TestFalsificationProtocolsIndividual:
 
             spec = importlib.util.spec_from_file_location(
                 "falsification_pharma",
-                "Falsification/CausalManipulations-TMS-Pharmacological-Priority2.py",
+                "Falsification/CausalManipulations_TMS_Pharmacological_Priority2.py",
             )
             if spec and spec.loader:
                 falsification_module = importlib.util.module_from_spec(spec)
@@ -292,7 +292,7 @@ class TestFalsificationProtocolsIndividual:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "neural_signatures", "APGI-Neural-Signatures.py"
+                "neural_signatures", "APGI_Neural_Signatures.py"
             )
             if spec and spec.loader:
                 falsification_module = importlib.util.module_from_spec(spec)
@@ -300,7 +300,9 @@ class TestFalsificationProtocolsIndividual:
                 result = falsification_module.falsify_neural_signatures(str(data_file))
                 assert result is not None
         except (ImportError, FileNotFoundError):
-            pytest.skip("Neural signatures falsification not available")
+            pytest.skip(
+                "ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap not available"
+            )
 
     def test_quantitative_fits_falsification(self, temp_dir):
         """Test quantitative fits falsification individually."""
@@ -318,7 +320,7 @@ class TestFalsificationProtocolsIndividual:
             result = falsify_quantitative_fits(str(data_file))
             assert result is not None
         except (ImportError, AttributeError):
-            pytest.skip("Quantitative fits falsification not available")
+            pytest.skip("QuantitativeModelFits_SpikingLNN_Priority3 not available")
 
     def test_clinical_convergence_falsification(self, temp_dir):
         """Test clinical convergence falsification individually."""
@@ -338,7 +340,7 @@ class TestFalsificationProtocolsIndividual:
             result = falsify_clinical_convergence(str(data_file))
             assert result is not None
         except (ImportError, AttributeError):
-            pytest.skip("Clinical convergence falsification not available")
+            pytest.skip("Clinical_CrossSpecies_Convergence_Protocol4 not available")
 
 
 class TestProtocolCorrectness:
@@ -355,7 +357,7 @@ class TestProtocolCorrectness:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "validation_gui", "Validation/APGI-Validation-GUI.py"
+                "validation_gui", "Validation/APGI_Validation_GUI.py"
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -380,7 +382,7 @@ class TestProtocolCorrectness:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "validation_gui", "Validation/APGI-Validation-GUI.py"
+                "validation_gui", "Validation/APGI_Validation_GUI.py"
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -405,7 +407,7 @@ class TestProtocolCorrectness:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "validation_gui", "Validation/APGI-Validation-GUI.py"
+                "validation_gui", "Validation/APGI_Validation_GUI.py"
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -430,7 +432,7 @@ class TestProtocolCorrectness:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "validation_gui", "Validation/APGI-Validation-GUI.py"
+                "validation_gui", "Validation/APGI_Validation_GUI.py"
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -455,7 +457,7 @@ class TestProtocolCorrectness:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "validation_gui", "Validation/APGI-Validation-GUI.py"
+                "validation_gui", "Validation/APGI_Validation_GUI.py"
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)
@@ -487,7 +489,7 @@ class TestProtocolCorrectness:
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
-                "validation_gui", "Validation/APGI-Validation-GUI.py"
+                "validation_gui", "Validation/APGI_Validation_GUI.py"
             )
             if spec and spec.loader:
                 validation_module = importlib.util.module_from_spec(spec)

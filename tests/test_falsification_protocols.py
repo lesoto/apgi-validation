@@ -18,30 +18,28 @@ FALSIFICATION_MODULES = {}
 
 # List of all falsification modules to test
 FALSIFICATION_MODULE_NAMES = [
-    "APGI-Falsification-Aggregator",
-    "APGI-Falsification-Protocols-GUI",
-    "CausalManipulations-TMS-Pharmacological-Priority2",
-    "Falsification-ActiveInferenceAgents-F1F2",
-    "Falsification-AgentComparison-ConvergenceBenchmark",
-    "Falsification-BayesianEstimation-MCMC",
-    "Falsification-BayesianEstimation-ParameterRecovery",
-    "Falsification-CrossSpeciesScaling-P12",
-    "Falsification-EvolutionaryPlausibility-Standard6",
-    "Falsification-FrameworkLevel-MultiProtocol",
-    "Falsification-InformationTheoretic-PhaseTransition",
-    "Falsification-LiquidNetworkDynamics-EchoState",
-    "Falsification-MathematicalConsistency-Equations",
-    "Falsification-NeuralNetwork-EnergyBenchmark",
-    "Falsification-NeuralSignatures-EEG-P3b-HEP",
-    "Falsification-ParameterSensitivity-Identifiability",
+    "APGI_Falsification_Aggregator",
+    "APGI_Falsification_Protocols_GUI",
+    "CausalManipulations_TMS_Pharmacological_Priority2",
+    "Falsification_ActiveInferenceAgents_F1F2",
+    "Falsification_AgentComparison_ConvergenceBenchmark",
+    "Falsification_BayesianEstimation_MCMC",
+    "Falsification_BayesianEstimation_ParameterRecovery",
+    "Falsification_CrossSpeciesScaling_P12",
+    "Falsification_EvolutionaryPlausibility_Standard6",
+    "Falsification_FrameworkLevel_MultiProtocol",
+    "Falsification_InformationTheoretic_PhaseTransition",
+    "Falsification_LiquidNetworkDynamics_EchoState",
+    "Falsification_NeuralNetwork_EnergyBenchmark",
+    "Falsification_NeuralSignatures_EEG_P3b_HEP",
+    "Falsification_ParameterSensitivity_Identifiability",
 ]
 
 # Try to import each module
 for module_name in FALSIFICATION_MODULE_NAMES:
     try:
-        # Convert hyphenated name to underscore for import
-        import_name = module_name.replace("-", "_")
-        module = __import__(f"Falsification.{import_name}", fromlist=[import_name])
+        # Use module name directly for import (already underscored)
+        module = __import__(f"Falsification.{module_name}", fromlist=[module_name])
         FALSIFICATION_MODULES[module_name] = module
     except ImportError as e:
         print(f"Warning: Falsification.{module_name} not available: {e}")
@@ -52,12 +50,12 @@ class TestFalsificationAggregator:
     """Test APGI falsification aggregator."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["APGI-Falsification-Aggregator"] is None,
-        reason="APGI-Falsification-Aggregator module not available",
+        FALSIFICATION_MODULES["APGI_Falsification_Aggregator"] is None,
+        reason="APGI_Falsification_Aggregator module not available",
     )
     def test_aggregator_initialization(self):
         """Test falsification aggregator initialization."""
-        module = FALSIFICATION_MODULES["APGI-Falsification-Aggregator"]
+        module = FALSIFICATION_MODULES["APGI_Falsification_Aggregator"]
 
         try:
             aggregator = module.FalsificationAggregator()
@@ -68,12 +66,12 @@ class TestFalsificationAggregator:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["APGI-Falsification-Aggregator"] is None,
-        reason="APGI-Falsification-Aggregator module not available",
+        FALSIFICATION_MODULES["APGI_Falsification_Aggregator"] is None,
+        reason="APGI_Falsification_Aggregator module not available",
     )
     def test_result_aggregation(self):
         """Test falsification result aggregation."""
-        module = FALSIFICATION_MODULES["APGI-Falsification-Aggregator"]
+        module = FALSIFICATION_MODULES["APGI_Falsification_Aggregator"]
 
         try:
             aggregator = module.FalsificationAggregator()
@@ -97,12 +95,12 @@ class TestFalsificationProtocolsGUI:
     """Test falsification protocols GUI."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["APGI-Falsification-Protocols-GUI"] is None,
-        reason="APGI-Falsification-Protocols-GUI module not available",
+        FALSIFICATION_MODULES["APGI_Falsification_Protocols_GUI"] is None,
+        reason="APGI_Falsification_Protocols_GUI module not available",
     )
     def test_gui_initialization(self):
         """Test GUI initialization."""
-        module = FALSIFICATION_MODULES["APGI-Falsification-Protocols-GUI"]
+        module = FALSIFICATION_MODULES["APGI_Falsification_Protocols_GUI"]
 
         try:
             gui = module.FalsificationGUI()
@@ -113,12 +111,12 @@ class TestFalsificationProtocolsGUI:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["APGI-Falsification-Protocols-GUI"] is None,
-        reason="APGI-Falsification-Protocols-GUI module not available",
+        FALSIFICATION_MODULES["APGI_Falsification_Protocols_GUI"] is None,
+        reason="APGI_Falsification_Protocols_GUI module not available",
     )
     def test_gui_protocol_execution(self):
         """Test GUI protocol execution."""
-        module = FALSIFICATION_MODULES["APGI-Falsification-Protocols-GUI"]
+        module = FALSIFICATION_MODULES["APGI_Falsification_Protocols_GUI"]
 
         try:
             gui = module.FalsificationGUI()
@@ -138,14 +136,14 @@ class TestCausalManipulations:
     """Test causal manipulations with TMS and pharmacological interventions."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["CausalManipulations-TMS-Pharmacological-Priority2"]
+        FALSIFICATION_MODULES["CausalManipulations_TMS_Pharmacological_Priority2"]
         is None,
         reason="CausalManipulations module not available",
     )
     def test_causal_manipulations_initialization(self):
         """Test causal manipulations initialization."""
         module = FALSIFICATION_MODULES[
-            "CausalManipulations-TMS-Pharmacological-Priority2"
+            "CausalManipulations_TMS_Pharmacological_Priority2"
         ]
 
         try:
@@ -157,14 +155,14 @@ class TestCausalManipulations:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["CausalManipulations-TMS-Pharmacological-Priority2"]
+        FALSIFICATION_MODULES["CausalManipulations_TMS_Pharmacological_Priority2"]
         is None,
         reason="CausalManipulations module not available",
     )
     def test_tms_manipulation(self):
         """Test TMS manipulation."""
         module = FALSIFICATION_MODULES[
-            "CausalManipulations-TMS-Pharmacological-Priority2"
+            "CausalManipulations_TMS_Pharmacological_Priority2"
         ]
 
         try:
@@ -184,14 +182,14 @@ class TestCausalManipulations:
             assert True  # Expected if implementation incomplete
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["CausalManipulations-TMS-Pharmacological-Priority2"]
+        FALSIFICATION_MODULES["CausalManipulations_TMS_Pharmacological_Priority2"]
         is None,
         reason="CausalManipulations module not available",
     )
     def test_pharmacological_manipulation(self):
         """Test pharmacological manipulation."""
         module = FALSIFICATION_MODULES[
-            "CausalManipulations-TMS-Pharmacological-Priority2"
+            "CausalManipulations_TMS_Pharmacological_Priority2"
         ]
 
         try:
@@ -215,12 +213,12 @@ class TestActiveInferenceAgents:
     """Test active inference agents falsification."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-ActiveInferenceAgents-F1F2"] is None,
+        FALSIFICATION_MODULES["Falsification_ActiveInferenceAgents_F1F2"] is None,
         reason="ActiveInferenceAgents module not available",
     )
     def test_agents_initialization(self):
         """Test active inference agents initialization."""
-        module = FALSIFICATION_MODULES["Falsification-ActiveInferenceAgents-F1F2"]
+        module = FALSIFICATION_MODULES["Falsification_ActiveInferenceAgents_F1F2"]
 
         try:
             agents = module.ActiveInferenceAgents()
@@ -231,12 +229,12 @@ class TestActiveInferenceAgents:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-ActiveInferenceAgents-F1F2"] is None,
+        FALSIFICATION_MODULES["Falsification_ActiveInferenceAgents_F1F2"] is None,
         reason="ActiveInferenceAgents module not available",
     )
     def test_active_inference_simulation(self):
         """Test active inference simulation."""
-        module = FALSIFICATION_MODULES["Falsification-ActiveInferenceAgents-F1F2"]
+        module = FALSIFICATION_MODULES["Falsification_ActiveInferenceAgents_F1F2"]
 
         try:
             agents = module.ActiveInferenceAgents()
@@ -257,14 +255,14 @@ class TestAgentComparisonBenchmark:
     """Test agent comparison convergence benchmark."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-AgentComparison-ConvergenceBenchmark"]
+        FALSIFICATION_MODULES["Falsification_AgentComparison_ConvergenceBenchmark"]
         is None,
         reason="AgentComparison module not available",
     )
     def test_benchmark_initialization(self):
         """Test benchmark initialization."""
         module = FALSIFICATION_MODULES[
-            "Falsification-AgentComparison-ConvergenceBenchmark"
+            "Falsification_AgentComparison_ConvergenceBenchmark"
         ]
 
         try:
@@ -276,14 +274,14 @@ class TestAgentComparisonBenchmark:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-AgentComparison-ConvergenceBenchmark"]
+        FALSIFICATION_MODULES["Falsification_AgentComparison_ConvergenceBenchmark"]
         is None,
         reason="AgentComparison module not available",
     )
     def test_agent_comparison(self):
         """Test agent comparison."""
         module = FALSIFICATION_MODULES[
-            "Falsification-AgentComparison-ConvergenceBenchmark"
+            "Falsification_AgentComparison_ConvergenceBenchmark"
         ]
 
         try:
@@ -306,7 +304,7 @@ class TestBayesianEstimationMCMC:
     """Test Bayesian estimation with MCMC."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-BayesianEstimation-MCMC"] is None,
+        FALSIFICATION_MODULES["Falsification_BayesianEstimation_MCMC"] is None,
         reason="BayesianEstimation-MCMC module not available",
     )
     def test_mcmc_initialization(self):
@@ -322,7 +320,7 @@ class TestBayesianEstimationMCMC:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-BayesianEstimation-MCMC"] is None,
+        FALSIFICATION_MODULES["Falsification_BayesianEstimation_MCMC"] is None,
         reason="BayesianEstimation-MCMC module not available",
     )
     def test_mcmc_estimation(self):
@@ -349,14 +347,14 @@ class TestParameterRecovery:
     """Test Bayesian parameter recovery."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-BayesianEstimation-ParameterRecovery"]
+        FALSIFICATION_MODULES["Falsification_BayesianEstimation_ParameterRecovery"]
         is None,
         reason="ParameterRecovery module not available",
     )
     def test_recovery_initialization(self):
         """Test parameter recovery initialization."""
         module = FALSIFICATION_MODULES[
-            "Falsification-BayesianEstimation-ParameterRecovery"
+            "Falsification_BayesianEstimation_ParameterRecovery"
         ]
 
         try:
@@ -368,14 +366,14 @@ class TestParameterRecovery:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-BayesianEstimation-ParameterRecovery"]
+        FALSIFICATION_MODULES["Falsification_BayesianEstimation_ParameterRecovery"]
         is None,
         reason="ParameterRecovery module not available",
     )
     def test_parameter_recovery(self):
         """Test parameter recovery."""
         module = FALSIFICATION_MODULES[
-            "Falsification-BayesianEstimation-ParameterRecovery"
+            "Falsification_BayesianEstimation_ParameterRecovery"
         ]
 
         try:
@@ -398,7 +396,7 @@ class TestCrossSpeciesScaling:
     """Test cross-species scaling falsification."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-CrossSpeciesScaling-P12"] is None,
+        FALSIFICATION_MODULES["Falsification_CrossSpeciesScaling_P12"] is None,
         reason="CrossSpeciesScaling module not available",
     )
     def test_scaling_initialization(self):
@@ -414,7 +412,7 @@ class TestCrossSpeciesScaling:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-CrossSpeciesScaling-P12"] is None,
+        FALSIFICATION_MODULES["Falsification_CrossSpeciesScaling_P12"] is None,
         reason="CrossSpeciesScaling module not available",
     )
     def test_species_scaling(self):
@@ -443,14 +441,14 @@ class TestEvolutionaryPlausibility:
     """Test evolutionary plausibility falsification."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-EvolutionaryPlausibility-Standard6"]
+        FALSIFICATION_MODULES["Falsification_EvolutionaryPlausibility_Standard6"]
         is None,
         reason="EvolutionaryPlausibility module not available",
     )
     def test_plausibility_initialization(self):
         """Test evolutionary plausibility initialization."""
         module = FALSIFICATION_MODULES[
-            "Falsification-EvolutionaryPlausibility-Standard6"
+            "Falsification_EvolutionaryPlausibility_Standard6"
         ]
 
         try:
@@ -462,14 +460,14 @@ class TestEvolutionaryPlausibility:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-EvolutionaryPlausibility-Standard6"]
+        FALSIFICATION_MODULES["Falsification_EvolutionaryPlausibility_Standard6"]
         is None,
         reason="EvolutionaryPlausibility module not available",
     )
     def test_plausibility_assessment(self):
         """Test plausibility assessment."""
         module = FALSIFICATION_MODULES[
-            "Falsification-EvolutionaryPlausibility-Standard6"
+            "Falsification_EvolutionaryPlausibility_Standard6"
         ]
 
         try:
@@ -495,12 +493,12 @@ class TestFrameworkLevelMultiProtocol:
     """Test framework-level multi-protocol falsification."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-FrameworkLevel-MultiProtocol"] is None,
+        FALSIFICATION_MODULES["Falsification_FrameworkLevel_MultiProtocol"] is None,
         reason="FrameworkLevel module not available",
     )
     def test_multi_protocol_initialization(self):
         """Test multi-protocol initialization."""
-        module = FALSIFICATION_MODULES["Falsification-FrameworkLevel-MultiProtocol"]
+        module = FALSIFICATION_MODULES["Falsification_FrameworkLevel_MultiProtocol"]
 
         try:
             multi_protocol = module.MultiProtocolFalsification()
@@ -511,12 +509,12 @@ class TestFrameworkLevelMultiProtocol:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-FrameworkLevel-MultiProtocol"] is None,
+        FALSIFICATION_MODULES["Falsification_FrameworkLevel_MultiProtocol"] is None,
         reason="FrameworkLevel module not available",
     )
     def test_multi_protocol_execution(self):
         """Test multi-protocol execution."""
-        module = FALSIFICATION_MODULES["Falsification-FrameworkLevel-MultiProtocol"]
+        module = FALSIFICATION_MODULES["Falsification_FrameworkLevel_MultiProtocol"]
 
         try:
             multi_protocol = module.MultiProtocolFalsification()
@@ -541,14 +539,14 @@ class TestInformationTheoreticPhaseTransition:
     """Test information-theoretic phase transition."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-InformationTheoretic-PhaseTransition"]
+        FALSIFICATION_MODULES["Falsification_InformationTheoretic_PhaseTransition"]
         is None,
         reason="InformationTheoretic module not available",
     )
     def test_phase_transition_initialization(self):
         """Test phase transition initialization."""
         module = FALSIFICATION_MODULES[
-            "Falsification-InformationTheoretic-PhaseTransition"
+            "Falsification_InformationTheoretic_PhaseTransition"
         ]
 
         try:
@@ -560,14 +558,14 @@ class TestInformationTheoreticPhaseTransition:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-InformationTheoretic-PhaseTransition"]
+        FALSIFICATION_MODULES["Falsification_InformationTheoretic_PhaseTransition"]
         is None,
         reason="InformationTheoretic module not available",
     )
     def test_transition_detection(self):
         """Test phase transition detection."""
         module = FALSIFICATION_MODULES[
-            "Falsification-InformationTheoretic-PhaseTransition"
+            "Falsification_InformationTheoretic_PhaseTransition"
         ]
 
         try:
@@ -589,12 +587,12 @@ class TestLiquidNetworkDynamics:
     """Test liquid network dynamics echo state."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-LiquidNetworkDynamics-EchoState"] is None,
+        FALSIFICATION_MODULES["Falsification_LiquidNetworkDynamics_EchoState"] is None,
         reason="LiquidNetworkDynamics module not available",
     )
     def test_liquid_network_initialization(self):
         """Test liquid network initialization."""
-        module = FALSIFICATION_MODULES["Falsification-LiquidNetworkDynamics-EchoState"]
+        module = FALSIFICATION_MODULES["Falsification_LiquidNetworkDynamics_EchoState"]
 
         try:
             liquid_network = module.LiquidNetwork()
@@ -605,12 +603,12 @@ class TestLiquidNetworkDynamics:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-LiquidNetworkDynamics-EchoState"] is None,
+        FALSIFICATION_MODULES["Falsification_LiquidNetworkDynamics_EchoState"] is None,
         reason="LiquidNetworkDynamics module not available",
     )
     def test_dynamics_simulation(self):
         """Test dynamics simulation."""
-        module = FALSIFICATION_MODULES["Falsification-LiquidNetworkDynamics-EchoState"]
+        module = FALSIFICATION_MODULES["Falsification_LiquidNetworkDynamics_EchoState"]
 
         try:
             liquid_network = module.LiquidNetwork()
@@ -630,15 +628,15 @@ class TestMathematicalConsistency:
     """Test mathematical consistency equations."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-MathematicalConsistency-Equations"]
+        FALSIFICATION_MODULES.get("FalsificationMathematicalConsistency_Equations")
         is None,
         reason="MathematicalConsistency module not available",
     )
     def test_consistency_initialization(self):
         """Test mathematical consistency initialization."""
-        module = FALSIFICATION_MODULES[
-            "Falsification-MathematicalConsistency-Equations"
-        ]
+        module = FALSIFICATION_MODULES.get(
+            "Falsification_MathematicalConsistency_Equations"
+        )
 
         try:
             consistency = module.MathematicalConsistency()
@@ -649,15 +647,15 @@ class TestMathematicalConsistency:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-MathematicalConsistency-Equations"]
+        FALSIFICATION_MODULES.get("FalsificationMathematicalConsistency_Equations")
         is None,
         reason="MathematicalConsistency module not available",
     )
     def test_equation_consistency(self):
         """Test equation consistency checking."""
-        module = FALSIFICATION_MODULES[
-            "Falsification-MathematicalConsistency-Equations"
-        ]
+        module = FALSIFICATION_MODULES.get(
+            "Falsification_MathematicalConsistency_Equations"
+        )
 
         try:
             consistency = module.MathematicalConsistency()
@@ -681,12 +679,12 @@ class TestNeuralNetworkEnergyBenchmark:
     """Test neural network energy benchmark."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-NeuralNetwork-EnergyBenchmark"] is None,
+        FALSIFICATION_MODULES["Falsification_NeuralNetwork_EnergyBenchmark"] is None,
         reason="NeuralNetworkEnergy module not available",
     )
     def test_energy_benchmark_initialization(self):
         """Test energy benchmark initialization."""
-        module = FALSIFICATION_MODULES["Falsification-NeuralNetwork-EnergyBenchmark"]
+        module = FALSIFICATION_MODULES["Falsification_NeuralNetwork_EnergyBenchmark"]
 
         try:
             benchmark = module.EnergyBenchmark()
@@ -697,12 +695,12 @@ class TestNeuralNetworkEnergyBenchmark:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-NeuralNetwork-EnergyBenchmark"] is None,
+        FALSIFICATION_MODULES["Falsification_NeuralNetwork_EnergyBenchmark"] is None,
         reason="NeuralNetworkEnergy module not available",
     )
     def test_energy_measurement(self):
         """Test energy measurement."""
-        module = FALSIFICATION_MODULES["Falsification-NeuralNetwork-EnergyBenchmark"]
+        module = FALSIFICATION_MODULES["Falsification_NeuralNetwork_EnergyBenchmark"]
 
         try:
             benchmark = module.EnergyBenchmark()
@@ -723,12 +721,12 @@ class TestNeuralSignatures:
     """Test neural signatures EEG P3b HEP."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-NeuralSignatures-EEG-P3b-HEP"] is None,
+        FALSIFICATION_MODULES.get("Falsification-NeuralSignatures-EEG-P3b-HEP") is None,
         reason="NeuralSignatures module not available",
     )
     def test_neural_signatures_initialization(self):
         """Test neural signatures initialization."""
-        module = FALSIFICATION_MODULES["Falsification-NeuralSignatures-EEG-P3b-HEP"]
+        module = FALSIFICATION_MODULES.get("Falsification-NeuralSignatures-EEG-P3b-HEP")
 
         try:
             signatures = module.NeuralSignatures()
@@ -739,12 +737,12 @@ class TestNeuralSignatures:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-NeuralSignatures-EEG-P3b-HEP"] is None,
+        FALSIFICATION_MODULES.get("Falsification-NeuralSignatures-EEG-P3b-HEP") is None,
         reason="NeuralSignatures module not available",
     )
     def test_signature_detection(self):
         """Test neural signature detection."""
-        module = FALSIFICATION_MODULES["Falsification-NeuralSignatures-EEG-P3b-HEP"]
+        module = FALSIFICATION_MODULES.get("Falsification-NeuralSignatures-EEG-P3b-HEP")
 
         try:
             signatures = module.NeuralSignatures()
@@ -770,15 +768,15 @@ class TestParameterSensitivity:
     """Test parameter sensitivity and identifiability."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-ParameterSensitivity-Identifiability"]
+        FALSIFICATION_MODULES.get("Falsification-ParameterSensitivity-Identifiability")
         is None,
         reason="ParameterSensitivity module not available",
     )
     def test_sensitivity_initialization(self):
         """Test sensitivity analysis initialization."""
-        module = FALSIFICATION_MODULES[
+        module = FALSIFICATION_MODULES.get(
             "Falsification-ParameterSensitivity-Identifiability"
-        ]
+        )
 
         try:
             sensitivity = module.ParameterSensitivity()
@@ -789,15 +787,15 @@ class TestParameterSensitivity:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification-ParameterSensitivity-Identifiability"]
+        FALSIFICATION_MODULES.get("Falsification-ParameterSensitivity-Identifiability")
         is None,
         reason="ParameterSensitivity module not available",
     )
     def test_sensitivity_analysis(self):
         """Test sensitivity analysis."""
-        module = FALSIFICATION_MODULES[
+        module = FALSIFICATION_MODULES.get(
             "Falsification-ParameterSensitivity-Identifiability"
-        ]
+        )
 
         try:
             sensitivity = module.ParameterSensitivity()

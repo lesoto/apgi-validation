@@ -233,7 +233,7 @@ pd.DataFrame(results).to_csv('simulation_results.csv', index=False)
 
 ```python
 # Python API
-from APGI-Multimodal-Integration import APGINormalizer, APGICoreIntegration
+from APGI_Multimodal_Integration import APGINormalizer, APGICoreIntegration
 
 # Sample multimodal data
 data = {
@@ -325,7 +325,7 @@ results_df.to_csv('multimodal_integration_results.csv', index=False)
 
 ```python
 # Python API
-from APGI-Multimodal-Integration import APGIBatchProcessor
+from APGI_Multimodal_Integration import APGIBatchProcessor
 
 # Load large dataset
 large_dataset = pd.read_csv('large_multimodal_dataset.csv')
@@ -346,7 +346,7 @@ python main.py multimodal --input-data large_dataset.csv --output-file batch_res
 
 ```python
 # Python API
-from APGI-Parameter-Estimation-Protocol import NeuralSignalGenerator, APGIDynamics
+from APGI_Parameter_Estimation-Protocol import NeuralSignalGenerator, APGIDynamics
 import pymc as pm
 import arviz as az
 
@@ -430,7 +430,7 @@ from pathlib import Path
 
 # Load and run a specific validation protocol
 validation_dir = Path('Validation')
-protocol_file = validation_dir / 'APGI-Protocol-1.py'
+protocol_file = validation_dir / 'APGI_Protocol_1.py'
 
 spec = importlib.util.spec_from_file_location('protocol_1', protocol_file)
 protocol_module = importlib.util.module_from_spec(spec)

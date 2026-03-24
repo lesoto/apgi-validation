@@ -130,7 +130,7 @@ python main.py info
 
 ## 🔬 Core Components
 
-### 1. Formal Model (`APGI-Equations.py`)
+### 1. Formal Model (`APGI_Equations.py`)
 
 Implements dynamical system for accumulated surprise and ignition:
 
@@ -139,7 +139,7 @@ Implements dynamical system for accumulated surprise and ignition:
   • Ignition cascades and reset dynamics
   • Metabolic and arousal modulation
 
-### 2. Multimodal Integration (`APGI-Multimodal-Integration.py`)
+### 2. Multimodal Integration (`APGI_Multimodal_Integration.py`)
 
 Integrates multiple data modalities:
 
@@ -149,7 +149,7 @@ Integrates multiple data modalities:
   • Real-time state estimation
   • Cross-modal fusion algorithms
 
-### 3. Parameter Estimation (`APGI-Parameter-Estimation-Protocol.py`)
+### 3. Parameter Estimation (`APGI_Parameter_Estimation-Protocol.py`)
 
 Bayesian parameter inference:
 

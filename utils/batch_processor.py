@@ -263,7 +263,7 @@ formal_model_spec = importlib.util.spec_from_file_location(
     "SurpriseIgnitionSystem",
     PROJECT_ROOT
     / "Falsification"
-    / "Falsification-InformationTheoretic-PhaseTransition.py",
+    / "Falsification_InformationTheoretic_PhaseTransition.py",
 )
 formal_model_module = importlib.util.module_from_spec(formal_model_spec)
 formal_model_spec.loader.exec_module(formal_model_module)
@@ -344,14 +344,14 @@ def load_validation_module(protocol):
 
     try:
         module_map = {
-            "protocol_1": "Validation/Validation-Protocol-1.py",
-            "protocol_2": "Validation/Validation-Protocol-2.py",
-            "protocol_3": "Validation/Validation-Protocol-3.py",
-            "protocol_4": "Validation/Validation-Protocol-4.py",
-            "protocol_5": "Validation/Validation-Protocol-5.py",
-            "protocol_6": "Validation/Validation-Protocol-6.py",
-            "protocol_7": "Validation/Validation-Protocol-7.py",
-            "protocol_8": "Validation/Validation-Protocol-8.py",
+            "protocol_1": "Validation/Validation_Protocol_1.py",
+            "protocol_2": "Validation/Validation_Protocol_2.py",
+            "protocol_3": "Validation/Validation_Protocol_3.py",
+            "protocol_4": "Validation/Validation_Protocol_4.py",
+            "protocol_5": "Validation/Validation_Protocol_5.py",
+            "protocol_6": "Validation/Validation_Protocol_6.py",
+            "protocol_7": "Validation/Validation_Protocol_7.py",
+            "protocol_8": "Validation/Validation_Protocol_8.py",
         }
 
         # Validate all hardcoded paths in module_map to prevent path traversal

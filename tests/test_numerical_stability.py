@@ -1,7 +1,7 @@
 """
 Property-based tests for numerical stability using Hypothesis.
 
-Tests edge cases for statistical functions in APGI-Falsification-Framework.py:
+Tests edge cases for statistical functions in APGI_Falsification_Framework.py:
 - Empty arrays
 - Constant arrays
 - NaN/Inf inputs
@@ -20,8 +20,8 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Load APGI-Falsification-Framework module using importlib.util
-framework_path = Path(__file__).parent.parent / "APGI-Falsification-Framework.py"
+# Load APGI_Falsification_Framework module using importlib.util
+framework_path = Path(__file__).parent.parent / "APGI_Falsification_Framework.py"
 spec = importlib.util.spec_from_file_location(
     "APGI_Falsification_Framework", framework_path
 )

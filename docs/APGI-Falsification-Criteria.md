@@ -254,7 +254,7 @@ All criteria follow this mandatory format:
 
 ## PRIORITY 3: VALIDATION PROTOCOLS
 
-### Validation-Protocol-1: Synthetic Neural Data Generation
+### Validation_Protocol_1: Synthetic Neural Data Generation
 
 **Tests:** Core APGI dynamics (Innovations #1, #2, #4), ignition thresholds, surprise accumulation
 
@@ -288,7 +288,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-4: Information-Theoretic Phase Transition Analysis
+### Validation_Protocol_4: Information-Theoretic Phase Transition Analysis
 
 **Tests:** Phase transitions (#11), bifurcation dynamics, entropy measures (#3)
 
@@ -329,7 +329,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-2: Bayesian Model Comparison
+### Validation_Protocol_2: Bayesian Model Comparison
 
 **Tests:** Model comparison framework, epistemic architecture (#3), empirical validation
 
@@ -356,7 +356,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-3: Active Inference Agent Simulations
+### Validation_Protocol_3: Active Inference Agent Simulations
 
 **Tests:** Hierarchical architecture (#5), active inference, temporal depth
 
@@ -376,7 +376,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-5: Evolutionary Emergence
+### Validation_Protocol_5: Evolutionary Emergence
 
 **Tests:** Evolutionary derivation (#21), biological constraints
 
@@ -389,7 +389,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-6: RNN Architectures
+### Validation_Protocol_6: RNN Architectures
 
 **Tests:** Liquid networks (#4, #8), reservoir computing, APGI-LNN mapping
 
@@ -402,7 +402,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-7: TMS/Pharmacological Predictions
+### Validation_Protocol_7: TMS/Pharmacological Predictions
 
 **Tests:** Causal manipulations, neuromodulation (#28)
 
@@ -422,7 +422,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-8: Psychophysical Thresholds
+### Validation_Protocol_8: Psychophysical Thresholds
 
 **Tests:** Parameter estimation (#26), behavioral biomarkers (#18)
 
@@ -442,7 +442,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-9: Convergent Neural Signatures
+### Validation_Protocol_9: Convergent Neural Signatures
 
 **Tests:** HEP, P3b, PCI, multimodal integration (#6, #13)
 
@@ -450,7 +450,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-10: Causal Manipulations
+### Validation_Protocol_10: Causal Manipulations
 
 **Tests:** Network perturbations
 
@@ -463,7 +463,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-11: Quantitative Model Fits
+### Validation_Protocol_11: Quantitative Model Fits
 
 **Tests:** Parameter fitting, model comparison
 
@@ -476,7 +476,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation-Protocol-12: Clinical & Cross-Species Convergence
+### Validation_Protocol_12: Clinical & Cross-Species Convergence
 
 **Tests:** Psychiatric disorders (#10), cross-species (#33), clinical assessment
 

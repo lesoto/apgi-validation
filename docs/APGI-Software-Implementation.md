@@ -10,7 +10,7 @@ Output: Π_eff with bounds checking
 Validation: Unit tests confirming exponential growth bounds  
 
 **Implemented in:**
-apgi-validation/APGI-Equations.py and apgi-validation/APGI-Multimodal-Integration.py
+apgi-validation/APGI_Equations.py and apgi-validation/APGI_Multimodal_Integration.py
 
 1. Allostatic Ignition Threshold  
 Implementation: Discrete-time recurrence relation
@@ -20,7 +20,7 @@ Requires: Cost/value estimation functions with physiological anchoring
 Output: Threshold trajectory over time  
 
 **Implemented in:**
-apgi-validation/APGI-Equations.py and apgi-validation/APGI-Full-Dynamic-Model.py
+apgi-validation/APGI_Equations.py and apgi-validation/APGI_Full_Dynamic_Model.py
 
 1. Three-Level Epistemic Architecture  
 Implementation: Scoring rubric as structured evaluation framework
@@ -40,7 +40,7 @@ Level-specific: τ values (0.1s, 1s, 10s, 100s, 1000s)
 Output: Multi-scale ignition events with hierarchical visualization  
 
 **Implemented in:**
-apgi-validation/APGI-Multimodal-Integration.py and apgi-validation/APGI-Liquid-Network-Implementation.py
+apgi-validation/APGI_Multimodal_Integration.py and apgi-validation/APGI_Liquid_Network_Implementation.py
 
 1. Cross-Modal Z-Score Standardization  
 Implementation: Running statistics with online variance estimation
@@ -50,7 +50,7 @@ Running estimates: Welford's algorithm for numerical stability
 Output: Dimensionless z-scores enabling cross-modal comparison  
 
 **Implemented in:**
-apgi-validation/APGI-Multimodal-Integration.py
+apgi-validation/APGI_Multimodal_Integration.py
 
 1. APGI-LNN Mapping Table  
 Implementation: Parameter transformation functions
@@ -60,7 +60,7 @@ Format: Dictionary/lookup table with bidirectional conversion
 Validation: Consistency checks between APGI and LNN parameter spaces  
 
 **Implemented in:**
-apgi-validation/APGI-Liquid-Network-Implementation.py
+apgi-validation/APGI_Liquid_Network_Implementation.py
 
 1. Bidirectional Differential Coupling  
 Implementation: Coupled ODE system with scipy.integrate.solve_ivp
@@ -70,7 +70,7 @@ Bottom-up: dε_higher/dt as function of lower-level threshold breaches
 Solver: Adaptive RK45 with event detection  
 
 **Implemented in:**
-apgi-validation/APGI-Equations.py
+apgi-validation/APGI_Equations.py
 
 1. Continuous-Time ODEs  
 Implementation: Separate differential equations for S_t and θ_t
@@ -80,7 +80,7 @@ dθ_t/dt with λ_θ ≈ 0.01-0.1 s^-1 (slow threshold adaptation)
 Integration: Stiff solver if needed (LSODA)  
 
 **Implemented in:**
-apgi-validation/APGI-Equations.py and apgi-validation/APGI-Liquid-Network-Implementation.py
+apgi-validation/APGI_Equations.py and apgi-validation/APGI_Liquid_Network_Implementation.py
 
 ## II. Computational Modeling & Substrate Innovations (Simulation-Driven)
 
@@ -92,7 +92,7 @@ State space: High-dimensional reservoir with τ-modulated dynamics
 Phase transition: Bifurcation analysis via continuation methods  
 
 **Implemented in:**
-apgi-validation/APGI-Liquid-Network-Implementation.py
+apgi-validation/APGI_Liquid_Network_Implementation.py
 
 1. Ignition as Phase Transition  
 Implementation: Dynamical systems analysis toolkit
@@ -102,7 +102,7 @@ Critical slowing: Variance/autocorrelation near bifurcation threshold
 Hysteresis: Forward/backward parameter sweeps with state tracking  
 
 **Implemented in:**
-apgi-validation/APGI-Computational-Benchmarking.py
+apgi-validation/APGI_Computational_Benchmarking.py
 
 1. Somatic Marker Precision Claim  
 Implementation: Active inference agent simulation
@@ -113,7 +113,7 @@ Metric: Free energy minimization efficiency over trials
 Output: Comparative performance demonstrating precision advantage  
 
 **Implemented in:**
-apgi-validation/APGI-Psychological-States.py
+apgi-validation/APGI_Psychological_States.py
 
 1. Paradigm Reinterpretation  
 Implementation: Three classic paradigm simulations in liquid substrate
@@ -134,7 +134,7 @@ High-freq modulated: Gamma amplitude (Level 1-2)
 PAC metric: Modulation index computation (Tort et al. method)  
 
 **Implemented in:**
-apgi-validation/APGI-Computational-Benchmarking.py
+apgi-validation/APGI_Computational_Benchmarking.py
 
 1. Evolutionary Derivation  
 Implementation: Constraint satisfaction analysis
@@ -144,7 +144,7 @@ Architecture options: Feedforward, recurrent, liquid, transformer
 Analysis: Boolean satisfaction matrix showing liquid uniqueness  
 
 **Implemented in:**
-apgi-validation/APGI-Turing-Machine.py
+apgi-validation/APGI_Turing_Machine.py
 
 1. Meta-Consciousness Modeling  
 Implementation: Two-level nested simulation
@@ -154,7 +154,7 @@ Level ℓ+1: Generative model of Level ℓ's threshold-crossing statistics
 Output: Metacognitive accuracy as function of inter-level coupling  
 
 **Implemented in:**
-apgi-validation/APGI-Entropy-Implementation.py
+apgi-validation/APGI_Entropy_Implementation.py
 
 1. Parameter Estimation Workflow  
 Implementation: Bayesian inference with PyStan or PyMC
@@ -165,7 +165,7 @@ Recovery: MCMC sampling to test identifiability
 Diagnostics: R-hat, effective sample size, posterior predictive checks  
 
 **Implemented in:**
-apgi-validation/APGI-Parameter-Estimation.py
+apgi-validation/APGI_Parameter_Estimation.py
 
 1. Comparative Network Analysis  
 Implementation: Benchmark suite with standardized tasks
@@ -175,7 +175,7 @@ Tasks: Fading memory, temporal integration, multi-scale dynamics
 Metrics: Performance, parameter count, computational cost  
 
 **Implemented in:**
-apgi-validation/APGI-Computational-Benchmarking.py
+apgi-validation/APGI_Computational_Benchmarking.py
 
 ## III. Scope & Extension Innovations (Predictive Logic)
 
@@ -188,7 +188,7 @@ Analysis: Power spectral density with FOOOF/specparam
 Validation: β ≈ 0.8-1.2 for wakefulness, β ≈ 1.5-2.0 for sleep  
 
 **Implemented in:**
-apgi-validation/APGI-Computational-Benchmarking.py
+apgi-validation/APGI_Computational_Benchmarking.py
 
 1. Psychiatric Recharacterization  
 Implementation: Parameter-space disorder profiles
@@ -199,7 +199,7 @@ Schizophrenia: Aberrant Π on noise
 Simulation: Behavior under disorder-specific parameter sets  
 
 **Implemented in:**
-apgi-validation/APGI-Psychological-States.py
+apgi-validation/APGI_Psychological_States.py
 
 1. Dissociation as Level Decoupling  
 Implementation: Multi-level coherence analysis
@@ -210,7 +210,7 @@ Simulation: Selective coupling disruption
 Output: Coherence matrices showing dissociation signature  
 
 **Implemented in:**
-apgi-validation/APGI-Multimodal-Integration.py
+apgi-validation/APGI_Multimodal_Integration.py
 
 1. Fractional Dimension Tracking  
 Implementation: Synthetic perceptual threshold task
@@ -221,7 +221,7 @@ Autocorrelation: Power-law vs. exponential decay test
 Output: Fractal dimension as biomarker  
 
 **Implemented in:**
-apgi-validation/APGI-Entropy-Implementation.py
+apgi-validation/APGI_Entropy_Implementation.py
 
 1. Flow & Psychedelic States  
 Implementation: Parameter-space exploration
@@ -231,7 +231,7 @@ Psychedelics: Precision landscape flattening (reduced Π selectivity)
 Simulation: EEG predictions (alpha, beta-gamma coherence)  
 
 **Implemented in:**
-apgi-validation/APGI-Psychological-States.py
+apgi-validation/APGI_Psychological_States.py
 
 1. Developmental Trajectory  
 Implementation: Sequential level maturation model
@@ -241,7 +241,7 @@ Mechanism: Intrinsic timescale lengthening
 Output: Age-dependent hierarchical complexity  
 
 **Implemented in:**
-apgi-validation/APGI-Psychological-States.py
+apgi-validation/APGI_Psychological_States.py
 
 1. Depression Recharacterized  
 Implementation: Dual-level connectivity simulation
@@ -252,7 +252,7 @@ PAC: Elevated theta-gamma coupling (+2 SD)
 Output: Multi-level depression signature  
 
 **Implemented in:**
-apgi-validation/APGI-Psychological-States.py
+apgi-validation/APGI_Psychological_States.py
 
 1. Circadian Modulation of θ_t  
 Implementation: Oscillatory threshold coupling
@@ -262,7 +262,7 @@ Melatonin: Evening rise → θ_t elevation (sensory filtering)
 Model: Sinusoidal modulation with ~24h period  
 
 **Implemented in:**
-apgi-validation/APGI-Equations.py
+apgi-validation/APGI_Equations.py
 
 1. Ultradian BRAC Reinterpretation  
 Implementation: Neuromodulator depletion simulation
@@ -272,7 +272,7 @@ Mechanism: NE depletion → θ_t elevation → rest requirement
 Output: Performance oscillations in sustained vigilance  
 
 **Implemented in:**
-apgi-validation/APGI-Psychological-States.py
+apgi-validation/APGI_Psychological_States.py
 
 1. Cross-Species Scaling  
 Implementation: Comparative PCI/complexity model
@@ -282,7 +282,7 @@ Output: Predicted hierarchical levels, intrinsic timescales
 Validation: Against empirical PCI measurements  
 
 **Implemented in:**
-apgi-validation/APGI-Cross-Species-Scaling.py
+apgi-validation/APGI_Cross_Species_Scaling.py
 
 1. Cultural Neuroscience  
 Implementation: Parameter modulation by linguistic/contemplative factors
@@ -292,7 +292,7 @@ Meditation: Level-specific threshold modifications
 Output: Cross-cultural prediction maps (exploratory
 
 **Implemented in:**
-apgi-validation/APGI-Cultural-Neuroscience.py
+apgi-validation/APGI_Cultural_Neuroscience.py
 
 ## IV. Methodological & Toolset Innovations (Software Systems)
 
@@ -335,7 +335,7 @@ Pipeline: Standardized preprocessing and feature extraction
 Output: APGI parameter estimates with confidence intervals  
 
 **Implemented in:**
-apgi-validation/APGI-Multimodal-Integration.py
+apgi-validation/APGI_Multimodal_Integration.py
 
 1. Neuromodulatory Implementation  
 Implementation: Receptor-to-parameter mapping
@@ -346,7 +346,7 @@ NE → θ_t (threshold regulation)
 Model: Differential equations with neuromodulator concentrations  
 
 **Implemented in:**
-apgi-validation/APGI-Equations.py
+apgi-validation/APGI_Equations.py
 
 1. APGI Multimodal Classifier  
 Implementation: ML stratification system
@@ -357,4 +357,4 @@ Target: Psychiatric diagnosis beyond DSM categories
 Validation: Cross-validated performance on held-out data  
 
 **Implemented in:**
-apgi-validation/APGI-Multimodal-Integration.py
+apgi-validation/APGI_Multimodal_Integration.py

@@ -173,7 +173,7 @@ pip install torch numpy scipy matplotlib seaborn pandas scikit-learn tqdm
 # Run complete protocol
 
 
-python APGI-Protocol-6.py
+python APGI_Protocol_6.py
 ```text
 
 This executes the full pipeline:
@@ -372,7 +372,7 @@ Protocol 6 includes 4 explicit falsification criteria:
 
 
 ```text
-APGI-Protocol-6.py (1,461 lines)
+APGI_Protocol_6.py (1,461 lines)
 ├── Part 1: APGI Network Architecture (lines 52-253)
 │   ├── APGIInspiredNetwork
 │   ├── Precision networks (Πₑ, Πᵢ)

@@ -1,5 +1,5 @@
 """
-Tests for APGI-Parameter-Estimation.py - Bayesian estimation algorithms, MCMC sampling, and statistical validation.
+Tests for APGI_Parameter_Estimation.py - Bayesian estimation algorithms, MCMC sampling, and statistical validation.
 =================================================================================================
 """
 
@@ -37,12 +37,12 @@ try:
     PARAMETER_ESTIMATION_AVAILABLE = True
 except ImportError as e:
     PARAMETER_ESTIMATION_AVAILABLE = False
-    print(f"Warning: APGI-Parameter-Estimation not available: {e}")
+    print(f"Warning: APGI_Parameter_Estimation not available: {e}")
 
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestAPGIConstants:
     """Test APGI constants and their scientific justification."""
@@ -52,10 +52,17 @@ class TestAPGIConstants:
         constants = APGIConstants()
 
         # Test that all expected constants exist
-        assert hasattr(constants, "measurement_relationships")
-        assert hasattr(constants, "dynamical_constraints")
-        assert hasattr(constants, "neurophysiological_ranges")
-        assert hasattr(constants, "statistical_thresholds")
+        assert hasattr(constants, "HEP_SCALE_FACTOR")
+        assert hasattr(constants, "HEP_NOISE_SD")
+        assert hasattr(constants, "PUPIL_SCALE_FACTOR")
+        assert hasattr(constants, "PUPIL_NOISE_SD")
+        assert hasattr(constants, "RT_THRESHOLD_SCALING")
+        assert hasattr(constants, "RT_ALPHA_SCALING")
+        assert hasattr(constants, "RT_NOISE_SD")
+        assert hasattr(constants, "P3B_EXTERO_SCALE")
+        assert hasattr(constants, "P3B_RATIO_NOISE")
+        assert hasattr(constants, "HRV_BASELINE")
+        assert hasattr(constants, "HRV_PRECISION_SCALING")
 
     def test_constants_values(self):
         """Test that constant values are in expected ranges."""
@@ -81,7 +88,7 @@ class TestAPGIConstants:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestDriftDiffusionGenerator:
     """Test drift-diffusion model for independent data generation."""
@@ -90,41 +97,54 @@ class TestDriftDiffusionGenerator:
         """Test DriftDiffusionGenerator initialization."""
         generator = DriftDiffusionGenerator()
 
-        assert hasattr(generator, "generate_behavioral_data")
-        assert hasattr(generator, "generate_rt_distributions")
+        assert hasattr(generator, "simulate_trial")
+        assert hasattr(generator, "generate_detection_task")
 
     def test_behavioral_data_generation(self):
         """Test behavioral data generation."""
         generator = DriftDiffusionGenerator()
 
-        # Generate data with default parameters
-        data = generator.generate_behavioral_data(n_trials=100, seed=42)
+        # Generate data with sample parameters
+        intensities = np.array([0.1, 0.3, 0.5, 0.7, 0.9] * 20)  # 100 trials
+        responses, rts, confidence = generator.generate_detection_task(
+            intensities=intensities,
+            base_drift=0.5,
+            drift_sensitivity=1.0,
+            boundary=1.0,
+            noise=0.3,
+        )
 
-        assert isinstance(data, dict)
-        assert "response_times" in data
-        assert "choices" in data
-        assert len(data["response_times"]) == 100
-        assert len(data["choices"]) == 100
+        assert isinstance(responses, np.ndarray)
+        assert isinstance(rts, np.ndarray)
+        assert isinstance(confidence, np.ndarray)
+        assert len(responses) == 100
+        assert len(rts) == 100
+        assert len(confidence) == 100
 
         # Check data validity
-        assert all(rt > 0 for rt in data["response_times"])  # RT should be positive
-        assert all(choice in [0, 1] for choice in data["choices"])  # Binary choices
+        assert all(rt > 0 for rt in rts)  # RT should be positive
+        assert all(choice in [0, 1] for choice in responses)  # Binary choices
 
     def test_rt_distributions(self):
         """Test response time distribution generation."""
         generator = DriftDiffusionGenerator()
 
-        distributions = generator.generate_rt_distributions(n_samples=1000, seed=42)
+        # Generate multiple trials to create a distribution
+        n_samples = 1000
+        rts = []
+        responses = []
 
-        assert isinstance(distributions, dict)
-        assert "correct" in distributions
-        assert "error" in distributions
+        for _ in range(n_samples):
+            response, rt = generator.simulate_trial(
+                drift_rate=0.5, boundary=1.0, noise=0.3
+            )
+            rts.append(rt * 1000)  # Convert to ms
+            responses.append(response)
 
-        # Check that distributions are valid
-        assert len(distributions["correct"]) > 0
-        assert len(distributions["error"]) > 0
-        assert all(rt > 0 for rt in distributions["correct"])
-        assert all(rt > 0 for rt in distributions["error"])
+        assert len(rts) == n_samples
+        assert len(responses) == n_samples
+        assert all(rt > 0 for rt in rts)  # RT should be positive
+        assert all(choice in [0, 1] for choice in responses)  # Binary choices
 
     def test_parameter_variation(self):
         """Test data generation with different parameters."""
@@ -153,7 +173,7 @@ class TestDriftDiffusionGenerator:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestParameterIdentifiabilityAnalyzer:
     """Test parameter identifiability analysis."""
@@ -213,7 +233,7 @@ class TestParameterIdentifiabilityAnalyzer:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestNeuralMassGenerator:
     """Test neural mass model for EEG/neural data generation."""
@@ -287,7 +307,7 @@ class TestNeuralMassGenerator:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestSyntheticDatasetGeneration:
     """Test synthetic dataset generation."""
@@ -345,7 +365,7 @@ class TestSyntheticDatasetGeneration:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestArtifactRejection:
     """Test artifact rejection pipeline."""
@@ -419,7 +439,7 @@ class TestArtifactRejection:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestPriorPredictiveChecks:
     """Test prior predictive checks."""
@@ -477,7 +497,7 @@ class TestPriorPredictiveChecks:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestBayesianModelBuilding:
     """Test hierarchical Bayesian model building."""
@@ -546,7 +566,7 @@ class TestBayesianModelBuilding:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestFisherInformation:
     """Test Fisher Information Matrix computation."""
@@ -609,7 +629,7 @@ class TestFisherInformation:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestParameterRecovery:
     """Test parameter recovery validation."""
@@ -678,7 +698,7 @@ class TestParameterRecovery:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestTestRetestReliability:
     """Test test-retest reliability assessment."""
@@ -735,7 +755,7 @@ class TestTestRetestReliability:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestIndependentDatasets:
     """Test independent dataset loading and validation."""
@@ -797,7 +817,7 @@ class TestIndependentDatasets:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestVisualization:
     """Test comprehensive visualization generation."""
@@ -862,7 +882,7 @@ class TestVisualization:
 
 @pytest.mark.skipif(
     not PARAMETER_ESTIMATION_AVAILABLE,
-    reason="APGI-Parameter-Estimation module not available",
+    reason="APGI_Parameter_Estimation module not available",
 )
 class TestUtilityFunctions:
     """Test utility functions and summaries."""

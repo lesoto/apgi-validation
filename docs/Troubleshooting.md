@@ -521,7 +521,7 @@ def main():
     print(results)
 
 # Verify protocol file
-python Validation/APGI-Protocol-1.py
+python Validation/APGI_Protocol_1.py
 ```
 
 **Problem:** Validation results inconsistent

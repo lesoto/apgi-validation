@@ -89,7 +89,7 @@ pip install pymc==5.10.0 arviz==0.17.0
 
 ```python
 # Run the complete pipeline
-python APGI-Protocol-2-Complete.py
+python APGI_Protocol_2-Complete.py
 ```text
 
 The script will:

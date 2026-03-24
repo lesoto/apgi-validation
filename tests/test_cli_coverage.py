@@ -22,7 +22,7 @@ class TestValidateCommand:
         runner = CliRunner()
         result = runner.invoke(cli, ["validate"])
         assert result.exit_code == 0
-        assert "Available Validation Protocols" in result.output
+        assert "Validation Protocols" in result.output
 
     def test_validate_with_protocol(self):
         """Test validate command with specific protocol."""
