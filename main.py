@@ -1959,7 +1959,7 @@ def process_data(
 
         # Set up paths
         project_root = Path(__file__).parent
-        data_dir = project_root / "data_repository"
+        data_dir = project_root / "data"
         raw_data_dir = data_dir / "raw_data"
         processed_data_dir = data_dir / "processed_data"
 
