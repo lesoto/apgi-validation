@@ -24,7 +24,9 @@ APGI_Full_Dynamic_Model = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(APGI_Full_Dynamic_Model)
 APGIFullDynamicModel = APGI_Full_Dynamic_Model.APGIFullDynamicModel
 
-from APGI_Equations import APGIParameters
+from APGI_Equations import (
+    APGIParameters,
+)
 
 
 class TestThresholdDynamics:
