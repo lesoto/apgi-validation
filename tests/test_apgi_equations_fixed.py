@@ -1,7 +1,7 @@
 """
-Tests for APGI-Equations.py - FIXED VERSION
+Tests for APGI_Equations.py - FIXED VERSION
 =======================================================================
-Tests for APGI-Equations.py with corrected function signatures and parameter names.
+Tests for APGI_Equations.py with corrected function signatures and parameter names.
 """
 
 import pytest
@@ -199,18 +199,18 @@ class TestCoreIgnitionSystem:
     def test_effective_interoceptive_precision_basic(self):
         """Test effective interoceptive precision computation."""
         precision = CoreIgnitionSystem.effective_interoceptive_precision(
-            Pi_i_baseline=0.5, M=2.0, M_0=1.0, beta=0.3
+            Pi_i_baseline=0.5, M=2.0, beta=0.3
         )
-        expected = 0.5 * (2.0 / 1.0) * 0.3  # Pi_i_baseline * modulation * beta
+        expected = 0.5 * np.exp(0.3 * 2.0)  # Pi_i_baseline * exp(beta * M)
         assert abs(precision - expected) < 0.01  # Allow for small numerical differences
-        assert precision == expected
 
     def test_effective_interoceptive_precision_zero_baseline(self):
-        """Test effective interoceptive precision with zero baseline."""
-        with pytest.raises(ZeroDivisionError):
-            CoreIgnitionSystem.effective_interoceptive_precision(
-                Pi_i_baseline=0.0, M=2.0, M_0=1.0, beta=0.3
-            )
+        """Test effective precision with zero baseline."""
+        precision = CoreIgnitionSystem.effective_interoceptive_precision(
+            Pi_i_baseline=0.0, M=2.0, beta=0.3
+        )
+        expected = 0.0  # Zero baseline should result in zero precision
+        assert precision == expected
 
     def test_ignition_probability_basic(self):
         """Test ignition probability computation."""

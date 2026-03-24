@@ -36,7 +36,7 @@ pip install numpy scipy torch scikit-learn matplotlib seaborn tqdm
 
 ```python
 # Run the complete pipeline
-python APGI-Protocol-1-Complete.py
+python APGI_Protocol_1-Complete.py
 ```
 
 The script will:
@@ -346,7 +346,7 @@ pupil = torch.nan_to_num(pupil, nan=0.0)
 
 This implementation provides the foundation for:
 
-- **Protocol 2**: Psychometric parameter estimation (see `APGI-Parameter-Estimation-Protocol.py`)
+- **Protocol 2**: Psychometric parameter estimation (see `APGI_Parameter_Estimation-Protocol.py`)
 - **Protocol 3**: Clinical diagnostic markers
 - **Protocol 4**: Pharmacological interventions
 - **Protocol 5**: Cross-species validation

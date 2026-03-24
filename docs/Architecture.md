@@ -227,14 +227,14 @@ main.py
 │   └── dotenv (Environment variables)
 ├── logging_config
 │   └── loguru (Logging)
-├── APGI-Equations
+├── APGI_Equations
 │   ├── numpy (Numerical computing)
 │   └── scipy (Scientific computing)
-├── APGI-Multimodal-Integration
+├── APGI_Multimodal_Integration
 │   ├── pandas (Data manipulation)
 │   ├── torch (Neural networks)
 │   └── sklearn (Machine learning)
-├── APGI-Parameter-Estimation-Protocol
+├── APGI_Parameter_Estimation-Protocol
 │   ├── pymc (Bayesian modeling)
 │   ├── arviz (Visualization)
 │   └── matplotlib (Plotting)

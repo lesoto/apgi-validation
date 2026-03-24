@@ -18,7 +18,7 @@ from pathlib import Path
 # Load APGI_Full_Dynamic_Model from hyphenated filename
 spec = importlib.util.spec_from_file_location(
     "APGI_Full_Dynamic_Model",
-    Path(__file__).parent.parent / "APGI-Full-Dynamic-Model.py",
+    Path(__file__).parent.parent / "APGI_Full_Dynamic_Model.py",
 )
 APGI_Full_Dynamic_Model = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(APGI_Full_Dynamic_Model)

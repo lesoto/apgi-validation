@@ -1,5 +1,5 @@
 """
-Tests for APGI-Bayesian-Estimation-Framework.py - Bayesian modeling, model comparison, and parameter estimation.
+Tests for APGI_Bayesian_Estimation_Framework.py - Bayesian modeling, model comparison, and parameter estimation.
 =========================================================================================
 """
 
@@ -27,12 +27,12 @@ try:
     BAYESIAN_FRAMEWORK_AVAILABLE = True
 except ImportError as e:
     BAYESIAN_FRAMEWORK_AVAILABLE = False
-    print(f"Warning: APGI-Bayesian-Estimation-Framework not available: {e}")
+    print(f"Warning: APGI_Bayesian_Estimation_Framework not available: {e}")
 
 
 @pytest.mark.skipif(
     not BAYESIAN_FRAMEWORK_AVAILABLE,
-    reason="APGI-Bayesian-Estimation-Framework module not available",
+    reason="APGI_Bayesian_Estimation_Framework module not available",
 )
 class TestAPGIBayesianModel:
     """Test suite for APGIBayesianModel class."""
@@ -136,7 +136,7 @@ class TestAPGIBayesianModel:
 
 @pytest.mark.skipif(
     not BAYESIAN_FRAMEWORK_AVAILABLE,
-    reason="APGI-Bayesian-Estimation-Framework module not available",
+    reason="APGI_Bayesian_Estimation_Framework module not available",
 )
 class TestModelComparisonFramework:
     """Test suite for ModelComparisonFramework class."""
@@ -219,10 +219,11 @@ class TestModelComparisonFramework:
         # Test different Bayes factor values
         test_cases = [
             (150, "decisive"),
-            (50, "strong"),
-            (10, "moderate"),
-            (5, "weak"),
-            (1, "no_evidence"),
+            (50, "very_strong"),
+            (11, "strong"),  # > 10
+            (5, "substantial"),  # > 3 and <= 10
+            (2, "anecdotal"),  # > 1 and <= 3
+            (1, "no_evidence"),  # <= 1
         ]
 
         for bf, expected_category in test_cases:
@@ -232,7 +233,7 @@ class TestModelComparisonFramework:
 
 @pytest.mark.skipif(
     not BAYESIAN_FRAMEWORK_AVAILABLE,
-    reason="APGI-Bayesian-Estimation-Framework module not available",
+    reason="APGI_Bayesian_Estimation_Framework module not available",
 )
 class TestIITConvergenceBayesian:
     """Test suite for IITConvergenceBayesian class."""
@@ -289,7 +290,7 @@ class TestIITConvergenceBayesian:
 
 @pytest.mark.skipif(
     not BAYESIAN_FRAMEWORK_AVAILABLE,
-    reason="APGI-Bayesian-Estimation-Framework module not available",
+    reason="APGI_Bayesian_Estimation_Framework module not available",
 )
 class TestParameterRecoveryAnalysis:
     """Test suite for ParameterRecoveryAnalysis class."""
@@ -349,7 +350,7 @@ class TestParameterRecoveryAnalysis:
 
 @pytest.mark.skipif(
     not BAYESIAN_FRAMEWORK_AVAILABLE,
-    reason="APGI-Bayesian-Estimation-Framework module not available",
+    reason="APGI_Bayesian_Estimation_Framework module not available",
 )
 class TestBayesianValidationFramework:
     """Test suite for BayesianValidationFramework class."""

@@ -114,7 +114,7 @@ pip install pingouin
 # Run the complete pipeline
 
 
-python APGI-Protocol-3-Complete.py
+python APGI_Protocol_3-Complete.py
 ```text
 
 The script will:

@@ -24,14 +24,14 @@ try:
     APGI_EQUATIONS_AVAILABLE = True
 except ImportError as e:
     APGI_EQUATIONS_AVAILABLE = False
-    print(f"Warning: APGI-Equations not available for property-based testing: {e}")
+    print(f"Warning: APGI_Equations not available for property-based testing: {e}")
 
 
 class TestMathematicalProperties:
     """Test mathematical properties and invariants."""
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(
         strategies.floats(min_value=-1e6, max_value=1e6),
@@ -49,7 +49,7 @@ class TestMathematicalProperties:
         assert np.isclose(error1, -error2, rtol=1e-10)
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(strategies.floats(min_value=0.1, max_value=10.0))
     def test_z_score_normalization_property(self, value):
@@ -65,7 +65,7 @@ class TestMathematicalProperties:
             assert True
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(strategies.floats(min_value=0.1, max_value=10.0))
     def test_precision_bounds_property(self, precision):
@@ -75,7 +75,7 @@ class TestMathematicalProperties:
         assert precision < 100.0  # Reasonable upper bound
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(strategies.floats(min_value=0.0, max_value=10.0))
     def test_alpha_bounds_property(self, alpha):
@@ -123,7 +123,7 @@ class TestEdgeCaseProperties:
     """Test edge cases and boundary conditions."""
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_zero_input_handling(self):
         """Test handling of zero inputs."""
@@ -138,7 +138,7 @@ class TestEdgeCaseProperties:
             assert True
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_infinite_input_handling(self):
         """Test handling of infinite inputs."""
@@ -153,7 +153,7 @@ class TestEdgeCaseProperties:
             assert True
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_nan_input_handling(self):
         """Test handling of NaN inputs."""
@@ -168,7 +168,7 @@ class TestEdgeCaseProperties:
             assert True
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_extreme_value_handling(self):
         """Test handling of extreme values."""
@@ -244,7 +244,7 @@ class TestIntegrationProperties:
     """Test integration-level properties and invariants."""
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_data_flow_consistency(self):
         """Test that data flows are consistent across modules."""
@@ -262,7 +262,7 @@ class TestIntegrationProperties:
         assert len(synthetic_data) == 5
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_parameter_flow_consistency(self):
         """Test that parameters flow consistently through workflow."""

@@ -1,4 +1,4 @@
-# APGI-Multimodal-Integration - Comprehensive Implementation Guide
+# APGI_Multimodal_Integration - Comprehensive Implementation Guide
 
 ## Overview
 
@@ -498,7 +498,7 @@ If you use this software in research, please cite:
 
 ```bibtex
 @software{apgi_multimodal_integration,
-  title={APGI-Multimodal-Integration: Precision-Weighted Conscious Access Prediction},
+  title={APGI_Multimodal_Integration: Precision-Weighted Conscious Access Prediction},
   author={[Your Name]},
   year={2026},
   url={https://github.com/your-repo/apgi-multimodal-integration}

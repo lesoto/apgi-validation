@@ -24,8 +24,8 @@ test:
 	python3 -m pytest
 
 lint:
-	python3 -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=APGI-Validation-Pipeline.py
-	python3 -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=APGI-Validation-Pipeline.py
+	python3 -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=APGI_Validation_Pipeline.py
+	python3 -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=APGI_Validation_Pipeline.py
 	$(MAKE) threshold-lint
 
 threshold-lint:
@@ -41,7 +41,7 @@ docs:
 	@echo "Generating documentation..."
 	@echo "Converting Markdown to HTML..."
 	@command -v pandoc >/dev/null 2>&1 || { echo "pandoc not installed. Install with: brew install pandoc (macOS) or apt install pandoc (Ubuntu)"; exit 1; }
-	@pandoc docs/APGI-Equations.md -o docs/APGI-Equations.html --metadata title="APGI Equations" --css=github-markdown.css
+	@pandoc docs/APGI_Equations.md -o docs/APGI_Equations.html --metadata title="APGI Equations" --css=github-markdown.css
 	@pandoc docs/APGI-Parameter-Specifications.md -o docs/APGI-Parameter-Specifications.html --metadata title="APGI Parameter Specifications" --css=github-markdown.css
 	@pandoc docs/APGI-Empirical-Credibility-Roadmap.md -o docs/APGI-Empirical-Credibility-Roadmap.html --metadata title="APGI Empirical Credibility Roadmap" --css=github-markdown.css
 	@pandoc docs/APGI-Falsification-Criteria.md -o docs/APGI-Falsification-Criteria.html --metadata title="APGI Falsification Criteria" --css=github-markdown.css

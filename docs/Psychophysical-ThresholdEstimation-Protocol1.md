@@ -43,7 +43,7 @@ pip install numpy scipy pandas matplotlib seaborn scikit-learn statsmodels
 ### Run Complete Protocol
 
 ```bash
-python APGI-Protocol-3.py
+python APGI_Protocol_3.py
 ```text
 
 This executes the full pipeline:

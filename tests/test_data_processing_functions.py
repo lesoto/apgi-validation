@@ -101,14 +101,14 @@ class TestListProtocols:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
-        (validation_dir / "Validation-Protocol-2.py").write_text("# Protocol 2")
+        (validation_dir / "Validation_Protocol_1.py").write_text("# Protocol 1")
+        (validation_dir / "Validation_Protocol_2.py").write_text("# Protocol 2")
 
         protocols = _list_protocols(validation_dir)
 
         assert len(protocols) == 2
-        assert "Validation-Protocol-1.py" in protocols
-        assert "Validation-Protocol-2.py" in protocols
+        assert "Validation_Protocol_1.py" in protocols
+        assert "Validation_Protocol_2.py" in protocols
 
     def test_list_protocols_empty_dir(self, tmp_path):
         """Test listing protocols with empty directory."""
@@ -130,10 +130,10 @@ class TestRunParallel:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
-        (validation_dir / "Validation-Protocol-2.py").write_text("# Protocol 2")
+        (validation_dir / "Validation_Protocol_1.py").write_text("# Protocol 1")
+        (validation_dir / "Validation_Protocol_2.py").write_text("# Protocol 2")
 
-        protocols = ["Validation-Protocol-1.py", "Validation-Protocol-2.py"]
+        protocols = ["Validation_Protocol_1.py", "Validation_Protocol_2.py"]
 
         mock_run_single.return_value = ("1", "Success", None)
         mock_executor_instance = MagicMock()
@@ -154,9 +154,9 @@ class TestRunParallel:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
+        (validation_dir / "Validation_Protocol_1.py").write_text("# Protocol 1")
 
-        protocols = ["Validation-Protocol-1.py"]
+        protocols = ["Validation_Protocol_1.py"]
 
         mock_run_single.return_value = ("1", None, "Error")
         mock_executor_instance = MagicMock()
@@ -180,10 +180,10 @@ class TestRunSequential:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
-        (validation_dir / "Validation-Protocol-2.py").write_text("# Protocol 2")
+        (validation_dir / "Validation_Protocol_1.py").write_text("# Protocol 1")
+        (validation_dir / "Validation_Protocol_2.py").write_text("# Protocol 2")
 
-        protocols = ["Validation-Protocol-1.py", "Validation-Protocol-2.py"]
+        protocols = ["Validation_Protocol_1.py", "Validation_Protocol_2.py"]
 
         mock_run_single.return_value = ("1", "Success", None)
 
@@ -197,9 +197,9 @@ class TestRunSequential:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
+        (validation_dir / "Validation_Protocol_1.py").write_text("# Protocol 1")
 
-        protocols = ["Validation-Protocol-1.py"]
+        protocols = ["Validation_Protocol_1.py"]
 
         mock_run_single.return_value = ("1", None, "Error")
 

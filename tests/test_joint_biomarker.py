@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import importlib.util
 
 spec = importlib.util.spec_from_file_location(
-    "multimodal_module", "APGI-Multimodal-Integration.py"
+    "multimodal_module", "APGI_Multimodal_Integration.py"
 )
 multimodal_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(multimodal_module)

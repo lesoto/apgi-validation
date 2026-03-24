@@ -39,13 +39,13 @@ pip install numpy scipy pandas matplotlib seaborn tqdm
 
 ### Files
 
-- `APGI-Protocol-5.py` - Main implementation
+- `APGI_Protocol_5.py` - Main implementation
 - This README
 
 ## Quick Start
 
 ```python
-python APGI-Protocol-5.py
+python APGI_Protocol_5.py
 ```
 
 Default configuration:

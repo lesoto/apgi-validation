@@ -380,7 +380,7 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
 # =============================================================================
 
 PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
-    "Validation-Protocol-1": {
+    "Validation_Protocol_1": {
         "V1.1": {
             "name": "Heartbeat Discrimination Accuracy",
             "description": "APGI should improve heartbeat discrimination compared to StandardPP",
@@ -400,7 +400,7 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
             "alpha": 0.05,
         },
     },
-    "Validation-Protocol-5": {
+    "Validation_Protocol_5": {
         "V5.1": {
             "name": "Algorithmic Falsification",
             "description": "APGI equations must produce correct numerical predictions",
@@ -408,7 +408,7 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
             "alpha": 0.001,
         },
     },
-    "Validation-Protocol-9": {
+    "Validation_Protocol_9": {
         "V9.1": {
             "name": "Symptom Prediction",
             "description": "APGI metrics should predict clinical symptoms",
@@ -434,7 +434,7 @@ PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
             "alpha": 0.01,
         },
     },
-    "Validation-Protocol-12": {
+    "Validation_Protocol_12": {
         "V12.1": {
             "name": "Clinical Gradient Prediction",
             "description": "APGI should distinguish VS, MCS, EMCS, healthy",

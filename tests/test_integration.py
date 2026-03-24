@@ -30,7 +30,7 @@ def test_validation_protocol_9_integration():
 
         # Load the module with hyphen in filename
         module_path = (
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-9.py"
+            Path(__file__).parent.parent / "Validation" / "Validation_Protocol_9.py"
         )
         spec = importlib.util.spec_from_file_location(
             "validation_protocol_9", module_path
@@ -118,7 +118,7 @@ def test_full_validation_pipeline():
 
         # Load Validation Protocol 1 module
         module_path = (
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-1.py"
+            Path(__file__).parent.parent / "Validation" / "Validation_Protocol_1.py"
         )
         spec = importlib.util.spec_from_file_location(
             "validation_protocol_1", module_path

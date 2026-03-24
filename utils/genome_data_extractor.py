@@ -156,10 +156,12 @@ def main():
     import sys
 
     # Check if VP-5 results exist
-    results_path = "protocol5_results.json"
+    results_path = "utils/protocol5_results.json"
     if not Path(results_path).exists():
         print(f"❌ VP-5 results not found at: {results_path}")
-        print("   Run Validation-Protocol-5.py first to generate evolutionary results")
+        print(
+            "   Run Validation_Protocol_4_Epistemic.py first to generate evolutionary results"
+        )
         sys.exit(1)
 
     # Extract genome data

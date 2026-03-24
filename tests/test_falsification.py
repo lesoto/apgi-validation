@@ -13,28 +13,28 @@ from utils.constants import DIM_CONSTANTS
 
 
 def test_falsification_files_exist():
-    """Test that falsification protocol files exist and have valid content."""
+    """Test SyntheticEEG_MLClassification protocol files exist and have valid content."""
     project_root = Path(__file__).parent.parent
     falsification_dir = project_root / "Falsification"
 
     # Check falsification protocol files - use actual filenames from directory
     falsification_files = [
-        "APGI-Falsification-Aggregator.py",
-        "APGI-Falsification-Protocols-GUI.py",
-        "CausalManipulations-TMS-Pharmacological-Priority2.py",
-        "Falsification-ActiveInferenceAgents-F1F2.py",
-        "Falsification-AgentComparison-ConvergenceBenchmark.py",
-        "Falsification-BayesianEstimation-MCMC.py",
-        "Falsification-BayesianEstimation-ParameterRecovery.py",
-        "Falsification-CrossSpeciesScaling-P12.py",
-        "Falsification-EvolutionaryPlausibility-Standard6.py",
-        "Falsification-FrameworkLevel-MultiProtocol.py",
-        "Falsification-InformationTheoretic-PhaseTransition.py",
-        "Falsification-LiquidNetworkDynamics-EchoState.py",
-        "Falsification-MathematicalConsistency-Equations.py",
-        "Falsification-NeuralNetwork-EnergyBenchmark.py",
-        "Falsification-NeuralSignatures-EEG-P3b-HEP.py",
-        "Falsification-ParameterSensitivity-Identifiability.py",
+        "APGI_Falsification_Aggregator.py",
+        "APGI_Falsification_Protocols_GUI.py",
+        "CausalManipulations_TMS_Pharmacological_Priority2.py",
+        "Falsification_ActiveInferenceAgents_F1F2.py",
+        "Falsification_AgentComparison_ConvergenceBenchmark.py",
+        "Falsification_BayesianEstimation_MCMC.py",
+        "Falsification_BayesianModelComparison_ParameterRecovery.py",
+        "Falsification_CrossSpeciesScaling_P12.py",
+        "Falsification_EvolutionaryPlausibility_Standard6.py",
+        "Falsification_FrameworkLevel_MultiProtocol.py",
+        "Falsification_InformationTheoretic_PhaseTransition.py",
+        "Falsification_LiquidNetworkDynamics_EchoState.py",
+        "Falsification_MathematicalConsistency_Equations.py",
+        "Falsification_NeuralNetwork_EnergyBenchmark.py",
+        "Falsification_NeuralSignatures_EEG_P3b_HEP.py",
+        "Falsification_ParameterSensitivity_Identifiability.py",
     ]
 
     for file_name in falsification_files:
@@ -57,7 +57,7 @@ def test_falsification_files_exist():
 
 
 def test_falsification_protocol_1_hierarchical_model():
-    """Test HierarchicalGenerativeModel from Falsification-ActiveInferenceAgents-F1F2.py"""
+    """Test HierarchicalGenerativeModel from Falsification_ActiveInferenceAgents_F1F2.py"""
     try:
         import importlib.util
         import numpy as np
@@ -66,10 +66,10 @@ def test_falsification_protocol_1_hierarchical_model():
             "falsification1",
             Path(__file__).parent.parent
             / "Falsification"
-            / "Falsification-ActiveInferenceAgents-F1F2.py",
+            / "Falsification_ActiveInferenceAgents_F1F2.py",
         )
         if spec is None or spec.loader is None:
-            pytest.skip("Falsification-ActiveInferenceAgents-F1F2.py not found")
+            pytest.skip("Falsification_ActiveInferenceAgents_F1F2.py not found")
         falsification1 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification1)
         HierarchicalGenerativeModel = falsification1.HierarchicalGenerativeModel
@@ -110,7 +110,7 @@ def test_falsification_protocol_1_hierarchical_model():
 
 
 def test_falsification_protocol_1_somatic_marker_network():
-    """Test SomaticMarkerNetwork from Falsification-ActiveInferenceAgents-F1F2.py"""
+    """Test SomaticMarkerNetwork from Falsification_ActiveInferenceAgents_F1F2.py"""
     try:
         import importlib.util
         import numpy as np
@@ -119,10 +119,10 @@ def test_falsification_protocol_1_somatic_marker_network():
             "falsification1",
             Path(__file__).parent.parent
             / "Falsification"
-            / "Falsification-ActiveInferenceAgents-F1F2.py",
+            / "Falsification_ActiveInferenceAgents_F1F2.py",
         )
         if spec is None or spec.loader is None:
-            pytest.skip("Falsification-ActiveInferenceAgents-F1F2.py not found")
+            pytest.skip("Falsification_ActiveInferenceAgents_F1F2.py not found")
         falsification1 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification1)
         SomaticMarkerNetwork = falsification1.SomaticMarkerNetwork
@@ -155,7 +155,7 @@ def test_falsification_protocol_1_somatic_marker_network():
 
 
 def test_falsification_protocol_5_evolvable_agent():
-    """Test EvolvableAgent from Falsification-NeuralNetwork-EnergyBenchmark.py"""
+    """Test EvolvableAgent from Falsification_EvolutionaryPlausibility_Standard6.py"""
     try:
         import importlib.util
         import numpy as np
@@ -164,10 +164,10 @@ def test_falsification_protocol_5_evolvable_agent():
             "falsification5",
             Path(__file__).parent.parent
             / "Falsification"
-            / "Falsification-NeuralNetwork-EnergyBenchmark.py",
+            / "Falsification_EvolutionaryPlausibility_Standard6.py",
         )
         if spec is None or spec.loader is None:
-            pytest.skip("Falsification-NeuralNetwork-EnergyBenchmark.py not found")
+            pytest.skip("Falsification_EvolutionaryPlausibility_Standard6.py not found")
         falsification5 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification5)
         EvolvableAgent = falsification5.EvolvableAgent
@@ -235,10 +235,10 @@ def test_falsification_protocol_6_network_comparison():
             "falsification6",
             Path(__file__).parent.parent
             / "Falsification"
-            / "Falsification-EvolutionaryPlausibility-Standard6.py",
+            / "Falsification_EvolutionaryPlausibility_Standard6.py",
         )
         if spec is None or spec.loader is None:
-            pytest.skip("Falsification-EvolutionaryPlausibility-Standard6.py not found")
+            pytest.skip("Falsification_EvolutionaryPlausibility_Standard6.py not found")
         falsification6 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification6)
         NetworkComparisonExperiment = falsification6.NetworkComparisonExperiment
@@ -356,7 +356,7 @@ def test_falsification_protocol_9_neural_signatures():
         falsification9 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification9)
     except (ImportError, AttributeError) as e:
-        pytest.skip(f"Falsification-NeuralSignatures-EEG-P3b-HEP.py import failed: {e}")
+        pytest.skip(f"Falsification_NeuralSignatures_EEG_P3b_HEP.py import failed: {e}")
 
     # Test that module has neural signature functions
     assert hasattr(falsification9, "detect_neural_signatures")
@@ -364,16 +364,16 @@ def test_falsification_protocol_9_neural_signatures():
 
 
 def test_falsification_protocol_10_cross_species_scaling():
-    """Test cross-species scaling from Falsification-InformationTheoretic-PhaseTransition.py"""
+    """Test cross-species scaling from Falsification-InformationTheoretic_PhaseTransition_Level2.py"""
     # Skip test if protocol doesn't exist yet
     protocol_path = (
         Path(__file__).parent.parent
         / "Falsification"
-        / "Falsification-InformationTheoretic-PhaseTransition.py"
+        / "Falsification-InformationTheoretic_PhaseTransition_Level2.py"
     )
     if not protocol_path.exists():
         pytest.skip(
-            "Falsification-InformationTheoretic-PhaseTransition.py not yet implemented"
+            "Falsification-InformationTheoretic_PhaseTransition_Level2.py not yet implemented"
         )
 
     try:
@@ -382,13 +382,13 @@ def test_falsification_protocol_10_cross_species_scaling():
         spec = importlib.util.spec_from_file_location("falsification10", protocol_path)
         if spec is None or spec.loader is None:
             pytest.skip(
-                "Falsification-InformationTheoretic-PhaseTransition.py not found"
+                "Falsification-InformationTheoretic_PhaseTransition_Level2.py not found"
             )
         falsification10 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification10)
     except (ImportError, AttributeError) as e:
         pytest.skip(
-            f"Falsification-InformationTheoretic-PhaseTransition.py import failed: {e}"
+            f"Falsification-InformationTheoretic_PhaseTransition_Level2.py import failed: {e}"
         )
 
     # Test that module has scaling functions
@@ -424,34 +424,38 @@ def test_falsification_protocol_11_bayesian_estimation():
 
 
 def test_falsification_protocol_12_liquid_network():
-    """Test liquid network validation from Falsification-CrossSpeciesScaling-P12.py"""
+    """Test liquid network validation from Falsification_LiquidNetworkDynamics_EchoState.py"""
     # Skip test if protocol doesn't exist yet
     protocol_path = (
         Path(__file__).parent.parent
         / "Falsification"
-        / "Falsification-CrossSpeciesScaling-P12.py"
+        / "Falsification_LiquidNetworkDynamics_EchoState.py"
     )
     if not protocol_path.exists():
-        pytest.skip("Falsification-CrossSpeciesScaling-P12.py not yet implemented")
+        pytest.skip(
+            "Falsification_LiquidNetworkDynamics_EchoState.py not yet implemented"
+        )
 
     try:
         import importlib.util
 
         spec = importlib.util.spec_from_file_location("falsification12", protocol_path)
         if spec is None or spec.loader is None:
-            pytest.skip("Falsification-CrossSpeciesScaling-P12.py not found")
+            pytest.skip("Falsification_LiquidNetworkDynamics_EchoState.py not found")
         falsification12 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(falsification12)
     except (ImportError, AttributeError) as e:
-        pytest.skip(f"Falsification-CrossSpeciesScaling-P12.py import failed: {e}")
+        pytest.skip(
+            f"Falsification_LiquidNetworkDynamics_EchoState.py import failed: {e}"
+        )
 
     # Test that module has liquid network functions
     assert hasattr(falsification12, "detect_neural_signatures")
     assert hasattr(falsification12, "validate_network_topology")
 
 
-def test_falsification_protocol_5_evolutionary_emergence():
-    """Test EvolvableAgent from Falsification-Protocol-5.py"""
+def test_falsification_protocol_5_evolvable_agent():
+    """Test EvolvableAgent from Psychophysical_ThresholdEstimation_Protocol1-5.py"""
     try:
         import importlib.util
         import numpy as np

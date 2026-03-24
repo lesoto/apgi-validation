@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-APGI (Active Perception and General Inference) Validation Framework - A CLI-based scientific computing framework for validating and falsifying active inference models through computational neuroscience protocols.
+APGI (Active Perception and Generative Inference) Validation Framework - A CLI-based scientific computing framework for validating and falsifying active inference models through computational experiments.
 
 ## Development Commands
 
@@ -15,7 +15,7 @@ python main.py --help                    # Show all available commands
 python main.py validate --data data.csv     # Run validation protocol
 python main.py falsify --model model.pkl    # Run falsification protocol
 python main.py visualize --output plot.png  # Generate visualizations
-python main.py benchmark --iterations 100   # Run computational benchmarks
+python main.py benchmark --iterations 100
 ```
 
 ### Install dependencies
@@ -67,12 +67,12 @@ flake8 .                                          # Lint code (Config in .flake8
 
 ### Key directories
 
-- `Validation/` - Validation protocols (APGI-Validation-GUI.py, ActiveInference-AgentSimulations-Protocol3.py, etc.)
-- `Falsification/` - Falsification protocols (APGI-Falsification-Aggregator.py, CausalManipulations-TMS-Pharmacological-Priority2.py, etc.)
+- `Validation/` - Validation protocols (APGI_Validation_GUI.py, ActiveInference_AgentSimulations_Protocol3.py, BayesianModelComparison_ParameterRecovery.py, etc.)
+- `Falsification/` - Falsification protocols (APGI_Falsification_Aggregator.py, CausalManipulations_TMS_Pharmacological_Priority2.py, etc.)
 - `utils/` - Utility modules (dependency_scanner.py, security_audit_logger.py, backup_manager.py, batch_processor.py, etc.)
 - `data/` - Data directory for input/output files
 - `tests/` - Comprehensive test suite with property-based testing (Hypothesis)
-- `docs/` - Documentation (APGI-Equations.md, APGI-Parameter-Specifications.md, etc.)
+- `docs/` - Documentation (APGI_Equations.md, APGI-Parameter-Specifications.md, etc.)
 
 ### Security features
 
@@ -84,12 +84,12 @@ flake8 .                                          # Lint code (Config in .flake8
 
 ### Key Python modules
 
-- `APGI_Equations.py` - Core mathematical equations (entropy, KL divergence, free energy, etc.)
-- `APGI-Entropy-Implementation.py` - Entropy implementation
-- `APGI-Full-Dynamic-Model.py` - Full dynamic model
-- `APGI-Liquid-Network-Implementation.py` - Liquid network implementation
-- `APGI-Multimodal-Classifier.py` - Multimodal classifier
-- `APGI-Multimodal-Integration.py` - Multimodal integration
+- `APGI_Equations.py` - Core APGI equations (entropy, KL divergence, free energy, etc.)
+- `APGI_Entropy_Implementation.py` - Entropy implementation
+- `APGI_Full_Dynamic_Model.py` - Full dynamic model
+- `APGI_Liquid_Network_Implementation.py` - Liquid network implementation
+- `APGI_Multimodal_Classifier.py` - Multimodal classifier
+- `APGI_Multimodal_Integration.py` - Multimodal integration
 
 ### Test setup
 
@@ -115,7 +115,6 @@ For production, additional security keys and settings may be required.
 - `validate` - Run validation protocols on data
 - `validate-entropy` - Validate entropy calculations
 - `validate-active-inference` - Validate active inference models
-- `validate-parameter-recovery` - Validate parameter recovery
 
 ### Falsification commands
 

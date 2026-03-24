@@ -9,15 +9,16 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from APGI_Equations import (
-    APGIParameters,
-    PsychologicalState,
-    StateCategory,
-    APGIStateLibrary,
-    MeasurementEquations,
-    NeuromodulatorSystem,
-    EnhancedSurpriseIgnitionSystem,
-)
+from importlib import import_module
+
+APGI_Equations = import_module("APGI_Equations")
+APGIParameters = APGI_Equations.APGIParameters
+PsychologicalState = APGI_Equations.PsychologicalState
+StateCategory = APGI_Equations.StateCategory
+APGIStateLibrary = APGI_Equations.APGIStateLibrary
+MeasurementEquations = APGI_Equations.MeasurementEquations
+NeuromodulatorSystem = APGI_Equations.NeuromodulatorSystem
+EnhancedSurpriseIgnitionSystem = APGI_Equations.EnhancedSurpriseIgnitionSystem
 
 
 class TestAPGIParametersExtended:
@@ -123,9 +124,9 @@ class TestPsychologicalStateExtended:
             content_domain="neutral",
         )
         # S_t = Pi_e * |z_e| + Pi_i_eff * |z_i|
-        # Pi_i_eff = 1.0 * (1 + 1.0 * sigmoid(0)) = 1.0 * (1 + 0.5) = 1.5
-        # S_t = 1.0 * 1.0 + 1.5 * 1.0 = 2.5
-        # Prob = 1 / (1 + exp(-5.5 * (2.5 - 1.0))) = 1 / (1 + exp(-5.5 * 1.5))
+        # Pi_i_eff = 1.0 * exp(1.0 * 0) = 1.0
+        # S_t = 1.0 * 1.0 + 1.0 * 1.0 = 2.0
+        # Prob = 1 / (1 + exp(-5.5 * (2.0 - 1.0))) = 1 / (1 + exp(-5.5 * 1.0))
         prob = state.compute_ignition_probability()
         assert prob > 0.99
 
@@ -161,10 +162,10 @@ class TestPsychologicalStateExtended:
 
         inputs_exp = state.to_dynamical_inputs(time=0.0, include_expectation=True)
         assert inputs_exp["Pi_e"] == 3.0
-        # Pi_i_eff_expected = Pi_i_expected * (1 + beta * sigmoid(M_ca))
-        # sigmoid(0.5) = 1 / (1 + exp(-0.5)) = 0.622459
-        # Pi_i_eff_expected = 2.0 * (1 + 1.0 * 0.622459) = 3.2449
-        assert abs(inputs_exp["Pi_i"] - 3.2449) < 0.01
+        # Pi_i_eff_expected = Pi_i_expected * exp(beta * M_ca)
+        # exp(0.5) = 1.6487
+        # Pi_i_eff_expected = 2.0 * 1.6487 = 3.2974
+        assert abs(inputs_exp["Pi_i"] - 3.2974) < 0.01
 
 
 class TestAPGIStateLibraryExtended:

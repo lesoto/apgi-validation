@@ -1,5 +1,5 @@
 """
-Tests for APGI-Multimodal-Integration.py - neural network training, data preprocessing, and inference.
+Tests for APGI_Multimodal_Integration.py - neural network training, data preprocessing, and inference.
 =================================================================================
 """
 
@@ -46,12 +46,12 @@ try:
     MULTIMODAL_INTEGRATION_AVAILABLE = True
 except ImportError as e:
     MULTIMODAL_INTEGRATION_AVAILABLE = False
-    print(f"Warning: APGI-Multimodal-Integration not available: {e}")
+    print(f"Warning: APGI_Multimodal_Integration not available: {e}")
 
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestAPGIParameters:
     """Test APGI parameter dataclass."""
@@ -91,7 +91,7 @@ class TestAPGIParameters:
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestAPGINormalizer:
     """Test APGI normalizer for multi-modal integration."""
@@ -214,7 +214,7 @@ class TestAPGINormalizer:
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestAPGICoreIntegration:
     """Test core APGI integration functionality."""
@@ -300,7 +300,7 @@ class TestAPGICoreIntegration:
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestArtifactRejection:
     """Test artifact rejection for multi-modal data."""
@@ -388,7 +388,7 @@ class TestArtifactRejection:
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestSpectralAnalysis:
     """Test spectral analysis for APGI feature extraction."""
@@ -473,7 +473,7 @@ class TestSpectralAnalysis:
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestStatisticalValidation:
     """Test statistical validation for APGI parameters."""
@@ -551,7 +551,7 @@ class TestStatisticalValidation:
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestTemporalDynamics:
     """Test time-resolved APGI parameter estimation."""
@@ -625,7 +625,7 @@ class TestTemporalDynamics:
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestPsychiatricProfiles:
     """Test psychiatric disorder parameter profiles."""
@@ -703,7 +703,7 @@ class TestPsychiatricProfiles:
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestUtilityFunctions:
     """Test utility functions for multimodal integration."""
@@ -860,7 +860,7 @@ class TestUtilityFunctions:
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestNeuralNetworks:
     """Test neural network models for APGI."""
@@ -950,7 +950,7 @@ class TestNeuralNetworks:
 
 
 @pytest.mark.skipif(
-    not MULTIMODAL_INTEGRATION_AVAILABLE, reason="APGI-Multimodal-Integration available"
+    not MULTIMODAL_INTEGRATION_AVAILABLE, reason="APGI_Multimodal_Integration available"
 )
 class TestQualityControl:
     """Test quality control and validation."""
@@ -1030,7 +1030,7 @@ class TestQualityControl:
 
 @pytest.mark.skipif(
     not MULTIMODAL_INTEGRATION_AVAILABLE,
-    reason="APGI-Multimodal-Integration module not available",
+    reason="APGI_Multimodal_Integration module not available",
 )
 class TestRealTimeMonitoring:
     """Test real-time APGI monitoring."""

@@ -14,7 +14,7 @@ where M(c,a) is a bounded somatic marker value ∈ [−2, +2] and β is an empir
 
 ### Connection to App Implementation (Innovation 1)
 
-The somatic marker modulation equation Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI-Multimodal-Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, enforcing physiological bounds and capturing the nonlinear gain-control role of somatic markers.
+The somatic marker modulation equation Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI_Multimodal_Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, enforcing physiological bounds and capturing the nonlinear gain-control role of somatic markers.
 
 ### Relationship to Prior Work (Innovation 1)
 
@@ -30,7 +30,7 @@ specifies the threshold as an actively regulated, predictive variable where C_me
 
 ### Connection to App Implementation (Innovation 2)
 
-The allostatic modulation of the ignition threshold is implemented in the `threshold_dynamics` method in `APGI-Full-Dynamic-Model.py` and in the agent's step function in `Falsification/Falsification-Protocol-1.py`. The threshold adapts dynamically as a predictive variable, with the equation dtheta_dt = (self.theta_0 - self.theta_t) / self.tau_theta + self.eta_theta * (self.metabolic_cost - self.information_value), incorporating anticipated metabolic cost and information value to preemptively adjust the access criterion.
+The allostatic modulation of the ignition threshold is implemented in the `threshold_dynamics` method in `APGI_Full_Dynamic_Model.py` and in the agent's step function in `Falsification/Falsification-Protocol-1.py`. The threshold adapts dynamically as a predictive variable, with the equation dtheta_dt = (self.theta_0 - self.theta_t) / self.tau_theta + self.eta_theta * (self.metabolic_cost - self.information_value), incorporating anticipated metabolic cost and information value to preemptively adjust the access criterion.
 
 ### Relationship to Prior Work (Innovation 2)
 
@@ -46,7 +46,7 @@ This converts previously untestable efficiency claims into claims with defined d
 
 ### Connection to App Implementation (Innovation 3)
 
-The three-level epistemic architecture is implemented in the `MultiLevelEntropyModule` class in `APGI-Entropy-Implementation.py`, which computes entropy at three distinct levels: thermodynamic (using `ThermodynamicEntropyCalculator` for joules/kelvin constraints), information-theoretic (using `ShannonEntropyCalculator` for bits/mutual information), and variational (using `VariationalFreeEnergyCalculator` for Bayesian model fitting). This module provides bridge principles like Landauer's principle for computational-thermodynamic mappings and includes a self-applicable scoring rubric with falsification criteria.
+The three-level epistemic architecture is implemented in the `MultiLevelEntropyModule` class in `APGI_Entropy_Implementation.py`, which computes entropy at three distinct levels: thermodynamic (using `ThermodynamicEntropyCalculator` for joules/kelvin constraints), information-theoretic (using `ShannonEntropyCalculator` for bits/mutual information), and variational (using `VariationalFreeEnergyCalculator` for Bayesian model fitting). This module provides bridge principles like Landauer's principle for computational-thermodynamic mappings and includes a self-applicable scoring rubric with falsification criteria.
 
 ### Relationship to Prior Work (Innovation 3)
 
@@ -60,7 +60,7 @@ APGI's advance is the specific mapping of the ignition threshold onto the mathem
 
 ### Connection to App Implementation (Innovation 4)
 
-The cortex-as-liquid-computer with threshold as attractor-basin bifurcation point is implemented in `APGI-Liquid-Network-Implementation.py`, where liquid time-constant networks (LTCNs) model cortical dynamics with adaptive time constants modulated by precision weights. The bifurcation structure is realized through phase transitions in the ODE state space of the liquid neurons, generating predictions about bistability, hysteresis, and critical slowing linked to precision-weighted prediction error accumulation and threshold adaptation rate.
+The cortex-as-liquid-computer with threshold as attractor-basin bifurcation point is implemented in `APGI_Liquid_Network_Implementation.py`, where liquid time-constant networks (LTCNs) model cortical dynamics with adaptive time constants modulated by precision weights. The bifurcation structure is realized through phase transitions in the ODE state space of the liquid neurons, generating predictions about bistability, hysteresis, and critical slowing linked to precision-weighted prediction error accumulation and threshold adaptation rate.
 
 ### Relationship to Prior Work (Innovation 4)
 
@@ -92,7 +92,7 @@ The problem of comparing interoceptive and exteroceptive prediction errors is no
 
 ### Connection to App Implementation (Innovation 6)
 
-The cross-modal z-score standardization is implemented in the `APGINormalizer` class in `APGI-Multimodal-Integration.py`, which performs modality-specific z-scoring with running estimates of mean and variance for interoceptive (HEP, SCR, heart_rate) and exteroceptive (gamma_power, P3b_amplitude, pupil_diameter) modalities, yielding dimensionless, comparable prediction error magnitudes for multimodal integration.
+The cross-modal z-score standardization is implemented in the `APGINormalizer` class in `APGI_Multimodal_Integration.py`, which performs modality-specific z-scoring with running estimates of mean and variance for interoceptive (HEP, SCR, heart_rate) and exteroceptive (gamma_power, P3b_amplitude, pupil_diameter) modalities, yielding dimensionless, comparable prediction error magnitudes for multimodal integration.
 
 ## 7. Seven Standards for Viable Consciousness Theories as a Self-Regulatory Framework
 
@@ -108,7 +108,7 @@ The systematic mapping between APGI abstractions and Liquid Neural Network param
 
 ### Connection to App Implementation (Innovation 8)
 
-The APGI-LNN mapping table is implemented in `APGI-Liquid-Network-Implementation.py`, with precision weighting mapped to liquid time constant (τ) modulation via `tau_intero_baseline` and `tau_extero_baseline`, allostatic threshold modulation to state-dependent τ functions, prediction error accumulation to τ-modulated accumulator dynamics, and ignition threshold to bifurcation points in the ODE state space.
+The APGI-LNN mapping table is implemented in `APGI_Liquid_Network_Implementation.py`, with precision weighting mapped to liquid time constant (τ) modulation via `tau_intero_baseline` and `tau_extero_baseline`, allostatic threshold modulation to state-dependent τ functions, prediction error accumulation to τ-modulated accumulator dynamics, and ignition threshold to bifurcation points in the ODE state space.
 
 ## 9. 1/f Spectral Slope as Quantitative Prediction of Hierarchical APGI Architecture
 
@@ -136,7 +136,7 @@ Quantitative threshold predictions are presented as strong-form falsifiable targ
 
 ### Connection to App Implementation (Innovation 10)
 
-The psychiatric disorder recharacterization is implemented in APGI-Psychological-States.py, with specific parameter profiles for GAD (elevated β ≈0.7), MDD (blunted Πⁱ, elevated θ_t), Psychosis (aberrant Π), and PTSD (hyper-precise somatic markers), providing quantitative biomarker predictions for hierarchical level-specific dysregulation.
+The psychiatric disorder recharacterization is implemented in APGI_Psychological_States.py, with specific parameter profiles for GAD (elevated β ≈0.7), MDD (blunted Πⁱ, elevated θ_t), Psychosis (aberrant Π), and PTSD (hyper-precise somatic markers), providing quantitative biomarker predictions for hierarchical level-specific dysregulation.
 
 ### Relationship to Prior Work (Innovation 10)
 
@@ -148,7 +148,7 @@ Building on the bifurcation framework established in Innovation 4 and on prior d
 
 ### Connection to App Implementation (Innovation 11)
 
-The phase transition predictions are implemented in the liquid network dynamics of APGI-Liquid-Network-Implementation.py, where precision-weighted prediction error accumulation leads to bistable firing rates, critical slowing near thresholds, and hysteresis in the ODE state space, with testable signatures for intracranial EEG.
+The phase transition predictions are implemented in the liquid network dynamics of APGI_Liquid_Network_Implementation.py, where precision-weighted prediction error accumulation leads to bistable firing rates, critical slowing near thresholds, and hysteresis in the ODE state space, with testable signatures for intracranial EEG.
 
 ## 12. Cross-Level Bidirectional Coupling Formalized as Coupled Differential Equations
 
@@ -172,7 +172,7 @@ The prediction that near-threshold visual stimuli presented during high HEP phas
 
 ### Connection to App Implementation (Innovation 13)
 
-The cardiac phase-dependent detection rate prediction is implemented in the multimodal integration of APGI-Multimodal-Integration.py, where interoceptive precision gating modulates exteroceptive access, predicting 15-20% higher detection rates during high HEP phases, discriminable from standard GWT via HEP amplitude measurements.
+The cardiac phase-dependent detection rate prediction is implemented in the multimodal integration of APGI_Multimodal_Integration.py, where interoceptive precision gating modulates exteroceptive access, predicting 15-20% higher detection rates during high HEP phases, discriminable from standard GWT via HEP amplitude measurements.
 
 ## 14. Somatic Marker Modulation of Precision (Πⁱ), Not Prediction Error (εⁱ), as Distinguishing Claim
 
@@ -180,7 +180,7 @@ The explicit distinction between two ways somatic markers could work—modulatin
 
 ### Connection to App Implementation (Innovation 14)
 
-The somatic marker modulation of precision is implemented in the `compute_somatic_modulation` method of APGI-Multimodal-Integration.py, where M(c,a) modulates Πⁱ_eff rather than εⁱ, predicting vmPFC correlations with anticipatory insula activation for precision weighting.
+The somatic marker modulation of precision is implemented in the `compute_somatic_modulation` method of APGI_Multimodal_Integration.py, where M(c,a) modulates Πⁱ_eff rather than εⁱ, predicting vmPFC correlations with anticipatory insula activation for precision weighting.
 
 ## 15. Backward Masking, Attentional Blink, and Binocular Rivalry Reinterpreted as Liquid Network Phenomena
 
@@ -188,7 +188,7 @@ The reinterpretation of three classic paradigms through reservoir dynamics—bac
 
 ### Connection to App Implementation (Innovation 15)
 
-The reinterpretation of backward masking, attentional blink, and binocular rivalry is implemented in the liquid network dynamics of APGI-Liquid-Network-Implementation.py, where reservoir decay rates, saturation within integration windows, and precision-weighted competition generate quantitative predictions for each paradigm's parameters.
+The reinterpretation of backward masking, attentional blink, and binocular rivalry is implemented in the liquid network dynamics of APGI_Liquid_Network_Implementation.py, where reservoir decay rates, saturation within integration windows, and precision-weighted competition generate quantitative predictions for each paradigm's parameters.
 
 ## 16. Phase-Amplitude Coupling as Neural Implementation of Inter-Level Hierarchical Precision
 
@@ -222,7 +222,7 @@ The proposed continuous perceptual threshold paradigm—participants perform sus
 
 ### Connection to App Implementation (Innovation 18)
 
-The fractional dimension of threshold dynamics is implemented in the threshold dynamics of APGI-Full-Dynamic-Model.py, predicting fractal (power-law) autocorrelation decay in sustained near-threshold detection tasks, with reduced dimension in depression and excessive in ADHD.
+The fractional dimension of threshold dynamics is implemented in the threshold dynamics of APGI_Full_Dynamic_Model.py, predicting fractal (power-law) autocorrelation decay in sustained near-threshold detection tasks, with reduced dimension in depression and excessive in ADHD.
 
 ## 19. APGI-Adaptive Threshold as Explanation for Flow States and Psychedelic Effects
 
@@ -232,7 +232,7 @@ These generate measurable EEG predictions: flow should correlate with moderate a
 
 ### Connection to App Implementation (Innovation 19)
 
-The APGI-adaptive threshold explanations are implemented in the threshold dynamics of APGI-Full-Dynamic-Model.py and parameter profiles in APGI-Psychological-States.py, formalizing flow as θ_t optimization and psychedelics as precision landscape flattening with specific EEG predictions.
+The APGI-adaptive threshold explanations are implemented in the threshold dynamics of APGI_Full_Dynamic_Model.py and parameter profiles in APGI_Psychological_States.py, formalizing flow as θ_t optimization and psychedelics as precision landscape flattening with specific EEG predictions.
 
 ### Relationship to Prior Work (Innovation 19)
 
@@ -244,7 +244,7 @@ The proposal that HEP amplitude (proxy for Πⁱ, grounded in Sel et al., 2017) 
 
 ### Connection to App Implementation (Innovation 20)
 
-The joint biomarkers are implemented in the multimodal integration of APGI-Multimodal-Integration.py and validation protocols in Validation/, with HEP amplitude as proxy for Πⁱ and PCI as proxy for global ignition capacity, predicting recovery in disorders of consciousness.
+The joint biomarkers are implemented in the multimodal integration of APGI_Multimodal_Integration.py and validation protocols in Validation/, with HEP amplitude as proxy for Πⁱ and PCI as proxy for global ignition capacity, predicting recovery in disorders of consciousness.
 
 ## 21. Evolutionary Derivation of Liquid Architecture from Biological Constraints
 
@@ -254,7 +254,7 @@ This derivation demonstrates architectural compatibility with biological constra
 
 ### Connection to App Implementation (Innovation 21)
 
-The evolutionary derivation is implemented in the liquid network architecture of APGI-Liquid-Network-Implementation.py, where features like threshold filtering, predictive hierarchy, and precision-weighted coding are selected by biological constraints (finite ATP, slow conduction, stochastic synapses).
+The evolutionary derivation is implemented in the liquid network architecture of APGI_Liquid_Network_Implementation.py, where features like threshold filtering, predictive hierarchy, and precision-weighted coding are selected by biological constraints (finite ATP, slow conduction, stochastic synapses).
 
 ## 22. Developmental Trajectory of Hierarchical Level Emergence from Level 1 to Level 4
 
@@ -292,7 +292,7 @@ Unlike most theoretical consciousness papers that offer qualitative predictions,
 
 ### Connection to App Implementation (Innovation 24)
 
-The pre-registered empirical protocols are implemented in the Validation/ directory, with protocols like Validation-Protocol-1.py through Validation-Protocol-12.py, each including explicit power analyses, effect sizes, and pre-specified falsification criteria.
+The pre-registered empirical protocols are implemented in the Validation/ directory, with protocols like Validation_Protocol_1.py through Validation_Protocol_12.py, each including explicit power analyses, effect sizes, and pre-specified falsification criteria.
 
 ## 25. APGI Clinical Assessment Battery (APGI-CAB): Proposed Multimodal Diagnostic Instrument
 
@@ -300,7 +300,7 @@ This item describes a proposed multimodal diagnostic instrument concept, not a v
 
 ### Connection to App Implementation (Innovation 25)
 
-The APGI Clinical Assessment Battery is proposed in the validation framework of APGI-Validation-GUI.py and Validation-Protocol-*.py, combining HEP, PCI, and behavioral interoceptive tasks for multimodal diagnostic assessment targeting psychiatric populations.
+The APGI Clinical Assessment Battery is proposed in the validation framework of APGI_Validation_GUI.py and Validation-Protocol-*.py, combining HEP, PCI, and behavioral interoceptive tasks for multimodal diagnostic assessment targeting psychiatric populations.
 
 ## 26. Parameter Estimation Workflow
 
@@ -308,7 +308,7 @@ Behavioral constraints confining parameter ranges through simulation of detectio
 
 ### Connection to App Implementation (Innovation 26)
 
-The parameter estimation workflow is implemented in APGI-Parameter-Estimation.py, using behavioral constraints from simulation of detection rates, ignition frequencies, and RT distributions to confine parameter ranges with identifiability analyses.
+The parameter estimation workflow is implemented in APGI_Parameter_Estimation.py, using behavioral constraints from simulation of detection rates, ignition frequencies, and RT distributions to confine parameter ranges with identifiability analyses.
 
 ## 27. Continuous-Time Dynamical Equations (dSₜ/dt, dθₜ/dt)
 
@@ -316,7 +316,7 @@ Distinguishes surprise accumulation from threshold adaptation as separate proces
 
 ### Connection to App Implementation (Innovation 27)
 
-The continuous-time dynamical equations are implemented in APGI-Full-Dynamic-Model.py, distinguishing surprise accumulation (dS_t/dt) from threshold adaptation (dθ_t/dt) with distinct time constants (λ_S ≈ 2–5 s⁻¹ vs λ_θ ≈ 0.01–0.1 s⁻¹).
+The continuous-time dynamical equations are implemented in APGI_Full_Dynamic_Model.py, distinguishing surprise accumulation (dS_t/dt) from threshold adaptation (dθ_t/dt) with distinct time constants (λ_S ≈ 2–5 s⁻¹ vs λ_θ ≈ 0.01–0.1 s⁻¹).
 
 ## 28. Full Neuromodulatory Implementation of Each LNN Parameter
 
@@ -324,7 +324,7 @@ Precision weighting to acetylcholine/NMDA coupling; threshold to norepinephrine/
 
 ### Connection to App Implementation (Innovation 28)
 
-The full neuromodulatory implementation is in APGI-Liquid-Network-Implementation.py, mapping precision weighting to acetylcholine/NMDA coupling, threshold to norepinephrine/LC dynamics, interoceptive integration to insula-VAN circuit, and somatic bias to vmPFC-insula asymmetric projection.
+The full neuromodulatory implementation is in APGI_Liquid_Network_Implementation.py, mapping precision weighting to acetylcholine/NMDA coupling, threshold to norepinephrine/LC dynamics, interoceptive integration to insula-VAN circuit, and somatic bias to vmPFC-insula asymmetric projection.
 
 ## 29. Comparative Analysis of Liquid Networks versus Alternative Architectures
 
@@ -332,7 +332,7 @@ Comparison against feedforward, recurrent, and transformer architectures on five
 
 ### Connection to App Implementation (Innovation 29)
 
-The comparative analysis is implemented in APGI-Liquid-Network-Implementation.py, demonstrating liquid networks' intrinsic properties (sharp thresholds, temporal integration, metabolic selectivity, fading memory, multi-timescale dynamics) versus alternative architectures requiring additional mechanisms.
+The comparative analysis is implemented in APGI_Liquid_Network_Implementation.py, demonstrating liquid networks' intrinsic properties (sharp thresholds, temporal integration, metabolic selectivity, fading memory, multi-timescale dynamics) versus alternative architectures requiring additional mechanisms.
 
 ## 30. Depression Recharacterized at the Hierarchical Level
 
@@ -340,7 +340,7 @@ Level 3–4 rigidity (mPFC-hippocampal hyperconnectivity ≥50% above controls) 
 
 ### Connection to App Implementation (Innovation 30)
 
-The depression recharacterization is implemented in APGI-Psychological-States.py, with Level 3-4 rigidity (elevated θ_t) and Level 1-2 disconnection (blunted Πⁱ), extending REBUS with precision-gated threshold predictions.
+The depression recharacterization is implemented in APGI_Psychological_States.py, with Level 3-4 rigidity (elevated θ_t) and Level 1-2 disconnection (blunted Πⁱ), extending REBUS with precision-gated threshold predictions.
 
 ## 31. Circadian Modulation of θₜ as Formally Incorporated Oscillatory Coupling
 
@@ -348,7 +348,7 @@ Cortisol morning peak lowering threshold for memory consolidation, evening melat
 
 ### Connection to App Implementation (Innovation 31)
 
-The circadian modulation is implemented in the threshold dynamics of APGI-Full-Dynamic-Model.py, with cortisol morning peaks lowering θ_t for memory consolidation and melatonin evening rises elevating it for sensory processing.
+The circadian modulation is implemented in the threshold dynamics of APGI_Full_Dynamic_Model.py, with cortisol morning peaks lowering θ_t for memory consolidation and melatonin evening rises elevating it for sensory processing.
 
 ## 32. Ultradian ~90-Minute Rest-Activity Cycle Reinterpreted as Periodic Threshold Recalibration
 
@@ -356,7 +356,7 @@ The Basic Rest-Activity Cycle (BRAC), established by Kleitman (1963) and subsequ
 
 ### Connection to App Implementation (Innovation 32)
 
-The ultradian cycle is implemented in the threshold dynamics of APGI-Full-Dynamic-Model.py, with sustained cognitive engagement depleting neuromodulator reserves and elevating θ_t until rest recalibrates it.
+The ultradian cycle is implemented in the threshold dynamics of APGI_Full_Dynamic_Model.py, with sustained cognitive engagement depleting neuromodulator reserves and elevating θ_t until rest recalibrates it.
 
 ### Relationship to Prior Work (Innovation 32)
 
@@ -378,10 +378,24 @@ Linguistic temporal grammar and contemplative practices (meditation traditions) 
 
 The cultural neuroscience prediction is implemented in the hierarchical architecture of Falsification-Protocol-1.py, predicting meditation and linguistic temporal grammar effects on inter-level coupling strength and level-specific θ_t values.
 
-## 35. APGI Multimodal Classifier: Proposed Stratification Tool for Psychiatric Diagnosis
+## 35. APGI Multimodal Classifier: Implemented Stratification Tool for Psychiatric Diagnosis
 
-The APGI Multimodal Classifier describes a proposed tool architecture, not a validated classifier. fMRI connectivity + pupillometry + EEG ignition markers + HRV + behavioral modeling are proposed as inputs for a machine-learning stratification system targeting psychiatric diagnosis beyond symptom categories. Machine learning stratification of psychiatric disorders beyond symptom categories is an active research area (see Drysdale et al., 2017, Nature Medicine, for a working example in depression subtypes). The APGI classifier extends this approach by grounding features in theoretically motivated parameters (Πⁱ, θₜ, β) rather than empirically derived clusters, providing a principled feature selection rationale. Empirical validation of the underlying parameter profiles is a prerequisite for the classifier; the contribution at present is the theoretically motivated feature architecture and the validation pathway.
+The APGI Multimodal Classifier is now implemented in `APGI_Multimodal_Classifier.py` with advanced Bayesian parameter inversion and mechanistic stratification capabilities. The implementation includes:
+
+- **APGIBayesianInversion**: Hierarchical Bayesian inversion to recover latent trait parameters (θ₀, Πᵢ, β) from observed data
+- **APGIMechanisticStratifier**: Machine learning stratification using recovered APGI parameters for psychiatric disorder classification  
+- **Precision-weighted multimodal integration**: Grounded in theoretically motivated parameters (Πⁱ, θₜ, β) rather than empirically derived clusters
+- **Real-time clinical interpretation**: Provides psychiatric disorder profiling with feature importance analysis
+
+The classifier extends approaches like Drysdale et al. (2017, Nature Medicine) by providing a principled feature selection rationale grounded in APGI theory. The implementation supports fMRI connectivity, pupillometry, EEG ignition markers, HRV, and behavioral modeling as inputs.
 
 ### Connection to App Implementation (Innovation 35)
 
-The APGI Multimodal Classifier is proposed in the validation framework of APGI-Validation-GUI.py and Validation-Protocol-*.py, using fMRI connectivity, pupillometry, EEG ignition markers, HRV, and behavioral modeling as inputs grounded in Πⁱ, θ_t, β parameters.
+The APGI Multimodal Classifier is implemented in `APGI_Multimodal_Classifier.py` with:
+
+- Bayesian parameter inversion using PyMC for uncertainty quantification
+- Random forest classification with mechanistic feature importance  
+- Clinical disorder profiles (healthy, anxiety, depression, psychosis)
+- Real-time parameter recovery and stratification capabilities
+
+**Falsification Criteria**: AUC > 0.80 / ΔAUROC > 0.05 for psychiatric disorder classification

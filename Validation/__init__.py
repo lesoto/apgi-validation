@@ -32,7 +32,7 @@ except Exception as e:
     APGIMasterValidator = None
 
 # Import GUI module using importlib (needed for hyphenated filename)
-gui_path = validation_dir / "APGI-Validation-GUI.py"
+gui_path = validation_dir / "APGI_Validation_GUI.py"
 
 try:
     gui_spec = importlib.util.spec_from_file_location("APGI_Validation_GUI", gui_path)
@@ -46,12 +46,12 @@ try:
         if hasattr(gui_module, "safe_import_module"):
             safe_import_module = gui_module.safe_import_module
     else:
-        raise ImportError("Could not create module spec for APGI-Validation-GUI.py")
+        raise ImportError("Could not create module spec for APGI_Validation_GUI.py")
 except Exception as e:
     # Log the error but don't crash the import
     import warnings
 
-    warnings.warn(f"Failed to import APGI-Validation-GUI.py: {e}", ImportWarning)
+    warnings.warn(f"Failed to import APGI_Validation_GUI.py: {e}", ImportWarning)
     APGIValidationGUI = None
     safe_import_module = None
 

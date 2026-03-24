@@ -17,23 +17,23 @@ Epistemic Paper P9–P12 (Level 1)          → VP-P4-Epistemic (needs real data
 
 | Criterion Code | Protocol | Paper Prediction | Threshold Value | Statistical Test | Implementation Date | Status |
 | -------------- | --------- | ------------------ | -------------- | --------------- | -------------------- | ------ |
-| V1.1 | Validation-Protocol-1 | APGI agents achieve ≥18% higher cumulative reward than standard PP agents | Advantage ≥18%, d ≥ 0.60 | Independent samples t-test, α = 0.01 | 2024-01-15 | 62% complete |
-| V1.2 | Validation-Protocol-1 | Intrinsic timescale measurements show ≥3 distinct temporal clusters (τ₁ ≈ 50-150ms, τ₂ ≈ 200-800ms, τ₃ ≈ 1-3s) | ≥3 clusters, separation ≥2×, η² ≥ 0.70 | K-means clustering, silhouette score validation, ANOVA, α = 0.001 | 2024-01-15 | 62% complete |
-| V1.3 | Validation-Protocol-1 | Level 1 interoceptive precision 25-40% higher than Level 3 during interoceptive salience tasks | Difference ≥15%, η² ≥ 0.15 | Repeated-measures ANOVA, α = 0.001 | 2024-01-15 | 62% complete |
-| V1.4 | Validation-Protocol-1 | Allostatic threshold θ_t adapts with time constant τ_θ = 10-100s, showing >20% reduction after sustained high prediction error | Adaptation ≥20%, d ≥ 0.7, recovery ≤5× | Exponential decay fitting, t-test, α = 0.01 | 2024-01-15 | 62% complete |
-| V1.5 | Validation-Protocol-1 | Theta-gamma PAC (Level 1-2 coupling) shows MI ≥ 0.012, with ≥30% increase during ignition events | MI ≥ 0.012, increase ≥30%, d ≥ 0.50 | Permutation test (10,000 iterations), t-test, α = 0.001 | 2024-01-15 | 62% complete |
-| V1.6 | Validation-Protocol-1 | Aperiodic exponent α_spec = 0.8-1.2 during active task, increasing to 1.5-2.0 during low-arousal states | Active ≤1.2, low ≥1.3, Δα ≥0.4, d ≥ 0.8 | Paired t-test, spectral fit R² ≥ 0.90, α = 0.001 | 2024-01-15 | 62% complete |
-| V2.1 | Validation-Protocol-1 | APGI model shows Bayes Factor BF₁₀ ≥ 10 over standard PP models | BF₁₀ ≥ 10, ΔBIC ≥ 10 | Bayesian model comparison, bridge sampling/thermodynamic integration | 2024-01-15 | 62% complete |
-| V2.2 | Validation-Protocol-1 | APGI model achieves ≥20% lower MAE in posterior predictive checks for ignition timing | ΔMAE ≥ 20%, 95% HDI excludes 10% | Cross-validated MAE with 95% HDI | 2024-01-15 | 62% complete |
-| V2.3 | Validation-Protocol-1 | Synthetic data recovers parameter estimates with r ≥ 0.82 (core) and r ≥ 0.68 (auxiliary) | Core r ≥ 0.82, aux r ≥ 0.68, slope in [0.85, 1.15] | Pearson correlation, regression slope | 2024-01-15 | 62% complete |
-| V7.1 | Validation-Protocol-7 | TMS over prefrontal cortex reduces ignition threshold θ_t by ≥15% within 30min, effect lasts ≥60min | Reduction ≥15%, duration ≥60min, d ≥ 0.70 | Paired t-test pre vs. post TMS, α=0.01 | 2024-01-15 | 79% complete |
-| V7.2 | Validation-Protocol-7 | Propranolol increases interoceptive precision Π_i by ≥25% within 20min, decreases ignition probability by ≥30% | Π_i ≥25%, ignition ≥30% reduction, η² ≥ 0.20, d ≥ 0.65 | Repeated-measures ANOVA, paired t-test, α = 0.01 | 2024-01-15 | 79% complete |
-| P7.1 | Validation-Protocol-7 | Propofol increases P3b:MMN amplitude ratio to ≥ 1.5:1, demonstrating thalamic gating mechanism | Ratio ≥ 1.5:1, d ≥ 0.60 | Paired t-test comparing P3b:MMN ratio pre vs. post propofol, α = 0.01 | 2024-01-15 | 79% complete |
-| P7.2 | Validation-Protocol-7 | Ketamine suppresses MMN amplitude by ≥ 20% while P3b suppression < 50%, preserving conscious ignition | MMN ≥20% suppression, P3b <50% suppression, η² ≥ 0.15 | Repeated-measures ANOVA (drug × component), α = 0.01 | 2024-01-15 | 79% complete |
-| P7.3 | Validation-Protocol-7 | Psilocybin increases P3b amplitude by ≥ 10% for low-salience stimuli, with HEP-embodiment correlation r ≥ 0.20 | P3b ≥10% increase, HEP-embodiment r ≥ 0.20, d ≥ 0.45 | Paired t-test for P3b increase; Pearson correlation for HEP-embodiment, α = 0.01 | 2024-01-15 | 79% complete |
-| P5 | Validation-Protocol-9 | Mutual information increases ≥1 bit with precision cueing | MI increase ≥1 bit, permutation p < 0.01 | Permutation test for significance | 2024-01-15 | 73% complete |
-| P6 | Validation-Protocol-9 | Information transmission rate asymptotes at ~40 bits/s | Asymptote ~40 bits/s, rate < 100 bits/s | Curve fitting, statistical tests | 2024-01-15 | 73% complete |
-| P7 | Validation-Protocol-9 | Neyman-Pearson optimal threshold test - empirical threshold deviates from optimal by >2 SD | Deviation SD ≤ 2.0 | Neyman-Pearson criterion, bootstrap CI | 2024-01-15 | 73% complete |
+| V1.1 | Validation_Protocol_1 | APGI agents achieve ≥18% higher cumulative reward than standard PP agents | Advantage ≥18%, d ≥ 0.60 | Independent samples t-test, α = 0.01 | 2024-01-15 | 62% complete |
+| V1.2 | Validation_Protocol_1 | Intrinsic timescale measurements show ≥3 distinct temporal clusters (τ₁ ≈ 50-150ms, τ₂ ≈ 200-800ms, τ₃ ≈ 1-3s) | ≥3 clusters, separation ≥2×, η² ≥ 0.70 | K-means clustering, silhouette score validation, ANOVA, α = 0.001 | 2024-01-15 | 62% complete |
+| V1.3 | Validation_Protocol_1 | Level 1 interoceptive precision 25-40% higher than Level 3 during interoceptive salience tasks | Difference ≥15%, η² ≥ 0.15 | Repeated-measures ANOVA, α = 0.001 | 2024-01-15 | 62% complete |
+| V1.4 | Validation_Protocol_1 | Allostatic threshold θ_t adapts with time constant τ_θ = 10-100s, showing >20% reduction after sustained high prediction error | Adaptation ≥20%, d ≥ 0.7, recovery ≤5× | Exponential decay fitting, t-test, α = 0.01 | 2024-01-15 | 62% complete |
+| V1.5 | Validation_Protocol_1 | Theta-gamma PAC (Level 1-2 coupling) shows MI ≥ 0.012, with ≥30% increase during ignition events | MI ≥ 0.012, increase ≥30%, d ≥ 0.50 | Permutation test (10,000 iterations), t-test, α = 0.001 | 2024-01-15 | 62% complete |
+| V1.6 | Validation_Protocol_1 | Aperiodic exponent α_spec = 0.8-1.2 during active task, increasing to 1.5-2.0 during low-arousal states | Active ≤1.2, low ≥1.3, Δα ≥0.4, d ≥ 0.8 | Paired t-test, spectral fit R² ≥ 0.90, α = 0.001 | 2024-01-15 | 62% complete |
+| V2.1 | Validation_Protocol_1 | APGI model shows Bayes Factor BF₁₀ ≥ 10 over standard PP models | BF₁₀ ≥ 10, ΔBIC ≥ 10 | Bayesian model comparison, bridge sampling/thermodynamic integration | 2024-01-15 | 62% complete |
+| V2.2 | Validation_Protocol_1 | APGI model achieves ≥20% lower MAE in posterior predictive checks for ignition timing | ΔMAE ≥ 20%, 95% HDI excludes 10% | Cross-validated MAE with 95% HDI | 2024-01-15 | 62% complete |
+| V2.3 | Validation_Protocol_1 | Synthetic data recovers parameter estimates with r ≥ 0.82 (core) and r ≥ 0.68 (auxiliary) | Core r ≥ 0.82, aux r ≥ 0.68, slope in [0.85, 1.15] | Pearson correlation, regression slope | 2024-01-15 | 62% complete |
+| V7.1 | Validation_Protocol_7 | TMS over prefrontal cortex reduces ignition threshold θ_t by ≥15% within 30min, effect lasts ≥60min | Reduction ≥15%, duration ≥60min, d ≥ 0.70 | Paired t-test pre vs. post TMS, α=0.01 | 2024-01-15 | 79% complete |
+| V7.2 | Validation_Protocol_7 | Propranolol increases interoceptive precision Π_i by ≥25% within 20min, decreases ignition probability by ≥30% | Π_i ≥25%, ignition ≥30% reduction, η² ≥ 0.20, d ≥ 0.65 | Repeated-measures ANOVA, paired t-test, α = 0.01 | 2024-01-15 | 79% complete |
+| P7.1 | Validation_Protocol_7 | Propofol increases P3b:MMN amplitude ratio to ≥ 1.5:1, demonstrating thalamic gating mechanism | Ratio ≥ 1.5:1, d ≥ 0.60 | Paired t-test comparing P3b:MMN ratio pre vs. post propofol, α = 0.01 | 2024-01-15 | 79% complete |
+| P7.2 | Validation_Protocol_7 | Ketamine suppresses MMN amplitude by ≥ 20% while P3b suppression < 50%, preserving conscious ignition | MMN ≥20% suppression, P3b <50% suppression, η² ≥ 0.15 | Repeated-measures ANOVA (drug × component), α = 0.01 | 2024-01-15 | 79% complete |
+| P7.3 | Validation_Protocol_7 | Psilocybin increases P3b amplitude by ≥ 10% for low-salience stimuli, with HEP-embodiment correlation r ≥ 0.20 | P3b ≥10% increase, HEP-embodiment r ≥ 0.20, d ≥ 0.45 | Paired t-test for P3b increase; Pearson correlation for HEP-embodiment, α = 0.01 | 2024-01-15 | 79% complete |
+| P5 | Validation_Protocol_9 | Mutual information increases ≥1 bit with precision cueing | MI increase ≥1 bit, permutation p < 0.01 | Permutation test for significance | 2024-01-15 | 73% complete |
+| P6 | Validation_Protocol_9 | Information transmission rate asymptotes at ~40 bits/s | Asymptote ~40 bits/s, rate < 100 bits/s | Curve fitting, statistical tests | 2024-01-15 | 73% complete |
+| P7 | Validation_Protocol_9 | Neyman-Pearson optimal threshold test - empirical threshold deviates from optimal by >2 SD | Deviation SD ≤ 2.0 | Neyman-Pearson criterion, bootstrap CI | 2024-01-15 | 73% complete |
 | F1.1 | Falsification-Protocol-1 | APGI agent performance advantage falsification | Advantage <10% OR d < 0.35 OR p ≥ 0.01 | Independent samples t-test | 2024-01-15 | Implemented |
 | F1.2 | Falsification-Protocol-1 | Hierarchical level emergence falsification | <3 clusters OR silhouette < 0.30 OR separation < 1.5× OR η² < 0.50 | K-means clustering, silhouette score, ANOVA | 2024-01-15 | Implemented |
 | F1.3 | Falsification-Protocol-1 | Level-specific precision weighting falsification | Difference <15% OR interaction p ≥ 0.01 OR η² < 0.08 | Repeated-measures ANOVA | 2024-01-15 | Implemented |
@@ -60,10 +60,10 @@ Epistemic Paper P9–P12 (Level 1)          → VP-P4-Epistemic (needs real data
 | F6.1 | Falsification-Protocol-1 | Intrinsic threshold behavior falsification | LTCN transition ≤50ms, delta ≥ 0.60 | Mann-Whitney U test | 2024-01-15 | Implemented |
 | F6.2 | Falsification-Protocol-1 | Intrinsic temporal integration falsification | LTCN window ≥150ms, ratio ≥4×, R² ≥0.85 | Wilcoxon signed-rank test | 2024-01-15 | Implemented |
 | F6.5 | Falsification-Protocol-1 | Hysteresis behavior falsification | Hysteresis 0.05-0.30 | Hysteresis range test | 2024-01-15 | Implemented |
-| V8.1 | Validation-Protocol-8 | Interoceptive-exteroceptive bias falsification | Mean difference ≥10% | Paired t-test | 2024-01-15 | Implemented |
-| V8.2 | Validation-Protocol-8 | Parameter reliability falsification | Test-retest reliability r ≥ 0.70 | Pearson correlation | 2024-01-15 | Implemented |
-| V8.3 | Validation-Protocol-8 | Factor structure falsification | 4-factor solution accounts for ≥70% variance | Factor analysis | 2024-01-15 | Implemented |
-| V8.4 | Validation-Protocol-8 | Disorder parameter validation | All parameters within paper range ±10% | Cross-check with disorder table | 2024-01-15 | Implemented |
+| V8.1 | Validation_Protocol_8 | Interoceptive-exteroceptive bias falsification | Mean difference ≥10% | Paired t-test | 2024-01-15 | Implemented |
+| V8.2 | Validation_Protocol_8 | Parameter reliability falsification | Test-retest reliability r ≥ 0.70 | Pearson correlation | 2024-01-15 | Implemented |
+| V8.3 | Validation_Protocol_8 | Factor structure falsification | 4-factor solution accounts for ≥70% variance | Factor analysis | 2024-01-15 | Implemented |
+| V8.4 | Validation_Protocol_8 | Disorder parameter validation | All parameters within paper range ±10% | Cross-check with disorder table | 2024-01-15 | Implemented |
 
 ## Implementation Notes
 

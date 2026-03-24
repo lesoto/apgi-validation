@@ -2,7 +2,7 @@
 Tests for validation protocols.
 ===============================
 
-Comprehensive tests for all APGI validation protocols including
+Validation protocols including
 functional tests for protocols 5-12 beyond simple import checks.
 """
 
@@ -26,11 +26,11 @@ def load_validation_protocol(protocol_num):
     protocol_path = (
         Path(__file__).parent.parent
         / "Validation"
-        / f"Validation-Protocol-{protocol_num}.py"
+        / f"Validation_Protocol_{protocol_num}.py"
     )
 
     if not protocol_path.exists():
-        raise FileNotFoundError(f"Validation-Protocol-{protocol_num}.py not found")
+        raise FileNotFoundError(f"Validation_Protocol_{protocol_num}.py not found")
 
     spec = importlib.util.spec_from_file_location(
         f"Validation_Protocol_{protocol_num}", protocol_path
@@ -47,18 +47,18 @@ def test_validation_files_exist():
 
     # Check validation protocol files
     validation_files = [
-        "Validation-Protocol-1.py",
-        "Validation-Protocol-2.py",
-        "Validation-Protocol-3.py",
-        "Validation-Protocol-4.py",
-        "Validation-Protocol-5.py",
-        "Validation-Protocol-6.py",
-        "Validation-Protocol-7.py",
-        "Validation-Protocol-8.py",
-        "Validation-Protocol-9.py",
-        "Validation-Protocol-10.py",
-        "Validation-Protocol-11.py",
-        "Validation-Protocol-12.py",
+        "Validation_Protocol_1.py",
+        "Validation_Protocol_2.py",
+        "Validation_Protocol_3.py",
+        "Validation_Protocol_4.py",
+        "Validation_Protocol_5.py",
+        "Validation_Protocol_6.py",
+        "Validation_Protocol_7.py",
+        "Validation_Protocol_8.py",
+        "Validation_Protocol_9.py",
+        "Validation_Protocol_10.py",
+        "Validation_Protocol_11.py",
+        "Validation_Protocol_12.py",
         "APGI_Validation_GUI.py",
         "Master_Validation.py",
     ]
@@ -206,7 +206,7 @@ class TestValidationProtocols5To12:
 
             # Check that key classes exist
             assert hasattr(vp11, "APGIValidationProtocol11")
-            assert hasattr(vp11, "NonAPGIComparisonValidator")
+            assert hasattr(vp11, "NonlinearDetector")
             assert hasattr(vp11, "ArchitectureFailureChecker")
 
             # Test instantiation
@@ -395,12 +395,12 @@ def test_apgi_dynamical_system_simulate_surprise_accumulation():
 
     try:
         # Try to import the dynamical system from the correct location
-        # APGIDynamicalSystem is in Validation-Protocol-1.py
+        # APGIDynamicalSystem is in Validation_Protocol_1.py
         import importlib.util
 
         spec = importlib.util.spec_from_file_location(
             "protocol1",
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-1.py",
+            Path(__file__).parent.parent / "Validation" / "Validation_Protocol_1.py",
         )
         protocol1 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol1)
@@ -443,7 +443,7 @@ def test_apgi_dynamical_system_simulate_surprise_accumulation():
 
 
 def test_validation_protocol_3_hierarchical_generative_model():
-    """Test HierarchicalGenerativeModel from Validation-Protocol-3.py"""
+    """Test HierarchicalGenerativeModel from Validation_Protocol_3.py"""
     try:
         import importlib.util
         import torch
@@ -451,7 +451,7 @@ def test_validation_protocol_3_hierarchical_generative_model():
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-3.py",
+            Path(__file__).parent.parent / "Validation" / "Validation_Protocol_3.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -493,7 +493,7 @@ def test_validation_protocol_3_hierarchical_generative_model():
 
 
 def test_validation_protocol_3_somatic_marker_network():
-    """Test SomaticMarkerNetwork from Validation-Protocol-3.py"""
+    """Test SomaticMarkerNetwork from Validation_Protocol_3.py"""
     try:
         import importlib.util
         import torch
@@ -501,7 +501,7 @@ def test_validation_protocol_3_somatic_marker_network():
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-3.py",
+            Path(__file__).parent.parent / "Validation" / "Validation_Protocol_3.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -532,7 +532,7 @@ def test_validation_protocol_3_somatic_marker_network():
 
 
 def test_validation_protocol_3_policy_network():
-    """Test PolicyNetwork from Validation-Protocol-3.py"""
+    """Test PolicyNetwork from Validation_Protocol_3.py"""
     try:
         import importlib.util
         import torch
@@ -540,7 +540,7 @@ def test_validation_protocol_3_policy_network():
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-3.py",
+            Path(__file__).parent.parent / "Validation" / "Validation_Protocol_3.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -571,14 +571,14 @@ def test_validation_protocol_3_policy_network():
 
 # Placeholder tests for protocols 4-12 (to be expanded)
 def test_validation_protocol_4_apgi_dynamical_system():
-    """Test APGIDynamicalSystem from Validation-Protocol-4.py"""
+    """Test APGIDynamicalSystem from Validation_Protocol_4.py"""
     try:
         import importlib.util
         import numpy as np
 
         spec = importlib.util.spec_from_file_location(
             "protocol4",
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-4.py",
+            Path(__file__).parent.parent / "Validation" / "Validation_Protocol_4.py",
         )
         protocol4 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol4)
@@ -644,9 +644,9 @@ def test_validation_protocol_4_apgi_dynamical_system():
 
 
 def test_validation_protocol_4_exists():
-    """Test that Validation-Protocol-4.py exists and can be imported"""
+    """Test that Validation_Protocol_4.py exists and can be imported"""
     protocol_path = (
-        Path(__file__).parent.parent / "Validation" / "Validation-Protocol-4.py"
+        Path(__file__).parent.parent / "Validation" / "Validation_Protocol_4.py"
     )
     assert protocol_path.exists()
 
@@ -657,13 +657,13 @@ def test_validation_protocol_4_exists():
         protocol4 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol4)
     except ImportError as e:
-        pytest.skip(f"Validation-Protocol-4.py import failed: {e}")
+        pytest.skip(f"Validation_Protocol_4.py import failed: {e}")
 
 
 def test_validation_protocol_5_exists():
-    """Test that Validation-Protocol-5.py exists and can be imported"""
+    """Test that Validation_Protocol_5.py exists and can be imported"""
     protocol_path = (
-        Path(__file__).parent.parent / "Validation" / "Validation-Protocol-5.py"
+        Path(__file__).parent.parent / "Validation" / "Validation_Protocol_5.py"
     )
     assert protocol_path.exists()
 
@@ -674,13 +674,13 @@ def test_validation_protocol_5_exists():
         protocol5 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol5)
     except ImportError as e:
-        pytest.skip(f"Validation-Protocol-5.py import failed: {e}")
+        pytest.skip(f"Validation_Protocol_5.py import failed: {e}")
 
 
 def test_validation_protocol_6_exists():
-    """Test that Validation-Protocol-6.py exists and can be imported"""
+    """Test that Validation_Protocol_6.py exists and can be imported"""
     protocol_path = (
-        Path(__file__).parent.parent / "Validation" / "Validation-Protocol-6.py"
+        Path(__file__).parent.parent / "Validation" / "Validation_Protocol_6.py"
     )
     assert protocol_path.exists()
 
@@ -691,13 +691,13 @@ def test_validation_protocol_6_exists():
         protocol6 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol6)
     except ImportError as e:
-        pytest.skip(f"Validation-Protocol-6.py import failed: {e}")
+        pytest.skip(f"Validation_Protocol_6.py import failed: {e}")
 
 
 def test_validation_protocol_7_exists():
-    """Test that Validation-Protocol-7.py exists and can be imported"""
+    """Test that Validation_Protocol_7.py exists and can be imported"""
     protocol_path = (
-        Path(__file__).parent.parent / "Validation" / "Validation-Protocol-7.py"
+        Path(__file__).parent.parent / "Validation" / "Validation_Protocol_7.py"
     )
     assert protocol_path.exists()
 
@@ -708,13 +708,13 @@ def test_validation_protocol_7_exists():
         protocol7 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol7)
     except ImportError as e:
-        pytest.skip(f"Validation-Protocol-7.py import failed: {e}")
+        pytest.skip(f"Validation_Protocol_7.py import failed: {e}")
 
 
 def test_validation_protocol_8_exists():
-    """Test that Validation-Protocol-8.py exists and can be imported"""
+    """Test that Validation_Protocol_8.py exists and can be imported"""
     protocol_path = (
-        Path(__file__).parent.parent / "Validation" / "Validation-Protocol-8.py"
+        Path(__file__).parent.parent / "Validation" / "Validation_Protocol_8.py"
     )
     assert protocol_path.exists()
 
@@ -725,13 +725,13 @@ def test_validation_protocol_8_exists():
         protocol8 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol8)
     except ImportError as e:
-        pytest.skip(f"Validation-Protocol-8.py import failed: {e}")
+        pytest.skip(f"Validation_Protocol_8.py import failed: {e}")
 
 
 def test_validation_protocol_9_exists():
-    """Test that Validation-Protocol-9.py exists and can be imported"""
+    """Test that Validation_Protocol_9.py exists and can be imported"""
     protocol_path = (
-        Path(__file__).parent.parent / "Validation" / "Validation-Protocol-9.py"
+        Path(__file__).parent.parent / "Validation" / "Validation_Protocol_9.py"
     )
     assert protocol_path.exists()
 
@@ -742,13 +742,13 @@ def test_validation_protocol_9_exists():
         protocol9 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol9)
     except ImportError as e:
-        pytest.skip(f"Validation-Protocol-9.py import failed: {e}")
+        pytest.skip(f"Validation_Protocol_9.py import failed: {e}")
 
 
 def test_validation_protocol_10_exists():
-    """Test that Validation-Protocol-10.py exists and can be imported"""
+    """Test that Validation_Protocol_10.py exists and can be imported"""
     protocol_path = (
-        Path(__file__).parent.parent / "Validation" / "Validation-Protocol-10.py"
+        Path(__file__).parent.parent / "Validation" / "Validation_Protocol_10.py"
     )
     assert protocol_path.exists()
 
@@ -759,13 +759,13 @@ def test_validation_protocol_10_exists():
         protocol10 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol10)
     except ImportError as e:
-        pytest.skip(f"Validation-Protocol-10.py import failed: {e}")
+        pytest.skip(f"Validation_Protocol_10.py import failed: {e}")
 
 
 def test_validation_protocol_11_exists():
-    """Test that Validation-Protocol-11.py exists and can be imported"""
+    """Test that Validation_Protocol_11.py exists and can be imported"""
     protocol_path = (
-        Path(__file__).parent.parent / "Validation" / "Validation-Protocol-11.py"
+        Path(__file__).parent.parent / "Validation" / "Validation_Protocol_11.py"
     )
     assert protocol_path.exists()
 
@@ -776,13 +776,13 @@ def test_validation_protocol_11_exists():
         protocol11 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol11)
     except ImportError as e:
-        pytest.skip(f"Validation-Protocol-11.py import failed: {e}")
+        pytest.skip(f"Validation_Protocol_11.py import failed: {e}")
 
 
 def test_validation_protocol_12_exists():
-    """Test that Validation-Protocol-12.py exists and can be imported"""
+    """Test that Validation_Protocol_12.py exists and can be imported"""
     protocol_path = (
-        Path(__file__).parent.parent / "Validation" / "Validation-Protocol-12.py"
+        Path(__file__).parent.parent / "Validation" / "Validation_Protocol_12.py"
     )
     assert protocol_path.exists()
 
@@ -793,7 +793,7 @@ def test_validation_protocol_12_exists():
         protocol12 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol12)
     except ImportError as e:
-        pytest.skip(f"Validation-Protocol-12.py import failed: {e}")
+        pytest.skip(f"Validation_Protocol_12.py import failed: {e}")
 
 
 @pytest.mark.parametrize(
@@ -851,7 +851,7 @@ def test_hierarchical_generative_model_edge_cases(levels_config):
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-3.py",
+            Path(__file__).parent.parent / "Validation" / "Validation_Protocol_3.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -893,7 +893,7 @@ def test_somatic_marker_network_edge_cases(context_dim, action_dim):
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-3.py",
+            Path(__file__).parent.parent / "Validation" / "Validation_Protocol_3.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -931,7 +931,7 @@ def test_policy_network_edge_cases(state_dim, action_dim):
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
-            Path(__file__).parent.parent / "Validation" / "Validation-Protocol-3.py",
+            Path(__file__).parent.parent / "Validation" / "Validation_Protocol_3.py",
         )
         protocol3 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol3)
@@ -972,7 +972,7 @@ def test_apgi_dynamical_system_parameter_ranges(tau_S, tau_theta, alpha):
             "synthetic_eeg",
             Path(__file__).parent.parent
             / "Validation"
-            / "SyntheticEEG-MLClassification.py",
+            / "SyntheticEEG_MLClassification.py",
         )
         synthetic_eeg = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(synthetic_eeg)

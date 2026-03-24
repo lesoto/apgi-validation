@@ -14,7 +14,7 @@ import numpy as np
 
 # Load the module with hyphen in filename
 spec = importlib.util.spec_from_file_location(
-    "APGI_Model", "APGI-Full-Dynamic-Model.py"
+    "APGI_Model", "APGI_Full_Dynamic_Model.py"
 )
 APGI_Model = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(APGI_Model)

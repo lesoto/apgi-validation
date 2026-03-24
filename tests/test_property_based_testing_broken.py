@@ -25,14 +25,14 @@ try:
     APGI_EQUATIONS_AVAILABLE = True
 except ImportError as e:
     APGI_EQUATIONS_AVAILABLE = False
-    print(f"Warning: APGI-Equations not available for property-based testing: {e}")
+    print(f"Warning: APGI_Equations not available for property-based testing: {e}")
 
 
 class TestMathematicalProperties:
     """Test mathematical properties and invariants."""
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(
         strategies.floats(min_value=-1e6, max_value=1e6),
@@ -50,7 +50,7 @@ class TestMathematicalProperties:
         assert np.isclose(error1, -error2, rtol=1e-10)
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(strategies.floats(min_value=-1e6, max_value=1e6))
     def test_z_score_normalization_property(self, observed, predicted):
@@ -69,7 +69,7 @@ class TestMathematicalProperties:
                 assert abs(np.std(z_score) - 1.0) < 0.2  # Std close to 1
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(
         strategies.floats(min_value=0.1, max_value=10.0),
@@ -85,7 +85,7 @@ class TestMathematicalProperties:
         assert pi_i < 100.0  # Reasonable upper bound
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(strategies.floats(min_value=0.0, max_value=10.0))
     def test_alpha_bounds_property(self, alpha):
@@ -96,7 +96,7 @@ class TestMathematicalProperties:
         assert alpha < 100.0  # Reasonable upper bound
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(
         strategies.fixed_dictionaries(
@@ -117,7 +117,7 @@ class TestMathematicalProperties:
         assert 0.0 <= ignition_prob <= 1.0
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(
         strategies.fixed_dictionaries(
@@ -143,7 +143,7 @@ class TestStatisticalInvariants:
     """Test statistical invariants and properties."""
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(strategies.floats(min_value=0.0, max_value=1000.0))
     def test_variance_stability_property(self, data):
@@ -153,7 +153,7 @@ class TestStatisticalInvariants:
         assert np.isfinite(np.variance(data))  # Variance should be finite
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(strategies.floats(min_value=0.0, max_value=1000.0))
     def test_mean_reversion_property(self, data):
@@ -167,7 +167,7 @@ class TestStatisticalInvariants:
             assert abs(mean1 - mean2) < 0.1  # Close means for large samples
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(strategies.floats(min_value=0.0, max_value=1e6))
     def test_correlation_bounds_property(self, x, y):
@@ -178,7 +178,7 @@ class TestStatisticalInvariants:
         assert np.isfinite(correlation)  # Correlation should be finite
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     @given(strategies.floats(min_value=0.0, max_value=1.0))
     def test_entropy_bounds_property(self, data):
@@ -193,7 +193,7 @@ class TestEdgeCaseProperties:
     """Test edge cases and boundary conditions."""
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_zero_input_handling(self):
         """Test handling of zero inputs."""
@@ -221,7 +221,7 @@ class TestEdgeCaseProperties:
             assert "infinite" in str(e).lower() or "overflow" in str(e).lower()
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_nan_input_handling(self):
         """Test handling of NaN inputs."""
@@ -324,7 +324,7 @@ class TestIntegrationProperties:
     """Test integration-level properties and invariants."""
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_data_flow_consistency(self):
         """Test that data flows are consistent across modules."""
@@ -342,7 +342,7 @@ class TestIntegrationProperties:
         assert len(synthetic_data) == 5
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_parameter_flow_consistency(self):
         """Test that parameters flow consistently through workflow."""
@@ -356,7 +356,7 @@ class TestIntegrationProperties:
         assert z_score is not None
 
     @pytest.mark.skipif(
-        not APGI_EQUATIONS_AVAILABLE, reason="APGI-Equations not available"
+        not APGI_EQUATIONS_AVAILABLE, reason="APGI_Equations not available"
     )
     def test_state_transition_consistency(self):
         """Test that state transitions are consistent."""

@@ -80,7 +80,7 @@ class APGIMasterValidator:
         }
         self.available_protocols = {
             "Protocol-1": {
-                "file": "Validation-Protocol-1.py",
+                "file": "Validation_Protocol_1.py",
                 "function": "run_validation",
                 "description": "Synthetic Neural Data Generation and ML Classification",
             },
@@ -90,7 +90,7 @@ class APGIMasterValidator:
                 "description": "Behavioral Validation Protocol",
             },
             "Protocol-3": {
-                "file": "Validation-Protocol-3.py",
+                "file": "Validation_Protocol_3.py",
                 "function": "run_validation",
                 "description": "Agent Comparison Experiment",
             },
@@ -100,42 +100,42 @@ class APGIMasterValidator:
                 "description": "Phase Transition Analysis",
             },
             "Protocol-5": {
-                "file": "Validation-Protocol-5.py",
+                "file": "Validation_Protocol_5.py",
                 "function": "run_validation",
                 "description": "Evolutionary Emergence",
             },
             "Protocol-6": {
-                "file": "Validation-Protocol-6.py",
+                "file": "Validation_Protocol_6.py",
                 "function": "run_validation",
                 "description": "Network Comparison",
             },
             "Protocol-7": {
-                "file": "Validation-Protocol-7.py",
+                "file": "Validation_Protocol_7.py",
                 "function": "run_validation",
                 "description": "Mathematical Consistency",
             },
             "Protocol-8": {
-                "file": "Validation-Protocol-8.py",
+                "file": "Validation_Protocol_8.py",
                 "function": "run_validation",
                 "description": "Parameter Sensitivity",
             },
             "Protocol-9": {
-                "file": "Validation-Protocol-9.py",
+                "file": "Validation_Protocol_9.py",
                 "function": "run_validation",
                 "description": "Neural Signatures Validation",
             },
             "Protocol-10": {
-                "file": "Validation-Protocol-10.py",
+                "file": "Validation_Protocol_10.py",
                 "function": "run_validation",
                 "description": "Cross-Species Scaling",
             },
             "Protocol-11": {
-                "file": "Validation-Protocol-11.py",
+                "file": "Validation_Protocol_11.py",
                 "function": "run_validation",
                 "description": "Bayesian Estimation",
             },
             "Protocol-12": {
-                "file": "Validation-Protocol-12.py",
+                "file": "Validation_Protocol_12.py",
                 "function": "run_validation",
                 "description": "Computational Benchmarking",
             },

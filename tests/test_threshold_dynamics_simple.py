@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 # Load APGI_Liquid_Network_Implementation from hyphenated filename
 spec = importlib.util.spec_from_file_location(
     "APGI_Liquid_Network_Implementation",
-    Path(__file__).parent.parent / "APGI-Liquid-Network-Implementation.py",
+    Path(__file__).parent.parent / "APGI_Liquid_Network_Implementation.py",
 )
 APGI_Liquid_Network_Implementation = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(APGI_Liquid_Network_Implementation)
