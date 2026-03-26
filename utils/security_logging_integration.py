@@ -34,7 +34,7 @@ def secure_file_read(file_path: str) -> str:
     log_read(str(path))
 
     try:
-        with open(path, ', encoding="utf-8"r') as f:
+        with open(path, "r", encoding="utf-8") as f:
             content = f.read()
         return content
     except Exception as e:

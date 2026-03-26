@@ -30,7 +30,32 @@
         "learning_rate": {"type": "number", "minimum": 0, "maximum": 1, "description": "Network learning rate"},
         "value_learning_rate": {"type": "number", "minimum": 0, "maximum": 1, "description": "Value network learning rate"},
         "dt": {"type": "number", "minimum": 0.001, "description": "Simulation time step"},
-        "duration": {"type": "number", "minimum": 0.1, "description": "Simulation duration"}
+        "duration": {"type": "number", "minimum": 0.1, "description": "Simulation duration"},
+        "F6_2_MIN_INTEGRATION_RATIO": {"type": "number", "minimum": 0, "description": "Minimum integration ratio for F6.2 criterion (≥4× RNN)"},
+        "F6_2_FALSIFICATION_RATIO": {"type": "number", "minimum": 0, "description": "Falsification ratio threshold for F6.2 (<2.5×)"},
+        "F6_2_MIN_CURVE_FIT_R2": {"type": "number", "minimum": 0, "maximum": 1, "description": "Minimum R² for curve fitting in F6.2 (≥0.85)"},
+        "F6_2_WILCOXON_ALPHA": {"type": "number", "minimum": 0, "maximum": 1, "description": "Alpha level for Wilcoxon test in F6.2"},
+        "F6_2_LTCN_MIN_WINDOW_MS": {"type": "number", "minimum": 0, "description": "Minimum LTCN integration window for F6.2 (≥200ms)"},
+        "F6_2_MIN_R2": {"type": "number", "minimum": 0, "description": "Alias for F6.2.MIN_CURVE_FIT_R2"},
+        "F6_1_LTCN_MAX_TRANSITION_MS": {"type": "number", "minimum": 0, "description": "Maximum LTCN transition time for F6.1 (≤50ms)"},
+        "F6_1_CLIFFS_DELTA_MIN": {"type": "number", "minimum": 0, "description": "Minimum Cliff's delta for F6.1 (≥0.30)"},
+        "F6_1_MANN_WHITNEY_ALPHA": {"type": "number", "minimum": 0, "description": "Alpha level for Mann-Whitney test in F6.1"},
+        "F5_5_PCA_MIN_VARIANCE": {"type": "number", "minimum": 0, "description": "Minimum PCA variance for F5.5 (≥70%)"},
+        "F5_5_PCA_FALSIFICATION_THRESHOLD": {"type": "number", "minimum": 0, "description": "PCA variance threshold for F5.5 falsification (<60%)"},
+        "F5_5_MIN_LOADING": {"type": "number", "minimum": 0, "description": "Minimum PC loading for F5.5 analysis"},
+        "V6_1_MIN_P3B_REDUCTION_PCT": {"type": "number", "minimum": 0, "description": "Minimum P3b reduction for V6.1 (≥12%)"},
+        "V6_1_MIN_IGNITION_REDUCTION_PCT": {"type": "number", "minimum": 0, "description": "Minimum ignition reduction for V6.1 (≥30%)"},
+        "V6_1_MIN_COHENS_D": {"type": "number", "minimum": 0, "description": "Minimum coherence effect size for V6.1 (≥0.60)"},
+        "F1_1_MIN_ADVANTAGE_PCT": {"type": "number", "minimum": 0, "description": "Minimum advantage for F1.1 (≥18%)"},
+        "F1_1_MIN_COHENS_D": {"type": "number", "minimum": 0, "description": "Minimum coherence effect size for F1.1 (≥0.60)"},
+        "F1_2_MIN_ADVANTAGE_PCT": {"type": "number", "minimum": 0, "description": "Minimum advantage for F1.2 (≥18%)"},
+        "F6": {
+          "type": "object",
+          "description": "Innovation 29 (LNN AUROC superiority) parameters",
+          "properties": {
+            "delta_auroc_min": {"type": "number", "minimum": 0, "description": "Minimum ΔAUROC for LNN superiority (≥0.05)"}
+          }
+        }
       }
     },
     "simulation": {

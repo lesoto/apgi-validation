@@ -200,7 +200,7 @@ class CrashRecovery:
     def _log_crash(self, crash_info: Dict[str, Any]):
         """Log crash information."""
         try:
-            with open(self.crash_log_file, ', encoding="utf-8"a') as f:
+            with open(self.crash_log_file, "a", encoding="utf-8") as f:
                 f.write(f"\n=== Crash at {datetime.now().isoformat()} ===\n")
                 f.write(f"Application: {self.app_name}\n")
                 f.write(f"Error: {crash_info.get('error', 'Unknown')}\n")
@@ -255,7 +255,7 @@ class CrashRecovery:
             return None
 
         try:
-            with open(self.crash_log_file, ', encoding="utf-8"r') as f:
+            with open(self.crash_log_file, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             print(f"Failed to read crash log: {e}")

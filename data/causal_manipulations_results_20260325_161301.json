@@ -1,0 +1,187 @@
+{
+  "protocol_name": "CausalManipulations_Priority2",
+  "validation_timestamp": "2026-03-25T16:13:01.306863",
+  "intervention_results": [
+    {
+      "intervention": "tms_theta_disruption",
+      "validation_tests": [
+        {
+          "intervention": "tms_theta_disruption",
+          "target_parameter": "theta",
+          "test_type": "tms_ignition_disruption",
+          "pre_intervention_mean": -0.020385482586042492,
+          "post_intervention_mean": -0.7570659065505617,
+          "effect_size": -0.7366804239645193,
+          "statistical_test": {
+            "t_statistic": -16.142684301390407,
+            "p_value": 5.057107671441385e-38,
+            "alpha": 0.01
+          },
+          "clinical_significance": true,
+          "falsification_passed": true,
+          "direction_prediction_correct": true,
+          "statistical_significance": true
+        },
+        {
+          "intervention": "tms_theta_disruption",
+          "test_type": "adverse_event_monitoring",
+          "adverse_events": [],
+          "stopping_criteria_met": false,
+          "clinical_action": "continue",
+          "safety_monitoring": {
+            "vital_signs": {
+              "heart_rate": 75,
+              "blood_pressure": {
+                "systolic": 120
+              }
+            },
+            "participant_reported": {
+              "discomfort": 0.3,
+              "nausea": 0.2
+            },
+            "examiner_observations": {
+              "sedation_level": 0.4
+            }
+          }
+        },
+        {
+          "intervention": "tms_theta_disruption",
+          "test_type": "ethics_compliance",
+          "ethics_approval": true,
+          "dsmb_active": true,
+          "safety_monitoring": true,
+          "data_privacy": true,
+          "participant_consent": true,
+          "compliance_issues": [],
+          "falsification_passed": true
+        }
+      ],
+      "overall_passed": true,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "intervention": "propofol_precision_enhancement",
+      "validation_tests": [
+        {
+          "intervention": "propofol_precision_enhancement",
+          "target_parameter": "Pi_i",
+          "test_type": "pharmacological_precision_change",
+          "pre_intervention_precision": 0.9831788497612339,
+          "post_intervention_precision": 0.3723603061857295,
+          "precision_change": -0.6108185435755045,
+          "statistical_test": {
+            "f_statistic": 1.2166285729226645,
+            "p_value": 0.27068980144416005,
+            "alpha": 0.01
+          },
+          "clinical_significance": true,
+          "falsification_passed": false,
+          "direction_prediction_correct": true,
+          "statistical_significance": false
+        },
+        {
+          "intervention": "propofol_precision_enhancement",
+          "test_type": "adverse_event_monitoring",
+          "adverse_events": [],
+          "stopping_criteria_met": false,
+          "clinical_action": "continue",
+          "safety_monitoring": {
+            "vital_signs": {
+              "heart_rate": 75,
+              "blood_pressure": {
+                "systolic": 120
+              }
+            },
+            "participant_reported": {
+              "discomfort": 0.3,
+              "nausea": 0.2
+            },
+            "examiner_observations": {
+              "sedation_level": 0.4
+            }
+          }
+        },
+        {
+          "intervention": "propofol_precision_enhancement",
+          "test_type": "ethics_compliance",
+          "ethics_approval": true,
+          "dsmb_active": true,
+          "safety_monitoring": true,
+          "data_privacy": true,
+          "participant_consent": true,
+          "compliance_issues": [],
+          "falsification_passed": true
+        }
+      ],
+      "overall_passed": true,
+      "pass_rate": 0.3333333333333333
+    },
+    {
+      "intervention": "fasting_theta_modulation",
+      "validation_tests": [
+        {
+          "intervention": "fasting_theta_modulation",
+          "target_parameter": "theta",
+          "test_type": "metabolic_threshold_shift",
+          "pre_intervention_threshold": 0.06412572292142531,
+          "post_intervention_threshold": -0.4331834920025341,
+          "threshold_shift": -0.4973092149239594,
+          "statistical_test": {
+            "t_statistic": -10.599985133021073,
+            "p_value": 4.224948907549625e-21,
+            "alpha": 0.01
+          },
+          "clinical_significance": true,
+          "falsification_passed": true,
+          "direction_prediction_correct": true,
+          "statistical_significance": true
+        },
+        {
+          "intervention": "fasting_theta_modulation",
+          "test_type": "adverse_event_monitoring",
+          "adverse_events": [],
+          "stopping_criteria_met": false,
+          "clinical_action": "continue",
+          "safety_monitoring": {
+            "vital_signs": {
+              "heart_rate": 75,
+              "blood_pressure": {
+                "systolic": 120
+              }
+            },
+            "participant_reported": {
+              "discomfort": 0.3,
+              "nausea": 0.2
+            },
+            "examiner_observations": {
+              "sedation_level": 0.4
+            }
+          }
+        },
+        {
+          "intervention": "fasting_theta_modulation",
+          "test_type": "ethics_compliance",
+          "ethics_approval": true,
+          "dsmb_active": true,
+          "safety_monitoring": true,
+          "data_privacy": true,
+          "participant_consent": true,
+          "compliance_issues": [],
+          "falsification_passed": true
+        }
+      ],
+      "overall_passed": true,
+      "pass_rate": 0.6666666666666666
+    }
+  ],
+  "summary_statistics": {
+    "total_interventions": 3,
+    "total_validation_tests": 9,
+    "passed_validation_tests": 5,
+    "overall_pass_rate": 0.5555555555555556
+  },
+  "overall_falsification_passed": true,
+  "recommendations": [
+    "Protocol shows strong falsification potential"
+  ]
+}

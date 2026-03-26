@@ -23,6 +23,7 @@ sphinx-rtd-theme>=1.2.0,<2.0.0
 # Security scanning
 bandit>=1.7.0,<2.0.0
 safety>=2.0.0,<3.0.0
+pip-audit>=2.0.0,<3.0.0
 
 # Performance profiling
 memory-profiler>=0.60.0,<1.0.0

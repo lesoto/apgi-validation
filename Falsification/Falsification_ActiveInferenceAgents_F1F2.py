@@ -3,11 +3,11 @@ import sys
 import os
 import numpy as np
 import pandas as pd
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple
 
 # Add parent directory to path for utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.constants import LEVEL_TIMESCALES, Optional, Tuple
+from utils.constants import LEVEL_TIMESCALES
 from collections import deque
 from scipy import stats
 from scipy.stats import binomtest
@@ -15,23 +15,12 @@ from scipy.optimize import curve_fit
 
 try:
     from specparam import FOOOF
-except ImportError:
-    # Fallback to deprecated fooof if specparam not available
-    try:
-        from fooof import FOOOF
-        import warnings
 
-        warnings.warn(
-            "The `fooof` package is being deprecated and replaced by the `specparam` "
-            "(spectral parameterization) package. This version of `fooof` (1.1) is fully "
-            "functional, but will not be further updated. New projects are recommended to "
-            "update to using `specparam` (see Changelog for details).",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-    except ImportError:
-        # Fallback if neither package is available
-        FOOOF = None
+    FOOOF_AVAILABLE = True
+except ImportError:
+    # Fallback if specparam not available
+    FOOOF_AVAILABLE = False
+    FOOOF = None
 from statsmodels.stats.power import TTestPower, FTestAnovaPower
 import statsmodels.api as sm
 from pathlib import Path
@@ -44,18 +33,18 @@ if str(project_root) not in sys.path:
 
 # Import spectral analysis utilities
 try:
-    from utils.spectral_analysis import (
-        compute_spectral_slope_fooof,
-        validate_fooof_fit,
-        create_fooof_frequencies,
-    )
+    # from utils.spectral_analysis import (
+    #     compute_spectral_slope_specparam,  # Unused import
+    #     validate_specparam_fit,  # Unused import
+    # )
+    pass  # Placeholder for commented imports
 
-    SPECTRAL_ANALYSIS_AVAILABLE = True
+    FOOOF_AVAILABLE = True
 except ImportError:
-    SPECTRAL_ANALYSIS_AVAILABLE = False
-    compute_spectral_slope_fooof = None
-    validate_fooof_fit = None
-    create_fooof_frequencies = None
+    # Fallback if neither package is available
+    FOOOF_AVAILABLE = False
+    FOOOF = None
+    generate_synthetic_spectra = None
 
 # Import centralized constants
 try:
@@ -364,7 +353,7 @@ try:
         """Load PAC band configuration from default.yaml"""
         try:
             config_path = Path(__file__).parent.parent / "config" / "default.yaml"
-            with open(config_path, ', encoding="utf-8"r') as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
                 return config.get("pac_bands", {})
         except Exception:
@@ -1031,7 +1020,7 @@ class APGIActiveInferenceAgent:
             levels=[
                 {"name": "sensory", "dim": SENSORY_DIM, "tau": 0.05},
                 {"name": "objects", "dim": OBJECTS_DIM, "tau": 0.2},
-                {"name": "context", "dim": CONTEXT_DIM, "tau": 1.0},
+                {"name": "context", "dim": CONTEXT_DIM, "tau": 0.5},
             ],
             learning_rate=config.get("lr_extero", 0.01),
             model_type="extero",
@@ -1040,9 +1029,9 @@ class APGIActiveInferenceAgent:
         # Interoceptive model (3 levels)
         self.intero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "visceral", "dim": VISCERAL_DIM, "tau": 0.1},
-                {"name": "organ", "dim": ORGAN_DIM, "tau": 0.5},
-                {"name": "homeostatic", "dim": HOMEOSTATIC_DIM, "tau": 2.0},
+                {"name": "visceral", "dim": VISCERAL_DIM, "tau": 0.05},
+                {"name": "organ", "dim": ORGAN_DIM, "tau": 0.2},
+                {"name": "homeostatic", "dim": HOMEOSTATIC_DIM, "tau": 0.5},
             ],
             learning_rate=config.get("lr_intero", 0.01),
             model_type="intero",
@@ -1453,9 +1442,21 @@ class StandardPPAgent:
         # Same generative models as APGI but no ignition mechanism
         self.extero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "sensory", "dim": SENSORY_DIM, "tau": 0.05},
-                {"name": "objects", "dim": OBJECTS_DIM, "tau": 0.2},
-                {"name": "context", "dim": CONTEXT_DIM, "tau": 1.0},
+                {
+                    "name": "sensory",
+                    "dim": SENSORY_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_SENSORY,
+                },
+                {
+                    "name": "objects",
+                    "dim": OBJECTS_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_ORGAN,
+                },
+                {
+                    "name": "context",
+                    "dim": CONTEXT_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_COGNITIVE,
+                },
             ],
             learning_rate=config.get("lr_extero", 0.01),
             model_type="extero",
@@ -1463,9 +1464,21 @@ class StandardPPAgent:
 
         self.intero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "visceral", "dim": VISCERAL_DIM, "tau": 0.1},
-                {"name": "organ", "dim": ORGAN_DIM, "tau": 0.5},
-                {"name": "homeostatic", "dim": HOMEOSTATIC_DIM, "tau": 2.0},
+                {
+                    "name": "visceral",
+                    "dim": VISCERAL_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_SENSORY,
+                },
+                {
+                    "name": "organ",
+                    "dim": ORGAN_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_ORGAN,
+                },
+                {
+                    "name": "homeostatic",
+                    "dim": HOMEOSTATIC_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_COGNITIVE,
+                },
             ],
             learning_rate=config.get("lr_intero", 0.01),
             model_type="intero",
@@ -1564,9 +1577,21 @@ class GWTOnlyAgent:
         # Exteroceptive model only (no interoceptive precision weighting)
         self.extero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "sensory", "dim": SENSORY_DIM, "tau": 0.05},
-                {"name": "objects", "dim": OBJECTS_DIM, "tau": 0.2},
-                {"name": "context", "dim": CONTEXT_DIM, "tau": 1.0},
+                {
+                    "name": "sensory",
+                    "dim": SENSORY_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_SENSORY,
+                },
+                {
+                    "name": "objects",
+                    "dim": OBJECTS_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_ORGAN,
+                },
+                {
+                    "name": "context",
+                    "dim": CONTEXT_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_COGNITIVE,
+                },
             ],
             learning_rate=config.get("lr_extero", 0.01),
             model_type="extero",
@@ -1575,9 +1600,21 @@ class GWTOnlyAgent:
         # Simple interoceptive model (no precision weighting)
         self.intero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "visceral", "dim": VISCERAL_DIM, "tau": 0.1},
-                {"name": "organ", "dim": ORGAN_DIM, "tau": 0.5},
-                {"name": "homeostatic", "dim": HOMEOSTATIC_DIM, "tau": 2.0},
+                {
+                    "name": "visceral",
+                    "dim": VISCERAL_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_SENSORY,
+                },
+                {
+                    "name": "organ",
+                    "dim": ORGAN_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_ORGAN,
+                },
+                {
+                    "name": "homeostatic",
+                    "dim": HOMEOSTATIC_DIM,
+                    "tau": LEVEL_TIMESCALES.TAU_COGNITIVE,
+                },
             ],
             learning_rate=config.get("lr_intero", 0.01),
             model_type="intero",
@@ -2080,7 +2117,7 @@ def check_falsification(
             import yaml
 
             config_path = Path(__file__).parent.parent / "config" / "default.yaml"
-            with open(config_path, ', encoding="utf-8"r') as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
         except Exception:
             config = {}

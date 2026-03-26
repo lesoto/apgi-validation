@@ -23,10 +23,6 @@
 ### Installation
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd apgi-theory
-
 # Create virtual environment
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate

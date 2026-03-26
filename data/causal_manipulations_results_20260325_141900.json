@@ -1,0 +1,20 @@
+{
+  "protocol_name": "CausalManipulations_Priority2",
+  "validation_timestamp": "2026-03-25T14:19:00.427824",
+  "intervention_results": [
+    {
+      "intervention": "tms_theta_disruption",
+      "validation_tests": [
+        {
+          "intervention": "tms_theta_disruption",
+          "target_parameter": "theta",
+          "test_type": "tms_ignition_disruption",
+          "pre_intervention_mean": -0.10384651739409384,
+          "post_intervention_mean": -0.7776954129500763,
+          "effect_size": -0.6738488955559825,
+          "statistical_test": {
+            "t_statistic": -4.800288986400611,
+            "p_value": 5.620178476663351e-06,
+            "alpha": 0.01
+          },
+          "clinical_significance": 

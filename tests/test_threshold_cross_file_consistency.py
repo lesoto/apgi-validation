@@ -132,7 +132,7 @@ def test_all_threshold_constants_exported_from_utils():
     assert isinstance(F5_3_FALSIFICATION_RATIO, float)
 
     # Verify key values match root file
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         F6_2_MIN_R2 as root_F6_2_MIN_R2,
         F5_3_FALSIFICATION_RATIO as root_F5_3_FALSIFICATION_RATIO,
     )

@@ -4023,7 +4023,7 @@ def main():
 
     abs_save_path = os.path.abspath("protocol1_results.json")
     try:
-        with open(abs_save_path, ', encoding="utf-8"w', encoding="utf-8") as f:
+        with open(abs_save_path, "w") as f:
             json.dump(json_compatible_results, f, indent=2)
         print(f"✅ Results saved to: {abs_save_path}")
     except IOError as e:

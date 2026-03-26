@@ -1083,7 +1083,7 @@ class APGISpectralAnalysis:
             import yaml
 
             config_path = Path(__file__).parent / "config" / "default.yaml"
-            with open(config_path, ', encoding="utf-8"r') as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
                 return config.get("pac_bands", {})
         except Exception:
@@ -2256,6 +2256,10 @@ class APGIQualityControl:
         "vmPFC_connectivity": (-1.0, 1.0),  # Pearson r
     }
 
+    def __init__(self, config: Dict = None):
+        """Initialize quality control with optional configuration."""
+        self.config = config or {}
+
     @staticmethod
     def validate_measurement(
         modality: str,
@@ -2688,6 +2692,7 @@ class RealtimeAPGIMonitor:
 
     def __init__(self, normalizer: APGINormalizer, buffer_size: int = 1000):
         self.normalizer = normalizer
+        self.buffer_size = buffer_size
         self.buffers = defaultdict(lambda: deque(maxlen=buffer_size))
         self.session_stats = {}
 
@@ -3898,7 +3903,7 @@ def demonstrate_cardiac_phase_detection():
 
     # Import threshold from falsification thresholds
     try:
-        from falsification_thresholds import F2_CARDIAC_DETECTION_ADVANTAGE_MIN
+        from utils.falsification_thresholds import F2_CARDIAC_DETECTION_ADVANTAGE_MIN
 
         threshold = F2_CARDIAC_DETECTION_ADVANTAGE_MIN
         print(f"Using registered threshold: {threshold * 100:.0f}% minimum advantage")

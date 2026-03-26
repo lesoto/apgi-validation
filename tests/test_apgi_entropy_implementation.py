@@ -11,12 +11,13 @@ from unittest.mock import MagicMock
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
 
 # Import the module with error handling (hyphenated filename requires importlib)
 try:
     import importlib
 
-    _entropy_module = importlib.import_module("APGI_Entropy_Implementation")
+    _entropy_module = importlib.import_module("Theory.APGI_Entropy_Implementation")
     APGIConfig = _entropy_module.APGIConfig
     IgnitionState = _entropy_module.IgnitionState
     EntropyOutput = _entropy_module.EntropyOutput

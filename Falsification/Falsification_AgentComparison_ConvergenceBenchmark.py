@@ -54,7 +54,7 @@ except ImportError:
         return results
 
 
-from falsification_thresholds import (
+from utils.falsification_thresholds import (
     F1_1_MIN_ADVANTAGE_PCT,
     F1_1_MIN_COHENS_D,
     F1_1_ALPHA,
@@ -497,8 +497,12 @@ class ThreatRewardTradeoffEnvironment:
         # Encode which option was chosen
         encoding[action] = 1.0
 
-        # Encode reward magnitude
-        encoding[4 + action] = np.clip(reward / 100.0, 0, 1)
+        # Encode reward magnitude with validation for edge cases
+        if np.isfinite(reward) and not np.isnan(reward):
+            encoding[4 + action] = np.clip(reward / 100.0, 0, 1)
+        else:
+            # Handle infinite or NaN rewards by using neutral encoding
+            encoding[4 + action] = 0.5
 
         # Add noise
         encoding[8:] = np.random.normal(0, 0.1, 24)
@@ -1552,7 +1556,7 @@ def check_falsification(
     }
 
     # Use thresholds from falsification_thresholds.py
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         F5_1_MIN_PROPORTION,
         F5_1_MIN_ALPHA,
         F5_1_MIN_COHENS_D,

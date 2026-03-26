@@ -54,7 +54,7 @@ flake8 .                                          # Lint code (Config in .flake8
 
 ### Main entry point
 
-`main.py` defines the unified CLI interface using `typer` with commands for validation, falsification, visualization, and benchmarking. It includes secure module loading (`secure_load_module`, `secure_load_module_from_path`) with path validation to prevent directory traversal attacks.
+`main.py` defines the unified CLI interface using `click` with commands for validation, falsification, visualization, and benchmarking. It includes secure module loading (`secure_load_module`, `secure_load_module_from_path`) with path validation to prevent directory traversal attacks.
 
 ### Configuration
 

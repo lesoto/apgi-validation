@@ -139,7 +139,7 @@ class SecureFileOperations:
             if lock.acquire():
                 # Double-check file still exists and is accessible
                 if path.exists() and os.access(path, os.R_OK):
-                    with open(path, ', encoding="utf-8"r') as f:
+                    with open(path, "r", encoding="utf-8") as f:
                         content = f.read()
                     return content
                 else:

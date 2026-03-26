@@ -307,27 +307,27 @@ class APGIModuleLoader:
         """Load all available APGI modules."""
         module_configs = {
             "formal_model": {
-                "file": "Falsification/Falsification-Protocol-4.py",
+                "file": "Falsification/Falsification_InformationTheoretic_PhaseTransition.py",
                 "class": "SurpriseIgnitionSystem",
                 "description": "Formal model simulations",
             },
             "multimodal": {
-                "file": "APGI_Multimodal_Integration.py",
+                "file": "Theory/APGI_Multimodal_Integration.py",
                 "class": None,  # Will detect main class
                 "description": "Multimodal data integration",
             },
             "parameter_estimation": {
-                "file": "APGI_Parameter_Estimation.py",
+                "file": "Theory/APGI_Parameter_Estimation.py",
                 "class": None,
                 "description": "Bayesian parameter estimation",
             },
             "psychological_states": {
-                "file": "APGI_Psychological_States.py",
+                "file": "Theory/APGI_Psychological_States.py",
                 "class": None,
                 "description": "Psychological states analysis",
             },
             "APGI_Cross_Species_Scaling": {
-                "file": "APGI_Cross_Species_Scaling.py",
+                "file": "Theory/APGI_Cross_Species_Scaling.py",
                 "class": "CrossSpeciesScaling",
                 "description": "Cross-species scaling analysis",
             },
@@ -1533,7 +1533,7 @@ def estimate_params(
 
                         # Save results
                         if output_file:
-                            with open(output_file, ', encoding="utf-8"w') as f:
+                            with open(output_file, "w", encoding="utf-8") as f:
                                 json.dump(
                                     {
                                         k: float(v)
@@ -1606,7 +1606,7 @@ def estimate_params(
                         # Save results
                         if output_file:
                             results_dict = dict(zip(param_names, params_optimized))
-                            with open(output_file, ', encoding="utf-8"w') as f:
+                            with open(output_file, "w", encoding="utf-8") as f:
                                 json.dump(results_dict, f, indent=2)
                             console.print(
                                 f"[green]✓[/green] Results saved to {output_file}"
@@ -1828,7 +1828,7 @@ def cross_species(
 
                 if output_file:
                     # BUG-047: Add explicit file encoding specification
-                    with open(output_file, ', encoding="utf-8"w') as f:
+                    with open(output_file, "w", encoding="utf-8") as f:
                         json.dump(predictions, f, indent=2)
                     console.print(f"[green]✓[/green] Results saved to {output_file}")
             else:
@@ -1844,7 +1844,7 @@ def cross_species(
 
             if output_file:
                 # BUG-047: Add explicit file encoding specification
-                with open(output_file, ', encoding="utf-8"w') as f:
+                with open(output_file, "w", encoding="utf-8") as f:
                     f.write(report)
                 console.print(f"[green]✓[/green] Report saved to {output_file}")
 
@@ -1911,7 +1911,7 @@ def analyze_logs(
 
         for log_path in log_files:
             try:
-                with open(log_path, ', encoding="utf-8"r', encoding="utf-8") as f:
+                with open(log_path, "r") as f:
                     for line in f:
                         total_lines += 1
 
@@ -1980,7 +1980,7 @@ def analyze_logs(
                 "analysis_timestamp": datetime.now().isoformat(),
             }
             # BUG-047: Add explicit file encoding specification
-            with open(output_file, ', encoding="utf-8"w') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -2032,7 +2032,7 @@ def process_data(
 
         # Load configuration
         if config_file:
-            with open(config_file, ', encoding="utf-8"r', encoding="utf-8") as f:
+            with open(config_file, "r") as f:
                 config_dict = yaml.safe_load(f)
             config = PreprocessingConfig(**config_dict)
         else:
@@ -2199,7 +2199,7 @@ def process_data(
 
         summary_file = output_path / "processing_summary.json"
         # BUG-047: Add explicit file encoding specification
-        with open(summary_file, ', encoding="utf-8"w') as f:
+        with open(summary_file, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
         console.print("[green]✓[/green] Processing complete!")
@@ -2420,7 +2420,7 @@ def monitor_performance(
         # Save results if requested
         if output_file:
             # BUG-047: Add explicit file encoding specification
-            with open(output_file, ', encoding="utf-8"w') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -2603,7 +2603,7 @@ def _save_results(results: Dict[str, Any], output_dir: Optional[str]):
         results_file = default_output_dir / f"validation_results_{uuid.uuid4()}.json"
 
     # BUG-047: Add explicit file encoding specification
-    with open(results_file, ', encoding="utf-8"w') as f:
+    with open(results_file, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
     console.print(f"[green]✓[/green] Results saved to {results_file}")
 
@@ -2755,7 +2755,7 @@ def falsify(
 
                         # Save results
                         if output_file:
-                            with open(output_file, ', encoding="utf-8"w') as f:
+                            with open(output_file, "w", encoding="utf-8") as f:
                                 json.dump(result, f, indent=2, default=str)
                             console.print(
                                 f"[green]✓[/green] Results saved to {output_file}"
@@ -3049,7 +3049,7 @@ def neural_signatures(
                 print(f"{key}: {value}")
 
         if output_file:
-            with open(output_file, ', encoding="utf-8"w') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3108,7 +3108,7 @@ def causal_manipulations(
         )
 
         if output_file:
-            with open(output_file, ', encoding="utf-8"w') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3153,7 +3153,7 @@ def quantitative_fits(
         )
 
         if output_file:
-            with open(output_file, ', encoding="utf-8"w') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3208,7 +3208,7 @@ def clinical_convergence(
         )
 
         if output_file:
-            with open(output_file, ', encoding="utf-8"w') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3293,7 +3293,7 @@ def open_science(
             )
 
             if output_file:
-                with open(output_file, ', encoding="utf-8"w') as f:
+                with open(output_file, "w", encoding="utf-8") as f:
                     f.write(prereg.to_json())
                 console.print(
                     f"[green]✓[/green] Preregistration saved to {output_file}"
@@ -3379,7 +3379,7 @@ def falsification(
             )
 
         if output_file:
-            with open(output_file, ', encoding="utf-8"w') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3557,7 +3557,7 @@ def bayesian_estimation(
         print(f"Overall Bayesian Score: {results['overall_bayesian_score']:.3f}")
 
         if output_file:
-            with open(output_file, ', encoding="utf-8"w') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -3747,7 +3747,7 @@ def comprehensive_validation(
         console.print(f"Score: {final_score:.1f}%")
 
         if output_file:
-            with open(output_file, ', encoding="utf-8"w') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, default=str)
             console.print(
                 f"[green]✓[/green] Comprehensive results saved to {output_file}"
@@ -3760,7 +3760,7 @@ def comprehensive_validation(
         # Log full traceback to file, show sanitized message to console
         error_log_path = PROJECT_ROOT / "logs" / "error.log"
         error_log_path.parent.mkdir(exist_ok=True)
-        with open(error_log_path, ', encoding="utf-8"a', encoding="utf-8") as f:
+        with open(error_log_path, "a") as f:
             f.write(
                 f"\n[{datetime.now().isoformat()}] Error in comprehensive validation:\n"
             )
@@ -3803,9 +3803,7 @@ def _run_gui_module(gui_path, gui_name, debug):
 
                     error_log_path = PROJECT_ROOT / "logs" / "error.log"
                     error_log_path.parent.mkdir(exist_ok=True)
-                    with open(
-                        error_log_path, ', encoding="utf-8"a', encoding="utf-8"
-                    ) as f:
+                    with open(error_log_path, "a", encoding="utf-8") as f:
                         f.write(
                             f"\n[{datetime.now().isoformat()}] Error in {gui_name} GUI:\n"
                         )
@@ -3823,7 +3821,7 @@ def _run_gui_module(gui_path, gui_name, debug):
 
             error_log_path = PROJECT_ROOT / "logs" / "error.log"
             error_log_path.parent.mkdir(exist_ok=True)
-            with open(error_log_path, ', encoding="utf-8"a', encoding="utf-8") as f:
+            with open(error_log_path, "a") as f:
                 f.write(
                     f"\n[{datetime.now().isoformat()}] Error launching {gui_name} GUI:\n"
                 )
@@ -3850,7 +3848,7 @@ def _launch_validation_gui(debug):
 
 def _launch_psychological_gui(debug):
     """Launch psychological GUI."""
-    gui_path = PROJECT_ROOT / "APGI_Psychological_States.py"
+    gui_path = PROJECT_ROOT / "Theory" / "APGI_Psychological_States.py"
 
     if not gui_path.exists():
         console.print(f"[red]❌ Psychological GUI not found at: {gui_path}[/red]")
@@ -3867,7 +3865,7 @@ def _launch_psychological_gui(debug):
 
 def _launch_analysis_gui(debug):
     """Launch analysis GUI."""
-    gui_path = PROJECT_ROOT / "APGI_Entropy_Implementation.py"
+    gui_path = PROJECT_ROOT / "Theory" / "APGI_Entropy_Implementation.py"
 
     if not gui_path.exists():
         console.print(f"[red]❌ Analysis GUI not found at: {gui_path}[/red]")
@@ -4535,7 +4533,7 @@ def _save_or_display_plot(
 
 
 @cli.command()
-@click.option("--input-file", help="Input data file for visualization")
+@click.option("--input-file", required=True, help="Input data file for visualization")
 @click.option("--output-file", help="Output file for saving visualization")
 @click.option("--plot-type", help="Type of plot to generate")
 @click.option("--style", help="Plot style")
@@ -4782,7 +4780,7 @@ def export_data(ctx, input_file, output_file, format, compress):
             try:
                 # Use a temporary name for the partial write
                 temp_compressed = f"{compressed_file}.tmp"
-                with open(output_file, ', encoding="utf-8"rb') as f_in:
+                with open(output_file, "rb", encoding="utf-8") as f_in:
                     with gzip.open(temp_compressed, "wb", compresslevel=6) as f_out:
                         shutil.copyfileobj(f_in, f_out)
 
@@ -4951,12 +4949,13 @@ def import_data(ctx, input_file, output_file, format, validate):
 )
 @click.option("--sources", help="Data sources for warming (comma-separated)")
 @click.option("--max-workers", default=4, help="Max workers for parallel warming")
-def cache(ctx, action, sources, max_workers):
+@click.pass_context
+def cache_cmd(ctx, action, sources, max_workers):
     """Manage cache operations."""
     console.print(Panel.fit("🗄️ Cache Management", style="bold yellow"))
 
     try:
-        from data.cache_manager import CacheManager
+        from utils.cache_manager import CacheManager
         from rich.table import Table
 
         cache_manager = CacheManager()
@@ -5439,7 +5438,7 @@ def config_diff() -> None:
 
         if version_file.exists():
             _check_file_size(version_file)
-            with open(version_file, ', encoding="utf-8"r', encoding="utf-8") as f:
+            with open(version_file, "r") as f:
                 version_data = json.load(f)
                 version_config = version_data.get("config", {})
 
@@ -5645,7 +5644,7 @@ def validate_pipeline(
             if output_file:
                 import json
 
-                with open(output_file, ', encoding="utf-8"w') as f:
+                with open(output_file, "w", encoding="utf-8") as f:
                     json.dump(result, f, indent=2, default=str)
                 console.print(f"[green]✓[/green] Results saved to {output_file}")
 
@@ -5737,7 +5736,7 @@ cli.add_command(gui)
 cli.add_command(visualize)
 cli.add_command(export_data)
 cli.add_command(import_data)
-cli.add_command(cache)
+cli.add_command(cache_cmd)
 cli.add_command(info)
 cli.add_command(dashboard)
 cli.add_command(backup)

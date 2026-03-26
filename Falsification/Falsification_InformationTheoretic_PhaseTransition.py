@@ -47,7 +47,7 @@ DEFAULT_MIN_SUBSERIES = 10
 DEFAULT_HURST_LAG_MULTIPLIER = 4
 DEFAULT_SIMULATION_DURATION = 50.0
 DEFAULT_DT = 0.1
-DEFAULT_N_SIMULATIONS = 10
+DEFAULT_N_SIMULATIONS = 5  # Reduced from 10 to prevent hanging
 DEFAULT_PRINT_INTERVAL = 5
 DEFAULT_AC_LAG = 5
 DEFAULT_NEAR_THRESHOLD = 0.2
@@ -763,6 +763,11 @@ class InformationTheoreticAnalysis:
             if i % DEFAULT_PRINT_INTERVAL == 0:
                 print(f"Running simulation {i + 1}/{n_simulations}...")
 
+            # Add progress tracking for expensive operations
+            import time
+
+            start_time = time.time()
+
             # Generate simulation with varying inputs
             def input_gen(t):
                 return {
@@ -780,8 +785,15 @@ class InformationTheoreticAnalysis:
                     DEFAULT_SIMULATION_DURATION, DEFAULT_DT, input_gen
                 )
 
+                # Track timing for each major operation
+                sim_time = time.time() - start_time
+                print(f"  Simulation completed in {sim_time:.2f}s")
+
                 # Phase transition analysis
+                pt_start_time = time.time()
                 pt_results = self.detect_phase_transition(history)
+                pt_time = time.time() - pt_start_time
+                print(f"  Phase transition analysis completed in {pt_time:.2f}s")
                 results["discontinuities"].append(pt_results["mean_discontinuity"])
                 results["susceptibility_ratios"].append(
                     pt_results.get("susceptibility_ratio", 1.0)
@@ -831,23 +843,32 @@ class InformationTheoreticAnalysis:
 
                 # Additional metrics for analysis
                 try:
+                    te_start_time = time.time()
                     te_values = self.compute_transfer_entropy(
                         history, "S", "theta", vectorized=vectorized
                     )
+                    te_time = time.time() - te_start_time
+                    print(f"  Transfer entropy computed in {te_time:.2f}s")
                     results["transfer_entropy_means"].append(np.mean(te_values))
                 except Exception:
                     results["transfer_entropy_means"].append(0.0)
 
                 try:
+                    mi_start_time = time.time()
                     mi_values = self.compute_mutual_information(history, "S", "theta")
+                    mi_time = time.time() - mi_start_time
+                    print(f"  Mutual information computed in {mi_time:.2f}s")
                     results["mutual_info_means"].append(np.mean(mi_values))
                 except Exception:
                     results["mutual_info_means"].append(0.0)
 
                 try:
+                    phi_start_time = time.time()
                     phi_with_baseline = (
                         self.compute_integrated_information_with_baseline(history)
                     )
+                    phi_time = time.time() - phi_start_time
+                    print(f"  Integrated information computed in {phi_time:.2f}s")
                     results["integrated_info_means"].append(
                         np.mean(phi_with_baseline["phi_actual"])
                     )
@@ -1274,8 +1295,12 @@ class InformationTheoreticAnalysis:
         phi_baselines = np.array(phi_baselines)
 
         # Compute baseline statistics
-        baseline_mean = np.mean(phi_baselines, axis=0)
-        baseline_std = np.std(phi_baselines, axis=0)
+        if len(phi_baselines) > 0:
+            baseline_mean = np.mean(phi_baselines, axis=0)
+            baseline_std = np.std(phi_baselines, axis=0)
+        else:
+            baseline_mean = 0.0
+            baseline_std = 0.0
 
         # Compute z-scores
         z_scores = (phi_actual - baseline_mean) / (baseline_std + DEFAULT_EPSILON)
@@ -1984,9 +2009,15 @@ def run_falsification():
         apgi_system = SurpriseIgnitionSystem(random_seed=42)
         analyzer = InformationTheoreticAnalysis(apgi_system)
 
+        # Run with reduced simulations for faster execution
+        n_simulations = min(5, DEFAULT_N_SIMULATIONS)  # Cap at 5 for quick testing
+        print(
+            f"Running {n_simulations} simulations (reduced from {DEFAULT_N_SIMULATIONS})..."
+        )
+
         # Run with vectorized computation for efficiency
         results = analyzer.run_phase_transition_analysis(
-            n_simulations=10, vectorized=True
+            n_simulations=n_simulations, vectorized=True
         )
 
         # Summary results
@@ -2002,10 +2033,12 @@ def run_falsification():
         print(
             f"Mutual information: {results.get('mutual_info_means_mean', 0):.3f} ± {results.get('mutual_info_means_std', 0):.3f} bits/s"
         )
-
         print("=== Protocol completed successfully ===")
         return {"status": "success", "results": results}
 
+    except KeyboardInterrupt:
+        print("\n=== INTERRUPTED BY USER ===")
+        return {"status": "interrupted", "message": "Analysis interrupted by user"}
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in falsification protocol 4: {e}")
         return {"status": "error", "message": str(e)}

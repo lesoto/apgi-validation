@@ -1,23 +1,5 @@
-#!/usr/bin/env python3
-"""
-Spectral Analysis Utilities for APGI Framework
-=============================================
-
-Provides functions for computing spectral parameters using specparam (FOOOF)
-for proper 1/f spectral slope analysis as required by APGI falsification criteria.
-
-This module addresses the issue where manual log-log regression was used instead
-of proper aperiodic component extraction via FOOOF/specparam.
-
-Functions:
-    compute_spectral_slope_fooof: Compute spectral exponent using specparam
-    validate_fooof_fit: Check quality of FOOOF fit
-    generate_synthetic_spectra: Create test spectra with known exponents
-"""
-
-import logging
 from typing import Dict, List, Optional, Tuple, Union
-
+import logging
 import numpy as np
 
 try:
@@ -25,25 +7,13 @@ try:
 
     SPECPARAM_AVAILABLE = True
 except ImportError:
-    try:
-        from fooof import FOOOF
-
-        SPECPARAM_AVAILABLE = True
-        import warnings
-
-        warnings.warn(
-            "Using deprecated fooof package. Consider upgrading to specparam.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-    except ImportError:
-        SPECPARAM_AVAILABLE = False
-        FOOOF = None
+    SPECPARAM_AVAILABLE = False
+    FOOOF = None
 
 logger = logging.getLogger(__name__)
 
 
-def compute_spectral_slope_fooof(
+def compute_spectral_slope_specparam(
     freqs: np.ndarray,
     power_spectrum: np.ndarray,
     freq_range: Tuple[float, float] = (1.0, 40.0),
@@ -154,7 +124,20 @@ def compute_spectral_slope_fooof(
 
     try:
         # Initialize FOOOF with specified parameters
-        fm = FOOOF(
+        fm = FOOOF if SPECPARAM_AVAILABLE else None
+        if fm is None:
+            return {
+                "exponent": np.nan,
+                "offset": np.nan,
+                "r_squared": np.nan,
+                "error": np.nan,
+                "knee": np.nan,
+                "n_peaks": 0,
+                "fit_success": False,
+                "error_message": "specparam package not available",
+            }
+
+        fm = fm(
             peak_width_limits=peak_width_limits or [1.0, 8.0],
             max_n_peaks=max_n_peaks or 6,
             min_peak_height=min_peak_height or 0.0,
@@ -207,12 +190,12 @@ def compute_spectral_slope_fooof(
         }
 
 
-def validate_fooof_fit(results: Dict[str, Union[float, bool, str]]) -> bool:
+def validate_specparam_fit(results: Dict[str, Union[float, bool, str]]) -> bool:
     """
-    Validate FOOOF fit results against APGI criteria.
+    Validate specparam fit results against APGI criteria.
 
     Args:
-        results: Results dictionary from compute_spectral_slope_fooof
+        results: Results dictionary from compute_spectral_slope_specparam
 
     Returns:
         True if fit meets APGI quality criteria, False otherwise
@@ -394,7 +377,7 @@ def batch_compute_spectral_slopes(
             freqs, power_spectrum = compute_power_spectrum(sig, fs)
 
             # Compute spectral slope
-            result = compute_spectral_slope_fooof(
+            result = compute_spectral_slope_specparam(
                 freqs, power_spectrum, freq_range, **fooof_kwargs
             )
 
@@ -425,6 +408,7 @@ def compare_fooof_vs_loglog(
     freqs: np.ndarray,
     power_spectrum: np.ndarray,
     freq_range: Tuple[float, float] = (1.0, 40.0),
+    **fooof_kwargs,
 ) -> Dict[str, Union[float, Dict[str, float]]]:
     """
     Compare FOOOF results with manual log-log regression.
@@ -435,12 +419,15 @@ def compare_fooof_vs_loglog(
         freqs: Array of frequencies in Hz
         power_spectrum: Array of power spectral density values
         freq_range: Frequency range for analysis
+        **fooof_kwargs: Additional arguments for FOOOF fitting
 
     Returns:
         Dictionary with comparison results
     """
     # FOOOF method
-    fooof_results = compute_spectral_slope_fooof(freqs, power_spectrum, freq_range)
+    fooof_results = compute_spectral_slope_specparam(
+        freqs, power_spectrum, freq_range, **fooof_kwargs
+    )
 
     # Manual log-log regression
     freq_mask = (freqs >= freq_range[0]) & (freqs <= freq_range[1])

@@ -682,7 +682,7 @@ class ComprehensivePerformanceDashboard:
                         validation_files = glob.glob("validation_results/*.json")
                         for vf in validation_files[-3:]:  # Check last 3 files
                             try:
-                                with open(vf, ', encoding="utf-8"r') as f:
+                                with open(vf, "r", encoding="utf-8") as f:
                                     data = json.load(f)
                                     self.validation_results.append(
                                         {

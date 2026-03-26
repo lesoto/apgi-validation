@@ -123,7 +123,7 @@ class DataValidator:
                         f"JSON file too large: {file_size_mb:.1f}MB (max: {max_size_mb}MB)"
                     )
                     return results
-                with open(file_path, ', encoding="utf-8"r', encoding="utf-8") as f:
+                with open(file_path, "r") as f:
                     try:
                         data = json.load(f)
                     except RecursionError:
@@ -550,7 +550,7 @@ class DataValidator:
                         report["data_quality"][
                             "warning"
                         ] = f"Large JSON file detected ({file_size_mb:.1f}MB). Memory usage may be high."
-                    with open(file_path, ', encoding="utf-8"r') as f:
+                    with open(file_path, "r", encoding="utf-8") as f:
                         data = json.load(f)
                     df = pd.DataFrame(data["data"])
                 elif file_path.suffix.lower() in [".h5", ".hdf5"]:
@@ -750,7 +750,7 @@ class DataPreprocessor(DataValidator):
                 raise ValueError(
                     f"JSON file too large: {file_size_mb:.1f}MB (max: {max_size_mb}MB)"
                 )
-            with open(file_path, ', encoding="utf-8"r', encoding="utf-8") as f:
+            with open(file_path, "r") as f:
                 data = json.load(f)
             df = pd.DataFrame(data["data"])
         elif file_path.suffix.lower() in [".h5", ".hdf5"]:
@@ -778,7 +778,7 @@ class DataPreprocessor(DataValidator):
 
         if strategy == "interpolate":
             for col in numeric_cols:
-                df_clean[col] = df_clean[col].interpolate()
+                df_clean.loc[:, col] = df_clean[col].interpolate()
         elif strategy == "forward_fill":
             df_clean[numeric_cols] = df_clean[numeric_cols].ffill()
         elif strategy == "backward_fill":
@@ -936,9 +936,9 @@ class DataPreprocessor(DataValidator):
                     mean = data.mean()
                     std = data.std()
                     if std == 0:
-                        df_normalized[col] = 0
+                        df_normalized.loc[:, col] = 0
                     else:
-                        df_normalized[col] = (data - mean) / std
+                        df_normalized.loc[:, col] = (data - mean) / std
                 elif method == "minmax":
                     min_val = data.min()
                     max_val = data.max()

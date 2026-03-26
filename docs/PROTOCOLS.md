@@ -1,4 +1,63 @@
-# VALIDATION PROTOCOLS (12 Protocols)
+# APGI Paper Protocol
+
+The GUI directly maps to full implementations, completely bypassing stubs:
+
+| GUI Protocol | Maps To |
+| ------------ | ------- |
+| Protocol 1: APGI Agent | Falsification_ActiveInferenceAgents_F1F2.py |
+| Protocol 2: Iowa Gambling | Falsification_AgentComparison_ConvergenceBenchmark.py |
+| Protocol 3: Agent Comparison | Falsification_FrameworkLevel_MultiProtocol.py |
+| Protocol 4: Phase Transition | Falsification_InformationTheoretic_PhaseTransition.py |
+| Protocol 5: Evolutionary | Falsification_EvolutionaryPlausibility_Standard6.py |
+| Protocol 6: Network Comparison | Falsification_NeuralNetwork_EnergyBenchmark.py |
+
+## 1. File Inventory
+
+### 1.1 Validation Files (16 total)
+
+| # | Filename | VP ID | Paper Protocol |
+| --- | --------- | ------- | --------------- |
+| 1 | `ActiveInference_AgentSimulations_Protocol3.py` | VP-3 | Paper Protocol 3 |
+| 2 | `BayesianModelComparison_ParameterRecovery.py` | VP-1 (support) | Paper Protocol 6 (partial) |
+| 3 | `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` | VP-10 | Roadmap Priority 2 |
+| 4 | `Clinical_CrossSpecies_Convergence_Protocol4.py` | VP-12 | Paper Protocol 4 / Roadmap Priority 4 |
+| 5 | `ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py` | VP-9 | Roadmap Priority 1 |
+| 6 | `EvolutionaryEmergence_AnalyticalValidation.py` | VP-5 | — (Paper Protocol 5 MISSING) |
+| 7 | `InformationTheoretic_PhaseTransition_Level2.py` | VP-4 | Epistemic Paper P5–P8 (Level 2) |
+| 8 | `Master_Validation.py` | — | Orchestrator (not a protocol) |
+| 9 | `NeuralNetwork_InductiveBias_ComputationalBenchmark.py` | VP-6 | Computational Architecture |
+| 10 | `Psychophysical_ThresholdEstimation_Protocol1.py` | VP-8 | Paper Protocol 1 |
+| 11 | `QuantitativeModelFits_SpikingLNN_Priority3.py` | VP-11 | Roadmap Priority 3 |
+| 12 | `SyntheticEEG_MLClassification.py` | VP-1 (support) | Paper Protocol 6 (partial) |
+| 13 | `TMS_Pharmacological_CausalIntervention_Protocol2.py` | VP-7 | Paper Protocol 2 |
+| 14 | `Validation_Protocol_2.py` | VP-2 | Paper Protocol 6 (behavioral) |
+| 15 | `Validation_Protocol_11.py` | VP-11 (canonical) | Roadmap Priority 3 / Cultural Neuro |
+| 16 | `Validation_Protocol_P4_Epistemic.py` | VP-4 (support) | Epistemic Paper P5–P12 |
+
+### 1.2 Falsification Files (22 total)
+
+| # | Filename | FP ID | Description |
+| --- | --------- | ------- | ----------- |
+| 1 | `APGI_Falsification_Aggregator.py` | FP-12 | Framework-level aggregator |
+| 2 | `APGI_Falsification_Protocols_GUI.py` | — | GUI runner (not a protocol) |
+| 3 | `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` | FP-2 (support) | Causal manipulation engine |
+| 10 | `Falsification_ActiveInferenceAgents_F1F2.py` | FP-1 (full) | Primary F1/F2 engine |
+| 11 | `Falsification_AgentComparison_ConvergenceBenchmark.py` | FP-2 (full) | Convergence benchmark |
+| 12 | `Falsification_BayesianEstimation_MCMC.py` | FP-10 | NUTS/PyMC MCMC estimation |
+| 13 | `Falsification_BayesianEstimation_ParameterRecovery.py` | FP-11 | Parameter recovery |
+| 14 | `Falsification_CrossSpeciesScaling_P12.py` | FP-10 (cross-species) | Allometric scaling |
+| 15 | `Falsification_EvolutionaryPlausibility_Standard6.py` | FP-5 (full) | Evolutionary analysis |
+| 16 | `Falsification_FrameworkLevel_MultiProtocol.py` | FP-3 (full) | Multi-protocol synthesis |
+| 17 | `Falsification_InformationTheoretic_PhaseTransition.py` | FP-4 (full) | Phase transition analysis |
+| 18 | `Falsification_LiquidNetworkDynamics_EchoState.py` | FP-11 / FP-12 | Echo-state / liquid network |
+| 19 | `Falsification_MathematicalConsistency_Equations.py` | FP-7 | Sympy equation verification |
+| 20 | `Falsification_NeuralNetwork_EnergyBenchmark.py` | FP-6 (full) | Energy / ATP benchmark |
+| 21 | `Falsification_NeuralSignatures_EEG_P3b_HEP.py` | FP-9 | EEG / P3b / HEP neural sigs |
+| 22 | `Falsification_ParameterSensitivity_Identifiability.py` | FP-8 | Sobol / FIM / profile likelihood |
+
+---
+
+### VALIDATION PROTOCOLS (12 Protocols)
 
 ## Validation Protocol 1 — Synthetic Neural Data Generation & ML Classification SyntheticEEG_MLClassification.py
 
@@ -170,3 +229,135 @@ check_framework_falsification_condition_b() fully implemented at lines 75-89 wit
 generate_gnwt_predictions() implemented at lines 92-110.
 generate_iit_predictions() implemented at lines 113-131.
 run_framework_falsification() implemented at lines 134-149+.
+
+## APGI Protocol Tier Classification Rationale
+
+## Overview
+
+The APGI validation framework organizes validation protocols into three tiers based on their importance, scope, and relationship to core APGI theory. This classification enables weighted scoring and prioritized validation efforts.
+
+## Tier Definitions
+
+### Primary Protocols (Protocols 1-2)
+
+**Rationale:** Core validation protocols that test fundamental APGI properties. These are essential for establishing basic APGI validity and must pass for the framework to be considered viable.
+
+### Protocol 1: Basic Equation Validation
+
+- Tests fundamental APGI mathematical equations
+- Validates surprise accumulation, threshold adaptation, and ignition dynamics
+- Checks parameter bounds and numerical stability
+- **Why Primary:** Without passing Protocol 1, the APGI model itself is fundamentally broken
+
+### Protocol 2: Parameter Consistency Checks
+
+- Validates parameter interactions and constraints
+- Tests parameter estimation accuracy
+- Checks for parameter identifiability
+- **Why Primary:** Parameter consistency is foundational to all other validations
+
+**Weight in Scoring:** 50% (0.5)
+
+### Secondary Protocols (Protocols 3-4, 8, 11-12)
+
+**Rationale:** Extended validation covering specific aspects of APGI. These test important but not absolutely foundational properties. They provide deeper insights into APGI's behavior and falsifiability.
+
+### Protocol 3: Behavioral Pattern Validation
+
+- Tests whether APGI agents produce expected behavioral patterns
+- Validates decision-making and action selection
+- Compares APGI predictions to empirical behavioral data
+- **Why Secondary:** Important for real-world applicability but builds on core equations
+
+### Protocol 4: State Transition Verification
+
+- Tests phase transition properties of ignition
+- Validates information-theoretic signatures
+- Checks for critical phenomena in APGI dynamics
+- **Why Secondary:** Tests specific predictions about consciousness-related phenomena
+
+### Protocol 8: Cross-Species Scaling Validation
+
+- Tests whether APGI scales appropriately across species
+- Validates scaling laws and allometric relationships
+- Checks species-specific parameter adjustments
+- **Why Secondary:** Important for generalizability but not core to APGI theory
+
+### Protocol 11: Cultural Neuroscience Validation
+
+- Tests cultural and contextual influences on APGI
+- Validates cross-cultural parameter variations
+- Checks for cultural universals vs. specifics
+- **Why Secondary:** Important for ecological validity but not foundational
+
+### Protocol 12: Liquid Network Validation
+
+- Tests liquid network properties and dynamics
+- Validates network topology and connectivity effects
+- Checks for phase transitions in network states
+- **Why Secondary:** Tests advanced network properties but not core requirements
+
+**Weight in Scoring:** 30% (0.3)
+
+### Tertiary Protocols (Protocols 5-7, 9-10)
+
+**Rationale:** Specialized and experimental protocols that test niche aspects, computational implementations, or exploratory hypotheses. These provide supplementary evidence but are not critical for core validation.
+
+### Protocol 5: Computational Benchmarking
+
+- Tests computational efficiency and performance
+- Validates implementation quality
+- Benchmarks against alternative architectures
+- **Why Tertiary:** Important for practical use but not theoretical validity
+
+### Protocol 6: Bayesian Estimation Framework
+
+- Tests parameter estimation using Bayesian methods
+- Validates uncertainty quantification
+- Checks posterior predictive validity
+- **Why Tertiary:** Advanced statistical methods but not required for basic validation
+
+### Protocol 7: Multimodal Integration
+
+- Tests integration of multiple data modalities
+- Validates cross-modal consistency
+- Checks for modality-specific parameter adjustments
+- **Why Tertiary:** Important for real-world applications but not core theory
+
+### Protocol 9: Psychological States Validation
+
+- Tests APGI predictions about psychological states
+- Validates state-dependent parameter changes
+- Checks for emotion and motivation effects
+- **Why Tertiary:** Tests specific predictions but not fundamental
+
+### Protocol 10: Turing Machine Validation
+
+- Tests computational universality properties
+- Validates APGI as a computational model
+- Checks for algorithmic completeness
+- **Why Tertiary:** Theoretical curiosity but not required for validation
+
+**Weight in Scoring:** 20% (0.2)
+
+## Weighted Scoring Rationale
+
+The tier weights (Primary: 0.5, Secondary: 0.3, Tertiary: 0.2) reflect:
+
+1. **Criticality:** Primary protocols must pass for APGI to be viable
+2. **Scope:** Secondary protocols cover important but not essential aspects
+3. **Supplementary:** Tertiary protocols provide additional evidence
+
+This weighting ensures that:
+
+- Core APGI validity dominates the overall assessment
+- Important but not critical aspects contribute meaningfully
+- Supplementary evidence provides context without overwhelming core results
+
+## Decision Thresholds
+
+Based on weighted scores:
+
+- **PASS (≥0.85):** Strong validation support - APGI is well-validated
+- **MARGINAL (0.60-0.84):** Moderate validation support - APGI has issues but may be viable
+- **FAIL (<0.60):** Insufficient validation support - APGI requires major revisions

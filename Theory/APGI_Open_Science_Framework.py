@@ -193,7 +193,7 @@ class DataSharingProtocol:
             metadata_file = self.metadata_path / f"{dataset_name}_metadata.json"
 
             try:
-                with open(metadata_file, ', encoding="utf-8"w') as f:
+                with open(metadata_file, "w", encoding="utf-8") as f:
                     json.dump(metadata, f, indent=2, default=self._serialize_metadata)
                 logger.info(f"Metadata created successfully: {metadata_file}")
                 return str(metadata_file)
@@ -233,7 +233,7 @@ class DataSharingProtocol:
             compliance_checks["has_metadata"] = True
 
             # Load metadata to check other fields
-            with open(metadata_file, ', encoding="utf-8"r') as f:
+            with open(metadata_file, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
 
             compliance_checks["license_specified"] = "license" in metadata

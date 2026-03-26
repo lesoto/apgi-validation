@@ -25,7 +25,7 @@ def sample_vp5_results(tmp_path):
         },
     }
     results_path = tmp_path / "protocol5_results.json"
-    with open(results_path, ', encoding="utf-8"w') as f:
+    with open(results_path, "w", encoding="utf-8") as f:
         json.dump(results, f)
     return str(results_path)
 
@@ -70,7 +70,7 @@ class TestExtractGenomeData:
         """Test extraction when VP-5 results have no final_statistics."""
         results = {"config": {"n_generations": 300}}
         results_path = tmp_path / "protocol5_results.json"
-        with open(results_path, ', encoding="utf-8"w') as f:
+        with open(results_path, "w", encoding="utf-8") as f:
             json.dump(results, f)
 
         genome_data = extract_genome_data_from_vp5(str(results_path))
@@ -95,7 +95,7 @@ class TestExtractGenomeData:
             },
         }
         results_path = tmp_path / "protocol5_results.json"
-        with open(results_path, ', encoding="utf-8"w') as f:
+        with open(results_path, "w", encoding="utf-8") as f:
             json.dump(results, f)
 
         genome_data = extract_genome_data_from_vp5(str(results_path))
@@ -117,7 +117,7 @@ class TestExtractGenomeData:
             },
         }
         results_path = tmp_path / "protocol5_results.json"
-        with open(results_path, ', encoding="utf-8"w') as f:
+        with open(results_path, "w", encoding="utf-8") as f:
             json.dump(results, f)
 
         genome_data = extract_genome_data_from_vp5(str(results_path))
@@ -136,7 +136,7 @@ class TestSaveGenomeData:
         save_genome_data(sample_genome_data, str(output_path))
 
         assert output_path.exists()
-        with open(output_path, ', encoding="utf-8"r') as f:
+        with open(output_path, "r", encoding="utf-8") as f:
             loaded_data = json.load(f)
         assert loaded_data == sample_genome_data
 
@@ -154,7 +154,7 @@ class TestSaveGenomeData:
         output_path = tmp_path / "genome_data.json"
         save_genome_data(sample_genome_data, str(output_path))
 
-        with open(output_path, ', encoding="utf-8"r') as f:
+        with open(output_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         assert content  # File not empty
@@ -167,7 +167,7 @@ class TestLoadGenomeData:
     def test_load_genome_data_basic(self, sample_genome_data, tmp_path):
         """Test basic genome data loading."""
         genome_path = tmp_path / "genome_data.json"
-        with open(genome_path, ', encoding="utf-8"w') as f:
+        with open(genome_path, "w", encoding="utf-8") as f:
             json.dump(sample_genome_data, f)
 
         loaded_data = load_genome_data(str(genome_path))
@@ -177,7 +177,7 @@ class TestLoadGenomeData:
     def test_load_genome_data_structure(self, sample_genome_data, tmp_path):
         """Test that loaded data has correct structure."""
         genome_path = tmp_path / "genome_data.json"
-        with open(genome_path, ', encoding="utf-8"w') as f:
+        with open(genome_path, "w", encoding="utf-8") as f:
             json.dump(sample_genome_data, f)
 
         loaded_data = load_genome_data(str(genome_path))

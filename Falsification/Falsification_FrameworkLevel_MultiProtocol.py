@@ -5,13 +5,15 @@ import os
 import sys
 import warnings
 from typing import Any, Dict, List, Tuple
-
 import numpy as np
 from scipy import stats
 from scipy.stats import binomtest
+from pathlib import Path
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Add parent directory to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 # =====================
 # DIMENSION CONSTANTS
@@ -25,23 +27,33 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-# Add current directory to path for imports
-current_dir = Path(__file__).parent
-if str(current_dir) not in sys.path:
-    sys.path.insert(0, str(current_dir))
-
 # Import centralized falsification aggregator
 try:
     from utils.error_handler import handle_import_error
-except ImportError:
-    # Fallback if utils.error_handler not available
+    from utils.constants import DIM_CONSTANTS
+    from utils.falsification_thresholds import (
+        F1_1_MIN_ADVANTAGE_PCT,
+        F1_1_MIN_COHENS_D,
+        F1_1_ALPHA,
+    )
+    from utils.shared_falsification import check_F5_family
+except ImportError as e:
+
     def handle_import_error(
         module_name: str, error: Exception, context: str = ""
     ) -> None:
         logger.warning(f"Could not import {module_name}: {error}")
         if context:
             logger.warning(f"Context: {context}")
+        return None
 
+    handle_import_error(
+        "APGI_Falsification-Aggregator", e, "Framework-level falsification aggregation"
+    )
+    raise
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 try:
     # Import using dynamic import since filename has hyphens
@@ -75,7 +87,7 @@ except ImportError as e:
     raise
 from utils.constants import DIM_CONSTANTS
 from utils.shared_falsification import check_F5_family
-from falsification_thresholds import (
+from utils.falsification_thresholds import (
     F1_1_MIN_ADVANTAGE_PCT,
     F1_1_MIN_COHENS_D,
     F1_1_ALPHA,
@@ -481,12 +493,12 @@ class AgentComparisonExperiment:
         # Note: Protocol 3 is the agent comparison protocol (ActiveInference_AgentSimulations_Protocol3.py)
         # which produces P3.conv and P3.bic predictions
         protocol_files = {
-            1: "Falsification/Falsification_ActiveInferenceAgents_F1F2.py",
+            1: "Falsification_ActiveInferenceAgents_F1F2.py",
             2: "Falsification_AgentComparison_ConvergenceBenchmark.py",
             3: "../Validation/ActiveInference_AgentSimulations_Protocol3.py",
-            6: None,  # Protocol 6 would be added here
-            9: None,  # Protocol 9 would be added here
-            12: None,  # Protocol 12 would be added here
+            6: "Falsification_EvolutionaryPlausibility_Standard6.py",
+            9: "Falsification_NeuralSignatures_EEG_P3b_HEP.py",
+            12: "Falsification_CrossSpeciesScaling_P12.py",
         }
 
         # Load results from each available protocol
@@ -523,6 +535,8 @@ class AgentComparisonExperiment:
                     protocol_results[protocol_num] = protocol_module.run_protocol()
                 elif hasattr(protocol_module, "run_validation"):
                     protocol_results[protocol_num] = protocol_module.run_validation()
+                elif hasattr(protocol_module, "run_falsification"):
+                    protocol_results[protocol_num] = protocol_module.run_falsification()
                 else:
                     logger.warning(
                         f"Protocol {protocol_num} missing run method, using fallback"
@@ -538,7 +552,7 @@ class AgentComparisonExperiment:
             logger.info("Applying framework-level falsification criteria")
             falsification = aggregate_prediction_results(protocol_results)
 
-            # Save results
+            # Save results with error handling
             output_dir = os.path.join(os.path.dirname(__file__), "results")
             os.makedirs(output_dir, exist_ok=True)
 
@@ -549,10 +563,29 @@ class AgentComparisonExperiment:
                 output_dir, f"framework_falsification_{timestamp}.json"
             )
 
-            with open(output_file, ', encoding="utf-8"w') as f:
-                json.dump(falsification, f, indent=2)
+            try:
+                with open(output_file, "w", encoding="utf-8") as f:
+                    json.dump(falsification, f, indent=2)
+                logger.info(f"Framework-level results saved to {output_file}")
+            except (OSError, IOError) as e:
+                logger.error(f"Failed to save results to {output_file}: {e}")
+                # Try alternative location
+                alt_output_file = os.path.join(
+                    "/tmp", f"framework_falsification_{timestamp}.json"
+                )
+                try:
+                    with open(alt_output_file, "w", encoding="utf-8") as f:
+                        json.dump(falsification, f, indent=2)
+                    logger.info(
+                        f"Framework-level results saved to alternative location: {alt_output_file}"
+                    )
+                except (OSError, IOError) as e2:
+                    logger.error(
+                        f"Failed to save results to alternative location: {e2}"
+                    )
+                    # Continue without saving - return results in memory
+                    logger.warning("Continuing without saving results to file")
 
-            logger.info(f"Framework-level results saved to {output_file}")
             return falsification
         else:
             logger.error("No protocol results available for synthesis")
@@ -2740,7 +2773,7 @@ def check_falsification(
     }
 
     # Use thresholds from falsification_thresholds.py
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         F5_1_MIN_PROPORTION,
         F5_1_MIN_ALPHA,
         F5_1_MIN_COHENS_D,

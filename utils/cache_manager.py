@@ -84,20 +84,77 @@ class CacheManager:
     def _is_json_serializable(self, obj: Any) -> bool:
         """Check if object is JSON serializable."""
         try:
-            json.dumps(obj)
+            json.dumps(obj, default=self._json_default)
             return True
         except (TypeError, ValueError):
             return False
 
+    def _json_default(self, obj):
+        """JSON serializer default function for common data types."""
+        if isinstance(obj, pd.DataFrame):
+            return {
+                "_type": "DataFrame",
+                "data": obj.to_dict("records"),
+                "index": obj.index.tolist(),
+                "columns": obj.columns.tolist(),
+                "dtypes": {col: str(dtype) for col, dtype in obj.dtypes.items()},
+            }
+        elif isinstance(obj, pd.Series):
+            return {
+                "_type": "Series",
+                "data": obj.tolist(),
+                "index": obj.index.tolist(),
+                "name": obj.name,
+                "dtype": str(obj.dtype),
+            }
+        elif isinstance(obj, np.ndarray):
+            return {
+                "_type": "ndarray",
+                "data": obj.tolist(),
+                "shape": obj.shape,
+                "dtype": str(obj.dtype),
+            }
+        elif hasattr(obj, "__dict__"):
+            return obj.__dict__
+        else:
+            return str(obj)
+
     def _save_json(self, path: Path, data: Any):
         """Save data as JSON if possible."""
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, separators=(",", ":"), sort_keys=True)
+            json.dump(
+                data,
+                f,
+                separators=(",", ":"),
+                sort_keys=True,
+                default=self._json_default,
+            )
 
     def _load_json(self, path: Path) -> Any:
         """Load data from JSON file."""
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            return self._reconstruct_objects(data)
+
+    def _reconstruct_objects(self, obj):
+        """Reconstruct objects from JSON-serialized format."""
+        if isinstance(obj, dict):
+            if "_type" in obj:
+                if obj["_type"] == "DataFrame":
+                    return pd.DataFrame(
+                        obj["data"], index=obj["index"], columns=obj["columns"]
+                    )
+                elif obj["_type"] == "Series":
+                    return pd.Series(obj["data"], index=obj["index"], name=obj["name"])
+                elif obj["_type"] == "ndarray":
+                    return np.array(obj["data"]).reshape(obj["shape"])
+            else:
+                # Recursively reconstruct nested objects
+                return {k: self._reconstruct_objects(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._reconstruct_objects(item) for item in obj]
+        else:
+            return obj
 
     def _generate_key(self, key_data: Any) -> str:
         """Generate unique cache key from data."""

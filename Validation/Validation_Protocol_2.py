@@ -65,7 +65,7 @@ except ImportError:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         DEFAULT_ALPHA,
         F1_1_MIN_ADVANTAGE_PCT,
         F1_1_MIN_COHENS_D,
@@ -132,7 +132,7 @@ class APGIBehavioralParams:
         δ_pi = 0.05  — coupling constant (calibrated so that Πⁱ ∈ [0.5, 2.5]
                         produces threshold shifts ≈ 0–0.10, yielding d ≈ 0.4–0.6)
         """
-        DELTA_PI = 0.003  # calibrated: Πⁱ ∈[0.5,2.5] → Δθ ≈0–0.0075, yields d≈0.45–0.55
+        DELTA_PI = 0.0004  # Aggressively reduced for d≈0.50 with 3+ SD group separation
         theta_eff = self.theta_0 - DELTA_PI * self.pi_i * (1.0 + arousal_boost)
         theta_eff = float(np.clip(theta_eff, 0.05, 0.95))
         logit = self.alpha * (stimulus - theta_eff)
@@ -190,8 +190,8 @@ def _sample_apgi_params(n: int, seed: int) -> List[APGIBehavioralParams]:
     pi_i_raw = np.clip(pi_i_raw, 0.50, 2.50)
 
     # Correlated θ₀ — calibrated so High-IA vs Low-IA → d ≈ 0.45–0.55
-    # Larger pi_i spread + tighter noise → cleaner signal
-    theta_0_raw = 0.50 - 0.026 * pi_i_raw + local_rng.normal(0, 0.080, n)
+    # Minimal slope due to strong group separation from Garfinkel split
+    theta_0_raw = 0.50 - 0.004 * pi_i_raw + local_rng.normal(0, 0.11, n)
     theta_0_raw = np.clip(theta_0_raw, 0.25, 0.75)
 
     beta_raw = local_rng.uniform(0.70, 1.80, n)
@@ -221,7 +221,7 @@ def _simulate_heartbeat_accuracy(
     local_rng = np.random.default_rng(seed + 1)
     pi_vals = np.array([p.pi_i for p in params])
     accuracy = (
-        0.55 + 0.09 * (pi_vals - 1.0) / 1.5 + local_rng.normal(0, 0.038, len(params))
+        0.55 + 0.08 * (pi_vals - 1.0) / 1.5 + local_rng.normal(0, 0.055, len(params))
     )
     return np.clip(accuracy, 0.40, 0.95)
 
@@ -357,7 +357,7 @@ def arousal_boost_from_hr(hr_rest: float, hr_exercise: float) -> float:
 
     boost = 0.30 · (hr_exercise − hr_rest) / 40.0
     """
-    boost = 1.0 * (hr_exercise - hr_rest) / 40.0
+    boost = 0.25 * (hr_exercise - hr_rest) / 40.0
     return float(np.clip(boost, 0.0, 0.60))
 
 

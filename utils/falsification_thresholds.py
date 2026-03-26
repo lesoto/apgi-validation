@@ -10,7 +10,7 @@ automatically to every protocol.
 
 Usage::
 
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         F6_1_LTCN_MAX_TRANSITION_MS,
         F6_2_MIN_INTEGRATION_RATIO,
         F5_6_PCA_MIN_VARIANCE,
@@ -123,6 +123,13 @@ F6_5_HYSTERESIS_MIN: float = 0.08  # hysteresis ≥ 0.08
 F6_5_HYSTERESIS_MAX: float = 0.25  # hysteresis ≤ 0.25
 
 # ---------------------------------------------------------------------------
+# Innovation 29 – LNN AUROC superiority threshold
+# ---------------------------------------------------------------------------
+F6_DELTA_AUROC_MIN: float = (
+    0.05  # ΔAUROC ≥ 0.05 (pre-specified threshold for LNN superiority)
+)
+
+# ---------------------------------------------------------------------------
 # V7.1 – TMS Intervention Thresholds
 # ---------------------------------------------------------------------------
 V7_1_MIN_THRESHOLD_REDUCTION_PCT: float = 15.0  # ≥15 % reduction
@@ -193,6 +200,11 @@ F2_5_MIN_HAZARD_RATIO: float = 1.65
 F2_5_MIN_TRIAL_ADVANTAGE: float = 12.0
 F2_5_ALPHA: float = 0.01
 
+# Cardiac Phase-Dependent Detection threshold
+F2_CARDIAC_DETECTION_ADVANTAGE_MIN: float = (
+    0.12  # Minimum 12% higher detection during high-HEP vs low-HEP phases
+)
+
 # ---------------------------------------------------------------------------
 # F3 family (Advantages)
 # ---------------------------------------------------------------------------
@@ -246,6 +258,7 @@ THRESHOLD_REGISTRY = {
     "F2.4_BETA_INTERACTION": F2_4_MIN_BETA_INTERACTION,
     "F2.5_MAX_TRIALS": F2_5_MAX_TRIALS,
     "F2.5_HAZARD_RATIO": F2_5_MIN_HAZARD_RATIO,
+    "F2.CARDIAC_DETECTION_ADVANTAGE": F2_CARDIAC_DETECTION_ADVANTAGE_MIN,
     "F3.1_ADVANTAGE": F3_1_MIN_ADVANTAGE_PCT,
     "F3.1_COHENS_D": F3_1_MIN_COHENS_D,
     "F3.2_INTERO_ADVANTAGE": F3_2_MIN_INTERO_ADVANTAGE_PCT,

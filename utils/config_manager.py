@@ -196,6 +196,19 @@ class ModelParameters:
     dt: float = 0.05  # Simulation time step
     duration: float = 1.0  # Simulation duration
 
+    # F6.2 parameters
+    F6_2_MIN_INTEGRATION_RATIO: float = 4.0  # ≥4× RNN  (spec criterion)
+    F6_2_FALSIFICATION_RATIO: float = 2.5  # falsified if ratio < 2.5×
+    F6_2_MIN_CURVE_FIT_R2: float = 0.85  # R² ≥ 0.85
+    F6_2_WILCOXON_ALPHA: float = 0.05
+
+    # Innovation 29 (LNN AUROC superiority) parameters
+    F6: dict = None  # Will be initialized in __post_init__
+
+    def __post_init__(self):
+        if self.F6 is None:
+            self.F6 = {"delta_auroc_min": 0.05}
+
 
 @dataclass
 class SimulationConfig:
@@ -393,7 +406,7 @@ class ConfigManager:
         # Expected SHA-256 hash of the legitimate schema
         # This hash should be updated when schema changes are made
         EXPECTED_SCHEMA_HASH = (
-            "32534202f6e9ade2ff241fe637e470cfdb8f06a3854f15eb2af39b933c96ced5"
+            "fb2a035a8207ce640e76e7e62fec8275aebc6ecfe281202ada1edb010ef00254"
         )
 
         try:

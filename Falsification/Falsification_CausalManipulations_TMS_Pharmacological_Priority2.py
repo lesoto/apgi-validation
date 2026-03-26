@@ -423,7 +423,9 @@ class CausalManipulationsValidator:
             duration=duration,
             pulses=kwargs.get(
                 "pulses",
-                int(stimulation_type.split("T")[0]) if stimulation_type else 1000,
+                int("".join(filter(str.isdigit, stimulation_type)))
+                if stimulation_type and any(c.isdigit() for c in stimulation_type)
+                else 1000,
             ),
             frequency=kwargs.get("frequency", 10.0),
             coil_type=kwargs.get("coil_type", "figure-8"),
@@ -573,7 +575,7 @@ class CausalManipulationsValidator:
         }
 
         # Test for precision increase (variance decrease)
-        f_stat, p_value = stats.f_oneway([pre_data, post_data])
+        f_stat, p_value = stats.f_oneway(pre_data, post_data)
         results["statistical_test"] = {
             "f_statistic": f_stat,
             "p_value": p_value,
@@ -1256,6 +1258,21 @@ class MNEDataInterface:
 # =============================================================================
 
 
+class NumpyEncoder(json.JSONEncoder):
+    """Custom JSON encoder for NumPy types."""
+
+    def default(self, obj):
+        if isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray,)):
+            return obj.tolist()
+        elif isinstance(obj, (np.bool_,)):
+            return bool(obj)
+        return super(NumpyEncoder, self).default(obj)
+
+
 def main():
     """
     Main function demonstrating CausalManipulations validation protocol.
@@ -1306,18 +1323,26 @@ def main():
         fasting_duration_h=12.0,
     )
 
-    # Generate simulation data
+    # Generate simulation data with clearer effects for demonstration
+    np.random.seed(42)  # Fixed seed for reproducibility
+    n_samples = 200  # Increased sample size for better statistical power
+
     simulation_data = {
-        "tms_theta_disruption_pre": np.random.normal(0, 1, 100),
-        "tms_theta_disruption_post": np.random.normal(-0.8, 1, 100),  # Effect size
-        "propofol_precision_enhancement_pre": np.random.normal(0, 1, 100),
+        # TMS intervention: clear negative shift with reduced variance
+        "tms_theta_disruption_pre": np.random.normal(0, 0.5, n_samples),
+        "tms_theta_disruption_post": np.random.normal(
+            -0.8, 0.5, n_samples
+        ),  # Effect size -0.8
+        # Pharmacological: clear precision reduction (lower variance)
+        "propofol_precision_enhancement_pre": np.random.normal(0, 1.0, n_samples),
         "propofol_precision_enhancement_post": np.random.normal(
-            0.3, 1, 100
-        ),  # Lower variance
-        "fasting_theta_modulation_pre": np.random.normal(0, 1, 100),
+            0, 0.6, n_samples  # Lower variance = higher precision
+        ),
+        # Metabolic: clear threshold shift
+        "fasting_theta_modulation_pre": np.random.normal(0, 0.5, n_samples),
         "fasting_theta_modulation_post": np.random.normal(
-            -0.5, 1, 100
-        ),  # Threshold shift
+            -0.5, 0.5, n_samples  # Threshold shift -0.5
+        ),
         "physiological_data": {
             "vital_signs": {"heart_rate": 75, "blood_pressure": {"systolic": 120}},
             "participant_reported": {"discomfort": 3 / 10, "nausea": 2 / 10},
@@ -1353,8 +1378,8 @@ def main():
     # Create data directory if it doesn't exist
     output_file.parent.mkdir(exist_ok=True)
 
-    with open(output_file, ', encoding="utf-8"w') as f:
-        json.dump(results, f, indent=2)
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, cls=NumpyEncoder)
 
     print(f"\nDetailed results saved to: {output_file}")
 

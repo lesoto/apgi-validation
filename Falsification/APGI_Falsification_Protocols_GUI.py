@@ -130,7 +130,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 2: Iowa Gambling": {
-                "file": "Falsification-AgentComparison-ConvergenceBenchmark.py",
+                "file": "Falsification_AgentComparison_ConvergenceBenchmark.py",
                 "class": "IowaGamblingTaskEnvironment",
                 "description": "IGT variant with simulated interoceptive costs",
                 "parameters": {
@@ -193,7 +193,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 4: Phase Transition": {
-                "file": "Falsification-InformationTheoretic-PhaseTransition.py",
+                "file": "Falsification_InformationTheoretic_PhaseTransition.py",
                 "class": "InformationTheoreticAnalysis",
                 "description": "Test APGI ignition phase transition signatures",
                 "parameters": {
@@ -261,7 +261,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 6: Network Comparison": {
-                "file": "Falsification-NeuralNetwork-EnergyBenchmark.py",
+                "file": "Falsification_NeuralNetwork_EnergyBenchmark.py",
                 "class": "NetworkComparisonExperiment",
                 "description": "Compare APGI-inspired vs standard architectures",
                 "parameters": {
@@ -303,7 +303,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 7: Mathematical Consistency": {
-                "file": "Falsification-MathematicalConsistency-Equations.py",
+                "file": "Falsification_MathematicalConsistency_Equations.py",
                 "class": "MathematicalConsistencyChecker",
                 "description": "Test mathematical consistency of APGI equations",
                 "parameters": {
@@ -331,7 +331,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 8: Parameter Sensitivity": {
-                "file": "Falsification-ParameterSensitivity-Identifiability.py",
+                "file": "Falsification_ParameterSensitivity_Identifiability.py",
                 "class": "ParameterSensitivityAnalyzer",
                 "description": "Parameter sensitivity and identifiability analysis",
                 "parameters": {
@@ -359,7 +359,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 9: Neural Signatures": {
-                "file": "Falsification-NeuralSignatures-EEG-P3b-HEP.py",
+                "file": "Falsification_NeuralSignatures_EEG_P3b_HEP.py",
                 "class": "NeuralSignatureValidator",
                 "description": "Validate P3b and HEP neural signatures",
                 "parameters": {
@@ -387,7 +387,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 10: Cross-Species Scaling": {
-                "file": "Falsification-CrossSpeciesScaling-P12.py",
+                "file": "Falsification_CrossSpeciesScaling_P12.py",
                 "class": "CrossSpeciesScalingAnalyzer",
                 "description": "Cross-species scaling analysis",
                 "parameters": {
@@ -415,7 +415,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 11: Bayesian Estimation": {
-                "file": "Falsification-BayesianEstimation-ParameterRecovery.py",
+                "file": "Falsification_BayesianEstimation_ParameterRecovery.py",
                 "class": "BayesianParameterRecovery",
                 "description": "Bayesian parameter recovery analysis",
                 "parameters": {
@@ -884,7 +884,7 @@ class ProtocolRunnerGUI:
             config_file = (
                 config_dir / f"{selected.lower().replace(' ', '_')}_params.json"
             )
-            with open(config_file, ', encoding="utf-8"w') as f:
+            with open(config_file, "w", encoding="utf-8") as f:
                 json.dump(self.parameter_values[selected], f, indent=2)
 
             messagebox.showinfo("Success", f"Parameters saved to {config_file}")

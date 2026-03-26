@@ -381,21 +381,21 @@ def pytest_collection_modifyitems(config, items):
 def create_test_file(file_path: Path, content: str):
     """Create a test file with given content."""
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(file_path, ', encoding="utf-8"w') as f:
+    with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
 
 
 def create_test_json(file_path: Path, data: dict):
     """Create a test JSON file."""
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(file_path, ', encoding="utf-8"w') as f:
+    with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
 
 def create_test_yaml(file_path: Path, data: dict):
     """Create a test YAML file."""
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(file_path, ', encoding="utf-8"w') as f:
+    with open(file_path, "w", encoding="utf-8") as f:
         yaml.dump(data, f)
 
 

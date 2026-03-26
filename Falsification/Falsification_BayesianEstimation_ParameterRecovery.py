@@ -82,21 +82,30 @@ def run_bayesian_estimation_nuts(
             # APGI psychometric function
             # p(detection) = 1 / (1 + exp(-(stimulus - mu)/sigma))
             # where mu = theta_0 / (1 + pi_i * stimulus) * (1 + beta * pi_i)
-            mu = pm.Deterministic(
-                "mu", theta_0 / (1.0 + pi_i * stimulus_intensity) * (1.0 + beta * pi_i)
+            # Calculate mu_psych as a deterministic variable
+            mu_psych = pm.Deterministic(
+                "mu_psych",
+                theta_0 / (1.0 + pi_i * stimulus_intensity) * (1.0 + beta * pi_i),
             )
+            # Ensure p is in (0, 1) range to avoid -inf logp
+            p_detection = pm.Deterministic(
+                "p_detection", pm.math.invlogit((stimulus_intensity - mu_psych) / 0.1)
+            )
+            p_detection = pm.math.clip(p_detection, 1e-7, 1.0 - 1e-7)
 
             # Likelihood: responses ~ Bernoulli(p_detection)
-            pm.Bernoulli("likelihood", p=mu, observed=data)
+            pm.Bernoulli("likelihood", p=p_detection, observed=data)
 
             # Sample using NUTS
             trace = pm.sample(
                 tune=tune_samples,
                 draws=n_samples,
                 chains=n_chains,
-                init="jitter+adapt_diag",  # Fixed: use valid initializer
-                return_inferencedata=True,  # Fixed: need InferenceData for arviz
+                init="jitter+adapt_diag",
+                target_accept=0.95,
+                return_inferencedata=True,
                 progressbar=True,
+                random_seed=42,
             )
 
         # Extract posterior samples
@@ -107,11 +116,28 @@ def run_bayesian_estimation_nuts(
         # Calculate convergence diagnostics
         # R-hat should be < 1.1 for convergence
         r_hat = az.rhat(trace)
-        mean_r_hat = np.mean([r_hat[param] for param in r_hat.keys()])
+        # Handle xarray DataArrays - need to flatten and extract scalar values
+        r_hat_dict = {}
+        for k, v in r_hat.items():
+            if hasattr(v, "values"):
+                # Flatten the array and take mean across chains/draws
+                val_array = v.values.flatten()
+                r_hat_dict[k] = float(np.mean(val_array))
+            else:
+                r_hat_dict[k] = float(v)
+        mean_r_hat = np.mean(list(r_hat_dict.values()))
 
         # Effective sample size (ESS)
         ess = az.ess(trace)
-        mean_ess = np.mean([ess[param] for param in ess.keys()])
+        ess_dict = {}
+        for k, v in ess.items():
+            if hasattr(v, "values"):
+                # Flatten the array and take mean across chains/draws
+                val_array = v.values.flatten()
+                ess_dict[k] = float(np.mean(val_array))
+            else:
+                ess_dict[k] = float(v)
+        mean_ess = np.mean(list(ess_dict.values()))
 
         # Check convergence criteria
         convergence_pass = mean_r_hat < 1.1 and mean_ess > 400
@@ -119,8 +145,8 @@ def run_bayesian_estimation_nuts(
         return {
             "posterior_samples": posterior_samples,
             "trace": trace,
-            "r_hat": {k: float(v) for k, v in r_hat.items()},
-            "ess": {k: float(v) for k, v in ess.items()},
+            "r_hat": r_hat_dict,
+            "ess": ess_dict,
             "mean_r_hat": float(mean_r_hat),
             "mean_ess": float(mean_ess),
             "convergence_pass": convergence_pass,
@@ -591,8 +617,21 @@ def run_bayesian_estimation_hierarchical(
 
         # Check convergence for key parameters
         key_params = ["theta_0_mu", "pi_i_mu", "beta_mu"]
-        key_rhats = [r_hat[param].values for param in key_params if param in r_hat]
-        key_ess = [ess[param].values for param in key_params if param in ess]
+        key_rhats = []
+        key_ess = []
+        for param in key_params:
+            if param in r_hat:
+                v = r_hat[param]
+                if hasattr(v, "values"):
+                    key_rhats.append(float(np.mean(v.values.flatten())))
+                else:
+                    key_rhats.append(float(v))
+            if param in ess:
+                v = ess[param]
+                if hasattr(v, "values"):
+                    key_ess.append(float(np.mean(v.values.flatten())))
+                else:
+                    key_ess.append(float(v))
 
         mean_r_hat = np.mean(key_rhats) if key_rhats else float("nan")
         mean_ess = np.mean(key_ess) if key_ess else float("nan")
@@ -813,7 +852,7 @@ def run_bayesian_estimation_complete():
     logger.info("Running Bayesian estimation with NUTS...")
 
     # Generate synthetic data using APGI psychometric function
-    n_data_points = 200
+    n_data_points = 400
     stimulus_intensity = np.linspace(0.1, 2.0, n_data_points)
 
     # True APGI parameters

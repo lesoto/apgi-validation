@@ -3428,7 +3428,7 @@ def _step_save_results(
             },
         }
 
-        with open("apgi_validation_results_v2.json", ', encoding="utf-8"w') as f:
+        with open("apgi_validation_results_v2.json", "w", encoding="utf-8") as f:
             json.dump(results_summary, f, indent=2, default=str)
 
         print("✓ Results saved to: apgi_validation_results_v2.json")
@@ -3803,7 +3803,7 @@ def _generate_visualizations_and_save_results(
             },
         }
 
-        with open("apgi_validation_results_v2.json", ', encoding="utf-8"w') as f:
+        with open("apgi_validation_results_v2.json", "w", encoding="utf-8") as f:
             json.dump(results_summary, f, indent=2, default=str)
 
         print("✓ Results saved to: apgi_validation_results_v2.json")

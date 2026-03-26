@@ -768,7 +768,7 @@ class APGIValidationGUI:
 
             # Save to config file
             gui_config_path = PROJECT_ROOT / "config" / "gui_config.yaml"
-            with open(gui_config_path, ', encoding="utf-8"w') as f:
+            with open(gui_config_path, "w", encoding="utf-8") as f:
                 import yaml
 
                 yaml.dump(settings_data, f, default_flow_style=False, indent=2)
@@ -784,7 +784,7 @@ class APGIValidationGUI:
         try:
             gui_config_path = PROJECT_ROOT / "config" / "gui_config.yaml"
             if gui_config_path.exists():
-                with open(gui_config_path, ', encoding="utf-8"r') as f:
+                with open(gui_config_path, "r", encoding="utf-8") as f:
                     import yaml
 
                     saved_settings = yaml.safe_load(f)
@@ -814,7 +814,7 @@ class APGIValidationGUI:
         try:
             alert_config_path = PROJECT_ROOT / "config" / "gui_alert_config.yaml"
             if alert_config_path.exists():
-                with open(alert_config_path, ', encoding="utf-8"r') as f:
+                with open(alert_config_path, "r", encoding="utf-8") as f:
                     import yaml
 
                     saved_alert_settings = yaml.safe_load(f)
@@ -903,7 +903,7 @@ class APGIValidationGUI:
             # Simple CSV export
             import csv
 
-            with open(file_path, ', encoding="utf-8"w', newline="") as f:
+            with open(file_path, "w", encoding="utf-8", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["Protocol", "Status", "Passed"])
                 for protocol, result in self.validator.protocol_results.items():
@@ -938,7 +938,7 @@ class APGIValidationGUI:
                 )
                 return
 
-            with open(file_path, ', encoding="utf-8"w') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(self.validator.protocol_results, f, indent=2, default=str)
             messagebox.showinfo("Export", f"Results exported to {file_path}")
 
@@ -1160,7 +1160,7 @@ class APGIValidationGUI:
 
             # Atomic write: write to temp file then rename
             temp_path = alert_config_path.with_suffix(".yaml.tmp")
-            with open(temp_path, ', encoding="utf-8"w') as f:
+            with open(temp_path, "w", encoding="utf-8") as f:
                 import yaml
 
                 yaml.dump(alert_data, f, default_flow_style=False, indent=2)
@@ -1968,7 +1968,7 @@ Interpretation:
                 report_serializable = self._convert_to_serializable(report)
 
                 # Use context manager for proper file handling
-                with open(filename, ', encoding="utf-8"w', encoding="utf-8") as f:
+                with open(filename, "w") as f:
                     json.dump(report_serializable, f, indent=2)
 
                 messagebox.showinfo("Success", f"Results saved to {filename}")

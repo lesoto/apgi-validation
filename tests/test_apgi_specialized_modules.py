@@ -12,6 +12,7 @@ from unittest.mock import MagicMock
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
 
 # Import all specialized APGI modules with error handling
 SPECIALIZED_MODULES = {}
@@ -56,8 +57,11 @@ for module_name in SPECIALIZED_MODULE_NAMES:
             if not file_path.exists():
                 file_path = Path(__file__).parent.parent / "utils" / f"{module_name}.py"
         else:
-            # Regular APGI modules
-            file_path = Path(__file__).parent.parent / f"{module_name}.py"
+            # Regular APGI modules - check Theory directory first
+            file_path = Path(__file__).parent.parent / "Theory" / f"{module_name}.py"
+            if not file_path.exists():
+                # Fallback to root directory
+                file_path = Path(__file__).parent.parent / f"{module_name}.py"
 
         if file_path.exists():
             spec = importlib.util.spec_from_file_location(import_name, file_path)

@@ -131,6 +131,7 @@ if Protocol_1:
         run_falsification_protocol_1 = Protocol_1.run_falsification
     except AttributeError as e:
         warnings.warn(f"Failed to load Protocol 1 exports: {e}")
+    else:
         # Set defaults to None
         HierarchicalGenerativeModel = SomaticMarkerNetwork = PolicyNetwork = None
         HabitualPolicy = EpisodicMemory = WorkingMemory = None

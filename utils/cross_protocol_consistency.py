@@ -576,6 +576,12 @@ if __name__ == "__main__":
                     "threshold": "interaction p < 0.05",
                 },
             },
+            "thresholds": {
+                "alpha_level": 0.05,
+                "cohens_d_minimum": 0.30,
+                "eta_squared_minimum": 0.20,
+                "bayes_factor_strong": 6.0,
+            },
             "posterior_summary": {
                 "beta": {"mean": 12.0, "std": 1.5},
                 "theta": {"mean": 0.5, "std": 0.08},
@@ -586,6 +592,12 @@ if __name__ == "__main__":
                 "F1.1": {"passed": True, "p_value": 0.01, "threshold": "r ≥ 0.70"},
                 "F1.2": {"passed": True, "p_value": 0.02, "threshold": "h ≥ 0.30"},
             },
+            "thresholds": {
+                "alpha_level": 0.05,
+                "cohens_d_minimum": 0.30,
+                "eta_squared_minimum": 0.20,
+                "bayes_factor_strong": 6.0,
+            },
             "posterior_summary": {
                 "beta": {"mean": 12.5, "std": 1.8},
                 "theta": {"mean": 0.52, "std": 0.09},
@@ -595,6 +607,12 @@ if __name__ == "__main__":
             "criteria": {
                 "F1.1": {"passed": True, "p_value": 0.01, "threshold": "r ≥ 0.70"},
                 "F1.2": {"passed": True, "p_value": 0.02, "threshold": "h ≥ 0.30"},
+            },
+            "thresholds": {
+                "alpha_level": 0.05,
+                "cohens_d_minimum": 0.30,
+                "eta_squared_minimum": 0.20,
+                "bayes_factor_strong": 6.0,
             },
             "posterior_summary": {
                 "beta": {"mean": 11.8, "std": 1.2},

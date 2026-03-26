@@ -31,7 +31,7 @@ _project_root = Path(__file__).parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
-from falsification_thresholds import (
+from utils.falsification_thresholds import (
     F1_5_PAC_MI_MIN,
     F1_5_PAC_INCREASE_MIN,
     F1_5_COHENS_D_MIN,

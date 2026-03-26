@@ -123,13 +123,13 @@ class APGIBayesianModel:
                     lower=0,
                     upper=np.max(stimulus_intensities),
                 )
-                pm.Beta("amplitude", alpha=5, beta=1)  # Response amplitude
-                pm.Beta("baseline", alpha=1, beta=3)  # Baseline response
+                amplitude = pm.Beta("amplitude", alpha=5, beta=1)  # Response amplitude
+                baseline = pm.Beta("baseline", alpha=1, beta=3)  # Baseline response
 
                 # APGI psychometric function
-                prob_detect = pm.Beta("baseline", alpha=1, beta=3) + pm.Beta(
-                    "amplitude", alpha=5, beta=1
-                ) / (1 + pm.math.exp(-beta * (stimulus_intensities - theta)))
+                prob_detect = baseline + amplitude / (
+                    1 + pm.math.exp(-beta * (stimulus_intensities - theta))
+                )
 
                 # Likelihood
                 pm.Binomial(
@@ -253,13 +253,11 @@ class APGIBayesianModel:
             )
 
             # Amplitude and baseline (fixed across subjects for simplicity)
-            pm.Beta("amplitude", alpha=5, beta=1)
-            pm.Beta("baseline_fixed", alpha=1, beta=3)
+            amplitude = pm.Beta("amplitude", alpha=5, beta=1)
+            baseline_fixed = pm.Beta("baseline_fixed", alpha=1, beta=3)
 
             # APGI psychometric function for each subject
-            prob_detect = pm.Beta("baseline_fixed", alpha=1, beta=3) + pm.Beta(
-                "amplitude", alpha=5, beta=1
-            ) / (
+            prob_detect = baseline_fixed + amplitude / (
                 1
                 + pm.math.exp(
                     -pm.Normal(
@@ -502,10 +500,10 @@ class ModelComparisonFramework:
                 sigma=np.std(stimulus_intensities),
             )
             amplitude = pm.Beta("amplitude", alpha=5, beta=1)
-            pm.Beta("baseline", alpha=1, beta=3)
+            baseline = pm.Beta("baseline", alpha=1, beta=3)
 
             # GNW psychometric function (different functional form)
-            prob_detect = pm.Beta("baseline_fixed", alpha=1, beta=3) + amplitude / (
+            prob_detect = baseline + amplitude / (
                 1 + pm.math.exp(-slope * (stimulus_intensities - threshold))
             )
 

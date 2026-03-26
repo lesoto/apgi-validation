@@ -395,7 +395,7 @@ class APGIMasterValidator:
             output_dir
             / f"validation_reproducibility_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         )
-        with open(output_file, ', encoding="utf-8"w') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(reproducibility_data, f, indent=2)
 
         # Save results as CSV

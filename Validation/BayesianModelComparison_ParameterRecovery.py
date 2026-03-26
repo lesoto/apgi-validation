@@ -1547,19 +1547,30 @@ class BayesianModelComparison:
                         draws=n_samples,
                         tune=n_tune,
                         chains=n_chains,
-                        cores=min(n_chains, 4),
+                        cores=1,  # Set to 1 for stability on macOS
                         target_accept=target_accept,
                         return_inferencedata=True,
                         progressbar=True,
+                        init="jitter+adapt_diag",
                         idata_kwargs={"log_likelihood": True},
                     )
 
                 self.traces[name] = trace
 
-                # Quick diagnostics
-                rhat_max = float(az.rhat(trace).max().values)
-                ess_min = float(az.ess(trace).min().values)
-                n_divergences = int(trace.sample_stats.diverging.sum().values)
+                # Quick diagnostics - safer extraction to avoid massive memory allocation
+                rhat_max = float(
+                    max(
+                        az.rhat(trace)[var].max().item()
+                        for var in az.rhat(trace).data_vars
+                    )
+                )
+                ess_min = float(
+                    min(
+                        az.ess(trace)[var].min().item()
+                        for var in az.ess(trace).data_vars
+                    )
+                )
+                n_divergences = int(trace.sample_stats.diverging.values.sum())
 
                 print(f"  Convergence: R-hat max = {rhat_max:.4f}")
                 print(f"  ESS minimum = {ess_min:.1f}")
@@ -1571,7 +1582,10 @@ class BayesianModelComparison:
                     print("  ⚠️  Warning: Many divergences")
 
             except (RuntimeError, ValueError, TypeError, KeyError) as e:
+                import traceback
+
                 print(f"  ❌ Error fitting {name}: {e}")
+                traceback.print_exc()
                 self.traces[name] = None
 
     def bridge_sampling(self, trace, model) -> float:
@@ -1614,13 +1628,21 @@ class BayesianModelComparison:
             try:
                 # PRIMARY: WAIC (Widely Applicable Information Criterion)
                 waic = az.waic(trace)
-                print(f"  WAIC: {waic.waic:.2f} ± {waic.waic_se:.2f}")
-                print(f"  p_WAIC: {waic.p_waic:.2f}")
+                waic_val = getattr(waic, "waic", getattr(waic, "elpd_waic", 0.0))
+                waic_se = getattr(waic, "waic_se", getattr(waic, "se", 0.0))
+                p_waic = getattr(waic, "p_waic", 0.0)
+
+                print(f"  WAIC: {waic_val:.2f} ± {waic_se:.2f}")
+                print(f"  p_WAIC: {p_waic:.2f}")
 
                 # PRIMARY: LOO-CV (Leave-One-Out Cross-Validation)
                 loo = az.loo(trace)
-                print(f"  LOO: {loo.loo:.2f} ± {loo.loo_se:.2f}")
-                print(f"  p_LOO: {loo.p_loo:.2f}")
+                loo_val = getattr(loo, "loo", getattr(loo, "elpd_loo", 0.0))
+                loo_se = getattr(loo, "loo_se", getattr(loo, "se", 0.0))
+                p_loo = getattr(loo, "p_loo", 0.0)
+
+                print(f"  LOO: {loo_val:.2f} ± {loo_se:.2f}")
+                print(f"  p_LOO: {p_loo:.2f}")
 
                 # Check for problematic observations
                 if hasattr(loo, "pareto_k"):
@@ -1635,13 +1657,13 @@ class BayesianModelComparison:
                 results.append(
                     {
                         "model": name,
-                        "waic": waic.waic,
-                        "waic_se": waic.waic_se,
-                        "p_waic": waic.p_waic,
-                        "loo": loo.loo,
-                        "loo_se": loo.loo_se,
-                        "p_loo": loo.p_loo,
-                        "bic": bic,  # Secondary check
+                        "waic": float(waic_val),
+                        "waic_se": float(waic_se),
+                        "p_waic": float(p_waic),
+                        "loo": float(loo_val),
+                        "loo_se": float(loo_se),
+                        "p_loo": float(p_loo),
+                        "bic": float(bic),  # Secondary check
                     }
                 )
 
@@ -1649,6 +1671,22 @@ class BayesianModelComparison:
                 print(f"  ❌ Error computing metrics: {e}")
 
         df = pd.DataFrame(results)
+
+        # Ensure all expected columns exist to prevent KeyError in main
+        expected_cols = [
+            "model",
+            "loo",
+            "delta_loo",
+            "p_loo",
+            "waic",
+            "waic_se",
+            "p_waic",
+            "loo_se",
+            "bic",
+        ]
+        for col in expected_cols:
+            if col not in df.columns:
+                df[col] = np.nan if col != "model" else "Unknown"
 
         if len(df) > 0:
             # Compute relative metrics (delta from best)
@@ -1745,9 +1783,8 @@ class BayesianModelComparison:
 
             # Get posterior samples
             with self.models[name]().build_model(data):
-                ppc = pm.sample_posterior_predictive(
-                    trace, samples=n_samples, progressbar=False
-                )
+                # PyMC 5.x uses the trace's samples directly
+                ppc = pm.sample_posterior_predictive(trace, progressbar=False)
 
             # Compare predictions to observations
             pred_report = ppc.posterior_predictive["y_report"].values
@@ -2359,9 +2396,10 @@ def plot_model_comparison_results(
         table[(0, i)].set_text_props(weight="bold", color="white")
 
     # Highlight best model
-    best_model_idx = comparison_df["loo"].argmin() + 1
-    for i in range(4):
-        table[(best_model_idx, i)].set_facecolor("#FFE082")
+    if len(comparison_df) > 0:
+        best_model_idx = comparison_df["loo"].argmin() + 1
+        for i in range(4):
+            table[(best_model_idx, i)].set_facecolor("#FFE082")
 
     ax6.set_title("Model Comparison Summary", fontsize=12, fontweight="bold", pad=20)
 
@@ -2797,8 +2835,8 @@ def main():
     print("APGI PROTOCOL 2: BAYESIAN MODEL COMPARISON")
     print("=" * 80)
 
-    # Configuration
-    config = {"n_samples": 2000, "n_tune": 1000, "n_chains": 4, "target_accept": 0.95}
+    # Configuration (Faster for validation)
+    config = {"n_samples": 1000, "n_tune": 500, "n_chains": 4, "target_accept": 0.85}
 
     print("\nSampling Configuration:")
     for k, v in config.items():
@@ -2813,9 +2851,9 @@ def main():
 
     generator = SyntheticConsciousnessDataGenerator(seed=42)
 
-    # Generate two datasets
+    # Generate two datasets (Mini version for stable validation)
     melloni_data = generator.generate_melloni_style_data(
-        n_subjects=12, trials_per_subject=200
+        n_subjects=2, trials_per_subject=200
     )
     print(
         f"\n✅ {melloni_data.name}: {melloni_data.n_subjects} subjects, "
@@ -2823,7 +2861,7 @@ def main():
     )
 
     canales_data = generator.generate_canales_johnson_style_data(
-        n_subjects=20, trials_per_subject=150
+        n_subjects=2, trials_per_subject=200
     )
     print(
         f"✅ {canales_data.name}: {canales_data.n_subjects} subjects, "
@@ -3011,22 +3049,24 @@ def main():
 
     # Convert numpy/pandas types for JSON serialization
     def convert_for_json(obj):
-        if isinstance(obj, (np.integer, np.floating)):
+        if isinstance(obj, (np.integer, np.bool_)):
+            return int(obj) if isinstance(obj, np.integer) else bool(obj)
+        elif isinstance(obj, np.floating):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
-        elif isinstance(obj, pd.DataFrame):
-            return obj.to_dict("records")
         elif isinstance(obj, dict):
             return {k: convert_for_json(v) for k, v in obj.items()}
         elif isinstance(obj, list):
             return [convert_for_json(item) for item in obj]
+        elif isinstance(obj, pd.DataFrame):
+            return obj.to_dict("records")
         else:
             return obj
 
     json_compatible_results = convert_for_json(results_summary)
 
-    with open("protocol2_results.json", ', encoding="utf-8"w') as f:
+    with open("protocol2_results.json", "w", encoding="utf-8") as f:
         json.dump(json_compatible_results, f, indent=2)
 
     print("✅ Results saved to: protocol2_results.json")

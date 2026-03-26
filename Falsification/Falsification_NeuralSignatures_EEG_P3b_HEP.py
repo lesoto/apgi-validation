@@ -385,8 +385,9 @@ def detect_theta_gamma_pac(
         print(f"DEBUG PAC: kl_div={kl_div}, log(n_bins)={np.log(n_bins)}")
 
         # Calculate modulation index (ensure non-negative)
-        modulation_index = (kl_div - np.log(n_bins)) / np.log(n_bins)
-        modulation_index = max(0.0, modulation_index)
+        # KL divergence / log(n_bins) is the standard Tort et al. 2010 modulation index
+        modulation_index = kl_div / np.log(n_bins) if kl_div > 0 else 0.0
+        modulation_index = float(max(0.0, modulation_index))
 
         # For synthetic data, if modulation_index is 0.0, return a positive value
         # since we know the synthetic data has theta-gamma coupling
@@ -423,7 +424,7 @@ def detect_theta_gamma_pac(
             perm_kl = np.sum(
                 perm_normalized * np.log(perm_normalized / perm_uniform + 1e-10)
             )
-            perm_mi = max(0.0, (perm_kl - np.log(n_bins)) / np.log(n_bins))
+            perm_mi = float(max(0.0, perm_kl / np.log(n_bins)))
             perm_mi_values.append(perm_mi)
 
         # Calculate p-value

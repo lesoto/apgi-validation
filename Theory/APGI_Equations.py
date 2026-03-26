@@ -206,11 +206,12 @@ class CoreIgnitionSystem:
         Pi_i_baseline: float,
         M: float,
         beta: float,
+        M0: float = 0.0,
     ) -> float:
         """
-        Compute effective interoceptive precision with exponential modulation:
+        Compute effective interoceptive precision with sigmoid modulation:
 
-        Π^i_eff(t) = Π^i_baseline · exp(β_som·M(t))
+        Π^i_eff(t) = Π^i_baseline · [1 + β · σ(M(t) - M_0)]
 
         From Section 2.2 of APGI_Equations.md
 
@@ -218,11 +219,13 @@ class CoreIgnitionSystem:
             Pi_i_baseline: Baseline interoceptive precision
             M: Current somatic marker state
             beta: Modulation strength (β_som)
+            M0: Reference somatic marker level
 
         Returns:
             Effective interoceptive precision Π^i_eff(t)
         """
-        return Pi_i_baseline * np.exp(beta * M)
+        sigmoid_M = 1.0 / (1.0 + np.exp(-(M - M0)))
+        return Pi_i_baseline * (1.0 + beta * sigmoid_M)
 
     @staticmethod
     def ignition_probability(

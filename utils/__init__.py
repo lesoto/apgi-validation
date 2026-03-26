@@ -41,13 +41,13 @@ def _check_required_env_vars():
                 "Set these in your environment or .env file before running in production."
             )
         else:
-            # In development, provide clear guidance
-            raise EnvironmentError(
-                f"Missing required environment variables: {', '.join(missing_vars)}. "
-                "For development, set these in a .env file:\n"
-                f"PICKLE_SECRET_KEY=your_secret_key_here\n"
-                f"APGI_BACKUP_HMAC_KEY=your_hmac_key_here\n"
-                f'Or generate secure keys using: python -c "import secrets; print(secrets.token_hex(32))"'
+            # In development, warn but allow continued execution
+            warnings.warn(
+                f"Missing environment variables: {', '.join(missing_vars)}. "
+                "Pickle signing and backup HMAC verification are disabled. "
+                "Set these for production use.",
+                RuntimeWarning,
+                stacklevel=2,
             )
 
 

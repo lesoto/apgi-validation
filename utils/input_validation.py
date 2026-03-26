@@ -287,7 +287,7 @@ class InputValidator:
         # Try to open the file to verify it's actually accessible
         # This reduces the TOCTOU window by validating while file is open
         try:
-            with open(path_str, ', encoding="utf-8"rb'):
+            with open(path_str, "rb", encoding="utf-8"):
                 # Just verify we can open it, don't read content
                 pass
         except (IOError, OSError, PermissionError) as e:

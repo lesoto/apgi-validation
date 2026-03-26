@@ -624,7 +624,7 @@ def _truncate_log_file(file_path: str, dry_run: bool, verbose: bool) -> None:
             if verbose:
                 print(f"Would clear file: {file_path}")
         else:
-            with open(file_path, ', encoding="utf-8"w'):
+            with open(file_path, "w", encoding="utf-8"):
                 pass
             if verbose:
                 print(f"Cleared: {file_path}")

@@ -91,34 +91,40 @@ class BackupManager:
                 except (IOError, OSError) as e:
                     logging.warning(f"Could not load persisted key: {e}")
 
-            # If still no key, generate and persist it
+            # If still no key, use a default test key for testing
             if not backup_hmac_key:
-                # Generate a cryptographically secure key with sufficient entropy
-                backup_hmac_key = base64.b64encode(os.urandom(32)).decode("utf-8")
-                try:
-                    # Use atomic open with mode 0o600 — file is private from creation
-                    fd = os.open(
-                        str(key_file),
-                        os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
-                        0o600,
+                backup_hmac_key = os.environ.get("APGI_BACKUP_HMAC_KEY")
+                if backup_hmac_key:
+                    logging.info("Using APGI_BACKUP_HMAC_KEY from environment")
+                else:
+                    raise RuntimeError(
+                        "APGI_BACKUP_HMAC_KEY environment variable is not set. "
+                        "Please set a secure key before running backup operations. "
+                        'Generate a secure key using: python -c "import secrets; print(secrets.token_hex(32))"'
                     )
-                    try:
-                        os.write(fd, backup_hmac_key.encode("utf-8"))
-                    finally:
-                        os.close(fd)
-                    logging.info(
-                        "Generated and persisted new HMAC key with sufficient entropy (256 bits)."
-                    )
-                except (IOError, OSError) as e:
-                    logging.warning(f"Could not persist key: {e}")
 
         # Validate backup HMAC key: minimum length and entropy
         try:
-            key_bytes = base64.b64decode(backup_hmac_key)
+            # Check if key is hex format (64 hex chars = 32 bytes)
+            if len(backup_hmac_key) == 64 and all(
+                c in "0123456789abcdefABCDEF" for c in backup_hmac_key
+            ):
+                # Hex format - convert to bytes for validation
+                key_bytes = bytes.fromhex(backup_hmac_key)
+                logging.info("Using hex format HMAC key")
+                # Store as hex string
+                self._backup_hmac_key = backup_hmac_key
+            else:
+                # Try base64 format
+                key_bytes = base64.b64decode(backup_hmac_key)
+                logging.info("Using base64 format HMAC key")
+                # Convert to hex string for consistency
+                self._backup_hmac_key = key_bytes.hex()
+
             # Check minimum length (at least 16 bytes / 128 bits)
             if len(key_bytes) < 16:
                 raise ValueError(
-                    f"APGI_BACKUP_HMAC_KEY must be at least 16 bytes (128 bits) when decoded from base64, "
+                    f"APGI_BACKUP_HMAC_KEY must be at least 16 bytes (128 bits), "
                     f"got {len(key_bytes)} bytes"
                 )
 
@@ -963,6 +969,94 @@ class BackupManager:
         apgi_logger.logger.info(f"Cleaned up {deleted_count} old backups")
         return deleted_count
 
+    def verify_backup_integrity(self, backup_id: str) -> bool:
+        """Verify backup integrity by extracting and checking content checksum."""
+        import tempfile
+
+        # Find backup file
+        backup_file = None
+        for ext in [".zip", ".tar"]:
+            potential_file = self.backup_dir / f"{backup_id}{ext}"
+            if potential_file.exists():
+                backup_file = potential_file
+                break
+
+        if not backup_file:
+            return False
+
+        # Load metadata
+        metadata_file = self.backup_dir / f"{backup_id}_metadata.json"
+        if not metadata_file.exists():
+            return False
+
+        try:
+            with open(metadata_file, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            return False
+
+        # Verify checksum by extracting and comparing content
+        expected_checksum = metadata.get("checksum")
+        if not expected_checksum:
+            return False
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            try:
+                # Extract backup to temp directory
+                if backup_file.suffix == ".zip":
+                    with zipfile.ZipFile(backup_file, "r") as zipf:
+                        file_list = [
+                            f
+                            for f in zipf.namelist()
+                            if not f.endswith("backup_info.json")
+                        ]
+                        zipf.extractall(temp_path, members=file_list)
+                else:
+                    with tarfile.open(backup_file, "r") as tarf:
+                        file_list = [
+                            f
+                            for f in tarf.getnames()
+                            if not f.endswith("backup_info.json")
+                        ]
+                        tarf.extractall(temp_path, members=file_list)
+
+                # Calculate checksum of extracted files
+                extracted_files = []
+                for root, dirs, files in os.walk(temp_path):
+                    for file in files:
+                        if not file.endswith("backup_info.json"):
+                            file_path = Path(root) / file
+                            extracted_files.append(file_path)
+
+                # Sort files for consistent checksum calculation
+                extracted_files.sort(key=lambda x: str(x))
+
+                # Calculate checksum
+                actual_checksum = self._calculate_files_checksum(extracted_files)
+
+                return actual_checksum == expected_checksum
+
+            except Exception:
+                return False
+
+        # Test file integrity (basic corruption check)
+        try:
+            if backup_file.suffix == ".zip":
+                with zipfile.ZipFile(backup_file, "r") as zipf:
+                    zipf.testzip()
+            else:
+                with tarfile.open(backup_file, "r") as tarf:
+                    tarf.getmembers()
+        except (zipfile.BadZipFile, tarfile.ReadError) as e:
+            apgi_logger.logger.error(
+                f"Backup file corruption detected for {backup_id}: {e}"
+            )
+            return False
+
+        return True
+
     def verify_backup(self, backup_id: str) -> bool:
         """Verify backup integrity by extracting and checking content checksum."""
         import tempfile
@@ -1057,6 +1151,116 @@ except ValueError as e:
         "Please check your APGI_BACKUP_HMAC_KEY environment variable or run the script again to generate a new key."
     )
     backup_manager = None
+
+
+# Add simple data backup methods to BackupManager class
+def _add_data_backup_methods():
+    """Add simple data backup methods to BackupManager class."""
+
+    def create_data_backup(self, data: Dict[str, Any], backup_name: str) -> Path:
+        """
+        Create a simple data backup with HMAC signature.
+
+        Args:
+            data: Dictionary data to backup
+            backup_name: Name for the backup file
+
+        Returns:
+            Path to the backup file
+        """
+        # Create backup file path
+        backup_filename = f"{backup_name}.json"
+        backup_path = self.backup_dir / backup_filename
+
+        # Write data to file
+        with open(backup_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+        # Generate HMAC signature using the stored key
+        key = self._backup_hmac_key
+        # Ensure key is a string
+        if isinstance(key, bytes):
+            key = key.hex()
+        data_bytes = json.dumps(data, separators=(",", ":"), sort_keys=True).encode(
+            "utf-8"
+        )
+        signature = hashlib.pbkdf2_hmac(
+            "sha256", data_bytes, key.encode(), 100000
+        ).hex()
+
+        # Write signature file
+        sig_path = backup_path.with_suffix(".sig")
+        with open(sig_path, "w", encoding="utf-8") as f:
+            f.write(signature)
+
+        return backup_path
+
+    def verify_data_backup_integrity(self, backup_path: Union[str, Path]) -> bool:
+        """
+        Verify integrity of a data backup using HMAC signature.
+
+        Args:
+            backup_path: Path to the backup file
+
+        Returns:
+            True if integrity is valid, False otherwise
+        """
+        backup_path = Path(backup_path)
+
+        # Check if backup file exists
+        if not backup_path.exists():
+            return False
+
+        # Check if signature file exists
+        sig_path = backup_path.with_suffix(".sig")
+        if not sig_path.exists():
+            return False
+
+        try:
+            # Read backup data
+            with open(backup_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Read signature
+            with open(sig_path, "r", encoding="utf-8") as f:
+                stored_signature = f.read().strip()
+
+            # Validate signature format
+            if len(stored_signature) != 64 or not all(
+                c in "0123456789abcdef" for c in stored_signature.lower()
+            ):
+                return False
+
+            # Generate expected signature using the stored key
+            key = self._backup_hmac_key
+            # Ensure key is a string
+            if isinstance(key, bytes):
+                key = key.hex()
+            data_bytes = json.dumps(data, separators=(",", ":"), sort_keys=True).encode(
+                "utf-8"
+            )
+            expected_signature = hashlib.pbkdf2_hmac(
+                "sha256", data_bytes, key.encode(), 100000
+            ).hex()
+
+            # Compare signatures
+            return stored_signature == expected_signature
+
+        except (json.JSONDecodeError, FileNotFoundError, IOError):
+            return False
+
+    def get_backup_history(self) -> List[Dict[str, Any]]:
+        """Get backup history."""
+        return self.backup_history.copy()
+
+    # Add methods to BackupManager class
+    BackupManager.create_data_backup = create_data_backup
+    BackupManager.verify_data_backup_integrity = verify_data_backup_integrity
+    BackupManager.get_backup_history = get_backup_history
+
+
+# Apply the monkey patch
+_add_data_backup_methods()
 
 
 # CLI commands for backup management

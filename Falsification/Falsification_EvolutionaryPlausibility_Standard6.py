@@ -11,6 +11,10 @@ if str(project_root) not in sys.path:
 try:
     from utils.constants import DIM_CONSTANTS
     from utils.config_manager import ConfigManager
+    from utils.falsification_thresholds import (
+        F2_3_MIN_RT_ADVANTAGE_MS,
+        F2_3_ALPHA,
+    )
 except ImportError:
     # Fallback if utils not available
     class MockDimConstants:
@@ -20,18 +24,15 @@ except ImportError:
             self.n_intero_states = 16
             self.n_hidden = 64
 
-    DIM_CONSTANTS = MockDimConstants()
-
     class MockConfigManager:
         def get(self, key, default=None):
             return default
 
-    ConfigManager = MockConfigManager
+    DIM_CONSTANTS = MockDimConstants()
+    ConfigManager = MockConfigManager()
 
 try:
-    from falsification_thresholds import (
-        F2_3_MIN_RT_ADVANTAGE_MS,
-        F2_3_ALPHA,
+    from utils.falsification_thresholds import (
         F5_1_BINOMIAL_ALPHA,
         F5_1_MIN_ALPHA,
         F5_2_BINOMIAL_ALPHA,
@@ -277,7 +278,12 @@ class ContinuousUpdateAgent:
         # Load validation configuration
         config = config_manager.get_config("validation")
 
-        # Use genome from parameter or generate default
+        # Define dimensions outside of conditional
+        state_dim = (
+            DIM_CONSTANTS.EXTERO_DIM + DIM_CONSTANTS.INTERO_DIM
+        )  # extero + intero
+        action_dim = DIM_CONSTANTS.ACTION_DIM
+
         if genome is None:
             genome = {
                 "has_threshold": False,  # Always False for continuous updates
@@ -291,55 +297,19 @@ class ContinuousUpdateAgent:
             }
             self.genome = genome
         else:
-            # Validate provided genome against config schema
-            required_params = [
-                "has_threshold",
-                "has_intero_weighting",
-                "has_somatic_markers",
-                "has_precision_weighting",
-                "theta_0",
-                "alpha",
-                "beta",
-                "Pi_e_lr",
-            ]
-            for param in required_params:
-                if param not in genome:
-                    logger.warning(
-                        f"Missing required parameter '{param}' in genome, using default from config"
-                    )
-                    # Add missing parameter with default value
-                    if param == "Pi_e_lr":
-                        genome[param] = getattr(config, "Pi_e_lr", 0.01)
-                    elif param == "theta_0":
-                        genome[param] = 0.0  # No threshold
-                    elif param == "alpha":
-                        genome[param] = getattr(config, "alpha", 5.0)
-                    elif param == "beta":
-                        genome[param] = getattr(config, "beta", 1.2)
+            # Simple policy network using centralized constants
+            # state_dim and action_dim already defined above
+            pass
 
-            self.genome = genome
-
-        # Initialize based on genome
-        self.has_threshold = self.genome["has_threshold"]
-        self.has_intero_weighting = self.genome["has_intero_weighting"]
-        self.has_somatic_markers = self.genome["has_somatic_markers"]
-        self.has_precision_weighting = self.genome["has_precision_weighting"]
-
-        # Parameters
-        self.theta_0 = self.genome["theta_0"]
-        self.alpha = self.genome["alpha"]
-        self.beta = self.genome["beta"]
-        self.Pi_e = self.genome["Pi_e_lr"] if self.has_precision_weighting else 1.0
-        self.Pi_i = self.genome["Pi_e_lr"] if self.has_precision_weighting else 1.0
-        self.threshold = self.theta_0 if self.has_threshold else 0.0
-        self._conscious_access = False
-        self.surprise = 0.0  # Initialize surprise attribute
-
-        # Simple policy network using centralized constants
-        state_dim = (
-            DIM_CONSTANTS.EXTERO_DIM + DIM_CONSTANTS.INTERO_DIM
-        )  # extero + intero
-        action_dim = DIM_CONSTANTS.ACTION_DIM
+        # Assign genome attributes to self
+        self.has_threshold = genome["has_threshold"]
+        self.has_intero_weighting = genome["has_intero_weighting"]
+        self.has_somatic_markers = genome["has_somatic_markers"]
+        self.has_precision_weighting = genome["has_precision_weighting"]
+        self.theta_0 = genome["theta_0"]
+        self.alpha = genome["alpha"]
+        self.beta = genome["beta"]
+        self.Pi_e_lr = genome["Pi_e_lr"]
 
         self.policy_weights = np.random.normal(0, 0.1, (action_dim, state_dim))
 
@@ -350,6 +320,7 @@ class ContinuousUpdateAgent:
         self.Pi_e = 1.0
         self.Pi_i = 1.0
         self.pi_lr = genome["Pi_e_lr"] if self.has_precision_weighting else 0.0
+        self.surprise = 0.0  # Initialize surprise attribute
 
     def _stable_sigmoid(self, z: float) -> float:
         """Numerically stable sigmoid function."""
@@ -520,15 +491,21 @@ class EvolutionaryAPGIEmergence:
                 if done:
                     break
 
-            # Fitness components
-            env_fitness = (
-                cumulative_reward / 50  # Reward seeking (adjusted)
-                + survival_time / 100  # Survival (adjusted)
-                - homeostatic_violations / 50  # Homeostatic maintenance (adjusted)
-            )
+            # Fitness components with validation for edge cases
+            if cumulative_reward == 0 or not np.isfinite(cumulative_reward):
+                env_fitness = 0  # Neutral fitness for invalid rewards
+            else:
+                env_fitness = (
+                    cumulative_reward / 50  # Reward seeking (adjusted)
+                    + survival_time / 100  # Survival (adjusted)
+                    - homeostatic_violations / 50  # Homeostatic maintenance (adjusted)
+                )
             total_fitness += env_fitness
 
-        return total_fitness / len(environments) if environments else 0.0
+        # Return safe fitness value
+        if not np.isfinite(total_fitness) or len(environments) == 0:
+            return 0.0
+        return total_fitness / len(environments)
 
     def crossover(self, parent1: Dict, parent2: Dict) -> Dict:
         """Single-point crossover"""
@@ -573,7 +550,7 @@ class EvolutionaryAPGIEmergence:
                 "Protocol_2",
                 os.path.join(
                     os.path.dirname(__file__),
-                    "Falsification-AgentComparison-ConvergenceBenchmark.py",
+                    "Falsification_AgentComparison_ConvergenceBenchmark.py",
                 ),
             )
             protocol2 = importlib.util.module_from_spec(spec2)
@@ -1867,7 +1844,7 @@ def check_falsification(
     )
     cohens_d_alpha = (val_alpha - F5_1_MIN_ALPHA) / 1.0  # Simplified
 
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         F5_1_FALSIFICATION_ALPHA,
         F5_1_MIN_PROPORTION,
     )
@@ -1918,7 +1895,7 @@ def check_falsification(
         else mean_correlation
     )
 
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         F5_2_FALSIFICATION_CORR,
         F5_2_MIN_PROPORTION,
     )
@@ -1968,7 +1945,7 @@ def check_falsification(
     )
     cohens_d_gain = (val_gain - F5_3_MIN_GAIN_RATIO) / 0.5  # Simplified
 
-    from falsification_thresholds import F5_3_FALSIFICATION_RATIO
+    from utils.falsification_thresholds import F5_3_FALSIFICATION_RATIO
 
     f5_3_pass = (
         interoceptive_prioritization_proportion >= 0.55
@@ -2016,7 +1993,7 @@ def check_falsification(
 
     # F5.5: APGI-Like Feature Clustering
     logger.info("Testing F5.5: APGI-Like Feature Clustering")
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         F5_5_PCA_MIN_LOADING,
         F5_5_PCA_MIN_VARIANCE,
     )

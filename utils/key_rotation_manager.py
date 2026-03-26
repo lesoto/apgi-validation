@@ -8,6 +8,7 @@ import os
 import json
 import base64
 import hashlib
+import binascii
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -176,7 +177,22 @@ class KeyRotationManager:
                 )
                 key_b64 = encrypted.decode("utf-8")
 
-            key_bytes = base64.b64decode(key_b64)
+            # Fix base64 padding issues
+            try:
+                key_bytes = base64.b64decode(key_b64)
+            except (binascii.Error, ValueError) as e:
+                # Add padding if missing
+                padding_needed = (-len(key_b64)) % 4
+                if padding_needed:
+                    key_b64_padded = key_b64 + ("=" * padding_needed)
+                    try:
+                        key_bytes = base64.b64decode(key_b64_padded)
+                    except Exception:
+                        self.logger.error(f"Could not load {key_type}: {e}")
+                        return None
+                else:
+                    self.logger.error(f"Could not load {key_type}: {e}")
+                    return None
             fingerprint = hashlib.sha256(key_bytes).hexdigest()[:16]
 
             self.metadata[key_type]["current"] = {

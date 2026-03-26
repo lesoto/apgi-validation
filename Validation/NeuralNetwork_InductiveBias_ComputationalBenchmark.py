@@ -52,7 +52,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.constants import DIM_CONSTANTS
-from falsification_thresholds import (
+from utils.falsification_thresholds import (
     F5_2_MIN_CORRELATION,
     F5_2_MIN_PROPORTION,
     F5_3_MIN_GAIN_RATIO,
@@ -1076,6 +1076,7 @@ class NetworkTrainer:
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer, mode="max", factor=0.5, patience=5
         )
+        self.criterion = nn.CrossEntropyLoss()
 
     def train_epoch(self, train_loader: DataLoader) -> float:
         """Train for one epoch"""
@@ -2605,7 +2606,7 @@ def main():
         }
 
     # Save to JSON
-    with open("protocol6_results.json", ', encoding="utf-8"w') as f:
+    with open("protocol6_results.json", "w", encoding="utf-8") as f:
         json.dump(results_summary, f, indent=2)
 
     print("✅ Results saved to: protocol6_results.json")

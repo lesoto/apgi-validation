@@ -20,7 +20,7 @@ if str(project_root) not in sys.path:
 def get_threshold_registry():
     """Load the threshold registry from falsification_thresholds.py"""
     try:
-        from falsification_thresholds import THRESHOLD_REGISTRY
+        from utils.falsification_thresholds import THRESHOLD_REGISTRY
 
         return THRESHOLD_REGISTRY
     except ImportError:
@@ -29,7 +29,7 @@ def get_threshold_registry():
 
 def extract_float_literals(file_path: Path) -> list:
     """Extract all float literals from a Python file"""
-    with open(file_path, ', encoding="utf-8"r') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         source = f.read()
 
     tree = ast.parse(source)
@@ -53,11 +53,11 @@ def test_all_protocols_use_threshold_registry():
 
     for protocol_file in protocol_files:
         # Read the file content
-        with open(protocol_file, ', encoding="utf-8"r') as f:
+        with open(protocol_file, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Check if it imports from falsification_thresholds
-        has_import = "from falsification_thresholds import" in content
+        has_import = "from utils.falsification_thresholds import" in content
 
         if not has_import:
             pytest.fail(
@@ -85,7 +85,7 @@ def test_no_assumed_values_in_falsification_functions():
         protocol_files = list(directory.glob("*Protocol*.py"))
 
         for protocol_file in protocol_files:
-            with open(protocol_file, ', encoding="utf-8"r') as f:
+            with open(protocol_file, "r", encoding="utf-8") as f:
                 content = f.read()
 
             # Check for '# Assume' comments

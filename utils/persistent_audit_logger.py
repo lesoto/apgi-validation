@@ -126,7 +126,7 @@ class PersistentAuditLogger:
         except (TypeError, ValueError, OSError) as primary_err:
             # Fallback: write directly to file
             try:
-                with open(self.log_file, ', encoding="utf-8"a') as f:
+                with open(self.log_file, "a", encoding="utf-8") as f:
                     f.write(f"{json.dumps(log_entry)}\n")
             except (KeyboardInterrupt, SystemExit):
                 raise

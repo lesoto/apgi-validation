@@ -54,8 +54,9 @@ def apgi_psychometric_function(
     # Use more constrained parameter transformations
     threshold = pm.math.sigmoid(theta_0) * 0.5  # [0, 0.5] range
     precision_ratio = pm.math.sigmoid(pi_i - pi_e)  # [0, 1] range
-    modulation = 1.0 + pm.math.softplus(beta) * precision_ratio
-    attention_factor = pm.math.softplus(alpha) * 0.1  # [0, inf) but scaled
+    # softplus(x) = log(1 + exp(x)) - use log1pexp as equivalent
+    modulation = 1.0 + pm.math.log1pexp(beta) * precision_ratio
+    attention_factor = pm.math.log1pexp(alpha) * 0.1  # [0, inf) but scaled
 
     # Simple logistic function
     logit = (stimulus_intensity - threshold * modulation) / (1.0 + attention_factor)
@@ -168,9 +169,8 @@ def run_mcmc_bayesian_estimation(
                 mu=priors["beta"]["params"]["mu"],
                 sigma=priors["beta"]["params"]["sigma"],
             )
-            alpha = pm.Normal(
+            alpha = pm.HalfNormal(
                 "alpha",
-                mu=priors["alpha"]["params"]["mu"],
                 sigma=priors["alpha"]["params"]["sigma"],
             )
 

@@ -1,5 +1,5 @@
 {
-  "processing_timestamp": "2026-03-24T14:17:04.710453",
+  "processing_timestamp": "2026-03-25T14:21:03.589034",
   "pipeline_config": {
     "eeg_bandpass_low": 0.5,
     "eeg_bandpass_high": 40.0,
@@ -27,7 +27,7 @@
     "file_info": {
       "file_path": "data/demo_demo.csv",
       "file_exists": true,
-      "file_size": 1017999,
+      "file_size": 1020500,
       "file_extension": ".csv",
       "is_readable": true,
       "format_valid": false,
@@ -74,20 +74,20 @@
           "percentage": 0.0
         },
         "eeg_fz": {
-          "count": 445,
-          "percentage": 5.933333333333334
+          "count": 431,
+          "percentage": 5.746666666666666
         },
         "eeg_pz": {
-          "count": 442,
-          "percentage": 5.893333333333333
+          "count": 441,
+          "percentage": 5.88
         },
         "pupil_diameter": {
           "count": 0,
           "percentage": 0.0
         },
         "eda": {
-          "count": 0,
-          "percentage": 0.0
+          "count": 71,
+          "percentage": 0.9466666666666667
         },
         "heart_rate": {
           "count": 0,
@@ -100,20 +100,20 @@
       },
       "signal_quality": {
         "pupil_diameter": {
-          "score": 100.0,
-          "issues": [],
-          "mean": 41.20567563953327,
-          "std": 25.200904975875762,
-          "samples": 7500
-        },
-        "eda": {
           "score": 50.0,
           "issues": [
             "Many repeated values",
             "No signal variation"
           ],
-          "mean": 0.1,
+          "mean": 1.0,
           "std": 0.0,
+          "samples": 7500
+        },
+        "eda": {
+          "score": 100.0,
+          "issues": [],
+          "mean": 37.52057115348716,
+          "std": 0.20591562326100088,
           "samples": 7500
         }
       },
@@ -125,16 +125,17 @@
         "expected_interval": "0 days 00:00:00.004001",
         "total_duration": "0 days 00:00:30"
       },
-      "overall_score": 85.64,
-      "quality_score": 85.64
+      "overall_score": 84.89333333333333,
+      "quality_score": 84.89333333333333
     },
     "recommendations": [
       "Fix file format errors before processing",
-      "Review outliers in eeg_fz (5.9%)",
+      "Review outliers in eeg_fz (5.7%)",
       "Review outliers in eeg_pz (5.9%)",
-      "Improve signal quality for eda: Many repeated values, No signal variation"
+      "Improve signal quality for pupil_diameter: Many repeated values, No signal variation",
+      "Data quality is acceptable but could be improved with preprocessing"
     ],
-    "validation_timestamp": "2026-03-24T14:17:04.579207",
+    "validation_timestamp": "2026-03-25T14:21:03.257120",
     "validator_version": "1.0.0"
   },
   "final_quality": {
@@ -142,7 +143,7 @@
   },
   "pipeline_log": [
     "Starting complete pipeline for demo_demo.csv",
-    "Validation complete - Quality score: 85.64",
+    "Validation complete - Quality score: 84.89333333333333",
     "Loaded data: (7500, 10)",
     "Handled missing values",
     "Removed outliers",
@@ -152,9 +153,9 @@
   ],
   "preprocessing_steps": [
     "Missing data cleaned using interpolate strategy",
-    "Removed 783 outliers using iqr method",
+    "Removed 926 outliers using iqr method",
     "Normalized Index(['time_seconds', 'eeg_fz', 'eeg_pz', 'pupil_diameter', 'eda',\n       'heart_rate', 'event_marker', 'eda_tonic', 'eda_phasic'],\n      dtype='object') using zscore method",
     "Resampled data to 250.0 Hz"
   ],
-  "quality_improvement": -0.6400000000000006
+  "quality_improvement": 0.10666666666666913
 }

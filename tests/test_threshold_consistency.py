@@ -12,7 +12,7 @@ import pytest
 
 def test_f5_1_constants():
     """Test F5.1 constants match paper specifications"""
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         F5_1_MIN_PROPORTION,
         F5_1_MIN_ALPHA,
         F5_5_PCA_MIN_VARIANCE,
@@ -46,7 +46,7 @@ def test_f5_1_constants():
 
 def test_f6_1_constants():
     """Test F6.1 constants match paper specifications"""
-    from falsification_thresholds import F6_1_LTCN_MAX_TRANSITION_MS
+    from utils.falsification_thresholds import F6_1_LTCN_MAX_TRANSITION_MS
 
     # Test LTCN transition threshold - should be 50.0ms per paper spec
     assert (
@@ -56,7 +56,7 @@ def test_f6_1_constants():
 
 def test_v12_1_constants():
     """Test V12.1 constants match paper specifications"""
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         V12_1_MIN_P3B_REDUCTION_PCT,
         V12_1_MIN_IGNITION_REDUCTION_PCT,
         V12_1_MIN_COHENS_D,
@@ -86,7 +86,7 @@ def test_v12_1_constants():
 
 def test_f1_f3_criteria_consistency():
     """Test that F1-F3 criteria are consistent across Protocols 1, 2, 3, 6, 9, and 12"""
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         F1_1_MIN_ADVANTAGE_PCT,
         F1_1_MIN_COHENS_D,
         F1_1_ALPHA,
@@ -180,7 +180,7 @@ def test_f1_f3_criteria_consistency():
 
 def test_f6_1_boundary_conditions():
     """Test F6.1 function handles boundary conditions correctly."""
-    from falsification_thresholds import test_f6_1_intrinsic_threshold_behavior
+    from utils.falsification_thresholds import test_f6_1_intrinsic_threshold_behavior
 
     # Test at exact threshold boundary (should pass)
     ltcn_at_threshold = np.array([50.0, 50.0, 50.0, 50.0])
@@ -220,7 +220,7 @@ def test_f6_1_boundary_conditions():
 
 def test_f6_3_boundary_conditions():
     """Test F6.3 function handles boundary conditions correctly."""
-    from falsification_thresholds import test_f6_3_metabolic_selectivity
+    from utils.falsification_thresholds import test_f6_3_metabolic_selectivity
 
     # Test at exact reduction boundary (should pass)
     ltcn_at_boundary = np.array([30.0, 30.0, 30.0, 30.0, 30.0])
@@ -251,7 +251,7 @@ def test_f6_3_boundary_conditions():
 
 def test_f6_5_boundary_conditions():
     """Test F6.5 function handles boundary conditions correctly."""
-    from falsification_thresholds import test_f6_5_bifurcation_structure
+    from utils.falsification_thresholds import test_f6_5_bifurcation_structure
 
     # Test with theta_t at boundary
     theta_t = 0.5
@@ -276,7 +276,7 @@ def test_f6_5_boundary_conditions():
 
 def test_threshold_function_input_validation():
     """Test threshold functions validate input correctly."""
-    from falsification_thresholds import (
+    from utils.falsification_thresholds import (
         test_f6_1_intrinsic_threshold_behavior,
         test_f6_3_metabolic_selectivity,
     )

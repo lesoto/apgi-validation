@@ -9,7 +9,7 @@ import json
 import sys
 from pathlib import Path
 from typing import Any, Dict
-from datetime import datetime
+from datetime import datetime, UTC
 import logging
 
 
@@ -53,14 +53,14 @@ class DependencyScanner:
             if result.returncode == 0:
                 return {
                     "scanner": "pip-audit",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "vulnerabilities_found": 0,
                     "details": json.loads(result.stdout) if result.stdout else [],
                 }
             else:
                 return {
                     "scanner": "pip-audit",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "error": result.stderr,
                     "vulnerabilities_found": -1,
                 }
@@ -71,21 +71,21 @@ class DependencyScanner:
             )
             return {
                 "scanner": "pip-audit",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "error": "pip-audit not installed",
                 "vulnerabilities_found": -1,
             }
         except subprocess.TimeoutExpired:
             return {
                 "scanner": "pip-audit",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "error": "Scan timed out",
                 "vulnerabilities_found": -1,
             }
         except Exception as e:
             return {
                 "scanner": "pip-audit",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "error": str(e),
                 "vulnerabilities_found": -1,
             }
@@ -109,14 +109,14 @@ class DependencyScanner:
                 vulnerabilities = json.loads(result.stdout) if result.stdout else []
                 return {
                     "scanner": "safety",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "vulnerabilities_found": len(vulnerabilities),
                     "details": vulnerabilities,
                 }
             else:
                 return {
                     "scanner": "safety",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "error": result.stderr,
                     "vulnerabilities_found": -1,
                 }
@@ -125,21 +125,21 @@ class DependencyScanner:
             self.logger.warning("safety not found, install with: pip install safety")
             return {
                 "scanner": "safety",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "error": "safety not installed",
                 "vulnerabilities_found": -1,
             }
         except subprocess.TimeoutExpired:
             return {
                 "scanner": "safety",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "error": "Scan timed out",
                 "vulnerabilities_found": -1,
             }
         except Exception as e:
             return {
                 "scanner": "safety",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "error": str(e),
                 "vulnerabilities_found": -1,
             }
@@ -175,21 +175,21 @@ class DependencyScanner:
                     results = json.loads(result.stdout)
                     return {
                         "scanner": "bandit",
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                         "issues_found": len(results.get("results", [])),
                         "details": results,
                     }
                 except json.JSONDecodeError:
                     return {
                         "scanner": "bandit",
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                         "issues_found": 0,
                         "details": {},
                     }
             else:
                 return {
                     "scanner": "bandit",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "error": result.stderr,
                     "issues_found": -1,
                 }
@@ -198,21 +198,21 @@ class DependencyScanner:
             self.logger.warning("bandit not found, install with: pip install bandit")
             return {
                 "scanner": "bandit",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "error": "bandit not installed",
                 "issues_found": -1,
             }
         except subprocess.TimeoutExpired:
             return {
                 "scanner": "bandit",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "error": "Scan timed out",
                 "issues_found": -1,
             }
         except Exception as e:
             return {
                 "scanner": "bandit",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "error": str(e),
                 "issues_found": -1,
             }
@@ -225,7 +225,7 @@ class DependencyScanner:
             Combined scan results
         """
         results = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "project_root": str(self.project_root),
             "scans": {},
             "summary": {

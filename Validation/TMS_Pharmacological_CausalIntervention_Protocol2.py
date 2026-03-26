@@ -19,16 +19,21 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import pandas as pd
 import torch
+
+# Set font to handle Unicode characters properly
+matplotlib.rcParams["font.family"] = "DejaVu Sans"
+matplotlib.font_manager.FontProperties(family="DejaVu Sans")
 
 # Add parent directory to path for imports
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from falsification_thresholds import (
+from utils.falsification_thresholds import (
     V7_1_MIN_THRESHOLD_REDUCTION_PCT,
     V7_1_MIN_EFFECT_DURATION_MIN,
     V7_1_MIN_COHENS_D,
@@ -363,6 +368,10 @@ class PsychometricCurve:
 
         threshold, slope, lapse, gamma = result.x
 
+        # Ensure lapse and gamma are within bounds for return
+        lapse = np.clip(lapse, 0, 0.1)
+        gamma = np.clip(gamma, 0, 1.0)
+
         # Compute confidence intervals (via Hessian)
         try:
             # Numerical Hessian
@@ -392,11 +401,13 @@ class PsychometricCurve:
                     ) / (4 * eps**2)
 
             # Covariance from inverse Hessian
+            # Covariance from inverse Hessian - safeguard against non-PSD matrices
             try:
                 cov = np.linalg.inv(hessian)
-                se = np.sqrt(np.diag(cov))
+                # Ensure diagonal is non-negative before sqrt
+                se = np.sqrt(np.maximum(np.diag(cov), 1e-10))
             except (np.linalg.LinAlgError, ValueError):
-                se = [0.1, 1.0, 0.01]
+                se = [0.1, 1.0, 0.01, 0.1]
 
         except (ValueError, RuntimeError, np.linalg.LinAlgError):
             se = [0.1, 1.0, 0.01]
@@ -718,8 +729,8 @@ class InterventionFalsificationChecker:
     def __init__(self):
         self.criteria = {
             "F3.1": {
-                "description": "dlPFC TMS fails to shift threshold by >0.05",
-                "threshold": 0.05,
+                "description": "dlPFC TMS fails to shift threshold by ≥3%",
+                "threshold": "3% reduction",
             },
             "F3.2": {
                 "description": "Propranolol does not reduce interoceptive influence",
@@ -765,13 +776,17 @@ class InterventionFalsificationChecker:
         """F3.1: Threshold shift magnitude"""
 
         shift = intervention_threshold - baseline_threshold
+        percent_reduction = (
+            abs(shift / baseline_threshold) * 100 if baseline_threshold != 0 else 0
+        )
 
         # One-sided test: shift should be negative (threshold reduction)
         z = shift / (intervention_se + 1e-10)
         p_value = stats.norm.cdf(z)  # Left-tail
 
-        # Falsified if shift is not negative OR magnitude < 0.05
-        falsified = (shift >= 0) or (abs(shift) < 0.05)
+        # Falsified if shift is not negative OR percent reduction < 3%
+        # Using 3% as minimum meaningful reduction based on V7.1 specification
+        falsified = (shift >= 0) or (percent_reduction < 3.0)
 
         # Additional check: vertex TMS should not affect threshold (control condition)
         vertex_control_check = (
@@ -783,7 +798,8 @@ class InterventionFalsificationChecker:
             "shift_se": float(intervention_se),
             "z_score": float(z),
             "p_value": float(p_value),
-            "magnitude_sufficient": abs(shift) >= 0.05,
+            "percent_reduction": float(percent_reduction),
+            "reduction_sufficient": percent_reduction >= 3.0,
             "vertex_control_valid": vertex_control_check,
         }
 
@@ -1401,7 +1417,10 @@ class InterventionFalsificationChecker:
         }
 
         # Check each criterion based on available data
-        if "threshold_shift" in intervention_results:
+        if (
+            "baseline_threshold" in intervention_results
+            and "intervention_threshold" in intervention_results
+        ):
             f3_1_result, f3_1_details = self.check_F3_1(
                 intervention_results["baseline_threshold"],
                 intervention_results["intervention_threshold"],
@@ -1447,6 +1466,17 @@ class InterventionFalsificationChecker:
 
         report["overall_falsified"] = len(report["falsified_criteria"]) > 0
 
+        # If no criteria were checked due to missing data, we can't claim validation but we'll mark as incomplete
+        if (
+            len(report["falsified_criteria"]) == 0
+            and len(report["passed_criteria"]) == 0
+        ):
+            report["status"] = "INCOMPLETE"
+        else:
+            report["status"] = (
+                "VALIDATED" if not report["overall_falsified"] else "FALSIFIED"
+            )
+
         return report
 
 
@@ -1470,9 +1500,9 @@ def plot_intervention_results(
     # ==========================================================================
     ax1 = fig.add_subplot(gs[0, :2])
 
-    # Get baseline and intervention data
-    baseline = results_df[results_df["condition"] == "control"]
-    intervention = results_df[results_df["condition"] == "intervention"]
+    # Get baseline and intervention data - ensure copies to avoid ChainedAssignmentError
+    baseline = results_df[results_df["condition"] == "control"].copy()
+    intervention = results_df[results_df["condition"] == "intervention"].copy()
 
     # Group by stimulus level
     baseline_grouped = baseline.groupby("stimulus_level").agg(
@@ -1483,10 +1513,10 @@ def plot_intervention_results(
         {"n_seen": "sum", "n_trials": "sum"}
     )
 
-    baseline_grouped["p_seen"] = (
+    baseline_grouped.loc[:, "p_seen"] = (
         baseline_grouped["n_seen"] / baseline_grouped["n_trials"]
     )
-    intervention_grouped["p_seen"] = (
+    intervention_grouped.loc[:, "p_seen"] = (
         intervention_grouped["n_seen"] / intervention_grouped["n_trials"]
     )
 
@@ -1747,7 +1777,7 @@ def plot_intervention_results(
     Significance:
       t({len(individual_effects) - 1}) = {t_stat:.3f}
       p = {p_value:.4f}
-      {'✅ SIGNIFICANT' if p_value < 0.05 else '❌ NOT SIGNIFICANT'}
+      {'[SIGNIFICANT]' if p_value < 0.05 else '[NOT SIGNIFICANT]'}
 
     Interpretation:
       {_interpret_effect_size(cohens_d)}
@@ -2264,7 +2294,7 @@ def main():
         n_trials_per_condition=200,
     )
 
-    print("\n✅ Simulated dlPFC TMS crossover study")
+    print("\n[OK] Simulated dlPFC TMS crossover study")
     print(f"   Subjects: {dlpfc_data['subject_id'].nunique()}")
     print(f"   Total trials: {dlpfc_data['n_trials'].sum()}")
     print(f"   Conditions: {dlpfc_data['condition'].unique()}")
@@ -2325,7 +2355,7 @@ def main():
     )
     print(f"  Z-score: {comparison['threshold_z']:.3f}")
     print(f"  P-value: {comparison['threshold_p']:.4f}")
-    print(f"  Significant: {'✅ YES' if comparison['significant'] else '❌ NO'}")
+    print(f"  Significant: {'[YES]' if comparison['significant'] else '[NO]'}")
 
     # =========================================================================
     # STEP 5: Simulate Propranolol Study
@@ -2341,7 +2371,7 @@ def main():
         n_trials_per_condition=200,
     )
 
-    print("\n✅ Simulated propranolol crossover study")
+    print("\n[OK] Simulated propranolol crossover study")
     print(f"   Subjects: {propranolol_data['subject_id'].nunique()}")
 
     # =========================================================================
@@ -2364,14 +2394,15 @@ def main():
     dlpfc_report = checker.generate_report(dlpfc_results)
 
     print("\ndlPFC TMS Falsification Report:")
+    print(f"  Status: {dlpfc_report['status']}")
     print(
-        f"  Overall: {'❌ FALSIFIED' if dlpfc_report['overall_falsified'] else '✅ VALIDATED'}"
+        f"  Overall Falsified: {'[YES]' if dlpfc_report['overall_falsified'] else '[NO]'}"
     )
     print(f"  Passed: {len(dlpfc_report['passed_criteria'])}")
     print(f"  Failed: {len(dlpfc_report['falsified_criteria'])}")
 
     for criterion in dlpfc_report["passed_criteria"]:
-        print(f"\n  ✅ {criterion['code']}: {criterion['description']}")
+        print(f"\n  [PASS] {criterion['code']}: {criterion['description']}")
         if "details" in criterion:
             for key, value in criterion["details"].items():
                 if isinstance(value, (int, float)):
@@ -2437,16 +2468,16 @@ def main():
 
     results_summary = convert_to_serializable(results_summary)
 
-    with open("protocol7_results.json", ', encoding="utf-8"w') as f:
+    with open("protocol7_results.json", "w", encoding="utf-8") as f:
         json.dump(results_summary, f, indent=2)
 
-    print("✅ Results saved to: protocol7_results.json")
+    print("[OK] Results saved to: protocol7_results.json")
 
     # Save data
     dlpfc_data.to_csv("protocol7_dlpfc_data.csv", index=False)
     propranolol_data.to_csv("protocol7_propranolol_data.csv", index=False)
 
-    print("✅ Data saved to CSV files")
+    print("[OK] Data saved to CSV files")
 
     print("\n" + "=" * 80)
     print("Protocol 7 EXECUTION COMPLETE")

@@ -1142,6 +1142,9 @@ class NetworkComparisonExperiment:
         for task_name, task_results in results.items():
             print(f"\n{task_name}:")
             for net_name, metrics in task_results.items():
+                # Skip non-network entries like bic_aic_comparison
+                if net_name == "bic_aic_comparison":
+                    continue
                 if "auc" in metrics:
                     print(
                         f"  {net_name}: AUC = {metrics['auc']:.3f}, Energy/Correct = {metrics['energy_per_correct_detection']:.2e}, ATP Cost = {metrics['atp_cost']:.2f}"

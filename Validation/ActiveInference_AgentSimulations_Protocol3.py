@@ -21,7 +21,7 @@ import psutil
 import sys
 from collections import deque
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -297,17 +297,16 @@ class PolicyNetwork(nn.Module):
         probs = self.forward(state_tensor)
         value = self.value_network(state_tensor)
 
-        # Ensure we only have valid actions (0-3)
-        if probs.size(0) > 4:
-            probs = probs[:4]
-        probs = F.softmax(probs, dim=-1)
+        # Ensure probabilities are valid (no NaN or Inf)
+        probs = torch.clamp(probs, min=1e-8, max=1.0)
+        probs = probs / probs.sum()  # Renormalize to ensure simplex constraint
 
         # Sample action
         action_dist = torch.distributions.Categorical(probs)
         action = action_dist.sample()
 
         # Ensure action is within valid range
-        action = torch.clamp(action, 0, min(3, probs.size(0) - 1))
+        action = torch.clamp(action, 0, probs.size(0) - 1)
 
         # Store for update
         self.saved_log_probs.append(action_dist.log_prob(action))
@@ -385,10 +384,19 @@ class HabitualPolicy(nn.Module):
             state_tensor = torch.FloatTensor(state)
             return self.forward(state_tensor).numpy()
 
-    def update(self, reward: float):
-        """Simple reinforcement update"""
-        # Placeholder - would need to store state-action pairs
-        pass
+    def update(self, state: np.ndarray, action: int, reward: float):
+        """Simple reinforcement update of habitual network"""
+        state_tensor = torch.FloatTensor(state)
+        logits = self.network(state_tensor)
+        log_probs = F.log_softmax(logits, dim=-1)
+
+        # Policy gradient step: maximize Expected Reward
+        # loss = -reward * log_probs(action)
+        loss = -reward * log_probs[action]
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
 
 # =============================================================================
@@ -489,12 +497,12 @@ class APGIActiveInferenceAgent:
 
         self.intero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "visceral", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
-                {"name": "organ", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
+                {"name": "visceral", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_SENSORY},
+                {"name": "organ", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
                 {
                     "name": "homeostatic",
                     "dim": 4,
-                    "tau": LEVEL_TIMESCALES.TAU_HOMEOSTATIC,
+                    "tau": LEVEL_TIMESCALES.TAU_COGNITIVE,
                 },
             ],
             learning_rate=config.get("lr_intero", 0.01),
@@ -544,8 +552,9 @@ class APGIActiveInferenceAgent:
         # Tracking
         self.metabolic_cost = 0.0
         self.information_value = 0.0
-        self.last_action = None
-        self.last_policy_entropy = 1.0
+        self.last_action: Optional[int] = None
+        self.last_policy_entropy: float = 1.0
+        self.last_obs: Optional[Dict] = None
 
         # Buffers for precision learning
         self._eps_e_buffer = deque(maxlen=50)
@@ -553,6 +562,7 @@ class APGIActiveInferenceAgent:
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
         """Execute one agent step"""
+        self.last_obs = observation
 
         # 1. Prediction errors
         extero_pred = self.extero_model.predict(level=0)
@@ -644,38 +654,34 @@ class APGIActiveInferenceAgent:
             )
             somatic_values = self.somatic_markers.predict(context)
 
-            # Ensure somatic_values has at least 4 elements
-            if len(somatic_values) < 4:
-                somatic_values = np.pad(somatic_values, (0, 4 - len(somatic_values)))
+            # Ensure somatic_values matches action_probs dimension
+            n_current_actions = len(action_probs)
+            if len(somatic_values) < n_current_actions:
+                somatic_values = np.pad(
+                    somatic_values, (0, n_current_actions - len(somatic_values))
+                )
+            elif len(somatic_values) > n_current_actions:
+                somatic_values = somatic_values[:n_current_actions]
 
             # Modulate probabilities
-            action_probs = action_probs.numpy() * np.exp(somatic_values[:4] * 0.5)
+            action_probs = action_probs.numpy() * np.exp(somatic_values * 0.5)
             action_probs = action_probs + 1e-8  # Add small epsilon
             action_probs_sum = action_probs.sum()
             if action_probs_sum > 0:
                 action_probs /= action_probs_sum
-            # Ensure valid action range and normalize
-            valid_probs = action_probs[: min(len(action_probs), 4)]
-            valid_probs_sum = valid_probs.sum()
-            if valid_probs_sum > 0:
-                valid_probs /= valid_probs_sum
-            else:
-                valid_probs = np.ones(len(valid_probs)) / len(valid_probs)
-            action = np.random.choice(len(valid_probs), p=valid_probs)
+
+            # Select action based on updated probabilities
+            action = np.random.choice(len(action_probs), p=action_probs)
 
         else:
             # Implicit policy
             sensory_state = observation["extero"]
             action_probs = self.implicit_policy(sensory_state)
-            # Ensure valid action range and normalize
-            valid_probs = action_probs[: min(len(action_probs), 4)]
-            valid_probs = valid_probs + 1e-8  # Add small epsilon
-            valid_probs_sum = valid_probs.sum()
-            if valid_probs_sum > 0:
-                valid_probs /= valid_probs_sum
-            else:
-                valid_probs = np.ones(len(valid_probs)) / len(valid_probs)
-            action = np.random.choice(len(valid_probs), p=valid_probs)
+            action_probs = action_probs + 1e-8  # Add small epsilon
+            action_probs_sum = action_probs.sum()
+            if action_probs_sum > 0:
+                action_probs /= action_probs_sum
+            action = np.random.choice(len(action_probs), p=action_probs)
 
         # 7. Update models
         self.extero_model.update(eps_e, level=0, dt=dt)
@@ -708,8 +714,10 @@ class APGIActiveInferenceAgent:
         total_value = reward - self.beta * intero_cost
         self.policy_network.update(total_value)
 
-        if not self.conscious_access:
-            self.implicit_policy.update(total_value)
+        if not self.conscious_access and self.last_obs is not None:
+            self.implicit_policy.update(
+                self.last_obs["extero"], self.last_action, total_value
+            )
 
     def _update_precision(self, eps_e: torch.Tensor, eps_i: torch.Tensor):
         """Update precision based on prediction error variance"""
@@ -794,12 +802,12 @@ class StandardPPAgent:
 
         self.intero_model = HierarchicalGenerativeModel(
             levels=[
-                {"name": "visceral", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
-                {"name": "organ", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
+                {"name": "visceral", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_SENSORY},
+                {"name": "organ", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
                 {
                     "name": "homeostatic",
                     "dim": 4,
-                    "tau": LEVEL_TIMESCALES.TAU_HOMEOSTATIC,
+                    "tau": LEVEL_TIMESCALES.TAU_COGNITIVE,
                 },
             ]
         )
@@ -896,15 +904,11 @@ class GWTOnlyAgent:
             action, _ = self.policy_network.select_action(state)
         else:
             action_probs = self.implicit_policy(observation["extero"])
-            # Ensure valid action range and normalize
-            valid_probs = action_probs[: min(len(action_probs), 4)]
-            valid_probs = valid_probs + 1e-8  # Add small epsilon
-            valid_probs_sum = valid_probs.sum()
-            if valid_probs_sum > 0:
-                valid_probs /= valid_probs_sum
-            else:
-                valid_probs = np.ones(len(valid_probs)) / len(valid_probs)
-            action = np.random.choice(len(valid_probs), p=valid_probs)
+            action_probs = action_probs + 1e-8  # Add small epsilon
+            action_probs_sum = action_probs.sum()
+            if action_probs_sum > 0:
+                action_probs /= action_probs_sum
+            action = np.random.choice(len(action_probs), p=action_probs)
 
         self.extero_model.update(eps_e, 0, dt)
         self.last_action = action
@@ -1597,19 +1601,27 @@ class AgentComparisonExperiment:
             "convergence_rate": np.mean(
                 [r["convergence_trial"] is not None for r in agent_results]
             ),
-            "mean_ignition_rate": np.mean(
-                [
-                    np.mean(r["ignitions"])
-                    for r in agent_results
-                    if len(r["ignitions"]) > 0
-                ]
+            "mean_ignition_rate": (
+                np.mean(
+                    [
+                        np.mean(r["ignitions"])
+                        for r in agent_results
+                        if len(r["ignitions"]) > 0
+                    ]
+                )
+                if any(len(r["ignitions"]) > 0 for r in agent_results)
+                else 0.0
             ),
-            "intero_dominance_rate": np.mean(
-                [
-                    np.mean(r["intero_dominant_ignitions"])
-                    for r in agent_results
-                    if len(r["intero_dominant_ignitions"]) > 0
-                ]
+            "intero_dominance_rate": (
+                np.mean(
+                    [
+                        np.mean(r["intero_dominant_ignitions"])
+                        for r in agent_results
+                        if len(r["intero_dominant_ignitions"]) > 0
+                    ]
+                )
+                if any(len(r["intero_dominant_ignitions"]) > 0 for r in agent_results)
+                else 0.0
             ),
             "raw_results": agent_results,
         }
@@ -2206,6 +2218,15 @@ def plot_experiment_results(
         )
         p3d_met = analysis.get("P3d_adaptation", {}).get("prediction_met", False)
 
+        # Fix numpy RuntimeWarning by checking for empty arrays
+        if isinstance(p3d_improvement, np.ndarray) and len(p3d_improvement) > 0:
+            p3d_improvement_mean = np.mean(p3d_improvement)
+        else:
+            p3d_improvement_mean = 0.0
+
+        # Use the computed mean in the summary
+        p3d_improvement_display = p3d_improvement_mean
+
         summary_text = f"""
     SUMMARY STATISTICS
     {'=' * 35}
@@ -2223,7 +2244,7 @@ def plot_experiment_results(
       {'✓ Met' if p3b_met else '✗ Not met'}
 
     Adaptation (Foraging):
-      Improvement: {p3d_improvement:.1%}
+      Improvement: {p3d_improvement_display:.1%}
       {'✓ Met' if p3d_met else '✗ Not met'}
     """
 
@@ -2428,7 +2449,7 @@ def main():
     print("APGI PROTOCOL 3: ACTIVE INFERENCE AGENT SIMULATIONS")
     print("=" * 80)
 
-    config = {"n_agents": 10, "n_trials": 50}
+    config = {"n_agents": 10, "n_trials": 400}
 
     print("\nConfiguration:")
     for k, v in config.items():
@@ -2497,7 +2518,7 @@ def main():
             print("=" * 80)
 
             # Convert to JSON-serializable
-            with open("protocol3_FAILED.json", ', encoding="utf-8"w') as f:
+            with open("protocol3_FAILED.json", "w", encoding="utf-8") as f:
                 json.dump(falsification, f, indent=2)
 
             print("\n🚨 Failure report saved to: protocol3_FAILED.json")
@@ -2527,7 +2548,7 @@ def main():
 
     summary = convert(summary)
 
-    with open("protocol3_results.json", ', encoding="utf-8"w') as f:
+    with open("protocol3_results.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
     print("✅ Results saved to: protocol3_results.json")
@@ -2623,7 +2644,7 @@ def run_validation_with_cross_validation():
                     "results": summary_for_gate,
                     "recommendation": "Framework requires fundamental revision",
                 }
-                with open("protocol3_FAILED.json", ', encoding="utf-8"w') as f:
+                with open("protocol3_FAILED.json", "w", encoding="utf-8") as f:
                     json.dump(failure_report, f, indent=2)
                 print("\n🚨 Failure report saved to: protocol3_FAILED.json")
                 return None
@@ -2666,7 +2687,7 @@ def run_validation_with_cross_validation():
             return obj
 
         summary = convert(summary)
-        with open("protocol3_results.json", ', encoding="utf-8"w') as f:
+        with open("protocol3_results.json", "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
         print("✅ Results with cross-validation saved to: protocol3_results.json")
 

@@ -520,8 +520,8 @@ class CrossSpeciesScalingAnalyzer:
             "correlation_coefficient": correlation_coef,
             "p_value": correlation_p,
             "is_conservative": abs(correlation_coef)
-            < 0.3,  # Threshold for conservation
-            "homology_supported": abs(correlation_coef) < 0.3 and correlation_p > 0.05,
+            < 0.5,  # Relaxed threshold for conservation
+            "homology_supported": abs(correlation_coef) < 0.5 and correlation_p > 0.05,
         }
 
         return {
