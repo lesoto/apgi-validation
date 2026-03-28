@@ -183,7 +183,7 @@ class ValidationPipelineConnector:
         # Run preprocessing pipeline
         preprocessing_result = self.preprocessor.run_complete_pipeline(
             input_path,
-            output_dir=f"data/processed/protocol_{protocol}",
+            output_dir=f"data_repository/processed/protocol_{protocol}",
             show_progress=True,
         )
 

@@ -227,9 +227,14 @@ class ThermodynamicEntropyCalculator(nn.Module):
         self.state_size = state_size
         self.config = config
 
-        # Use physical temperature if enabled
+        # Use physical temperature if enabled - WITH SCALING FIX
         if config.use_physical_temperature:
-            self.kB_T = config.boltzmann_constant * config.temperature_kelvin
+            # Physical kB*T in joules (~4.28e-21 at 310K)
+            physical_kBT = config.boltzmann_constant * config.temperature_kelvin
+            # Scale to neural energy units: typical neural energies are ~1.0 (arbitrary units)
+            # We want kB*T to be comparable to neural energy scale
+            # Use energy_scale_factor to bridge the gap
+            self.kB_T = max(physical_kBT * config.energy_scale_factor, config.eps)
         else:
             self.kB_T = config.temperature_normalized
 
@@ -281,8 +286,12 @@ class ThermodynamicEntropyCalculator(nn.Module):
         energies_norm = energies - torch.max(energies, dim=-1, keepdim=True)[0]
 
         # Boltzmann factors: exp(-E/kT) with proper scaling
-        scaled_energies = energies_norm / (self.kB_T * self.energy_scale)
-        boltzmann_factors = torch.exp(-torch.clamp(scaled_energies, min=-50, max=50))
+        # Use dimensionless scaled energies to avoid overflow
+        scaled_energies = energies_norm / max(self.kB_T, self.config.eps)
+
+        # Clamp before exp to prevent overflow
+        scaled_energies = torch.clamp(scaled_energies, min=-20, max=20)
+        boltzmann_factors = torch.exp(-scaled_energies)
 
         # Sum over all accessible states
         Z = boltzmann_factors.sum(dim=-1, keepdim=True)
@@ -311,15 +320,18 @@ class ThermodynamicEntropyCalculator(nn.Module):
         if current_energies.shape != self.prev_energies.shape:
             self.prev_energies = torch.zeros_like(current_energies)
 
-        # Energy change rate
-        dE_dt = (current_energies - self.prev_energies) / dt
+        # Energy change rate (clamped to prevent extreme values)
+        dE_dt = torch.clamp(
+            (current_energies - self.prev_energies) / dt, min=-100, max=100
+        )
 
         # State change rate
-        dx_dt = (current_state - self.prev_state) / dt
+        dx_dt = torch.clamp((current_state - self.prev_state) / dt, min=-100, max=100)
 
         # Entropy production: heat dissipation + information creation
-        # Heat dissipation component (always positive)
-        heat_dissipation = torch.abs(dE_dt) / (self.kB_T * self.energy_scale)
+        # Heat dissipation component (always positive) - scaled properly
+        heat_dissipation = torch.abs(dE_dt) / max(self.kB_T, self.config.eps)
+        heat_dissipation = torch.clamp(heat_dissipation, min=0, max=100)
 
         # Information creation component (can be positive or negative)
         information_flux = torch.abs(dx_dt).sum(dim=-1, keepdim=True)
@@ -352,29 +364,41 @@ class ThermodynamicEntropyCalculator(nn.Module):
         # Compute partition function from energy distribution
         # Create energy samples for partition function
         energy_samples = self.energy_function(state)  # [batch, state_size]
+
+        # Clamp energy samples to prevent extreme values
+        energy_samples = torch.clamp(energy_samples, min=-10, max=10)
+
         Z = self.compute_partition_function(energy_samples)
 
         # Thermodynamic entropy: S = k_B * ln(Z) + <E>/T with numerical stability
         if self.config.use_physical_temperature:
             # Use log-sum-exp result for better numerical stability
-            log_Z = torch.log(Z)
+            log_Z = torch.log(Z + self.config.eps)
             mean_energy = total_energy.mean(dim=-1, keepdim=True)
 
-            # Calculate entropy with proper scaling
-            S_thermo = (
-                self.config.boltzmann_constant * log_Z * self.entropy_scale.item()
-                + mean_energy
-                / (self.config.boltzmann_constant * self.config.temperature_kelvin)
-            )
-            # Helmholtz free energy: F = -kT ln(Z)
-            F_thermo = (
-                -self.config.boltzmann_constant * self.config.temperature_kelvin * log_Z
-            )
+            # Calculate entropy with PROPER scaling for neural energy units
+            # Scale the physical entropy to meaningful neural scale
+            # The theoretical formula is S = k*ln(Z) + <E>/T
+            # But we scale to avoid numerical issues with physical constants
+
+            # Scale entropy to dimensionless neural units (not physical J/K)
+            # This maintains the structure of the formula while avoiding overflow
+            entropy_from_partition = torch.log(Z + 1.0)  # Dimensionless
+            entropy_from_energy = mean_energy / (self.kB_T + self.config.eps)
+
+            # Clamp to prevent overflow
+            entropy_from_energy = torch.clamp(entropy_from_energy, min=-100, max=100)
+
+            S_thermo = entropy_from_partition + entropy_from_energy
+
+            # Helmholtz free energy: F = -kT ln(Z) - scaled version
+            F_thermo = -torch.log(Z + 1.0) * self.kB_T
         else:
             # Normalized version with stability
-            log_Z = torch.log(Z)
+            log_Z = torch.log(Z + self.config.eps)
             mean_energy = energy_samples.mean(dim=-1, keepdim=True)
-            S_thermo = log_Z + mean_energy / self.kB_T
+            S_thermo = log_Z + mean_energy / (self.kB_T + self.config.eps)
+            S_thermo = torch.clamp(S_thermo, min=-100, max=100)
             F_thermo = -self.kB_T * log_Z
 
         # Mean energy

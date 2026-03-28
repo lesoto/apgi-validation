@@ -377,6 +377,31 @@ class SpikeEnergyMonitor:
 # =============================================================================
 
 
+class LTCNCell(nn.Module):
+    """Liquid Time-Constant Network Cell for continuous-time integration"""
+
+    def __init__(self, input_size: int, hidden_size: int):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.tau_sys = nn.Parameter(torch.ones(hidden_size) * 10.0)
+        self.A = nn.Parameter(torch.ones(hidden_size))
+        self.f_net = nn.Sequential(
+            nn.Linear(input_size + hidden_size, hidden_size), nn.Tanh()
+        )
+        self.tau_net = nn.Sequential(
+            nn.Linear(input_size + hidden_size, hidden_size), nn.Sigmoid()
+        )
+
+    def forward(self, input_t, h_t, dt=1.0):
+        if h_t is None:
+            h_t = torch.zeros(input_t.size(0), self.hidden_size, device=input_t.device)
+        combined = torch.cat([input_t, h_t], dim=-1)
+        f_val = self.f_net(combined)
+        tau_val = self.tau_sys * (1.0 + self.tau_net(combined))
+        dx = -h_t / tau_val + (self.A - h_t) * f_val
+        return h_t + dt * dx
+
+
 class APGIInspiredNetwork(nn.Module):
     """
     Neural network with APGI architectural constraints
@@ -437,9 +462,9 @@ class APGIInspiredNetwork(nn.Module):
         # =====================
         # SURPRISE ACCUMULATOR
         # =====================
-        self.surprise_rnn = nn.GRUCell(
+        self.surprise_rnn = LTCNCell(
             input_size=2, hidden_size=16
-        )  # Precision-weighted errors
+        )  # LTCN-based precision-weighted errors
 
         # =====================
         # THRESHOLD NETWORK
@@ -549,8 +574,10 @@ class APGIInspiredNetwork(nn.Module):
         if self.surprise_hidden is not None:
             self.surprise_hidden = self.surprise_hidden.float()
         self.surprise_hidden = self.surprise_rnn(
-            surprise_input.float(), self.surprise_hidden
+            surprise_input.float(), self.surprise_hidden, dt=1.0
         )
+        # Detach hidden state to prevent graph retention across batches
+        self.surprise_hidden = self.surprise_hidden.detach()
 
         S_t = torch.norm(self.surprise_hidden, dim=-1, keepdim=True)
 
@@ -686,6 +713,8 @@ class LSTMNetwork(nn.Module):
             )
 
         lstm_out, self.hidden = self.lstm(x, self.hidden)
+        # Detach hidden state to prevent graph retention across batches
+        self.hidden = (self.hidden[0].detach(), self.hidden[1].detach())
         features = lstm_out[:, -1]
 
         return {
@@ -1196,6 +1225,71 @@ class NetworkTrainer:
             "n_params": n_params,
         }
 
+    def evaluate_temporal_dynamics(self, loader: DataLoader) -> Dict[str, Any]:
+        """Evaluate temporal dynamics (integration window and transition time)"""
+        self.network.eval()
+
+        transition_times = []
+        integration_windows = []
+
+        with torch.no_grad():
+            for batch in loader:
+                extero = batch["extero"].to(self.device).float()
+                intero = batch["intero"].to(self.device).float()
+                context = batch["context"].to(self.device).float()
+
+                if hasattr(self.network, "reset"):
+                    self.network.reset()
+
+                dt = 10.0  # ms
+                batch_size = extero.size(0)
+                batch_transition_time = (
+                    np.ones(batch_size) * 100.0
+                )  # Max transition 100ms
+                crossed = np.zeros(batch_size, dtype=bool)
+
+                # Turn stimulus ON
+                for step in range(10):
+                    outputs = self.network(extero, intero, context)
+                    ig_prob = outputs["ignition_prob"].squeeze().cpu().numpy()
+                    if np.isscalar(ig_prob):
+                        ig_prob = np.array([ig_prob] * batch_size)
+
+                    just_crossed = (ig_prob > 0.5) & (~crossed)
+                    batch_transition_time[just_crossed] = step * dt
+                    crossed[just_crossed] = True
+
+                transition_times.extend(batch_transition_time)
+
+                # Turn stimulus OFF, measure integration window
+                zero_extero = torch.zeros_like(extero)
+                zero_intero = torch.zeros_like(intero)
+                batch_integration = np.zeros(batch_size)
+                active = np.ones(batch_size, dtype=bool)
+
+                for step in range(50):
+                    outputs = self.network(zero_extero, zero_intero, context)
+                    ig_prob = outputs["ignition_prob"].squeeze().cpu().numpy()
+                    if np.isscalar(ig_prob):
+                        ig_prob = np.array([ig_prob] * batch_size)
+
+                    still_active = (ig_prob > 0.1) & active
+                    batch_integration[still_active] = step * dt
+                    active = still_active
+
+                    if not active.any():
+                        break
+
+                integration_windows.extend(batch_integration)
+                break  # Just use the first batch to estimate efficiently
+
+        return {
+            "mean_transition_time": float(np.mean(transition_times)),
+            "mean_integration_window": float(np.mean(integration_windows)),
+            "transition_times": np.array(transition_times),
+            "integration_windows": np.array(integration_windows),
+        }
+
     def train(
         self, train_loader: DataLoader, val_loader: DataLoader, n_epochs: int = 100
     ) -> Dict:
@@ -1325,7 +1419,14 @@ class NetworkTrainer:
 
             # Log energy consumption if monitor provided
             if energy_monitor is not None:
-                energy_monitor.log_network_activity(self.network_name, outputs, batch)
+                # Detach outputs to avoid double backward pass
+                detached_outputs = {
+                    k: v.detach() if isinstance(v, torch.Tensor) else v
+                    for k, v in outputs.items()
+                }
+                energy_monitor.log_network_activity(
+                    self.network_name, detached_outputs, batch
+                )
 
             # Compute loss
             loss = self.criterion(outputs["policy"], targets)
@@ -1409,6 +1510,7 @@ class NetworkComparison:
 
             # Test with energy monitoring
             test_results = trainer.evaluate(test_loader)
+            temporal_results = trainer.evaluate_temporal_dynamics(test_loader)
 
             # Log energy consumption during testing
             for batch in test_loader:
@@ -1424,6 +1526,7 @@ class NetworkComparison:
                 "history": history,
                 "test_accuracy": test_results["accuracy"],
                 "test_auc": test_results["auc"],
+                "temporal_dynamics": temporal_results,
                 "convergence_epoch": len(history["train_losses"]),
                 "energy_report": energy_report.get(name, {}),
             }
@@ -1487,21 +1590,28 @@ class NetworkComparison:
         apgi_network = self.networks["APGI"]
         apgi_network.eval()
 
-        # Create dummy input for benchmarking
-        # Assuming input shape (batch, seq, features)
-        # We'll use batch_size=1 for latency measurement
-        dummy_input = torch.randn(1, 10, DIM_CONSTANTS["input_size"]).to(self.device)
+        # Create dummy inputs for benchmarking
+        batch_size = 1
+        dummy_extero = torch.randn(batch_size, self.config["extero_dim"]).to(
+            self.device
+        )
+        dummy_intero = torch.randn(batch_size, self.config["intero_dim"]).to(
+            self.device
+        )
+        dummy_context = torch.randn(batch_size, self.config["context_dim"]).to(
+            self.device
+        )
 
         latencies = []
         with torch.no_grad():
             # Warm up
             for _ in range(10):
-                _ = apgi_network(dummy_input)
+                _ = apgi_network(dummy_extero, dummy_intero, dummy_context)
 
             start_total = time.time()
             for _ in range(n_trials):
                 t0 = time.time()
-                _ = apgi_network(dummy_input)
+                _ = apgi_network(dummy_extero, dummy_intero, dummy_context)
                 latencies.append((time.time() - t0) * 1000)  # ms
             end_total = time.time()
 
@@ -1528,87 +1638,92 @@ class FalsificationChecker:
 
     def __init__(self):
         self.criteria = {
-            "F6.1": {
-                "description": "APGI shows no advantage over LSTM (within 2%)",
-                "threshold": 0.02,
+            "V6.1": {
+                "description": "LTCN threshold transitions <= 50ms vs standard RNN latency",
             },
-            "F6.2": {"description": "Learned β converges to 0", "threshold": 0.1},
-            "F6.3": {
-                "description": "Threshold converges to extremes (0 or ∞)",
-                "threshold_low": 0.1,
-                "threshold_high": 0.9,
+            "V6.2": {
+                "description": "LTCN temporal integration window 200-500ms, >=4x standard RNN",
             },
-            "F6.4": {
-                "description": "Attention achieves equal/higher AUC",
-                "threshold": 0.0,
-            },
-            "F6.5": {
-                "description": "Energy consumption ≤20% above baseline per correct detection",
-                "energy_threshold": ENERGY_FALSIFICATION_THRESHOLD_PCT / 100.0,
+            "Innovation_29": {
+                "description": "LNN AUROC superiority by pre-specified ΔAUROC",
             },
         }
 
-    def check_F6_1(self, apgi_acc: float, lstm_acc: float) -> Tuple[bool, Dict]:
-        """F6.1: No advantage over LSTM"""
+    def check_V6_1(
+        self, apgi_transition_times: np.ndarray, lstm_transition_times: np.ndarray
+    ) -> Tuple[bool, Dict]:
+        """
+        V6.1: LTCN threshold transitions <= 50ms vs standard RNN latency.
+        Mann-Whitney U, alpha = 0.01
+        """
+        mean_apgi = float(np.mean(apgi_transition_times))
+        mean_lstm = float(np.mean(lstm_transition_times))
 
-        advantage = apgi_acc - lstm_acc
+        # Test against 50ms
+        meets_threshold = mean_apgi <= F6_1_LTCN_MAX_TRANSITION_MS
 
-        falsified = advantage < self.criteria["F6.1"]["threshold"]
+        # Mann-Whitney U test (APGI < LSTM)
+        stat, p_val = stats.mannwhitneyu(
+            apgi_transition_times, lstm_transition_times, alternative="less"
+        )
+
+        falsified = not (meets_threshold and p_val < F6_1_MANN_WHITNEY_ALPHA)
+
+        # Cliff's delta estimation
+        n1 = len(apgi_transition_times)
+        n2 = len(lstm_transition_times)
+        u_stat, _ = stats.mannwhitneyu(apgi_transition_times, lstm_transition_times)
+        cliffs_delta = abs((2 * u_stat) / (n1 * n2) - 1)
 
         return falsified, {
-            "apgi_accuracy": apgi_acc,
-            "lstm_accuracy": lstm_acc,
-            "advantage": advantage,
-            "threshold": self.criteria["F6.1"]["threshold"],
+            "apgi_transition_mean": mean_apgi,
+            "lstm_transition_mean": mean_lstm,
+            "p_value": float(p_val),
+            "cliffs_delta": float(cliffs_delta),
+            "threshold_ms": F6_1_LTCN_MAX_TRANSITION_MS,
+            "meets_threshold": meets_threshold,
         }
 
-    def check_F6_2(self, beta: float) -> Tuple[bool, Dict]:
-        """F6.2: Beta converges to zero"""
+    def check_V6_2(
+        self, apgi_integration_windows: np.ndarray, lstm_integration_windows: np.ndarray
+    ) -> Tuple[bool, Dict]:
+        """
+        V6.2: LTCN temporal integration window 200-500ms, >=4x standard RNN, R2 >= 0.85
+        Wilcoxon signed-rank test
+        """
+        mean_apgi = float(np.mean(apgi_integration_windows))
+        mean_lstm = float(np.mean(lstm_integration_windows))
 
-        falsified = abs(beta) < self.criteria["F6.2"]["threshold"]
+        window_size_valid = mean_apgi >= F6_2_LTCN_MIN_WINDOW_MS
+        ratio_valid = mean_apgi >= 4.0 * mean_lstm
 
-        return falsified, {
-            "beta": beta,
-            "abs_beta": abs(beta),
-            "threshold": self.criteria["F6.2"]["threshold"],
-        }
+        # Wilcoxon requires paired samples; fallback to Mann-Whitney if lengths differ
+        try:
+            stat, p_val = stats.wilcoxon(
+                apgi_integration_windows,
+                lstm_integration_windows,
+                alternative="greater",
+            )
+        except ValueError:
+            stat, p_val = stats.mannwhitneyu(
+                apgi_integration_windows,
+                lstm_integration_windows,
+                alternative="greater",
+            )
 
-    def check_F6_3(self, theta_mean: float) -> Tuple[bool, Dict]:
-        """F6.3: Threshold at extremes"""
-
-        falsified = (
-            theta_mean < self.criteria["F6.3"]["threshold_low"]
-            or theta_mean > self.criteria["F6.3"]["threshold_high"]
+        falsified = not (
+            window_size_valid and ratio_valid and p_val < F6_2_WILCOXON_ALPHA
         )
 
         return falsified, {
-            "theta_mean": theta_mean,
-            "threshold_low": self.criteria["F6.3"]["threshold_low"],
-            "threshold_high": self.criteria["F6.3"]["threshold_high"],
-        }
-
-    def check_F6_4(self, apgi_auc: float, attention_auc: float) -> Tuple[bool, Dict]:
-        """F6.4: Attention achieves equal/higher AUC"""
-
-        advantage = apgi_auc - attention_auc
-        falsified = advantage <= self.criteria["F6.4"]["threshold"]
-
-        return falsified, {
-            "apgi_auc": apgi_auc,
-            "attention_auc": attention_auc,
-            "advantage": advantage,
-            "threshold": self.criteria["F6.4"]["threshold"],
-        }
-
-    def check_F6_5(self, apgi_energy_ratio: float) -> Tuple[bool, Dict]:
-        """F6.5: Energy consumption ≤20% above baseline per correct detection"""
-
-        falsified = apgi_energy_ratio > (1 + self.criteria["F6.5"]["energy_threshold"])
-
-        return falsified, {
-            "apgi_energy_ratio": apgi_energy_ratio,
-            "energy_threshold": 1 + self.criteria["F6.5"]["energy_threshold"],
-            "excess_energy": max(0, apgi_energy_ratio - 1),
+            "apgi_integration_mean": mean_apgi,
+            "lstm_integration_mean": mean_lstm,
+            "ratio": mean_apgi / max(1e-5, mean_lstm),
+            "p_value": float(p_val),
+            "window_size_valid": window_size_valid,
+            "ratio_valid": ratio_valid,
+            "threshold_min": F6_2_LTCN_MIN_WINDOW_MS,
+            "ratio_threshold": 4.0,
         }
 
     def check_Innovation_29_AUROC_Superiority(self, results: Dict) -> Tuple[bool, Dict]:
@@ -1697,103 +1812,61 @@ class FalsificationChecker:
         }
 
         # Get key results
-        conscious_task = results["Conscious_Classification"]
-        apgi_acc = conscious_task["APGI"]["test_accuracy"]
-        lstm_acc = conscious_task["LSTM"]["test_accuracy"]
-        apgi_auc = conscious_task["APGI"]["test_auc"]
-        attention_auc = conscious_task["Attention"]["test_auc"]
+        conscious_task = results.get("Conscious_Classification", {})
+        apgi_temporal = conscious_task.get("APGI", {}).get("temporal_dynamics", {})
+        lstm_temporal = conscious_task.get("LSTM", {}).get("temporal_dynamics", {})
 
-        # F6.1
-        f6_1_result, f6_1_details = self.check_F6_1(apgi_acc, lstm_acc)
-        criterion = {
-            "code": "F6.1",
-            "description": self.criteria["F6.1"]["description"],
-            "falsified": f6_1_result,
-            "details": f6_1_details,
-        }
+        # V6.1
+        if "transition_times" in apgi_temporal and "transition_times" in lstm_temporal:
+            v6_1_result, v6_1_details = self.check_V6_1(
+                apgi_temporal["transition_times"], lstm_temporal["transition_times"]
+            )
+            criterion = {
+                "code": "V6.1",
+                "description": "LTCN threshold transitions <= 50ms vs standard RNN latency",
+                "falsified": v6_1_result,
+                "details": v6_1_details,
+            }
+        else:
+            criterion = {
+                "code": "V6.1",
+                "description": "LTCN threshold transitions <= 50ms vs standard RNN latency",
+                "falsified": True,
+                "details": {"error": "Missing temporal dynamics data"},
+            }
 
-        if f6_1_result:
+        if criterion["falsified"]:
             report["falsified_criteria"].append(criterion)
         else:
             report["passed_criteria"].append(criterion)
 
-        # F6.2
-        f6_2_result, f6_2_details = self.check_F6_2(apgi_params["beta"])
-        criterion = {
-            "code": "F6.2",
-            "description": self.criteria["F6.2"]["description"],
-            "falsified": f6_2_result,
-            "details": f6_2_details,
-        }
+        # V6.2
+        if (
+            "integration_windows" in apgi_temporal
+            and "integration_windows" in lstm_temporal
+        ):
+            v6_2_result, v6_2_details = self.check_V6_2(
+                apgi_temporal["integration_windows"],
+                lstm_temporal["integration_windows"],
+            )
+            criterion = {
+                "code": "V6.2",
+                "description": "LTCN temporal integration window 200-500ms, >=4x standard RNN",
+                "falsified": v6_2_result,
+                "details": v6_2_details,
+            }
+        else:
+            criterion = {
+                "code": "V6.2",
+                "description": "LTCN temporal integration window 200-500ms, >=4x standard RNN",
+                "falsified": True,
+                "details": {"error": "Missing temporal dynamics data"},
+            }
 
-        if f6_2_result:
+        if criterion["falsified"]:
             report["falsified_criteria"].append(criterion)
         else:
             report["passed_criteria"].append(criterion)
-
-        # F6.3 - Compute average theta from network
-        # Get theta mean from the threshold network parameters
-
-        # Define config for NetworkComparison
-        config = {
-            "extero_dim": 64,
-            "intero_dim": 32,
-            "context_dim": 8,
-            "action_dim": 2,  # Binary classification
-            "n_epochs": 100,
-        }
-
-        apgi_network = NetworkComparison(config).networks["APGI"]
-        threshold_params = list(apgi_network.threshold_network.parameters())
-        if threshold_params:
-            theta_mean = float(torch.mean(torch.abs(threshold_params[0])).item())
-        else:
-            theta_mean = 0.5  # fallback
-
-        f6_3_result, f6_3_details = self.check_F6_3(theta_mean)
-        criterion = {
-            "code": "F6.3",
-            "description": self.criteria["F6.3"]["description"],
-            "falsified": f6_3_result,
-            "details": f6_3_details,
-        }
-
-        if f6_3_result:
-            report["falsified_criteria"].append(criterion)
-        else:
-            report["passed_criteria"].append(criterion)
-
-        # F6.4
-        f6_4_result, f6_4_details = self.check_F6_4(apgi_auc, attention_auc)
-        criterion = {
-            "code": "F6.4",
-            "description": self.criteria["F6.4"]["description"],
-            "falsified": f6_4_result,
-            "details": f6_4_details,
-        }
-
-        if f6_4_result:
-            report["falsified_criteria"].append(criterion)
-        else:
-            report["passed_criteria"].append(criterion)
-
-        # F6.5 - Energy falsification (Program 4 requirement)
-        if energy_monitor is not None:
-            energy_report = energy_monitor.get_energy_report()
-            if "APGI" in energy_report:
-                apgi_energy_eff = energy_report["APGI"]["efficiency_ratio"]
-                f6_5_result, f6_5_details = self.check_F6_5(apgi_energy_eff)
-                criterion = {
-                    "code": "F6.5",
-                    "description": self.criteria["F6.5"]["description"],
-                    "falsified": f6_5_result,
-                    "details": f6_5_details,
-                }
-
-                if f6_5_result:
-                    report["falsified_criteria"].append(criterion)
-                else:
-                    report["passed_criteria"].append(criterion)
 
         # Innovation 29: AUROC Superiority Check
         (
@@ -2587,15 +2660,38 @@ def main():
     print("=" * 80)
 
     # Prepare results summary
+    def convert_to_native(obj):
+        """Recursively convert numpy types to Python native types for JSON serialization"""
+        if isinstance(obj, dict):
+            return {k: convert_to_native(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_to_native(item) for item in obj]
+        elif isinstance(obj, (np.bool_, bool)):
+            return bool(obj)
+        elif isinstance(obj, (np.integer,)):
+            return int(obj)
+        elif isinstance(obj, (np.floating,)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return obj
+
     results_summary = {
         "config": config,
         "results_by_task": {},
-        "apgi_parameters": apgi_params,
-        "falsification": falsification_report,
+        "apgi_parameters": {
+            k: float(v) if isinstance(v, (np.floating, float)) else v
+            for k, v in apgi_params.items()
+        },
+        "falsification": convert_to_native(falsification_report),
     }
 
     # Extract key metrics
     for task, task_results in results.items():
+        # Skip non-task entries (like benchmark data)
+        if not isinstance(task_results, dict) or "APGI" not in task_results:
+            continue
         results_summary["results_by_task"][task] = {
             net: {
                 "test_accuracy": float(res["test_accuracy"]),
@@ -2603,6 +2699,7 @@ def main():
                 "convergence_epoch": int(res["convergence_epoch"]),
             }
             for net, res in task_results.items()
+            if isinstance(res, dict) and "test_accuracy" in res
         }
 
     # Save to JSON

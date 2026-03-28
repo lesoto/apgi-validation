@@ -11,7 +11,7 @@ import json
 import threading
 import time
 from datetime import datetime
-from typing import List
+from typing import List, Dict, Any
 
 try:
     import dash
@@ -56,9 +56,9 @@ class ComprehensivePerformanceDashboard:
         self.app = dash.Dash(__name__, title="APGI Performance Dashboard")
 
         # Data storage
-        self.system_metrics = []
-        self.validation_results = []
-        self.performance_metrics = []
+        self.system_metrics: List[Dict[str, Any]] = []
+        self.validation_results: List[Dict[str, Any]] = []
+        self.performance_metrics: List[Dict[str, Any]] = []
 
         # Threading lock for data access
         self.data_lock = threading.Lock()
@@ -110,8 +110,59 @@ class ComprehensivePerformanceDashboard:
         """Set up all dashboard callbacks with proper error handling."""
 
         @self.app.callback(
-            Output("tab-content", "children"), Input("main-tabs", "value")
+            Output("tab-content", "children"),
+            Input("main-tabs", "value"),
         )
+        @self.app.callback(
+            Output("export-data", "children"),
+            Input("export-format", "value"),
+            Input("download-export", "n_clicks"),
+        )
+        def handle_export_data(self, export_format, filename):
+            """Handle export data request."""
+            try:
+                success = self.export_data(export_format, filename)
+                if success:
+                    if apgi_logger:
+                        apgi_logger.logger.info(
+                            f"Data exported successfully in {export_format} format"
+                        )
+                    return True
+                else:
+                    if apgi_logger:
+                        apgi_logger.logger.error("Export failed")
+                    return False
+            except Exception as e:
+                if apgi_logger:
+                    apgi_logger.logger.error(f"Export error: {e}")
+                return False
+
+        @self.app.callback(
+            Output("download-export", "children"),
+            Input("export-format", "value"),
+            Input("download-export", "n_clicks"),
+            prevent_initial_call=True,
+        )
+        def handle_download_export(self, export_format, n_clicks):
+            """Handle download export request."""
+            if n_clicks > 0:
+                try:
+                    success = self.export_data(export_format)
+                    if success:
+                        if apgi_logger:
+                            apgi_logger.logger.info(
+                                f"Download triggered for {export_format} export"
+                            )
+                        return True
+                    else:
+                        if apgi_logger:
+                            apgi_logger.logger.error("Download failed")
+                        return False
+                except Exception as e:
+                    if apgi_logger:
+                        apgi_logger.logger.error(f"Download error: {e}")
+                    return False
+
         def update_tab_content(tab_value):
             """Update tab content with error handling."""
             try:
@@ -716,6 +767,234 @@ class ComprehensivePerformanceDashboard:
 
             # Sleep for 10 seconds
             time.sleep(10)
+
+    def _stop_monitoring(self):
+        self.monitoring_active = False
+
+    def export_data(self, format_type: str = "json", filename: str = None):
+        """
+        Export dashboard data in specified format.
+
+        Args:
+            format_type: Export format ('json', 'csv', 'pdf')
+            filename: Optional filename for export (auto-generated if None)
+
+        Returns:
+            bool: True if successful, False otherwise
+
+        Raises:
+            ValueError: If format_type is not supported
+            IOError: If export fails
+        """
+        try:
+            if not hasattr(self, "performance_data") or not hasattr(
+                self, "validation_results"
+            ):
+                raise ValueError("No data available to export")
+
+            # Prepare data for export
+            export_data = {
+                "performance_metrics": getattr(self, "performance_data", {}),
+                "validation_results": getattr(self, "validation_results", {}),
+                "system_metrics": getattr(self, "system_metrics", {}),
+                "export_timestamp": datetime.now().isoformat(),
+            }
+
+            if format_type.lower() == "json":
+                return self._export_json(export_data, filename)
+            elif format_type.lower() == "csv":
+                return self._export_csv(export_data, filename)
+            elif format_type.lower() == "pdf":
+                return self._export_pdf(export_data, filename)
+            else:
+                raise ValueError(f"Unsupported export format: {format_type}")
+
+        except Exception as e:
+            if apgi_logger:
+                apgi_logger.logger.error(f"Export failed: {e}")
+            raise
+
+    def _export_json(self, data: dict, filename: str = None) -> bool:
+        """Export data to JSON format."""
+        try:
+            import json
+
+            output_filename = (
+                filename
+                or f"dashboard_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            )
+
+            with open(output_filename, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, default=str)
+
+            if apgi_logger:
+                apgi_logger.logger.info(f"Data exported to JSON: {output_filename}")
+            return True
+
+        except Exception as e:
+            if apgi_logger:
+                apgi_logger.logger.error(f"JSON export failed: {e}")
+            return False
+
+    def _export_csv(self, data: dict, filename: str = None) -> bool:
+        """Export data to CSV format."""
+        try:
+            import pandas as pd
+
+            output_filename = (
+                filename
+                or f"dashboard_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            )
+
+            # Convert nested data to flat structure for CSV
+            csv_data = []
+
+            # Performance metrics
+            if "performance_metrics" in data:
+                for timestamp, metrics in data["performance_metrics"].items():
+                    csv_data.append(
+                        {
+                            "category": "performance",
+                            "timestamp": timestamp,
+                            "metric_name": "cpu_usage",
+                            "value": metrics.get("cpu_usage", "N/A"),
+                        }
+                    )
+                    csv_data.append(
+                        {
+                            "category": "performance",
+                            "timestamp": timestamp,
+                            "metric_name": "memory_usage",
+                            "value": metrics.get("memory_usage", "N/A"),
+                        }
+                    )
+
+            # Validation results
+            if "validation_results" in data:
+                for protocol, results in data["validation_results"].items():
+                    csv_data.append(
+                        {
+                            "category": "validation",
+                            "protocol": protocol,
+                            "result": str(results.get("status", "unknown")),
+                            "execution_time": results.get("execution_time", "N/A"),
+                        }
+                    )
+
+            # System metrics
+            if "system_metrics" in data:
+                for timestamp, metrics in data["system_metrics"].items():
+                    for metric_name, value in metrics.items():
+                        csv_data.append(
+                            {
+                                "category": "system",
+                                "timestamp": timestamp,
+                                "metric_name": metric_name,
+                                "value": str(value),
+                            }
+                        )
+
+            df = pd.DataFrame(csv_data)
+            df.to_csv(output_filename, index=False)
+
+            if apgi_logger:
+                apgi_logger.logger.info(f"Data exported to CSV: {output_filename}")
+            return True
+
+        except Exception as e:
+            if apgi_logger:
+                apgi_logger.logger.error(f"CSV export failed: {e}")
+            return False
+
+    def _export_pdf(self, data: dict, filename: str = None) -> bool:
+        """Export data to PDF format."""
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet
+            import io
+
+            output_filename = (
+                filename
+                or f"dashboard_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            )
+
+            # Create PDF buffer
+            buffer = io.BytesIO()
+
+            # Build PDF document
+            doc = SimpleDocTemplate(
+                pagesize=letter,
+                rightMargin=72,
+                leftMargin=72,
+                topMargin=72,
+                bottomMargin=18,
+            )
+
+            # Add title
+            styles = getSampleStyleSheet()
+            title_style = styles["Heading1"]
+            doc.append(Paragraph("APGI Framework Dashboard Export", title_style))
+            doc.append(Spacer(1, 12))
+
+            # Add performance metrics section
+            if "performance_metrics" in data:
+                doc.append(Paragraph("Performance Metrics", styles["Heading2"]))
+                for timestamp, metrics in data["performance_metrics"].items():
+                    doc.append(Paragraph(f"Timestamp: {timestamp}", styles["Normal"]))
+                    for metric, value in metrics.items():
+                        doc.append(Paragraph(f"  {metric}: {value}", styles["Normal"]))
+                doc.append(Spacer(1, 12))
+
+            # Add validation results section
+            if "validation_results" in data:
+                doc.append(Paragraph("Validation Results", styles["Heading2"]))
+                for protocol, results in data["validation_results"].items():
+                    doc.append(Paragraph(f"Protocol: {protocol}", styles["Normal"]))
+                    doc.append(
+                        Paragraph(
+                            f"  Status: {results.get('status', 'unknown')}",
+                            styles["Normal"],
+                        )
+                    )
+                    doc.append(
+                        Paragraph(
+                            f"  Execution Time: {results.get('execution_time', 'N/A')}",
+                            styles["Normal"],
+                        )
+                    )
+                doc.append(Spacer(1, 12))
+
+            # Add system metrics section
+            if "system_metrics" in data:
+                doc.append(Paragraph("System Metrics", styles["Heading2"]))
+                for timestamp, metrics in data["system_metrics"].items():
+                    doc.append(Paragraph(f"Timestamp: {timestamp}", styles["Normal"]))
+                    for metric, value in metrics.items():
+                        doc.append(Paragraph(f"  {metric}: {value}", styles["Normal"]))
+                doc.append(Spacer(1, 12))
+
+            # Build PDF
+            doc.build([buffer])
+
+            # Save to file
+            with open(output_filename, "wb") as f:
+                f.write(buffer.getvalue())
+
+            if apgi_logger:
+                apgi_logger.logger.info(f"Data exported to PDF: {output_filename}")
+            return True
+
+        except ImportError:
+            if apgi_logger:
+                apgi_logger.logger.error(
+                    "PDF export requires reportlab. Install with: pip install reportlab"
+                )
+            return False
+        except Exception as e:
+            if apgi_logger:
+                apgi_logger.logger.error(f"PDF export failed: {e}")
+            return False
 
     def run(self, host: str = "127.0.0.1"):
         """

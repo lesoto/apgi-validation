@@ -7,11 +7,19 @@ Coordinates execution of all validation protocols and aggregates results.
 """
 
 import importlib.util
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+
+# Add project root to sys.path for Falsification imports
+_proj_root = Path(__file__).parent.parent
+if str(_proj_root) not in sys.path:
+    sys.path.insert(0, str(_proj_root))
+
+from Falsification.APGI_Falsification_Aggregator import FalsificationAggregator
 
 # Try to import logging config
 try:
@@ -56,6 +64,10 @@ class APGIMasterValidator:
             10: "tertiary",
             11: "secondary",
             12: "secondary",
+            "P4-Epistemic": "secondary",
+            "FP-5": "tertiary",
+            "FP-6": "tertiary",
+            "FP-7": "tertiary",
         }
         self.falsification_status = {
             "primary": [],
@@ -77,10 +89,14 @@ class APGIMasterValidator:
             "Protocol-10": [],
             "Protocol-11": [],
             "Protocol-12": [],
+            "Protocol-P4-Epistemic": [],
+            "Falsification-Protocol-P5": [],
+            "Falsification-Protocol-P6": [],
+            "Falsification-Protocol-P7": [],
         }
         self.available_protocols = {
             "Protocol-1": {
-                "file": "Validation_Protocol_1.py",
+                "file": "SyntheticEEG_MLClassification.py",
                 "function": "run_validation",
                 "description": "Synthetic Neural Data Generation and ML Classification",
             },
@@ -90,42 +106,47 @@ class APGIMasterValidator:
                 "description": "Behavioral Validation Protocol",
             },
             "Protocol-3": {
-                "file": "Validation_Protocol_3.py",
+                "file": "ActiveInference_AgentSimulations_Protocol3.py",
                 "function": "run_validation",
                 "description": "Agent Comparison Experiment",
             },
             "Protocol-4": {
-                "file": "Validation_Protocol_P4_Epistemic.py",
+                "file": "InformationTheoretic_PhaseTransition_Level2.py",
                 "function": "run_validation",
                 "description": "Phase Transition Analysis",
             },
             "Protocol-5": {
-                "file": "Validation_Protocol_5.py",
+                "file": "EvolutionaryEmergence_AnalyticalValidation.py",
                 "function": "run_validation",
                 "description": "Evolutionary Emergence",
             },
             "Protocol-6": {
-                "file": "Validation_Protocol_6.py",
+                "file": "NeuralNetwork_InductiveBias_ComputationalBenchmark.py",
                 "function": "run_validation",
                 "description": "Network Comparison",
             },
             "Protocol-7": {
-                "file": "Validation_Protocol_7.py",
+                "file": "Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py",
                 "function": "run_validation",
-                "description": "Mathematical Consistency",
+                "description": "Causal Manipulations",
             },
             "Protocol-8": {
-                "file": "Validation_Protocol_8.py",
+                "file": "Psychophysical_ThresholdEstimation_Protocol1.py",
                 "function": "run_validation",
-                "description": "Parameter Sensitivity",
+                "description": "Psychophysical Thresholds",
             },
             "Protocol-9": {
-                "file": "Validation_Protocol_9.py",
+                "file": "ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py",
                 "function": "run_validation",
                 "description": "Neural Signatures Validation",
             },
+            "Protocol-P4-Epistemic": {
+                "file": "Validation_Protocol_P4_Epistemic.py",
+                "function": "run_validation",
+                "description": "Paper 4 Epistemic Architecture Predictions (P5-P12)",
+            },
             "Protocol-10": {
-                "file": "Validation_Protocol_10.py",
+                "file": "Clinical_CrossSpecies_Convergence_Protocol4.py",
                 "function": "run_validation",
                 "description": "Cross-Species Scaling",
             },
@@ -135,9 +156,24 @@ class APGIMasterValidator:
                 "description": "Bayesian Estimation",
             },
             "Protocol-12": {
-                "file": "Validation_Protocol_12.py",
+                "file": "QuantitativeModelFits_SpikingLNN_Priority3.py",
                 "function": "run_validation",
                 "description": "Computational Benchmarking",
+            },
+            "Falsification-Protocol-P5": {
+                "file": "../Falsification/Falsification_Protocol_P5.py",
+                "function": "run_protocol_p5",
+                "description": "Evolutionary Emergence (Falsification)",
+            },
+            "Falsification-Protocol-P6": {
+                "file": "../Falsification/Falsification_Protocol_P6.py",
+                "function": "run_protocol_p6",
+                "description": "Temporal Dynamics / LTCN (Falsification)",
+            },
+            "Falsification-Protocol-P7": {
+                "file": "../Falsification/Falsification_Protocol_P7.py",
+                "function": "run_protocol_p7",
+                "description": "Causal Manipulations (Falsification)",
             },
         }
 
@@ -261,10 +297,19 @@ class APGIMasterValidator:
         }
 
         for p_name, result in self.protocol_results.items():
-            # Extract number from "Protocol-X"
+            # Extract identifier from "Protocol-X" or "Falsification-Protocol-PX"
             try:
-                p_num = int(p_name.split("-")[1])
-                tier = self.PROTOCOL_TIERS.get(p_num, "tertiary")
+                if "P4-Epistemic" in p_name:
+                    tier = self.PROTOCOL_TIERS.get("P4-Epistemic", "secondary")
+                elif "-P5" in p_name:
+                    tier = self.PROTOCOL_TIERS.get("FP-5", "tertiary")
+                elif "-P6" in p_name:
+                    tier = self.PROTOCOL_TIERS.get("FP-6", "tertiary")
+                elif "-P7" in p_name:
+                    tier = self.PROTOCOL_TIERS.get("FP-7", "tertiary")
+                else:
+                    p_num = int(p_name.split("-")[-1])
+                    tier = self.PROTOCOL_TIERS.get(p_num, "tertiary")
             except (ValueError, IndexError):
                 tier = "tertiary"
 
@@ -426,13 +471,95 @@ class APGIMasterValidator:
                 "message": result.get("message", ""),
             }
 
-            # Extract protocol number for tier classification
+            # Extract identifier for tier classification
             try:
-                p_num = int(protocol_name.split("-")[1])
-                row["tier"] = self.PROTOCOL_TIERS.get(p_num, "unknown")
+                if "P4-Epistemic" in protocol_name:
+                    row["tier"] = self.PROTOCOL_TIERS.get("P4-Epistemic", "unknown")
+                elif "-P5" in protocol_name:
+                    row["tier"] = self.PROTOCOL_TIERS.get("FP-5", "unknown")
+                elif "-P6" in protocol_name:
+                    row["tier"] = self.PROTOCOL_TIERS.get("FP-6", "unknown")
+                elif "-P7" in protocol_name:
+                    row["tier"] = self.PROTOCOL_TIERS.get("FP-7", "unknown")
+                else:
+                    p_num = int(protocol_name.split("-")[-1])
+                    row["tier"] = self.PROTOCOL_TIERS.get(p_num, "unknown")
             except (ValueError, IndexError):
                 row["tier"] = "unknown"
 
             rows.append(row)
 
         return pd.DataFrame(rows)
+
+
+def main():
+    """Main entry point for Master Validation"""
+    validator = APGIMasterValidator()
+    print("\n" + "=" * 80)
+    print(" APGI MASTER VALIDATION ORCHESTRATOR ".center(80, "="))
+    print("=" * 80)
+
+    # Run all available protocols
+    summary = validator.run_all_protocols(save_outputs=True)
+
+    # Print results table
+    print("\nVALDIATION RESULTS:")
+    print("-" * 80)
+    # Print nice table header
+    print(f"{'PROTOCOL':<15} | {'TIER':<10} | {'STATUS':<10} | {'MESSAGE'}")
+    print("-" * 80)
+
+    for p_name in sorted(validator.protocol_results.keys()):
+        res = validator.protocol_results[p_name]
+        try:
+            if "P4-Epistemic" in p_name:
+                tier = validator.PROTOCOL_TIERS.get("P4-Epistemic", "unknown")
+            elif "-P5" in p_name:
+                tier = validator.PROTOCOL_TIERS.get("FP-5", "unknown")
+            elif "-P6" in p_name:
+                tier = validator.PROTOCOL_TIERS.get("FP-6", "unknown")
+            elif "-P7" in p_name:
+                tier = validator.PROTOCOL_TIERS.get("FP-7", "unknown")
+            else:
+                p_num = int(p_name.split("-")[-1])
+                tier = validator.PROTOCOL_TIERS.get(p_num, "unknown")
+        except (ValueError, IndexError):
+            tier = "unknown"
+        status = "✓ PASS" if res.get("passed") else "✗ FAIL"
+        msg = res.get("message", "No description provided")
+        print(f"{p_name:<15} | {tier:<10} | {status:<10} | {msg}")
+
+    print("-" * 80)
+    passed_count = sum(
+        1 for p in validator.protocol_results.values() if p.get("passed", False)
+    )
+    total_count = len(validator.protocol_results)
+
+    print(f"\nFinal Summary: {passed_count}/{total_count} protocols passed.")
+    if passed_count == total_count:
+        print("\nOVERALL STATUS: ✓ PASS (100/100 ALIGNMENT REACHED)")
+    else:
+        print("\nOVERALL STATUS: ✗ FAIL (Requires remediation)")
+
+    print(f"\nReport saved to: {summary['output_files']['json']}")
+
+    # Run Joint Falsification Aggregator
+    print("\n" + "=" * 80)
+    print(" JOINT FALSIFICATION AGGREGATION ".center(80, "="))
+    print("=" * 80)
+    aggregator = FalsificationAggregator()
+    joint_report = aggregator.generate_master_report()
+
+    print(
+        f"\nFRAMEWORK FALSIFICATION STATUS: {'✓ PASSED' if joint_report['framework_falsified'] else '✗ FAILED'}"
+    )
+    print(
+        f"Compliance Ratio: {joint_report['falsified_count']}/{joint_report['total_predictions']}"
+    )
+    print(f"Compliance Score: {joint_report['compliance_score']:.1f}/100")
+
+    print("\n" + "=" * 80 + "\n")
+
+
+if __name__ == "__main__":
+    main()

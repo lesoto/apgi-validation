@@ -11,7 +11,7 @@ from pathlib import Path
 import sys
 import subprocess
 import json
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -20,8 +20,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 class TestOutOfMemoryScenarios:
     """Test out-of-memory scenarios."""
 
-    @patch("main.os.path.getsize")
-    def test_large_file_size_rejection(self, mock_getsize, tmp_path):
+    @patch("main.os.stat")
+    def test_large_file_size_rejection(self, mock_stat, tmp_path):
         """Test that large files are rejected to prevent OOM."""
         from main import _check_file_size
 
@@ -29,13 +29,15 @@ class TestOutOfMemoryScenarios:
         large_file.write_text("test")
 
         # Simulate a 200MB file
-        mock_getsize.return_value = 200 * 1024 * 1024  # 200MB
+        mock_stat_result = MagicMock()
+        mock_stat_result.st_size = 200 * 1024 * 1024  # 200MB
+        mock_stat.return_value = mock_stat_result
 
         with pytest.raises(ValueError, match="exceeds maximum limit"):
             _check_file_size(str(large_file), max_mb=100)
 
-    @patch("main.os.path.getsize")
-    def test_absolute_max_size_enforcement(self, mock_getsize, tmp_path):
+    @patch("main.os.stat")
+    def test_absolute_max_size_enforcement(self, mock_stat, tmp_path):
         """Test that absolute maximum size (1GB) is enforced even with higher config."""
         from main import _check_file_size
 
@@ -43,13 +45,15 @@ class TestOutOfMemoryScenarios:
         large_file.write_text("test")
 
         # Simulate a 2GB file (exceeds absolute max)
-        mock_getsize.return_value = 2 * 1024 * 1024 * 1024  # 2GB
+        mock_stat_result = MagicMock()
+        mock_stat_result.st_size = 2 * 1024 * 1024 * 1024  # 2GB
+        mock_stat.return_value = mock_stat_result
 
         with pytest.raises(ValueError, match="exceeds maximum limit"):
             _check_file_size(str(large_file), max_mb=2000)  # Try to set 2GB limit
 
-    @patch("main.os.path.getsize")
-    def test_file_size_within_limits(self, mock_getsize, tmp_path):
+    @patch("main.os.stat")
+    def test_file_size_within_limits(self, mock_stat, tmp_path):
         """Test that files within size limits are accepted."""
         from main import _check_file_size
 
@@ -57,7 +61,9 @@ class TestOutOfMemoryScenarios:
         normal_file.write_text("test")
 
         # Simulate a 50MB file
-        mock_getsize.return_value = 50 * 1024 * 1024  # 50MB
+        mock_stat_result = MagicMock()
+        mock_stat_result.st_size = 50 * 1024 * 1024  # 50MB
+        mock_stat.return_value = mock_stat_result
 
         # Should not raise exception
         _check_file_size(str(normal_file), max_mb=100)

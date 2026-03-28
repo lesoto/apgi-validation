@@ -14,10 +14,11 @@ import logging
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
 
 # Import APGI modules for error handling testing
 try:
-    from APGI_Equations import FoundationalEquations
+    from Theory.APGI_Equations import FoundationalEquations
 
     APGI_EQUATIONS_AVAILABLE = True
 except ImportError as e:

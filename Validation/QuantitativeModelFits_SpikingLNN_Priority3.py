@@ -514,7 +514,14 @@ class BayesianParameterEstimator:
             pm.Bernoulli("detections_obs", p=prob_detect, observed=detections)
 
             # Sample posterior
-            trace = pm.sample(2000, tune=1000, return_inferencedata=True, chains=4)
+            trace = pm.sample(
+                2000,
+                tune=1000,
+                return_inferencedata=True,
+                chains=4,
+                target_accept=0.99,
+                nuts_sampler_kwargs={"max_tree_depth": 12, "step_scale": 0.15},
+            )
 
         # Extract posterior summaries
         summary = az.summary(trace, round_to=3)
@@ -797,7 +804,14 @@ class BayesianParameterEstimator:
             pm.Bernoulli("detections_obs", p=prob_detect, observed=all_detections)
 
             # Sample posterior
-            trace = pm.sample(2000, tune=1000, return_inferencedata=True, chains=4)
+            trace = pm.sample(
+                2000,
+                tune=1000,
+                return_inferencedata=True,
+                chains=4,
+                target_accept=0.99,
+                nuts_sampler_kwargs={"max_tree_depth": 12, "step_scale": 0.15},
+            )
 
         # Extract posterior summaries
         summary = az.summary(trace, round_to=3)

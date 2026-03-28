@@ -137,7 +137,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
  | `train_ignition_classifier()`  SyntheticEEG_MLClassification.py  1613  Trains CNN for ignition detection  |
  | `validate_parameter_recovery()`  BayesianModelComparison_ParameterRecovery.py  805  n=100 simulations, r≥0.82 core params  |
  | `compute_fisher_information_matrix()`  BayesianModelComparison_ParameterRecovery.py  861  FIM identifiability  |
- | `analyze_beta_pi_identifiability()`  BayesianModelComparison_ParameterRecovery.py  1047  β / Πⁱ collinearity check 
+ | `analyze_beta_pi_identifiability()`  BayesianModelComparison_ParameterRecovery.py  1047  β / Πⁱ collinearity check
 
 **Criterion codes implemented:** F1.1, F1.2, F1.3, F1.4, F2.1, F2.1A, F2.1B, F2.2, F2.3, F2.4, F2.5, F3.1, F3.1A, F3.1B, F3.2, F3.3, F3.4, F3.5, F3.6, F5.1, F5.2, F5.3 (+ F5.4, F5.5, F5.6, F6.1, F6.2 via FalsificationChecker), V12.1
 
@@ -253,9 +253,9 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Function  File  Line  Purpose  |
  | | ------  ------  ---------  |
- | `run_validation()`  Level2.py  3330  Entry point for VP-4 
- | `get_falsification_criteria()`  Level2.py  3348  Returns F3.x/F4.x criteria dict 
- | `run_validation()`  P4_Epistemic.py  650  Entry point for P5–P12 
+ | `run_validation()`  Level2.py  3330  Entry point for VP-4
+ | `get_falsification_criteria()`  Level2.py  3348  Returns F3.x/F4.x criteria dict
+ | `run_validation()`  P4_Epistemic.py  650  Entry point for P5–P12
 
 **Criterion codes implemented:** F3.1–F3.6, F4.1–F4.5, F5.1–F5.6, F6.1, F6.2, V4.1
 
@@ -533,15 +533,15 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Class  Line  Purpose  |
  | | ------  ---------  |
- | `PsychometricFunctionFitter`  54  Psychometric curve fitting  |
- | `SpikingLNNModel`  232  Leaky neural network (spiking dynamics)  |
- | `BayesianParameterEstimator`  467  Bayesian estimation for spiking LNN  |
- | `ConvergenceBenchmark`  863  Convergence speed analysis  |
- | `ModelComparisonTable`  1028  GNW / additive linear vs. APGI  |
- | `QuantitativeModelValidator`  1306  Orchestrator  |
- | `APGIValidationProtocol11`  2872  Entry point class (mirrors main file)  |
- | `NonAPGIComparisonValidator`  2893  F5.6-style ablation  |
- | `ArchitectureFailureChecker`  3028  Non-APGI architecture failure  |
+ | `PsychometricFunctionFitter`  54  Psychometric curve fitting|
+ | `SpikingLNNModel`  232  Leaky neural network (spiking dynamics)|
+ | `BayesianParameterEstimator`  467  Bayesian estimation for spiking LNN|
+ | `ConvergenceBenchmark`  863  Convergence speed analysis|
+ | `ModelComparisonTable`  1028  GNW / additive linear vs. APGI|
+ | `QuantitativeModelValidator`  1306  Orchestrator|
+ | `APGIValidationProtocol11`  2872  Entry point class (mirrors main file)|
+ | `NonAPGIComparisonValidator`  2893  F5.6-style ablation|
+ | `ArchitectureFailureChecker`  3028  Non-APGI architecture failure|
 
 ---
 
@@ -571,9 +571,9 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Function  Line  Purpose  |
  | ---  ---  ---  |
- | `run_validation()`  1781  Entry point 
- | `get_falsification_criteria()`  1808  Returns V12.x and F-criteria 
- | `check_falsification()`  2010  Applies gate 
+ | `run_validation()`  1781  Entry point
+ | `get_falsification_criteria()`  1808  Returns V12.x and F-criteria
+ | `check_falsification()`  2010  Applies gate
 
 **Criterion codes implemented:** F1.1–F1.6, F2.1–F2.5, F3.1–F3.6, F5.1–F5.3, V12.1 (P3b ≥80%, ignition ≥70%), V12.2 (r ≥ 0.60 cross-species)
 
@@ -609,13 +609,13 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Function  Line  Purpose  |
  | ---  ---  ---  |
- | `bootstrap_ci()`  143  Bootstrap confidence intervals 
- | `bootstrap_one_sample_test()`  173  Bootstrap one-sample significance 
- | `check_F5_family()`  233  F5.1–F5.6 criteria check (shared) 
- | `analyze_bifurcation_structure()`  916  Phase portrait sweep for F6.5 
- | `run_falsification()`  1772  Entry point 
- | `get_falsification_criteria()`  1890  Full criteria dict 
- | `check_falsification()`  1975  Gate function 
+ | `bootstrap_ci()`  143  Bootstrap confidence intervals
+ | `bootstrap_one_sample_test()`  173  Bootstrap one-sample significance
+ | `check_F5_family()`  233  F5.1–F5.6 criteria check (shared)
+ | `analyze_bifurcation_structure()`  916  Phase portrait sweep for F6.5
+ | `run_falsification()`  1772  Entry point
+ | `get_falsification_criteria()`  1890  Full criteria dict
+ | `check_falsification()`  1975  Gate function
 
 **Dependencies:** `utils.constants.LEVEL_TIMESCALES`, `specparam.FOOOF` (fallback: `fooof.FOOOF`)
 
@@ -640,11 +640,11 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Function  Line  Purpose  |
  | ---  ---  ---  |
- | `bootstrap_ci()`  80  Bootstrap CI 
- | `bootstrap_one_sample_test()`  110  Bootstrap test  |
- | `run_falsification()`  556  Entry point 
- | `get_falsification_criteria()`  584  Criteria dict (shared F1–F3 + F5) 
- | `check_falsification()`  633  Gate function 
+ | `bootstrap_ci()`  80  Bootstrap CI
+ | `bootstrap_one_sample_test()`  110  Bootstrap test |
+ | `run_falsification()`  556  Entry point
+ | `get_falsification_criteria()`  584  Criteria dict (shared F1–F3 + F5)
+ | `check_falsification()`  633  Gate function
 
 **Shared criteria with FP-1:** F5.1–F5.6 via imported `check_F5_family()` from `utils.shared_falsification`
 **FP-2 specific:** Survival analysis (log-rank test) for F2.5 using `lifelines.KaplanMeierFitter` (scipy fallback)
@@ -670,12 +670,12 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Function  Line  Purpose  |
  | ---  ---  ---  |
- | `_get_protocol1()`  165  Dynamic import of FP-1 
- | `_get_protocol2()`  199  Dynamic import of FP-2 
- | `check_framework_falsification_conditions()`  1695  Conditions A and B 
- | `run_falsification()`  1797  Entry point 
- | `get_falsification_criteria()`  1823  Full criteria dict 
- | `check_falsification()`  1878  Gate function 
+ | `_get_protocol1()`  165  Dynamic import of FP-1
+ | `_get_protocol2()`  199  Dynamic import of FP-2
+ | `check_framework_falsification_conditions()`  1695  Conditions A and B
+ | `run_falsification()`  1797  Entry point
+ | `get_falsification_criteria()`  1823  Full criteria dict
+ | `check_falsification()`  1878  Gate function
 
 **Path fix:** Protocol 3 routes to `../Validation/ActiveInference_AgentSimulations_Protocol3.py`
 **Framework conditions delegated to:** `APGI_Falsification_Aggregator.py`
@@ -699,15 +699,15 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Key constants:**
 
- | Constant  Value  Purpose 
+ | Constant  Value  Purpose
  | ----------  -------  ---------  |
- | `DEFAULT_SURPRISE_THRESHOLD`  0.5  Ignition threshold 
- | `DEFAULT_ALPHA`  8.0  Sigmoid steepness 
- | `DEFAULT_TAU_S`  0.3  Surprise time constant 
- | `DEFAULT_TAU_THETA`  10.0  Threshold adaptation time constant 
- | `DEFAULT_ETA_THETA`  0.01  Threshold learning rate 
- | `DEFAULT_BETA`  1.2  Interoceptive weighting 
- | `DEFAULT_HURST_LAG_MULTIPLIER`  4  DFA lag multiplier 
+ | `DEFAULT_SURPRISE_THRESHOLD`  0.5  Ignition threshold
+ | `DEFAULT_ALPHA`  8.0  Sigmoid steepness
+ | `DEFAULT_TAU_S`  0.3  Surprise time constant
+ | `DEFAULT_TAU_THETA`  10.0  Threshold adaptation time constant
+ | `DEFAULT_ETA_THETA`  0.01  Threshold learning rate
+ | `DEFAULT_BETA`  1.2  Interoceptive weighting
+ | `DEFAULT_HURST_LAG_MULTIPLIER`  4  DFA lag multiplier
 
 **Key functions:**
 
@@ -746,16 +746,12 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
  | `check_falsification()`  923  Gate function  |
 
 **Threshold constants (in `falsification_thresholds.py`):**
+
 - F5_1_MIN_PROPORTION = 0.75
-
 - F5_1_MIN_ALPHA = 4.0
-
 - F5_4_MIN_PEAK_SEPARATION = 3.0
-
 - F5_5_PCA_MIN_VARIANCE = 0.70
-
 - F5_5_MIN_LOADING = 0.60
-
 - F6_5_HYSTERESIS MIN = 0.08, MAX = 0.25
 
 ---
@@ -778,14 +774,14 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Function  Line  Purpose  |
  | ---  ---  ---  |
- | `calculate_atp_cost()`  175  ATP per spike (Attwell & Laughlin) 
- | `compare_atp_cost_with_literature()`  200  vs. biological ceiling 
- | `calculate_bic_aic_comparison()`  287  BIC/AIC between APGI and baselines 
- | `get_model_parameter_counts()`  400  k (param count) for BIC 
- | `calculate_energy_per_correct_detection()`  417  Core energy metric 
- | `run_falsification()`  1351  Entry point 
- | `get_falsification_criteria()`  1377  Returns F-criteria 
- | `check_falsification()`  1432  Gate function 
+ | `calculate_atp_cost()`  175  ATP per spike (Attwell & Laughlin)
+ | `compare_atp_cost_with_literature()`  200  vs. biological ceiling
+ | `calculate_bic_aic_comparison()`  287  BIC/AIC between APGI and baselines
+ | `get_model_parameter_counts()`  400  k (param count) for BIC
+ | `calculate_energy_per_correct_detection()`  417  Core energy metric
+ | `run_falsification()`  1351  Entry point
+ | `get_falsification_criteria()`  1377  Returns F-criteria
+ | `check_falsification()`  1432  Gate function
 
 ---
 
@@ -807,20 +803,20 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Function  Line  Purpose  |
  | ---  ---  ---  |
- | `check_parameter_bounds()`  261  Validates {θ₀, Πⁱ, β, α, τ_S, τ_θ} in range 
- | `verify_dimensional_homogeneity()`  281  Units consistent in ODE 
- | `verify_surprise_derivatives()`  351  Sign/magnitude of ∂S/∂t 
- | `verify_analytical_jacobian()`  434  Jacobian stability analysis 
- | `verify_asymptotic_behavior()`  592  S → steady state as t→∞ 
- | `verify_threshold_stability()`  658  θ converges to fixed point 
- | `verify_effective_precision()`  818  Πⁱ_eff = Πⁱ·exp(β·M) monotonicity 
- | `verify_jacobian_stability()`  927  Eigenvalue stability check 
- | `verify_paper_predictions()`  1009  All 4 equations vs. paper 
- | `verify_four_core_equations_comprehensive()`  1312  Master verification (1,000+ draws) 
- | `test_surprise_ode_comprehensive()`  1411  Eq.1: dS/dt = −S/τ_S + Πᵉ  εᵉ  + βΠⁱ  εⁱ  |
- | `test_ignition_sigmoid_comprehensive()`  1524  Eq.2: P_ign = σ(α(S−θ)) 
- | `test_threshold_update_comprehensive()`  1639  Eq.4: dθ/dt = (θ₀−θ)/τ_θ + η_θ(C−V) 
- | `test_free_energy_comprehensive()`  1752  Eq.3: Πⁱ_eff = Πⁱ·exp(β·M) 
+ | `check_parameter_bounds()`  261  Validates {θ₀, Πⁱ, β, α, τ_S, τ_θ} in range
+ | `verify_dimensional_homogeneity()`  281  Units consistent in ODE
+ | `verify_surprise_derivatives()`  351  Sign/magnitude of ∂S/∂t
+ | `verify_analytical_jacobian()`  434  Jacobian stability analysis
+ | `verify_asymptotic_behavior()`  592  S → steady state as t→∞
+ | `verify_threshold_stability()`  658  θ converges to fixed point
+ | `verify_effective_precision()`  818  Πⁱ_eff = Πⁱ·exp(β·M) monotonicity
+ | `verify_jacobian_stability()`  927  Eigenvalue stability check
+ | `verify_paper_predictions()`  1009  All 4 equations vs. paper
+ | `verify_four_core_equations_comprehensive()`  1312  Master verification (1,000+ draws)
+ | `test_surprise_ode_comprehensive()`  1411  Eq.1: dS/dt = −S/τ_S + Πᵉ  εᵉ  + βΠⁱ  εⁱ |
+ | `test_ignition_sigmoid_comprehensive()`  1524  Eq.2: P_ign = σ(α(S−θ))
+ | `test_threshold_update_comprehensive()`  1639  Eq.4: dθ/dt = (θ₀−θ)/τ_θ + η_θ(C−V)
+ | `test_free_energy_comprehensive()`  1752  Eq.3: Πⁱ_eff = Πⁱ·exp(β·M)
 
 **Tolerance:** 1e-6 at lines 101, 1543, 1752, 1960, 2213
 
@@ -839,18 +835,18 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Key functions:**
 
- | Function  Line  Purpose 
+ | Function  Line  Purpose
  | ---  ---  ---  |
- | `simulate_model_performance_with_agent()`  47  Model performance for SA  |
- | `analyze_oat_sensitivity()`  168  One-at-a-time sensitivity  |
- | `analyze_beta_pi_collinearity()`  224  β / Πⁱ collinearity  |
- | `analyze_parameter_recovery()`  333  Recovery accuracy  |
- | `analyze_profile_likelihood()`  451  Profile likelihood (lines 393–560)  |
- | `analyze_fisher_information_matrix()`  634  FIM (lines 578–670)  |
- | `analyze_sobol_sensitivity()`  732  Sobol indices (SALib)  |
- | `analyze_parameter_interactions()`  1338  Pairwise interactions  |
- | `analyze_parameter_robustness()`  1442  Robustness under perturbation  |
- | `run_comprehensive_parameter_sensitivity_analysis()`  1178  Master analysis  |
+ | `simulate_model_performance_with_agent()`  47  Model performance for SA |
+ | `analyze_oat_sensitivity()`  168  One-at-a-time sensitivity |
+ | `analyze_beta_pi_collinearity()`  224  β / Πⁱ collinearity |
+ | `analyze_parameter_recovery()`  333  Recovery accuracy |
+ | `analyze_profile_likelihood()`  451  Profile likelihood (lines 393–560) |
+ | `analyze_fisher_information_matrix()`  634  FIM (lines 578–670) |
+ | `analyze_sobol_sensitivity()`  732  Sobol indices (SALib) |
+ | `analyze_parameter_interactions()`  1338  Pairwise interactions |
+ | `analyze_parameter_robustness()`  1442  Robustness under perturbation |
+ | `run_comprehensive_parameter_sensitivity_analysis()`  1178  Master analysis |
 
 **Dependencies:** `SALib.analyze.sobol`, `SALib.sample.saltelli`
 **n_samples:** 1024 (power-of-2 compliant, lines 676, 1184, 1191)
@@ -874,21 +870,21 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Key functions:**
 
- | Function  Line  Purpose 
+ | Function  Line  Purpose
  | ---  ---  ---  |
- | `detect_gamma_oscillation()`  154  40Hz gamma power during ignition  |
- | `detect_theta_gamma_pac()`  271  Phase-amplitude coupling (MI ≥ 0.012)  |
- | `detect_hep_amplitude()`  497  Heartbeat-evoked potential amplitude  |
- | `detect_p3b_amplitude()`  653  P3b ERP component (300–600ms)  |
- | `tms_double_dissociation_test()`  797  P2.b: dlPFC vs. insula TMS dissociation  |
- | `frequency_specific_power_analysis()`  1017  Band-specific power  |
- | `mne_compatible_analysis()`  1164  MNE-Python EEG pipeline  |
- | `pci_hep_joint_auc_classification()`  1502  P4.a: AUC > 0.80  |
- | `dmn_connectivity_specificity()`  1694  P4.b: DMN↔PCI r > 0.50; DMN↔HEP r < 0.20  |
- | `cold_pressor_pci_response()`  1817  P4.c: PCI increase >10% in MCS  |
- | `baseline_recovery_prediction()`  1984  P4.d: 6-month recovery ΔR² > 0.10  |
- | `comprehensive_validation_framework()`  2437  Orchestrates P1–P4 predictions  |
- | `run_neural_signature_validation()`  2698  Entry point  |
+ | `detect_gamma_oscillation()`  154  40Hz gamma power during ignition |
+ | `detect_theta_gamma_pac()`  271  Phase-amplitude coupling (MI ≥ 0.012) |
+ | `detect_hep_amplitude()`  497  Heartbeat-evoked potential amplitude |
+ | `detect_p3b_amplitude()`  653  P3b ERP component (300–600ms) |
+ | `tms_double_dissociation_test()`  797  P2.b: dlPFC vs. insula TMS dissociation |
+ | `frequency_specific_power_analysis()`  1017  Band-specific power |
+ | `mne_compatible_analysis()`  1164  MNE-Python EEG pipeline |
+ | `pci_hep_joint_auc_classification()`  1502  P4.a: AUC > 0.80 |
+ | `dmn_connectivity_specificity()`  1694  P4.b: DMN↔PCI r > 0.50; DMN↔HEP r < 0.20 |
+ | `cold_pressor_pci_response()`  1817  P4.c: PCI increase >10% in MCS |
+ | `baseline_recovery_prediction()`  1984  P4.d: 6-month recovery ΔR² > 0.10 |
+ | `comprehensive_validation_framework()`  2437  Orchestrates P1–P4 predictions |
+ | `run_neural_signature_validation()`  2698  Entry point |
 
 **Criterion codes implemented:** P1.1, P1.2, P1.3, P2.a, P2.b, P2.c, P3.1, P3.2, P4.1, P4.2, P4.a, P4.b, P4.c, P4.d
 
@@ -897,6 +893,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 ### FP-10 · Bayesian Estimation MCMC / Cross-Species Scaling
 
 **Primary files:**
+
 - `Falsification_BayesianEstimation_MCMC.py` — NUTS/PyMC estimation
 
 - `Falsification_CrossSpeciesScaling_P12.py` — allometric scaling
@@ -905,35 +902,35 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Key functions (MCMC file):**
 
- | Function  Line  Purpose 
+ | Function  Line  Purpose
  | ---  ---  ---  |
- | `apgi_psychometric_function()`  43  σ(β(S−θ)) psychometric  |
- | `define_apgi_priors()`  65  Priors over {θ₀, Πe, Πi, β, α}  |
- | `run_mcmc_bayesian_estimation()`  118  NUTS: 5,000 samples, 4 chains, 1,000 burn-in  |
- | `compute_bayes_factors()`  284  BF₁₀ via ArviZ LOO-CV / WAIC  |
- | `interpret_bayes_factor()`  353  Jeffreys scale interpretation  |
- | `run_alternative_models()`  385  Standard PP / GWT alternatives  |
- | `run_complete_mcmc_analysis()`  492  Master analysis  |
- | `generate_synthetic_data()`  579  Synthetic data for validation  |
+ | `apgi_psychometric_function()`  43  σ(β(S−θ)) psychometric |
+ | `define_apgi_priors()`  65  Priors over {θ₀, Πe, Πi, β, α} |
+ | `run_mcmc_bayesian_estimation()`  118  NUTS: 5,000 samples, 4 chains, 1,000 burn-in |
+ | `compute_bayes_factors()`  284  BF₁₀ via ArviZ LOO-CV / WAIC |
+ | `interpret_bayes_factor()`  353  Jeffreys scale interpretation |
+ | `run_alternative_models()`  385  Standard PP / GWT alternatives |
+ | `run_complete_mcmc_analysis()`  492  Master analysis |
+ | `generate_synthetic_data()`  579  Synthetic data for validation |
 
 **Key classes (Scaling file):**
 
  | Class  Line  Purpose  |
  | ---  ---  ---  |
- | `ScalingLawType`  44  Enum: LINEAR, POWER, EXPONENTIAL  |
- | `SpeciesData`  54  Brain mass, neuron count, τ_S, θ₀ per species  |
- | `APGIParameters`  89  APGI parameter set for scaling  |
- | `CrossSpeciesScalingAnalyzer`  127  Allometric exponent analysis  |
+ | `ScalingLawType`  44  Enum: LINEAR, POWER, EXPONENTIAL |
+ | `SpeciesData`  54  Brain mass, neuron count, τ_S, θ₀ per species |
+ | `APGIParameters`  89  APGI parameter set for scaling |
+ | `CrossSpeciesScalingAnalyzer`  127  Allometric exponent analysis |
 
 **Key functions (Scaling file):**
 
- | Function  Line  Purpose 
+ | Function  Line  Purpose
  | ---  ---  ---  |
- | `apply_cross_species_scaling()`  788  Scale APGI params across species  |
- | `calculate_allometric_exponent()`  802  Fit power law exponent  |
- | `validate_allometric_relationship()`  823  Check exponent within ±2 SD  |
- | `validate_scaling_laws()`  844  Master scaling validation  |
- | `run_cross_species_scaling()`  909  Entry point  |
+ | `apply_cross_species_scaling()`  788  Scale APGI params across species |
+ | `calculate_allometric_exponent()`  802  Fit power law exponent |
+ | `validate_allometric_relationship()`  823  Check exponent within ±2 SD |
+ | `validate_scaling_laws()`  844  Master scaling validation |
+ | `run_cross_species_scaling()`  909  Entry point |
 
 **P12 falsification criterion:** Allometric exponents deviate >2 SD from expected neurobiological scaling → FALSIFIED
 
@@ -952,19 +949,19 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Key functions:**
 
- | Function  Line  Purpose 
+ | Function  Line  Purpose
  | ---  ---  ---  |
- | `run_bayesian_estimation_nuts()`  38  PyMC NUTS (primary)  |
- | `run_bayesian_estimation_mh()`  138  MH sampler (fallback)  |
- | `metropolis_hastings_sampling()`  173  MH implementation  |
- | `compute_posterior_distributions()`  226  Posterior summaries  |
- | `calculate_bayesian_factor()`  247  BF computation  |
- | `test_parameter_identifiability()`  271  Structural identifiability check  |
- | `map_bayesian_factor_to_predictions()`  379  BF → named prediction  |
- | `run_bayesian_estimation_hierarchical()`  485  Hierarchical Bayes  |
- | `check_posterior_calibration()`  657  Posterior calibration  |
- | `get_falsification_criteria()`  906  Criteria dict  |
- | `check_falsification()`  968  Gate function  |
+ | `run_bayesian_estimation_nuts()`  38  PyMC NUTS (primary)|
+ | `run_bayesian_estimation_mh()`  138  MH sampler (fallback)|
+ | `metropolis_hastings_sampling()`  173  MH implementation|
+ | `compute_posterior_distributions()`  226  Posterior summaries|
+ | `calculate_bayesian_factor()`  247  BF computation|
+ | `test_parameter_identifiability()`  271  Structural identifiability check|
+ | `map_bayesian_factor_to_predictions()`  379  BF → named prediction|
+ | `run_bayesian_estimation_hierarchical()`  485  Hierarchical Bayes|
+ | `check_posterior_calibration()`  657  Posterior calibration|
+ | `get_falsification_criteria()`  906  Criteria dict|
+ | `check_falsification()`  968  Gate function|
 
 ---
 
@@ -979,7 +976,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Key functions (Aggregator):**
 
- | Function  Line  Purpose 
+ | Function  Line  Purpose
  | ---  ---  ---  |
  | `aggregate_prediction_results()`  46  Loads JSON from all protocols, tallies pass/fail  |
  | `check_framework_falsification_condition_a()`  63  All 14 predictions fail → FALSIFIED  |
@@ -1026,20 +1023,20 @@ From `APGI_Falsification_Aggregator.py` (`PREDICTION_TO_PROTOCOL` dict) and `NAM
 
  | Prediction ID  Description  Routed To  |
  | ---  ---  ---  |
- | P1.1  Interoceptive precision modulates detection threshold (d=0.40–0.60)  `Validation_Protocol_8` → VP-8 
- | P1.2  Arousal amplifies the Πⁱ–threshold relationship  `Validation_Protocol_8` → VP-8 
- | P1.3  High-IA individuals show stronger arousal benefit  `Validation_Protocol_8` → VP-8 
- | P2.a  dlPFC TMS shifts threshold >0.1 log units  `Validation_Protocol_10` → VP-10 
- | P2.b  Insula TMS reduces HEP ~30% AND PCI ~20% (double dissociation)  `Validation_Protocol_10` → VP-10 
- | P2.c  High-IA × insula TMS interaction  `Validation_Protocol_10` → VP-10 
- | P3.conv  APGI converges in 50–80 trials (beats baselines)  `Validation_Protocol_3` → VP-3 
- | P3.bic  APGI BIC lower than StandardPP and GWTonly  `Validation_Protocol_3` → VP-3 
- | P4.a  PCI+HEP joint AUC > 0.80 for DoC classification  `Falsification-Protocol-9` → FP-9 
- | P4.b  DMN↔PCI r > 0.50; DMN↔HEP r < 0.20  `Falsification-Protocol-9` → FP-9 
- | P4.c  Cold pressor increases PCI >10% in MCS, not VS  `Falsification-Protocol-9` → FP-9 
- | P4.d  Baseline PCI+HEP predicts 6-month recovery ΔR² > 0.10  `Falsification-Protocol-9` → FP-9 
- | P5.a  vmPFC–SCR anticipatory correlation r > 0.40  `Validation_Protocol_10` → VP-10 
- | P5.b  vmPFC uncorrelated with posterior insula (r < 0.20)  `Validation_Protocol_10` → VP-10 
+ | P1.1  Interoceptive precision modulates detection threshold (d=0.40–0.60)  `Validation_Protocol_8` → VP-8
+ | P1.2  Arousal amplifies the Πⁱ–threshold relationship  `Validation_Protocol_8` → VP-8
+ | P1.3  High-IA individuals show stronger arousal benefit  `Validation_Protocol_8` → VP-8
+ | P2.a  dlPFC TMS shifts threshold >0.1 log units  `Validation_Protocol_10` → VP-10
+ | P2.b  Insula TMS reduces HEP ~30% AND PCI ~20% (double dissociation)  `Validation_Protocol_10` → VP-10
+ | P2.c  High-IA × insula TMS interaction  `Validation_Protocol_10` → VP-10
+ | P3.conv  APGI converges in 50–80 trials (beats baselines)  `Validation_Protocol_3` → VP-3
+ | P3.bic  APGI BIC lower than StandardPP and GWTonly  `Validation_Protocol_3` → VP-3
+ | P4.a  PCI+HEP joint AUC > 0.80 for DoC classification  `Falsification-Protocol-9` → FP-9
+ | P4.b  DMN↔PCI r > 0.50; DMN↔HEP r < 0.20  `Falsification-Protocol-9` → FP-9
+ | P4.c  Cold pressor increases PCI >10% in MCS, not VS  `Falsification-Protocol-9` → FP-9
+ | P4.d  Baseline PCI+HEP predicts 6-month recovery ΔR² > 0.10  `Falsification-Protocol-9` → FP-9
+ | P5.a  vmPFC–SCR anticipatory correlation r > 0.40  `Validation_Protocol_10` → VP-10
+ | P5.b  vmPFC uncorrelated with posterior insula (r < 0.20)  `Validation_Protocol_10` → VP-10
 
 ---
 
@@ -1051,78 +1048,78 @@ The table below shows which Python files implement each criterion family and wha
 
  | Code  Threshold  Test  Files  |
  | ---  ---  ---  ---  |
- | F1.1  APGI advantage <10% OR d<0.35 → FALSIFIED  Independent t-test  FP-1 (full), VP-1, VP-6, VP-8, VP-9, VP-11, VP-12 
- | F1.2  <3 clusters OR silhouette<0.30 → FALSIFIED  K-means + silhouette + ANOVA  Same 
- | F1.3  Difference <15% OR η²<0.08 → FALSIFIED  Repeated-measures ANOVA  Same 
- | F1.4  Adaptation <12% OR τ<5s or >150s → FALSIFIED  Exponential decay fit  Same 
- | F1.5  MI<0.008 OR increase<15% → FALSIFIED  Permutation test  Same 
- | F1.6  Active α>1.4 OR low α<1.3 → FALSIFIED  Paired t-test + spectral fit  Same 
+ | F1.1  APGI advantage <10% OR d<0.35 → FALSIFIED  Independent t-test  FP-1 (full), VP-1, VP-6, VP-8, VP-9, VP-11, VP-12
+ | F1.2  <3 clusters OR silhouette<0.30 → FALSIFIED  K-means + silhouette + ANOVA  Same
+ | F1.3  Difference <15% OR η²<0.08 → FALSIFIED  Repeated-measures ANOVA  Same
+ | F1.4  Adaptation <12% OR τ<5s or >150s → FALSIFIED  Exponential decay fit  Same
+ | F1.5  MI<0.008 OR increase<15% → FALSIFIED  Permutation test  Same
+ | F1.6  Active α>1.4 OR low α<1.3 → FALSIFIED  Paired t-test + spectral fit  Same
 
 ### F2.x — Somatic Marker / Bayesian
 
  | Code  Threshold  Test  Files  |
  | ---  ---  ---  ---  |
- | F2.1  LOO worse than competitors by >10  WAIC/LOO-CV  VP-1 (BayesianComparison) 
- | F2.2  Interoceptive precision CI includes zero  HDI credible interval  VP-2, VP-11 
- | F2.3  RT advantage <35ms  Paired t-test  VP-1 
- | F2.4  Confidence effect <30%  Paired t-test  VP-1 
- | F2.5  BF APGI vs GWT < 3 (UPDATED: WAIC/LOO primary)  ArviZ LOO-CV  VP-1, VP-11 
+ | F2.1  LOO worse than competitors by >10  WAIC/LOO-CV  VP-1 (BayesianComparison)
+ | F2.2  Interoceptive precision CI includes zero  HDI credible interval  VP-2, VP-11
+ | F2.3  RT advantage <35ms  Paired t-test  VP-1
+ | F2.4  Confidence effect <30%  Paired t-test  VP-1
+ | F2.5  BF APGI vs GWT < 3 (UPDATED: WAIC/LOO primary)  ArviZ LOO-CV  VP-1, VP-11
 
 ### F3.x — Performance Advantage
 
  | Code  Threshold  Test  Files  |
  | ---  ---  ---  ---  |
- | F3.1  Advantage <18% OR d<0.60 → FALSIFIED  Independent t-test  FP-1, VP-4, VP-7, VP-12 
- | F3.2  Advantage <28% OR η²<0.20 → FALSIFIED  Two-way mixed ANOVA  Same 
- | F3.3  Reduction <25% OR d<0.75 → FALSIFIED  Paired t-test  Same 
- | F3.4  Reduction <20% OR d<0.65 → FALSIFIED  Paired t-test  Same 
- | F3.5  Retention <85%, gain <30% → FALSIFIED  TOST + efficiency t-test  Same 
- | F3.6  Time >200 trials, HR<1.45 → FALSIFIED  Log-rank test  Same 
+ | F3.1  Advantage <18% OR d<0.60 → FALSIFIED  Independent t-test  FP-1, VP-4, VP-7, VP-12
+ | F3.2  Advantage <28% OR η²<0.20 → FALSIFIED  Two-way mixed ANOVA  Same
+ | F3.3  Reduction <25% OR d<0.75 → FALSIFIED  Paired t-test  Same
+ | F3.4  Reduction <20% OR d<0.65 → FALSIFIED  Paired t-test  Same
+ | F3.5  Retention <85%, gain <30% → FALSIFIED  TOST + efficiency t-test  Same
+ | F3.6  Time >200 trials, HR<1.45 → FALSIFIED  Log-rank test  Same
 
 ### F4.x — Phase Transition
 
  | Code  Threshold  Test  Files  |
  | ---  ---  ---  ---  |
- | F4.1  Bandwidth >40 bits/s → FALSIFIED  Curve fitting + bootstrap  VP-4 (Level2 file) 
- | F4.2–F4.4  Phase transition metrics  Transfer entropy, MI, Φ  VP-4 (Level2 file) 
- | F4.5  Hurst H ≤ 0.5 → FALSIFIED  DFA  FP-4, VP-4 
+ | F4.1  Bandwidth >40 bits/s → FALSIFIED  Curve fitting + bootstrap  VP-4 (Level2 file)
+ | F4.2–F4.4  Phase transition metrics  Transfer entropy, MI, Φ  VP-4 (Level2 file)
+ | F4.5  Hurst H ≤ 0.5 → FALSIFIED  DFA  FP-4, VP-4
 
 ### F5.x — Evolutionary Emergence
 
  | Code  Threshold  Test  Files  |
  | ---  ---  ---  ---  |
- | F5.1  <75% develop multi-timescale OR α<4.0 OR sep<3× → FALSIFIED  Binomial test  FP-1, FP-2, FP-5, VP-3 
- | F5.2  Mean r<0.5 → FALSIFIED  Correlation  Same 
- | F5.3  Gain ratio <0.8 → FALSIFIED  t-test  Same 
- | F5.4  <75% multi-timescale OR sep<3× → FALSIFIED  Binomial test  Same 
- | F5.5  Variance <70% OR loading <0.60 → FALSIFIED  PCA + scree  FP-1, FP-5 
- | F5.6  Difference <40% OR d<0.85 → FALSIFIED  t-test  Same 
+ | F5.1  <75% develop multi-timescale OR α<4.0 OR sep<3× → FALSIFIED  Binomial test  FP-1, FP-2, FP-5, VP-3
+ | F5.2  Mean r<0.5 → FALSIFIED  Correlation  Same
+ | F5.3  Gain ratio <0.8 → FALSIFIED  t-test  Same
+ | F5.4  <75% multi-timescale OR sep<3× → FALSIFIED  Binomial test  Same
+ | F5.5  Variance <70% OR loading <0.60 → FALSIFIED  PCA + scree  FP-1, FP-5
+ | F5.6  Difference <40% OR d<0.85 → FALSIFIED  t-test  Same
 
 ### F6.x — Network / Liquid Dynamics
 
  | Code  Threshold  Test  Files  |
  | ---  ---  ---  ---  |
- | F6.1  LTCN transition >50ms → FALSIFIED  Mann-Whitney U  FP-6, VP-6, VP-9 
- | F6.2  Window <200ms OR ratio <4× OR R²<0.85 → FALSIFIED  Wilcoxon signed-rank  FP-6, VP-6, VP-9, VP-12 
- | F6.3  Sparsity reduction <30% → FALSIFIED  Connectivity comparison  FP-11 (LiquidNetwork) 
- | F6.5  Hysteresis outside [0.08, 0.25] → FALSIFIED  Phase portrait sweep  FP-1, FP-5, FP-11 
+ | F6.1  LTCN transition >50ms → FALSIFIED  Mann-Whitney U  FP-6, VP-6, VP-9
+ | F6.2  Window <200ms OR ratio <4× OR R²<0.85 → FALSIFIED  Wilcoxon signed-rank  FP-6, VP-6, VP-9, VP-12
+ | F6.3  Sparsity reduction <30% → FALSIFIED  Connectivity comparison  FP-11 (LiquidNetwork)
+ | F6.5  Hysteresis outside [0.08, 0.25] → FALSIFIED  Phase portrait sweep  FP-1, FP-5, FP-11
 
 ### V11.x — Cultural Neuroscience / Individual Differences
 
- | Code  Threshold  Test  File 
+ | Code  Threshold  Test  File
  | ------  -----------  ------  ------  |
- | V11.1  Cultural group θ₀ difference  BF comparison  VP-11 
- | V11.2  Πⁱ credible interval excludes 0  HDI  VP-11 
- | V11.3  β and α cross-cultural universality  HDI comparison  VP-11 
- | V11.4  R̂ ≤ 1.01 for all parameters  Gelman-Rubin  VP-11 
- | V11.5  Posterior predictive check p > 0.05  PPC  VP-11 
+ | V11.1  Cultural group θ₀ difference  BF comparison  VP-11
+ | V11.2  Πⁱ credible interval excludes 0  HDI  VP-11
+ | V11.3  β and α cross-cultural universality  HDI comparison  VP-11
+ | V11.4  R̂ ≤ 1.01 for all parameters  Gelman-Rubin  VP-11
+ | V11.5  Posterior predictive check p > 0.05  PPC  VP-11
 
 ### V12.x — Clinical / Cross-Species
 
- | Code  Threshold  Test  File 
+ | Code  Threshold  Test  File
  | ------  -----------  ------  ------  |
- | V12.1  P3b reduction ≥80%, ignition ≥70%  Paired t-test + permutation  VP-1, VP-12 
- | V12.2  Cross-species r ≥ 0.60  Pearson correlation  VP-12 
+ | V12.1  P3b reduction ≥80%, ignition ≥70%  Paired t-test + permutation  VP-1, VP-12
+ | V12.2  Cross-species r ≥ 0.60  Pearson correlation  VP-12
 
 ---
 
@@ -1132,13 +1129,13 @@ The table below shows which Python files implement each criterion family and wha
 
  | Module  Used by  Purpose  |
  | ---  ---  ---  |
- | `utils.constants.LEVEL_TIMESCALES`  FP-1, FP-3  τ₁/τ₂/τ₃ time constants 
- | `utils.constants.DIM_CONSTANTS`  FP-1, FP-5, VP-10  Dimension constants (EXTERO_DIM etc.) 
- | `utils.config_manager.ConfigManager`  FP-5  Configuration management 
- | `utils.falsification_thresholds`  FP-6 (imports 8 constants)  Centralised threshold values 
- | `utils.shared_falsification.check_F5_family`  FP-2  Shared F5.1–F5.6 implementation 
- | `utils.statistical_tests`  FP-4  Power analysis functions 
- | `utils.logging_config.apgi_logger`  Master_Validation.py  Structured logging 
+ | `utils.constants.LEVEL_TIMESCALES`  FP-1, FP-3  τ₁/τ₂/τ₃ time constants
+ | `utils.constants.DIM_CONSTANTS`  FP-1, FP-5, VP-10  Dimension constants (EXTERO_DIM etc.)
+ | `utils.config_manager.ConfigManager`  FP-5  Configuration management
+ | `utils.falsification_thresholds`  FP-6 (imports 8 constants)  Centralised threshold values
+ | `utils.shared_falsification.check_F5_family`  FP-2  Shared F5.1–F5.6 implementation
+ | `utils.statistical_tests`  FP-4  Power analysis functions
+ | `utils.logging_config.apgi_logger`  Master_Validation.py  Structured logging
 
 ### 7.2 GUI runner (not a protocol)
 
@@ -1150,18 +1147,18 @@ The table below shows which Python files implement each criterion family and wha
 
  | GUI Name  File  |
  | ---  ---  |
- | Protocol 1: APGI Agent  `Falsification_ActiveInferenceAgents_F1F2.py` 
- | Protocol 2: Iowa Gambling  `Falsification_AgentComparison_ConvergenceBenchmark.py` 
- | Protocol 3: Agent Comparison  `Falsification_FrameworkLevel_MultiProtocol.py` 
- | Protocol 4: Phase Transition  `Falsification_InformationTheoretic_PhaseTransition.py` 
- | Protocol 5: Evolutionary  `Falsification_EvolutionaryPlausibility_Standard6.py` 
- | Protocol 6: Network Comparison  `Falsification_NeuralNetwork_EnergyBenchmark.py` 
- | Protocol 7: Mathematical Consistency  `Falsification_MathematicalConsistency_Equations.py` 
- | Protocol 8: Parameter Sensitivity  `Falsification_ParameterSensitivity_Identifiability.py` 
- | Protocol 9: Neural Signatures  `Falsification_NeuralSignatures_EEG_P3b_HEP.py` 
- | Protocol 10: Cross-Species Scaling  `Falsification_CrossSpeciesScaling_P12.py` 
- | Protocol 11: Bayesian Estimation  `Falsification_BayesianEstimation_ParameterRecovery.py` 
- | Protocol 12: Liquid Network Dynamics  `Falsification_LiquidNetworkDynamics_EchoState.py` 
+ | Protocol 1: APGI Agent  `Falsification_ActiveInferenceAgents_F1F2.py`
+ | Protocol 2: Iowa Gambling  `Falsification_AgentComparison_ConvergenceBenchmark.py`
+ | Protocol 3: Agent Comparison  `Falsification_FrameworkLevel_MultiProtocol.py`
+ | Protocol 4: Phase Transition  `Falsification_InformationTheoretic_PhaseTransition.py`
+ | Protocol 5: Evolutionary  `Falsification_EvolutionaryPlausibility_Standard6.py`
+ | Protocol 6: Network Comparison  `Falsification_NeuralNetwork_EnergyBenchmark.py`
+ | Protocol 7: Mathematical Consistency  `Falsification_MathematicalConsistency_Equations.py`
+ | Protocol 8: Parameter Sensitivity  `Falsification_ParameterSensitivity_Identifiability.py`
+ | Protocol 9: Neural Signatures  `Falsification_NeuralSignatures_EEG_P3b_HEP.py`
+ | Protocol 10: Cross-Species Scaling  `Falsification_CrossSpeciesScaling_P12.py`
+ | Protocol 11: Bayesian Estimation  `Falsification_BayesianEstimation_ParameterRecovery.py`
+ | Protocol 12: Liquid Network Dynamics  `Falsification_LiquidNetworkDynamics_EchoState.py`
 
 ### 7.3 Protocol File Mapping (Direct GUI Implementation)
 
@@ -1169,18 +1166,18 @@ All 12 falsification protocols work identically: the GUI maps directly to full i
 
  | Protocol  GUI Name  Full Implementation File  Domain  |
  | ---  ---  ---  ---  |
- | FP-1  Protocol 1: APGI Agent  `Falsification_ActiveInferenceAgents_F1F2.py`  Active inference agents 
- | FP-2  Protocol 2: Iowa Gambling  `Falsification_AgentComparison_ConvergenceBenchmark.py`  Iowa Gambling Task / convergence 
- | FP-3  Protocol 3: Agent Comparison  `Falsification_FrameworkLevel_MultiProtocol.py`  Neural network analysis 
- | FP-4  Protocol 4: Phase Transition  `Falsification_InformationTheoretic_PhaseTransition.py`  Information-theoretic 
- | FP-5  Protocol 5: Evolutionary  `Falsification_EvolutionaryPlausibility_Standard6.py`  Evolutionary plausibility 
- | FP-6  Protocol 6: Network Comparison  `Falsification_NeuralNetwork_EnergyBenchmark.py`  APGI-inspired network 
- | FP-7  Protocol 7: Mathematical Consistency  `Falsification_MathematicalConsistency_Equations.py`  Equation verification 
- | FP-8  Protocol 8: Parameter Sensitivity  `Falsification_ParameterSensitivity_Identifiability.py`  Sensitivity analysis 
- | FP-9  Protocol 9: Neural Signatures  `Falsification_NeuralSignatures_EEG_P3b_HEP.py`  EEG / P3b / HEP signatures 
- | FP-10  Protocol 10: Cross-Species Scaling  `Falsification_CrossSpeciesScaling_P12.py`  Allometric scaling 
- | FP-11  Protocol 11: Bayesian Estimation  `Falsification_BayesianEstimation_ParameterRecovery.py`  Parameter recovery 
- | FP-12  Protocol 12: Liquid Network Dynamics  `Falsification_LiquidNetworkDynamics_EchoState.py`  Echo-state networks 
+ | FP-1  Protocol 1: APGI Agent  `Falsification_ActiveInferenceAgents_F1F2.py`  Active inference agents
+ | FP-2  Protocol 2: Iowa Gambling  `Falsification_AgentComparison_ConvergenceBenchmark.py`  Iowa Gambling Task / convergence
+ | FP-3  Protocol 3: Agent Comparison  `Falsification_FrameworkLevel_MultiProtocol.py`  Neural network analysis
+ | FP-4  Protocol 4: Phase Transition  `Falsification_InformationTheoretic_PhaseTransition.py`  Information-theoretic
+ | FP-5  Protocol 5: Evolutionary  `Falsification_EvolutionaryPlausibility_Standard6.py`  Evolutionary plausibility
+ | FP-6  Protocol 6: Network Comparison  `Falsification_NeuralNetwork_EnergyBenchmark.py`  APGI-inspired network
+ | FP-7  Protocol 7: Mathematical Consistency  `Falsification_MathematicalConsistency_Equations.py`  Equation verification
+ | FP-8  Protocol 8: Parameter Sensitivity  `Falsification_ParameterSensitivity_Identifiability.py`  Sensitivity analysis
+ | FP-9  Protocol 9: Neural Signatures  `Falsification_NeuralSignatures_EEG_P3b_HEP.py`  EEG / P3b / HEP signatures
+ | FP-10  Protocol 10: Cross-Species Scaling  `Falsification_CrossSpeciesScaling_P12.py`  Allometric scaling
+ | FP-11  Protocol 11: Bayesian Estimation  `Falsification_BayesianEstimation_ParameterRecovery.py`  Parameter recovery
+ | FP-12  Protocol 12: Liquid Network Dynamics  `Falsification_LiquidNetworkDynamics_EchoState.py`  Echo-state networks
 
 **Note:** Six placeholder files (`Falsification-Protocol-1.py` through `-6.py`) exist but are not used by the GUI. They contain only stub implementations with random data generation and can be safely deleted.
 
@@ -1192,17 +1189,17 @@ All 12 falsification protocols work identically: the GUI maps directly to full i
 
  | Gap  Description  Priority  |
  | ---  ---  ---  |
- | **Paper Protocol 5 (fMRI Anticipation/Experience)**  No Python file exists. `EvolutionaryEmergence_AnalyticalValidation.py` currently covers VP-5's slot but is an evolutionary simulation, not the fMRI anticipation paradigm. Must create.  HIGH 
- | **Master_Validation.py protocol name mismatch**  Registers `Validation_Protocol_1.py` but actual file is `SyntheticEEG_MLClassification.py`. File explicitly notes it is NOT Protocol 1. Symlink or rename required for orchestrator to load correctly.  MEDIUM 
- | **FP-10 split across two files**  `Falsification_BayesianEstimation_MCMC.py` and `Falsification_CrossSpeciesScaling_P12.py` both claim FP-10. GUI maps Protocol 10 only to `Falsification_CrossSpeciesScaling_P12.py`.  MEDIUM 
- | **VP-11 split across two files**  `Validation_Protocol_11.py` and `QuantitativeModelFits_SpikingLNN_Priority3.py` both implement VP-11. Master_Validation.py registers only `Validation_Protocol_11.py`.  LOW 
- | **VP-4 split across two files**  `InformationTheoretic_PhaseTransition_Level2.py` (Level 2, F-criteria) and `Validation_Protocol_P4_Epistemic.py` (P5–P12 wrapper) both serve VP-4. Master registers only the epistemic file.  LOW 
+ | **Paper Protocol 5 (fMRI Anticipation/Experience)**  No Python file exists. `EvolutionaryEmergence_AnalyticalValidation.py` currently covers VP-5's slot but is an evolutionary simulation, not the fMRI anticipation paradigm. Must create.  HIGH
+ | **Master_Validation.py protocol name mismatch**  Registers `Validation_Protocol_1.py` but actual file is `SyntheticEEG_MLClassification.py`. File explicitly notes it is NOT Protocol 1. Symlink or rename required for orchestrator to load correctly.  MEDIUM
+ | **FP-10 split across two files**  `Falsification_BayesianEstimation_MCMC.py` and `Falsification_CrossSpeciesScaling_P12.py` both claim FP-10. GUI maps Protocol 10 only to `Falsification_CrossSpeciesScaling_P12.py`.  MEDIUM
+ | **VP-11 split across two files**  `Validation_Protocol_11.py` and `QuantitativeModelFits_SpikingLNN_Priority3.py` both implement VP-11. Master_Validation.py registers only `Validation_Protocol_11.py`.  LOW
+ | **VP-4 split across two files**  `InformationTheoretic_PhaseTransition_Level2.py` (Level 2, F-criteria) and `Validation_Protocol_P4_Epistemic.py` (P5–P12 wrapper) both serve VP-4. Master registers only the epistemic file.  LOW
 
 ### 8.2 Filename conflicts
 
  | Conflict  Validation folder  Falsification folder  Resolution  |
  | ---  ---  ---  ---  |
- | `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py`  VP-10 entry point  FP-2 causal engine  Both exist. Validation copy has `APGIValidationProtocol10` class; Falsification copy adds `ColdPressorTest` and `MNEDataInterface`. 
+ | `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py`  VP-10 entry point  FP-2 causal engine  Both exist. Validation copy has `APGIValidationProtocol10` class; Falsification copy adds `ColdPressorTest` and `MNEDataInterface`.
 
 ### 8.3 Recent critical fixes (confirmed in source files)
 

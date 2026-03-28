@@ -11,6 +11,7 @@ import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, scrolledtext, ttk
+from typing import List, Callable, Any
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -1023,7 +1024,7 @@ class ProtocolRunnerGUI:
         """Configure tab order for consistent keyboard navigation."""
         # This will be called after UI setup to configure tab navigation
         # Store widgets that will be created during setup
-        self._tab_widgets = []
+        self._tab_widgets: List[tk.Widget] = []  # type: ignore
 
     def _finalize_tab_order(self) -> None:
         """Finalize tab order after all widgets are created."""
@@ -1035,13 +1036,22 @@ class ProtocolRunnerGUI:
                     prev_widget = self._tab_widgets[(i - 1) % len(self._tab_widgets)]
 
                     # Bind Tab to move to next widget
-                    widget.bind(
-                        "<Tab>", lambda e, nw=next_widget: self._focus_widget(nw)
-                    )
+                    def make_tab_handler(nw: tk.Widget) -> Callable[[Any], None]:
+                        def handler(e: Any) -> None:
+                            self._focus_widget(nw)
+
+                        return handler
+
+                    widget.bind("<Tab>", make_tab_handler(next_widget))
+
                     # Bind Shift+Tab to move to previous widget
-                    widget.bind(
-                        "<Shift-Tab>", lambda e, pw=prev_widget: self._focus_widget(pw)
-                    )
+                    def make_shift_tab_handler(pw: tk.Widget) -> Callable[[Any], None]:
+                        def handler(e: Any) -> None:
+                            self._focus_widget(pw)
+
+                        return handler
+
+                    widget.bind("<Shift-Tab>", make_shift_tab_handler(prev_widget))
 
     def _focus_widget(self, widget: tk.Widget) -> None:
         """Focus on a specific widget and handle different widget types."""
@@ -1164,19 +1174,24 @@ class ProtocolRunnerGUI:
                         # Don't add invalid params to validated_params
 
                 if protocol_info["class"] == "NetworkComparisonExperiment":
-                    self._handle_network_comparison(cls, validated_params)
+                    results = self._handle_network_comparison(cls, validated_params)
                 elif protocol_info["class"] == "APGIActiveInferenceAgent":
-                    self._handle_apgi_agent(cls, module, validated_params)
+                    results = self._handle_apgi_agent(cls, module, validated_params)
                 elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
-                    self._handle_iowa_gambling(cls, module, validated_params)
+                    results = self._handle_iowa_gambling(cls, module, validated_params)
                 elif hasattr(cls, "run_full_experiment"):
-                    self._handle_run_full_experiment(cls, validated_params)
+                    results = self._handle_run_full_experiment(cls, validated_params)
                 elif hasattr(cls, "run_phase_transition_analysis"):
-                    self._handle_phase_transition(cls, module, validated_params)
+                    results = self._handle_phase_transition(
+                        cls, module, validated_params
+                    )
                 elif hasattr(cls, "run_evolution"):
-                    self._handle_evolution(cls, validated_params)
+                    results = self._handle_evolution(cls, validated_params)
                 else:
-                    self._handle_default(cls, validated_params)
+                    results = self._handle_default(cls, validated_params)
+
+                # Save results to file
+                self._save_results(results, protocol_info["file"])
 
                 self.log_message("=== Protocol completed successfully ===")
                 self.set_status("Ready")
@@ -1225,6 +1240,7 @@ class ProtocolRunnerGUI:
         result = instance.run_full_experiment()
         self.log_message("Network Comparison Experiment completed")
         self.log_message(f"Results: {type(result)}")
+        return {"result": result, "type": "NetworkComparisonExperiment"}
 
     def _handle_apgi_agent(self, cls, module, params):
         """Run the full falsification protocol for APGI agent with configured parameters."""
@@ -1235,6 +1251,7 @@ class ProtocolRunnerGUI:
                 # Run the full protocol
                 result = run_func()
                 self.log_message(f"APGI Agent falsification completed: {result}")
+                return {"result": result, "type": "APGIActiveInferenceAgent"}
             else:
                 # Fallback to old behavior with configured parameters
                 config = {
@@ -1255,6 +1272,10 @@ class ProtocolRunnerGUI:
                 _ = cls(config)
                 self.log_message("APGI Agent created successfully (fallback)")
                 self.log_message(f"Agent config: {config}")
+                return {
+                    "result": {"config": config},
+                    "type": "APGIActiveInferenceAgent",
+                }
         except Exception as e:
             self.log_message(f"Error in APGI agent protocol: {str(e)}")
             raise
@@ -1375,6 +1396,42 @@ class ProtocolRunnerGUI:
             )
 
         self.log_message(f"Created {cls.__name__} instance")
+
+    def _save_results(self, results, protocol_file):
+        """Save validation results to a JSON file."""
+        try:
+            import json
+            import uuid
+            from datetime import datetime
+
+            # Create validation results directory if it doesn't exist
+            project_root = Path(__file__).parent.parent
+            validation_dir = project_root / "validation_results"
+            validation_dir.mkdir(parents=True, exist_ok=True)
+
+            # Generate unique filename
+            unique_id = str(uuid.uuid4())[:8]
+            filename = f"validation_results_{unique_id}.json"
+            filepath = validation_dir / filename
+
+            # Add metadata to results
+            results_with_metadata = {
+                "metadata": {
+                    "protocol_file": protocol_file,
+                    "timestamp": datetime.now().isoformat(),
+                    "id": unique_id,
+                },
+                "results": results,
+            }
+
+            # Save to file
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(results_with_metadata, f, indent=2, default=str)
+
+            self.log_message(f"Results saved to {filepath}")
+
+        except Exception as e:
+            self.log_message(f"Error saving results: {e}")
 
     def _validate_spinbox_float(self, value, min_val, max_val):
         """Validate float spinbox input."""

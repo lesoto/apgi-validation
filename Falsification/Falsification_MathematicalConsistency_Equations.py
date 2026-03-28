@@ -3,7 +3,7 @@ Falsification Protocol 7: Mathematical Consistency Checks
 =======================================================
 
 This protocol implements mathematical consistency checks for APGI equations.
-Per Step 1.4 of TODO.md - Implement missing FP-7 mathematical consistency with sympy.
+Implement FP-7 mathematical consistency with sympy.
 
 Four Canonical APGI Equations Tested:
 -------------------------------------
@@ -760,7 +760,7 @@ def verify_threshold_stability() -> Dict[str, Any]:
 
         # Simulate threshold dynamics for different conditions
         def simulate_threshold_dynamics(
-            theta_init, C_met, V_info, eta, tau, t_max=10.0, dt=0.01
+            theta_init, C_met, V_info, eta, tau, theta_0_val, t_max=10.0, dt=0.01
         ):
             """Simulate threshold dynamics numerically"""
             t_points = np.arange(0, t_max, dt)
@@ -768,7 +768,10 @@ def verify_threshold_stability() -> Dict[str, Any]:
 
             for t in t_points[1:]:
                 theta_current = theta_trajectory[-1]
-                dtheta = ((theta_0 - theta_current) / tau + eta * (C_met - V_info)) * dt
+                # Use numerical theta_0_val instead of symbolic theta_0
+                dtheta = (
+                    (theta_0_val - theta_current) / tau + eta * (C_met - V_info)
+                ) * dt
                 theta_new = theta_current + dtheta
                 theta_trajectory.append(theta_new)
 
@@ -789,6 +792,7 @@ def verify_threshold_stability() -> Dict[str, Any]:
                 V_info=values["V_info"],
                 eta=0.1,
                 tau=2.0,
+                theta_0_val=0.5,
             )
 
             final_theta = theta_traj[-1]
@@ -1061,7 +1065,7 @@ def verify_paper_predictions() -> Dict[str, Any]:
         {
             "name": "Prediction 8: Effective precision bounded by baseline",
             "equation": "Πⁱ_eff ∈ [Πⁱ_baseline, (1+β)Πⁱ_baseline]",
-            "test_function": "test_Pi_i_eff_bounds",
+            "test_function": "test_Pi_i_eff_monotonicity",
             "expected_sign": "bounded",
         },
         {
@@ -1277,33 +1281,181 @@ def verify_paper_predictions() -> Dict[str, Any]:
 
 def verify_equation_consistency(equations: List[str]) -> Dict[str, bool]:
     """
-    Verify mathematical consistency of equations.
-    Enhanced per Step 1.4 with actual symbolic parsing.
+    Verify mathematical consistency of the four canonical APGI equations.
+
+    Rather than calling sp.sympify() on natural-language ODE strings (which
+    cannot parse d/dt or |·| notation), each equation is built explicitly in
+    sympy and validated for:
+      - Well-formedness (no exceptions during construction)
+      - Non-constancy (depends on at least one free symbol)
+      - Key mathematical property unique to each equation
+
+    The four canonical equations:
+      (a) dS/dt = -S/τ_S + Πᵉ·|εᵉ| + β·Πⁱ·|εⁱ|   — surprise ODE
+      (b) P = σ(α(S − θ))                             — ignition sigmoid
+      (c) Πⁱ_eff = Πⁱ_baseline · exp(β·M)             — precision update
+      (d) dθ/dt = (θ₀ − θ)/τ_θ + η_θ(C − V)         — threshold dynamics
     """
     results = {}
 
     if not HAS_SYMPY:
         logger.warning("sympy not available - using basic equation consistency check")
         for i, equation in enumerate(equations):
-            try:
-                results[f"equation_{i}"] = len(equation) > 0
-            except Exception:
-                results[f"equation_{i}"] = False
+            results[f"equation_{i}"] = len(equation) > 0
         return results
 
     try:
-        for i, equation in enumerate(equations):
-            try:
-                # Parse equation symbolically
-                # This is a simplified check - in practice would parse full equation
-                expr = sp.sympify(equation)
-                results[f"equation_{i}"] = expr is not None
-            except Exception as e:
-                logger.error(f"Error parsing equation {i}: {e}")
-                results[f"equation_{i}"] = False
+        checker = MathematicalConsistencyChecker()
+        sym = checker.equation_symbols
+
+        # ------------------------------------------------------------------ #
+        # Equation 0: Surprise ODE  dS/dt = -S/τ_S + Πᵉ|εᵉ| + β·Πⁱ|εⁱ|    #
+        # ------------------------------------------------------------------ #
+        try:
+            S, tau_S = sym["S"], sym["tau_S"]
+            Pi_e, eps_e = sym["Pi_e"], sym["eps_e"]
+            Pi_i, eps_i = sym["Pi_i"], sym["eps_i"]
+            beta = sym["beta"]
+
+            dS_dt = -S / tau_S + Pi_e * Abs(eps_e) + beta * Pi_i * Abs(eps_i)
+
+            # Consistency checks
+            has_free_symbols = len(dS_dt.free_symbols) > 0
+            # ∂(dS/dt)/∂S = -1/τ_S < 0  (decay term, verified numerically)
+            deriv_S = sp.diff(dS_dt, S).subs({tau_S: 1.0})
+            decay_negative = float(deriv_S) < 0
+            # ∂(dS/dt)/∂Πᵉ = |εᵉ| > 0
+            deriv_Pi_e = sp.diff(dS_dt, Pi_e).subs({eps_e: 0.5})
+            excitatory_positive = float(deriv_Pi_e) > 0
+
+            results["equation_0"] = (
+                has_free_symbols and decay_negative and excitatory_positive
+            )
+            results["equation_0_details"] = {
+                "form": str(dS_dt),
+                "has_free_symbols": has_free_symbols,
+                "decay_term_negative": decay_negative,
+                "excitatory_term_positive": excitatory_positive,
+            }
+        except Exception as e:
+            logger.error(f"Error verifying equation 0 (surprise ODE): {e}")
+            results["equation_0"] = False
+            results["equation_0_details"] = {"error": str(e)}
+
+        # ------------------------------------------------------------------ #
+        # Equation 1: Ignition sigmoid  P = σ(α(S − θ))                      #
+        # ------------------------------------------------------------------ #
+        try:
+            S, theta, alpha = sym["S"], sym["theta"], sym["alpha"]
+
+            P_ignition = 1 / (1 + exp(-alpha * (S - theta)))
+
+            has_free_symbols = len(P_ignition.free_symbols) > 0
+            # P ∈ (0, 1) for all real inputs — verify at specific values
+            P_at_zero = float(P_ignition.subs({S: 0, theta: 0, alpha: 1}))
+            bounded = 0 < P_at_zero < 1
+            # ∂P/∂S > 0  (monotonic in surplus S − θ)
+            dP_dS_expr = sp.diff(P_ignition, S).subs({S: 0, theta: 0, alpha: 5})
+            monotonic = float(dP_dS_expr) > 0
+            # ∂P/∂θ < 0  (higher threshold suppresses ignition)
+            dP_dtheta_expr = sp.diff(P_ignition, theta).subs({S: 0, theta: 0, alpha: 5})
+            threshold_suppresses = float(dP_dtheta_expr) < 0
+
+            results["equation_1"] = (
+                has_free_symbols and bounded and monotonic and threshold_suppresses
+            )
+            results["equation_1_details"] = {
+                "form": str(P_ignition),
+                "has_free_symbols": has_free_symbols,
+                "bounded_0_1": bounded,
+                "monotonic_in_S": monotonic,
+                "threshold_suppresses": threshold_suppresses,
+            }
+        except Exception as e:
+            logger.error(f"Error verifying equation 1 (ignition sigmoid): {e}")
+            results["equation_1"] = False
+            results["equation_1_details"] = {"error": str(e)}
+
+        # ------------------------------------------------------------------ #
+        # Equation 2: Precision update  Πⁱ_eff = Πⁱ_baseline · exp(β·M)     #
+        # ------------------------------------------------------------------ #
+        try:
+            Pi_i_baseline, beta_sym, M = sp.symbols(
+                "Pi_i_baseline beta M", positive=True
+            )
+
+            Pi_i_eff_expr = Pi_i_baseline * exp(beta_sym * M)
+
+            has_free_symbols = len(Pi_i_eff_expr.free_symbols) > 0
+            # Πⁱ_eff > 0 always (product of positives and exp)
+            always_positive = sp.ask(sp.Q.positive(Pi_i_eff_expr))
+            # Monotonic in M: ∂Πⁱ_eff/∂M = β·Πⁱ_baseline·exp(β·M) > 0
+            d_eff_dM = sp.diff(Pi_i_eff_expr, M)
+            monotonic_in_M = sp.ask(sp.Q.positive(d_eff_dM))
+            # At M=0, Πⁱ_eff = Πⁱ_baseline (baseline recovery)
+            val_at_zero = float(
+                Pi_i_eff_expr.subs({Pi_i_baseline: 2.0, beta_sym: 1.0, M: 0})
+            )
+            baseline_recovery = abs(val_at_zero - 2.0) < 1e-9
+
+            results["equation_2"] = (
+                has_free_symbols
+                and (always_positive is not False)
+                and (monotonic_in_M is not False)
+                and baseline_recovery
+            )
+            results["equation_2_details"] = {
+                "form": str(Pi_i_eff_expr),
+                "has_free_symbols": has_free_symbols,
+                "always_positive": str(always_positive),
+                "monotonic_in_M": str(monotonic_in_M),
+                "baseline_recovery_at_M0": baseline_recovery,
+            }
+        except Exception as e:
+            logger.error(f"Error verifying equation 2 (precision update): {e}")
+            results["equation_2"] = False
+            results["equation_2_details"] = {"error": str(e)}
+
+        # ------------------------------------------------------------------ #
+        # Equation 3: Threshold dynamics  dθ/dt = (θ₀−θ)/τ_θ + η_θ(C−V)   #
+        # ------------------------------------------------------------------ #
+        try:
+            theta_sym = sym["theta"]
+            theta_0_sym, tau_theta_sym, eta_theta_sym = sp.symbols(
+                "theta_0 tau_theta eta_theta", positive=True
+            )
+            C_sym, V_sym = sp.symbols("C V")
+
+            dtheta_dt = (theta_0_sym - theta_sym) / tau_theta_sym + eta_theta_sym * (
+                C_sym - V_sym
+            )
+
+            has_free_symbols = len(dtheta_dt.free_symbols) > 0
+            # Jacobian eigenvalue = -1/τ_θ < 0  →  stable
+            eigenvalue = sp.diff(dtheta_dt, theta_sym)
+            eigenvalue_num = float(eigenvalue.subs({tau_theta_sym: 2.0}))
+            stable = eigenvalue_num < 0
+            # Fixed point: θ* = θ₀ + τ_θ·η_θ(C−V)
+            theta_star = theta_0_sym + tau_theta_sym * eta_theta_sym * (C_sym - V_sym)
+            residual = dtheta_dt.subs(theta_sym, theta_star)
+            residual_simplified = sp.simplify(residual)
+            fixed_point_correct = residual_simplified == 0
+
+            results["equation_3"] = has_free_symbols and stable and fixed_point_correct
+            results["equation_3_details"] = {
+                "form": str(dtheta_dt),
+                "has_free_symbols": has_free_symbols,
+                "eigenvalue": eigenvalue_num,
+                "stable": stable,
+                "fixed_point_correct": fixed_point_correct,
+            }
+        except Exception as e:
+            logger.error(f"Error verifying equation 3 (threshold dynamics): {e}")
+            results["equation_3"] = False
+            results["equation_3_details"] = {"error": str(e)}
 
     except Exception as e:
-        logger.error(f"Error in equation consistency check: {e}")
+        logger.error(f"Fatal error in equation consistency check: {e}")
         results["error"] = str(e)
 
     return results
@@ -1327,7 +1479,7 @@ def verify_four_core_equations_comprehensive() -> Dict[str, Any]:
     # Set seed for reproducibility
     np.random.seed(42)
 
-    # Number of parameter draws per TODO requirement
+    # Number of parameter draws per requirement
     n_draws = 1000
 
     logger.info(
@@ -1901,9 +2053,12 @@ def test_analytical_cross_validation(
                 params["tau_S"],
             )
 
+            # Steady-state of the *linear* ODE  dS/dt = -S/τ_S + Πᵉ|εᵉ| + Πⁱ_eff|εⁱ|
+            # At equilibrium dS/dt = 0  →  S* = τ_S · (Πᵉ|εᵉ| + Πⁱ_eff|εⁱ|)
+            # (Note: the free-energy uses ½Π·ε² but the ODE accumulates |weighted PE|.)
             S_numerical = params["tau_S"] * (
-                0.5 * params["Pi_e"] * (params["eps_e"] ** 2)
-                + 0.5 * params["Pi_i_eff"] * (params["eps_i"] ** 2)
+                params["Pi_e"] * abs(params["eps_e"])
+                + params["Pi_i_eff"] * abs(params["eps_i"])
             )
 
             steady_state_diff = abs(S_analytical - S_numerical)
@@ -2329,7 +2484,7 @@ def run_mathematical_consistency_check() -> Dict[str, Any]:
     # NEW: Formal proofs
     formal_proofs_results = verify_formal_proofs()
 
-    # NEW: Comprehensive four core equations test (addresses HIGH priority TODO)
+    # Comprehensive four core equations test
     four_core_equations_results = verify_four_core_equations_comprehensive()
 
     # Example equations
@@ -2412,9 +2567,12 @@ def run_mathematical_consistency_check() -> Dict[str, Any]:
             or check.get("effective_precision_success", False)
             or check.get("paper_predictions_success", False)
             or check.get("formal_proofs_success", False)
-            or check.get(
-                "four_core_equations_success", False
-            )  # NEW: Add success condition
+            or check.get("four_core_equations_success", False)
+            or all(
+                v
+                for k, v in check.items()
+                if k not in ["error", "warning"] and isinstance(v, bool)
+            )  # For bounds_results
         )
     )
 

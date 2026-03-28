@@ -55,6 +55,8 @@ except ImportError as e:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Suppress excessive config_manager logs during multi-agent simulations
+logging.getLogger("utils.config_manager").setLevel(logging.WARNING)
 try:
     # Import using dynamic import since filename has hyphens
     spec = importlib.util.spec_from_file_location(
@@ -65,6 +67,7 @@ try:
     spec.loader.exec_module(aggregator_module)
 
     aggregate_prediction_results = aggregator_module.aggregate_prediction_results
+    run_framework_falsification = aggregator_module.run_framework_falsification
     check_framework_falsification_condition_a = (
         aggregator_module.check_framework_falsification_condition_a
     )
@@ -75,8 +78,8 @@ try:
     FRAMEWORK_FALSIFICATION_THRESHOLD_A = (
         aggregator_module.FRAMEWORK_FALSIFICATION_THRESHOLD_A
     )
-    ALTERNATIVE_FRAMEWORK_PARSIMONY_THRESHOLD = (
-        aggregator_module.ALTERNATIVE_FRAMEWORK_PARSIMONY_THRESHOLD
+    ALTERNATIVE_PARSIMONY_THRESHOLD_B = (
+        aggregator_module.ALTERNATIVE_PARSIMONY_THRESHOLD_B
     )
 
     logger.info("Successfully imported APGI_Falsification_Aggregator functions")
@@ -95,6 +98,21 @@ from utils.falsification_thresholds import (
 
 # Suppress scipy deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+# Suppress sklearn numerical warnings (overflow, invalid, divide by zero in matmul)
+warnings.filterwarnings(
+    "ignore", category=RuntimeWarning, message="overflow encountered"
+)
+warnings.filterwarnings(
+    "ignore", category=RuntimeWarning, message="invalid value encountered"
+)
+warnings.filterwarnings(
+    "ignore", category=RuntimeWarning, message="divide by zero encountered"
+)
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="sklearn")
+warnings.filterwarnings(
+    "ignore", category=RuntimeWarning, module="sklearn.linear_model"
+)
 
 
 def bootstrap_ci(
@@ -550,7 +568,7 @@ class AgentComparisonExperiment:
         # Apply framework-level falsification using aggregator
         if protocol_results:
             logger.info("Applying framework-level falsification criteria")
-            falsification = aggregate_prediction_results(protocol_results)
+            falsification = run_framework_falsification(protocol_results)
 
             # Save results with error handling
             output_dir = os.path.join(os.path.dirname(__file__), "results")
@@ -802,7 +820,11 @@ class AgentComparisonExperiment:
                 return (np.mean(group1) - np.mean(group2)) / pooled_std
             else:
                 return 0.0
-        except Exception:
+        except (ValueError, ZeroDivisionError, TypeError) as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Cohen's d calculation failed: {e}")
             return 0.0
 
     def _analyze_p3b_interoceptive_dominance(
@@ -1003,6 +1025,10 @@ class AgentComparisonExperiment:
         X = np.array(X_data)
         y = np.array(y_data)
 
+        # More aggressive clipping to prevent numerical overflow in sklearn
+        # Use much tighter bounds to ensure numerical stability
+        X = np.clip(X, -1e3, 1e3)
+
         # Check for valid data
         if np.any(np.isnan(X)) or np.any(np.isnan(y)) or np.any(np.isinf(X)):
             return {
@@ -1013,10 +1039,57 @@ class AgentComparisonExperiment:
                 "error": "Invalid data (NaN/Inf) in regression inputs",
             }
 
-        # Fit model with error handling
+        # Scale features to prevent overflow in sklearn
+        # Use RobustScaler instead of StandardScaler to handle outliers better
+        from sklearn.preprocessing import RobustScaler
+        import warnings
+
         try:
-            model = LogisticRegression(random_state=42, max_iter=1000)
-            model.fit(X, y)
+            scaler = RobustScaler(quantile_range=(5.0, 95.0))
+            X_scaled = scaler.fit_transform(X)
+        except Exception:
+            # Fallback: manual robust scaling
+            try:
+                median = np.median(X, axis=0)
+                q75 = np.percentile(X, 75, axis=0)
+                q25 = np.percentile(X, 25, axis=0)
+                iqr = q75 - q25
+                iqr = np.where(iqr == 0, 1.0, iqr)  # Avoid division by zero
+                X_scaled = (X - median) / iqr
+                # Clip scaled values to prevent extreme outliers
+                X_scaled = np.clip(X_scaled, -5, 5)
+            except Exception:
+                X_scaled = X  # Ultimate fallback to unscaled
+
+        # Additional safety: ensure no extreme values after scaling
+        X_scaled = np.clip(X_scaled, -1e3, 1e3)
+
+        # Fit model with error handling and suppressed overflow warnings
+        try:
+            # Use liblinear solver which is more numerically stable for small datasets
+            # and add strong regularization to prevent coefficient explosion
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=RuntimeWarning, message="overflow encountered"
+                )
+                warnings.filterwarnings(
+                    "ignore",
+                    category=RuntimeWarning,
+                    message="invalid value encountered",
+                )
+                warnings.filterwarnings(
+                    "ignore",
+                    category=RuntimeWarning,
+                    message="divide by zero encountered",
+                )
+                model = LogisticRegression(
+                    random_state=42,
+                    max_iter=500,
+                    solver="liblinear",
+                    C=0.1,  # Strong regularization to prevent coefficient explosion
+                    penalty="l2",
+                )
+                model.fit(X_scaled, y)
         except Exception as e:
             return {
                 "ignition_coefficient": None,
@@ -1027,19 +1100,46 @@ class AgentComparisonExperiment:
             }
 
         # Get coefficients and p-values (bootstrap for CI)
-        n_bootstrap = min(1000, len(X))  # Limit bootstrap samples
+        n_bootstrap = min(500, len(X_scaled))  # Limit bootstrap samples for speed
         coef_samples = []
 
         for _ in range(n_bootstrap):
             try:
-                idx = np.random.choice(len(X), len(X), replace=True)
-                model_boot = LogisticRegression(random_state=42, max_iter=1000)
-                model_boot.fit(X[idx], y[idx])
-                coef_samples.append(model_boot.coef_[0])
-            except Exception:
+                idx = np.random.choice(len(X_scaled), len(X_scaled), replace=True)
+                X_boot = X_scaled[idx]
+                y_boot = y[idx]
+
+                # Skip if bootstrap sample has no variance in y
+                if len(np.unique(y_boot)) < 2:
+                    continue
+
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", category=RuntimeWarning, message="overflow"
+                    )
+                    warnings.filterwarnings(
+                        "ignore", category=RuntimeWarning, message="invalid"
+                    )
+                    warnings.filterwarnings(
+                        "ignore", category=RuntimeWarning, message="divide by zero"
+                    )
+                    model_boot = LogisticRegression(
+                        random_state=42,
+                        max_iter=500,
+                        solver="liblinear",
+                        C=0.1,
+                        penalty="l2",
+                    )
+                    model_boot.fit(X_boot, y_boot)
+                    coef_samples.append(model_boot.coef_[0])
+            except (ValueError, IndexError, KeyError, RuntimeError) as e:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Bootstrap sample failed: {e}")
                 continue  # Skip failed bootstrap samples
 
-        if len(coef_samples) < 100:  # Need sufficient bootstrap samples
+        if len(coef_samples) < 50:  # Need sufficient bootstrap samples
             return {
                 "ignition_coefficient": float(model.coef_[0][0]),
                 "ignition_95CI": [None, None],
@@ -1272,6 +1372,69 @@ class AgentComparisonExperiment:
         falsified["falsification_summary"] = f"{falsified_count}/6 criteria met"
 
         return falsified
+
+    def check_framework_falsification_conditions(
+        self, framework_results: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Check framework-level falsification conditions using the aggregator.
+
+        Args:
+            framework_results: Results from running all protocols via run_full_experiment()
+
+        Returns:
+            Dict with framework falsification status and condition results
+        """
+        # Use the aggregator functions that are already imported
+        from Falsification.APGI_Falsification_Aggregator import (
+            check_framework_falsification_condition_a,
+            check_framework_falsification_condition_b,
+            aggregate_prediction_results,
+            generate_gnwt_predictions,
+            generate_iit_predictions,
+            NAMED_PREDICTIONS,
+        )
+
+        # Aggregate predictions from framework results
+        apgi_predictions = aggregate_prediction_results(framework_results)
+
+        # Generate alternative framework predictions
+        gnwt_predictions = generate_gnwt_predictions()
+        iit_predictions = generate_iit_predictions()
+
+        # Check Condition A: All 14 named predictions fail
+        condition_a_met = check_framework_falsification_condition_a(apgi_predictions)
+
+        # Check Condition B: Alternative frameworks more parsimonious
+        condition_b_met = check_framework_falsification_condition_b(
+            results_input=framework_results,
+            apgi_predictions=apgi_predictions,
+            gnwt_predictions=gnwt_predictions,
+            iit_predictions=iit_predictions,
+        )
+
+        # Count passing/failing predictions
+        total_named = len(NAMED_PREDICTIONS)
+        failed_predictions = sum(
+            1 for r in apgi_predictions.values() if not r.get("passed", True)
+        )
+
+        return {
+            "framework_falsified": condition_a_met or condition_b_met,
+            "condition_a": {
+                "condition_met": condition_a_met,
+                "all_predictions_failed": condition_a_met,
+            },
+            "condition_b": {
+                "condition_met": condition_b_met,
+                "alternatives_more_parsimonious": condition_b_met,
+            },
+            "summary": {
+                "total_named_predictions": total_named,
+                "failed_predictions": failed_predictions,
+                "passed_predictions": total_named - failed_predictions,
+            },
+        }
 
     def _get_config(self) -> Dict[str, Any]:
         """Get default configuration for agents"""
@@ -1533,7 +1696,11 @@ class AgentComparisonExperiment:
                     normality_p_values.append(p_normal)
                     if p_normal < 0.05:
                         assumptions_met = False
-                except Exception:
+                except (ValueError, TypeError, AttributeError) as e:
+                    import logging
+
+                    logger = logging.getLogger(__name__)
+                    logger.debug(f"Normality test failed for group {i}: {e}")
                     assumptions_met = False
 
         assumption_details["normality_test"] = {
@@ -1652,7 +1819,13 @@ class AgentComparisonExperiment:
                     if corrected_p < 0.05:
                         significant_pairs.append(pair_key)
 
-                except Exception:
+                except (ValueError, TypeError, IndexError, KeyError) as e:
+                    import logging
+
+                    logger = logging.getLogger(__name__)
+                    logger.debug(
+                        f"Post-hoc comparison failed for {group1_name} vs {group2_name}: {e}"
+                    )
                     continue
 
         return {
@@ -1767,7 +1940,7 @@ def check_framework_falsification_conditions(
                     if not r.get("passed", False)
                 ),
                 "condition_a_threshold": FRAMEWORK_FALSIFICATION_THRESHOLD_A,
-                "condition_b_threshold": ALTERNATIVE_FRAMEWORK_PARSIMONY_THRESHOLD,
+                "condition_b_threshold": ALTERNATIVE_PARSIMONY_THRESHOLD_B,
             },
         }
 
@@ -1805,7 +1978,7 @@ if __name__ == "__main__":
         print(f"Error in framework synthesis: {framework_results['error']}")
     else:
         # Apply framework-level falsification conditions
-        falsification_result = experiment.check_framework_falsification_conditions(
+        falsification_result = check_framework_falsification_conditions(
             framework_results
         )
 

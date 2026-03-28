@@ -26,6 +26,9 @@ import numpy as np
 import pandas as pd
 import os
 
+# Define PROJECT_ROOT for secure path validation
+PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+
 
 # Load environment variables from .env file if it exists
 def load_env_file() -> None:
@@ -49,22 +52,40 @@ def load_env_file() -> None:
 load_env_file()
 
 # Import batch configuration
+BatchProcessorConfig = None
 try:
     from .batch_config import BatchProcessorConfig
 except ImportError:
     try:
         from utils.batch_config import BatchProcessorConfig
     except ImportError:
-        # Fallback to basic config if not available
-        class BatchProcessorConfig:
-            def __init__(self, config_file=None):
-                self.config_file = config_file
+        try:
+            # When running as script, add parent to path and import
+            import sys
 
-            def get_max_workers(self):
-                return 4
+            parent_dir = str(Path(__file__).parent.parent)
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
+            from utils.batch_config import BatchProcessorConfig
+        except ImportError:
+            # Define a minimal fallback class if all imports fail
+            @dataclass
+            class BatchProcessorConfig:
+                """Minimal fallback configuration."""
 
-            def get(self, key, default=None):
-                return default
+                _config: Dict[str, Any] = None
+
+                def __init__(self, config_file=None):
+                    self._config = {
+                        "max_workers": min(__import__("os").cpu_count() or 4, 8),
+                        "use_processes": False,
+                    }
+
+                def get_max_workers(self):
+                    return self._config.get("max_workers", 4)
+
+                def get(self, key, default=None):
+                    return self._config.get(key, default)
 
 
 # Optional import for tqdm
@@ -145,7 +166,7 @@ def _validate_secret_key(key_bytes: bytes) -> None:
         pass
 
     # Calculate Shannon entropy
-    byte_counts = {}
+    byte_counts: Dict[int, int] = {}
     for byte in key_bytes:
         byte_counts[byte] = byte_counts.get(byte, 0) + 1
 
@@ -279,7 +300,7 @@ apgi_logger = logging_config.apgi_logger
 
 
 # Global cache for loaded validation modules to prevent cycles and improve performance
-_loaded_validation_modules = {}
+_loaded_validation_modules: Dict[str, Any] = {}
 
 
 def _validate_secure_path(path: Path, allowed_root: Path) -> None:
@@ -684,50 +705,19 @@ class BatchProcessor:
                 df.to_csv(output_path, index=False)
         else:
             # Default to JSON
-            with open(output_path.with_suffix(".json"), "w") as f:
-                json.dump(job.result, f, indent=2, default=str)
-
-    def _save_result(self, job: BatchJob) -> None:
-        """Save job result to output file."""
-        if not job.output_file:
-            return
-
-        output_path = Path(job.output_file)
-
-        # Validate output path is within project root
-        try:
-            _validate_secure_path(output_path, PROJECT_ROOT)
-        except ValueError as e:
-            raise ValueError(f"Invalid output path {output_path}: {e}")
-
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        if job.output_file.endswith(".json"):
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(job.result, f, indent=2, default=str)
-        elif job.output_file.endswith(".pkl"):
-            secure_json_dump(job.result, output_path)
-        elif job.output_file.endswith(".csv"):
-            if isinstance(job.result, dict) and "results" in job.result:
-                # Save simulation results as CSV
-                df = pd.DataFrame(job.result["results"])
-                df.to_csv(output_path, index=False)
-            else:
-                # Save summary as CSV
-                df = pd.DataFrame([job.result])
-                df.to_csv(output_path, index=False)
-        else:
-            # Default to JSON
             with open(output_path.with_suffix(".json"), "w", encoding="utf-8") as f:
                 json.dump(job.result, f, indent=2, default=str)
 
     def run_batch(self, show_progress: bool = True) -> Dict[str, Any]:
         """Run all jobs in the batch."""
         if not self.jobs:
-            print("No jobs to run")
-            return {"status": "no_jobs"}
+            return {"total": 0, "completed": 0, "failed": 0, "results": []}
 
-        print(f"Running {len(self.jobs)} jobs with {self.max_workers} workers...")
+        # Separate and run different job types
+        memory_intensive_jobs, regular_jobs = self._categorize_jobs()
+
+        completed_jobs: List[Dict[str, Any]] = []
+        failed_jobs: List[Dict[str, Any]] = []
 
         # Create progress bar (or simple counter if tqdm not available)
         if show_progress and TQDM_AVAILABLE:
@@ -736,12 +726,6 @@ class BatchProcessor:
             pbar = None
             if show_progress:
                 print("Progress tracking disabled (tqdm not available)")
-
-        # Separate and run different job types
-        memory_intensive_jobs, regular_jobs = self._categorize_jobs()
-
-        completed_jobs = []
-        failed_jobs = []
 
         # Run jobs and collect results
         self._run_regular_jobs(regular_jobs, completed_jobs, failed_jobs, pbar)
@@ -754,8 +738,13 @@ class BatchProcessor:
         if pbar and TQDM_AVAILABLE:
             pbar.close()
 
-        # Compile and return results
-        return self._compile_results(completed_jobs)
+        # Return summary
+        return {
+            "total": len(self.jobs),
+            "completed": len(completed_jobs),
+            "failed": len(failed_jobs),
+            "results": completed_jobs + failed_jobs,
+        }
 
     def _categorize_jobs(self):
         """Separate memory-intensive jobs from regular jobs."""

@@ -23,9 +23,33 @@ class DependencyScanner:
         Args:
             project_root: Root directory of the project
         """
-        self.project_root = Path(project_root) if project_root else Path.cwd()
-        self.requirements_file = self.project_root / "requirements.txt"
+        self.project_root = (
+            Path(project_root).resolve() if project_root else Path.cwd().resolve()
+        )
+        self.requirements_file = self._validate_and_get_requirements_path()
         self.logger = logging.getLogger("dependency_scanner")
+
+    def _validate_and_get_requirements_path(self) -> Path:
+        """
+        Validate and return the requirements.txt path.
+
+        Returns:
+            Path to requirements.txt within project root
+
+        Raises:
+            ValueError: If path validation fails
+        """
+        requirements_path = self.project_root / "requirements.txt"
+
+        # Validate the path is within project root (prevent path traversal)
+        try:
+            requirements_path.resolve().relative_to(self.project_root)
+        except ValueError:
+            raise ValueError(
+                f"Requirements file path {requirements_path} is outside project root"
+            )
+
+        return requirements_path
 
     def scan_with_pip_audit(self) -> Dict[str, Any]:
         """

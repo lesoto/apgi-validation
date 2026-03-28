@@ -29,10 +29,11 @@ Example:
 import hashlib
 import json
 import os
+import threading
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import jsonschema
 import yaml
@@ -300,7 +301,7 @@ class APGIConfig:
 
 
 class ConfigManager:
-    """Advanced configuration management system."""
+    """Advanced configuration management system with hot-reload support."""
 
     def __init__(self, config_file: Optional[Union[str, Path]] = None):
         self.config_file = Path(config_file or CONFIG_DIR / "default.yaml")
@@ -309,6 +310,226 @@ class ConfigManager:
         self._load_environment()
         self._load_config()
         self.initialize_default_profiles()
+
+        # Hot-reload attributes
+        self._hot_reload_enabled: bool = False
+        self._hot_reload_thread: Optional[threading.Thread] = None
+        self._hot_reload_stop_event = threading.Event()
+        self._last_config_mtime: float = 0
+        self._last_config_hash: Optional[str] = None
+        self._config_change_callbacks: List[Callable[[Dict[str, Any]], None]] = []
+        self._hot_reload_check_interval = 2.0  # seconds
+
+    def enable_hot_reload(
+        self,
+        check_interval: float = 2.0,
+        on_change: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ) -> bool:
+        """Enable configuration hot-reload.
+
+        BUG-013 Fix: Configuration Hot-Reload - Monitors config file for changes
+        and automatically reloads without requiring application restart.
+
+        Args:
+            check_interval: Seconds between file change checks (default: 2.0)
+            on_change: Optional callback function called when config changes.
+                      Receives dict of changed fields with old/new values.
+
+        Returns:
+            True if hot-reload was enabled successfully, False otherwise
+
+        Example:
+            >>> def on_config_change(changes):
+            ...     print(f"Config changed: {changes}")
+            >>> config_manager.enable_hot_reload(on_change=on_config_change)
+        """
+        if self._hot_reload_enabled:
+            apgi_logger.logger.warning("Hot-reload is already enabled")
+            return False
+
+        # Validate config file exists
+        if not self.config_file.exists():
+            apgi_logger.logger.error(
+                f"Cannot enable hot-reload: config file not found: {self.config_file}"
+            )
+            return False
+
+        # Store initial state
+        self._hot_reload_check_interval = max(0.5, check_interval)  # Min 0.5s
+        self._last_config_mtime = self._get_file_mtime()
+        self._last_config_hash = self._compute_config_hash()
+
+        # Register callback if provided
+        if on_change:
+            self._config_change_callbacks.append(on_change)
+
+        # Start watcher thread
+        self._hot_reload_stop_event.clear()
+        self._hot_reload_thread = threading.Thread(
+            target=self._hot_reload_worker,
+            name="ConfigHotReload",
+            daemon=True,
+        )
+        self._hot_reload_thread.start()
+        self._hot_reload_enabled = True
+
+        apgi_logger.logger.info(
+            f"Configuration hot-reload enabled (interval: {self._hot_reload_check_interval}s)"
+        )
+        return True
+
+    def disable_hot_reload(self) -> bool:
+        """Disable configuration hot-reload.
+
+        Returns:
+            True if hot-reload was disabled successfully
+        """
+        if not self._hot_reload_enabled:
+            return False
+
+        self._hot_reload_stop_event.set()
+        if self._hot_reload_thread and self._hot_reload_thread.is_alive():
+            self._hot_reload_thread.join(timeout=5.0)
+
+        self._hot_reload_enabled = False
+        self._config_change_callbacks.clear()
+
+        apgi_logger.logger.info("Configuration hot-reload disabled")
+        return True
+
+    def register_change_callback(
+        self, callback: Callable[[Dict[str, Any]], None]
+    ) -> None:
+        """Register a callback to be called when configuration changes.
+
+        Args:
+            callback: Function receiving dict of changed fields
+        """
+        if callback not in self._config_change_callbacks:
+            self._config_change_callbacks.append(callback)
+
+    def unregister_change_callback(
+        self, callback: Callable[[Dict[str, Any]], None]
+    ) -> None:
+        """Unregister a configuration change callback."""
+        if callback in self._config_change_callbacks:
+            self._config_change_callbacks.remove(callback)
+
+    def _get_file_mtime(self) -> float:
+        """Get modification time of config file."""
+        try:
+            return os.path.getmtime(self.config_file)
+        except (OSError, FileNotFoundError):
+            return 0
+
+    def _compute_config_hash(self) -> str:
+        """Compute MD5 hash of current config file contents."""
+        try:
+            with open(self.config_file, "rb") as f:
+                return hashlib.md5(f.read()).hexdigest()
+        except (OSError, FileNotFoundError):
+            return ""
+
+    def _hot_reload_worker(self):
+        """Background worker thread that monitors config file for changes."""
+        while not self._hot_reload_stop_event.is_set():
+            try:
+                # Check if file has been modified
+                current_mtime = self._get_file_mtime()
+                if current_mtime != self._last_config_mtime:
+                    # Double-check with hash to avoid false positives
+                    current_hash = self._compute_config_hash()
+                    if current_hash != self._last_config_hash:
+                        # File changed - reload
+                        self._reload_config()
+                        self._last_config_mtime = current_mtime
+                        self._last_config_hash = current_hash
+
+                # Wait for next check or stop event
+                self._hot_reload_stop_event.wait(self._hot_reload_check_interval)
+
+            except Exception as e:
+                apgi_logger.logger.error(f"Error in hot-reload worker: {e}")
+                self._hot_reload_stop_event.wait(self._hot_reload_check_interval)
+
+    def _reload_config(self):
+        """Reload configuration from file and notify callbacks."""
+        try:
+            # Store old config for comparison
+            old_config_dict = asdict(self.config)
+
+            # Reload config
+            self._load_config()
+
+            # Get new config
+            new_config_dict = asdict(self.config)
+
+            # Compute differences
+            changes = self._compute_config_diff(old_config_dict, new_config_dict)
+
+            if changes:
+                apgi_logger.logger.info(
+                    f"Configuration hot-reloaded: {len(changes)} change(s) detected"
+                )
+
+                # Notify callbacks
+                for callback in self._config_change_callbacks:
+                    try:
+                        callback(changes)
+                    except Exception as e:
+                        apgi_logger.logger.error(
+                            f"Error in config change callback: {e}"
+                        )
+            else:
+                apgi_logger.logger.debug(
+                    "Configuration file changed but no differences found"
+                )
+
+        except Exception as e:
+            apgi_logger.logger.error(f"Failed to hot-reload configuration: {e}")
+
+    def _compute_config_diff(
+        self, old: Dict[str, Any], new: Dict[str, Any], path: str = ""
+    ) -> Dict[str, Dict[str, Any]]:
+        """Compute differences between old and new configuration.
+
+        Returns dict of changed paths with old and new values.
+        """
+        changes = {}
+
+        all_keys = set(old.keys()) | set(new.keys())
+        for key in all_keys:
+            current_path = f"{path}.{key}" if path else key
+
+            if key not in old:
+                changes[current_path] = {"old": None, "new": new[key]}
+            elif key not in new:
+                changes[current_path] = {"old": old[key], "new": None}
+            elif isinstance(old[key], dict) and isinstance(new[key], dict):
+                nested_changes = self._compute_config_diff(
+                    old[key], new[key], current_path
+                )
+                changes.update(nested_changes)
+            elif old[key] != new[key]:
+                changes[current_path] = {"old": old[key], "new": new[key]}
+
+        return changes
+
+    def get_hot_reload_status(self) -> Dict[str, Any]:
+        """Get current hot-reload status.
+
+        Returns:
+            Dict with enabled status, check interval, and callback count
+        """
+        return {
+            "enabled": self._hot_reload_enabled,
+            "check_interval": self._hot_reload_check_interval,
+            "registered_callbacks": len(self._config_change_callbacks),
+            "config_file": str(self.config_file),
+            "last_modified": datetime.fromtimestamp(self._last_config_mtime).isoformat()
+            if self._last_config_mtime
+            else None,
+        }
 
     def _load_schema(self) -> Dict[str, Any]:
         """Load JSON schema for configuration validation."""
@@ -636,53 +857,29 @@ class ConfigManager:
         """Get configuration section or entire config."""
         if section is None:
             return self.config
-        elif hasattr(self.config, "__dataclass_fields__"):
-            # Dataclass configuration
-            if hasattr(self.config, section):
-                return getattr(self.config, section)
-            else:
-                raise ValueError(f"Unknown configuration section: {section}")
+        elif hasattr(self.config, section):
+            return getattr(self.config, section)
         else:
-            # Dictionary configuration
-            if section in self.config:
-                return self.config[section]
-            else:
-                raise ValueError(f"Unknown configuration section: {section}")
+            raise ValueError(f"Unknown configuration section: {section}")
 
     def set_parameter(self, section: str, parameter: str, value: Any) -> bool:
         """Set a specific configuration parameter."""
 
-        # Handle both dataclass and dictionary configs
-        if hasattr(self.config, "__dataclass_fields__"):
-            # Dataclass configuration
-            if not hasattr(self.config, section):
-                raise ValueError(f"Unknown configuration section: {section}")
+        # Dataclass configuration
+        if not hasattr(self.config, section):
+            raise ValueError(f"Unknown configuration section: {section}")
 
-            section_obj = getattr(self.config, section)
-            if not hasattr(section_obj, parameter):
-                raise ValueError(
-                    f"Unknown parameter: {parameter} in section: {section}"
-                )
+        section_obj = getattr(self.config, section)
+        if not hasattr(section_obj, parameter):
+            raise ValueError(f"Unknown parameter: {parameter} in section: {section}")
 
-            # Convert string values to appropriate types
-            converted_value = self._convert_parameter_value(section, parameter, value)
+        # Convert string values to appropriate types
+        converted_value = self._convert_parameter_value(section, parameter, value)
 
-            # Validate parameter value
-            self._validate_parameter(section, parameter, converted_value)
+        # Validate parameter value
+        self._validate_parameter(section, parameter, converted_value)
 
-            setattr(section_obj, parameter, converted_value)
-        else:
-            # Dictionary configuration
-            if section not in self.config:
-                self.config[section] = {}
-
-            # Convert string values to appropriate types
-            converted_value = self._convert_parameter_value(section, parameter, value)
-
-            # Validate parameter value
-            self._validate_parameter(section, parameter, converted_value)
-
-            self.config[section][parameter] = converted_value
+        setattr(section_obj, parameter, converted_value)
 
         apgi_logger.logger.info(f"Updated {section}.{parameter} = {converted_value}")
         return True
@@ -695,9 +892,10 @@ class ConfigManager:
             section_obj = getattr(self.config, section)
             current_value = getattr(section_obj, parameter)
         else:
-            # Dictionary configuration
-            if section in self.config and parameter in self.config[section]:
-                current_value = self.config[section][parameter]
+            # Dictionary configuration - convert to dict if needed
+            config_dict = cast(Dict[str, Any], self.config)
+            if section in config_dict and parameter in config_dict[section]:
+                current_value = config_dict[section][parameter]
             else:
                 # Default to string if no existing value
                 return value
@@ -737,6 +935,344 @@ class ConfigManager:
                     f"Invalid value for {section}.{parameter}: {e.message}"
                 )
 
+    def validate_configuration(
+        self, config_data: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Perform comprehensive configuration validation with cross-parameter checks.
+
+        This method performs both schema validation and cross-parameter validation
+        to ensure configuration consistency. It generates a detailed validation
+        report with error messages and suggestions.
+
+        Args:
+            config_data: Configuration data to validate. If None, validates current config.
+
+        Returns:
+            Validation report with structure:
+            {
+                "valid": bool,
+                "schema_errors": list of schema validation errors,
+                "cross_parameter_errors": list of cross-parameter consistency errors,
+                "warnings": list of warnings,
+                "suggestions": list of suggested fixes,
+                "summary": str
+            }
+        """
+        if config_data is None:
+            config_data = asdict(self.config)
+
+        report: Dict[str, Any] = {
+            "valid": True,
+            "schema_errors": [],
+            "cross_parameter_errors": [],
+            "warnings": [],
+            "suggestions": [],
+            "summary": "",
+        }
+
+        # 1. Schema validation
+        try:
+            jsonschema.validate(config_data, self.schema)
+        except jsonschema.ValidationError as e:
+            report["schema_errors"].append(
+                {
+                    "message": e.message,
+                    "path": list(e.path),
+                    "validator": e.validator,
+                    "validator_value": e.validator_value,
+                }
+            )
+            report["valid"] = False
+        except jsonschema.SchemaError as e:
+            report["schema_errors"].append(
+                {
+                    "message": f"Schema error: {e.message}",
+                }
+            )
+            report["valid"] = False
+
+        # 2. Cross-parameter validation
+        model = config_data.get("model", {})
+        simulation = config_data.get("simulation", {})
+        validation = config_data.get("validation", {})
+
+        # Timescale consistency: tau_S should be much smaller than tau_theta
+        tau_S = model.get("tau_S")
+        tau_theta = model.get("tau_theta")
+        if tau_S is not None and tau_theta is not None:
+            if tau_S >= tau_theta:
+                report["cross_parameter_errors"].append(
+                    {
+                        "type": "timescale_inconsistency",
+                        "message": f"tau_S ({tau_S}s) should be much smaller than tau_theta ({tau_theta}s)",
+                        "parameters": ["model.tau_S", "model.tau_theta"],
+                        "severity": "error",
+                    }
+                )
+                report["suggestions"].append(
+                    "Set tau_S < tau_theta (suggested: tau_S = 0.5s, tau_theta = 30s)"
+                )
+                report["valid"] = False
+            elif tau_S * 10 > tau_theta:
+                report["warnings"].append(
+                    {
+                        "type": "timescale_ratio",
+                        "message": f"tau_S ({tau_S}s) is close to tau_theta ({tau_theta}s). "
+                        f"Recommended: tau_theta >= 10 * tau_S for proper separation",
+                    }
+                )
+
+        # Noise parameters should be reasonable relative to signal
+        sigma_S = model.get("sigma_S")
+        theta_0 = model.get("theta_0")
+        if sigma_S is not None and theta_0 is not None:
+            if sigma_S > theta_0 * 0.5:
+                report["warnings"].append(
+                    {
+                        "type": "high_noise",
+                        "message": f"sigma_S ({sigma_S}) is high relative to theta_0 ({theta_0}). "
+                        f"This may cause unstable simulations.",
+                    }
+                )
+
+        # Reset fraction validation
+        rho = model.get("rho")
+        if rho is not None:
+            if rho < 0.3:
+                report["warnings"].append(
+                    {
+                        "type": "low_reset_fraction",
+                        "message": f"rho ({rho}) is very low. Threshold will reset almost completely.",
+                    }
+                )
+            elif rho > 0.9:
+                report["warnings"].append(
+                    {
+                        "type": "high_reset_fraction",
+                        "message": f"rho ({rho}) is very high. Threshold will barely reset.",
+                    }
+                )
+
+        # Sensitivity parameter consistency
+        gamma_M = model.get("gamma_M")
+        gamma_A = model.get("gamma_A")
+        if gamma_M is not None and gamma_A is not None:
+            if abs(gamma_M) < 0.1 and abs(gamma_A) < 0.1:
+                report["warnings"].append(
+                    {
+                        "type": "low_sensitivity",
+                        "message": "Both gamma_M and gamma_A are close to zero. "
+                        "Metabolic and arousal modulation will be minimal.",
+                    }
+                )
+
+        # Simulation parameters validation
+        dt = simulation.get("default_dt")
+        duration = simulation.get("duration", model.get("duration"))
+        if dt is not None and duration is not None:
+            steps = duration / dt
+            if steps < 100:
+                report["warnings"].append(
+                    {
+                        "type": "few_simulation_steps",
+                        "message": f"Simulation will only run {int(steps)} steps. "
+                        f"Consider increasing duration or decreasing dt for better accuracy.",
+                    }
+                )
+            elif steps > 100000:
+                report["warnings"].append(
+                    {
+                        "type": "many_simulation_steps",
+                        "message": f"Simulation will run {int(steps)} steps. "
+                        f"This may be computationally expensive.",
+                    }
+                )
+
+        # Cross-validation consistency
+        cv_folds = validation.get("cv_folds")
+        enable_cv = validation.get("enable_cross_validation")
+        if enable_cv and cv_folds is not None:
+            if cv_folds < 2:
+                report["cross_parameter_errors"].append(
+                    {
+                        "type": "invalid_cv_folds",
+                        "message": f"cv_folds ({cv_folds}) must be >= 2 for cross-validation",
+                        "parameters": ["validation.cv_folds"],
+                        "severity": "error",
+                    }
+                )
+                report["valid"] = False
+                report["suggestions"].append("Set cv_folds >= 2 (suggested: 5 or 10)")
+
+        # Generate summary
+        total_errors = len(report["schema_errors"]) + len(
+            report["cross_parameter_errors"]
+        )
+        total_warnings = len(report["warnings"])
+
+        if total_errors == 0 and total_warnings == 0:
+            report["summary"] = "Configuration is valid."
+        elif total_errors == 0:
+            report[
+                "summary"
+            ] = f"Configuration is valid with {total_warnings} warning(s)."
+        else:
+            report[
+                "summary"
+            ] = f"Configuration has {total_errors} error(s) and {total_warnings} warning(s)."
+
+        return report
+
+    def generate_validation_report(self, output_file: Optional[str] = None) -> str:
+        """
+        Generate a detailed validation report and optionally save to file.
+
+        Args:
+            output_file: Optional path to save the report. If None, returns report as string.
+
+        Returns:
+            Formatted validation report string.
+        """
+        report = self.validate_configuration()
+
+        lines = [
+            "=" * 60,
+            "APGI Configuration Validation Report",
+            "=" * 60,
+            "",
+            f"Status: {'✓ VALID' if report['valid'] else '✗ INVALID'}",
+            f"Summary: {report['summary']}",
+            "",
+        ]
+
+        if report["schema_errors"]:
+            lines.extend(
+                [
+                    "Schema Validation Errors:",
+                    "-" * 40,
+                ]
+            )
+            for i, error in enumerate(report["schema_errors"], 1):
+                lines.append(f"  {i}. {error['message']}")
+                if error.get("path"):
+                    lines.append(
+                        f"     Path: {'.'.join(str(p) for p in error['path'])}"
+                    )
+            lines.append("")
+
+        if report["cross_parameter_errors"]:
+            lines.extend(
+                [
+                    "Cross-Parameter Validation Errors:",
+                    "-" * 40,
+                ]
+            )
+            for i, error in enumerate(report["cross_parameter_errors"], 1):
+                lines.append(f"  {i}. {error['message']}")
+                lines.append(f"     Parameters: {', '.join(error['parameters'])}")
+            lines.append("")
+
+        if report["warnings"]:
+            lines.extend(
+                [
+                    "Warnings:",
+                    "-" * 40,
+                ]
+            )
+            for i, warning in enumerate(report["warnings"], 1):
+                lines.append(f"  {i}. {warning['message']}")
+            lines.append("")
+
+        if report["suggestions"]:
+            lines.extend(
+                [
+                    "Suggested Fixes:",
+                    "-" * 40,
+                ]
+            )
+            for i, suggestion in enumerate(report["suggestions"], 1):
+                lines.append(f"  {i}. {suggestion}")
+            lines.append("")
+
+        lines.extend(
+            [
+                "=" * 60,
+                f"Report generated at: {datetime.now().isoformat()}",
+                "=" * 60,
+            ]
+        )
+
+        report_text = "\n".join(lines)
+
+        if output_file:
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(report_text)
+            apgi_logger.logger.info(f"Validation report saved to: {output_file}")
+
+        return report_text
+
+    def fix_common_issues(
+        self, config_data: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Attempt to automatically fix common configuration issues.
+
+        Args:
+            config_data: Configuration data to fix. If None, fixes current config.
+
+        Returns:
+            Fixed configuration data.
+        """
+        if config_data is None:
+            config_data = asdict(self.config)
+
+        fixed = config_data.copy()
+        fixes_applied = []
+
+        # Fix 1: Ensure tau_S < tau_theta
+        model = fixed.get("model", {})
+        tau_S = model.get("tau_S")
+        tau_theta = model.get("tau_theta")
+        if tau_S is not None and tau_theta is not None and tau_S >= tau_theta:
+            fixed["model"]["tau_S"] = tau_theta / 10
+            fixes_applied.append(
+                f"Fixed: tau_S reduced from {tau_S} to {tau_theta / 10}"
+            )
+
+        # Fix 2: Ensure cv_folds >= 2
+        validation = fixed.get("validation", {})
+        cv_folds = validation.get("cv_folds")
+        if cv_folds is not None and cv_folds < 2:
+            fixed["validation"]["cv_folds"] = 5
+            fixes_applied.append(f"Fixed: cv_folds increased from {cv_folds} to 5")
+
+        # Fix 3: Set reasonable defaults for missing critical parameters
+        if "model" not in fixed:
+            fixed["model"] = {}
+        defaults = {
+            "tau_S": 0.5,
+            "tau_theta": 30.0,
+            "theta_0": 0.5,
+            "alpha": 10.0,
+            "rho": 0.7,
+        }
+        for param, default_val in defaults.items():
+            if param not in fixed["model"]:
+                fixed["model"][param] = default_val
+                fixes_applied.append(
+                    f"Added missing parameter: model.{param} = {default_val}"
+                )
+
+        if fixes_applied:
+            apgi_logger.logger.info(f"Applied {len(fixes_applied)} automatic fixes:")
+            for fix in fixes_applied:
+                apgi_logger.logger.info(f"  - {fix}")
+
+        return fixed
+
     def reset_to_defaults(self, section: Optional[str] = None):
         """Reset configuration to defaults."""
         if section is None:
@@ -759,7 +1295,7 @@ class ConfigManager:
         if hasattr(self.config, "__dataclass_fields__"):
             config_dict = asdict(self.config)
         else:
-            config_dict = self.config
+            config_dict = cast(Dict[str, Any], self.config)
 
         with open(save_path, "w") as f:
             if save_path.suffix.lower() == ".yaml":
@@ -962,7 +1498,7 @@ class ConfigManager:
         self, config1: Dict[str, Any], config2: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Compare two configurations and return differences."""
-        differences = {"added": [], "removed": [], "modified": []}
+        differences: Dict[str, Any] = {"added": [], "removed": [], "modified": []}
 
         def deep_compare(dict1, dict2, path=""):
             for key in dict1:
@@ -1298,7 +1834,7 @@ class EnhancedConfigManager(ConfigManager):
             apgi_logger.logger.error(f"Error loading profile {name}: {e}")
             return False
 
-    def list_profiles(self, category: Optional[str] = None) -> List[ConfigProfile]:
+    def list_profiles(self, category: Optional[str] = None) -> list[dict[str, Any]]:
         """List available configuration profiles."""
         profiles = []
 
@@ -1307,10 +1843,17 @@ class EnhancedConfigManager(ConfigManager):
                 with open(profile_file, "r") as f:
                     profile_data = yaml.safe_load(f)
 
-                profile = ConfigProfile(**profile_data)
-
-                if category is None or profile.category == category:
-                    profiles.append(profile)
+                if category is None or profile_data.get("category") == category:
+                    profiles.append(
+                        {
+                            "name": profile_data.get("name"),
+                            "description": profile_data.get("description"),
+                            "category": profile_data.get("category"),
+                            "created_at": profile_data.get("created_at"),
+                            "version": profile_data.get("version"),
+                            "tags": profile_data.get("tags", []),
+                        }
+                    )
 
             except (
                 FileNotFoundError,
@@ -1414,11 +1957,11 @@ class EnhancedConfigManager(ConfigManager):
             return 1.0
 
         matching_keys = set(dict1.keys()) & set(dict2.keys())
-        value_matches = 0
+        value_matches: float = 0.0
 
         for key in matching_keys:
             if dict1[key] == dict2[key]:
-                value_matches += 1
+                value_matches += 1.0
             elif isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
                 # Recursive similarity for nested dicts
                 nested_similarity = self._calculate_similarity(dict1[key], dict2[key])
@@ -1496,15 +2039,15 @@ class EnhancedConfigManager(ConfigManager):
 
     def import_profile(self, file_path: str, name: Optional[str] = None) -> bool:
         """Import profile from file."""
-        file_path = Path(file_path)
+        file_path_obj = Path(file_path)
 
-        if not file_path.exists():
-            apgi_logger.logger.error(f"File not found: {file_path}")
+        if not file_path_obj.exists():
+            apgi_logger.logger.error(f"File not found: {file_path_obj}")
             return False
 
         try:
-            with open(file_path, "r") as f:
-                if file_path.suffix.lower() == ".json":
+            with open(file_path_obj, "r") as f:
+                if file_path_obj.suffix.lower() == ".json":
                     profile_data = json.load(f)
                 else:
                     profile_data = yaml.safe_load(f)
@@ -1513,7 +2056,7 @@ class EnhancedConfigManager(ConfigManager):
             if name:
                 profile_data["name"] = name
             elif "name" not in profile_data:
-                profile_data["name"] = file_path.stem
+                profile_data["name"] = file_path_obj.stem
 
             # Save as profile
             profile = ConfigProfile(**profile_data)
@@ -1648,20 +2191,22 @@ def switch_config_profile(name: str) -> bool:
 
 def list_config_profiles(
     category: Optional[str] = None,
-) -> List[Dict[str, str]]:
+) -> List[Dict[str, Any]]:
     """List available configuration profiles."""
     profiles = enhanced_config_manager.list_profiles(category)
-    return [
-        {
-            "name": p.name,
-            "description": p.description,
-            "category": p.category,
-            "version": p.version,
-            "author": p.author,
-            "tags": p.tags,
-        }
-        for p in profiles
-    ]
+    result: List[Dict[str, Any]] = []
+    for p in profiles:
+        result.append(
+            {
+                "name": p.name,
+                "description": p.description,
+                "category": p.category,
+                "version": p.version,
+                "author": p.author,
+                "tags": p.tags,
+            }
+        )
+    return result
 
 
 def compare_config_profiles(profile1: str, profile2: str) -> Dict[str, Any]:
@@ -1711,9 +2256,9 @@ def set_batch_parameter(parameter: str, value: Any):
 def get_max_workers() -> int:
     """Get optimal number of workers based on batch configuration and system."""
     batch_config = config_manager.get_config("batch")
-    max_workers = batch_config.max_workers
+    max_workers: int = getattr(batch_config, "max_workers", 4)
 
-    if batch_config.auto_scale:
+    if getattr(batch_config, "auto_scale", False):
         # Scale based on CPU count
         cpu_count = os.cpu_count() or 4
         max_workers = min(max_workers, cpu_count)

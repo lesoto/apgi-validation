@@ -1,6 +1,6 @@
 data:
   cache_dir: cache
-  default_data_dir: data
+  default_data_dir: data_repository
   enable_caching: true
   max_file_size_mb: 100
   supported_formats:

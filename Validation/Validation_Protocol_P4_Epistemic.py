@@ -28,6 +28,14 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.feature_selection import mutual_info_regression
+import sys
+from pathlib import Path
+
+_proj_root = Path(__file__).parent.parent
+if str(_proj_root) not in sys.path:
+    sys.path.insert(0, str(_proj_root))
+
+from utils.statistical_tests import safe_ttest_ind
 
 # ---------------------------------------------------------------------------
 # Import falsification thresholds
@@ -57,6 +65,9 @@ try:
         V12_2_MIN_PILLAIS_TRACE,
         V12_2_FALSIFICATION_PILLAIS,
         V12_2_ALPHA,
+        P7_MIN_AUC,
+        P11_MIN_R2,
+        GENERIC_MIN_R2,
     )
 except ImportError:
     logger.warning("falsification_thresholds not available, using default values")
@@ -83,6 +94,9 @@ except ImportError:
     V12_2_MIN_PILLAIS_TRACE = 0.1
     V12_2_FALSIFICATION_PILLAIS = 0.1
     V12_2_ALPHA = 0.05
+    P7_MIN_AUC = 0.85  # Fallback for P7 AUC threshold
+    P11_MIN_R2 = 0.70  # Fallback for P11 R² threshold
+    GENERIC_MIN_R2 = 0.70  # Generic R² fallback
 
 
 class EpistemicArchitectureValidator:
@@ -350,13 +364,13 @@ class EpistemicArchitectureValidator:
         p_value = np.mean(diff_aucs <= 0)
 
         # Falsification criteria
-        falsified = apgi_auc < 0.85 or auc_improvement < 10.0
+        falsified = apgi_auc < P7_MIN_AUC or auc_improvement < 10.0
 
         return {
             "apgi_auc": float(apgi_auc),
             "linear_auc": float(linear_auc),
             "auc_improvement_pct": float(auc_improvement),
-            "threshold_met": apgi_auc >= 0.85,
+            "threshold_met": apgi_auc >= P7_MIN_AUC,
             "improvement_threshold_met": auc_improvement >= 10.0,
             "p_value": float(p_value),
             "significant": p_value < DEFAULT_ALPHA,
@@ -404,9 +418,10 @@ class EpistemicArchitectureValidator:
         mean_outside = np.mean(mean_performance[outside_window_indices])
 
         # Test statistical significance
-        t_stat, p_value = stats.ttest_ind(
+        t_stat, p_value, significant = safe_ttest_ind(
             mean_performance[erasure_window_indices],
             mean_performance[outside_window_indices],
+            min_n=2,
         )
 
         # Falsification criterion
@@ -459,7 +474,9 @@ class EpistemicArchitectureValidator:
         )
 
         # Statistical test
-        t_stat, p_value = stats.ttest_ind(conscious_cost, non_conscious_cost)
+        t_stat, p_value, significant = safe_ttest_ind(
+            conscious_cost, non_conscious_cost, min_n=30
+        )
 
         # Effect size (Cohen's d)
         pooled_std = np.sqrt(
@@ -511,7 +528,9 @@ class EpistemicArchitectureValidator:
         )  # Added 1e-9 to prevent division by zero
 
         # Statistical test
-        t_stat, p_value = stats.ttest_ind(apgi_efficiency, baseline_efficiency)
+        t_stat, p_value, significant = safe_ttest_ind(
+            apgi_efficiency, baseline_efficiency, min_n=30
+        )
 
         # Effect size
         pooled_std = np.sqrt(
@@ -585,7 +604,7 @@ class EpistemicArchitectureValidator:
             p_value = 2 * (1 - stats.t.cdf(abs(t_stat), df))
 
         # Falsification criterion
-        falsified = r2 < 0.70 or slope <= 0 or p_value >= DEFAULT_ALPHA
+        falsified = r2 < GENERIC_MIN_R2 or slope <= 0 or p_value >= DEFAULT_ALPHA
 
         return {
             "cumulative_load": cumulative_load.tolist(),
@@ -595,7 +614,7 @@ class EpistemicArchitectureValidator:
             "r_squared": float(r2),
             "t_statistic": float(t_stat),
             "p_value": float(p_value),
-            "threshold_met": r2 >= 0.70 and slope > 0,
+            "threshold_met": r2 >= GENERIC_MIN_R2 and slope > 0,
             "significant": p_value < DEFAULT_ALPHA,
             "falsified": falsified,
             "criterion_code": "P11",
@@ -640,7 +659,7 @@ class EpistemicArchitectureValidator:
             ["threshold", "precision", "timescale"],
             [threshold_params, precision_params, timescale_params],
         ):
-            log_param = np.log(params)
+            log_param = np.log(np.clip(params, 1e-10, None))
             slope, intercept = np.polyfit(log_brain, log_param, 1)
             predicted = slope * log_brain + intercept
 

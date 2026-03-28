@@ -26,7 +26,7 @@ except ImportError:
         def __init__(self):
             self.logger = logging.getLogger(__name__)
 
-    apgi_logger = MockAPGILogger()
+    apgi_logger: Any = MockAPGILogger()  # type: ignore
 
 
 class ErrorSeverity(Enum):
@@ -935,7 +935,21 @@ if __name__ == "__main__":
 
 
 def restore_signal_handlers():
-    """Restore original signal handlers after signal handling completion."""
+    """Restore original signal handlers after signal handling completion.
+
+    This function restores the default signal handlers for SIGINT and SIGTERM
+    after custom signal handling has been used. It should be called when
+    cleaning up signal handlers to ensure the application returns to its
+    default behavior.
+
+    Example:
+        >>> restore_signal_handlers()
+        >>> # SIGINT and SIGTERM now use default handlers
+
+    Note:
+        This function stores the current handlers before restoring, so it
+        should be called in the same context where custom handlers were set.
+    """
     original_handlers = {}
 
     # Store current handlers

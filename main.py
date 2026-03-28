@@ -12,11 +12,13 @@ Provides command-line interface to all APGI framework components including:
 - Configuration management
 """
 
+import contextlib
 import importlib.util
 import json
 import sys
 import threading
 import time
+import types
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -41,10 +43,8 @@ console = Console(
 # Global project root
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
-# Added for os.path.getsize, os.remove, os.cpu_count
-
 # Threading lock for global configuration
-_config_lock = threading.Lock()
+_config_lock = threading.RLock()
 
 try:
     import click
@@ -173,11 +173,16 @@ def get_config_value(key: str, default: Any = None) -> Any:
         default: Default value if key not found
 
     Returns:
-        Configuration value or default (deep-copied to prevent mutable state contamination)
+        Configuration value or default (immutable values returned directly
+        for performance, mutable values shallow-copied to prevent accidental mutation)
     """
     with _config_lock:
         value = global_config.get(key, default)
-        return copy.deepcopy(value)
+        # Optimization: Only copy mutable containers to prevent accidental mutation
+        # Primitive immutable types (int, float, str, bool, None, tuple) returned directly
+        if isinstance(value, (dict, list)):
+            return copy.copy(value)  # Shallow copy is sufficient for read access
+        return value
 
 
 def set_config_value(key: str, value: Any) -> None:
@@ -234,10 +239,25 @@ def quiet_print(message: str, style: str = "blue", force: bool = False) -> None:
 def handle_file_error(file_path: str, operation: str, error: Exception) -> None:
     """Handle file-related errors with specific guidance.
 
+    Analyzes the error message to determine the type of file error
+    (not found, permission denied, etc.) and provides user-friendly
+    error messages with actionable guidance.
+
     Args:
-        file_path: Path to the file that caused the error
-        operation: Description of the operation being performed
-        error: The exception that occurred
+        file_path: Path to the file that caused the error.
+        operation: Description of the operation being performed (e.g.,
+            "loading", "saving", "processing").
+        error: The exception that occurred.
+
+    Returns:
+        None. Outputs error messages to the console via quiet_print.
+
+    Example:
+        >>> try:
+        ...     with open("data.csv") as f:
+        ...         data = f.read()
+        ... except Exception as e:
+        ...     handle_file_error("data.csv", "loading", e)
     """
     error_msg = str(error)
 
@@ -297,15 +317,11 @@ def handle_validation_error(error: Exception, context: str = "") -> None:
 
 
 class APGIModuleLoader:
-    """Dynamic module loader for APGI components."""
+    """Dynamic module loader for APGI components with lazy loading support."""
 
     def __init__(self):
         self.modules = {}
-        self._load_available_modules()
-
-    def _load_available_modules(self):
-        """Load all available APGI modules."""
-        module_configs = {
+        self._module_configs = {
             "formal_model": {
                 "file": "Falsification/Falsification_InformationTheoretic_PhaseTransition.py",
                 "class": "SurpriseIgnitionSystem",
@@ -333,31 +349,67 @@ class APGIModuleLoader:
             },
         }
 
-        for name, config in module_configs.items():
-            module_path = PROJECT_ROOT / config["file"]
-            if module_path.exists():
-                try:
-                    module = secure_load_module(name, module_path)
+    def _load_module(self, name: str) -> Optional[Dict]:
+        """Load a specific module on demand.
 
-                    # Validate module interface
-                    expected_class = config["class"]
-                    if expected_class and not hasattr(module, expected_class):
-                        raise AttributeError(
-                            f"Module {name} is missing expected class '{expected_class}'"
-                        )
+        Args:
+            name: Module name to load
 
-                    self.modules[name] = {"module": module, "config": config}
-                except (ImportError, AttributeError, OSError, TypeError) as e:
-                    console.print(
-                        f"[red]Fatal Error: Could not load {config['file']}: {e}[/red]"
-                    )
-                    raise RuntimeError(
-                        f"Critical module '{name}' failed to load or validate"
-                    ) from e
+        Returns:
+            Module info dict or None if loading failed
+        """
+        if name not in self._module_configs:
+            return None
 
-    def get_module(self, name):
-        """Get loaded module by name."""
-        return self.modules.get(name)
+        config = self._module_configs[name]
+        module_path = PROJECT_ROOT / config["file"]
+
+        if not module_path.exists():
+            return None
+
+        try:
+            module = secure_load_module(name, module_path)
+
+            # Validate module interface
+            expected_class = config["class"]
+            if expected_class and not hasattr(module, expected_class):
+                raise AttributeError(
+                    f"Module {name} is missing expected class '{expected_class}'"
+                )
+
+            return {"module": module, "config": config}
+        except (ImportError, AttributeError, OSError, TypeError) as e:
+            # Log error but continue with fallback behavior
+            apgi_logger.logger.warning(
+                f"Module '{name}' failed to load: {e}. Continuing with degraded functionality."
+            )
+            console.print(
+                f"[yellow]Warning: Could not load {config['file']}: {e}[/yellow]"
+            )
+            console.print(
+                "[yellow]Command may have limited functionality. Check file permissions and dependencies.[/yellow]"
+            )
+            # Store None to indicate module failed but don't crash
+            return {"module": None, "config": config, "error": str(e)}
+
+    def get_module(self, name: str) -> Optional[Dict]:
+        """Get loaded module by name with lazy loading.
+
+        Args:
+            name: Module name to retrieve
+
+        Returns:
+            Module info dict or None if not available
+        """
+        # Return cached module if already loaded
+        if name in self.modules:
+            return self.modules[name]
+
+        # Lazy load the module
+        module_info = self._load_module(name)
+        if module_info:
+            self.modules[name] = module_info
+        return module_info
 
 
 # Initialize module loader
@@ -498,15 +550,13 @@ def formal_model(
 
             # Use config values for model parameters
             model_params = {
-                "tau_S": model_config.tau_S,
-                "tau_theta": model_config.tau_theta,
-                "theta_0": model_config.theta_0,
-                "alpha": model_config.alpha,
-                "gamma_M": model_config.gamma_M,
-                "gamma_A": model_config.gamma_A,
-                "rho": model_config.rho,
-                "sigma_S": model_config.sigma_S,
-                "sigma_theta": model_config.sigma_theta,
+                "tau_S": model_config.theta0,
+                "tau_theta": model_config.theta0,
+                "theta_0": model_config.theta0,
+                "alpha": model_config.gamma,
+                "rho": model_config.allostatic_decrease_rate,
+                "sigma_S": model_config.eps,
+                "sigma_theta": model_config.eps,
             }
 
             # Load custom parameters if provided
@@ -544,7 +594,6 @@ def formal_model(
                     apgi_logger.log_error_with_context(
                         e,
                         {"operation": "load_parameters", "file": str(params)},
-                        fallback_msg=f"Invalid JSON in parameter file: {params}",
                     )
                     console.print(
                         f"[red]❌ Invalid JSON in parameter file: {params} ({type(e).__name__}: {e})[/red]"
@@ -703,7 +752,7 @@ def formal_model(
                 )
             finally:
                 # Restore original signal handler
-                if original_sigint:
+                if original_sigint is not None:
                     signal.signal(signal.SIGINT, original_sigint)
 
         duration = time.time() - start_time
@@ -787,14 +836,28 @@ def formal_model(
 def _create_signal_handler(cancel_flag: threading.Event):
     """Create a signal handler function for graceful cancellation.
 
+    Creates a SIGINT/SIGTERM handler that sets the provided threading Event
+    when a signal is received, allowing long-running operations to check
+    the flag and terminate gracefully.
+
     Args:
-        cancel_flag: Threading Event to set when signal is received
+        cancel_flag: Threading Event to set when signal is received. This event
+            should be checked periodically by the long-running operation.
 
     Returns:
-        Signal handler function
+        Signal handler function compatible with signal.signal().
+
+    Example:
+        >>> cancel_event = threading.Event()
+        >>> handler = _create_signal_handler(cancel_event)
+        >>> signal.signal(signal.SIGINT, handler)
+        >>> # In long-running loop:
+        >>> for i in range(1000):
+        ...     if cancel_event.is_set():
+        ...         break
     """
 
-    def handle_cancel(signum, frame):
+    def handle_cancel(signum: int, frame: Optional[types.FrameType]) -> None:
         """Handle SIGINT signal to cancel simulation gracefully."""
         cancel_flag.set()
 
@@ -802,12 +865,34 @@ def _create_signal_handler(cancel_flag: threading.Event):
 
 
 def _sanitize_error_message(error_msg: str) -> str:
-    """Sanitize error messages to prevent information disclosure."""
+    """Sanitize error messages to prevent information disclosure.
+
+    Removes sensitive information from error messages including:
+    - File system paths (replaced with [PATH] or [WIN_PATH])
+    - API keys and tokens (replaced with [REDACTED])
+    - JWT tokens (replaced with [JWT_REDACTED])
+    - Hex-encoded cryptographic keys (replaced with [HEX_REDACTED])
+
+    Also limits message length to prevent log flooding.
+
+    Args:
+        error_msg: The raw error message that may contain sensitive data.
+
+    Returns:
+        Sanitized error message with sensitive information redacted.
+
+    Example:
+        >>> msg = "Error loading /home/user/secret.txt with key 0x1234abcd"
+        >>> _sanitize_error_message(msg)
+        "Error loading /[PATH] with key [HEX_REDACTED]"
+    """
     import re
 
-    # Remove file paths
+    # Remove file paths (Unix/Linux)
     error_msg = re.sub(r"/[^\s]+", "/[PATH]", error_msg)
     error_msg = re.sub(r"\\[^\s]+", "\\[PATH]", error_msg)
+    # Remove Windows paths (e.g., C:\Users\name\file.txt)
+    error_msg = re.sub(r"[A-Za-z]:\\[^\s]+", "[WIN_PATH]", error_msg)
 
     # Remove potential sensitive data patterns
     # More specific patterns to avoid false positives
@@ -851,10 +936,36 @@ def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
             f"Absolute file path '{file_path}' is not allowed for security reasons"
         )
 
+    # Security check: prevent null bytes and control characters
+    if "\x00" in file_path or any(ord(c) < 32 for c in file_path):
+        raise ValueError(f"File path '{file_path}' contains invalid characters")
+
+    # Security check: normalize path to catch traversal attempts
+    # Replace backslashes with forward slashes for uniform handling
+    normalized_path = file_path.replace("\\", "/")
+
+    # Check for suspicious patterns that could indicate traversal attacks
+    dangerous_patterns = [
+        "..",  # Parent directory reference
+        "//",  # Double slashes
+        "/./",  # Current directory reference
+        "~",  # Home directory expansion
+        "$",  # Environment variable expansion
+    ]
+    for pattern in dangerous_patterns:
+        if pattern in normalized_path:
+            # Allow '..' within the path as long as it doesn't escape project root
+            # (resolved path check below will catch actual escapes)
+            if pattern == ".." and not normalized_path.startswith(".."):
+                continue
+            raise ValueError(
+                f"File path '{file_path}' contains potentially dangerous pattern '{pattern}'"
+            )
+
     # Resolve the path to eliminate .. and symlinks
     resolved_path = (project_root / file_path).resolve()
 
-    # Check if path is within project root
+    # Verify the resolved path is within project root
     try:
         resolved_path.relative_to(project_root)
     except ValueError:
@@ -900,8 +1011,8 @@ def _check_file_size(
     file_path: Union[str, Path], max_mb: Optional[int] = None, fd: Optional[int] = None
 ) -> None:
     """Check file size to prevent memory exhaustion DoS attacks."""
-    # Hardcoded absolute maximum that cannot be overridden (1 GB)
-    ABSOLUTE_MAX_MB = 1024
+    # Hardcoded absolute maximum that cannot be overridden (100 MB)
+    ABSOLUTE_MAX_MB = 100
 
     if max_mb is None:
         max_mb = get_config_value("max_load_size_mb", 100)
@@ -925,28 +1036,55 @@ def _check_file_size(
         )
 
 
-import contextlib
-
-
 @contextlib.contextmanager
 def secure_open_file(
     file_path: Union[str, Path], mode: str = "r", max_mb: Optional[int] = None, **kwargs
 ):
-    """Securely open a file with O_NOFOLLOW and validate its size via fstat to prevent TOCTOU race conditions."""
+    """Securely open a file with O_NOFOLLOW, atomic writes, and TOCTOU protection.
+
+    For write operations, uses atomic write pattern (write to temp file, then rename)
+    to prevent data corruption on power loss or crashes during write.
+    """
+    path = Path(file_path)
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
     if "w" in mode or "a" in mode:
         flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
     if "b" not in mode:
         pass  # Handle text mode
 
-    fd = os.open(str(file_path), flags)
-    try:
-        # Re-validate size securely using file descriptor
-        _check_file_size(file_path, max_mb=max_mb, fd=fd)
-        yield open(fd, mode, **kwargs)
-    except Exception:
-        os.close(fd)
-        raise
+    # For write modes, use atomic write pattern
+    if "w" in mode or "a" in mode:
+        # Create temp file in same directory for atomic rename
+        temp_path = path.with_suffix(f"{path.suffix}.tmp")
+        fd = os.open(str(temp_path), flags, 0o644)
+        try:
+            # Re-validate size securely using file descriptor
+            _check_file_size(temp_path, max_mb=max_mb, fd=fd)
+            f = open(fd, mode, **kwargs)
+            yield f
+            f.flush()
+            os.fsync(fd)  # Ensure data is written to disk
+            f.close()
+            # Atomic rename: temp file becomes the actual file
+            temp_path.replace(path)
+        except Exception:
+            os.close(fd)
+            # Clean up temp file on failure
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
+    else:
+        # Read mode - standard secure open
+        fd = os.open(str(file_path), flags)
+        try:
+            # Re-validate size securely using file descriptor
+            _check_file_size(file_path, max_mb=max_mb, fd=fd)
+            yield open(fd, mode, **kwargs)
+        except Exception:
+            os.close(fd)
+            raise
 
 
 def _validate_output_file_path(output_file: str) -> Path:
@@ -1071,15 +1209,36 @@ def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
     try:
         with secure_open_file(input_data, "r") as f:
             data = pd.read_csv(f)
-    except (pd.errors.EmptyDataError, FileNotFoundError) as e:
-        if isinstance(e, pd.errors.EmptyDataError):
-            console.print(
-                f"[red]Error: CSV file '{input_data}' is empty or contains no data[/red]"
-            )
-        else:
-            console.print(
-                f"[red]Error: Input file '{input_data}' became inaccessible during processing[/red]"
-            )
+    except pd.errors.EmptyDataError:
+        console.print(
+            f"[red]Error: CSV file '{input_data}' is empty or contains no data (row 0)[/red]"
+        )
+        return
+    except pd.errors.ParserError as e:
+        # Extract line and column information from parser error
+        error_msg = str(e)
+        line_info = "unknown"
+        col_info = "unknown"
+        if "line" in error_msg.lower():
+            import re
+
+            line_match = re.search(r"line (\d+)", error_msg, re.IGNORECASE)
+            if line_match:
+                line_info = line_match.group(1)
+        if "column" in error_msg.lower():
+            import re
+
+            col_match = re.search(r"column (\d+)", error_msg, re.IGNORECASE)
+            if col_match:
+                col_info = col_match.group(1)
+        console.print(
+            f"[red]Error: CSV parsing failed at row {line_info}, column {col_info}: {error_msg}[/red]"
+        )
+        return
+    except FileNotFoundError:
+        console.print(
+            f"[red]Error: Input file '{input_data}' became inaccessible during processing[/red]"
+        )
         return
 
     # Validate DataFrame
@@ -1220,9 +1379,11 @@ def _run_demo_mode() -> None:
 
     # Process synthetic data with correct APGI modalities
     synthetic_subject_data = {
-        "P3b_amplitude": synthetic_data["EEG"].values,  # Exteroceptive
-        "pupil_diameter": synthetic_data["Pupil"].values,  # Also exteroceptive
-        "SCR": synthetic_data["EDA"].values,  # Interoceptive
+        "P3b_amplitude": np.asarray(synthetic_data["EEG"].values),  # Exteroceptive
+        "pupil_diameter": np.asarray(
+            synthetic_data["Pupil"].values
+        ),  # Also exteroceptive
+        "SCR": np.asarray(synthetic_data["EDA"].values),  # Interoceptive
         "heart_rate": np.random.normal(70, 5, n_samples),  # Additional interoceptive
     }
 
@@ -1280,7 +1441,7 @@ def _run_demo_mode() -> None:
         console.print("[blue]Synthetic Data Statistics:[/blue]")
         for modality, data in synthetic_subject_data.items():
             console.print(
-                f"  {modality}: mean={np.mean(data):.3f}, std={np.std(data):.3f}"
+                f"  {modality}: mean={float(np.mean(data)):.3f}, std={float(np.std(data)):.3f}"
             )
     except (ValueError, TypeError, KeyError, AttributeError) as e:
         console.print(f"[yellow]Demo integration failed: {e}[/yellow]")
@@ -1293,7 +1454,7 @@ def _run_demo_mode() -> None:
         console.print("[blue]Synthetic Data Statistics:[/blue]")
         for modality, data in synthetic_subject_data.items():
             console.print(
-                f"  {modality}: mean={np.mean(data):.3f}, std={np.std(data):.3f}"
+                f"  {modality}: mean={float(np.mean(data)):.3f}, std={float(np.std(data)):.3f}"
             )
 
 
@@ -1827,7 +1988,7 @@ def cross_species(
                 )
 
                 if output_file:
-                    # BUG-047: Add explicit file encoding specification
+                    # Add explicit file encoding specification
                     with open(output_file, "w", encoding="utf-8") as f:
                         json.dump(predictions, f, indent=2)
                     console.print(f"[green]✓[/green] Results saved to {output_file}")
@@ -1843,7 +2004,7 @@ def cross_species(
             console.print(report)
 
             if output_file:
-                # BUG-047: Add explicit file encoding specification
+                # Add explicit file encoding specification
                 with open(output_file, "w", encoding="utf-8") as f:
                     f.write(report)
                 console.print(f"[green]✓[/green] Report saved to {output_file}")
@@ -2152,7 +2313,7 @@ def process_data(
                         )
 
                         try:
-                            processed = processor.process(modality_data)
+                            processed = processor.preprocess(modality_data)
                             progress.update(
                                 task,
                                 advance=70,
@@ -2713,8 +2874,8 @@ def falsify(
 
     # List available protocols
     protocols = []
-    for i in range(1, 7):
-        protocol_file = falsification_dir / f"Falsification-Protocol-{i}.py"
+    for i in range(1, 8):  # P1-P7 protocols
+        protocol_file = falsification_dir / f"Falsification_Protocol_P{i}.py"
         if protocol_file.exists():
             protocols.append(i)
 
@@ -2737,7 +2898,7 @@ def falsify(
             if protocol in protocols:
                 console.print(f"[blue]Running falsification protocol {protocol}[/blue]")
                 protocol_file = (
-                    falsification_dir / f"Falsification-Protocol-{protocol}.py"
+                    falsification_dir / f"Falsification_Protocol_P{protocol}.py"
                 )
 
                 try:

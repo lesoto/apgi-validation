@@ -314,7 +314,7 @@ def test_parameter_identifiability(
     if parameter_pairs is None:
         parameter_pairs = [("beta", "pi_i")]  # Test β/Πⁱ collinearity by default
 
-    results = {
+    results: Dict[str, Any] = {
         "identifiability_tests": {},
         "correlation_matrix": {},
         "collinearity_detected": False,
@@ -472,8 +472,8 @@ def map_bayesian_factor_to_predictions(
         model_comparison_type = "APGI_vs_null"
 
     prediction_info = predictions[model_comparison_type]
-    thresholds = prediction_info["thresholds"]
-    interpretations = prediction_info["interpretation"]
+    thresholds: Dict[str, float] = prediction_info["thresholds"]
+    interpretations: Dict[str, str] = prediction_info["interpretation"]
 
     # Determine evidence level
     if bf_linear >= thresholds["strong_evidence"]:
@@ -716,7 +716,7 @@ def check_posterior_calibration(
     Returns:
         Dictionary with calibration results
     """
-    calibration_results = {
+    calibration_results: Dict[str, Any] = {
         "coverage_by_parameter": {},
         "overall_coverage": {},
         "calibration_errors": {},
@@ -754,7 +754,7 @@ def check_posterior_calibration(
         calibration_results["coverage_by_parameter"][param_name] = param_coverage
 
     # Calculate overall coverage rates across all parameters
-    overall_coverage = {}
+    overall_coverage: Dict[str, float] = {}
     for cred_level in credible_levels:
         covered_count = 0
         total_count = 0
@@ -1026,7 +1026,7 @@ def check_falsification(
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
-    results = {
+    results: Dict[str, Any] = {
         "protocol": "Falsification-Protocol-11",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "total": 6},

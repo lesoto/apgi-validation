@@ -130,11 +130,14 @@ class SearchQuery:
 class LogStreamer:
     """Real-time log streaming functionality."""
 
-    def __init__(self):
+    def __init__(self, max_queue_size: int = 10000):
         self.subscribers = {}
-        self.queue = queue.Queue()
+        self.queue = queue.Queue(
+            maxsize=max_queue_size
+        )  # Bounded queue to prevent memory leaks
         self.running = False
         self.thread = None
+        self.max_queue_size = max_queue_size
 
     def subscribe(
         self,
@@ -200,6 +203,30 @@ class LogStreamer:
             except (ValueError, TypeError, RuntimeError) as e:
                 logger.error(f"Error in stream worker: {e}")
 
+    def add_to_queue(
+        self, entry: "LogEntry", block: bool = False, timeout: float = 0.1
+    ) -> bool:
+        """Add log entry to queue with backpressure control.
+
+        Args:
+            entry: LogEntry to add to queue
+            block: Whether to block if queue is full
+            timeout: Timeout for blocking operation
+
+        Returns:
+            True if entry was added, False if queue was full and block=False
+        """
+        try:
+            self.queue.put(entry, block=block, timeout=timeout)
+            return True
+        except queue.Full:
+            if not block:
+                # Silently drop log entry if queue is full to prevent blocking
+                return False
+            else:
+                # Re-raise if blocking was requested but failed
+                raise
+
 
 class APGILogger:
     """Advanced logging system for APGI framework."""
@@ -214,11 +241,13 @@ class APGILogger:
         self.performance_metrics = {}
         self.error_counts = {}
         self.logger = logger  # Expose the loguru logger
-        self.streamer = LogStreamer()
         self._metrics_lock = threading.Lock()  # Lock for thread-safe metrics access
 
         # Validate and apply logging configuration with fallbacks
         self._validate_logging_config(log_level, enable_console, queue_size)
+
+        # Initialize streamer with validated queue size
+        self.streamer = LogStreamer(max_queue_size=self.queue_size)
 
         self._setup_logging()
         self.streamer.start_streaming()
@@ -314,7 +343,16 @@ class APGILogger:
 
         # Reconfigure logging only if settings changed
         if config_changed:
+            # Stop current streamer
+            if self.streamer.running:
+                self.streamer.stop_streaming()
+
+            # Recreate streamer with new queue size if changed
+            if queue_size is not None and queue_size != self.queue_size:
+                self.streamer = LogStreamer(max_queue_size=queue_size)
+
             self._setup_logging()
+            self.streamer.start_streaming()
             logger.info("Logging configuration updated")
         else:
             logger.debug("No configuration changes applied")
@@ -384,24 +422,222 @@ class APGILogger:
         )
 
         # Structured JSON log for machine processing with queue limit
-        json_log_file = LOGS_DIR / "structured.jsonl"
+        # Temporarily disabled due to formatting issues
+        # json_log_file = LOGS_DIR / "structured.jsonl"
+        # logger.add(
+        #     json_log_file,
+        #     format=self._json_formatter,
+        #     level="DEBUG",
+        #     rotation="20 MB",
+        #     retention="30 days",
+        #     enqueue=True,
+        #     filter=secrets_filter,
+        # )
+
+        # Add custom handler for LogStreamer with backpressure
+        def log_stream_handler(record: Dict[str, Any]) -> None:
+            """Custom handler that feeds logs into LogStreamer with backpressure."""
+            try:
+                # Create LogEntry from record
+                log_entry = LogEntry(
+                    timestamp=record.get("time"),
+                    level=str(record.get("level", "INFO")),
+                    message=record.get("message", ""),
+                    module=record.get("name", ""),
+                    function=record.get("function", ""),
+                    line=record.get("line", 0),
+                    thread=record.get("thread"),
+                    process=record.get("process"),
+                )
+
+                # Add to queue with backpressure - drop if full to prevent blocking
+                self.streamer.add_to_queue(log_entry, block=False)
+            except Exception:
+                # Silently ignore handler errors to prevent logging loops
+                pass
+
+        # Add the custom handler to loguru
         logger.add(
-            json_log_file,
-            format="{message}",
-            level="DEBUG",
-            rotation="20 MB",
-            retention="30 days",
-            serialize=True,
-            enqueue=True,
-            filter=secrets_filter,
+            log_stream_handler,
+            level="DEBUG",  # Capture all levels for streaming
+            filter=lambda record: not record["extra"].get(
+                "no_stream", False
+            ),  # Allow opt-out
         )
 
         self.log_files = {
             "main": main_log_file,
             "errors": error_log_file,
             "performance": performance_log_file,
-            "structured": json_log_file,
+            # "structured": json_log_file,  # Temporarily disabled
         }
+
+    def _json_formatter(self, record: Dict[str, Any]) -> str:
+        """Format log record as structured JSON.
+
+        Args:
+            record: Loguru record dictionary
+
+        Returns:
+            JSON string of the structured log entry
+        """
+        import json
+        from datetime import datetime
+
+        try:
+            # Build structured log entry with safe access
+            log_entry = {
+                "timestamp": record.get("time", datetime.now()).strftime(
+                    "%Y-%m-%dT%H:%M:%S.%fZ"
+                ),
+                "level": getattr(record.get("level"), "UNKNOWN"),
+                "message": record.get("message", ""),
+                "source": {
+                    "file": getattr(
+                        record.get("file"), type("", (), {"path": "unknown"})
+                    ).path,
+                    "module": record.get("name", "unknown"),
+                    "function": record.get("function", "unknown"),
+                    "line": record.get("line", 0),
+                },
+                "process": {
+                    "pid": getattr(record.get("process"), type("", (), {"id": None})).id
+                    if hasattr(record.get("process"), "id")
+                    else None,
+                    "thread": getattr(
+                        record.get("thread"), type("", (), {"name": "unknown"})
+                    ).name
+                    if hasattr(record.get("thread"), "name")
+                    else None,
+                    "thread_id": getattr(
+                        record.get("thread"), type("", (), {"id": None})
+                    ).id
+                    if hasattr(record.get("thread"), "id")
+                    else None,
+                },
+                "context": dict(record.get("extra", {})),
+            }
+
+            # Add exception info if present
+            if "exception" in record and record["exception"]:
+                exc = record["exception"]
+                log_entry["exception"] = {
+                    "type": exc.type.__name__
+                    if hasattr(exc, "type") and exc.type
+                    else None,
+                    "value": str(exc.value) if hasattr(exc, "value") else None,
+                    "traceback": exc.traceback if hasattr(exc, "traceback") else None,
+                }
+
+            return json.dumps(log_entry, default=str)
+
+        except Exception as e:
+            # Fallback to simple JSON if formatting fails
+            fallback_entry = {
+                "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                "level": "ERROR",
+                "message": f"JSON formatter error: {e}. Original: {record.get('message', '')}",
+                "formatter_error": True,
+            }
+            return json.dumps(fallback_entry, default=str)
+
+    def query_structured_logs(
+        self,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        level: Optional[str] = None,
+        module: Optional[str] = None,
+        function: Optional[str] = None,
+        message_contains: Optional[str] = None,
+        context_filters: Optional[Dict[str, Any]] = None,
+        limit: int = 1000,
+    ) -> List[Dict[str, Any]]:
+        """Query structured JSON logs with filters.
+
+        Provides powerful querying capabilities for the structured JSONL logs,
+        enabling log analytics and debugging workflows.
+
+        Args:
+            start_time: Filter logs after this timestamp
+            end_time: Filter logs before this timestamp
+            level: Filter by log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+            module: Filter by module name (substring match)
+            function: Filter by function name (substring match)
+            message_contains: Filter messages containing this text
+            context_filters: Dict of key-value pairs to match in context
+            limit: Maximum number of results to return
+
+        Returns:
+            List of matching log entries as dictionaries
+
+        Example:
+            >>> logs = apgi_logger.query_structured_logs(
+            ...     level="ERROR",
+            ...     module="validation",
+            ...     message_contains="failed",
+            ...     limit=100
+            ... )
+        """
+        import json
+
+        results = []
+        structured_log = self.log_files.get("structured")
+
+        if not structured_log or not structured_log.exists():
+            return results
+
+        try:
+            with open(structured_log, "r", encoding="utf-8") as f:
+                for line in f:
+                    if len(results) >= limit:
+                        break
+
+                    try:
+                        entry = json.loads(line.strip())
+
+                        # Apply filters
+                        entry_time = datetime.fromisoformat(
+                            entry["timestamp"].replace("Z", "+00:00")
+                        )
+
+                        if start_time and entry_time < start_time:
+                            continue
+                        if end_time and entry_time > end_time:
+                            continue
+                        if level and entry["level"] != level.upper():
+                            continue
+                        if (
+                            module
+                            and module.lower() not in entry["source"]["module"].lower()
+                        ):
+                            continue
+                        if (
+                            function
+                            and function.lower()
+                            not in entry["source"]["function"].lower()
+                        ):
+                            continue
+                        if (
+                            message_contains
+                            and message_contains.lower() not in entry["message"].lower()
+                        ):
+                            continue
+                        if context_filters:
+                            context = entry.get("context", {})
+                            if not all(
+                                context.get(k) == v for k, v in context_filters.items()
+                            ):
+                                continue
+
+                        results.append(entry)
+
+                    except (json.JSONDecodeError, KeyError, ValueError):
+                        continue
+
+        except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
+            logger.error(f"Error querying structured logs: {e}")
+
+        return results
 
     def log_simulation_start(self, simulation_type: str, parameters: Dict[str, Any]):
         """Log the start of a simulation with parameters."""
@@ -1201,6 +1437,10 @@ class APGILogger:
         """Log an error message."""
         self.logger.error(message, **kwargs)
 
+    def exception(self, message: str, **kwargs):
+        """Log an exception message with traceback."""
+        self.logger.exception(message, **kwargs)
+
     def critical(self, message: str, **kwargs):
         """Log a critical message."""
         self.logger.critical(message, **kwargs)
@@ -1244,7 +1484,29 @@ def log_error(error: Exception, operation: str, **context):
 
 # Decorators for automatic logging
 def log_execution_time(metric_name: str = "execution_time"):
-    """Decorator to automatically log function execution time."""
+    """Decorator to log function execution time as a performance metric.
+
+    This decorator wraps a function and logs its execution time using the
+    APGI logging system. It's useful for performance monitoring and
+    identifying bottlenecks in the codebase.
+
+    Args:
+        metric_name: Name of the performance metric to log (default: "execution_time")
+
+    Returns:
+        Decorator function that wraps the target function
+
+    Example:
+        >>> @log_execution_time("my_function_duration")
+        ... def my_function():
+        ...     time.sleep(1)
+        ...     return "done"
+        >>> my_function()  # Logs execution time to performance metrics
+
+    Note:
+        The decorator uses log_performance() and log_error() internally,
+        so the APGI logging system must be initialized before use.
+    """
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)

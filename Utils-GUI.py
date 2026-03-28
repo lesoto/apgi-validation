@@ -30,8 +30,22 @@ class UtilsRunnerGUI:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("APGI Utils Scripts Runner")
-        self.root.geometry("800x600")
-        self.root.minsize(640, 480)  # Prevent resizing below usable size
+
+        # Responsive window sizing with DPI awareness
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        window_width = min(int(screen_width * 0.7), 1200)
+        window_height = min(int(screen_height * 0.7), 800)
+        window_width = max(window_width, 800)
+        window_height = max(window_height, 600)
+        self.root.geometry(f"{window_width}x{window_height}")
+        self.root.minsize(640, 480)
+
+        # Set window icon
+        self._set_window_icon()
+
+        # Add menu bar for consistency
+        self._create_menu_bar()
 
         # Get utils directory
         self.utils_dir = Path(__file__).parent / "utils"
@@ -62,7 +76,7 @@ class UtilsRunnerGUI:
         self.daemon_threads: List[threading.Thread] = []
 
         # Maximum lines to keep in output to prevent performance issues
-        self.max_output_lines = 2000
+        self.max_output_lines = self._get_configured_buffer_size()
 
         self.setup_ui()
 
@@ -72,6 +86,53 @@ class UtilsRunnerGUI:
 
         # Handle window close button
         self.root.protocol("WM_DELETE_WINDOW", self.quit_application)
+
+    def _get_configured_buffer_size(self) -> int:
+        """Get configured output buffer size from environment or use default."""
+        import os
+
+        env_size = os.environ.get("APGI_GUI_BUFFER_SIZE")
+        if env_size:
+            try:
+                size = int(env_size)
+                if 100 <= size <= 10000:
+                    return size
+            except ValueError:
+                pass
+        return 2000  # Default for Utils-GUI
+
+    def _set_window_icon(self) -> None:
+        """Set application window icon if available."""
+        try:
+            icon_path = Path(__file__).parent / "assets" / "icon.png"
+            if icon_path.exists():
+                from PIL import Image, ImageTk
+
+                img = Image.open(icon_path)
+                photo = ImageTk.PhotoImage(img)
+                self.root.iconphoto(True, photo)
+                self._icon_image = photo  # Keep reference
+            else:
+                # Icon not found, use default tk icon (no warning needed)
+                pass
+        except (IOError, OSError, AttributeError, ImportError) as e:
+            # Icon loading error - use default tk icon with logging
+            if (
+                hasattr(self, "log_output")
+                and self.root
+                and hasattr(self.root, "destroy")
+            ):
+                self.log_output(f"Warning: Icon loading failed: {e}", self.TAG_WARNING)
+            pass  # Use default tk icon
+
+    def _create_menu_bar(self) -> None:
+        """Create menu bar for consistency with Tests-GUI."""
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+        # File menu
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="Quit", command=self.quit_application)
 
     def load_config(self) -> Dict[str, Any]:
         """Load configuration from file or create default.
@@ -123,7 +184,7 @@ class UtilsRunnerGUI:
                     json.dump(default_config, f, indent=2)
                 return default_config
         except Exception as e:
-            self.log_output(f"Warning: Could not load config: {e}", self.TAG_WARNING)
+            self.log_output(f"Error loading config: {e}", self.TAG_WARNING)
             return default_config
 
     def get_script_timeout(self, script_name: str) -> int:
@@ -396,45 +457,83 @@ class UtilsRunnerGUI:
         self.run_script(script, args=args)
 
     def run_all_scripts(self):
-        """Run all scripts sequentially."""
+        """Run all scripts sequentially without blocking GUI.
+
+        Uses fully asynchronous execution with proper
+        thread scheduling to keep UI responsive.
+        """
         if not self.scripts:
             self.log_output("No scripts found", self.TAG_ERROR)
             return
 
-        def run_all():
-            self.progress.start()
-            for i, script in enumerate(self.scripts):
-                self.log_output(
-                    f"Running script {i + 1}/{len(self.scripts)}: {script.name}",
-                    self.TAG_INFO,
-                )
-                self.root.after(
-                    0, lambda: self.scripts_listbox.selection_clear(0, tk.END)
-                )
-                self.root.after(
-                    0, lambda idx=i: self.scripts_listbox.selection_set(idx)
-                )
-                self.root.after(0, lambda idx=i: self.scripts_listbox.see(idx))
+        self.progress.start()
+        self._set_buttons_state(tk.DISABLED)
 
-                success = self.run_script(
-                    script, wait=True, timeout=self.get_script_timeout(script.name)
-                )
-                if not success:
-                    self.log_output(
-                        f"Script {script.name} failed, stopping execution",
-                        self.TAG_ERROR,
-                    )
-                    self.progress.stop()
-                    break
+        # Track completion state
+        completed_count = [0]
+        cancelled = [False]
 
-            self.log_output("All scripts execution completed", self.TAG_SUCCESS)
-            self.update_status("Ready")
-            self.progress.stop()
+        def run_script_async(index):
+            """Run a single script asynchronously."""
+            if cancelled[0] or index >= len(self.scripts):
+                self._finish_run_all()
+                return
 
-        # Run in separate thread to avoid blocking GUI
-        thread = threading.Thread(target=run_all, daemon=True)
-        self.daemon_threads.append(thread)
-        thread.start()
+            script = self.scripts[index]
+            self.log_output(
+                f"Running script {index + 1}/{len(self.scripts)}: {script.name}",
+                self.TAG_INFO,
+            )
+            self.root.after(0, lambda: self.scripts_listbox.selection_clear(0, tk.END))
+            self.root.after(
+                0, lambda idx=index: self.scripts_listbox.selection_set(idx)
+            )
+            self.root.after(0, lambda idx=index: self.scripts_listbox.see(idx))
+
+            # Run without waiting - truly async
+            self.run_script(script, wait=False)
+
+            # Monitor completion and schedule next
+            def monitor_and_continue():
+                process = self.running_processes.get(script.name)
+                if process and process.poll() is None:
+                    # Still running, check again
+                    self.root.after(100, monitor_and_continue)
+                    return
+
+                # Completed - schedule next script
+                completed_count[0] += 1
+                if completed_count[0] < len(self.scripts) and not cancelled[0]:
+                    # Use threading for next script
+                    threading.Thread(
+                        target=run_script_async, args=(completed_count[0],), daemon=True
+                    ).start()
+                else:
+                    self._finish_run_all()
+
+            self.root.after(100, monitor_and_continue)
+
+        def start_run_all():
+            """Start the async chain."""
+            threading.Thread(target=run_script_async, args=(0,), daemon=True).start()
+
+        self.root.after(0, start_run_all)
+
+    def _set_buttons_state(self, state):
+        """Set the state of control buttons."""
+        self.run_button.config(state=state)
+        self.run_args_button.config(state=state)
+        self.run_all_button.config(state=state)
+        self.stop_button.config(
+            state=tk.NORMAL if state == tk.DISABLED else tk.DISABLED
+        )
+
+    def _finish_run_all(self):
+        """Clean up after run_all completes."""
+        self.log_output("All scripts execution completed", self.TAG_SUCCESS)
+        self.update_status("Ready")
+        self.progress.stop()
+        self._set_buttons_state(tk.NORMAL)
 
     def run_script(
         self,
@@ -550,81 +649,163 @@ class UtilsRunnerGUI:
             return False
 
     def _read_output(self, process, script_name):
-        """Read output from subprocess in real-time."""
+        """Read output from subprocess in real-time with improved Windows handling."""
         import time
+        import platform
+        import threading
+        import queue
 
         script_timeout = self.get_script_timeout(script_name)
         start_time = time.time()
 
-        while True:
-            # Wait for output with a short timeout to allow timeout checking
-            import platform
+        # Use a queue for thread-safe communication on Windows
+        output_queue = queue.Queue()
+        reader_thread = None
 
-            if platform.system() == "Windows":
-                # On Windows, select doesn't work on file handles, so poll differently
-
-                time.sleep(0.1)  # Short sleep to prevent busy waiting
+        if platform.system() == "Windows":
+            # On Windows, use a separate thread for reading to avoid blocking
+            def _windows_reader():
                 try:
-                    # Try to read with a non-blocking approach
-                    if hasattr(process.stdout, "readline"):
-                        # Check if data is available by trying a non-blocking read
-                        output = process.stdout.readline()
-                        if output:
-                            ready = True
-                        else:
-                            ready = False
-                    else:
+                    while True:
+                        try:
+                            # Use non-blocking read with timeout
+                            line = process.stdout.readline()
+                            if line:
+                                output_queue.put(line)
+                            else:
+                                # Check if process has ended
+                                if process.poll() is not None:
+                                    break
+                                time.sleep(0.05)  # Short sleep before retry
+                        except (IOError, OSError) as e:
+                            # Don't log every read error, just put in queue
+                            output_queue.put(f"READ_ERROR: {e}")
+                            break
+                except Exception as e:
+                    output_queue.put(f"THREAD_ERROR: {e}")
+
+            reader_thread = threading.Thread(target=_windows_reader, daemon=True)
+            reader_thread.start()
+
+        try:
+            while True:
+                ready = False
+                output = None
+
+                if platform.system() == "Windows" and reader_thread:
+                    # On Windows, read from queue with timeout
+                    try:
+                        output = output_queue.get(timeout=0.1)
+                        ready = True
+                    except queue.Empty:
                         ready = False
-                except (IOError, OSError) as e:
-                    logging.warning(f"Error reading process stdout: {e}")
-                    ready = False
-            else:
-                # On Unix-like systems, use select
-                ready, _, _ = select.select([process.stdout], [], [], 1.0)
+                        # Check if process has ended and thread is done
+                        if process.poll() is not None and not reader_thread.is_alive():
+                            break
+                else:
+                    # On Unix-like systems, use select
+                    try:
+                        ready, _, _ = select.select([process.stdout], [], [], 1.0)
+                    except (ValueError, select.error) as e:
+                        # Handle select errors gracefully
+                        logging.warning(f"Select error: {e}")
+                        ready = False
 
-            if ready:
-                output = process.stdout.readline()
-                if not output and process.poll() is not None:
+                    if ready:
+                        try:
+                            output = process.stdout.readline()
+                        except (IOError, OSError) as e:
+                            logging.warning(f"Error reading process stdout: {e}")
+                            ready = False
+
+                if ready and output:
+                    if isinstance(output, str) and output.startswith(
+                        ("READ_ERROR:", "THREAD_ERROR:")
+                    ):
+                        # Handle reader thread errors
+                        self.log_output(
+                            f"Subprocess reader error: {output}", self.TAG_ERROR
+                        )
+                    elif not output and process.poll() is not None:
+                        break
+                    elif output:
+                        self.log_output(output.strip(), self.TAG_INFO)
+
+                # Check timeout
+                if time.time() - start_time > script_timeout:
+                    self.log_output(
+                        f"Script timeout after {script_timeout} seconds",
+                        self.TAG_ERROR,
+                    )
+                    self._terminate_process(process, script_name)
                     break
-                if output:
-                    self.log_output(output.strip(), self.TAG_INFO)
 
-            # Check timeout even without output
-            if time.time() - start_time > script_timeout:
+                # Check if process has ended
+                if process.poll() is not None:
+                    # Give reader thread a moment to finish
+                    if reader_thread:
+                        reader_thread.join(timeout=0.5)
+                    break
+
+                # Small sleep to prevent busy waiting
+                time.sleep(0.05)
+
+        except Exception as e:
+            logging.error(f"Unexpected error in _read_output: {e}")
+            self.log_output(
+                f"Unexpected error reading script output: {e}", self.TAG_ERROR
+            )
+        finally:
+            # Clean up thread
+            if reader_thread and reader_thread.is_alive():
+                reader_thread.join(timeout=1.0)
+
+            # Get final return code and completion time
+            return_code = process.poll()
+            elapsed_time = time.time() - start_time
+            if return_code == 0:
                 self.log_output(
-                    f"Script timeout after {script_timeout} seconds",
+                    f"✅ {script_name} completed successfully in {elapsed_time:.2f}s",
+                    self.TAG_SUCCESS,
+                )
+            else:
+                self.log_output(
+                    f"❌ {script_name} failed with return code {return_code}",
                     self.TAG_ERROR,
                 )
-                process.terminate()
-                # Wait for graceful termination, then force kill if needed
+
+            # Remove from running processes
+            if script_name in self.running_processes:
+                del self.running_processes[script_name]
+
+            # Re-enable run button if no processes running
+            if not self.running_processes:
+                self.root.after(0, self._update_button_states)
+
+    def _terminate_process(self, process, script_name):
+        """Safely terminate a process with proper cleanup."""
+        try:
+            process.terminate()
+            # Wait for graceful termination
+            try:
+                process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                self.log_output(
+                    "Process did not terminate gracefully, forcing kill",
+                    self.TAG_WARNING,
+                )
+                process.kill()
+                # Final wait for kill to take effect
                 try:
                     process.wait(timeout=2)
                 except subprocess.TimeoutExpired:
                     self.log_output(
-                        "Process did not terminate gracefully, forcing kill",
-                        self.TAG_WARNING,
+                        "Process could not be killed, may be zombie",
+                        self.TAG_ERROR,
                     )
-                    process.kill()
-                break
-
-        # Get final return code
-        return_code = process.poll()
-        if return_code == 0:
-            self.log_output(
-                f"✅ {script_name} completed successfully in {time.time() - start_time:.2f}s",
-                self.TAG_SUCCESS,
-            )
-        else:
-            self.log_output(
-                f"❌ {script_name} failed with return code {return_code}",
-                self.TAG_ERROR,
-            )
-
-        # Remove from running processes
-        if script_name in self.running_processes:
-            del self.running_processes[script_name]
-
-        # Re-enable run button if no processes running
+        except (ProcessLookupError, OSError) as e:
+            # Process already terminated or doesn't exist
+            logging.debug(f"Process termination error (likely already terminated): {e}")
         if not self.running_processes:
             self.root.after(0, self._update_button_states)
 
@@ -721,8 +902,11 @@ class UtilsRunnerGUI:
             if thread.is_alive():
                 try:
                     thread.join(timeout=1.0)  # Wait up to 1 second for thread to finish
-                except Exception:
-                    pass
+                except (RuntimeError, ValueError) as e:
+                    self.log_output(
+                        f"Warning: Thread join error: {e}", self.TAG_WARNING
+                    )
+                    pass  # Thread join error - continue cleanup
         self.daemon_threads.clear()
 
         # Log quit message

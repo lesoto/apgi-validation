@@ -123,8 +123,12 @@ class TestFuzzedJsonValidation:
     @settings(max_examples=50, deadline=None)
     def test_fuzzed_valid_json_content(self, data):
         """Test loading valid but random JSON structures."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            test_file = Path(tmpdir) / "test.json"
+        # Use project-relative temp directory
+        temp_dir = Path(MAIN_PROJECT_ROOT) / "data" / "temp_test"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            test_file = temp_dir / "test.json"
             test_file.write_text(json.dumps(data))
 
             try:
@@ -132,6 +136,12 @@ class TestFuzzedJsonValidation:
                 assert isinstance(result, dict)
             except Exception as e:
                 pytest.fail(f"Valid JSON should load: {e}")
+        finally:
+            # Cleanup
+            import shutil
+
+            if temp_dir.exists():
+                shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_json_with_circular_references(self):
         """Test that circular reference detection works."""
@@ -148,13 +158,30 @@ class TestFuzzedJsonValidation:
 
     def test_json_with_oversized_content(self):
         """Test handling of extremely large JSON files."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            test_file = Path(tmpdir) / "large.json"
-            # Create a 100MB JSON file
+        # Use project-relative temp directory
+        temp_dir = Path(MAIN_PROJECT_ROOT) / "data" / "temp_test_large"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            test_file = temp_dir / "large.json"
+            # Create data that exceeds 100MB limit
             large_data = {"data": "x" * (100 * 1024 * 1024)}
 
-            with pytest.raises((OSError, MemoryError, ValueError)):
+            # First, try to write the file - this may fail due to memory
+            try:
                 test_file.write_text(json.dumps(large_data))
+            except (OSError, MemoryError):
+                pytest.skip("Cannot create large test file due to memory constraints")
+
+            # Then, verify that loading it raises ValueError for file too large
+            with pytest.raises(ValueError, match="File too large"):
+                secure_load_json(test_file)
+        finally:
+            # Cleanup
+            import shutil
+
+            if temp_dir.exists():
+                shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 class TestFuzzedEnvironmentVariables:

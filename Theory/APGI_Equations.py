@@ -3584,13 +3584,17 @@ def _check_ignition_system() -> bool:
             Pi_i_baseline=2.0, M=0.5, beta=1.0
         )
         expected = 2.0 * np.exp(1.0 * 0.5)
-        assert np.isclose(Pi_i_eff, expected)
+        assert np.isclose(
+            Pi_i_eff, expected
+        ), f"Effective precision incorrect: {Pi_i_eff} vs expected {expected}"
         print("   Effective precision: ✓")
 
         # Test ignition probability
         P = ignition.ignition_probability(S=2.0, theta=1.0, alpha=5.0)
         expected = 1.0 / (1.0 + np.exp(-5.0 * 1.0))
-        assert abs(P - expected) < 1e-6, "Ignition probability incorrect"
+        assert (
+            abs(P - expected) < 1e-6
+        ), f"Ignition probability incorrect: {P} vs expected {expected}"
         print("   Ignition probability: ✓")
 
         return True
@@ -3616,7 +3620,7 @@ def _check_dynamical_system() -> bool:
             sigma_S=0.05,
             dt=0.01,
         )
-        assert S_new >= 0.0, "Signal dynamics produced negative value"
+        assert S_new >= 0.0, f"Signal dynamics produced negative value: {S_new}"
         print("   Signal dynamics: ✓")
 
         # Test threshold dynamics
@@ -3633,7 +3637,9 @@ def _check_dynamical_system() -> bool:
             sigma_theta=0.02,
             dt=0.01,
         )
-        assert theta_new > 0.0, "Threshold dynamics produced non-positive value"
+        assert (
+            theta_new > 0.0
+        ), f"Threshold dynamics produced non-positive value: {theta_new}"
         print("   Threshold dynamics: ✓")
 
         # Test somatic marker dynamics
@@ -3647,21 +3653,21 @@ def _check_dynamical_system() -> bool:
             sigma_M=0.02,
             dt=0.01,
         )
-        assert -2.0 <= M_new <= 2.0, "Somatic marker out of range"
+        assert -2.0 <= M_new <= 2.0, f"Somatic marker out of range: {M_new}"
         print("   Somatic marker dynamics: ✓")
 
         # Test arousal dynamics
         A_new = dynamics.arousal_dynamics(
             A=0.5, A_target=0.7, tau_A=0.2, sigma_A=0.01, dt=0.01
         )
-        assert 0.0 <= A_new <= 1.0, "Arousal out of range"
+        assert 0.0 <= A_new <= 1.0, f"Arousal out of range: {A_new}"
         print("   Arousal dynamics: ✓")
 
         # Test precision dynamics
         Pi_new = dynamics.precision_dynamics(
             Pi=1.0, Pi_target=1.5, alpha_Pi=0.1, sigma_Pi=0.01, dt=0.01
         )
-        assert Pi_new > 0.0, "Precision non-positive"
+        assert Pi_new > 0.0, f"Precision non-positive: {Pi_new}"
         print("   Precision dynamics: ✓")
 
         return True
@@ -3700,13 +3706,13 @@ def _check_derived_quantities():
 
         # Test latency to ignition
         t_star = derived.latency_to_ignition(S_0=0.5, theta=1.0, I=0.5, tau_S=0.35)
-        assert t_star >= 0.0, "Latency negative"
+        assert t_star >= 0.0, f"Latency negative: {t_star}"
         print("   Latency to ignition: ✓")
 
         # Test metabolic cost
         S_history = np.array([0.5, 1.0, 1.5, 2.0])
         cost = derived.metabolic_cost(S_history, dt=0.01)
-        assert cost >= 0.0, "Metabolic cost negative"
+        assert cost >= 0.0, f"Metabolic cost negative: {cost}"
         print("   Metabolic cost: ✓")
 
         return True

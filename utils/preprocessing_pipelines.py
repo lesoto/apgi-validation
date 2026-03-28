@@ -1108,7 +1108,7 @@ class MultimodalPreprocessingPipeline:
     def run_complete_pipeline(
         self,
         input_file: Union[str, Path],
-        output_dir: Union[str, Path] = "data/processed",
+        output_dir: Union[str, Path] = "data_repository/processed",
         sampling_rate: Optional[float] = None,
         show_progress: bool = True,
     ) -> Dict[str, Any]:
@@ -1226,7 +1226,7 @@ def main():
     pipeline = MultimodalPreprocessingPipeline(config)
 
     # Process demo data
-    demo_file = Path("data/demo_demo.csv")
+    demo_file = Path("data_repository/demo_demo.csv")
     if demo_file.exists():
         print(f"Processing demo file: {demo_file.name}")
 

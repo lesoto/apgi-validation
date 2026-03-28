@@ -136,8 +136,9 @@ class CrossSpeciesScaling:
             "b_hierarchy": 1.2,  # Reduced baseline hierarchical levels
             "a_timescale": 0.08,  # Reduced scaling for intrinsic timescales
             "b_timescale": 0.02,  # Reduced baseline timescale (seconds)
-            "c_complexity": 1.5,  # Reduced complexity exponent
-            "d_connectivity": 0.4,  # Reduced connectivity scaling
+            "c_complexity": 0.9,  # Further reduced complexity exponent (was 1.5)
+            "d_connectivity": 0.35,  # Reduced connectivity scaling (was 0.4)
+            "normalization_k": 6.0,  # Increased normalization denominator (was 2.5)
         }
 
         # Hierarchical processing levels (estimated from empirical data)
@@ -286,8 +287,9 @@ class CrossSpeciesScaling:
             * connectivity_factor ** self.params["d_connectivity"]
         )
 
-        # Normalize to reasonable PCI range (0-1)
-        pci = pci / (pci + 2.5)  # Sigmoid-like normalization
+        # Normalize to reasonable PCI range (0-1) using configurable denominator
+        normalization_k = self.params.get("normalization_k", 6.0)
+        pci = pci / (pci + normalization_k)  # Sigmoid-like normalization
 
         return np.clip(pci, 0.0, 1.0)
 
@@ -326,7 +328,9 @@ class CrossSpeciesScaling:
         weights = 1.0 / (
             errors**2 + 1e-8
         )  # Add small epsilon to avoid division issues
-        weighted_mean = np.sum(observations * weights) / np.sum(weights)
+        # Normalize weights to prevent numerical instability
+        weights = weights / np.sum(weights)
+        weighted_mean = np.sum(observations * weights)
 
         ss_res = np.sum(weights * residuals**2)
         ss_tot = np.sum(weights * (observations - weighted_mean) ** 2)

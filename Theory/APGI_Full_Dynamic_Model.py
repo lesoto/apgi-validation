@@ -386,7 +386,9 @@ class APGIFullDynamicModel:
         try:
             # Use nolds.dfa for robust Hurst exponent estimation
             H = nolds.dfa(time_series)
-            return float(np.clip(H, 0.0, 1.0))
+            # Allow H > 1.0 for super-persistent correlations
+            # H > 1.0 indicates strong deterministic trends (structured stimuli)
+            return float(H)
         except Exception:
             # Fallback to simple R/S analysis if DFA fails
             return self._hurst_rs_fallback(time_series)
@@ -449,20 +451,27 @@ class APGIFullDynamicModel:
                 H_windows.append(H_window)
 
             variance_H = np.var(H_windows) if H_windows else 0.0
+            variance_H_available = True
         else:
-            variance_H = 0.0
+            variance_H = 0.0  # Placeholder value
+            variance_H_available = (
+                False  # Insufficient data for sliding window analysis
+            )
 
         # Clinical interpretation based on document specifications
+        # For ADHD detection, require valid variance_H
         if H_global > 0.55:
-            if variance_H > 0.02:  # High variance suggests ADHD
-                interpretation = "elevated_H_variance_AHDH"
+            if (
+                variance_H_available and variance_H > 0.02
+            ):  # High variance suggests ADHD
+                interpretation = "elevated_H_variance_ADHD"
             else:
                 interpretation = "healthy_persistent"
         elif H_global < 0.45:
             interpretation = "depression_reduced_H"
         else:
-            if variance_H > 0.02:
-                interpretation = "borderline_high_variance_AHDH"
+            if variance_H_available and variance_H > 0.02:
+                interpretation = "borderline_high_variance_ADHD"
             else:
                 interpretation = "borderline_random_walk"
 
@@ -487,7 +496,8 @@ class APGIFullDynamicModel:
 
         results = {
             "hurst_exponent": H_global,
-            "variance_h": variance_H,
+            "variance_h": variance_H if variance_H_available else None,
+            "variance_h_available": variance_H_available,
             "clinical_interpretation": interpretation,
         }
 
@@ -950,7 +960,12 @@ if __name__ == "__main__":
     )
 
     print(f"Hurst Exponent (DFA): {biomarker_results['hurst_exponent']:.3f}")
-    print(f"H Variance (ADHD marker): {biomarker_results['variance_h']:.4f}")
+    if biomarker_results.get("variance_h_available", False):
+        print(f"H Variance (ADHD marker): {biomarker_results['variance_h']:.4f}")
+    else:
+        print(
+            "H Variance (ADHD marker): N/A - insufficient data for sliding window analysis"
+        )
     print(f"Clinical Interpretation: {biomarker_results['clinical_interpretation']}")
 
     if "hurst_near_threshold" in biomarker_results:

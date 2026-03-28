@@ -472,6 +472,7 @@ def analyze_profile_likelihood(
     param_bounds: Dict[str, Tuple[float, float]],
     n_points: int = 50,
     n_trials: int = 1000,
+    confidence_level: float = 0.95,
 ) -> Dict[str, Any]:
     """
     Profile likelihood analysis for practical identifiability testing.
@@ -479,6 +480,8 @@ def analyze_profile_likelihood(
     For each parameter, fix all other parameters at their baseline values and
     vary the target parameter across its plausible range to examine the likelihood profile.
     Flat profiles indicate non-identifiable parameters.
+
+    Per F8.PL: Profile likelihood CI must be finite for all core parameters.
 
     Parameters:
     -----------
@@ -490,6 +493,8 @@ def analyze_profile_likelihood(
         Number of points to evaluate for each parameter profile
     n_trials : int
         Number of simulation trials per evaluation
+    confidence_level : float
+        Confidence level for CI calculation (default 0.95)
 
     Returns:
     --------
@@ -511,6 +516,7 @@ def analyze_profile_likelihood(
         }
 
     profile_results = {}
+    chi2_threshold = 3.84  # Chi-square threshold for 95% CI (df=1)
 
     for param_name in available_params:
         logger.info(f"Computing profile likelihood for {param_name}...")
@@ -522,6 +528,7 @@ def analyze_profile_likelihood(
         # Evaluate likelihood at each parameter value
         likelihood_values: List[float] = []
         performance_values: List[float] = []
+        performance_stds: List[float] = []
 
         for param_value in param_range:
             # Create parameter set with current parameter varied
@@ -536,19 +543,58 @@ def analyze_profile_likelihood(
 
             # Calculate mean performance and likelihood
             mean_performance = np.mean(trial_performances)
+            std_performance = np.std(trial_performances)
             performance_values.append(mean_performance)
+            performance_stds.append(std_performance)
 
-            # Simple likelihood model: assume performance follows normal distribution
-            # with mean based on parameter value and constant variance
-            # Higher performance = higher likelihood
-            # Use exponential likelihood: L ∝ exp(performance)
-            likelihood = np.exp(mean_performance)  # Simple likelihood model
+            # Proper likelihood calculation using normal distribution
+            # L(θ) ∝ exp(-Σ(y_i - μ(θ))² / (2σ²))
+            # For our purposes, we use the performance as proxy for fit quality
+            # Higher performance = better fit = higher likelihood
+            variance = max(std_performance**2, 1e-10)  # Avoid division by zero
+            # Use Gaussian log-likelihood approximation
+            log_likelihood = -0.5 * np.sum(
+                [(p - mean_performance) ** 2 / variance for p in trial_performances]
+            )
+            likelihood = np.exp(log_likelihood / n_trials)  # Normalize by n_trials
             likelihood_values.append(likelihood)
 
         # Normalize likelihood to [0, 1] for easier interpretation
         likelihood_values = np.array(likelihood_values)
-        if np.max(likelihood_values) > 0:
-            likelihood_values = likelihood_values / np.max(likelihood_values)
+        if np.max(likelihood_values) > np.min(likelihood_values):
+            likelihood_values = (likelihood_values - np.min(likelihood_values)) / (
+                np.max(likelihood_values) - np.min(likelihood_values)
+            )
+        else:
+            likelihood_values = np.ones_like(likelihood_values) * 0.5
+
+        # Find maximum likelihood estimate (MLE)
+        peak_idx = np.argmax(likelihood_values)
+        peak_value = likelihood_values[peak_idx]
+        peak_param_value = param_range[peak_idx]
+
+        # Calculate confidence interval using likelihood ratio test
+        # CI: {θ : 2[ln L(θ̂) - ln L(θ)] ≤ χ²(1-α, df=1)}
+        threshold_likelihood = peak_value * np.exp(-chi2_threshold / 2)
+
+        # Find CI bounds
+        ci_indices = np.where(likelihood_values >= threshold_likelihood)[0]
+        if len(ci_indices) > 0:
+            ci_lower = param_range[ci_indices[0]]
+            ci_upper = param_range[ci_indices[-1]]
+            ci_finite = True
+            ci_width = ci_upper - ci_lower
+        else:
+            ci_lower = float("-inf")
+            ci_upper = float("inf")
+            ci_finite = False
+            ci_width = float("inf")
+
+        # Relative CI width (normalized by parameter range)
+        param_range_width = max_val - min_val
+        relative_ci_width = (
+            ci_width / param_range_width if param_range_width > 0 else float("inf")
+        )
 
         # Calculate profile characteristics
         # 1. Profile flatness (lower = more flat = less identifiable)
@@ -565,12 +611,9 @@ def analyze_profile_likelihood(
             relative_width = profile_width / (max_val - min_val)
         else:
             profile_width = 0
-            relative_width = 0
+            relative_width = 1.0  # Full range = non-identifiable
 
         # 3. Peak sharpness (higher = more identifiable)
-        peak_idx = np.argmax(likelihood_values)
-        peak_value = likelihood_values[peak_idx]
-
         # Calculate local curvature around peak (second derivative approximation)
         if 1 < peak_idx < len(likelihood_values) - 1:
             left_diff = likelihood_values[peak_idx] - likelihood_values[peak_idx - 1]
@@ -579,15 +622,17 @@ def analyze_profile_likelihood(
         else:
             curvature = 0
 
-        # 4. Identifiability assessment
-        # Combine multiple metrics for robust assessment
-        flatness_score = 1.0 - likelihood_range  # Higher = less flat
-        width_score = 1.0 - relative_width  # Higher = narrower (better)
-        curvature_score = min(curvature * 10, 1.0)  # Scale and cap at 1
+        # 4. Identifiability assessment per F8.PL
+        # Criterion: CI must be finite AND relative width < 80% of range
+        is_identifiable = ci_finite and relative_ci_width < 0.8
 
-        identifiability_score = (flatness_score + width_score + curvature_score) / 3
+        # Classify identifiability based on multiple metrics
+        identifiability_score = 0.0
+        if ci_finite:
+            identifiability_score += 0.4 * (1.0 - min(relative_ci_width, 1.0))
+        identifiability_score += 0.3 * likelihood_range
+        identifiability_score += 0.3 * (1.0 - min(relative_width, 1.0))
 
-        # Classify identifiability
         if identifiability_score > 0.7:
             identifiability_class = "HIGH"
         elif identifiability_score > 0.4:
@@ -602,49 +647,82 @@ def analyze_profile_likelihood(
             "param_range": param_range.tolist(),
             "likelihood_values": likelihood_values.tolist(),
             "performance_values": performance_values,
-            "peak_parameter_value": float(param_range[peak_idx]),
+            "performance_stds": performance_stds,
+            "peak_parameter_value": float(peak_param_value),
             "peak_likelihood": float(peak_value),
             "likelihood_range": float(likelihood_range),
             "profile_width": float(profile_width),
             "relative_width": float(relative_width),
             "curvature": float(curvature),
+            "ci_lower": float(ci_lower),
+            "ci_upper": float(ci_upper),
+            "ci_width": float(ci_width),
+            "ci_finite": ci_finite,
+            "relative_ci_width": float(relative_ci_width),
             "identifiability_score": float(identifiability_score),
             "identifiability_class": identifiability_class,
             "is_flat_profile": is_flat_profile,
-            "is_identifiable": not is_flat_profile and identifiability_score > 0.3,
+            "is_identifiable": is_identifiable,
             "n_points": n_points,
             "n_trials": n_trials,
         }
 
-    # Summary statistics
+    # Summary statistics per F8.PL
     identifiable_params = [
         p for p, results in profile_results.items() if results["is_identifiable"]
     ]
     flat_profile_params = [
         p for p, results in profile_results.items() if results["is_flat_profile"]
     ]
+    non_finite_ci_params = [
+        p for p, results in profile_results.items() if not results["ci_finite"]
+    ]
+
+    # F8.PL falsification check
+    # Criterion: Profile likelihood CI finite for all core parameters
+    all_cis_finite = len(non_finite_ci_params) == 0
+    all_params_identifiable = len(identifiable_params) == len(available_params)
 
     summary = {
         "profile_likelihood": True,
         "parameters_analyzed": available_params,
         "n_identifiable": len(identifiable_params),
         "n_flat_profiles": len(flat_profile_params),
+        "n_non_finite_ci": len(non_finite_ci_params),
         "identifiable_params": identifiable_params,
         "flat_profile_params": flat_profile_params,
+        "non_finite_ci_params": non_finite_ci_params,
         "overall_identifiability_rate": len(identifiable_params)
         / len(available_params),
+        "all_cis_finite": all_cis_finite,
+        "all_params_identifiable": all_params_identifiable,
         "profile_results": profile_results,
     }
 
-    # Add falsification criterion
-    # If any core parameter is non-identifiable, this is a falsification signal
+    # Add falsification criterion F8.PL
+    # If any core parameter has non-finite CI or is non-identifiable, this is a falsification signal
     summary["identifiability_falsification"] = {
-        "falsified": len(flat_profile_params) > 0,
+        "falsified": not all_params_identifiable or not all_cis_finite,
         "falsification_reason": (
-            f"Non-identifiable core parameters: {flat_profile_params}"
-            if flat_profile_params
-            else "All core parameters are identifiable"
+            f"Non-identifiable core parameters: {flat_profile_params}; "
+            f"Non-finite CI: {non_finite_ci_params}"
+            if (flat_profile_params or non_finite_ci_params)
+            else "All core parameters are identifiable with finite CIs"
         ),
+        "all_cis_finite": all_cis_finite,
+        "all_params_identifiable": all_params_identifiable,
+    }
+
+    # F8.PL specific criterion result
+    summary["F8_PL_result"] = {
+        "criterion": "Profile likelihood CI finite for all core parameters",
+        "passed": all_cis_finite and all_params_identifiable,
+        "threshold": "CI finite AND relative width < 80%",
+        "details": {
+            "params_checked": available_params,
+            "params_passed": identifiable_params,
+            "params_failed": list(set(available_params) - set(identifiable_params)),
+        },
     }
 
     return summary
@@ -653,72 +731,152 @@ def analyze_profile_likelihood(
 def analyze_fisher_information_matrix(
     base_params: Dict[str, float],
     param_bounds: Dict[str, Tuple[float, float]],
-    epsilon: float = 1e-6,
+    epsilon: float = 1e-4,
+    n_trials_per_eval: int = 200,
 ) -> Dict[str, Any]:
     """
-    Fisher Information Matrix analysis for identifiability.
+    Fisher Information Matrix analysis for structural identifiability.
     Calculates the FIM to assess parameter identifiability.
+
+    Per F8.FIM: FIM must be positive definite (all eigenvalues > 0).
+
+    Parameters:
+    -----------
+    base_params : dict
+        Baseline parameter values
+    param_bounds : dict
+        Parameter bounds for numerical differentiation reference
+    epsilon : float
+        Step size for numerical differentiation (default 1e-4 for noisy simulations)
+    n_trials_per_eval : int
+        Number of trials for each performance evaluation to reduce noise
+
+    Returns:
+    --------
+    dict
+        FIM analysis results with eigenvalue analysis and identifiability assessment
     """
     logger.info("Analyzing Fisher Information Matrix...")
 
-    param_names = list(base_params.keys())
+    # Focus on core APGI parameters
+    core_params = ["theta_0", "alpha", "beta", "Pi_i", "Pi_e"]
+    available_params = [p for p in core_params if p in base_params]
+    param_names = available_params
     n_params = len(param_names)
 
-    # Calculate numerical gradients
+    if n_params == 0:
+        return {
+            "fim_analysis": False,
+            "error": "No core parameters available for FIM analysis",
+        }
+
+    # Calculate numerical gradients with multiple evaluations for robustness
     gradients = []
+    gradient_variances = []
 
     for param in param_names:
-        # Forward difference
-        params_plus = base_params.copy()
-        params_plus[param] += epsilon
-        perf_plus = simulate_model_performance_with_agent(params_plus, n_trials=100)
+        # Multiple evaluations for robust gradient estimation
+        gradient_samples = []
 
-        # Backward difference
-        params_minus = base_params.copy()
-        params_minus[param] -= epsilon
-        perf_minus = simulate_model_performance_with_agent(params_minus, n_trials=100)
+        for _ in range(5):  # 5 independent gradient estimates
+            # Forward difference
+            params_plus = base_params.copy()
+            params_plus[param] += epsilon
+            perf_plus = simulate_model_performance_with_agent(
+                params_plus, n_trials=n_trials_per_eval
+            )
 
-        # Central difference gradient
-        gradient = (perf_plus - perf_minus) / (2 * epsilon)
+            # Backward difference
+            params_minus = base_params.copy()
+            params_minus[param] -= epsilon
+            perf_minus = simulate_model_performance_with_agent(
+                params_minus, n_trials=n_trials_per_eval
+            )
+
+            # Central difference gradient
+            gradient_sample = (perf_plus - perf_minus) / (2 * epsilon)
+            gradient_samples.append(gradient_sample)
+
+        # Use median gradient for robustness against outliers
+        gradient = float(np.median(gradient_samples))
+        gradient_var = float(np.var(gradient_samples))
         gradients.append(gradient)
+        gradient_variances.append(gradient_var)
 
-    # Calculate Fisher Information Matrix
-    # For scalar output, FIM = (∂f/∂θ)^T * (∂f/∂θ)
+    gradients = np.array(gradients)
+
+    # Calculate Fisher Information Matrix with regularization
+    # FIM = (∂f/∂θ)^T * (∂f/∂θ) for scalar output
     fim = np.outer(gradients, gradients)
 
+    # Add small regularization for numerical stability
+    reg_lambda = 1e-8
+    fim_reg = fim + reg_lambda * np.eye(n_params)
+
     # Calculate eigenvalues and eigenvectors
-    eigenvalues, eigenvectors = np.linalg.eig(fim)
+    try:
+        eigenvalues, eigenvectors = np.linalg.eig(fim_reg)
+        # Sort by descending eigenvalue
+        idx = eigenvalues.argsort()[::-1]
+        eigenvalues = eigenvalues[idx].real  # Take real part
+        eigenvectors = eigenvectors[:, idx].real
+    except np.linalg.LinAlgError:
+        logger.error("Failed to compute eigenvalues - FIM may be singular")
+        eigenvalues = np.zeros(n_params)
+        eigenvectors = np.eye(n_params)
 
     # Calculate parameter sensitivities (diagonal elements)
     param_sensitivities = {
-        param: float(fim[i, i]) for i, param in enumerate(param_names)
+        param: float(fim_reg[i, i]) for i, param in enumerate(param_names)
     }
 
-    # Assess identifiability
-    # Small eigenvalues indicate non-identifiable parameter combinations
-    min_eigenvalue = np.min(eigenvalues)
-    condition_number = (
-        np.max(eigenvalues) / np.min(eigenvalues)
-        if min_eigenvalue > 0
-        else float("inf")
-    )
+    # Assess identifiability per F8.FIM
+    # Criterion: All eigenvalues > 0 (positive definite)
+    eigenvalue_threshold = 1e-10  # Threshold for numerical precision
+    positive_eigenvalues = [e for e in eigenvalues if e > eigenvalue_threshold]
+    non_positive_eigenvalues = [e for e in eigenvalues if e <= eigenvalue_threshold]
 
-    # Identify non-identifiable parameters
+    min_eigenvalue = float(np.min(eigenvalues)) if len(eigenvalues) > 0 else 0.0
+    max_eigenvalue = float(np.max(eigenvalues)) if len(eigenvalues) > 0 else 0.0
+
+    # Condition number (ratio of max to min eigenvalue)
+    if min_eigenvalue > eigenvalue_threshold:
+        condition_number = max_eigenvalue / min_eigenvalue
+    else:
+        condition_number = float("inf")
+
+    # Identify non-identifiable parameters based on eigenvalues and diagonal elements
+    # Parameters with very small FIM diagonal elements are non-identifiable
     threshold = 1e-6
     non_identifiable_params = []
     weakly_identifiable_params = []
 
     for i, param in enumerate(param_names):
-        if fim[i, i] < threshold:
+        if fim_reg[i, i] < threshold:
             non_identifiable_params.append(param)
-        elif fim[i, i] < 10 * threshold:
+        elif fim_reg[i, i] < 10 * threshold:
             weakly_identifiable_params.append(param)
+
+    # Also check eigenvalue participation (which parameters contribute to small eigenvalues)
+    if len(positive_eigenvalues) < n_params:
+        # Find parameters associated with small eigenvalues
+        for i, eval_idx in enumerate(idx):
+            if eigenvalues[i] < eigenvalue_threshold:
+                # Find dominant contributors to this eigenvector
+                contrib = np.abs(eigenvectors[:, i])
+                dominant_param_idx = np.argmax(contrib)
+                dominant_param = param_names[dominant_param_idx]
+                if dominant_param not in non_identifiable_params:
+                    weakly_identifiable_params.append(dominant_param)
+
+    # Remove duplicates while preserving order
+    weakly_identifiable_params = list(dict.fromkeys(weakly_identifiable_params))
 
     # Calculate confidence intervals (approximate)
     confidence_intervals = {}
     for i, param in enumerate(param_names):
-        if fim[i, i] > 0:
-            std_error = np.sqrt(1 / fim[i, i])
+        if fim_reg[i, i] > 0:
+            std_error = np.sqrt(1 / fim_reg[i, i])
             ci_95 = 1.96 * std_error
             confidence_intervals[param] = {
                 "std_error": float(std_error),
@@ -734,18 +892,68 @@ def analyze_fisher_information_matrix(
                 "relative_ci": float("inf"),
             }
 
-    return {
+    # F8.FIM specific assessment
+    all_eigenvalues_positive = len(positive_eigenvalues) == n_params
+    no_non_identifiable = len(non_identifiable_params) == 0
+
+    # Overall identifiability score
+    identifiability_score = 1.0 - (len(non_identifiable_params) / n_params)
+    if condition_number < 1e6:
+        identifiability_score *= 1.0
+    elif condition_number < 1e10:
+        identifiability_score *= 0.8
+    else:
+        identifiability_score *= 0.5
+
+    results = {
         "fim_analysis": True,
-        "fisher_information_matrix": fim.tolist(),
+        "fisher_information_matrix": fim_reg.tolist(),
         "eigenvalues": eigenvalues.tolist(),
+        "eigenvectors": eigenvectors.tolist(),
         "condition_number": float(condition_number),
-        "min_eigenvalue": float(min_eigenvalue),
+        "min_eigenvalue": min_eigenvalue,
+        "max_eigenvalue": max_eigenvalue,
+        "n_positive_eigenvalues": len(positive_eigenvalues),
+        "n_non_positive_eigenvalues": len(non_positive_eigenvalues),
         "param_sensitivities": param_sensitivities,
         "non_identifiable_params": non_identifiable_params,
         "weakly_identifiable_params": weakly_identifiable_params,
         "confidence_intervals": confidence_intervals,
-        "identifiability_score": 1.0 - (len(non_identifiable_params) / n_params),
+        "identifiability_score": float(identifiability_score),
+        "gradients": {p: float(g) for p, g in zip(param_names, gradients)},
+        "gradient_variances": {
+            p: float(v) for p, v in zip(param_names, gradient_variances)
+        },
+        "epsilon_used": epsilon,
+        "n_trials_per_eval": n_trials_per_eval,
     }
+
+    # F8.FIM falsification check
+    results["fim_falsification"] = {
+        "falsified": not all_eigenvalues_positive or not no_non_identifiable,
+        "falsification_reason": (
+            f"Non-positive eigenvalues: {non_positive_eigenvalues}; "
+            f"Non-identifiable params: {non_identifiable_params}"
+            if (non_positive_eigenvalues or non_identifiable_params)
+            else "FIM is positive definite - all parameters structurally identifiable"
+        ),
+        "all_eigenvalues_positive": all_eigenvalues_positive,
+        "no_non_identifiable_params": no_non_identifiable,
+    }
+
+    # F8.FIM specific criterion result
+    results["F8_FIM_result"] = {
+        "criterion": "FIM positive definite (all eigenvalues > 0)",
+        "passed": all_eigenvalues_positive and min_eigenvalue > eigenvalue_threshold,
+        "threshold": f"all eigenvalues > {eigenvalue_threshold}",
+        "details": {
+            "min_eigenvalue": min_eigenvalue,
+            "n_eigenvalues": n_params,
+            "n_positive": len(positive_eigenvalues),
+        },
+    }
+
+    return results
 
 
 def analyze_sobol_sensitivity(
@@ -931,6 +1139,70 @@ def analyze_sobol_sensitivity(
                 "falsification_reason": "Insufficient parameters to test hierarchy",
             }
 
+        # F8.SA: Sobol indices check - β and Πⁱ must account for >50% total sensitivity
+        # Calculate combined sensitivity for interoceptive precision parameters
+        f8_sa_params = ["beta", "Pi_i"]
+        available_f8_sa_params = [p for p in f8_sa_params if p in param_bounds.keys()]
+
+        if len(available_f8_sa_params) >= 1:
+            # Calculate total sensitivity across all parameters (sum of ST indices)
+            total_sensitivity = np.sum(st_indices)
+
+            # Calculate combined sensitivity for β and Πⁱ
+            f8_sa_combined_sensitivity = 0.0
+            f8_sa_individual = {}
+
+            for param in available_f8_sa_params:
+                idx = list(param_bounds.keys()).index(param)
+                st_value = float(st_indices[idx])
+                s1_value = float(Si["S1"][idx])
+                f8_sa_combined_sensitivity += st_value
+                f8_sa_individual[param] = {
+                    "ST": st_value,
+                    "S1": s1_value,
+                    "contribution_pct": (st_value / total_sensitivity * 100)
+                    if total_sensitivity > 0
+                    else 0,
+                }
+
+            # Calculate percentage of total sensitivity
+            f8_sa_contribution_pct = (
+                (f8_sa_combined_sensitivity / total_sensitivity * 100)
+                if total_sensitivity > 0
+                else 0
+            )
+
+            # F8.SA threshold: β + Πⁱ must account for >50% of total sensitivity
+            f8_sa_threshold = 0.50
+            f8_sa_passed = f8_sa_contribution_pct > (f8_sa_threshold * 100)
+
+            results["F8_SA_result"] = {
+                "criterion": "Sobol indices: β, Πⁱ account for >50% total sensitivity",
+                "passed": f8_sa_passed,
+                "threshold": f">{f8_sa_threshold * 100}%",
+                "combined_sensitivity": float(f8_sa_combined_sensitivity),
+                "total_sensitivity": float(total_sensitivity),
+                "contribution_percentage": float(f8_sa_contribution_pct),
+                "individual_params": f8_sa_individual,
+                "params_checked": available_f8_sa_params,
+            }
+
+            # Add F8.SA to falsification criteria
+            results["falsification_criteria"]["F8_SA"] = {
+                "falsified": not f8_sa_passed,
+                "falsification_reason": (
+                    f"β + Πⁱ contribution ({f8_sa_contribution_pct:.1f}%) below threshold ({f8_sa_threshold * 100}%)"
+                    if not f8_sa_passed
+                    else f"β + Πⁱ contribution ({f8_sa_contribution_pct:.1f}%) exceeds threshold ({f8_sa_threshold * 100}%)"
+                ),
+            }
+        else:
+            results["F8_SA_result"] = {
+                "criterion": "Sobol indices: β, Πⁱ account for >50% total sensitivity",
+                "passed": False,
+                "reason": "Required parameters (beta, Pi_i) not available in parameter bounds",
+            }
+
         # Additional sensitivity analysis
         results["sensitivity_summary"] = {
             "high_sensitivity_params": [
@@ -1013,6 +1285,9 @@ def generate_comprehensive_sensitivity_report(
                 report += f"Redundant Core Parameters: {fc['redundant_params']}\n"
             if fc["borderline_params"]:
                 report += f"Borderline Parameters: {fc['borderline_params']}\n"
+            # F8.SA specific
+            if "F8_SA" in fc:
+                report += f"\nF8.SA (Sobol Sensitivity): {fc['F8_SA']['falsification_reason']}\n"
 
         # Sensitivity summary
         if "sensitivity_summary" in sobol_results:
@@ -1287,7 +1562,7 @@ def run_comprehensive_parameter_sensitivity_analysis() -> Dict[str, Any]:
     # 6. Fisher Information Matrix analysis
     logger.info("Running Fisher Information Matrix analysis...")
     fim_results = analyze_fisher_information_matrix(
-        base_params, param_bounds, epsilon=1e-6
+        base_params, param_bounds, epsilon=1e-4, n_trials_per_eval=200
     )
     results["fisher_information_matrix"] = fim_results
 
@@ -1329,12 +1604,47 @@ def run_comprehensive_parameter_sensitivity_analysis() -> Dict[str, Any]:
     )
     results["comprehensive_report"] = report
 
-    # 11. Summary statistics
+    # 11. Summary statistics with comprehensive F8 criteria tracking
+    # F8.PL: Profile likelihood CI finite
+    f8_pl_passed = profile_likelihood_results.get("F8_PL_result", {}).get(
+        "passed", False
+    )
+
+    # F8.FIM: All eigenvalues > 0
+    f8_fim_passed = fim_results.get("F8_FIM_result", {}).get("passed", False)
+
+    # F8.SA: β + Πⁱ > 50% sensitivity
+    f8_sa_passed = sobol_results.get("F8_SA_result", {}).get("passed", False)
+
+    # Overall F8 pass status
+    all_f8_passed = f8_pl_passed and f8_fim_passed and f8_sa_passed
+
     results["summary_statistics"] = {
         "total_parameters_analyzed": len(base_params),
         "high_sensitivity_params": len(
             [p for p, r in oat_results.items() if r["sensitivity"] > 0.1]
         ),
+        # F8 Criteria Summary
+        "F8_criteria": {
+            "all_passed": all_f8_passed,
+            "F8_PL_profile_likelihood": {
+                "passed": f8_pl_passed,
+                "description": "Profile likelihood CI finite for all core parameters",
+            },
+            "F8_FIM_eigenvalues": {
+                "passed": f8_fim_passed,
+                "description": "FIM positive definite (all eigenvalues > 0)",
+                "min_eigenvalue": fim_results.get("min_eigenvalue", 0),
+            },
+            "F8_SA_sobol": {
+                "passed": f8_sa_passed,
+                "description": "β + Πⁱ account for >50% total sensitivity",
+                "contribution_pct": sobol_results.get("F8_SA_result", {}).get(
+                    "contribution_percentage", 0
+                ),
+            },
+        },
+        # Legacy fields for backward compatibility
         "model_falsified": sobol_results.get("falsification_criteria", {}).get(
             "falsified", False
         ),

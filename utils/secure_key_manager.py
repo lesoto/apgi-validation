@@ -8,7 +8,7 @@ import base64
 import hashlib
 import threading
 import secrets
-from typing import Optional
+from typing import Dict, Optional
 from pathlib import Path
 import logging
 from cryptography.fernet import Fernet
@@ -28,8 +28,8 @@ class SecureKeyManager:
         self.keys_dir.mkdir(exist_ok=True)
         self.keys_dir.chmod(0o700)
 
-        # Thread lock for thread-safe operations
-        self._lock = threading.Lock()
+        # Thread lock for thread-safe operations (RLock for reentrancy)
+        self._lock = threading.RLock()
 
         # Initialize logger
         self.logger = logging.getLogger("secure_key_manager")
@@ -40,7 +40,7 @@ class SecureKeyManager:
         self._backup_key_file = self.keys_dir / "backup_hmac_key.enc"
 
         # Cache for frequently accessed keys (cleared on rotation)
-        self._key_cache = {}
+        self._key_cache: Dict[str, str] = {}
 
     def _get_master_key(self) -> str:
         """Get or create master encryption key."""

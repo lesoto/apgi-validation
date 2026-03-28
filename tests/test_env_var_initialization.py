@@ -11,6 +11,18 @@ from utils.secure_key_manager import (
 )
 
 
+@pytest.fixture(autouse=True)
+def reset_key_manager_singleton():
+    """Reset the global key manager singleton before each test."""
+    # Reset before test
+    import utils.secure_key_manager as skm
+
+    skm._secure_key_manager = None
+    yield
+    # Reset after test
+    skm._secure_key_manager = None
+
+
 class TestEnvVarInitialization:
     """Test environment variable initialization security."""
 
@@ -117,7 +129,7 @@ class TestEnvVarInitialization:
 
         assert backup1 == backup2
 
-    def test_key_entropy_validation(self, clean_env):
+    def test_key_entropy_validation(self, clean_env, tmp_path):
         """Test that generated keys have sufficient entropy."""
         # Generate multiple keys to check entropy
         keys = []
@@ -125,10 +137,11 @@ class TestEnvVarInitialization:
             # Clear environment to force generation
             if "PICKLE_SECRET_KEY" in os.environ:
                 del os.environ["PICKLE_SECRET_KEY"]
-            # Create manager instance
-        manager = SecureKeyManager()
-        key = manager.get_pickle_secret_key()
-        keys.append(key)
+            # Create manager instance with unique temp dir to avoid singleton issues
+            keys_dir = tmp_path / f".keys_{_}"
+            manager = SecureKeyManager(keys_dir=str(keys_dir))
+            key = manager.get_pickle_secret_key()
+            keys.append(key)
 
         # All keys should be unique (high entropy)
         assert len(set(keys)) == len(keys)

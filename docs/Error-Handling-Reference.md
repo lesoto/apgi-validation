@@ -86,7 +86,7 @@ from utils.error_handler import DataError
 
 raise DataError(
     message="Failed to load data file",
-    data_source="data/participants.csv",
+    data_source="data_repository/participants.csv",
     context={"file_size": 0, "expected_format": "CSV"},
     suggestion="Ensure file exists and is in CSV format"
 )

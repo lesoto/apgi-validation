@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch, mock_open
 from pathlib import Path
 import pandas as pd
 import sys
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -77,10 +78,19 @@ class TestValidateInputFile:
         result = _validate_input_file(None)
         assert result is None
 
-    def test_validate_input_file_valid(self, tmp_path):
+    @patch("main._validate_file_path")
+    @patch("main.secure_open_file")
+    def test_validate_input_file_valid(
+        self, mock_secure_open, mock_validate_path, tmp_path
+    ):
         """Test validating valid input file."""
         test_file = tmp_path / "test.csv"
         test_file.write_text("col1,col2\n1,2\n")
+
+        # Mock the path validation to return the path
+        mock_validate_path.return_value = test_file
+        mock_secure_open.return_value.__enter__ = MagicMock(return_value=MagicMock())
+        mock_secure_open.return_value.__exit__ = MagicMock(return_value=False)
 
         result = _validate_input_file(str(test_file))
         assert result == str(test_file)
@@ -101,14 +111,14 @@ class TestListProtocols:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation_Protocol_1.py").write_text("# Protocol 1")
-        (validation_dir / "Validation_Protocol_2.py").write_text("# Protocol 2")
+        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
+        (validation_dir / "Validation-Protocol-2.py").write_text("# Protocol 2")
 
         protocols = _list_protocols(validation_dir)
 
         assert len(protocols) == 2
-        assert "Validation_Protocol_1.py" in protocols
-        assert "Validation_Protocol_2.py" in protocols
+        assert "Validation-Protocol-1.py" in protocols
+        assert "Validation-Protocol-2.py" in protocols
 
     def test_list_protocols_empty_dir(self, tmp_path):
         """Test listing protocols with empty directory."""
@@ -123,52 +133,70 @@ class TestListProtocols:
 class TestRunParallel:
     """Test _run_parallel function."""
 
-    @patch("main.ThreadPoolExecutor")
+    @pytest.mark.slow
     @patch("main._run_single_protocol")
-    def test_run_parallel_success(self, mock_run_single, mock_executor, tmp_path):
+    def test_run_parallel_success(self, mock_run_single, tmp_path):
         """Test running protocols in parallel successfully."""
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation_Protocol_1.py").write_text("# Protocol 1")
-        (validation_dir / "Validation_Protocol_2.py").write_text("# Protocol 2")
+        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
+        (validation_dir / "Validation-Protocol-2.py").write_text("# Protocol 2")
 
-        protocols = ["Validation_Protocol_1.py", "Validation_Protocol_2.py"]
+        protocols = ["Validation-Protocol-1.py", "Validation-Protocol-2.py"]
 
         mock_run_single.return_value = ("1", "Success", None)
-        mock_executor_instance = MagicMock()
-        mock_executor.return_value.__enter__.return_value = mock_executor_instance
 
-        mock_future = MagicMock()
-        mock_future.result.return_value = ("1", "Success", None)
-        mock_executor_instance.submit.return_value = mock_future
+        # Test with mocked concurrent.futures
+        with patch("concurrent.futures.ThreadPoolExecutor") as mock_executor_class:
+            mock_executor_instance = MagicMock()
+            mock_executor_class.return_value.__enter__ = MagicMock(
+                return_value=mock_executor_instance
+            )
+            mock_executor_class.return_value.__exit__ = MagicMock(return_value=False)
 
-        results = _run_parallel(protocols, validation_dir)
+            mock_future = MagicMock()
+            mock_future.result.return_value = ("1", "Success", None)
+            mock_executor_instance.submit.return_value = mock_future
 
-        assert "1" in results
+            with patch("concurrent.futures.as_completed") as mock_as_completed:
+                mock_as_completed.return_value = [mock_future]
 
-    @patch("main.ThreadPoolExecutor")
+                results = _run_parallel(protocols, validation_dir)
+
+                assert "1" in results
+
+    @pytest.mark.slow
     @patch("main._run_single_protocol")
-    def test_run_parallel_with_errors(self, mock_run_single, mock_executor, tmp_path):
+    def test_run_parallel_with_errors(self, mock_run_single, tmp_path):
         """Test running protocols in parallel with errors."""
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation_Protocol_1.py").write_text("# Protocol 1")
+        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
 
-        protocols = ["Validation_Protocol_1.py"]
+        protocols = ["Validation-Protocol-1.py"]
 
         mock_run_single.return_value = ("1", None, "Error")
-        mock_executor_instance = MagicMock()
-        mock_executor.return_value.__enter__.return_value = mock_executor_instance
 
-        mock_future = MagicMock()
-        mock_future.result.return_value = ("1", None, "Error")
-        mock_executor_instance.submit.return_value = mock_future
+        # Test with mocked concurrent.futures
+        with patch("concurrent.futures.ThreadPoolExecutor") as mock_executor_class:
+            mock_executor_instance = MagicMock()
+            mock_executor_class.return_value.__enter__ = MagicMock(
+                return_value=mock_executor_instance
+            )
+            mock_executor_class.return_value.__exit__ = MagicMock(return_value=False)
 
-        results = _run_parallel(protocols, validation_dir)
+            mock_future = MagicMock()
+            mock_future.result.return_value = ("1", None, "Error")
+            mock_executor_instance.submit.return_value = mock_future
 
-        assert "1" in results
+            with patch("concurrent.futures.as_completed") as mock_as_completed:
+                mock_as_completed.return_value = [mock_future]
+
+                results = _run_parallel(protocols, validation_dir)
+
+                assert "1" in results
 
 
 class TestRunSequential:
@@ -180,10 +208,10 @@ class TestRunSequential:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation_Protocol_1.py").write_text("# Protocol 1")
-        (validation_dir / "Validation_Protocol_2.py").write_text("# Protocol 2")
+        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
+        (validation_dir / "Validation-Protocol-2.py").write_text("# Protocol 2")
 
-        protocols = ["Validation_Protocol_1.py", "Validation_Protocol_2.py"]
+        protocols = ["Validation-Protocol-1.py", "Validation-Protocol-2.py"]
 
         mock_run_single.return_value = ("1", "Success", None)
 
@@ -197,9 +225,9 @@ class TestRunSequential:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation_Protocol_1.py").write_text("# Protocol 1")
+        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
 
-        protocols = ["Validation_Protocol_1.py"]
+        protocols = ["Validation-Protocol-1.py"]
 
         mock_run_single.return_value = ("1", None, "Error")
 
@@ -229,21 +257,23 @@ class TestShowConfig:
 class TestSetConfig:
     """Test _set_config function."""
 
-    @patch("main.set_config_value")
+    @patch("main.config_manager.set_parameter")
     @patch("main.console")
     def test_set_config_simple(self, mock_console, mock_set_config):
         """Test setting simple configuration value."""
-        _set_config("test_key", "test_value")
+        mock_set_config.return_value = True
+        _set_config("model.tau_S", "0.5")
 
-        mock_set_config.assert_called_once()
+        mock_set_config.assert_called_once_with("model", "tau_S", "0.5")
 
-    @patch("main.set_config_value")
+    @patch("main.config_manager.set_parameter")
     @patch("main.console")
     def test_set_config_dict_value(self, mock_console, mock_set_config):
         """Test setting dictionary configuration value."""
-        _set_config("test_key", "key1=value1,key2=value2")
+        mock_set_config.return_value = True
+        _set_config("simulation.default_steps", "1000")
 
-        mock_set_config.assert_called_once()
+        mock_set_config.assert_called_once_with("simulation", "default_steps", "1000")
 
 
 class TestResetConfig:

@@ -9,6 +9,7 @@ suite using pytest with real-time output display and error handling.
 """
 
 import logging
+import queue
 import subprocess
 import sys
 import threading
@@ -92,20 +93,34 @@ class ToolTip:
             self.widget.after_cancel(id)
 
     def showtip(self) -> None:
-        """Display the tooltip"""
+        """Display the tooltip with consistent positioning for all widget types."""
         if self.tipwindow or not self.text:
             return
-        try:
-            bbox = self.widget.bbox("insert")  # type: ignore
-            if bbox is None:
-                return
-            x, y, _, _ = bbox
-            x = x + self.widget.winfo_rootx() + 25
-            y = y + self.widget.winfo_rooty() + 20
-        except tk.TclError:
-            # For widgets that don't support bbox("insert") like buttons
+
+        # Calculate position based on widget type for consistent behavior
+        widget_type = self.widget.winfo_class()
+
+        if widget_type in ("Entry", "Text", "Spinbox"):
+            # Text widgets: position near cursor using bbox("insert")
+            try:
+                bbox = self.widget.bbox("insert")  # type: ignore
+                if bbox is not None:
+                    x, y, _, _ = bbox
+                    x = x + self.widget.winfo_rootx() + 25
+                    y = y + self.widget.winfo_rooty() + 20
+                else:
+                    # Fallback if bbox returns None
+                    x = self.widget.winfo_rootx() + self.widget.winfo_width() // 2
+                    y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+            except tk.TclError:
+                # Fallback for any text widget issues
+                x = self.widget.winfo_rootx() + self.widget.winfo_width() // 2
+                y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        else:
+            # Non-text widgets (buttons, labels, etc.): center below widget
             x = self.widget.winfo_rootx() + self.widget.winfo_width() // 2
             y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+
         self.tipwindow = tw = tk.Toplevel(self.widget)
         tw.wm_overrideredirect(True)
         tw.wm_geometry(f"+{x}+{y}")
@@ -143,8 +158,20 @@ class TestsRunnerGUI:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("APGI Tests Scripts Runner")
-        self.root.geometry("800x600")
+
+        # Responsive window sizing with DPI awareness
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        # Use 70% of screen size with minimum bounds
+        window_width = min(int(screen_width * 0.7), 1200)
+        window_height = min(int(screen_height * 0.7), 800)
+        window_width = max(window_width, 800)  # Minimum width
+        window_height = max(window_height, 600)  # Minimum height
+        self.root.geometry(f"{window_width}x{window_height}")
         self.root.minsize(640, 480)  # Prevent resizing below usable size
+
+        # Set window icon if available
+        self._set_window_icon()
 
         # Get tests directory
         self.tests_dir = Path(__file__).parent / "tests"
@@ -160,6 +187,9 @@ class TestsRunnerGUI:
         self.run_all_cancel_event = threading.Event()
         self.run_all_running = False
 
+        # Track script execution results for visualization (script_path -> return_code)
+        self.script_results: Dict[str, int] = {}
+
         # Output tag constants
         self.TAG_INFO = "info"
         self.TAG_ERROR = "error"
@@ -167,10 +197,13 @@ class TestsRunnerGUI:
         self.TAG_WARNING = "warning"
 
         # Bounded output buffer to prevent memory leaks
-        self.output_buffer_size = 1000  # Maximum number of output lines to keep (reduced from 10,000 for better memory efficiency)
+        self.output_buffer_size = self._get_configured_buffer_size()
         self.output_buffer: deque[Tuple[str, str]] = deque(
             maxlen=self.output_buffer_size
         )
+
+        # Shutdown flag for clean thread termination
+        self._shutdown = threading.Event()
 
         self.setup_ui()
 
@@ -183,6 +216,38 @@ class TestsRunnerGUI:
 
         # Handle window close button
         self.root.protocol("WM_DELETE_WINDOW", self.quit_application)
+
+    def _get_configured_buffer_size(self) -> int:
+        """Get configured output buffer size from environment or use default."""
+        import os
+
+        env_size = os.environ.get("APGI_GUI_BUFFER_SIZE")
+        if env_size:
+            try:
+                size = int(env_size)
+                if 100 <= size <= 10000:
+                    return size
+            except ValueError:
+                pass
+        return 1000  # Default value
+
+    def _set_window_icon(self) -> None:
+        """Set application window icon if available."""
+        try:
+            icon_path = Path(__file__).parent / "assets" / "icon.png"
+            if icon_path.exists():
+                from PIL import Image, ImageTk
+
+                img = Image.open(icon_path)
+                photo = ImageTk.PhotoImage(img)
+                self.root.iconphoto(True, photo)  # type: ignore
+                self._icon_image = photo  # Keep reference to prevent GC
+            else:
+                # Use default tk icon if custom not available
+                pass
+        except Exception:
+            # Silently ignore icon setting errors
+            pass
 
     def get_script_list(self) -> List[Path]:
         """Get all Python scripts in tests directory recursively.
@@ -341,7 +406,7 @@ class TestsRunnerGUI:
 
         # Summary frame
         summary_frame = ttk.LabelFrame(parent_frame, text="Test Summary", padding="10")
-        summary_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        summary_frame.grid(row=0, column=0, sticky=tk.W + tk.E, pady=(0, 10))
 
         # Summary labels
         self.summary_vars = {
@@ -375,7 +440,7 @@ class TestsRunnerGUI:
         # Visualization frame with charts
         viz_container = ttk.Frame(parent_frame)
         viz_container.grid(
-            row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
+            row=1, column=0, sticky=tk.W + tk.E + tk.N + tk.S, pady=(0, 10)
         )
 
         if MATPLOTLIB_AVAILABLE:
@@ -406,7 +471,7 @@ class TestsRunnerGUI:
 
         # Results display frame
         results_frame = ttk.LabelFrame(parent_frame, text="Test Results", padding="10")
-        results_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        results_frame.grid(row=2, column=0, sticky=tk.W + tk.E + tk.N + tk.S)
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
 
@@ -434,11 +499,11 @@ class TestsRunnerGUI:
         self.results_tree.configure(yscrollcommand=scrollbar.set)
 
         # Pack treeview and scrollbar
-        self.results_tree.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        self.results_tree.grid(row=0, column=0, sticky=tk.W + tk.E + tk.N + tk.S)
+        scrollbar.grid(row=0, column=1, sticky=tk.N + tk.S)
 
         # Initialize test results storage
-        self.test_results = []
+        self.test_results: List[Dict[str, Any]] = []
 
     def _on_visualization_tab_selected(self) -> None:
         """Handle visualization tab selection event."""
@@ -468,10 +533,10 @@ class TestsRunnerGUI:
                 prev_widget = tab_order[(i - 1) % len(tab_order)]
 
                 # Bind Tab to move to next widget
-                widget.bind("<Tab>", lambda e, nw=next_widget: self._focus_widget(nw))
+                widget.bind("<Tab>", lambda e, nw=next_widget: self._focus_widget(nw))  # type: ignore
                 # Bind Shift+Tab to move to previous widget
                 widget.bind(
-                    "<Shift-Tab>", lambda e, pw=prev_widget: self._focus_widget(pw)
+                    "<Shift-Tab>", lambda e, pw=prev_widget: self._focus_widget(pw)  # type: ignore
                 )
 
         # Ensure listbox is focused initially
@@ -518,7 +583,7 @@ class TestsRunnerGUI:
             # Populate results tree
             for result in self.test_results[-100:]:  # Show last 100 results
                 status = result.get("status", "unknown")
-                tags = ()
+                tags: Tuple[str, ...] = ()
                 if status == "PASSED":
                     tags = ("passed",)
                 elif status in ["FAILED", "ERROR"]:
@@ -570,7 +635,7 @@ class TestsRunnerGUI:
                 return
 
             # Count test results
-            status_counts = {}
+            status_counts: Dict[str, int] = {}
             for result in self.test_results:
                 status = result.get("status", "unknown")
                 status_counts[status] = status_counts.get(status, 0) + 1
@@ -620,12 +685,11 @@ class TestsRunnerGUI:
                         status_values.append(-1)
                         status_colors.append("#e67e22")
                     else:
-                        status_values.append(0.5)
+                        status_values.append(0.5)  # type: ignore
                         status_colors.append("#95a5a6")
 
-                self.ax_timeline.bar(
-                    range(len(recent_results)), status_values, color=status_colors
-                )
+                x_values = list(range(len(recent_results)))
+                self.ax_timeline.bar(x_values, status_values, color=status_colors)
                 self.ax_timeline.set_title("Recent Test Timeline")
                 self.ax_timeline.set_xlabel("Test Sequence")
                 self.ax_timeline.set_ylabel("Status")
@@ -644,13 +708,32 @@ class TestsRunnerGUI:
         """Parse test results from the output buffer."""
         self.test_results = []
 
+        # First, add any script-level results from tracked executions
+        if hasattr(self, "script_results"):
+            for script_name, return_code in self.script_results.items():
+                if return_code is not None:  # Only add completed scripts
+                    status = "PASSED" if return_code == 0 else "FAILED"
+                    self.test_results.append(
+                        {
+                            "test": script_name,
+                            "status": status,
+                            "duration": "0.0s",
+                            "details": f"Exit code: {return_code}"
+                            if return_code != 0
+                            else "Script completed",
+                        }
+                    )
+
         # Parse pytest output for test results
         current_test = None
         for message, tag in self.output_buffer:
             line = message.strip()
 
-            # Detect test start
+            # Detect test start (pytest format: tests/test_file.py::test_name)
             if line.startswith("tests/") and "::" in line:
+                current_test = line.split()[0] if line else "unknown"
+            # Also detect direct script execution results
+            elif line.startswith(("test_", "tests/test_")):
                 current_test = line.split()[0] if line else "unknown"
             elif "PASSED" in line and current_test:
                 self.test_results.append(
@@ -702,8 +785,12 @@ class TestsRunnerGUI:
             duration_match = re.search(r"(\d+\.\d+)s", line)
             if duration_match:
                 return f"{duration_match.group(1)}s"
-        except Exception:
-            pass
+        except (ValueError, TypeError, AttributeError) as e:
+            if self.root and hasattr(self.root, "destroy"):
+                self.log_output(
+                    f"Warning: Duration extraction error: {e}", self.TAG_WARNING
+                )
+            pass  # Duration extraction error - use default
         return "0.0s"
 
     def _update_summary_stats(self) -> None:
@@ -723,8 +810,12 @@ class TestsRunnerGUI:
             try:
                 duration_str = result.get("duration", "0.0s").rstrip("s")
                 total_duration += float(duration_str)
-            except (ValueError, AttributeError):
-                pass
+            except (ValueError, AttributeError) as e:
+                if self.root and hasattr(self.root, "destroy"):
+                    self.log_output(
+                        f"Warning: Duration parsing error: {e}", self.TAG_WARNING
+                    )
+                pass  # Duration parsing error - ignore and continue
 
         # Update summary variables
         self.summary_vars["total_tests"].set(str(total))
@@ -750,8 +841,13 @@ class TestsRunnerGUI:
                     for part in parts:
                         if "%" in part:
                             return part
-                except Exception:
-                    pass
+                except (ValueError, IndexError, AttributeError) as e:
+                    # Coverage extraction error - log warning and continue
+                    if self.root and hasattr(self.root, "destroy"):
+                        self.log_output(
+                            f"Warning: Coverage extraction error: {e}", self.TAG_WARNING
+                        )
+                    pass  # Coverage extraction error - use default
         return "0%"
 
     def log_output(self, message: str, tag: Optional[str] = None) -> None:
@@ -813,52 +909,112 @@ class TestsRunnerGUI:
         self.run_script(script)
 
     def run_all_scripts(self) -> None:
-        """Run all scripts sequentially."""
+        """Run all scripts sequentially without blocking GUI.
+
+        Uses fully asynchronous execution with a queue-based
+        result tracking system to keep UI responsive during long operations.
+        """
         if not self.scripts:
             self.log_output("No test scripts found", self.TAG_ERROR)
             return
 
-        def run_all() -> None:
-            self.run_all_running = True
-            self.run_all_cancel_event.clear()
+        self.run_all_running = True
+        self.run_all_cancel_event.clear()
+        self.progress.start()
 
-            for i, script in enumerate(self.scripts):
-                if self.run_all_cancel_event.is_set():
-                    self.log_output("Run All cancelled by user", self.TAG_WARNING)
-                    break
+        # Disable buttons during execution
+        self.root.after_idle(lambda: self._set_buttons_state(tk.DISABLED))
 
-                relative_path = script.relative_to(self.tests_dir)
-                self.log_output(
-                    f"Running test {i + 1}/{len(self.scripts)}: {relative_path}",
-                    self.TAG_INFO,
-                )
-                self.root.after(
-                    0, lambda: self.scripts_listbox.selection_clear(0, tk.END)
-                )
-                self.root.after(
-                    0, lambda idx=i: self.scripts_listbox.selection_set(idx)
-                )
-                self.root.after(0, lambda idx=i: self.scripts_listbox.see(idx))
+        # Queue for tracking results asynchronously
+        result_queue: queue.Queue[Tuple[int, Path, bool]] = queue.Queue()
+        completed_count = [0]  # Use list for mutable reference
 
-                success = self.run_script(script, wait=True)
-                if not success:
-                    self.log_output(
-                        f"Test {relative_path} failed, stopping execution",
-                        self.TAG_ERROR,
-                    )
-                    break
+        def run_script_async(index: int, script: Path) -> None:
+            """Run a single script asynchronously."""
+            if self.run_all_cancel_event.is_set():
+                result_queue.put((index, script, False))
+                return
 
-            self.log_output("All tests execution completed", self.TAG_SUCCESS)
-            self.update_status("Ready")
-            self.progress.stop()
-            self.run_all_running = False
+            relative_path = script.relative_to(self.tests_dir)
+            self.log_output(
+                f"Running test {index + 1}/{len(self.scripts)}: {relative_path}",
+                self.TAG_INFO,
+            )
 
-        # Run in separate thread to avoid blocking GUI
-        thread = threading.Thread(target=run_all, daemon=False)
-        self.running_threads.append(thread)
-        thread.start()
+            # Update listbox selection in main thread
+            self.root.after(0, lambda: self.scripts_listbox.selection_clear(0, tk.END))
+            self.root.after(
+                0, lambda idx=index: self.scripts_listbox.selection_set(idx)  # type: ignore
+            )
+            self.root.after(0, lambda idx=index: self.scripts_listbox.see(idx))  # type: ignore
 
-    def run_all_tests_pytest(self) -> None:
+            # Run without waiting - truly async
+            success = self.run_script(script, wait=False)
+
+            # Track completion by monitoring the process
+            def monitor_completion():
+                process = self.running_processes.get(script.name)
+                if process:
+                    if process.poll() is None:
+                        # Still running, check again in 100ms
+                        self.root.after(100, monitor_completion)
+                        return
+                    else:
+                        # Completed
+                        success_result = process.returncode == 0
+                        result_queue.put((index, script, success_result))
+                else:
+                    # No process found, assume completed
+                    result_queue.put((index, script, success))
+
+                # Check if all done
+                completed_count[0] += 1
+                if (
+                    completed_count[0] >= len(self.scripts)
+                    or self.run_all_cancel_event.is_set()
+                ):
+                    self._finish_run_all()
+                else:
+                    # Schedule next script
+                    next_index = completed_count[0]
+                    if next_index < len(self.scripts):
+                        threading.Thread(
+                            target=run_script_async,
+                            args=(next_index, self.scripts[next_index]),
+                            daemon=True,
+                        ).start()
+
+            self.root.after(100, monitor_completion)
+
+        def start_run_all():
+            """Start the async execution chain."""
+            if self.scripts:
+                threading.Thread(
+                    target=run_script_async, args=(0, self.scripts[0]), daemon=True
+                ).start()
+
+        # Start the async chain from main thread
+        self.root.after(0, start_run_all)
+
+    def _set_buttons_state(self, state: str) -> None:
+        """Set the state of control buttons."""
+        self.run_button.config(state=state)
+        self.run_all_button.config(state=state)
+        self.run_all_tests_button.config(state=state)
+        self.stop_button.config(
+            state=tk.NORMAL if state == tk.DISABLED else tk.DISABLED
+        )
+
+    def _finish_run_all(self) -> None:
+        """Clean up after run_all completes."""
+        self.run_all_running = False
+        self.progress.stop()
+        self.update_status("Ready")
+        self._set_buttons_state(tk.NORMAL)
+        self.log_output("All tests execution completed", self.TAG_SUCCESS)
+        self.root.after_idle(self.update_visualization)
+
+    def run_all_tests_pytest(self) -> bool:
         """Run all tests using pytest."""
         try:
             # Check if pytest is available
@@ -955,65 +1111,102 @@ class TestsRunnerGUI:
                 if process.stdout is None:
                     return
                 try:
-                    while True:
-                        output = process.stdout.readline()
-                        if output == "" and process.poll() is not None:
-                            break
-                        if output:
-                            # Color-code pytest output
-                            line = output.strip()
-                            if line.startswith("FAILED") or "ERROR" in line:
-                                self.log_output(line, self.TAG_ERROR)
-                            elif line.startswith("PASSED") or "passed" in line.lower():
-                                self.log_output(line, self.TAG_SUCCESS)
-                            elif "WARNING" in line or "warning" in line.lower():
-                                self.log_output(line, self.TAG_WARNING)
+                    while not self._shutdown.is_set():
+                        try:
+                            # Use select for non-blocking read with timeout
+                            import select
+
+                            if process.poll() is not None:
+                                # Process ended, drain remaining output
+                                remaining = process.stdout.read()
+                                if remaining:
+                                    for line in remaining.splitlines():
+                                        if line.strip():
+                                            self.log_output(line.strip())
+                                break
+                            # Check if data is available with timeout
+                            readable, _, _ = select.select(
+                                [process.stdout], [], [], 0.5
+                            )
+                            if readable:
+                                output = process.stdout.readline()
+                                if output:
+                                    line = output.strip()
+                                    if line.startswith("FAILED") or "ERROR" in line:
+                                        self.log_output(line, self.TAG_ERROR)
+                                    elif (
+                                        line.startswith("PASSED")
+                                        or "passed" in line.lower()
+                                    ):
+                                        self.log_output(line, self.TAG_SUCCESS)
+                                    elif "WARNING" in line or "warning" in line.lower():
+                                        self.log_output(line, self.TAG_WARNING)
+                                    else:
+                                        self.log_output(line)
                             else:
-                                self.log_output(line)
+                                # No data available, check shutdown
+                                continue
+                        except (ValueError, IOError, OSError) as read_error:
+                            error_str = str(read_error).lower()
+                            if (
+                                "closed file" in error_str
+                                or "bad file descriptor" in error_str
+                                or process.poll() is not None
+                                or self._shutdown.is_set()
+                            ):
+                                break
+                            else:
+                                raise read_error
                 except Exception as e:
-                    logging.warning(f"Error reading pytest output: {e}")
+                    if not self._shutdown.is_set():
+                        logging.warning(f"Error reading pytest output: {e}")
 
             # Start output reading thread before waiting for process
-            output_thread = threading.Thread(target=read_pytest_output, daemon=False)
+            output_thread = threading.Thread(target=read_pytest_output, daemon=True)
             self.running_threads.append(output_thread)
             output_thread.start()
 
-            # Wait for process to complete (with timeout to avoid hanging)
-            try:
-                return_code = process.wait(timeout=300)
-            except subprocess.TimeoutExpired:
-                self.log_output(
-                    "Test process did not complete within 5 minutes, forcing termination",
-                    self.TAG_WARNING,
-                )
-                process.kill()
-                return_code = -1
+            # Poll for process completion using after() instead of blocking wait()
+            def check_process_complete():
+                if process.poll() is None:
+                    # Still running, check again in 100ms
+                    self.root.after(100, check_process_complete)
+                    return
 
-            if return_code == 0:
-                self.log_output(" All tests passed successfully!", self.TAG_SUCCESS)
-            else:
-                self.log_output(
-                    f"Test suite failed with return code {return_code}",
-                    self.TAG_ERROR,
-                )
+                # Process completed
+                return_code = process.returncode
+                if return_code == 0:
+                    self.log_output(" All tests passed successfully!", self.TAG_SUCCESS)
+                else:
+                    self.log_output(
+                        f"Test suite failed with return code {return_code}",
+                        self.TAG_ERROR,
+                    )
 
-            # Clean up
-            if "pytest_all" in self.running_processes:
-                del self.running_processes["pytest_all"]
+                # Clean up
+                if "pytest_all" in self.running_processes:
+                    del self.running_processes["pytest_all"]
 
-            self.progress.stop()
-            self.update_status("Ready")
+                self.progress.stop()
+                self.update_status("Ready")
 
-            # Update visualization statistics and charts after tests complete
-            self.root.after_idle(self.update_visualization)
+                # Update visualization statistics and charts after tests complete
+                self.root.after_idle(self.update_visualization)
+
+            # Start polling for completion
+            self.root.after(100, check_process_complete)
+            return True  # Indicate pytest started successfully
         except Exception as e:
             self.log_output(f"Error running pytest: {e}", self.TAG_ERROR)
             if "pytest_all" in self.running_processes:
                 try:
                     self.running_processes["pytest_all"].kill()
-                except Exception:
-                    pass
-                del self.running_processes["pytest_all"]
+                except (OSError, ProcessLookupError, PermissionError) as e:
+                    self.log_output(
+                        f"Warning: Could not kill pytest process: {e}", self.TAG_WARNING
+                    )
+                    pass  # Process already terminated or inaccessible
+            del self.running_processes["pytest_all"]
             self.progress.stop()
             self.update_status("Ready")
             return False
@@ -1044,9 +1237,10 @@ class TestsRunnerGUI:
                 self.log_output(f"Error: Script {script} not found", self.TAG_ERROR)
                 return False
 
-            self.log_output(f"Starting: {relative_path}", self.TAG_INFO)
-            self.update_status(f"Running: {relative_path}")
-            self.progress.start()
+            # Track script result
+            self.script_results[
+                str(relative_path)
+            ] = -1  # Will be updated on completion
 
             # Enable stop button when script starts
             self.root.after_idle(lambda: self.stop_button.config(state=tk.NORMAL))
@@ -1090,80 +1284,141 @@ class TestsRunnerGUI:
                 env=env,
             )
 
-            self.running_processes[script.name] = process
+            # Use context manager for resource cleanup
+            with process:
+                self.running_processes[script.name] = process
 
-            def read_output() -> None:
-                try:
-                    if process.stdout is None:
-                        return
-                    while True:
-                        output = process.stdout.readline()
-                        if output == "" and process.poll() is not None:
-                            break
-                        if output:
-                            # Color-code pytest output
-                            line = output.strip()
-                            if line.startswith("FAILED") or "ERROR" in line:
-                                self.log_output(line, self.TAG_ERROR)
-                            elif line.startswith("PASSED") or "passed" in line.lower():
-                                self.log_output(line, self.TAG_SUCCESS)
-                            elif "WARNING" in line or "warning" in line.lower():
-                                self.log_output(line, self.TAG_WARNING)
-                            else:
-                                self.log_output(line)
-
-                    # Wait for process to complete (with timeout to avoid hanging)
+                def read_output() -> None:
                     try:
-                        return_code = process.wait(timeout=300)
-                    except subprocess.TimeoutExpired:
-                        self.log_output(
-                            "Test process did not complete within 5 minutes, forcing termination",
-                            self.TAG_WARNING,
+                        if process.stdout is None:
+                            return
+                        while not self._shutdown.is_set():
+                            try:
+                                # Use select for non-blocking read with timeout
+                                import select
+
+                                if process.poll() is not None:
+                                    # Process ended, drain remaining output
+                                    remaining = process.stdout.read()
+                                    if remaining:
+                                        for line in remaining.splitlines():
+                                            if line.strip():
+                                                self.log_output(line.strip())
+                                    break
+                                # Check if data is available with timeout
+                                readable, _, _ = select.select(
+                                    [process.stdout], [], [], 0.5
+                                )
+                                if readable:
+                                    output = process.stdout.readline()
+                                    if output:
+                                        line = output.strip()
+                                        if line.startswith("FAILED") or "ERROR" in line:
+                                            self.log_output(line, self.TAG_ERROR)
+                                        elif (
+                                            line.startswith("PASSED")
+                                            or "passed" in line.lower()
+                                        ):
+                                            self.log_output(line, self.TAG_SUCCESS)
+                                        elif (
+                                            "WARNING" in line
+                                            or "warning" in line.lower()
+                                        ):
+                                            self.log_output(line, self.TAG_WARNING)
+                                        else:
+                                            self.log_output(line)
+                                else:
+                                    # No data available, check shutdown
+                                    continue
+                            except (ValueError, IOError, OSError) as read_error:
+                                # Handle case where file is closed during read
+                                error_str = str(read_error).lower()
+                                if (
+                                    "closed file" in error_str
+                                    or "bad file descriptor" in error_str
+                                    or process.poll() is not None
+                                    or self._shutdown.is_set()
+                                ):
+                                    break
+                                else:
+                                    raise read_error
+
+                        # Wait for process to complete if still running
+                        if process.poll() is None:
+                            try:
+                                return_code = process.wait(timeout=60)
+                            except subprocess.TimeoutExpired:
+                                self.log_output(
+                                    "Test process did not complete within 1 minute, forcing termination",
+                                    self.TAG_WARNING,
+                                )
+                                process.kill()
+                                return_code = -1
+                        else:
+                            return_code = process.returncode
+
+                        # Record script result based on return code
+                        if return_code == 0:
+                            self.script_results[str(relative_path)] = 0
+                        else:
+                            self.script_results[str(relative_path)] = (
+                                return_code if return_code != -1 else 1
+                            )
+
+                        if return_code == 0:
+                            self.log_output(
+                                "🎉 All tests passed successfully!", self.TAG_SUCCESS
+                            )
+                        elif return_code != -1:
+                            self.log_output(
+                                f"❌ Test suite failed with return code {return_code}",
+                                self.TAG_ERROR,
+                            )
+
+                        # Clean up
+                        if script.name in self.running_processes:
+                            del self.running_processes[script.name]
+
+                        self.progress.stop()
+                        self.update_status("Ready")
+
+                        # Update visualization statistics and charts after tests complete
+                        self.root.after_idle(self.update_visualization)
+                    except Exception as e:
+                        # Only log errors if not shutting down and not a normal termination
+                        error_str = str(e).lower()
+                        is_termination_error = (
+                            "bad file descriptor" in error_str
+                            or "closed file" in error_str
+                            or "i/o operation on closed file" in error_str
                         )
-                        process.kill()
-                        return_code = -1
+                        if not self._shutdown.is_set() and not is_termination_error:
+                            self.log_output(
+                                f"Error reading test output: {str(e)}", self.TAG_ERROR
+                            )
+                        # Only set error status if process actually failed
+                        if process.poll() not in (0, None):
+                            self.progress.stop()
+                            self.update_status("Error")
+                        elif not is_termination_error:
+                            self.progress.stop()
+                            self.update_status("Ready")
 
-                    if return_code == 0:
-                        self.log_output(
-                            "🎉 All tests passed successfully!", self.TAG_SUCCESS
-                        )
-                    else:
-                        self.log_output(
-                            f"❌ Test suite failed with return code {return_code}",
-                            self.TAG_ERROR,
-                        )
-
-                    # Clean up
-                    if script.name in self.running_processes:
-                        del self.running_processes[script.name]
-
-                    self.progress.stop()
-                    self.update_status("Ready")
-
-                    # Update visualization statistics and charts after tests complete
-                    self.root.after_idle(self.update_visualization)
-                except Exception as e:
-                    self.log_output(
-                        f"Error reading test output: {str(e)}", self.TAG_ERROR
-                    )
-                    self.progress.stop()
-                    self.update_status("Error")
-
-            if wait:
-                # Wait for output thread to complete and get return code
-                output_thread = threading.Thread(target=read_output, daemon=False)
-                self.running_threads.append(output_thread)
-                output_thread.start()
-                output_thread.join(timeout=305)
-                # Check process return code after thread completes
-                return_code = process.poll()
-                return return_code == 0 if return_code is not None else False
-            else:
-                # Run asynchronously
-                output_thread = threading.Thread(target=read_output, daemon=False)
-                self.running_threads.append(output_thread)
-                output_thread.start()
-                return True
+                if wait:
+                    # Wait for output thread to complete and get return code
+                    output_thread = threading.Thread(target=read_output, daemon=True)
+                    self.running_threads.append(output_thread)
+                    output_thread.start()
+                    output_thread.join(timeout=305)
+                    # Check process return code after thread completes
+                    return_code = process.poll()
+                    return return_code == 0 if return_code is not None else False
+                else:
+                    # Run asynchronously
+                    output_thread = threading.Thread(target=read_output, daemon=True)
+                    self.running_threads.append(output_thread)
+                    output_thread.start()
+                    return True
 
         except Exception as e:
             self.log_output(f"Error running pytest: {str(e)}", self.TAG_ERROR)
@@ -1238,7 +1493,10 @@ class TestsRunnerGUI:
 
         Stops all running processes and closes the application.
         """
-        # Stop all running processes
+        # Set shutdown flag to signal threads to stop
+        self._shutdown.set()
+
+        # Stop all running processes with terminate then kill fallback
         for script_name, process in list(self.running_processes.items()):
             try:
                 if process.poll() is None:  # Process is still running
@@ -1246,10 +1504,28 @@ class TestsRunnerGUI:
                     self.log_output(
                         f"Terminated process: {script_name}", self.TAG_WARNING
                     )
+                    # Wait briefly then force kill if still running
+                    try:
+                        process.wait(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        self.log_output(
+                            f"Force killed process: {script_name}", self.TAG_WARNING
+                        )
             except Exception as e:
                 self.log_output(
                     f"Error terminating process {script_name}: {e}", self.TAG_ERROR
                 )
+
+        # Close stdout/stderr pipes to unblock threads stuck in readline()
+        for script_name, process in list(self.running_processes.items()):
+            try:
+                if process.stdout:
+                    process.stdout.close()
+                if process.stderr:
+                    process.stderr.close()
+            except Exception:
+                pass  # Ignore errors closing already-closed pipes
 
         # Clear running processes
         self.running_processes.clear()
@@ -1269,19 +1545,37 @@ class TestsRunnerGUI:
                 logging.warning(f"Error closing matplotlib figure: {e}")
 
         # Log quit message
-        self.log_output("Quitting application...", self.TAG_INFO)
+        try:
+            self.log_output("Quitting application...", self.TAG_INFO)
+        except Exception:
+            pass  # Ignore logging errors during shutdown
 
         # Wait a moment for messages to be processed
-        self.root.update_idletasks()
+        try:
+            self.root.update_idletasks()
+        except tk.TclError:
+            pass  # Widget may already be destroyed
 
-        # Clean up running threads with timeout to avoid hanging
+        # Clean up running threads with timeout
         for thread in self.running_threads:
             if thread.is_alive():
-                thread.join(timeout=2)
+                thread.join(timeout=0.5)  # Short timeout, force close pipes above
+
+        # Clear thread list
+        self.running_threads.clear()
+
+        # Cancel any pending after callbacks
+        try:
+            self.root.after_cancel(str(id(self.root)))
+        except Exception:
+            pass
 
         # Quit the application
-        self.root.quit()
-        self.root.destroy()
+        try:
+            self.root.quit()
+            self.root.destroy()
+        except tk.TclError:
+            pass  # Already destroyed
 
 
 def main() -> None:

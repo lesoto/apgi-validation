@@ -11,11 +11,11 @@ APGI (Active Perception and Generative Inference) Validation Framework - A CLI-b
 ### Run the CLI application
 
 ```bash
-python main.py --help                    # Show all available commands
-python main.py validate --data data.csv     # Run validation protocol
-python main.py falsify --model model.pkl    # Run falsification protocol
-python main.py visualize --output plot.png  # Generate visualizations
-python main.py benchmark --iterations 100
+python main.py --help                       # Show all available commands
+python main.py formal-model --help          # Show formal model simulation options
+python main.py formal-model                 # Run formal model simulation with defaults
+python main.py formal-model --simulation-steps 500 --dt 0.01 --plot  # Custom steps, plot
+python main.py formal-model --output-file results.csv --params config/custom_params.json
 ```
 
 ### Install dependencies
@@ -110,33 +110,20 @@ For production, additional security keys and settings may be required.
 
 ## CLI Commands
 
-### Validation commands
+### Simulation commands
 
-- `validate` - Run validation protocols on data
-- `validate-entropy` - Validate entropy calculations
-- `validate-active-inference` - Validate active inference models
+- `formal-model` - Run formal model simulations with configurable parameters
+  - `--simulation-steps` - Number of simulation steps (default: from config)
+  - `--dt` - Time step size (default: from config)
+  - `--output-file` - Output file for results (.csv, .json, or .pkl)
+  - `--params` - JSON file with custom model parameters
+  - `--plot` - Generate visualization plots
 
-### Falsification commands
+### Testing commands
 
-- `falsify` - Run falsification protocols
-- `falsify-entropy` - Falsify entropy models
-- `falsify-active-inference` - Falsify active inference models
-- `falsify-causal` - Falsify causal manipulation models
-
-### Visualization commands
-
-- `visualize` - Generate visualizations from data
-- `visualize-time-series` - Create time series plots
-- `visualize-scatter` - Create scatter plots
-- `visualize-heatmap` - Create heatmaps
-- `visualize-distribution` - Create distribution plots
-
-### Utility commands
-
-- `benchmark` - Run computational benchmarks
-- `audit-dependencies` - Scan for dependency vulnerabilities
-- `backup` - Create backups of data and configuration
-- `restore` - Restore from backups
+Run GUI test runners:
+- `python Tests-GUI.py` - Launch the GUI test runner
+- `python Utils-GUI.py` - Launch the utility scripts GUI
 
 ## Data formats
 

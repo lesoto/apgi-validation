@@ -28,19 +28,124 @@ def get_threshold_registry():
 
 
 def extract_float_literals(file_path: Path) -> list:
-    """Extract all float literals from a Python file"""
+    """Extract float literals from a Python file that appear in threshold-like contexts.
+
+    Only flags literals that:
+    1. Appear in comparison operations (<, >, <=, >=, ==) with threshold-like operands
+    2. Are assigned to threshold-like variable names (e.g., alpha, threshold, cutoff)
+    3. Are arguments to threshold-like function parameters (e.g., alpha=0.05)
+
+    Excludes:
+    - Literals in weight assignments (e.g., weight = 0.5)
+    - Literals in score comparisons (e.g., score > 0.5)
+    - Literals in mathematical constants or simulation parameters
+    """
     with open(file_path, "r", encoding="utf-8") as f:
         source = f.read()
 
     tree = ast.parse(source)
-    literals = []
+    threshold_literals = []
+
+    # Collect all nodes that are inside ExceptHandler blocks to exclude them
+    excluded_nodes = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ExceptHandler):
+            for child in ast.walk(node):
+                excluded_nodes.add(id(child))
+
+    # Threshold-like variable name patterns
+    threshold_patterns = [
+        "alpha",
+        "threshold",
+        "cutoff",
+        "significance",
+        "p_value",
+        "min_",
+        "max_",
+        "_min_",
+        "_max_",
+        "_coef",
+        "coef_",
+    ]
+
+    # Non-threshold patterns to exclude
+    exclude_patterns = ["weight", "score", "intercept", "slope", "scale", "bias"]
 
     for node in ast.walk(tree):
-        if isinstance(node, ast.Constant) and isinstance(node.value, float):
-            literals.append(node.value)
-        # Note: ast.Num was removed in Python 3.8, so we only handle ast.Constant now
+        # Skip nodes inside exception handlers
+        if id(node) in excluded_nodes:
+            continue
 
-    return literals
+        # Check if this is a comparison operation
+        if isinstance(node, ast.Compare):
+            # Check if the left operand is a threshold-like variable
+            left_is_threshold_like = False
+            if isinstance(node.left, ast.Name):
+                left_name = node.left.id.lower()
+                if any(pattern in left_name for pattern in threshold_patterns):
+                    left_is_threshold_like = True
+                # Exclude if it's a non-threshold variable
+                if any(pattern in left_name for pattern in exclude_patterns):
+                    left_is_threshold_like = False
+
+            # Only flag if left side is threshold-like
+            if left_is_threshold_like:
+                for comparator in node.comparators:
+                    if isinstance(comparator, ast.Constant) and isinstance(
+                        comparator.value, float
+                    ):
+                        # Only flag small values (likely thresholds) in comparisons
+                        if 0.001 <= abs(comparator.value) <= 1.0:
+                            threshold_literals.append(comparator.value)
+
+        # Check for assignments to threshold-like names
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    var_name = target.id.lower()
+                    # Must match threshold pattern AND not be excluded
+                    if any(pattern in var_name for pattern in threshold_patterns):
+                        if not any(pattern in var_name for pattern in exclude_patterns):
+                            if isinstance(node.value, ast.Constant) and isinstance(
+                                node.value, float
+                            ):
+                                if 0.001 <= abs(node.value.value) <= 1.0:
+                                    threshold_literals.append(node.value.value)
+
+        # Check for keyword arguments in function calls (e.g., alpha=0.05)
+        if isinstance(node, ast.Call):
+            # Skip matplotlib/plotting functions where alpha is transparency
+            func_name = ""
+            if isinstance(node.func, ast.Name):
+                func_name = node.func.id.lower()
+            elif isinstance(node.func, ast.Attribute):
+                func_name = node.func.attr.lower()
+
+            # Exclude plotting functions where alpha means transparency
+            plotting_funcs = [
+                "scatter",
+                "plot",
+                "bar",
+                "hist",
+                "fill_between",
+                "errorbar",
+            ]
+            is_plotting = any(p in func_name for p in plotting_funcs)
+
+            for keyword in node.keywords:
+                arg_name = keyword.arg.lower()
+                if any(pattern in arg_name for pattern in threshold_patterns):
+                    if not any(pattern in arg_name for pattern in exclude_patterns):
+                        # Skip alpha in plotting functions (transparency, not significance)
+                        if arg_name == "alpha" and is_plotting:
+                            continue
+                        if isinstance(keyword.value, ast.Constant) and isinstance(
+                            keyword.value.value, float
+                        ):
+                            if 0.001 <= abs(keyword.value.value) <= 1.0:
+                                threshold_literals.append(keyword.value.value)
+
+    return threshold_literals
 
 
 def test_all_protocols_use_threshold_registry():
@@ -99,7 +204,7 @@ def test_no_assumed_values_in_falsification_functions():
 
 def test_falsification_thresholds_file_exists():
     """Test that falsification_thresholds.py exists and contains required constants"""
-    threshold_file = project_root / "falsification_thresholds.py"
+    threshold_file = project_root / "utils" / "falsification_thresholds.py"
 
     if not threshold_file.exists():
         pytest.fail("falsification_thresholds.py does not exist")

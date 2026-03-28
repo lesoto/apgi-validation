@@ -10,7 +10,7 @@ import base64
 import hashlib
 import binascii
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 import logging
@@ -23,7 +23,7 @@ except ImportError:
         from utils.secure_key_manager import invalidate_all_key_references
     except ImportError:
         # Fallback for standalone execution
-        def invalidate_all_key_references():
+        def invalidate_all_key_references() -> None:
             """Fallback function when secure_key_manager is not available."""
             pass
 
@@ -131,6 +131,18 @@ class KeyRotationManager:
         if not master_key:
             master_key = Fernet.generate_key().decode()
             os.environ["APGI_MASTER_KEY"] = master_key
+        else:
+            # Validate the master key format - if invalid, we have a problem
+            # because we can't decrypt existing keys
+            try:
+                Fernet(master_key.encode())
+            except ValueError:
+                # Invalid key format - this is a critical error
+                # We cannot decrypt existing keys with an invalid master key
+                raise ValueError(
+                    "Invalid APGI_MASTER_KEY format. Master key must be 32 url-safe base64-encoded bytes. "
+                    "Please set a valid APGI_MASTER_KEY environment variable or unset it to generate a new one."
+                ) from None
 
         fernet = Fernet(master_key.encode())
         key_b64 = base64.b64encode(key_bytes).decode("utf-8")
@@ -144,7 +156,7 @@ class KeyRotationManager:
             os.close(fd)
 
         # Update metadata
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(tz=timezone.utc).isoformat()
         self.metadata[key_type]["current"] = {
             "fingerprint": fingerprint,
             "created_at": timestamp,
@@ -164,6 +176,14 @@ class KeyRotationManager:
                 self.logger.warning(
                     "APGI_MASTER_KEY not set in environment, generated ephemeral key. Prev keys may not decrypt."
                 )
+            else:
+                # Validate the master key format
+                try:
+                    Fernet(master_key.encode())
+                except ValueError:
+                    raise ValueError(
+                        "Invalid APGI_MASTER_KEY format. Master key must be 32 url-safe base64-encoded bytes."
+                    ) from None
 
             fernet = Fernet(master_key.encode())
             encrypted = key_file.read_bytes()
@@ -211,7 +231,7 @@ class KeyRotationManager:
         if self.metadata["last_rotation"]:
             last_rotation = datetime.fromisoformat(self.metadata["last_rotation"])
         else:
-            last_rotation = datetime.utcnow()
+            last_rotation = datetime.now(tz=timezone.utc)
 
         next_rotation = last_rotation + timedelta(days=self.rotation_interval_days)
         self.metadata["next_rotation"] = next_rotation.isoformat()
@@ -245,7 +265,14 @@ class KeyRotationManager:
             try:
                 master_key = os.environ.get("APGI_MASTER_KEY")
                 if master_key:
-                    fernet = Fernet(master_key.encode())
+                    # Validate master key before using
+                    try:
+                        fernet = Fernet(master_key.encode())
+                    except ValueError:
+                        self.logger.warning(
+                            "Invalid APGI_MASTER_KEY format, cannot decrypt pickle key"
+                        )
+                        return
                     encrypted = pickle_key_file.read_bytes()
                     key_b64 = fernet.decrypt(encrypted).decode("utf-8")
                     pickle_key = base64.b64decode(key_b64).hex()
@@ -257,7 +284,14 @@ class KeyRotationManager:
             try:
                 master_key = os.environ.get("APGI_MASTER_KEY")
                 if master_key:
-                    fernet = Fernet(master_key.encode())
+                    # Validate master key before using
+                    try:
+                        fernet = Fernet(master_key.encode())
+                    except ValueError:
+                        self.logger.warning(
+                            "Invalid APGI_MASTER_KEY format, cannot decrypt backup key"
+                        )
+                        return
                     encrypted = backup_key_file.read_bytes()
                     key_b64 = fernet.decrypt(encrypted).decode("utf-8")
                     backup_key = base64.b64decode(key_b64).hex()
@@ -351,7 +385,10 @@ class KeyRotationManager:
             return True
 
         next_rotation = datetime.fromisoformat(self.metadata["next_rotation"])
-        return datetime.utcnow() >= next_rotation
+        # Handle both naive and offset-aware datetimes
+        if next_rotation.tzinfo is None:
+            next_rotation = next_rotation.replace(tzinfo=timezone.utc)
+        return datetime.now(tz=timezone.utc) >= next_rotation
 
     def get_key_status(self) -> Dict:
         """
@@ -370,11 +407,18 @@ class KeyRotationManager:
 
             for key_type in ["pickle_key", "backup_key"]:
                 key_info = self.metadata[key_type]
-                status["keys"][key_type] = {
-                    "fingerprint": key_info["current"]["fingerprint"],
-                    "created_at": key_info["current"]["created_at"],
-                    "rotation_count": len(key_info["rotation_history"]),
-                }
+                if key_info and key_info.get("current"):
+                    status["keys"][key_type] = {
+                        "fingerprint": key_info["current"]["fingerprint"],
+                        "created_at": key_info["current"]["created_at"],
+                        "rotation_count": len(key_info.get("rotation_history", [])),
+                    }
+                else:
+                    status["keys"][key_type] = {
+                        "fingerprint": None,
+                        "created_at": None,
+                        "rotation_count": 0,
+                    }
 
             return status
 
@@ -382,7 +426,7 @@ class KeyRotationManager:
         """Send notification about key rotation."""
         # In production, this could send email, Slack message, etc.
         notification = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "rotations": rotation_results,
         }
 

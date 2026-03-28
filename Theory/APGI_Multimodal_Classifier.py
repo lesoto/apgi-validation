@@ -26,7 +26,7 @@ Alternative Script Names:
 """
 
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -82,6 +82,7 @@ class APGIBayesianInversion:
     ) -> pm.Model:
         """
         Extracts core parameters using hierarchical Bayesian model inversion.
+        Uses non-centered parameterization and strong informative priors.
 
         Args:
             observed_S: Array of accumulated surprise signals
@@ -93,41 +94,61 @@ class APGIBayesianInversion:
             PyMC model with posterior samples
         """
         with pm.Model() as model:
-            # Priors constrained by APGI empirical operational ranges
-            # Use more conservative priors to improve sampling
-            theta_0 = (
-                pm.Beta("theta_0", 2, 2) * 0.6 + 0.25
-            )  # Beta scaled to [0.25, 0.85]
-            pi_e = pm.LogNormal(
-                "pi_e", pm.math.log(1.5), 0.3
-            )  # LogNormal for positive precision
-            pi_i = pm.LogNormal(
-                "pi_i", pm.math.log(1.5), 0.3
-            )  # LogNormal for positive precision
-            beta = pm.TruncatedNormal(
-                "beta", 1.2, 0.2, lower=0.5, upper=2.5
-            )  # Reduced std for somatic bias
-            alpha = pm.Normal("alpha", 5.0, 0.5)  # Reduced std for ignition slope
-            sigma_noise = pm.HalfCauchy(
-                "sigma_noise", 0.05
-            )  # HalfCauchy for scale parameter
+            # Strong informative priors based on APGI empirical operational ranges
+            # theta_0: ignition threshold ∈ [0.25, 0.85]
+            theta_0_raw = pm.Normal("theta_0_raw", 0, 1)
+            theta_0 = pm.Deterministic(
+                "theta_0", 0.55 + 0.15 * theta_0_raw
+            )  # centered at 0.55, ±0.15
+
+            # pi_e: exteroceptive precision, LogNormal around 1.5 ± 0.5
+            pi_e_log_raw = pm.Normal("pi_e_log_raw", 0, 0.3)
+            pi_e = pm.Deterministic(
+                "pi_e", pt.exp(pm.math.log(1.5) + 0.3 * pi_e_log_raw)
+            )
+
+            # FIX: Combined parameter for beta * pi_i to address collinearity
+            # Only the product is identifiable in the model, so we estimate it directly
+            # beta_pi_i represents the effective somatic-scaled interoceptive precision
+            beta_pi_i_log_raw = pm.Normal("beta_pi_i_log_raw", 0, 0.3)
+            beta_pi_i = pm.Deterministic(
+                "beta_pi_i", pt.exp(pm.math.log(1.8) + 0.4 * beta_pi_i_log_raw)
+            )
+
+            # Store individual parameters for interpretation (prior on ratio)
+            # beta / pi_i ratio prior: centered at ~1.0 with moderate uncertainty
+            beta_pi_ratio_raw = pm.Normal("beta_pi_ratio_raw", 0, 0.5)
+            beta_pi_ratio = pm.Deterministic(
+                "beta_pi_ratio", 0.8 + 0.3 * beta_pi_ratio_raw
+            )
+
+            # Derive individual parameters from identifiable quantities
+            # These are accessed from the trace in invert_parameters()
+            pi_i = pm.Deterministic(  # noqa: F841
+                "pi_i", pt.sqrt(beta_pi_i / beta_pi_ratio)
+            )
+            beta = pm.Deterministic(  # noqa: F841
+                "beta", pt.sqrt(beta_pi_i * beta_pi_ratio)
+            )
+
+            # alpha: ignition slope, tightly constrained around 5.0
+            alpha = pm.TruncatedNormal("alpha", 5.0, 0.3, lower=3.0, upper=8.0)
+
+            # sigma_noise: observation noise, small and positive
+            sigma_noise = pm.HalfNormal("sigma_noise", sigma=0.05)
 
             # Vectorized computation of surprise evolution
-            # Precision-weighted surprise inputs for all time steps
-            surprise_inputs = pi_e * pm.math.abs(z_e) + beta * pi_i * pm.math.abs(z_i)
+            # Using the identifiable combined parameter
+            surprise_inputs = pi_e * pm.math.abs(z_e) + beta_pi_i * pm.math.abs(z_i)
 
             # Initialize S_t array with compatible shape
-            S_t = pt.zeros_like(observed_B)  # Match observed_B shape
-            S_t = pt.set_subtensor(S_t[0], 0.0)  # Initial surprise
+            S_t = pt.zeros_like(observed_B)
+            S_t = pt.set_subtensor(S_t[0], 0.0)
 
-            # Vectorized computation of surprise evolution without scan
-            # Using cumulative approach to avoid scan slicing issues
-            noise = pm.Normal(
-                "noise", 0, sigma_noise, shape=observed_B.shape
-            )  # Match observed_B shape
-            # Use a simplified model: compute surprise directly without time evolution
-            # S_t = precision-weighted prediction error + noise
-            # This avoids the scan length determination issue
+            # Observation noise
+            noise = pm.Normal("noise", 0, sigma_noise, shape=observed_B.shape)
+
+            # Simplified surprise model: precision-weighted prediction error + noise
             S_t = surprise_inputs + noise
 
             # Ignition Decision Rule
@@ -165,7 +186,8 @@ class APGIBayesianInversion:
                 tune=self.tune,
                 chains=4,
                 cores=4,
-                target_accept=0.95,  # Higher target acceptance to reduce divergences
+                target_accept=0.99,  # Increased from 0.95 for better exploration
+                max_treedepth=12,  # Allow deeper tree exploration
                 return_inferencedata=True,
             )
         recovered_params = {
@@ -184,7 +206,12 @@ class APGIBayesianInversion:
         """
         print(f"Running SBC with {n_simulations} simulations...")
 
-        coverage = {"theta_0": [], "pi_e": [], "pi_i": [], "beta": []}
+        coverage: Dict[str, List[float]] = {
+            "theta_0": [],
+            "pi_e": [],
+            "pi_i": [],
+            "beta": [],
+        }
 
         for sim in range(n_simulations):
             if sim % 10 == 0:
@@ -268,20 +295,22 @@ class APGIMechanisticStratifier:
             "psychosis": {"pi_i": 0.5, "theta_0": 0.2, "beta": 2.0},
         }
 
-    def generate_training_data(self, n_samples: int = 1000):
+    def generate_training_data(self, n_samples: int = 1000, seed: int = 42):
         """
         Generate synthetic training data based on disorder profiles.
         """
+        rng = np.random.default_rng(seed)
         X = []
         y = []
 
         for disorder, params in self.disorder_profiles.items():
-            for _ in range(n_samples // len(self.disorder_profiles)):
+            samples_per_class = n_samples // len(self.disorder_profiles)
+            for _ in range(samples_per_class):
                 # Add noise to parameters
                 sample = {
-                    "pi_i": params["pi_i"] + np.random.normal(0, 0.2),
-                    "theta_0": params["theta_0"] + np.random.normal(0, 0.1),
-                    "beta": params["beta"] + np.random.normal(0, 0.15),
+                    "pi_i": params["pi_i"] + rng.normal(0, 0.2),
+                    "theta_0": params["theta_0"] + rng.normal(0, 0.1),
+                    "beta": params["beta"] + rng.normal(0, 0.15),
                 }
                 X.append([sample["pi_i"], sample["theta_0"], sample["beta"]])
                 y.append(disorder)
@@ -290,13 +319,13 @@ class APGIMechanisticStratifier:
 
     def train_classifier(self):
         """
-        Train the ML classifier on synthetic disorder profiles.
+        Train the ML classifier on synthetic disorder profiles
+        with out-of-distribution validation.
         """
-        X, y = self.generate_training_data()
+        X, y = self.generate_training_data(seed=42)
 
         if self.classifier_type == "random_forest":
             self.classifier = RandomForestClassifier(n_estimators=100, random_state=42)
-        # Could add SVM, etc.
 
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
@@ -304,10 +333,61 @@ class APGIMechanisticStratifier:
 
         self.classifier.fit(X_train, y_train)
 
-        # Evaluate
+        # In-distribution evaluation
         y_pred = self.classifier.predict(X_test)
-        print("Classifier Performance:")
+        print("In-Distribution Classifier Performance:")
         print(classification_report(y_test, y_pred))
+
+        # Out-of-distribution validation with different noise levels
+        print("\nOut-of-Distribution Validation:")
+        for noise_factor in [1.5, 2.0, 3.0]:
+            X_ood, y_ood = self.generate_ood_data(noise_factor, seed=100)
+            y_ood_pred = self.classifier.predict(X_ood)
+            acc = np.mean(y_ood_pred == y_ood)
+            print(f"  Noise factor {noise_factor}: Accuracy = {acc:.3f}")
+
+    def generate_ood_data(self, noise_factor: float, seed: int = 100):
+        """
+        Generate out-of-distribution test data with increased noise
+        and distribution shift for robustness validation.
+        """
+        rng = np.random.default_rng(seed)
+        X_ood = []
+        y_ood = []
+
+        # Add distribution shift: bias in parameters
+        shift = {
+            "anxiety": {"pi_i": 0.3, "theta_0": -0.05, "beta": 0.2},
+            "depression": {"pi_i": -0.2, "theta_0": 0.1, "beta": -0.1},
+            "healthy": {"pi_i": 0.1, "theta_0": 0.0, "beta": -0.1},
+            "psychosis": {"pi_i": -0.1, "theta_0": 0.05, "beta": 0.3},
+        }
+
+        for disorder, params in self.disorder_profiles.items():
+            n_per_class = 50
+            for _ in range(n_per_class):
+                # Increased noise + systematic shift
+                sample = {
+                    "pi_i": (
+                        params["pi_i"]
+                        + shift[disorder]["pi_i"]
+                        + rng.normal(0, 0.2 * noise_factor)
+                    ),
+                    "theta_0": (
+                        params["theta_0"]
+                        + shift[disorder]["theta_0"]
+                        + rng.normal(0, 0.1 * noise_factor)
+                    ),
+                    "beta": (
+                        params["beta"]
+                        + shift[disorder]["beta"]
+                        + rng.normal(0, 0.15 * noise_factor)
+                    ),
+                }
+                X_ood.append([sample["pi_i"], sample["theta_0"], sample["beta"]])
+                y_ood.append(disorder)
+
+        return np.array(X_ood), np.array(y_ood)
 
     def stratify_patient(self, params: Dict[str, float]) -> str:
         """
@@ -323,7 +403,10 @@ class APGIMechanisticStratifier:
             self.train_classifier()
 
         features = np.array([[params["pi_i"], params["theta_0"], params["beta"]]])
-        prediction = self.classifier.predict(features)[0]
+        if self.classifier is not None:
+            prediction = self.classifier.predict(features)[0]
+        else:
+            raise ValueError("Classifier failed to train")
 
         return prediction
 

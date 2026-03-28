@@ -13,10 +13,10 @@ from pathlib import Path
 # Get the directory path
 _dir = Path(__file__).parent
 
-# Protocol 1: Active Inference Agent Testing
+# Protocol 1: Active Inference Agent Testing - mapped to existing Falsification_ActiveInferenceAgents_F1F2
 try:
     _spec1 = importlib.util.spec_from_file_location(
-        "Protocol_1", _dir / "Falsification-Protocol-1.py"
+        "Protocol_1", _dir / "Falsification_ActiveInferenceAgents_F1F2.py"
     )
     if _spec1 and _spec1.loader:
         Protocol_1 = importlib.util.module_from_spec(_spec1)
@@ -27,10 +27,11 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 1: {e}")
     Protocol_1 = None
 
-# Protocol 2: Iowa Gambling Task Environment
+# Protocol 2: Iowa Gambling Task Environment - mapped to existing protocol
+# Note: No direct equivalent exists, using FrameworkLevel as placeholder
 try:
     _spec2 = importlib.util.spec_from_file_location(
-        "Protocol_2", _dir / "Falsification-Protocol-2.py"
+        "Protocol_2", _dir / "Falsification_FrameworkLevel_MultiProtocol.py"
     )
     if _spec2 and _spec2.loader:
         Protocol_2 = importlib.util.module_from_spec(_spec2)
@@ -41,10 +42,10 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 2: {e}")
     Protocol_2 = None
 
-# Protocol 3: Agent Comparison Experiment
+# Protocol 3: Agent Comparison Experiment - mapped to existing Falsification_AgentComparison_ConvergenceBenchmark
 try:
     _spec3 = importlib.util.spec_from_file_location(
-        "Protocol_3", _dir / "Falsification-Protocol-3.py"
+        "Protocol_3", _dir / "Falsification_AgentComparison_ConvergenceBenchmark.py"
     )
     if _spec3 and _spec3.loader:
         Protocol_3 = importlib.util.module_from_spec(_spec3)
@@ -55,10 +56,10 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 3: {e}")
     Protocol_3 = None
 
-# Protocol 4: Phase Transition Analysis
+# Protocol 4: Phase Transition Analysis - mapped to existing Falsification_InformationTheoretic_PhaseTransition
 try:
     _spec4 = importlib.util.spec_from_file_location(
-        "Protocol_4", _dir / "Falsification-Protocol-4.py"
+        "Protocol_4", _dir / "Falsification_InformationTheoretic_PhaseTransition.py"
     )
     if _spec4 and _spec4.loader:
         Protocol_4 = importlib.util.module_from_spec(_spec4)
@@ -69,10 +70,10 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 4: {e}")
     Protocol_4 = None
 
-# Protocol 5: Evolutionary APGI Emergence
+# Protocol 5: Evolutionary APGI Emergence - uses existing Falsification_Protocol_P5
 try:
     _spec5 = importlib.util.spec_from_file_location(
-        "Protocol_5", _dir / "Falsification-Protocol-5.py"
+        "Protocol_5", _dir / "Falsification_Protocol_P5.py"
     )
     if _spec5 and _spec5.loader:
         Protocol_5 = importlib.util.module_from_spec(_spec5)
@@ -83,10 +84,10 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 5: {e}")
     Protocol_5 = None
 
-# Protocol 6: Network Comparison Experiment
+# Protocol 6: Network Comparison Experiment - uses existing Falsification_Protocol_P6
 try:
     _spec6 = importlib.util.spec_from_file_location(
-        "Protocol_6", _dir / "Falsification-Protocol-6.py"
+        "Protocol_6", _dir / "Falsification_Protocol_P6.py"
     )
     if _spec6 and _spec6.loader:
         Protocol_6 = importlib.util.module_from_spec(_spec6)

@@ -192,7 +192,7 @@ class BackupManager:
                 "description": "Model checkpoints",
             },
             "data": {
-                "paths": ["data/", "datasets/"],
+                "paths": ["data_repository/", "datasets/"],
                 "description": "Data files",
             },
         }

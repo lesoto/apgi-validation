@@ -243,10 +243,10 @@ class APGITuringMachine:
 
     def _update_individual_parameters(self):
         """Update parameters based on individual differences"""
-        # Anxiety increases somatic bias and NE sensitivity
-        anxiety_factor = (self.params.anxiety_level - 0.5) * 0.4
+        # Anxiety increases somatic bias and NE sensitivity (more pronounced effect)
+        anxiety_factor = (self.params.anxiety_level - 0.5) * 0.8  # Increased from 0.4
         self.params.beta += anxiety_factor
-        self.params.kappa_NE -= anxiety_factor * 0.1
+        self.params.kappa_NE -= anxiety_factor * 0.15  # Increased from 0.1
 
         # Alexithymia decreases somatic bias
         alexi_factor = (self.params.alexithymia_level - 0.5) * 0.4
@@ -392,7 +392,12 @@ class APGITuringMachine:
 
         # 5. Update workspace accumulation (probabilistic)
         if self.state.surprise == SurpriseLevel.HIGH:
-            if np.random.random() < self.params.Pi_e:  # Reliability-gated
+            # Use appropriate precision based on signal modality
+            precision_gate = self.params.Pi_e
+            if self.is_interoceptive(signal):
+                precision_gate = self.params.Pi_i
+
+            if np.random.random() < precision_gate:  # Reliability-gated
                 self._advance_workspace()
 
         # 6. Check for ignition threshold crossing
@@ -1132,6 +1137,9 @@ def run_anxiety_comparison(duration: float = 60.0):
     dt = 0.05
     steps = int(duration / dt)
 
+    # Set random seed for reproducible comparison
+    np.random.seed(42)
+
     # Neutral individual
     print("\nProfile 1: NEUTRAL (anxiety=0.5, alexithymia=0.5)")
     params_neutral = APGIParameters(anxiety_level=0.5, alexithymia_level=0.5)
@@ -1154,13 +1162,24 @@ def run_anxiety_comparison(duration: float = 60.0):
     eps_threat = np.random.normal(0, 0.1, steps)
     threat_start = int(20.0 / dt)
     threat_end = int(25.0 / dt)
+    # Increase threat magnitude to ensure ignitions
     eps_threat[threat_start:threat_end] += np.random.normal(
-        1.2, 0.3, threat_end - threat_start
+        2.5, 0.3, threat_end - threat_start
+    )
+
+    # Add second stronger threat event to amplify individual differences
+    threat2_start = int(40.0 / dt)
+    threat2_end = int(45.0 / dt)
+    eps_threat[threat2_start:threat2_end] += np.random.normal(
+        3.0, 0.3, threat2_end - threat2_start
     )
 
     contexts = [TaskContext.REST] * steps
     contexts[threat_start:threat_end] = [TaskContext.THREAT] * (
         threat_end - threat_start
+    )
+    contexts[threat2_start:threat2_end] = [TaskContext.THREAT] * (
+        threat2_end - threat2_start
     )
 
     # Run both

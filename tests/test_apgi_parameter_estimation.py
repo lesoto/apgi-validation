@@ -13,10 +13,11 @@ import tempfile
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
 
 # Import the module with error handling
 try:
-    from APGI_Parameter_Estimation import (
+    from Theory.APGI_Parameter_Estimation import (
         APGIConstants,
         DriftDiffusionGenerator,
         ParameterIdentifiabilityAnalyzer,

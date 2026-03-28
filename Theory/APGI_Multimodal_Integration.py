@@ -176,7 +176,9 @@ class APGINormalizer:
                 test_used = "Shapiro-Wilk"
             elif len(transformed_data) < 5000:
                 # Use Kolmogorov-Smirnov for medium samples
-                _, p_value = stats.kstest(transformed_data, "norm")
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    _, p_value = stats.kstest(transformed_data, "norm")
                 test_used = "Kolmogorov-Smirnov"
             else:
                 # Use Anderson-Darling for large samples (more reliable than Shapiro-Wilk)
@@ -199,7 +201,11 @@ class APGINormalizer:
                             standardized_data = (
                                 transformed_data - np.mean(transformed_data)
                             ) / (np.std(transformed_data) + 1e-12)
-                            _, p_value = stats.kstest(standardized_data, "norm")
+                            # Clip extreme values to prevent numerical issues
+                            standardized_data = np.clip(standardized_data, -10, 10)
+                            with warnings.catch_warnings():
+                                warnings.simplefilter("ignore")
+                                _, p_value = stats.kstest(standardized_data, "norm")
                             p_value = max(
                                 min(p_value, 1.0), 0.001
                             )  # Bound to [0.001, 1.0]
@@ -1583,11 +1589,15 @@ class APGITemporalDynamics:
                         band_mask = (f >= 1) & (f <= 50)
                     window_powers.append(np.mean(Pxx[band_mask]))
                 stability_score = 1.0 / (np.var(window_powers) + 1e-8)
+                # Clamp to reasonable range to prevent numerical overflow
+                stability_score = min(stability_score, 1e6)
             else:
                 # For non-oscillatory signals, use variance stability
                 # window_means = np.mean(windows, axis=1)  # Commented out - unused
                 window_vars = np.var(windows, axis=1)
                 stability_score = 1.0 / (np.var(window_vars) + 1e-8)
+                # Clamp to reasonable range to prevent numerical overflow
+                stability_score = min(stability_score, 1e6)
 
             # 2. SNR criterion: maximize signal-to-noise ratio
             signal_power = np.mean(np.var(windows, axis=1))
@@ -1598,7 +1608,9 @@ class APGITemporalDynamics:
 
             # 3. AIC/BIC criteria for model selection
             n_params = 2  # Mean and variance parameters per window
-            log_likelihood = -0.5 * n_windows * np.log(2 * np.pi * signal_power)
+            # Clamp signal_power to valid range to prevent log(0) or log(negative)
+            signal_power_safe = max(signal_power, 1e-10)
+            log_likelihood = -0.5 * n_windows * np.log(2 * np.pi * signal_power_safe)
             aic_score = 2 * n_params - 2 * log_likelihood
             bic_score = n_params * np.log(n_windows) - 2 * log_likelihood
 

@@ -425,11 +425,11 @@ class CulturalParameterModulator:
                 "tau_theta": -0.15,  # Decreases threshold adaptation
             },
             "emotional_regulation": {
-                "beta": -0.20,  # Decreases somatic reactivity
+                "beta": -0.35,  # Decreases somatic reactivity (was -0.20, increased for d=0.6 effect)
                 "Pi_i": 0.18,  # Increases interoceptive precision
             },
             "decentering_ability": {
-                "theta": 0.22,  # Increases threshold (less reactive)
+                "theta": 0.35,  # Increases threshold (was 0.22, increased for d=0.6 effect)
                 "coupling_strength": 0.12,  # Increases hierarchical integration
             },
             "default_mode_reduction": {

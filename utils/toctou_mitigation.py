@@ -52,7 +52,7 @@ class FileLock:
             if self.lock_fd is not None:
                 try:
                     os.close(self.lock_fd)
-                except Exception:
+                except (IOError, OSError):
                     pass
                 self.lock_fd = None
 
@@ -80,7 +80,7 @@ class FileLock:
             if self.lock_fd is not None:
                 try:
                     os.close(self.lock_fd)
-                except Exception:
+                except (IOError, OSError):
                     pass
                 self.lock_fd = None
 

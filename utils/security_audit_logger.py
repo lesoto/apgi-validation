@@ -7,7 +7,7 @@ Logs all file access, path resolution, and permission checks for security auditi
 import logging
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 from functools import wraps
 import traceback
@@ -70,7 +70,7 @@ class SecurityAuditLogger:
             **kwargs: Additional context
         """
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "operation": operation,
             "file_path": str(file_path),
             "user": user,
@@ -116,7 +116,7 @@ class SecurityAuditLogger:
             **kwargs: Additional context
         """
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "operation": "path_resolution",
             "original_path": original_path,
             "resolved_path": resolved_path,
@@ -160,7 +160,7 @@ class SecurityAuditLogger:
             **kwargs: Additional context
         """
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "operation": "permission_check",
             "file_path": str(file_path),
             "permission_type": permission_type,
@@ -204,11 +204,11 @@ class SecurityAuditLogger:
             **kwargs: Additional context
         """
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "operation": "config_change",
             "config_key": config_key,
-            "old_value": str(old_value),
-            "new_value": str(new_value),
+            "old_value": old_value,
+            "new_value": new_value,
             "user": user,
             "context": kwargs,
         }

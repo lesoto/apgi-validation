@@ -28,6 +28,15 @@ import pymc as pm
 from scipy import stats
 from sklearn.metrics import log_loss, roc_auc_score
 from sklearn.model_selection import KFold
+import sys
+from pathlib import Path
+
+_proj_root = Path(__file__).parent.parent
+if str(_proj_root) not in sys.path:
+    sys.path.insert(0, str(_proj_root))
+from utils.statistical_tests import (
+    safe_pearsonr,
+)
 
 # Set random seeds
 RANDOM_SEED = 42
@@ -2049,8 +2058,8 @@ class FalsificationChecker:
         P3b_obs = data.P3b_amplitude[seen_mask]
 
         # Correlations
-        r_apgi = stats.pearsonr(apgi_predictor[seen_mask], P3b_obs)[0]
-        r_stim = stats.pearsonr(stimulus_predictor[seen_mask], P3b_obs)[0]
+        r_apgi, _, _ = safe_pearsonr(apgi_predictor[seen_mask], P3b_obs)
+        r_stim, _, _ = safe_pearsonr(stimulus_predictor[seen_mask], P3b_obs)
 
         # Falsified if stimulus is better predictor
         falsified = r_stim > r_apgi
@@ -2073,7 +2082,7 @@ class FalsificationChecker:
         proximity = np.abs(S_t_mean - theta_t_mean)
 
         # Test for negative correlation (closer to threshold = slower RT)
-        r, p = stats.pearsonr(proximity, data.reaction_time)
+        r, p, _ = safe_pearsonr(proximity, data.reaction_time)
 
         # Should be negative and significant
         expected_effect = (r < 0) and (p < 0.05)

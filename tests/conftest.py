@@ -11,7 +11,6 @@ Provides common test fixtures and configuration:
 
 import json
 import os
-import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -88,10 +87,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 @pytest.fixture
 def temp_dir():
-    """Provide a temporary directory for tests."""
-    temp_path = tempfile.mkdtemp()
-    yield Path(temp_path)
-    shutil.rmtree(temp_path)
+    """Provide a temporary directory for tests with secure permissions."""
+    with tempfile.TemporaryDirectory() as temp_path:
+        # Set restrictive permissions (owner only) on the temp directory
+        os.chmod(temp_path, 0o700)
+        yield Path(temp_path)
 
 
 @pytest.fixture
@@ -246,7 +246,7 @@ def oom_fixture():
                     pass
             return False  # Don't suppress exceptions
 
-    return OOMContext
+    return OOMContext()
 
 
 @pytest.fixture
@@ -341,16 +341,37 @@ def reset_random_state_before_each_test():
 
 @pytest.fixture
 def flaky_operation():
-    """Fixture that simulates a flaky operation that may fail intermittently."""
+    """Fixture that provides a retry wrapper for flaky operations."""
+    import time
     import numpy as np
 
-    def operation(success_rate=0.7):
-        """Simulate an operation that succeeds with given probability."""
-        # Use numpy random for consistency with reset_random_state_before_each_test fixture
-        if np.random.random() < success_rate:
-            return "success"
-        else:
-            raise RuntimeError("Flaky operation failed")
+    def operation(func, max_attempts=3, timeout=None, backoff_factor=1):
+        """Execute a function with retry logic.
+
+        Args:
+            func: Callable to execute
+            max_attempts: Maximum number of retry attempts
+            timeout: Maximum time to wait (not implemented in this fixture)
+            backoff_factor: Multiplier for wait time between retries
+        """
+        last_exception = None
+
+        for attempt in range(max_attempts):
+            try:
+                return func()
+            except Exception as e:
+                last_exception = e
+                if attempt < max_attempts - 1:
+                    # Exponential backoff with jitter
+                    wait_time = (
+                        backoff_factor
+                        * (2**attempt)
+                        * (0.5 + np.random.random() * 0.5)
+                    )
+                    time.sleep(wait_time)
+
+        # All attempts failed, raise the last exception
+        raise last_exception
 
     return operation
 
