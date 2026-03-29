@@ -149,3 +149,7 @@ reports/
 .DS_Store
 cache/
 *.db
+data_repository/*.fif
+data_repository/*.json
+data_repository/*.csv
+data_repository/*.db
