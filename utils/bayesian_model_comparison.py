@@ -1,15 +1,23 @@
 """
-APGI Bayesian Model Comparison on Existing Consciousness Datasets
-======================================================================================
+APGI Bayesian Model Comparison Utilities
+=========================================
 
-Supplementary computational implementation for testing APGI framework predictions
-through Bayesian model comparison on published empirical consciousness datasets.
+Reusable infrastructure for Bayesian model comparison across APGI validation
+protocols. Extracted from BayesianModelComparison_ParameterRecovery.py and
+consumed primarily by VP_02_Behavioral_BayesianComparison.py.
 
-NOTE: This is NOT Paper Protocol 2. The actual Protocol 2 is "TMS Causal Intervention" —
-testing that anterior insula TMS reduces both PCI (by ~20%) and HEP (by ~30%), and that
-dlPFC TMS reduces PCI but not HEP. This file implements computational Bayesian model
-comparison which supports Protocol 2 predictions.
+Key public classes:
+  ConsciousnessDataset           — container for consciousness experiment data
+  SyntheticConsciousnessDataGenerator — generates synthetic datasets
+  APGIGenerativeModel            — APGI generative model for Bayesian comparison
+  StandardSDTModel               — signal detection theory baseline
+  GlobalWorkspaceModel           — GWT baseline model
+  ContinuousIntegrationModel     — continuous integration baseline
+  BayesianModelComparison        — orchestrates multi-model comparison (MCMC/NUTS)
 
+NOTE: The actual Protocol 2 ("TMS Causal Intervention") lives in
+VP_07_TMS_CausalInterventions.py. This file provides computational
+Bayesian model comparison supporting Protocol 2 predictions.
 """
 
 import json

@@ -1,40 +1,34 @@
 #!/usr/bin/env python3
 """
-APGI Validation Protocol 2: Behavioral Validation Protocol
-===========================================================
+VP-02: Behavioral Bayesian Comparison (P1.1–P1.3, V2.1–V2.3, F2.1–F2.5)
+==========================================================================
 
 Implements full behavioral simulation and psychophysical validation of the APGI
-framework's core Prediction 1 cluster:
+framework's core Prediction 1 cluster.
 
-  P1.1 — Interoceptive precision (Πⁱ) modulates visual detection threshold
-          High-IA individuals (>1 SD heartbeat discrimination) show lower
-          detection thresholds than Low-IA controls.
+  P1.1 — Interoceptive precision (Πⁱ) modulates visual detection threshold.
+          High-IA individuals show lower detection thresholds than Low-IA.
           Predicted effect: Cohen's d = 0.40–0.60.
 
   P1.2 — Arousal amplifies the Πⁱ–threshold relationship.
           Exercise arousal (HR 100–120 bpm) interacts with interoceptive
-          precision: correlation between Πⁱ and threshold shifts from r_rest
-          to r_arousal, Δr ≥ 0.15.
-          Predicted arousal × IA interaction: Cohen's d = 0.25–0.45.
+          precision: Δr ≥ 0.15. Interaction Cohen's d = 0.25–0.45.
 
   P1.3 — High-IA individuals show greater arousal benefit than Low-IA.
-          Threshold reduction under arousal is larger for High-IA group.
           Predicted effect: Cohen's d > 0.30.
 
-Paper basis: APGI-FRAMEWORK-Paper, Prediction 1 section;
-             Garfinkel et al. (2015) SD-split criterion;
-             Khalsa et al. (2018) meta-analytic benchmark r = 0.43.
+Bayesian model comparison infrastructure (ConsciousnessDataset,
+BayesianModelComparison, APGIGenerativeModel, etc.) lives in
+utils/bayesian_model_comparison.py.
 
-Tier: PRIMARY — tests core interoceptive-precision-to-threshold link,
-      the foundational claim of the APGI ignition mechanism.
-      (Corrected from stale comment "Parameter consistency checks".)
+Paper basis: APGI-FRAMEWORK-Paper, Prediction 1;
+             Garfinkel et al. (2015); Khalsa et al. (2018) r = 0.43.
+
+Tier: PRIMARY.
 
 Master_Validation.py registration:
-    "Protocol-2": {
-        "file": "VP_2_Validation_Protocol_2.py",
-        "function": "run_validation",
-        "description": "Behavioral Validation Protocol — P1.1/P1.2/P1.3",
-    }
+    "Protocol-2": {"file": "VP_02_Behavioral_BayesianComparison.py",
+                   "function": "run_validation"}
 """
 
 import logging
@@ -55,6 +49,17 @@ from tqdm import tqdm
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+try:
+    from utils.bayesian_model_comparison import (  # noqa: F401  (available for callers)
+        BayesianModelComparison,
+        ConsciousnessDataset,
+        APGIGenerativeModel,
+    )
+except ImportError:
+    BayesianModelComparison = None  # type: ignore[assignment,misc]
+    ConsciousnessDataset = None  # type: ignore[assignment,misc]
+    APGIGenerativeModel = None  # type: ignore[assignment,misc]
 
 try:
     from utils.logging_config import apgi_logger as logger

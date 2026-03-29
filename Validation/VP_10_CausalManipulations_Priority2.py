@@ -1617,3 +1617,272 @@ class PrincipalComponentChecker:
 
 if __name__ == "__main__":
     main()
+
+
+# =============================================================================
+# ABSORBED FROM Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py
+# Unique classes and helpers not present in VP_10 base
+# =============================================================================
+
+class ColdPressorTest:
+    """
+    Cold pressor test implementation for MCS interventions from Protocol 4c.
+
+    Implements breathlessness induction and pain tolerance testing with
+    physiological monitoring and safety criteria.
+    """
+
+    def __init__(self, water_temp_c: float = 4.0, max_duration_s: float = 180.0):
+        self.water_temp_c = water_temp_c
+        self.max_duration_s = max_duration_s
+        self.safety_criteria = {
+            "max_hr_bpm": 180,
+            "max_sbp_mmhg": 200,
+            "min_spo2_percent": 85,
+            "max_pain_rating": 8 / 10,  # Stop if pain > 8/10
+        }
+
+    def induce_breathlessness(self, participant_data: Dict) -> Dict:
+        """
+        Induce breathlessness using cold pressor protocol.
+
+        Returns physiological responses and safety metrics.
+        """
+        results = {
+            "protocol": "cold_pressor",
+            "water_temp_c": self.water_temp_c,
+            "duration_s": 0,
+            "breathlessness_rating": 0,
+            "pain_rating": 0,
+            "cardiovascular_responses": {},
+            "safety_violations": [],
+        }
+
+        # Simulate progressive breathlessness induction
+        for t in np.arange(0, self.max_duration_s, 1):
+            # Pain increases linearly then plateaus
+            pain_rating = min(8 / 10, t / 30.0)  # Max 8/10 pain
+
+            # Breathlessness follows pain with delay
+            breathlessness_delay = 10.0  # seconds
+            if t > breathlessness_delay:
+                breathlessness_rating = min(10 / 10, (t - breathlessness_delay) / 25.0)
+            else:
+                breathlessness_rating = 0
+
+            # Cardiovascular responses
+            hr_increase = 20 * pain_rating  # 20 bpm per pain unit
+            sbp_increase = 15 * pain_rating  # 15 mmHg per pain unit
+
+            results["cardiovascular_responses"][t] = {
+                "hr_bpm": 70 + hr_increase,
+                "sbp_mmhg": 120 + sbp_increase,
+                "spo2_percent": 98 - 2 * pain_rating,  # Mild desaturation
+            }
+
+            # Check safety criteria
+            if (
+                results["cardiovascular_responses"][t]["hr_bpm"]
+                > self.safety_criteria["max_hr_bpm"]
+            ):
+                results["safety_violations"].append(
+                    f"HR exceeded: {results['cardiovascular_responses'][t]['hr_bpm']}"
+                )
+            if (
+                results["cardiovascular_responses"][t]["sbp_mmhg"]
+                > self.safety_criteria["max_sbp_mmhg"]
+            ):
+                results["safety_violations"].append(
+                    f"SBP exceeded: {results['cardiovascular_responses'][t]['sbp_mmhg']}"
+                )
+            if (
+                results["cardiovascular_responses"][t]["spo2_percent"]
+                < self.safety_criteria["min_spo2_percent"]
+            ):
+                results["safety_violations"].append(
+                    f"SpO2 too low: {results['cardiovascular_responses'][t]['spo2_percent']}"
+                )
+
+            if len(results["safety_violations"]) > 0:
+                break  # Stop for safety
+
+            results["duration_s"] = t
+            results["breathlessness_rating"] = breathlessness_rating
+            results["pain_rating"] = pain_rating
+
+        return results
+
+
+class MNEDataInterface:
+    """
+    MNE compatibility layer for real EEG data input.
+
+    Provides standardized interface for loading, preprocessing, and analyzing
+    real EEG data using MNE-Python conventions.
+    """
+
+    def __init__(self):
+        self.supported_formats = [".fif", ".edf", ".bdf", ".set"]
+        self.preprocessing_pipeline = {
+            "filtering": {"bandpass": [1, 40], "notch": [50, 60]},
+            "artifact_removal": {"eog": True, "ecg": True, "muscle": True},
+            "epoching": {"tmin": -0.2, "tmax": 0.8},
+            "baseline_correction": True,
+            "rereferencing": "average",
+        }
+
+    def load_eeg_data(self, file_path: str) -> Dict:
+        """
+        Load EEG data using MNE conventions.
+
+        Returns standardized data structure for APGI processing.
+        """
+        try:
+            import mne
+
+            # Load raw data
+            raw = mne.io.read_raw_fif(file_path, preload=True)
+
+            # Apply preprocessing pipeline
+            raw = self._preprocess_raw(raw)
+
+            # Extract epochs around events of interest
+            events = mne.find_events(raw)
+            epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.8)
+
+            # Convert to numpy arrays for APGI compatibility
+            data = epochs.get_data()  # Shape: (n_epochs, n_channels, n_times)
+
+            return {
+                "success": True,
+                "data": data,
+                "info": raw.info,
+                "times": epochs.times,
+                "events": events,
+                "channels": raw.ch_names,
+                "sampling_rate": raw.info["sfreq"],
+                "preprocessing_applied": self.preprocessing_pipeline,
+            }
+
+        except ImportError:
+            logger.warning("MNE not available. Using mock data.")
+            return self._generate_mock_eeg_data()
+        except Exception as e:
+            logger.error(f"Error loading EEG data: {e}")
+            return {"success": False, "error": str(e)}
+
+    def _preprocess_raw(self, raw):
+        """Apply preprocessing pipeline to raw EEG data."""
+        # Bandpass filter
+        raw.filter(
+            l_freq=self.preprocessing_pipeline["filtering"]["bandpass"][0],
+            h_freq=self.preprocessing_pipeline["filtering"]["bandpass"][1],
+            method="fir",
+        )
+
+        # Notch filter for line noise
+        for freq in self.preprocessing_pipeline["filtering"]["notch"]:
+            raw.notch_filter(freqs=freq)
+
+        return raw
+
+    def _generate_mock_eeg_data(self) -> Dict:
+        """Generate mock EEG data for testing when MNE not available."""
+        n_epochs = 100
+        n_channels = 64
+        n_times = 256
+
+        # Generate realistic EEG-like data
+        data = np.random.randn(n_epochs, n_channels, n_times) * 10e-6  # Convert to µV
+
+        # Add some ERP-like structure
+        for i in range(n_epochs):
+            # Add N1 component (peaks around 100ms)
+            n1_latency = int(0.1 * n_times)
+            data[i, :, n1_latency - 5 : n1_latency + 5] += 2e-6  # N1 peak
+
+            # Add P2 component (peaks around 200ms)
+            p2_latency = int(0.2 * n_times)
+            data[i, :, p2_latency - 8 : p2_latency + 8] += 3e-6  # P2 peak
+
+            # Add P3 component (peaks around 300ms)
+            p3_latency = int(0.35 * n_times)
+            data[i, :, p3_latency - 10 : p3_latency + 10] += 1.5e-6  # P3 peak
+
+        return {
+            "success": True,
+            "data": data,
+            "info": {
+                "sfreq": 256,
+                "ch_names": [f"EEG{i:03d}" for i in range(n_channels)],
+            },
+            "times": np.linspace(-0.2, 0.8, n_times),
+            "events": np.array([[i * 1000 + 1000 for i in range(n_epochs)]]),
+            "channels": [f"EEG{i:03d}" for i in range(n_channels)],
+            "sampling_rate": 256,
+            "preprocessing_applied": self.preprocessing_pipeline,
+        }
+
+
+# =============================================================================
+# MAIN VALIDATION PROTOCOL ENTRY POINT
+# =============================================================================
+
+
+
+class NumpyEncoder(json.JSONEncoder):
+    """Custom JSON encoder for NumPy types."""
+
+    def default(self, obj):
+        if isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray,)):
+            return obj.tolist()
+        elif isinstance(obj, (np.bool_,)):
+            return bool(obj)
+        return super(NumpyEncoder, self).default(obj)
+
+
+def validate_p2a_tms_log_ignition(
+    pre_theta, post_theta, alpha_param=5.0, surplus_s=0.5
+):
+    """Standalone wrapper for P2.a TMS log ignition validation."""
+    config = {"significance_level": 0.01, "power_threshold": 0.8}
+    validator = CausalManipulationsValidator(config)
+    # Convert scalars to arrays if needed
+    pre_theta = np.atleast_1d(np.asarray(pre_theta, dtype=float))
+    post_theta = np.atleast_1d(np.asarray(post_theta, dtype=float))
+    return validator.validate_p2a_tms_log_ignition(
+        pre_theta, post_theta, alpha_param, surplus_s
+    )
+
+
+def validate_p2b_insula_tms_hep_pci(pre_hep, post_hep, pre_pci, post_pci):
+    """Standalone wrapper for P2.b HEP/PCI validation (insula TMS)."""
+    config = {"significance_level": 0.01, "power_threshold": 0.8}
+    validator = CausalManipulationsValidator(config)
+    # Convert scalars to arrays if needed
+    pre_hep = np.atleast_1d(np.asarray(pre_hep, dtype=float))
+    post_hep = np.atleast_1d(np.asarray(post_hep, dtype=float))
+    pre_pci = np.atleast_1d(np.asarray(pre_pci, dtype=float))
+    post_pci = np.atleast_1d(np.asarray(post_pci, dtype=float))
+    return validator.validate_p2b_hep_pci(pre_hep, post_hep, pre_pci, post_pci)
+
+
+def validate_p2c_high_ia_interaction(
+    tms_drug_a, tms_drug_b, pharm_drug_a, pharm_drug_b
+):
+    """Standalone wrapper for P2.c high IA interaction validation."""
+    config = {"significance_level": 0.01, "power_threshold": 0.8}
+    validator = CausalManipulationsValidator(config)
+    # Convert to arrays if needed
+    tms_drug_a = np.atleast_1d(np.asarray(tms_drug_a, dtype=float))
+    tms_drug_b = np.atleast_1d(np.asarray(tms_drug_b, dtype=float))
+    pharm_drug_a = np.atleast_1d(np.asarray(pharm_drug_a, dtype=float))
+    pharm_drug_b = np.atleast_1d(np.asarray(pharm_drug_b, dtype=float))
+    return validator.validate_p2c_interaction_eta_squared(
+        tms_drug_a, tms_drug_b, pharm_drug_a, pharm_drug_b
+    )
+
