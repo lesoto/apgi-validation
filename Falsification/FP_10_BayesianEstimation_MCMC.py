@@ -1,5 +1,5 @@
 """
-Falsification Protocol 10: Bayesian Estimation MCMC
+FP-10: Bayesian Estimation MCMC (merged)
 ===============================================
 
 This protocol implements MCMC-based Bayesian estimation for APGI model parameters.
@@ -11,6 +11,23 @@ CRITICAL FEATURES:
 - Bayes factor computation for model comparison (APGI vs. StandardPP vs. GWTOnly)
 - Priors over {θ₀, Πe, Πi, β, α} from physiological ranges
 - Likelihood defined as the APGI psychometric function
+
+MERGED CONTENT (from FP_10_Falsification_BayesianEstimation_ParameterRecovery.py):
+- Metropolis-Hastings fallback sampler (run_bayesian_estimation_mh,
+  metropolis_hastings_sampling)
+- NUTS wrapper with paper-specified 3-parameter priors
+  (run_bayesian_estimation_nuts)
+- Posterior distribution statistics (compute_posterior_distributions)
+- Simple Bayes factor helper (calculate_bayesian_factor)
+- Parameter identifiability / collinearity tests
+  (test_parameter_identifiability)
+- BF-to-paper-prediction mapping (map_bayesian_factor_to_predictions)
+- Hierarchical NUTS model (run_bayesian_estimation_hierarchical)
+- Posterior calibration / coverage checks (check_posterior_calibration)
+- Complete analysis runner with F11 criteria
+  (run_bayesian_estimation_complete, get_falsification_criteria,
+  check_falsification)
+- GUI compatibility class (BayesianParameterRecovery)
 """
 
 import logging

@@ -1943,8 +1943,11 @@ class FalsificationChecker:
         cumulative_reward_threshold = get_cumulative_reward_advantage_threshold(18.0)
 
         self.criteria = {
-            # V1.1-V1.6: Paper Predictions for VP-1
-            "V1.1": {
+            # V1.1_ML: VP-01-specific reward advantage criterion
+            # NOTE: "V1.1" in the registry (criteria_registry.py) is reserved for
+            # Paper Protocol 1 / VP-08 "Heartbeat Discrimination Accuracy (d' ≥ 0.30)".
+            # This VP-01 ML-classification criterion is therefore keyed "V1.1_ML".
+            "V1.1_ML": {
                 "description": "APGI Reward Advantage",
                 "threshold": f"≥{cumulative_reward_threshold}% higher cumulative reward than standard PP",
                 "comparison": "greater_than",
@@ -2576,7 +2579,7 @@ class FalsificationChecker:
             passed = True
             value_str = "N/A"
 
-            if code == "V1.1":
+            if code == "V1.1_ML":
                 passed = reward_adv >= criterion.get("target", 18.0)
                 value_str = f"{reward_adv:.1f}%"
             elif code == "V1.2":

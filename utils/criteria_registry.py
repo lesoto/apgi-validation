@@ -380,7 +380,10 @@ FALSIFICATION_CRITERIA: Dict[str, Dict[str, Any]] = {
 # =============================================================================
 
 PROTOCOL_SPECIFIC_CRITERIA: Dict[str, Dict[str, Dict[str, Any]]] = {
-    "Validation_Protocol_1": {
+    # VP-08: Psychophysical Threshold Estimation (Paper 1 — Protocol 1)
+    # V1.1–V1.3 here are the authoritative registry definitions; VP-01's local
+    # criteria use the VP01.x prefix to avoid collision.
+    "VP_08_Psychophysical_ThresholdEstimation": {
         "V1.1": {
             "name": "Heartbeat Discrimination Accuracy",
             "description": "APGI should improve heartbeat discrimination compared to StandardPP",

@@ -19,7 +19,7 @@ _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
 
-from Falsification.FP_12_Falsification_Aggregator import FalsificationAggregator
+from Falsification.FP_12_Aggregator import FalsificationAggregator
 
 # Try to import logging config
 try:
@@ -58,16 +58,14 @@ class APGIMasterValidator:
             4: "secondary",
             5: "tertiary",
             6: "tertiary",
-            7: "tertiary",
+            7: "secondary",
             8: "secondary",
             9: "tertiary",
             10: "tertiary",
             11: "secondary",
             12: "secondary",
-            "P4-Epistemic": "secondary",
-            "FP-5": "tertiary",
-            "FP-6": "tertiary",
-            "FP-7": "tertiary",
+            13: "secondary",
+            14: "tertiary",
         }
         self.falsification_status = {
             "primary": [],
@@ -77,11 +75,11 @@ class APGIMasterValidator:
         self.timeout_seconds = 30
         # Protocol dependencies: protocols that must run before others
         self.protocol_dependencies = {
-            "Protocol-1": [],  # No dependencies
+            "Protocol-1": [],
             "Protocol-2": [],
             "Protocol-3": [],
             "Protocol-4": [],
-            "Protocol-5": [],  # Evolutionary - independent
+            "Protocol-5": [],
             "Protocol-6": [],
             "Protocol-7": [],
             "Protocol-8": [],
@@ -89,91 +87,79 @@ class APGIMasterValidator:
             "Protocol-10": [],
             "Protocol-11": [],
             "Protocol-12": [],
-            "Protocol-P4-Epistemic": [],
-            "Falsification-Protocol-P5": [],
-            "Falsification-Protocol-P6": [],
-            "Falsification-Protocol-P7": [],
+            "Protocol-13": [],
+            "Protocol-14": [],
         }
         self.available_protocols = {
             "Protocol-1": {
-                "file": "VP_1_SyntheticEEG_MLClassification.py",
+                "file": "VP_01_SyntheticEEG_MLClassification.py",
                 "function": "run_validation",
                 "description": "Synthetic Neural Data Generation and ML Classification",
             },
             "Protocol-2": {
-                "file": "VP_2_Validation_Protocol_2.py",
+                "file": "VP_02_Behavioral_BayesianComparison.py",
                 "function": "run_validation",
-                "description": "Behavioral Validation Protocol",
+                "description": "Behavioral Bayesian Comparison (P1.1–P1.3, V2.1–V2.3, F2.1–F2.5)",
             },
             "Protocol-3": {
-                "file": "VP_3_ActiveInference_AgentSimulations_Protocol3.py",
+                "file": "VP_03_ActiveInference_AgentSimulations.py",
                 "function": "run_validation",
-                "description": "Agent Comparison Experiment",
+                "description": "Active Inference Agent Comparison Experiment",
             },
             "Protocol-4": {
-                "file": "VP_4_InformationTheoretic_PhaseTransition_Level2.py",
+                "file": "VP_04_PhaseTransition_EpistemicLevel2.py",
                 "function": "run_validation",
-                "description": "Phase Transition Analysis",
+                "description": "Phase Transition / Epistemic Architecture Level 2",
             },
             "Protocol-5": {
-                "file": "VP_5_EvolutionaryEmergence_AnalyticalValidation.py",
+                "file": "VP_05_EvolutionaryEmergence.py",
                 "function": "run_validation",
-                "description": "Evolutionary Emergence",
+                "description": "Evolutionary Emergence (Paper 3 — Multi-Scale Consciousness)",
             },
             "Protocol-6": {
-                "file": "VP_6_NeuralNetwork_InductiveBias_ComputationalBenchmark.py",
+                "file": "VP_06_LiquidNetwork_InductiveBias.py",
                 "function": "run_validation",
-                "description": "Network Comparison",
+                "description": "Liquid Network Inductive Bias Benchmark (Paper 2)",
             },
             "Protocol-7": {
-                "file": "VP_7_TMS_Pharmacological_CausalIntervention_Protocol2.py",
+                "file": "VP_07_TMS_CausalInterventions.py",
                 "function": "run_validation",
-                "description": "Causal Manipulations",
+                "description": "TMS/Pharmacological Causal Interventions (Paper 1 — Protocol 2)",
             },
             "Protocol-8": {
-                "file": "VP_8_Psychophysical_ThresholdEstimation_Protocol1.py",
+                "file": "VP_08_Psychophysical_ThresholdEstimation.py",
                 "function": "run_validation",
-                "description": "Psychophysical Thresholds",
+                "description": "Psychophysical Threshold Estimation (Paper 1 — Protocol 1)",
             },
             "Protocol-9": {
-                "file": "VP_9_ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py",
+                "file": "VP_09_NeuralSignatures_EmpiricalPriority1.py",
                 "function": "run_validation",
-                "description": "Neural Signatures Validation",
-            },
-            "Protocol-P4-Epistemic": {
-                "file": "Validation_Protocol_P4_Epistemic.py",
-                "function": "run_validation",
-                "description": "Paper 4 Epistemic Architecture Predictions (P5-P12)",
+                "description": "Convergent Neural Signatures — Empirical Roadmap Priority 1",
             },
             "Protocol-10": {
-                "file": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py",
+                "file": "VP_10_CausalManipulations_Priority2.py",
                 "function": "run_validation",
-                "description": "Cross-Species Scaling",
+                "description": "Causal Manipulations TMS/Pharmacological — Priority 2",
             },
             "Protocol-11": {
-                "file": "VP_11_Validation_Protocol_11.py",
+                "file": "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
                 "function": "run_validation",
-                "description": "Bayesian Estimation",
+                "description": "MCMC / Cultural Neuroscience — Priority 3 (Gelman-Rubin R̂ ≤ 1.01)",
             },
             "Protocol-12": {
-                "file": "VP_12_Clinical_CrossSpecies_Convergence_Protocol4.py",
+                "file": "VP_12_Clinical_CrossSpecies_Convergence.py",
                 "function": "run_validation",
-                "description": "Computational Benchmarking",
+                "description": "Clinical Cross-Species Convergence (Paper 1 — Protocol 4)",
             },
-            "Falsification-Protocol-P5": {
-                "file": "../Falsification/Falsification_Protocol_P5.py",
-                "function": "run_protocol_p5",
-                "description": "Evolutionary Emergence (Falsification)",
+            "Protocol-13": {
+                "file": "VP_13_Epistemic_Architecture_P5_P12.py",
+                "function": "run_validation",
+                "description": "Epistemic Architecture Predictions P5–P12 (Paper 4)",
             },
-            "Falsification-Protocol-P6": {
-                "file": "../Falsification/Falsification_Protocol_P6.py",
-                "function": "run_protocol_p6",
-                "description": "Temporal Dynamics / LTCN (Falsification)",
-            },
-            "Falsification-Protocol-P7": {
-                "file": "../Falsification/Falsification_Protocol_P7.py",
-                "function": "run_protocol_p7",
-                "description": "Causal Manipulations (Falsification)",
+            "Protocol-14": {
+                "file": "VP_14_fMRI_Anticipation_Experience.py",
+                "function": "run_validation",
+                "description": "fMRI Anticipation/Experience Protocol 5 (stub — P5a–P5d)",
             },
         }
 
@@ -297,19 +283,10 @@ class APGIMasterValidator:
         }
 
         for p_name, result in self.protocol_results.items():
-            # Extract identifier from "Protocol-X" or "Falsification-Protocol-PX"
+            # Extract protocol number from "Protocol-X"
             try:
-                if "P4-Epistemic" in p_name:
-                    tier = self.PROTOCOL_TIERS.get("P4-Epistemic", "secondary")
-                elif "-P5" in p_name:
-                    tier = self.PROTOCOL_TIERS.get("FP-5", "tertiary")
-                elif "-P6" in p_name:
-                    tier = self.PROTOCOL_TIERS.get("FP-6", "tertiary")
-                elif "-P7" in p_name:
-                    tier = self.PROTOCOL_TIERS.get("FP-7", "tertiary")
-                else:
-                    p_num = int(p_name.split("-")[-1])
-                    tier = self.PROTOCOL_TIERS.get(p_num, "tertiary")
+                p_num = int(p_name.split("-")[-1])
+                tier = self.PROTOCOL_TIERS.get(p_num, "tertiary")
             except (ValueError, IndexError):
                 tier = "tertiary"
 
@@ -473,17 +450,8 @@ class APGIMasterValidator:
 
             # Extract identifier for tier classification
             try:
-                if "P4-Epistemic" in protocol_name:
-                    row["tier"] = self.PROTOCOL_TIERS.get("P4-Epistemic", "unknown")
-                elif "-P5" in protocol_name:
-                    row["tier"] = self.PROTOCOL_TIERS.get("FP-5", "unknown")
-                elif "-P6" in protocol_name:
-                    row["tier"] = self.PROTOCOL_TIERS.get("FP-6", "unknown")
-                elif "-P7" in protocol_name:
-                    row["tier"] = self.PROTOCOL_TIERS.get("FP-7", "unknown")
-                else:
-                    p_num = int(protocol_name.split("-")[-1])
-                    row["tier"] = self.PROTOCOL_TIERS.get(p_num, "unknown")
+                p_num = int(protocol_name.split("-")[-1])
+                row["tier"] = self.PROTOCOL_TIERS.get(p_num, "unknown")
             except (ValueError, IndexError):
                 row["tier"] = "unknown"
 
@@ -512,17 +480,8 @@ def main():
     for p_name in sorted(validator.protocol_results.keys()):
         res = validator.protocol_results[p_name]
         try:
-            if "P4-Epistemic" in p_name:
-                tier = validator.PROTOCOL_TIERS.get("P4-Epistemic", "unknown")
-            elif "-P5" in p_name:
-                tier = validator.PROTOCOL_TIERS.get("FP-5", "unknown")
-            elif "-P6" in p_name:
-                tier = validator.PROTOCOL_TIERS.get("FP-6", "unknown")
-            elif "-P7" in p_name:
-                tier = validator.PROTOCOL_TIERS.get("FP-7", "unknown")
-            else:
-                p_num = int(p_name.split("-")[-1])
-                tier = validator.PROTOCOL_TIERS.get(p_num, "unknown")
+            p_num = int(p_name.split("-")[-1])
+            tier = validator.PROTOCOL_TIERS.get(p_num, "unknown")
         except (ValueError, IndexError):
             tier = "unknown"
         status = "✓ PASS" if res.get("passed") else "✗ FAIL"

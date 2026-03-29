@@ -928,6 +928,10 @@ class APGINeuralSignaturesValidator:
             # Compute modulation index (simplified)
             from scipy.stats import pearsonr
 
+            if len(theta_phase) < 2:
+                raise ValueError(
+                    f"Cannot compute correlation/t-test: array has fewer than 2 elements (len={len(theta_phase)})"
+                )
             modulation_index, p_value = pearsonr(np.cos(theta_phase), gamma_amplitude)
 
             # Check if coupling is significant

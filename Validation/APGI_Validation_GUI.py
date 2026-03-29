@@ -74,21 +74,20 @@ else:
 
 # Try to import individual protocols
 protocol_files = [
-    ("APGI_Protocol_1", "VP_1_SyntheticEEG_MLClassification.py"),
-    ("APGI_Protocol_2", "BayesianModelComparison_ParameterRecovery.py"),
-    ("APGI_Protocol_3", "VP_3_ActiveInference_AgentSimulations_Protocol3.py"),
-    ("APGI_Protocol_4", "VP_4_InformationTheoretic_PhaseTransition_Level2.py"),
-    ("APGI_Protocol_5", "VP_5_EvolutionaryEmergence_AnalyticalValidation.py"),
-    ("APGI_Protocol_6", "VP_6_NeuralNetwork_InductiveBias_ComputationalBenchmark.py"),
-    ("APGI_Protocol_7", "VP_7_TMS_Pharmacological_CausalIntervention_Protocol2.py"),
-    ("APGI_Protocol_8", "VP_8_Psychophysical_ThresholdEstimation_Protocol1.py"),
-    (
-        "APGI_Protocol_9",
-        "VP_9_ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py",
-    ),
-    ("APGI_Protocol_10", "CausalManipulations_TMS_Pharmacological_Priority2.py"),
-    ("APGI_Protocol_11", "VP_11_QuantitativeModelFits_SpikingLNN_Priority3.py"),
-    ("APGI_Protocol_12", "VP_12_Clinical_CrossSpecies_Convergence_Protocol4.py"),
+    ("APGI_Protocol_1", "VP_01_SyntheticEEG_MLClassification.py"),
+    ("APGI_Protocol_2", "VP_02_Behavioral_BayesianComparison.py"),
+    ("APGI_Protocol_3", "VP_03_ActiveInference_AgentSimulations.py"),
+    ("APGI_Protocol_4", "VP_04_PhaseTransition_EpistemicLevel2.py"),
+    ("APGI_Protocol_5", "VP_05_EvolutionaryEmergence.py"),
+    ("APGI_Protocol_6", "VP_06_LiquidNetwork_InductiveBias.py"),
+    ("APGI_Protocol_7", "VP_07_TMS_CausalInterventions.py"),
+    ("APGI_Protocol_8", "VP_08_Psychophysical_ThresholdEstimation.py"),
+    ("APGI_Protocol_9", "VP_09_NeuralSignatures_EmpiricalPriority1.py"),
+    ("APGI_Protocol_10", "VP_10_CausalManipulations_Priority2.py"),
+    ("APGI_Protocol_11", "VP_11_MCMC_CulturalNeuroscience_Priority3.py"),
+    ("APGI_Protocol_12", "VP_12_Clinical_CrossSpecies_Convergence.py"),
+    ("APGI_Protocol_13", "VP_13_Epistemic_Architecture_P5_P12.py"),
+    ("APGI_Protocol_14", "VP_14_fMRI_Anticipation_Experience.py"),
 ]
 
 for protocol_name, filename in protocol_files:
@@ -2145,48 +2144,20 @@ Interpretation:
         try:
             # Execute actual protocol in isolated environment
             protocol_files = [
-                ("APGI_Protocol_1", "VP_1_SyntheticEEG_MLClassification.py"),
-                ("APGI_Protocol_2", "BayesianModelComparison_ParameterRecovery.py"),
-                (
-                    "APGI_Protocol_3",
-                    "VP_3_ActiveInference_AgentSimulations_Protocol3.py",
-                ),
-                (
-                    "APGI_Protocol_4",
-                    "VP_4_InformationTheoretic_PhaseTransition_Level2.py",
-                ),
-                (
-                    "APGI_Protocol_5",
-                    "VP_5_EvolutionaryEmergence_AnalyticalValidation.py",
-                ),
-                (
-                    "APGI_Protocol_6",
-                    "VP_6_NeuralNetwork_InductiveBias_ComputationalBenchmark.py",
-                ),
-                (
-                    "APGI_Protocol_7",
-                    "VP_7_TMS_Pharmacological_CausalIntervention_Protocol2.py",
-                ),
-                (
-                    "APGI_Protocol_8",
-                    "VP_8_Psychophysical_ThresholdEstimation_Protocol1.py",
-                ),
-                (
-                    "APGI_Protocol_9",
-                    "VP_9_ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py",
-                ),
-                (
-                    "APGI_Protocol_10",
-                    "CausalManipulations_TMS_Pharmacological_Priority2.py",
-                ),
-                (
-                    "APGI_Protocol_11",
-                    "VP_11_QuantitativeModelFits_SpikingLNN_Priority3.py",
-                ),
-                (
-                    "APGI_Protocol_12",
-                    "VP_12_Clinical_CrossSpecies_Convergence_Protocol4.py",
-                ),
+                ("APGI_Protocol_1", "VP_01_SyntheticEEG_MLClassification.py"),
+                ("APGI_Protocol_2", "VP_02_Behavioral_BayesianComparison.py"),
+                ("APGI_Protocol_3", "VP_03_ActiveInference_AgentSimulations.py"),
+                ("APGI_Protocol_4", "VP_04_PhaseTransition_EpistemicLevel2.py"),
+                ("APGI_Protocol_5", "VP_05_EvolutionaryEmergence.py"),
+                ("APGI_Protocol_6", "VP_06_LiquidNetwork_InductiveBias.py"),
+                ("APGI_Protocol_7", "VP_07_TMS_CausalInterventions.py"),
+                ("APGI_Protocol_8", "VP_08_Psychophysical_ThresholdEstimation.py"),
+                ("APGI_Protocol_9", "VP_09_NeuralSignatures_EmpiricalPriority1.py"),
+                ("APGI_Protocol_10", "VP_10_CausalManipulations_Priority2.py"),
+                ("APGI_Protocol_11", "VP_11_MCMC_CulturalNeuroscience_Priority3.py"),
+                ("APGI_Protocol_12", "VP_12_Clinical_CrossSpecies_Convergence.py"),
+                ("APGI_Protocol_13", "VP_13_Epistemic_Architecture_P5_P12.py"),
+                ("APGI_Protocol_14", "VP_14_fMRI_Anticipation_Experience.py"),
             ]
 
             protocol_file = protocol_files[protocol_num - 1][1]
