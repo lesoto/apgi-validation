@@ -33,7 +33,7 @@ class ProtocolRunnerGUI:
         # Protocol definitions with parameters
         self.protocols = {
             "Protocol 1: APGI Agent": {
-                "file": "FP_1_Falsification_ActiveInferenceAgents_F1F2.py",
+                "file": "FP_01_ActiveInference_F1F2.py",
                 "class": "APGIActiveInferenceAgent",
                 "description": "Complete APGI-based active inference agent",
                 "parameters": {
@@ -131,7 +131,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 2: Iowa Gambling": {
-                "file": "FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
+                "file": "FP_02_AgentComparison_ConvergenceBenchmark.py",
                 "class": "IowaGamblingTaskEnvironment",
                 "description": "IGT variant with simulated interoceptive costs",
                 "parameters": {
@@ -166,7 +166,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 3: Agent Comparison": {
-                "file": "FP_3_Falsification_FrameworkLevel_MultiProtocol.py",
+                "file": "FP_03_FrameworkLevel_MultiProtocol.py",
                 "class": "AgentComparisonExperiment",
                 "description": "Run complete agent comparison experiment",
                 "parameters": {
@@ -194,7 +194,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 4: Phase Transition": {
-                "file": "FP_4_Falsification_InformationTheoretic_PhaseTransition.py",
+                "file": "FP_04_PhaseTransition_EpistemicArchitecture.py",
                 "class": "InformationTheoreticAnalysis",
                 "description": "Test APGI ignition phase transition signatures",
                 "parameters": {
@@ -227,7 +227,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 5: Evolutionary": {
-                "file": "FP_5_Falsification_EvolutionaryPlausibility_Standard6.py",
+                "file": "FP_05_EvolutionaryPlausibility.py",
                 "class": "EvolutionaryAPGIEmergence",
                 "description": "Test APGI emergence under selection pressure",
                 "parameters": {
@@ -262,7 +262,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 6: Network Comparison": {
-                "file": "FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py",
+                "file": "FP_06_LiquidNetwork_EnergyBenchmark.py",
                 "class": "NetworkComparisonExperiment",
                 "description": "Compare APGI-inspired vs standard architectures",
                 "parameters": {
@@ -304,7 +304,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 7: Mathematical Consistency": {
-                "file": "FP_7_Falsification_MathematicalConsistency_Equations.py",
+                "file": "FP_07_MathematicalConsistency.py",
                 "class": "MathematicalConsistencyChecker",
                 "description": "Test mathematical consistency of APGI equations",
                 "parameters": {
@@ -332,7 +332,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 8: Parameter Sensitivity": {
-                "file": "FP_8_Falsification_ParameterSensitivity_Identifiability.py",
+                "file": "FP_08_ParameterSensitivity_Identifiability.py",
                 "class": "ParameterSensitivityAnalyzer",
                 "description": "Parameter sensitivity and identifiability analysis",
                 "parameters": {
@@ -360,7 +360,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 9: Neural Signatures": {
-                "file": "FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP.py",
+                "file": "FP_09_NeuralSignatures_P3b_HEP.py",
                 "class": "NeuralSignatureValidator",
                 "description": "Validate P3b and HEP neural signatures",
                 "parameters": {
@@ -388,7 +388,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 10: Cross-Species Scaling": {
-                "file": "Falsification_CrossSpeciesScaling_P12.py",
+                "file": "FP_12_Aggregator.py",
                 "class": "CrossSpeciesScalingAnalyzer",
                 "description": "Cross-species scaling analysis",
                 "parameters": {
@@ -416,7 +416,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 11: Bayesian Estimation": {
-                "file": "FP_10_Falsification_BayesianEstimation_ParameterRecovery.py",
+                "file": "FP_10_BayesianEstimation_MCMC.py",
                 "class": "BayesianParameterRecovery",
                 "description": "Bayesian parameter recovery analysis",
                 "parameters": {
@@ -444,7 +444,7 @@ class ProtocolRunnerGUI:
                 },
             },
             "Protocol 12: Liquid Network Dynamics": {
-                "file": "FP_11_Falsification_LiquidNetworkDynamics_EchoState.py",
+                "file": "FP_11_LiquidNetworkDynamics_EchoState.py",
                 "class": "LiquidNetworkDynamicsAnalyzer",
                 "description": "Liquid network dynamics and echo state analysis",
                 "parameters": {

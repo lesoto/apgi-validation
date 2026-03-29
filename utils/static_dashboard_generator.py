@@ -64,6 +64,12 @@ class StaticDashboardGenerator:
         .status.running {{ background: #d4edda; color: #155724; }}
         .status.warning {{ background: #fff3cd; color: #856404; }}
         .status.error {{ background: #f8d7da; color: #721c24; }}
+        ::view-transition-group(*),
+        ::view-transition-old(*),
+        ::view-transition-new(*) {{
+            animation-duration: 0.25s;
+            animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+        }}
     </style>
 </head>
 <body>
@@ -240,6 +246,12 @@ class StaticDashboardGenerator:
         .summary-value {{ font-size: 1.5em; font-weight: bold; }}
         .success {{ color: #2ecc71; }}
         .failure {{ color: #e74c3c; }}
+        ::view-transition-group(*),
+        ::view-transition-old(*),
+        ::view-transition-new(*) {{
+            animation-duration: 0.25s;
+            animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+        }}
     </style>
 </head>
 <body>

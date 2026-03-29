@@ -68,48 +68,52 @@ except ImportError:
 
     DIM_CONSTANTS = MockDIM_CONSTANTS()
 
-# FALSIFICATION THRESHOLDS CONSTANTS (bundled inline per TODO-1)
-# All thresholds validated against paper specifications (TODO-6)
-# Sources: APGI falsification criteria documentation, empirical benchmarks
-
-# F5.4 thresholds (Multi-Timescale Integration Emergence)
-# VALIDATED: Paper spec requires ≥3x peak separation for multi-timescale clusters
-F5_4_MIN_PEAK_SEPARATION: float = 3.0  # separation ≥ 3x (spec)
-
-# F6.5 – Bifurcation / Hysteresis
-# VALIDATED: Paper spec defines hysteresis range 0.08-0.25 for ignition dynamics
-F6_5_HYSTERESIS_MIN: float = 0.08  # hysteresis ≥ 0.08
-F6_5_HYSTERESIS_MAX: float = 0.25  # hysteresis ≤ 0.25
-F6_5_BIFURCATION_ERROR_MAX: float = 0.10  # bifurcation point error tolerance
-
-# F5.1 thresholds (Threshold Filtering Emergence)
-# VALIDATED: Evolutionary paper requires ≥75% agents develop threshold filtering
-F5_1_MIN_PROPORTION: float = 0.75  # ≥75% agents (spec)
-F5_1_MIN_ALPHA: float = 4.0  # mean α ≥ 4.0 (spec)
-F5_1_FALSIFICATION_ALPHA: float = 3.0  # falsified if mean α < 3.0
-F5_1_MIN_COHENS_D: float = 0.80  # Cohen's d ≥ 0.80
-F5_1_BINOMIAL_ALPHA: float = 0.01
-
-# F5.2 thresholds (Precision-Weighted Coding Emergence)
-# VALIDATED: Paper spec requires r ≥ 0.45 for precision-weighted coding correlation
-F5_2_MIN_CORRELATION: float = 0.45  # r ≥ 0.45 (spec)
-F5_2_FALSIFICATION_CORR: float = 0.35  # falsified if r < 0.35
-F5_2_MIN_PROPORTION: float = 0.65  # ≥65% agents (spec)
-F5_2_BINOMIAL_ALPHA: float = 0.01
-
-# F5.3 thresholds (Interoceptive Prioritization Emergence)
-# VALIDATED: Paper spec requires ≥1.30x gain ratio for interoceptive prioritization
-F5_3_MIN_GAIN_RATIO: float = 1.30  # ratio ≥ 1.30 (spec)
-F5_3_FALSIFICATION_RATIO: float = 1.15  # falsified if ratio < 1.15
-F5_3_MIN_PROPORTION: float = 0.70  # ≥70% agents (spec)
-F5_3_MIN_COHENS_D: float = 0.60  # d ≥ 0.60
-F5_3_BINOMIAL_ALPHA: float = 0.01
-
-# F1.1 thresholds (APGI Agent Performance Advantage)
-# VALIDATED: Paper spec requires ≥18% cumulative reward advantage, d ≥ 0.60
-F1_1_MIN_ADVANTAGE_PCT: float = 18.0  # ≥18% advantage (spec)
-F1_1_MIN_COHENS_D: float = 0.60  # Cohen's d ≥ 0.60 (spec)
-F1_1_ALPHA: float = 0.01  # Bonferroni-corrected α (spec)
+from utils.falsification_thresholds import (
+    F1_1_MIN_ADVANTAGE_PCT,
+    F1_1_MIN_COHENS_D,
+    F1_1_ALPHA,
+    F2_1_MIN_ADVANTAGE_PCT,
+    F2_3_MIN_RT_ADVANTAGE_MS,
+    F2_4_MIN_CONFIDENCE_EFFECT_PCT,
+    F2_5_MAX_TRIALS,
+    F3_1_MIN_ADVANTAGE_PCT,
+    F3_1_MIN_COHENS_D,
+    F3_2_MIN_INTERO_ADVANTAGE_PCT,
+    F3_2_MIN_COHENS_D,
+    F3_3_MIN_REDUCTION_PCT,
+    F3_3_MIN_COHENS_D,
+    F3_4_MIN_REDUCTION_PCT,
+    F3_4_MIN_COHENS_D,
+    F3_6_MAX_TRIALS,
+    F3_6_MIN_HAZARD_RATIO,
+    F5_1_MIN_PROPORTION,
+    F5_1_MIN_ALPHA,
+    F5_1_FALSIFICATION_ALPHA,
+    F5_1_MIN_COHENS_D,
+    F5_1_BINOMIAL_ALPHA,
+    F5_2_MIN_CORRELATION,
+    F5_2_FALSIFICATION_CORR,
+    F5_2_MIN_PROPORTION,
+    F5_2_BINOMIAL_ALPHA,
+    F5_3_MIN_GAIN_RATIO,
+    F5_3_FALSIFICATION_RATIO,
+    F5_3_MIN_PROPORTION,
+    F5_3_MIN_COHENS_D,
+    F5_3_BINOMIAL_ALPHA,
+    F5_4_MIN_PROPORTION,
+    F5_4_MIN_PEAK_SEPARATION,
+    F5_5_PCA_MIN_VARIANCE,
+    F5_5_MIN_LOADING,
+    F5_6_MIN_COHENS_D,
+    F6_1_LTCN_MAX_TRANSITION_MS,
+    F6_1_CLIFFS_DELTA_MIN,
+    F6_2_LTCN_MIN_WINDOW_MS,
+    F6_2_MIN_INTEGRATION_RATIO,
+    F6_2_MIN_CURVE_FIT_R2,
+    F6_5_HYSTERESIS_MIN,
+    F6_5_HYSTERESIS_MAX,
+    F6_5_BIFURCATION_ERROR_MAX,
+)
 
 try:
     import matplotlib
@@ -2397,7 +2401,7 @@ def check_falsification(
         )
         cohens_h = mean_advantage / pooled_std if pooled_std > 0 else 0.0
         # Falsification: Advantage < 22 OR p >= 0.01
-        f2_1_pass = mean_advantage >= 22.0 and p_value < 0.01
+        f2_1_pass = mean_advantage >= F2_1_MIN_ADVANTAGE_PCT and p_value < 0.01
     else:
         # Fallback to simple threshold if insufficient data
         mean_advantage = (
@@ -2406,7 +2410,7 @@ def check_falsification(
             else 0.0
         )
         t_stat, p_value, cohens_h = 0.0, 1.0, 0.0
-        f2_1_pass = mean_advantage >= 22.0
+        f2_1_pass = mean_advantage >= F2_1_MIN_ADVANTAGE_PCT
 
     results["criteria"]["F2.1"] = {
         "passed": f2_1_pass,
@@ -2486,7 +2490,7 @@ def check_falsification(
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
 
     # Falsification: RT advantage < 35ms
-    f2_3_pass = mean_rt >= 35.0 and p_value_one_tailed < 0.01
+    f2_3_pass = mean_rt >= F2_3_MIN_RT_ADVANTAGE_MS and p_value_one_tailed < 0.01
 
     results["criteria"]["F2.3"] = {
         "passed": f2_3_pass,
@@ -2531,7 +2535,7 @@ def check_falsification(
     mean_beta = np.mean(beta_data) if len(beta_data) > 0 else beta_interaction
 
     # Falsification: Confidence effect < 30%
-    f2_4_pass = mean_confidence >= 0.30 and p_value_one_tailed < 0.01
+    f2_4_pass = mean_confidence >= F2_4_MIN_CONFIDENCE_EFFECT_PCT / 100 and p_value_one_tailed < 0.01
 
     results["criteria"]["F2.4"] = {
         "passed": f2_4_pass,
@@ -2594,7 +2598,7 @@ def check_falsification(
     trial_advantage = mean_no_somatic_time - mean_apgi_time
 
     # Falsification: Time > 55 trials OR insufficient advantage
-    f2_5_pass = mean_apgi_time <= 55.0 and trial_advantage >= 10 and p_value < 0.01
+    f2_5_pass = mean_apgi_time <= F2_5_MAX_TRIALS and trial_advantage >= 10 and p_value < 0.01
 
     results["criteria"]["F2.5"] = {
         "passed": f2_5_pass,
@@ -2639,7 +2643,7 @@ def check_falsification(
 
     # Falsification: Advantage < 18% OR d < 0.60
     f3_1_pass = (
-        mean_advantage >= 0.18 and cohens_d >= 0.60 and p_value_one_tailed < 0.01
+        mean_advantage >= F3_1_MIN_ADVANTAGE_PCT / 100 and cohens_d >= F3_1_MIN_COHENS_D and p_value_one_tailed < 0.01
     )
 
     results["criteria"]["F3.1"] = {
@@ -2683,7 +2687,7 @@ def check_falsification(
 
     # Falsification: Advantage < 28% OR η² < 0.20
     f3_2_pass = (
-        mean_intero >= 0.28 and eta_squared >= 0.20 and p_value_one_tailed < 0.01
+        mean_intero >= F3_2_MIN_INTERO_ADVANTAGE_PCT / 100 and eta_squared >= 0.20 and p_value_one_tailed < 0.01
     )
 
     results["criteria"]["F3.2"] = {
@@ -2724,7 +2728,7 @@ def check_falsification(
 
     # Falsification: Reduction < 25% OR d < 0.75
     f3_3_pass = (
-        mean_reduction >= 0.25 and cohens_d >= 0.75 and p_value_one_tailed < 0.01
+        mean_reduction >= F3_3_MIN_REDUCTION_PCT / 100 and cohens_d >= F3_3_MIN_COHENS_D and p_value_one_tailed < 0.01
     )
 
     results["criteria"]["F3.3"] = {
@@ -2764,7 +2768,7 @@ def check_falsification(
 
     # Falsification: Reduction < 20% OR d < 0.65
     f3_4_pass = (
-        mean_reduction >= 0.20 and cohens_d >= 0.65 and p_value_one_tailed < 0.01
+        mean_reduction >= F3_4_MIN_REDUCTION_PCT / 100 and cohens_d >= F3_4_MIN_COHENS_D and p_value_one_tailed < 0.01
     )
 
     results["criteria"]["F3.4"] = {
@@ -2854,7 +2858,7 @@ def check_falsification(
 
     # Falsification: Time > 200 trials OR HR < 1.45
     f3_6_pass = (
-        mean_trials <= 200 and hazard_ratio >= 1.45 and p_value_one_tailed < 0.01
+        mean_trials <= F3_6_MAX_TRIALS and hazard_ratio >= F3_6_MIN_HAZARD_RATIO and p_value_one_tailed < 0.01
     )
 
     results["criteria"]["F3.6"] = {
@@ -2884,8 +2888,8 @@ def check_falsification(
 
     # Falsification: < 60% develop OR α < 4.0
     f5_1_pass = (
-        threshold_emergence_proportion >= 0.60
-        and mean_alpha >= 4.0
+        threshold_emergence_proportion >= F5_1_MIN_PROPORTION
+        and mean_alpha >= F5_1_MIN_ALPHA
         and p_binomial < 0.01
     )
 
@@ -2926,8 +2930,8 @@ def check_falsification(
 
     # Falsification: r < 0.50 OR < 50% develop
     f5_2_pass = (
-        mean_corr >= 0.50
-        and precision_emergence_proportion >= 0.50
+        mean_corr >= F5_2_MIN_CORRELATION
+        and precision_emergence_proportion >= F5_2_MIN_PROPORTION
         and p_binomial < 0.01
     )
 
@@ -2963,9 +2967,9 @@ def check_falsification(
     p_value = 1 - stats.t.cdf(t_stat, df=n_agents - 1) if t_stat > 0 else 1.0
     cohens_d = (mean_gain - 1.0) / 0.3
 
-    # Falsification: Gain ratio < 0.8 OR < 55% develop
+    # Falsification: Gain ratio < F5_3_MIN_GAIN_RATIO OR < F5_3_MIN_PROPORTION develop
     f5_3_pass = (
-        mean_gain >= 0.80 and intero_gain_ratio_proportion >= 0.55 and p_binomial < 0.01
+        mean_gain >= F5_3_MIN_GAIN_RATIO and intero_gain_ratio_proportion >= F5_3_MIN_PROPORTION and p_binomial < 0.01
     )
 
     results["criteria"]["F5.3"] = {
@@ -2993,10 +2997,10 @@ def check_falsification(
     if genome_data and "peak_separation" in genome_data:
         peak_separation = genome_data["peak_separation"]
 
-    # Falsification: < 60% develop OR separation < 3×
+    # Falsification: < F5_4_MIN_PROPORTION develop OR separation < F5_4_MIN_PEAK_SEPARATION
     f5_4_pass = (
-        multi_timescale_proportion >= 0.60
-        and peak_separation >= 3.0
+        multi_timescale_proportion >= F5_4_MIN_PROPORTION
+        and peak_separation >= F5_4_MIN_PEAK_SEPARATION
         and p_binomial < 0.01
     )
 
@@ -3017,8 +3021,8 @@ def check_falsification(
     if genome_data and "min_pca_loading" in genome_data:
         min_loading = genome_data["min_pca_loading"]
 
-    # Falsification: Variance < 70% OR min loading < 0.60
-    f5_5_pass = pca_variance_explained >= 0.70 and min_loading >= 0.60
+    # Falsification: Variance < F5_5_PCA_MIN_VARIANCE OR min loading < F5_5_MIN_LOADING
+    f5_5_pass = pca_variance_explained >= F5_5_PCA_MIN_VARIANCE and min_loading >= F5_5_MIN_LOADING
 
     results["criteria"]["F5.5"] = {
         "passed": f5_5_pass,
@@ -3056,8 +3060,8 @@ def check_falsification(
         )
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
 
-    # Falsification: Difference < 40% OR d < 0.85
-    f5_6_pass = mean_diff >= 0.40 and cohens_d >= 0.85 and p_value_one_tailed < 0.01
+    # Falsification: Difference < 40% OR d < F5_6_MIN_COHENS_D
+    f5_6_pass = mean_diff >= 0.40 and cohens_d >= F5_6_MIN_COHENS_D and p_value_one_tailed < 0.01
 
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
@@ -3107,8 +3111,8 @@ def check_falsification(
         mean_rnn = rnn_time_data[0] if len(rnn_time_data) > 0 else rnn_transition_time
         u_stat, p_value, cliff_delta = 0, 1.0, 0.0
 
-    # Falsification: LTCN transition > 50ms OR delta < 0.60
-    f6_1_pass = mean_ltcn <= 50.0 and cliff_delta >= 0.60 and p_value < 0.01
+    # Falsification: LTCN transition > F6_1_LTCN_MAX_TRANSITION_MS OR delta < F6_1_CLIFFS_DELTA_MIN
+    f6_1_pass = mean_ltcn <= F6_1_LTCN_MAX_TRANSITION_MS and cliff_delta >= F6_1_CLIFFS_DELTA_MIN and p_value < 0.01
 
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,
@@ -3160,11 +3164,11 @@ def check_falsification(
         ratio = mean_ltcn_window / mean_rnn_window if mean_rnn_window > 0 else 1.0
         w_stat, p_value, r_squared = 0, 1.0, 0.0
 
-    # Falsification: Window < 200ms OR ratio < 4× OR R² < 0.85
+    # Falsification: Window < F6_2_LTCN_MIN_WINDOW_MS OR ratio < F6_2_MIN_INTEGRATION_RATIO OR R² < F6_2_MIN_CURVE_FIT_R2
     f6_2_pass = (
-        mean_ltcn_window >= 200.0
-        and ratio >= 4.0
-        and r_squared >= 0.85
+        mean_ltcn_window >= F6_2_LTCN_MIN_WINDOW_MS
+        and ratio >= F6_2_MIN_INTEGRATION_RATIO
+        and r_squared >= F6_2_MIN_CURVE_FIT_R2
         and p_value < 0.01
     )
 
@@ -3256,11 +3260,11 @@ def check_falsification(
     mean_hyst = np.mean(hyst_data) if len(hyst_data) > 0 else hysteresis_width
     mean_bifurc = np.mean(bifurc_data) if len(bifurc_data) > 0 else bifurcation_point
 
-    # Falsification: Hysteresis outside 0.08–0.25 range
-    in_range = 0.08 <= mean_hyst <= 0.25
+    # Falsification: Hysteresis outside F6_5_HYSTERESIS_MIN–F6_5_HYSTERESIS_MAX range
+    in_range = F6_5_HYSTERESIS_MIN <= mean_hyst <= F6_5_HYSTERESIS_MAX
     bifurcation_ok = (
-        abs(mean_bifurc - 0.15) <= 0.10
-    )  # Bifurcation point at ~0.15 ± 0.10
+        abs(mean_bifurc - 0.15) <= F6_5_BIFURCATION_ERROR_MAX
+    )  # Bifurcation point at ~0.15 ± F6_5_BIFURCATION_ERROR_MAX
 
     f6_5_pass = in_range and bifurcation_ok
 
