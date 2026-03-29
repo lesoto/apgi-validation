@@ -94,7 +94,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="P1",
-            filename="Falsification/Falsification_ActiveInferenceAgents_F1F2.py",
+            filename="Falsification/FP_1_Falsification_ActiveInferenceAgents_F1F2.py",
             title="Active Inference Agents - Protocols F1 & F2",
             description="Core falsification protocols for active inference agents",
             priority_level="P1",
@@ -106,7 +106,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="P2",
-            filename="Falsification/Falsification_AgentComparison_ConvergenceBenchmark.py",
+            filename="Falsification/FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
             title="Agent Comparison & Convergence Benchmark",
             description="Benchmark protocol for comparing agent convergence",
             priority_level="P2",
@@ -119,7 +119,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="F2-Iowa",
-            filename="Falsification/Falsification_AgentComparison_ConvergenceBenchmark.py",
+            filename="Falsification/FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
             title="Iowa Gambling Task Protocol",
             description="Iowa Gambling Task with AUC > 0.75 threshold",
             priority_level="F2",
@@ -145,7 +145,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="F4",
-            filename="Falsification/Falsification_InformationTheoretic_PhaseTransition.py",
+            filename="Falsification/FP_4_Falsification_InformationTheoretic_PhaseTransition.py",
             title="Phase Transition with Bistability Protocol",
             description="Protocol F4 with bistability + critical slowing + hysteresis",
             priority_level="F4",
@@ -158,7 +158,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="MathematicalConsistency",
-            filename="Falsification/Falsification_MathematicalConsistency_Equations.py",
+            filename="Falsification/FP_7_Falsification_MathematicalConsistency_Equations.py",
             title="Mathematical Consistency of Equations",
             description="Validation of mathematical consistency in APGI equations",
             priority_level="Validation",
@@ -171,7 +171,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="BayesianEstimation-MCMC",
-            filename="Falsification/Falsification_BayesianEstimation_MCMC.py",
+            filename="Falsification/FP_10_Falsification_BayesianEstimation_MCMC.py",
             title="Bayesian Estimation with MCMC",
             description="MCMC-based Bayesian parameter estimation",
             priority_level="Advanced",
@@ -183,7 +183,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="BayesianEstimation-Recovery",
-            filename="Falsification/Falsification_BayesianEstimation_ParameterRecovery.py",
+            filename="Falsification/FP_10_Falsification_BayesianEstimation_ParameterRecovery.py",
             title="Bayesian Parameter Recovery",
             description="Parameter recovery validation using Bayesian methods",
             priority_level="Advanced",
@@ -196,7 +196,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="Standard6",
-            filename="Falsification_EvolutionaryPlausibility_Standard6.py",
+            filename="FP_5_Falsification_EvolutionaryPlausibility_Standard6.py",
             title="Evolutionary Plausibility - Standard 6",
             description="Evolutionary plausibility validation per standard 6",
             priority_level="Validation",
@@ -209,7 +209,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="LiquidNetworkDynamics",
-            filename="Falsification/Falsification_LiquidNetworkDynamics_EchoState.py",
+            filename="Falsification/FP_11_Falsification_LiquidNetworkDynamics_EchoState.py",
             title="Liquid Network Dynamics - Echo State",
             description="Liquid network dynamics validation with echo state networks",
             priority_level="Advanced",
@@ -221,7 +221,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="NeuralNetwork-Energy",
-            filename="Falsification/Falsification_NeuralNetwork_EnergyBenchmark.py",
+            filename="Falsification/FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py",
             title="Neural Network Energy Benchmark",
             description="Energy consumption benchmark for neural networks",
             priority_level="Benchmark",
@@ -233,7 +233,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="NeuralSignatures-EEG",
-            filename="Falsification/Falsification_NeuralSignatures_EEG_P3b_HEP.py",
+            filename="Falsification/FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP.py",
             title="Neural Signatures - EEG P3b & HEP",
             description="EEG signature validation for P3b and HEP markers",
             priority_level="Validation",
@@ -246,7 +246,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="ParameterSensitivity",
-            filename="Falsification/Falsification_ParameterSensitivity_Identifiability.py",
+            filename="Falsification/FP_8_Falsification_ParameterSensitivity_Identifiability.py",
             title="Parameter Sensitivity & Identifiability",
             description="Analysis of parameter sensitivity and model identifiability",
             priority_level="Analysis",
@@ -259,7 +259,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="FrameworkLevel",
-            filename="Falsification/Falsification_FrameworkLevel_MultiProtocol.py",
+            filename="Falsification/FP_3_Falsification_FrameworkLevel_MultiProtocol.py",
             title="Framework Level Multi-Protocol",
             description="Multi-protocol validation at framework level",
             priority_level="Integration",

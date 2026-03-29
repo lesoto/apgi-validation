@@ -60,8 +60,8 @@ logging.getLogger("utils.config_manager").setLevel(logging.WARNING)
 try:
     # Import using dynamic import since filename has hyphens
     spec = importlib.util.spec_from_file_location(
-        "APGI_Falsification_Aggregator",
-        os.path.join(os.path.dirname(__file__), "APGI_Falsification_Aggregator.py"),
+        "FP_12_Falsification_Aggregator",
+        os.path.join(os.path.dirname(__file__), "FP_12_Falsification_Aggregator.py"),
     )
     aggregator_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(aggregator_module)
@@ -82,7 +82,7 @@ try:
         aggregator_module.ALTERNATIVE_PARSIMONY_THRESHOLD_B
     )
 
-    logger.info("Successfully imported APGI_Falsification_Aggregator functions")
+    logger.info("Successfully imported FP_12_Falsification_Aggregator functions")
 except ImportError as e:
     handle_import_error(
         "APGI_Falsification-Aggregator", e, "Framework-level falsification aggregation"
@@ -200,7 +200,8 @@ def _get_protocol1():
         # Use absolute path to avoid CWD dependence
         protocol1_path = os.path.abspath(
             os.path.join(
-                os.path.dirname(__file__), "Falsification_ActiveInferenceAgents_F1F2.py"
+                os.path.dirname(__file__),
+                "FP_1_Falsification_ActiveInferenceAgents_F1F2.py",
             )
         )
         if not os.path.exists(protocol1_path):
@@ -235,7 +236,7 @@ def _get_protocol2():
         protocol2_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "Falsification_AgentComparison_ConvergenceBenchmark.py",
+                "FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
             )
         )
         if not os.path.exists(protocol2_path):
@@ -508,14 +509,14 @@ class AgentComparisonExperiment:
         )
 
         # Define protocol files for synthesis (protocols 1, 2, 3, 6, 9, 12)
-        # Note: Protocol 3 is the agent comparison protocol (ActiveInference_AgentSimulations_Protocol3.py)
+        # Note: Protocol 3 is the agent comparison protocol (VP_3_ActiveInference_AgentSimulations_Protocol3.py)
         # which produces P3.conv and P3.bic predictions
         protocol_files = {
-            1: "Falsification_ActiveInferenceAgents_F1F2.py",
-            2: "Falsification_AgentComparison_ConvergenceBenchmark.py",
-            3: "../Validation/ActiveInference_AgentSimulations_Protocol3.py",
-            6: "Falsification_EvolutionaryPlausibility_Standard6.py",
-            9: "Falsification_NeuralSignatures_EEG_P3b_HEP.py",
+            1: "FP_1_Falsification_ActiveInferenceAgents_F1F2.py",
+            2: "FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
+            3: "../Validation/VP_3_ActiveInference_AgentSimulations_Protocol3.py",
+            6: "FP_5_Falsification_EvolutionaryPlausibility_Standard6.py",
+            9: "FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP.py",
             12: "Falsification_CrossSpeciesScaling_P12.py",
         }
 
@@ -1386,7 +1387,7 @@ class AgentComparisonExperiment:
             Dict with framework falsification status and condition results
         """
         # Use the aggregator functions that are already imported
-        from Falsification.APGI_Falsification_Aggregator import (
+        from Falsification.FP_12_Falsification_Aggregator import (
             check_framework_falsification_condition_a,
             check_framework_falsification_condition_b,
             aggregate_prediction_results,
@@ -1902,7 +1903,7 @@ def check_framework_falsification_conditions(
     self, falsification_results: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
-    Apply framework-level falsification conditions (a) and (b) using APGI_Falsification_Aggregator.
+    Apply framework-level falsification conditions (a) and (b) using FP_12_Falsification_Aggregator.
 
     Args:
         falsification_results: Results from aggregate_prediction_results()

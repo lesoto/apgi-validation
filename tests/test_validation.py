@@ -48,7 +48,7 @@ def test_validation_files_exist():
     # Check validation protocol files
     validation_files = [
         "Validation_Protocol_1.py",
-        "Validation_Protocol_2.py",
+        "VP_2_Validation_Protocol_2.py",
         "Validation_Protocol_3.py",
         "Validation_Protocol_4.py",
         "Validation_Protocol_5.py",
@@ -57,7 +57,7 @@ def test_validation_files_exist():
         "Validation_Protocol_8.py",
         "Validation_Protocol_9.py",
         "Validation_Protocol_10.py",
-        "Validation_Protocol_11.py",
+        "VP_11_Validation_Protocol_11.py",
         "Validation_Protocol_12.py",
         "APGI_Validation_GUI.py",
         "Master_Validation.py",
@@ -763,9 +763,9 @@ def test_validation_protocol_10_exists():
 
 
 def test_validation_protocol_11_exists():
-    """Test that Validation_Protocol_11.py exists and can be imported"""
+    """Test that VP_11_Validation_Protocol_11.py exists and can be imported"""
     protocol_path = (
-        Path(__file__).parent.parent / "Validation" / "Validation_Protocol_11.py"
+        Path(__file__).parent.parent / "Validation" / "VP_11_Validation_Protocol_11.py"
     )
     assert protocol_path.exists()
 
@@ -776,7 +776,7 @@ def test_validation_protocol_11_exists():
         protocol11 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(protocol11)
     except ImportError as e:
-        pytest.skip(f"Validation_Protocol_11.py import failed: {e}")
+        pytest.skip(f"VP_11_Validation_Protocol_11.py import failed: {e}")
 
 
 def test_validation_protocol_12_exists():
@@ -972,7 +972,7 @@ def test_apgi_dynamical_system_parameter_ranges(tau_S, tau_theta, alpha):
             "synthetic_eeg",
             Path(__file__).parent.parent
             / "Validation"
-            / "SyntheticEEG_MLClassification.py",
+            / "VP_1_SyntheticEEG_MLClassification.py",
         )
         synthetic_eeg = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(synthetic_eeg)

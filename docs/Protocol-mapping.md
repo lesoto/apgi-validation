@@ -21,43 +21,43 @@
 
  | #  Filename  VP ID  Paper Protocol  Tier  Completion  |
  | ---  ---  ---  ---  ---  ---  ---  |
- | 1  `ActiveInference_AgentSimulations_Protocol3.py`  VP-3  Paper Protocol 3  Secondary  82%  |
+ | 1  `VP_3_ActiveInference_AgentSimulations_Protocol3.py`  VP-3  Paper Protocol 3  Secondary  82%  |
  | 2  `BayesianModelComparison_ParameterRecovery.py`  VP-1 (support)  Paper Protocol 6 (partial)  Primary  62%  |
- | 3  `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py`  VP-10  Roadmap Priority 2  Tertiary  70%  |
- | 4  `Clinical_CrossSpecies_Convergence_Protocol4.py`  VP-12  Paper Protocol 4 / Roadmap Priority 4  Secondary  76%  |
- | 5  `ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py`  VP-9  Roadmap Priority 1  Tertiary  73%  |
- | 6  `EvolutionaryEmergence_AnalyticalValidation.py`  VP-5  — (Paper Protocol 5 MISSING)  Tertiary  66%  |
- | 7  `InformationTheoretic_PhaseTransition_Level2.py`  VP-4  Epistemic Paper P5–P8 (Level 2)  Secondary  74%  |
+ | 3  `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py`  VP-10  Roadmap Priority 2  Tertiary  70%  |
+ | 4  `VP_12_Clinical_CrossSpecies_Convergence_Protocol4.py`  VP-12  Paper Protocol 4 / Roadmap Priority 4  Secondary  76%  |
+ | 5  `VP_9_ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py`  VP-9  Roadmap Priority 1  Tertiary  73%  |
+ | 6  `VP_5_EvolutionaryEmergence_AnalyticalValidation.py`  VP-5  — (Paper Protocol 5 MISSING)  Tertiary  66%  |
+ | 7  `VP_4_InformationTheoretic_PhaseTransition_Level2.py`  VP-4  Epistemic Paper P5–P8 (Level 2)  Secondary  74%  |
  | 8  `Master_Validation.py`  —  Orchestrator (not a protocol)  —  Active  |
- | 9  `NeuralNetwork_InductiveBias_ComputationalBenchmark.py`  VP-6  Computational Architecture  Tertiary  68%  |
- | 10  `Psychophysical_ThresholdEstimation_Protocol1.py`  VP-8  Paper Protocol 1  Secondary  77%  |
- | 11  `QuantitativeModelFits_SpikingLNN_Priority3.py`  VP-11  Roadmap Priority 3  Secondary  75%  |
- | 12  `SyntheticEEG_MLClassification.py`  VP-1 (support)  Paper Protocol 6 (partial)  Primary  62%  |
- | 13  `TMS_Pharmacological_CausalIntervention_Protocol2.py`  VP-7  Paper Protocol 2  Secondary  79%  |
- | 14  `Validation_Protocol_2.py`  VP-2  Paper Protocol 6 (behavioral)  Primary  71%  |
- | 15  `Validation_Protocol_11.py`  VP-11 (canonical)  Roadmap Priority 3 / Cultural Neuro  Secondary  75%  |
+ | 9  `VP_6_NeuralNetwork_InductiveBias_ComputationalBenchmark.py`  VP-6  Computational Architecture  Tertiary  68%  |
+ | 10  `VP_8_Psychophysical_ThresholdEstimation_Protocol1.py`  VP-8  Paper Protocol 1  Secondary  77%  |
+ | 11  `VP_11_QuantitativeModelFits_SpikingLNN_Priority3.py`  VP-11  Roadmap Priority 3  Secondary  75%  |
+ | 12  `VP_1_SyntheticEEG_MLClassification.py`  VP-1 (support)  Paper Protocol 6 (partial)  Primary  62%  |
+ | 13  `VP_7_TMS_Pharmacological_CausalIntervention_Protocol2.py`  VP-7  Paper Protocol 2  Secondary  79%  |
+ | 14  `VP_2_Validation_Protocol_2.py`  VP-2  Paper Protocol 6 (behavioral)  Primary  71%  |
+ | 15  `VP_11_Validation_Protocol_11.py`  VP-11 (canonical)  Roadmap Priority 3 / Cultural Neuro  Secondary  75%  |
  | 16  `Validation_Protocol_P4_Epistemic.py`  VP-4 (support)  Epistemic Paper P5–P12  Secondary  74%  |
 
 ### 1.2 Falsification Files (22 total)
 
  | #  Filename  FP ID  Role  Completion  |
  | ---  ---  ---  ---  ---  |
- | 1  `APGI_Falsification_Aggregator.py`  FP-12  Framework-level aggregator  76%  |
+ | 1  `FP_12_Falsification_Aggregator.py`  FP-12  Framework-level aggregator  76%  |
  | 2  `APGI_Falsification_Protocols_GUI.py`  —  GUI runner (not a protocol)  Active  |
- | 3  `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py`  FP-2 (support)  Causal manipulation engine  72%  |
- | 10  `Falsification_ActiveInferenceAgents_F1F2.py`  FP-1 (full)  Primary F1/F2 engine  74%  |
- | 11  `Falsification_AgentComparison_ConvergenceBenchmark.py`  FP-2 (full)  Convergence benchmark  72%  |
- | 12  `Falsification_BayesianEstimation_MCMC.py`  FP-10  NUTS/PyMC MCMC estimation  55%  |
- | 13  `Falsification_BayesianEstimation_ParameterRecovery.py`  FP-11  Parameter recovery  67%  |
+ | 3  `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py`  FP-2 (support)  Causal manipulation engine  72%  |
+ | 10  `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py`  FP-1 (full)  Primary F1/F2 engine  74%  |
+ | 11  `FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py`  FP-2 (full)  Convergence benchmark  72%  |
+ | 12  `FP_10_FP_10_Falsification_BayesianEstimation_MCMC.py`  FP-10  NUTS/PyMC MCMC estimation  55%  |
+ | 13  `FP_10_FP_10_Falsification_BayesianEstimation_ParameterRecovery.py`  FP-11  Parameter recovery  67%  |
  | 14  `Falsification_CrossSpeciesScaling_P12.py`  FP-10 (cross-species)  Allometric scaling  55%  |
- | 15  `Falsification_EvolutionaryPlausibility_Standard6.py`  FP-5 (full)  Evolutionary analysis  70%  |
- | 16  `Falsification_FrameworkLevel_MultiProtocol.py`  FP-3 (full)  Multi-protocol synthesis  65%  |
- | 17  `Falsification_InformationTheoretic_PhaseTransition.py`  FP-4 (full)  Phase transition analysis  73%  |
- | 18  `Falsification_LiquidNetworkDynamics_EchoState.py`  FP-11 / FP-12  Echo-state / liquid network  67%  |
- | 19  `Falsification_MathematicalConsistency_Equations.py`  FP-7  Sympy equation verification  63%  |
- | 20  `Falsification_NeuralNetwork_EnergyBenchmark.py`  FP-6 (full)  Energy / ATP benchmark  68%  |
- | 21  `Falsification_NeuralSignatures_EEG_P3b_HEP.py`  FP-9  EEG / P3b / HEP neural sigs  62%  |
- | 22  `Falsification_ParameterSensitivity_Identifiability.py`  FP-8  Sobol / FIM / profile likelihood  60%  |
+ | 15  `FP_5_FP_5_Falsification_EvolutionaryPlausibility_Standard6.py`  FP-5 (full)  Evolutionary analysis  70%  |
+ | 16  `FP_3_FP_3_Falsification_FrameworkLevel_MultiProtocol.py`  FP-3 (full)  Multi-protocol synthesis  65%  |
+ | 17  `FP_4_FP_4_Falsification_InformationTheoretic_PhaseTransition.py`  FP-4 (full)  Phase transition analysis  73%  |
+ | 18  `FP_11_FP_11_Falsification_LiquidNetworkDynamics_EchoState.py`  FP-11 / FP-12  Echo-state / liquid network  67%  |
+ | 19  `FP_7_Falsification_MathematicalConsistency_Equations.py`  FP-7  Sympy equation verification  63%  |
+ | 20  `FP_6_FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py`  FP-6 (full)  Energy / ATP benchmark  68%  |
+ | 21  `FP_9_FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP.py`  FP-9  EEG / P3b / HEP neural sigs  62%  |
+ | 22  `FP_8_FP_8_Falsification_ParameterSensitivity_Identifiability.py`  FP-8  Sobol / FIM / profile likelihood  60%  |
 
 ---
 
@@ -84,18 +84,18 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | VP Registered Name  Actual Implementation File  Notes  |
  | ---  ---  ---  | |
- | `Validation_Protocol_1.py`  `SyntheticEEG_MLClassification.py`  Self-documents as "NOT Protocol 1" — supports VP-1 predictions  |
- | `Validation_Protocol_2.py`  `Validation_Protocol_2.py`  ✅ Matches  |
- | `Validation_Protocol_3.py`  `ActiveInference_AgentSimulations_Protocol3.py`  ✅ Matches  |
- | `Validation_Protocol_P4_Epistemic.py`  `Validation_Protocol_P4_Epistemic.py` + `InformationTheoretic_PhaseTransition_Level2.py`  Two files share VP-4  |
- | `Validation_Protocol_5.py`  `EvolutionaryEmergence_AnalyticalValidation.py`  ✅ Matches (fMRI Paper Protocol 5 still MISSING)  |
- | `Validation_Protocol_6.py`  `NeuralNetwork_InductiveBias_ComputationalBenchmark.py`  ✅ Matches  |
- | `Validation_Protocol_7.py`  `TMS_Pharmacological_CausalIntervention_Protocol2.py`  ✅ Matches  |
- | `Validation_Protocol_8.py`  `Psychophysical_ThresholdEstimation_Protocol1.py`  ✅ Matches  |
- | `Validation_Protocol_9.py`  `ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py`  ✅ Matches  |
- | `Validation_Protocol_10.py`  `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py`  ✅ Matches  |
- | `Validation_Protocol_11.py`  `Validation_Protocol_11.py` + `QuantitativeModelFits_SpikingLNN_Priority3.py`  Two files share VP-11  |
- | `Validation_Protocol_12.py`  `Clinical_CrossSpecies_Convergence_Protocol4.py`  ✅ Matches  |
+ | `Validation_Protocol_1.py`  `VP_1_SyntheticEEG_MLClassification.py`  Self-documents as "NOT Protocol 1" — supports VP-1 predictions  |
+ | `VP_2_Validation_Protocol_2.py`  `VP_2_Validation_Protocol_2.py`  ✅ Matches  |
+ | `Validation_Protocol_3.py`  `VP_3_ActiveInference_AgentSimulations_Protocol3.py`  ✅ Matches  |
+ | `Validation_Protocol_P4_Epistemic.py`  `Validation_Protocol_P4_Epistemic.py` + `VP_4_InformationTheoretic_PhaseTransition_Level2.py`  Two files share VP-4  |
+ | `Validation_Protocol_5.py`  `VP_5_EvolutionaryEmergence_AnalyticalValidation.py`  ✅ Matches (fMRI Paper Protocol 5 still MISSING)  |
+ | `Validation_Protocol_6.py`  `VP_6_NeuralNetwork_InductiveBias_ComputationalBenchmark.py`  ✅ Matches  |
+ | `Validation_Protocol_7.py`  `VP_7_TMS_Pharmacological_CausalIntervention_Protocol2.py`  ✅ Matches  |
+ | `Validation_Protocol_8.py`  `VP_8_Psychophysical_ThresholdEstimation_Protocol1.py`  ✅ Matches  |
+ | `Validation_Protocol_9.py`  `VP_9_ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py`  ✅ Matches  |
+ | `Validation_Protocol_10.py`  `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py`  ✅ Matches  |
+ | `VP_11_Validation_Protocol_11.py`  `VP_11_Validation_Protocol_11.py` + `VP_11_QuantitativeModelFits_SpikingLNN_Priority3.py`  Two files share VP-11  |
+ | `Validation_Protocol_12.py`  `VP_12_Clinical_CrossSpecies_Convergence_Protocol4.py`  ✅ Matches  |
 
 ---
 
@@ -107,7 +107,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Primary files:**
 
-- `SyntheticEEG_MLClassification.py` — main computational engine
+- `VP_1_SyntheticEEG_MLClassification.py` — main computational engine
 - `BayesianModelComparison_ParameterRecovery.py` — Bayesian model comparison support
 
 **Paper protocol:** Paper Protocol 6 (Parameter Estimation) — partial
@@ -117,14 +117,14 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Class  File  Purpose  |
  | ---  ---  ---  |
- | `APGIDynamicalSystem`  SyntheticEEG_MLClassification.py  Simulates APGI ODE dynamics  |
- | `APGISyntheticSignalGenerator`  SyntheticEEG_MLClassification.py  Generates synthetic EEG-like signals  |
- | `StandardPredictiveProcessingGenerator`  SyntheticEEG_MLClassification.py  Comparison generator (standard PP)  |
- | `GlobalWorkspaceOnlyGenerator`  SyntheticEEG_MLClassification.py  Comparison generator (GWT-only)  |
- | `IgnitionClassifier`  SyntheticEEG_MLClassification.py  CNN classifier for ignition detection  |
- | `MultiModalFusionNetwork`  SyntheticEEG_MLClassification.py  Multimodal fusion for model ID  |
- | `FalsificationChecker`  SyntheticEEG_MLClassification.py  F1.x / F2.x / F3.x / F5.x criteria gate  |
- | `Protocol1Psychophysics`  SyntheticEEG_MLClassification.py  Near-threshold psychophysics simulation  |
+ | `APGIDynamicalSystem`  VP_1_SyntheticEEG_MLClassification.py  Simulates APGI ODE dynamics  |
+ | `APGISyntheticSignalGenerator`  VP_1_SyntheticEEG_MLClassification.py  Generates synthetic EEG-like signals  |
+ | `StandardPredictiveProcessingGenerator`  VP_1_SyntheticEEG_MLClassification.py  Comparison generator (standard PP)  |
+ | `GlobalWorkspaceOnlyGenerator`  VP_1_SyntheticEEG_MLClassification.py  Comparison generator (GWT-only)  |
+ | `IgnitionClassifier`  VP_1_SyntheticEEG_MLClassification.py  CNN classifier for ignition detection  |
+ | `MultiModalFusionNetwork`  VP_1_SyntheticEEG_MLClassification.py  Multimodal fusion for model ID  |
+ | `FalsificationChecker`  VP_1_SyntheticEEG_MLClassification.py  F1.x / F2.x / F3.x / F5.x criteria gate  |
+ | `Protocol1Psychophysics`  VP_1_SyntheticEEG_MLClassification.py  Near-threshold psychophysics simulation  |
  | `APGIGenerativeModel`  BayesianModelComparison_ParameterRecovery.py  PyMC APGI generative model  |
  | `BayesianModelComparison`  BayesianModelComparison_ParameterRecovery.py  LOO-CV / WAIC comparison  |
  | `FalsificationChecker`  BayesianModelComparison_ParameterRecovery.py  F2.1–F2.5 Bayesian criteria  |
@@ -133,8 +133,8 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Function  File  Line  Purpose  |
  | | ------  ------  ---------  |
- | `compare_models_with_statistics()`  SyntheticEEG_MLClassification.py  3618  McNemar + DeLong AUC (≥1,000 permutations)  |
- | `train_ignition_classifier()`  SyntheticEEG_MLClassification.py  1613  Trains CNN for ignition detection  |
+ | `compare_models_with_statistics()`  VP_1_SyntheticEEG_MLClassification.py  3618  McNemar + DeLong AUC (≥1,000 permutations)  |
+ | `train_ignition_classifier()`  VP_1_SyntheticEEG_MLClassification.py  1613  Trains CNN for ignition detection  |
  | `validate_parameter_recovery()`  BayesianModelComparison_ParameterRecovery.py  805  n=100 simulations, r≥0.82 core params  |
  | `compute_fisher_information_matrix()`  BayesianModelComparison_ParameterRecovery.py  861  FIM identifiability  |
  | `analyze_beta_pi_identifiability()`  BayesianModelComparison_ParameterRecovery.py  1047  β / Πⁱ collinearity check
@@ -142,13 +142,13 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 **Criterion codes implemented:** F1.1, F1.2, F1.3, F1.4, F2.1, F2.1A, F2.1B, F2.2, F2.3, F2.4, F2.5, F3.1, F3.1A, F3.1B, F3.2, F3.3, F3.4, F3.5, F3.6, F5.1, F5.2, F5.3 (+ F5.4, F5.5, F5.6, F6.1, F6.2 via FalsificationChecker), V12.1
 
 **Important self-documentation note:**
-`SyntheticEEG_MLClassification.py` explicitly states at line 13: *"This is NOT Protocol 1. The actual Protocol 1 is 'Interoceptive Precision Modulates Detection Threshold'."* It provides computational support for VP-1 predictions, not the human-participant psychophysics paradigm itself.
+`VP_1_SyntheticEEG_MLClassification.py` explicitly states at line 13: *"This is NOT Protocol 1. The actual Protocol 1 is 'Interoceptive Precision Modulates Detection Threshold'."* It provides computational support for VP-1 predictions, not the human-participant psychophysics paradigm itself.
 
 ---
 
 ### VP-2 · Behavioral Validation
 
-**Primary file:** `Validation_Protocol_2.py`
+**Primary file:** `VP_2_Validation_Protocol_2.py`
 **Paper protocol:** Paper Protocol 6 (behavioral arm) — partial
 **Tier:** Primary | **Completion:** 71%
 
@@ -156,8 +156,8 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
  | Class  File  Purpose  |
  | ---  ---  ---  |
- | `SyntheticSubject`  Validation_Protocol_2.py  Simulates participant behavior  |
- | `APGIValidationProtocol11` (inner)  Validation_Protocol_2.py  Behavioral simulation driver  |
+ | `SyntheticSubject`  VP_2_Validation_Protocol_2.py  Simulates participant behavior  |
+ | `APGIValidationProtocol11` (inner)  VP_2_Validation_Protocol_2.py  Behavioral simulation driver  |
 
 **Key functions:**
 
@@ -181,7 +181,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### VP-3 · Agent Comparison Experiment (Active Inference)
 
-**Primary file:** `ActiveInference_AgentSimulations_Protocol3.py`
+**Primary file:** `VP_3_ActiveInference_AgentSimulations_Protocol3.py`
 **Paper protocol:** Paper Protocol 3 — Active Inference Agents
 **Tier:** Secondary | **Completion:** 82%
 
@@ -223,7 +223,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Primary files:**
 
-- `InformationTheoretic_PhaseTransition_Level2.py` — Level 2 epistemic tests
+- `VP_4_InformationTheoretic_PhaseTransition_Level2.py` — Level 2 epistemic tests
 - `Validation_Protocol_P4_Epistemic.py` — P5–P12 wrapper
 
 **Paper protocol:** Epistemic Architecture Paper — Level 2 (P5–P8) and Level 1 (P9–P12)
@@ -280,7 +280,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### VP-5 · Evolutionary Emergence
 
-**Primary file:** `EvolutionaryEmergence_AnalyticalValidation.py`
+**Primary file:** `VP_5_EvolutionaryEmergence_AnalyticalValidation.py`
 **Paper protocol:** MISSING — Paper Protocol 5 (fMRI Anticipation/Experience) has no corresponding implementation
 **Tier:** Tertiary | **Completion:** 66%
 
@@ -307,7 +307,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### VP-6 · Network Comparison (Neural Network Inductive Bias)
 
-**Primary file:** `NeuralNetwork_InductiveBias_ComputationalBenchmark.py`
+**Primary file:** `VP_6_NeuralNetwork_InductiveBias_ComputationalBenchmark.py`
 **Paper protocol:** Computational Architecture Energy Comparison
 **Tier:** Tertiary | **Completion:** 68%
 
@@ -343,7 +343,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### VP-7 · TMS / Pharmacological Causal Interventions
 
-**Primary file:** `TMS_Pharmacological_CausalIntervention_Protocol2.py`
+**Primary file:** `VP_7_TMS_Pharmacological_CausalIntervention_Protocol2.py`
 **Paper protocol:** Paper Protocol 2 — TMS Causal Manipulations
 **Tier:** Secondary | **Completion:** 79%
 
@@ -390,7 +390,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### VP-8 · Psychophysical Threshold Estimation
 
-**Primary file:** `Psychophysical_ThresholdEstimation_Protocol1.py`
+**Primary file:** `VP_8_Psychophysical_ThresholdEstimation_Protocol1.py`
 **Paper protocol:** Paper Protocol 1 — Interoceptive Precision Modulates Detection Threshold
 **Tier:** Secondary | **Completion:** 77%
 
@@ -437,7 +437,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### VP-9 · Convergent Neural Signatures (Roadmap Priority 1)
 
-**Primary file:** `ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py`
+**Primary file:** `VP_9_ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py`
 **Paper protocol:** Empirical Credibility Roadmap Priority 1
 **Tier:** Tertiary | **Completion:** 73%
 
@@ -459,8 +459,8 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### VP-10 · Causal Manipulations (Roadmap Priority 2)
 
-**Primary file:** `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` (Validation folder)
-**Also:** `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` (Falsification folder) — note: same filename, different folder, different content
+**Primary file:** `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` (Validation folder)
+**Also:** `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` (Falsification folder) — note: same filename, different folder, different content
 
 **Paper protocol:** Empirical Credibility Roadmap Priority 2
 **Tier:** Tertiary | **Completion:** 70%
@@ -499,20 +499,20 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Primary files:**
 
-- `Validation_Protocol_11.py` — canonical Bayesian parameter recovery
-- `QuantitativeModelFits_SpikingLNN_Priority3.py` — spiking LNN model fits
+- `VP_11_Validation_Protocol_11.py` — canonical Bayesian parameter recovery
+- `VP_11_QuantitativeModelFits_SpikingLNN_Priority3.py` — spiking LNN model fits
 
 **Paper protocol:** Empirical Credibility Roadmap Priority 3
 **Tier:** Secondary | **Completion:** 75%
 
-**Key classes (Validation_Protocol_11.py):**
+**Key classes (VP_11_Validation_Protocol_11.py):**
 
  | Class  Line  Purpose  |
  | | ------  ---------  |
  | `SyntheticSubject`  178  Generates individual-difference data  |
  | `APGIValidationProtocol11`  1308  VP-11 entry point class  |
 
-**Key functions (Validation_Protocol_11.py):**
+**Key functions (VP_11_Validation_Protocol_11.py):**
 
  | Function  Line  Purpose  |
  | ---  ---  ---  |
@@ -529,7 +529,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Criterion codes implemented:** V11.1–V11.5
 
-**Key classes (QuantitativeModelFits_SpikingLNN_Priority3.py):**
+**Key classes (VP_11_QuantitativeModelFits_SpikingLNN_Priority3.py):**
 
  | Class  Line  Purpose  |
  | | ------  ---------  |
@@ -547,7 +547,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### VP-12 · Clinical / Cross-Species Convergence (Roadmap Priority 4)
 
-**Primary file:** `Clinical_CrossSpecies_Convergence_Protocol4.py`
+**Primary file:** `VP_12_Clinical_CrossSpecies_Convergence_Protocol4.py`
 **Paper protocol:** Paper Protocol 4 (DoC) / Roadmap Priority 4
 **Tier:** Secondary | **Completion:** 76%
 
@@ -587,7 +587,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### FP-1 · Active Inference Agents (F1/F2)
 
-**Primary file:** `Falsification_ActiveInferenceAgents_F1F2.py`
+**Primary file:** `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py`
 **Stub file:** `Falsification-Protocol-1.py` (thin wrapper, delegates to full file)
 **Tier:** Primary | **Completion:** 74%
 
@@ -623,9 +623,9 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### FP-2 · Agent Comparison / Convergence Benchmark
 
-**Primary file:** `Falsification_AgentComparison_ConvergenceBenchmark.py`
+**Primary file:** `FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py`
 **Stub file:** `Falsification-Protocol-2.py` (Iowa Gambling Task wrapper)
-**Support file:** `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` (Falsification folder)
+**Support file:** `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` (Falsification folder)
 **Tier:** Primary | **Completion:** 72%
 
 **Key classes:**
@@ -653,7 +653,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### FP-3 · Framework-Level Multi-Protocol
 
-**Primary file:** `Falsification_FrameworkLevel_MultiProtocol.py`
+**Primary file:** `FP_3_FP_3_Falsification_FrameworkLevel_MultiProtocol.py`
 **Stub file:** `Falsification-Protocol-3.py` (neural network analysis wrapper)
 **Tier:** Secondary | **Completion:** 65%
 
@@ -677,14 +677,14 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
  | `get_falsification_criteria()`  1823  Full criteria dict
  | `check_falsification()`  1878  Gate function
 
-**Path fix:** Protocol 3 routes to `../Validation/ActiveInference_AgentSimulations_Protocol3.py`
-**Framework conditions delegated to:** `APGI_Falsification_Aggregator.py`
+**Path fix:** Protocol 3 routes to `../Validation/VP_3_ActiveInference_AgentSimulations_Protocol3.py`
+**Framework conditions delegated to:** `FP_12_Falsification_Aggregator.py`
 
 ---
 
 ### FP-4 · Information-Theoretic Phase Transition
 
-**Primary file:** `Falsification_InformationTheoretic_PhaseTransition.py`
+**Primary file:** `FP_4_FP_4_Falsification_InformationTheoretic_PhaseTransition.py`
 **Stub file:** `Falsification-Protocol-4.py` (information-theoretic wrapper)
 **Tier:** Secondary | **Completion:** 73%
 
@@ -725,7 +725,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### FP-5 · Evolutionary Plausibility
 
-**Primary file:** `Falsification_EvolutionaryPlausibility_Standard6.py`
+**Primary file:** `FP_5_FP_5_Falsification_EvolutionaryPlausibility_Standard6.py`
 **Stub file:** `Falsification-Protocol-5.py` (evolutionary wrapper)
 **Tier:** Tertiary | **Completion:** 70%
 
@@ -758,7 +758,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### FP-6 · Neural Network Energy Benchmark
 
-**Primary file:** `Falsification_NeuralNetwork_EnergyBenchmark.py`
+**Primary file:** `FP_6_FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py`
 **Stub file:** `Falsification-Protocol-6.py` (APGI-inspired network wrapper)
 **Tier:** Tertiary | **Completion:** 68%
 
@@ -787,7 +787,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### FP-7 · Mathematical Consistency / Equations
 
-**Primary file:** `Falsification_MathematicalConsistency_Equations.py`
+**Primary file:** `FP_7_Falsification_MathematicalConsistency_Equations.py`
 **Tier:** Secondary | **Completion:** 63%
 
 **Key classes:**
@@ -824,7 +824,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### FP-8 · Parameter Sensitivity & Identifiability
 
-**Primary file:** `Falsification_ParameterSensitivity_Identifiability.py`
+**Primary file:** `FP_8_FP_8_Falsification_ParameterSensitivity_Identifiability.py`
 **Tier:** Tertiary | **Completion:** 60%
 
 **Key class:**
@@ -855,7 +855,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### FP-9 · Neural Signatures EEG / P3b / HEP
 
-**Primary file:** `Falsification_NeuralSignatures_EEG_P3b_HEP.py`
+**Primary file:** `FP_9_FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP.py`
 **Tier:** Secondary | **Completion:** 62%
 
 **Key classes:**
@@ -894,7 +894,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Primary files:**
 
-- `Falsification_BayesianEstimation_MCMC.py` — NUTS/PyMC estimation
+- `FP_10_FP_10_Falsification_BayesianEstimation_MCMC.py` — NUTS/PyMC estimation
 
 - `Falsification_CrossSpeciesScaling_P12.py` — allometric scaling
 
@@ -938,7 +938,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ### FP-11 · Bayesian Estimation Parameter Recovery
 
-**Primary file:** `Falsification_BayesianEstimation_ParameterRecovery.py`
+**Primary file:** `FP_10_FP_10_Falsification_BayesianEstimation_ParameterRecovery.py`
 **Tier:** Secondary | **Completion:** 67%
 
 **Key class:**
@@ -969,8 +969,8 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 **Primary files:**
 
-- `APGI_Falsification_Aggregator.py` — framework-level conditions A and B
-- `Falsification_LiquidNetworkDynamics_EchoState.py` — echo-state network
+- `FP_12_Falsification_Aggregator.py` — framework-level conditions A and B
+- `FP_11_FP_11_Falsification_LiquidNetworkDynamics_EchoState.py` — echo-state network
 
 **Tier:** Primary | **Completion:** 76%
 
@@ -1019,7 +1019,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 
 ## 5. Named Predictions → Protocol Routing
 
-From `APGI_Falsification_Aggregator.py` (`PREDICTION_TO_PROTOCOL` dict) and `NAMED_PREDICTIONS`:
+From `FP_12_Falsification_Aggregator.py` (`PREDICTION_TO_PROTOCOL` dict) and `NAMED_PREDICTIONS`:
 
  | Prediction ID  Description  Routed To  |
  | ---  ---  ---  |
@@ -1147,18 +1147,18 @@ The table below shows which Python files implement each criterion family and wha
 
  | GUI Name  File  |
  | ---  ---  |
- | Protocol 1: APGI Agent  `Falsification_ActiveInferenceAgents_F1F2.py`
- | Protocol 2: Iowa Gambling  `Falsification_AgentComparison_ConvergenceBenchmark.py`
- | Protocol 3: Agent Comparison  `Falsification_FrameworkLevel_MultiProtocol.py`
- | Protocol 4: Phase Transition  `Falsification_InformationTheoretic_PhaseTransition.py`
- | Protocol 5: Evolutionary  `Falsification_EvolutionaryPlausibility_Standard6.py`
- | Protocol 6: Network Comparison  `Falsification_NeuralNetwork_EnergyBenchmark.py`
- | Protocol 7: Mathematical Consistency  `Falsification_MathematicalConsistency_Equations.py`
- | Protocol 8: Parameter Sensitivity  `Falsification_ParameterSensitivity_Identifiability.py`
- | Protocol 9: Neural Signatures  `Falsification_NeuralSignatures_EEG_P3b_HEP.py`
+ | Protocol 1: APGI Agent  `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py`
+ | Protocol 2: Iowa Gambling  `FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py`
+ | Protocol 3: Agent Comparison  `FP_3_FP_3_Falsification_FrameworkLevel_MultiProtocol.py`
+ | Protocol 4: Phase Transition  `FP_4_FP_4_Falsification_InformationTheoretic_PhaseTransition.py`
+ | Protocol 5: Evolutionary  `FP_5_FP_5_Falsification_EvolutionaryPlausibility_Standard6.py`
+ | Protocol 6: Network Comparison  `FP_6_FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py`
+ | Protocol 7: Mathematical Consistency  `FP_7_Falsification_MathematicalConsistency_Equations.py`
+ | Protocol 8: Parameter Sensitivity  `FP_8_FP_8_Falsification_ParameterSensitivity_Identifiability.py`
+ | Protocol 9: Neural Signatures  `FP_9_FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP.py`
  | Protocol 10: Cross-Species Scaling  `Falsification_CrossSpeciesScaling_P12.py`
- | Protocol 11: Bayesian Estimation  `Falsification_BayesianEstimation_ParameterRecovery.py`
- | Protocol 12: Liquid Network Dynamics  `Falsification_LiquidNetworkDynamics_EchoState.py`
+ | Protocol 11: Bayesian Estimation  `FP_10_FP_10_Falsification_BayesianEstimation_ParameterRecovery.py`
+ | Protocol 12: Liquid Network Dynamics  `FP_11_FP_11_Falsification_LiquidNetworkDynamics_EchoState.py`
 
 ### 7.3 Protocol File Mapping (Direct GUI Implementation)
 
@@ -1166,18 +1166,18 @@ All 12 falsification protocols work identically: the GUI maps directly to full i
 
  | Protocol  GUI Name  Full Implementation File  Domain  |
  | ---  ---  ---  ---  |
- | FP-1  Protocol 1: APGI Agent  `Falsification_ActiveInferenceAgents_F1F2.py`  Active inference agents
- | FP-2  Protocol 2: Iowa Gambling  `Falsification_AgentComparison_ConvergenceBenchmark.py`  Iowa Gambling Task / convergence
- | FP-3  Protocol 3: Agent Comparison  `Falsification_FrameworkLevel_MultiProtocol.py`  Neural network analysis
- | FP-4  Protocol 4: Phase Transition  `Falsification_InformationTheoretic_PhaseTransition.py`  Information-theoretic
- | FP-5  Protocol 5: Evolutionary  `Falsification_EvolutionaryPlausibility_Standard6.py`  Evolutionary plausibility
- | FP-6  Protocol 6: Network Comparison  `Falsification_NeuralNetwork_EnergyBenchmark.py`  APGI-inspired network
- | FP-7  Protocol 7: Mathematical Consistency  `Falsification_MathematicalConsistency_Equations.py`  Equation verification
- | FP-8  Protocol 8: Parameter Sensitivity  `Falsification_ParameterSensitivity_Identifiability.py`  Sensitivity analysis
- | FP-9  Protocol 9: Neural Signatures  `Falsification_NeuralSignatures_EEG_P3b_HEP.py`  EEG / P3b / HEP signatures
+ | FP-1  Protocol 1: APGI Agent  `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py`  Active inference agents
+ | FP-2  Protocol 2: Iowa Gambling  `FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py`  Iowa Gambling Task / convergence
+ | FP-3  Protocol 3: Agent Comparison  `FP_3_FP_3_Falsification_FrameworkLevel_MultiProtocol.py`  Neural network analysis
+ | FP-4  Protocol 4: Phase Transition  `FP_4_FP_4_Falsification_InformationTheoretic_PhaseTransition.py`  Information-theoretic
+ | FP-5  Protocol 5: Evolutionary  `FP_5_FP_5_Falsification_EvolutionaryPlausibility_Standard6.py`  Evolutionary plausibility
+ | FP-6  Protocol 6: Network Comparison  `FP_6_FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py`  APGI-inspired network
+ | FP-7  Protocol 7: Mathematical Consistency  `FP_7_Falsification_MathematicalConsistency_Equations.py`  Equation verification
+ | FP-8  Protocol 8: Parameter Sensitivity  `FP_8_FP_8_Falsification_ParameterSensitivity_Identifiability.py`  Sensitivity analysis
+ | FP-9  Protocol 9: Neural Signatures  `FP_9_FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP.py`  EEG / P3b / HEP signatures
  | FP-10  Protocol 10: Cross-Species Scaling  `Falsification_CrossSpeciesScaling_P12.py`  Allometric scaling
- | FP-11  Protocol 11: Bayesian Estimation  `Falsification_BayesianEstimation_ParameterRecovery.py`  Parameter recovery
- | FP-12  Protocol 12: Liquid Network Dynamics  `Falsification_LiquidNetworkDynamics_EchoState.py`  Echo-state networks
+ | FP-11  Protocol 11: Bayesian Estimation  `FP_10_FP_10_Falsification_BayesianEstimation_ParameterRecovery.py`  Parameter recovery
+ | FP-12  Protocol 12: Liquid Network Dynamics  `FP_11_FP_11_Falsification_LiquidNetworkDynamics_EchoState.py`  Echo-state networks
 
 **Note:** Six placeholder files (`Falsification-Protocol-1.py` through `-6.py`) exist but are not used by the GUI. They contain only stub implementations with random data generation and can be safely deleted.
 
@@ -1189,23 +1189,23 @@ All 12 falsification protocols work identically: the GUI maps directly to full i
 
  | Gap  Description  Priority  |
  | ---  ---  ---  |
- | **Paper Protocol 5 (fMRI Anticipation/Experience)**  No Python file exists. `EvolutionaryEmergence_AnalyticalValidation.py` currently covers VP-5's slot but is an evolutionary simulation, not the fMRI anticipation paradigm. Must create.  HIGH
- | **Master_Validation.py protocol name mismatch**  Registers `Validation_Protocol_1.py` but actual file is `SyntheticEEG_MLClassification.py`. File explicitly notes it is NOT Protocol 1. Symlink or rename required for orchestrator to load correctly.  MEDIUM
- | **FP-10 split across two files**  `Falsification_BayesianEstimation_MCMC.py` and `Falsification_CrossSpeciesScaling_P12.py` both claim FP-10. GUI maps Protocol 10 only to `Falsification_CrossSpeciesScaling_P12.py`.  MEDIUM
- | **VP-11 split across two files**  `Validation_Protocol_11.py` and `QuantitativeModelFits_SpikingLNN_Priority3.py` both implement VP-11. Master_Validation.py registers only `Validation_Protocol_11.py`.  LOW
- | **VP-4 split across two files**  `InformationTheoretic_PhaseTransition_Level2.py` (Level 2, F-criteria) and `Validation_Protocol_P4_Epistemic.py` (P5–P12 wrapper) both serve VP-4. Master registers only the epistemic file.  LOW
+ | **Paper Protocol 5 (fMRI Anticipation/Experience)**  No Python file exists. `VP_5_EvolutionaryEmergence_AnalyticalValidation.py` currently covers VP-5's slot but is an evolutionary simulation, not the fMRI anticipation paradigm. Must create.  HIGH
+ | **Master_Validation.py protocol name mismatch**  Registers `Validation_Protocol_1.py` but actual file is `VP_1_SyntheticEEG_MLClassification.py`. File explicitly notes it is NOT Protocol 1. Symlink or rename required for orchestrator to load correctly.  MEDIUM
+ | **FP-10 split across two files**  `FP_10_FP_10_Falsification_BayesianEstimation_MCMC.py` and `Falsification_CrossSpeciesScaling_P12.py` both claim FP-10. GUI maps Protocol 10 only to `Falsification_CrossSpeciesScaling_P12.py`.  MEDIUM
+ | **VP-11 split across two files**  `VP_11_Validation_Protocol_11.py` and `VP_11_QuantitativeModelFits_SpikingLNN_Priority3.py` both implement VP-11. Master_Validation.py registers only `VP_11_Validation_Protocol_11.py`.  LOW
+ | **VP-4 split across two files**  `VP_4_InformationTheoretic_PhaseTransition_Level2.py` (Level 2, F-criteria) and `Validation_Protocol_P4_Epistemic.py` (P5–P12 wrapper) both serve VP-4. Master registers only the epistemic file.  LOW
 
 ### 8.2 Filename conflicts
 
  | Conflict  Validation folder  Falsification folder  Resolution  |
  | ---  ---  ---  ---  |
- | `Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py`  VP-10 entry point  FP-2 causal engine  Both exist. Validation copy has `APGIValidationProtocol10` class; Falsification copy adds `ColdPressorTest` and `MNEDataInterface`.
+ | `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py`  VP-10 entry point  FP-2 causal engine  Both exist. Validation copy has `APGIValidationProtocol10` class; Falsification copy adds `ColdPressorTest` and `MNEDataInterface`.
 
 ### 8.3 Recent critical fixes (confirmed in source files)
 
  | Fix  File  Impact  |
  | ---  ---  ---  |
- | P6 bandwidth ceiling corrected to 40 bits/s (was 100 bits/s)  `InformationTheoretic_PhaseTransition_Level2.py`  V4.1 / P6 criterion now biologically correct  |
+ | P6 bandwidth ceiling corrected to 40 bits/s (was 100 bits/s)  `VP_4_InformationTheoretic_PhaseTransition_Level2.py`  V4.1 / P6 criterion now biologically correct  |
  | F5_4_MIN_PEAK_SEPARATION = 3.0  `utils/falsification_thresholds.py`  All F5.4 checks now use correct paper value  |
  | F5_1_MIN_PROPORTION = 0.75, F5_1_MIN_ALPHA = 4.0  `utils/falsification_thresholds.py`  F5.1 threshold corrected  |
  | F5_5_PCA_MIN_VARIANCE = 0.70, MIN_LOADING = 0.60  `utils/falsification_thresholds.py`  F5.5 PCA threshold corrected  |
@@ -1214,11 +1214,11 @@ All 12 falsification protocols work identically: the GUI maps directly to full i
  | F6_1_LTCN_MAX_TRANSITION_MS = 50.0  `utils/falsification_thresholds.py`  F6.1 standardised to 50ms  |
  | F6_2_LTCN_MIN_WINDOW_MS = 200.0, ratio = 4.0, R² = 0.85  `utils/falsification_thresholds.py`  F6.2 standardised to paper values  |
  | F6_5_HYSTERESIS MIN = 0.08, MAX = 0.25  `utils/falsification_thresholds.py`  F6.5 bounds corrected from generic range  |
- | Spectral radius guard: ρ → 0.98 if ≥1.0  `Falsification_LiquidNetworkDynamics_EchoState.py` lines 215–225  Echo-state property enforced  |
- | Cross-modal falsification: abs(intero−extero) < 1e-6  `Falsification_EvolutionaryPlausibility_Standard6.py`  Float equality bug fixed  |
- | MCMC: R̂ ≤ 1.01 gate enforced  `Validation_Protocol_11.py` lines 435–447, 849  Convergence criterion enforced  |
- | n_samples = 1024 (power-of-2)  `Falsification_ParameterSensitivity_Identifiability.py` lines 676, 1184, 1191  Sobol sampling corrected  |
- | Bonferroni correction: α_per_test = 0.008 (6 tests)  `Psychophysical_ThresholdEstimation_Protocol1.py`  Multiple comparison correction added  |
+ | Spectral radius guard: ρ → 0.98 if ≥1.0  `FP_11_FP_11_Falsification_LiquidNetworkDynamics_EchoState.py` lines 215–225  Echo-state property enforced  |
+ | Cross-modal falsification: abs(intero−extero) < 1e-6  `FP_5_FP_5_Falsification_EvolutionaryPlausibility_Standard6.py`  Float equality bug fixed  |
+ | MCMC: R̂ ≤ 1.01 gate enforced  `VP_11_Validation_Protocol_11.py` lines 435–447, 849  Convergence criterion enforced  |
+ | n_samples = 1024 (power-of-2)  `FP_8_FP_8_Falsification_ParameterSensitivity_Identifiability.py` lines 676, 1184, 1191  Sobol sampling corrected  |
+ | Bonferroni correction: α_per_test = 0.008 (6 tests)  `VP_8_Psychophysical_ThresholdEstimation_Protocol1.py`  Multiple comparison correction added  |
 
 ---
 

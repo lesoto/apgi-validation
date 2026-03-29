@@ -35,7 +35,7 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from Falsification.Falsification_CausalManipulations_TMS_Pharmacological_Priority2 import (
+from Falsification.VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2 import (
     validate_p2a_tms_log_ignition,
     validate_p2b_insula_tms_hep_pci,
     validate_p2c_high_ia_interaction,

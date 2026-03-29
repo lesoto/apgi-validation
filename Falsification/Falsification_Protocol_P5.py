@@ -17,7 +17,7 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from Falsification.Falsification_EvolutionaryPlausibility_Standard6 import (
+from Falsification.FP_5_Falsification_EvolutionaryPlausibility_Standard6 import (
     EvolutionaryAPGIEmergence,
 )
 from utils.falsification_thresholds import (

@@ -329,7 +329,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation_Protocol_2: Bayesian Model Comparison
+### VP_2_Validation_Protocol_2: Bayesian Model Comparison
 
 **Tests:** Model comparison framework, epistemic architecture (#3), empirical validation
 
@@ -463,7 +463,7 @@ All criteria follow this mandatory format:
 
 ---
 
-### Validation_Protocol_11: Quantitative Model Fits
+### VP_11_Validation_Protocol_11: Quantitative Model Fits
 
 **Tests:** Parameter fitting, model comparison
 

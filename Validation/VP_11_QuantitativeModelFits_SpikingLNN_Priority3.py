@@ -1870,7 +1870,7 @@ def run_validation():
 
 def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     """
-    Return complete falsification specifications for Validation_Protocol_11.
+    Return complete falsification specifications for VP_11_Validation_Protocol_11.
 
     Tests: Quantitative model fits, parameter estimation, model comparison
 
@@ -2182,7 +2182,7 @@ def check_falsification(
     wilcoxon_p: float,
 ) -> Dict[str, Any]:
     """
-    Implement all statistical tests for Validation_Protocol_11.
+    Implement all statistical tests for VP_11_Validation_Protocol_11.
 
     Args:
         r_squared: R-squared goodness of fit for APGI model
@@ -2281,7 +2281,7 @@ def check_falsification(
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
     results: Dict[str, Any] = {
-        "protocol": "Validation_Protocol_11",
+        "protocol": "VP_11_Validation_Protocol_11",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "total": 26},
     }
@@ -2932,7 +2932,7 @@ def check_falsification(
     )
 
     logger.info(
-        f"\nValidation_Protocol_11 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
+        f"\nVP_11_Validation_Protocol_11 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
     )
     return results
 

@@ -102,7 +102,7 @@ def calculate_recovery_metrics(
 def test_parameter_recovery_accuracy():
     """Test that recovered parameters are close to true parameters."""
     try:
-        from Falsification.Falsification_BayesianEstimation_ParameterRecovery import (
+        from Falsification.FP_10_Falsification_BayesianEstimation_ParameterRecovery import (
             run_bayesian_estimation_complete,
         )
 
@@ -165,7 +165,7 @@ def test_parameter_recovery_accuracy():
 def test_parameter_recovery_consistency():
     """Test that parameter recovery is consistent across multiple runs."""
     try:
-        from Falsification.Falsification_BayesianEstimation_ParameterRecovery import (
+        from Falsification.FP_10_Falsification_BayesianEstimation_ParameterRecovery import (
             run_bayesian_estimation_complete,
         )
 
@@ -215,7 +215,7 @@ def test_parameter_recovery_consistency():
 def test_posterior_coverage():
     """Test that posterior credible intervals cover true parameters."""
     try:
-        from Falsification.Falsification_BayesianEstimation_ParameterRecovery import (
+        from Falsification.FP_10_Falsification_BayesianEstimation_ParameterRecovery import (
             run_bayesian_estimation_complete,
         )
 
@@ -269,7 +269,7 @@ def test_posterior_coverage():
 def test_parameter_identifiability():
     """Test that parameters are identifiable (not collinear)."""
     try:
-        from Falsification.Falsification_BayesianEstimation_ParameterRecovery import (
+        from Falsification.FP_10_Falsification_BayesianEstimation_ParameterRecovery import (
             run_bayesian_estimation_complete,
         )
 
@@ -323,7 +323,7 @@ def test_parameter_identifiability():
 def test_recovery_with_different_noise_levels():
     """Test parameter recovery robustness to different noise levels."""
     try:
-        from Falsification.Falsification_BayesianEstimation_ParameterRecovery import (
+        from Falsification.FP_10_Falsification_BayesianEstimation_ParameterRecovery import (
             run_bayesian_estimation_complete,
         )
 
@@ -378,7 +378,7 @@ def test_recovery_with_different_noise_levels():
 def test_recovery_bias_assessment():
     """Test that parameter recovery has minimal systematic bias."""
     try:
-        from Falsification.Falsification_BayesianEstimation_ParameterRecovery import (
+        from Falsification.FP_10_Falsification_BayesianEstimation_ParameterRecovery import (
             run_bayesian_estimation_complete,
         )
 
@@ -429,7 +429,7 @@ def test_recovery_bias_assessment():
 def test_recovery_uncertainty_calibration():
     """Test that posterior uncertainty is well-calibrated."""
     try:
-        from Falsification.Falsification_BayesianEstimation_ParameterRecovery import (
+        from Falsification.FP_10_Falsification_BayesianEstimation_ParameterRecovery import (
             run_bayesian_estimation_complete,
         )
 
@@ -485,7 +485,7 @@ def test_recovery_uncertainty_calibration():
 def test_multivariate_parameter_recovery():
     """Test recovery of multiple parameters simultaneously."""
     try:
-        from Falsification.Falsification_BayesianEstimation_ParameterRecovery import (
+        from Falsification.FP_10_Falsification_BayesianEstimation_ParameterRecovery import (
             run_bayesian_estimation_complete,
         )
 

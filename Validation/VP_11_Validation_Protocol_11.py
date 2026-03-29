@@ -35,7 +35,7 @@ Tier: SECONDARY — extends core validation with rigorous Bayesian inference,
 
 Master_Validation.py registration:
     "Protocol-11": {
-        "file": "Validation_Protocol_11.py",
+        "file": "VP_11_Validation_Protocol_11.py",
         "function": "run_validation",
         "description": "Bayesian Estimation & Individual Differences",
     }

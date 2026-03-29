@@ -36,24 +36,24 @@ ALTERNATIVE_PARSIMONY_THRESHOLD_B = 10.0  # ΔBIC threshold for Condition B (FB)
 # Protocol routing table - maps 14 named predictions to 12 falsification protocols (FP-1 to FP-12)
 PREDICTION_TO_PROTOCOL = {
     # FP-1: Psychophysical Threshold Protocol
-    "P1.1": "Falsification_ActiveInferenceAgents_F1F2",
-    "P1.2": "Falsification_ActiveInferenceAgents_F1F2",
-    "P1.3": "Falsification_ActiveInferenceAgents_F1F2",
+    "P1.1": "FP_1_Falsification_ActiveInferenceAgents_F1F2",
+    "P1.2": "FP_1_Falsification_ActiveInferenceAgents_F1F2",
+    "P1.3": "FP_1_Falsification_ActiveInferenceAgents_F1F2",
     # FP-2: TMS/Pharmacological Causal Manipulation
-    "P2.a": "Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
-    "P2.b": "Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
-    "P2.c": "Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
+    "P2.a": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
+    "P2.b": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
+    "P2.c": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
     # FP-3: Agent Comparison Convergence
-    "P3.conv": "Falsification_AgentComparison_ConvergenceBenchmark",
-    "P3.bic": "Falsification_AgentComparison_ConvergenceBenchmark",
+    "P3.conv": "FP_2_Falsification_AgentComparison_ConvergenceBenchmark",
+    "P3.bic": "FP_2_Falsification_AgentComparison_ConvergenceBenchmark",
     # FP-4: DoC Clinical Predictions
-    "P4.a": "Falsification_NeuralSignatures_EEG_P3b_HEP",
-    "P4.b": "Falsification_NeuralSignatures_EEG_P3b_HEP",
-    "P4.c": "Falsification_NeuralSignatures_EEG_P3b_HEP",
-    "P4.d": "Falsification_NeuralSignatures_EEG_P3b_HEP",
+    "P4.a": "FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP",
+    "P4.b": "FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP",
+    "P4.c": "FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP",
+    "P4.d": "FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP",
     # FP-5: Skin Conductance / Affective Markers
-    "P5.a": "Falsification_EvolutionaryPlausibility_Standard6",
-    "P5.b": "Falsification_EvolutionaryPlausibility_Standard6",
+    "P5.a": "FP_5_Falsification_EvolutionaryPlausibility_Standard6",
+    "P5.b": "FP_5_Falsification_EvolutionaryPlausibility_Standard6",
 }
 
 

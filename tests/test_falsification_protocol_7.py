@@ -19,7 +19,7 @@ import numpy as np
 from unittest.mock import patch, MagicMock
 
 # Import the protocol to test
-from Falsification.Falsification_AgentComparison_ConvergenceBenchmark import (
+from Falsification.FP_2_Falsification_AgentComparison_ConvergenceBenchmark import (
     IowaGamblingTaskEnvironment,
     VolatileForagingEnvironment,
     ThreatRewardTradeoffEnvironment,

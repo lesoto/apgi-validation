@@ -556,7 +556,7 @@ def compute_model_selection_metrics(
 
 def run_falsification():
     """Entry point for CLI falsification testing."""
-    from Falsification.Falsification_ActiveInferenceAgents_F1F2 import (
+    from Falsification.FP_1_Falsification_ActiveInferenceAgents_F1F2 import (
         APGIActiveInferenceAgent,
         StandardPPAgent,
     )

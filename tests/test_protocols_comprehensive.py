@@ -31,7 +31,7 @@ class TestFalsificationProtocol5(unittest.TestCase):
     def test_evolutionary_emergence_initialization(self):
         """Test FP-5 protocol initialization."""
         try:
-            from Falsification_ActiveInferenceAgents_F1F2 import (
+            from FP_1_Falsification_ActiveInferenceAgents_F1F2 import (
                 FalsificationProtocol as FP5,
             )
 

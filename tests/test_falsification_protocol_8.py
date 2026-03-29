@@ -19,7 +19,7 @@ import numpy as np
 from unittest.mock import patch, MagicMock
 
 # Import the protocol to test
-from Falsification.Falsification_NeuralSignatures_EEG_P3b_HEP import (
+from Falsification.FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP import (
     EEGData,
     FalsificationThresholds,
     NeuralSignatureValidator,

@@ -19,7 +19,7 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from Falsification.Falsification_LiquidNetworkDynamics_EchoState import (
+from Falsification.FP_11_Falsification_LiquidNetworkDynamics_EchoState import (
     test_liquid_network_properties,
     NetworkType,
 )

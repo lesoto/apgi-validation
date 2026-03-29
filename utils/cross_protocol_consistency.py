@@ -587,7 +587,7 @@ if __name__ == "__main__":
                 "theta": {"mean": 0.5, "std": 0.08},
             },
         },
-        "Validation_Protocol_2": {
+        "VP_2_Validation_Protocol_2": {
             "criteria": {
                 "F1.1": {"passed": True, "p_value": 0.01, "threshold": "r ≥ 0.70"},
                 "F1.2": {"passed": True, "p_value": 0.02, "threshold": "h ≥ 0.30"},

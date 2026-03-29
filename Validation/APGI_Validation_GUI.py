@@ -74,18 +74,21 @@ else:
 
 # Try to import individual protocols
 protocol_files = [
-    ("APGI_Protocol_1", "SyntheticEEG_MLClassification.py"),
+    ("APGI_Protocol_1", "VP_1_SyntheticEEG_MLClassification.py"),
     ("APGI_Protocol_2", "BayesianModelComparison_ParameterRecovery.py"),
-    ("APGI_Protocol_3", "ActiveInference_AgentSimulations_Protocol3.py"),
-    ("APGI_Protocol_4", "InformationTheoretic_PhaseTransition_Level2.py"),
-    ("APGI_Protocol_5", "EvolutionaryEmergence_AnalyticalValidation.py"),
-    ("APGI_Protocol_6", "NeuralNetwork_InductiveBias_ComputationalBenchmark.py"),
-    ("APGI_Protocol_7", "TMS_Pharmacological_CausalIntervention_Protocol2.py"),
-    ("APGI_Protocol_8", "Psychophysical_ThresholdEstimation_Protocol1.py"),
-    ("APGI_Protocol_9", "ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py"),
+    ("APGI_Protocol_3", "VP_3_ActiveInference_AgentSimulations_Protocol3.py"),
+    ("APGI_Protocol_4", "VP_4_InformationTheoretic_PhaseTransition_Level2.py"),
+    ("APGI_Protocol_5", "VP_5_EvolutionaryEmergence_AnalyticalValidation.py"),
+    ("APGI_Protocol_6", "VP_6_NeuralNetwork_InductiveBias_ComputationalBenchmark.py"),
+    ("APGI_Protocol_7", "VP_7_TMS_Pharmacological_CausalIntervention_Protocol2.py"),
+    ("APGI_Protocol_8", "VP_8_Psychophysical_ThresholdEstimation_Protocol1.py"),
+    (
+        "APGI_Protocol_9",
+        "VP_9_ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py",
+    ),
     ("APGI_Protocol_10", "CausalManipulations_TMS_Pharmacological_Priority2.py"),
-    ("APGI_Protocol_11", "QuantitativeModelFits_SpikingLNN_Priority3.py"),
-    ("APGI_Protocol_12", "Clinical_CrossSpecies_Convergence_Protocol4.py"),
+    ("APGI_Protocol_11", "VP_11_QuantitativeModelFits_SpikingLNN_Priority3.py"),
+    ("APGI_Protocol_12", "VP_12_Clinical_CrossSpecies_Convergence_Protocol4.py"),
 ]
 
 for protocol_name, filename in protocol_files:
@@ -2142,30 +2145,48 @@ Interpretation:
         try:
             # Execute actual protocol in isolated environment
             protocol_files = [
-                ("APGI_Protocol_1", "SyntheticEEG_MLClassification.py"),
+                ("APGI_Protocol_1", "VP_1_SyntheticEEG_MLClassification.py"),
                 ("APGI_Protocol_2", "BayesianModelComparison_ParameterRecovery.py"),
-                ("APGI_Protocol_3", "ActiveInference_AgentSimulations_Protocol3.py"),
-                ("APGI_Protocol_4", "InformationTheoretic_PhaseTransition_Level2.py"),
-                ("APGI_Protocol_5", "EvolutionaryEmergence_AnalyticalValidation.py"),
+                (
+                    "APGI_Protocol_3",
+                    "VP_3_ActiveInference_AgentSimulations_Protocol3.py",
+                ),
+                (
+                    "APGI_Protocol_4",
+                    "VP_4_InformationTheoretic_PhaseTransition_Level2.py",
+                ),
+                (
+                    "APGI_Protocol_5",
+                    "VP_5_EvolutionaryEmergence_AnalyticalValidation.py",
+                ),
                 (
                     "APGI_Protocol_6",
-                    "NeuralNetwork_InductiveBias_ComputationalBenchmark.py",
+                    "VP_6_NeuralNetwork_InductiveBias_ComputationalBenchmark.py",
                 ),
                 (
                     "APGI_Protocol_7",
-                    "TMS_Pharmacological_CausalIntervention_Protocol2.py",
+                    "VP_7_TMS_Pharmacological_CausalIntervention_Protocol2.py",
                 ),
-                ("APGI_Protocol_8", "Psychophysical_ThresholdEstimation_Protocol1.py"),
+                (
+                    "APGI_Protocol_8",
+                    "VP_8_Psychophysical_ThresholdEstimation_Protocol1.py",
+                ),
                 (
                     "APGI_Protocol_9",
-                    "ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py",
+                    "VP_9_ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py",
                 ),
                 (
                     "APGI_Protocol_10",
                     "CausalManipulations_TMS_Pharmacological_Priority2.py",
                 ),
-                ("APGI_Protocol_11", "QuantitativeModelFits_SpikingLNN_Priority3.py"),
-                ("APGI_Protocol_12", "Clinical_CrossSpecies_Convergence_Protocol4.py"),
+                (
+                    "APGI_Protocol_11",
+                    "VP_11_QuantitativeModelFits_SpikingLNN_Priority3.py",
+                ),
+                (
+                    "APGI_Protocol_12",
+                    "VP_12_Clinical_CrossSpecies_Convergence_Protocol4.py",
+                ),
             ]
 
             protocol_file = protocol_files[protocol_num - 1][1]

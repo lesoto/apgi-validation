@@ -67,8 +67,8 @@ flake8 .                                          # Lint code (Config in .flake8
 
 ### Key directories
 
-- `Validation/` - Validation protocols (APGI_Validation_GUI.py, ActiveInference_AgentSimulations_Protocol3.py, BayesianModelComparison_ParameterRecovery.py, etc.)
-- `Falsification/` - Falsification protocols (APGI_Falsification_Aggregator.py, CausalManipulations_TMS_Pharmacological_Priority2.py, etc.)
+- `Validation/` - Validation protocols (APGI_Validation_GUI.py, VP_3_ActiveInference_AgentSimulations_Protocol3.py, BayesianModelComparison_ParameterRecovery.py, etc.)
+- `Falsification/` - Falsification protocols (FP_12_Falsification_Aggregator.py, CausalManipulations_TMS_Pharmacological_Priority2.py, etc.)
 - `utils/` - Utility modules (dependency_scanner.py, security_audit_logger.py, backup_manager.py, batch_processor.py, etc.)
 - `data/` - Data directory for input/output files
 - `tests/` - Comprehensive test suite with property-based testing (Hypothesis)

@@ -2,7 +2,7 @@
 
 ## Problem
 
-The original implementation of F1.6 "1/f Spectral Slope Predictions" in `Falsification_ActiveInferenceAgents_F1F2.py` used a simple manual log-log regression instead of the proper FOOOF/specparam method for extracting aperiodic components from power spectra. This made the predictions non-comparable to empirical literature that uses FOOOF.
+The original implementation of F1.6 "1/f Spectral Slope Predictions" in `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py` used a simple manual log-log regression instead of the proper FOOOF/specparam method for extracting aperiodic components from power spectra. This made the predictions non-comparable to empirical literature that uses FOOOF.
 
 ## Solution
 
@@ -28,7 +28,7 @@ This module provides:
 
 ### 3. Updated Falsification Protocol
 
-Modified `Falsification_ActiveInferenceAgents_F1F2.py` to:
+Modified `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py` to:
 
 - Import spectral analysis utilities
 - Replace manual log-log regression with proper FOOOF fitting
@@ -111,7 +111,7 @@ This fix ensures that:
 
 1. `requirements.txt` - Added specparam dependency
 2. `utils/spectral_analysis.py` - New spectral analysis utilities
-3. `Falsification/Falsification_ActiveInferenceAgents_F1F2.py` - Updated F1.6 implementation
+3. `Falsification/FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py` - Updated F1.6 implementation
 4. `test_spectral_fix.py` - Test script for validation
 5. `docs/Spectral-Slope-Fix.md` - This documentation
 

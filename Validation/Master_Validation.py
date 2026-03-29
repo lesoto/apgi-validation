@@ -19,7 +19,7 @@ _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
 
-from Falsification.APGI_Falsification_Aggregator import FalsificationAggregator
+from Falsification.FP_12_Falsification_Aggregator import FalsificationAggregator
 
 # Try to import logging config
 try:
@@ -96,47 +96,47 @@ class APGIMasterValidator:
         }
         self.available_protocols = {
             "Protocol-1": {
-                "file": "SyntheticEEG_MLClassification.py",
+                "file": "VP_1_SyntheticEEG_MLClassification.py",
                 "function": "run_validation",
                 "description": "Synthetic Neural Data Generation and ML Classification",
             },
             "Protocol-2": {
-                "file": "Validation_Protocol_2.py",
+                "file": "VP_2_Validation_Protocol_2.py",
                 "function": "run_validation",
                 "description": "Behavioral Validation Protocol",
             },
             "Protocol-3": {
-                "file": "ActiveInference_AgentSimulations_Protocol3.py",
+                "file": "VP_3_ActiveInference_AgentSimulations_Protocol3.py",
                 "function": "run_validation",
                 "description": "Agent Comparison Experiment",
             },
             "Protocol-4": {
-                "file": "InformationTheoretic_PhaseTransition_Level2.py",
+                "file": "VP_4_InformationTheoretic_PhaseTransition_Level2.py",
                 "function": "run_validation",
                 "description": "Phase Transition Analysis",
             },
             "Protocol-5": {
-                "file": "EvolutionaryEmergence_AnalyticalValidation.py",
+                "file": "VP_5_EvolutionaryEmergence_AnalyticalValidation.py",
                 "function": "run_validation",
                 "description": "Evolutionary Emergence",
             },
             "Protocol-6": {
-                "file": "NeuralNetwork_InductiveBias_ComputationalBenchmark.py",
+                "file": "VP_6_NeuralNetwork_InductiveBias_ComputationalBenchmark.py",
                 "function": "run_validation",
                 "description": "Network Comparison",
             },
             "Protocol-7": {
-                "file": "Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py",
+                "file": "VP_7_TMS_Pharmacological_CausalIntervention_Protocol2.py",
                 "function": "run_validation",
                 "description": "Causal Manipulations",
             },
             "Protocol-8": {
-                "file": "Psychophysical_ThresholdEstimation_Protocol1.py",
+                "file": "VP_8_Psychophysical_ThresholdEstimation_Protocol1.py",
                 "function": "run_validation",
                 "description": "Psychophysical Thresholds",
             },
             "Protocol-9": {
-                "file": "ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py",
+                "file": "VP_9_ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py",
                 "function": "run_validation",
                 "description": "Neural Signatures Validation",
             },
@@ -146,17 +146,17 @@ class APGIMasterValidator:
                 "description": "Paper 4 Epistemic Architecture Predictions (P5-P12)",
             },
             "Protocol-10": {
-                "file": "Clinical_CrossSpecies_Convergence_Protocol4.py",
+                "file": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py",
                 "function": "run_validation",
                 "description": "Cross-Species Scaling",
             },
             "Protocol-11": {
-                "file": "Validation_Protocol_11.py",
+                "file": "VP_11_Validation_Protocol_11.py",
                 "function": "run_validation",
                 "description": "Bayesian Estimation",
             },
             "Protocol-12": {
-                "file": "QuantitativeModelFits_SpikingLNN_Priority3.py",
+                "file": "VP_12_Clinical_CrossSpecies_Convergence_Protocol4.py",
                 "function": "run_validation",
                 "description": "Computational Benchmarking",
             },

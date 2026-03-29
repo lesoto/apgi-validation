@@ -323,7 +323,7 @@ class APGIModuleLoader:
         self.modules = {}
         self._module_configs = {
             "formal_model": {
-                "file": "Falsification/Falsification_InformationTheoretic_PhaseTransition.py",
+                "file": "Falsification/FP_4_Falsification_InformationTheoretic_PhaseTransition.py",
                 "class": "SurpriseIgnitionSystem",
                 "description": "Formal model simulations",
             },
@@ -3301,7 +3301,7 @@ def quantitative_fits(
         # Import the quantitative fits validator
         spec = importlib.util.spec_from_file_location(
             "quantitative_fits",
-            PROJECT_ROOT / "Validation" / "Validation_Protocol_11.py",
+            PROJECT_ROOT / "Validation" / "VP_11_Validation_Protocol_11.py",
         )
         quant_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(quant_module)
@@ -3778,7 +3778,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 3: Quantitative Model Fits...[/blue]")
             spec3 = importlib.util.spec_from_file_location(
                 "quant_val",
-                PROJECT_ROOT / "Validation" / "Validation_Protocol_11.py",
+                PROJECT_ROOT / "Validation" / "VP_11_Validation_Protocol_11.py",
             )
             quant_module = importlib.util.module_from_spec(spec3)
             spec3.loader.exec_module(quant_module)

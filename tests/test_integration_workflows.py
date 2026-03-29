@@ -34,7 +34,7 @@ except ImportError as e:
 
 try:
     from Falsification.Falsification_Framework import FalsificationFramework
-    from Validation.Validation_Protocol_2 import ValidationProtocol2
+    from Validation.VP_2_Validation_Protocol_2 import ValidationProtocol2
 
     PROTOCOLS_AVAILABLE = True
 except ImportError as e:

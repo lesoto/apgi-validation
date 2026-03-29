@@ -744,7 +744,7 @@ class EvolutionaryAPGIEmergence:
                 "Protocol_2",
                 os.path.join(
                     os.path.dirname(__file__),
-                    "Falsification_AgentComparison_ConvergenceBenchmark.py",
+                    "FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
                 ),
             )
             protocol2 = importlib.util.module_from_spec(spec2)

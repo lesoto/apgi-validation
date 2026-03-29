@@ -80,7 +80,7 @@ class TestLevelTimescaleValidation:
         """Test that NumPy model can be imported and uses constants"""
         try:
             # Try importing the NumPy model
-            from Falsification.Falsification_ActiveInferenceAgents_F1F2 import (
+            from Falsification.FP_1_Falsification_ActiveInferenceAgents_F1F2 import (
                 HierarchicalGenerativeModel as NumpyHierarchicalGenerativeModel,
             )
 

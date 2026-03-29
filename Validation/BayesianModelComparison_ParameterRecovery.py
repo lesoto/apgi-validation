@@ -3116,7 +3116,7 @@ def run_validation():
 
 def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     """
-    Return complete falsification specifications for Validation_Protocol_2.
+    Return complete falsification specifications for VP_2_Validation_Protocol_2.
 
     Tests: Model comparison framework, epistemic architecture, empirical validation
 
@@ -3255,7 +3255,7 @@ def check_falsification(
     wilcoxon_p: float,
 ) -> Dict[str, Any]:
     """
-    Implement all statistical tests for Validation_Protocol_2.
+    Implement all statistical tests for VP_2_Validation_Protocol_2.
 
     Args:
         bayes_factor: Bayes Factor BF₁₀ comparing APGI to standard models
@@ -3297,7 +3297,7 @@ def check_falsification(
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
     results = {
-        "protocol": "Validation_Protocol_2",
+        "protocol": "VP_2_Validation_Protocol_2",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "total": 11},
     }
@@ -3602,7 +3602,7 @@ def check_falsification(
     )
 
     logger.info(
-        f"\nValidation_Protocol_2 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
+        f"\nVP_2_Validation_Protocol_2 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
     )
     return results
 
