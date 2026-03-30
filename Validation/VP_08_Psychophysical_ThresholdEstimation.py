@@ -94,9 +94,15 @@ class ParticipantData:
     beta_blocker_condition: str  # 'placebo', 'beta_blocker'
     cardiac_feedback_condition: str  # 'normal', 'perturbed' (separate Πⁱ manipulation)
     psychometric_threshold_blockade: float  # Threshold under β-blockade
-    psychometric_threshold_cardiac: float  # Threshold under cardiac feedback perturbation
-    beta_blockade_effect: float  # Measured Π_i reduction under β-blockade (V8.β: 25-40%)
-    cardiac_feedback_effect: float  # Measured Π_i reduction under cardiac perturbation (V8.CF: 15-25%)
+    psychometric_threshold_cardiac: (
+        float  # Threshold under cardiac feedback perturbation
+    )
+    beta_blockade_effect: (
+        float  # Measured Π_i reduction under β-blockade (V8.β: 25-40%)
+    )
+    cardiac_feedback_effect: (
+        float  # Measured Π_i reduction under cardiac perturbation (V8.CF: 15-25%)
+    )
     pi_i_blockade: float  # Π_i estimated under β-blockade (disambiguated)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1021,16 +1027,22 @@ class APGIPsychophysicalEstimator:
 
         # P1.3 high-IA arousal benefit
         results["falsification_tests"]["TODO_3_P1_3_high_ia"] = {
-            "passed": results["arousal_analysis"]["P1_3"]["passed"]
-            if "P1_3" in results["arousal_analysis"]
-            else False,
+            "passed": (
+                results["arousal_analysis"]["P1_3"]["passed"]
+                if "P1_3" in results["arousal_analysis"]
+                else False
+            ),
             "description": "High-IA individuals show greater arousal benefit",
-            "cohens_d": results["arousal_analysis"]["P1_3"]["cohens_d"]
-            if "P1_3" in results["arousal_analysis"]
-            else 0,
-            "p_value": results["arousal_analysis"]["P1_3"]["p_value"]
-            if "P1_3" in results["arousal_analysis"]
-            else 1,
+            "cohens_d": (
+                results["arousal_analysis"]["P1_3"]["cohens_d"]
+                if "P1_3" in results["arousal_analysis"]
+                else 0
+            ),
+            "p_value": (
+                results["arousal_analysis"]["P1_3"]["p_value"]
+                if "P1_3" in results["arousal_analysis"]
+                else 1
+            ),
         }
 
         # Garfinkel SD-split criterion
@@ -1294,9 +1306,12 @@ class APGIPsychophysicalEstimator:
 
         # Garfinkel SD-split criterion
         df.loc[:, "ia_group_computed"] = df["heartbeat_detection"].apply(
-            lambda x: "High IA"
-            if x > df["heartbeat_detection"].mean() + df["heartbeat_detection"].std()
-            else "Low IA"
+            lambda x: (
+                "High IA"
+                if x
+                > df["heartbeat_detection"].mean() + df["heartbeat_detection"].std()
+                else "Low IA"
+            )
         )
         high_ia = df[df["ia_group_computed"] == "High IA"]
         low_ia = df[df["ia_group_computed"] == "Low IA"]
@@ -1320,12 +1335,16 @@ class APGIPsychophysicalEstimator:
         axes[3, 0].bar(
             ["Placebo", "β-blocker"],
             [
-                placebo["psychometric_threshold_blockade"].mean()
-                if len(placebo) > 0
-                else 0,
-                beta_blocker["psychometric_threshold_blockade"].mean()
-                if len(beta_blocker) > 0
-                else 0,
+                (
+                    placebo["psychometric_threshold_blockade"].mean()
+                    if len(placebo) > 0
+                    else 0
+                ),
+                (
+                    beta_blocker["psychometric_threshold_blockade"].mean()
+                    if len(beta_blocker) > 0
+                    else 0
+                ),
             ],
             color=["lightblue", "salmon"],
             edgecolor="black",
@@ -2729,9 +2748,7 @@ class PrecisionWeightingValidator:
         # Calculate partial eta-squared
         n = len(precision_data["intero_precision"])
         df = n - 1 if n > 1 else 1
-        partial_eta_sq = (
-            (t_stat**2) / (t_stat**2 + df) if np.isfinite(t_stat) else 0.0
-        )
+        partial_eta_sq = (t_stat**2) / (t_stat**2 + df) if np.isfinite(t_stat) else 0.0
 
         # Validation criteria
         passed = (
@@ -2814,9 +2831,7 @@ class InteroceptiveBiasChecker:
         # Calculate partial eta-squared
         n = len(bias_data["interoceptive_accuracy"])
         df = n - 1 if n > 1 else 1
-        partial_eta_sq = (
-            (t_stat**2) / (t_stat**2 + df) if np.isfinite(t_stat) else 0.0
-        )
+        partial_eta_sq = (t_stat**2) / (t_stat**2 + df) if np.isfinite(t_stat) else 0.0
 
         # Validation criteria
         passed = mean_diff >= 0.10 and p_value < 0.05 and cohens_d >= 0.30

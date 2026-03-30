@@ -336,6 +336,8 @@ class ValidationPipelineConnector:
             f"validation_protocol_{protocol}", protocol_file
         )
         module = importlib.util.module_from_spec(spec)
+        # Register module in sys.modules BEFORE execution for cross-import compatibility
+        sys.modules[f"validation_protocol_{protocol}"] = module
         spec.loader.exec_module(module)
 
         return module

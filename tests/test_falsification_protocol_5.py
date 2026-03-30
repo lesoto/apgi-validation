@@ -18,7 +18,7 @@ import numpy as np
 from unittest.mock import patch, MagicMock
 
 # Import the protocol to test
-from Falsification.FP_5_Falsification_EvolutionaryPlausibility_Standard6 import (
+from Falsification.FP_05_EvolutionaryPlausibility import (
     EvolvableAgent,
     EvolutionaryAPGIEmergence,
 )

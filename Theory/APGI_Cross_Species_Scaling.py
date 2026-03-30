@@ -325,9 +325,7 @@ class CrossSpeciesScaling:
 
         # Weighted R² (accounting for measurement uncertainty)
         # Fixed calculation to avoid division by very small errors
-        weights = 1.0 / (
-            errors**2 + 1e-8
-        )  # Add small epsilon to avoid division issues
+        weights = 1.0 / (errors**2 + 1e-8)  # Add small epsilon to avoid division issues
         # Normalize weights to prevent numerical instability
         weights = weights / np.sum(weights)
         weighted_mean = np.sum(observations * weights)

@@ -18,6 +18,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
+# Suppress noisy arviz.preview INFO messages about optional subpackages
+logging.getLogger("arviz.preview").setLevel(logging.WARNING)
+
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
@@ -1822,7 +1825,10 @@ def plot_intervention_results(
 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     print(f"\nVisualization saved to: {save_path}")
-    plt.show()
+    if plt.isinteractive():
+        plt.show()
+    else:
+        plt.close()
 
 
 def _interpret_effect_size(d: float) -> str:
@@ -2424,34 +2430,52 @@ def main():
     intervention_thresh = intervention_params["threshold"]
     threshold_reduction_computed = (
         abs(baseline_thresh - intervention_thresh) / abs(baseline_thresh) * 100
-        if baseline_thresh != 0 else 0.0
+        if baseline_thresh != 0
+        else 0.0
     )
     # tms_effect_duration: taken from the actual intervention model, not a literal
     tms_effect_duration_computed = float(interventions["dlPFC_TMS"].duration)
     # Cohen's d for threshold: shift / pooled SE
-    pooled_se = comparison["threshold_shift_se"] if comparison["threshold_shift_se"] > 0 else 1e-10
+    pooled_se = (
+        comparison["threshold_shift_se"]
+        if comparison["threshold_shift_se"] > 0
+        else 1e-10
+    )
     cohens_d_threshold_computed = abs(comparison["threshold_shift"]) / pooled_se
     p_tms_computed = float(comparison["threshold_p"])
 
     # --- V7.2: Pharmacological Precision Modulation (Propranolol) ---
     # Derive precision increase and ignition reduction from simulated propranolol data
-    prop_intervention = propranolol_data[propranolol_data["condition"] == "intervention"]
+    prop_intervention = propranolol_data[
+        propranolol_data["condition"] == "intervention"
+    ]
     prop_control = propranolol_data[propranolol_data["condition"] == "control"]
 
     # true_effect column carries the computed effect magnitude at t=30 min
-    mean_prop_effect = float(prop_intervention["true_effect"].mean()) if len(prop_intervention) > 0 else 0.0
+    mean_prop_effect = (
+        float(prop_intervention["true_effect"].mean())
+        if len(prop_intervention) > 0
+        else 0.0
+    )
     # Precision increase: |effect magnitude| as percentage of unit precision
     precision_increase_computed = abs(mean_prop_effect) * 100.0
     # Ignition reduction: compare p_seen between control and intervention conditions
-    mean_p_seen_control = float(prop_control["p_seen"].mean()) if len(prop_control) > 0 else 0.0
-    mean_p_seen_intervention = float(prop_intervention["p_seen"].mean()) if len(prop_intervention) > 0 else 0.0
+    mean_p_seen_control = (
+        float(prop_control["p_seen"].mean()) if len(prop_control) > 0 else 0.0
+    )
+    mean_p_seen_intervention = (
+        float(prop_intervention["p_seen"].mean()) if len(prop_intervention) > 0 else 0.0
+    )
     ignition_reduction_computed = (
         (mean_p_seen_control - mean_p_seen_intervention) / mean_p_seen_control * 100.0
-        if mean_p_seen_control != 0 else 0.0
+        if mean_p_seen_control != 0
+        else 0.0
     )
     # Partial eta-squared: (SS_treatment) / (SS_total); approximate from effect size
-    prop_effect_d = abs(mean_prop_effect) / (prop_intervention["true_effect"].std() + 1e-10)
-    eta_squared_computed = prop_effect_d ** 2 / (prop_effect_d ** 2 + 1)
+    prop_effect_d = abs(mean_prop_effect) / (
+        prop_intervention["true_effect"].std() + 1e-10
+    )
+    eta_squared_computed = prop_effect_d**2 / (prop_effect_d**2 + 1)
     cohens_d_ignition_computed = prop_effect_d
     # p-value for propranolol: use comparison of p_seen arrays via normal approximation
     p_seen_diff = mean_p_seen_control - mean_p_seen_intervention
@@ -2467,22 +2491,32 @@ def main():
     # from the known intervention effect sizes as computed outputs
     propofol_effect_size = 0.65  # based on propofol sedation literature proxy
     p3b_mm_ratio_pre_computed = 1.0  # normalized baseline
-    p3b_mm_ratio_post_computed = p3b_mm_ratio_pre_computed * (1 + propofol_effect_size * 0.8)
+    p3b_mm_ratio_post_computed = p3b_mm_ratio_pre_computed * (
+        1 + propofol_effect_size * 0.8
+    )
     cohens_d_propofol_computed = propofol_effect_size
-    p_propofol_computed = float(2 * (1 - stats.norm.cdf(abs(propofol_effect_size / 0.3))))
+    p_propofol_computed = float(
+        2 * (1 - stats.norm.cdf(abs(propofol_effect_size / 0.3)))
+    )
 
     ketamine_effect_size = abs(interventions["Ketamine"].effect_size)
     mmn_suppression_pct_computed = ketamine_effect_size * 30.0  # scale to percentage
     p3b_suppression_pct_computed = ketamine_effect_size * 20.0  # P3b suppressed less
-    eta_squared_ketamine_computed = ketamine_effect_size ** 2 / (ketamine_effect_size ** 2 + 1)
-    p_ketamine_computed = float(2 * (1 - stats.norm.cdf(abs(ketamine_effect_size / 0.25))))
+    eta_squared_ketamine_computed = ketamine_effect_size**2 / (
+        ketamine_effect_size**2 + 1
+    )
+    p_ketamine_computed = float(
+        2 * (1 - stats.norm.cdf(abs(ketamine_effect_size / 0.25)))
+    )
 
     # Psilocybin: not in main interventions list; use effect_size=0.55 (literature-based)
     psilocybin_effect_size = 0.55
     p3b_increase_pct_computed = psilocybin_effect_size * 20.0
     hep_embodiment_correlation_computed = psilocybin_effect_size * 0.45
     cohens_d_psilocybin_computed = psilocybin_effect_size
-    p_psilocybin_computed = float(2 * (1 - stats.norm.cdf(abs(psilocybin_effect_size / 0.3))))
+    p_psilocybin_computed = float(
+        2 * (1 - stats.norm.cdf(abs(psilocybin_effect_size / 0.3)))
+    )
 
     falsification_results = check_falsification(
         threshold_reduction=threshold_reduction_computed,
@@ -2508,8 +2542,10 @@ def main():
         p_psilocybin=p_psilocybin_computed,
     )
 
-    print(f"\ncheck_falsification() Summary: "
-          f"{falsification_results['summary']['passed']}/{falsification_results['summary']['total']} passed")
+    print(
+        f"\ncheck_falsification() Summary: "
+        f"{falsification_results['summary']['passed']}/{falsification_results['summary']['total']} passed"
+    )
     for crit_name, crit_data in falsification_results["criteria"].items():
         status = "PASS" if crit_data["passed"] else "FAIL"
         print(f"  [{status}] {crit_name}: {crit_data.get('actual', '')}")

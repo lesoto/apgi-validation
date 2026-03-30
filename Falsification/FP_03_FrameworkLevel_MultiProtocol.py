@@ -60,8 +60,8 @@ logging.getLogger("utils.config_manager").setLevel(logging.WARNING)
 try:
     # Import using dynamic import since filename has hyphens
     spec = importlib.util.spec_from_file_location(
-        "FP_12_Falsification_Aggregator",
-        os.path.join(os.path.dirname(__file__), "FP_12_Falsification_Aggregator.py"),
+        "FP_ALL_Aggregator",
+        os.path.join(os.path.dirname(__file__), "FP_ALL_Aggregator.py"),
     )
     aggregator_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(aggregator_module)
@@ -82,7 +82,7 @@ try:
         aggregator_module.ALTERNATIVE_PARSIMONY_THRESHOLD_B
     )
 
-    logger.info("Successfully imported FP_12_Falsification_Aggregator functions")
+    logger.info("Successfully imported FP_ALL_Falsification_Aggregator functions")
 except ImportError as e:
     handle_import_error(
         "APGI_Falsification-Aggregator", e, "Framework-level falsification aggregation"
@@ -132,15 +132,14 @@ def bootstrap_ci(
     if len(data) == 0:
         return 0.0, 0.0, 0.0
 
-    bootstrap_means = []
+    bootstrap_means: List[float] = []
     for _ in range(n_bootstrap):
         sample = np.random.choice(data, size=len(data), replace=True)
-        bootstrap_means.append(np.mean(sample))
+        bootstrap_means.append(float(np.mean(sample)))
 
-    bootstrap_means = np.array(bootstrap_means)
-    mean = np.mean(data)
-    lower = np.percentile(bootstrap_means, (1 - ci) / 2 * 100)
-    upper = np.percentile(bootstrap_means, (1 + ci) / 2 * 100)
+    mean = float(np.mean(data))
+    lower = float(np.percentile(bootstrap_means, (1 - ci) / 2 * 100))
+    upper = float(np.percentile(bootstrap_means, (1 + ci) / 2 * 100))
 
     return mean, lower, upper
 
@@ -167,13 +166,13 @@ def bootstrap_one_sample_test(
         return 0.0, 1.0
 
     observed_mean = np.mean(data)
-    bootstrap_means = []
+    bootstrap_means_list: List[float] = []
 
     for _ in range(n_bootstrap):
         sample = np.random.choice(data, size=len(data), replace=True)
-        bootstrap_means.append(np.mean(sample))
+        bootstrap_means_list.append(float(np.mean(sample)))
 
-    bootstrap_means = np.array(bootstrap_means)
+    bootstrap_means = np.array(bootstrap_means_list)
 
     # Two-sided p-value: proportion of bootstrap means as extreme as observed
     if observed_mean >= null_value:
@@ -201,7 +200,7 @@ def _get_protocol1():
         protocol1_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "FP_1_Falsification_ActiveInferenceAgents_F1F2.py",
+                "FP_01_ActiveInference_F1F2.py",
             )
         )
         if not os.path.exists(protocol1_path):
@@ -236,7 +235,7 @@ def _get_protocol2():
         protocol2_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
+                "FP_02_AgentComparison_ConvergenceBenchmark.py",
             )
         )
         if not os.path.exists(protocol2_path):
@@ -307,6 +306,7 @@ def _standardize_observation(observation: Dict) -> np.ndarray:
         intero_obs = np.asarray(observation["intero"])
 
         # Standardize exteroceptive to DIM_CONSTANTS.EXTERO_DIM dimensions
+        extero_standard: np.ndarray
         if extero_obs.size < DIM_CONSTANTS.EXTERO_DIM:
             extero_standard = np.zeros(DIM_CONSTANTS.EXTERO_DIM)
             extero_standard[: extero_obs.size] = extero_obs.flatten()
@@ -314,6 +314,7 @@ def _standardize_observation(observation: Dict) -> np.ndarray:
             extero_standard = extero_obs.flatten()[: DIM_CONSTANTS.EXTERO_DIM]
 
         # Standardize interoceptive to DIM_CONSTANTS.INTERO_DIM dimensions
+        intero_standard: np.ndarray
         if intero_obs.size < DIM_CONSTANTS.INTERO_DIM:
             intero_standard = np.zeros(DIM_CONSTANTS.INTERO_DIM)
             intero_standard[: intero_obs.size] = intero_obs.flatten()
@@ -395,7 +396,7 @@ class GWTOnlyAgent:
             0, 0.01, (DIM_CONSTANTS.N_ACTIONS, DIM_CONSTANTS.STATE_DIMENSION)
         )
         self.conscious_access = False
-        self.ignition_history = []
+        self.ignition_history: List[Dict[str, Any]] = []
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
         """Agent step with ignition detection"""
@@ -414,7 +415,7 @@ class GWTOnlyAgent:
             # Simple ignition based on exteroceptive surprise
             extero_standard = state[: DIM_CONSTANTS.EXTERO_DIM]
             surprise = np.linalg.norm(extero_standard)
-            self.conscious_access = surprise > DIM_CONSTANTS.IGNITION_THRESHOLD
+            self.conscious_access = bool(surprise > DIM_CONSTANTS.IGNITION_THRESHOLD)
 
             if self.conscious_access:
                 self.ignition_history.append({"intero_dominant": False})
@@ -512,12 +513,12 @@ class AgentComparisonExperiment:
         # Note: Protocol 3 is the agent comparison protocol (VP_3_ActiveInference_AgentSimulations_Protocol3.py)
         # which produces P3.conv and P3.bic predictions
         protocol_files = {
-            1: "FP_1_Falsification_ActiveInferenceAgents_F1F2.py",
-            2: "FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
-            3: "../Validation/VP_3_ActiveInference_AgentSimulations_Protocol3.py",
-            6: "FP_5_Falsification_EvolutionaryPlausibility_Standard6.py",
-            9: "FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP.py",
-            12: "Falsification_CrossSpeciesScaling_P12.py",
+            1: "FP_01_ActiveInference_F1F2.py",
+            2: "FP_02_AgentComparison_ConvergenceBenchmark.py",
+            3: "../Validation/VP_03_ActiveInference_AgentSimulations.py",
+            6: "FP_05_EvolutionaryPlausibility.py",
+            9: "FP_09_NeuralSignatures_P3b_HEP.py",
+            12: "FP_12_CrossSpeciesScaling.py",
         }
 
         # Load results from each available protocol
@@ -613,7 +614,7 @@ class AgentComparisonExperiment:
     def _run_episode(self, agent, env) -> Dict[str, Any]:
         """Run single episode and collect data"""
 
-        data = {
+        data: Dict[str, Any] = {
             "rewards": [],
             "intero_costs": [],
             "cumulative_reward": [],
@@ -668,7 +669,7 @@ class AgentComparisonExperiment:
 
         return data
 
-    def _validate_analysis_input(self, data: any, context: str) -> bool:
+    def _validate_analysis_input(self, data: Any, context: str) -> bool:
         """Validate input data for analysis methods"""
         if data is None:
             print(f"Warning: {context} - None data provided")
@@ -704,12 +705,12 @@ class AgentComparisonExperiment:
         self, results: Dict[str, Any], alpha: float, effect_size_threshold: float, stats
     ) -> Dict[str, Any]:
         """Analyze P3a: Convergence trials with statistical testing"""
-        analysis_p3a = {}
+        analysis_p3a: Dict[str, Any] = {}
         if "IGT" in results and self._validate_analysis_input(
             results["IGT"], "P3a IGT data"
         ):
             analysis_p3a["IGT"] = {}
-            for agent in results["IGT"].keys():
+            for agent in list(results["IGT"].keys()):
                 if not self._validate_analysis_input(
                     results["IGT"][agent], f"P3a {agent} data"
                 ):
@@ -758,8 +759,8 @@ class AgentComparisonExperiment:
         stats: Any,
     ) -> Dict[str, Any]:
         """Analyze APGI convergence with statistical comparison to other agents"""
-        other_agents = [a for a in igt_results.keys() if a != "APGI"]
-        other_convergence = []
+        other_agents = [a for a in list(igt_results.keys()) if a != "APGI"]
+        other_convergence: List[float] = []
         for other in other_agents:
             if "convergence_trials" in igt_results[
                 other
@@ -850,7 +851,7 @@ class AgentComparisonExperiment:
                     "error": "Individual agent data not available",
                 }
 
-            intero_dominant_data = []
+            intero_dominant_data: List[float] = []
 
             for agent_result in agent_results:
                 if not self._validate_analysis_input(
@@ -1088,7 +1089,6 @@ class AgentComparisonExperiment:
                     max_iter=500,
                     solver="liblinear",
                     C=0.1,  # Strong regularization to prevent coefficient explosion
-                    penalty="l2",
                 )
                 model.fit(X_scaled, y)
         except Exception as e:
@@ -1129,7 +1129,6 @@ class AgentComparisonExperiment:
                         max_iter=500,
                         solver="liblinear",
                         C=0.1,
-                        penalty="l2",
                     )
                     model_boot.fit(X_boot, y_boot)
                     coef_samples.append(model_boot.coef_[0])
@@ -1149,18 +1148,18 @@ class AgentComparisonExperiment:
                 "error": f"Insufficient successful bootstrap samples: {len(coef_samples)}",
             }
 
-        coef_samples = np.array(coef_samples)
+        coef_samples_arr = np.array(coef_samples)
 
         # Ignition coefficient
         ignition_coef = float(model.coef_[0][0])
-        ignition_ci = np.percentile(coef_samples[:, 0], [2.5, 97.5])
-        ignition_ci = [float(ignition_ci[0]), float(ignition_ci[1])]
+        ignition_ci_arr = np.percentile(coef_samples_arr[:, 0], [2.5, 97.5])
+        ignition_ci = [float(ignition_ci_arr[0]), float(ignition_ci_arr[1])]
         ignition_significant = ignition_ci[0] > 0 or ignition_ci[1] < 0
 
         # Compute approximate p-value
-        if np.std(coef_samples[:, 0]) > 0:
-            ignition_z = ignition_coef / np.std(coef_samples[:, 0])
-            ignition_p = 2 * (1 - stats.norm.cdf(abs(ignition_z)))
+        if np.std(coef_samples_arr[:, 0]) > 0:
+            ignition_z = ignition_coef / float(np.std(coef_samples_arr[:, 0]))
+            ignition_p = float(2 * (1 - stats.norm.cdf(abs(ignition_z))))
         else:
             ignition_p = 1.0
 
@@ -1386,20 +1385,21 @@ class AgentComparisonExperiment:
         Returns:
             Dict with framework falsification status and condition results
         """
-        # Use the aggregator functions that are already imported
-        from Falsification.FP_12_Falsification_Aggregator import (
-            check_framework_falsification_condition_a,
-            check_framework_falsification_condition_b,
-            aggregate_prediction_results,
-            generate_gnwt_predictions,
-            generate_iit_predictions,
-            NAMED_PREDICTIONS,
-        )
-
         # Aggregate predictions from framework results
         apgi_predictions = aggregate_prediction_results(framework_results)
 
         # Generate alternative framework predictions
+        try:
+            generate_gnwt_predictions = aggregator_module.generate_gnwt_predictions
+            generate_iit_predictions = aggregator_module.generate_iit_predictions
+        except (AttributeError, NameError):
+            # Fallback if not directly available
+            def generate_gnwt_predictions():
+                return {}
+
+            def generate_iit_predictions():
+                return {}
+
         gnwt_predictions = generate_gnwt_predictions()
         iit_predictions = generate_iit_predictions()
 
@@ -1421,19 +1421,19 @@ class AgentComparisonExperiment:
         )
 
         return {
-            "framework_falsified": condition_a_met or condition_b_met,
+            "framework_falsified": bool(condition_a_met or condition_b_met),
             "condition_a": {
-                "condition_met": condition_a_met,
-                "all_predictions_failed": condition_a_met,
+                "condition_met": bool(condition_a_met),
+                "all_predictions_failed": bool(condition_a_met),
             },
             "condition_b": {
-                "condition_met": condition_b_met,
-                "alternatives_more_parsimonious": condition_b_met,
+                "condition_met": bool(condition_b_met),
+                "alternatives_more_parsimonious": bool(condition_b_met),
             },
             "summary": {
                 "total_named_predictions": total_named,
                 "failed_predictions": failed_predictions,
-                "passed_predictions": total_named - failed_predictions,
+                "apgi_passing": total_named - failed_predictions,
             },
         }
 
@@ -1491,7 +1491,7 @@ class AgentComparisonExperiment:
                 "error": "Invalid agent results data",
             }
 
-        aggregated = {
+        aggregated: Dict[str, Any] = {
             "cumulative_rewards": [],
             "total_ignitions": [],
             "convergence_trials": [],
@@ -1899,74 +1899,6 @@ class AgentComparisonExperiment:
         return {"adaptation_scores": adaptation_scores}
 
 
-def check_framework_falsification_conditions(
-    self, falsification_results: Dict[str, Any]
-) -> Dict[str, Any]:
-    """
-    Apply framework-level falsification conditions (a) and (b) using FP_12_Falsification_Aggregator.
-
-    Args:
-        falsification_results: Results from aggregate_prediction_results()
-
-    Returns:
-        Dictionary with framework-level falsification status and detailed results
-    """
-    try:
-        logger.info("Checking framework-level falsification conditions")
-
-        # Apply condition (a): All 14 named predictions must fail
-        condition_a_result = check_framework_falsification_condition_a(
-            falsification_results
-        )
-
-        # Apply condition (b): Alternative framework falsification threshold
-        condition_b_result = check_framework_falsification_condition_b(
-            falsification_results
-        )
-
-        # Overall framework falsification result
-        framework_falsified = (
-            condition_a_result["condition_met"] or condition_b_result["condition_met"]
-        )
-
-        framework_results = {
-            "framework_falsified": framework_falsified,
-            "condition_a": condition_a_result,
-            "condition_b": condition_b_result,
-            "summary": {
-                "total_named_predictions": len(NAMED_PREDICTIONS),
-                "failed_predictions": sum(
-                    1
-                    for r in falsification_results.values()
-                    if not r.get("passed", False)
-                ),
-                "condition_a_threshold": FRAMEWORK_FALSIFICATION_THRESHOLD_A,
-                "condition_b_threshold": ALTERNATIVE_PARSIMONY_THRESHOLD_B,
-            },
-        }
-
-        logger.info(
-            f"Framework falsification result: {'FALSIFIED' if framework_falsified else 'NOT FALSIFIED'}"
-        )
-        logger.info(
-            f"Condition (a): {'MET' if condition_a_result['condition_met'] else 'NOT MET'}"
-        )
-        logger.info(
-            f"Condition (b): {'MET' if condition_b_result['condition_met'] else 'NOT MET'}"
-        )
-
-        return framework_results
-
-    except Exception as e:
-        logger.error(f"Error checking framework falsification conditions: {str(e)}")
-        return {
-            "framework_falsified": False,
-            "error": str(e),
-            "condition_a": {"condition_met": False, "error": str(e)},
-            "condition_b": {"condition_met": False, "error": str(e)},
-        }
-
-
 # Main execution
 if __name__ == "__main__":
     print("Running Framework-Level Multi-Protocol Experiment...")
@@ -1979,7 +1911,7 @@ if __name__ == "__main__":
         print(f"Error in framework synthesis: {framework_results['error']}")
     else:
         # Apply framework-level falsification conditions
-        falsification_result = check_framework_falsification_conditions(
+        falsification_result = experiment.check_framework_falsification_conditions(
             framework_results
         )
 
@@ -2492,18 +2424,18 @@ def check_falsification(
     mean_apgi = np.mean(apgi_rewards)
     mean_pp = np.mean(pp_rewards)
     # Guard against zero mean_pp to prevent division by zero
-    safe_mean_pp = max(1e-10, abs(mean_pp)) * (1 if mean_pp >= 0 else -1)
+    safe_mean_pp = max(1e-10, float(abs(mean_pp))) * (1 if mean_pp >= 0 else -1)
     advantage_pct = ((mean_apgi - mean_pp) / safe_mean_pp) * 100
 
     # Cohen's d
     pooled_std = np.sqrt(
         (
-            (len(apgi_rewards) - 1) * np.var(apgi_rewards, ddof=1)
-            + (len(pp_rewards) - 1) * np.var(pp_rewards, ddof=1)
+            float((len(apgi_rewards) - 1) * np.var(apgi_rewards, ddof=1))
+            + float((len(pp_rewards) - 1) * np.var(pp_rewards, ddof=1))
         )
-        / (len(apgi_rewards) + len(pp_rewards) - 2)
+        / float((len(apgi_rewards) + len(pp_rewards) - 2))
     )
-    cohens_d = (mean_apgi - mean_pp) / pooled_std
+    cohens_d = (mean_apgi - mean_pp) / float(pooled_std)
 
     f1_1_pass = (
         np.isfinite(advantage_pct)
@@ -2626,7 +2558,7 @@ def check_falsification(
     if not np.isfinite(p_adapt):
         p_adapt = 1.0
 
-    cohens_d_adapt = threshold_reduction / max(1e-10, adapt_std)
+    cohens_d_adapt = float(threshold_reduction) / max(1e-10, adapt_std)
 
     f1_4_pass = threshold_reduction >= 20 and cohens_d_adapt >= 0.70 and p_adapt < 0.01
     results["criteria"]["F1.4"] = {

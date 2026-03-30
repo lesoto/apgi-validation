@@ -122,6 +122,7 @@ For production, additional security keys and settings may be required.
 ### Testing commands
 
 Run GUI test runners:
+
 - `python Tests-GUI.py` - Launch the GUI test runner
 - `python Utils-GUI.py` - Launch the utility scripts GUI
 

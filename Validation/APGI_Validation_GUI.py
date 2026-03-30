@@ -11,13 +11,13 @@ import importlib.util
 import io
 import json
 import logging
+import matplotlib
 import os
 import queue
 import sys
 import threading
 import time
 import tkinter as tk
-from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -25,9 +25,10 @@ from tkinter import filedialog, messagebox, scrolledtext, ttk
 from typing import Any, Dict, List, Optional
 from unittest.mock import Mock
 
+logging.getLogger("arviz.preview").setLevel(logging.WARNING)
+
 import numpy as np
 
-# Add project root to Python path for imports
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
@@ -46,6 +47,8 @@ def safe_import_module(module_name: str, file_path: Path) -> Optional[Any]:
             return None
 
         module = importlib.util.module_from_spec(spec)
+        # Register module in sys.modules BEFORE execution for cross-import compatibility
+        sys.modules[module_name] = module
         spec.loader.exec_module(module)
         return module
 
@@ -111,9 +114,9 @@ class APGIValidationGUI:
         # Add keyboard shortcuts for actions
         self.root.bind(
             "<Control-r>",
-            lambda e: self.run_selected_script()
-            if self.get_selected_script()
-            else None,
+            lambda e: (
+                self.run_selected_script() if self.get_selected_script() else None
+            ),
         )
         self.root.bind("<Control-s>", lambda e: self.stop_selected_script())
         self.root.bind("<Control-e>", lambda e: self.save_results())
@@ -144,13 +147,15 @@ class APGIValidationGUI:
             for param in ["tau_S", "tau_theta", "theta_0", "alpha"]:
                 mock_var = Mock()
                 mock_var.get = Mock(
-                    return_value=0.5
-                    if param == "tau_S"
-                    else 30.0
-                    if param == "tau_theta"
-                    else 0.5
-                    if param == "theta_0"
-                    else 5.0
+                    return_value=(
+                        0.5
+                        if param == "tau_S"
+                        else (
+                            30.0
+                            if param == "tau_theta"
+                            else 0.5 if param == "theta_0" else 5.0
+                        )
+                    )
                 )
                 mock_var.set = Mock()
                 self.param_vars[param] = mock_var
@@ -247,29 +252,19 @@ class APGIValidationGUI:
         """Setup environment to prevent GUI operations in worker threads."""
         # Set matplotlib to use configurable backend (default non-interactive)
         try:
-            import matplotlib
-            import sys
+            matplotlib.use("Agg", force=True)
+            os.environ["MPLBACKEND"] = "Agg"
 
-            # Check if pyplot has already been imported
-            if "matplotlib.pyplot" in sys.modules:
-                logging.warning(
-                    "matplotlib.pyplot already imported, cannot change backend in worker thread"
-                )
-                return
+            # Now import pyplot and disable interactive mode
+            import matplotlib.pyplot as plt
 
-            # Set matplotlib backend based on environment variable
-            # Defaults to "Agg" for headless systems but can be overridden
-            backend = os.environ.get("MPLBACKEND", "Agg")
-            matplotlib.use(backend, force=True)
-            logging.info(f"Set matplotlib to backend: {backend}")
+            plt.ioff()  # Disable interactive mode
+
+            logging.info("Set matplotlib to non-interactive Agg backend")
         except ImportError:
             pass  # matplotlib not available
         except Exception as e:
             logging.warning(f"Failed to set matplotlib backend: {e}")
-
-        # Set environment variable for backend
-        if "MPLBACKEND" not in os.environ:
-            os.environ["MPLBACKEND"] = "Agg"
 
     @property
     def is_running(self) -> bool:
@@ -360,16 +355,16 @@ class APGIValidationGUI:
 
         # Master validation status
         if APGIMasterValidator:
-            text_widget.insert(tk.END, "✅ Master Validation: Loaded successfully\n")
+            text_widget.insert(tk.END, "[OK] Master Validation: Loaded successfully\n")
         else:
-            text_widget.insert(tk.END, "❌ Master Validation: Failed to load\n")
+            text_widget.insert(tk.END, "[FAIL] Master Validation: Failed to load\n")
 
         # Protocol status
         text_widget.insert(tk.END, "\n=== Protocol Status ===\n")
         for protocol_name, filename in protocol_files:
             protocol_path = Path(__file__).parent / filename
             exists = protocol_path.exists()
-            status_symbol = "✅" if exists else "❌"
+            status_symbol = "[OK]" if exists else "[FAIL]"
             text_widget.insert(
                 tk.END,
                 f"{status_symbol} {protocol_name}: {'Found' if exists else 'Not Found'}\n",
@@ -456,14 +451,20 @@ class APGIValidationGUI:
         # Protocol checkboxes
         self.protocol_vars = {}
         protocols_info = {
-            1: "Protocol 1: Primary Test",
-            2: "Protocol 2: Secondary Test",
-            3: "Protocol 3: Primary Test",
-            4: "Protocol 4: Secondary Test",
-            5: "Protocol 5: Tertiary Test",
-            6: "Protocol 6: Tertiary Test",
-            7: "Protocol 7: Tertiary Test",
-            8: "Protocol 8: Secondary Test",
+            1: "Protocol 1: Primary Test (Synthetic EEG ML)",
+            2: "Protocol 2: Secondary Test (Behavioral Bayesian)",
+            3: "Protocol 3: Primary Test (Active Inference Agent)",
+            4: "Protocol 4: Secondary Test (Phase Transition)",
+            5: "Protocol 5: Tertiary Test (Evolutionary Emergence)",
+            6: "Protocol 6: Tertiary Test (Liquid Network)",
+            7: "Protocol 7: Tertiary Test (TMS Causal)",
+            8: "Protocol 8: Secondary Test (Psychophysical Threshold)",
+            9: "Protocol 9: Primary Test (Neural Signatures)",
+            10: "Protocol 10: Priority 2 (Causal Manipulations)",
+            11: "Protocol 11: Priority 3 (MCMC Cultural Neuroscience)",
+            12: "Protocol 12: Clinical/Cross-Species Convergence",
+            13: "Protocol 13: P5-P12 Epistemic Architecture",
+            14: "Protocol 14: fMRI Anticipation Experience",
         }
 
         for i, (num, desc) in enumerate(protocols_info.items()):
@@ -956,7 +957,9 @@ class APGIValidationGUI:
             analysis_frame, text="🔍 Analyze Trends", command=self.analyze_trends
         ).grid(row=0, column=0, pady=5, padx=5)
         ttk.Button(
-            analysis_frame, text="📊 Generate Analytics", command=self.generate_analytics
+            analysis_frame,
+            text="📊 Generate Analytics",
+            command=self.generate_analytics,
         ).grid(row=0, column=1, pady=5, padx=5)
         ttk.Button(
             analysis_frame,
@@ -1316,7 +1319,9 @@ class APGIValidationGUI:
             # Generate PDF (placeholder implementation)
             self.generate_report()
 
-            self.export_results_text.insert(tk.END, "📄 Enhanced PDF report generated\n")
+            self.export_results_text.insert(
+                tk.END, "📄 Enhanced PDF report generated\n"
+            )
             self.export_results_text.see(tk.END)
 
         except Exception as e:
@@ -1426,7 +1431,9 @@ class APGIValidationGUI:
             messagebox.showinfo(
                 "Dashboard", "Historical dashboard launching at http://127.0.0.1:8051"
             )
-            self.export_results_text.insert(tk.END, "🚀 Historical dashboard launched\n")
+            self.export_results_text.insert(
+                tk.END, "🚀 Historical dashboard launched\n"
+            )
             self.export_results_text.see(tk.END)
 
         except Exception as e:
@@ -1471,29 +1478,33 @@ class APGIValidationGUI:
             return {
                 "system_metrics_24h": {
                     "total_records": len(system_data),
-                    "avg_cpu": sum(r.get("cpu_percent", 0) for r in system_data)
-                    / len(system_data)
-                    if system_data
-                    else 0,
-                    "avg_memory": sum(r.get("memory_percent", 0) for r in system_data)
-                    / len(system_data)
-                    if system_data
-                    else 0,
+                    "avg_cpu": (
+                        sum(r.get("cpu_percent", 0) for r in system_data)
+                        / len(system_data)
+                        if system_data
+                        else 0
+                    ),
+                    "avg_memory": (
+                        sum(r.get("memory_percent", 0) for r in system_data)
+                        / len(system_data)
+                        if system_data
+                        else 0
+                    ),
                 },
                 "validation_results_7d": {
                     "total_runs": len(validation_data),
-                    "success_rate": sum(
-                        r.get("success_rate", 0) for r in validation_data
-                    )
-                    / len(validation_data)
-                    if validation_data
-                    else 0,
-                    "avg_execution_time": sum(
-                        r.get("execution_time", 0) for r in validation_data
-                    )
-                    / len(validation_data)
-                    if validation_data
-                    else 0,
+                    "success_rate": (
+                        sum(r.get("success_rate", 0) for r in validation_data)
+                        / len(validation_data)
+                        if validation_data
+                        else 0
+                    ),
+                    "avg_execution_time": (
+                        sum(r.get("execution_time", 0) for r in validation_data)
+                        / len(validation_data)
+                        if validation_data
+                        else 0
+                    ),
                 },
             }
         except Exception as e:
@@ -1546,19 +1557,19 @@ class APGIValidationGUI:
 
         return {
             "cpu": {
-                "direction": "increasing"
-                if cpu_change > 5
-                else "decreasing"
-                if cpu_change < -5
-                else "stable",
+                "direction": (
+                    "increasing"
+                    if cpu_change > 5
+                    else "decreasing" if cpu_change < -5 else "stable"
+                ),
                 "change": f"{cpu_change:+.1f}%",
             },
             "memory": {
-                "direction": "increasing"
-                if mem_change > 5
-                else "decreasing"
-                if mem_change < -5
-                else "stable",
+                "direction": (
+                    "increasing"
+                    if mem_change > 5
+                    else "decreasing" if mem_change < -5 else "stable"
+                ),
                 "change": f"{mem_change:+.1f}%",
             },
         }
@@ -1581,11 +1592,11 @@ class APGIValidationGUI:
 
         return {
             "success_rate": {
-                "direction": "improving"
-                if change > 5
-                else "declining"
-                if change < -5
-                else "stable",
+                "direction": (
+                    "improving"
+                    if change > 5
+                    else "declining" if change < -5 else "stable"
+                ),
                 "change": f"{change:+.1f}%",
             }
         }
@@ -2051,7 +2062,7 @@ class APGIValidationGUI:
                 sys.path.insert(0, str(project_root))
 
             # Import APGI equations for simulation
-            from APGI_Equations import CoreIgnitionSystem
+            from Theory.APGI_Equations import CoreIgnitionSystem
 
             ignition_system = CoreIgnitionSystem()
 
@@ -2186,6 +2197,8 @@ Interpretation:
                     )
 
                 protocol_module = importlib.util.module_from_spec(spec)
+                # Register module in sys.modules BEFORE execution for cross-import compatibility
+                sys.modules[cache_key] = protocol_module
                 spec.loader.exec_module(protocol_module)
 
                 # Cache the module with lock protection
@@ -2272,7 +2285,8 @@ Interpretation:
         self, protocol_num: int, result: Dict, protocol_tiers: Dict, passed: bool
     ) -> None:
         """Store protocol result in validator with proper validation"""
-        protocol_key = f"protocol_{protocol_num}"
+        # Use consistent key format that matches Master_Validation expectations (Protocol-X)
+        protocol_key = f"Protocol-{protocol_num}"
         if hasattr(self.validator, "protocol_results"):
             self.validator.protocol_results[protocol_key] = result
         else:
@@ -2414,14 +2428,23 @@ Interpretation:
                 except Exception as e:
                     logging.error(f"Error clearing GUI update queue: {e}")
 
-                # Clear validation thread reference AFTER ensuring thread is done
+                # Clear validation thread reference and force cleanup
                 if self.validation_thread:
                     if self.validation_thread.is_alive():
                         logging.warning(
-                            "Validation thread still alive in finally block"
+                            "Validation thread still alive in finally block, forcing cleanup"
                         )
-                        # Don't force join here to avoid blocking GUI
+                        # Force thread to terminate by waiting with timeout
+                        try:
+                            self.validation_thread.join(timeout=2.0)
+                        except Exception:
+                            pass
                     self.validation_thread = None
+
+                # Force garbage collection to clean up any lingering resources
+                import gc
+
+                gc.collect()
 
                 logging.info("Validation worker thread cleanup completed")
 
@@ -2739,6 +2762,7 @@ Interpretation:
         total_protocols: int,
     ) -> Dict[str, Any]:
         """Execute protocol in a completely isolated environment to prevent GUI operations."""
+        executor = None
         try:
             # Check if protocol has main function
             if not hasattr(protocol_module, "main"):
@@ -2777,35 +2801,42 @@ Interpretation:
                     )
 
             # Execute protocol with timeout in a separate thread to ensure isolation
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                # Check if protocol accepts progress callback
-                import inspect
+            # Use daemon threads that won't block shutdown
+            from concurrent.futures import ThreadPoolExecutor
 
-                sig = inspect.signature(protocol_module.main)
+            # Create executor with daemon threads that won't block shutdown
+            executor = ThreadPoolExecutor(
+                max_workers=1, thread_name_prefix=f"protocol_{protocol_num}"
+            )
 
-                if "progress_callback" in sig.parameters:
-                    future = executor.submit(
-                        protocol_module.main, progress_callback=safe_progress_callback
-                    )
-                else:
-                    future = executor.submit(protocol_module.main)
+            # Check if protocol accepts progress callback
+            import inspect
 
-                try:
-                    result = future.result(timeout=self.validator.timeout_seconds)
-                    # Do NOT default to passed=True - require explicit success
-                    if result is None:
-                        return {
-                            "status": "INDETERMINATE",
-                            "message": "Protocol returned None - cannot determine success",
-                            "passed": False,
-                        }
-                    return result
-                except FutureTimeoutError:
-                    # BUG-028: Forcefully cancel the future on timeout
-                    future.cancel()
-                    raise TimeoutError(
-                        f"Protocol {protocol_num} timed out after {self.validator.timeout_seconds} seconds"
-                    )
+            sig = inspect.signature(protocol_module.main)
+
+            if "progress_callback" in sig.parameters:
+                future = executor.submit(
+                    protocol_module.main, progress_callback=safe_progress_callback
+                )
+            else:
+                future = executor.submit(protocol_module.main)
+
+            try:
+                result = future.result(timeout=self.validator.timeout_seconds)
+                # Do NOT default to passed=True - require explicit success
+                if result is None:
+                    return {
+                        "status": "INDETERMINATE",
+                        "message": "Protocol returned None - cannot determine success",
+                        "passed": False,
+                    }
+                return result
+            except FutureTimeoutError:
+                # BUG-028: Forcefully cancel and shutdown without waiting
+                future.cancel()
+                raise TimeoutError(
+                    f"Protocol {protocol_num} timed out after {self.validator.timeout_seconds} seconds"
+                )
 
         except Exception as e:
             # Return error result instead of raising to prevent GUI crashes
@@ -2817,9 +2848,15 @@ Interpretation:
             }
         finally:
             # BUG-039: Ensure executor is properly shut down to prevent resource leaks
-            # The with statement handles most cases, but this ensures cleanup even if
-            # an exception occurs after the with block exits
-            pass
+            # Shut down executor in ALL cases to prevent hanging threads
+            if executor is not None:
+                try:
+                    # Cancel any pending futures first
+                    executor.shutdown(wait=True, cancel_futures=True)
+                except Exception as e:
+                    logging.warning(
+                        f"Error shutting down executor for protocol {protocol_num}: {e}"
+                    )
 
     def update_status(self, message: str) -> None:
         """Update status label thread-safely"""

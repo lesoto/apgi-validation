@@ -447,9 +447,9 @@ class DashboardManager:
                 "period_days": days,
                 "total_runs": total,
                 "pass_rate": (passed / total * 100) if total > 0 else 0,
-                "avg_execution_time": sum(exec_times) / len(exec_times)
-                if exec_times
-                else 0,
+                "avg_execution_time": (
+                    sum(exec_times) / len(exec_times) if exec_times else 0
+                ),
                 "protocol_breakdown": {
                     f"Protocol {k}": v for k, v in by_protocol.items()
                 },
@@ -517,9 +517,9 @@ class DashboardManager:
                 "memory_used_gb": psutil.virtual_memory().used / (1024**3),
                 "disk_usage_percent": psutil.disk_usage("/").percent,
                 "network_connections": len(psutil.net_connections()),
-                "load_average": psutil.getloadavg()[0]
-                if hasattr(psutil, "getloadavg")
-                else 0,
+                "load_average": (
+                    psutil.getloadavg()[0] if hasattr(psutil, "getloadavg") else 0
+                ),
             }
 
             # Store in historical dashboard

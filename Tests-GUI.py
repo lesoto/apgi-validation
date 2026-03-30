@@ -718,9 +718,11 @@ class TestsRunnerGUI:
                             "test": script_name,
                             "status": status,
                             "duration": "0.0s",
-                            "details": f"Exit code: {return_code}"
-                            if return_code != 0
-                            else "Script completed",
+                            "details": (
+                                f"Exit code: {return_code}"
+                                if return_code != 0
+                                else "Script completed"
+                            ),
                         }
                     )
 
@@ -1238,9 +1240,9 @@ class TestsRunnerGUI:
                 return False
 
             # Track script result
-            self.script_results[
-                str(relative_path)
-            ] = -1  # Will be updated on completion
+            self.script_results[str(relative_path)] = (
+                -1
+            )  # Will be updated on completion
 
             # Enable stop button when script starts
             self.root.after_idle(lambda: self.stop_button.config(state=tk.NORMAL))

@@ -19,7 +19,7 @@ import numpy as np
 from unittest.mock import patch, MagicMock
 
 # Import the protocol to test
-from Falsification.VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2 import (
+from Validation.VP_10_CausalManipulations_Priority2 import (
     TMSIntervention,
     PharmacologicalIntervention,
     MetabolicIntervention,

@@ -13,7 +13,10 @@ This protocol validates:
 
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from enum import Enum
+from datetime import datetime
 
 import logging
 import sys
@@ -1474,9 +1477,9 @@ class ClinicalPowerAnalyzer:
 
         return {
             "recommended_n_per_group": recommended_n,
-            "total_n": 2 * recommended_n
-            if test_type == "two_sample"
-            else recommended_n,
+            "total_n": (
+                2 * recommended_n if test_type == "two_sample" else recommended_n
+            ),
             "target_power": target_power,
             "actual_power": actual_power,
             "effect_size": effect_size,
@@ -1714,7 +1717,7 @@ class ClinicalConvergenceValidator:
                 if col in categorical_cols:
                     continue
                 if df[col].dtype == object:
-                    df[col] = pd.to_numeric(df[col], errors="coerce")
+                    df.loc[:, col] = pd.to_numeric(df[col], errors="coerce")
             psychiatric_data_frames.append(df)
 
         all_psychiatric_data = pd.concat(psychiatric_data_frames, ignore_index=True)
@@ -3671,9 +3674,10 @@ if __name__ == "__main__":
 
 
 # =============================================================================
-# ABSORBED FROM Falsification_CrossSpeciesScaling_P12.py
+# ABSORBED FROM FP_12_CrossSpeciesScaling.py
 # CrossSpeciesScalingAnalyzer + allometric validation utilities (P12)
 # =============================================================================
+
 
 class ScalingLawType(Enum):
     """Types of scaling laws for neural parameters"""
@@ -4378,13 +4382,17 @@ class CrossSpeciesScalingAnalyzer:
             "analyses": all_results,
             "falsification": falsification_results,
             "conclusion": {
-                "p12_status": "FALSIFIED"
-                if falsification_results["p12_falsified"]
-                else "SUPPORTED",
-                "confidence": "HIGH"
-                if not falsification_results["p12_falsified"]
-                and len(falsification_results["warnings"]) == 0
-                else "MEDIUM",
+                "p12_status": (
+                    "FALSIFIED"
+                    if falsification_results["p12_falsified"]
+                    else "SUPPORTED"
+                ),
+                "confidence": (
+                    "HIGH"
+                    if not falsification_results["p12_falsified"]
+                    and len(falsification_results["warnings"]) == 0
+                    else "MEDIUM"
+                ),
                 "recommendations": self._generate_recommendations(
                     falsification_results
                 ),

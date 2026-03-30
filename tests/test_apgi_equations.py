@@ -4,7 +4,7 @@ Comprehensive consolidated tests for APGI_Equations.py.
 
 This file consolidates and merges all tests from:
 - test_apgi_equations.py
-- test_apgi_equations_fixed.py  
+- test_apgi_equations_fixed.py
 - test_apgi_equations_extended.py
 
 Retains 100% test coverage while eliminating duplication.

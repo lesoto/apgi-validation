@@ -69,7 +69,7 @@ class TestFalsifyCommand:
         runner = CliRunner()
         result = runner.invoke(cli, ["falsify"])
         assert result.exit_code == 0
-        assert "Available Falsification Protocols" in result.output
+        assert "Falsification Testing" in result.output
 
     def test_falsify_with_protocol(self):
         """Test falsify command with specific protocol."""
@@ -355,7 +355,7 @@ class TestQuantitativeFitsCommand:
     def test_quantitative_fits_with_model(self):
         """Test quantitative_fits command with model parameter."""
         runner = CliRunner()
-        result = runner.invoke(cli, ["quantitative-fits", "--model", "apgi"])
+        result = runner.invoke(cli, ["quantitative-fits", "--model", "bayesian"])
         assert result.exit_code == 0
 
     def test_quantitative_fits_with_data_file(self, tmp_path):
@@ -425,7 +425,7 @@ class TestOpenScienceCommand:
     def test_open_science_with_component(self):
         """Test open_science command with component."""
         runner = CliRunner()
-        result = runner.invoke(cli, ["open-science", "--component", "validation"])
+        result = runner.invoke(cli, ["open-science", "--component", "preregistration"])
         assert result.exit_code == 0
 
     def test_open_science_with_action(self):

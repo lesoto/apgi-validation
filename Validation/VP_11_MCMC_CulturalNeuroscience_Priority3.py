@@ -59,6 +59,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# Suppress noisy arviz.preview INFO messages about optional subpackages
+logging.getLogger("arviz.preview").setLevel(logging.WARNING)
+
 import numpy as np
 import pandas as pd
 from scipy import optimize, stats
@@ -68,12 +71,15 @@ from scipy.optimize import curve_fit
 try:
     from sklearn.metrics import r2_score
 except ImportError:
+
     def r2_score(y_true, y_pred):  # type: ignore[misc]
         """Fallback R-squared when sklearn unavailable."""
         import numpy as _np
+
         ss_res = float(((_np.asarray(y_true) - _np.asarray(y_pred)) ** 2).sum())
         ss_tot = float(((_np.asarray(y_true) - _np.asarray(y_true).mean()) ** 2).sum())
         return 1.0 - ss_res / (ss_tot + 1e-12)
+
 
 # ---------------------------------------------------------------------------
 # Project root on path
@@ -115,6 +121,9 @@ try:
 except ImportError:
     HAS_PYMC = False
     logger.warning("PyMC not found — falling back to Metropolis-Hastings sampler.")
+
+# Define BAYESIAN_AVAILABLE for backward compatibility
+BAYESIAN_AVAILABLE = HAS_PYMC
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
@@ -885,12 +894,12 @@ def test_individual_differences(
             "p_value": float(p_theta),
             "n_high_IA": int(np.sum(high_ia_mask)),
             "n_low_IA": int(np.sum(low_ia_mask)),
-            "mean_theta_high_IA": float(np.mean(high_theta))
-            if len(high_theta) > 0
-            else 0.0,
-            "mean_theta_low_IA": float(np.mean(low_theta))
-            if len(low_theta) > 0
-            else 0.0,
+            "mean_theta_high_IA": (
+                float(np.mean(high_theta)) if len(high_theta) > 0 else 0.0
+            ),
+            "mean_theta_low_IA": (
+                float(np.mean(low_theta)) if len(low_theta) > 0 else 0.0
+            ),
             "criterion": "d ≥ 0.25 (High-IA lower θ₀)",
         },
         "prior_sensitivity_cultural": {
@@ -1291,7 +1300,6 @@ class APGIValidationProtocol11:
         return self.results.get("results", {}).get("falsification_status", {})
 
 
-
 # =============================================================================
 # SECTION 15 — SPIKING LNN QUANTITATIVE FIT CLASSES (absorbed from VP_11_QuantitativeModelFits)
 # =============================================================================
@@ -1471,6 +1479,7 @@ class PsychometricFunctionFitter:
                 "phase_transition", False
             ),
         }
+
 
 class SpikingLNNModel:
     """Spiking Leaky Neural Network for consciousness paradigm simulation"""
@@ -1706,6 +1715,7 @@ class SpikingLNNModel:
 
         return results
 
+
 class BayesianParameterEstimator:
     """Bayesian parameter estimation for APGI model validation"""
 
@@ -1933,13 +1943,13 @@ class BayesianParameterEstimator:
             "eigenvalues": eigenvalues.tolist(),
             "eigenvectors": eigenvectors.tolist(),
             "condition_number": float(condition_number),
-            "variance_covariance_matrix": cov_matrix.tolist()
-            if cov_matrix is not None
-            else None,
+            "variance_covariance_matrix": (
+                cov_matrix.tolist() if cov_matrix is not None else None
+            ),
             "standard_errors": std_errors.tolist(),
-            "correlation_matrix": correlation_matrix.tolist()
-            if correlation_matrix is not None
-            else None,
+            "correlation_matrix": (
+                correlation_matrix.tolist() if correlation_matrix is not None else None
+            ),
             "beta_pi_correlation": float(beta_pi_correlation),
             "variance_inflation_factors": vif,
             "identifiability_good": identifiability_good,
@@ -2115,6 +2125,7 @@ class BayesianParameterEstimator:
             "parameter_ranges_aligned": True,
         }
 
+
 class ConvergenceBenchmark:
     """Convergence benchmark comparison: APGI vs Actor-Critic"""
 
@@ -2278,6 +2289,7 @@ class ConvergenceBenchmark:
             "n_simulations": n_simulations,
             "convergence_threshold": convergence_threshold,
         }
+
 
 class ModelComparisonTable:
     """Formal model comparison table following paper format"""
@@ -2555,6 +2567,7 @@ class ModelComparisonTable:
                 m: float(akaike_weights[i]) for i, m in enumerate(self.model_names)
             },
         }
+
 
 class QuantitativeModelValidator:
     """Complete quantitative model validation"""
@@ -2905,36 +2918,52 @@ class QuantitativeModelValidator:
                 for _ in range(n_samples):
                     # Sample from posterior
                     sample_beta = np.random.normal(
-                        posterior.loc["beta", "mean"]
-                        if "beta" in posterior.index
-                        else 1.4,
-                        posterior.loc["beta", "sd"]
-                        if "beta" in posterior.index
-                        else 0.4,
+                        (
+                            posterior.loc["beta", "mean"]
+                            if "beta" in posterior.index
+                            else 1.4
+                        ),
+                        (
+                            posterior.loc["beta", "sd"]
+                            if "beta" in posterior.index
+                            else 0.4
+                        ),
                     )
                     sample_theta = np.random.normal(
-                        posterior.loc["theta", "mean"]
-                        if "theta" in posterior.index
-                        else 0.5,
-                        posterior.loc["theta", "sd"]
-                        if "theta" in posterior.index
-                        else 0.1,
+                        (
+                            posterior.loc["theta", "mean"]
+                            if "theta" in posterior.index
+                            else 0.5
+                        ),
+                        (
+                            posterior.loc["theta", "sd"]
+                            if "theta" in posterior.index
+                            else 0.1
+                        ),
                     )
                     sample_amplitude = np.random.normal(
-                        posterior.loc["amplitude", "mean"]
-                        if "amplitude" in posterior.index
-                        else 0.8,
-                        posterior.loc["amplitude", "sd"]
-                        if "amplitude" in posterior.index
-                        else 0.1,
+                        (
+                            posterior.loc["amplitude", "mean"]
+                            if "amplitude" in posterior.index
+                            else 0.8
+                        ),
+                        (
+                            posterior.loc["amplitude", "sd"]
+                            if "amplitude" in posterior.index
+                            else 0.1
+                        ),
                     )
                     sample_baseline = np.random.normal(
-                        posterior.loc["baseline", "mean"]
-                        if "baseline" in posterior.index
-                        else 0.1,
-                        posterior.loc["baseline", "sd"]
-                        if "baseline" in posterior.index
-                        else 0.05,
+                        (
+                            posterior.loc["baseline", "mean"]
+                            if "baseline" in posterior.index
+                            else 0.1
+                        ),
+                        (
+                            posterior.loc["baseline", "sd"]
+                            if "baseline" in posterior.index
+                            else 0.05
+                        ),
                     )
 
                     # Generate predictions
@@ -3055,6 +3084,7 @@ class QuantitativeModelValidator:
 
         return total_score
 
+
 def main_quantitative():
     """Run quantitative model validation"""
     validator = QuantitativeModelValidator()
@@ -3080,6 +3110,7 @@ def main_quantitative():
 
     return results
 
+
 def run_quantitative_validation():
     """Quantitative model validation entry point (LNN-based)."""
     try:
@@ -3100,6 +3131,7 @@ def run_quantitative_validation():
             "status": "error",
             "message": f"Protocol 11 failed: {str(e)}",
         }
+
 
 def get_extended_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     """
@@ -3294,6 +3326,7 @@ def get_extended_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "alternative": "Falsified if LTCN window <150ms OR ratio < 4.0× OR R² < 0.70 OR p ≥ 0.01",
         },
     }
+
 
 def check_falsification(
     r_squared: float,
@@ -4168,6 +4201,7 @@ def check_falsification(
     )
     return results
 
+
 class NonAPGIComparisonValidator:
     """Non-APGI comparison validator for Protocol 11"""
 
@@ -4232,9 +4266,7 @@ class NonAPGIComparisonValidator:
         # Calculate partial eta-squared
         n = len(comparison_data["apgi_performance"])
         df = n - 1 if n > 1 else 1
-        partial_eta_sq = (
-            (t_stat**2) / (t_stat**2 + df) if np.isfinite(t_stat) else 0.0
-        )
+        partial_eta_sq = (t_stat**2) / (t_stat**2 + df) if np.isfinite(t_stat) else 0.0
 
         # BIC comparison (integrated from Validation_Protocol_3.py)
         bic_results = {}
@@ -4301,6 +4333,7 @@ class NonAPGIComparisonValidator:
         }
 
         return self.validation_results
+
 
 class ArchitectureFailureChecker:
     """Architecture failure checker for Protocol 11"""
@@ -4545,6 +4578,7 @@ class ArchitectureFailureChecker:
         }
 
         return self.failure_results
+
 
 # =============================================================================
 # SECTION 14 — CLI ENTRY POINT

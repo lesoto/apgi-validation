@@ -1,8 +1,16 @@
 import logging
 import sys
 import os
+import warnings
 import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+# Suppress SciPy precision warnings for nearly identical data
+warnings.filterwarnings(
+    "ignore",
+    message="Precision loss occurred in moment calculation",
+    category=RuntimeWarning,
+)
 
 # Add parent directory to path for utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -66,12 +74,9 @@ except ImportError:
         WEIGHT_CLIP_VALUE = 2.0
         POLICY_GRAD_CLIP = 5.0
 
-    DIM_CONSTANTS = MockDIM_CONSTANTS()
+    DIM_CONSTANTS: Any = MockDIM_CONSTANTS()
 
 from utils.falsification_thresholds import (
-    F1_1_MIN_ADVANTAGE_PCT,
-    F1_1_MIN_COHENS_D,
-    F1_1_ALPHA,
     F2_1_MIN_ADVANTAGE_PCT,
     F2_3_MIN_RT_ADVANTAGE_MS,
     F2_4_MIN_CONFIDENCE_EFFECT_PCT,
@@ -79,7 +84,6 @@ from utils.falsification_thresholds import (
     F3_1_MIN_ADVANTAGE_PCT,
     F3_1_MIN_COHENS_D,
     F3_2_MIN_INTERO_ADVANTAGE_PCT,
-    F3_2_MIN_COHENS_D,
     F3_3_MIN_REDUCTION_PCT,
     F3_3_MIN_COHENS_D,
     F3_4_MIN_REDUCTION_PCT,
@@ -88,18 +92,10 @@ from utils.falsification_thresholds import (
     F3_6_MIN_HAZARD_RATIO,
     F5_1_MIN_PROPORTION,
     F5_1_MIN_ALPHA,
-    F5_1_FALSIFICATION_ALPHA,
-    F5_1_MIN_COHENS_D,
-    F5_1_BINOMIAL_ALPHA,
     F5_2_MIN_CORRELATION,
-    F5_2_FALSIFICATION_CORR,
     F5_2_MIN_PROPORTION,
-    F5_2_BINOMIAL_ALPHA,
     F5_3_MIN_GAIN_RATIO,
-    F5_3_FALSIFICATION_RATIO,
     F5_3_MIN_PROPORTION,
-    F5_3_MIN_COHENS_D,
-    F5_3_BINOMIAL_ALPHA,
     F5_4_MIN_PROPORTION,
     F5_4_MIN_PEAK_SEPARATION,
     F5_5_PCA_MIN_VARIANCE,
@@ -147,15 +143,15 @@ def bootstrap_ci(
     if len(data) == 0:
         return 0.0, 0.0, 0.0
 
-    bootstrap_means = []
+    bootstrap_means: List[float] = []
     for _ in range(n_bootstrap):
         sample = np.random.choice(data, size=len(data), replace=True)
-        bootstrap_means.append(np.mean(sample))
+        bootstrap_means.append(float(np.mean(sample)))
 
-    bootstrap_means = np.array(bootstrap_means)
-    mean = np.mean(data)
-    lower = np.percentile(bootstrap_means, (1 - ci) / 2 * 100)
-    upper = np.percentile(bootstrap_means, (1 + ci) / 2 * 100)
+    bootstrap_means_arr = np.array(bootstrap_means)
+    mean = float(np.mean(data))
+    lower = float(np.percentile(bootstrap_means_arr, (1 - ci) / 2 * 100))
+    upper = float(np.percentile(bootstrap_means_arr, (1 + ci) / 2 * 100))
 
     return mean, lower, upper
 
@@ -195,7 +191,7 @@ def bootstrap_one_sample_test(
     )
 
     # Bootstrap studentized statistics (pivotal bootstrap)
-    bootstrap_t_stats = []
+    bootstrap_t_stats: List[float] = []
     for _ in range(n_bootstrap):
         # Resample from data
         sample = np.random.choice(data, size=len(data), replace=True)
@@ -211,11 +207,11 @@ def bootstrap_one_sample_test(
             t_bootstrap = 0.0
         bootstrap_t_stats.append(t_bootstrap)
 
-    bootstrap_t_stats = np.array(bootstrap_t_stats)
+    bootstrap_t_stats_arr = np.array(bootstrap_t_stats)
 
     # Two-sided p-value using pivotal method
     # Proportion of bootstrap t-stats as extreme or more extreme than observed
-    p_value = np.mean(np.abs(bootstrap_t_stats) >= np.abs(t_observed))
+    p_value = np.mean(np.abs(bootstrap_t_stats_arr) >= np.abs(t_observed))
 
     return t_observed, min(2 * p_value, 1.0)
 
@@ -846,7 +842,7 @@ class EpisodicMemory:
 
     def __init__(self, capacity: int = 1000):
         self.capacity = capacity
-        self.memories = deque(maxlen=capacity)
+        self.memories: deque[Dict[str, Any]] = deque(maxlen=capacity)
 
     def store(self, content: Dict, emotional_tag: float, context: np.ndarray):
         """Store episodic memory"""
@@ -987,7 +983,7 @@ class WorkingMemory:
 
     def __init__(self, capacity: int = 7):
         self.capacity = capacity
-        self.items = deque(maxlen=capacity)
+        self.items: deque[Dict[str, Any]] = deque(maxlen=capacity)
 
     def update(self, content: Dict):
         """Update working memory"""
@@ -1080,7 +1076,7 @@ class APGIActiveInferenceAgent:
         # GLOBAL WORKSPACE
         # =====================
 
-        self.workspace_content = {}
+        self.workspace_content: Dict[str, Any] = {}
         self.ignition_history = []
         self.conscious_access = False
         self._eps_e_buffer = deque(maxlen=50)
@@ -1378,8 +1374,8 @@ class APGIActiveInferenceAgent:
 
         # Track running variance of prediction errors
         if not hasattr(self, "_eps_e_buffer"):
-            self._eps_e_buffer = deque(maxlen=50)
-            self._eps_i_buffer = deque(maxlen=50)
+            self._eps_e_buffer: deque[float] = deque(maxlen=50)
+            self._eps_i_buffer: deque[float] = deque(maxlen=50)
 
         self._eps_e_buffer.append(np.linalg.norm(eps_e))
         self._eps_i_buffer.append(np.linalg.norm(eps_i))
@@ -1600,7 +1596,7 @@ class GWTOnlyAgent:
         )
 
         # Workspace for broadcast (but no somatic integration)
-        self.workspace_content = None
+        self.workspace_content: Optional[Dict[str, Any]] = None
         self.conscious_access = False
         self.ignition_history = []
 
@@ -2219,8 +2215,6 @@ def check_falsification(
     apgi_advantageous_selection = np.asarray(apgi_advantageous_selection)
     no_somatic_selection = np.asarray(no_somatic_selection)
 
-    significance_level = config.get("significance_level", 0.01)
-
     def exp_decay(t, tau, a, b):
         return a * np.exp(-t / tau) + b
 
@@ -2272,8 +2266,8 @@ def check_falsification(
     )
     results["criteria"]["F1.1"] = {
         "passed": f1_1_pass,
-        "advantage_pct": advantage_pct,
-        "cohens_d": cohens_d,
+        "advantage_pct": float(advantage_pct) if advantage_pct is not None else None,
+        "cohens_d": float(cohens_d),
         "p_value": p_value,
     }
 
@@ -2310,9 +2304,9 @@ def check_falsification(
         silhouette, eta_squared, f1_2_pass = 0, 0, False
     results["criteria"]["F1.2"] = {
         "passed": f1_2_pass,
-        "n_clusters": len(np.unique(clusters)) if "clusters" in locals() else 1,
-        "silhouette": silhouette,
-        "eta_squared": eta_squared,
+        "n_clusters": int(len(np.unique(clusters))),
+        "silhouette": float(silhouette),
+        "eta_squared": float(eta_squared),
     }
 
     # F1.3: Level-Specific Precision Weighting
@@ -2324,13 +2318,13 @@ def check_falsification(
     f1_3_pass = not (prec_diff < 15.0 or p_prec >= 0.01)
     results["criteria"]["F1.3"] = {
         "passed": f1_3_pass,
-        "prec_diff_pct": prec_diff,
+        "prec_diff_pct": float(prec_diff),
         "p_value": p_prec,
     }
 
     # F1.4: Threshold Adaptation Dynamics
     theta_vals = np.array(threshold_adaptation)
-    if len(theta_vals) > 5:
+    if len(threshold_adaptation) > 5:
         adaptation = (
             (theta_vals[0] - np.min(theta_vals)) / (theta_vals[0] + 1e-10)
         ) * 100
@@ -2353,9 +2347,9 @@ def check_falsification(
         adaptation, tau_theta, r2, f1_4_pass = 0, 0, 0, False
     results["criteria"]["F1.4"] = {
         "passed": f1_4_pass,
-        "adaptation_pct": adaptation,
-        "tau_theta": tau_theta,
-        "r2": r2,
+        "adaptation_pct": float(adaptation),
+        "tau_theta": float(tau_theta),
+        "r2": float(r2),
     }
 
     # F1.5: Cross-Level PAC
@@ -2427,7 +2421,7 @@ def check_falsification(
     logger.info("Testing F2.2: Interoceptive Cost Sensitivity")
 
     # Fisher z-transformation for correlation confidence interval
-    def fisher_z_transform(r, n):
+    def fisher_z_transform(r: float, n: int) -> Tuple[float, float]:
         """Apply Fisher z-transformation for correlation CI"""
         if abs(r) >= 1:
             return np.inf if r > 0 else -np.inf
@@ -2435,7 +2429,7 @@ def check_falsification(
         se = 1 / np.sqrt(n - 3) if n > 3 else 1.0
         return z, se
 
-    def fisher_z_inverse(z):
+    def fisher_z_inverse(z: float) -> float:
         """Inverse Fisher z-transformation"""
         return (np.exp(2 * z) - 1) / (np.exp(2 * z) + 1)
 
@@ -2468,7 +2462,7 @@ def check_falsification(
     # For proper t-test, we need arrays of RT measurements
     # If rt_advantage_ms is a single value, we'll use a one-sample test against 0
     # If it's an array, use the data directly
-    rt_data = (
+    rt_data: np.ndarray = (
         np.asarray(rt_advantage_ms)
         if isinstance(rt_advantage_ms, (list, np.ndarray))
         else np.array([rt_advantage_ms])
@@ -2506,7 +2500,7 @@ def check_falsification(
     # Specification: Confidence effect ≥ 30% (supports model), Paired t-test
     logger.info("Testing F2.4: Precision-Weighted Integration")
     # Similar to F2.3, handle both scalar and array inputs
-    confidence_data = (
+    confidence_data: np.ndarray = (
         np.asarray(confidence_effect)
         if isinstance(confidence_effect, (list, np.ndarray))
         else np.array([confidence_effect])
@@ -2527,7 +2521,7 @@ def check_falsification(
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
 
     # Also need beta_interaction effect
-    beta_data = (
+    beta_data: np.ndarray = (
         np.asarray(beta_interaction)
         if isinstance(beta_interaction, (list, np.ndarray))
         else np.array([beta_interaction])
@@ -2535,7 +2529,10 @@ def check_falsification(
     mean_beta = np.mean(beta_data) if len(beta_data) > 0 else beta_interaction
 
     # Falsification: Confidence effect < 30%
-    f2_4_pass = mean_confidence >= F2_4_MIN_CONFIDENCE_EFFECT_PCT / 100 and p_value_one_tailed < 0.01
+    f2_4_pass = (
+        mean_confidence >= F2_4_MIN_CONFIDENCE_EFFECT_PCT / 100
+        and p_value_one_tailed < 0.01
+    )
 
     results["criteria"]["F2.4"] = {
         "passed": f2_4_pass,
@@ -2553,12 +2550,12 @@ def check_falsification(
     logger.info("Testing F2.5: Learning Trajectory Discrimination")
 
     # Handle array or scalar inputs for both agent types
-    apgi_time = (
+    apgi_time: np.ndarray = (
         np.asarray(apgi_time_to_criterion)
         if isinstance(apgi_time_to_criterion, (list, np.ndarray))
         else np.array([apgi_time_to_criterion])
     )
-    no_somatic_time = (
+    no_somatic_time: np.ndarray = (
         np.asarray(no_somatic_time_to_criterion)
         if isinstance(no_somatic_time_to_criterion, (list, np.ndarray))
         else np.array([no_somatic_time_to_criterion])
@@ -2598,7 +2595,9 @@ def check_falsification(
     trial_advantage = mean_no_somatic_time - mean_apgi_time
 
     # Falsification: Time > 55 trials OR insufficient advantage
-    f2_5_pass = mean_apgi_time <= F2_5_MAX_TRIALS and trial_advantage >= 10 and p_value < 0.01
+    f2_5_pass = (
+        mean_apgi_time <= F2_5_MAX_TRIALS and trial_advantage >= 10 and p_value < 0.01
+    )
 
     results["criteria"]["F2.5"] = {
         "passed": f2_5_pass,
@@ -2619,7 +2618,7 @@ def check_falsification(
     logger.info("Testing F3.1: Overall Performance Advantage")
 
     # Handle array or scalar inputs
-    perf_data = (
+    perf_data: np.ndarray = (
         np.asarray(overall_performance_advantage)
         if isinstance(overall_performance_advantage, (list, np.ndarray))
         else np.array([overall_performance_advantage])
@@ -2643,7 +2642,9 @@ def check_falsification(
 
     # Falsification: Advantage < 18% OR d < 0.60
     f3_1_pass = (
-        mean_advantage >= F3_1_MIN_ADVANTAGE_PCT / 100 and cohens_d >= F3_1_MIN_COHENS_D and p_value_one_tailed < 0.01
+        mean_advantage >= F3_1_MIN_ADVANTAGE_PCT / 100
+        and cohens_d >= F3_1_MIN_COHENS_D
+        and p_value_one_tailed < 0.01
     )
 
     results["criteria"]["F3.1"] = {
@@ -2674,7 +2675,7 @@ def check_falsification(
         else:
             p_value_one_tailed = 1 - p_value / 2
         mean_intero = np.mean(intero_data)
-        std_intero = np.std(intero_data, ddof=1)
+        # std_intero = np.std(intero_data, ddof=1)  # Not used
         # Calculate eta-squared (effect size for ANOVA)
         # η² = t² / (t² + df) - approximation for one-sample case
         df = len(intero_data) - 1
@@ -2687,7 +2688,9 @@ def check_falsification(
 
     # Falsification: Advantage < 28% OR η² < 0.20
     f3_2_pass = (
-        mean_intero >= F3_2_MIN_INTERO_ADVANTAGE_PCT / 100 and eta_squared >= 0.20 and p_value_one_tailed < 0.01
+        mean_intero >= F3_2_MIN_INTERO_ADVANTAGE_PCT / 100
+        and eta_squared >= 0.20
+        and p_value_one_tailed < 0.01
     )
 
     results["criteria"]["F3.2"] = {
@@ -2704,7 +2707,7 @@ def check_falsification(
     logger.info("Testing F3.3: Threshold Gating Necessity")
 
     # Handle array or scalar inputs
-    thresh_data = (
+    thresh_data: np.ndarray = (
         np.asarray(threshold_removal_reduction)
         if isinstance(threshold_removal_reduction, (list, np.ndarray))
         else np.array([threshold_removal_reduction])
@@ -2728,7 +2731,9 @@ def check_falsification(
 
     # Falsification: Reduction < 25% OR d < 0.75
     f3_3_pass = (
-        mean_reduction >= F3_3_MIN_REDUCTION_PCT / 100 and cohens_d >= F3_3_MIN_COHENS_D and p_value_one_tailed < 0.01
+        mean_reduction >= F3_3_MIN_REDUCTION_PCT / 100
+        and cohens_d >= F3_3_MIN_COHENS_D
+        and p_value_one_tailed < 0.01
     )
 
     results["criteria"]["F3.3"] = {
@@ -2745,7 +2750,7 @@ def check_falsification(
     logger.info("Testing F3.4: Precision Weighting Necessity")
 
     # Handle array or scalar inputs
-    prec_data = (
+    prec_data: np.ndarray = (
         np.asarray(precision_uniform_reduction)
         if isinstance(precision_uniform_reduction, (list, np.ndarray))
         else np.array([precision_uniform_reduction])
@@ -2768,7 +2773,9 @@ def check_falsification(
 
     # Falsification: Reduction < 20% OR d < 0.65
     f3_4_pass = (
-        mean_reduction >= F3_4_MIN_REDUCTION_PCT / 100 and cohens_d >= F3_4_MIN_COHENS_D and p_value_one_tailed < 0.01
+        mean_reduction >= F3_4_MIN_REDUCTION_PCT / 100
+        and cohens_d >= F3_4_MIN_COHENS_D
+        and p_value_one_tailed < 0.01
     )
 
     results["criteria"]["F3.4"] = {
@@ -2785,7 +2792,7 @@ def check_falsification(
     logger.info("Testing F3.5: Computational Efficiency Trade-off")
 
     # Handle array or scalar inputs
-    eff_data = (
+    eff_data: np.ndarray = (
         np.asarray(computational_efficiency)
         if isinstance(computational_efficiency, (list, np.ndarray))
         else np.array([computational_efficiency])
@@ -2803,7 +2810,9 @@ def check_falsification(
 
         # One-sided t-test: H0: mean ≥ 1.0, H1: mean < 1.0 (upper bound check)
         t_stat_upper, p_upper = stats.ttest_1samp(eff_data, 1.0)
-        p_upper_one_tailed = p_upper / 2 if t_stat_upper < 0 else 1 - p_upper / 2
+        _ = (
+            p_upper / 2 if t_stat_upper < 0 else 1 - p_upper / 2
+        )  # Upper bound check (unused)
 
         mean_eff = np.mean(eff_data)
         std_eff = np.std(eff_data, ddof=1)
@@ -2844,8 +2853,6 @@ def check_falsification(
         p_value_one_tailed = p_value / 2 if t_stat < 0 else 1 - p_value / 2
 
         mean_trials = np.mean(trial_data)
-        std_trials = np.std(trial_data, ddof=1)
-
         # Hazard ratio approximation: assuming exponential distribution
         # HR = λ_APGI / λ_standard ≈ mean_standard / mean_APGI
         # With mean_standard = 290 (from 200 * 1.45)
@@ -2858,7 +2865,9 @@ def check_falsification(
 
     # Falsification: Time > 200 trials OR HR < 1.45
     f3_6_pass = (
-        mean_trials <= F3_6_MAX_TRIALS and hazard_ratio >= F3_6_MIN_HAZARD_RATIO and p_value_one_tailed < 0.01
+        mean_trials <= F3_6_MAX_TRIALS
+        and hazard_ratio >= F3_6_MIN_HAZARD_RATIO
+        and p_value_one_tailed < 0.01
     )
 
     results["criteria"]["F3.6"] = {
@@ -2969,7 +2978,9 @@ def check_falsification(
 
     # Falsification: Gain ratio < F5_3_MIN_GAIN_RATIO OR < F5_3_MIN_PROPORTION develop
     f5_3_pass = (
-        mean_gain >= F5_3_MIN_GAIN_RATIO and intero_gain_ratio_proportion >= F5_3_MIN_PROPORTION and p_binomial < 0.01
+        mean_gain >= F5_3_MIN_GAIN_RATIO
+        and intero_gain_ratio_proportion >= F5_3_MIN_PROPORTION
+        and p_binomial < 0.01
     )
 
     results["criteria"]["F5.3"] = {
@@ -3022,7 +3033,10 @@ def check_falsification(
         min_loading = genome_data["min_pca_loading"]
 
     # Falsification: Variance < F5_5_PCA_MIN_VARIANCE OR min loading < F5_5_MIN_LOADING
-    f5_5_pass = pca_variance_explained >= F5_5_PCA_MIN_VARIANCE and min_loading >= F5_5_MIN_LOADING
+    f5_5_pass = (
+        pca_variance_explained >= F5_5_PCA_MIN_VARIANCE
+        and min_loading >= F5_5_MIN_LOADING
+    )
 
     results["criteria"]["F5.5"] = {
         "passed": f5_5_pass,
@@ -3061,7 +3075,11 @@ def check_falsification(
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
 
     # Falsification: Difference < 40% OR d < F5_6_MIN_COHENS_D
-    f5_6_pass = mean_diff >= 0.40 and cohens_d >= F5_6_MIN_COHENS_D and p_value_one_tailed < 0.01
+    f5_6_pass = (
+        mean_diff >= 0.40
+        and cohens_d >= F5_6_MIN_COHENS_D
+        and p_value_one_tailed < 0.01
+    )
 
     results["criteria"]["F5.6"] = {
         "passed": f5_6_pass,
@@ -3112,7 +3130,11 @@ def check_falsification(
         u_stat, p_value, cliff_delta = 0, 1.0, 0.0
 
     # Falsification: LTCN transition > F6_1_LTCN_MAX_TRANSITION_MS OR delta < F6_1_CLIFFS_DELTA_MIN
-    f6_1_pass = mean_ltcn <= F6_1_LTCN_MAX_TRANSITION_MS and cliff_delta >= F6_1_CLIFFS_DELTA_MIN and p_value < 0.01
+    f6_1_pass = (
+        mean_ltcn <= F6_1_LTCN_MAX_TRANSITION_MS
+        and cliff_delta >= F6_1_CLIFFS_DELTA_MIN
+        and p_value < 0.01
+    )
 
     results["criteria"]["F6.1"] = {
         "passed": f6_1_pass,

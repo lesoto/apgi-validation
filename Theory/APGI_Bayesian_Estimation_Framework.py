@@ -803,10 +803,10 @@ class BayesianValidationFramework:
         if "psychometric_data" in empirical_data:
             psycho_data = empirical_data["psychometric_data"]
             try:
-                results[
-                    "psychometric_estimation"
-                ] = self.apgi_model.fit_psychometric_function(
-                    psycho_data["stimuli"], psycho_data["detections"]
+                results["psychometric_estimation"] = (
+                    self.apgi_model.fit_psychometric_function(
+                        psycho_data["stimuli"], psycho_data["detections"]
+                    )
                 )
             except Exception as e:
                 results["psychometric_estimation"] = {"error": str(e)}
@@ -815,10 +815,10 @@ class BayesianValidationFramework:
         if "psychometric_data" in empirical_data:
             psycho_data = empirical_data["psychometric_data"]
             try:
-                results[
-                    "model_comparison"
-                ] = self.comparison_framework.compare_psychometric_models(
-                    psycho_data["stimuli"], psycho_data["detections"]
+                results["model_comparison"] = (
+                    self.comparison_framework.compare_psychometric_models(
+                        psycho_data["stimuli"], psycho_data["detections"]
+                    )
                 )
             except Exception as e:
                 results["model_comparison"] = {"error": str(e)}
@@ -826,10 +826,10 @@ class BayesianValidationFramework:
         # 3. IIT convergence analysis
         if "ignition_data" in empirical_data and "phi_data" in empirical_data:
             try:
-                results[
-                    "iit_convergence"
-                ] = self.iit_convergence.model_iit_apgi_relationship(
-                    empirical_data["ignition_data"], empirical_data["phi_data"]
+                results["iit_convergence"] = (
+                    self.iit_convergence.model_iit_apgi_relationship(
+                        empirical_data["ignition_data"], empirical_data["phi_data"]
+                    )
                 )
             except Exception as e:
                 results["iit_convergence"] = {"error": str(e)}
@@ -837,10 +837,10 @@ class BayesianValidationFramework:
         # 4. Parameter recovery analysis
         true_params = {"beta": 12.0, "theta": 0.5, "amplitude": 1.0, "baseline": 0.0}
         try:
-            results[
-                "parameter_recovery"
-            ] = self.parameter_recovery.assess_parameter_recovery(
-                true_params, n_simulations=10  # Reduced for demonstration
+            results["parameter_recovery"] = (
+                self.parameter_recovery.assess_parameter_recovery(
+                    true_params, n_simulations=10  # Reduced for demonstration
+                )
             )
         except Exception as e:
             results["parameter_recovery"] = {"error": str(e)}

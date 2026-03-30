@@ -97,9 +97,7 @@ class EEGSimulator:
             t = np.clip(t, 0, self.r_wave_duration - 1 / self.sampling_rate)
 
         # R-wave shape (Gaussian-like)
-        r_wave = amplitude * np.exp(
-            -((t - self.r_wave_duration / 2) ** 2 / (0.01**2))
-        )
+        r_wave = amplitude * np.exp(-((t - self.r_wave_duration / 2) ** 2 / (0.01**2)))
 
         # Pad to full EEG duration (R-wave at time 0)
         r_wave_full = np.zeros(self.n_samples)

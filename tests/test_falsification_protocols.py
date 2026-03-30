@@ -25,7 +25,7 @@ FALSIFICATION_MODULE_NAMES = [
     "FP_2_Falsification_AgentComparison_ConvergenceBenchmark",
     "FP_10_Falsification_BayesianEstimation_MCMC",
     "FP_10_Falsification_BayesianEstimation_ParameterRecovery",
-    "Falsification_CrossSpeciesScaling_P12",
+    "FP_12_CrossSpeciesScaling",
     "FP_5_Falsification_EvolutionaryPlausibility_Standard6",
     "FP_3_Falsification_FrameworkLevel_MultiProtocol",
     "FP_4_Falsification_InformationTheoretic_PhaseTransition",
@@ -400,12 +400,12 @@ class TestCrossSpeciesScaling:
     """Test cross-species scaling falsification."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification_CrossSpeciesScaling_P12"] is None,
+        FALSIFICATION_MODULES["FP_12_CrossSpeciesScaling"] is None,
         reason="CrossSpeciesScaling module not available",
     )
     def test_scaling_initialization(self):
         """Test cross-species scaling initialization."""
-        module = FALSIFICATION_MODULES["Falsification-CrossSpeciesScaling-P12"]
+        module = FALSIFICATION_MODULES["FP_12_CrossSpeciesScaling"]
 
         try:
             scaling = module.CrossSpeciesScaling()
@@ -416,12 +416,12 @@ class TestCrossSpeciesScaling:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["Falsification_CrossSpeciesScaling_P12"] is None,
+        FALSIFICATION_MODULES["FP_12_CrossSpeciesScaling"] is None,
         reason="CrossSpeciesScaling module not available",
     )
     def test_species_scaling(self):
         """Test species parameter scaling."""
-        module = FALSIFICATION_MODULES["Falsification-CrossSpeciesScaling-P12"]
+        module = FALSIFICATION_MODULES["FP_12_CrossSpeciesScaling"]
 
         try:
             scaling = module.CrossSpeciesScaling()

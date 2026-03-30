@@ -752,5 +752,5 @@ class TestCrossProtocolWorkflowIntegration:
         # Verify log sequence
         assert "FP-1: started" in workflow_results
         assert "FP-1: completed" in workflow_results
-        assert "FP-2: failed" in workflow_results
+        assert any("FP-2: failed" in r for r in workflow_results)
         assert "FP-3: completed" in workflow_results

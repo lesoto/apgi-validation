@@ -22,12 +22,10 @@ class TestRealFileIO:
         """Test loading a valid module with secure path validation."""
         # Create a simple test module
         test_module = temp_dir / "test_module.py"
-        test_module.write_text(
-            """
+        test_module.write_text("""
 def test_function():
     return "success"
-"""
-        )
+""")
 
         module = secure_load_module("test_module", test_module)
         assert hasattr(module, "test_function")
@@ -60,12 +58,10 @@ def test_function():
     def test_secure_load_module_from_path_convenience(self, temp_dir):
         """Test convenience function for loading from path."""
         test_module = temp_dir / "convenience_test.py"
-        test_module.write_text(
-            """
+        test_module.write_text("""
 def convenience_func():
     return "convenience"
-"""
-        )
+""")
 
         module = secure_load_module_from_path(test_module)
         assert hasattr(module, "convenience_func")

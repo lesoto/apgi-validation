@@ -364,9 +364,7 @@ def flaky_operation():
                 if attempt < max_attempts - 1:
                     # Exponential backoff with jitter
                     wait_time = (
-                        backoff_factor
-                        * (2**attempt)
-                        * (0.5 + np.random.random() * 0.5)
+                        backoff_factor * (2**attempt) * (0.5 + np.random.random() * 0.5)
                     )
                     time.sleep(wait_time)
 

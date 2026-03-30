@@ -1,6 +1,7 @@
 """
 Tests for signal handler restoration including exception paths and proper cleanup.
 """
+
 import signal
 import time
 import pytest

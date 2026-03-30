@@ -23,7 +23,7 @@ class ProtocolRunnerGUI:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("APGI Falsification Protocols")
+        self.root.title("APGI Framework-Level Falsification Aggregator (FP-ALL)")
         self.root.geometry("800x600")
         self.root.minsize(640, 480)  # Prevent resizing below usable size
 
@@ -387,31 +387,31 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 10: Cross-Species Scaling": {
-                "file": "FP_12_Aggregator.py",
-                "class": "CrossSpeciesScalingAnalyzer",
-                "description": "Cross-species scaling analysis",
+            "Protocol 10: Bayesian + Cross-Species": {
+                "file": "FP_10_Dispatcher.py",
+                "class": "FP10Dispatcher",
+                "description": "FP-10: Bayesian MCMC estimation + Cross-species scaling (both required)",
                 "parameters": {
-                    "n_species": {
-                        "default": 5,
-                        "min": 2,
-                        "max": 20,
-                        "type": "int",
-                        "description": "Number of species to compare",
-                    },
-                    "scaling_exponent": {
-                        "default": 0.75,
-                        "min": 0.5,
-                        "max": 1.0,
-                        "type": "float",
-                        "description": "Brain-body scaling exponent",
-                    },
                     "n_samples": {
                         "default": 1000,
-                        "min": 100,
-                        "max": 10000,
+                        "min": 500,
+                        "max": 5000,
                         "type": "int",
-                        "description": "Number of bootstrap samples",
+                        "description": "Number of MCMC samples (1000 recommended for GUI)",
+                    },
+                    "n_chains": {
+                        "default": 2,
+                        "min": 1,
+                        "max": 4,
+                        "type": "int",
+                        "description": "Number of MCMC chains (2 recommended for GUI)",
+                    },
+                    "burn_in": {
+                        "default": 500,
+                        "min": 100,
+                        "max": 2000,
+                        "type": "int",
+                        "description": "Burn-in samples",
                     },
                 },
             },
@@ -421,23 +421,23 @@ class ProtocolRunnerGUI:
                 "description": "Bayesian parameter recovery analysis",
                 "parameters": {
                     "n_samples": {
-                        "default": 5000,
-                        "min": 1000,
-                        "max": 20000,
+                        "default": 1000,
+                        "min": 500,
+                        "max": 5000,
                         "type": "int",
-                        "description": "Number of MCMC samples",
+                        "description": "Number of MCMC samples (1000 recommended for GUI)",
                     },
                     "n_chains": {
-                        "default": 4,
+                        "default": 2,
                         "min": 1,
-                        "max": 10,
+                        "max": 4,
                         "type": "int",
-                        "description": "Number of MCMC chains",
+                        "description": "Number of MCMC chains (2 recommended for GUI)",
                     },
                     "burn_in": {
-                        "default": 1000,
+                        "default": 500,
                         "min": 100,
-                        "max": 5000,
+                        "max": 2000,
                         "type": "int",
                         "description": "Burn-in samples",
                     },
@@ -645,14 +645,26 @@ class ProtocolRunnerGUI:
         )
         self.selected_protocol_label.pack()
 
-        # Run button
+        # Run buttons frame
+        run_buttons_frame = ttk.Frame(parent_frame)
+        run_buttons_frame.grid(row=2, column=0, pady=(10, 0))
+
+        # Run selected button
         self.run_selected_button = ttk.Button(
-            parent_frame,
+            run_buttons_frame,
             text="Run Selected Protocol",
             command=self.run_selected_protocol,
             state=tk.DISABLED,
         )
-        self.run_selected_button.grid(row=2, column=0, pady=(10, 0))
+        self.run_selected_button.pack(side=tk.LEFT, padx=(0, 5))
+
+        # Run all button
+        self.run_all_button = ttk.Button(
+            run_buttons_frame,
+            text="Run All Protocols",
+            command=self.run_all_protocols,
+        )
+        self.run_all_button.pack(side=tk.LEFT, padx=(5, 0))
 
     def setup_parameters_tab(self, parent_frame):
         """Setup the parameters configuration tab."""
@@ -962,6 +974,145 @@ class ProtocolRunnerGUI:
 
     def refresh_parameter_list(self):
         pass
+
+    def run_all_protocols(self):
+        """Run all protocols sequentially with default parameters."""
+        import tkinter as tk
+        from tkinter import messagebox
+
+        # Confirm with user
+        protocol_count = len(self.protocols)
+        if not messagebox.askyesno(
+            "Confirm Run All",
+            f"This will run all {protocol_count} protocols sequentially.\n\n"
+            "This may take a significant amount of time.\n\n"
+            "Continue?",
+        ):
+            return
+
+        # Run protocols in a separate thread
+        def run_all_thread():
+            total = len(self.protocols)
+            for idx, (protocol_name, protocol_info) in enumerate(
+                self.protocols.items(), 1
+            ):
+                if self.stop_event.is_set():
+                    self.log_message("=== Run All stopped by user ===")
+                    break
+
+                self.log_message(f"\n{'=' * 60}")
+                self.log_message(f"Running {protocol_name} ({idx}/{total})")
+                self.log_message(f"{'=' * 60}")
+
+                # Use default parameters
+                protocol_info_with_params = protocol_info.copy()
+                protocol_info_with_params["configured_params"] = {}
+
+                # Run synchronously in this thread
+                self._run_single_protocol(protocol_info_with_params)
+
+            self.log_message(f"\n{'=' * 60}")
+            self.log_message("All protocols completed!")
+            self.log_message(f"{'=' * 60}")
+            self.set_status("Ready")
+            self.root.after(0, lambda: self.run_all_button.config(state=tk.NORMAL))
+            self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
+
+        self.stop_event.clear()
+        self.run_all_button.config(state=tk.DISABLED)
+        self.stop_btn.config(state=tk.NORMAL)
+        self.set_status("Running all protocols...")
+
+        thread = threading.Thread(target=run_all_thread)
+        thread.daemon = True
+        thread.start()
+
+    def _run_single_protocol(self, protocol_info):
+        """Run a single protocol synchronously (for use in run_all)."""
+        try:
+            # Ensure project root is in sys.path for imports
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+
+            # Load the protocol module
+            file_path = os.path.join(os.path.dirname(__file__), protocol_info["file"])
+
+            spec = importlib.util.spec_from_file_location(
+                protocol_info["file"], file_path
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            # Get the main class
+            cls = getattr(module, protocol_info["class"])
+
+            # Get configured parameters
+            configured_params = protocol_info.get("configured_params", {})
+
+            # Run based on class type
+            if protocol_info["class"] == "NetworkComparisonExperiment":
+                config = {
+                    "extero_dim": configured_params.get("extero_dim", 32),
+                    "intero_dim": configured_params.get("intero_dim", 16),
+                    "action_dim": configured_params.get("action_dim", 4),
+                    "context_dim": configured_params.get("context_dim", 8),
+                    "n_episodes": configured_params.get("n_episodes", 50),
+                }
+                instance = cls(config)
+                result = instance.run_full_experiment()
+                self.log_message(f"  Result: {type(result)}")
+            elif protocol_info["class"] == "APGIActiveInferenceAgent":
+                run_func = getattr(module, "run_falsification", None)
+                if run_func:
+                    result = run_func()
+                    self.log_message(f"  Falsification completed: {result}")
+                else:
+                    self.log_message("  No run_falsification function found")
+            elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
+                run_func = getattr(module, "run_falsification", None)
+                if run_func:
+                    result = run_func()
+                    self.log_message(f"  Falsification completed: {result}")
+                else:
+                    self.log_message("  No run_falsification function found")
+            elif hasattr(cls, "run_full_experiment"):
+                try:
+                    instance = cls(**configured_params)
+                except Exception:
+                    instance = cls()
+                result = instance.run_full_experiment()
+                self.log_message("  Experiment completed")
+            elif hasattr(cls, "run_phase_transition_analysis"):
+                surprise_system = module.SurpriseIgnitionSystem()
+                instance = cls(surprise_system)
+                result = instance.run_phase_transition_analysis()
+                self.log_message("  Analysis completed")
+            elif hasattr(cls, "run_evolution"):
+                config = {
+                    "population_size": configured_params.get("population_size", 50),
+                    "n_generations": configured_params.get("n_generations", 100),
+                    "mutation_rate": configured_params.get("mutation_rate", 0.1),
+                    "selection_pressure": configured_params.get(
+                        "selection_pressure", 2.0
+                    ),
+                }
+                instance = cls(stop_event=self.stop_event, **config)
+                result = instance.run_evolution()
+                self.log_message("  Evolution completed")
+            else:
+                try:
+                    cls(**configured_params)
+                except TypeError:
+                    cls()
+                self.log_message("  Instance created successfully")
+
+            self._save_results({}, protocol_info["file"])
+            self.log_message("  Protocol completed successfully")
+
+        except Exception as e:
+            self.log_message(f"  ERROR: {str(e)}")
+            logger.error(f"Error in {protocol_info['file']}: {e}")
 
     def run_selected_protocol(self):
         """Run the currently selected protocol with configured parameters."""

@@ -132,7 +132,7 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="P12",
-            filename="Falsification/Falsification_CrossSpeciesScaling_P12.py",
+            filename="Falsification/FP_12_CrossSpeciesScaling.py",
             title="Cross-Species Scaling Protocol",
             description="Cross-species validation of APGI predictions",
             priority_level="P12",

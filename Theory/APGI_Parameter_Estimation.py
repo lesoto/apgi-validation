@@ -340,9 +340,9 @@ class ParameterIdentifiabilityAnalyzer:
             self._last_identifiability_result = {
                 "identifiable": identifiable,
                 "condition_number": condition_number,
-                "classification": "well-identified"
-                if identifiable
-                else "requires dedicated paradigm",
+                "classification": (
+                    "well-identified" if identifiable else "requires dedicated paradigm"
+                ),
                 "fim_result": fim_result,
             }
 
@@ -463,9 +463,9 @@ class ParameterIdentifiabilityAnalyzer:
                 "identifiable": identifiable,
                 "condition_number": condition_number,
                 "eigenvalue_ratio": eigenvalue_ratio,
-                "classification": "well-identified"
-                if identifiable
-                else "requires dedicated paradigm",
+                "classification": (
+                    "well-identified" if identifiable else "requires dedicated paradigm"
+                ),
                 "method": "bayesian_posterior",
                 "fim_result": fim_result,
                 "target_ranges_met": self._check_target_ranges(param_estimates),
@@ -827,9 +827,11 @@ class ParameterIdentifiabilityAnalyzer:
 
         return {
             "summary": assessment,
-            "recommendations": ["Collect more data", "Improve measurement precision"]
-            if not assessment["identifiable"]
-            else ["Parameters are well-identified"],
+            "recommendations": (
+                ["Collect more data", "Improve measurement precision"]
+                if not assessment["identifiable"]
+                else ["Parameters are well-identified"]
+            ),
             "status": "PASS" if assessment["identifiable"] else "FAIL",
         }
 

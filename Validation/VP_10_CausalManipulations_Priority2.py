@@ -15,6 +15,7 @@ This protocol implements and validates:
 
 from typing import Any, Dict, Optional
 
+import json
 import logging
 
 import numpy as np
@@ -520,12 +521,14 @@ class CausalManipulationsValidator:
 
         return {
             "region_specific_effects": results,
-            "ignition_window_disruption": ignition_mean < control_mean
-            if not np.isnan(ignition_mean) and not np.isnan(control_mean)
-            else False,
-            "statistical_significance": p_value < 0.05
-            if not np.isnan(p_value)
-            else False,
+            "ignition_window_disruption": (
+                ignition_mean < control_mean
+                if not np.isnan(ignition_mean) and not np.isnan(control_mean)
+                else False
+            ),
+            "statistical_significance": (
+                p_value < 0.05 if not np.isnan(p_value) else False
+            ),
             "validation_passed": (p_value < 0.05 if not np.isnan(p_value) else False)
             and (
                 ignition_mean < control_mean
@@ -1624,6 +1627,7 @@ if __name__ == "__main__":
 # Unique classes and helpers not present in VP_10 base
 # =============================================================================
 
+
 class ColdPressorTest:
     """
     Cold pressor test implementation for MCS interventions from Protocol 4c.
@@ -1829,7 +1833,6 @@ class MNEDataInterface:
 # =============================================================================
 
 
-
 class NumpyEncoder(json.JSONEncoder):
     """Custom JSON encoder for NumPy types."""
 
@@ -1885,4 +1888,3 @@ def validate_p2c_high_ia_interaction(
     return validator.validate_p2c_interaction_eta_squared(
         tms_drug_a, tms_drug_b, pharm_drug_a, pharm_drug_b
     )
-

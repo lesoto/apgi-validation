@@ -16,6 +16,12 @@ This module provides:
 
 from __future__ import annotations
 
+import sys
+
+# Fix for Python 3.14+ dataclass forward reference resolution
+if "APGI_Cultural_Neuroscience" not in sys.modules:
+    sys.modules["APGI_Cultural_Neuroscience"] = sys.modules[__name__]
+
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 

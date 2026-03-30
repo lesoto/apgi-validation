@@ -7,6 +7,7 @@ This module tests:
 - Timeout handling for long-running protocols
 - Protocol dependency failure cascades
 """
+
 import sys
 import time
 import tempfile

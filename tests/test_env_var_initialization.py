@@ -1,6 +1,7 @@
 """
 Tests for environment variable initialization and missing key handling.
 """
+
 import os
 import pytest
 

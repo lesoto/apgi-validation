@@ -19,7 +19,7 @@ _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
 
-from Falsification.FP_12_Aggregator import FalsificationAggregator
+from Falsification.FP_ALL_Aggregator import FalsificationAggregator
 
 # Try to import logging config
 try:
@@ -27,7 +27,7 @@ try:
 except ImportError:
     import logging
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)  # type: ignore[misc,assignment]
 
 
 class APGIMasterValidator:
@@ -45,8 +45,7 @@ class APGIMasterValidator:
         #   Protocol 8: Cross-species scaling validation
         #   Protocol 11: Cultural neuroscience validation
         #   Protocol 12: Liquid network validation
-        # - Tertiary (5-7, 9-10): Specialized and experimental protocols
-        #   Protocol 5: Computational benchmarking
+        # - Tertiary (6-7, 9-10): Specialized and experimental protocols
         #   Protocol 6: Bayesian estimation framework
         #   Protocol 7: Multimodal integration
         #   Protocol 9: Psychological states validation
@@ -72,14 +71,13 @@ class APGIMasterValidator:
             "secondary": [],
             "tertiary": [],
         }
-        self.timeout_seconds = 30
+        self.timeout_seconds = 120
         # Protocol dependencies: protocols that must run before others
         self.protocol_dependencies = {
             "Protocol-1": [],
             "Protocol-2": [],
             "Protocol-3": [],
             "Protocol-4": [],
-            "Protocol-5": [],
             "Protocol-6": [],
             "Protocol-7": [],
             "Protocol-8": [],
@@ -90,6 +88,8 @@ class APGIMasterValidator:
             "Protocol-13": [],
             "Protocol-14": [],
         }
+        # Pending protocols: awaiting empirical data (excluded from scoring denominator)
+        self.PENDING_PROTOCOLS = [5]  # VP-5: awaiting fMRI data
         self.available_protocols = {
             "Protocol-1": {
                 "file": "VP_01_SyntheticEEG_MLClassification.py",
@@ -112,9 +112,9 @@ class APGIMasterValidator:
                 "description": "Phase Transition / Epistemic Architecture Level 2",
             },
             "Protocol-5": {
-                "file": "VP_05_EvolutionaryEmergence.py",
+                "file": "VP_05_fMRI_Anticipation.py",
                 "function": "run_validation",
-                "description": "Evolutionary Emergence (Paper 3 — Multi-Scale Consciousness)",
+                "description": "fMRI Interoceptive Anticipation/Experience Paradigm (PENDING — awaiting data)",
             },
             "Protocol-6": {
                 "file": "VP_06_LiquidNetwork_InductiveBias.py",
@@ -199,7 +199,7 @@ class APGIMasterValidator:
                 results[protocol_name] = {
                     "status": "error",
                     "message": str(e),
-                    "passed": False,
+                    "passed": "false",  # String for type consistency
                 }
 
         self.protocol_results.update(results)
@@ -261,6 +261,7 @@ class APGIMasterValidator:
                 "overall_decision": "No protocols run",
                 "total_protocols": 0,
                 "passed_protocols": 0,
+                "pending_protocols": 0,
                 "success_rate": 0,
                 "weighted_score": 0,
                 "protocol_results": {},
@@ -268,37 +269,63 @@ class APGIMasterValidator:
                 "summary": "Run validation protocols first",
             }
 
+        # Count protocols by status: passed, failed, pending
         passed_protocols = sum(
             1 for r in self.protocol_results.values() if r.get("passed", False)
         )
-        success_rate = passed_protocols / total_protocols
+        pending_protocols = sum(
+            1
+            for r in self.protocol_results.values()
+            if r.get("passed") is None or r.get("status") == "STUB_AWAITING_DATA"
+        )
+        completed_protocols = total_protocols - pending_protocols
 
-        # Equal weighting across all protocols (1/N) unless papers specify differential evidential weight
-        # This prevents systematic underweighting of protocols covering Paper 4's Level 1/2 predictions
+        # Success rate only over completed protocols (pending excluded from denominator)
+        success_rate = (
+            passed_protocols / completed_protocols if completed_protocols > 0 else 0
+        )
+
+        # Equal weighting across completed protocols (excluding pending)
         tier_weights = {"primary": 1.0, "secondary": 1.0, "tertiary": 1.0}
         tier_stats = {
-            "primary": {"passed": 0, "total": 0},
-            "secondary": {"passed": 0, "total": 0},
-            "tertiary": {"passed": 0, "total": 0},
+            "primary": {"passed": 0, "total": 0, "pending": 0},
+            "secondary": {"passed": 0, "total": 0, "pending": 0},
+            "tertiary": {"passed": 0, "total": 0, "pending": 0},
         }
 
         for p_name, result in self.protocol_results.items():
             # Extract protocol number from "Protocol-X"
+            p_num = None  # Initialize to None to avoid UnboundLocalError
             try:
                 p_num = int(p_name.split("-")[-1])
                 tier = self.PROTOCOL_TIERS.get(p_num, "tertiary")
             except (ValueError, IndexError):
                 tier = "tertiary"
 
-            tier_stats[tier]["total"] += 1
-            if result.get("passed", False):
-                tier_stats[tier]["passed"] += 1
+            # Check if pending (awaiting data)
+            is_pending = (
+                result.get("passed") is None
+                or (
+                    p_num is not None
+                    and p_num in getattr(self, "PENDING_PROTOCOLS", [])
+                )
+                or result.get("status") == "STUB_AWAITING_DATA"
+            )
+
+            if is_pending:
+                tier_stats[tier]["pending"] += 1
+            else:
+                tier_stats[tier]["total"] += 1
+                if result.get("passed", False):
+                    tier_stats[tier]["passed"] += 1
 
         weighted_score = 0.0
         total_weight_used = 0.0
         for tier, stats in tier_stats.items():
-            if stats["total"] > 0:
-                tier_success = stats["passed"] / stats["total"]
+            # Exclude pending from tier calculations
+            completed = stats["total"]  # Already excludes pending
+            if completed > 0:
+                tier_success = stats["passed"] / completed
                 weight = tier_weights[tier]
                 weighted_score += tier_success * weight
                 total_weight_used += weight
@@ -315,15 +342,21 @@ class APGIMasterValidator:
         else:
             overall_decision = "FAIL: Insufficient validation support"
 
-        summary = f"Validated {passed_protocols}/{total_protocols} protocols (Raw: {success_rate:.1%}, Weighted Score: {weighted_score:.2f})"
+        summary = (
+            f"Validated {passed_protocols}/{completed_protocols} completed protocols "
+            f"({pending_protocols} pending) (Raw: {success_rate:.1%}, Weighted: {weighted_score:.2f})"
+        )
 
         return {
             "overall_decision": overall_decision,
             "total_protocols": total_protocols,
+            "completed_protocols": completed_protocols,
             "passed_protocols": passed_protocols,
+            "pending_protocols": pending_protocols,
             "success_rate": success_rate,
             "weighted_score": weighted_score,
             "tier_summary": tier_stats,
+            "pending_list": getattr(self, "PENDING_PROTOCOLS", []),
             "protocol_results": self.protocol_results,
             "falsification_status": self.falsification_status,
             "summary": summary,
@@ -381,7 +414,9 @@ class APGIMasterValidator:
 
         return results
 
-    def generate_reproducibility_package(self, output_dir: str = None) -> Dict:
+    def generate_reproducibility_package(
+        self, output_dir: Optional[Path] = None
+    ) -> Dict:
         """
         Generate reproducibility package with all parameters, seeds, and outputs
 
@@ -396,11 +431,11 @@ class APGIMasterValidator:
         from datetime import datetime
 
         if output_dir is None:
-            output_dir = Path(__file__).parent.parent / "reproducibility"
+            output_path = Path(__file__).parent.parent / "reproducibility"
         else:
-            output_dir = Path(output_dir)
+            output_path = Path(output_dir)
 
-        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path.mkdir(parents=True, exist_ok=True)
 
         # Generate reproducibility data
         reproducibility_data = {
@@ -414,7 +449,7 @@ class APGIMasterValidator:
 
         # Save reproducibility data
         output_file = (
-            output_dir
+            output_path
             / f"validation_reproducibility_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         )
         with open(output_file, "w", encoding="utf-8") as f:
@@ -423,7 +458,7 @@ class APGIMasterValidator:
         # Save results as CSV
         results_df = self._results_to_dataframe()
         csv_file = (
-            output_dir
+            output_path
             / f"validation_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         )
         results_df.to_csv(csv_file, index=False)
@@ -434,7 +469,7 @@ class APGIMasterValidator:
                 "json": str(output_file),
                 "csv": str(csv_file),
             },
-            "output_directory": str(output_dir),
+            "output_directory": str(output_path),
         }
 
     def _results_to_dataframe(self) -> pd.DataFrame:

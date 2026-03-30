@@ -28,8 +28,8 @@ except ImportError:
         def get(self, key, default=None):
             return default
 
-    DIM_CONSTANTS = MockDimConstants()
-    ConfigManager = MockConfigManager()
+    DIM_CONSTANTS = MockDimConstants()  # type: ignore
+    ConfigManager = MockConfigManager  # type: ignore
 
 try:
     from utils.falsification_thresholds import (
@@ -235,7 +235,7 @@ class EvolvableAgent:
         self._conscious_access = value
 
 
-class ContinuousUpdateAgent:
+class ContinuousUpdateAgent(EvolvableAgent):
     """Agent without threshold gating (continuous updates)"""
 
     def __init__(self, genome: Dict = None):
@@ -610,10 +610,14 @@ class EvolutionaryAPGIEmergence:
         self,
         population_size: int = 20,
         n_generations: int = 50,
+        mutation_rate: float = 0.1,
+        selection_pressure: float = 2.0,
         stop_event=None,
     ):
         self.pop_size = population_size
         self.n_generations = n_generations
+        self.mutation_rate = mutation_rate
+        self.selection_pressure = selection_pressure
         self.stop_event = stop_event
 
     def create_genome(self) -> Dict:
@@ -683,7 +687,7 @@ class EvolutionaryAPGIEmergence:
                 env_fitness = 0  # Neutral fitness for invalid rewards
             else:
                 env_fitness = (
-                    cumulative_reward / 50  # Reward seeking (adjusted)
+                    float(cumulative_reward) / 50  # Reward seeking (adjusted)
                     + survival_time / 100  # Survival (adjusted)
                     - homeostatic_violations / 50  # Homeostatic maintenance (adjusted)
                 )
@@ -744,7 +748,7 @@ class EvolutionaryAPGIEmergence:
                 "Protocol_2",
                 os.path.join(
                     os.path.dirname(__file__),
-                    "FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
+                    "FP_02_AgentComparison_ConvergenceBenchmark.py",
                 ),
             )
             protocol2 = importlib.util.module_from_spec(spec2)
@@ -774,7 +778,7 @@ class EvolutionaryAPGIEmergence:
         # Initialize population
         population = [self.create_genome() for _ in range(self.pop_size)]
 
-        history = {
+        history: Dict[str, List[Any]] = {
             "best_fitness": [],
             "mean_fitness": [],
             "architecture_frequencies": [],
@@ -793,22 +797,20 @@ class EvolutionaryAPGIEmergence:
                 break
 
             # Evaluate fitness
-            fitness_scores = []
+            fitness_scores: list[float] = []
             for genome in population:
                 agent = self.genome_to_agent(genome)
                 fitness = self.evaluate_fitness(agent, environments)
                 fitness_scores.append(fitness)
 
-            fitness_scores = np.array(fitness_scores)
-
             # Evaluate continuous agents for F5.4 comparison
-            continuous_agents = [ContinuousUpdateAgent() for _ in range(self.pop_size)]
+            continuous_agents: List[Any] = [
+                ContinuousUpdateAgent() for _ in range(self.pop_size)
+            ]
             continuous_fitness_scores = []
             for agent in continuous_agents:
                 fitness = self.evaluate_fitness(agent, environments)
                 continuous_fitness_scores.append(fitness)
-
-            continuous_fitness_scores = np.array(continuous_fitness_scores)
 
             # Compute performance difference (APGI - continuous)
             performance_difference = np.mean(fitness_scores) - np.mean(
@@ -816,35 +818,36 @@ class EvolutionaryAPGIEmergence:
             )
 
             # Track continuous agent performance
-            history["continuous_fitness"] = [np.mean(continuous_fitness_scores)]
-            history["performance_difference"] = [performance_difference]
+            history["continuous_fitness"] = [float(np.mean(continuous_fitness_scores))]
+            history["performance_difference"] = [float(performance_difference)]
 
             # Record statistics
-            history["best_fitness"].append(np.max(fitness_scores))
-            history["mean_fitness"].append(np.mean(fitness_scores))
+            history["best_fitness"].append(float(np.max(fitness_scores)))
+            history["mean_fitness"].append(float(np.mean(fitness_scores)))
             history["best_genome"].append(population[np.argmax(fitness_scores)].copy())
 
             # Track architecture frequencies
             arch_freq = {
                 "has_threshold": np.mean([g["has_threshold"] for g in population]),
-                "has_intero_weighting": np.mean(
-                    [g["has_intero_weighting"] for g in population]
+                "has_intero_weighting": float(
+                    np.mean([g["has_intero_weighting"] for g in population])
                 ),
-                "has_somatic_markers": np.mean(
-                    [g["has_somatic_markers"] for g in population]
+                "has_somatic_markers": float(
+                    np.mean([g["has_somatic_markers"] for g in population])
                 ),
-                "has_precision_weighting": np.mean(
-                    [g["has_precision_weighting"] for g in population]
+                "has_precision_weighting": float(
+                    np.mean([g["has_precision_weighting"] for g in population])
                 ),
             }
             history["architecture_frequencies"].append(arch_freq)
 
             # Selection (tournament)
             new_population = []
+            fitness_scores_arr = np.array(fitness_scores)
             for _ in range(self.pop_size):
                 tournament = np.random.choice(self.pop_size, 5, replace=False)
-                winner_idx = tournament[np.argmax(fitness_scores[tournament])]
-                new_population.append(population[winner_idx].copy())
+                winner_idx = tournament[np.argmax(fitness_scores_arr[tournament])]
+                new_population.append(population[int(winner_idx)].copy())
 
             # Crossover and mutation (handle odd population sizes)
             for i in range(0, len(new_population) - 1, 2):
@@ -854,7 +857,7 @@ class EvolutionaryAPGIEmergence:
                     new_population[i] = child1
                     new_population[i + 1] = child2
 
-            population = [self.mutate(g) for g in new_population]
+            population = [self.mutate(g, self.mutation_rate) for g in new_population]
 
             if generation % 10 == 0:  # More frequent updates
                 elapsed = time.time() - start_time
@@ -1016,6 +1019,20 @@ if __name__ == "__main__":
 
     if results and results.get("best_fitness"):
         analysis = simulator.analyze_emergence(results)
+        # Map to framework-level named predictions
+        analysis["named_predictions"] = {
+            "P5.a": {
+                "passed": bool(analysis.get("apgi_emerged", False)),
+                "actual": f"APGI traits fixed: {analysis.get('generations_to_fixation', {})}",
+                "threshold": "APGI traits fixate in population",
+            },
+            "P5.b": {
+                "passed": bool(analysis.get("pca_variance_explained", 0.0) >= 0.70),
+                "actual": f"PCA Variance: {analysis.get('pca_variance_explained', 0.0):.2%}",
+                "threshold": "PCA Variance Explained ≥ 70%",
+            },
+        }
+
         print("\n=== Emergence Analysis ===")
         print(f"APGI Emerged: {analysis['apgi_emerged']}")
         print(f"Final Frequencies: {analysis['final_frequencies']}")
@@ -1188,7 +1205,7 @@ def check_falsification(
         performance_gap_without_addons >= 0
     ), f"performance_gap_without_addons must be >= 0, got {performance_gap_without_addons}"
 
-    results = {
+    results: Dict[str, Any] = {
         "protocol": "Falsification-Protocol-5",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "total": 16},
@@ -1197,8 +1214,8 @@ def check_falsification(
     # F1.1: APGI Agent Performance Advantage
     logger.info("Testing F1.1: APGI Agent Performance Advantage")
     t_stat, p_value = stats.ttest_ind(apgi_rewards, pp_rewards)
-    mean_apgi = np.mean(apgi_rewards)
-    mean_pp = np.mean(pp_rewards)
+    mean_apgi = float(np.mean(apgi_rewards))
+    mean_pp = float(np.mean(pp_rewards))
     # Guard against zero mean_pp to prevent division by zero
     safe_mean_pp = max(1e-10, abs(mean_pp)) * (1 if mean_pp >= 0 else -1)
     advantage_pct = ((mean_apgi - mean_pp) / safe_mean_pp) * 100
@@ -1212,8 +1229,8 @@ def check_falsification(
         / max(1, (len(apgi_rewards) + len(pp_rewards) - 2))
     )
     # Guard against zero pooled_std
-    safe_pooled_std = max(1e-10, pooled_std)
-    cohens_d = (mean_apgi - mean_pp) / safe_pooled_std
+    safe_pooled_std = max(1e-10, float(pooled_std))
+    cohens_d = float((mean_apgi - mean_pp) / safe_pooled_std)
 
     f1_1_pass = advantage_pct >= 18 and cohens_d >= 0.60 and p_value < 0.01
     results["criteria"]["F1.1"] = {
@@ -1248,7 +1265,7 @@ def check_falsification(
     f_stat, p_anova = stats.f_oneway(*cluster_means)
 
     # Eta-squared
-    ss_total = np.sum((timescales - np.mean(timescales)) ** 2)
+    ss_total = np.sum((timescales - np.mean(timescales)) ** 2)  # type: ignore
     ss_between = sum(
         len(cm) * (np.mean(cm) - np.mean(timescales)) ** 2 for cm in cluster_means
     )
@@ -1455,10 +1472,10 @@ def check_falsification(
     # F2.1: APGI Advantageous Selection
     logger.info("Testing F2.1: APGI Advantageous Selection")
     t_stat, p_value = stats.ttest_ind(apgi_advantageous_selection, no_somatic_selection)
-    mean_apgi = np.mean(apgi_advantageous_selection)
-    mean_no_somatic = np.mean(no_somatic_selection)
-    safe_no_somatic = max(1e-10, mean_no_somatic)
-    advantage_pct = ((mean_apgi - mean_no_somatic) / safe_no_somatic) * 100
+    mean_apgi = np.mean(apgi_advantageous_selection)  # type: ignore
+    mean_no_somatic = np.mean(no_somatic_selection)  # type: ignore
+    safe_no_somatic = max(1e-10, float(mean_no_somatic))  # type: ignore
+    advantage_pct = float(((mean_apgi - mean_no_somatic) / safe_no_somatic) * 100)
 
     # Cohen's d
     pooled_std = np.sqrt(
@@ -1472,8 +1489,8 @@ def check_falsification(
             (len(apgi_advantageous_selection) + len(no_somatic_selection) - 2),
         )
     )
-    safe_pooled_std = max(1e-10, pooled_std)
-    cohens_d = (mean_apgi - mean_no_somatic) / safe_pooled_std
+    safe_pooled_std = max(1e-10, float(pooled_std))  # type: ignore
+    cohens_d = float(mean_apgi - mean_no_somatic) / safe_pooled_std  # type: ignore
 
     f2_1_pass = advantage_pct >= 25 and cohens_d >= 0.80 and p_value < 0.01
     results["criteria"]["F2.1"] = {
@@ -1672,10 +1689,10 @@ def check_falsification(
     logger.info("Testing F3.1: APGI Performance Advantage")
     if len(apgi_rewards) > 0 and len(pp_rewards) > 0:
         t_stat, p_value = stats.ttest_ind(apgi_rewards, pp_rewards)
-        mean_apgi = np.mean(apgi_rewards)
-        mean_baseline = np.mean(pp_rewards)
-        safe_baseline = max(1e-10, mean_baseline)
-        advantage_pct = ((mean_apgi - mean_baseline) / safe_baseline) * 100
+        mean_apgi = np.mean(apgi_rewards)  # type: ignore
+        mean_baseline = np.mean(pp_rewards)  # type: ignore
+        safe_baseline = max(1e-10, float(mean_baseline))  # type: ignore
+        advantage_pct = float(mean_apgi - mean_baseline) / safe_baseline * 100  # type: ignore
 
         # Cohen's d
         pooled_std = np.sqrt(
@@ -1685,8 +1702,8 @@ def check_falsification(
             )
             / max(1, (len(apgi_rewards) + len(pp_rewards) - 2))
         )
-        safe_pooled_std = max(1e-10, pooled_std)
-        cohens_d = (mean_apgi - mean_baseline) / safe_pooled_std
+        safe_pooled_std = max(1e-10, float(pooled_std))  # type: ignore
+        cohens_d = float(mean_apgi - mean_baseline) / safe_pooled_std  # type: ignore
 
         f3_1_pass = advantage_pct >= 15 and cohens_d >= 0.50 and p_value < 0.05
         results["criteria"]["F3.1"] = {
@@ -1822,16 +1839,13 @@ def check_falsification(
     advantage_pct = ((mean_rnn - mean_ltcn) / safe_rnn) * 100
 
     # Cohen's d
-    pooled_std = (
-        np.sqrt(
-            (
-                (1 - 1) * np.var([ltcn_transition_time], ddof=1)
-                + (1 - 1) * np.var([feedforward_transition_time], ddof=1)
-            )
-            / (1 + 1 - 2)
+    pooled_std = np.sqrt(
+        (
+            (len([ltcn_transition_time]) - 1) * np.var([ltcn_transition_time], ddof=1)
+            + (len([feedforward_transition_time]) - 1)
+            * np.var([feedforward_transition_time], ddof=1)
         )
-        if len([ltcn_transition_time]) > 1 and len([feedforward_transition_time]) > 1
-        else np.std([ltcn_transition_time, feedforward_transition_time], ddof=1)
+        / max(1, (len([ltcn_transition_time]) + len([feedforward_transition_time]) - 2))
     )
     cohens_d = (mean_ltcn - mean_rnn) / pooled_std if pooled_std > 0 else 0
 
@@ -1869,18 +1883,28 @@ def check_falsification(
     mean_rnn = standard_sparsity_reduction
 
     # Cohen's d
-    pooled_std = (
-        np.sqrt(
+    if len([ltcn_sparsity_reduction]) > 1 and len([standard_sparsity_reduction]) > 1:
+        pooled_std = np.sqrt(
             (
-                (1 - 1) * np.var([ltcn_sparsity_reduction], ddof=1)
-                + (1 - 1) * np.var([standard_sparsity_reduction], ddof=1)
+                (ltcn_sparsity_reduction - standard_sparsity_reduction) ** 2
+                + np.var([ltcn_sparsity_reduction, standard_sparsity_reduction], ddof=1)
+                + (standard_sparsity_reduction - feedforward_transition_time) ** 2
             )
-            / (1 + 1 - 2)
+            / (len([ltcn_sparsity_reduction]) + len([standard_sparsity_reduction]))
+            - 2
         )
-        if len([ltcn_sparsity_reduction]) > 1 and len([standard_sparsity_reduction]) > 1
-        else np.std([ltcn_sparsity_reduction, standard_sparsity_reduction], ddof=1)
-    )
-    cohens_d = (mean_ltcn - mean_rnn) / pooled_std if pooled_std > 0 else 0
+    else:
+        pooled_std = np.sqrt(
+            (
+                (ltcn_sparsity_reduction - standard_sparsity_reduction) ** 2
+                + np.var([ltcn_sparsity_reduction, standard_sparsity_reduction], ddof=1)
+                + (standard_sparsity_reduction - feedforward_transition_time) ** 2
+            )
+            / (len([ltcn_sparsity_reduction]) + len([standard_sparsity_reduction]))
+            - 2
+        )
+
+    cohens_d: float = (mean_ltcn - mean_rnn) / pooled_std if pooled_std > 0 else 0
 
     f6_2_pass = ltcn_sparsity_reduction >= 0.30 and cohens_d >= 0.70 and p_value < 0.01
     results["criteria"]["F6.2"] = {

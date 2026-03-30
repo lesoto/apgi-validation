@@ -1116,14 +1116,18 @@ def analyze_beta_pi_identifiability(
     # 3. Sensitivity analysis
     # Vary each parameter while holding others constant at posterior mean
     param_means = {
-        "theta_0": trace.posterior["theta_0"].mean().item()
-        if "theta_0" in trace.posterior
-        else 0.5,
+        "theta_0": (
+            trace.posterior["theta_0"].mean().item()
+            if "theta_0" in trace.posterior
+            else 0.5
+        ),
         "Pi_i": trace.posterior["Pi_i"].mean().item(),
         "beta": trace.posterior["beta"].mean().item(),
-        "alpha": trace.posterior["alpha"].mean().item()
-        if "alpha" in trace.posterior
-        else 5.0,
+        "alpha": (
+            trace.posterior["alpha"].mean().item()
+            if "alpha" in trace.posterior
+            else 5.0
+        ),
     }
 
     # Compute predictions with varied parameters
@@ -2716,9 +2720,9 @@ def compute_all_ic_metrics(trace, model, data):
 
     # Flag if LOO is unreliable
     if high_pareto_k > 0:
-        results[
-            "warning"
-        ] = f"{high_pareto_k} observations with Pareto k > 0.7 (unreliable LOO)"
+        results["warning"] = (
+            f"{high_pareto_k} observations with Pareto k > 0.7 (unreliable LOO)"
+        )
 
     return results
 

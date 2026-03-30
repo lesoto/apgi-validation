@@ -26,7 +26,6 @@ import numpy as np
 from typing import Dict, Any, Tuple, List, Optional
 from dataclasses import dataclass
 
-
 # =============================================================================
 # CORE APGI EQUATIONS
 # =============================================================================

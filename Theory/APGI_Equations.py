@@ -996,9 +996,9 @@ class PsychologicalState:
 
     # ========== DERIVED PARAMETERS ==========
     Pi_i_eff_actual: Optional[float] = None  # Actual effective interoceptive precision
-    Pi_i_eff_expected: Optional[
-        float
-    ] = None  # Expected effective interoceptive precision
+    Pi_i_eff_expected: Optional[float] = (
+        None  # Expected effective interoceptive precision
+    )
     S_t: Optional[float] = None  # Accumulated surprise
 
     # ========== ADDITIONAL METADATA ==========

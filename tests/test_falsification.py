@@ -26,7 +26,7 @@ def test_falsification_files_exist():
         "FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
         "FP_10_Falsification_BayesianEstimation_MCMC.py",
         "Falsification_BayesianModelComparison_ParameterRecovery.py",
-        "Falsification_CrossSpeciesScaling_P12.py",
+        "FP_12_CrossSpeciesScaling.py",
         "FP_5_Falsification_EvolutionaryPlausibility_Standard6.py",
         "FP_3_Falsification_FrameworkLevel_MultiProtocol.py",
         "FP_4_Falsification_InformationTheoretic_PhaseTransition.py",

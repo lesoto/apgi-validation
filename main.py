@@ -323,7 +323,7 @@ class APGIModuleLoader:
         self.modules = {}
         self._module_configs = {
             "formal_model": {
-                "file": "Falsification/FP_4_Falsification_InformationTheoretic_PhaseTransition.py",
+                "file": "Falsification/FP_04_PhaseTransition_EpistemicArchitecture.py",
                 "class": "SurpriseIgnitionSystem",
                 "description": "Formal model simulations",
             },
@@ -524,9 +524,11 @@ def formal_model(
     model_config = config_manager.get_config("model")
 
     # Use config values with command-line overrides
-    sim_steps = simulation_steps or sim_config.default_steps
-    time_step = dt or sim_config.default_dt
-    enable_plots = plot if plot is not None else sim_config.enable_plots
+    sim_steps = simulation_steps or getattr(sim_config, "default_steps", 1000)
+    time_step = dt or getattr(sim_config, "default_dt", 0.01)
+    enable_plots = (
+        plot if plot is not None else getattr(sim_config, "enable_plots", True)
+    )
 
     start_time = time.time()
 
@@ -550,13 +552,13 @@ def formal_model(
 
             # Use config values for model parameters
             model_params = {
-                "tau_S": model_config.theta0,
-                "tau_theta": model_config.theta0,
-                "theta_0": model_config.theta0,
-                "alpha": model_config.gamma,
-                "rho": model_config.allostatic_decrease_rate,
-                "sigma_S": model_config.eps,
-                "sigma_theta": model_config.eps,
+                "tau_S": getattr(model_config, "tau_S", 0.5),
+                "tau_theta": getattr(model_config, "tau_theta", 30.0),
+                "theta_0": getattr(model_config, "theta_0", 0.5),
+                "alpha": getattr(model_config, "alpha", 5.0),
+                "rho": getattr(model_config, "rho", 0.7),
+                "sigma_S": getattr(model_config, "sigma_S", 0.05),
+                "sigma_theta": getattr(model_config, "sigma_theta", 0.02),
             }
 
             # Load custom parameters if provided
@@ -685,7 +687,7 @@ def formal_model(
             # Run simulation with enhanced progress tracking
             import signal
 
-            results = {
+            results: Dict[str, List[float]] = {
                 "time": [],
                 "surprise": [],
                 "threshold": [],
@@ -914,6 +916,10 @@ def _sanitize_error_message(error_msg: str) -> str:
     return error_msg
 
 
+# Module-level cache for resolved directories
+_resolved_dir_cache: Dict[tuple, List[Path]] = {}
+
+
 def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
     """Validate file path to prevent directory traversal attacks.
 
@@ -975,21 +981,18 @@ def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
     if allowed_dirs:
         allowed = False
 
-        # Use a class-level or function-level cache to avoid repeated resolves
-        if not hasattr(_validate_file_path, "_resolved_dir_cache"):
-            _validate_file_path._resolved_dir_cache = {}
-
+        # Use a module-level cache to avoid repeated resolves
         cache_key = tuple(allowed_dirs)
-        if cache_key not in _validate_file_path._resolved_dir_cache:
+        if cache_key not in _resolved_dir_cache:
             resolved_dirs = []
             for d in allowed_dirs:
                 try:
                     resolved_dirs.append((project_root / d).resolve())
                 except Exception:
                     pass
-            _validate_file_path._resolved_dir_cache[cache_key] = resolved_dirs
+            _resolved_dir_cache[cache_key] = resolved_dirs
 
-        cached_allowed_paths = _validate_file_path._resolved_dir_cache[cache_key]
+        cached_allowed_paths = _resolved_dir_cache[cache_key]
 
         for allowed_path in cached_allowed_paths:
             try:
@@ -3338,7 +3341,9 @@ def clinical_convergence(
     output_file: Optional[str],
 ) -> None:
     """Run Priority 4: Clinical and Cross-Species Convergence validation."""
-    console.print(Panel.fit("🏥 Priority 4: Clinical Convergence", style="bold magenta"))
+    console.print(
+        Panel.fit("🏥 Priority 4: Clinical Convergence", style="bold magenta")
+    )
 
     try:
         # Import the clinical convergence validator
@@ -5267,7 +5272,9 @@ def dashboard(output_dir, dashboard_type, open_browser):
 @cli.command()
 def info():
     """Show framework information and status."""
-    console.print(Panel.fit(f"📊 {get_config_value('project_name')}", style="bold blue"))
+    console.print(
+        Panel.fit(f"📊 {get_config_value('project_name')}", style="bold blue")
+    )
 
     # Framework info
     info_table = Table(title="Framework Information")

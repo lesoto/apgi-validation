@@ -2,6 +2,7 @@
 Tests for backup HMAC validation including tampered history, oversized signatures,
 and missing HMAC key handling.
 """
+
 import json
 import tempfile
 import pytest

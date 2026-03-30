@@ -3,7 +3,7 @@ APGI Protocol 5 (Part B): fMRI Anticipation & Experience Validation
 ===================================================================
 
 Simulates blood-oxygen-level-dependent (BOLD) tracking of APGI's
-internal variables S(t) [Salience/AI] and M(t) [vmPFC] during a threat 
+internal variables S(t) [Salience/AI] and M(t) [vmPFC] during a threat
 anticipation paradigm.
 
 Tests neuroimaging hypotheses from the APGI Multi-Scale framework.
@@ -101,9 +101,9 @@ class APGI_fMRISimulator:
 
         # S(t) maps to Anterior Insula (AI) / Salience (Experience / Shock processing)
         if receives_shock:
-            S[
-                shock_idx : shock_idx + int(1.0 / self.dt)
-            ] = 1.0  # Sharp surprise / ignition
+            S[shock_idx : shock_idx + int(1.0 / self.dt)] = (
+                1.0  # Sharp surprise / ignition
+            )
         if is_threat_cue:
             # Slight S(t) during cue
             S[cue_idx : cue_idx + int(0.5 / self.dt)] = 0.3
@@ -175,9 +175,11 @@ def validate_fmri_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
     # We check if Threat completely diverges from Safe
     stat, p_val = stats.ttest_ind(
         np.max(threat_M_bolds, axis=1),
-        np.max(safe_M_bolds, axis=1)
-        if len(safe_M_bolds) > 0
-        else [0] * len(threat_M_bolds),
+        (
+            np.max(safe_M_bolds, axis=1)
+            if len(safe_M_bolds) > 0
+            else [0] * len(threat_M_bolds)
+        ),
     )
 
     # P5.2: Functional connectivity between vmPFC (M) and AI (S) during threat
@@ -258,6 +260,31 @@ def main():
         json.dump(output_payload, f, indent=4)
 
     logger.info("fMRI Validation Data Saved to protocol5_fmri_results.json")
+
+    # Return proper validation result format for Master_Validation.py
+    passed_count = sum(1 for v in validation_report.values() if v.get("passed", False))
+    total_count = len(validation_report)
+    all_passed = passed_count == total_count
+
+    return {
+        "passed": all_passed,
+        "status": "success" if all_passed else "failed",
+        "message": f"fMRI validation: {passed_count}/{total_count} checks passed",
+        "criteria": validation_report,
+        "summary": {
+            "passed": passed_count,
+            "total": total_count,
+            "failed": total_count - passed_count,
+        },
+    }
+
+
+def run_validation(**kwargs) -> Dict[str, Any]:
+    """Run validation protocol for Master_Validation integration.
+
+    This function provides the interface expected by Master_Validation.py
+    """
+    return main()
 
 
 if __name__ == "__main__":

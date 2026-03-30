@@ -65,13 +65,15 @@ mock_tkinter.Tk.return_value = mock_root
 for var_type in ["StringVar", "BooleanVar", "DoubleVar", "IntVar"]:
     mock_var = MagicMock()
     mock_var.get = MagicMock(
-        return_value=0
-        if var_type == "IntVar"
-        else 0.0
-        if var_type == "DoubleVar"
-        else False
-        if var_type == "BooleanVar"
-        else ""
+        return_value=(
+            0
+            if var_type == "IntVar"
+            else (
+                0.0
+                if var_type == "DoubleVar"
+                else False if var_type == "BooleanVar" else ""
+            )
+        )
     )
     mock_var.set = MagicMock()
     getattr(mock_tkinter, var_type).return_value = mock_var

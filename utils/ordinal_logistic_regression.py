@@ -407,9 +407,9 @@ def compare_ordinal_vs_anova(
             "f_statistic": f_stat,
             "p_value": p_value_anova,
             "cohens_d_values": cohens_d_values,
-            "mean_abs_cohens_d": np.mean([abs(d) for d in cohens_d_values])
-            if cohens_d_values
-            else 0,
+            "mean_abs_cohens_d": (
+                np.mean([abs(d) for d in cohens_d_values]) if cohens_d_values else 0
+            ),
             "method": "ANOVA + Cohen's d (Simpler but less appropriate for ordinal outcomes)",
         },
         "recommendation": (

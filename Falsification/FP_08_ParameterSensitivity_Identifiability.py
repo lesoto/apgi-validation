@@ -62,7 +62,7 @@ def simulate_model_performance_with_agent(
     """
     try:
         # Import APGIAgent from Falsification protocol (correct location)
-        from Falsification.FP_1_Falsification_ActiveInferenceAgents_F1F2 import (
+        from Falsification.FP_01_ActiveInference_F1F2 import (
             APGIActiveInferenceAgent,
         )
 
@@ -881,9 +881,11 @@ def analyze_fisher_information_matrix(
             confidence_intervals[param] = {
                 "std_error": float(std_error),
                 "ci_95": float(ci_95),
-                "relative_ci": float(ci_95 / base_params[param])
-                if base_params[param] != 0
-                else float("inf"),
+                "relative_ci": (
+                    float(ci_95 / base_params[param])
+                    if base_params[param] != 0
+                    else float("inf")
+                ),
             }
         else:
             confidence_intervals[param] = {
@@ -1160,9 +1162,11 @@ def analyze_sobol_sensitivity(
                 f8_sa_individual[param] = {
                     "ST": st_value,
                     "S1": s1_value,
-                    "contribution_pct": (st_value / total_sensitivity * 100)
-                    if total_sensitivity > 0
-                    else 0,
+                    "contribution_pct": (
+                        (st_value / total_sensitivity * 100)
+                        if total_sensitivity > 0
+                        else 0
+                    ),
                 }
 
             # Calculate percentage of total sensitivity
@@ -1361,9 +1365,7 @@ def generate_comprehensive_sensitivity_report(
             status = (
                 "HIGH"
                 if sensitivity > 1e-3
-                else "MODERATE"
-                if sensitivity > 1e-6
-                else "LOW"
+                else "MODERATE" if sensitivity > 1e-6 else "LOW"
             )
             report += f"{param}: {sensitivity:.2e} ({status})\n"
 
@@ -1651,11 +1653,13 @@ def run_comprehensive_parameter_sensitivity_analysis() -> Dict[str, Any]:
         "hierarchy_falsified": sobol_results.get(
             "apgi_hierarchy_falsification", {}
         ).get("hierarchy_falsified", False),
-        "identifiability_falsified": profile_likelihood_results.get(
-            "identifiability_falsification", {}
-        ).get("falsified", False)
-        if profile_likelihood_results
-        else False,
+        "identifiability_falsified": (
+            profile_likelihood_results.get("identifiability_falsification", {}).get(
+                "falsified", False
+            )
+            if profile_likelihood_results
+            else False
+        ),
         "identifiability_score": fim_results.get("identifiability_score", 0),
         "parameter_recovery_rate": recovery_results.get("recovery_rate", 0),
         "collinearity_issues": len(collinearity_results.get("high_vif_params", [])),
@@ -1837,9 +1841,7 @@ def analyze_parameter_robustness(
         "robustness_classification": (
             "HIGH"
             if overall_robustness > 0.8
-            else "MODERATE"
-            if overall_robustness > 0.6
-            else "LOW"
+            else "MODERATE" if overall_robustness > 0.6 else "LOW"
         ),
         "n_robustness_tests": n_robustness_tests,
     }
@@ -2090,9 +2092,11 @@ def analyze_parameter_uncertainty_propagation(
         "median": float(np.median(output_samples)),
         "q5": float(np.percentile(output_samples, 5)),
         "q95": float(np.percentile(output_samples, 95)),
-        "cv": float(np.std(output_samples) / np.mean(output_samples))
-        if np.mean(output_samples) > 0
-        else 0,
+        "cv": (
+            float(np.std(output_samples) / np.mean(output_samples))
+            if np.mean(output_samples) > 0
+            else 0
+        ),
     }
 
     # Calculate parameter contributions to uncertainty
@@ -2130,11 +2134,11 @@ def analyze_parameter_uncertainty_propagation(
         "explained_variances": explained_variances,
         "most_influential_params": sorted_contributions[:5],
         "total_variance": float(total_variance),
-        "explained_variance_ratio": float(
-            sum(explained_variances.values()) / total_variance
-        )
-        if total_variance > 0
-        else 0,
+        "explained_variance_ratio": (
+            float(sum(explained_variances.values()) / total_variance)
+            if total_variance > 0
+            else 0
+        ),
         "n_mc_samples": n_mc_samples,
     }
 
@@ -2255,9 +2259,9 @@ def validate_sensitivity_analysis_convergence(
         "convergence_metrics": convergence_metrics,
         "converged_parameters": converged_params,
         "overall_convergence_score": float(overall_convergence),
-        "recommended_sample_size": sample_sizes[-1]
-        if overall_convergence > 0.8
-        else sample_sizes[-1] * 2,
+        "recommended_sample_size": (
+            sample_sizes[-1] if overall_convergence > 0.8 else sample_sizes[-1] * 2
+        ),
     }
 
 

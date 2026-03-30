@@ -1444,9 +1444,7 @@ class FiniteSizeScalingAnalysis:
                     else (
                         "Long-range correlated"
                         if alpha < 1.0
-                        else "1/f noise"
-                        if abs(alpha - 1.0) < 0.1
-                        else "Non-stationary"
+                        else "1/f noise" if abs(alpha - 1.0) < 0.1 else "Non-stationary"
                     )
                 )
             ),
@@ -1626,9 +1624,11 @@ class FiniteSizeScalingAnalysis:
             "clean_indices": clean_indices.tolist(),
             "artifact_rate": float(len(artifact_indices) / len(S)),
             "clean_S": S[clean_indices] if len(clean_indices) > 0 else S,
-            "clean_theta": theta[clean_indices]
-            if len(clean_indices) > 0 and len(theta) > 0
-            else theta,
+            "clean_theta": (
+                theta[clean_indices]
+                if len(clean_indices) > 0 and len(theta) > 0
+                else theta
+            ),
         }
 
     def _find_sustained_periods(
@@ -2107,64 +2107,66 @@ class ComprehensivePhaseTransitionAnalysis:
 
         all_results = []
 
-        for sim_idx in tqdm(range(n_simulations), desc="Simulations"):
-            # Initialize configuration objects
-            from types import SimpleNamespace
+        # Use tqdm as context manager for proper cleanup on interruption
+        with tqdm(range(n_simulations), desc="Simulations") as pbar:
+            for sim_idx in pbar:
+                # Initialize configuration objects
+                from types import SimpleNamespace
 
-            model_config = SimpleNamespace()
-            model_config.tau_S = 1.0
-            model_config.theta_0 = 0.5
-            model_config.alpha = 0.1
+                model_config = SimpleNamespace()
+                model_config.tau_S = 1.0
+                model_config.theta_0 = 0.5
+                model_config.alpha = 0.1
 
-            config = SimpleNamespace()
-            config.simulation = SimpleNamespace()
-            config.simulation.default_dt = 0.01
+                config = SimpleNamespace()
+                config.simulation = SimpleNamespace()
+                config.simulation.default_dt = 0.01
 
-            # Create system with config-based parameters
-            system = APGIDynamicalSystem(
-                tau=model_config.tau_S,
-                theta_0=model_config.theta_0,
-                alpha=model_config.alpha,
-                dt=config.simulation.default_dt,
-            )
+                # Create system with config-based parameters
+                system = APGIDynamicalSystem(
+                    tau=model_config.tau_S,
+                    theta_0=model_config.theta_0,
+                    alpha=model_config.alpha,
+                    dt=config.simulation.default_dt,
+                )
 
-            # Time-varying input generator
-            def input_gen(t):
-                # Oscillating external input
-                Pi_e = 1.0 + 0.3 * np.sin(2 * np.pi * t / 15)
-                eps_e = np.random.normal(0.4, 0.2)
+                # Time-varying input generator
+                def input_gen(t):
+                    # Oscillating external input
+                    Pi_e = 1.0 + 0.3 * np.sin(2 * np.pi * t / 15)
+                    eps_e = np.random.normal(0.4, 0.2)
 
-                # Varying interoceptive signals
-                Pi_i = 1.0 + 0.5 * np.sin(2 * np.pi * t / 25)
-                eps_i = np.random.normal(0.2, 0.15)
+                    # Varying interoceptive signals
+                    Pi_i = 1.0 + 0.5 * np.sin(2 * np.pi * t / 25)
+                    eps_i = np.random.normal(0.2, 0.15)
 
-                beta = np.random.normal(1.15, 0.15)
+                    beta = np.random.normal(1.15, 0.15)
 
-                return {
-                    "Pi_e": max(0.5, Pi_e),
-                    "eps_e": eps_e,
-                    "beta": max(0.7, min(1.8, beta)),
-                    "Pi_i": max(0.5, Pi_i),
-                    "eps_i": eps_i,
-                    "M": 1.0,
-                    "c": 0.5,
-                    "a": 0.3,
-                }
+                    return {
+                        "Pi_e": max(0.5, Pi_e),
+                        "eps_e": eps_e,
+                        "beta": max(0.7, min(1.8, beta)),
+                        "Pi_i": max(0.5, Pi_i),
+                        "eps_i": eps_i,
+                        "M": 1.0,
+                        "c": 0.5,
+                        "a": 0.3,
+                    }
 
-            # Run simulation
-            history = system.simulate(duration, input_gen, theta_noise_sd=0.08)
+                # Run simulation
+                history = system.simulate(duration, input_gen, theta_noise_sd=0.08)
 
-            # Analyze
-            results = self.analyze_simulation(history)
-            results["simulation_id"] = sim_idx
-            results["n_ignition_events"] = len(history["ignition_events"])
+                # Analyze
+                results = self.analyze_simulation(history)
+                results["simulation_id"] = sim_idx
+                results["n_ignition_events"] = len(history["ignition_events"])
 
-            all_results.append(results)
+                all_results.append(results)
 
         # Convert to DataFrame
         df = pd.DataFrame(all_results)
 
-        print("\n✅ Analysis complete")
+        print("\n[OK] Analysis complete")
         print(f"   Total simulations: {len(df)}")
         print(f"   Mean ignition events: {df['n_ignition_events'].mean():.1f}")
 
@@ -2424,9 +2426,9 @@ def print_falsification_report(report: Dict):
 
     print("\nOVERALL STATUS: ", end="")
     if report["overall_falsified"]:
-        print("❌ MODEL FALSIFIED")
+        print("[FAIL] MODEL FALSIFIED")
     else:
-        print("✅ MODEL VALIDATED")
+        print("[OK] MODEL VALIDATED")
 
     total = len(report["passed_criteria"]) + len(report["falsified_criteria"])
     print(f"\nCriteria Passed: {len(report['passed_criteria'])}/{total}")
@@ -2437,7 +2439,7 @@ def print_falsification_report(report: Dict):
         print("PASSED CRITERIA:")
         print("-" * 80)
         for criterion in report["passed_criteria"]:
-            print(f"\n✅ {criterion['code']}: {criterion['description']}")
+            print(f"\n[OK] {criterion['code']}: {criterion['description']}")
             if "value" in criterion:
                 print(
                     f"   Value: {criterion['value']:.4f} ± {criterion.get('se', 0):.4f}"
@@ -2449,7 +2451,7 @@ def print_falsification_report(report: Dict):
         print("FAILED CRITERIA (FALSIFICATIONS):")
         print("-" * 80)
         for criterion in report["falsified_criteria"]:
-            print(f"\n❌ {criterion['code']}: {criterion['description']}")
+            print(f"\n[FAIL] {criterion['code']}: {criterion['description']}")
             if "value" in criterion:
                 print(
                     f"   Value: {criterion['value']:.4f} ± {criterion.get('se', 0):.4f}"
@@ -2793,16 +2795,16 @@ def plot_phase_transition_results(
             "P4a: Discontinuity",
             "d > 0.8",
             f"{results_df['discontinuity_cohens_d'].mean():.2f}",
-            "✅" if results_df["discontinuity_cohens_d"].mean() > 0.8 else "❌",
+            "[OK]" if results_df["discontinuity_cohens_d"].mean() > 0.8 else "[FAIL]",
         ],
         [
             "P4b: Susceptibility",
             "ratio > 2.0",
             f"{results_df['susceptibility_susceptibility_ratio'].mean():.2f}",
             (
-                "✅"
+                "[OK]"
                 if results_df["susceptibility_susceptibility_ratio"].mean() > 2.0
-                else "❌"
+                else "[FAIL]"
             ),
         ],
         [
@@ -2810,22 +2812,26 @@ def plot_phase_transition_results(
             "ratio > 1.5",
             f"{results_df['critical_slowing_critical_slowing_ratio'].mean():.2f}",
             (
-                "✅"
+                "[OK]"
                 if results_df["critical_slowing_critical_slowing_ratio"].mean() > 1.5
-                else "❌"
+                else "[FAIL]"
             ),
         ],
         [
             "P4d: Φ Spike",
             "ratio > 2.0×",
             f"{(phi_at_ignition.mean() / phi_baseline.mean()):.2f}×",
-            "✅" if (phi_at_ignition.mean() / phi_baseline.mean()) > 2.0 else "❌",
+            (
+                "[OK]"
+                if (phi_at_ignition.mean() / phi_baseline.mean()) > 2.0
+                else "[FAIL]"
+            ),
         ],
         [
             "P4e: Hurst Near",
             "H > 0.6",
             f"{results_df['hurst_hurst_near'].mean():.2f}",
-            "✅" if results_df["hurst_hurst_near"].mean() > 0.6 else "❌",
+            "[OK]" if results_df["hurst_hurst_near"].mean() > 0.6 else "[FAIL]",
         ],
     ]
 
@@ -2883,8 +2889,11 @@ def plot_phase_transition_results(
         )
 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
-    print(f"\n✅ Visualization saved to: {save_path}")
-    plt.show()
+    print(f"\nVisualization saved to: {save_path}")
+    if plt.isinteractive():
+        plt.show()
+    else:
+        plt.close()
 
 
 # =============================================================================
@@ -3029,8 +3038,10 @@ class ClinicalDoCBiomarkerValidation:
         accuracy = accuracy_score(y, y_pred)
         sensitivity = recall_score(y, y_pred)  # True Positive Rate
         specificity = recall_score(y, 1 - y_pred)  # True Negative Rate
-        precision = precision_score(y, y_pred)
-        npv = precision_score(1 - y, 1 - y_pred)  # Negative Predictive Value
+        precision = precision_score(y, y_pred, zero_division=0)
+        npv = precision_score(
+            1 - y, 1 - y_pred, zero_division=0
+        )  # Negative Predictive Value
         roc_auc = roc_auc_score(y, y_pred_proba)
         f1 = f1_score(y, y_pred)
 
@@ -3184,8 +3195,12 @@ class ClinicalDoCBiomarkerValidation:
             accuracy = accuracy_score(vs_mcs_data["target"], predictions)
             sensitivity = recall_score(vs_mcs_data["target"], predictions)
             specificity = recall_score(1 - vs_mcs_data["target"], 1 - predictions)
-            precision = precision_score(vs_mcs_data["target"], predictions)
-            npv = precision_score(1 - vs_mcs_data["target"], 1 - predictions)
+            precision = precision_score(
+                vs_mcs_data["target"], predictions, zero_division=0
+            )
+            npv = precision_score(
+                1 - vs_mcs_data["target"], 1 - predictions, zero_division=0
+            )
 
             # ROC-AUC (using probability values)
             try:
@@ -3256,7 +3271,7 @@ def main():
         config.model.duration, example_input_gen, theta_noise_sd=0.08
     )
 
-    print("\n✅ Example simulation complete")
+    print("\n[OK] Example simulation complete")
     print(f"   Duration: {config.model.duration}s")
     print(f"   Ignition events: {len(example_history['ignition_events'])}")
 
@@ -3404,7 +3419,7 @@ def main():
     with open("protocol4_results.json", "w", encoding="utf-8") as f:
         json.dump(results_summary, f, indent=2)
 
-    print("✅ Results saved to: protocol4_results.json")
+    print("\n[OK] Results saved to: protocol4_results.json")
 
     print("\n" + "=" * 80)
     print("PROTOCOL 4 EXECUTION COMPLETE")

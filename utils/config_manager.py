@@ -526,9 +526,11 @@ class ConfigManager:
             "check_interval": self._hot_reload_check_interval,
             "registered_callbacks": len(self._config_change_callbacks),
             "config_file": str(self.config_file),
-            "last_modified": datetime.fromtimestamp(self._last_config_mtime).isoformat()
-            if self._last_config_mtime
-            else None,
+            "last_modified": (
+                datetime.fromtimestamp(self._last_config_mtime).isoformat()
+                if self._last_config_mtime
+                else None
+            ),
         }
 
     def _load_schema(self) -> Dict[str, Any]:
@@ -1114,13 +1116,13 @@ class ConfigManager:
         if total_errors == 0 and total_warnings == 0:
             report["summary"] = "Configuration is valid."
         elif total_errors == 0:
-            report[
-                "summary"
-            ] = f"Configuration is valid with {total_warnings} warning(s)."
+            report["summary"] = (
+                f"Configuration is valid with {total_warnings} warning(s)."
+            )
         else:
-            report[
-                "summary"
-            ] = f"Configuration has {total_errors} error(s) and {total_warnings} warning(s)."
+            report["summary"] = (
+                f"Configuration has {total_errors} error(s) and {total_warnings} warning(s)."
+            )
 
         return report
 

@@ -49,7 +49,7 @@ class ComputationalBenchmarking:
 
 
 def create_computational_benchmarking(
-    config: Optional[Dict[str, Any]] = None
+    config: Optional[Dict[str, Any]] = None,
 ) -> ComputationalBenchmarking:
     """Create computational benchmarking instance."""
     return ComputationalBenchmarking(config)
@@ -911,11 +911,11 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
                 # Add detailed neuromorphic criteria
                 "local_computation_support": param_count
                 <= 6,  # Can be implemented locally
-                "memory_requirements": "Low"
-                if param_count <= 4
-                else "Medium"
-                if param_count <= 8
-                else "High",
+                "memory_requirements": (
+                    "Low"
+                    if param_count <= 4
+                    else "Medium" if param_count <= 8 else "High"
+                ),
                 "power_efficiency": efficiency_bonus
                 > 0.7,  # Efficient enough for edge devices
                 "spiking_compatibility": framework_name
@@ -1198,9 +1198,9 @@ if __name__ == "__main__":
     # Validate implementations
     neuromorphic_validation = {}
     for framework_name, framework in benchmarker.frameworks.items():
-        neuromorphic_validation[
-            framework_name
-        ] = neuromorphic_sim.validate_implementation(framework)
+        neuromorphic_validation[framework_name] = (
+            neuromorphic_sim.validate_implementation(framework)
+        )
 
     # AI benchmarking
     ai_extension = AIBenchmarkingExtension()

@@ -484,12 +484,16 @@ class APGIP3bAnalyzer:
                 "at_75th_percentile_surprisal": float(p75),
             },
             "apgi_consistency": {
-                "alpha_sharpness": "Consistent with APGI threshold gating"
-                if alpha > 0.5
-                else "Unusually shallow",
-                "theta_position": "Consistent with APGI threshold range"
-                if 25 < theta_percentile < 75
-                else "Unusual threshold position",
+                "alpha_sharpness": (
+                    "Consistent with APGI threshold gating"
+                    if alpha > 0.5
+                    else "Unusually shallow"
+                ),
+                "theta_position": (
+                    "Consistent with APGI threshold range"
+                    if 25 < theta_percentile < 75
+                    else "Unusual threshold position"
+                ),
             },
         }
 
@@ -649,9 +653,9 @@ class APGINeuralSignaturesValidator:
         results["theta_gamma_coupling"] = self._analyze_theta_gamma_coupling()
 
         # 4. Subthreshold Analysis
-        results[
-            "subthreshold_local_activation"
-        ] = self._analyze_subthreshold_activations()
+        results["subthreshold_local_activation"] = (
+            self._analyze_subthreshold_activations()
+        )
 
         # Calculate overall validation score
         results["overall_validation_score"] = self._calculate_validation_score(results)
@@ -1453,9 +1457,9 @@ class APGINeuralSignaturesValidator:
                 "expected_asymptote": expected_asymptote,
                 "within_expected_range": within_expected_range,
                 "excessive_rate": excessive_rate,
-                "fitted_asymptote": float(fitted_asymptote)
-                if fitted_asymptote is not None
-                else None,
+                "fitted_asymptote": (
+                    float(fitted_asymptote) if fitted_asymptote is not None else None
+                ),
                 "fitted_tau": float(fitted_tau) if fitted_tau is not None else None,
                 "r_squared": float(r_squared) if r_squared is not None else None,
                 "asymptote_match": asymptote_match,

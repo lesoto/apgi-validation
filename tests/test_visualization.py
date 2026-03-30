@@ -1,8 +1,8 @@
 """
 Comprehensive tests for visualization functions in main.py.
 =======================================================
-Tests for _create_distribution_plot, _create_figure_and_axes, 
-_create_heatmap_plot, _create_plot_by_type, _create_scatter_plot, 
+Tests for _create_distribution_plot, _create_figure_and_axes,
+_create_heatmap_plot, _create_plot_by_type, _create_scatter_plot,
 _create_time_series_plot, _parse_visualization_parameters, _setup_plotting_style
 """
 

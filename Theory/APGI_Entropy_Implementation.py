@@ -59,7 +59,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.apgi_config import APGIConfig
 
-
 # ============================================================================
 # Data Structures and Constants
 # ============================================================================
@@ -191,9 +190,9 @@ class APGIState:
     entropy_history: List[EntropyOutput]  # Recent entropy calculations
 
     # NEW: Physical state tracking for thermodynamics (Optional fields at end)
-    prev_state: Optional[
-        torch.Tensor
-    ] = None  # Previous neural state for entropy production
+    prev_state: Optional[torch.Tensor] = (
+        None  # Previous neural state for entropy production
+    )
     prev_energies: Optional[torch.Tensor] = None  # Previous energy levels
     cumulative_entropy_production: torch.Tensor = None  # Cumulative dS/dt
 

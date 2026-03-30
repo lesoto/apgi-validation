@@ -5,7 +5,7 @@ meta_falsification.py
 Framework-level falsification layer as specified in the Epistemic Architecture Paper.
 
 The entire APGI framework is falsified if:
-1. "all 14+ predictions fail" 
+1. "all 14+ predictions fail"
 2. "an alternative framework makes all the same predictions"
 
 This module implements the meta-level check that aggregates results across all

@@ -3,7 +3,7 @@
 APGI Data Collector - Historical Data Collection Module
 ====================================================
 
-Collects and stores historical data from validation protocols, 
+Collects and stores historical data from validation protocols,
 system metrics, and performance data for the historical dashboard.
 """
 
@@ -68,8 +68,7 @@ class DataCollector:
                 cursor = conn.cursor()
 
                 # System metrics table
-                cursor.execute(
-                    """
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS system_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -80,12 +79,10 @@ class DataCollector:
                         network_connections INTEGER,
                         load_average REAL
                     )
-                """
-                )
+                """)
 
                 # Validation results table
-                cursor.execute(
-                    """
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS validation_results (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -98,12 +95,10 @@ class DataCollector:
                         success_rate REAL,
                         error_message TEXT
                     )
-                """
-                )
+                """)
 
                 # Performance metrics table
-                cursor.execute(
-                    """
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS performance_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -113,8 +108,7 @@ class DataCollector:
                         unit TEXT,
                         metadata TEXT
                     )
-                """
-                )
+                """)
 
                 conn.commit()
 

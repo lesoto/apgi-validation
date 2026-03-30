@@ -1698,13 +1698,13 @@ class APGITemporalDynamics:
         for modality, modality_signal in multimodal_data.items():
             if modality != primary_modality:
                 try:
-                    secondary_results[
-                        modality
-                    ] = self.protocol_1_validate_window_length(
-                        modality_signal,
-                        modality,
-                        window_range=(0.5, 4.0),
-                        n_windows_test=10,
+                    secondary_results[modality] = (
+                        self.protocol_1_validate_window_length(
+                            modality_signal,
+                            modality,
+                            window_range=(0.5, 4.0),
+                            n_windows_test=10,
+                        )
                     )
                 except (
                     ValueError,
@@ -4092,15 +4092,15 @@ def validate_joint_biomarker_advantage(
         "interpretation": interpretation,
         "n_samples": n_samples,
         # Include model coefficients for inspection
-        "hep_coefficients": hep_model.coef_.tolist()
-        if hasattr(hep_model, "coef_")
-        else None,
-        "pci_coefficients": pci_model.coef_.tolist()
-        if hasattr(pci_model, "coef_")
-        else None,
-        "joint_coefficients": joint_model.coef_.tolist()
-        if hasattr(joint_model, "coef_")
-        else None,
+        "hep_coefficients": (
+            hep_model.coef_.tolist() if hasattr(hep_model, "coef_") else None
+        ),
+        "pci_coefficients": (
+            pci_model.coef_.tolist() if hasattr(pci_model, "coef_") else None
+        ),
+        "joint_coefficients": (
+            joint_model.coef_.tolist() if hasattr(joint_model, "coef_") else None
+        ),
     }
 
 

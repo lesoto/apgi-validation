@@ -414,9 +414,9 @@ class ErrorRecoveryManager:
             error_types[err_type] = error_types.get(err_type, 0) + 1
 
         return {
-            "status": "degraded"
-            if severity_counts.get("critical", 0) > 0
-            else "healthy",
+            "status": (
+                "degraded" if severity_counts.get("critical", 0) > 0 else "healthy"
+            ),
             "error_count": len(recent_errors),
             "severity_breakdown": severity_counts,
             "top_error_types": sorted(

@@ -16,7 +16,7 @@ _dir = Path(__file__).parent
 # Protocol 1: Active Inference Agent Testing - mapped to existing FP_1_Falsification_ActiveInferenceAgents_F1F2
 try:
     _spec1 = importlib.util.spec_from_file_location(
-        "Protocol_1", _dir / "FP_1_Falsification_ActiveInferenceAgents_F1F2.py"
+        "Protocol_1", _dir / "FP_01_ActiveInference_F1F2.py"
     )
     if _spec1 and _spec1.loader:
         Protocol_1 = importlib.util.module_from_spec(_spec1)
@@ -27,11 +27,10 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 1: {e}")
     Protocol_1 = None
 
-# Protocol 2: Iowa Gambling Task Environment - mapped to existing protocol
-# Note: No direct equivalent exists, using FrameworkLevel as placeholder
+# Protocol 2: Iowa Gambling Task Environment - mapped to FP_02_AgentComparison_ConvergenceBenchmark
 try:
     _spec2 = importlib.util.spec_from_file_location(
-        "Protocol_2", _dir / "FP_3_Falsification_FrameworkLevel_MultiProtocol.py"
+        "Protocol_2", _dir / "FP_02_AgentComparison_ConvergenceBenchmark.py"
     )
     if _spec2 and _spec2.loader:
         Protocol_2 = importlib.util.module_from_spec(_spec2)
@@ -42,11 +41,11 @@ except Exception as e:
     warnings.warn(f"Failed to load Falsification Protocol 2: {e}")
     Protocol_2 = None
 
-# Protocol 3: Agent Comparison Experiment - mapped to existing FP_2_Falsification_AgentComparison_ConvergenceBenchmark
+# Protocol 3: Agent Comparison Experiment - mapped to FP_03_FrameworkLevel_MultiProtocol
 try:
     _spec3 = importlib.util.spec_from_file_location(
         "Protocol_3",
-        _dir / "FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py",
+        _dir / "FP_03_FrameworkLevel_MultiProtocol.py",
     )
     if _spec3 and _spec3.loader:
         Protocol_3 = importlib.util.module_from_spec(_spec3)
@@ -61,7 +60,7 @@ except Exception as e:
 try:
     _spec4 = importlib.util.spec_from_file_location(
         "Protocol_4",
-        _dir / "FP_4_Falsification_InformationTheoretic_PhaseTransition.py",
+        _dir / "FP_04_PhaseTransition_EpistemicArchitecture.py",
     )
     if _spec4 and _spec4.loader:
         Protocol_4 = importlib.util.module_from_spec(_spec4)
@@ -75,7 +74,7 @@ except Exception as e:
 # Protocol 5: Evolutionary APGI Emergence - uses existing Falsification_Protocol_P5
 try:
     _spec5 = importlib.util.spec_from_file_location(
-        "Protocol_5", _dir / "Falsification_Protocol_P5.py"
+        "Protocol_5", _dir / "FP_05_EvolutionaryPlausibility.py"
     )
     if _spec5 and _spec5.loader:
         Protocol_5 = importlib.util.module_from_spec(_spec5)
@@ -89,7 +88,7 @@ except Exception as e:
 # Protocol 6: Network Comparison Experiment - uses existing Falsification_Protocol_P6
 try:
     _spec6 = importlib.util.spec_from_file_location(
-        "Protocol_6", _dir / "Falsification_Protocol_P6.py"
+        "Protocol_6", _dir / "FP_06_LiquidNetwork_EnergyBenchmark.py"
     )
     if _spec6 and _spec6.loader:
         Protocol_6 = importlib.util.module_from_spec(_spec6)
@@ -103,18 +102,18 @@ except Exception as e:
 # Framework-Level Aggregator
 try:
     _spec_aggregator = importlib.util.spec_from_file_location(
-        "FP_12_Falsification_Aggregator", _dir / "FP_12_Falsification_Aggregator.py"
+        "FP_ALL_Aggregator", _dir / "FP_ALL_Aggregator.py"
     )
     if _spec_aggregator and _spec_aggregator.loader:
-        FP_12_Falsification_Aggregator = importlib.util.module_from_spec(
+        FP_ALL_Falsification_Aggregator = importlib.util.module_from_spec(
             _spec_aggregator
         )
-        _spec_aggregator.loader.exec_module(FP_12_Falsification_Aggregator)
+        _spec_aggregator.loader.exec_module(FP_ALL_Falsification_Aggregator)
     else:
-        raise ImportError("Could not load FP_12_Falsification_Aggregator")
+        raise ImportError("Could not load FP_ALL_Falsification_Aggregator")
 except Exception as e:
-    warnings.warn(f"Failed to load FP_12_Falsification_Aggregator: {e}")
-    FP_12_Falsification_Aggregator = None
+    warnings.warn(f"Failed to load FP_ALL_Falsification_Aggregator: {e}")
+    FP_ALL_Falsification_Aggregator = None
 
 # GUI Components - Not loaded at import to avoid tkinter side effects
 ProtocolRunnerGUI = None
@@ -122,24 +121,20 @@ ProtocolRunnerGUI = None
 # Protocol 1 exports
 if Protocol_1:
     try:
-        HierarchicalGenerativeModel = Protocol_1.HierarchicalGenerativeModel
-        SomaticMarkerNetwork = Protocol_1.SomaticMarkerNetwork
-        PolicyNetwork = Protocol_1.PolicyNetwork
-        HabitualPolicy = Protocol_1.HabitualPolicy
-        EpisodicMemory = Protocol_1.EpisodicMemory
-        WorkingMemory = Protocol_1.WorkingMemory
-        APGIActiveInferenceAgent = Protocol_1.APGIActiveInferenceAgent
-        StandardPPAgent_P1 = Protocol_1.StandardPPAgent
-        GWTOnlyAgent_P1 = Protocol_1.GWTOnlyAgent
-        run_falsification_protocol_1 = Protocol_1.run_falsification
-    except AttributeError as e:
+        HierarchicalGenerativeModel = getattr(
+            Protocol_1, "HierarchicalGenerativeModel", None
+        )
+        SomaticMarkerNetwork = getattr(Protocol_1, "SomaticMarkerNetwork", None)
+        PolicyNetwork = getattr(Protocol_1, "PolicyNetwork", None)
+        HabitualPolicy = getattr(Protocol_1, "HabitualPolicy", None)
+        EpisodicMemory = getattr(Protocol_1, "EpisodicMemory", None)
+        WorkingMemory = getattr(Protocol_1, "WorkingMemory", None)
+        APGIActiveInferenceAgent = getattr(Protocol_1, "APGIActiveInferenceAgent", None)
+        StandardPPAgent_P1 = getattr(Protocol_1, "StandardPPAgent", None)
+        GWTOnlyAgent_P1 = getattr(Protocol_1, "GWTOnlyAgent", None)
+        run_falsification_protocol_1 = getattr(Protocol_1, "run_falsification", None)
+    except Exception as e:
         warnings.warn(f"Failed to load Protocol 1 exports: {e}")
-    else:
-        # Set defaults to None
-        HierarchicalGenerativeModel = SomaticMarkerNetwork = PolicyNetwork = None
-        HabitualPolicy = EpisodicMemory = WorkingMemory = None
-        APGIActiveInferenceAgent = StandardPPAgent_P1 = GWTOnlyAgent_P1 = None
-        run_falsification_protocol_1 = None
 else:
     HierarchicalGenerativeModel = SomaticMarkerNetwork = PolicyNetwork = None
     HabitualPolicy = EpisodicMemory = WorkingMemory = None
@@ -231,7 +226,7 @@ __all__ = [
     "Protocol_5",
     "Protocol_6",
     # Framework-Level Aggregator
-    "FP_12_Falsification_Aggregator",
+    "FP_ALL_Falsification_Aggregator",
     # Protocol 1
     "HierarchicalGenerativeModel",
     "SomaticMarkerNetwork",

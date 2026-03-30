@@ -56,6 +56,9 @@ for module_name in SPECIALIZED_MODULE_NAMES:
             file_path = Path(__file__).parent.parent / f"{module_name}.py"
             if not file_path.exists():
                 file_path = Path(__file__).parent.parent / "utils" / f"{module_name}.py"
+        elif module_name == "main.py":
+            # main.py is in root directory, already has .py extension
+            file_path = Path(__file__).parent.parent / module_name
         else:
             # Regular APGI modules - check Theory directory first
             file_path = Path(__file__).parent.parent / "Theory" / f"{module_name}.py"
@@ -68,6 +71,8 @@ for module_name in SPECIALIZED_MODULE_NAMES:
             if spec and spec.loader:
                 try:
                     module = importlib.util.module_from_spec(spec)
+                    # Pre-register in sys.modules for Python 3.14+ dataclass compatibility
+                    sys.modules[import_name] = module
                     spec.loader.exec_module(module)
                     SPECIALIZED_MODULES[module_name] = module
                 except AttributeError as e:
@@ -714,8 +719,12 @@ class TestMainModule:
         module = SPECIALIZED_MODULES["main.py"]
 
         try:
-            # Check that main module has expected functions
-            assert hasattr(module, "main") or hasattr(module, "run_main")
+            # Check that main module has expected functions (cli is the Click entry point)
+            assert (
+                hasattr(module, "cli")
+                or hasattr(module, "main")
+                or hasattr(module, "run_main")
+            )
 
         except Exception:
             assert True  # Expected if structure different
@@ -728,9 +737,11 @@ class TestMainModule:
         module = SPECIALIZED_MODULES["main.py"]
 
         try:
-            # Look for main function
-            if hasattr(module, "main"):
-                # Test main function exists and is callable
+            # Look for main function or cli entry point
+            if hasattr(module, "cli"):
+                # Test cli function exists and is callable
+                assert callable(module.cli)
+            elif hasattr(module, "main"):
                 assert callable(module.main)
             elif hasattr(module, "run_main"):
                 assert callable(module.run_main)

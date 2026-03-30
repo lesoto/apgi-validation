@@ -41,12 +41,12 @@ pydantic>=2.0.0,<2.1.0
 # Database
 sqlalchemy>=2.0.0,<3.0.0
 
-# Async task queue
+# Database migrations
 alembic>=1.13.0,<2.0.0
 
 # System utilities
 python-dateutil>=2.8.0,<2.9.0
-pytz>=2021.3,<2024.0
+pytz>=2021.3
 psutil>=5.8.0,<5.9.0
 
 # Data serialization
@@ -62,8 +62,8 @@ numba>=0.60.0,<1.0.0
 nolds>=0.5.2,<0.6.0
 
 # Cryptography and security
-cryptography>=44.0.0,<45.0.0
-requests>=2.25.0,<2.26.0
+cryptography>=42.0.0,<44.0.0
+requests>=2.31.0,<3.0.0
 
 # Environment variables
 python-dotenv>=1.0.0,<2.0.0
@@ -76,4 +76,4 @@ arviz>=0.16.0,<1.0.0
 sympy>=1.12,<2.0.0
 
 # Sensitivity analysis (for parameter sensitivity & identifiability)
-SALib>=1.4.0,<2.0.0
+salib>=1.4.0,<2.0.0

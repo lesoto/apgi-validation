@@ -593,9 +593,9 @@ class ChainIntegrityVerifier:
             "total_entries": verification.get("total_entries", 0),
             "chain_hash": self.chain_hashes.get(file_key, "0"),
             "entry_count": self.entry_counters.get(file_key, 0),
-            "verification_status": "VERIFIED"
-            if verification["verified"]
-            else "TAMPERED",
+            "verification_status": (
+                "VERIFIED" if verification["verified"] else "TAMPERED"
+            ),
             "chain_valid": verification.get("chain_valid", False),
             "tampered_entries": len(verification.get("tampered_entries", [])),
             "missing_entries": len(verification.get("missing_entries", [])),
@@ -724,9 +724,9 @@ class LogAggregator:
         )
 
         # Cache the analysis
-        self.analysis_cache[
-            f"{start_time.isoformat()}_{end_time.isoformat()}"
-        ] = analysis
+        self.analysis_cache[f"{start_time.isoformat()}_{end_time.isoformat()}"] = (
+            analysis
+        )
 
         return analysis
 
@@ -849,9 +849,11 @@ class ReportGenerator:
             "APGI Framework - Log Integrity Report",
             "=" * 80,
             f"Generated: {analysis.end_time.isoformat()}",
-            f"Time Range: {analysis.start_time.isoformat()} to {analysis.end_time.isoformat()}"
-            if analysis.start_time and analysis.end_time
-            else "N/A",
+            (
+                f"Time Range: {analysis.start_time.isoformat()} to {analysis.end_time.isoformat()}"
+                if analysis.start_time and analysis.end_time
+                else "N/A"
+            ),
         ]
 
         # Add integrity results
@@ -872,9 +874,11 @@ class ReportGenerator:
             "APGI Framework - Performance Metrics Report",
             "=" * 80,
             f"Generated: {analysis.end_time.isoformat()}",
-            f"Time Range: {analysis.start_time.isoformat()} to {analysis.end_time.isoformat()}"
-            if analysis.start_time and analysis.end_time
-            else "N/A",
+            (
+                f"Time Range: {analysis.start_time.isoformat()} to {analysis.end_time.isoformat()}"
+                if analysis.start_time and analysis.end_time
+                else "N/A"
+            ),
         ]
 
         # Add performance metrics by level
@@ -894,9 +898,11 @@ class ReportGenerator:
             "APGI Framework - Security Report",
             "=" * 80,
             f"Generated: {analysis.end_time.isoformat()}",
-            f"Time Range: {analysis.start_time.isoformat()} to {analysis.end_time.isoformat()}"
-            if analysis.start_time and analysis.end_time
-            else "N/A",
+            (
+                f"Time Range: {analysis.start_time.isoformat()} to {analysis.end_time.isoformat()}"
+                if analysis.start_time and analysis.end_time
+                else "N/A"
+            ),
         ]
 
         # Add security issues
@@ -919,9 +925,11 @@ class ReportGenerator:
             "APGI Framework - Anomaly Detection Report",
             "=" * 80,
             f"Generated: {analysis.end_time.isoformat()}",
-            f"Time Range: {analysis.start_time.isoformat()} to {analysis.end_time.isoformat()}"
-            if analysis.start_time and analysis.end_time
-            else "N/A",
+            (
+                f"Time Range: {analysis.start_time.isoformat()} to {analysis.end_time.isoformat()}"
+                if analysis.start_time and analysis.end_time
+                else "N/A"
+            ),
         ]
 
         # Add anomalies by type
@@ -940,9 +948,11 @@ class ReportGenerator:
             "APGI Framework - Log Analysis Summary",
             "=" * 80,
             f"Generated: {analysis.end_time.isoformat()}",
-            f"Time Range: {analysis.start_time.isoformat()} to {analysis.end_time.isoformat()}"
-            if analysis.start_time and analysis.end_time
-            else "N/A",
+            (
+                f"Time Range: {analysis.start_time.isoformat()} to {analysis.end_time.isoformat()}"
+                if analysis.start_time and analysis.end_time
+                else "N/A"
+            ),
         ]
 
         # Add overview statistics
@@ -995,9 +1005,11 @@ class ReportGenerator:
             "=" * 80,
             f"Period: {period_name}",
             f"Generated: {datetime.now().isoformat()}",
-            f"Analysis Time Range: {analysis.start_time.strftime('%Y-%m-%d %H:%M')} to {analysis.end_time.strftime('%Y-%m-%d %H:%M')}"
-            if analysis.start_time and analysis.end_time
-            else "Analysis Time Range: N/A",
+            (
+                f"Analysis Time Range: {analysis.start_time.strftime('%Y-%m-%d %H:%M')} to {analysis.end_time.strftime('%Y-%m-%d %H:%M')}"
+                if analysis.start_time and analysis.end_time
+                else "Analysis Time Range: N/A"
+            ),
             "",
             "KEY METRICS",
             "-" * 40,
@@ -1271,9 +1283,7 @@ class ReportGenerator:
             z_critical = (
                 1.96
                 if confidence_level == 0.95
-                else 2.576
-                if confidence_level == 0.99
-                else 1.645
+                else 2.576 if confidence_level == 0.99 else 1.645
             )
 
             # Test error rate change

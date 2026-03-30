@@ -749,9 +749,9 @@ class OpenScienceValidator:
         if (Path(project_path) / "data").exists():
             datasets = list((Path(project_path) / "data").glob("*"))
             if datasets:
-                compliance_results[
-                    "data_sharing"
-                ] = self.data_protocol.validate_dataset_compliance(str(datasets[0]))
+                compliance_results["data_sharing"] = (
+                    self.data_protocol.validate_dataset_compliance(str(datasets[0]))
+                )
 
         # Check for preregistration
         prereg_files = list(Path(project_path).glob("*prereg*.json"))

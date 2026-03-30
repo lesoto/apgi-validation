@@ -501,19 +501,23 @@ class APGILogger:
                     "line": record.get("line", 0),
                 },
                 "process": {
-                    "pid": getattr(record.get("process"), type("", (), {"id": None})).id
-                    if hasattr(record.get("process"), "id")
-                    else None,
-                    "thread": getattr(
-                        record.get("thread"), type("", (), {"name": "unknown"})
-                    ).name
-                    if hasattr(record.get("thread"), "name")
-                    else None,
-                    "thread_id": getattr(
-                        record.get("thread"), type("", (), {"id": None})
-                    ).id
-                    if hasattr(record.get("thread"), "id")
-                    else None,
+                    "pid": (
+                        getattr(record.get("process"), type("", (), {"id": None})).id
+                        if hasattr(record.get("process"), "id")
+                        else None
+                    ),
+                    "thread": (
+                        getattr(
+                            record.get("thread"), type("", (), {"name": "unknown"})
+                        ).name
+                        if hasattr(record.get("thread"), "name")
+                        else None
+                    ),
+                    "thread_id": (
+                        getattr(record.get("thread"), type("", (), {"id": None})).id
+                        if hasattr(record.get("thread"), "id")
+                        else None
+                    ),
                 },
                 "context": dict(record.get("extra", {})),
             }
@@ -522,9 +526,9 @@ class APGILogger:
             if "exception" in record and record["exception"]:
                 exc = record["exception"]
                 log_entry["exception"] = {
-                    "type": exc.type.__name__
-                    if hasattr(exc, "type") and exc.type
-                    else None,
+                    "type": (
+                        exc.type.__name__ if hasattr(exc, "type") and exc.type else None
+                    ),
                     "value": str(exc.value) if hasattr(exc, "value") else None,
                     "traceback": exc.traceback if hasattr(exc, "traceback") else None,
                 }

@@ -159,9 +159,11 @@ def extract_genome_data_from_vp5(
     )
 
     genome_data = {
-        "evolved_alpha_values": intero_gain_ratios.tolist()
-        if isinstance(intero_gain_ratios, np.ndarray)
-        else intero_gain_ratios,
+        "evolved_alpha_values": (
+            intero_gain_ratios.tolist()
+            if isinstance(intero_gain_ratios, np.ndarray)
+            else intero_gain_ratios
+        ),
         "timescale_correlations": [],
         "intero_gain_ratios": (
             intero_gain_ratios.tolist()

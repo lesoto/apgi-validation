@@ -801,11 +801,11 @@ def verify_threshold_stability() -> Dict[str, Any]:
             simulation_results[scenario] = {
                 "final_threshold": float(final_theta),
                 "threshold_change": float(theta_change),
-                "trend": "increasing"
-                if theta_change > 0.01
-                else "decreasing"
-                if theta_change < -0.01
-                else "stable",
+                "trend": (
+                    "increasing"
+                    if theta_change > 0.01
+                    else "decreasing" if theta_change < -0.01 else "stable"
+                ),
             }
 
         results["threshold_dynamics_simulations"] = simulation_results
@@ -840,9 +840,9 @@ def verify_effective_precision() -> Dict[str, Any]:
         Pi_i_eff_exp = Pi_i_baseline * exp(beta * M)
 
         results["exponential_formulation"] = str(Pi_i_eff_exp)
-        results[
-            "clipped_formulation"
-        ] = "Pi_i_baseline * exp(beta * M) clipped to [0.1, 15.0]"
+        results["clipped_formulation"] = (
+            "Pi_i_baseline * exp(beta * M) clipped to [0.1, 15.0]"
+        )
 
         # Test monotonicity of exponential formulation
         # d(Pi_i_eff)/dM = Pi_i_baseline * beta * exp(beta * M) > 0
@@ -915,9 +915,9 @@ def verify_effective_precision() -> Dict[str, Any]:
         results["sensitivity_numerical"] = sensitivity_numerical
 
         # Recommendation based on analysis
-        results[
-            "recommendation"
-        ] = "Mandated exponential formulation Πⁱ_eff = Πⁱ_baseline · exp(β·M) is implemented and verified."
+        results["recommendation"] = (
+            "Mandated exponential formulation Πⁱ_eff = Πⁱ_baseline · exp(β·M) is implemented and verified."
+        )
         results["effective_precision_success"] = True
 
     except Exception as e:

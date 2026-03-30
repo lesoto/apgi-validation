@@ -282,9 +282,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # Load modules with hyphens using importlib
 formal_model_spec = importlib.util.spec_from_file_location(
     "SurpriseIgnitionSystem",
-    PROJECT_ROOT
-    / "Falsification"
-    / "FP_4_Falsification_InformationTheoretic_PhaseTransition.py",
+    PROJECT_ROOT / "Falsification" / "FP_04_PhaseTransition_EpistemicArchitecture.py",
 )
 formal_model_module = importlib.util.module_from_spec(formal_model_spec)
 formal_model_spec.loader.exec_module(formal_model_module)
@@ -593,12 +591,12 @@ class BatchProcessor:
             "results": results,
             "summary": {
                 "total_ignitions": np.sum(results["B"]),
-                "mean_surprise": np.mean(results["S"])
-                if len(results["S"]) > 0
-                else 0.0,
-                "mean_threshold": np.mean(results["theta"])
-                if len(results["theta"]) > 0
-                else 0.0,
+                "mean_surprise": (
+                    np.mean(results["S"]) if len(results["S"]) > 0 else 0.0
+                ),
+                "mean_threshold": (
+                    np.mean(results["theta"]) if len(results["theta"]) > 0 else 0.0
+                ),
                 "final_state": {
                     "S": results["S"][-1] if len(results["S"]) > 0 else 0.0,
                     "theta": results["theta"][-1] if len(results["theta"]) > 0 else 0.0,

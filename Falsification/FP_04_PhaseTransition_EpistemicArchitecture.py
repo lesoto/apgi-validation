@@ -8,7 +8,6 @@ from scipy.stats import entropy
 from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix
 from sklearn.utils import resample
 
-# Try to import torch for ThermodynamicEntropyCalculator
 try:
     import torch
     import torch.nn as nn

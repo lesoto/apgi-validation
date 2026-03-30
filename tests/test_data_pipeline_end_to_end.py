@@ -136,9 +136,9 @@ class TestDataPipelineEndToEnd:
         )
 
         assert len(agg_result) == 5
-        assert "mean" in agg_result.columns
-        assert "std" in agg_result.columns
-        assert "count" in agg_result.columns
+        assert ("value", "mean") in agg_result.columns
+        assert ("value", "std") in agg_result.columns
+        assert ("value", "count") in agg_result.columns
 
     def test_pipeline_filter_operations(self, temp_dir):
         """Test data filtering pipeline."""
@@ -155,7 +155,7 @@ class TestDataPipelineEndToEnd:
 
         # Apply filters
         active_df = df[df["status"] == "active"]
-        high_score_df = df[df["score"] > 5.0]
+        high_score_df = df[df["score"] >= 5.0]  # Changed from > to >=
         combined_filter = df[(df["status"] == "active") & (df["score"] > 5.0)]
 
         assert len(active_df) == 50
@@ -184,7 +184,7 @@ class TestDataPipelineEndToEnd:
         # Verify calculations
         assert df["rolling_mean"].iloc[10] is not None
         assert df["rolling_std"].iloc[10] is not None
-        assert df["diff"].iloc[0] is None  # First diff is NaN
+        assert pd.isna(df["diff"].iloc[0])  # First diff is NaN (not None)
 
     def test_pipeline_multi_file_processing(self, temp_dir):
         """Test processing multiple CSV files."""

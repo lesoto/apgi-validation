@@ -150,17 +150,19 @@ def compute_spectral_slope_specparam(
 
         # Extract results
         results = {
-            "exponent": fm.aperiodic_params_[1]
-            if len(fm.aperiodic_params_) >= 2
-            else np.nan,
-            "offset": fm.aperiodic_params_[0]
-            if len(fm.aperiodic_params_) >= 1
-            else np.nan,
+            "exponent": (
+                fm.aperiodic_params_[1] if len(fm.aperiodic_params_) >= 2 else np.nan
+            ),
+            "offset": (
+                fm.aperiodic_params_[0] if len(fm.aperiodic_params_) >= 1 else np.nan
+            ),
             "r_squared": fm.r_squared_,
             "error": fm.error_,
-            "knee": fm.aperiodic_params_[1]
-            if aperiodic_mode == "knee" and len(fm.aperiodic_params_) >= 2
-            else np.nan,
+            "knee": (
+                fm.aperiodic_params_[1]
+                if aperiodic_mode == "knee" and len(fm.aperiodic_params_) >= 2
+                else np.nan
+            ),
             "n_peaks": len(fm.peak_params_) if hasattr(fm, "peak_params_") else 0,
             "fit_success": True,
             "error_message": None,
@@ -471,14 +473,18 @@ def compare_fooof_vs_loglog(
         "fooof": fooof_results,
         "loglog": loglog_results,
         "difference": {
-            "exponent_diff": fooof_results["exponent"] - loglog_results["exponent"]
-            if np.isfinite(fooof_results["exponent"])
-            and np.isfinite(loglog_results["exponent"])
-            else np.nan,
-            "r_squared_diff": fooof_results["r_squared"] - loglog_results["r_squared"]
-            if np.isfinite(fooof_results["r_squared"])
-            and np.isfinite(loglog_results["r_squared"])
-            else np.nan,
+            "exponent_diff": (
+                fooof_results["exponent"] - loglog_results["exponent"]
+                if np.isfinite(fooof_results["exponent"])
+                and np.isfinite(loglog_results["exponent"])
+                else np.nan
+            ),
+            "r_squared_diff": (
+                fooof_results["r_squared"] - loglog_results["r_squared"]
+                if np.isfinite(fooof_results["r_squared"])
+                and np.isfinite(loglog_results["r_squared"])
+                else np.nan
+            ),
         },
     }
 

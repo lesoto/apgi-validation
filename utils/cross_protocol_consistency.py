@@ -536,7 +536,7 @@ class CrossProtocolConsistencyChecker:
 
 
 def run_cross_protocol_consistency_check(
-    protocol_results: Dict[str, Dict]
+    protocol_results: Dict[str, Dict],
 ) -> Dict[str, Any]:
     """
     Run cross-protocol consistency check.
