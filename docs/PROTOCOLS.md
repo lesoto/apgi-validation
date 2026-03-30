@@ -116,9 +116,9 @@ Full cross-reference of all FP (Falsification Protocol) and VP (Validation Proto
 
 | Prediction ID | Description | Source Protocol | Falsified if… |
 | --------------- | ------------- | ----------------- | --------------- |
-| P1.1 | Interoceptive precision modulates detection threshold (d=0.40–0.60) | FP-1 / FP_01_ActiveInference_F1F2 | d <0.35 or p≥0.01 |
-| P1.2 | Arousal amplifies the Πⁱ–threshold relationship | FP-1 / FP_01_ActiveInference_F1F2 | Interaction p≥0.01 |
-| P1.3 | High-IA individuals show stronger arousal benefit | FP-1 / FP_01_ActiveInference_F1F2 | Effect absent or reversed |
+| P1.1 | Interoceptive precision modulates detection threshold (d=0.40–0.60) | FP-1 / FP_01_ActiveInference | d <0.35 or p≥0.01 |
+| P1.2 | Arousal amplifies the Πⁱ–threshold relationship | FP-1 / FP_01_ActiveInference | Interaction p≥0.01 |
+| P1.3 | High-IA individuals show stronger arousal benefit | FP-1 / FP_01_ActiveInference | Effect absent or reversed |
 | P2.a | dlPFC TMS shifts threshold >0.1 log units | VP-10 (TMS/Pharmacological) | Shift <0.05 log units |
 | P2.b | Insula TMS reduces HEP ~30% AND PCI ~20% (double dissociation) | VP-10 (TMS/Pharmacological) | Either reduction absent |
 | P2.c | High-IA × insula TMS interaction | VP-10 (TMS/Pharmacological) | Interaction p≥0.05 |
@@ -130,14 +130,14 @@ Full cross-reference of all FP (Falsification Protocol) and VP (Validation Proto
 | P4.d | Baseline PCI+HEP predicts 6-month recovery ΔR²>0.10 | FP-9 / FP_09_NeuralSignatures | ΔR² <0.05 |
 | P5.a | vmPFC to SCR anticipatory correlation r>0.40 | FP-5 / FP_05_EvolutionaryPlausibility | r <0.25 |
 | P5.b | vmPFC uncorrelated with posterior insula (r<0.20) | FP-5 / FP_05_EvolutionaryPlausibility | r >0.30 |
-| fp10a_mcmc | Bayesian MCMC: Gelman–Rubin R̂ ≤1.01 (convergence) | FP-10 Dispatcher / FP_10_BayesianEstimation_MCMC | R̂ >1.01 |
-| fp10b_bf | BF₁₀ ≥3 for APGI vs StandardPP / GWT | FP-10 Dispatcher / FP_10_BayesianEstimation_MCMC | BF₁₀ <3 |
-| fp10c_mae | APGI ≥20% lower MAE than alternatives | FP-10 Dispatcher / FP_10_BayesianEstimation_MCMC | MAE reduction <20% |
-| fp10b_scaling | Cross-species scaling: allometric exponents within ±2 SD | FP-10 Dispatcher / FP_12_CrossSpeciesScaling | Exponents >2 SD from expectation |
+| fp10a_mcmc | Bayesian MCMC: Gelman–Rubin R̂ ≤1.01 (convergence) | FP_10_BayesianEstimation_MCMC | R̂ >1.01 |
+| fp10b_bf | BF₁₀ ≥3 for APGI vs StandardPP / GWT | FP_10_BayesianEstimation_MCMC | BF₁₀ <3 |
+| fp10c_mae | APGI ≥20% lower MAE than alternatives | FP_10_BayesianEstimation_MCMC | MAE reduction <20% |
+| fp10b_scaling | Cross-species scaling: allometric exponents within ±2 SD | FP_12_CrossSpeciesScaling | Exponents >2 SD from expectation |
 
-**Source:** Compiled from direct audit of FP_01–FP_09, FP_10_BayesianEstimation_MCMC, FP_11_LiquidNetworkDynamics_EchoState, FP_12_CrossSpeciesScaling, FP_10_Dispatcher, FP_ALL_Aggregator, and knowledge-base documents *APGI Series Structure, All Four Papers* and *APGI_Series_TOC_All_Papers*.
+**Source:** Compiled from direct audit of FP_01–FP_09, FP_10_BayesianEstimation_MCMC, FP_11_LiquidNetworkDynamics_EchoState, FP_12_CrossSpeciesScaling, FP_ALL_Aggregator, and knowledge-base documents *APGI Series Structure, All Four Papers* and *APGI_Series_TOC_All_Papers*.
 
-**FP-10 note:** FP-10 is internally split into FP10a (Bayesian MCMC — *FP_10_BayesianEstimation_MCMC.py*) and FP10b (Cross-Species Scaling — *FP_12_CrossSpeciesScaling.py*), routed by *FP_10_Dispatcher.py*. Both must pass; either failure falsifies FP-10.
+**FP-10 note:** FP-10 is internally split into FP10a (Bayesian MCMC — *FP_10_BayesianEstimation_MCMC.py*) and FP10b (Cross-Species Scaling — *FP_12_CrossSpeciesScaling.py*). Both must pass; either failure falsifies FP-10.
 
 **FP-11 note:** *FP_11_LiquidNetworkDynamics_EchoState.py* re-implements and extends FP-6 (F6.1–F6.6) using echo state / liquid time-constant network methods. It explicitly runs "VP-6 specific tests for LTCN" (V6.1 threshold transition, V6.2 integration window) and LNN substrate topology tests described as "from Paper 2."
 

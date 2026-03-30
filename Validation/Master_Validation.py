@@ -112,7 +112,7 @@ class APGIMasterValidator:
                 "description": "Phase Transition / Epistemic Architecture Level 2",
             },
             "Protocol-5": {
-                "file": "VP_05_fMRI_Anticipation.py",
+                "file": "VP_15_fMRI_Anticipation_vmPFC.py",
                 "function": "run_validation",
                 "description": "fMRI Interoceptive Anticipation/Experience Paradigm (PENDING — awaiting data)",
             },
@@ -152,7 +152,7 @@ class APGIMasterValidator:
                 "description": "Clinical Cross-Species Convergence (Paper 1 — Protocol 4)",
             },
             "Protocol-13": {
-                "file": "VP_13_Epistemic_Architecture_P5_P12.py",
+                "file": "VP_13_Epistemic_Architecture.py",
                 "function": "run_validation",
                 "description": "Epistemic Architecture Predictions P5–P12 (Paper 4)",
             },

@@ -200,7 +200,7 @@ def _get_protocol1():
         protocol1_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "FP_01_ActiveInference_F1F2.py",
+                "FP_01_ActiveInference.py",
             )
         )
         if not os.path.exists(protocol1_path):
@@ -513,7 +513,7 @@ class AgentComparisonExperiment:
         # Note: Protocol 3 is the agent comparison protocol (VP_3_ActiveInference_AgentSimulations_Protocol3.py)
         # which produces P3.conv and P3.bic predictions
         protocol_files = {
-            1: "FP_01_ActiveInference_F1F2.py",
+            1: "FP_01_ActiveInference.py",
             2: "FP_02_AgentComparison_ConvergenceBenchmark.py",
             3: "../Validation/VP_03_ActiveInference_AgentSimulations.py",
             6: "FP_05_EvolutionaryPlausibility.py",

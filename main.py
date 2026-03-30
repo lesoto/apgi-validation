@@ -2435,7 +2435,7 @@ def monitor_performance(
                         # Import the cross-species scaling module
                         spec = importlib.util.spec_from_file_location(
                             "APGI_Cross_Species_Scaling",
-                            PROJECT_ROOT / "APGI_Cross_Species_Scaling.py",
+                            PROJECT_ROOT / "Theory" / "APGI_Cross_Species_Scaling.py",
                         )
                         cross_species_module = importlib.util.module_from_spec(spec)
                         spec.loader.exec_module(cross_species_module)
@@ -3191,7 +3191,7 @@ def neural_signatures(
         # Import the neural signatures validator
         spec = importlib.util.spec_from_file_location(
             "neural_signatures",
-            PROJECT_ROOT / "Validation" / "Validation_Protocol_9.py",
+            PROJECT_ROOT / "Validation" / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
         )
         neural_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(neural_module)
@@ -3243,7 +3243,7 @@ def causal_manipulations(
         # Import the causal manipulations validator
         spec = importlib.util.spec_from_file_location(
             "causal_manipulations",
-            PROJECT_ROOT / "Validation" / "Validation_Protocol_10.py",
+            PROJECT_ROOT / "Validation" / "VP_10_CausalManipulations_Priority2.py",
         )
         causal_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(causal_module)
@@ -3304,7 +3304,7 @@ def quantitative_fits(
         # Import the quantitative fits validator
         spec = importlib.util.spec_from_file_location(
             "quantitative_fits",
-            PROJECT_ROOT / "Validation" / "VP_11_Validation_Protocol_11.py",
+            PROJECT_ROOT / "Validation" / "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
         )
         quant_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(quant_module)
@@ -3349,7 +3349,7 @@ def clinical_convergence(
         # Import the clinical convergence validator
         spec = importlib.util.spec_from_file_location(
             "clinical_convergence",
-            PROJECT_ROOT / "Validation" / "Validation_Protocol_12.py",
+            PROJECT_ROOT / "Validation" / "VP_12_Clinical_CrossSpecies_Convergence.py",
         )
         clinical_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(clinical_module)
@@ -3418,7 +3418,7 @@ def open_science(
     try:
         # Import the open science framework
         spec = importlib.util.spec_from_file_location(
-            "open_science", PROJECT_ROOT / "APGI_Open_Science_Framework.py"
+            "open_science", PROJECT_ROOT / "Theory" / "APGI_Open_Science_Framework.py"
         )
         os_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(os_module)
@@ -3504,7 +3504,7 @@ def falsification(
     try:
         # Import the falsification framework
         spec = importlib.util.spec_from_file_location(
-            "falsification", PROJECT_ROOT / "APGI_Falsification_Framework.py"
+            "falsification", PROJECT_ROOT / "Theory" / "APGI_Falsification_Framework.py"
         )
         fals_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(fals_module)
@@ -3575,7 +3575,7 @@ def bayesian_estimation(
         # Import the Bayesian estimation framework
         spec = importlib.util.spec_from_file_location(
             "bayesian_estimation",
-            PROJECT_ROOT / "APGI_Bayesian_Estimation_Framework.py",
+            PROJECT_ROOT / "Theory" / "APGI_Bayesian_Estimation_Framework.py",
         )
         bayes_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(bayes_module)
@@ -3761,7 +3761,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 1: Neural Signatures...[/blue]")
             spec1 = importlib.util.spec_from_file_location(
                 "neural_val",
-                PROJECT_ROOT / "Validation" / "Validation_Protocol_9.py",
+                PROJECT_ROOT / "Validation" / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
             )
             neural_module = importlib.util.module_from_spec(spec1)
             spec1.loader.exec_module(neural_module)
@@ -3772,7 +3772,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 2: Causal Manipulations...[/blue]")
             spec2 = importlib.util.spec_from_file_location(
                 "causal_val",
-                PROJECT_ROOT / "Validation" / "Validation_Protocol_10.py",
+                PROJECT_ROOT / "Validation" / "VP_10_CausalManipulations_Priority2.py",
             )
             causal_module = importlib.util.module_from_spec(spec2)
             spec2.loader.exec_module(causal_module)
@@ -3783,7 +3783,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 3: Quantitative Model Fits...[/blue]")
             spec3 = importlib.util.spec_from_file_location(
                 "quant_val",
-                PROJECT_ROOT / "Validation" / "VP_11_Validation_Protocol_11.py",
+                PROJECT_ROOT / "Validation" / "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
             )
             quant_module = importlib.util.module_from_spec(spec3)
             spec3.loader.exec_module(quant_module)
@@ -3794,7 +3794,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 4: Clinical Convergence...[/blue]")
             spec4 = importlib.util.spec_from_file_location(
                 "clinical_val",
-                PROJECT_ROOT / "Validation" / "Validation_Protocol_12.py",
+                PROJECT_ROOT / "Validation" / "VP_12_Clinical_CrossSpecies_Convergence.py",
             )
             clinical_module = importlib.util.module_from_spec(spec4)
             spec4.loader.exec_module(clinical_module)
@@ -3804,7 +3804,7 @@ def comprehensive_validation(
         def run_falsification_testing():
             console.print("[blue]Running Falsification Testing...[/blue]")
             spec_fals = importlib.util.spec_from_file_location(
-                "fals_val", PROJECT_ROOT / "APGI_Falsification_Framework.py"
+                "fals_val", PROJECT_ROOT / "Theory" / "APGI_Falsification_Framework.py"
             )
             fals_module = importlib.util.module_from_spec(spec_fals)
             spec_fals.loader.exec_module(fals_module)

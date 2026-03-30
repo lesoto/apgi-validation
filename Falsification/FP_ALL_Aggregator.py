@@ -42,9 +42,9 @@ ALTERNATIVE_PARSIMONY_THRESHOLD_B = 10.0  # ΔBIC threshold for Condition B (FB)
 # Protocol routing table - maps named predictions to falsification protocols (FP-1 to FP-12)
 PREDICTION_TO_PROTOCOL = {
     # FP-1: Psychophysical Threshold Protocol
-    "P1.1": "FP_01_ActiveInference_F1F2",
-    "P1.2": "FP_01_ActiveInference_F1F2",
-    "P1.3": "FP_01_ActiveInference_F1F2",
+    "P1.1": "FP_01_ActiveInference",
+    "P1.2": "FP_01_ActiveInference",
+    "P1.3": "FP_01_ActiveInference",
     # FP-2: TMS/Pharmacological Causal Manipulation
     "P2.a": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
     "P2.b": "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
@@ -61,10 +61,10 @@ PREDICTION_TO_PROTOCOL = {
     "P5.a": "FP_05_EvolutionaryPlausibility",
     "P5.b": "FP_05_EvolutionaryPlausibility",
     # FP-10: Bayesian MCMC + Cross-Species Scaling
-    "fp10a_mcmc": "FP_10_Dispatcher",
-    "fp10b_bf": "FP_10_Dispatcher",
-    "fp10c_mae": "FP_10_Dispatcher",
-    "fp10b_scaling": "FP_10_Dispatcher",
+    "fp10a_mcmc": "FP_10_BayesianEstimation_MCMC",
+    "fp10b_bf": "FP_10_BayesianEstimation_MCMC",
+    "fp10c_mae": "FP_10_BayesianEstimation_MCMC",
+    "fp10b_scaling": "FP_10_BayesianEstimation_MCMC",
 }
 
 

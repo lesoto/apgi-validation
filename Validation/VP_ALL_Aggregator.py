@@ -128,9 +128,9 @@ PREDICTION_TO_PROTOCOL = {
     "V12.2": "VP_12_Clinical_CrossSpecies_Convergence",
     "V12.3": "VP_12_Clinical_CrossSpecies_Convergence",
     # VP-13: Epistemic Architecture P5–P12
-    "V13.1": "VP_13_Epistemic_Architecture_P5_P12",
-    "V13.2": "VP_13_Epistemic_Architecture_P5_P12",
-    "V13.3": "VP_13_Epistemic_Architecture_P5_P12",
+    "V13.1": "VP_13_Epistemic_Architecture",
+    "V13.2": "VP_13_Epistemic_Architecture",
+    "V13.3": "VP_13_Epistemic_Architecture",
     # VP-14: fMRI Anticipation/Experience
     "V14.1": "VP_14_fMRI_Anticipation_Experience",
     "V14.2": "VP_14_fMRI_Anticipation_Experience",
@@ -151,7 +151,7 @@ PROTOCOL_TIERS = {
     "VP_10_CausalManipulations_Priority2": "tertiary",
     "VP_11_MCMC_CulturalNeuroscience_Priority3": "secondary",
     "VP_12_Clinical_CrossSpecies_Convergence": "secondary",
-    "VP_13_Epistemic_Architecture_P5_P12": "secondary",
+    "VP_13_Epistemic_Architecture": "secondary",
     "VP_14_fMRI_Anticipation_Experience": "tertiary",
 }
 

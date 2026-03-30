@@ -2,14 +2,6 @@
 
 ## Quick Start
 
-### Option 1: Automated Setup (Recommended)
-
-```bash
-python setup.py
-```
-
-### Option 2: Manual Setup
-
 ```bash
 # Create virtual environment
 python3 -m venv venv

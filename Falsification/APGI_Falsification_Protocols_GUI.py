@@ -33,7 +33,7 @@ class ProtocolRunnerGUI:
         # Protocol definitions with parameters
         self.protocols = {
             "Protocol 1: APGI Agent": {
-                "file": "FP_01_ActiveInference_F1F2.py",
+                "file": "FP_01_ActiveInference.py",
                 "class": "APGIActiveInferenceAgent",
                 "description": "Complete APGI-based active inference agent",
                 "parameters": {
@@ -381,23 +381,6 @@ class ProtocolRunnerGUI:
                     "window_size": {
                         "default": 1000,
                         "min": 500,
-                        "max": 2000,
-                        "type": "int",
-                        "description": "Analysis window size (ms)",
-                    },
-                },
-            },
-            "Protocol 10: Bayesian + Cross-Species": {
-                "file": "FP_10_Dispatcher.py",
-                "class": "FP10Dispatcher",
-                "description": "FP-10: Bayesian MCMC estimation + Cross-species scaling (both required)",
-                "parameters": {
-                    "n_samples": {
-                        "default": 1000,
-                        "min": 500,
-                        "max": 5000,
-                        "type": "int",
-                        "description": "Number of MCMC samples (1000 recommended for GUI)",
                     },
                     "n_chains": {
                         "default": 2,

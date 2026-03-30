@@ -62,7 +62,7 @@ def simulate_model_performance_with_agent(
     """
     try:
         # Import APGIAgent from Falsification protocol (correct location)
-        from Falsification.FP_01_ActiveInference_F1F2 import (
+        from Falsification.FP_01_ActiveInference import (
             APGIActiveInferenceAgent,
         )
 

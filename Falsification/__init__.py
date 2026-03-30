@@ -16,7 +16,7 @@ _dir = Path(__file__).parent
 # Protocol 1: Active Inference Agent Testing - mapped to existing FP_1_Falsification_ActiveInferenceAgents_F1F2
 try:
     _spec1 = importlib.util.spec_from_file_location(
-        "Protocol_1", _dir / "FP_01_ActiveInference_F1F2.py"
+        "Protocol_1", _dir / "FP_01_ActiveInference.py"
     )
     if _spec1 and _spec1.loader:
         Protocol_1 = importlib.util.module_from_spec(_spec1)

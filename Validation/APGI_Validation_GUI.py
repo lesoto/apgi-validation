@@ -89,7 +89,7 @@ protocol_files = [
     ("APGI_Protocol_10", "VP_10_CausalManipulations_Priority2.py"),
     ("APGI_Protocol_11", "VP_11_MCMC_CulturalNeuroscience_Priority3.py"),
     ("APGI_Protocol_12", "VP_12_Clinical_CrossSpecies_Convergence.py"),
-    ("APGI_Protocol_13", "VP_13_Epistemic_Architecture_P5_P12.py"),
+    ("APGI_Protocol_13", "VP_13_Epistemic_Architecture.py"),
     ("APGI_Protocol_14", "VP_14_fMRI_Anticipation_Experience.py"),
 ]
 
@@ -2167,7 +2167,7 @@ Interpretation:
                 ("APGI_Protocol_10", "VP_10_CausalManipulations_Priority2.py"),
                 ("APGI_Protocol_11", "VP_11_MCMC_CulturalNeuroscience_Priority3.py"),
                 ("APGI_Protocol_12", "VP_12_Clinical_CrossSpecies_Convergence.py"),
-                ("APGI_Protocol_13", "VP_13_Epistemic_Architecture_P5_P12.py"),
+                ("APGI_Protocol_13", "VP_13_Epistemic_Architecture.py"),
                 ("APGI_Protocol_14", "VP_14_fMRI_Anticipation_Experience.py"),
             ]
 

@@ -412,7 +412,7 @@ class APGIMasterFalsifier:
         # Available protocol configurations
         self.available_protocols = {
             "FP-01": {
-                "file": "Falsification/FP_01_ActiveInference_F1F2.py",
+                "file": "Falsification/FP_01_ActiveInference.py",
                 "function": "run_falsification",
                 "class": "None",
                 "description": "Active Inference Agents: F1.x (Architecture) + F2.x (Somatic Markers)",
@@ -475,10 +475,10 @@ class APGIMasterFalsifier:
                 "tier": "tertiary",
             },
             "FP-10": {
-                "file": "Falsification/FP_10_Dispatcher.py",
+                "file": "Falsification/FP_10_BayesianEstimation_MCMC.py",
                 "function": "run_falsification",
                 "class": "FP10Dispatcher",
-                "description": "Bayesian MCMC + Cross-Species Scaling (Dispatcher)",
+                "description": "Bayesian MCMC + Cross-Species Scaling",
                 "tier": "tertiary",
             },
             "FP-10a": {
