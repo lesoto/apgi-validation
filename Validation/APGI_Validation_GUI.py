@@ -81,7 +81,7 @@ protocol_files = [
     ("APGI_Protocol_2", "VP_02_Behavioral_BayesianComparison.py"),
     ("APGI_Protocol_3", "VP_03_ActiveInference_AgentSimulations.py"),
     ("APGI_Protocol_4", "VP_04_PhaseTransition_EpistemicLevel2.py"),
-    ("APGI_Protocol_5", "VP_05_EvolutionaryEmergence.py"),
+    ("APGI_Protocol_5", "VP_14_fMRI_Anticipation_Experience.py"),
     ("APGI_Protocol_6", "VP_06_LiquidNetwork_InductiveBias.py"),
     ("APGI_Protocol_7", "VP_07_TMS_CausalInterventions.py"),
     ("APGI_Protocol_8", "VP_08_Psychophysical_ThresholdEstimation.py"),
@@ -160,9 +160,9 @@ class APGIValidationGUI:
                 mock_var.set = Mock()
                 self.param_vars[param] = mock_var
 
-        self.param_labels = {}
-        self.param_sliders = {}
-        self.param_configs = {}
+        self.param_labels: Dict[str, ttk.Label] = {}
+        self.param_sliders: Dict[str, tk.Scale] = {}
+        self.param_configs: Dict[str, Dict[str, Any]] = {}
 
         # Thread safety locks
         self._running_lock = threading.Lock()
@@ -170,7 +170,7 @@ class APGIValidationGUI:
         self._thread_cleanup_lock = threading.Lock()
 
         # GUI update queue for thread safety
-        self._update_queue = queue.Queue(
+        self._update_queue: queue.Queue = queue.Queue(
             maxsize=100
         )  # Limit queue size to prevent memory issues
         self._process_gui_updates()
@@ -411,7 +411,7 @@ class APGIValidationGUI:
 
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.grid(row=0, column=0, sticky="nsew")
 
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)
@@ -429,7 +429,7 @@ class APGIValidationGUI:
 
         # Create notebook for tabs
         self.notebook = ttk.Notebook(main_frame)
-        self.notebook.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.notebook.grid(row=1, column=0, sticky="nsew")
 
         # Validation Tab
         validation_frame = ttk.Frame(self.notebook, padding="10")
@@ -443,9 +443,7 @@ class APGIValidationGUI:
         protocol_frame = ttk.LabelFrame(
             validation_frame, text="Protocol Selection", padding="10"
         )
-        protocol_frame.grid(
-            row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
-        )
+        protocol_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
         protocol_frame.columnconfigure(0, weight=1)
 
         # Protocol checkboxes
@@ -498,9 +496,7 @@ class APGIValidationGUI:
         self.progress_bar = ttk.Progressbar(
             validation_frame, variable=self.progress_var, maximum=100, length=400
         )
-        self.progress_bar.grid(
-            row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
-        )
+        self.progress_bar.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
         # Status label
         self.status_label = ttk.Label(
@@ -512,22 +508,20 @@ class APGIValidationGUI:
         results_frame = ttk.LabelFrame(
             validation_frame, text="Validation Results", padding="10"
         )
-        results_frame.grid(
-            row=4, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
-        )
+        results_frame.grid(row=4, column=0, columnspan=2, sticky="nsew", pady=(0, 10))
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
 
         self.results_text = scrolledtext.ScrolledText(
             results_frame, height=15, width=80
         )
-        self.results_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.results_text.grid(row=0, column=0, sticky="nsew")
 
         # Summary frame
         summary_frame = ttk.LabelFrame(
             validation_frame, text="Validation Summary", padding="10"
         )
-        summary_frame.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E))
+        summary_frame.grid(row=5, column=0, columnspan=2, sticky="ew")
 
         self.summary_label = ttk.Label(
             summary_frame, text="No validation run yet", font=("Arial", 10)
@@ -602,9 +596,7 @@ class APGIValidationGUI:
         controls_frame = ttk.LabelFrame(
             parent_frame, text="Parameter Controls", padding="10"
         )
-        controls_frame.grid(
-            row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
-        )
+        controls_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 10))
         controls_frame.columnconfigure(1, weight=1)
 
         row = 0
@@ -622,7 +614,13 @@ class APGIValidationGUI:
             value_label.grid(row=row, column=2, sticky=tk.W, padx=(10, 0))
             self.param_labels[param_name] = value_label
 
-            # Slider
+            # Create a closure to capture the parameter name
+            def make_slider_callback(param_name: str):
+                def callback(val: str) -> None:
+                    self.on_parameter_change(param_name, val)
+
+                return callback
+
             slider = tk.Scale(
                 controls_frame,
                 from_=config["min"],
@@ -630,11 +628,9 @@ class APGIValidationGUI:
                 resolution=config["step"],
                 orient=tk.HORIZONTAL,
                 variable=value_var,
-                command=lambda val, name=param_name: self.on_parameter_change(
-                    name, val
-                ),
+                command=make_slider_callback(param_name),
             )
-            slider.grid(row=row, column=1, sticky=(tk.W, tk.E), padx=5)
+            slider.grid(row=row, column=1, sticky="ew", padx=5)
             self.param_sliders[param_name] = slider
 
             row += 1
@@ -657,7 +653,7 @@ class APGIValidationGUI:
         results_frame = ttk.LabelFrame(
             parent_frame, text="Simulation Results", padding="10"
         )
-        results_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        results_frame.grid(row=1, column=0, sticky="nsew")
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
 
@@ -665,7 +661,7 @@ class APGIValidationGUI:
         self.param_results_text = scrolledtext.ScrolledText(
             results_frame, height=15, width=80
         )
-        self.param_results_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.param_results_text.grid(row=0, column=0, sticky="nsew")
 
         # Initialize parameter display
         self.update_parameter_display()
@@ -688,7 +684,7 @@ class APGIValidationGUI:
         settings_frame = ttk.LabelFrame(
             parent_frame, text="Configuration Settings", padding="10"
         )
-        settings_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        settings_frame.grid(row=0, column=0, sticky="nsew")
 
         # Initialize settings if not already done
         if not hasattr(self, "settings"):
@@ -715,8 +711,8 @@ class APGIValidationGUI:
             validatecommand=(
                 self.root.register(self._validate_spinbox_int),
                 "%P",
-                1,
-                3600,
+                "1",
+                "3600",
             ),
         ).grid(row=0, column=1, sticky=tk.W, padx=10)
 
@@ -734,8 +730,8 @@ class APGIValidationGUI:
             validatecommand=(
                 self.root.register(self._validate_spinbox_int),
                 "%P",
-                1,
-                365,
+                "1",
+                "365",
             ),
         ).grid(row=1, column=1, sticky=tk.W, padx=10)
 
@@ -754,8 +750,8 @@ class APGIValidationGUI:
             validatecommand=(
                 self.root.register(self._validate_spinbox_float),
                 "%P",
-                0.0,
-                1.0,
+                "0.0",
+                "1.0",
             ),
         ).grid(row=2, column=1, sticky=tk.W, padx=10)
 
@@ -1848,7 +1844,7 @@ class APGIValidationGUI:
         alerts_frame = ttk.LabelFrame(
             parent_frame, text="Alert Configuration", padding="10"
         )
-        alerts_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        alerts_frame.grid(row=0, column=0, sticky="nsew")
 
         # Initialize alert settings if not already done
         if not hasattr(self, "alert_settings"):
@@ -1875,8 +1871,8 @@ class APGIValidationGUI:
             validatecommand=(
                 self.root.register(self._validate_spinbox_float),
                 "%P",
-                0.0,
-                1.0,
+                "0.0",
+                "1.0",
             ),
         ).grid(row=0, column=1, sticky=tk.W, padx=10)
 
@@ -2015,7 +2011,7 @@ class APGIValidationGUI:
                 ):
                     messagebox.showerror(
                         "Error",
-                        f"Invalid protocol number: {protocol_num}. Must be between 1 and 8.",
+                        f"Invalid protocol number: {protocol_num}. Must be between 1 and {len(self.validator.PROTOCOL_TIERS)}.",
                     )
                     return
 
@@ -2154,12 +2150,13 @@ Interpretation:
 
         try:
             # Execute actual protocol in isolated environment
+            # Mapping based on Master_Validation configuration
             protocol_files = [
                 ("APGI_Protocol_1", "VP_01_SyntheticEEG_MLClassification.py"),
                 ("APGI_Protocol_2", "VP_02_Behavioral_BayesianComparison.py"),
                 ("APGI_Protocol_3", "VP_03_ActiveInference_AgentSimulations.py"),
                 ("APGI_Protocol_4", "VP_04_PhaseTransition_EpistemicLevel2.py"),
-                ("APGI_Protocol_5", "VP_05_EvolutionaryEmergence.py"),
+                ("APGI_Protocol_5", "VP_14_fMRI_Anticipation_Experience.py"),
                 ("APGI_Protocol_6", "VP_06_LiquidNetwork_InductiveBias.py"),
                 ("APGI_Protocol_7", "VP_07_TMS_CausalInterventions.py"),
                 ("APGI_Protocol_8", "VP_08_Psychophysical_ThresholdEstimation.py"),
@@ -2611,66 +2608,39 @@ Interpretation:
     def stop_validation(self) -> None:
         """Stop the running validation with proper thread cancellation"""
         try:
+            if not self.is_running:
+                return
+
+            self.update_status("Stopping validation...")
+            logging.info("Stopping validation...")
+
+            # Set flag to stop the worker thread loop
+            self.is_running = False
+
+            # Wait for thread to finish with timeout
             with self._thread_cleanup_lock:
-                if not self.is_running:
-                    return
-
-                self.is_running = False
-                self.update_status("Stopping validation...")
-
-                # Force stop the validation thread
                 if self.validation_thread and self.validation_thread.is_alive():
-                    # Give the thread a moment to clean up
-                    self.update_progress(100)
-                    self.update_results("Validation stopped by user\n")
+                    # Wait up to 3 seconds for clean exit
+                    self.validation_thread.join(timeout=3.0)
 
-            # Wait for thread to finish (with timeout) - OUTSIDE the lock to avoid deadlock
-            if self.validation_thread and self.validation_thread.is_alive():
-                self.validation_thread.join(
-                    timeout=1.0
-                )  # Short timeout to avoid GUI freeze
-
-            # Re-acquire lock for final cleanup
-            with self._thread_cleanup_lock:
-                if self.validation_thread:
                     if self.validation_thread.is_alive():
                         self.update_results(
-                            "Warning: Validation thread did not stop cleanly\n"
+                            "Warning: Validation thread did not stop cleanly within timeout\n"
                         )
                         logging.warning(
                             "Validation thread did not stop cleanly, may be zombie thread"
                         )
-                        # Don't block on thread cleanup
-                        self.validation_thread = None
                     else:
-                        self.update_results("Validation stopped successfully\n")
                         logging.info("Validation thread stopped successfully")
-                        self.validation_thread = None
 
-                # Reset UI state atomically
-                self.run_button.config(state=tk.NORMAL)
-                self.stop_button.config(state=tk.DISABLED)
+                self.validation_thread = None
 
-                # Clear any pending GUI updates with non-blocking approach
-                try:
-                    cleared_count = 0
-                    while (
-                        cleared_count < 50
-                    ):  # Limit iterations to prevent infinite loop
-                        try:
-                            self._update_queue.get_nowait()
-                            self._update_queue.task_done()
-                            cleared_count += 1
-                        except queue.Empty:
-                            break
-                except Exception as e:
-                    logging.error(f"Error clearing GUI update queue: {e}")
+            self.update_status("Validation stopped")
+            self._ensure_ui_consistency()
 
         except Exception as e:
             logging.error(f"Error stopping validation: {e}")
-            messagebox.showerror(
-                "Stop Error", f"Failed to stop validation properly: {e}"
-            )
+            messagebox.showerror("Error", f"Failed to stop validation: {e}")
             self.is_running = False
             self._ensure_ui_consistency()
 
@@ -2963,6 +2933,168 @@ Interpretation:
             return int(min_val) <= val <= int(max_val)
         except ValueError:
             return False
+
+    def quit_application(self) -> None:
+        """Quit the application gracefully."""
+        self.on_closing()
+
+    def get_selected_script(self) -> Optional[int]:
+        """Get the currently selected protocol script."""
+        if not hasattr(self, "protocol_vars"):
+            return None
+
+        selected_protocols = [
+            num for num, var in self.protocol_vars.items() if var.get()
+        ]
+        return selected_protocols[0] if selected_protocols else None
+
+    def run_selected_script(self) -> None:
+        """Run the selected protocol script."""
+        selected = self.get_selected_script()
+        if selected:
+            # Create a temporary selection with just this protocol
+            temp_selection = {
+                num: tk.BooleanVar(value=(num == selected))
+                for num in self.protocol_vars.keys()
+            }
+            original_vars = self.protocol_vars
+            self.protocol_vars = temp_selection
+            try:
+                self.run_validation()
+            finally:
+                self.protocol_vars = original_vars
+
+    def stop_selected_script(self) -> None:
+        """Stop the currently running script."""
+        self.stop_validation()
+
+    def clear_output(self) -> None:
+        """Clear the output text widgets."""
+        if hasattr(self, "results_text"):
+            self.results_text.delete(1.0, tk.END)
+        if hasattr(self, "param_results_text"):
+            self.param_results_text.delete(1.0, tk.END)
+        if hasattr(self, "summary_label"):
+            self.summary_label.config(text="No validation run yet")
+        if hasattr(self, "status_label"):
+            self.status_label.config(text="Ready to run validation")
+        if hasattr(self, "progress_var"):
+            self.progress_var.set(0)
+
+    def create_export_widgets(self, parent_frame: ttk.Frame) -> None:
+        """Create data export widgets"""
+        # Configure parent frame
+        parent_frame.columnconfigure(0, weight=1)
+        parent_frame.rowconfigure(0, weight=1)
+
+        # Export frame
+        export_frame = ttk.LabelFrame(
+            parent_frame, text="Data Export Options", padding="10"
+        )
+        export_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Export options
+        ttk.Label(export_frame, text="Export Format:").grid(
+            row=0, column=0, sticky=tk.W, pady=5
+        )
+
+        self.export_format = tk.StringVar(value="json")
+        formats = ["JSON", "CSV", "PDF Report"]
+        for i, fmt in enumerate(formats):
+            ttk.Radiobutton(
+                export_frame,
+                text=fmt,
+                variable=self.export_format,
+                value=fmt.lower().replace(" ", "_"),
+            ).grid(row=1, column=i, sticky=tk.W, padx=5)
+
+        # Export button
+        ttk.Button(export_frame, text="Export Data", command=self.export_data).grid(
+            row=2, column=0, columnspan=len(formats), pady=20
+        )
+
+    def export_data(self) -> None:
+        """Export validation data in selected format"""
+        if not self.validator or not self.validator.protocol_results:
+            messagebox.showwarning("Warning", "No data to export")
+            return
+
+        format_type = self.export_format.get()
+
+        if format_type == "json":
+            self.save_results()
+        elif format_type == "csv":
+            self._export_csv()
+        elif format_type == "pdf_report":
+            self._export_pdf()
+
+    def _export_csv(self) -> None:
+        """Export results to CSV format"""
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+            initialfile=f"APGI_Validation_Results-{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        )
+
+        if filename:
+            try:
+                import csv
+
+                with open(filename, "w", newline="") as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(["Protocol", "Status", "Passed", "Timestamp"])
+
+                    for protocol_key, result in self.validator.protocol_results.items():
+                        writer.writerow(
+                            [
+                                protocol_key,
+                                result.get("status", "Unknown"),
+                                result.get("passed", False),
+                                result.get("timestamp", ""),
+                            ]
+                        )
+
+                messagebox.showinfo("Success", f"Data exported to {filename}")
+            except Exception as e:
+                messagebox.showerror("Export Error", f"Failed to export: {e}")
+
+    def _export_pdf(self) -> None:
+        """Export results to PDF format"""
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+            initialfile=f"APGI_Validation_Report-{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+        )
+
+        if filename:
+            try:
+                from reportlab.lib.pagesizes import letter
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                from reportlab.lib.styles import getSampleStyleSheet
+
+                doc = SimpleDocTemplate(filename, pagesize=letter)
+                styles = getSampleStyleSheet()
+                story = []
+
+                # Title
+                title = Paragraph("APGI Validation Report", styles["Title"])
+                story.append(title)
+                story.append(Spacer(1, 12))
+
+                # Results summary
+                if hasattr(self.validator, "generate_master_report"):
+                    report = self.validator.generate_master_report()
+                    summary = Paragraph(
+                        f"Overall Decision: {report.get('overall_decision', 'Unknown')}",
+                        styles["Heading2"],
+                    )
+                    story.append(summary)
+                    story.append(Spacer(1, 12))
+
+                doc.build(story)
+                messagebox.showinfo("Success", f"Report exported to {filename}")
+            except Exception as e:
+                messagebox.showerror("Export Error", f"Failed to export PDF: {e}")
 
 
 def main() -> None:

@@ -89,12 +89,12 @@ class APGIMasterValidator:
             "Protocol-14": [],
         }
         # Pending protocols: awaiting empirical data (excluded from scoring denominator)
-        self.PENDING_PROTOCOLS = [5]  # VP-5: awaiting fMRI data
+        self.PENDING_PROTOCOLS = []  # All current protocols implemented
         self.available_protocols = {
             "Protocol-1": {
                 "file": "VP_01_SyntheticEEG_MLClassification.py",
                 "function": "run_validation",
-                "description": "Synthetic Neural Data Generation and ML Classification",
+                "description": "Synthetic Neural Data Simulations for Protocol 1 (Modulation of Detection Thresholds)",
             },
             "Protocol-2": {
                 "file": "VP_02_Behavioral_BayesianComparison.py",
@@ -112,9 +112,9 @@ class APGIMasterValidator:
                 "description": "Phase Transition / Epistemic Architecture Level 2",
             },
             "Protocol-5": {
-                "file": "VP_15_fMRI_Anticipation_vmPFC.py",
+                "file": "VP_14_fMRI_Anticipation_Experience.py",
                 "function": "run_validation",
-                "description": "fMRI Interoceptive Anticipation/Experience Paradigm (PENDING — awaiting data)",
+                "description": "fMRI Interoceptive Anticipation/Experience Paradigm",
             },
             "Protocol-6": {
                 "file": "VP_06_LiquidNetwork_InductiveBias.py",

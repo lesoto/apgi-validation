@@ -3768,6 +3768,137 @@ def verify_all_equations():
 # 10. MAIN EXECUTION
 # =============================================================================
 
+# =============================================================================
+# 9. INFORMATION THEORY UTILITIES
+# =============================================================================
+
+
+def compute_entropy(distribution: np.ndarray) -> float:
+    """Compute Shannon entropy of a probability distribution.
+
+    H(X) = -Σ p(x) log₂(p(x))
+
+    Args:
+        distribution: Probability distribution (must sum to 1)
+
+    Returns:
+        Shannon entropy in bits
+    """
+    # Ensure valid probability distribution
+    distribution = np.clip(distribution, 1e-10, 1.0)
+    distribution = distribution / np.sum(distribution)
+
+    # Compute entropy
+    entropy = -np.sum(distribution * np.log2(distribution))
+    return float(entropy)
+
+
+def compute_kl_divergence(p: np.ndarray, q: np.ndarray) -> float:
+    """Compute Kullback-Leibler divergence between two distributions.
+
+    D_KL(P||Q) = Σ p(x) log₂(p(x)/q(x))
+
+    Args:
+        p: Reference probability distribution
+        q: Approximation probability distribution
+
+    Returns:
+        KL divergence in bits
+    """
+    # Ensure valid probability distributions
+    p = np.clip(p, 1e-10, 1.0)
+    q = np.clip(q, 1e-10, 1.0)
+    p = p / np.sum(p)
+    q = q / np.sum(q)
+
+    # Compute KL divergence
+    kl = np.sum(p * np.log2(p / q))
+    return float(kl)
+
+
+def compute_mutual_information(joint: np.ndarray) -> float:
+    """Compute mutual information from joint distribution.
+
+    I(X;Y) = Σ p(x,y) log₂(p(x,y) / (p(x)p(y)))
+
+    Args:
+        joint: Joint probability distribution (2D array)
+
+    Returns:
+        Mutual information in bits
+    """
+    # Ensure valid probability distribution
+    joint = np.clip(joint, 1e-10, 1.0)
+    joint = joint / np.sum(joint)
+
+    # Compute marginals
+    p_x = np.sum(joint, axis=1)
+    p_y = np.sum(joint, axis=0)
+
+    # Compute mutual information
+    mi = 0.0
+    for i in range(joint.shape[0]):
+        for j in range(joint.shape[1]):
+            if joint[i, j] > 1e-10:
+                mi += joint[i, j] * np.log2(joint[i, j] / (p_x[i] * p_y[j]))
+
+    return float(mi)
+
+
+def compute_bayesian_update(prior: np.ndarray, likelihood: np.ndarray) -> np.ndarray:
+    """Compute Bayesian posterior from prior and likelihood.
+
+    P(θ|D) ∝ P(D|θ) P(θ)
+
+    Args:
+        prior: Prior probability distribution
+        likelihood: Likelihood of data given parameters
+
+    Returns:
+        Posterior probability distribution (normalized)
+    """
+    # Compute unnormalized posterior
+    posterior = prior * likelihood
+
+    # Normalize
+    posterior = posterior / np.sum(posterior)
+
+    return posterior
+
+
+def compute_free_energy(
+    surprise: np.ndarray, threshold: np.ndarray, complexity: np.ndarray
+) -> float:
+    """Compute variational free energy approximation.
+
+    F ≈ E[Surprise] + Complexity
+
+    Args:
+        surprise: Array of surprise values
+        threshold: Array of threshold values
+        complexity: Array of complexity values
+
+    Returns:
+        Free energy estimate
+    """
+    # Ensure arrays are same length
+    min_len = min(len(surprise), len(threshold), len(complexity))
+    surprise = surprise[:min_len]
+    threshold = threshold[:min_len]
+    complexity = complexity[:min_len]
+
+    # Compute expected surprise (difference from threshold)
+    expected_surprise = np.mean(np.maximum(0, surprise - threshold))
+
+    # Compute complexity penalty
+    complexity_penalty = np.mean(complexity)
+
+    # Free energy = expected surprise + complexity
+    free_energy = expected_surprise + complexity_penalty
+
+    return float(free_energy)
+
+
 if __name__ == "__main__":
     print("\n" + "=" * 80)
     print("COMPLETE APGI SYSTEM - 100% EQUATION IMPLEMENTATION")

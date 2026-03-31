@@ -19,7 +19,7 @@ class TestPerformanceRegression:
     @pytest.mark.performance
     def test_entropy_computation_performance(self):
         """Test entropy computation performance should not regress."""
-        from APGI_Equations import compute_entropy
+        from Theory.APGI_Equations import compute_entropy
 
         # Create test data
         distribution = np.random.rand(1000)
@@ -37,7 +37,7 @@ class TestPerformanceRegression:
     @pytest.mark.performance
     def test_kl_divergence_computation_performance(self):
         """Test KL divergence computation performance."""
-        from APGI_Equations import compute_kl_divergence
+        from Theory.APGI_Equations import compute_kl_divergence
 
         p = np.random.rand(100)
         p = p / np.sum(p)
@@ -54,7 +54,7 @@ class TestPerformanceRegression:
     @pytest.mark.performance
     def test_mutual_information_computation_performance(self):
         """Test mutual information computation performance."""
-        from APGI_Equations import compute_mutual_information
+        from Theory.APGI_Equations import compute_mutual_information
 
         joint = np.random.rand(10, 10)
         joint = joint / np.sum(joint)
@@ -69,7 +69,7 @@ class TestPerformanceRegression:
     @pytest.mark.performance
     def test_bayesian_update_performance(self):
         """Test Bayesian update performance."""
-        from APGI_Equations import compute_bayesian_update
+        from Theory.APGI_Equations import compute_bayesian_update
 
         prior = np.random.rand(100)
         prior = prior / np.sum(prior)
@@ -86,7 +86,7 @@ class TestPerformanceRegression:
     @pytest.mark.performance
     def test_free_energy_computation_performance(self):
         """Test free energy computation performance."""
-        from APGI_Equations import compute_free_energy
+        from Theory.APGI_Equations import compute_free_energy
 
         surprise = np.random.rand(100)
         threshold = np.random.rand(100)

@@ -204,7 +204,6 @@ class EEGPreprocessor:
             TypeError,
             OverflowError,
             MemoryError,
-            signal.SignalError,
             IndexError,
         ) as e:
             self.preprocessing_log.append(
@@ -246,7 +245,6 @@ class EEGPreprocessor:
             TypeError,
             OverflowError,
             MemoryError,
-            signal.SignalError,
             IndexError,
         ) as e:
             self.preprocessing_log.append(
@@ -780,7 +778,6 @@ class EDAPreprocessor:
             TypeError,
             OverflowError,
             MemoryError,
-            signal.SignalError,
             IndexError,
         ) as e:
             self.preprocessing_log.append(

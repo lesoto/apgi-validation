@@ -1042,7 +1042,6 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 ### FP-1 · Active Inference Agents (F1/F2)
 
 **Primary file:** `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py`
-**Stub file:** `Falsification-Protocol-1.py` (thin wrapper, delegates to full file)
 **Tier:** Primary | **Completion:** 74%
 
 **Key classes:**
@@ -1078,8 +1077,7 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 ### FP-2 · Agent Comparison / Convergence Benchmark
 
 **Primary file:** `FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py`
-**Stub file:** `Falsification-Protocol-2.py` (Iowa Gambling Task wrapper)
-**Support file:** `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` (Falsification folder)
+`VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` (Falsification folder)
 **Tier:** Primary | **Completion:** 72%
 
 **Key classes:**
@@ -1108,7 +1106,6 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 ### FP-3 · Framework-Level Multi-Protocol
 
 **Primary file:** `FP_3_FP_3_Falsification_FrameworkLevel_MultiProtocol.py`
-**Stub file:** `Falsification-Protocol-3.py` (neural network analysis wrapper)
 **Tier:** Secondary | **Completion:** 65%
 
 **Key classes:**
@@ -1139,7 +1136,6 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 ### FP-4 · Information-Theoretic Phase Transition
 
 **Primary file:** `FP_4_FP_4_Falsification_InformationTheoretic_PhaseTransition.py`
-**Stub file:** `Falsification-Protocol-4.py` (information-theoretic wrapper)
 **Tier:** Secondary | **Completion:** 73%
 
 **Key classes:**
@@ -1178,7 +1174,6 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 ### FP-5 · Evolutionary Plausibility
 
 **Primary file:** `FP_5_FP_5_Falsification_EvolutionaryPlausibility_Standard6.py`
-**Stub file:** `Falsification-Protocol-5.py` (evolutionary wrapper)
 **Tier:** Tertiary | **Completion:** 70%
 
 **Key classes:**
@@ -1211,7 +1206,6 @@ The Master registers protocol *names* as `Validation_Protocol_N.py`, but the act
 ### FP-6 · Neural Network Energy Benchmark
 
 **Primary file:** `FP_6_FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py`
-**Stub file:** `Falsification-Protocol-6.py` (APGI-inspired network wrapper)
 **Tier:** Tertiary | **Completion:** 68%
 
 **Key classes:**
@@ -1704,12 +1698,12 @@ All 12 falsification protocols work identically: the GUI maps directly to full i
 | 1 | `FP_12_Falsification_Aggregator.py` | All Papers | FP-12 · Framework-Level Aggregator (Conditions A & B, 14 Named Predictions) |
 | 2 | `APGI_Falsification_Protocols_GUI.py` | All Papers | — GUI Runner (not a protocol) |
 | 3 | `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` | APGI Epistemic Architecture Paper | FP-2 (support) · Agent Comparison / Causal Engine |
-| 4 | `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py` | APGI Framework Paper | FP-1 (stub) → delegates to `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py` |
-| 5 | `Falsification-Protocol-2.py` | APGI Framework Paper | FP-2 (stub) → delegates to `FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py` |
-| 6 | `Falsification-Protocol-3.py` | APGI Framework Paper | FP-3 (stub) → delegates to `FP_3_FP_3_Falsification_FrameworkLevel_MultiProtocol.py` |
-| 7 | `Falsification-Protocol-4.py` | APGI Epistemic Architecture Paper | FP-4 (stub) → delegates to `FP_4_FP_4_Falsification_InformationTheoretic_PhaseTransition.py` |
-| 8 | `Falsification-Protocol-5.py` | APGI Multi-Scale Consciousness Paper | FP-5 (stub) → delegates to `FP_5_FP_5_Falsification_EvolutionaryPlausibility_Standard6.py` |
-| 9 | `Falsification-Protocol-6.py` | APGI Liquid Networks Paper | FP-6 (stub) → delegates to `FP_6_FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py` |
+| 4 | `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py` | APGI Framework Paper | FP-1 (full) · Active Inference Agents F1/F2 |
+| 5 | `FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py` | APGI Framework Paper | FP-2 (full) · Agent Comparison / Convergence Benchmark |
+| 6 | `FP_3_FP_3_Falsification_FrameworkLevel_MultiProtocol.py` | APGI Framework Paper | FP-3 (full) · Framework-Level Multi-Protocol Synthesis |
+| 7 | `FP_4_FP_4_Falsification_InformationTheoretic_PhaseTransition.py` | APGI Epistemic Architecture Paper | FP-4 (full) · Information-Theoretic Phase Transition |
+| 8 | `FP_5_FP_5_Falsification_EvolutionaryPlausibility_Standard6.py` | APGI Multi-Scale Consciousness Paper | FP-5 (full) · Evolutionary Plausibility |
+| 9 | `FP_6_FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py` | APGI Liquid Networks Paper | FP-6 (full) · Neural Network Energy Benchmark |
 | 10 | `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py` | APGI Framework Paper | FP-1 (full) · Active Inference Agents F1/F2 |
 | 11 | `FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py` | APGI Framework Paper | FP-2 (full) · Agent Comparison / Convergence Benchmark |
 | 12 | `FP_10_FP_10_Falsification_BayesianEstimation_MCMC.py` | APGI Epistemic Architecture Paper | FP-10 · Bayesian Estimation MCMC (NUTS/PyMC) |

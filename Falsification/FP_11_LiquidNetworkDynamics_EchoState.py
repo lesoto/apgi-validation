@@ -1781,6 +1781,7 @@ def test_phase_transition(
         "correlation_length": [float(x) for x in correlation_length],
         "is_critical": bool(is_critical and ignition_compliant),
         "ignition_strength": float(ignition_strength),
+        "bifurcation_score": float(ignition_strength) if is_critical and ignition_compliant else 0.0,
     }
 
     logger.info(

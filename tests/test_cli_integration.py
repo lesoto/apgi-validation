@@ -70,7 +70,7 @@ class TestEstimateParamsCommand:
         """Test parameter estimation with custom method."""
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["estimate-params", "--method", "mle", "--iterations", "10"]
+            cli, ["estimate-params", "--method", "map", "--iterations", "10"]
         )
         assert result.exit_code == 0
 

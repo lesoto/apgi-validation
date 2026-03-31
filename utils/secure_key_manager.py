@@ -79,7 +79,15 @@ class SecureKeyManager:
             self.logger.warning(
                 f"Failed to decrypt {key_file.name}, falling back to legacy base64 load."
             )
-            decrypted_b64 = encrypted.decode("utf-8")
+            try:
+                decrypted_b64 = encrypted.decode("utf-8")
+                # Validate that this is valid base64 before decoding
+                base64.b64decode(decrypted_b64)
+            except Exception as decode_error:
+                # If both decryption and base64 decode fail, raise ValueError
+                raise ValueError(
+                    f"Invalid key format in {key_file.name}: {decode_error}"
+                )
 
         return base64.b64decode(decrypted_b64)
 

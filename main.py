@@ -2428,11 +2428,9 @@ def monitor_performance(
                 _ = process.cpu_percent(interval=None)
 
                 try:
-                    # Execute the command (simplified - in real implementation would parse and run actual commands)
+
                     if command == "cross-species":
-                        # Simulate cross-species analysis
-                        time.sleep(0.1)  # Simulate processing time
-                        # Import the cross-species scaling module
+                        time.sleep(0.1)
                         spec = importlib.util.spec_from_file_location(
                             "APGI_Cross_Species_Scaling",
                             PROJECT_ROOT / "Theory" / "APGI_Cross_Species_Scaling.py",
@@ -3191,7 +3189,9 @@ def neural_signatures(
         # Import the neural signatures validator
         spec = importlib.util.spec_from_file_location(
             "neural_signatures",
-            PROJECT_ROOT / "Validation" / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
+            PROJECT_ROOT
+            / "Validation"
+            / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
         )
         neural_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(neural_module)
@@ -3304,7 +3304,9 @@ def quantitative_fits(
         # Import the quantitative fits validator
         spec = importlib.util.spec_from_file_location(
             "quantitative_fits",
-            PROJECT_ROOT / "Validation" / "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
+            PROJECT_ROOT
+            / "Validation"
+            / "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
         )
         quant_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(quant_module)
@@ -3761,7 +3763,9 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 1: Neural Signatures...[/blue]")
             spec1 = importlib.util.spec_from_file_location(
                 "neural_val",
-                PROJECT_ROOT / "Validation" / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
+                PROJECT_ROOT
+                / "Validation"
+                / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
             )
             neural_module = importlib.util.module_from_spec(spec1)
             spec1.loader.exec_module(neural_module)
@@ -3783,7 +3787,9 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 3: Quantitative Model Fits...[/blue]")
             spec3 = importlib.util.spec_from_file_location(
                 "quant_val",
-                PROJECT_ROOT / "Validation" / "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
+                PROJECT_ROOT
+                / "Validation"
+                / "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
             )
             quant_module = importlib.util.module_from_spec(spec3)
             spec3.loader.exec_module(quant_module)
@@ -3794,7 +3800,9 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 4: Clinical Convergence...[/blue]")
             spec4 = importlib.util.spec_from_file_location(
                 "clinical_val",
-                PROJECT_ROOT / "Validation" / "VP_12_Clinical_CrossSpecies_Convergence.py",
+                PROJECT_ROOT
+                / "Validation"
+                / "VP_12_Clinical_CrossSpecies_Convergence.py",
             )
             clinical_module = importlib.util.module_from_spec(spec4)
             spec4.loader.exec_module(clinical_module)
