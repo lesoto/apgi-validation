@@ -67,7 +67,10 @@ def extract_genome_data_from_vp5(
             final_freqs = vp5_results["final_statistics"].get("final_frequencies", {})
             threshold_freq = final_freqs.get("has_threshold", 0.0)
             precision_freq = final_freqs.get("has_precision_weighting", 0.0)
-            intero_freq = final_freqs.get("has_interoceptive_weighting", 0.0)
+            intero_freq = final_freqs.get(
+                "has_intero_weighting",
+                final_freqs.get("has_interoceptive_weighting", 0.0),
+            )
 
             n_threshold_agents = int(threshold_freq * n_agents)
             n_precision_agents = int(precision_freq * n_agents)
@@ -142,34 +145,16 @@ def extract_genome_data_from_vp5(
 
         return genome_data
 
-    # If we reach here, final_statistics not in vp5_results
-    # Call the nested function to extract evolved parameters if final_statistics exists
+    # Call the inner extraction function when final_statistics is available
     if "final_statistics" in vp5_results:
         return extract_evolved_parameters()
 
-    n_agents = 100
-    n_intero_agents = int(0.3 * n_agents)
-
-    # Gain ratios for agents with interoceptive weighting (should be >= 1.3 per spec)
-    intero_gain_ratios = np.concatenate(
-        [
-            np.random.normal(1.5, 0.2, n_intero_agents),  # Intero agents
-            np.random.normal(0.9, 0.2, n_agents - n_intero_agents),  # Non-intero agents
-        ]
-    )
-
+    # If we reach here, final_statistics not in vp5_results
+    # Return empty genome data structure
     genome_data = {
-        "evolved_alpha_values": (
-            intero_gain_ratios.tolist()
-            if isinstance(intero_gain_ratios, np.ndarray)
-            else intero_gain_ratios
-        ),
+        "evolved_alpha_values": [],
         "timescale_correlations": [],
-        "intero_gain_ratios": (
-            intero_gain_ratios.tolist()
-            if isinstance(intero_gain_ratios, np.ndarray)
-            else intero_gain_ratios
-        ),
+        "intero_gain_ratios": [],
         "n_agents": n_agents,
         "n_generations": vp5_results.get("config", {}).get("n_generations", 500),
     }

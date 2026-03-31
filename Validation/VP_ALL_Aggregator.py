@@ -75,6 +75,10 @@ NAMED_PREDICTIONS = {
     "V14.1": "vmPFC–SCR anticipatory correlation r > 0.40",
     "V14.2": "vmPFC uncorrelated with posterior insula (r < 0.20)",
     "V14.3": "Anticipation-experience dynamics match APGI model",
+    # VP-15: fMRI Anticipation/vmPFC Protocol (STUB)
+    "V15.1": "Anticipatory insula activation onset < 500ms pre-stimulus",
+    "V15.2": "vmPFC–posterior insula anticipatory connectivity r > 0.40",
+    "V15.3": "Anterior/posterior insula dissociation (anticipation vs. experience)",
 }
 
 # Protocol routing table - maps named predictions to validation protocols
@@ -135,6 +139,10 @@ PREDICTION_TO_PROTOCOL = {
     "V14.1": "VP_14_fMRI_Anticipation_Experience",
     "V14.2": "VP_14_fMRI_Anticipation_Experience",
     "V14.3": "VP_14_fMRI_Anticipation_Experience",
+    # VP-15: fMRI Anticipation/vmPFC
+    "V15.1": "VP_15_fMRI_Anticipation_vmPFC",
+    "V15.2": "VP_15_fMRI_Anticipation_vmPFC",
+    "V15.3": "VP_15_fMRI_Anticipation_vmPFC",
 }
 
 # Protocol tier classification
@@ -153,6 +161,7 @@ PROTOCOL_TIERS = {
     "VP_12_Clinical_CrossSpecies_Convergence": "secondary",
     "VP_13_Epistemic_Architecture": "secondary",
     "VP_14_fMRI_Anticipation_Experience": "tertiary",
+    "VP_15_fMRI_Anticipation_vmPFC": "tertiary",
 }
 
 

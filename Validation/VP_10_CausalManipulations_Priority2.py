@@ -1261,7 +1261,7 @@ def main():
                 print(f"  {value}")
 
 
-def run_validation():
+def run_validation(**kwargs):
     """Standard validation entry point for Protocol 10.
 
     Returns structured results with named predictions P2.a, P2.b, P2.c

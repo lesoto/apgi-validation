@@ -394,7 +394,20 @@ class TestArtifactRejection:
 
     def test_artifact_rejection_different_methods(self):
         """Test artifact rejection with different methods."""
-        mock_data = {"eeg": np.random.randn(32, 500), "sampling_rate": 500}
+        # Correct data format: {subject_id: {heartbeat: {...}, oddball: {...}}}
+        mock_data = {
+            "subj_1": {
+                "heartbeat": {
+                    "heps": np.random.randn(50),
+                    "pupils": np.random.uniform(2, 6, 50),
+                    "heart_rates": np.random.uniform(60, 80, 50),
+                },
+                "oddball": {
+                    "p3b_intero": np.random.randn(30),
+                    "p3b_extero": np.random.randn(30),
+                },
+            }
+        }
 
         methods_to_test = ["faster", "basic", "none"]
 
@@ -402,6 +415,7 @@ class TestArtifactRejection:
             try:
                 cleaned_data = artifact_rejection_pipeline(mock_data, method=method)
                 assert isinstance(cleaned_data, dict)
+                assert "subj_1" in cleaned_data
             except Exception:
                 # Some methods might not be implemented
                 assert True

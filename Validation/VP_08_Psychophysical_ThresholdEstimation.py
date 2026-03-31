@@ -1420,7 +1420,7 @@ class APGIPsychophysicalEstimator:
         print("Visualization saved to: protocol8_individual_differences.png")
 
 
-def run_validation():
+def run_validation(**kwargs):
     """Main validation function for the protocol"""
     print("=" * 80)
     print(

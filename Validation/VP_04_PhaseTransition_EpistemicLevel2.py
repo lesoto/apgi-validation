@@ -450,7 +450,7 @@ class PhaseTransitionDetector:
         5. Finite-size scaling
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         pass
 
     def detect_discontinuity(
@@ -946,7 +946,7 @@ class FiniteSizeScalingAnalysis:
     Based on Binder cumulant method and critical exponent estimation
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         pass
 
     def finite_size_scaling_analysis(
@@ -1976,7 +1976,7 @@ class ComprehensivePhaseTransitionAnalysis:
     Integrate all analyses to test APGI phase transition predictions
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.info_analyzer = InformationTheoreticAnalysis(n_bins=20)
         self.phase_detector = PhaseTransitionDetector()
         self.scaling_analyzer = FiniteSizeScalingAnalysis()
@@ -2185,7 +2185,7 @@ class ComprehensivePhaseTransitionAnalysis:
 class FalsificationChecker:
     """Check Protocol 4 falsification criteria"""
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.criteria = {
             "F4.1": {
                 "description": "Susceptibility ratio ≥ 1.2 (phase transition present)",
@@ -2904,7 +2904,7 @@ def plot_phase_transition_results(
 class ClinicalDoCBiomarkerValidation:
     """Clinical Disorder of Consciousness biomarker validation for APGI"""
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         # CRS-R calibrated multivariate Gaussian parameters for clinical populations
         self.clinical_populations = {
             "VS": {  # Vegetative State

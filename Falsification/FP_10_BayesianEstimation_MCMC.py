@@ -796,10 +796,13 @@ def run_complete_mcmc_analysis(
     """
     logger.info("Starting complete MCMC Bayesian estimation analysis")
 
-    # Run main APGI model
+    # Run main APGI model on training data
     apgi_results = run_mcmc_bayesian_estimation(
         stimulus_data, response_data, n_samples, n_chains, burn_in
     )
+
+    # Generate additional validation data for robust MAE
+    stim_val, resp_val = generate_synthetic_data(n_trials=100, true_params=None)
 
     # Check convergence
     if not apgi_results["convergence_diagnostics"]["convergence_pass"]:
@@ -867,8 +870,8 @@ def run_complete_mcmc_analysis(
                 mae_results = compare_models_mae(
                     apgi_results["trace"],
                     alternative_results,
-                    stimulus_data,
-                    response_data,
+                    stim_val,
+                    resp_val,
                 )
                 complete_results["mae_comparison"] = mae_results
                 complete_results["f10_criteria"]["F10.MAE"] = {

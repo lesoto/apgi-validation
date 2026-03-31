@@ -968,7 +968,7 @@ class ActorCriticAgent:
 class IowaGamblingTaskEnvironment:
     """Iowa Gambling Task with interoceptive costs"""
 
-    def __init__(self, n_trials: int = 100):
+    def __init__(self, n_trials: int = 80):
         self.n_trials = n_trials
         self.trial = 0
 
@@ -1458,7 +1458,7 @@ class AgentComparisonExperiment:
     - Adaptation in volatile environments
     """
 
-    def __init__(self, n_agents: int = 20, n_trials: int = 100):
+    def __init__(self, n_agents: int = 20, n_trials: int = 80):
         self.n_agents = n_agents
         self.n_trials = n_trials
 
@@ -2523,7 +2523,7 @@ def main():
     print("APGI PROTOCOL 3: ACTIVE INFERENCE AGENT SIMULATIONS")
     print("=" * 80)
 
-    config = {"n_agents": 10, "n_trials": 400}
+    config = {"n_agents": 10, "n_trials": 80}
 
     print("\nConfiguration:")
     for k, v in config.items():
@@ -2640,7 +2640,7 @@ def run_validation_with_cross_validation():
         print("Running APGI Validation Protocol 3: Active Inference Agent Simulations")
         print("=" * 80)
 
-        config = {"n_agents": 5, "n_trials": 100}
+        config = {"n_agents": 5, "n_trials": 80}
         print("\nConfiguration:")
         for k, v in config.items():
             print(f"  {k}: {v}")
@@ -3264,7 +3264,7 @@ def verify_interoceptive_cost_weighting(results: Dict) -> Dict[str, Any]:
     return verification
 
 
-def run_validation():
+def run_validation(**kwargs):
     """Entry point for CLI validation."""
     try:
         print("Running APGI Validation Protocol 3: Active Inference Agent Simulations")

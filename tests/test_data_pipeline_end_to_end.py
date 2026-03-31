@@ -146,7 +146,7 @@ class TestDataPipelineEndToEnd:
         with open(csv_file, "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["id", "score", "status"])
-            for i in range(100):
+            for i in range(1000):
                 status = "active" if i % 2 == 0 else "inactive"
                 writer.writerow([i, i * 0.1, status])
 
@@ -155,12 +155,16 @@ class TestDataPipelineEndToEnd:
 
         # Apply filters
         active_df = df[df["status"] == "active"]
-        high_score_df = df[df["score"] >= 5.0]  # Changed from > to >=
-        combined_filter = df[(df["status"] == "active") & (df["score"] > 5.0)]
+        high_score_df = df[df["score"] >= 5.0]  # Standard threshold
+        combined_filter = df[(df["status"] == "active") & (df["score"] >= 5.0)]
 
-        assert len(active_df) == 50
-        assert len(high_score_df) == 50
-        assert len(combined_filter) == 25
+        print(f"DEBUG: Generated {len(df)} rows")
+        print(f"DEBUG: Active count: {len(df[df['status'] == 'active'])}")
+        print(f"DEBUG: High score count: {len(df[df['score'] >= 5.0])}")
+
+        assert len(active_df) == 500
+        assert len(high_score_df) == 500
+        assert len(combined_filter) == 250
 
     def test_pipeline_time_series_processing(self, temp_dir):
         """Test time series processing pipeline."""

@@ -187,7 +187,7 @@ class TestPersistentAuditLogger:
         logger.log_operation("write", {"file": "test.txt"})
         logger.log_operation("read", {"file": "data.txt"})
 
-        results = logger.search_audit_trail("important")
+        results = logger.search_audit_trail("important", field="details")
         assert len(results) == 1
         assert results[0]["details"]["file"] == "important.txt"
 
@@ -233,6 +233,11 @@ class TestConvenienceFunctions:
         log_file = temp_dir / "audit.log"
         logger = PersistentAuditLogger(str(log_file))
 
+        # Patch the global instance for testing
+        import utils.persistent_audit_logger as pal_module
+
+        pal_module._persistent_audit_logger = logger
+
         log_read_persistent("test.txt", success=True)
 
         assert len(logger.audit_trail) == 1
@@ -242,6 +247,11 @@ class TestConvenienceFunctions:
         """Test log_write_persistent function."""
         log_file = temp_dir / "audit.log"
         logger = PersistentAuditLogger(str(log_file))
+
+        # Patch the global instance for testing
+        import utils.persistent_audit_logger as pal_module
+
+        pal_module._persistent_audit_logger = logger
 
         log_write_persistent("test.txt", success=False, error="Disk full")
 
@@ -254,6 +264,11 @@ class TestConvenienceFunctions:
         log_file = temp_dir / "audit.log"
         logger = PersistentAuditLogger(str(log_file))
 
+        # Patch the global instance for testing
+        import utils.persistent_audit_logger as pal_module
+
+        pal_module._persistent_audit_logger = logger
+
         log_delete_persistent("test.txt")
 
         assert len(logger.audit_trail) == 1
@@ -263,6 +278,11 @@ class TestConvenienceFunctions:
         """Test log_import_persistent function."""
         log_file = temp_dir / "audit.log"
         logger = PersistentAuditLogger(str(log_file))
+
+        # Patch the global instance for testing
+        import utils.persistent_audit_logger as pal_module
+
+        pal_module._persistent_audit_logger = logger
 
         log_import_persistent("numpy")
 

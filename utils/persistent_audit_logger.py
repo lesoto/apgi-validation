@@ -6,7 +6,7 @@ Implements persistent audit logging to disk for forensic analysis.
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 import threading
@@ -21,6 +21,7 @@ class PersistentAuditLogger:
         max_file_size: int = 10 * 1024 * 1024,  # 10 MB
         backup_count: int = 5,
         rotation_enabled: bool = True,
+        max_trail_size: int = 1000,
     ):
         """
         Initialize persistent audit logger.
@@ -30,6 +31,7 @@ class PersistentAuditLogger:
             max_file_size: Maximum size before rotation (bytes)
             backup_count: Number of backup files to keep
             rotation_enabled: Whether to enable log rotation
+            max_trail_size: Maximum number of entries in in-memory audit trail
         """
         self.log_file = Path(log_file)
         self.max_file_size = max_file_size
@@ -43,22 +45,10 @@ class PersistentAuditLogger:
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Initialize logger
-        self.logger = logging.getLogger("persistent_audit")
-        self.logger.setLevel(logging.INFO)
-
-        # File handler with rotation
-        if not self.logger.handlers:
-            handler = logging.FileHandler(self.log_file)
-            handler.setLevel(logging.INFO)
-            formatter = logging.Formatter(
-                "%(asctime)s | %(levelname)s | %(operation)s | %(message)s"
-            )
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
 
         # In-memory audit trail for recent operations
         self.audit_trail: List[Dict] = []
-        self.max_trail_size = 1000
+        self.max_trail_size = max_trail_size
 
         # Statistics
         self.stats = {
@@ -67,6 +57,15 @@ class PersistentAuditLogger:
             "by_status": {"success": 0, "failure": 0},
             "last_rotation": None,
         }
+
+        # Setup file handler with proper formatting
+        handler = logging.FileHandler(self.log_file)
+        handler.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+        handler.setFormatter(formatter)
+        self.logger = logging.getLogger(__name__)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.INFO)
 
     def log_operation(
         self,
@@ -87,7 +86,7 @@ class PersistentAuditLogger:
         with self._lock:
             # Create log entry
             log_entry = {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "operation": operation,
                 "details": details,
                 "success": success,

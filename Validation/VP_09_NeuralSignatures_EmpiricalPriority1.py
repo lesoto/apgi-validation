@@ -1585,7 +1585,7 @@ def main():
             print(f"{key}: {value}")
 
 
-def run_validation():
+def run_validation(**kwargs):
     """Standard validation entry point for Protocol 9."""
     try:
         validator = APGINeuralSignaturesValidator()

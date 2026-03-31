@@ -3863,7 +3863,7 @@ def main():
     return results_summary
 
 
-def run_validation():
+def run_validation(**kwargs):
     """Entry point for CLI validation."""
     try:
         main()  # Call the actual validation

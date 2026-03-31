@@ -190,7 +190,7 @@ class TestPathValidationSecurity:
 
         for attack_path in normalization_attacks:
             with pytest.raises(ValueError, match="Path traversal detected"):
-                validate_file_path(attack_path)
+                validate_file_path(attack_path, temp_dir)
 
 
 class TestPathValidationEdgeCases:

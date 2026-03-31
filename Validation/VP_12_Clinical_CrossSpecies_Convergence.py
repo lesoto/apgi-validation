@@ -2164,7 +2164,7 @@ def main(data_path: Optional[str] = None):
     return results
 
 
-def run_validation():
+def run_validation(**kwargs):
     """Standard validation entry point for Protocol 12."""
     try:
         validator = ClinicalConvergenceValidator()

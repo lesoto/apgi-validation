@@ -1,12 +1,15 @@
 """
-APGI Protocol 5 (Part B): fMRI Anticipation & Experience Validation
-===================================================================
+APGI Protocol 14: fMRI Anticipation & Experience Validation
+============================================================
+
+Status: SIMULATION-VALIDATED, AWAITING EMPIRICAL CONFIRMATION
+Note: This protocol uses double-gamma HRF convolution over synthetic S(t) and M(t)
+time series to validate the computational pipeline. Final empirical confirmation
+requires real fMRI data ingestion.
 
 Simulates blood-oxygen-level-dependent (BOLD) tracking of APGI's
 internal variables S(t) [Salience/AI] and M(t) [vmPFC] during a threat
 anticipation paradigm.
-
-Tests neuroimaging hypotheses from the APGI Multi-Scale framework.
 """
 
 import json

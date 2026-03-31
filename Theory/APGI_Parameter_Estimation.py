@@ -913,6 +913,16 @@ class NeuralMassGenerator:
 
         Higher precision → larger P3b amplitude
         """
+        # Add safety checks
+        if n_timepoints > 10000:
+            print(
+                f"Warning: Large n_timepoints detected: {n_timepoints}, truncating to 1000"
+            )
+            n_timepoints = 1000
+        if dt <= 0 or dt > 0.1:
+            print(f"Warning: Invalid dt detected: {dt}, using default 0.001")
+            dt = 0.001
+
         # Neural population activity
         v_pyr = np.zeros(n_timepoints)  # Pyramidal cells
         v_exc = np.zeros(n_timepoints)  # Excitatory interneurons
@@ -926,20 +936,41 @@ class NeuralMassGenerator:
         input_signal = np.zeros(n_timepoints)
         input_signal[10:30] = precision * gain * 100  # Stimulus at 10-30 ms
 
-        # Integration
+        # Integration with overflow protection
         for t in range(1, n_timepoints):
             # Simplified Jansen-Rit equations
-            v_pyr[t] = v_pyr[t - 1] + dt * (
-                C1 * self.sigmoid(v_exc[t - 1]) - C2 * self.sigmoid(v_inh[t - 1])
-            )
-            v_exc[t] = v_exc[t - 1] + dt * (
-                C3 * self.sigmoid(v_pyr[t - 1]) + input_signal[t]
-            )
-            v_inh[t] = v_inh[t - 1] + dt * (C4 * self.sigmoid(v_pyr[t - 1]))
+            try:
+                v_pyr[t] = v_pyr[t - 1] + dt * (
+                    C1 * self.sigmoid(v_exc[t - 1]) - C2 * self.sigmoid(v_inh[t - 1])
+                )
+                v_exc[t] = v_exc[t - 1] + dt * (
+                    C3 * self.sigmoid(v_pyr[t - 1]) + input_signal[t]
+                )
+                v_inh[t] = v_inh[t - 1] + dt * (C4 * self.sigmoid(v_pyr[t - 1]))
+
+                # Prevent overflow
+                if np.abs(v_pyr[t]) > 1000:
+                    print(f"Warning: Large value detected at t={t}, clamping")
+                    v_pyr[t] = np.sign(v_pyr[t]) * 1000
+                if np.abs(v_exc[t]) > 1000:
+                    v_exc[t] = np.sign(v_exc[t]) * 1000
+                if np.abs(v_inh[t]) > 1000:
+                    v_inh[t] = np.sign(v_inh[t]) * 1000
+
+            except (OverflowError, ValueError) as e:
+                print(f"Warning: Numerical error at t={t}: {e}")
+                # Use previous values
+                v_pyr[t] = v_pyr[t - 1]
+                v_exc[t] = v_exc[t - 1]
+                v_inh[t] = v_inh[t - 1]
 
         # P3b is primarily pyramidal output
         # Add realistic noise
-        erp = v_pyr + self.rng.normal(0, 0.05 * np.max(np.abs(v_pyr)), n_timepoints)
+        try:
+            erp = v_pyr + self.rng.normal(0, 0.05 * np.max(np.abs(v_pyr)), n_timepoints)
+        except (ValueError, OverflowError):
+            print("Warning: Error adding noise, using clean signal")
+            erp = v_pyr
 
         return erp
 
@@ -1177,6 +1208,14 @@ def generate_synthetic_dataset(
 
                 # HEP is peak amplitude 200-400ms window
                 hep_window = erp[20:40]  # 200-400ms
+
+                # Add safety check to prevent timeout
+                if len(hep_window) > 1000:  # Unexpectedly large array
+                    print(
+                        f"Warning: Large HEP window detected: {len(hep_window)} elements"
+                    )
+                    hep_window = hep_window[:100]  # Truncate to reasonable size
+
                 hep_amplitude = np.max(hep_window) - np.min(hep_window)
 
                 # Add measurement noise

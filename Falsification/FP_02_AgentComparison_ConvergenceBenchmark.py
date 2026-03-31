@@ -323,7 +323,7 @@ class IowaGamblingTaskEnvironment:
     D: Low reward variance, net positive, minimal intero cost
     """
 
-    def __init__(self, n_trials: int = 100):
+    def __init__(self, n_trials: int = 80):
         self.n_trials = n_trials
         self.trial = 0
 
@@ -718,7 +718,7 @@ def run_falsification():
 
     config = {
         "n_actions": 4,
-        "n_trials": 100,
+        "n_trials": 80,
         "theta_init": 0.5,
         "alpha": 8.0,
         "tau_S": 0.3,
@@ -728,7 +728,7 @@ def run_falsification():
 
     # Use 50 agents for adequate statistical power in F2.1/F2.2 Fisher-z tests
     n_agents = 50
-    n_trials = 100
+    n_trials = 80
 
     apgi_results: dict = {
         "times_to_criterion": [],

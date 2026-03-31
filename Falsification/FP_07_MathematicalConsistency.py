@@ -34,13 +34,10 @@ import numpy as np
 from scipy import linalg
 from dataclasses import dataclass
 from enum import Enum
-import sys
-import os
 
-# Add Validation directory to path for importing AnalyticalAPGISolutions
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "Validation"))
+# Import centralized analytical solutions
 try:
-    from EvolutionaryEmergenceAnalyticalValidation import AnalyticalAPGISolutions
+    from utils.analytical_solutions import AnalyticalAPGISolutions
 
     HAS_ANALYTICAL_SOLUTIONS = True
 except ImportError:
@@ -253,7 +250,6 @@ class MathematicalConsistencyChecker:
             "xi_theta": symbols("xi_theta"),
             # Time
             "t": symbols("t"),
-            "dt": symbols("dt"),
         }
         return symbols_dict
 
@@ -760,10 +756,10 @@ def verify_threshold_stability() -> Dict[str, Any]:
 
         # Simulate threshold dynamics for different conditions
         def simulate_threshold_dynamics(
-            theta_init, C_met, V_info, eta, tau, theta_0_val, t_max=10.0, dt=0.01
+            theta_init, C_met, V_info, eta, tau, theta_0_val, t_max=10.0
         ):
             """Simulate threshold dynamics numerically"""
-            t_points = np.arange(0, t_max, dt)
+            t_points = np.arange(0, t_max, 0.01)
             theta_trajectory = [theta_init]
 
             for t in t_points[1:]:
@@ -771,7 +767,7 @@ def verify_threshold_stability() -> Dict[str, Any]:
                 # Use numerical theta_0_val instead of symbolic theta_0
                 dtheta = (
                     (theta_0_val - theta_current) / tau + eta * (C_met - V_info)
-                ) * dt
+                ) * 0.01
                 theta_new = theta_current + dtheta
                 theta_trajectory.append(theta_new)
 

@@ -322,12 +322,13 @@ def get_audit_logger() -> SecurityAuditLogger:
     return _audit_logger
 
 
-def audit_file_operation(operation: str):
+def audit_file_operation(operation: str, logger: Optional[SecurityAuditLogger] = None):
     """
     Decorator to audit file operations.
 
     Args:
         operation: Type of operation being audited
+        logger: Optional logger instance (uses global if not provided)
 
     Returns:
         Decorator function
@@ -336,7 +337,7 @@ def audit_file_operation(operation: str):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            logger = get_audit_logger()
+            audit_logger = logger if logger is not None else get_audit_logger()
             file_path = None
 
             # Try to extract file path from arguments
@@ -350,7 +351,7 @@ def audit_file_operation(operation: str):
             try:
                 result = func(*args, **kwargs)
                 if file_path:
-                    logger.log_file_access(
+                    audit_logger.log_file_access(
                         operation,
                         file_path,
                         success=True,
@@ -359,7 +360,7 @@ def audit_file_operation(operation: str):
                 return result
             except Exception as e:
                 if file_path:
-                    logger.log_file_access(
+                    audit_logger.log_file_access(
                         operation,
                         file_path,
                         success=False,
@@ -374,12 +375,13 @@ def audit_file_operation(operation: str):
     return decorator
 
 
-def audit_path_resolution(method: str):
+def audit_path_resolution(method: str, logger: Optional[SecurityAuditLogger] = None):
     """
     Decorator to audit path resolution operations.
 
     Args:
         method: Resolution method being used
+        logger: Optional logger instance (uses global if not provided)
 
     Returns:
         Decorator function
@@ -388,7 +390,7 @@ def audit_path_resolution(method: str):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            logger = get_audit_logger()
+            audit_logger = logger if logger is not None else get_audit_logger()
             original_path = None
 
             # Try to extract path from arguments
@@ -399,14 +401,14 @@ def audit_path_resolution(method: str):
                 result = func(*args, **kwargs)
 
                 if original_path and isinstance(result, (str, Path)):
-                    logger.log_path_resolution(
+                    audit_logger.log_path_resolution(
                         original_path, str(result), method, success=True
                     )
 
                 return result
             except Exception as e:
                 if original_path:
-                    logger.log_path_resolution(
+                    audit_logger.log_path_resolution(
                         original_path,
                         "unknown",
                         method,
@@ -420,12 +422,15 @@ def audit_path_resolution(method: str):
     return decorator
 
 
-def audit_permission_check(permission_type: str):
+def audit_permission_check(
+    permission_type: str, logger: Optional[SecurityAuditLogger] = None
+):
     """
     Decorator to audit permission check operations.
 
     Args:
         permission_type: Type of permission being checked
+        logger: Optional logger instance (uses global if not provided)
 
     Returns:
         Decorator function
@@ -434,7 +439,7 @@ def audit_permission_check(permission_type: str):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            logger = get_audit_logger()
+            audit_logger = logger if logger is not None else get_audit_logger()
             file_path = None
 
             # Try to extract file path from arguments
@@ -448,14 +453,14 @@ def audit_permission_check(permission_type: str):
                 granted = bool(result)
 
                 if file_path:
-                    logger.log_permission_check(
+                    audit_logger.log_permission_check(
                         file_path, permission_type, granted, function=func.__name__
                     )
 
                 return result
             except Exception as e:
                 if file_path:
-                    logger.log_permission_check(
+                    audit_logger.log_permission_check(
                         file_path,
                         permission_type,
                         granted=False,
@@ -470,31 +475,45 @@ def audit_permission_check(permission_type: str):
 
 
 # Convenience functions for common operations
-def log_read(file_path: str, success: bool = True, error: Optional[str] = None) -> None:
+def log_read(
+    file_path: str,
+    success: bool = True,
+    error: Optional[str] = None,
+    logger: Optional[SecurityAuditLogger] = None,
+) -> None:
     """Log file read operation."""
-    get_audit_logger().log_file_access("read", file_path, success=success, error=error)
+    audit_logger = logger if logger is not None else get_audit_logger()
+    audit_logger.log_file_access("read", file_path, success=success, error=error)
 
 
 def log_write(
-    file_path: str, success: bool = True, error: Optional[str] = None
+    file_path: str,
+    success: bool = True,
+    error: Optional[str] = None,
+    logger: Optional[SecurityAuditLogger] = None,
 ) -> None:
     """Log file write operation."""
-    get_audit_logger().log_file_access("write", file_path, success=success, error=error)
+    audit_logger = logger if logger is not None else get_audit_logger()
+    audit_logger.log_file_access("write", file_path, success=success, error=error)
 
 
 def log_delete(
-    file_path: str, success: bool = True, error: Optional[str] = None
+    file_path: str,
+    success: bool = True,
+    error: Optional[str] = None,
+    logger: Optional[SecurityAuditLogger] = None,
 ) -> None:
     """Log file delete operation."""
-    get_audit_logger().log_file_access(
-        "delete", file_path, success=success, error=error
-    )
+    audit_logger = logger if logger is not None else get_audit_logger()
+    audit_logger.log_file_access("delete", file_path, success=success, error=error)
 
 
 def log_import(
-    module_path: str, success: bool = True, error: Optional[str] = None
+    module_path: str,
+    success: bool = True,
+    error: Optional[str] = None,
+    logger: Optional[SecurityAuditLogger] = None,
 ) -> None:
     """Log module import operation."""
-    get_audit_logger().log_file_access(
-        "import", module_path, success=success, error=error
-    )
+    audit_logger = logger if logger is not None else get_audit_logger()
+    audit_logger.log_file_access("import", module_path, success=success, error=error)

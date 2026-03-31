@@ -81,7 +81,7 @@ protocol_files = [
     ("APGI_Protocol_2", "VP_02_Behavioral_BayesianComparison.py"),
     ("APGI_Protocol_3", "VP_03_ActiveInference_AgentSimulations.py"),
     ("APGI_Protocol_4", "VP_04_PhaseTransition_EpistemicLevel2.py"),
-    ("APGI_Protocol_5", "VP_14_fMRI_Anticipation_Experience.py"),
+    ("APGI_Protocol_5", "VP_05_EvolutionaryEmergence.py"),
     ("APGI_Protocol_6", "VP_06_LiquidNetwork_InductiveBias.py"),
     ("APGI_Protocol_7", "VP_07_TMS_CausalInterventions.py"),
     ("APGI_Protocol_8", "VP_08_Psychophysical_ThresholdEstimation.py"),
@@ -91,6 +91,8 @@ protocol_files = [
     ("APGI_Protocol_12", "VP_12_Clinical_CrossSpecies_Convergence.py"),
     ("APGI_Protocol_13", "VP_13_Epistemic_Architecture.py"),
     ("APGI_Protocol_14", "VP_14_fMRI_Anticipation_Experience.py"),
+    ("APGI_Protocol_15", "VP_15_fMRI_Anticipation_vmPFC.py"),
+    ("APGI_Protocol_ALL", "VP_ALL_Aggregator.py"),
 ]
 
 for protocol_name, filename in protocol_files:
@@ -462,7 +464,9 @@ class APGIValidationGUI:
             11: "Protocol 11: Priority 3 (MCMC Cultural Neuroscience)",
             12: "Protocol 12: Clinical/Cross-Species Convergence",
             13: "Protocol 13: P5-P12 Epistemic Architecture",
-            14: "Protocol 14: fMRI Anticipation Experience",
+            14: "Protocol 14: Priority 1 (fMRI Anticipation Experience)",
+            15: "Protocol 15: Priority 1 (fMRI Anticipation vmPFC)",
+            16: "Protocol ALL: Master Aggregator (All Protocols)",
         }
 
         for i, (num, desc) in enumerate(protocols_info.items()):
@@ -664,9 +668,9 @@ class APGIValidationGUI:
         self.param_results_text.grid(row=0, column=0, sticky="nsew")
 
         # Initialize parameter display
-        self.update_parameter_display()
+        self.update_parameter_display_labels()
 
-    def update_parameter_display(self):
+    def update_parameter_display_labels(self) -> None:
         """Update parameter display labels with current values."""
         for param_name, value_var in self.param_vars.items():
             if param_name in self.param_labels:
@@ -880,7 +884,7 @@ class APGIValidationGUI:
         options_frame = ttk.LabelFrame(
             parent_frame, text="Export Options", padding="10"
         )
-        options_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        options_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         options_frame.columnconfigure(1, weight=1)
 
         # Export type selection
@@ -904,7 +908,7 @@ class APGIValidationGUI:
             row=1, column=0, sticky=tk.W, pady=5
         )
         date_frame = ttk.Frame(options_frame)
-        date_frame.grid(row=1, column=1, columnspan=3, sticky=(tk.W, tk.E), pady=5)
+        date_frame.grid(row=1, column=1, columnspan=3, sticky="ew", pady=5)
 
         ttk.Label(date_frame, text="From:").pack(side=tk.LEFT, padx=(0, 5))
         self.start_date_var = tk.StringVar(
@@ -924,7 +928,7 @@ class APGIValidationGUI:
         buttons_frame = ttk.LabelFrame(
             parent_frame, text="Export Actions", padding="10"
         )
-        buttons_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        buttons_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))
         buttons_frame.columnconfigure(2, weight=1)
 
         ttk.Button(
@@ -946,7 +950,7 @@ class APGIValidationGUI:
         analysis_frame = ttk.LabelFrame(
             parent_frame, text="Historical Analysis", padding="10"
         )
-        analysis_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        analysis_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         analysis_frame.columnconfigure(1, weight=1)
 
         ttk.Button(
@@ -970,7 +974,7 @@ class APGIValidationGUI:
         status_frame = ttk.LabelFrame(
             parent_frame, text="Data Collection Status", padding="10"
         )
-        status_frame.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        status_frame.grid(row=3, column=0, sticky="ew", pady=(0, 10))
         status_frame.columnconfigure(1, weight=1)
 
         self.collection_status_var = tk.StringVar(value="Stopped")
@@ -998,16 +1002,14 @@ class APGIValidationGUI:
         results_frame = ttk.LabelFrame(
             parent_frame, text="Export Results", padding="10"
         )
-        results_frame.grid(
-            row=4, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
-        )
+        results_frame.grid(row=4, column=0, sticky="nsew", pady=(0, 10))
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
 
         self.export_results_text = scrolledtext.ScrolledText(
             results_frame, height=15, width=80
         )
-        self.export_results_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.export_results_text.grid(row=0, column=0, sticky="nsew")
 
         # Initialize data collector
         self._init_data_collector()
@@ -1945,16 +1947,6 @@ class APGIValidationGUI:
         except (ValueError, KeyError):
             pass
 
-    def update_parameter_display(self) -> None:
-        """Update all parameter value displays"""
-        for param_name, value_var in self.param_vars.items():
-            value = value_var.get()
-            try:
-                float_value = float(value)
-                self.param_labels[param_name].config(text=f"{float_value:.2f}")
-            except ValueError:
-                self.param_labels[param_name].config(text=value)
-
     def reset_parameters(self) -> None:
         """Reset all parameters to default values"""
         defaults = {
@@ -1968,7 +1960,7 @@ class APGIValidationGUI:
             self.param_vars[param_name].set(default_value)
             self.param_sliders[param_name].set(default_value)
 
-        self.update_parameter_display()
+        self.update_parameter_display_labels()
         self.param_results_text.delete(1.0, tk.END)
         self.param_results_text.insert(tk.END, "Parameters reset to defaults\n")
 
@@ -2156,7 +2148,7 @@ Interpretation:
                 ("APGI_Protocol_2", "VP_02_Behavioral_BayesianComparison.py"),
                 ("APGI_Protocol_3", "VP_03_ActiveInference_AgentSimulations.py"),
                 ("APGI_Protocol_4", "VP_04_PhaseTransition_EpistemicLevel2.py"),
-                ("APGI_Protocol_5", "VP_14_fMRI_Anticipation_Experience.py"),
+                ("APGI_Protocol_5", "VP_05_EvolutionaryEmergence.py"),
                 ("APGI_Protocol_6", "VP_06_LiquidNetwork_InductiveBias.py"),
                 ("APGI_Protocol_7", "VP_07_TMS_CausalInterventions.py"),
                 ("APGI_Protocol_8", "VP_08_Psychophysical_ThresholdEstimation.py"),
@@ -2166,6 +2158,7 @@ Interpretation:
                 ("APGI_Protocol_12", "VP_12_Clinical_CrossSpecies_Convergence.py"),
                 ("APGI_Protocol_13", "VP_13_Epistemic_Architecture.py"),
                 ("APGI_Protocol_14", "VP_14_fMRI_Anticipation_Experience.py"),
+                ("APGI_Protocol_15", "VP_15_fMRI_Anticipation_vmPFC.py"),
             ]
 
             protocol_file = protocol_files[protocol_num - 1][1]
@@ -2253,28 +2246,58 @@ Interpretation:
         self, protocol_result: Any, output_text: str, result: Dict
     ) -> bool:
         """Determine if protocol execution was successful"""
-        passed = False
 
-        # Check if protocol returned explicit success
+        # 1. First priority: Check the structured protocol_result object
+        passed = False
         if protocol_result and isinstance(protocol_result, dict):
-            # Check for explicit success indicators
+            # Check for explicit success indicators in the returned dictionary
             passed = (
-                protocol_result.get("status") == "PASSED"
+                protocol_result.get("passed") is True
                 or protocol_result.get("success") is True
-                or protocol_result.get("passed") is True
+                or protocol_result.get("status")
+                in ["PASSED", "success", "success_validated"]
             )
 
-        # Check for error indicators in output
-        error_indicators = ["ERROR", "FAILED", "Exception", "Traceback", "Error:"]
-        has_errors = any(indicator in output_text for indicator in error_indicators)
+            # If the protocol explicitly returned a non-success status, override
+            if protocol_result.get("status") in [
+                "FAILED",
+                "failed",
+                "error",
+                "falsified",
+            ]:
+                passed = False
 
-        # Final decision: explicit success required, no fallback assumptions
-        if has_errors:
+        # 2. Second priority: If no valid structured result, try to parse the output text
+        # (This is more primitive and error-prone, so used as fallback)
+        if not passed and not (protocol_result and isinstance(protocol_result, dict)):
+            # Look for success markers in output
+            success_markers = [
+                "OVERALL STATUS: ✓ PASS",
+                "Validation completed successfully",
+            ]
+            passed = any(marker in output_text for marker in success_markers)
+
+        # 3. Final check: Look for CRITICAL execution errors that should invalidate any "passed" status
+        # We only check for tracebacks and explicit "ERROR" labels, not the word "FAILED"
+        # which might be part of an empty list of "FAILED CRITERIA".
+        critical_error_indicators = [
+            "Traceback (most recent call last):",
+            "CRITICAL ERROR:",
+            "Exception:",
+        ]
+        has_critical_crash = any(
+            indicator in output_text for indicator in critical_error_indicators
+        )
+
+        if has_critical_crash:
             passed = False
-            result["status"] = "COMPLETED_WITH_ERRORS"
+            result["status"] = "CRASHED"
         elif not passed:
-            result["status"] = "INDETERMINATE"
+            # If we still haven't found a success indicator
+            result["status"] = "FAILED_OR_INDETERMINATE"
             passed = False
+        else:
+            result["status"] = "COMPLETED"
 
         return passed
 
@@ -2359,7 +2382,7 @@ Interpretation:
                 )
 
                 # Update progress
-                progress = ((i + 1) / total_protocols) * 100
+                progress = int(((i + 1) / total_protocols) * 100)
                 self.update_progress(progress)
 
             # Generate final report
@@ -2771,42 +2794,46 @@ Interpretation:
                     )
 
             # Execute protocol with timeout in a separate thread to ensure isolation
-            # Use daemon threads that won't block shutdown
             from concurrent.futures import ThreadPoolExecutor
 
-            # Create executor with daemon threads that won't block shutdown
-            executor = ThreadPoolExecutor(
+            # Use with-statement for automatic executor shutdown
+            with ThreadPoolExecutor(
                 max_workers=1, thread_name_prefix=f"protocol_{protocol_num}"
-            )
+            ) as executor:
+                # Check if protocol accepts progress callback
+                import inspect
 
-            # Check if protocol accepts progress callback
-            import inspect
+                # Validate module has main function
+                if not hasattr(protocol_module, "main"):
+                    raise AttributeError(
+                        f"Protocol module {protocol_num} missing 'main' function"
+                    )
 
-            sig = inspect.signature(protocol_module.main)
+                sig = inspect.signature(protocol_module.main)
 
-            if "progress_callback" in sig.parameters:
-                future = executor.submit(
-                    protocol_module.main, progress_callback=safe_progress_callback
-                )
-            else:
-                future = executor.submit(protocol_module.main)
+                if "progress_callback" in sig.parameters:
+                    future = executor.submit(
+                        protocol_module.main, progress_callback=safe_progress_callback
+                    )
+                else:
+                    future = executor.submit(protocol_module.main)
 
-            try:
-                result = future.result(timeout=self.validator.timeout_seconds)
-                # Do NOT default to passed=True - require explicit success
-                if result is None:
-                    return {
-                        "status": "INDETERMINATE",
-                        "message": "Protocol returned None - cannot determine success",
-                        "passed": False,
-                    }
-                return result
-            except FutureTimeoutError:
-                # BUG-028: Forcefully cancel and shutdown without waiting
-                future.cancel()
-                raise TimeoutError(
-                    f"Protocol {protocol_num} timed out after {self.validator.timeout_seconds} seconds"
-                )
+                try:
+                    result = future.result(timeout=self.validator.timeout_seconds)
+                    # Do NOT default to passed=True - require explicit success
+                    if result is None:
+                        return {
+                            "status": "INDETERMINATE",
+                            "message": "Protocol returned None - cannot determine success",
+                            "passed": False,
+                        }
+                    return result
+                except FutureTimeoutError:
+                    # Cancel and re-raise for caller handling
+                    future.cancel()
+                    raise TimeoutError(
+                        f"Protocol {protocol_num} timed out after {self.validator.timeout_seconds} seconds"
+                    )
 
         except Exception as e:
             # Return error result instead of raising to prevent GUI crashes
@@ -2981,45 +3008,13 @@ Interpretation:
         if hasattr(self, "progress_var"):
             self.progress_var.set(0)
 
-    def create_export_widgets(self, parent_frame: ttk.Frame) -> None:
-        """Create data export widgets"""
-        # Configure parent frame
-        parent_frame.columnconfigure(0, weight=1)
-        parent_frame.rowconfigure(0, weight=1)
-
-        # Export frame
-        export_frame = ttk.LabelFrame(
-            parent_frame, text="Data Export Options", padding="10"
-        )
-        export_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-        # Export options
-        ttk.Label(export_frame, text="Export Format:").grid(
-            row=0, column=0, sticky=tk.W, pady=5
-        )
-
-        self.export_format = tk.StringVar(value="json")
-        formats = ["JSON", "CSV", "PDF Report"]
-        for i, fmt in enumerate(formats):
-            ttk.Radiobutton(
-                export_frame,
-                text=fmt,
-                variable=self.export_format,
-                value=fmt.lower().replace(" ", "_"),
-            ).grid(row=1, column=i, sticky=tk.W, padx=5)
-
-        # Export button
-        ttk.Button(export_frame, text="Export Data", command=self.export_data).grid(
-            row=2, column=0, columnspan=len(formats), pady=20
-        )
-
-    def export_data(self) -> None:
+    def export_data_simple(self) -> None:
         """Export validation data in selected format"""
         if not self.validator or not self.validator.protocol_results:
             messagebox.showwarning("Warning", "No data to export")
             return
 
-        format_type = self.export_format.get()
+        format_type = self.export_type_var.get()
 
         if format_type == "json":
             self.save_results()

@@ -210,7 +210,7 @@ class TestNumericalStabilityProperties:
             pytest.fail("Should handle extreme large values gracefully")
 
     @given(
-        strategies.floats(min_value=-1e10, max_value=1e10, allow_nan=True),
+        strategies.floats(allow_nan=True, allow_infinity=False),
         strategies.floats(min_value=0.1, max_value=10.0),
     )
     def test_nan_handling_surprise(self, error, reference):
@@ -341,7 +341,10 @@ class TestDataValidationProperties:
             data, metadata = generate_synthetic_dataset(n_samples)
             assert isinstance(data, dict)
             assert isinstance(metadata, dict)
-            assert len(data) == n_samples
+            # Check that data contains the expected number of samples
+            # The data dict should have arrays with n_samples length
+            for key, value in data.items():
+                assert len(value) == n_samples
         except ImportError:
             pytest.skip("Synthetic dataset generation not available")
 

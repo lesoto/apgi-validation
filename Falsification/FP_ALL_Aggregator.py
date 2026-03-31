@@ -125,9 +125,17 @@ def check_framework_falsification_condition_a(apgi_predictions: dict) -> bool:
     Returns:
         bool: True if Condition A is met (framework falsified), False otherwise
     """
-    # Count predictions that passed (not falsified)
-    passing_count = sum(1 for r in apgi_predictions.values() if r.get("passed"))
-    # Condition A: ALL 14 must fail → passing_count must be 0
+    # Filter for the core 14 predictions (P1.1 through P5.b)
+    core_keys = [
+        k
+        for k in apgi_predictions
+        if k.startswith("P") and k[1].isdigit() and int(k[1]) <= 5
+    ]
+
+    # Count predictions that passed (not falsified) among the core 14
+    passing_count = sum(1 for k in core_keys if apgi_predictions[k].get("passed"))
+
+    # Condition A: ALL 14 core must fail -> passing_count must be 0
     return passing_count == 0
 
 

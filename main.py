@@ -72,12 +72,15 @@ from utils.timeout_handler import TimeoutError, run_with_timeout
 
 
 # Secure module loading function
-def secure_load_module(name: str, module_path: Path):
+def secure_load_module(
+    name: str, module_path: Path, allow_temp_dir: bool = False
+) -> Any:
     """Safely load a Python module with path validation.
 
     Args:
         name: Name to assign to the loaded module
         module_path: Path to the Python module file
+        allow_temp_dir: Allow loading from temporary directories (default: False)
 
     Returns:
         Loaded Python module object
@@ -89,9 +92,25 @@ def secure_load_module(name: str, module_path: Path):
     # Resolve the absolute path and validate it's within project root
     resolved_path = module_path.resolve()
     try:
-        resolved_path.relative_to(PROJECT_ROOT.resolve())
+        if allow_temp_dir:
+            # For tests, allow temp directories by checking against system temp dir
+            import tempfile
+
+            temp_root = Path(tempfile.gettempdir()).resolve()
+            if resolved_path.is_relative_to(temp_root):
+                # Path is within temp directory, allow it
+                pass
+            else:
+                # Not in temp directory, check against project root
+                resolved_path.relative_to(PROJECT_ROOT)
+        else:
+            resolved_path.relative_to(PROJECT_ROOT)
     except ValueError:
-        raise ValueError(f"Module path outside project root: {module_path}")
+        if not allow_temp_dir:
+            raise ValueError(f"Module path outside project root: {module_path}")
+        else:
+            # Re-raise for temp directory context if needed
+            raise
 
     # Additional validation: ensure it's a .py file
     if not resolved_path.suffix == ".py":
@@ -107,17 +126,20 @@ def secure_load_module(name: str, module_path: Path):
     return module
 
 
-def secure_load_module_from_path(module_path: Path):
+def secure_load_module_from_path(
+    module_path: Path, allow_temp_dir: bool = False
+) -> Any:
     """Convenience function to load module from path with auto-generated name.
 
     Args:
         module_path: Path to the Python module file
+        allow_temp_dir: Allow loading from temporary directories (default: False)
 
     Returns:
         Loaded Python module object
     """
     name = module_path.stem
-    return secure_load_module(name, module_path)
+    return secure_load_module(name, module_path, allow_temp_dir)
 
 
 try:

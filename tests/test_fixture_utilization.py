@@ -264,11 +264,12 @@ class TestCombinedFixtureUsage:
 
     def test_flaky_with_raises_fixture(self, raises_fixture, flaky_operation):
         """Test flaky_operation with raises_fixture."""
-        operation = flaky_operation(success_rate=0.5)
+        # Create a new flaky operation with 0% success rate
+        zero_success_operation = flaky_operation(success_rate=0.0)
 
         with raises_fixture(RuntimeError):
-            # Force failure by setting success rate to 0
-            operation(success_rate=0.0)
+            # Call the operation that should always fail
+            zero_success_operation()
 
     def test_mock_memory_with_raises_fixture(self, raises_fixture, mock_memory_error):
         """Test mock_memory_error with raises_fixture."""

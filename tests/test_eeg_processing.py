@@ -131,9 +131,18 @@ class TestDetectGammaBandPower:
 
     def test_detect_gamma_band_power_empty_data(self):
         """Test with empty EEG data."""
-        # Should handle empty data gracefully - skip this test as it's an edge case
-        # that causes scipy errors
-        pytest.skip("Empty data causes scipy welch errors")
+        # Test with empty data - should handle gracefully
+        empty_data = np.array([]).reshape(1, 0)  # Empty 2D array
+        fs = 1000.0
+
+        result = detect_gamma_band_power(empty_data, fs)
+
+        assert isinstance(result, dict)
+        assert result["band_power"] == 0.0
+        assert result["normalized_power"] == 0.0
+        assert result["p_value"] == 1.0
+        assert result["is_significant"] is False
+        assert result["gamma_band"] == (30.0, 80.0)
 
 
 class TestComputeThetaGammaPAC:
@@ -424,8 +433,9 @@ class TestErrorHandling:
 
     def test_invalid_sampling_rate(self):
         """Test with invalid sampling rate."""
-        # Should handle negative sampling rate gracefully - skip as scipy raises error
-        pytest.skip("Negative sampling rate causes scipy errors")
+        eeg_data = np.random.randn(1, 1000)
+        with pytest.raises(ValueError, match="Sampling rate must be positive"):
+            detect_gamma_band_power(eeg_data, fs=-1000.0)
 
     def test_empty_frequency_band(self):
         """Test with empty frequency band."""

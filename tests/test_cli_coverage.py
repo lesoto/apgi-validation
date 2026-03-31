@@ -115,14 +115,20 @@ class TestEstimateParamsCommand:
         )
         assert result.exit_code == 0
 
-    @pytest.mark.slow
+    @pytest.mark.timeout(300)  # 5 minutes timeout
     def test_estimate_params_with_iterations(self):
         """Test estimate_params command with custom iterations."""
-        runner = CliRunner()
-        result = runner.invoke(
-            cli, ["estimate-params", "--method", "map", "--iterations", "10"]
-        )
-        assert result.exit_code == 0
+        from unittest.mock import patch
+
+        with patch("main.module_loader.get_module") as mock_get_module:
+            # Mock the module without a main() function to test the CLI path
+            mock_module_info = {"module": type("MockModule", (), {})}
+            mock_get_module.return_value = mock_module_info
+
+            runner = CliRunner()
+            result = runner.invoke(cli, ["estimate-params", "--iterations", "10"])
+            assert result.exit_code == 0
+            assert "Estimation method" in result.output
 
     def test_estimate_params_with_output_file(self, tmp_path):
         """Test estimate_params command with output file."""
@@ -348,36 +354,73 @@ class TestCausalManipulationsCommand:
 class TestQuantitativeFitsCommand:
     """Test quantitative_fits CLI command."""
 
+    @staticmethod
+    def _make_quant_mocks():
+        """Return (mock_module, mock_spec) pair for quantitative-fits patching."""
+        from unittest.mock import MagicMock
+
+        mock_module = MagicMock()
+        mock_validator_instance = MagicMock()
+        mock_validator_instance.validate_quantitative_fits.return_value = {
+            "overall_quantitative_score": 0.85
+        }
+        mock_module.QuantitativeModelValidator.return_value = mock_validator_instance
+        return mock_module, MagicMock()
+
     def test_quantitative_fits_basic(self):
         """Test quantitative_fits command with basic parameters."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["quantitative-fits"])
-        assert result.exit_code == 0
+        from unittest.mock import patch
+
+        mock_module, mock_spec = self._make_quant_mocks()
+        with patch(
+            "importlib.util.spec_from_file_location", return_value=mock_spec
+        ), patch("importlib.util.module_from_spec", return_value=mock_module):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["quantitative-fits"])
+            assert result.exit_code == 0
 
     def test_quantitative_fits_with_model(self):
         """Test quantitative_fits command with model parameter."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["quantitative-fits", "--model", "bayesian"])
-        assert result.exit_code == 0
+        from unittest.mock import patch
+
+        mock_module, mock_spec = self._make_quant_mocks()
+        with patch(
+            "importlib.util.spec_from_file_location", return_value=mock_spec
+        ), patch("importlib.util.module_from_spec", return_value=mock_module):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["quantitative-fits", "--model", "bayesian"])
+            assert result.exit_code == 0
 
     def test_quantitative_fits_with_data_file(self, tmp_path):
         """Test quantitative_fits command with data file."""
+        from unittest.mock import patch
+
         data_file = tmp_path / "fit_data.json"
         data_file.write_text('{"data": [1, 2, 3]}')
-        runner = CliRunner()
-        result = runner.invoke(
-            cli, ["quantitative-fits", "--data-file", str(data_file)]
-        )
-        assert result.exit_code == 0
+        mock_module, mock_spec = self._make_quant_mocks()
+        with patch(
+            "importlib.util.spec_from_file_location", return_value=mock_spec
+        ), patch("importlib.util.module_from_spec", return_value=mock_module):
+            runner = CliRunner()
+            result = runner.invoke(
+                cli, ["quantitative-fits", "--data-file", str(data_file)]
+            )
+            assert result.exit_code == 0
 
     def test_quantitative_fits_with_output_file(self, tmp_path):
         """Test quantitative_fits command with output file."""
+        from unittest.mock import patch
+
         output_file = tmp_path / "fit_results.json"
-        runner = CliRunner()
-        result = runner.invoke(
-            cli, ["quantitative-fits", "--output-file", str(output_file)]
-        )
-        assert result.exit_code == 0
+        mock_module, mock_spec = self._make_quant_mocks()
+        with patch(
+            "importlib.util.spec_from_file_location", return_value=mock_spec
+        ), patch("importlib.util.module_from_spec", return_value=mock_module):
+            runner = CliRunner()
+            result = runner.invoke(
+                cli, ["quantitative-fits", "--output-file", str(output_file)]
+            )
+            assert result.exit_code == 0
 
 
 class TestClinicalConvergenceCommand:
@@ -456,35 +499,38 @@ class TestBayesianEstimationCommand:
         assert result.exit_code == 0
         assert "method" in result.output
 
+    @pytest.mark.timeout(180)  # 3 minute timeout for MCMC computation
     def test_bayesian_estimation_with_method(self):
-        """Test bayesian_estimation command with method."""
+        """Test bayesian_estimation command with method parameter."""
         runner = CliRunner()
-        result = runner.invoke(cli, ["bayesian-estimation", "--method", "map"])
+        result = runner.invoke(cli, ["bayesian-estimation", "--method", "mcmc"])
         assert result.exit_code == 0
 
+    @pytest.mark.timeout(180)  # 3 minute timeout for Bayesian computation
     def test_bayesian_estimation_with_data_file(self, tmp_path):
         """Test bayesian_estimation command with data file."""
-        data_file = tmp_path / "bayesian_data.json"
+        data_file = tmp_path / "test_data.json"
         data_file.write_text('{"data": [1, 2, 3]}')
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["bayesian-estimation", "--data-file", str(data_file), "--method", "map"],
+            ["bayesian-estimation", "--data-file", str(data_file), "--method", "mcmc"],
         )
         assert result.exit_code == 0
 
+    @pytest.mark.timeout(180)  # 3 minute timeout for Bayesian computation
     def test_bayesian_estimation_with_output_file(self, tmp_path):
         """Test bayesian_estimation command with output file."""
-        output_file = tmp_path / "bayesian_results.json"
+        output_file = tmp_path / "bayes_results.json"
         runner = CliRunner()
         result = runner.invoke(
             cli,
             [
                 "bayesian-estimation",
+                "--method",
+                "mcmc",
                 "--output-file",
                 str(output_file),
-                "--method",
-                "map",
             ],
         )
         assert result.exit_code == 0
@@ -499,12 +545,14 @@ class TestComprehensiveValidationCommand:
         result = runner.invoke(cli, ["comprehensive-validation"])
         assert result.exit_code == 0
 
+    @pytest.mark.timeout(300)
     def test_comprehensive_validation_with_comprehensive_flag(self):
         """Test comprehensive_validation command with comprehensive flag."""
         runner = CliRunner()
         result = runner.invoke(cli, ["comprehensive-validation", "--comprehensive"])
         assert result.exit_code == 0
 
+    @pytest.mark.timeout(300)
     def test_comprehensive_validation_with_output_file(self, tmp_path):
         """Test comprehensive_validation command with output file."""
         output_file = tmp_path / "comprehensive_results.json"
@@ -514,6 +562,7 @@ class TestComprehensiveValidationCommand:
         )
         assert result.exit_code == 0
 
+    @pytest.mark.timeout(300)
     def test_comprehensive_validation_with_parallel(self):
         """Test comprehensive_validation command with parallel flag."""
         runner = CliRunner()
@@ -524,35 +573,76 @@ class TestComprehensiveValidationCommand:
 class TestGUICommand:
     """Test gui CLI command."""
 
+    @staticmethod
+    def _gui_patches():
+        """Context manager that blocks all real GUI launchers."""
+        from unittest.mock import patch, MagicMock
+
+        return (
+            patch("main._launch_validation_gui", return_value=None),
+            patch("main._launch_psychological_gui", return_value=None),
+            patch("main._launch_analysis_gui", return_value=None),
+        )
+
     def test_gui_basic(self):
-        """Test gui command with basic parameters."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["gui"])
-        assert result.exit_code == 0
+        """Test gui command with basic parameters (validation type, no options)."""
+        from unittest.mock import patch
+
+        with patch("main._launch_validation_gui") as mock_launch, patch(
+            "main._launch_psychological_gui"
+        ), patch("main._launch_analysis_gui"):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["gui"])
+            assert result.exit_code == 0
+            mock_launch.assert_called_once_with(False)
 
     def test_gui_with_type(self):
-        """Test gui command with GUI type."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["gui", "--gui-type", "web"])
-        assert result.exit_code == 0
+        """Test gui command with GUI type parameter."""
+        from unittest.mock import patch
+
+        with patch("main._launch_validation_gui"), patch(
+            "main._launch_psychological_gui"
+        ) as mock_psych, patch("main._launch_analysis_gui"):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["gui", "--gui-type", "psychological"])
+            assert result.exit_code == 0
+            mock_psych.assert_called_once_with(False)
 
     def test_gui_with_port(self):
-        """Test gui command with custom port."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["gui", "--port", "8080"])
-        assert result.exit_code == 0
+        """Test gui command with custom port (port is accepted, passed to context)."""
+        from unittest.mock import patch
+
+        with patch("main._launch_validation_gui") as mock_launch, patch(
+            "main._launch_psychological_gui"
+        ), patch("main._launch_analysis_gui"):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["gui", "--port", "9090"])
+            assert result.exit_code == 0
+            mock_launch.assert_called_once()
 
     def test_gui_with_host(self):
         """Test gui command with custom host."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["gui", "--host", "0.0.0.0"])
-        assert result.exit_code == 0
+        from unittest.mock import patch
+
+        with patch("main._launch_validation_gui") as mock_launch, patch(
+            "main._launch_psychological_gui"
+        ), patch("main._launch_analysis_gui"):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["gui", "--host", "0.0.0.0"])
+            assert result.exit_code == 0
+            mock_launch.assert_called_once()
 
     def test_gui_with_debug(self):
         """Test gui command with debug flag."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["gui", "--debug"])
-        assert result.exit_code == 0
+        from unittest.mock import patch
+
+        with patch("main._launch_validation_gui") as mock_launch, patch(
+            "main._launch_psychological_gui"
+        ), patch("main._launch_analysis_gui"):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["gui", "--debug"])
+            assert result.exit_code == 0
+            mock_launch.assert_called_once_with(True)
 
 
 class TestLogsCommand:

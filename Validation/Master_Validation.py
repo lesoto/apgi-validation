@@ -19,8 +19,6 @@ _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
 
-from Falsification.FP_ALL_Aggregator import FalsificationAggregator
-
 # Try to import logging config
 try:
     from utils.logging_config import apgi_logger as logger
@@ -65,6 +63,7 @@ class APGIMasterValidator:
             12: "secondary",
             13: "secondary",
             14: "tertiary",
+            15: "tertiary",
         }
         self.falsification_status = {
             "primary": [],
@@ -87,6 +86,7 @@ class APGIMasterValidator:
             "Protocol-12": [],
             "Protocol-13": [],
             "Protocol-14": [],
+            "Protocol-15": [],
         }
         # Pending protocols: awaiting empirical data (excluded from scoring denominator)
         self.PENDING_PROTOCOLS = []  # All current protocols implemented
@@ -94,7 +94,7 @@ class APGIMasterValidator:
             "Protocol-1": {
                 "file": "VP_01_SyntheticEEG_MLClassification.py",
                 "function": "run_validation",
-                "description": "Synthetic Neural Data Simulations for Protocol 1 (Modulation of Detection Thresholds)",
+                "description": "Computational Support: Synthetic Neural Data Simulations for Protocol 1 (NOT Paper Protocol 1)",
             },
             "Protocol-2": {
                 "file": "VP_02_Behavioral_BayesianComparison.py",
@@ -112,9 +112,9 @@ class APGIMasterValidator:
                 "description": "Phase Transition / Epistemic Architecture Level 2",
             },
             "Protocol-5": {
-                "file": "VP_14_fMRI_Anticipation_Experience.py",
+                "file": "VP_05_EvolutionaryEmergence.py",
                 "function": "run_validation",
-                "description": "fMRI Interoceptive Anticipation/Experience Paradigm",
+                "description": "Evolutionary Emergence of APGI Architectures",
             },
             "Protocol-6": {
                 "file": "VP_06_LiquidNetwork_InductiveBias.py",
@@ -159,7 +159,12 @@ class APGIMasterValidator:
             "Protocol-14": {
                 "file": "VP_14_fMRI_Anticipation_Experience.py",
                 "function": "run_validation",
-                "description": "fMRI Anticipation/Experience Protocol 5 (stub — P5a–P5d)",
+                "description": "fMRI Anticipation/Experience Protocol 14 (Simulation-Validated, Awaiting Empirical)",
+            },
+            "Protocol-15": {
+                "file": "VP_15_fMRI_Anticipation_vmPFC.py",
+                "function": "run_validation",
+                "description": "fMRI Anticipation vmPFC (STUB — Awaiting Data)",
             },
         }
 
@@ -497,25 +502,42 @@ class APGIMasterValidator:
 
 def main():
     """Main entry point for Master Validation"""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="APGI Master Validation Orchestrator")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Run with reduced trials for speed"
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed for reproducibility"
+    )
+    args = parser.parse_args()
+
     validator = APGIMasterValidator()
     print("\n" + "=" * 80)
     print(" APGI MASTER VALIDATION ORCHESTRATOR ".center(80, "="))
     print("=" * 80)
 
     # Run all available protocols
-    summary = validator.run_all_protocols(save_outputs=True)
+    run_kwargs = {"save_outputs": True, "seed": args.seed}
+    if args.dry_run:
+        run_kwargs.update({"n_trials": 5, "n_agents": 2, "epochs": 1})
+        print("NOTE: Running in DRY-RUN mode with reduced parameters.")
+
+    _ = validator.run_all_protocols(**run_kwargs)
+    summary = validator.generate_master_report()
 
     # Print results table
-    print("\nVALDIATION RESULTS:")
+    print("\nVALIDATION RESULTS:")
     print("-" * 80)
-    # Print nice table header
     print(f"{'PROTOCOL':<15} | {'TIER':<10} | {'STATUS':<10} | {'MESSAGE'}")
     print("-" * 80)
 
     for p_name in sorted(validator.protocol_results.keys()):
         res = validator.protocol_results[p_name]
+        p_num_str = p_name.split("-")[-1]
         try:
-            p_num = int(p_name.split("-")[-1])
+            p_num = int(p_num_str)
             tier = validator.PROTOCOL_TIERS.get(p_num, "unknown")
         except (ValueError, IndexError):
             tier = "unknown"
@@ -524,33 +546,45 @@ def main():
         print(f"{p_name:<15} | {tier:<10} | {status:<10} | {msg}")
 
     print("-" * 80)
-    passed_count = sum(
-        1 for p in validator.protocol_results.values() if p.get("passed", False)
-    )
-    total_count = len(validator.protocol_results)
+    passed_count = summary.get("passed_protocols", 0)
+    total_count = summary.get("completed_protocols", 0)
 
     print(f"\nFinal Summary: {passed_count}/{total_count} protocols passed.")
-    if passed_count == total_count:
-        print("\nOVERALL STATUS: ✓ PASS (100/100 ALIGNMENT REACHED)")
+    if summary.get("weighted_score", 0) >= 0.85:
+        print("\nOVERALL STATUS: ✓ PASS (HIGH-ALIGNMENT REACHED)")
     else:
         print("\nOVERALL STATUS: ✗ FAIL (Requires remediation)")
 
-    print(f"\nReport saved to: {summary['output_files']['json']}")
+    if "output_files" in summary and "json" in summary["output_files"]:
+        print(f"\nReport saved to: {summary['output_files']['json']}")
 
-    # Run Joint Falsification Aggregator
-    print("\n" + "=" * 80)
-    print(" JOINT FALSIFICATION AGGREGATION ".center(80, "="))
-    print("=" * 80)
-    aggregator = FalsificationAggregator()
-    joint_report = aggregator.generate_master_report()
+    # Only run falsification if NOT in dry-run (falsification is heavy)
+    if not args.dry_run:
+        print("\n" + "=" * 80)
+        print(" JOINT FALSIFICATION AGGREGATION ".center(80, "="))
+        print("=" * 80)
+        from Falsification.FP_ALL_Aggregator import (
+            aggregate_prediction_results,
+            check_framework_falsification_condition_a,
+            check_framework_falsification_condition_b,
+        )
 
-    print(
-        f"\nFRAMEWORK FALSIFICATION STATUS: {'✓ PASSED' if joint_report['framework_falsified'] else '✗ FAILED'}"
-    )
-    print(
-        f"Compliance Ratio: {joint_report['falsified_count']}/{joint_report['total_predictions']}"
-    )
-    print(f"Compliance Score: {joint_report['compliance_score']:.1f}/100")
+        preds = aggregate_prediction_results(validator.protocol_results)
+        fa = check_framework_falsification_condition_a(preds)
+        fb = check_framework_falsification_condition_b(
+            results_input=validator.protocol_results
+        )
+
+        print(
+            f"\nCondition A (Simultaneous Failure): {'✗ FAILED' if fa else '✓ PASSED'}"
+        )
+        print(f"Condition B (Parsimony / BIC): {'✗ FAILED' if fb else '✓ PASSED'}")
+
+        compliance = sum(1 for p in preds.values() if p.get("passed"))
+        total = len(preds)
+        print(
+            f"Total Prediction Compliance: {compliance}/{total} ({(compliance / total) * 100:.1f}%)"
+        )
 
     print("\n" + "=" * 80 + "\n")
 

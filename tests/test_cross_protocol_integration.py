@@ -602,9 +602,9 @@ class TestCrossProtocolWorkflowIntegration:
         # Simulate metrics from multiple protocol runs
         protocol_runs = {
             "FP-1": [
-                {"duration": 5.2, "memory_mb": 120, "success": True},
-                {"duration": 5.5, "memory_mb": 125, "success": True},
-                {"duration": 5.1, "memory_mb": 118, "success": True},
+                {"duration": 1.2, "memory_mb": 120, "success": True},
+                {"duration": 1.5, "memory_mb": 125, "success": True},
+                {"duration": 1.1, "memory_mb": 118, "success": True},
             ],
             "FP-2": [
                 {"duration": 8.1, "memory_mb": 200, "success": True},

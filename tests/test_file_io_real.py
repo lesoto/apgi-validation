@@ -27,7 +27,7 @@ def test_function():
     return "success"
 """)
 
-        module = secure_load_module("test_module", test_module)
+        module = secure_load_module("test_module", test_module, allow_temp_dir=True)
         assert hasattr(module, "test_function")
         assert module.test_function() == "success"
 

@@ -171,9 +171,9 @@ class EEGPreprocessor:
         # Use provided sampling rate
         fs = sampling_rate
 
-        if fs is None:
+        if fs is None or fs <= 0:
             self.preprocessing_log.append(
-                "Could not estimate sampling rate, skipping bandpass filter"
+                "Invalid sampling rate, skipping bandpass filter"
             )
             return signal_data
 
@@ -192,7 +192,7 @@ class EEGPreprocessor:
             b, a = signal.butter(4, [low, high], btype="band")
             filtered_data = signal.filtfilt(b, a, signal_data.dropna())
             result = signal_data.copy()
-            result.loc[signal_data.dropna().index, :] = filtered_data
+            result.loc[signal_data.dropna().index] = filtered_data
             self.preprocessing_log.append(
                 f"Applied bandpass filter ({self.config.eeg_bandpass_low}-{self.config.eeg_bandpass_high} Hz)"
             )

@@ -89,9 +89,7 @@ class TestLogFileAccess:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        logger.log_file_access(
-            "read", "/test/file.txt", context={"size": 1024, "mode": "r"}
-        )
+        logger.log_file_access("read", "/test/file.txt", size=1024, mode="r")
 
         assert len(logger.audit_trail) == 1
         entry = logger.audit_trail[0]
@@ -359,7 +357,7 @@ class TestAuditFileOperationDecorator:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        @audit_file_operation("test_read")
+        @audit_file_operation("test_read", logger=logger)
         def read_file(file_path):
             return "content"
 
@@ -375,7 +373,7 @@ class TestAuditFileOperationDecorator:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        @audit_file_operation("test_read")
+        @audit_file_operation("test_read", logger=logger)
         def read_file(file_path):
             raise FileNotFoundError("File not found")
 
@@ -391,7 +389,7 @@ class TestAuditFileOperationDecorator:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        @audit_file_operation("test_read")
+        @audit_file_operation("test_read", logger=logger)
         def read_file(file_path=None):
             return "content"
 
@@ -409,7 +407,7 @@ class TestAuditPathResolutionDecorator:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        @audit_path_resolution("resolve")
+        @audit_path_resolution("resolve", logger=logger)
         def resolve_path(path):
             return "/absolute/path"
 
@@ -425,7 +423,7 @@ class TestAuditPathResolutionDecorator:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        @audit_path_resolution("resolve")
+        @audit_path_resolution("resolve", logger=logger)
         def resolve_path(path):
             raise ValueError("Invalid path")
 
@@ -444,7 +442,7 @@ class TestAuditPermissionCheckDecorator:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        @audit_permission_check("read")
+        @audit_permission_check("read", logger=logger)
         def check_permission(file_path):
             return True
 
@@ -460,7 +458,7 @@ class TestAuditPermissionCheckDecorator:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        @audit_permission_check("write")
+        @audit_permission_check("write", logger=logger)
         def check_permission(file_path):
             return False
 
@@ -479,7 +477,7 @@ class TestConvenienceFunctions:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        log_read("/test/file.txt")
+        log_read("/test/file.txt", logger=logger)
 
         assert len(logger.audit_trail) == 1
         assert logger.audit_trail[0]["operation"] == "read"
@@ -489,7 +487,7 @@ class TestConvenienceFunctions:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        log_write("/test/file.txt")
+        log_write("/test/file.txt", logger=logger)
 
         assert len(logger.audit_trail) == 1
         assert logger.audit_trail[0]["operation"] == "write"
@@ -499,7 +497,7 @@ class TestConvenienceFunctions:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        log_delete("/test/file.txt")
+        log_delete("/test/file.txt", logger=logger)
 
         assert len(logger.audit_trail) == 1
         assert logger.audit_trail[0]["operation"] == "delete"
@@ -509,7 +507,7 @@ class TestConvenienceFunctions:
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
-        log_import("/test/module.py")
+        log_import("/test/module.py", logger=logger)
 
         assert len(logger.audit_trail) == 1
         assert logger.audit_trail[0]["operation"] == "import"

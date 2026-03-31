@@ -76,11 +76,24 @@ def detect_gamma_band_power(
         - p_value: Permutation test p-value
         - is_significant: Whether gamma power is significant
     """
+    if fs <= 0:
+        raise ValueError("Sampling rate must be positive")
     # Ensure 2D array
     if eeg_data.ndim == 1:
         eeg_data = eeg_data.reshape(1, -1)
 
     n_channels, n_samples = eeg_data.shape
+
+    # Handle empty data gracefully
+    if n_samples == 0:
+        return {
+            "band_power": 0.0,
+            "normalized_power": 0.0,
+            "p_value": 1.0,
+            "is_significant": False,
+            "gamma_band": gamma_band,
+        }
+
     total_power = 0.0
     gamma_power = 0.0
 
