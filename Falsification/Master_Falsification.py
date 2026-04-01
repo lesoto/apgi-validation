@@ -34,12 +34,14 @@ from Falsification.FP_ALL_Aggregator import (
 
 # Try to import logging config
 try:
-    from utils.logging_config import APGILogger, apgi_logger as logger
+    from utils.logging_config import APGILogger, apgi_logger as _logger
 except ImportError:
     import logging
 
-    logger = logging.getLogger(__name__)
+    _logger = logging.getLogger(__name__)  # type: ignore[no-redef,assignment]
     APGILogger = logging.Logger  # type: ignore[misc,assignment,no-redef]
+
+logger = _logger  # type: ignore[assignment]
 
 
 class APGIMasterFalsifier:
@@ -544,6 +546,53 @@ class APGIMasterFalsifier:
         """
         return NAMED_PREDICTIONS.copy()
 
+    def _prepare_vp5_genome_data(self) -> Dict[str, Any]:
+        """
+        Run the VP-5 evolutionary engine before FP-05 and extract genome-level metrics.
+
+        This enforces the required VP-5 -> FP-05 ordering so FP-05 never runs
+        without the evolutionary genome payload it expects.
+        """
+        project_root = Path(__file__).parent.parent
+        vp5_path = project_root / "Validation" / "VP_05_EvolutionaryEmergence.py"
+        spec = importlib.util.spec_from_file_location("Validation.VP_05", vp5_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Could not load VP-05 module from {vp5_path}")
+
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        optimizer = module.EvolutionaryOptimizer(
+            population_size=100,
+            n_generations=100,
+            mutation_rate=0.01,
+            crossover_rate=0.7,
+            tournament_size=5,
+            elitism=5,
+        )
+        history = optimizer.run_evolution()
+        best_genomes = history.get("best_genomes", [])
+        genome_dicts = [
+            genome.to_dict() if hasattr(genome, "to_dict") else genome
+            for genome in best_genomes
+        ]
+
+        intero_gain_ratios = [
+            float(genome.get("beta", 1.0))
+            for genome in genome_dicts
+            if genome.get("has_intero_weighting", False)
+        ]
+        alpha_values = [float(genome.get("alpha", 0.0)) for genome in genome_dicts]
+
+        return {
+            "source": "VP-05",
+            "history_length": len(history.get("generation", [])),
+            "intero_gain_ratios": intero_gain_ratios,
+            "alpha_values": alpha_values,
+            "best_genomes": genome_dicts,
+            "architecture_frequencies": history.get("architecture_frequencies", []),
+        }
+
     def run_falsification(self, protocols: List[str], **kwargs) -> Dict[str, Any]:
         """Run specified falsification protocols.
 
@@ -568,7 +617,13 @@ class APGIMasterFalsifier:
             try:
                 logger.info(f"Running falsification protocol {protocol_name}...")
                 protocol_info = self.available_protocols[protocol_name]
-                result = self._run_single_protocol(protocol_info, **kwargs)
+                protocol_kwargs = dict(kwargs)
+                if protocol_name == "FP-05" and "genome_data" not in protocol_kwargs:
+                    logger.info(
+                        "Running VP-05 prerequisite before FP-05 to prepare genome_data."
+                    )
+                    protocol_kwargs["genome_data"] = self._prepare_vp5_genome_data()
+                result = self._run_single_protocol(protocol_info, **protocol_kwargs)
                 results[protocol_name] = result
                 logger.info(
                     f"{protocol_name} completed: {result.get('status', 'unknown')}"

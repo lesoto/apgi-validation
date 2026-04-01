@@ -98,7 +98,7 @@ apgi-theory/
 ├── config/
 │   └── default.yaml            # Default configuration
 ├── logs/                        # Log files (created during runtime)
-├── data/                        # Data directory
+├── data_repository/              # Data directory (raw_data/, processed_data/, metadata/, etc.)
 ├── cache/                       # Cache directory
 ├── venv/                        # Virtual environment (created)
 └── [existing APGI modules...]   # Original framework components

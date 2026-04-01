@@ -1,9 +1,12 @@
 # Import from other protocols
 import importlib.util
+import json
 import logging
 import os
 import sys
+import time
 import warnings
+from datetime import datetime
 from typing import Any, Dict, List, Tuple
 import numpy as np
 from scipy import stats
@@ -32,9 +35,11 @@ try:
     from utils.error_handler import handle_import_error
     from utils.constants import DIM_CONSTANTS
     from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
         F1_1_MIN_ADVANTAGE_PCT,
         F1_1_MIN_COHENS_D,
         F1_1_ALPHA,
+        GENERIC_MEDIUM_COHENS_D,
     )
     from utils.shared_falsification import check_F5_family
 except ImportError as e:
@@ -91,9 +96,11 @@ except ImportError as e:
 from utils.constants import DIM_CONSTANTS
 from utils.shared_falsification import check_F5_family
 from utils.falsification_thresholds import (
+    DEFAULT_ALPHA,
     F1_1_MIN_ADVANTAGE_PCT,
     F1_1_MIN_COHENS_D,
     F1_1_ALPHA,
+    GENERIC_MEDIUM_COHENS_D,
 )
 
 # Suppress scipy deprecation warnings
@@ -188,6 +195,276 @@ def bootstrap_one_sample_test(
     )
 
     return test_stat, min(2 * p_value, 1.0)
+
+
+def _json_default(value: Any) -> Any:
+    """Convert numpy/path objects into JSON-serializable values."""
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    if isinstance(value, (np.floating,)):
+        return float(value)
+    if isinstance(value, (np.bool_,)):
+        return bool(value)
+    if isinstance(value, Path):
+        return str(value)
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
+def _protocol_results_dir() -> Path:
+    """Return the standardized directory for persisted protocol outputs."""
+    results_dir = Path(__file__).with_name("results")
+    results_dir.mkdir(parents=True, exist_ok=True)
+    return results_dir
+
+
+def _persist_protocol_result(protocol_label: str, result: Dict[str, Any]) -> Path:
+    """Persist a protocol result as JSON for downstream synthesis checks."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = _protocol_results_dir() / f"{protocol_label.lower()}_{timestamp}.json"
+    with output_path.open("w", encoding="utf-8") as handle:
+        json.dump(result, handle, indent=2, default=_json_default)
+    return output_path
+
+
+def _load_protocol_result_json(path: Path) -> Dict[str, Any]:
+    """Load a persisted protocol JSON artifact."""
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _summarize_protocol_json(
+    protocol_label: str, result: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Summarize pass/fail status from a persisted protocol result."""
+    criteria = result.get("criteria", {})
+    failed_criteria = sorted(
+        criterion
+        for criterion, criterion_result in criteria.items()
+        if isinstance(criterion_result, dict)
+        and not criterion_result.get("passed", False)
+    )
+    # Fix: Check for explicit error status or error key, not substring match
+    status = result.get("status", "")
+    errored = str(status).lower() == "error" or (
+        "error" in result and isinstance(result.get("error"), (str, Exception))
+    )
+    passed = (not errored) and not failed_criteria
+    return {
+        "protocol": protocol_label,
+        "status": "PASS" if passed else ("ERROR" if errored else "FAIL"),
+        "failed_criteria": failed_criteria,
+        "summary": result.get("summary", {}),
+        "error": result.get("error") or result.get("message"),
+    }
+
+
+def _to_numeric_array(values: Any) -> np.ndarray:
+    """Convert input into a finite float array, dropping NaN/Inf."""
+    if isinstance(values, np.ndarray):
+        arr = values.astype(float, copy=False).ravel()
+    elif isinstance(values, (list, tuple)):
+        arr = np.asarray(values, dtype=float).ravel()
+    elif values is None:
+        arr = np.asarray([], dtype=float)  # type: ignore[assignment,return-value]
+    else:
+        arr = np.asarray([values], dtype=float)  # type: ignore[assignment,return-value]
+    if arr.size == 0:
+        return arr
+    return arr[np.isfinite(arr)]
+
+
+def _compute_paired_percentage_reduction(
+    reduction_input: Any, full_keys: Tuple[str, ...], ablated_keys: Tuple[str, ...]
+) -> Dict[str, Any]:
+    """
+    Compute paired percentage reduction from independent simulation arms.
+
+    Expected input shape:
+    {
+        "independent_simulations": True,
+        "apgi_full": [...],
+        "apgi_no_precision": [...],
+    }
+    """
+    if not isinstance(reduction_input, dict):
+        return {
+            "valid": False,
+            "reason": "Independent simulation arms are required; scalar deltas are not accepted.",
+        }
+
+    independent = bool(reduction_input.get("independent_simulations", False))
+    full_values = np.asarray([], dtype=float)
+    ablated_values = np.asarray([], dtype=float)
+
+    for key in full_keys:
+        if key in reduction_input:
+            full_values = _to_numeric_array(reduction_input[key])
+            if full_values.size:
+                break
+    for key in ablated_keys:
+        if key in reduction_input:
+            ablated_values = _to_numeric_array(reduction_input[key])
+            if ablated_values.size:
+                break
+
+    if not independent:
+        return {
+            "valid": False,
+            "reason": "Precision/ablation criterion requires independently simulated arms.",
+        }
+    if full_values.size < 2 or ablated_values.size < 2:
+        return {
+            "valid": False,
+            "reason": "Both full and ablated arms need at least two finite observations.",
+        }
+
+    n = min(full_values.size, ablated_values.size)
+    full_values = full_values[:n]
+    ablated_values = ablated_values[:n]
+    safe_full = np.where(np.abs(full_values) < 1e-10, 1e-10, full_values)
+    reductions = ((full_values - ablated_values) / safe_full) * 100.0
+    reductions = reductions[np.isfinite(reductions)]
+    if reductions.size < 2:
+        return {
+            "valid": False,
+            "reason": "Reduction calculation produced insufficient finite samples.",
+        }
+
+    t_stat, p_value = stats.ttest_1samp(reductions, 0.0)
+    std_val = float(np.std(reductions, ddof=1))
+    cohens_d = float(np.mean(reductions) / std_val) if std_val > 0 else 0.0
+    return {
+        "valid": True,
+        "reductions": reductions,
+        "mean_reduction": float(np.mean(reductions)),
+        "cohens_d": cohens_d,
+        "p_value": float(p_value) if np.isfinite(p_value) else 1.0,
+        "t_statistic": float(t_stat) if np.isfinite(t_stat) else 0.0,
+        "full_mean": float(np.mean(full_values)),
+        "ablated_mean": float(np.mean(ablated_values)),
+    }
+
+
+def measure_wall_clock_seconds(
+    callback: Any, repeats: int = 5, warmup: int = 1
+) -> List[float]:
+    """Measure runtime with time.perf_counter() for F3.5 wall-clock comparisons."""
+    timings: List[float] = []
+    for _ in range(max(0, warmup)):
+        callback()
+    for _ in range(max(1, repeats)):
+        start = time.perf_counter()
+        callback()
+        timings.append(time.perf_counter() - start)
+    return timings
+
+
+def _compute_wall_clock_efficiency(
+    performance_retention: Any, efficiency_gain: Any
+) -> Dict[str, Any]:
+    """
+    Compute performance retention and efficiency from wall-clock traces.
+
+    Expected timing input:
+    {
+        "measurement_method": "wall_clock",
+        "apgi_seconds": [...],
+        "baseline_seconds": [...],
+    }
+    """
+    if isinstance(performance_retention, dict):
+        full_perf = _to_numeric_array(
+            performance_retention.get("full_model_performance")
+            or performance_retention.get("full_performance")
+        )
+        efficient_perf = _to_numeric_array(
+            performance_retention.get("efficient_model_performance")
+            or performance_retention.get("ablated_model_performance")
+            or performance_retention.get("measured_performance")
+        )
+        if full_perf.size and efficient_perf.size:
+            retention_pct = float(
+                (np.mean(efficient_perf) / max(1e-10, np.mean(full_perf))) * 100.0
+            )
+        else:
+            retention_pct = float(
+                performance_retention.get("performance_retention_pct", np.nan)
+            )
+    else:
+        retention_pct = float(performance_retention)
+
+    if not isinstance(efficiency_gain, dict):
+        return {
+            "valid": False,
+            "reason": "Wall-clock timing traces are required for F3.5; proxy op counts are not accepted.",
+            "performance_retention_pct": retention_pct,
+        }
+
+    method = efficiency_gain.get("measurement_method", "")
+    if method != "wall_clock":
+        return {
+            "valid": False,
+            "reason": "F3.5 requires wall-clock timing measured with time.perf_counter().",
+            "performance_retention_pct": retention_pct,
+        }
+
+    apgi_seconds = _to_numeric_array(
+        efficiency_gain.get("apgi_seconds") or efficiency_gain.get("full_model_seconds")
+    )
+    baseline_seconds = _to_numeric_array(
+        efficiency_gain.get("baseline_seconds")
+        or efficiency_gain.get("flop_equivalent_seconds")
+        or efficiency_gain.get("baseline_flop_equivalent_seconds")
+    )
+    if apgi_seconds.size < 2 or baseline_seconds.size < 2:
+        return {
+            "valid": False,
+            "reason": "Need at least two APGI and two baseline timing measurements for F3.5.",
+            "performance_retention_pct": retention_pct,
+        }
+
+    timing_gain_pct = float(
+        (1.0 - (np.mean(apgi_seconds) / max(1e-10, np.mean(baseline_seconds)))) * 100.0
+    )
+    t_stat, p_value = stats.ttest_ind(baseline_seconds, apgi_seconds, equal_var=False)
+    return {
+        "valid": True,
+        "performance_retention_pct": retention_pct,
+        "efficiency_gain_pct": timing_gain_pct,
+        "apgi_seconds_mean": float(np.mean(apgi_seconds)),
+        "baseline_seconds_mean": float(np.mean(baseline_seconds)),
+        "t_statistic": float(t_stat) if np.isfinite(t_stat) else 0.0,
+        "p_value": float(p_value) if np.isfinite(p_value) else 1.0,
+    }
+
+
+def _compute_sample_efficiency(
+    apgi_time_to_criterion: Any, baseline_time_to_criterion: Any
+) -> Dict[str, Any]:
+    """Compute sample-efficiency statistics against a measured RL baseline."""
+    apgi_trials = _to_numeric_array(apgi_time_to_criterion)
+    baseline_trials = _to_numeric_array(baseline_time_to_criterion)
+
+    if apgi_trials.size < 2 or baseline_trials.size < 2:
+        return {
+            "valid": False,
+            "reason": "Measured APGI and RL baseline trial distributions are required for F3.6.",
+        }
+
+    t_stat, p_value = stats.ttest_ind(baseline_trials, apgi_trials, equal_var=False)
+    mean_apgi = float(np.mean(apgi_trials))
+    mean_baseline = float(np.mean(baseline_trials))
+    hazard_ratio = mean_baseline / max(1e-10, mean_apgi)
+    return {
+        "valid": True,
+        "apgi_mean_trials": mean_apgi,
+        "baseline_mean_trials": mean_baseline,
+        "hazard_ratio": hazard_ratio,
+        "t_statistic": float(t_stat) if np.isfinite(t_stat) else 0.0,
+        "p_value": float(p_value) if np.isfinite(p_value) else 1.0,
+    }
 
 
 # Lazy imports to speed up module loading
@@ -501,10 +778,78 @@ class AgentComparisonExperiment:
             "ThreatReward": lambda: _get_protocol2().ThreatRewardTradeoffEnvironment(),
         }
 
+    def _run_protocol_module(
+        self, protocol_num: int, protocol_path: str
+    ) -> Dict[str, Any]:
+        """Import and execute a protocol module with explicit error reporting."""
+        spec = importlib.util.spec_from_file_location(
+            f"Protocol_{protocol_num}", protocol_path
+        )
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Failed to load spec for Protocol {protocol_num}")
+
+        protocol_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(protocol_module)
+
+        if hasattr(protocol_module, "run_protocol"):
+            return protocol_module.run_protocol()
+        if hasattr(protocol_module, "run_validation"):
+            return protocol_module.run_validation()
+        if hasattr(protocol_module, "run_falsification"):
+            return protocol_module.run_falsification()
+
+        raise AttributeError(
+            f"Protocol {protocol_num} does not expose run_protocol/run_validation/run_falsification"
+        )
+
+    def _evaluate_cross_protocol_consistency(
+        self, protocol_json_paths: Dict[str, Path]
+    ) -> Dict[str, Any]:
+        """
+        Enforce the FP-03 prerequisite gate using persisted FP-01/FP-02 JSON artifacts.
+
+        FP-03 synthesis may only proceed if both prerequisite falsification protocols
+        have persisted result JSON and both pass their own criteria.
+        """
+        protocol_summaries: Dict[str, Any] = {}
+        missing: List[str] = []
+
+        for protocol_label in ("fp_01", "fp_02"):
+            json_path = protocol_json_paths.get(protocol_label)
+            if json_path is None or not json_path.exists():
+                missing.append(protocol_label.upper())
+                continue
+
+            loaded = _load_protocol_result_json(json_path)
+            summary = _summarize_protocol_json(protocol_label.upper(), loaded)
+            summary["result_json"] = str(json_path)
+            protocol_summaries[protocol_label.upper()] = summary
+
+        failed = {
+            label: summary
+            for label, summary in protocol_summaries.items()
+            if summary["status"] != "PASS"
+        }
+        gate_passed = not missing and not failed
+
+        return {
+            "passed": gate_passed,
+            "required_protocols": ["FP_01", "FP_02"],
+            "missing_protocol_json": missing,
+            "protocols": protocol_summaries,
+            "failure_reason": (
+                None
+                if gate_passed
+                else (
+                    "Missing prerequisite JSON artifacts"
+                    if missing
+                    else "Prerequisite protocol falsification detected"
+                )
+            ),
+        }
+
     def run_full_experiment(self) -> Dict[str, Any]:
         """Run framework-level synthesis: load protocols 1-12 and apply aggregator logic"""
-        import json
-
         logger.info(
             "Starting framework-level synthesis: loading protocols 1-12 and applying falsification"
         )
@@ -523,6 +868,8 @@ class AgentComparisonExperiment:
 
         # Load results from each available protocol
         protocol_results = {}
+        protocol_json_paths: Dict[str, Path] = {}
+        protocol_loading_errors: Dict[str, str] = {}
         for protocol_num, protocol_file in protocol_files.items():
             if protocol_file is None:
                 logger.warning(f"Protocol {protocol_num} file not specified, skipping")
@@ -533,69 +880,77 @@ class AgentComparisonExperiment:
             )
 
             if not os.path.exists(protocol_path):
-                logger.warning(
-                    f"Protocol {protocol_num} file not found: {protocol_path}"
-                )
+                message = f"Protocol {protocol_num} file not found: {protocol_path}"
+                logger.error(message)
+                protocol_loading_errors[f"FP_{protocol_num:02d}"] = message
                 continue
 
             try:
-                # Import protocol module with error handling
-                spec = importlib.util.spec_from_file_location(
-                    f"Protocol_{protocol_num}", protocol_path
-                )
-                if spec is None or spec.loader is None:
-                    raise ImportError(
-                        f"Failed to load spec for Protocol {protocol_num}"
-                    )
-                protocol_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(protocol_module)
+                result = self._run_protocol_module(protocol_num, protocol_path)
+                protocol_results[protocol_num] = result
 
-                # Run protocol and get results
-                if hasattr(protocol_module, "run_protocol"):
-                    protocol_results[protocol_num] = protocol_module.run_protocol()
-                elif hasattr(protocol_module, "run_validation"):
-                    protocol_results[protocol_num] = protocol_module.run_validation()
-                elif hasattr(protocol_module, "run_falsification"):
-                    protocol_results[protocol_num] = protocol_module.run_falsification()
-                else:
-                    logger.warning(
-                        f"Protocol {protocol_num} missing run method, using fallback"
+                if protocol_num in (1, 2):
+                    protocol_label = f"fp_{protocol_num:02d}"
+                    protocol_json_paths[protocol_label] = _persist_protocol_result(
+                        protocol_label, result
                     )
-                    continue
+                    logger.info(
+                        "Persisted %s prerequisite result to %s",
+                        protocol_label.upper(),
+                        protocol_json_paths[protocol_label],
+                    )
 
-            except ImportError as e:
-                logger.error(f"Failed to load Protocol {protocol_num}: {str(e)}")
-                continue
+            except Exception as e:
+                protocol_key = f"FP_{protocol_num:02d}"
+                logger.exception("Failed to execute %s during synthesis", protocol_key)
+                protocol_loading_errors[protocol_key] = str(e)
+
+        if protocol_loading_errors:
+            return {
+                "status": "ERROR",
+                "error": "Protocol loading failures prevented framework synthesis.",
+                "protocol_loading_errors": protocol_loading_errors,
+            }
+
+        consistency_gate = self._evaluate_cross_protocol_consistency(
+            protocol_json_paths
+        )
+        if not consistency_gate["passed"]:
+            logger.error(
+                "Cross-protocol consistency gate failed: %s",
+                consistency_gate["failure_reason"],
+            )
+            return {
+                "status": "ERROR",
+                "framework_falsified": True,
+                "error": "Cross-protocol consistency gate failed.",
+                "cross_protocol_consistency": consistency_gate,
+            }
 
         # Apply framework-level falsification using aggregator
         if protocol_results:
             logger.info("Applying framework-level falsification criteria")
             falsification = run_framework_falsification(protocol_results)
+            falsification["cross_protocol_consistency"] = consistency_gate
 
             # Save results with error handling
-            output_dir = os.path.join(os.path.dirname(__file__), "results")
-            os.makedirs(output_dir, exist_ok=True)
-
-            import datetime
-
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_file = os.path.join(
-                output_dir, f"framework_falsification_{timestamp}.json"
+            output_file = _protocol_results_dir() / (
+                f"framework_falsification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             )
 
             try:
-                with open(output_file, "w", encoding="utf-8") as f:
-                    json.dump(falsification, f, indent=2)
+                with output_file.open("w", encoding="utf-8") as f:
+                    json.dump(falsification, f, indent=2, default=_json_default)
                 logger.info(f"Framework-level results saved to {output_file}")
             except (OSError, IOError) as e:
                 logger.error(f"Failed to save results to {output_file}: {e}")
                 # Try alternative location
-                alt_output_file = os.path.join(
-                    "/tmp", f"framework_falsification_{timestamp}.json"
+                alt_output_file = Path("/tmp") / (
+                    f"framework_falsification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                 )
                 try:
-                    with open(alt_output_file, "w", encoding="utf-8") as f:
-                        json.dump(falsification, f, indent=2)
+                    with alt_output_file.open("w", encoding="utf-8") as f:
+                        json.dump(falsification, f, indent=2, default=_json_default)
                     logger.info(
                         f"Framework-level results saved to alternative location: {alt_output_file}"
                     )
@@ -917,8 +1272,8 @@ class AgentComparisonExperiment:
         analysis = {}
 
         # Statistical power analysis parameters
-        alpha = 0.05  # Significance level
-        effect_size_threshold = 0.5  # Cohen's d threshold for medium effect
+        alpha = DEFAULT_ALPHA
+        effect_size_threshold = GENERIC_MEDIUM_COHENS_D
 
         # Import stats for statistical tests
         stats = _get_stats()
@@ -1047,9 +1402,13 @@ class AgentComparisonExperiment:
         import warnings
 
         try:
-            scaler = RobustScaler(quantile_range=(5.0, 95.0))
+            scaler = RobustScaler(quantile_range=(5.0, 95.0))  # type: ignore[call-arg]
             X_scaled = scaler.fit_transform(X)
-        except Exception:
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(f"RobustScaler failed, falling back to manual scaling: {e}")
             # Fallback: manual robust scaling
             try:
                 median = np.median(X, axis=0)
@@ -1060,7 +1419,11 @@ class AgentComparisonExperiment:
                 X_scaled = (X - median) / iqr
                 # Clip scaled values to prevent extreme outliers
                 X_scaled = np.clip(X_scaled, -5, 5)
-            except Exception:
+            except Exception as e:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.error(f"Manual scaling failed, using unscaled data: {e}")
                 X_scaled = X  # Ultimate fallback to unscaled
 
         # Additional safety: ensure no extreme values after scaling
@@ -1175,7 +1538,7 @@ class AgentComparisonExperiment:
     def check_falsification(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
         """Check all falsification criteria with proper statistical thresholds"""
         falsified = {}
-        alpha = 0.05  # Family-wise error rate
+        alpha = DEFAULT_ALPHA
         bonferroni_alpha = alpha / 6  # Adjust for multiple comparisons
 
         # F3.1: APGI shows no performance advantage (null: APGI <= others)
@@ -2116,7 +2479,7 @@ def check_falsification(
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
-    results = {
+    results: Dict[str, Any] = {
         "protocol": "Falsification-Protocol-3",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "total": 16},
@@ -2164,66 +2527,67 @@ def check_falsification(
 
     # F3.2: Interoceptive Task Specificity
     logger.info("Testing F3.2: Interoceptive Task Specificity")
-    # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(interoceptive_advantage, (list, np.ndarray))
-        and len(interoceptive_advantage) >= 30
-    ):
-        # Use standard t-test with sufficient sample size
-        t_stat, p_value = stats.ttest_1samp(interoceptive_advantage, 12)
-        mean_adv = float(np.mean(interoceptive_advantage))
-        std_adv = float(np.std(interoceptive_advantage, ddof=1))
-        cohens_d = (mean_adv - 12) / std_adv if std_adv > 0 else 0.0
-    elif (
-        isinstance(interoceptive_advantage, (list, np.ndarray))
-        and len(interoceptive_advantage) >= 2
-    ):
-        # Use bootstrap test for small samples
-        data_array = np.array(interoceptive_advantage)
-        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=12.0)
-        mean_adv = float(np.mean(data_array))
-        std_adv = float(np.std(data_array, ddof=1))
-        cohens_d = (mean_adv - 12) / std_adv if std_adv > 0 else 0.0
+    intero_array = _to_numeric_array(interoceptive_advantage)
+    extero_array = _to_numeric_array(exteroceptive_advantage)
+    if intero_array.size >= 2 and extero_array.size >= 2:
+        n = min(intero_array.size, extero_array.size)
+        specificity_diff = intero_array[:n] - extero_array[:n]
+        t_stat, p_value = stats.ttest_1samp(specificity_diff, 0.0)
+        mean_adv = float(np.mean(specificity_diff))
+        std_adv = float(np.std(specificity_diff, ddof=1))
+        cohens_d = mean_adv / std_adv if std_adv > 0 else 0.0
+        f3_2_status = "PASS"
+        if not (
+            np.isfinite(mean_adv)
+            and np.isfinite(cohens_d)
+            and p_value < 0.01
+            and mean_adv >= 28
+            and cohens_d >= 0.70
+        ):
+            f3_2_status = "FAIL"
     else:
-        # Insufficient data - fail criterion
         t_stat, p_value = 0.0, 1.0
-        mean_adv = (
-            float(interoceptive_advantage)
-            if not isinstance(interoceptive_advantage, (list, np.ndarray))
-            else (
-                float(interoceptive_advantage[0])
-                if len(interoceptive_advantage) > 0
-                else 0.0
-            )
-        )
+        mean_adv = float("nan")
         cohens_d = 0.0
+        specificity_diff = np.asarray([], dtype=float)
+        f3_2_status = "ERROR"
 
-    f3_2_pass = (
-        np.isfinite(mean_adv)
-        and np.isfinite(cohens_d)
-        and (
-            p_value < 0.01
-            if np.isfinite(p_value) and p_value != 1.0
-            else mean_adv >= 28
-        )
-        and mean_adv >= 28
-        and cohens_d >= 0.70
-    )
+    f3_2_pass = f3_2_status == "PASS"
     results["criteria"]["F3.2"] = {
         "passed": f3_2_pass,
-        "interoceptive_advantage_pct": mean_adv,
+        "status": f3_2_status,
+        "specificity_advantage_pct": mean_adv,
+        "interoceptive_advantage_pct": (
+            float(np.mean(intero_array)) if intero_array.size else None
+        ),
+        "exteroceptive_advantage_pct": (
+            float(np.mean(extero_array)) if extero_array.size else None
+        ),
         "cohens_d": cohens_d,
         "p_value": p_value,
         "t_statistic": t_stat,
-        "threshold": "≥28% interoceptive, d ≥ 0.70",
-        "actual": f"Intero: {mean_adv:.2f}%, d={cohens_d:.3f}",
+        "threshold": "Interoceptive-specific advantage ≥28% over exteroceptive control, d ≥ 0.70",
+        "actual": (
+            f"Specificity: {mean_adv:.2f}%, d={cohens_d:.3f}"
+            if np.isfinite(mean_adv)
+            else "Control task comparison unavailable"
+        ),
+        "error": (
+            None
+            if f3_2_status != "ERROR"
+            else "F3.2 requires both interoceptive and exteroceptive control task measurements."
+        ),
     }
     if f3_2_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F3.2: {'PASS' if f3_2_pass else 'FAIL'} - Intero: {mean_adv:.2f}%, d={cohens_d:.3f}, p={p_value:.4f}"
+        "F3.2: %s - Specificity: %s, d=%.3f, p=%.4f",
+        f3_2_status,
+        f"{mean_adv:.2f}%" if np.isfinite(mean_adv) else "N/A",
+        cohens_d,
+        p_value,
     )
 
     # F3.3: Threshold Gating Necessity
@@ -2290,132 +2654,168 @@ def check_falsification(
 
     # F3.4: Precision Weighting Necessity
     logger.info("Testing F3.4: Precision Weighting Necessity")
-    # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(precision_reduction, (list, np.ndarray))
-        and len(precision_reduction) >= 30
-    ):
-        # Use standard t-test with sufficient sample size
-        t_stat, p_precision = stats.ttest_1samp(precision_reduction, 0)
-        mean_precision = float(np.mean(precision_reduction))
-    elif (
-        isinstance(precision_reduction, (list, np.ndarray))
-        and len(precision_reduction) >= 2
-    ):
-        # Use bootstrap test for small samples
-        data_array = np.array(precision_reduction)
-        t_stat, p_precision = bootstrap_one_sample_test(data_array, null_value=0.0)
-        mean_precision = float(np.mean(data_array))
-    else:
-        # Insufficient data - fail criterion
-        mean_precision = float(
-            precision_reduction[0]
-            if isinstance(precision_reduction, (list, np.ndarray))
-            and len(precision_reduction) > 0
-            else precision_reduction
-        )
-        t_stat, p_precision = 0.0, 1.0
-
-    cohens_d_precision = mean_precision / 15
-
-    f3_4_pass = (
-        mean_precision >= 12 and cohens_d_precision >= 0.42 and p_precision < 0.01
+    precision_stats = _compute_paired_percentage_reduction(
+        precision_reduction,
+        full_keys=("apgi_full", "full_model", "full_model_performance"),
+        ablated_keys=("apgi_no_precision", "uniform_precision", "ablated_model"),
     )
+    if precision_stats["valid"]:
+        mean_precision = precision_stats["mean_reduction"]
+        cohens_d_precision = precision_stats["cohens_d"]
+        p_precision = precision_stats["p_value"]
+        t_stat = precision_stats["t_statistic"]
+        f3_4_status = (
+            "PASS"
+            if mean_precision >= 20
+            and cohens_d_precision >= 0.65
+            and p_precision < 0.01
+            else "FAIL"
+        )
+    else:
+        mean_precision = float("nan")
+        cohens_d_precision = 0.0
+        p_precision = 1.0
+        t_stat = 0.0
+        f3_4_status = "ERROR"
+
+    f3_4_pass = f3_4_status == "PASS"
     results["criteria"]["F3.4"] = {
         "passed": f3_4_pass,
-        "precision_reduction_pct": precision_reduction,
+        "status": f3_4_status,
+        "precision_reduction_pct": mean_precision,
         "cohens_d": cohens_d_precision,
         "p_value": p_precision,
+        "t_statistic": t_stat,
         "threshold": "≥20% reduction, d ≥ 0.65",
-        "actual": f"{precision_reduction:.2f}% reduction, d={cohens_d_precision:.3f}",
+        "actual": (
+            f"{mean_precision:.2f}% reduction, d={cohens_d_precision:.3f}"
+            if np.isfinite(mean_precision)
+            else "Independent simulation arms unavailable"
+        ),
+        "measurement": precision_stats,
+        "error": None if precision_stats["valid"] else precision_stats["reason"],
     }
     if f3_4_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F3.4: {'PASS' if f3_4_pass else 'FAIL'} - Reduction: {precision_reduction:.2f}%, d={cohens_d_precision:.3f}"
+        "F3.4: %s - Reduction: %s, d=%.3f",
+        f3_4_status,
+        f"{mean_precision:.2f}%" if np.isfinite(mean_precision) else "N/A",
+        cohens_d_precision,
     )
 
     # F3.5: Computational Efficiency Trade-Off
     logger.info("Testing F3.5: Computational Efficiency Trade-Off")
-    # TOST non-inferiority test (simplified)
-    f3_5_pass = performance_retention >= 78 and efficiency_gain >= 20
+    efficiency_stats = _compute_wall_clock_efficiency(
+        performance_retention, efficiency_gain
+    )
+    if efficiency_stats["valid"]:
+        performance_retention_pct = efficiency_stats["performance_retention_pct"]
+        efficiency_gain_pct = efficiency_stats["efficiency_gain_pct"]
+        f3_5_status = (
+            "PASS"
+            if performance_retention_pct >= 85
+            and efficiency_gain_pct >= 40
+            and efficiency_stats["p_value"] < 0.05
+            else "FAIL"
+        )
+    else:
+        performance_retention_pct = efficiency_stats.get(
+            "performance_retention_pct", float("nan")
+        )
+        efficiency_gain_pct = float("nan")
+        f3_5_status = "ERROR"
+
+    f3_5_pass = f3_5_status == "PASS"
     results["criteria"]["F3.5"] = {
         "passed": f3_5_pass,
-        "performance_retention_pct": performance_retention,
-        "efficiency_gain_pct": efficiency_gain,
-        "threshold": "≥85% performance, ≥30% efficiency",
-        "actual": f"Performance: {performance_retention:.2f}%, Efficiency: {efficiency_gain:.2f}%",
+        "status": f3_5_status,
+        "performance_retention_pct": performance_retention_pct,
+        "efficiency_gain_pct": efficiency_gain_pct,
+        "threshold": "≥85% performance retention and ≤60% baseline wall-clock time",
+        "actual": (
+            f"Performance: {performance_retention_pct:.2f}%, Efficiency: {efficiency_gain_pct:.2f}%"
+            if np.isfinite(performance_retention_pct)
+            and np.isfinite(efficiency_gain_pct)
+            else "Wall-clock timing evidence unavailable"
+        ),
+        "measurement": efficiency_stats,
+        "error": None if efficiency_stats["valid"] else efficiency_stats["reason"],
     }
     if f3_5_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F3.5: {'PASS' if f3_5_pass else 'FAIL'} - Performance: {performance_retention:.2f}%, Efficiency: {efficiency_gain:.2f}%"
+        "F3.5: %s - Performance: %s, Efficiency: %s",
+        f3_5_status,
+        (
+            f"{performance_retention_pct:.2f}%"
+            if np.isfinite(performance_retention_pct)
+            else "N/A"
+        ),
+        f"{efficiency_gain_pct:.2f}%" if np.isfinite(efficiency_gain_pct) else "N/A",
     )
 
     # F3.6: Sample Efficiency in Learning
     logger.info("Testing F3.6: Sample Efficiency in Learning")
-    # Use bootstrap test for proper statistical inference
-    if (
-        isinstance(apgi_time_to_criterion, (list, np.ndarray))
-        and len(apgi_time_to_criterion) >= 30
-    ):
-        # Use standard t-test with sufficient sample size
-        t_stat, p_value = stats.ttest_1samp(apgi_time_to_criterion, 300)
-        mean_trials = float(np.mean(apgi_time_to_criterion))
-        hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
-    elif (
-        isinstance(apgi_time_to_criterion, (list, np.ndarray))
-        and len(apgi_time_to_criterion) >= 2
-    ):
-        # Use bootstrap test for small samples
-        data_array = np.array(apgi_time_to_criterion)
-        t_stat, p_value = bootstrap_one_sample_test(data_array, null_value=300.0)
-        mean_trials = float(np.mean(data_array))
-        hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
-    else:
-        # Insufficient data - fail criterion
-        t_stat, p_value = 0.0, 1.0
-        mean_trials = (
-            float(apgi_time_to_criterion)
-            if not isinstance(apgi_time_to_criterion, (list, np.ndarray))
-            else (
-                float(apgi_time_to_criterion[0])
-                if len(apgi_time_to_criterion) > 0
-                else 300.0
-            )
-        )
-        hazard_ratio = 300 / mean_trials if mean_trials > 0 else 0
-
-    f3_6_pass = (
-        np.isfinite(mean_trials)
-        and np.isfinite(hazard_ratio)
-        and (
-            p_value < 0.01
-            if np.isfinite(p_value) and p_value != 1.0
-            else mean_trials <= 200
-        )
-        and mean_trials <= 200
-        and hazard_ratio >= 1.45
+    sample_efficiency_stats = _compute_sample_efficiency(
+        apgi_time_to_criterion, baseline_time_to_criterion
     )
+    if sample_efficiency_stats["valid"]:
+        mean_trials = sample_efficiency_stats["apgi_mean_trials"]
+        hazard_ratio = sample_efficiency_stats["hazard_ratio"]
+        p_value = sample_efficiency_stats["p_value"]
+        t_stat = sample_efficiency_stats["t_statistic"]
+        baseline_mean_trials = sample_efficiency_stats["baseline_mean_trials"]
+        f3_6_status = (
+            "PASS"
+            if mean_trials <= 200 and hazard_ratio >= 1.45 and p_value < 0.01
+            else "FAIL"
+        )
+    else:
+        mean_trials = float("nan")
+        hazard_ratio = 0.0
+        p_value = 1.0
+        t_stat = 0.0
+        baseline_mean_trials = float("nan")
+        f3_6_status = "ERROR"
+
+    f3_6_pass = f3_6_status == "PASS"
     results["criteria"]["F3.6"] = {
         "passed": f3_6_pass,
+        "status": f3_6_status,
         "apgi_time_to_criterion": mean_trials,
+        "baseline_time_to_criterion": baseline_mean_trials,
         "hazard_ratio": hazard_ratio,
         "p_value": p_value,
         "t_statistic": t_stat,
         "threshold": "APGI ≤200 trials, HR ≥ 1.45",
-        "actual": f"APGI: {mean_trials:.1f} trials, HR: {hazard_ratio:.2f}",
+        "actual": (
+            f"APGI: {mean_trials:.1f} trials, baseline: {baseline_mean_trials:.1f}, HR: {hazard_ratio:.2f}"
+            if np.isfinite(mean_trials) and np.isfinite(baseline_mean_trials)
+            else "Measured RL baseline unavailable"
+        ),
+        "measurement": sample_efficiency_stats,
+        "error": (
+            None
+            if sample_efficiency_stats["valid"]
+            else sample_efficiency_stats["reason"]
+        ),
     }
     if f3_6_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F3.6: {'PASS' if f3_6_pass else 'FAIL'} - APGI: {mean_trials:.1f} trials, HR: {hazard_ratio:.2f}, p={p_value:.4f}"
+        "F3.6: %s - APGI: %s, baseline: %s, HR: %.2f, p=%.4f",
+        f3_6_status,
+        f"{mean_trials:.1f}" if np.isfinite(mean_trials) else "N/A",
+        f"{baseline_mean_trials:.1f}" if np.isfinite(baseline_mean_trials) else "N/A",
+        hazard_ratio,
+        p_value,
     )
 
     # F1.1: APGI Agent Performance Advantage
@@ -2477,7 +2877,8 @@ def check_falsification(
     f_stat, p_anova = stats.f_oneway(*cluster_means)
 
     # Eta-squared
-    ss_total = np.sum((timescales - np.mean(timescales)) ** 2)
+    timescales_arr = np.asarray(timescales, dtype=float)
+    ss_total = np.sum((timescales_arr - np.mean(timescales_arr)) ** 2)
     ss_between = sum(
         len(cm) * (np.mean(cm) - np.mean(timescales)) ** 2 for cm in cluster_means
     )
@@ -3024,8 +3425,8 @@ def check_falsification(
     logger.info("Testing F6.1: Liquid Transition Time Advantage")
     # Compare LTCN vs RNN transition times
     t_stat, p_value = stats.ttest_ind([ltcn_transition_time], [rnn_transition_time])
-    mean_ltcn = ltcn_transition_time
-    mean_rnn = rnn_transition_time
+    mean_ltcn = float(ltcn_transition_time)
+    mean_rnn = float(rnn_transition_time)
     advantage_pct = ((mean_rnn - mean_ltcn) / mean_rnn) * 100
 
     # Cohen's d

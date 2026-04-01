@@ -28,6 +28,7 @@ import logging
 
 try:
     import arviz as az
+
     ARVIZ_AVAILABLE = True
 except ImportError:
     ARVIZ_AVAILABLE = False
@@ -35,6 +36,7 @@ except ImportError:
 
 try:
     import matplotlib.pyplot as plt
+
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
@@ -47,29 +49,31 @@ import pandas as pd
 
 try:
     import pymc as pm
+
     PYMC_AVAILABLE = True
 except ImportError:
     PYMC_AVAILABLE = False
     print("Warning: pymc not available. Bayesian modeling features disabled.")
-    
+
     # Create stub module for pm
     class _PmStub:
         class Model:
             def __init__(self, *args, **kwargs):
                 pass
-            
+
             def __enter__(self):
                 return self
-            
+
             def __exit__(self, *args):
                 pass
-    
+
     pm = _PmStub()
 
 try:
     from scipy import stats
     from sklearn.metrics import log_loss, roc_auc_score
     from sklearn.model_selection import KFold
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -2899,12 +2903,12 @@ def main():
         print("Error: pymc is required for Bayesian model comparison")
         print("Install with: pip install pymc")
         return
-    
+
     if not ARVIZ_AVAILABLE:
         print("Error: arviz is required for Bayesian analysis")
         print("Install with: pip install arviz")
         return
-    
+
     if not SKLEARN_AVAILABLE:
         print("Error: scipy/sklearn are required for statistical analysis")
         print("Install with: pip install scikit-learn scipy")

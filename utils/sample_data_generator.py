@@ -686,12 +686,12 @@ def main() -> None:
         sampling_rate=250, duration=30
     )  # Lower sampling rate for demo
     demo_df, demo_metadata = demo_generator.create_multimodal_dataset("demo", "demo")
-    demo_generator.save_dataset(demo_df, demo_metadata, "data")
+    demo_generator.save_dataset(demo_df, demo_metadata, "data_repository/raw_data")
 
     print("\nSample datasets generated successfully!")
-    print("Available files in data/ directory:")
+    print("Available files in data_repository/raw_data/ directory:")
 
-    data_path = Path("data")
+    data_path = Path("data_repository/raw_data")
     for file_path in sorted(data_path.glob("*")):
         if file_path.is_file():
             size_kb = file_path.stat().st_size / 1024

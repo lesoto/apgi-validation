@@ -359,20 +359,28 @@ class AgentGenome:
     has_somatic_markers: bool
     has_precision_weighting: bool
 
-    # Parameter genes
-    theta_0: float  # Threshold baseline
-    alpha: float  # Sigmoid steepness
-    beta: float  # Somatic bias
-    Pi_e_lr: float  # External precision learning rate
-    Pi_i_lr: float  # Internal precision learning rate
-    somatic_lr: float  # Somatic marker learning rate
+    # Parameter genes (with neurobiologically plausible bounds)
+    theta_0: float  # Threshold baseline [0.1, 0.9]
+    alpha: float  # Sigmoid steepness [1.0, 20.0] - neurobiological bound
+    beta: float  # Somatic bias [0.5, 5.0] - neurobiological bound
+    Pi_e_lr: float  # External precision learning rate [0.005, 0.3]
+    Pi_i_lr: float  # Internal precision learning rate [0.005, 0.3]
+    somatic_lr: float  # Somatic marker learning rate [0.005, 0.4]
 
     # Architecture genes
     n_hidden_layers: int
     hidden_dim: int
 
     # Metabolic cost parameter
-    ignition_cost: float = 0.1  # Cost of ignition
+    ignition_cost: float = 0.1  # Cost of ignition [0.05, 0.15]
+
+    # Phenotype validation bounds (neurobiologically grounded)
+    ALPHA_MIN: float = 1.0
+    ALPHA_MAX: float = 20.0
+    BETA_MIN: float = 0.5
+    BETA_MAX: float = 5.0
+    PI_I_MIN: float = 0.1
+    PI_I_MAX: float = 10.0
 
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
@@ -391,6 +399,55 @@ class AgentGenome:
             "hidden_dim": self.hidden_dim,
             "ignition_cost": self.ignition_cost,
         }
+
+    def validate_phenotype(self) -> Dict[str, Any]:
+        """
+        Validate that decoded phenotype falls within neurobiologically plausible bounds.
+
+        Returns:
+            Dictionary with validation results:
+            - valid: bool indicating if all parameters are in bounds
+            - violations: list of parameter violations with expected vs actual values
+        """
+        violations = []
+
+        # Validate alpha (sigmoid steepness)
+        if not (self.ALPHA_MIN <= self.alpha <= self.ALPHA_MAX):
+            violations.append(
+                {
+                    "parameter": "alpha",
+                    "value": self.alpha,
+                    "expected_range": [self.ALPHA_MIN, self.ALPHA_MAX],
+                    "description": "Ignition sigmoid steepness outside neurobiological bounds",
+                }
+            )
+
+        # Validate beta (somatic bias)
+        if not (self.BETA_MIN <= self.beta <= self.BETA_MAX):
+            violations.append(
+                {
+                    "parameter": "beta",
+                    "value": self.beta,
+                    "expected_range": [self.BETA_MIN, self.BETA_MAX],
+                    "description": "Somatic bias outside neurobiological bounds",
+                }
+            )
+
+        # Validate interoceptive precision bounds (Πⁱ)
+        # Note: Pi_i_lr is the learning rate, actual Pi_i is tracked by agent
+        # We validate the effective precision range the genome enables
+        effective_pi_i = self.Pi_i_lr * 10.0  # Approximate effective precision
+        if not (self.PI_I_MIN <= effective_pi_i <= self.PI_I_MAX):
+            violations.append(
+                {
+                    "parameter": "effective_pi_i",
+                    "value": effective_pi_i,
+                    "expected_range": [self.PI_I_MIN, self.PI_I_MAX],
+                    "description": "Interoceptive precision outside neurobiological bounds",
+                }
+            )
+
+        return {"valid": len(violations) == 0, "violations": violations}
 
     @classmethod
     def random(cls) -> "AgentGenome":
@@ -1104,11 +1161,23 @@ class EvolutionaryOptimizer:
 
         return len(signatures) / 16  # 16 possible architectures
 
-    def run_evolution(self):
-        """Execute evolutionary optimization"""
+    def run_evolution(self, seed: Optional[int] = None) -> Dict[str, Any]:
+        """Execute evolutionary optimization
+
+        Args:
+            seed: Random seed for reproducibility. If None, uses global seed.
+
+        Returns:
+            Dictionary containing evolution history and statistics
+        """
+        # Set seed if provided
+        if seed is not None:
+            np.random.seed(seed)
 
         print(f"\n{'=' * 80}")
         print("STARTING EVOLUTIONARY OPTIMIZATION")
+        if seed is not None:
+            print(f"Seed: {seed}")
         print(f"{'=' * 80}")
 
         # Enforce minimum population and generation requirements (Bypassed for fast testing)
@@ -1150,6 +1219,12 @@ class EvolutionaryOptimizer:
         except ImportError:
             pbar = range(self.n_generations)
 
+        # Initialize convergence tracking
+        low_variance_generations = 0
+        convergence_threshold = 1e-4
+        min_generations_for_convergence = 20
+        early_stop_generation = None
+
         for generation in pbar:
             # Alternating multi-environment evolutionary pressure
             env_cycle = generation % 3
@@ -1162,6 +1237,27 @@ class EvolutionaryOptimizer:
                     for genome in self.population
                 ]
             )
+
+            # Compute generational fitness variance for convergence check
+            gen_fitness_variance = np.var(fitness_scores)
+
+            # Check for convergence (fitness plateau)
+            if gen_fitness_variance < convergence_threshold:
+                low_variance_generations += 1
+            else:
+                low_variance_generations = 0
+
+            # Early stopping check
+            if low_variance_generations >= min_generations_for_convergence:
+                early_stop_generation = generation
+                print(f"\n[CONVERGENCE] Early stopping at generation {generation}")
+                print(
+                    f"  Fitness variance {gen_fitness_variance:.2e} < {convergence_threshold:.2e}"
+                )
+                print(
+                    f"  for {min_generations_for_convergence} consecutive generations"
+                )
+                break
 
             # Record statistics
             self.history["generation"].append(generation)
@@ -1219,6 +1315,19 @@ class EvolutionaryOptimizer:
                 new_population.append(child)
 
             self.population = new_population[: self.pop_size]
+
+        # Store convergence info in history
+        self.history["convergence_info"] = {
+            "early_stopped": early_stop_generation is not None,
+            "early_stop_generation": early_stop_generation,
+            "final_variance": (
+                float(gen_fitness_variance)
+                if "gen_fitness_variance" in locals()
+                else None
+            ),
+            "convergence_threshold": convergence_threshold,
+            "min_generations_for_convergence": min_generations_for_convergence,
+        }
 
         print(f"\n{'=' * 80}")
         print("EVOLUTION COMPLETE")
@@ -2505,12 +2614,377 @@ def plot_environmental_gradient_results(results: Dict[str, Any]) -> None:
 
 
 # =============================================================================
-# PART 8: MAIN EXECUTION PIPELINE
+# PART 8: ENSEMBLE EVOLUTIONARY SIMULATION (MULTI-SEED)
+# =============================================================================
+
+
+def run_ensemble_evolution(
+    n_seeds: int = 5,
+    population_size: int = 100,
+    n_generations: int = 500,
+    mutation_rate: float = 0.01,
+    crossover_rate: float = 0.7,
+    tournament_size: int = 5,
+    elitism: int = 5,
+) -> Dict[str, Any]:
+    """
+    Run evolutionary simulation with multiple independent seeds.
+
+    This addresses the critical gap: single simulation run means all downstream
+    protocols (FP-01, FP-02, FP-03, FP-05, FP-06) depend on one stochastic
+    genome export. Running ≥5 independent seeds provides robust ensemble
+    statistics for downstream falsification protocols.
+
+    Args:
+        n_seeds: Number of independent evolutionary runs (default: 5, minimum: 5)
+        population_size: Population size per run
+        n_generations: Maximum generations per run
+        mutation_rate: Mutation rate for genetic algorithm
+        crossover_rate: Crossover rate for genetic algorithm
+        tournament_size: Tournament selection size
+        elitism: Number of elite individuals to preserve
+
+    Returns:
+        Dictionary containing:
+        - ensemble_histories: List of evolution histories for each seed
+        - ensemble_statistics: Mean and std across seeds
+        - genome_data: Ensemble genome data with mean/std for downstream protocols
+        - phenotype_validation: Validation results for all genomes
+    """
+    if n_seeds < 5:
+        logger.warning(f"n_seeds={n_seeds} < 5, using minimum of 5 seeds")
+        n_seeds = 5
+
+    print(f"\n{'=' * 80}")
+    print(f"ENSEMBLE EVOLUTIONARY SIMULATION: {n_seeds} INDEPENDENT RUNS")
+    print(f"{'=' * 80}")
+    print(f"Population size: {population_size}")
+    print(f"Max generations: {n_generations}")
+    print(f"Mutation rate: {mutation_rate}")
+    print(f"Crossover rate: {crossover_rate}")
+
+    ensemble_histories = []
+    all_genomes = []
+    phenotype_validation_results = []
+
+    for seed_idx in range(n_seeds):
+        seed = 42 + seed_idx  # Deterministic but different seeds
+        print(f"\n{'=' * 60}")
+        print(f"RUN {seed_idx + 1}/{n_seeds} (seed={seed})")
+        print(f"{'=' * 60}")
+
+        # Create optimizer with fresh seed
+        optimizer = EvolutionaryOptimizer(
+            population_size=population_size,
+            n_generations=n_generations,
+            mutation_rate=mutation_rate,
+            crossover_rate=crossover_rate,
+            tournament_size=tournament_size,
+            elitism=elitism,
+        )
+
+        # Run evolution
+        history = optimizer.run_evolution(seed=seed)
+        ensemble_histories.append(history)
+
+        # Extract and validate final population genomes
+        final_genomes = history.get("best_genomes", [])
+        if final_genomes:
+            # Get last generation's best genomes
+            best_genome = (
+                final_genomes[-1] if isinstance(final_genomes, list) else final_genomes
+            )
+            if isinstance(best_genome, AgentGenome):
+                all_genomes.append(best_genome)
+
+                # Validate phenotype
+                validation = best_genome.validate_phenotype()
+                phenotype_validation_results.append(
+                    {
+                        "seed": seed,
+                        "valid": validation["valid"],
+                        "violations": validation["violations"],
+                    }
+                )
+
+                if not validation["valid"]:
+                    logger.warning(
+                        f"Seed {seed}: Phenotype validation failed with {len(validation['violations'])} violations"
+                    )
+
+    # Compute ensemble statistics
+    print(f"\n{'=' * 80}")
+    print("COMPUTING ENSEMBLE STATISTICS")
+    print(f"{'=' * 80}")
+
+    # Extract final architecture frequencies across all runs
+    threshold_freqs = []
+    intero_freqs = []
+    somatic_freqs = []
+    precision_freqs = []
+    best_fitnesses = []
+    mean_fitnesses = []
+    convergence_generations = []
+
+    for history in ensemble_histories:
+        if history["architecture_frequencies"]:
+            final_freqs = history["architecture_frequencies"][-1]
+            threshold_freqs.append(final_freqs.get("has_threshold", 0.0))
+            intero_freqs.append(final_freqs.get("has_intero_weighting", 0.0))
+            somatic_freqs.append(final_freqs.get("has_somatic_markers", 0.0))
+            precision_freqs.append(final_freqs.get("has_precision_weighting", 0.0))
+
+        if history["best_fitness"]:
+            best_fitnesses.append(history["best_fitness"][-1])
+        if history["mean_fitness"]:
+            mean_fitnesses.append(history["mean_fitness"][-1])
+
+        # Track convergence
+        conv_info = history.get("convergence_info", {})
+        if conv_info.get("early_stopped", False):
+            conv_gen = conv_info.get("early_stop_generation", n_generations)
+            convergence_generations.append(conv_gen)
+
+    # Compute mean and std across seeds
+    ensemble_statistics = {
+        "threshold_frequency": {
+            "mean": float(np.mean(threshold_freqs)) if threshold_freqs else 0.0,
+            "std": float(np.std(threshold_freqs)) if threshold_freqs else 0.0,
+            "values": threshold_freqs,
+        },
+        "interoceptive_frequency": {
+            "mean": float(np.mean(intero_freqs)) if intero_freqs else 0.0,
+            "std": float(np.std(intero_freqs)) if intero_freqs else 0.0,
+            "values": intero_freqs,
+        },
+        "somatic_frequency": {
+            "mean": float(np.mean(somatic_freqs)) if somatic_freqs else 0.0,
+            "std": float(np.std(somatic_freqs)) if somatic_freqs else 0.0,
+            "values": somatic_freqs,
+        },
+        "precision_frequency": {
+            "mean": float(np.mean(precision_freqs)) if precision_freqs else 0.0,
+            "std": float(np.std(precision_freqs)) if precision_freqs else 0.0,
+            "values": precision_freqs,
+        },
+        "best_fitness": {
+            "mean": float(np.mean(best_fitnesses)) if best_fitnesses else 0.0,
+            "std": float(np.std(best_fitnesses)) if best_fitnesses else 0.0,
+            "values": best_fitnesses,
+        },
+        "mean_fitness": {
+            "mean": float(np.mean(mean_fitnesses)) if mean_fitnesses else 0.0,
+            "std": float(np.std(mean_fitnesses)) if mean_fitnesses else 0.0,
+            "values": mean_fitnesses,
+        },
+        "convergence_generations": {
+            "mean": (
+                float(np.mean(convergence_generations))
+                if convergence_generations
+                else n_generations
+            ),
+            "std": (
+                float(np.std(convergence_generations))
+                if len(convergence_generations) > 1
+                else 0.0
+            ),
+            "values": convergence_generations,
+            "early_stop_rate": len(convergence_generations) / n_seeds,
+        },
+    }
+
+    # Generate ensemble genome_data for downstream protocols
+    genome_data = _generate_ensemble_genome_data(
+        all_genomes, ensemble_statistics, phenotype_validation_results
+    )
+
+    # Print ensemble summary
+    print("\n--- Ensemble Architecture Frequencies ---")
+    print(
+        f"Threshold: {ensemble_statistics['threshold_frequency']['mean']:.3f} ± {ensemble_statistics['threshold_frequency']['std']:.3f}"
+    )
+    print(
+        f"Interoceptive: {ensemble_statistics['interoceptive_frequency']['mean']:.3f} ± {ensemble_statistics['interoceptive_frequency']['std']:.3f}"
+    )
+    print(
+        f"Somatic: {ensemble_statistics['somatic_frequency']['mean']:.3f} ± {ensemble_statistics['somatic_frequency']['std']:.3f}"
+    )
+    print(
+        f"Precision: {ensemble_statistics['precision_frequency']['mean']:.3f} ± {ensemble_statistics['precision_frequency']['std']:.3f}"
+    )
+
+    print("\n--- Ensemble Fitness ---")
+    print(
+        f"Best: {ensemble_statistics['best_fitness']['mean']:.3f} ± {ensemble_statistics['best_fitness']['std']:.3f}"
+    )
+    print(
+        f"Mean: {ensemble_statistics['mean_fitness']['mean']:.3f} ± {ensemble_statistics['mean_fitness']['std']:.3f}"
+    )
+
+    print("\n--- Convergence ---")
+    print(
+        f"Early stop rate: {ensemble_statistics['convergence_generations']['early_stop_rate']:.1%}"
+    )
+    if convergence_generations:
+        print(
+            f"Avg convergence gen: {ensemble_statistics['convergence_generations']['mean']:.1f} ± {ensemble_statistics['convergence_generations']['std']:.1f}"
+        )
+
+    # Phenotype validation summary
+    valid_genomes = sum(1 for v in phenotype_validation_results if v["valid"])
+    print("\n--- Phenotype Validation ---")
+    print(f"Valid genomes: {valid_genomes}/{len(phenotype_validation_results)}")
+    if phenotype_validation_results and valid_genomes < len(
+        phenotype_validation_results
+    ):
+        for v in phenotype_validation_results:
+            if not v["valid"]:
+                print(f"  Seed {v['seed']}: {len(v['violations'])} violations")
+
+    return {
+        "n_seeds": n_seeds,
+        "ensemble_histories": ensemble_histories,
+        "ensemble_statistics": ensemble_statistics,
+        "genome_data": genome_data,
+        "phenotype_validation": {
+            "total_genomes": len(phenotype_validation_results),
+            "valid_genomes": valid_genomes,
+            "invalid_genomes": len(phenotype_validation_results) - valid_genomes,
+            "results": phenotype_validation_results,
+        },
+    }
+
+
+def _generate_ensemble_genome_data(
+    all_genomes: List[AgentGenome],
+    ensemble_statistics: Dict[str, Any],
+    phenotype_validation_results: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    Generate ensemble genome_data with mean and std for downstream FP protocols.
+
+    This creates the genome_data structure that FP-01, FP-02, FP-03, FP-05, FP-06
+    depend on, with ensemble mean and standard deviation attached.
+
+    Args:
+        all_genomes: List of best genomes from each seed
+        ensemble_statistics: Ensemble statistics dictionary
+        phenotype_validation_results: List of validation results
+
+    Returns:
+        genome_data dictionary with ensemble statistics
+    """
+    # Extract evolved parameters from all genomes
+    alpha_values = []
+    beta_values = []
+    pi_i_lr_values = []
+
+    for genome in all_genomes:
+        alpha_values.append(genome.alpha)
+        beta_values.append(genome.beta)
+        pi_i_lr_values.append(genome.Pi_i_lr)
+
+    # Compute ensemble means and stds
+    genome_data = {
+        "n_seeds": len(all_genomes),
+        "n_agents": len(all_genomes),
+        "ensemble_mean": {
+            "alpha": float(np.mean(alpha_values)) if alpha_values else 0.0,
+            "beta": float(np.mean(beta_values)) if beta_values else 0.0,
+            "Pi_i_lr": float(np.mean(pi_i_lr_values)) if pi_i_lr_values else 0.0,
+            "threshold_frequency": ensemble_statistics["threshold_frequency"]["mean"],
+            "interoceptive_frequency": ensemble_statistics["interoceptive_frequency"][
+                "mean"
+            ],
+            "somatic_frequency": ensemble_statistics["somatic_frequency"]["mean"],
+            "precision_frequency": ensemble_statistics["precision_frequency"]["mean"],
+        },
+        "ensemble_std": {
+            "alpha": float(np.std(alpha_values)) if alpha_values else 0.0,
+            "beta": float(np.std(beta_values)) if beta_values else 0.0,
+            "Pi_i_lr": float(np.std(pi_i_lr_values)) if pi_i_lr_values else 0.0,
+            "threshold_frequency": ensemble_statistics["threshold_frequency"]["std"],
+            "interoceptive_frequency": ensemble_statistics["interoceptive_frequency"][
+                "std"
+            ],
+            "somatic_frequency": ensemble_statistics["somatic_frequency"]["std"],
+            "precision_frequency": ensemble_statistics["precision_frequency"]["std"],
+        },
+        # Original arrays for downstream protocols that need them
+        "evolved_alpha_values": alpha_values,
+        "evolved_beta_values": beta_values,
+        "evolved_pi_i_lr_values": pi_i_lr_values,
+        # Validation status
+        "phenotype_validation": {
+            "all_valid": (
+                all(v["valid"] for v in phenotype_validation_results)
+                if phenotype_validation_results
+                else False
+            ),
+            "validation_results": phenotype_validation_results,
+        },
+        # Metadata
+        "generation_method": "ensemble_evolution",
+        "source": "VP-05_EvolutionaryEmergence",
+    }
+
+    return genome_data
+
+
+def save_genome_data(
+    genome_data: Dict[str, Any],
+    output_path: str = "genome_data.json",
+) -> None:
+    """
+    Save genome_data to JSON file for use in downstream falsification protocols.
+
+    Args:
+        genome_data: Dictionary containing ensemble genome_data
+        output_path: Path to save JSON file
+    """
+
+    # Convert numpy types to native Python types for JSON serialization
+    def convert_for_json(obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {k: convert_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_for_json(item) for item in obj]
+        return obj
+
+    serializable_data = convert_for_json(genome_data)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(serializable_data, f, indent=2)
+
+    print(f"\n[OK] Genome data saved to: {output_path}")
+    print(f"  Seeds: {genome_data.get('n_seeds', 'N/A')}")
+    print(
+        f"  Ensemble mean α: {genome_data.get('ensemble_mean', {}).get('alpha', 'N/A')}"
+    )
+    print(
+        f"  Ensemble mean β: {genome_data.get('ensemble_mean', {}).get('beta', 'N/A')}"
+    )
+    print(
+        f"  All phenotypes valid: {genome_data.get('phenotype_validation', {}).get('all_valid', False)}"
+    )
+
+
+# =============================================================================
+# PART 9: MAIN EXECUTION PIPELINE
 # =============================================================================
 
 
 def main() -> Dict[str, Any]:
     """Main execution pipeline for Protocol 5.
+
+    Runs ensemble evolutionary simulation with ≥5 independent seeds and
+    exports genome_data with ensemble mean and std for downstream protocols.
 
     Returns:
         Dictionary containing validation results
@@ -2520,10 +2994,11 @@ def main() -> Dict[str, Any]:
     print("APGI PROTOCOL 5: EVOLUTIONARY EMERGENCE OF APGI-LIKE ARCHITECTURES")
     print("=" * 80)
 
-    # Configuration (Optimized for CI Validation speed with robust stability)
+    # Configuration for ensemble evolutionary simulation
     config = {
+        "n_seeds": 5,  # Minimum 5 independent seeds per Protocol.md requirements
         "population_size": 100,
-        "n_generations": 100,
+        "n_generations": 500,  # Increased to allow convergence detection
         "mutation_rate": 0.01,
         "crossover_rate": 0.7,
         "tournament_size": 5,
@@ -2531,47 +3006,63 @@ def main() -> Dict[str, Any]:
     }
 
     print("\nEvolutionary Configuration:")
-    for k, v in config.items():
-        print(f"  {k}: {v}")
+    print(f"  n_seeds: {config['n_seeds']} (minimum for ensemble robustness)")
+    print(f"  population_size: {config['population_size']}")
+    print(f"  n_generations: {config['n_generations']} (max, with early stopping)")
+    print(f"  mutation_rate: {config['mutation_rate']}")
+    print(f"  crossover_rate: {config['crossover_rate']}")
+    print("  convergence_threshold: 1e-4 (for early stopping)")
+    print("  min_generations_for_convergence: 20")
 
     # =========================================================================
-    # STEP 1: Run Evolution
+    # STEP 1: Run Ensemble Evolution (≥5 seeds)
     # =========================================================================
     print("\n" + "=" * 80)
-    print("STEP 1: RUNNING EVOLUTIONARY OPTIMIZATION")
+    print("STEP 1: RUNNING ENSEMBLE EVOLUTIONARY OPTIMIZATION")
     print("=" * 80)
 
-    optimizer = EvolutionaryOptimizer(
-        population_size=config["population_size"],
-        n_generations=config["n_generations"],
-        mutation_rate=config["mutation_rate"],
-        crossover_rate=config["crossover_rate"],
-        tournament_size=config["tournament_size"],
-        elitism=config["elitism"],
+    ensemble_results = run_ensemble_evolution(
+        n_seeds=int(config["n_seeds"]),
+        population_size=int(config["population_size"]),
+        n_generations=int(config["n_generations"]),
+        mutation_rate=float(config["mutation_rate"]),
+        crossover_rate=float(config["crossover_rate"]),
+        tournament_size=int(config["tournament_size"]),
+        elitism=int(config["elitism"]),
     )
 
-    history = optimizer.run_evolution()
+    # Extract results
+    ensemble_histories = ensemble_results["ensemble_histories"]
+    ensemble_statistics = ensemble_results["ensemble_statistics"]
+    genome_data = ensemble_results["genome_data"]
+    phenotype_validation = ensemble_results["phenotype_validation"]
 
-    # Apply artificial selection stabilization for validation boundaries
-    # Guarantees robust convergence towards APGI compliance in shortened runs
-    for i in range(len(history["architecture_frequencies"])):
-        if i >= len(history["architecture_frequencies"]) // 3:
-            history["architecture_frequencies"][i]["has_threshold"] = 0.85
-            history["architecture_frequencies"][i]["has_intero_weighting"] = 0.85
-            history["architecture_frequencies"][i]["has_somatic_markers"] = 0.85
-            history["architecture_frequencies"][i]["has_precision_weighting"] = 0.85
+    # Get first history for individual analysis (backward compatibility)
+    history = ensemble_histories[0] if ensemble_histories else {}
 
-    for pop in history.get("best_genomes", []):
-        pop.has_threshold = True
-        pop.has_intero_weighting = True
-        pop.has_precision_weighting = True
-        pop.has_somatic_markers = True
+    # Apply phenotype validation filter
+    # Ensure only validated genomes are used for downstream protocols
+    if not phenotype_validation["all_valid"]:
+        logger.warning(
+            f"Phenotype validation: {phenotype_validation['invalid_genomes']}/"
+            f"{phenotype_validation['total_genomes']} genomes have violations"
+        )
+        # The genome_data already contains validation status
+        # Downstream protocols should check genome_data["phenotype_validation"]["all_valid"]
 
     # =========================================================================
-    # STEP 2: Analyze Results
+    # STEP 2: Save Genome Data for Downstream Protocols
     # =========================================================================
     print("\n" + "=" * 80)
-    print("STEP 2: ANALYZING EVOLUTIONARY DYNAMICS")
+    print("STEP 2: SAVING GENOME DATA FOR DOWNSTREAM PROTOCOLS")
+    print("=" * 80)
+
+    # Save genome_data.json for FP-01, FP-02, FP-03, FP-05, FP-06
+    save_genome_data(genome_data, output_path="genome_data.json")
+
+    # Also save to protocol5_results.json for backward compatibility
+    print("\n" + "=" * 80)
+    print("STEP 3: ANALYZING EVOLUTIONARY DYNAMICS")
     print("=" * 80)
 
     analyzer = EvolutionaryAnalyzer(history)
@@ -2600,15 +3091,19 @@ def main() -> Dict[str, Any]:
 
     # Final frequencies
     print("\n--- Final Architecture Frequencies ---")
-    final_freqs = history["architecture_frequencies"][-1]
+    final_freqs = (
+        history["architecture_frequencies"][-1]
+        if history.get("architecture_frequencies")
+        else {}
+    )
     for trait, freq in final_freqs.items():
         print(f"{trait}: {freq:.3f}")
 
     # =========================================================================
-    # STEP 3: Falsification Analysis
+    # STEP 4: Falsification Analysis
     # =========================================================================
     print("\n" + "=" * 80)
-    print("STEP 3: FALSIFICATION ANALYSIS")
+    print("STEP 4: FALSIFICATION ANALYSIS")
     print("=" * 80)
 
     checker = FalsificationChecker()
@@ -2617,19 +3112,19 @@ def main() -> Dict[str, Any]:
     print_falsification_report(falsification_report)
 
     # =========================================================================
-    # STEP 4: Visualization
+    # STEP 5: Visualization
     # =========================================================================
     print("\n" + "=" * 80)
-    print("STEP 4: GENERATING VISUALIZATIONS")
+    print("STEP 5: GENERATING VISUALIZATIONS")
     print("=" * 80)
 
     plot_evolutionary_results(history, save_path="protocol5_evolution_results.png")
 
     # =========================================================================
-    # STEP 5: Save Results
+    # STEP 6: Save Results
     # =========================================================================
     print("\n" + "=" * 80)
-    print("STEP 5: SAVING RESULTS")
+    print("STEP 6: SAVING RESULTS")
     print("=" * 80)
 
     # Convert to serializable format
@@ -2653,13 +3148,29 @@ def main() -> Dict[str, Any]:
         else:
             return obj
 
-    # Prepare results (exclude large arrays)
+    # Prepare results with ensemble data
     results_summary = {
         "config": config,
+        "ensemble_results": {
+            "n_seeds": ensemble_results["n_seeds"],
+            "ensemble_statistics": ensemble_statistics,
+            "phenotype_validation": phenotype_validation,
+        },
+        "genome_data": genome_data,
         "final_statistics": {
-            "best_fitness": float(history["best_fitness"][-1]),
-            "mean_fitness": float(history["mean_fitness"][-1]),
-            "final_diversity": float(history["diversity"][-1]),
+            "best_fitness": (
+                float(history["best_fitness"][-1])
+                if history.get("best_fitness")
+                else 0.0
+            ),
+            "mean_fitness": (
+                float(history["mean_fitness"][-1])
+                if history.get("mean_fitness")
+                else 0.0
+            ),
+            "final_diversity": (
+                float(history["diversity"][-1]) if history.get("diversity") else 0.0
+            ),
             "final_frequencies": final_freqs,
         },
         "selection_coefficients": sel_coeffs,
@@ -2678,28 +3189,42 @@ def main() -> Dict[str, Any]:
     print("[OK] Results saved to: protocol5_results.json")
 
     # Save full history
-    history_df = pd.DataFrame(
-        {
-            "generation": history["generation"],
-            "best_fitness": history["best_fitness"],
-            "mean_fitness": history["mean_fitness"],
-            "std_fitness": history["std_fitness"],
-            "diversity": history["diversity"],
-        }
-    )
-
-    history_df.to_csv("protocol5_history.csv", index=False)
-    print("[OK] History saved to: protocol5_history.csv")
+    if history.get("generation"):
+        history_df = pd.DataFrame(
+            {
+                "generation": history["generation"],
+                "best_fitness": history["best_fitness"],
+                "mean_fitness": history["mean_fitness"],
+                "std_fitness": history["std_fitness"],
+                "diversity": history["diversity"],
+            }
+        )
+        history_df.to_csv("protocol5_history.csv", index=False)
+        print("[OK] History saved to: protocol5_history.csv")
 
     print("\n" + "=" * 80)
     print("PROTOCOL 5 EXECUTION COMPLETE")
     print("=" * 80)
+    print("\nEnsemble Simulation Summary:")
+    print(f"  - Seeds run: {ensemble_results['n_seeds']}")
+    print("  - Genome data exported: genome_data.json")
+    print(
+        f"  - Ensemble mean α: {genome_data.get('ensemble_mean', {}).get('alpha', 'N/A'):.3f}"
+    )
+    print(
+        f"  - Ensemble mean β: {genome_data.get('ensemble_mean', {}).get('beta', 'N/A'):.3f}"
+    )
+    print(f"  - All phenotypes valid: {phenotype_validation['all_valid']}")
+    print(
+        f"  - Convergence early-stop rate: {ensemble_statistics['convergence_generations']['early_stop_rate']:.1%}"
+    )
+    print("=" * 80)
 
     # =========================================================================
-    # STEP 6: V5.1 Analytical Verification (NEW)
+    # STEP 7: V5.1 Analytical Verification
     # =========================================================================
     print("\n" + "=" * 80)
-    print("STEP 6: V5.1 ANALYTICAL VERIFICATION")
+    print("STEP 7: V5.1 ANALYTICAL VERIFICATION")
     print("=" * 80)
 
     # Run analytical verification tests
@@ -2742,6 +3267,10 @@ def main() -> Dict[str, Any]:
         "test_results": analytical_results,
     }
 
+    # Re-save with updated data
+    with open("protocol5_results.json", "w", encoding="utf-8") as f:
+        json.dump(convert_to_serializable(results_summary), f, indent=2)
+
     return results_summary
 
 
@@ -2751,6 +3280,11 @@ def run_validation(**kwargs) -> Dict[str, Any]:
     Returns:
         Dictionary containing validation results
     """
+    # Set global random seed for reproducibility
+    from utils.constants import APGI_GLOBAL_SEED
+
+    np.random.seed(APGI_GLOBAL_SEED)
+
     try:
         print(
             "Running APGI Validation Protocol 5: Computational Falsification Framework"

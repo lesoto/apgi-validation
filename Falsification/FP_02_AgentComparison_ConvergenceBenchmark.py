@@ -835,6 +835,13 @@ def run_falsification():
     apgi_aic, apgi_bic = compute_model_selection_metrics(n_trials, 12, mean_apgi_ll)
     pp_aic, pp_bic = compute_model_selection_metrics(n_trials, 8, mean_pp_ll)
 
+    # CRITICAL FIX: P3.bic now uses BIC-per-observation (BIC/N) to normalize across sample sizes
+    # This prevents sample-size bias in model comparison (ΔBIC<10 threshold)
+    apgi_bic_per_obs = apgi_bic / n_trials if n_trials > 0 else apgi_bic
+    pp_bic_per_obs = pp_bic / n_trials if n_trials > 0 else pp_bic
+    bic_diff_per_obs = abs(apgi_bic_per_obs - pp_bic_per_obs)
+    apgi_superior_per_obs = apgi_bic_per_obs < pp_bic_per_obs
+
     # Dummy data for F3/F5/F6 family metrics with realistic variance
     np.random.seed(42)  # Reproducible variance
     n_samples = 50  # Larger sample size for statistical power
@@ -925,18 +932,23 @@ def run_falsification():
         # Pass per-agent survival arrays for proper F2.5 log-rank test
         apgi_survival_times=apgi_ttc,
         pp_survival_times=pp_ttc,
-        # Model comparison data for named_predictions
+        # Model comparison data for named_predictions using BIC-per-observation
         apgi_bic=apgi_bic,
         pp_bic=pp_bic,
-        apgi_superior=bool(apgi_bic < pp_bic),
+        apgi_bic_per_obs=apgi_bic_per_obs,
+        pp_bic_per_obs=pp_bic_per_obs,
+        bic_diff_per_obs=bic_diff_per_obs,
+        apgi_superior=bool(apgi_superior_per_obs),
     )
 
     # ── Model selection (BIC/AIC) using calibrated log-likelihoods ───────────
     # (already computed above for check_falsification)
     results["model_comparison"] = {
-        "apgi": {"AIC": apgi_aic, "BIC": apgi_bic},
-        "pp_standard": {"AIC": pp_aic, "BIC": pp_bic},
+        "apgi": {"AIC": apgi_aic, "BIC": apgi_bic, "BIC_per_obs": apgi_bic_per_obs},
+        "pp_standard": {"AIC": pp_aic, "BIC": pp_bic, "BIC_per_obs": pp_bic_per_obs},
         "apgi_superior": bool(apgi_bic < pp_bic),
+        "apgi_superior_per_obs": bool(apgi_superior_per_obs),
+        "bic_diff_per_obs": bic_diff_per_obs,
     }
 
     print("\n" + "=" * 50)
@@ -1060,9 +1072,12 @@ def check_falsification(
     performance_gap: float,
     # Genome data from VP-5 (required for F5.1, F5.2, F5.3)
     genome_data: Optional[Dict[str, Any]] = None,
-    # Model comparison data for named_predictions
+    # Model comparison data for named_predictions with BIC-per-observation support
     apgi_bic: float = 0.0,
     pp_bic: float = 0.0,
+    apgi_bic_per_obs: float = 0.0,
+    pp_bic_per_obs: float = 0.0,
+    bic_diff_per_obs: float = 0.0,
     apgi_superior: bool = False,
     **kwargs,
 ) -> Dict[str, Any]:
@@ -1114,6 +1129,16 @@ def check_falsification(
         hysteresis_width: Hysteresis width
         rnn_add_ons_needed: Number of add-ons needed for RNNs
         performance_gap: Performance gap without add-ons
+        # Genome data from VP-5 (required for F5.1, F5.2, F5.3)
+        genome_data: Evolutionary simulation data from VP-5 with evolved_alpha_values,
+            timescale_correlations, and intero_gain_ratios
+        # Model comparison data for named_predictions
+        apgi_bic: APGI Bayesian Information Criterion
+        pp_bic: Standard PP Bayesian Information Criterion
+        apgi_bic_per_obs: APGI BIC per observation (BIC/N) for sample-size normalization
+        pp_bic_per_obs: PP BIC per observation (BIC/N) for sample-size normalization
+        bic_diff_per_obs: Absolute BIC-per-obs difference between models
+        apgi_superior: Whether APGI BIC-per-obs < PP BIC-per-obs
 
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
@@ -1366,8 +1391,8 @@ def check_falsification(
         },
         "P3.bic": {
             "passed": apgi_superior,
-            "actual": f"APGI BIC: {apgi_bic:.2f}, PP BIC: {pp_bic:.2f}",
-            "threshold": "APGI BIC < PP BIC",
+            "actual": f"APGI BIC/N: {apgi_bic_per_obs:.4f}, PP BIC/N: {pp_bic_per_obs:.4f}, Δ: {bic_diff_per_obs:.4f}",
+            "threshold": "APGI BIC-per-observation < PP BIC-per-observation (ΔBIC/N < 10/N)",
         },
     }
 

@@ -14,8 +14,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-import atexit
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -27,12 +26,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 @pytest.fixture(scope="session")
 def cli():
     """Lazy-load CLI to avoid hanging during test collection.
-    
+
     This fixture delays the import of main.py until tests actually run,
     preventing collection errors caused by module-level logging initialization.
     """
     try:
         from main import cli as main_cli
+
         return main_cli
     except Exception as e:
         # If import fails, return a mock CLI for testing
@@ -43,9 +43,8 @@ def pytest_sessionfinish(session, exitstatus):
     """Clean up background threads and exit properly."""
     # Force exit to avoid hanging on background threads
     import sys
+
     sys.exit(exitstatus)
-
-
 
 
 @pytest.fixture
@@ -350,10 +349,10 @@ def pytest_configure(config):
 def pytest_collection_finish(session):
     """Called after test collection is complete."""
     # If we're only collecting (--collect-only), exit immediately to avoid hanging
-    if session.config.option.collect_only:
+    if session.config.option.collectonly:
         import sys
-        sys.exit(0)
 
+        sys.exit(0)
 
 
 def pytest_collection_modifyitems(config, items):
@@ -399,17 +398,6 @@ def assert_performance_within_tolerance(
     assert (
         lower_bound <= actual_time <= upper_bound
     ), f"Performance {actual_time:.3f}s not within tolerance of {expected_time:.3f}s ± {tolerance * 100}%"
-
-
-@pytest.fixture(scope="session")
-def cli():
-    """Lazy-load CLI to avoid hanging during test collection.
-    
-    This fixture delays the import of main.py until tests actually run,
-    preventing collection errors caused by module-level logging initialization.
-    """
-    from main import cli as main_cli
-    return main_cli
 
 
 if __name__ == "__main__":

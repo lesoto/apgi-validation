@@ -24,108 +24,108 @@ try:
 except ImportError:
     DASH_AVAILABLE = False
     print("Warning: dash not available. Dashboard features disabled.")
-    
+
     # Create stubs for dash components
     class _HtmlStub:
         class Div:
             def __init__(self, *args, **kwargs):
                 self.children = args
-                self.style = kwargs.get('style', {})
-        
+                self.style = kwargs.get("style", {})
+
         class H1:
             def __init__(self, *args, **kwargs):
                 self.children = args
-                self.style = kwargs.get('style', {})
-        
+                self.style = kwargs.get("style", {})
+
         class H2:
             def __init__(self, *args, **kwargs):
                 self.children = args
-                self.style = kwargs.get('style', {})
-        
+                self.style = kwargs.get("style", {})
+
         class P:
             def __init__(self, *args, **kwargs):
                 self.children = args
-                self.style = kwargs.get('style', {})
-        
+                self.style = kwargs.get("style", {})
+
         class Button:
             def __init__(self, *args, **kwargs):
                 self.children = args
-                self.style = kwargs.get('style', {})
-        
+                self.style = kwargs.get("style", {})
+
         class Table:
             def __init__(self, *args, **kwargs):
                 self.children = args
-                self.style = kwargs.get('style', {})
-        
+                self.style = kwargs.get("style", {})
+
         class Thead:
             def __init__(self, *args, **kwargs):
                 self.children = args
-        
+
         class Tbody:
             def __init__(self, *args, **kwargs):
                 self.children = args
-        
+
         class Tr:
             def __init__(self, *args, **kwargs):
                 self.children = args
-        
+
         class Th:
             def __init__(self, *args, **kwargs):
                 self.children = args
-        
+
         class Td:
             def __init__(self, *args, **kwargs):
                 self.children = args
-        
+
     class _DccStub:
         class Graph:
             def __init__(self, *args, **kwargs):
-                self.id = kwargs.get('id')
-                self.figure = kwargs.get('figure')
-        
+                self.id = kwargs.get("id")
+                self.figure = kwargs.get("figure")
+
         class DatePickerRange:
             def __init__(self, *args, **kwargs):
-                self.id = kwargs.get('id')
-                self.start_date = kwargs.get('start_date')
-                self.end_date = kwargs.get('end_date')
-        
+                self.id = kwargs.get("id")
+                self.start_date = kwargs.get("start_date")
+                self.end_date = kwargs.get("end_date")
+
         class Dropdown:
             def __init__(self, *args, **kwargs):
-                self.id = kwargs.get('id')
-                self.options = kwargs.get('options')
-                self.value = kwargs.get('value')
-        
+                self.id = kwargs.get("id")
+                self.options = kwargs.get("options")
+                self.value = kwargs.get("value")
+
         class Tabs:
             def __init__(self, *args, **kwargs):
-                self.id = kwargs.get('id')
+                self.id = kwargs.get("id")
                 self.children = args
-        
+
         class Tab:
             def __init__(self, *args, **kwargs):
-                self.label = kwargs.get('label')
+                self.label = kwargs.get("label")
                 self.children = args
-    
+
     html = _HtmlStub()
     dcc = _DccStub()
-    
+
     class _DashStub:
         def __init__(self):
             pass
-        
+
         def run_server(self, *args, **kwargs):
             print("Dash not available - server not started")
-    
+
     dash = _DashStub()
-    
+
     # Stub for pandas
     class _PdStub:
         class DataFrame:
             def __init__(self, data):
                 self.data = data
-            
+
             def to_dict(self, *args, **kwargs):
                 return self.data
-    
+
     pd = _PdStub()
 
 try:
@@ -149,11 +149,11 @@ class HistoricalDashboard:
         """
         if not DASH_AVAILABLE:
             print("Warning: Running in test mode without dash functionality")
-        
+
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.port = port
-        
+
         if DASH_AVAILABLE:
             self.app = dash.Dash(__name__, title="APGI Historical Dashboard")
         else:
@@ -251,7 +251,7 @@ class HistoricalDashboard:
         if not self.app:
             print("Skipping layout setup - dash not available")
             return
-            
+
         self.app.layout = html.Div(
             [
                 html.H1(

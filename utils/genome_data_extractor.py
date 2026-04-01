@@ -201,20 +201,21 @@ def main():
     if not Path(results_path).exists():
         print(f"⚠️ VP-5 results not found at: {results_path}")
         print("   Generating mock genome data for testing...")
-        
+
         # Generate mock data for testing
         import numpy as np
+
         mock_data = {
             "n_agents": 10,
             "n_generations": 5,
             "evolved_alpha_values": np.random.rand(10, 5).tolist(),
             "timescale_correlations": np.random.rand(10, 5).tolist(),
-            "intero_gain_ratios": np.random.rand(10, 5).tolist()
+            "intero_gain_ratios": np.random.rand(10, 5).tolist(),
         }
-        
+
         # Save mock genome data
         save_genome_data(mock_data)
-        
+
         print("\n" + "=" * 80)
         print("MOCK GENOME DATA GENERATED")
         print("=" * 80)
@@ -224,7 +225,7 @@ def main():
         print(f"  Timescale correlations: {len(mock_data['timescale_correlations'])}")
         print(f"  Interoceptive gain ratios: {len(mock_data['intero_gain_ratios'])}")
         print("=" * 80)
-        
+
         return mock_data
 
     # Extract genome data

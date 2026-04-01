@@ -13,7 +13,7 @@ This protocol implements and validates:
 
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import json
 import logging
@@ -90,11 +90,11 @@ class TMSIntervention:
         Returns:
             Dictionary with behavioral and neural results
         """
-        results = {
+        results: Dict[str, List[float]] = {
             "p3b_amplitudes": [],
             "detection_rates": [],
             "reaction_times": [],
-            "timings": np.linspace(0.1, 0.5, n_trials),
+            "timings": list(np.linspace(0.1, 0.5, n_trials)),
             "target_region": target_region,
         }
 
@@ -316,7 +316,7 @@ class CausalManipulationsValidator:
 
         # Simulate insula stimulation vs control conditions
 
-        results = {
+        results: Dict[str, List[float]] = {
             "high_ia_insula": [],
             "high_ia_control": [],
             "low_ia_insula": [],
@@ -413,7 +413,7 @@ class CausalManipulationsValidator:
         Returns:
             Dictionary with validation results for each prediction
         """
-
+        # Run core validation tests
         results = {
             "tms_ignition_disruption": self._validate_tms_ignition_disruption(),
             "tacs_oscillatory_modulation": self._validate_tacs_effects(),
@@ -423,6 +423,16 @@ class CausalManipulationsValidator:
             "high_ia_insula_interaction": self._validate_high_ia_insula_interaction(),
             "overall_causal_validation_score": 0.0,
         }
+        specificity_test = PharmacologicalSpecificityTest()
+        results["pharmacological_specificity"] = (
+            specificity_test.test_circuit_specificity()
+        )
+
+        # NEW: Medication × TMS interaction test (Type I error control)
+        interaction_test = MedicationTMSInteractionTest()
+        results["medication_tms_interaction"] = (
+            interaction_test.test_interaction_effect()
+        )
 
         # Calculate overall score
         results["overall_causal_validation_score"] = self._calculate_causal_score(
@@ -450,7 +460,7 @@ class CausalManipulationsValidator:
                 )
 
                 # Find timing closest to current timing
-                timing_idx = np.argmin(np.abs(tms_results["timings"] - timing))
+                timing_idx = int(np.argmin(np.abs(tms_results["timings"] - timing)))
 
                 # Ensure indices are within bounds to avoid empty slices
                 start_idx = max(0, timing_idx - 2)
@@ -996,8 +1006,8 @@ class SubliminalPrimingMeasure:
             priming_threshold: Threshold for classifying trials as subliminal (default: 0.3)
         """
         self.priming_threshold = priming_threshold
-        self.priming_history = []
-        self.conscious_detection_history = []
+        self.priming_history: List[Dict[str, Any]] = []
+        self.conscious_detection_history: List[Dict[str, Any]] = []
 
     def measure_priming_strength(
         self,
@@ -1266,6 +1276,12 @@ def run_validation(**kwargs):
 
     Returns structured results with named predictions P2.a, P2.b, P2.c
     for Aggregator consumption.
+
+    IMPORTANT: VP-10 is SUPPLEMENTARY to VP-07 for P2.a-P2.c predictions.
+    VP-07 (TMS_CausalInterventions) is the CANONICAL source.
+    VP-10 provides extended validation including:
+      - Pharmacological specificity testing
+      - Medication × TMS interaction testing
     """
     try:
         validator = CausalManipulationsValidator()
@@ -1274,29 +1290,83 @@ def run_validation(**kwargs):
         # Extract named predictions P2.a, P2.b, P2.c
         named_predictions = validator._extract_named_predictions(results)
 
+        # Mark P2 predictions as supplementary (VP-10 is not canonical for P2)
+        for p2_key in ["P2.a", "P2.b", "P2.c"]:
+            if p2_key in named_predictions:
+                named_predictions[p2_key]["source_type"] = "supplementary"
+                named_predictions[p2_key]["canonical_source"] = "VP-07"
+                named_predictions[p2_key][
+                    "note"
+                ] = "VP-10 supplementary validation - VP-07 is canonical source"
+
+        # Add VP-10 specific supplementary predictions
+        if "pharmacological_specificity" in results:
+            named_predictions["V10.SPEC"] = {
+                "passed": results["pharmacological_specificity"].get(
+                    "specificity_passed", False
+                ),
+                "description": "Pharmacological specificity: propranolol vs insula TMS",
+                "source_type": "vp10_supplementary",
+                "detail": results["pharmacological_specificity"],
+            }
+
+        if "medication_tms_interaction" in results:
+            named_predictions["V10.INT"] = {
+                "passed": not results["medication_tms_interaction"]
+                .get("type_i_error_control", {})
+                .get("risk_detected", True),
+                "description": "Medication × TMS interaction test (Type I error control)",
+                "source_type": "vp10_supplementary",
+                "detail": results["medication_tms_interaction"],
+            }
+
         # Calculate overall pass status based on named predictions
         all_passed = all(
             pred.get("passed", False) for pred in named_predictions.values()
         )
 
         return {
+            "protocol_id": "VP_10_CausalManipulations_Priority2",
+            "protocol": "VP-10",
+            "source_type": "supplementary",
             "passed": all_passed,
             "status": "success" if all_passed else "failed",
-            "message": f"Protocol 10 completed: P2.a={named_predictions['P2.a']['passed']}, P2.b={named_predictions['P2.b']['passed']}, P2.c={named_predictions['P2.c']['passed']}",
+            "message": f"Protocol 10 (SUPPLEMENTARY) completed: P2.a={named_predictions['P2.a']['passed']}, P2.b={named_predictions['P2.b']['passed']}, P2.c={named_predictions['P2.c']['passed']}",
             "named_predictions": named_predictions,
             "overall_causal_validation_score": results.get(
                 "overall_causal_validation_score", 0
             ),
+            "supplementary_tests": {
+                "pharmacological_specificity": results.get(
+                    "pharmacological_specificity"
+                ),
+                "medication_tms_interaction": results.get("medication_tms_interaction"),
+            },
         }
     except Exception as e:
         return {
+            "protocol_id": "VP_10_CausalManipulations_Priority2",
+            "protocol": "VP-10",
+            "source_type": "supplementary",
             "passed": False,
             "status": "error",
             "message": f"Protocol 10 failed: {str(e)}",
             "named_predictions": {
-                "P2.a": {"passed": False, "error": str(e)},
-                "P2.b": {"passed": False, "error": str(e)},
-                "P2.c": {"passed": False, "error": str(e)},
+                "P2.a": {
+                    "passed": False,
+                    "error": str(e),
+                    "source_type": "supplementary",
+                },
+                "P2.b": {
+                    "passed": False,
+                    "error": str(e),
+                    "source_type": "supplementary",
+                },
+                "P2.c": {
+                    "passed": False,
+                    "error": str(e),
+                    "source_type": "supplementary",
+                },
             },
         }
 
@@ -1519,7 +1589,7 @@ def check_falsification(
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
-    results = {
+    results: Dict[str, Any] = {
         "protocol": "Validation_Protocol_10",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "total": 1},
@@ -1578,7 +1648,7 @@ class APGIValidationProtocol10:
 
     def run_validation(self, data_path: Optional[str] = None) -> Dict[str, Any]:
         """Run the complete validation protocol."""
-        self.results = main() if data_path is None else main(data_path)
+        self.results = main()
         return self.results
 
     def check_criteria(self) -> Dict[str, Any]:
@@ -1590,11 +1660,446 @@ class APGIValidationProtocol10:
         return self.results
 
 
-class FeatureClusteringValidator:
-    """Feature clustering validator for Protocol 10"""
+class PharmacologicalSpecificityTest:
+    """
+    Test for pharmacological specificity: propranolol (β-blocker) vs insula TMS.
 
-    def __init__(self) -> None:
-        self.validation_results: Dict[str, Any] = {}
+    Differentiates interventions at the neural circuitry level rather than
+    treating both as simple parameter multipliers.
+
+    Key distinctions:
+    - Propranolol: Acts peripherally on β-adrenergic receptors, reducing
+      cardiac feedback signals to insula. Affects parasympathetic/sympathetic balance.
+    - Insula TMS: Directly stimulates anterior insula cortex, affecting local
+      neural activity and interoceptive signal generation.
+    """
+
+    def __init__(self):
+        self.test_results = {}
+
+    def _simulate_propranolol_neural_mechanism(
+        self, baseline_state: Dict, dose_mg: float = 40.0
+    ) -> Dict:
+        """
+        Simulate propranolol's neural mechanism via peripheral β-blockade.
+
+        Mechanism:
+        1. Blocks β1 receptors in heart → reduced heart rate variability (HRV)
+        2. Reduced cardiac afferent signals to insula
+        3. Decreased interoceptive precision via signal attenuation, not insula dysfunction
+        4. Preserves insula's capacity to process signals (cortical integrity intact)
+
+        Args:
+            baseline_state: Baseline neural state with cardiac and cortical components
+            dose_mg: Propranolol dose in mg (standard 40mg)
+
+        Returns:
+            Modified state with propranolol-specific effects
+        """
+        modified_state = baseline_state.copy()
+        dose_factor = min(1.0, dose_mg / 80.0)  # Normalize to max effective dose
+
+        # Propranolol effects (peripheral mechanism)
+        # 1. Reduced cardiac output variability → reduced signal bandwidth
+        modified_state["cardiac_hrv"] = baseline_state.get("cardiac_hrv", 1.0) * (
+            1.0 - 0.35 * dose_factor
+        )
+
+        # 2. Attenuated afferent signal strength from periphery
+        modified_state["afferent_signal_strength"] = baseline_state.get(
+            "afferent_signal_strength", 1.0
+        ) * (1.0 - 0.3 * dose_factor)
+
+        # 3. Indirect reduction in interoceptive precision (via reduced input quality)
+        modified_state["Pi_i_effective"] = baseline_state.get("Pi_i_effective", 1.0) * (
+            1.0 - 0.25 * dose_factor
+        )
+
+        # 4. Insula cortical activity reduced due to reduced input, NOT direct suppression
+        modified_state["insula_cortical_activity"] = baseline_state.get(
+            "insula_cortical_activity", 1.0
+        ) * (1.0 - 0.2 * dose_factor)
+
+        # 5. Crucially: insula remains CAPABLE of processing (cortical mechanism intact)
+        modified_state["insula_processing_capacity"] = baseline_state.get(
+            "insula_processing_capacity", 1.0
+        )  # Unchanged
+
+        # 6. Threshold slightly elevated due to reduced signal clarity
+        modified_state["theta_t"] = baseline_state.get("theta_t", 0.5) * (
+            1.0 + 0.1 * dose_factor
+        )
+
+        return modified_state
+
+    def _simulate_insula_tms_neural_mechanism(
+        self, baseline_state: Dict, intensity_pct: float = 100.0
+    ) -> Dict:
+        """
+        Simulate insula TMS neural mechanism via direct cortical stimulation.
+
+        Mechanism:
+        1. Direct excitation/inhibition of anterior insula pyramidal neurons
+        2. Disruption of local cortical processing (via stimulation-induced noise)
+        3. Changes in effective connectivity with prefrontal regions
+        4. May enhance OR suppress depending on timing and intensity
+        5. Directly affects cortical processing capacity
+
+        Args:
+            baseline_state: Baseline neural state
+            intensity_pct: TMS intensity as % of motor threshold (default 100%)
+
+        Returns:
+            Modified state with TMS-specific effects
+        """
+        modified_state = baseline_state.copy()
+        intensity_factor = intensity_pct / 100.0
+
+        # Insula TMS effects (direct cortical mechanism)
+        # 1. Direct modulation of insula cortical activity (excitation or suppression)
+        if intensity_factor <= 1.2:  # Sub-threshold: facilitatory
+            modified_state["insula_cortical_activity"] = baseline_state.get(
+                "insula_cortical_activity", 1.0
+            ) * (1.0 + 0.4 * intensity_factor)
+            modified_state["insula_processing_capacity"] = baseline_state.get(
+                "insula_processing_capacity", 1.0
+            ) * (1.0 + 0.2 * intensity_factor)
+        else:  # Suprathreshold: inhibitory (stimulation-induced disruption)
+            modified_state["insula_cortical_activity"] = baseline_state.get(
+                "insula_cortical_activity", 1.0
+            ) * (1.0 - 0.3 * intensity_factor)
+            modified_state["insula_processing_capacity"] = baseline_state.get(
+                "insula_processing_capacity", 1.0
+            ) * (1.0 - 0.4 * intensity_factor)
+
+        # 2. Disruption of theta-gamma coupling in insula
+        modified_state["insula_theta_gamma_coupling"] = baseline_state.get(
+            "insula_theta_gamma_coupling", 0.5
+        ) * (1.0 - 0.3 * intensity_factor)
+
+        # 3. Changes in effective connectivity with dlPFC
+        modified_state["insula_dlpfc_connectivity"] = baseline_state.get(
+            "insula_dlpfc_connectivity", 0.5
+        ) * (1.0 - 0.25 * intensity_factor)
+
+        # 4. Direct effect on interoceptive precision (cortical processing change)
+        if intensity_factor <= 1.2:
+            modified_state["Pi_i_effective"] = baseline_state.get(
+                "Pi_i_effective", 1.0
+            ) * (1.0 + 0.3 * intensity_factor)
+        else:
+            modified_state["Pi_i_effective"] = baseline_state.get(
+                "Pi_i_effective", 1.0
+            ) * (1.0 - 0.35 * intensity_factor)
+
+        # 5. Cardiac afferents unchanged (peripheral signals intact)
+        modified_state["cardiac_hrv"] = baseline_state.get(
+            "cardiac_hrv", 1.0
+        )  # Unchanged
+        modified_state["afferent_signal_strength"] = baseline_state.get(
+            "afferent_signal_strength", 1.0
+        )  # Unchanged
+
+        return modified_state
+
+    def test_circuit_specificity(
+        self, n_trials: int = 100, seed: int = 42
+    ) -> Dict[str, Any]:
+        """
+        Test that propranolol and insula TMS produce distinct neural signatures.
+
+        Tests the key dissociation:
+        - Propranolol: Reduces cardiac HRV and afferent signals WITHOUT affecting
+          cortical processing capacity
+        - Insula TMS: Modulates cortical activity and processing capacity WITHOUT
+          affecting peripheral cardiac signals
+
+        Returns:
+            Test results with specificity metrics
+        """
+        np.random.seed(seed)
+
+        baseline = {
+            "cardiac_hrv": 1.0,
+            "afferent_signal_strength": 1.0,
+            "Pi_i_effective": 1.0,
+            "insula_cortical_activity": 1.0,
+            "insula_processing_capacity": 1.0,
+            "insula_theta_gamma_coupling": 0.5,
+            "insula_dlpfc_connectivity": 0.5,
+            "theta_t": 0.5,
+        }
+
+        # Simulate both interventions
+        propranolol_state = self._simulate_propranolol_neural_mechanism(baseline.copy())
+        insula_tms_state = self._simulate_insula_tms_neural_mechanism(baseline.copy())
+
+        # Key specificity metrics
+        results = {
+            "propranolol_cardiac_reduction": baseline["cardiac_hrv"]
+            - propranolol_state["cardiac_hrv"],
+            "insula_tms_cardiac_reduction": baseline["cardiac_hrv"]
+            - insula_tms_state["cardiac_hrv"],
+            "propranolol_cortical_change": abs(
+                propranolol_state["insula_processing_capacity"]
+                - baseline["insula_processing_capacity"]
+            ),
+            "insula_tms_cortical_change": abs(
+                insula_tms_state["insula_processing_capacity"]
+                - baseline["insula_processing_capacity"]
+            ),
+            "propranolol_afferent_reduction": baseline["afferent_signal_strength"]
+            - propranolol_state["afferent_signal_strength"],
+            "insula_tms_afferent_reduction": baseline["afferent_signal_strength"]
+            - insula_tms_state["afferent_signal_strength"],
+            "propranolol_connectivity_change": abs(
+                propranolol_state["insula_dlpfc_connectivity"]
+                - baseline["insula_dlpfc_connectivity"]
+            ),
+            "insula_tms_connectivity_change": abs(
+                insula_tms_state["insula_dlpfc_connectivity"]
+                - baseline["insula_dlpfc_connectivity"]
+            ),
+        }
+
+        # Specificity test: propranolol affects cardiac > cortical, TMS affects cortical > cardiac
+        propranolol_cardiac_vs_cortical = (
+            results["propranolol_cardiac_reduction"]
+            > results["propranolol_cortical_change"]
+        )
+        tms_cortical_vs_cardiac = (
+            results["insula_tms_cortical_change"]
+            > results["insula_tms_cardiac_reduction"]
+        )
+
+        # Double dissociation criterion
+        double_dissociation = (
+            propranolol_cardiac_vs_cortical and tms_cortical_vs_cardiac
+        )
+
+        # Statistical significance of difference (simulated with effect sizes)
+        cardiac_specificity_d = (
+            results["propranolol_cardiac_reduction"]
+            - results["insula_tms_cardiac_reduction"]
+        ) / 0.15  # Assuming SD=0.15
+        cortical_specificity_d = (
+            results["insula_tms_cortical_change"]
+            - results["propranolol_cortical_change"]
+        ) / 0.15
+
+        return {
+            "specificity_passed": double_dissociation,
+            "double_dissociation": double_dissociation,
+            "propranolol_cardiac_vs_cortical": propranolol_cardiac_vs_cortical,
+            "tms_cortical_vs_cardiac": tms_cortical_vs_cardiac,
+            "cardiac_specificity_effect_size": float(cardiac_specificity_d),
+            "cortical_specificity_effect_size": float(cortical_specificity_d),
+            "detailed_metrics": results,
+            "baseline_state": baseline,
+            "propranolol_state": propranolol_state,
+            "insula_tms_state": insula_tms_state,
+            "interpretation": (
+                "PASS: Double dissociation confirmed - propranolol targets peripheral/cardiac, "
+                "TMS targets cortical/insula"
+                if double_dissociation
+                else "FAIL: No double dissociation - interventions may be acting via same mechanism"
+            ),
+        }
+
+
+class MedicationTMSInteractionTest:
+    """
+    Test for medication × TMS interaction effects.
+
+    Tests combined pharmacological + stimulation conditions to:
+    1. Control Type I error for 3+ intervention types
+    2. Detect synergistic or antagonistic interactions
+    3. Validate independence assumptions between interventions
+
+    Critical for causal inference: if interventions act independently,
+    combined effects should be additive. Non-additivity suggests:
+    - Shared neural mechanisms (converging pathways)
+    - Ceiling/floor effects in the system
+    - Homeostatic compensation
+    """
+
+    def __init__(self):
+        self.test_results = {}
+
+    def test_interaction_effect(
+        self,
+        n_subjects: int = 60,
+        alpha: float = 0.05,
+        seed: int = 42,
+    ) -> Dict[str, Any]:
+        """
+        Test for medication × TMS interaction using 2×3 factorial design.
+
+        Design:
+        - Factor A (Medication): Propranolol vs Placebo
+        - Factor B (TMS): Insula vs dlPFC vs Vertex
+
+        Tests:
+        1. Main effect of medication
+        2. Main effect of TMS site
+        3. Medication × TMS interaction (critical for Type I error control)
+
+        Args:
+            n_subjects: Subjects per group (total 6 groups)
+            alpha: Significance level
+            seed: Random seed
+
+        Returns:
+            Test results with interaction statistics
+        """
+        np.random.seed(seed)
+
+        # Define conditions
+        medications = ["propranolol", "placebo"]
+        tms_sites = ["insula", "dlPFC", "vertex"]
+
+        # Generate data for 2×3 factorial design
+        data = []
+
+        for med in medications:
+            for tms in tms_sites:
+                for subject in range(n_subjects):
+                    # Simulate combined intervention effect
+                    baseline_threshold = 0.5
+
+                    # Medication effect
+                    med_effect = -0.05 if med == "propranolol" else 0.0
+
+                    # TMS effect
+                    if tms == "insula":
+                        tms_effect = -0.08  # Reduces threshold
+                    elif tms == "dlPFC":
+                        tms_effect = -0.03
+                    else:  # vertex
+                        tms_effect = 0.0
+
+                    # Interaction: propranolol attenuates insula TMS effect
+                    if med == "propranolol" and tms == "insula":
+                        interaction = 0.04  # Partial attenuation
+                    elif med == "propranolol" and tms == "dlPFC":
+                        interaction = -0.02  # Slight enhancement
+                    else:
+                        interaction = 0.0
+
+                    # Add noise
+                    noise = np.random.normal(0, 0.05)
+
+                    outcome = (
+                        baseline_threshold
+                        + med_effect
+                        + tms_effect
+                        + interaction
+                        + noise
+                    )
+
+                    data.append(
+                        {
+                            "medication": med,
+                            "tms_site": tms,
+                            "subject": f"{med}_{tms}_{subject}",
+                            "threshold": outcome,
+                        }
+                    )
+
+        df = pd.DataFrame(data)
+
+        # Calculate marginal and cell means
+        med_means = df.groupby("medication")["threshold"].mean()
+        tms_means = df.groupby("tms_site")["threshold"].mean()
+        cell_means = df.groupby(["medication", "tms_site"])["threshold"].mean()
+
+        # Two-way ANOVA calculations
+        grand_mean = df["threshold"].mean()
+        ss_total = ((df["threshold"] - grand_mean) ** 2).sum()
+
+        # SS for effects
+        ss_medication = sum(
+            len(df[df["medication"] == m]) * (med_means[m] - grand_mean) ** 2
+            for m in medications
+        )
+        ss_tms = sum(
+            len(df[df["tms_site"] == t]) * (tms_means[t] - grand_mean) ** 2
+            for t in tms_sites
+        )
+
+        # Interaction SS
+        ss_interaction = 0
+        for med in medications:
+            for tms in tms_sites:
+                cell_data = df[(df["medication"] == med) & (df["tms_site"] == tms)]
+                n_cell = len(cell_data)
+                cell_mean = cell_data["threshold"].mean()
+                expected = med_means[med] + tms_means[tms] - grand_mean
+                ss_interaction += n_cell * (cell_mean - expected) ** 2
+
+        # Degrees of freedom
+        df_med = len(medications) - 1
+        df_tms = len(tms_sites) - 1
+        df_int = df_med * df_tms
+        df_error = len(df) - (len(medications) * len(tms_sites))
+
+        # Mean squares
+        ms_int = ss_interaction / df_int if df_int > 0 else 0
+        ms_error = (
+            (ss_total - ss_medication - ss_tms - ss_interaction) / df_error
+            if df_error > 0
+            else 0
+        )
+
+        # F-statistic and p-value
+        f_interaction = ms_int / ms_error if ms_error > 0 else 0
+        p_interaction = (
+            1 - stats.f.cdf(f_interaction, df_int, df_error)
+            if f_interaction > 0
+            else 1.0
+        )
+
+        # Effect size
+        eta_squared = ss_interaction / ss_total if ss_total > 0 else 0
+
+        # Critical test
+        interaction_significant = p_interaction < alpha
+        interaction_moderate = eta_squared >= 0.06
+        type_i_error_risk = interaction_significant and interaction_moderate
+
+        return {
+            "test_name": "Medication × TMS Interaction Test",
+            "design": "2×3 factorial (Medication × TMS Site)",
+            "n_total": len(df),
+            "n_per_cell": n_subjects,
+            "interaction": {
+                "ss": float(ss_interaction),
+                "df": int(df_int),
+                "ms": float(ms_int),
+                "f": float(f_interaction),
+                "p_value": float(p_interaction),
+                "eta_squared": float(eta_squared),
+                "significant": interaction_significant,
+            },
+            "cell_means": {
+                f"{med}_{tms}": float(cell_means.get((med, tms), 0))
+                for med in medications
+                for tms in tms_sites
+            },
+            "type_i_error_control": {
+                "risk_detected": type_i_error_risk,
+                "interpretation": (
+                    "WARNING: Significant interaction detected. Interventions may not be independent. "
+                    "Type I error inflated for multiple comparisons."
+                    if type_i_error_risk
+                    else "PASS: No significant interaction. Interventions appear independent. "
+                    "Type I error controlled."
+                ),
+            },
+        }
+
+
+class FeatureClusteringValidator:
 
     def validate(self) -> Dict[str, Any]:
         """Validate feature clustering."""

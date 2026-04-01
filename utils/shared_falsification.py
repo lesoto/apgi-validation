@@ -122,6 +122,9 @@ def check_F5_family(
     """
     Check F5 family criteria (evolutionary emergence).
     Deduplicated from FP-1, FP-2, FP-3 per Step 1.3.
+
+    CRITICAL: genome_data is REQUIRED - passing fictional defaults corrupts the
+    falsification gate. Run VP-5 first to generate valid genome_data.
     """
     results = {}
 
@@ -139,10 +142,12 @@ def check_F5_family(
             )
             cohens_d = (mean_alpha - 3.0) / max(1e-10, alpha_std)
         else:
-            # Fallback when genome_data not available
-            mean_alpha = 4.2  # Default reasonable value
-            n_agents = 100
-            cohens_d = 0.8  # Default passing effect size
+            # CRITICAL FIX: Raise error instead of using fictional defaults
+            # that would corrupt the falsification gate
+            raise ValueError(
+                "VP-5 genome_data required with evolved_alpha_values. "
+                "Run VP-5_EvolutionaryEmergence first to generate valid evolutionary data."
+            )
 
         p_val, _ = safe_binomtest(int(prop * n_agents), n_agents, p=0.70)
 
@@ -177,9 +182,11 @@ def check_F5_family(
             mean_r = np.mean(genome_data["timescale_correlations"])
             n_agents = len(genome_data["timescale_correlations"])
         else:
-            # Fallback when genome_data not available
-            mean_r = 0.55  # Default reasonable correlation
-            n_agents = 100
+            # CRITICAL FIX: Raise error instead of using fictional defaults
+            raise ValueError(
+                "VP-5 genome_data required with timescale_correlations. "
+                "Run VP-5_EvolutionaryEmergence first to generate valid evolutionary data."
+            )
 
         p_val, _ = safe_binomtest(int(prop * n_agents), n_agents, p=0.60)
 

@@ -768,3 +768,113 @@ def permutation_test(
     significant = p_value < alpha
 
     return observed, p_value, significant
+
+
+# =============================================================================
+# MULTIPLE COMPARISON CORRECTION
+# =============================================================================
+
+
+def apply_multiple_comparison_correction(
+    p_values: Union[np.ndarray, list],
+    method: str = "bonferroni",
+    alpha: float = 0.05,
+) -> dict:
+    """
+    Apply multiple comparison correction to control FWER or FDR.
+
+    Args:
+        p_values: Array of p-values from multiple hypothesis tests
+        method: Correction method - "bonferroni", "holm", "fdr_bh" (Benjamini-Hochberg),
+                or "fdr_by" (Benjamini-Yekutieli)
+        alpha: Family-wise significance level (default 0.05)
+
+    Returns:
+        Dictionary containing:
+        - corrected_p_values: Array of corrected p-values
+        - significant: Boolean array indicating which tests are significant
+        - reject: Boolean array (same as significant, for compatibility with statsmodels)
+        - method: The correction method used
+        - alpha: The significance level used
+        - n_tests: Number of tests performed
+
+    Raises:
+        ValueError: If method is not supported or p_values is invalid
+
+    Example:
+        >>> p_values = [0.01, 0.04, 0.02, 0.06, 0.001, 0.03]
+        >>> result = apply_multiple_comparison_correction(p_values, method="bonferroni")
+        >>> print(result['corrected_p_values'])
+        >>> print(result['significant'])
+    """
+    p_arr = np.asarray(p_values)
+
+    if len(p_arr) == 0:
+        raise ValueError("p_values cannot be empty")
+
+    if np.any((p_arr < 0) | (p_arr > 1)):
+        raise ValueError("All p-values must be between 0 and 1")
+
+    n_tests = len(p_arr)
+    original_shape = p_arr.shape
+    p_flat = p_arr.flatten()
+
+    # Sort p-values for methods that require ordered testing
+    sorted_indices = np.argsort(p_flat)
+    sorted_p = p_flat[sorted_indices]
+
+    if method == "bonferroni":
+        # Bonferroni correction: multiply each p-value by number of tests
+        corrected = np.minimum(sorted_p * n_tests, 1.0)
+
+    elif method == "holm":
+        # Holm-Bonferroni step-down procedure
+        # More powerful than simple Bonferroni while controlling FWER
+        corrected = np.zeros_like(sorted_p)
+        for i, p in enumerate(sorted_p):
+            corrected[i] = min(p * (n_tests - i), 1.0)
+        # Ensure monotonicity (corrected p-values should be non-decreasing)
+        corrected = np.maximum.accumulate(corrected)
+
+    elif method in ["fdr_bh", "benjamini-hochberg"]:
+        # Benjamini-Hochberg FDR control (independent/positive dependent tests)
+        corrected = np.zeros_like(sorted_p)
+        for i, p in enumerate(sorted_p):
+            corrected[i] = p * n_tests / (i + 1)
+        # Ensure monotonicity
+        corrected = np.minimum.accumulate(corrected[::-1])[::-1]
+        corrected = np.minimum(corrected, 1.0)
+
+    elif method in ["fdr_by", "benjamini-yekutieli"]:
+        # Benjamini-Yekutieli FDR control (arbitrary dependence)
+        # More conservative than BH, works under any dependence structure
+        corrected = np.zeros_like(sorted_p)
+        harmonic_sum = np.sum(1.0 / np.arange(1, n_tests + 1))
+        for i, p in enumerate(sorted_p):
+            corrected[i] = p * n_tests * harmonic_sum / (i + 1)
+        # Ensure monotonicity
+        corrected = np.minimum.accumulate(corrected[::-1])[::-1]
+        corrected = np.minimum(corrected, 1.0)
+
+    else:
+        raise ValueError(
+            f"Unknown correction method: {method}. "
+            f"Supported methods: 'bonferroni', 'holm', 'fdr_bh', 'fdr_by'"
+        )
+
+    # Restore original order
+    corrected_restored = np.zeros_like(corrected)
+    corrected_restored[sorted_indices] = corrected
+    corrected_final = corrected_restored.reshape(original_shape)
+
+    # Determine significance
+    significant = corrected_final < alpha
+
+    return {
+        "corrected_p_values": corrected_final,
+        "significant": significant,
+        "reject": significant,  # For compatibility with statsmodels
+        "method": method,
+        "alpha": alpha,
+        "n_tests": n_tests,
+    }

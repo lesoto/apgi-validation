@@ -230,3 +230,6 @@ PARAMETER_BOUNDS = ParameterBounds()
 PCI_NORMALIZATION = PCINormalization()
 DIM_CONSTANTS = DimensionConstants()
 LEVEL_TIMESCALES = LevelTimescales()
+
+# Global random seed for reproducibility across all protocols
+APGI_GLOBAL_SEED = 42

@@ -94,9 +94,10 @@ class BackupManager:
             # If still no key, generate a default test key for testing
             if not backup_hmac_key:
                 import secrets
+
                 backup_hmac_key = secrets.token_hex(32)
                 logging.info("Generated default HMAC key for backup compatibility")
-                
+
                 # Persist the generated key for future use
                 try:
                     with open(key_file, "w", encoding="utf-8") as f:
@@ -178,7 +179,7 @@ class BackupManager:
                 "description": "Configuration files",
             },
             "cache": {
-                "paths": ["cache/", "utils/data/cache/"],
+                "paths": ["cache/", "data_repository/cache/"],
                 "description": "Cache data",
             },
             "logs": {

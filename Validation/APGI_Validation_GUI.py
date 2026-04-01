@@ -476,6 +476,22 @@ class APGIValidationGUI:
             cb = ttk.Checkbutton(protocol_frame, text=desc, variable=var)
             cb.grid(row=i // 2, column=(i % 2) * 2, sticky=tk.W, padx=5, pady=2)
 
+        # Select All / Deselect All buttons frame
+        select_frame = ttk.Frame(protocol_frame)
+        select_frame.grid(
+            row=(len(protocols_info) + 1) // 2,
+            column=0,
+            columnspan=4,
+            pady=(10, 0),
+        )
+
+        ttk.Button(
+            select_frame, text="Select All", command=self.select_all_protocols
+        ).grid(row=0, column=0, padx=5)
+        ttk.Button(
+            select_frame, text="Deselect All", command=self.deselect_all_protocols
+        ).grid(row=0, column=1, padx=5)
+
         # Control buttons frame
         control_frame = ttk.Frame(validation_frame)
         control_frame.grid(row=1, column=0, columnspan=2, pady=(0, 10))
@@ -2643,8 +2659,8 @@ Interpretation:
             # Wait for thread to finish with timeout
             with self._thread_cleanup_lock:
                 if self.validation_thread and self.validation_thread.is_alive():
-                    # Wait up to 3 seconds for clean exit
-                    self.validation_thread.join(timeout=3.0)
+                    # Wait up to 5 seconds for clean exit (increased from 3s)
+                    self.validation_thread.join(timeout=5.0)
 
                     if self.validation_thread.is_alive():
                         self.update_results(
@@ -2994,6 +3010,18 @@ Interpretation:
     def stop_selected_script(self) -> None:
         """Stop the currently running script."""
         self.stop_validation()
+
+    def select_all_protocols(self) -> None:
+        """Select all protocol checkboxes."""
+        for var in self.protocol_vars.values():
+            var.set(True)
+        logging.info("All protocols selected")
+
+    def deselect_all_protocols(self) -> None:
+        """Deselect all protocol checkboxes."""
+        for var in self.protocol_vars.values():
+            var.set(False)
+        logging.info("All protocols deselected")
 
     def clear_output(self) -> None:
         """Clear the output text widgets."""

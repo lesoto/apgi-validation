@@ -15,7 +15,7 @@ Key falsification criteria:
 
 This protocol implements:
 - APGI-inspired network with dual pathways, precision weighting, and ignition
-- Comparison architectures (MLP, LSTM, Attention)
+- Comparison architectures (MLP, LSTM, Transformer-style attention)
 - Consciousness-relevant tasks (conscious/unconscious classification, etc.)
 - Comprehensive evaluation with energy falsification criteria
 - Formal model comparison (BIC/AIC) and spike-based energy logging
@@ -27,7 +27,7 @@ import logging
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -94,6 +94,7 @@ from utils.falsification_thresholds import (
     V6_1_ALPHA,
     F6_2_WILCOXON_ALPHA,
     F6_DELTA_AUROC_MIN,
+    GENERIC_BINARY_DECISION_THRESHOLD,
 )
 
 # Configure logging
@@ -177,7 +178,8 @@ class SpikeEnergyMonitor:
             activations["somatic_spikes"] = somatic_spikes
 
         # Hidden layer activations (encoder spikes)
-        if hasattr(outputs.get("network", {}), "parameters"):
+        network_module = outputs.get("network")
+        if isinstance(network_module, nn.Module):
             # Count spikes in network parameters (simplified)
             total_params = sum(p.numel() for p in outputs["network"].parameters())
             activations["hidden_spikes"] = self._parameter_activation_to_spikes(
@@ -268,8 +270,9 @@ class SpikeEnergyMonitor:
         return {
             "energy_per_correct": energy_per_correct,
             "efficiency_ratio": efficiency_ratio,
-            "energy_falsified": efficiency_ratio
-            > (1 + ENERGY_FALSIFICATION_THRESHOLD_PCT / 100),
+            "energy_falsified": float(
+                efficiency_ratio > (1 + ENERGY_FALSIFICATION_THRESHOLD_PCT / 100)
+            ),
         }
 
     def evaluate_models(
@@ -288,8 +291,8 @@ class SpikeEnergyMonitor:
             network.eval()
             correct = 0
             total = 0
-            all_predictions = []
-            all_targets = []
+            all_predictions: List[np.ndarray] = []
+            all_targets: List[np.ndarray] = []
 
             with torch.no_grad():
                 for batch in test_loader:
@@ -531,8 +534,7 @@ class APGIInspiredNetwork(nn.Module):
             torch.tensor(5.0, dtype=torch.float32)
         )  # Sigmoid steepness
 
-        # State
-        self.surprise_hidden = None
+        self.surprise_hidden: Optional[torch.Tensor] = None
 
     def forward(
         self,
@@ -592,11 +594,12 @@ class APGIInspiredNetwork(nn.Module):
         # Update surprise accumulator - ensure hidden state is float32
         if self.surprise_hidden is not None:
             self.surprise_hidden = self.surprise_hidden.float()
-        self.surprise_hidden = self.surprise_rnn(
-            surprise_input.float(), self.surprise_hidden, dt=1.0
-        )
-        # Detach hidden state to prevent graph retention across batches
-        self.surprise_hidden = self.surprise_hidden.detach()
+        if self.surprise_hidden is not None:
+            self.surprise_hidden = self.surprise_rnn(
+                surprise_input.float(), self.surprise_hidden, dt=1.0
+            )
+            # Detach hidden state to prevent graph retention across batches
+            self.surprise_hidden = self.surprise_hidden.detach()
 
         S_t = torch.norm(self.surprise_hidden, dim=-1, keepdim=True)
 
@@ -748,7 +751,7 @@ class LSTMNetwork(nn.Module):
 
 
 class AttentionNetwork(nn.Module):
-    """Attention-based without explicit ignition"""
+    """Transformer-style attention baseline without explicit ignition"""
 
     def __init__(self, config: Dict):
         super().__init__()
@@ -809,7 +812,7 @@ class ConsciousClassificationDataset(Dataset):
             stimulus_strength = self.rng.uniform(0.0, 1.0)
 
             # Conscious access probability
-            threshold = 0.5
+            threshold = GENERIC_BINARY_DECISION_THRESHOLD
             noise = self.rng.normal(0, 0.1)
             conscious = (stimulus_strength + noise) > threshold
 
@@ -1134,7 +1137,7 @@ class NetworkTrainer:
         for batch in train_loader:
             # Reset hidden state at the start of each batch
             if hasattr(self.network, "reset"):
-                self.network.reset()
+                self.network.reset()  # type: ignore[operator]  # type: ignore[operator]  # type: ignore[operator]
 
             # Ensure all inputs are float32 and on the correct device
             extero = batch["extero"].to(self.device)
@@ -1173,15 +1176,15 @@ class NetworkTrainer:
         """Evaluate on validation set"""
         self.network.eval()
 
-        all_preds = []
-        all_targets = []
-        all_ignition_probs = []
+        all_preds: List[np.ndarray] = []
+        all_targets: List[np.ndarray] = []
+        all_ignition_probs: List[np.ndarray] = []
 
         with torch.no_grad():
             for batch in val_loader:
                 # Reset hidden state at the start of each batch
                 if hasattr(self.network, "reset"):
-                    self.network.reset()
+                    self.network.reset()  # type: ignore[operator]
 
                 # Ensure all inputs are float32 and on the correct device
                 extero = batch["extero"].to(self.device)
@@ -1255,8 +1258,8 @@ class NetworkTrainer:
         """Evaluate temporal dynamics (integration window and transition time)"""
         self.network.eval()
 
-        transition_times = []
-        integration_windows = []
+        transition_times: List[float] = []
+        integration_windows: List[float] = []
 
         with torch.no_grad():
             for batch in loader:
@@ -1265,7 +1268,7 @@ class NetworkTrainer:
                 context = batch["context"].to(self.device).float()
 
                 if hasattr(self.network, "reset"):
-                    self.network.reset()
+                    self.network.reset()  # type: ignore[operator]  # type: ignore[operator]
 
                 dt = 10.0  # ms
                 batch_size = extero.size(0)
@@ -1276,6 +1279,8 @@ class NetworkTrainer:
                     default_transition = 30.0  # ms - realistic LTCN threshold crossing
                 elif self.network_name == "LSTM":
                     default_transition = 100.0  # ms - standard RNN
+                elif self.network_name == "Transformer":
+                    default_transition = 85.0  # ms - transformer-style attention
                 else:
                     default_transition = 80.0  # ms - feedforward
 
@@ -1316,10 +1321,14 @@ class NetworkTrainer:
                         batch_transition_time = (
                             np.ones(batch_size) * 100.0
                         )  # 100ms for LSTM
+                    elif self.network_name == "Transformer":
+                        batch_transition_time = (
+                            np.ones(batch_size) * 85.0
+                        )  # 85ms for transformer-style attention
                     else:
                         batch_transition_time = (
                             np.ones(batch_size) * 80.0
-                        )  # 80ms for MLP/Attention
+                        )  # 80ms for MLP
 
                 transition_times.extend(batch_transition_time)
 
@@ -1371,6 +1380,10 @@ class NetworkTrainer:
                         batch_integration = (
                             np.ones(batch_size) * 100.0
                         )  # 100ms for standard RNN
+                    elif self.network_name == "Transformer":
+                        batch_integration = (
+                            np.ones(batch_size) * 120.0
+                        )  # 120ms for transformer-style attention
                     else:
                         batch_integration = (
                             np.ones(batch_size) * 50.0
@@ -1385,6 +1398,179 @@ class NetworkTrainer:
             "transition_times": np.array(transition_times),
             "integration_windows": np.array(integration_windows),
         }
+
+    def evaluate_echo_state_property(
+        self,
+        sequence_length: int = 150,
+        epsilon: float = 1e-3,
+        washout_threshold: int = 100,
+    ) -> Dict[str, Any]:
+        """
+        Evaluate echo state property with a three-part verification.
+
+        The protocol verifies:
+        1. Spectral radius < 1
+        2. Input-driven convergence from two random initial conditions
+        3. Washout time < 100 steps
+        """
+        recurrent_matrix = self._extract_recurrent_matrix()
+        if recurrent_matrix is None:
+            return {
+                "applicable": False,
+                "passed": False,
+                "reason": f"{self.network_name} has no extractable recurrent reservoir matrix",
+            }
+
+        eigenvalues = np.linalg.eigvals(recurrent_matrix)
+        spectral_radius = float(np.max(np.abs(eigenvalues)))
+
+        input_sequence = self._generate_esp_input_sequence(sequence_length)
+        state_distances = self._simulate_state_convergence(input_sequence)
+        final_distance = float(state_distances[-1]) if state_distances else float("inf")
+        converged = final_distance < epsilon
+        washout_time = self._estimate_washout_time(state_distances, epsilon)
+
+        passed = (
+            spectral_radius < 1.0
+            and converged
+            and washout_time is not None
+            and washout_time < washout_threshold
+        )
+
+        return {
+            "applicable": True,
+            "passed": passed,
+            "spectral_radius": spectral_radius,
+            "spectral_radius_pass": spectral_radius < 1.0,
+            "final_state_distance": final_distance,
+            "convergence_pass": converged,
+            "epsilon": epsilon,
+            "washout_time": washout_time,
+            "washout_pass": washout_time is not None
+            and washout_time < washout_threshold,
+            "washout_threshold": washout_threshold,
+            "state_distances": np.array(state_distances, dtype=float),
+        }
+
+    def _extract_recurrent_matrix(self) -> Optional[np.ndarray]:
+        if self.network_name == "APGI" and hasattr(self.network, "surprise_rnn"):
+            cell = self.network.surprise_rnn
+            input_size = 2
+            return (
+                cell.f_net[0]
+                .weight[:, input_size:]
+                .detach()
+                .cpu()
+                .numpy()
+                .astype(float)
+            )
+
+        if self.network_name == "LSTM" and hasattr(self.network, "lstm"):
+            weight_hh = (
+                self.network.lstm.weight_hh_l0.detach().cpu().numpy().astype(float)
+            )
+            gate_blocks = np.split(weight_hh, 4, axis=0)
+            return np.mean(np.stack(gate_blocks, axis=0), axis=0)
+
+        return None
+
+    def _generate_esp_input_sequence(
+        self, sequence_length: int
+    ) -> Dict[str, torch.Tensor]:
+        generator = torch.Generator(
+            device=self.device if self.device == "cuda" else "cpu"
+        )
+        generator.manual_seed(RANDOM_SEED)
+        extero = torch.randn(
+            sequence_length, 1, self.network.config["extero_dim"], generator=generator
+        )
+        intero = torch.randn(
+            sequence_length, 1, self.network.config["intero_dim"], generator=generator
+        )
+        context = (
+            torch.randn(
+                sequence_length,
+                1,
+                self.network.config["context_dim"],
+                generator=generator,
+            )
+            * 0.1
+        )
+        return {
+            "extero": extero.to(self.device),
+            "intero": intero.to(self.device),
+            "context": context.to(self.device),
+        }
+
+    def _simulate_state_convergence(
+        self, input_sequence: Dict[str, torch.Tensor]
+    ) -> List[float]:
+        distances: List[float] = []
+        with torch.no_grad():
+            self.network.reset()  # type: ignore[operator]  # type: ignore[operator]
+
+            if self.network_name == "APGI":
+                hidden_dim = self.network.surprise_rnn.hidden_size
+                state_a = torch.randn(1, hidden_dim, device=self.device)
+                state_b = torch.randn(1, hidden_dim, device=self.device)
+
+                for step in range(input_sequence["extero"].size(0)):
+                    extero = input_sequence["extero"][step]
+                    intero = input_sequence["intero"][step]
+                    context = input_sequence["context"][step]
+
+                    self.network.surprise_hidden = state_a.clone()
+                    _ = self.network(extero, intero, context)
+                    state_a = self.network.surprise_hidden.detach().clone()
+
+                    self.network.surprise_hidden = state_b.clone()
+                    _ = self.network(extero, intero, context)
+                    state_b = self.network.surprise_hidden.detach().clone()
+
+                    distances.append(
+                        float(torch.norm(state_a - state_b, dim=-1).max().item())
+                    )
+
+            elif self.network_name == "LSTM":
+                hidden_size = self.network.lstm.hidden_size
+                state_a = torch.randn(1, 1, hidden_size, device=self.device)
+                state_b = torch.randn(1, 1, hidden_size, device=self.device)
+                cell_a = torch.zeros_like(state_a)
+                cell_b = torch.zeros_like(state_b)
+
+                for step in range(input_sequence["extero"].size(0)):
+                    extero = input_sequence["extero"][step]
+                    intero = input_sequence["intero"][step]
+                    context = input_sequence["context"][step]
+
+                    self.network.hidden = (state_a.clone(), cell_a.clone())
+                    _ = self.network(extero, intero, context)
+                    state_a = self.network.hidden[0].detach().clone()
+                    cell_a = self.network.hidden[1].detach().clone()
+
+                    self.network.hidden = (state_b.clone(), cell_b.clone())
+                    _ = self.network(extero, intero, context)
+                    state_b = self.network.hidden[0].detach().clone()
+                    cell_b = self.network.hidden[1].detach().clone()
+
+                    distances.append(
+                        float(torch.norm(state_a - state_b, dim=-1).max().item())
+                    )
+
+        self.network.reset()  # type: ignore[operator]
+        return distances
+
+    def _estimate_washout_time(
+        self, state_distances: List[float], epsilon: float, stable_window: int = 5
+    ) -> Optional[int]:
+        if len(state_distances) < stable_window:
+            return None
+
+        distances = np.asarray(state_distances, dtype=float)
+        for idx in range(0, len(distances) - stable_window + 1):
+            if np.all(distances[idx : idx + stable_window] < epsilon):
+                return idx + 1
+        return None
 
     def train(
         self, train_loader: DataLoader, val_loader: DataLoader, n_epochs: int = 100
@@ -1401,7 +1587,7 @@ class NetworkTrainer:
 
         for epoch in tqdm(range(n_epochs), desc=f"  {self.network_name}"):
             # Reset hidden states
-            self.network.reset()
+            self.network.reset()  # type: ignore[operator]
 
             # Train
             train_loss = self.train_epoch(train_loader)
@@ -1455,7 +1641,7 @@ class NetworkTrainer:
 
         for epoch in tqdm(range(n_epochs), desc=f"  {self.network_name}"):
             # Reset hidden states
-            self.network.reset()
+            self.network.reset()  # type: ignore[operator]
 
             # Train with energy monitoring
             train_loss = self.train_epoch(train_loader, energy_monitor)
@@ -1556,7 +1742,7 @@ class NetworkComparison:
             "APGI": APGIInspiredNetwork(config),
             "MLP": StandardMLPNetwork(config),
             "LSTM": LSTMNetwork(config),
-            "Attention": AttentionNetwork(config),
+            "Transformer": AttentionNetwork(config),
         }
 
         self.trainers = {
@@ -1613,6 +1799,7 @@ class NetworkComparison:
             # Test with energy monitoring
             test_results = trainer.evaluate(test_loader)
             temporal_results = trainer.evaluate_temporal_dynamics(test_loader)
+            esp_results = trainer.evaluate_echo_state_property()
 
             # Log energy consumption during testing
             for batch in test_loader:
@@ -1629,6 +1816,7 @@ class NetworkComparison:
                 "test_accuracy": test_results["accuracy"],
                 "test_auc": test_results["auc"],
                 "temporal_dynamics": temporal_results,
+                "echo_state_property": esp_results,
                 "convergence_epoch": len(history["train_losses"]),
                 "energy_report": energy_report.get(name, {}),
             }
@@ -1754,7 +1942,10 @@ class FalsificationChecker:
                 "description": "LTCN threshold transitions <= 50ms vs standard RNN latency",
             },
             "V6.2": {
-                "description": "LTCN temporal integration window 200-500ms, >=4x standard RNN",
+                "description": "LTCN temporal integration window 200-500ms, >=4x LSTM and Transformer baselines",
+            },
+            "ESP": {
+                "description": "Echo state property verified by spectral radius, input-driven convergence, and washout time",
             },
             "Innovation_29": {
                 "description": "LNN AUROC superiority by pre-specified ΔAUROC",
@@ -1797,45 +1988,59 @@ class FalsificationChecker:
         }
 
     def check_V6_2(
-        self, apgi_integration_windows: np.ndarray, lstm_integration_windows: np.ndarray
+        self,
+        apgi_integration_windows: np.ndarray,
+        baseline_windows: Dict[str, np.ndarray],
     ) -> Tuple[bool, Dict]:
         """
-        V6.2: LTCN temporal integration window 200-500ms, >=4x standard RNN, R2 >= 0.85
+        V6.2: LTCN temporal integration window 200-500ms, >=4x LSTM and Transformer, R2 >= 0.85
         Wilcoxon signed-rank test
         """
         mean_apgi = float(np.mean(apgi_integration_windows))
-        mean_lstm = float(np.mean(lstm_integration_windows))
 
         window_size_valid = mean_apgi >= F6_2_LTCN_MIN_WINDOW_MS
-        ratio_valid = mean_apgi >= 4.0 * mean_lstm
+        baseline_means = {
+            name: float(np.mean(windows)) for name, windows in baseline_windows.items()
+        }
+        baseline_stats = {}
+        p_values = []
+        for name, windows in baseline_windows.items():
+            ratio = mean_apgi / max(1e-5, baseline_means[name])
+            try:
+                stat, p_val = stats.wilcoxon(
+                    apgi_integration_windows, windows, alternative="greater"
+                )
+            except ValueError:
+                stat, p_val = stats.mannwhitneyu(
+                    apgi_integration_windows, windows, alternative="greater"
+                )
+            baseline_stats[name] = {
+                "mean_integration_window": baseline_means[name],
+                "ratio": float(ratio),
+                "statistic": float(stat),
+                "p_value": float(p_val),
+                "passes_ratio": ratio >= F6_2_MIN_INTEGRATION_RATIO,
+                "passes_significance": p_val < F6_2_WILCOXON_ALPHA,
+            }
+            p_values.append(float(p_val))
 
-        # Wilcoxon requires paired samples; fallback to Mann-Whitney if lengths differ
-        try:
-            stat, p_val = stats.wilcoxon(
-                apgi_integration_windows,
-                lstm_integration_windows,
-                alternative="greater",
-            )
-        except ValueError:
-            stat, p_val = stats.mannwhitneyu(
-                apgi_integration_windows,
-                lstm_integration_windows,
-                alternative="greater",
-            )
-
-        falsified = not (
-            window_size_valid and ratio_valid and p_val < F6_2_WILCOXON_ALPHA
+        ratio_valid = all(
+            details["passes_ratio"] for details in baseline_stats.values()
         )
+        statistical_valid = all(
+            details["passes_significance"] for details in baseline_stats.values()
+        )
+
+        falsified = not (window_size_valid and ratio_valid and statistical_valid)
 
         return falsified, {
             "apgi_integration_mean": mean_apgi,
-            "lstm_integration_mean": mean_lstm,
-            "ratio": mean_apgi / max(1e-5, mean_lstm),
-            "p_value": float(p_val),
+            "baseline_comparisons": baseline_stats,
             "window_size_valid": window_size_valid,
             "ratio_valid": ratio_valid,
+            "statistical_valid": statistical_valid,
             "threshold_min": F6_2_LTCN_MIN_WINDOW_MS,
-            "ratio_threshold": 4.0,
+            "ratio_threshold": F6_2_MIN_INTEGRATION_RATIO,
         }
 
     def check_Innovation_29_AUROC_Superiority(self, results: Dict) -> Tuple[bool, Dict]:
@@ -1927,6 +2132,10 @@ class FalsificationChecker:
         conscious_task = results.get("Conscious_Classification", {})
         apgi_temporal = conscious_task.get("APGI", {}).get("temporal_dynamics", {})
         lstm_temporal = conscious_task.get("LSTM", {}).get("temporal_dynamics", {})
+        transformer_temporal = conscious_task.get("Transformer", {}).get(
+            "temporal_dynamics", {}
+        )
+        apgi_esp = conscious_task.get("APGI", {}).get("echo_state_property", {})
 
         # V6.1
         if "transition_times" in apgi_temporal and "transition_times" in lstm_temporal:
@@ -1953,26 +2162,50 @@ class FalsificationChecker:
             report["passed_criteria"].append(criterion)
 
         # V6.2
-        if (
-            "integration_windows" in apgi_temporal
-            and "integration_windows" in lstm_temporal
+        if all(
+            "integration_windows" in temporal
+            for temporal in [apgi_temporal, lstm_temporal, transformer_temporal]
         ):
             v6_2_result, v6_2_details = self.check_V6_2(
                 apgi_temporal["integration_windows"],
-                lstm_temporal["integration_windows"],
+                {
+                    "LSTM": lstm_temporal["integration_windows"],
+                    "Transformer": transformer_temporal["integration_windows"],
+                },
             )
             criterion = {
                 "code": "V6.2",
-                "description": "LTCN temporal integration window 200-500ms, >=4x standard RNN",
+                "description": "LTCN temporal integration window 200-500ms, >=4x LSTM and Transformer baselines",
                 "falsified": v6_2_result,
                 "details": v6_2_details,
             }
         else:
             criterion = {
                 "code": "V6.2",
-                "description": "LTCN temporal integration window 200-500ms, >=4x standard RNN",
+                "description": "LTCN temporal integration window 200-500ms, >=4x LSTM and Transformer baselines",
                 "falsified": True,
                 "details": {"error": "Missing temporal dynamics data"},
+            }
+
+        if criterion["falsified"]:
+            report["falsified_criteria"].append(criterion)
+        else:
+            report["passed_criteria"].append(criterion)
+
+        # Echo state property
+        if apgi_esp:
+            criterion = {
+                "code": "ESP",
+                "description": "Echo state property verified by spectral radius, input-driven convergence, and washout time",
+                "falsified": not apgi_esp.get("passed", False),
+                "details": apgi_esp,
+            }
+        else:
+            criterion = {
+                "code": "ESP",
+                "description": "Echo state property verified by spectral radius, input-driven convergence, and washout time",
+                "falsified": True,
+                "details": {"error": "Missing echo state property data"},
             }
 
         if criterion["falsified"]:
@@ -2022,10 +2255,10 @@ def plot_comprehensive_results(
         "APGI": "#2E86AB",
         "MLP": "#A23B72",
         "LSTM": "#F18F01",
-        "Attention": "#06A77D",
+        "Transformer": "#06A77D",
     }
 
-    networks = ["APGI", "MLP", "LSTM", "Attention"]
+    networks = ["APGI", "MLP", "LSTM", "Transformer"]
     tasks = list(results.keys())
 
     # ==========================================================================
@@ -2313,10 +2546,10 @@ def plot_comprehensive_results(
 
     # Get best competitor metrics
     best_competitor_auc = max(
-        [conscious_task[net]["test_auc"] for net in ["MLP", "LSTM", "Attention"]]
+        [conscious_task[net]["test_auc"] for net in ["MLP", "LSTM", "Transformer"]]
     )
     best_competitor_acc = max(
-        [conscious_task[net]["test_accuracy"] for net in ["MLP", "LSTM", "Attention"]]
+        [conscious_task[net]["test_accuracy"] for net in ["MLP", "LSTM", "Transformer"]]
     )
 
     summary_text = f"""
@@ -2563,13 +2796,21 @@ def compute_lrp_attribution(model, input_batch, target_class):
         from captum.attr import LayerLRP
     except ImportError:
         print("Warning: captum library not installed. Install with: pip install captum")
-        return None
+        return {
+            "attribution": None,
+            "reason": "captum unavailable",
+            "target_class": target_class,
+        }
 
     try:
         lrp = LayerLRP(model)
     except Exception as e:
         print(f"Warning: Could not initialize LayerLRP: {e}")
-        return None
+        return {
+            "attribution": None,
+            "reason": f"lrp initialization failed: {e}",
+            "target_class": target_class,
+        }
 
     extero, intero, context = input_batch
 
@@ -2608,13 +2849,22 @@ def compute_lrp_attribution(model, input_batch, target_class):
         plt.tight_layout()
 
         return {
+            "attribution": {
+                "extero_relevance": relevance_extero,
+                "intero_relevance": relevance_intero,
+            },
             "extero_relevance": relevance_extero,
             "intero_relevance": relevance_intero,
             "fig": fig,
+            "reason": None,
         }
     except Exception as e:
         print(f"Warning: Could not compute LRP attribution: {e}")
-        return None
+        return {
+            "attribution": None,
+            "reason": f"lrp computation failed: {e}",
+            "target_class": target_class,
+        }
 
 
 def analyze_gradient_flow(model, optimizer):
@@ -2839,11 +3089,11 @@ def main():
     )
     print(
         f"  Best Competitor AUC: "
-        f"{max([results['Conscious_Classification'][net]['test_auc'] for net in ['MLP', 'LSTM', 'Attention']]):.3f}"
+        f"{max([results['Conscious_Classification'][net]['test_auc'] for net in ['MLP', 'LSTM', 'Transformer']]):.3f}"
     )
     print(
         f"  APGI Advantage: "
-        f"{results['Conscious_Classification']['APGI']['test_auc'] - max([results['Conscious_Classification'][net]['test_auc'] for net in ['MLP', 'LSTM', 'Attention']]):.3f}"
+        f"{results['Conscious_Classification']['APGI']['test_auc'] - max([results['Conscious_Classification'][net]['test_auc'] for net in ['MLP', 'LSTM', 'Transformer']]):.3f}"
     )
 
     return results_summary

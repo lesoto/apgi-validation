@@ -219,7 +219,7 @@ class PsiMethod:
 class APGIPsychophysicalEstimator:
     """Main class for APGI parameter estimation from psychophysical data"""
 
-    def __init__(self, n_participants: int = 200):
+    def __init__(self, n_participants: int = 50):
         self.n_participants = n_participants
         self.participants: List[ParticipantData] = []
 
@@ -423,12 +423,92 @@ class APGIPsychophysicalEstimator:
 
         return APGIParameters(theta_0, pi_i, beta, alpha)
 
+    def compute_power_analysis(
+        self, effect_size: float = 0.40, n: int = 50, alpha: float = 0.008
+    ) -> Dict[str, Any]:
+        """
+        Compute post-hoc statistical power for the expected effect size.
+
+        Args:
+            effect_size: Cohen's d for the smallest expected effect (P1.1: d=0.40)
+            n: Number of participants per group
+            alpha: Significance level (Bonferroni-corrected α=0.008 for 6-test battery)
+
+        Returns:
+            Dictionary with power analysis results
+        """
+        try:
+            from statsmodels.stats.power import tt_ind_solve_power
+
+            # For two independent groups with equal sample sizes
+            power = tt_ind_solve_power(
+                effect_size=effect_size,
+                nobs1=n,
+                alpha=alpha,
+                ratio=1.0,  # Equal group sizes
+                alternative="two-sided",
+            )
+
+            return {
+                "power": float(power),
+                "effect_size": effect_size,
+                "n_per_group": n,
+                "alpha": alpha,
+                "adequate_power": power >= 0.80,
+                "target_power": 0.80,
+            }
+        except ImportError:
+            logger.warning(
+                "statsmodels not available, using approximate power calculation"
+            )
+            # Approximate power using normal approximation
+            from scipy import stats
+
+            z_alpha = stats.norm.ppf(1 - alpha / 2)
+            ncp = effect_size * np.sqrt(n / 2)  # Non-centrality parameter
+            z_beta = z_alpha - ncp
+            power_approx = 1 - stats.norm.cdf(z_beta)
+
+            return {
+                "power": float(power_approx),
+                "effect_size": effect_size,
+                "n_per_group": n,
+                "alpha": alpha,
+                "adequate_power": power_approx >= 0.80,
+                "target_power": 0.80,
+                "method": "approximate",
+            }
+        except Exception as e:
+            logger.warning(f"Power analysis failed: {e}")
+            return {
+                "power": float("nan"),
+                "effect_size": effect_size,
+                "n_per_group": n,
+                "alpha": alpha,
+                "adequate_power": False,
+                "target_power": 0.80,
+                "error": str(e),
+            }
+
     def run_protocol(self) -> Dict[str, Any]:
         """Run complete Protocol 8"""
         print(
             "Starting APGI Protocol 8: Psychophysical Threshold Estimation & Individual Differences"
         )
         print(f"Simulating {self.n_participants} participants...")
+
+        # Compute power analysis for the smallest expected effect (P1.1: d=0.40)
+        power_analysis = self.compute_power_analysis(
+            effect_size=0.40, n=self.n_participants, alpha=0.008
+        )
+
+        # Add warning if underpowered
+        if not power_analysis["adequate_power"]:
+            logger.warning(
+                f"Study may be underpowered: power={power_analysis['power']:.2f} "
+                f"for d={power_analysis['effect_size']} with N={power_analysis['n_per_group']} "
+                f"at α={power_analysis['alpha']}"
+            )
 
         # Generate participant data
         for _ in tqdm(range(self.n_participants), desc="Generating participants"):
@@ -453,6 +533,9 @@ class APGIPsychophysicalEstimator:
 
         # Analyze results (once)
         results = self.analyze_individual_differences()
+
+        # Add power analysis to results
+        results["power_analysis"] = power_analysis
 
         # Save data
         self.save_results(results)
@@ -851,22 +934,24 @@ class APGIPsychophysicalEstimator:
                 if ms_within > 0:
                     icc = (ms_between - ms_within) / (ms_between + (k - 1) * ms_within)
                 else:
-                    icc = 1.0
-                icc = float(np.clip(icc, -1, 1))
+                    icc = float("nan")
+                icc = float(np.clip(icc, -1, 1)) if not np.isnan(icc) else float("nan")
             except (ValueError, ZeroDivisionError):
-                icc = float(stats.pearsonr(original, retest)[0])
+                icc = float("nan")
 
             test_retest_iccs[param] = icc
 
         results["reliability_analysis"]["test_retest_icc"] = test_retest_iccs
         results["reliability_analysis"]["test_retest_pearson"] = test_retest_pearson
 
-        # V8.2 pass criterion: ALL params have Pearson r >= 0.70 AND ICC >= 0.70
+        # Update ICC pass criterion to handle NaN values properly
         MIN_RELIABILITY = 0.70
         all_pearson_pass = all(
             v["r"] >= MIN_RELIABILITY for v in test_retest_pearson.values()
         )
-        all_icc_pass = all(v >= MIN_RELIABILITY for v in test_retest_iccs.values())
+        all_icc_pass = all(
+            v >= MIN_RELIABILITY and not np.isnan(v) for v in test_retest_iccs.values()
+        )
         results["falsification_tests"]["V8_2_test_retest"] = {
             "passed": all_pearson_pass and all_icc_pass,
             "pearson_r_per_param": {k: v["r"] for k, v in test_retest_pearson.items()},
@@ -1008,31 +1093,29 @@ class APGIPsychophysicalEstimator:
             "total_tests": len(results["falsification_tests"]),
         }
 
-        # Add TODO tests to falsification criteria
-        # Exercise arousal condition
-        results["falsification_tests"]["TODO_1_arousal"] = {
+        results["falsification_tests"]["P1_1_arousal_main_effect"] = {
             "passed": mean_arousal_benefit > 0.03 and p_arousal < 0.008,
-            "description": "Exercise arousal reduces threshold",
+            "description": "P1.1: Exercise arousal reduces threshold (main effect)",
             "mean_benefit": mean_arousal_benefit,
             "p_value": p_arousal,
         }
 
         # P1.2 arousal interaction test
-        results["falsification_tests"]["TODO_2_P1_2_interaction"] = {
+        results["falsification_tests"]["P1_2_arousal_precision_interaction"] = {
             "passed": results["arousal_analysis"]["P1_2_passed"],
-            "description": "Arousal × precision interaction (Cohen's d = 0.25-0.45)",
+            "description": "P1.2: Arousal × precision interaction (Cohen's d = 0.25-0.45)",
             "cohens_d": cohens_d_interaction,
             "p_value": p_interaction,
         }
 
         # P1.3 high-IA arousal benefit
-        results["falsification_tests"]["TODO_3_P1_3_high_ia"] = {
+        results["falsification_tests"]["P1_3_high_ia_arousal_benefit"] = {
             "passed": (
                 results["arousal_analysis"]["P1_3"]["passed"]
                 if "P1_3" in results["arousal_analysis"]
                 else False
             ),
-            "description": "High-IA individuals show greater arousal benefit",
+            "description": "P1.3: High-IA individuals show greater arousal benefit",
             "cohens_d": (
                 results["arousal_analysis"]["P1_3"]["cohens_d"]
                 if "P1_3" in results["arousal_analysis"]
@@ -1045,16 +1128,16 @@ class APGIPsychophysicalEstimator:
             ),
         }
 
-        # Garfinkel SD-split criterion
-        results["falsification_tests"]["TODO_4_garfinkel_sd_split"] = {
+        # Garfinkel SD-split criterion (P1 criterion)
+        results["falsification_tests"]["P1_garfinkel_sd_split"] = {
             "passed": results["garfinkel_sd_split"]["passed"],
-            "description": "Garfinkel et al. (2015) SD-split criterion (>1 SD vs <1 SD)",
+            "description": "Garfinkel et al. (2015) SD-split criterion: High vs Low IA groups",
             "high_ia_count": results["garfinkel_sd_split"]["high_ia_count"],
             "low_ia_count": results["garfinkel_sd_split"]["low_ia_count"],
         }
 
-        # Khalsa meta-analytic benchmark
-        results["falsification_tests"]["TODO_5_khalsa_benchmark"] = {
+        # Khalsa meta-analytic benchmark (P1 criterion)
+        results["falsification_tests"]["P1_khalsa_benchmark"] = {
             "passed": results["khalsa_benchmark"]["passed"],
             "description": "Khalsa et al. (2018) meta-analytic benchmark (r = 0.43)",
             "correlation": results["khalsa_benchmark"]["correlation"],
@@ -1062,10 +1145,10 @@ class APGIPsychophysicalEstimator:
             "p_value": results["khalsa_benchmark"]["p_value"],
         }
 
-        # Beta/Pi disambiguation protocol
-        results["falsification_tests"]["TODO_6_beta_disambiguation"] = {
+        # Beta/Pi disambiguation protocol (P1 criterion)
+        results["falsification_tests"]["P1_beta_disambiguation"] = {
             "passed": results["beta_disambiguation"]["passed"],
-            "description": "β/Πⁱ disambiguation protocol (pharmacological β-blockade)",
+            "description": "β/Πⁱ pharmacological disambiguation: two-pathway dissociation",
             "threshold_increase": results["beta_disambiguation"].get(
                 "threshold_blockade_increase", 0
             ),
@@ -1428,7 +1511,9 @@ def run_validation(**kwargs):
     )
     print("=" * 80)
 
-    estimator = APGIPsychophysicalEstimator(n_participants=200)
+    # Use N=50 participants with power analysis
+    n_participants = kwargs.get("n_participants", 50)
+    estimator = APGIPsychophysicalEstimator(n_participants=n_participants)
     results = estimator.run_protocol()
 
     print("\n" + "=" * 80)
@@ -1440,6 +1525,15 @@ def run_validation(**kwargs):
         f"\nFramework Status: {'✓ SUPPORTED' if overall['framework_supported'] else '✗ FALSIFIED'}"
     )
     print(f"Tests Passed: {overall['tests_passed']}/{overall['total_tests']}")
+
+    # Power analysis reporting
+    if "power_analysis" in results:
+        pa = results["power_analysis"]
+        print("\nPower Analysis (P1.1 effect size d=0.40, α=0.008):")
+        print(f"• Estimated power: {pa['power']:.3f} (target: ≥0.80)")
+        print(f"• Sample size: N={pa['n_per_group']} per group")
+        if not pa["adequate_power"]:
+            print("⚠ WARNING: Study is UNDERPOWERED (power < 0.80)")
 
     print("\nKey Findings:")
     print(
@@ -1457,44 +1551,45 @@ def run_validation(**kwargs):
 
     print("\nTest-Retest Reliability (ICC):")
     for param, icc in results["reliability_analysis"]["test_retest_icc"].items():
-        print(f"• {param}: {icc:.3f}")
+        icc_str = f"{icc:.3f}" if not np.isnan(icc) else "NaN (FAILED)"
+        print(f"• {param}: {icc_str}")
 
     print("\n" + "=" * 80)
-    print("TODO IMPLEMENTATIONS")
+    print("P1 CRITERIA IMPLEMENTATIONS")
     print("=" * 80)
 
-    print("\nTODO 1: Exercise Arousal Condition (HR 100-120 bpm)")
-    arousal_test = results["falsification_tests"]["TODO_1_arousal"]
+    print("\nP1.1: Exercise Arousal Main Effect")
+    arousal_test = results["falsification_tests"]["P1_1_arousal_main_effect"]
     print(f"• Status: {'✓ PASS' if arousal_test['passed'] else '✗ FAIL'}")
     print(f"• Mean arousal benefit: {arousal_test['mean_benefit']:.4f}")
     print(f"• p-value: {arousal_test['p_value']:.4f}")
 
-    print("\nTODO 2: P1.2 Arousal × Precision Interaction")
-    p1_2_test = results["falsification_tests"]["TODO_2_P1_2_interaction"]
+    print("\nP1.2: Arousal × Precision Interaction")
+    p1_2_test = results["falsification_tests"]["P1_2_arousal_precision_interaction"]
     print(f"• Status: {'✓ PASS' if p1_2_test['passed'] else '✗ FAIL'}")
     print(f"• Cohen's d: {p1_2_test['cohens_d']:.3f} (target: 0.25-0.45)")
     print(f"• p-value: {p1_2_test['p_value']:.4f}")
 
-    print("\nTODO 3: P1.3 High-IA Arousal Benefit")
-    p1_3_test = results["falsification_tests"]["TODO_3_P1_3_high_ia"]
+    print("\nP1.3: High-IA Arousal Benefit")
+    p1_3_test = results["falsification_tests"]["P1_3_high_ia_arousal_benefit"]
     print(f"• Status: {'✓ PASS' if p1_3_test['passed'] else '✗ FAIL'}")
     print(f"• Cohen's d: {p1_3_test['cohens_d']:.3f}")
     print(f"• p-value: {p1_3_test['p_value']:.4f}")
 
-    print("\nTODO 4: Garfinkel et al. (2015) SD-Split Criterion")
-    garfinkel_test = results["falsification_tests"]["TODO_4_garfinkel_sd_split"]
+    print("\nP1 Garfinkel SD-Split: High vs Low IA Groups")
+    garfinkel_test = results["falsification_tests"]["P1_garfinkel_sd_split"]
     print(f"• Status: {'✓ PASS' if garfinkel_test['passed'] else '✗ FAIL'}")
     print(f"• High-IA participants: {garfinkel_test['high_ia_count']}")
     print(f"• Low-IA participants: {garfinkel_test['low_ia_count']}")
 
-    print("\nTODO 5: Khalsa et al. (2018) Meta-Analytic Benchmark")
-    khalsa_test = results["falsification_tests"]["TODO_5_khalsa_benchmark"]
+    print("\nP1 Khalsa Benchmark: Meta-Analytic Correlation")
+    khalsa_test = results["falsification_tests"]["P1_khalsa_benchmark"]
     print(f"• Status: {'✓ PASS' if khalsa_test['passed'] else '✗ FAIL'}")
     print(f"• Correlation: {khalsa_test['correlation']:.3f} (target: r = 0.43)")
     print(f"• p-value: {khalsa_test['p_value']:.4f}")
 
-    print("\nTODO 6: β/Πⁱ Disambiguation Protocol")
-    beta_test = results["falsification_tests"]["TODO_6_beta_disambiguation"]
+    print("\nP1 β/Πⁱ Disambiguation: Pharmacological Two-Pathway")
+    beta_test = results["falsification_tests"]["P1_beta_disambiguation"]
     print(f"• Status: {'✓ PASS' if beta_test['passed'] else '✗ FAIL'}")
     print(
         f"• Threshold increase under β-blockade: {beta_test['threshold_increase']:.4f}"

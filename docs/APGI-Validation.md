@@ -35,10 +35,10 @@ python main.py --help
 python main.py formal_model --simulation-steps 1000
 
 # Execute multimodal integration
-python main.py multimodal --input-data data/sample.csv
+python main.py multimodal --input-data data_repository/raw_data/sample.csv
 
 # Estimate parameters from data
-python main.py estimate-params --data-file data/experimental.csv
+python main.py estimate-params --data-file data_repository/raw_data/experimental.csv
 
 # Run validation protocols
 python main.py validate --protocol 3
@@ -270,7 +270,7 @@ results = system.simulate(steps=1000, dt=0.01)
 from APGIParameterEstimation import ParameterEstimator
 
 # Load data
-data = load_experimental_data('data/experiment.csv')
+data = load_experimental_data('data_repository/raw_data/experiment.csv')
 
 # Estimate parameters
 estimator = ParameterEstimator()

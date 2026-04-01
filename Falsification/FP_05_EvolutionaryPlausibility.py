@@ -34,13 +34,17 @@ except ImportError:
 try:
     from utils.falsification_thresholds import (
         F5_1_BINOMIAL_ALPHA,
+        F5_1_MIN_PROPORTION,
         F5_1_MIN_ALPHA,
         F5_2_BINOMIAL_ALPHA,
+        F5_2_MIN_PROPORTION,
         F5_2_MIN_CORRELATION,
         F5_3_MIN_PROPORTION,
         F5_3_MIN_GAIN_RATIO,
         F5_4_MIN_PROPORTION,
         F5_4_MIN_PEAK_SEPARATION,
+        F5_5_PCA_MIN_VARIANCE,
+        F5_5_PCA_MIN_LOADING,
         F5_6_MIN_PERFORMANCE_DIFF_PCT,
         F5_6_MIN_COHENS_D,
         F5_6_ALPHA,
@@ -52,13 +56,17 @@ except ImportError:
     F2_3_MIN_RT_ADVANTAGE_MS = 50.0
     F2_3_ALPHA = 0.05
     F5_1_BINOMIAL_ALPHA = 0.05
+    F5_1_MIN_PROPORTION = 0.75
     F5_1_MIN_ALPHA = 0.01
     F5_2_BINOMIAL_ALPHA = 0.05
+    F5_2_MIN_PROPORTION = 0.65
     F5_2_MIN_CORRELATION = 0.3
     F5_3_MIN_PROPORTION = 0.6
     F5_3_MIN_GAIN_RATIO = 1.5
     F5_4_MIN_PROPORTION = 0.6
     F5_4_MIN_PEAK_SEPARATION = 3.0
+    F5_5_PCA_MIN_VARIANCE = 0.70
+    F5_5_PCA_MIN_LOADING = 0.60
     F5_6_MIN_PERFORMANCE_DIFF_PCT = 5.0
     F5_6_MIN_COHENS_D = 0.40
     F5_6_ALPHA = 0.05
@@ -79,6 +87,193 @@ from utils.statistical_tests import (
 )
 import time
 from typing import Dict, List, Any, Tuple
+
+THETA_BAND_HZ = (4.0, 8.0)
+GAMMA_BAND_HZ = (30.0, 80.0)
+
+
+def _set_random_seed(seed: int) -> None:
+    """Set numpy's RNG seed for a reproducible evolutionary replicate."""
+    np.random.seed(seed)
+
+
+def _compute_band_peak(
+    signal: np.ndarray, sample_rate_hz: float, band_hz: Tuple[float, float]
+) -> Dict[str, Any]:
+    """Find the dominant spectral peak within a frequency band."""
+    centered = signal - np.mean(signal)
+    freqs = np.fft.rfftfreq(centered.size, d=1.0 / sample_rate_hz)
+    power = np.abs(np.fft.rfft(centered)) ** 2
+    mask = (freqs >= band_hz[0]) & (freqs <= band_hz[1])
+    if not np.any(mask):
+        return {"present": False, "peak_hz": None, "peak_power": 0.0}
+    band_power = power[mask]
+    if band_power.size == 0 or np.allclose(band_power, 0.0):
+        return {"present": False, "peak_hz": None, "peak_power": 0.0}
+    band_freqs = freqs[mask]
+    peak_idx = int(np.argmax(band_power))
+    return {
+        "present": True,
+        "peak_hz": float(band_freqs[peak_idx]),
+        "peak_power": float(band_power[peak_idx]),
+    }
+
+
+def _simulate_ignition_trace(
+    genome: Dict[str, Any], n_steps: int = 256, sample_rate_hz: float = 100.0
+) -> np.ndarray:
+    """Generate an ignition trace from an evolved genome for spectral analysis."""
+    agent = EvolvableAgent(genome)
+    env = ThreatRewardTradeoffEnvironment()
+    observation = env.reset()
+    trace: List[float] = []
+
+    for _ in range(n_steps):
+        action = agent.step(observation)
+        trace.append(1.0 if agent.conscious_access else 0.0)
+        reward, intero_cost, next_obs, done = env.step(action)
+        agent.receive_outcome(reward, intero_cost, next_obs)
+        observation = env.reset() if done else next_obs
+
+    return np.asarray(trace, dtype=float)
+
+
+def _assess_population_frequency_bands(
+    genomes: List[Dict[str, Any]], sample_rate_hz: float = 100.0
+) -> Dict[str, Any]:
+    """
+    Assess theta/gamma peak presence from evolved ignition traces.
+
+    A genome counts as multi-timescale only if it shows both theta and gamma peaks
+    and the gamma/theta peak separation ratio exceeds the paper threshold.
+    """
+    per_genome: List[Dict[str, Any]] = []
+    qualifying = 0
+
+    for genome in genomes:
+        trace = _simulate_ignition_trace(genome, sample_rate_hz=sample_rate_hz)
+        theta_peak = _compute_band_peak(trace, sample_rate_hz, THETA_BAND_HZ)
+        gamma_peak = _compute_band_peak(trace, sample_rate_hz, GAMMA_BAND_HZ)
+        separation_ratio = None
+        qualifies = False
+        if theta_peak["present"] and gamma_peak["present"]:
+            theta_hz = float(theta_peak["peak_hz"])
+            gamma_hz = float(gamma_peak["peak_hz"])
+            separation_ratio = gamma_hz / max(theta_hz, 1e-10)
+            qualifies = separation_ratio >= F5_4_MIN_PEAK_SEPARATION
+
+        if qualifies:
+            qualifying += 1
+
+        per_genome.append(
+            {
+                "theta_peak_hz": theta_peak["peak_hz"],
+                "gamma_peak_hz": gamma_peak["peak_hz"],
+                "separation_ratio": separation_ratio,
+                "qualifies": qualifies,
+            }
+        )
+
+    valid_ratios = [
+        entry["separation_ratio"]
+        for entry in per_genome
+        if entry["separation_ratio"] is not None
+    ]
+    theta_peaks = [
+        entry["theta_peak_hz"]
+        for entry in per_genome
+        if entry["theta_peak_hz"] is not None
+    ]
+    gamma_peaks = [
+        entry["gamma_peak_hz"]
+        for entry in per_genome
+        if entry["gamma_peak_hz"] is not None
+    ]
+
+    return {
+        "multi_timescale_proportion": (qualifying / len(genomes) if genomes else 0.0),
+        "mean_peak_separation_ratio": (
+            float(np.mean(valid_ratios)) if valid_ratios else 0.0
+        ),
+        "mean_theta_peak_hz": float(np.mean(theta_peaks)) if theta_peaks else None,
+        "mean_gamma_peak_hz": float(np.mean(gamma_peaks)) if gamma_peaks else None,
+        "theta_band_confirmed": bool(theta_peaks),
+        "gamma_band_confirmed": bool(gamma_peaks),
+        "per_genome": per_genome,
+    }
+
+
+def _convert_timescales_to_hz(timescales: List[float]) -> np.ndarray:
+    """Convert a heterogeneous timescale list into candidate frequencies."""
+    arr = np.asarray(timescales, dtype=float)
+    arr = arr[np.isfinite(arr) & (arr > 0)]
+    if arr.size == 0:
+        return np.asarray([], dtype=float)
+    if np.nanmax(arr) > 100.0:
+        return 1000.0 / arr
+    if np.nanmax(arr) > 8.0:
+        return arr
+    return 1.0 / arr
+
+
+def _assess_timescale_frequency_list(timescales: List[float]) -> Dict[str, Any]:
+    """Confirm theta/gamma occupancy from explicit timescale or frequency measurements."""
+    freqs_hz = _convert_timescales_to_hz(timescales)
+    theta = freqs_hz[(freqs_hz >= THETA_BAND_HZ[0]) & (freqs_hz <= THETA_BAND_HZ[1])]
+    gamma = freqs_hz[(freqs_hz >= GAMMA_BAND_HZ[0]) & (freqs_hz <= GAMMA_BAND_HZ[1])]
+    theta_mean = float(np.mean(theta)) if theta.size else None
+    gamma_mean = float(np.mean(gamma)) if gamma.size else None
+    separation_ratio = (
+        gamma_mean / max(theta_mean, 1e-10)
+        if theta_mean is not None and gamma_mean is not None
+        else 0.0
+    )
+    return {
+        "theta_band_confirmed": theta.size > 0,
+        "gamma_band_confirmed": gamma.size > 0,
+        "theta_peak_hz": theta_mean,
+        "gamma_peak_hz": gamma_mean,
+        "separation_ratio": separation_ratio,
+        "frequency_band_pass": theta.size > 0
+        and gamma.size > 0
+        and separation_ratio >= F5_4_MIN_PEAK_SEPARATION,
+    }
+
+
+def _summarize_replicate(
+    history: Dict[str, Any], analysis: Dict[str, Any], seed: int
+) -> Dict[str, Any]:
+    """Extract replicate-level metrics and pass/fail status from one evolutionary run."""
+    final_freq = history["architecture_frequencies"][-1]
+    final_population = history.get("final_population", [])
+    gain_ratios = [
+        float(genome.get("beta", 1.0))
+        for genome in final_population
+        if genome.get("has_intero_weighting", False)
+    ]
+    mean_gain_ratio = float(np.mean(gain_ratios)) if gain_ratios else 0.0
+    spectral_summary = _assess_population_frequency_bands(final_population)
+    replicate_pass = (
+        final_freq["has_threshold"] >= F5_1_MIN_PROPORTION
+        and final_freq["has_precision_weighting"] >= F5_2_MIN_PROPORTION
+        and final_freq["has_intero_weighting"] >= F5_3_MIN_PROPORTION
+        and mean_gain_ratio >= F5_3_MIN_GAIN_RATIO
+        and spectral_summary["multi_timescale_proportion"] >= F5_4_MIN_PROPORTION
+        and spectral_summary["theta_band_confirmed"]
+        and spectral_summary["gamma_band_confirmed"]
+        and analysis.get("pca_variance_explained", 0.0) >= F5_5_PCA_MIN_VARIANCE
+        and analysis.get("pca_loadings", 0.0) >= F5_5_PCA_MIN_LOADING
+    )
+
+    return {
+        "seed": seed,
+        "passed": replicate_pass,
+        "final_frequencies": final_freq,
+        "mean_gain_ratio": mean_gain_ratio,
+        "pca_variance_explained": analysis.get("pca_variance_explained", 0.0),
+        "pca_loadings": analysis.get("pca_loadings", 0.0),
+        "spectral_summary": spectral_summary,
+    }
 
 
 class EvolvableAgent:
@@ -684,7 +879,7 @@ class EvolutionaryAPGIEmergence:
 
             # Fitness components with validation for edge cases
             if cumulative_reward == 0 or not np.isfinite(cumulative_reward):
-                env_fitness = 0  # Neutral fitness for invalid rewards
+                env_fitness = 0.0  # Neutral fitness for invalid rewards (float)
             else:
                 env_fitness = (
                     float(cumulative_reward) / 50  # Reward seeking (adjusted)
@@ -727,8 +922,12 @@ class EvolutionaryAPGIEmergence:
 
         return mutated
 
-    def run_evolution(self, max_time_seconds: float = 30.0) -> Dict:
+    def run_evolution(
+        self, max_time_seconds: float = 30.0, random_seed: int | None = None
+    ) -> Dict:
         """Run evolutionary optimization with timeout"""
+        if random_seed is not None:
+            _set_random_seed(random_seed)
 
         start_time = time.time()
 
@@ -784,6 +983,7 @@ class EvolutionaryAPGIEmergence:
             "architecture_frequencies": [],
             "best_genome": [],
         }
+        history["random_seed"] = [random_seed] if random_seed is not None else []
 
         for generation in range(self.n_generations):
             # Check timeout
@@ -902,6 +1102,9 @@ class EvolutionaryAPGIEmergence:
             "has_precision_weighting",
         ]:
             freqs = [h[trait] for h in history["architecture_frequencies"]]
+            if len(freqs) < 2:
+                selection_coefficients[trait] = 0.0
+                continue
 
             # Logistic regression to estimate selection strength
             x = np.arange(len(freqs))
@@ -912,8 +1115,11 @@ class EvolutionaryAPGIEmergence:
 
             # Logit transform
             logit_y = np.log(y / (1 - y))
-            slope, _ = np.polyfit(x, logit_y, 1)
-            selection_coefficients[trait] = slope
+            try:
+                slope, _ = np.polyfit(x, logit_y, 1)
+                selection_coefficients[trait] = float(slope)
+            except (TypeError, ValueError, np.linalg.LinAlgError):
+                selection_coefficients[trait] = 0.0
 
         return {
             "apgi_emerged": bool(apgi_emerged),
@@ -1047,15 +1253,117 @@ if __name__ == "__main__":
     print("=== Protocol completed successfully ===")
 
 
-def run_falsification():
+def run_falsification(
+    genome_data: Dict[str, Any] | None = None,
+    random_seeds: List[int] | None = None,
+    n_replicates: int = 3,
+    max_time_seconds: float = 30.0,
+    **kwargs,
+):
     """Entry point for CLI falsification testing."""
     try:
         print("Running APGI Falsification Protocol 5: Evolutionary APGI Emergence")
-        simulator = EvolutionaryAPGIEmergence()
-        results = simulator.run_evolution()
+        target_replicates = max(3, n_replicates)
+        if random_seeds:
+            seeds = list(random_seeds)
+        else:
+            seeds = [11, 22, 33]
+            while len(seeds) < target_replicates:
+                seeds.append(seeds[-1] + 11)
+        replicate_results: List[Dict[str, Any]] = []
+
+        for seed in seeds[:target_replicates]:
+            simulator = EvolutionaryAPGIEmergence()
+            history = simulator.run_evolution(
+                max_time_seconds=max_time_seconds, random_seed=seed
+            )
+            analysis = simulator.analyze_emergence(history)
+            replicate_results.append(_summarize_replicate(history, analysis, seed))
+
+        threshold_props = np.array(
+            [rep["final_frequencies"]["has_threshold"] for rep in replicate_results],
+            dtype=float,
+        )
+        precision_props = np.array(
+            [
+                rep["final_frequencies"]["has_precision_weighting"]
+                for rep in replicate_results
+            ],
+            dtype=float,
+        )
+        intero_props = np.array(
+            [
+                rep["final_frequencies"]["has_intero_weighting"]
+                for rep in replicate_results
+            ],
+            dtype=float,
+        )
+        multiscale_props = np.array(
+            [
+                rep["spectral_summary"]["multi_timescale_proportion"]
+                for rep in replicate_results
+            ],
+            dtype=float,
+        )
+        pca_vars = np.array(
+            [rep["pca_variance_explained"] for rep in replicate_results], dtype=float
+        )
+
+        overall_pass = all(rep["passed"] for rep in replicate_results)
+        results = {
+            "status": "success" if overall_pass else "failed",
+            "passed": overall_pass,
+            "genome_data_available": genome_data is not None,
+            "replicates": replicate_results,
+            "replicate_summary": {
+                "n_replicates": len(replicate_results),
+                "threshold_emergence_mean_sd": [
+                    float(np.mean(threshold_props)),
+                    (
+                        float(np.std(threshold_props, ddof=1))
+                        if len(threshold_props) > 1
+                        else 0.0
+                    ),
+                ],
+                "precision_emergence_mean_sd": [
+                    float(np.mean(precision_props)),
+                    (
+                        float(np.std(precision_props, ddof=1))
+                        if len(precision_props) > 1
+                        else 0.0
+                    ),
+                ],
+                "interoceptive_emergence_mean_sd": [
+                    float(np.mean(intero_props)),
+                    (
+                        float(np.std(intero_props, ddof=1))
+                        if len(intero_props) > 1
+                        else 0.0
+                    ),
+                ],
+                "multiscale_mean_sd": [
+                    float(np.mean(multiscale_props)),
+                    (
+                        float(np.std(multiscale_props, ddof=1))
+                        if len(multiscale_props) > 1
+                        else 0.0
+                    ),
+                ],
+                "pca_variance_mean_sd": [
+                    float(np.mean(pca_vars)),
+                    float(np.std(pca_vars, ddof=1)) if len(pca_vars) > 1 else 0.0,
+                ],
+                "all_replicates_passed": overall_pass,
+            },
+            "failure_reason": (
+                None
+                if overall_pass
+                else "At least one independent evolutionary replicate fell below threshold."
+            ),
+        }
         print("Evolution completed:", type(results))
         print("=== Protocol completed successfully ===")
-        return {"status": "success", "results": results}
+        return results
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in falsification protocol 5: {e}")
         return {"status": "error", "message": str(e)}
@@ -1904,25 +2212,27 @@ def check_falsification(
             - 2
         )
 
-    cohens_d: float = (mean_ltcn - mean_rnn) / pooled_std if pooled_std > 0 else 0
+    cohens_d_perf: float = (mean_ltcn - mean_rnn) / pooled_std if pooled_std > 0 else 0
 
-    f6_2_pass = ltcn_sparsity_reduction >= 0.30 and cohens_d >= 0.70 and p_value < 0.01
+    f6_2_pass = (
+        ltcn_sparsity_reduction >= 0.30 and cohens_d_perf >= 0.70 and p_value < 0.01
+    )
     results["criteria"]["F6.2"] = {
         "passed": f6_2_pass,
         "ltcn_reduction": ltcn_sparsity_reduction,
         "rnn_reduction": standard_sparsity_reduction,
-        "cohens_d": cohens_d,
+        "cohens_d": cohens_d_perf,
         "p_value": p_value,
         "t_statistic": t_stat,
         "threshold": "LTCN ≥30% reduction, d ≥ 0.70",
-        "actual": f"LTCN {ltcn_sparsity_reduction:.1f}%, RNN {standard_sparsity_reduction:.1f}%, d={cohens_d:.3f}",
+        "actual": f"LTCN {ltcn_sparsity_reduction:.1f}%, RNN {standard_sparsity_reduction:.1f}%, d={cohens_d_perf:.3f}",
     }
     if f6_2_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F6.2: {'PASS' if f6_2_pass else 'FAIL'} - LTCN: {ltcn_sparsity_reduction:.1f}%, RNN: {standard_sparsity_reduction:.1f}%, d={cohens_d:.3f}"
+        f"F6.2: {'PASS' if f6_2_pass else 'FAIL'} - LTCN: {ltcn_sparsity_reduction:.1f}%, RNN: {standard_sparsity_reduction:.1f}%, d={cohens_d_perf:.3f}"
     )
 
     # F6.3: Integration Window Advantage
@@ -2204,24 +2514,37 @@ def check_falsification(
 
     # F5.4: Multi-Timescale Integration Emergence
     logger.info("Testing F5.4: Multi-Timescale Integration Emergence")
+    frequency_band_summary = _assess_timescale_frequency_list(timescales)
 
     f5_4_pass = (
         multi_timescale_proportion >= F5_4_MIN_PROPORTION
         and peak_separation_ratio >= F5_4_MIN_PEAK_SEPARATION
+        and frequency_band_summary["frequency_band_pass"]
     )
     results["criteria"]["F5.4"] = {
         "passed": f5_4_pass,
         "multi_timescale_proportion": multi_timescale_proportion,
         "peak_separation_ratio": peak_separation_ratio,
-        "threshold": f"≥{F5_4_MIN_PROPORTION * 100}% develop, separation ≥ {F5_4_MIN_PEAK_SEPARATION}×",
-        "actual": f"{multi_timescale_proportion:.2f} develop, separation={peak_separation_ratio:.1f}×",
+        "theta_peak_hz": frequency_band_summary["theta_peak_hz"],
+        "gamma_peak_hz": frequency_band_summary["gamma_peak_hz"],
+        "frequency_band_pass": frequency_band_summary["frequency_band_pass"],
+        "threshold": f"≥{F5_4_MIN_PROPORTION * 100}% develop, separation ≥ {F5_4_MIN_PEAK_SEPARATION}×, theta 4-8 Hz and gamma 30-80 Hz peaks present",
+        "actual": (
+            f"{multi_timescale_proportion:.2f} develop, separation={peak_separation_ratio:.1f}×, "
+            f"theta={frequency_band_summary['theta_peak_hz']}, gamma={frequency_band_summary['gamma_peak_hz']}"
+        ),
     }
     if f5_4_pass:
         results["summary"]["passed"] += 1
     else:
         results["summary"]["failed"] += 1
     logger.info(
-        f"F5.4: {'PASS' if f5_4_pass else 'FAIL'} - {multi_timescale_proportion:.2f} develop, separation={peak_separation_ratio:.1f}×"
+        "F5.4: %s - %.2f develop, separation=%.1fx, theta=%s, gamma=%s",
+        "PASS" if f5_4_pass else "FAIL",
+        multi_timescale_proportion,
+        peak_separation_ratio,
+        frequency_band_summary["theta_peak_hz"],
+        frequency_band_summary["gamma_peak_hz"],
     )
 
     # F5.5: APGI-Like Feature Clustering

@@ -1,0 +1,26 @@
+# Optional protocol dependencies for APGI validation/falsification protocols
+# Install with: pip install -r requirements-protocols.txt
+
+# Bayesian modeling (VP-11, FP-10)
+pymc>=5.0.0,<6.0.0
+
+# Bayesian visualization
+arviz>=0.16.0,<1.0.0
+
+# EEG processing (VP-01, VP-07, VP-09)
+mne>=1.6.0,<1.7.0
+
+# Survival analysis (VP-02, FP-02)
+lifelines>=0.27.0,<0.29.0
+
+# Deep learning explainability (VP-09)
+captum>=0.7.0,<0.8.0
+
+# Sensitivity analysis (FP-08)
+SALib>=1.4.0,<2.0.0
+
+# Machine learning (VP-01, VP-02, FP-03)
+scikit-learn>=1.5.0,<2.0.0
+
+# Symbolic mathematics (FP-07, FP-08)
+sympy>=1.12,<2.0.0

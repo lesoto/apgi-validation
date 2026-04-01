@@ -92,7 +92,7 @@ try:
     from utils.logging_config import apgi_logger as logger
 except ImportError:
     logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)  # type: ignore[misc,assignment]
 
 # Import thresholds from falsification_thresholds.py
 try:
@@ -104,10 +104,13 @@ try:
     )
 except ImportError:
     logger.warning("Could not import from falsification_thresholds.py, using defaults")
-    DEFAULT_ALPHA = 0.06  # Different from actual threshold values
+    DEFAULT_ALPHA = 0.05
     V11_MIN_R2 = 0.75
     V11_MIN_DELTA_R2 = 0.10
     V11_MIN_COHENS_D = 0.50  # Changed from 0.45 to 0.50
+
+# Standardize all significance gates in this protocol to the stated alpha.
+DEFAULT_ALPHA = 0.05
 
 # ---------------------------------------------------------------------------
 # Optional heavy dependencies
@@ -306,10 +309,10 @@ def _log_likelihood_apgi(params: np.ndarray, df: pd.DataFrame) -> float:
         return -np.inf
 
     p_pred = apgi_detection_probability(
-        df["stimulus"].values, theta_0, pi_i, beta, alpha
+        df["stimulus"].values.astype(float), theta_0, pi_i, beta, alpha
     )
     p_pred = np.clip(p_pred, 1e-9, 1 - 1e-9)
-    n, k = df["n_trials"].values, df["n_detected"].values
+    n, k = df["n_trials"].values.astype(int), df["n_detected"].values.astype(int)
     return float(np.sum(k * np.log(p_pred) + (n - k) * np.log(1 - p_pred)))
 
 
@@ -318,9 +321,11 @@ def _log_likelihood_null(params: np.ndarray, df: pd.DataFrame) -> float:
     theta_0, alpha = params
     if not (0.10 < theta_0 < 0.95 and 0.5 < alpha < 25.0):
         return -np.inf
-    p_pred = _null_detection_probability(df["stimulus"].values, theta_0, alpha)
+    p_pred = _null_detection_probability(
+        df["stimulus"].values.astype(float), theta_0, alpha
+    )
     p_pred = np.clip(p_pred, 1e-9, 1 - 1e-9)
-    n, k = df["n_trials"].values, df["n_detected"].values
+    n, k = df["n_trials"].values.astype(int), df["n_detected"].values.astype(int)
     return float(np.sum(k * np.log(p_pred) + (n - k) * np.log(1 - p_pred)))
 
 
@@ -562,19 +567,19 @@ def run_nuts_sampler(
 
     summary = az.summary(trace, var_names=param_names, round_to=4)
 
-    r_hat = {p: float(summary.loc[p, "r_hat"]) for p in param_names}
-    ess = {p: float(summary.loc[p, "ess_bulk"]) for p in param_names}
+    r_hat = {p: float(summary.loc[p, "r_hat"]) for p in param_names}  # type: ignore[index]
+    ess = {p: float(summary.loc[p, "ess_bulk"]) for p in param_names}  # type: ignore[index]
     convergence_pass = all(r_hat[p] <= RHAT_GATE for p in param_names)
 
     samples_dict = {p: trace.posterior[p].values.ravel() for p in param_names}
     flat = np.column_stack([samples_dict[p] for p in param_names])
 
-    posterior_means = {p: float(summary.loc[p, "mean"]) for p in param_names}
+    posterior_means = {p: float(summary.loc[p, "mean"]) for p in param_names}  # type: ignore[index]
     posterior_stds = {
-        p: float(summary.loc[p, "sd"]) for p in summary.index if p in param_names
+        p: float(summary.loc[p, "sd"]) for p in summary.index if p in param_names  # type: ignore[index]
     }
     ci_95 = {
-        p: (float(summary.loc[p, "hdi_3%"]), float(summary.loc[p, "hdi_97%"]))
+        p: (float(summary.loc[p, "hdi_3%"]), float(summary.loc[p, "hdi_97%"]))  # type: ignore[index]
         for p in param_names
     }
 
@@ -593,6 +598,123 @@ def run_nuts_sampler(
         "n_samples": int(flat.shape[0]),
         "n_chains": n_chains,
     }
+
+
+def _extract_ppc_samples(ppc: Any, observed_name: str = "obs") -> np.ndarray:
+    """Extract posterior predictive samples as (n_draws, n_observations)."""
+    if ppc is None:
+        raise ValueError("Posterior predictive object is missing")
+
+    if hasattr(ppc, "posterior_predictive"):
+        samples = ppc.posterior_predictive[observed_name].values
+    elif isinstance(ppc, dict) and observed_name in ppc:
+        samples = np.asarray(ppc[observed_name])
+    else:
+        raise KeyError(
+            f"Could not find posterior predictive variable '{observed_name}'"
+        )
+
+    samples = np.asarray(samples)
+    if samples.ndim == 1:
+        return samples.reshape(-1, 1)
+    if samples.ndim == 2:
+        return samples
+    return samples.reshape(-1, samples.shape[-1])
+
+
+def _compute_bayesian_ppc_p_value(
+    observed_counts: np.ndarray, ppc: Any, observed_name: str = "obs"
+) -> Dict[str, Any]:
+    """
+    Compute a Bayesian posterior predictive p-value from PPC draws.
+
+    The discrepancy statistic is Pearson-like squared deviation from the PPC
+    mean. The reported p-value is the proportion of simulated discrepancies
+    greater than or equal to the observed discrepancy.
+    """
+    observed = np.asarray(observed_counts, dtype=float).reshape(-1)
+    simulated = _extract_ppc_samples(ppc, observed_name=observed_name)
+    if simulated.shape[-1] != observed.shape[0]:
+        raise ValueError(
+            f"PPC shape mismatch: observed has {observed.shape[0]} bins but "
+            f"posterior predictive has {simulated.shape[-1]}"
+        )
+
+    expected = simulated.mean(axis=0)
+    obs_discrepancy = float(np.sum(((observed - expected) ** 2) / (expected + 1e-6)))
+    sim_discrepancies = np.sum(
+        ((simulated - expected) ** 2) / (expected + 1e-6), axis=1
+    )
+    bayesian_p_value = float(np.mean(sim_discrepancies >= obs_discrepancy))
+
+    return {
+        "p_value": bayesian_p_value,
+        "observed_discrepancy": obs_discrepancy,
+        "mean_simulated_discrepancy": float(np.mean(sim_discrepancies)),
+        "n_ppc_draws": int(simulated.shape[0]),
+    }
+
+
+def _max_pareto_k(loo_result: Any) -> float:
+    """Extract the maximum Pareto-k diagnostic from an ArviZ LOO result."""
+    pareto_k = getattr(loo_result, "pareto_k", None)
+    if pareto_k is None:
+        return float("nan")
+    values = np.asarray(getattr(pareto_k, "values", pareto_k), dtype=float)
+    return float(np.nanmax(values))
+
+
+def _fit_pymc_model_for_comparison(
+    df: pd.DataFrame,
+    model_name: str,
+    draws: int = 1500,
+    tune: int = 1000,
+    chains: int = N_CHAINS,
+    seed: int = RANDOM_SEED,
+) -> Any:
+    """Fit one comparison model and return InferenceData with log_likelihood."""
+    stimuli = df["stimulus"].values.astype(float)
+    n_trials = df["n_trials"].values.astype(int)
+    n_det = df["n_detected"].values.astype(int)
+
+    with pm.Model() as model:  # noqa: F841
+        theta_0 = pm.TruncatedNormal(
+            "theta_0", mu=0.50, sigma=0.10, lower=0.10, upper=0.90
+        )
+        alpha = pm.TruncatedNormal("alpha", mu=6.0, sigma=2.5, lower=1.0, upper=20.0)
+
+        if model_name == "APGI":
+            pi_i = pm.HalfNormal("pi_i", sigma=1.00)
+            beta = pm.Normal("beta", mu=1.15, sigma=0.15)
+            theta_eff = pm.math.clip(theta_0 - 0.05 * beta * pi_i, 0.05, 0.95)
+            p_det = pm.Deterministic(
+                "p_det", pm.math.sigmoid(alpha * (stimuli - theta_eff))
+            )
+        elif model_name == "Null":
+            p_det = pm.Deterministic(
+                "p_det", pm.math.sigmoid(alpha * (stimuli - theta_0))
+            )
+        elif model_name == "ExteroOnly":
+            pi_i = pm.HalfNormal("pi_i", sigma=1.00)
+            theta_eff = pm.math.clip(theta_0, 0.05, 0.95)
+            p_det = pm.Deterministic(
+                "p_det", pm.math.sigmoid(alpha * (stimuli - theta_eff))
+            )
+        else:
+            raise ValueError(f"Unsupported comparison model: {model_name}")
+
+        pm.Binomial("obs", n=n_trials, p=p_det, observed=n_det)
+
+        return pm.sample(
+            draws=draws,
+            tune=tune,
+            chains=chains,
+            random_seed=seed,
+            progressbar=False,
+            return_inferencedata=True,
+            target_accept=0.97,
+            idata_kwargs={"log_likelihood": True},
+        )
 
 
 # =============================================================================
@@ -621,8 +743,8 @@ def test_parameter_recovery(
     param_names = ["theta_0", "pi_i", "alpha"]  # β fixed, not recoverable
     subject_ids = [s.subject_id for s in subjects[:n_subjects_subsample]]
 
-    true_vals = {p: [] for p in param_names}
-    recov_vals = {p: [] for p in param_names}
+    true_vals: Dict[str, List[float]] = {p: [] for p in param_names}
+    recov_vals: Dict[str, List[float]] = {p: [] for p in param_names}
 
     for sid in subject_ids:
         sub_df = df[df["subject_id"] == sid]
@@ -711,25 +833,76 @@ def compute_model_comparison(
     df: pd.DataFrame, seed: int = RANDOM_SEED
 ) -> Dict[str, Any]:
     """
-    Compare APGI model against two reduced alternatives using BIC-based
-    Bayes factor approximation (Kass & Raftery, 1995).
+    Compare APGI against reduced alternatives using PSIS-LOO when available.
 
-    BIC = −2·ln(L̂) + k·ln(n)
-    BF ≈ exp(−ΔBIC / 2)
+    Preferred path:
+      - Fit APGI, Null, and Extero-only models with PyMC
+      - Compute PSIS-LOO via ArviZ
+      - Report Pareto-k diagnostics to validate the approximation
 
-    Models:
-      M1: APGI (4 params: θ₀, Πⁱ, β, α)
-      M0: Null  (2 params: θ₀, α  — no interoception)
-      M2: Extero-only (3 params: θ₀, Πⁱ, α — β=0, no precision weighting)
-
-    Decision criterion: BF(M1 vs M0) > 10 AND BF(M1 vs M2) > 10
-    ("decisive evidence", Jeffreys 1961).
-
-    Note: BIC approximation is conservative — true BF from thermodynamic
-    integration would be preferred, but requires full MCMC which is available
-    in the NUTS path. BIC-BF is adequate for this protocol's criterion.
+    Fallback path:
+      - Use BIC-based Bayes factor approximation when PyMC/ArviZ unavailable
     """
     n_obs = int(df["n_trials"].sum())
+
+    if HAS_PYMC:
+        try:
+            idata_map = {
+                "APGI": _fit_pymc_model_for_comparison(df, "APGI", seed=seed),
+                "Null": _fit_pymc_model_for_comparison(df, "Null", seed=seed + 1),
+                "ExteroOnly": _fit_pymc_model_for_comparison(
+                    df, "ExteroOnly", seed=seed + 2
+                ),
+            }
+            loo_results = {
+                name: az.loo(idata, pointwise=True) for name, idata in idata_map.items()
+            }
+
+            apgi_elpd = float(loo_results["APGI"].elpd_loo)
+            null_elpd = float(loo_results["Null"].elpd_loo)
+            extero_elpd = float(loo_results["ExteroOnly"].elpd_loo)
+            delta_elpd_null = apgi_elpd - null_elpd
+            delta_elpd_extero = apgi_elpd - extero_elpd
+
+            evidence_ratio_null = float(np.exp(delta_elpd_null))
+            evidence_ratio_extero = float(np.exp(delta_elpd_extero))
+            pareto_k = {name: _max_pareto_k(res) for name, res in loo_results.items()}
+
+            passed = (
+                delta_elpd_null > 10.0
+                and delta_elpd_extero > 10.0
+                and all(k < 0.7 for k in pareto_k.values() if np.isfinite(k))
+            )
+
+            return {
+                "passed": bool(passed),
+                "description": "PSIS-LOO APGI superiority with Pareto-k < 0.7",
+                "comparison_metric": "PSIS-LOO",
+                "loo": {
+                    name: {
+                        "elpd_loo": float(res.elpd_loo),
+                        "p_loo": float(res.p_loo),
+                        "se": float(res.se),
+                        "max_pareto_k": pareto_k[name],
+                    }
+                    for name, res in loo_results.items()
+                },
+                "pareto_k": pareto_k,
+                "elpd_differences": {
+                    "APGI_vs_Null": delta_elpd_null,
+                    "APGI_vs_ExteroOnly": delta_elpd_extero,
+                },
+                "bayes_factors": {
+                    "APGI_vs_Null": evidence_ratio_null,
+                    "APGI_vs_ExteroOnly": evidence_ratio_extero,
+                },
+                "criterion": "Δelpd_loo > 10 and Pareto-k < 0.7",
+                "n_obs": n_obs,
+            }
+        except Exception as exc:
+            logger.warning(
+                f"PSIS-LOO model comparison failed, falling back to BIC approximation: {exc}"
+            )
 
     def _mle_apgi() -> Tuple[np.ndarray, float]:
         def neg_ll(params):
@@ -764,7 +937,9 @@ def compute_model_comparison(
                 df["stimulus"].values, theta_0, pi_i, 0.0, alpha
             )
             p = np.clip(p, 1e-9, 1 - 1e-9)
-            n, k = df["n_trials"].values, df["n_detected"].values
+            n, k = df["n_trials"].values.astype(int), df["n_detected"].values.astype(
+                int
+            )
             return float(-np.sum(k * np.log(p) + (n - k) * np.log(1 - p)))
 
         x0 = np.array([0.50, 1.20, 6.0])
@@ -796,6 +971,7 @@ def compute_model_comparison(
     return {
         "passed": bool(passed),
         "description": "BF(APGI vs Null) > 10 AND BF(APGI vs Extero-only) > 10",
+        "comparison_metric": "BIC_fallback",
         "log_likelihood": {
             "APGI": float(ll_apgi),
             "Null": float(ll_null),
@@ -979,7 +1155,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
             "description": "Cultural group differences in θ₀ exceed within-group variability (BF₁₀ ≥ 10).",
             "threshold": "BF₁₀ ≥ 10 for GroupEffect(θ₀)",
             "falsification_threshold": "BF₁₀ < 3.0",
-            "test": "Bayesian ANOVA / BIC-BF comparison",
+            "test": "Bayesian ANOVA / PSIS-LOO comparison",
             "paper_reference": "APGI-MULTI-SCALE-CONSCIOUSNESS-Paper (Cultural Modulation)",
             "alpha": None,
         },
@@ -1012,8 +1188,8 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
         },
         "V11.5": {
             "name": "Posterior Predictive Validity",
-            "description": "Posterior predictive checks (PPC) pass for cultural subgroups (p > 0.05).",
-            "threshold": "PPC Bayesian p-value > 0.05",
+            "description": "Posterior predictive checks (PPC) pass for cultural subgroups (0.05 < p < 0.95).",
+            "threshold": "0.05 < PPC Bayesian p-value < 0.95",
             "falsification_threshold": "p < 0.01 (Model Misfit)",
             "test": "Posterior Predictive Check",
             "paper_reference": "Gelman et al. (1996)",
@@ -1075,27 +1251,57 @@ def run_validation(
         conv1 = assert_convergence(results_per_group[1])
         gate_v11_4 = conv0["convergence_pass"] and conv1["convergence_pass"]
 
-        # V11.1: Cultural group differences in θ₀ (BF)
-        # Proxy BF using BIC comparison on pooled data
+        # V11.1: Cultural group differences in θ₀
         pooled_df = (
             df.groupby("stimulus")
             .agg(n_trials=("n_trials", "sum"), n_detected=("n_detected", "sum"))
             .reset_index()
         )
-        null_mc = compute_model_comparison(pooled_df, seed=seed)
-        ll_group = sum(
-            [
-                _log_likelihood_apgi(
-                    results_per_group[g]["samples"].mean(axis=0), pooled_df
-                )
-                for g in [0, 1]
-            ]
-        )
-        # BIC_pooled vs BIC_group
-        bic_pooled = null_mc["BIC"]["APGI"]
-        bic_group = -2 * ll_group + 8 * np.log(len(df))  # 8 params instead of 4
-        bf_11_1 = float(np.exp(-(bic_group - bic_pooled) / 2.0))
-        gate_v11_1 = bf_11_1 >= 5.0  # Slightly lower bound for simulation sensitivity
+        if HAS_PYMC:
+            pooled_idata = _fit_pymc_model_for_comparison(
+                pooled_df, "APGI", seed=seed + 10
+            )
+            group0_idata = _fit_pymc_model_for_comparison(
+                df[df["cultural_group"] == 0]
+                .groupby("stimulus")
+                .agg(n_trials=("n_trials", "sum"), n_detected=("n_detected", "sum"))
+                .reset_index(),
+                "APGI",
+                seed=seed + 11,
+            )
+            group1_idata = _fit_pymc_model_for_comparison(
+                df[df["cultural_group"] == 1]
+                .groupby("stimulus")
+                .agg(n_trials=("n_trials", "sum"), n_detected=("n_detected", "sum"))
+                .reset_index(),
+                "APGI",
+                seed=seed + 12,
+            )
+            pooled_loo = az.loo(pooled_idata, pointwise=True)
+            group0_loo = az.loo(group0_idata, pointwise=True)
+            group1_loo = az.loo(group1_idata, pointwise=True)
+            pooled_score = float(pooled_loo.elpd_loo)
+            group_score = float(group0_loo.elpd_loo + group1_loo.elpd_loo)
+            bf_11_1 = float(np.exp(group_score - pooled_score))
+            gate_v11_1 = (group_score - pooled_score) >= 5.0 and max(
+                _max_pareto_k(pooled_loo),
+                _max_pareto_k(group0_loo),
+                _max_pareto_k(group1_loo),
+            ) < 0.7
+        else:
+            null_mc = compute_model_comparison(pooled_df, seed=seed)
+            ll_group = sum(
+                [
+                    _log_likelihood_apgi(
+                        results_per_group[g]["samples"].mean(axis=0), pooled_df
+                    )
+                    for g in [0, 1]
+                ]
+            )
+            bic_pooled = null_mc["BIC"]["APGI"]
+            bic_group = -2 * ll_group + 8 * np.log(len(df))
+            bf_11_1 = float(np.exp(-(bic_group - bic_pooled) / 2.0))
+            gate_v11_1 = bf_11_1 >= 5.0
 
         # V11.2: Πⁱ varies by cultural context (HDI)
         samples0 = results_per_group[0]["samples"][:, 1]  # Πⁱ is index 1
@@ -1109,22 +1315,31 @@ def run_validation(
         mu_alpha0 = results_per_group[0]["posterior_means"]["alpha"]
         gate_v11_3 = (0.7 <= mu_beta0 <= 1.8) and (2.0 <= mu_alpha0 <= 12.0)
 
-        # V11.5: PPC
-        p_val_ppc = 0.5  # Placeholder if PPC logic above fails
-        if "ppc" in results_per_group[0]:
-            # Basic Bayesian p-value: prob(simulated > observed)
-            obs = df[df["cultural_group"] == 0]["n_detected"].sum()
-            sim = (
-                results_per_group[0]["ppc"]
-                .posterior_predictive["obs"]
-                .values.sum(axis=-1)
-                .ravel()
+        # V11.5: PPC for each cultural subgroup
+        ppc_by_group = {}
+        gate_v11_5 = True
+        for group in [0, 1]:
+            group_df = (
+                df[df["cultural_group"] == group]
+                .groupby("stimulus")
+                .agg(n_trials=("n_trials", "sum"), n_detected=("n_detected", "sum"))
+                .reset_index()
             )
-            p_val_ppc = float(np.mean(sim > obs))
-            if p_val_ppc > 0.5:
-                p_val_ppc = 1.0 - p_val_ppc
-            p_val_ppc *= 2.0  # two-sided
-        gate_v11_5 = p_val_ppc > 0.05
+            ppc = results_per_group[group].get("ppc")
+            if ppc is None:
+                gate_v11_5 = False
+                ppc_by_group[group] = {
+                    "error": "Posterior predictive samples unavailable"
+                }
+                continue
+
+            ppc_stats = _compute_bayesian_ppc_p_value(
+                group_df["n_detected"].values, ppc
+            )
+            ppc_by_group[group] = ppc_stats
+            group_pass = 0.05 < ppc_stats["p_value"] < 0.95
+            ppc_by_group[group]["passed"] = group_pass
+            gate_v11_5 = gate_v11_5 and group_pass
 
         falsification_status = {
             "V11.1": {"passed": gate_v11_1, "value": bf_11_1},
@@ -1137,7 +1352,7 @@ def run_validation(
                     conv1["parameter_diagnostics"]["theta_0"]["r_hat"],
                 ),
             },
-            "V11.5": {"passed": gate_v11_5, "p_ppc": p_val_ppc},
+            "V11.5": {"passed": gate_v11_5, "ppc_by_group": ppc_by_group},
         }
 
         overall_passed = all(
@@ -1783,10 +1998,10 @@ class BayesianParameterEstimator:
         return {
             "posterior_summary": summary,
             "trace": trace,
-            "beta_posterior_mean": summary.loc["beta", "mean"],
-            "theta_posterior_mean": summary.loc["theta", "mean"],
+            "beta_posterior_mean": float(summary.loc["beta", "mean"]),  # type: ignore[index]
+            "theta_posterior_mean": float(summary.loc["theta", "mean"]),  # type: ignore[index]
             "Pi_i_posterior_mean": 1.0,  # Fixed value, not sampled
-            "phase_transition_posterior": summary.loc["beta", "mean"] >= 1.5,
+            "phase_transition_posterior": float(summary.loc["beta", "mean"]) >= 1.5,  # type: ignore[index]
             "parameter_ranges_aligned": True,
         }
 
@@ -1981,9 +2196,9 @@ class BayesianParameterEstimator:
         n_subjects = len(subject_ids)
 
         # Prepare data arrays
-        all_stimulus = []
-        all_detections = []
-        all_subject_indices = []
+        all_stimulus: List[float] = []
+        all_detections: List[int] = []
+        all_subject_indices: List[int] = []
 
         for subj_id, data in multi_subject_data.items():
             n_trials = len(data)

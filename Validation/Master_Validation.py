@@ -255,6 +255,33 @@ class APGIMasterValidator:
                     "status": "success" if result else "failed",
                     "passed": bool(result),
                 }
+        except NotImplementedError as e:
+            # Special handling for VP-15 and other stub protocols
+            if "VP-15" in protocol_info["file"] or "VP_15" in protocol_info["file"]:
+                logger.warning(f"VP-15 is a stub awaiting empirical data: {e}")
+                return {
+                    "status": "STUB",
+                    "passed": None,
+                    "protocol_id": "VP-15",
+                    "protocol_name": "fMRI vmPFC Anticipation Paradigm",
+                    "named_predictions": {
+                        "V15.1": {
+                            "passed": None,
+                            "reason": "Awaiting empirical fMRI data",
+                        },
+                        "V15.2": {
+                            "passed": None,
+                            "reason": "Awaiting empirical fMRI data",
+                        },
+                        "V15.3": {
+                            "passed": None,
+                            "reason": "Awaiting empirical fMRI data",
+                        },
+                    },
+                    "data_source": None,
+                    "reason": "Awaiting empirical fMRI data for vmPFC anticipation paradigm",
+                }
+            return {"status": "error", "message": str(e), "passed": False}
         except Exception as e:
             return {"status": "error", "message": str(e), "passed": False}
 

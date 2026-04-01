@@ -1,8 +1,8 @@
 # APGI Theory Framework Dependencies
 
-# Core numerical computing - pin to safe versions with known security fixes
-numpy>=1.26.0,<1.27.0
-scipy>=1.11.0,<1.12.0
+# Core numerical computing - use versions with Python 3.14 pre-built wheels
+numpy>=2.3.0,<2.5.0
+scipy>=1.15.0,<1.16.0
 
 # Data processing
 pandas>=2.2.0,<3.0.0
@@ -11,6 +11,10 @@ pandas>=2.2.0,<3.0.0
 scikit-learn>=1.5.0,<2.0.0
 torch>=2.1.0,<2.2.0
 torchvision>=0.15.0,<0.16.0
+
+# Explainability libraries
+shap>=0.44.0,<0.45.0
+captum>=0.7.0,<0.8.0
 
 # EEG processing - use recent stable versions
 mne>=1.6.0,<1.7.0
@@ -55,7 +59,7 @@ msgpack>=1.0.0,<1.1.0
 # Scientific reporting
 reportlab>=4.0.0,<4.1.0
 
-# Profiling 
+# Profiling
 numba>=0.60.0,<1.0.0
 
 # Nonlinear time series analysis (for DFA)
@@ -72,8 +76,12 @@ python-dotenv>=1.0.0,<2.0.0
 pymc>=5.0.0,<6.0.0
 arviz>=0.16.0,<1.0.0
 
-# Symbolic mathematics
+# Survival analysis (for F2.5 log-rank test)
+lifelines>=0.27.0,<0.29.0
 sympy>=1.12,<2.0.0
 
 # Sensitivity analysis (for parameter sensitivity & identifiability)
 salib>=1.4.0,<2.0.0
+
+# Bayesian statistics (Bayes factor t-tests)
+pingouin>=0.5.0,<0.6.0

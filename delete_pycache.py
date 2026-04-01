@@ -28,7 +28,7 @@ import shutil
 import sys
 import time
 import errno
-from typing import Iterable, List, Optional
+from typing import Any, Iterable, List, Optional
 
 DEFAULT_DIR_NAMES = {
     "__pycache__",
@@ -51,27 +51,71 @@ DEFAULT_DIR_NAMES = {
 DEFAULT_DIR_PATTERNS = ["*.egg-info", "pip-wheel-metadata"]
 
 DEFAULT_FILE_PATTERNS = [
+    # Python cache/compiled
     "*.pyc",
     "*.pyo",
     "*.pyd",
+    # Coverage/testing
     ".coverage",
     "coverage.xml",
     ".coverage.*",
+    # Logs and system files
     "*.log",
     ".DS_Store",
     "Thumbs.db",
+    # Visualizations
     "*.png",
     "*.jpg",
     "*.jpeg",
     "*.gif",
     "*.svg",
+    # Serialized data formats
     "*.pkl",
     "*.pickle",
     "*.npz",
+    "*.npy",
     "*.h5",
     "*.hdf5",
     "*.mat",
-    "*.fig",
+    # Data exchange formats
+    "*.parquet",
+    "*.feather",
+    "*.arrow",
+    "*.avro",
+    "*.orc",
+    "*.msgpack",
+    "*.bson",
+    # Binary/cache formats
+    "*.db",
+    "*.sqlite",
+    "*.sqlite3",
+    "*.mdb",
+    "*.ldb",
+    "*.pak",
+    "*.pack",
+    # Model/checkpoint files
+    "*.pt",
+    "*.pth",
+    "*.ckpt",
+    "*.safetensors",
+    "*.onnx",
+    "*.tflite",
+    "*.pb",
+    "*.plan",
+    "*.engine",
+    # TensorBoard/logs
+    "*.tfevents.*",
+    "events.out.tfevents.*",
+    "*.v2",
+    # Protocol buffers/serialization
+    "*.proto.bin",
+    "*_pb2.py",
+    "*_pb2.pyi",
+    "*.proto.lua",
+    # Jupyter/notebook outputs
+    "*.nbconvert.ipynb",
+    "*.ipynb_checkpoints",
+    # LaTeX build artifacts
     "*.tex",
     "*.dvi",
     "*.aux",
@@ -87,11 +131,9 @@ DEFAULT_FILE_PATTERNS = [
     "*.vrb",
     "*.figlist",
     "*.makefile",
-    "*.fls",
-    "*.fdb_latexmk",
-    "*.synctex.gz",
     "*.xdv",
     "*.run.xml",
+    # Generated Python files (temporary/debug)
     "debug_*.py",
     "temp_*.py",
     "*_temp.py",
@@ -102,6 +144,39 @@ DEFAULT_FILE_PATTERNS = [
     "*_orig.py",
     "*_test.py",
     "*_tmp.py",
+    # Generated config/data files
+    "*.generated.*",
+    "*.auto.*",
+    "*.cache.json",
+    "*.cache.yaml",
+    "*.cache.yml",
+    "*.min.json",
+    "*.min.yaml",
+    "*.min.yml",
+    # Build artifacts
+    "*.manifest",
+    "*.spec",
+    "*.egg",
+    "*.whl",
+    "*.so",
+    "*.dylib",
+    "*.dll",
+    "*.a",
+    "*.lib",
+    "*.o",
+    "*.obj",
+    # Intermediate processing files
+    "*.intermediate",
+    "*.partial",
+    "*.incomplete",
+    "*.processing",
+    "*.tmp.json",
+    "*.tmp.csv",
+    "*.tmp.parquet",
+    # Export/download artifacts
+    "*.download",
+    "*.crdownload",
+    "*.part",
 ]
 
 DEFAULT_EXTRA_DIR_NAMES = {
@@ -377,7 +452,7 @@ def preview_deletions(
     """
     import os
 
-    stats = {
+    stats: dict[str, Any] = {
         "dirs_to_remove": [],
         "files_to_remove": [],
         "total_files": 0,
@@ -425,9 +500,9 @@ def preview_deletions(
                                 dir_size += file_size
                                 file_count += 1
                             except (OSError, IOError):
-                                stats["errors"] += 1
+                                stats["errors"] += 1  # type: ignore[index,operator]
 
-                    stats["dirs_to_remove"].append(
+                    stats["dirs_to_remove"].append(  # type: ignore[attr-defined]
                         {
                             "path": full_d,
                             "file_count": file_count,
@@ -435,10 +510,10 @@ def preview_deletions(
                             "size_mb": round(dir_size / (1024 * 1024), 2),
                         }
                     )
-                    stats["total_files"] += file_count
-                    stats["total_size_bytes"] += dir_size
+                    stats["total_files"] += file_count  # type: ignore[index,operator]
+                    stats["total_size_bytes"] += dir_size  # type: ignore[index,operator]
                 except (OSError, IOError):
-                    stats["errors"] += 1
+                    stats["errors"] += 1  # type: ignore[index,operator]
 
         # Process files for preview
         for f in list(filenames):
@@ -451,17 +526,17 @@ def preview_deletions(
                 full_f = os.path.join(dirpath, f)
                 try:
                     file_size = os.path.getsize(full_f)
-                    stats["files_to_remove"].append(
+                    stats["files_to_remove"].append(  # type: ignore[attr-defined]
                         {
                             "path": full_f,
                             "size_bytes": file_size,
                             "size_kb": round(file_size / 1024, 2),
                         }
                     )
-                    stats["total_files"] += 1
-                    stats["total_size_bytes"] += file_size
+                    stats["total_files"] += 1  # type: ignore[index,operator]
+                    stats["total_size_bytes"] += file_size  # type: ignore[index,operator]
                 except (OSError, IOError):
-                    stats["errors"] += 1
+                    stats["errors"] += 1  # type: ignore[index,operator]
 
     return stats
 
@@ -540,7 +615,7 @@ def delete_temporary_items(
     This function avoids descending into removed directories by modifying dirnames in-place.
     Returns statistics about what was removed.
     """
-    stats = {"dirs_removed": 0, "files_removed": 0, "errors": 0}
+    stats: dict[str, Any] = {"dirs_removed": 0, "files_removed": 0, "errors": 0}
     default_dir_names = set(DEFAULT_DIR_NAMES) | set(DEFAULT_EXTRA_DIR_NAMES)
     default_dir_patterns = list(DEFAULT_DIR_PATTERNS)
     default_file_patterns = list(DEFAULT_FILE_PATTERNS) + list(
@@ -839,18 +914,228 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "*_tmp.*",
             ]
         )
-        # Exclude core Python files and important project files
+        # Exclude core imperative files (source code) - keep all intact
         exclude_file_patterns.extend(
             [
+                # Python source
                 "*.py",
-                "requirements.txt",
-                "README*",
+                "*.pyi",
+                "*.pyx",
+                "*.pxd",
+                "*.pxi",
+                "*.pyw",
+                # JavaScript/TypeScript
+                "*.js",
+                "*.jsx",
+                "*.ts",
+                "*.tsx",
+                "*.mjs",
+                "*.cjs",
+                "*.mts",
+                "*.cts",
+                # Web frontend
+                "*.html",
+                "*.htm",
+                "*.css",
+                "*.scss",
+                "*.sass",
+                "*.less",
+                "*.vue",
+                "*.svelte",
+                # C/C++
+                "*.c",
+                "*.cpp",
+                "*.cc",
+                "*.cxx",
+                "*.h",
+                "*.hpp",
+                "*.hh",
+                "*.hxx",
+                "*.inl",
+                "*.inc",
+                # Java/Kotlin/JVM
+                "*.java",
+                "*.kt",
+                "*.kts",
+                "*.scala",
+                "*.groovy",
+                "*.clj",
+                "*.cljs",
+                # .NET/C#
+                "*.cs",
+                "*.csx",
+                "*.vb",
+                "*.fs",
+                "*.fsx",
+                # Go/Rust
+                "*.go",
+                "*.rs",
+                "*.rslib",
+                # Ruby/Perl/PHP
+                "*.rb",
+                "*.rbw",
+                "*.rake",
+                "*.gemspec",
+                "*.pl",
+                "*.pm",
+                "*.t",
+                "*.php",
+                "*.phtml",
+                "*.php3",
+                "*.php4",
+                "*.php5",
+                "*.phps",
+                # Shell/Scripts
+                "*.sh",
+                "*.bash",
+                "*.zsh",
+                "*.fish",
+                "*.csh",
+                "*.tcsh",
+                "*.ksh",
+                "*.ps1",
+                "*.psm1",
+                "*.psd1",
+                "*.bat",
+                "*.cmd",
+                # Functional
+                "*.hs",
+                "*.lhs",
+                "*.elm",
+                "*.erl",
+                "*.hrl",
+                "*.ex",
+                "*.exs",
+                "*.ml",
+                "*.mli",
+                "*.re",
+                "*.rei",
+                # Other languages
+                "*.r",
+                "*.R",
+                "*.lua",
+                "*.nim",
+                "*.cr",
+                "*.d",
+                "*.jl",
+                "*.swift",
+                "*.m",
+                "*.mm",
+                "*.rkt",
+                "*.lisp",
+                "*.lsp",
+                "*.scm",
+                "*.ss",
+                "*.f",
+                "*.for",
+                "*.f90",
+                "*.f95",
+                "*.f03",
+                "*.f08",
+                "*.cob",
+                "*.cbl",
+                "*.asm",
+                "*.s",
+                "*.S",
+                # Config/Project files
+                "requirements*.txt",
+                "pyproject.toml",
                 "setup.py",
+                "setup.cfg",
+                "Pipfile",
+                "poetry.lock",
+                "package.json",
+                "package-lock.json",
+                "yarn.lock",
+                "pnpm-lock.yaml",
+                "bun.lockb",
+                "Cargo.toml",
+                "Cargo.lock",
+                "go.mod",
+                "go.sum",
+                "Gemfile",
+                "Gemfile.lock",
+                "composer.json",
+                "composer.lock",
+                "pom.xml",
+                "build.gradle",
+                "settings.gradle",
+                "CMakeLists.txt",
+                "Makefile",
+                "makefile",
+                "GNUmakefile",
+                "*.mk",
+                "*.pro",
+                "*.pri",
+                "*.cmake",
+                # Documentation
+                "README*",
+                "CHANGELOG*",
+                "HISTORY*",
+                "LICENSE*",
+                "COPYING*",
+                "AUTHORS*",
+                "CONTRIBUTORS*",
                 "*.md",
-                "*.yaml",
+                "*.markdown",
+                "*.rst",
+                "*.txt",
+                # Git/Version control
+                ".gitignore",
+                ".gitattributes",
+                ".gitmodules",
+                ".hgignore",
+                # CI/CD
                 "*.yml",
-                "*.cfg",
+                "*.yaml",
+                ".github/**/*",
+                ".gitlab-ci.yml",
+                "azure-pipelines.yml",
+                "Jenkinsfile",
+                # Environment/Config
+                ".env*",
                 "*.ini",
+                "*.cfg",
+                "*.conf",
+                "*.config",
+                "*.toml",
+                "*.properties",
+                "*.prefs",
+                "*.inf",
+                "*.reg",
+                # Docker/Container
+                "Dockerfile*",
+                "docker-compose*.yml",
+                "docker-compose*.yaml",
+                ".dockerignore",
+                # IDE/Editor
+                ".vscode/**/*",
+                ".idea/**/*",
+                "*.sublime-project",
+                "*.sublime-workspace",
+                ".editorconfig",
+                # License/Legal
+                "LICENSE",
+                "LICENSE.*",
+                "COPYING",
+                "COPYING.*",
+                "NOTICE",
+                "NOTICE.*",
+                # Misc important
+                "*.manifest",
+                "*.spec",
+                "MANIFEST.in",
+                "tox.ini",
+                "pytest.ini",
+                ".flake8",
+                ".pylintrc",
+                "mypy.ini",
+                ".pre-commit-config.yaml",
+                ".editorconfig",
+                ".gitkeep",
+                ".gitattributes",
+                ".mailmap",
+                "CODEOWNERS",
             ]
         )
 

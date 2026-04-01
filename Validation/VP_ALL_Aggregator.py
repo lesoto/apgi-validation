@@ -43,7 +43,7 @@ NAMED_PREDICTIONS = {
     "V6.1": "Liquid networks show superior time-series processing",
     "V6.2": "APGI-inspired architectures outperform standard RNNs",
     "V6.3": "Adaptive timescale dynamics match theoretical predictions",
-    # VP-7: TMS/Pharmacological Causal Interventions
+    # VP-7: TMS/Pharmacological Causal Interventions (CANONICAL for P2.a-P2.c)
     "V7.1": "dlPFC TMS shifts threshold >0.1 log units",
     "V7.2": "Insula TMS reduces HEP ~30% AND PCI ~20% (double dissociation)",
     "V7.3": "High-IA × insula TMS interaction confirmed",
@@ -56,9 +56,8 @@ NAMED_PREDICTIONS = {
     "V9.2": "HEP amplitude correlates with interoceptive precision",
     "V9.3": "PCI and HEP show predicted dissociation patterns",
     # VP-10: Causal Manipulations TMS/Pharmacological — Priority 2
-    "V10.1": "TMS to dlPFC selectively disrupts ignition",
-    "V10.2": "Propranolol modulates precision-weighted processing",
-    "V10.3": "Atomoxetine enhances frontoparietal connectivity",
+    # NOTE: V10.1-V10.3 are SUPPLEMENTARY to VP-07 and NOT counted in 14-prediction tally
+    # They provide additional evidence but VP-07 is the canonical source for P2.a-P2.c
     # VP-11: MCMC / Cultural Neuroscience — Priority 3
     "V11.1": "MCMC convergence (Gelman-Rubin R̂ ≤ 1.01)",
     "V11.2": "Cultural parameters show predicted variation",
@@ -107,7 +106,7 @@ PREDICTION_TO_PROTOCOL = {
     "V6.1": "VP_06_LiquidNetwork_InductiveBias",
     "V6.2": "VP_06_LiquidNetwork_InductiveBias",
     "V6.3": "VP_06_LiquidNetwork_InductiveBias",
-    # VP-7: TMS/Pharmacological Causal Interventions
+    # VP-7: TMS/Pharmacological Causal Interventions (CANONICAL for P2.a-P2.c)
     "V7.1": "VP_07_TMS_CausalInterventions",
     "V7.2": "VP_07_TMS_CausalInterventions",
     "V7.3": "VP_07_TMS_CausalInterventions",
@@ -119,10 +118,8 @@ PREDICTION_TO_PROTOCOL = {
     "V9.1": "VP_09_NeuralSignatures_EmpiricalPriority1",
     "V9.2": "VP_09_NeuralSignatures_EmpiricalPriority1",
     "V9.3": "VP_09_NeuralSignatures_EmpiricalPriority1",
-    # VP-10: Causal Manipulations
-    "V10.1": "VP_10_CausalManipulations_Priority2",
-    "V10.2": "VP_10_CausalManipulations_Priority2",
-    "V10.3": "VP_10_CausalManipulations_Priority2",
+    # VP-10: Causal Manipulations (SUPPLEMENTARY - NOT in 14-prediction tally)
+    # V10.1-V10.3 removed - VP-07 is canonical source for these predictions
     # VP-11: MCMC / Cultural Neuroscience
     "V11.1": "VP_11_MCMC_CulturalNeuroscience_Priority3",
     "V11.2": "VP_11_MCMC_CulturalNeuroscience_Priority3",
@@ -153,10 +150,10 @@ PROTOCOL_TIERS = {
     "VP_04_PhaseTransition_EpistemicLevel2": "secondary",
     "VP_05_EvolutionaryEmergence": "tertiary",
     "VP_06_LiquidNetwork_InductiveBias": "secondary",
-    "VP_07_TMS_CausalInterventions": "secondary",
+    "VP_07_TMS_CausalInterventions": "secondary",  # CANONICAL P2 source (VP-7)
     "VP_08_Psychophysical_ThresholdEstimation": "secondary",
     "VP_09_NeuralSignatures_EmpiricalPriority1": "tertiary",
-    "VP_10_CausalManipulations_Priority2": "tertiary",
+    "VP_10_CausalManipulations_Priority2": "tertiary",  # SUPPLEMENTARY to VP-7
     "VP_11_MCMC_CulturalNeuroscience_Priority3": "secondary",
     "VP_12_Clinical_CrossSpecies_Convergence": "secondary",
     "VP_13_Epistemic_Architecture": "secondary",
@@ -164,11 +161,42 @@ PROTOCOL_TIERS = {
     "VP_15_fMRI_Anticipation_vmPFC": "tertiary",
 }
 
+# VP-07 / VP-10 Boundary Clarification
+# ====================================
+# VP-07 (TMS_CausalInterventions) is the CANONICAL source for P2.a–P2.c predictions
+# VP-10 (CausalManipulations_Priority2) is SUPPLEMENTARY and provides:
+#   - Pharmacological specificity testing (propranolol vs insula TMS circuitry)
+#   - Medication × TMS interaction testing (Type I error control)
+#   - Extended validation coverage at a different abstraction level
+#
+# AGGREGATOR LOGIC:
+# - When both VP-07 and VP-10 report P2.a–P2.c results, VP-07 takes precedence
+# - VP-10 results are tagged as "supplementary" and do not contribute to
+#   the 14-prediction falsification tally independently
+# - VP-10-specific tests (specificity, interaction) are tracked separately
+#   as "VP-10-SUPPLEMENTARY" predictions
+
+# Supplementary predictions (VP-10 specific, not counted in 14-prediction tally)
+# VP-10 provides supplementary evidence for P2.a-P2.c; VP-07 is the canonical source
+SUPPLEMENTARY_PREDICTIONS = {
+    "V10.1": "TMS to dlPFC selectively disrupts ignition (supplementary to V7.1)",
+    "V10.2": "Propranolol modulates precision-weighted processing (supplementary to V7.2)",
+    "V10.3": "Atomoxetine enhances frontoparietal connectivity (supplementary to V7.3)",
+    "V10.SPEC": "Pharmacological specificity: propranolol (peripheral) vs insula TMS (cortical)",
+    "V10.INT": "Medication × TMS interaction test for Type I error control",
+}
+
 
 def aggregate_prediction_results(
     results_input: Union[Dict, List],
 ) -> Dict[str, Dict[str, Any]]:
     """Load results from protocols (paths or dicts) and tally prediction pass/fail.
+
+    VP-07 / VP-10 Boundary Handling:
+    - VP-07 is the CANONICAL source for P2.a–P2.c predictions
+    - VP-10 results are marked as "supplementary" and do not independently
+      contribute to the 14-prediction falsification tally
+    - When both report P2 results, VP-07 takes precedence
 
     Args:
         results_input: Dictionary of results or list of file paths/result dicts
@@ -178,7 +206,8 @@ def aggregate_prediction_results(
     """
     # Initialize tallies with proper structure
     tallies: Dict[str, Dict[str, Any]] = {
-        k: {"passed": False, "evidence": []} for k in NAMED_PREDICTIONS
+        k: {"passed": False, "evidence": [], "protocol_source": None}
+        for k in NAMED_PREDICTIONS
     }
 
     # Handle dict of results, list of paths, or list of dicts
@@ -194,7 +223,11 @@ def aggregate_prediction_results(
             try:
                 with open(item) as f:
                     data = json.load(f)
-            except Exception:
+            except Exception as e:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.error(f"Protocol JSON load failed for {item}: {e}")
                 continue
         elif isinstance(item, dict):
             data = item
@@ -202,16 +235,70 @@ def aggregate_prediction_results(
         if not data:
             continue
 
+        # Determine protocol source
+        protocol_source = data.get("protocol_id", data.get("protocol", "unknown"))
+
         for pred_id, result_info in data.get("named_predictions", {}).items():
+            # Skip supplementary predictions - they don't count toward Condition A
+            if pred_id in SUPPLEMENTARY_PREDICTIONS:
+                continue
+
             if pred_id in tallies:
+                # Check for VP-07/VP-10 boundary (legacy P2.a-P2.c naming)
+                is_p2_prediction = pred_id in ["P2.a", "P2.b", "P2.c"]
+                is_vp07 = "VP_07" in str(protocol_source) or "VP-07" in str(
+                    protocol_source
+                )
+                is_vp10 = (
+                    "VP_10" in str(protocol_source)
+                    or "VP-10" in str(protocol_source)
+                    or "supplementary" in str(result_info.get("source_type", ""))
+                )
+
+                passed = False
                 if isinstance(result_info, dict):
-                    tallies[pred_id]["passed"] |= result_info.get("passed", False)
-                    evidence_item = "result_dict" if isinstance(item, dict) else item
-                    tallies[pred_id]["evidence"].append(evidence_item)
+                    passed = result_info.get("passed", False)
                 elif isinstance(result_info, bool):
-                    tallies[pred_id]["passed"] |= result_info
-                    evidence_item = "result_dict" if isinstance(item, dict) else item
-                    tallies[pred_id]["evidence"].append(evidence_item)
+                    passed = result_info
+
+                # VP-07/VP-10 boundary logic:
+                # - If VP-07 reports P2, it takes precedence (canonical)
+                # - VP-10 is supplementary and doesn't contribute to 14-prediction tally
+                if is_p2_prediction:
+                    existing_source = tallies[pred_id].get("protocol_source")
+                    if is_vp07:
+                        # VP-07 is canonical - overwrite any existing
+                        tallies[pred_id]["passed"] = passed
+                        tallies[pred_id]["protocol_source"] = "VP-07 (canonical)"
+                        tallies[pred_id]["source_type"] = "canonical"
+                    elif is_vp10:
+                        # VP-10 is supplementary - should not reach here due to SUPPLEMENTARY_PREDICTIONS skip
+                        # but kept for safety
+                        if existing_source and "VP-07" in str(existing_source):
+                            tallies[pred_id]["vp10_supplementary_passed"] = passed
+                        else:
+                            tallies[pred_id]["passed"] = passed
+                            tallies[pred_id][
+                                "protocol_source"
+                            ] = "VP-10 (supplementary)"
+                            tallies[pred_id]["source_type"] = "supplementary"
+                    else:
+                        # Other protocol - treat normally
+                        tallies[pred_id]["passed"] |= passed
+                        tallies[pred_id]["protocol_source"] = protocol_source
+                else:
+                    # Non-P2 prediction - normal aggregation
+                    tallies[pred_id]["passed"] |= passed
+
+                evidence_item = "result_dict" if isinstance(item, dict) else item
+                _ = evidence_item  # Silence unused warning - kept for clarity
+                tallies[pred_id]["evidence"].append(
+                    {
+                        "source": protocol_source,
+                        "passed": passed,
+                        "is_supplementary": is_vp10 and is_p2_prediction,
+                    }
+                )
 
     return tallies
 
@@ -472,7 +559,7 @@ def load_protocol_results_from_directory(
         List of result dictionaries
     """
     directory = Path(directory)
-    results = []
+    results: List[Any] = []
 
     if not directory.exists():
         return results
@@ -482,7 +569,11 @@ def load_protocol_results_from_directory(
             with open(json_file) as f:
                 data = json.load(f)
                 results.append(data)
-        except Exception:
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(f"Protocol JSON load failed for {json_file}: {e}")
             continue
 
     return results

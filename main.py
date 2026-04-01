@@ -4268,7 +4268,7 @@ def _load_visualization_data(input_file):
             console.print("[yellow]Data directory not found[/yellow]")
 
         console.print(
-            "[yellow]Usage example: python main.py visualize --input-file data/sample.csv[/yellow]"
+            "[yellow]Usage example: python main.py visualize --input-file data_repository/raw_data/sample.csv[/yellow]"
         )
         return None
     except (
@@ -5200,7 +5200,9 @@ def cache_cmd(ctx, action, sources, max_workers):
                 for suggestion in suggestions:
                     console.print(f"  - {suggestion}")
             else:
-                console.print("[yellow]No data files found in data/ directory[/yellow]")
+                console.print(
+                    "[yellow]No data files found in data_repository/raw_data/ directory[/yellow]"
+                )
 
         else:
             console.print(f"[red]Unknown action: {action}[/red]")

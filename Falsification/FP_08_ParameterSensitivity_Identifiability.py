@@ -44,21 +44,208 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def _compute_bootstrap_sobol_indices(
+    param_values: np.ndarray,
+    Y: np.ndarray,
+    problem: Dict[str, Any],
+    n_bootstrap: int = 1000,
+    ci_level: float = 0.95,
+) -> Dict[str, Any]:
+    """
+    Compute bootstrap confidence intervals for Sobol total-order indices (ST).
+
+    Per FP-8 specification: Point estimates alone are insufficient -
+    bootstrap confidence intervals required for uncertainty quantification.
+
+    Parameters:
+    -----------
+    param_values : np.ndarray
+        Parameter samples used for Sobol analysis
+    Y : np.ndarray
+        Model outputs for each parameter sample
+    problem : dict
+        SALib problem definition
+    n_bootstrap : int
+        Number of bootstrap resamples (default: 1000)
+    ci_level : float
+        Confidence level for intervals (default: 0.95)
+
+    Returns:
+    --------
+    dict
+        Bootstrap confidence intervals for each parameter's ST index
+    """
+    if not HAS_SALIB:
+        return {"error": "SALib not available for bootstrap analysis"}
+
+    n_samples = len(Y)
+    alpha = 1 - ci_level
+    param_names = problem["names"]
+    n_params = len(param_names)
+
+    # Store bootstrap ST indices for each parameter
+    bootstrap_st = np.zeros((n_bootstrap, n_params))
+
+    for b in range(n_bootstrap):
+        # Resample with replacement
+        indices = np.random.choice(n_samples, size=n_samples, replace=True)
+        Y_bootstrap = Y[indices]
+
+        # Compute Sobol indices on bootstrap sample
+        try:
+            Si_bootstrap = sobol.analyze(
+                problem, Y_bootstrap, calc_second_order=False, print_to_console=False
+            )
+            bootstrap_st[b, :] = Si_bootstrap["ST"]
+        except Exception:
+            # Skip failed bootstrap iterations
+            bootstrap_st[b, :] = np.nan
+
+    # Calculate confidence intervals (excluding NaN values)
+    ci_results = {}
+    for i, param in enumerate(param_names):
+        valid_values = bootstrap_st[:, i][~np.isnan(bootstrap_st[:, i])]
+        if len(valid_values) > 0:
+            ci_lower = float(np.percentile(valid_values, 100 * alpha / 2))
+            ci_upper = float(np.percentile(valid_values, 100 * (1 - alpha / 2)))
+            ci_mean = float(np.mean(valid_values))
+            ci_std = float(np.std(valid_values))
+        else:
+            ci_lower = ci_upper = ci_mean = ci_std = float("nan")
+
+        ci_results[param] = {
+            "ST_mean": ci_mean,
+            "ST_std": ci_std,
+            "CI_lower": ci_lower,
+            "CI_upper": ci_upper,
+            "CI_level": ci_level,
+        }
+
+    return ci_results
+
+
+def _check_bootstrap_hierarchy_overlap(
+    bootstrap_st: Dict[str, Any],
+    hierarchy_params: List[str],
+) -> Dict[str, Any]:
+    """
+    Check APGI sensitivity hierarchy via bootstrap overlap test.
+
+    Per FP-8 specification: Hierarchy must be checked via bootstrap overlap,
+    not simple point estimate inequality.
+
+    APGI predicts: S_total(θt) > S_total(β) > S_total(Πi) > S_total(Πe)
+
+    Parameters:
+    -----------
+    bootstrap_st : dict
+        Bootstrap confidence intervals for ST indices
+    hierarchy_params : list
+        Parameters to check in expected order [theta_0, beta, Pi_i, Pi_e]
+
+    Returns:
+    --------
+    dict
+        Hierarchy test results with overlap analysis
+    """
+    available_params = [p for p in hierarchy_params if p in bootstrap_st]
+
+    if len(available_params) < 2:
+        return {
+            "hierarchy_tested": False,
+            "reason": "Insufficient parameters for hierarchy test",
+        }
+
+    hierarchy_violations = []
+    overlap_results = []
+
+    # Check pairwise ordering with confidence interval overlap
+    for i in range(len(available_params) - 1):
+        param_high = available_params[i]
+        param_low = available_params[i + 1]
+
+        # Expected: param_high > param_low
+        high_ci = bootstrap_st[param_high]
+        low_ci = bootstrap_st[param_low]
+
+        # Check overlap: if CIs overlap substantially, hierarchy uncertain
+        # Non-overlap: high CI lower bound > low CI upper bound
+        # Partial overlap: check if point estimates maintain order
+        overlap = not (high_ci["CI_lower"] > low_ci["CI_upper"])
+
+        # Calculate overlap proportion
+        overlap_range = min(high_ci["CI_upper"], low_ci["CI_upper"]) - max(
+            high_ci["CI_lower"], low_ci["CI_lower"]
+        )
+        total_range = max(high_ci["CI_upper"], low_ci["CI_upper"]) - min(
+            high_ci["CI_lower"], low_ci["CI_lower"]
+        )
+        overlap_proportion = overlap_range / total_range if total_range > 0 else 0
+
+        # Hierarchy violated if:
+        # 1. Point estimate order is wrong AND no substantial overlap, OR
+        # 2. CIs completely reversed (high CI entirely below low CI)
+        point_order_wrong = high_ci["ST_mean"] <= low_ci["ST_mean"]
+        ci_completely_reversed = high_ci["CI_upper"] < low_ci["CI_lower"]
+
+        is_violation = ci_completely_reversed or (
+            point_order_wrong and overlap_proportion < 0.5
+        )
+
+        overlap_results.append(
+            {
+                "param_high": param_high,
+                "param_low": param_low,
+                "overlap": overlap,
+                "overlap_proportion": float(overlap_proportion),
+                "high_CI": [high_ci["CI_lower"], high_ci["CI_upper"]],
+                "low_CI": [low_ci["CI_lower"], low_ci["CI_upper"]],
+                "high_mean": high_ci["ST_mean"],
+                "low_mean": low_ci["ST_mean"],
+            }
+        )
+
+        if is_violation:
+            hierarchy_violations.append(
+                f"{param_high} should be > {param_low} "
+                f"(overlap={overlap_proportion:.2f}, means: {high_ci['ST_mean']:.3f} vs {low_ci['ST_mean']:.3f})"
+            )
+
+    return {
+        "hierarchy_tested": True,
+        "expected_order": hierarchy_params,
+        "available_params": available_params,
+        "hierarchy_violations": hierarchy_violations,
+        "hierarchy_falsified": len(hierarchy_violations) > 0,
+        "overlap_analysis": overlap_results,
+        "falsification_reason": (
+            f"APGI hierarchy violated via bootstrap overlap: {hierarchy_violations}"
+            if hierarchy_violations
+            else "APGI hierarchy preserved (bootstrap overlap test)"
+        ),
+    }
+
+
 def simulate_model_performance_with_agent(
     params: Dict[str, float], n_trials: int = 1000
-) -> float:
+) -> Optional[float]:
     """
     Simulate model performance with actual APGIAgent from VP-3.
-    Replaces placeholder with statistically-matched fake data that replicates
-    APGIAgent performance characteristics from the Validation protocol.
+
+    CRITICAL: Returns None if APGIAgent is unavailable - Sobol analysis
+    must NOT fall back to synthetic oracle per FP-8 specification.
 
     Based on APGIActiveInferenceAgent characteristics:
     - Mean cumulative reward: ~100 (deck A)
     - Standard deviation: ~50 (deck A)
     - Learning rate effects: logarithmic response to parameters
     - Convergence rate: ~0.99 per episode
-    - Interocostive bias: ~0.2-0.8
+    - Interoceptive bias: ~0.2-0.8
     - Action selection: softmax policy with temperature annealing
+
+    Returns:
+        float: Performance metric (0-1 scale) if successful
+        None: If APGIAgent is unavailable (Sobol analysis must fail)
     """
     try:
         # Import APGIAgent from Falsification protocol (correct location)
@@ -156,32 +343,24 @@ def simulate_model_performance_with_agent(
         return float(np.clip(performance, 0.0, 1.0))
 
     except ImportError:
-        logger.warning("Could not import APGIAgent - using enhanced placeholder")
-        return simulate_model_performance_placeholder(params)
+        logger.error("APGIAgent unavailable - Sobol analysis requires actual agent")
+        return None  # CRITICAL: Return None to trigger F8.SA failure
 
 
-def simulate_model_performance_placeholder(params: Dict[str, float]) -> float:
-    """Placeholder performance simulation when APGIAgent is unavailable"""
-    base_performance = 0.5
+def simulate_model_performance_placeholder(params: Dict[str, float]) -> Optional[float]:
+    """
+    DEPRECATED: Placeholder performance simulation - DO NOT USE for Sobol analysis.
 
-    # Add parameter effects based on APGI theory
-    # Interoceptive precision parameters should have strong influence
-    if "theta_0" in params:
-        base_performance += 0.1 * params["theta_0"]
-    if "alpha" in params:
-        base_performance += 0.05 * np.log(params["alpha"])
-    if "beta" in params:
-        # Beta (interoceptive precision multiplier) should have strong positive effect
-        base_performance += 0.15 * params["beta"]
-    if "Pi_i" in params:
-        # Interoceptive precision should have strong positive effect
-        base_performance += 0.12 * params["Pi_i"]
+    This function is kept for backward compatibility only.
+    Per FP-8 specification, F8.SA (Sobol analysis) must use actual APGIAgent.
+    Using this placeholder will cause F8.SA to return {"passed": False}.
 
-    # Add noise
-    noise = np.random.normal(0, 0.05)
-    performance = base_performance + noise
-
-    return float(np.clip(performance, 0.0, 1.0))
+    Returns:
+        float: Synthetic performance value
+        None: To signal that real agent is required
+    """
+    logger.warning("DEPRECATED: simulate_model_performance_placeholder() called")
+    return None  # Always return None to enforce APGIAgent requirement
 
 
 def analyze_oat_sensitivity(
@@ -309,6 +488,32 @@ def analyze_beta_pi_collinearity(
     high_vif_params = [p for p, vif in vif_values.items() if vif > 10]
     moderate_vif_params = [p for p, vif in vif_values.items() if 5 < vif <= 10]
 
+    # F8.collinearity: Gate VIF check for β/Πⁱ specifically
+    # If VIF(β, Πⁱ) > 10, report F8.collinearity as "HIGH" and downgrade F8.SA confidence
+    f8_collinearity_status = "LOW"
+    f8_collinearity_concern = []
+
+    # Check specific β/Πⁱ collinearity (primary concern per FP-8)
+    if "beta" in vif_values and "Pi_i" in vif_values:
+        beta_vif = vif_values["beta"]
+        pi_i_vif = vif_values["Pi_i"]
+
+        if beta_vif > 10 or pi_i_vif > 10:
+            f8_collinearity_status = "HIGH"
+            if beta_vif > 10:
+                f8_collinearity_concern.append(f"beta VIF={beta_vif:.2f}")
+            if pi_i_vif > 10:
+                f8_collinearity_concern.append(f"Pi_i VIF={pi_i_vif:.2f}")
+        elif beta_vif > 5 or pi_i_vif > 5:
+            f8_collinearity_status = "MODERATE"
+            if beta_vif > 5:
+                f8_collinearity_concern.append(f"beta VIF={beta_vif:.2f}")
+            if pi_i_vif > 5:
+                f8_collinearity_concern.append(f"Pi_i VIF={pi_i_vif:.2f}")
+
+    # Determine if collinearity affects F8.SA confidence
+    f8_sa_confidence_downgrade = f8_collinearity_status == "HIGH"
+
     # Test sensitivity to collinear variations
     collinearity_sensitivity = {}
     for i, param1 in enumerate(available_params):
@@ -346,6 +551,14 @@ def analyze_beta_pi_collinearity(
         "moderate_vif_params": moderate_vif_params,
         "collinearity_sensitivity": collinearity_sensitivity,
         "n_samples": n_samples,
+        # F8.collinearity specific results
+        "F8_collinearity": {
+            "status": f8_collinearity_status,
+            "concern_details": f8_collinearity_concern,
+            "f8_sa_confidence_downgrade": f8_sa_confidence_downgrade,
+            "criterion": "VIF(β, Πⁱ) threshold = 10",
+            "threshold_exceeded": f8_collinearity_status == "HIGH",
+        },
     }
 
 
@@ -968,15 +1181,33 @@ def analyze_sobol_sensitivity(
     Compute Sobol first-order and total-order sensitivity indices using SALib.
     Per Step 1.5 - Full implementation with falsification criteria.
 
+    CRITICAL: If APGIAgent is unavailable, F8.SA returns {"passed": False}
+    rather than running on synthetic oracle. This is a strict requirement.
+
     Parameters:
     -----------
     n_samples : int
         Number of samples for Sobol analysis. Must be a power of 2 for Saltelli sampler.
         Default: 1024 (2^10). Valid values: 512, 1024, 2048, 4096, etc.
     """
+    # CRITICAL: Check if SALib is available
     if not HAS_SALIB:
-        logger.warning("SALib not available - skipping Sobol analysis")
-        return {"sobol_analysis": False}
+        warnings.warn(
+            "SALib is required for Sobol sensitivity analysis (F8.SA). "
+            "Install with: pip install salib>=1.4.0",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return {
+            "sobol_analysis": False,
+            "passed": False,
+            "reason": "SALib required for Sobol analysis",
+            "F8_SA_result": {
+                "criterion": "Sobol indices: β, Πⁱ account for >50% total sensitivity",
+                "passed": False,
+                "reason": "SALib not installed",
+            },
+        }
 
     # Validate n_samples is power of 2
     if n_samples <= 0 or (n_samples & (n_samples - 1)) != 0:  # Check if power of 2
@@ -1003,10 +1234,35 @@ def analyze_sobol_sensitivity(
         Y = np.zeros(len(param_values))
         for i, sample in enumerate(param_values):
             params = dict(zip(param_bounds.keys(), sample))
-            Y[i] = simulate_model_performance_with_agent(params, n_trials=n_trials)
+            perf = simulate_model_performance_with_agent(params, n_trials=n_trials)
+            # CRITICAL: If APGIAgent unavailable, fail F8.SA
+            if perf is None:
+                warnings.warn(
+                    "APGIAgent unavailable - F8.SA requires actual agent simulation. "
+                    "Cannot use synthetic oracle for parameter sensitivity analysis.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                return {
+                    "sobol_analysis": False,
+                    "passed": False,
+                    "reason": "APGIAgent required for Sobol analysis",
+                    "F8_SA_result": {
+                        "criterion": "Sobol indices: β, Πⁱ account for >50% total sensitivity",
+                        "passed": False,
+                        "reason": "APGIAgent unavailable - synthetic oracle not permitted",
+                    },
+                }
+            Y[i] = perf
 
         # Perform Sobol analysis
         Si = sobol.analyze(problem, Y, calc_second_order=False, print_to_console=False)
+
+        # NEW: Bootstrap confidence intervals for S_total indices
+        # Per specification: bootstrap confidence intervals required for uncertainty quantification
+        bootstrap_st_indices = _compute_bootstrap_sobol_indices(
+            param_values, Y, problem, n_bootstrap=1000, ci_level=0.95
+        )
 
         results = {
             "sobol_analysis": True,
@@ -1018,6 +1274,7 @@ def analyze_sobol_sensitivity(
                 "S1_conf": Si["S1_conf"].tolist(),
                 "ST_conf": Si["ST_conf"].tolist(),
             },
+            "bootstrap_confidence_intervals": bootstrap_st_indices,
             "parameter_names": list(param_bounds.keys()),
         }
 
@@ -1067,7 +1324,8 @@ def analyze_sobol_sensitivity(
             ),
         }
 
-        # NEW: APGI theoretical hierarchy falsification gate
+        # NEW: APGI theoretical hierarchy falsification gate with bootstrap overlap test
+        # Per FP-8 specification: Check via bootstrap overlap, not simple inequality
         # APGI predicts: S_total(θt) > S_total(β) > S_total(Πi) > S_total(Πe)
         apgi_hierarchy_params = ["theta_0", "beta", "Pi_i", "Pi_e"]
         available_hierarchy_params = [
@@ -1075,70 +1333,25 @@ def analyze_sobol_sensitivity(
         ]
 
         if len(available_hierarchy_params) >= 3:  # Need at least 3 to test hierarchy
+            # Use bootstrap confidence intervals for hierarchy testing
+            hierarchy_test = _check_bootstrap_hierarchy_overlap(
+                bootstrap_st_indices, apgi_hierarchy_params
+            )
+            results["apgi_hierarchy_falsification"] = hierarchy_test
+
+            # Include point estimates for reference
             param_st_indices = {
                 param: float(st_indices[list(param_bounds.keys()).index(param)])
                 for param in available_hierarchy_params
             }
-
-            # Sort by ST indices (descending)
-            sorted_params = sorted(
-                available_hierarchy_params,
-                key=lambda x: param_st_indices[x],
-                reverse=True,
-            )
-
-            # Check if hierarchy is violated
-            hierarchy_violations = []
-            expected_order = [
-                "theta_0",
-                "beta",
-                "Pi_i",
-                "Pi_e",
-            ]  # Expected from high to low sensitivity
-
-            for i in range(len(sorted_params) - 1):
-                current_param = sorted_params[i]
-                next_param = sorted_params[i + 1]
-
-                # Find expected positions
-                current_expected_pos = next(
-                    (
-                        pos
-                        for pos, p in enumerate(expected_order)
-                        if p in available_hierarchy_params and p == current_param
-                    ),
-                    None,
-                )
-                next_expected_pos = next(
-                    (
-                        pos
-                        for pos, p in enumerate(expected_order)
-                        if p in available_hierarchy_params and p == next_param
-                    ),
-                    None,
-                )
-
-                if current_expected_pos is not None and next_expected_pos is not None:
-                    if current_expected_pos > next_expected_pos:  # Hierarchy violation
-                        hierarchy_violations.append(
-                            f"{current_param} should be > {next_param}"
-                        )
-
-            results["apgi_hierarchy_falsification"] = {
-                "expected_hierarchy": expected_order,
-                "observed_ranking": sorted_params,
-                "hierarchy_violations": hierarchy_violations,
-                "hierarchy_falsified": len(hierarchy_violations) > 0,
-                "falsification_reason": (
-                    f"APGI hierarchy violated: {hierarchy_violations}"
-                    if hierarchy_violations
-                    else "APGI hierarchy preserved"
-                ),
-            }
+            results["apgi_hierarchy_falsification"][
+                "point_estimates"
+            ] = param_st_indices
         else:
             results["apgi_hierarchy_falsification"] = {
+                "hierarchy_tested": False,
                 "hierarchy_falsified": False,
-                "falsification_reason": "Insufficient parameters to test hierarchy",
+                "reason": "Insufficient parameters to test hierarchy",
             }
 
         # F8.SA: Sobol indices check - β and Πⁱ must account for >50% total sensitivity

@@ -12,9 +12,10 @@ import logging
 import platform
 
 # Platform-specific imports
-if platform.system() != 'Windows':
+if platform.system() != "Windows":
     try:
         import fcntl
+
         FCNTL_AVAILABLE = True
     except ImportError:
         FCNTL_AVAILABLE = False
@@ -51,7 +52,7 @@ class FileLock:
         if not FCNTL_AVAILABLE:
             self.logger.warning("File locking not available on this platform")
             return True  # Pretend to acquire lock for compatibility
-        
+
         try:
             # Open lock file
             self.lock_fd = os.open(self.lock_file, os.O_CREAT | os.O_WRONLY, 0o600)
@@ -83,7 +84,7 @@ class FileLock:
         if not FCNTL_AVAILABLE:
             self.logger.warning("File locking not available on this platform")
             return True  # Pretend to acquire lock for compatibility
-        
+
         try:
             # Open lock file
             self.lock_fd = os.open(self.lock_file, os.O_CREAT | os.O_WRONLY, 0o600)
@@ -110,7 +111,7 @@ class FileLock:
         if not FCNTL_AVAILABLE:
             self.logger.debug("File locking not available, skipping release")
             return
-        
+
         if self.lock_fd is not None:
             try:
                 fcntl.flock(self.lock_fd, fcntl.LOCK_UN)

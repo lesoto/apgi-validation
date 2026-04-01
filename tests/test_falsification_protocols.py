@@ -241,9 +241,6 @@ class TestActiveInferenceAgents:
         module = FALSIFICATION_MODULES["FP_01_ActiveInference"]
 
         try:
-            # Create simulation parameters
-            params = {"n_agents": 10, "n_steps": 100, "learning_rate": 0.01}
-
             # Run simulation via entry point
             results = module.run_falsification()
             assert isinstance(results, dict)

@@ -250,6 +250,21 @@ GENERIC_MIN_R2: float = 0.70  # Generic R² threshold for model fits
 GENERIC_MIN_AUC: float = 0.85  # Generic AUC threshold for classification
 GENERIC_MIN_CORR: float = 0.30  # Generic correlation threshold
 GENERIC_MIN_COHENS_D: float = 0.70  # Generic Cohen's d effect size
+GENERIC_MEDIUM_COHENS_D: float = 0.50  # medium effect size gate
+GENERIC_BINARY_DECISION_THRESHOLD: float = 0.50  # default binary decision cut-off
+
+# VP-02 behavioral threshold modulation constants
+VP2_DELTA_PI_COUPLING: float = 0.038
+VP2_AROUSAL_COUPLING_SCALE: float = 0.35
+VP2_AROUSAL_BOOST_MAX: float = 0.60
+
+# VP-04 suite-calibrated phase transition parameters
+VP4_CALIBRATED_TAU: float = 0.20
+VP4_CALIBRATED_THETA_0: float = 0.12
+VP4_CALIBRATED_ALPHA: float = 35.0
+
+# Liquid / echo-state threshold gates
+LIQUID_IGNITION_DETECTION_THRESHOLD: float = 0.50
 
 # P11 - Fatigue threshold dynamics R² threshold
 P11_MIN_R2: float = 0.70  # R² ≥ 0.70 for fatigue threshold linear model
@@ -302,6 +317,15 @@ THRESHOLD_REGISTRY = {
     "GENERIC_MIN_AUC": GENERIC_MIN_AUC,
     "GENERIC_MIN_CORR": GENERIC_MIN_CORR,
     "GENERIC_MIN_COHENS_D": 0.71,  # Slightly different from registry value to avoid false positive
+    "GENERIC_MEDIUM_COHENS_D": GENERIC_MEDIUM_COHENS_D,
+    "GENERIC_BINARY_DECISION_THRESHOLD": GENERIC_BINARY_DECISION_THRESHOLD,
+    "VP2_DELTA_PI_COUPLING": VP2_DELTA_PI_COUPLING,
+    "VP2_AROUSAL_COUPLING_SCALE": VP2_AROUSAL_COUPLING_SCALE,
+    "VP2_AROUSAL_BOOST_MAX": VP2_AROUSAL_BOOST_MAX,
+    "VP4_CALIBRATED_TAU": VP4_CALIBRATED_TAU,
+    "VP4_CALIBRATED_THETA_0": VP4_CALIBRATED_THETA_0,
+    "VP4_CALIBRATED_ALPHA": VP4_CALIBRATED_ALPHA,
+    "LIQUID_IGNITION_DETECTION_THRESHOLD": LIQUID_IGNITION_DETECTION_THRESHOLD,
     "P11_MIN_R2": P11_MIN_R2,
     "V7.1_PCI_REDUCTION": V7_1_MIN_PCI_REDUCTION,
     "V7.1_COHENS_D": V7_1_MIN_COHENS_D,

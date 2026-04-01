@@ -9,6 +9,10 @@ Falsification Criteria:
 - FB (Condition B): GWT or IIT is strictly more parsimonious (ΔBIC < threshold)
 """
 
+import json
+import math
+from pathlib import Path
+
 NAMED_PREDICTIONS = {
     # FP-1: Psychophysical Threshold (P1.x)
     "P1.1": "Interoceptive precision modulates detection threshold (d=0.40–0.60)",
@@ -38,6 +42,7 @@ NAMED_PREDICTIONS = {
 
 FRAMEWORK_FALSIFICATION_THRESHOLD_A = 14  # Exactly 14 named predictions must fail
 ALTERNATIVE_PARSIMONY_THRESHOLD_B = 10.0  # ΔBIC threshold for Condition B (FB)
+PARTIAL_FALSIFICATION_THRESHOLD = 8
 
 # Protocol routing table - maps named predictions to falsification protocols (FP-1 to FP-12)
 PREDICTION_TO_PROTOCOL = {
@@ -68,49 +73,140 @@ PREDICTION_TO_PROTOCOL = {
 }
 
 
-def aggregate_prediction_results(results_input) -> dict:
-    """Load results from protocols (paths or dicts) and tally prediction pass/fail."""
-    import json
-    from typing import Dict, Any, List, Union
-
-    # Initialize tallies with proper structure: Dict[str, Dict[str, Any]]
-    tallies: Dict[str, Dict[str, Any]] = {
-        k: {"passed": False, "evidence": []} for k in NAMED_PREDICTIONS
-    }
-
-    # Handle dict of results, list of paths, or list of dicts
-    items: List[Union[str, dict]] = []
+def _iter_result_items(results_input):
+    """Normalize supported result containers into iterable items."""
     if isinstance(results_input, dict):
-        items = list(results_input.values())
-    elif isinstance(results_input, list):
-        items = results_input
+        return list(results_input.items())
+    if isinstance(results_input, list):
+        return [(f"item_{idx}", item) for idx, item in enumerate(results_input)]
+    return []
 
-    for item in items:
+
+def _extract_named_predictions(data: dict) -> dict:
+    """Extract named predictions from either top-level or nested protocol payloads."""
+    if not isinstance(data, dict):
+        return {}
+    if isinstance(data.get("named_predictions"), dict):
+        return data["named_predictions"]
+    nested = data.get("results")
+    if isinstance(nested, dict) and isinstance(nested.get("named_predictions"), dict):
+        return nested["named_predictions"]
+    return {}
+
+
+def _aggregate_prediction_results_with_audit(results_input) -> dict:
+    """Load results from protocols with an explicit audit trail."""
+    from typing import Dict, Any
+
+    tallies: Dict[str, Dict[str, Any]] = {
+        k: {"passed": False, "evidence": [], "sources": []} for k in NAMED_PREDICTIONS
+    }
+    audit_log = []
+    missing_files = []
+    extraction_errors = []
+
+    for item_name, item in _iter_result_items(results_input):
         data = None
+        source_name = item_name
         if isinstance(item, str):
+            source_name = item
+            path = Path(item)
+            if not path.exists():
+                audit_log.append(
+                    {
+                        "source": str(path),
+                        "status": "MISSING",
+                        "reason": "File not found",
+                    }
+                )
+                missing_files.append(str(path))
+                continue
             try:
-                with open(item) as f:
+                with open(path, encoding="utf-8") as f:
                     data = json.load(f)
-            except Exception:
+                audit_log.append({"source": str(path), "status": "LOADED"})
+            except json.JSONDecodeError as exc:
+                audit_log.append(
+                    {
+                        "source": str(path),
+                        "status": "ERROR",
+                        "reason": f"Invalid JSON: {exc}",
+                    }
+                )
+                extraction_errors.append({"source": str(path), "error": str(exc)})
                 continue
         elif isinstance(item, dict):
             data = item
-
+            audit_log.append({"source": source_name, "status": "IN_MEMORY"})
+        else:
+            audit_log.append(
+                {
+                    "source": source_name,
+                    "status": "ERROR",
+                    "reason": f"Unsupported result type: {type(item).__name__}",
+                }
+            )
+            extraction_errors.append(
+                {
+                    "source": source_name,
+                    "error": f"Unsupported result type: {type(item).__name__}",
+                }
+            )
+            continue
         if not data:
+            audit_log.append(
+                {
+                    "source": source_name,
+                    "status": "ERROR",
+                    "reason": "Empty result payload",
+                }
+            )
+            extraction_errors.append(
+                {"source": source_name, "error": "Empty result payload"}
+            )
             continue
 
-        for pred_id, result_info in data.get("named_predictions", {}).items():
+        named_predictions = _extract_named_predictions(data)
+        if not named_predictions:
+            audit_log.append(
+                {
+                    "source": source_name,
+                    "status": "ERROR",
+                    "reason": "No named_predictions found in payload",
+                }
+            )
+            extraction_errors.append(
+                {
+                    "source": source_name,
+                    "error": "No named_predictions found in payload",
+                }
+            )
+            continue
+
+        for pred_id, result_info in named_predictions.items():
             if pred_id in tallies:
                 if isinstance(result_info, dict):
                     tallies[pred_id]["passed"] |= result_info.get("passed", False)
-                    evidence_item = "result_dict" if isinstance(item, dict) else item
+                    evidence_item = source_name
                     tallies[pred_id]["evidence"].append(evidence_item)
+                    tallies[pred_id]["sources"].append(source_name)
                 elif isinstance(result_info, bool):
                     tallies[pred_id]["passed"] |= result_info
-                    evidence_item = "result_dict" if isinstance(item, dict) else item
+                    evidence_item = source_name
                     tallies[pred_id]["evidence"].append(evidence_item)
+                    tallies[pred_id]["sources"].append(source_name)
 
-    return tallies
+    return {
+        "predictions": tallies,
+        "audit_log": audit_log,
+        "missing_files": missing_files,
+        "extraction_errors": extraction_errors,
+    }
+
+
+def aggregate_prediction_results(results_input) -> dict:
+    """Load results from protocols (paths or dicts) and tally prediction pass/fail."""
+    return _aggregate_prediction_results_with_audit(results_input)["predictions"]
 
 
 def check_framework_falsification_condition_a(apgi_predictions: dict) -> bool:
@@ -144,23 +240,17 @@ def extract_apgi_bic_advantage(results_input) -> float:
     Advantage = (Best Alternative BIC) - (APGI BIC)
     If Advantage < 0, an alternative is better than APGI.
     """
-    import json
-
-    items = []
-    if isinstance(results_input, dict):
-        items = list(results_input.values())
-    elif isinstance(results_input, list):
-        items = results_input
-
     advantages = []
+    audit = _aggregate_prediction_results_with_audit(results_input)
+    items = _iter_result_items(results_input)
 
-    for item in items:
+    for _, item in items:
         data = None
         if isinstance(item, str):
             try:
-                with open(item) as f:
+                with open(item, encoding="utf-8") as f:
                     data = json.load(f)
-            except Exception:
+            except (FileNotFoundError, json.JSONDecodeError):
                 continue
         elif isinstance(item, dict):
             data = item
@@ -184,8 +274,9 @@ def extract_apgi_bic_advantage(results_input) -> float:
                         advantages.append(best_alt_bic - apgi_bic)
 
         # Or look into predictions
-        if "P3.bic" in data.get("named_predictions", {}):
-            p3 = data["named_predictions"]["P3.bic"]
+        named_predictions = _extract_named_predictions(data)
+        if "P3.bic" in named_predictions:
+            p3 = named_predictions["P3.bic"]
             if isinstance(p3, dict) and "apgi_advantage" in p3:
                 advantages.append(float(p3["apgi_advantage"]))
 
@@ -193,10 +284,25 @@ def extract_apgi_bic_advantage(results_input) -> float:
         # Take the worst-case (minimum) advantage across environments
         return min(advantages)
 
+    if audit["missing_files"] or audit["extraction_errors"]:
+        return float("-inf")
+
     return float("inf")  # default to pass if no BIC data
 
 
 ALTERNATIVE_PARSIMONY_THRESHOLD_B = 10.0  # ΔBIC threshold for Condition B (FB)
+
+
+def _sigmoid(value: float) -> float:
+    return 1.0 / (1.0 + math.exp(-value))
+
+
+def _derive_distinctiveness_threshold(apgi_predictions: dict) -> float:
+    """Derive a comparison threshold from observed APGI coverage rather than hardcoding 0.90."""
+    observed = sum(1 for pred in apgi_predictions.values() if pred.get("evidence"))
+    if observed == 0:
+        return 0.90
+    return max(0.75, min(0.95, 1.0 - (1.0 / observed)))
 
 
 def check_framework_falsification_condition_b(
@@ -237,13 +343,14 @@ def check_framework_falsification_condition_b(
             continue
         alt_passing = {k for k, v in alt_preds.items() if v.get("passed")}
         overlap = len(apgi_passing & alt_passing) / max(len(apgi_passing), 1)
+        overlap_threshold = _derive_distinctiveness_threshold(apgi_predictions)
         # If alternative passes same predictions, APGI loses distinctiveness
-        if overlap >= 0.90:  # 90% overlap threshold
+        if overlap >= overlap_threshold:
             return True
     return False
 
 
-def generate_gnwt_predictions() -> dict:
+def generate_gnwt_predictions(results_input=None, apgi_predictions=None) -> dict:
     """
     Generate GNWT framework predictions for comparison.
 
@@ -255,20 +362,26 @@ def generate_gnwt_predictions() -> dict:
     Returns:
         dict: Predictions with same structure as APGI predictions
     """
+    reference = apgi_predictions or aggregate_prediction_results(results_input)
     gnwt_preds = {}
     for pred_id in NAMED_PREDICTIONS:
-        # GWT predicts failure for any system without evolved precision
-        # Key consciousness predictions that should fail:
-        if pred_id in ["P2.b", "P4.a", "P4.c"]:
-            gnwt_preds[pred_id] = {"passed": False, "framework": "GNWT"}
-        else:
-            # Integration measures might pass in simple systems
-            gnwt_preds[pred_id] = {"passed": True, "framework": "GNWT"}
+        apgi_passed = 1.0 if reference.get(pred_id, {}).get("passed") else 0.0
+        sensory_weight = 1.2 if pred_id.startswith("P1") else 0.2
+        broadcast_penalty = -1.6 if pred_id in {"P2.b", "P4.a", "P4.c", "P5.a"} else 0.0
+        score = -0.35 + 0.85 * apgi_passed + sensory_weight + broadcast_penalty
+        probability = _sigmoid(score)
+        gnwt_preds[pred_id] = {
+            "passed": probability >= 0.5,
+            "framework": "GNWT",
+            "model": "toy_gnwt_logistic",
+            "score": score,
+            "pass_probability": probability,
+        }
 
     return gnwt_preds
 
 
-def generate_iit_predictions() -> dict:
+def generate_iit_predictions(results_input=None, apgi_predictions=None) -> dict:
     """
     Generate IIT framework predictions for comparison.
 
@@ -280,15 +393,21 @@ def generate_iit_predictions() -> dict:
     Returns:
         dict: Predictions with same structure as APGI predictions
     """
+    reference = apgi_predictions or aggregate_prediction_results(results_input)
     iit_preds = {}
     for pred_id in NAMED_PREDICTIONS:
-        # IIT predicts failure for systems with low integration
-        # Key integration predictions that should fail:
-        if pred_id in ["P4.a", "P4.b", "P5.a"]:
-            iit_preds[pred_id] = {"passed": False, "framework": "IIT"}
-        else:
-            # Basic processing might pass integration tests
-            iit_preds[pred_id] = {"passed": True, "framework": "IIT"}
+        apgi_passed = 1.0 if reference.get(pred_id, {}).get("passed") else 0.0
+        integration_bonus = 1.1 if pred_id in {"P4.a", "P4.b", "P4.d"} else 0.1
+        phi_penalty = -1.4 if pred_id in {"P1.2", "P3.conv", "P5.a"} else 0.0
+        phi_score = -0.25 + 0.8 * apgi_passed + integration_bonus + phi_penalty
+        probability = _sigmoid(phi_score)
+        iit_preds[pred_id] = {
+            "passed": probability >= 0.5,
+            "framework": "IIT",
+            "model": "toy_iit_phi_threshold",
+            "phi_score": phi_score,
+            "pass_probability": probability,
+        }
 
     return iit_preds
 
@@ -302,12 +421,16 @@ def run_framework_falsification(results_input) -> dict:
     Returns:
         dict: Complete falsification results with conditions A and B
     """
-    # Aggregate APGI predictions
-    apgi_predictions = aggregate_prediction_results(results_input)
+    aggregation = _aggregate_prediction_results_with_audit(results_input)
+    apgi_predictions = aggregation["predictions"]
 
     # Generate alternative framework predictions
-    gnwt_predictions = generate_gnwt_predictions()
-    iit_predictions = generate_iit_predictions()
+    gnwt_predictions = generate_gnwt_predictions(
+        results_input=results_input, apgi_predictions=apgi_predictions
+    )
+    iit_predictions = generate_iit_predictions(
+        results_input=results_input, apgi_predictions=apgi_predictions
+    )
 
     # Check falsification conditions
 
@@ -322,24 +445,55 @@ def run_framework_falsification(results_input) -> dict:
         iit_predictions=iit_predictions,
     )
 
+    core_prediction_ids = [
+        pred_id
+        for pred_id in apgi_predictions
+        if pred_id.startswith("P") and pred_id[1].isdigit() and int(pred_id[1]) <= 5
+    ]
+    failed_core_predictions = [
+        pred_id
+        for pred_id in core_prediction_ids
+        if not apgi_predictions[pred_id].get("passed")
+    ]
+    partial_falsification = (
+        len(failed_core_predictions) >= PARTIAL_FALSIFICATION_THRESHOLD
+    )
+    if condition_a or condition_b:
+        status = "FRAMEWORK_FALSIFIED"
+    elif partial_falsification:
+        status = "PARTIAL_FALSIFICATION"
+    else:
+        status = "NOT_FALSIFIED"
+
     return {
         "framework_falsified": condition_a or condition_b,
+        "status": status,
         "condition_a_met": condition_a,
         "condition_b_met": condition_b,
+        "partial_falsification": {
+            "threshold": PARTIAL_FALSIFICATION_THRESHOLD,
+            "met": partial_falsification,
+            "failed_predictions": failed_core_predictions,
+        },
         "apgi_predictions": apgi_predictions,
         "gnwt_predictions": gnwt_predictions,
         "iit_predictions": iit_predictions,
+        "audit_log": aggregation["audit_log"],
         "summary": {
             "total_predictions": len(NAMED_PREDICTIONS),
             "apgi_passing": sum(
                 1 for r in apgi_predictions.values() if r.get("passed")
             ),
+            "apgi_failing_core_predictions": len(failed_core_predictions),
+            "missing_protocol_files": aggregation["missing_files"],
+            "extraction_errors": aggregation["extraction_errors"],
             "gnwt_passing": sum(
                 1 for r in gnwt_predictions.values() if r.get("passed")
             ),
             "iit_passing": sum(1 for r in iit_predictions.values() if r.get("passed")),
             "threshold_a": "All Falsified",
             "threshold_b": ALTERNATIVE_PARSIMONY_THRESHOLD_B,
+            "partial_falsification_threshold": PARTIAL_FALSIFICATION_THRESHOLD,
         },
     }
 
@@ -431,6 +585,98 @@ class FalsificationAggregator:
             gnwt_predictions=gnwt_predictions,
             iit_predictions=iit_predictions,
         )
+
+    def check_protocol_reconciliation(
+        self, fp06_results: dict, fp11_results: dict
+    ) -> dict:
+        """Check for protocol conflicts between FP-06 and FP-11 on F6.x criteria.
+
+        FP-06 (Liquid Network Energy Benchmark) and FP-11 (Liquid Network Dynamics
+        & Echo State) both implement F6.1-F6.6 criteria. This function detects
+        disagreements between the two protocols and flags them for manual review.
+
+        Args:
+            fp06_results: Results from FP_06_LiquidNetwork_EnergyBenchmark
+            fp11_results: Results from FP_11_LiquidNetworkDynamics_EchoState
+
+        Returns:
+            dict: Reconciliation report with PROTOCOL_CONFLICT status if disagreements found
+        """
+        # F6.x criteria to check
+        f6_criteria = ["F6.1", "F6.2", "F6.3", "F6.4", "F6.5", "F6.6"]
+
+        conflicts = []
+        agreements = []
+
+        # Extract criterion results from FP-06
+        fp06_f6 = {}
+        if "falsification_results" in fp06_results:
+            for criterion in f6_criteria:
+                if criterion in fp06_results["falsification_results"]:
+                    fp06_f6[criterion] = fp06_results["falsification_results"][
+                        criterion
+                    ].get("passed", None)
+
+        # Extract criterion results from FP-11
+        fp11_f6 = {}
+        if "falsification_status" in fp11_results:
+            # FP-11 uses different structure
+            status = fp11_results["falsification_status"]
+            fp11_f6["F6.3"] = not status.get("echo_state_falsified", True)
+            fp11_f6["F6.4"] = not status.get("fading_memory_falsified", True)
+            fp11_f6["F6.5"] = not status.get("phase_transition_falsified", True)
+        if "property_scores" in fp11_results:
+            scores = fp11_results["property_scores"]
+            # Map property scores to F6.x criteria
+            if "v6_1_threshold_transition" in scores:
+                fp11_f6["F6.1"] = scores["v6_1_threshold_transition"] >= 0.6
+            if "v6_2_integration_window" in scores:
+                fp11_f6["F6.2"] = scores["v6_2_integration_window"] >= 0.6
+
+        # Check for disagreements
+        for criterion in f6_criteria:
+            if criterion in fp06_f6 and criterion in fp11_f6:
+                fp06_pass = fp06_f6[criterion]
+                fp11_pass = fp11_f6[criterion]
+
+                if fp06_pass != fp11_pass:
+                    conflicts.append(
+                        {
+                            "criterion": criterion,
+                            "fp06_result": "PASS" if fp06_pass else "FAIL",
+                            "fp11_result": "PASS" if fp11_pass else "FAIL",
+                            "severity": (
+                                "HIGH" if criterion in ["F6.1", "F6.2"] else "MEDIUM"
+                            ),
+                        }
+                    )
+                else:
+                    agreements.append(
+                        {
+                            "criterion": criterion,
+                            "result": "PASS" if fp06_pass else "FAIL",
+                        }
+                    )
+
+        # Build reconciliation report
+        if conflicts:
+            return {
+                "status": "PROTOCOL_CONFLICT",
+                "message": f"FP-06 and FP-11 disagree on {len(conflicts)} F6.x criteria",
+                "conflicts": conflicts,
+                "agreements": agreements,
+                "recommendation": "Manual review required: Check implementation differences between FP-06 and FP-11",
+                "fp06_f6_results": fp06_f6,
+                "fp11_f6_results": fp11_f6,
+            }
+        else:
+            return {
+                "status": "CONSISTENT",
+                "message": f"FP-06 and FP-11 agree on all {len(agreements)} F6.x criteria",
+                "agreements": agreements,
+                "fp06_f6_results": fp06_f6,
+                "fp11_f6_results": fp11_f6,
+            }
 
     def run_full_analysis(self, results_input) -> dict:
         """Run complete framework falsification analysis.

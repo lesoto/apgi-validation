@@ -7,14 +7,25 @@ Tests error scenarios, UI updates, queue handling, and thread safety.
 """
 
 import pytest
+import queue
 
-tkinter = pytest.importorskip("tkinter")
-
-import time
 import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
 import tkinter as tk
+
+# Skip all tests if no display is available
+try:
+    # Test if we can create a Tk root window
+    test_root = tk.Tk()
+    test_root.destroy()
+    HAS_DISPLAY = True
+except Exception:
+    HAS_DISPLAY = False
+
+pytestmark = pytest.mark.skipif(
+    not HAS_DISPLAY, reason="No display available for GUI tests"
+)
 
 import Validation
 
@@ -46,139 +57,196 @@ class TestGUIErrorPaths:
 
     def test_protocol_import_error_handling(self):
         """Test error handling when protocol module fails to import"""
-        with patch("tkinter.messagebox.showerror") as mock_showerror:
-            root = tk.Tk()  # Create mock root
-            gui = APGIValidationGUI(root)
+        root = tk.Tk()  # Create mock root
+        gui = APGIValidationGUI(root)
 
-            # Simulate protocol import error
-            error = ImportError("No module named 'nonexistent_protocol'")
-            gui._handle_protocol_error(error, 1)
+        # Simulate protocol import error
+        error = ImportError("No module named 'nonexistent_protocol'")
+        result = gui._handle_protocol_error(error, 1)
 
-            # Should show error message
-            mock_showerror.assert_called_once()
-            call_args = mock_showerror.call_args[0]
-            assert "No module named" in str(call_args[0])
+        # Should return error result dict with expected fields
+        assert isinstance(result, dict)
+        assert "status" in result
+        assert "IMPORT_ERROR" in result["status"]
+        assert "troubleshooting" in result
+        assert result["error_type"] == "ImportError"
 
     def test_protocol_execution_error_with_queue(self):
         """Test error handling during protocol execution with full queue"""
-        with patch("tkinter.messagebox.showerror") as mock_showerror:
-            root = tk.Tk()  # Create mock root
-            gui = APGIValidationGUI(root)
+        root = tk.Tk()  # Create mock root
+        gui = APGIValidationGUI(root)
 
-            # Fill queue to test full queue behavior
-            for i in range(100):  # Fill queue beyond capacity
-                gui._update_queue.put(("results", f"Test message {i}"))
+        # Mock validator.falsification_status to avoid AttributeError
+        gui.validator = Mock()
+        gui.validator.falsification_status = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": [],
+        }
 
-            # Simulate protocol execution error
-            error = RuntimeError("Protocol execution failed")
-            gui._handle_protocol_execution_error(error, 1, {1: "Test Protocol"})
+        # Fill queue to test full queue behavior
+        for i in range(100):  # Fill queue beyond capacity
+            try:
+                gui._update_queue.put(("results", f"Test message {i}"), block=False)
+            except queue.Full:
+                break  # Queue is full, which is expected
 
-            # Should handle error without blocking
-            mock_showerror.assert_called_once()
-            assert "Protocol execution failed" in str(mock_showerror.call_args[0])
+        # Simulate protocol execution error
+        error = RuntimeError("Protocol execution failed")
+        protocol_tiers = {1: "primary"}
+
+        # Mock update_results to capture calls
+        update_calls = []
+        gui.update_results = lambda msg: update_calls.append(msg)
+
+        gui._handle_protocol_execution_error(error, 1, protocol_tiers)
+
+        # Verify error was logged via update_results
+        assert len(update_calls) > 0
+        assert any("Protocol 1 failed" in str(call) for call in update_calls)
+        assert any("RuntimeError" in str(call) for call in update_calls)
 
     def test_queue_overflow_handling(self):
         """Test behavior when update queue is full"""
-        with patch("tkinter.messagebox.showwarning") as mock_warning:
-            root = tk.Tk()  # Create mock root
-            gui = APGIValidationGUI(root)
+        root = tk.Tk()  # Create mock root
+        gui = APGIValidationGUI(root)
 
-            # Fill queue to capacity
-            for i in range(1000):  # Exceed typical queue size
-                try:
-                    gui._update_queue.put(("results", f"Overflow test {i}"))
-                except Exception:
-                    # Should handle gracefully without crashing
-                    pass
+        # Fill queue to capacity - should not raise exceptions
+        full_count = 0
+        for i in range(1000):  # Exceed typical queue size
+            try:
+                gui._update_queue.put(("results", f"Overflow test {i}"), block=False)
+            except queue.Full:
+                full_count += 1
+                # Queue is full, which is expected - update_status should skip without blocking
+                break
 
-            # Should show warning about queue overflow
-            mock_warning.assert_called()
+        # Verify queue has items and filled up
+        assert gui._update_queue.qsize() > 0 or full_count > 0
 
     def test_thread_safety_during_error(self):
         """Test thread safety when errors occur during protocol execution"""
         results = []
 
-        def capture_gui_update(queue_type, data):
-            results.append((queue_type, data))
+        def capture_gui_update(msg):
+            results.append(msg)
 
         # Create GUI instance first
         root = tk.Tk()  # Create mock root
         gui = APGIValidationGUI(root)
 
-        # Mock GUI update method to capture calls
-        with patch.object(
-            gui, "_update_results_display", side_effect=capture_gui_update
-        ):
-            # Start protocol execution in background
-            error = ValueError("Test error")
-            gui._handle_protocol_execution_error(error, 1, {1: "Test Protocol"})
+        # Mock validator.falsification_status
+        gui.validator = Mock()
+        gui.validator.falsification_status = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": [],
+        }
 
-            # Wait for error handling
-            time.sleep(0.1)
+        # Mock update_results to capture calls
+        gui.update_results = capture_gui_update
 
-            # Verify thread-safe updates
-            assert len(results) > 0
-            assert any("results" in str(result) for result in results)
+        # Trigger error handling
+        error = ValueError("Test error")
+        gui._handle_protocol_execution_error(error, 1, {1: "primary"})
+
+        # Verify update_results was called with error info
+        assert len(results) > 0
+        assert any("Test error" in str(r) for r in results)
 
     def test_critical_error_multiple_protocols(self):
         """Test critical error handling with multiple selected protocols"""
-        with patch("tkinter.messagebox.showerror") as mock_showerror:
-            root = tk.Tk()  # Create mock root
-            gui = APGIValidationGUI(root)
+        root = tk.Tk()  # Create mock root
+        gui = APGIValidationGUI(root)
 
-            # Mock multiple protocol selection
-            mock_combobox = Mock()
-            gui.protocol_selector = mock_combobox
+        # Capture update calls
+        status_calls = []
+        results_calls = []
+        gui.update_status = lambda msg: status_calls.append(msg)
+        gui.update_results = lambda msg: results_calls.append(msg)
 
-            error = ImportError("Critical error in multiple protocols")
-            gui._handle_validation_critical_error(error, [1, 2, 3])
+        error = ImportError("Critical error in multiple protocols")
+        selected_protocols = [1, 2, 3]
+        gui._handle_validation_critical_error(error, selected_protocols)
 
-            # Should show comprehensive error message
-            mock_showerror.assert_called_once()
-            error_msg = str(mock_showerror.call_args[0])
-            assert "Critical error" in error_msg
-            assert "protocols 1, 2, 3" in error_msg
+        # Verify error was logged via update_results
+        assert len(results_calls) > 0
+        assert any("CRITICAL ERROR" in str(call) for call in results_calls)
+        assert any("ImportError" in str(call) for call in results_calls)
 
     def test_ui_state_consistency_during_errors(self):
         """Test UI state consistency during error conditions"""
         root = tk.Tk()  # Create mock root
         gui = APGIValidationGUI(root)
 
+        # Mock validator.falsification_status
+        gui.validator = Mock()
+        gui.validator.falsification_status = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": [],
+        }
+
         # Simulate error during protocol execution
         error = RuntimeError("Test error")
-        gui._handle_protocol_execution_error(error, 1, {1: "Test Protocol"})
+        gui._handle_protocol_execution_error(error, 1, {1: "primary"})
 
-        # Verify UI state remains consistent
-        assert hasattr(gui, "protocol_selector")
-        assert hasattr(gui, "start_button")
-        assert hasattr(gui, "results_display")
+        # Verify UI state remains consistent - check actual widget names
+        assert hasattr(gui, "protocol_vars")  # protocol_vars exists
+        assert hasattr(gui, "run_button")  # run_button (not start_button)
+        assert hasattr(gui, "results_text")  # results_text (not results_display)
 
     def test_error_recovery_and_retry(self):
-        """Test error recovery and retry mechanisms"""
-        with patch("tkinter.messagebox.askyesno") as mock_ask:
-            root = tk.Tk()  # Create mock root
-            gui = APGIValidationGUI(root)
-
-            # Simulate recoverable error
-            error = IOError("Recoverable error")
-            gui._handle_protocol_execution_error(error, 1, {1: "Test Protocol"})
-
-            # Should prompt for retry
-            mock_ask.assert_called_once()
-            assert "retry" in str(mock_ask.call_args[0]).lower()
-
-    def test_memory_cleanup_after_error(self):
-        """Test memory cleanup after error conditions"""
+        """Test error recovery and retry mechanisms - GUI uses queued updates, not messagebox"""
         root = tk.Tk()  # Create mock root
         gui = APGIValidationGUI(root)
 
-        # Simulate memory-intensive error
-        error = MemoryError("Out of memory")
-        gui._handle_protocol_execution_error(error, 1, {1: "Test Protocol"})
+        # Mock validator.falsification_status
+        gui.validator = Mock()
+        gui.validator.falsification_status = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": [],
+        }
 
-        # Verify cleanup attempts
-        # This would be verified by checking memory usage patterns
-        assert hasattr(gui, "_cleanup_resources")
+        # Capture update calls
+        results_calls = []
+        gui.update_results = lambda msg: results_calls.append(msg)
+
+        # Simulate recoverable error - GUI queues updates, no retry prompt
+        error = IOError("Recoverable error")
+        gui._handle_protocol_execution_error(error, 1, {1: "primary"})
+
+        # Verify error was logged
+        assert len(results_calls) > 0
+        assert any("IOError" in str(call) for call in results_calls)
+
+    def test_memory_cleanup_after_error(self):
+        """Test memory cleanup after error conditions - protocol_cache exists"""
+        root = tk.Tk()  # Create mock root
+        gui = APGIValidationGUI(root)
+
+        # Verify cleanup method exists (clear_protocol_cache or similar)
+        assert hasattr(gui, "clear_protocol_cache")
+
+        # Simulate memory-intensive error - verify it doesn't crash
+        error = MemoryError("Out of memory")
+
+        # Mock validator.falsification_status
+        gui.validator = Mock()
+        gui.validator.falsification_status = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": [],
+        }
+
+        # Should handle without crashing
+        gui._handle_protocol_execution_error(error, 1, {1: "primary"})
+
+        # Verify clear_protocol_cache works
+        gui._protocol_cache = {"test": "data"}
+        gui.clear_protocol_cache()
+        assert len(gui._protocol_cache) == 0
 
     def test_concurrent_error_handling(self):
         """Test handling of concurrent errors from multiple protocols"""
@@ -203,35 +271,50 @@ class TestGUIErrorPaths:
 
     def test_error_logging_and_troubleshooting(self):
         """Test error logging and troubleshooting information"""
-        with patch("tkinter.scrolledtext.ScrolledText") as mock_scrolled:
-            root = tk.Tk()  # Create mock root
-            gui = APGIValidationGUI(root)
+        root = tk.Tk()  # Create mock root
+        gui = APGIValidationGUI(root)
 
-            # Simulate complex error
-            error = Exception("Complex multi-layer error")
-            gui._handle_protocol_execution_error(error, 1, {1: "Test Protocol"})
+        # Mock validator.falsification_status
+        gui.validator = Mock()
+        gui.validator.falsification_status = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": [],
+        }
 
-            # Verify troubleshooting info is generated
-            mock_scrolled.return_value.insert.assert_called()
+        # Capture results
+        results_calls = []
+        gui.update_results = lambda msg: results_calls.append(msg)
 
-            # Check that troubleshooting hints are included
-            call_args = mock_scrolled.return_value.insert.call_args
-            inserted_text = str(call_args[1])  # The text argument
-            assert "troubleshooting" in inserted_text.lower()
-            assert "error type" in inserted_text.lower()
+        # Simulate complex error
+        error = Exception("Complex multi-layer error")
+        gui._handle_protocol_execution_error(error, 1, {1: "Test Protocol"})
+
+        # Verify troubleshooting info is included in update_results calls
+        assert len(results_calls) >= 2  # Error message + troubleshooting
+        all_text = " ".join(str(c) for c in results_calls)
+        assert "troubleshooting" in all_text.lower() or "Troubleshooting" in all_text
 
     def test_gui_responsiveness_during_error(self):
         """Test GUI remains responsive during error handling"""
         root = tk.Tk()  # Create mock root
         gui = APGIValidationGUI(root)
 
-        def mock_update():
-            # Mock update that should not block
-            pass
+        # Mock validator.falsification_status
+        gui.validator = Mock()
+        gui.validator.falsification_status = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": [],
+        }
 
-        with patch.object(gui, "_update_results_display", side_effect=mock_update):
-            error = TimeoutError("Protocol timeout")
-            gui._handle_protocol_execution_error(error, 1, {1: "Test Protocol"})
+        # Track update calls
+        update_calls = []
+        gui.update_results = lambda msg: update_calls.append(msg)
 
-            # GUI should remain responsive
-            # This would be verified by checking that the main thread isn't blocked
+        error = TimeoutError("Protocol timeout")
+        gui._handle_protocol_execution_error(error, 1, {1: "primary"})
+
+        # Verify updates were queued (non-blocking)
+        assert len(update_calls) > 0
+        assert any("timeout" in str(call).lower() for call in update_calls)

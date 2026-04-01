@@ -9,7 +9,7 @@ import os
 import sys
 import secrets
 import warnings
-from typing import Optional
+from typing import Optional, Any
 
 # Load environment variables from .env file
 try:
@@ -135,13 +135,42 @@ try:
 except ImportError as e:
     if "tqdm" in str(e):
         BATCH_PROCESSOR_AVAILABLE = False
-        BatchProcessor = None
+        BatchProcessor: Any = None  # type: ignore[misc,assignment,no-redef]
         warnings.warn(
             "Warning: BatchProcessor unavailable due to missing tqdm dependency. Install tqdm to enable batch processing.",
             ImportWarning,
         )
     else:
         raise
+
+# Check optional protocol dependencies and emit RuntimeWarning if absent
+_OPTIONAL_DEPS = {
+    "pymc": ("pymc", "5.0.0"),  # Bayesian modeling (VP-11, FP-10)
+    "arviz": ("arviz", "0.16.0"),  # Bayesian visualization
+    "mne": ("mne", "1.6.0"),  # EEG processing (VP-01, VP-07, VP-09)
+    "lifelines": ("lifelines", "0.27.0"),  # Survival analysis (VP-02, FP-02)
+    "captum": ("captum", "0.7.0"),  # Deep learning explainability (VP-09)
+    "salib": ("SALib", "1.4.0"),  # Sensitivity analysis (FP-08)
+    "sklearn": ("sklearn", "1.5.0"),  # Machine learning (VP-01, VP-02, FP-03)
+    "sympy": ("sympy", "1.12"),  # Symbolic mathematics (FP-07, FP-08)
+}
+
+_MISSING_OPTIONAL_DEPS = []
+
+for dep_name, (import_name, min_version) in _OPTIONAL_DEPS.items():
+    try:
+        __import__(import_name)
+    except ImportError:
+        _MISSING_OPTIONAL_DEPS.append(dep_name)
+
+if _MISSING_OPTIONAL_DEPS:
+    warnings.warn(
+        f"Optional protocol dependencies missing: {', '.join(_MISSING_OPTIONAL_DEPS)}. "
+        f"Install with: pip install -r requirements-protocols.txt. "
+        f"Some validation/falsification protocols will be unavailable.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
 
 from .config_manager import ConfigManager
 from .cache_manager import CacheManager

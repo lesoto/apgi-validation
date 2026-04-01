@@ -16,12 +16,21 @@ import json
 import logging
 import math
 from dataclasses import dataclass
-from typing import Any, Dict, Tuple
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 from scipy.signal import convolve
+
+try:
+    import nibabel as nib
+
+    HAS_NIBABEL = True
+except ImportError:
+    HAS_NIBABEL = False
+    nib = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,20 +41,37 @@ np.random.seed(RANDOM_SEED)
 
 
 def double_gamma_hrf(t: np.ndarray) -> np.ndarray:
-    """Standard double-gamma Hemodynamic Response Function (HRF)"""
-    a1, a2 = 6.0, 16.0
-    b1, b2 = 1.0, 1.0
-    c = 1.0 / 6.0
+    """
+    Canonical SPM/FSL-style double-gamma hemodynamic response function.
+
+    Parameters follow the standard named canonical HRF settings:
+    - response_peak_delay_s = 6s
+    - undershoot_delay_s = 16s
+    - response_dispersion_s = 1s
+    - undershoot_dispersion_s = 1s
+    - undershoot_ratio = 1/6
+    """
+    response_peak_delay_s = 6.0
+    undershoot_delay_s = 16.0
+    response_dispersion_s = 1.0
+    undershoot_dispersion_s = 1.0
+    undershoot_ratio = 1.0 / 6.0
     # Avoid 0^0 by clipping t
     t_safe = np.clip(t, 1e-8, None)
     hrf = (
-        t_safe ** (a1 - 1)
-        * np.exp(-t_safe / b1)
-        / (b1**a1 * math.factorial(int(a1) - 1))
-    ) - c * (
-        t_safe ** (a2 - 1)
-        * np.exp(-t_safe / b2)
-        / (b2**a2 * math.factorial(int(a2) - 1))
+        t_safe ** (response_peak_delay_s - 1)
+        * np.exp(-t_safe / response_dispersion_s)
+        / (
+            response_dispersion_s**response_peak_delay_s
+            * math.factorial(int(response_peak_delay_s) - 1)
+        )
+    ) - undershoot_ratio * (
+        t_safe ** (undershoot_delay_s - 1)
+        * np.exp(-t_safe / undershoot_dispersion_s)
+        / (
+            undershoot_dispersion_s**undershoot_delay_s
+            * math.factorial(int(undershoot_delay_s) - 1)
+        )
     )
     hrf[t <= 0] = 0.0
     return hrf / np.max(hrf)
@@ -60,6 +86,8 @@ class fMRI_SimulationConfig:
     cue_onset: float = 1.0
     shock_onset: float = 4.0
     tau_M: float = 1.52  # vmPFC somatic marker tau
+    scanner_noise_pct_bold: float = 0.002  # 0.2% BOLD typical range 0.1-0.3%
+    detectability_sample_size: int = 30
 
 
 class APGI_fMRISimulator:
@@ -151,7 +179,103 @@ class APGI_fMRISimulator:
             "conditions": conditions,
             "dt": self.dt,
             "trial_duration": self.config.trial_duration,
+            "data_source": "synthetic",
+            "scanner_noise_pct_bold": self.config.scanner_noise_pct_bold,
         }
+
+
+def load_fmri_data(fmri_data_path: str) -> Dict[str, Any]:
+    """
+    Load real fMRI data from a NIfTI file or NPZ container.
+
+    Supported inputs:
+    - `.nii` / `.nii.gz` with voxel timeseries averaged across space
+    - `.npz` containing `S_bold`, `M_bold`, optional `conditions`, `dt`, `trial_duration`
+    """
+    path = Path(fmri_data_path)
+    if not path.exists():
+        raise FileNotFoundError(f"fMRI data path not found: {fmri_data_path}")
+
+    if path.suffix == ".npz":
+        data = np.load(path, allow_pickle=True)
+        conditions = data["conditions"].tolist() if "conditions" in data else []
+        return {
+            "S_bold": np.asarray(data["S_bold"], dtype=float),
+            "M_bold": np.asarray(data["M_bold"], dtype=float),
+            "conditions": conditions,
+            "dt": float(data["dt"]) if "dt" in data else 1.0,
+            "trial_duration": (
+                float(data["trial_duration"]) if "trial_duration" in data else 12.0
+            ),
+            "data_source": "real_npz",
+        }
+
+    if path.suffix in {".nii", ".gz"}:
+        if not HAS_NIBABEL:
+            raise ImportError(
+                "nibabel is required to load NIfTI fMRI data; install with pip install nibabel"
+            )
+        img: Any = nib.load(str(path))
+        data = np.asarray(img.get_fdata(), dtype=float)
+        if data.ndim < 4:
+            raise ValueError("Expected 4D NIfTI data (x, y, z, time)")
+        voxel_ts = data.reshape(-1, data.shape[-1])
+        mean_ts = np.nanmean(voxel_ts, axis=0)
+        dt = (
+            float(img.header.get_zooms()[-1])  # type: ignore[attr-defined]
+            if len(img.header.get_zooms()) >= 4  # type: ignore[attr-defined]
+            else 1.0
+        )
+        sidecar_path = (
+            Path(str(path)[:-7] + ".json")
+            if str(path).endswith(".nii.gz")
+            else path.with_suffix(".json")
+        )
+        sidecar = {}
+        if sidecar_path.exists():
+            with open(sidecar_path, "r", encoding="utf-8") as handle:
+                sidecar = json.load(handle)
+        return {
+            "S_bold": mean_ts.copy(),
+            "M_bold": mean_ts.copy(),
+            "conditions": sidecar.get("conditions", []),
+            "dt": float(sidecar.get("dt", dt)),
+            "trial_duration": float(sidecar.get("trial_duration", data.shape[-1] * dt)),
+            "data_source": "real_nifti_mean_signal",
+            "sidecar_path": str(sidecar_path) if sidecar_path.exists() else None,
+        }
+
+    raise ValueError(
+        f"Unsupported fMRI data format for {fmri_data_path}. Use .npz, .nii, or .nii.gz."
+    )
+
+
+def compute_bold_detectability(
+    sim_results: Dict[str, Any],
+    threat_M_bolds: np.ndarray,
+    safe_M_bolds: np.ndarray,
+    scanner_noise_pct_bold: float = 0.002,
+    n_participants: int = 30,
+) -> Dict[str, Any]:
+    """Estimate tSNR and whether the vmPFC BOLD difference is detectable at N=30."""
+    M_bold = np.asarray(sim_results["M_bold"], dtype=float)
+    bold_scale = max(np.max(np.abs(M_bold)), 1e-6)
+    scanner_noise_amplitude = bold_scale * scanner_noise_pct_bold
+    signal_difference = float(
+        np.mean(np.max(threat_M_bolds, axis=1)) - np.mean(np.max(safe_M_bolds, axis=1))
+    )
+    tsnr = float(abs(signal_difference) / max(scanner_noise_amplitude, 1e-9))
+    detectable = (tsnr >= 2.0) and (n_participants >= 30)
+
+    return {
+        "signal_difference": signal_difference,
+        "scanner_noise_amplitude": float(scanner_noise_amplitude),
+        "scanner_noise_pct_bold": float(scanner_noise_pct_bold),
+        "tsnr": tsnr,
+        "n_participants": int(n_participants),
+        "detectable_at_n30": bool(detectable),
+        "criterion": "tSNR >= 2.0 with N >= 30",
+    }
 
 
 def validate_fmri_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
@@ -163,31 +287,42 @@ def validate_fmri_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
     pts_per_trial = int(sim_results["trial_duration"] / dt)
 
     # Extract threat vs safe trials
-    threat_M_bolds = []
-    safe_M_bolds = []
+    threat_M_bolds_list: list[Any] = []
+    safe_M_bolds_list: list[Any] = []
 
     for i, (is_threat, _) in enumerate(conditions):
         idx_start = i * pts_per_trial
         idx_end = idx_start + pts_per_trial
         trial_M = M_bold[idx_start:idx_end]
         if is_threat:
-            threat_M_bolds.append(trial_M)
+            threat_M_bolds_list.append(trial_M)
         else:
-            safe_M_bolds.append(trial_M)
+            safe_M_bolds_list.append(trial_M)
+
+    if not threat_M_bolds_list or not safe_M_bolds_list:
+        raise ValueError(
+            "Threat/safe condition labels are required for anticipation/experience validation"
+        )
+
+    threat_M_bolds = np.asarray(threat_M_bolds_list, dtype=float)
+    safe_M_bolds = np.asarray(safe_M_bolds_list, dtype=float)
 
     # We check if Threat completely diverges from Safe
     stat, p_val = stats.ttest_ind(
         np.max(threat_M_bolds, axis=1),
-        (
-            np.max(safe_M_bolds, axis=1)
-            if len(safe_M_bolds) > 0
-            else [0] * len(threat_M_bolds)
-        ),
+        np.max(safe_M_bolds, axis=1),
     )
 
     # P5.2: Functional connectivity between vmPFC (M) and AI (S) during threat
     # APGI predicts strong functional coupling between salience and somatic markers
     connectivity_r, p_conn = stats.pearsonr(S_bold, M_bold)
+    detectability = compute_bold_detectability(
+        sim_results,
+        threat_M_bolds,
+        safe_M_bolds,
+        scanner_noise_pct_bold=sim_results.get("scanner_noise_pct_bold", 0.002),
+        n_participants=sim_results.get("detectability_sample_size", 30),
+    )
 
     results = {
         "F5.1_Anticipatory_vmPFC": {
@@ -204,6 +339,10 @@ def validate_fmri_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
             "passed": bool(connectivity_r > 0.30 and p_conn < 0.01),
             "pearson_r": float(connectivity_r),
             "p_value": float(p_conn),
+        },
+        "V14_tSNR_Detectability": {
+            "passed": detectability["detectable_at_n30"],
+            **detectability,
         },
     }
 
@@ -233,16 +372,32 @@ def plot_fmri_results(results: Dict[str, Any]):
     plt.close()
 
 
-def main():
+def main(fmri_data_path: Optional[str] = None):
     logger.info(
-        "Initializing APGI fMRI Anticipation/Experience Simulation (VP-5 BOLD)..."
+        "Initializing APGI fMRI Anticipation/Experience Simulation (VP-14 BOLD)..."
     )
     config = fMRI_SimulationConfig()
-    simulator = APGI_fMRISimulator(config)
-    results = simulator.run_experiment()
+    if fmri_data_path:
+        logger.info(f"Loading empirical fMRI data from: {fmri_data_path}")
+        results = load_fmri_data(fmri_data_path)
+        results.setdefault("scanner_noise_pct_bold", config.scanner_noise_pct_bold)
+        results.setdefault(
+            "detectability_sample_size", config.detectability_sample_size
+        )
+    else:
+        simulator = APGI_fMRISimulator(config)
+        results = simulator.run_experiment()
+        results["detectability_sample_size"] = config.detectability_sample_size
 
-    plot_fmri_results(results)
-    logger.info("Generated fMRI BOLD timeseries plot: protocol5_fmri_timeseries.png")
+    if results.get("conditions"):
+        plot_fmri_results(results)
+        logger.info(
+            "Generated fMRI BOLD timeseries plot: protocol5_fmri_timeseries.png"
+        )
+    else:
+        logger.info(
+            "Skipping trial-wise plot because real-data conditions were not provided."
+        )
 
     logger.info("Running Falsification Validation...")
     validation_report = validate_fmri_predictions(results)
@@ -257,7 +412,12 @@ def main():
             f"{k}: {'PASS' if v.get('passed', False) else 'FAIL'} - Details: {v}"
         )
 
-    output_payload = {"config": config.__dict__, "validation_report": validation_report}
+    output_payload = {
+        "config": config.__dict__,
+        "fmri_data_path": fmri_data_path,
+        "data_source": results.get("data_source", "synthetic"),
+        "validation_report": validation_report,
+    }
 
     with open("protocol5_fmri_results.json", "w") as f:
         json.dump(output_payload, f, indent=4)
@@ -287,7 +447,7 @@ def run_validation(**kwargs) -> Dict[str, Any]:
 
     This function provides the interface expected by Master_Validation.py
     """
-    return main()
+    return main(fmri_data_path=kwargs.get("fmri_data_path"))
 
 
 if __name__ == "__main__":

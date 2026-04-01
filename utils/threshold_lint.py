@@ -206,7 +206,7 @@ def check_imports_in_file(file_path: Path) -> Tuple[bool, List[str]]:
     """Check that file uses correct import path."""
     errors = []
     try:
-        content = file_path.read_text(encoding='utf-8')
+        content = file_path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         # Skip files that can't be decoded as UTF-8
         return True, []
