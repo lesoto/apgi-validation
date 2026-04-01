@@ -9,10 +9,10 @@
   "backup_key": {
     "current": {
       "fingerprint": "5886dbb5827d31f9",
-      "file": ".keys/backup_hmac_key.enc"
+      "file": ".keys\\backup_hmac_key.enc"
     },
     "rotation_history": []
   },
   "last_rotation": null,
-  "next_rotation": "2026-04-30T18:47:09.089314+00:00"
+  "next_rotation": "2026-04-30T22:03:52.439350+00:00"
 }

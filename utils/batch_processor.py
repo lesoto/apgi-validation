@@ -963,7 +963,7 @@ def main():
 
     # Save report
     processor.save_batch_report("results/batch_report.json")
-    print("✅ Batch processing completed successfully!")
+    print("[OK] Batch processing completed successfully!")
 
 
 if __name__ == "__main__":

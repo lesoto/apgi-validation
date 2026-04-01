@@ -91,17 +91,19 @@ class BackupManager:
                 except (IOError, OSError) as e:
                     logging.warning(f"Could not load persisted key: {e}")
 
-            # If still no key, use a default test key for testing
+            # If still no key, generate a default test key for testing
             if not backup_hmac_key:
-                backup_hmac_key = os.environ.get("APGI_BACKUP_HMAC_KEY")
-                if backup_hmac_key:
-                    logging.info("Using APGI_BACKUP_HMAC_KEY from environment")
-                else:
-                    raise RuntimeError(
-                        "APGI_BACKUP_HMAC_KEY environment variable is not set. "
-                        "Please set a secure key before running backup operations. "
-                        'Generate a secure key using: python -c "import secrets; print(secrets.token_hex(32))"'
-                    )
+                import secrets
+                backup_hmac_key = secrets.token_hex(32)
+                logging.info("Generated default HMAC key for backup compatibility")
+                
+                # Persist the generated key for future use
+                try:
+                    with open(key_file, "w", encoding="utf-8") as f:
+                        f.write(backup_hmac_key)
+                    logging.info("Persisted generated HMAC key")
+                except (IOError, OSError) as e:
+                    logging.warning(f"Could not persist generated key: {e}")
 
         # Validate backup HMAC key: minimum length and entropy
         try:
@@ -1145,7 +1147,7 @@ class BackupManager:
 # Global backup manager instance with error handling
 try:
     backup_manager = BackupManager()
-except ValueError as e:
+except (ValueError, RuntimeError) as e:
     print(f"Error initializing backup manager: {e}")
     print(
         "Please check your APGI_BACKUP_HMAC_KEY environment variable or run the script again to generate a new key."

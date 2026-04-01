@@ -51,7 +51,7 @@ logging:
 # Data Configuration
 # -----------------
 data:
-  default_data_dir: "data_repository"
+  default_data_dir: "data"
   supported_formats: ["csv", "json", "xlsx", "pkl"]
   max_file_size_mb: 100
   enable_caching: true

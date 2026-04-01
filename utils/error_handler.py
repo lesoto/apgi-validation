@@ -215,6 +215,7 @@ class ErrorHandler:
                 "CONFIG_LOAD_FAILED": "Failed to load configuration: {details}",
                 "PARAMETER_OUT_OF_RANGE": "Parameter '{param}' value {value} is out of range [{min}, {max}]",
                 "DEPENDENCY_MISSING": "Missing required dependency: {dependency}",
+                "INVALID_PARAMETER": "Invalid configuration parameter '{param}': {details}",
             },
             ErrorSeverity.MEDIUM: {
                 "UNKNOWN_PARAMETER": "Unknown configuration parameter: {param}",

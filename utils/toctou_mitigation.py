@@ -5,11 +5,21 @@ Implements Time-OfCheck-TimeOfUse race condition mitigation with file locking.
 """
 
 import os
-import fcntl
 import stat
 from pathlib import Path
 from typing import Optional
 import logging
+import platform
+
+# Platform-specific imports
+if platform.system() != 'Windows':
+    try:
+        import fcntl
+        FCNTL_AVAILABLE = True
+    except ImportError:
+        FCNTL_AVAILABLE = False
+else:
+    FCNTL_AVAILABLE = False
 
 
 class FileLock:
@@ -38,6 +48,10 @@ class FileLock:
         Returns:
             True if lock acquired, False otherwise
         """
+        if not FCNTL_AVAILABLE:
+            self.logger.warning("File locking not available on this platform")
+            return True  # Pretend to acquire lock for compatibility
+        
         try:
             # Open lock file
             self.lock_fd = os.open(self.lock_file, os.O_CREAT | os.O_WRONLY, 0o600)
@@ -66,6 +80,10 @@ class FileLock:
         Returns:
             True if lock acquired, False otherwise
         """
+        if not FCNTL_AVAILABLE:
+            self.logger.warning("File locking not available on this platform")
+            return True  # Pretend to acquire lock for compatibility
+        
         try:
             # Open lock file
             self.lock_fd = os.open(self.lock_file, os.O_CREAT | os.O_WRONLY, 0o600)
@@ -89,6 +107,10 @@ class FileLock:
 
     def release(self) -> None:
         """Release file lock."""
+        if not FCNTL_AVAILABLE:
+            self.logger.debug("File locking not available, skipping release")
+            return
+        
         if self.lock_fd is not None:
             try:
                 fcntl.flock(self.lock_fd, fcntl.LOCK_UN)

@@ -26,16 +26,54 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import logging
 
-import arviz as az
-import matplotlib.pyplot as plt
+try:
+    import arviz as az
+    ARVIZ_AVAILABLE = True
+except ImportError:
+    ARVIZ_AVAILABLE = False
+    print("Warning: arviz not available. Bayesian analysis features disabled.")
+
+try:
+    import matplotlib.pyplot as plt
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
+    print("Warning: matplotlib not available. Plotting features disabled.")
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
 import pandas as pd
-import pymc as pm
-from scipy import stats
-from sklearn.metrics import log_loss, roc_auc_score
-from sklearn.model_selection import KFold
+
+try:
+    import pymc as pm
+    PYMC_AVAILABLE = True
+except ImportError:
+    PYMC_AVAILABLE = False
+    print("Warning: pymc not available. Bayesian modeling features disabled.")
+    
+    # Create stub module for pm
+    class _PmStub:
+        class Model:
+            def __init__(self, *args, **kwargs):
+                pass
+            
+            def __enter__(self):
+                return self
+            
+            def __exit__(self, *args):
+                pass
+    
+    pm = _PmStub()
+
+try:
+    from scipy import stats
+    from sklearn.metrics import log_loss, roc_auc_score
+    from sklearn.model_selection import KFold
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    print("Warning: scipy/sklearn not available. Statistical features disabled.")
 import sys
 from pathlib import Path
 
@@ -2855,6 +2893,22 @@ def main():
     print("=" * 80)
     print("APGI PROTOCOL 2: BAYESIAN MODEL COMPARISON")
     print("=" * 80)
+
+    # Check dependencies
+    if not PYMC_AVAILABLE:
+        print("Error: pymc is required for Bayesian model comparison")
+        print("Install with: pip install pymc")
+        return
+    
+    if not ARVIZ_AVAILABLE:
+        print("Error: arviz is required for Bayesian analysis")
+        print("Install with: pip install arviz")
+        return
+    
+    if not SKLEARN_AVAILABLE:
+        print("Error: scipy/sklearn are required for statistical analysis")
+        print("Install with: pip install scikit-learn scipy")
+        return
 
     # Configuration (Faster for validation)
     config = {"n_samples": 1000, "n_tune": 500, "n_chains": 4, "target_accept": 0.85}

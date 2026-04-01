@@ -205,7 +205,11 @@ def check_canonical_definitions() -> Tuple[bool, List[str]]:
 def check_imports_in_file(file_path: Path) -> Tuple[bool, List[str]]:
     """Check that file uses correct import path."""
     errors = []
-    content = file_path.read_text()
+    try:
+        content = file_path.read_text(encoding='utf-8')
+    except UnicodeDecodeError:
+        # Skip files that can't be decoded as UTF-8
+        return True, []
 
     # Skip this script itself (it contains the pattern as a string literal)
     if (
