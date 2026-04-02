@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict, List, Optional, Tuple
 
 import logging
@@ -25,47 +27,10 @@ if str(project_root) not in sys.path:
 try:
     from utils.shared_falsification import check_F5_family
 except ImportError:
-    # Fallback implementation if utils.shared_falsification not available
-    def check_F5_family(
-        data: Dict[Any, Any],
-        thresholds: Dict[Any, Any],
-        genome_data: Dict[Any, Any] | None = None,
-    ) -> Dict[str, Any]:
-        """Fallback F5 family implementation"""
-        results = {}
-        # F5.1: Threshold Filtering Emergence
-        threshold_proportion = data.get("threshold_emergence_proportion", 0.0)
-        min_prop = thresholds.get("F5_1_MIN_PROPORTION", 0.75)
-        results["F5.1"] = {
-            "passed": threshold_proportion >= min_prop,
-            "proportion": threshold_proportion,
-            "threshold": f"≥{min_prop * 100:.0f}% agents",
-            "actual": f"{threshold_proportion:.2f} proportion",
-        }
-
-        # F5.2: Precision-Weighted Coding Emergence
-        precision_proportion = data.get("precision_emergence_proportion", 0.0)
-        min_corr = thresholds.get("F5_2_MIN_CORRELATION", 0.45)
-        results["F5.2"] = {
-            "passed": precision_proportion >= 0.65,  # fallback threshold
-            "proportion": precision_proportion,
-            "correlation": min_corr,
-            "threshold": f"≥65% agents, r ≥ {min_corr}",
-            "actual": f"{precision_proportion:.2f} proportion, r={min_corr:.3f}",
-        }
-
-        # F5.3: Interoceptive Prioritization Emergence
-        intero_proportion = data.get("intero_gain_ratio_proportion", 0.0)
-        min_ratio = thresholds.get("F5_3_MIN_GAIN_RATIO", 1.30)
-        results["F5.3"] = {
-            "passed": intero_proportion >= 0.70,  # fallback threshold
-            "proportion": intero_proportion,
-            "gain_ratio": min_ratio,
-            "threshold": f"≥70% agents, ratio ≥ {min_ratio}",
-            "actual": f"{intero_proportion:.2f} proportion, ratio={min_ratio:.2f}",
-        }
-
-        return results
+    # FP-02 requires utils.shared_falsification; raise error if not available
+    raise RuntimeError(
+        "FP-02 requires utils.shared_falsification; install missing dependency"
+    )
 
 
 from utils.falsification_thresholds import (
@@ -184,7 +149,7 @@ def bootstrap_one_sample_test(
 def validate_input_variance(
     data: np.ndarray,
     name: str,
-    min_std: float = 1e-10,
+    min_std: float = 0.01,
     logger: Optional[logging.Logger] = None,
 ) -> Tuple[bool, float]:
     """
@@ -193,7 +158,7 @@ def validate_input_variance(
     Args:
         data: Input array to validate
         name: Name of the data for logging
-        min_std: Minimum standard deviation threshold
+        min_std: Minimum standard deviation threshold (default 0.01 for normalized EEG)
         logger: Logger instance for warnings
 
     Returns:
@@ -206,6 +171,13 @@ def validate_input_variance(
 
     std = float(np.std(data, ddof=1))
     is_constant = std < min_std
+
+    # Emit warning for suspiciously low variance (< 0.1 for normalized data)
+    if std < 0.1 and logger:
+        logger.warning(
+            f"{name}: Low variance detected (std={std:.4f}). "
+            f"This may indicate degenerate input or normalization issues."
+        )
 
     if is_constant and logger:
         unique_vals = len(np.unique(data))

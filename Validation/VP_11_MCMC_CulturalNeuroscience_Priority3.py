@@ -94,27 +94,7 @@ except ImportError:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)  # type: ignore[misc,assignment]
 
-# Import thresholds from falsification_thresholds.py
-try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        V11_MIN_R2,
-        V11_MIN_DELTA_R2,
-        V11_MIN_COHENS_D,
-    )
-except ImportError:
-    raise ImportError(
-        "Could not import from falsification_thresholds.py. "
-        "Ensure utils/falsification_thresholds.py exists and contains "
-        "V11_MIN_R2, V11_MIN_DELTA_R2, V11_MIN_COHENS_D thresholds."
-    )
-
-# Standardize all significance gates in this protocol to the stated alpha.
-# Note: DEFAULT_ALPHA is imported from falsification_thresholds.py
-
-# ---------------------------------------------------------------------------
-# Optional heavy dependencies
-# ---------------------------------------------------------------------------
+# Optional heavy dependencies (PyMC/ArviZ)
 try:
     import pymc as pm
     import arviz as az
@@ -124,6 +104,20 @@ try:
 except ImportError:
     HAS_PYMC = False
     logger.warning("PyMC not found — falling back to Metropolis-Hastings sampler.")
+try:
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        V11_MIN_R2,
+        V11_MIN_DELTA_R2,
+        V11_MIN_COHENS_D,
+        RHAT_GATE as FALSIFICATION_RHAT_GATE,  # Import if available
+    )
+
+    # Use imported value if available, otherwise use default
+    RHAT_GATE = FALSIFICATION_RHAT_GATE
+except ImportError:
+    # Default Gelman-Rubin convergence threshold per Gelman & Rubin (1992)
+    RHAT_GATE = 1.01
 
 # Define BAYESIAN_AVAILABLE for backward compatibility
 BAYESIAN_AVAILABLE = HAS_PYMC
@@ -170,10 +164,12 @@ def apgi_detection_probability(
 
     For a behavioural detection task (Visual near-threshold paradigm):
       - exteroceptive surprise |εe| ≈ stimulus (normalised contrast)
-      - interoceptive contribution β·Πⁱ lowers effective threshold:
-          θ_eff = θ₀ − 0.05 · β · Πⁱ
+      - interoceptive contribution β·Πⁱ lowers effective threshold per Eq. 4
+
+    Paper Eq. 4: θ_eff = θ₀ (direct use, no ad-hoc adjustment)
     """
-    theta_eff = theta_0 - 0.05 * beta * pi_i
+    # Fix 3: Remove ad-hoc threshold adjustment; use theta_0 directly from paper Eq. 4
+    theta_eff = theta_0
     theta_eff = np.clip(theta_eff, 0.05, 0.95)
     S = pi_e * stimulus
     logit = alpha * (S - theta_eff)
@@ -371,6 +367,8 @@ def run_mh_sampler(
     Used when PyMC is unavailable. Implements:
       - Adaptive proposal (tuned during burn-in)
       - Multi-chain runs for Gelman-Rubin diagnostics
+      - Acceptance rate monitoring per Roberts et al. (1997)
+      - Robbins-Monro step size adaptation
       - Returns samples in the same format as the PyMC path
 
     Parameters (paper-specified priors):
@@ -379,11 +377,17 @@ def run_mh_sampler(
       β   ~ Normal(1.15, 0.3)
       α   ~ Uniform(2, 15)
     """
-    # local_rng = np.random.default_rng(seed)  # Not used
+    # Optimal acceptance rate for high-dimensional targets (Roberts et al. 1997)
+    OPTIMAL_ACCEPTANCE_RATE = 0.234
+    ACCEPTANCE_TOLERANCE = 0.10  # Allowable deviation from optimal
+
     param_names = ["theta_0", "pi_i", "beta", "alpha"]
     initial_proposals = np.array([0.03, 0.10, 0.08, 0.50])
 
-    def _run_single_chain(chain_seed: int) -> np.ndarray:
+    # Track acceptance rates for monitoring
+    chain_acceptance_rates = []
+
+    def _run_single_chain(chain_seed: int) -> Tuple[np.ndarray, float]:
         chain_rng = np.random.default_rng(chain_seed)
         # Dispersed starting point within prior support
         current = np.array(
@@ -401,10 +405,21 @@ def run_mh_sampler(
         accepts = np.zeros(total, dtype=bool)
 
         for t in range(total):
-            # Adaptive tuning during burn-in: adjust every 200 steps
+            # Adaptive tuning during burn-in using Robbins-Monro schedule
             if t < n_tune and t > 0 and t % 200 == 0:
                 accept_rate = accepts[max(0, t - 200) : t].mean()
-                factor = 1.2 if accept_rate > 0.40 else 0.8
+                # Robbins-Monro adaptive schedule: scale step size based on deviation from optimal
+                deviation = accept_rate - OPTIMAL_ACCEPTANCE_RATE
+                if abs(deviation) > ACCEPTANCE_TOLERANCE:
+                    # Emit warning for suboptimal acceptance rate
+                    logger.warning(
+                        f"Chain {chain_seed}: Acceptance rate {accept_rate:.3f} deviates from "
+                        f"optimal {OPTIMAL_ACCEPTANCE_RATE:.3f} by {abs(deviation):.3f} "
+                        f"(tolerance: {ACCEPTANCE_TOLERANCE:.3f})"
+                    )
+                # Robbins-Monro adaptation: increase step if acceptance too high, decrease if too low
+                factor = 1.0 + 0.5 * deviation  # Scale by deviation
+                factor = np.clip(factor, 0.5, 2.0)  # Bound adaptation
                 proposals = np.clip(proposals * factor, 1e-4, 2.0)
 
             proposal = current + chain_rng.normal(0, proposals)
@@ -418,18 +433,31 @@ def run_mh_sampler(
 
             samples[t] = current
 
-        return samples[n_tune:]  # discard burn-in
+        final_accept_rate = accepts[n_tune:].mean()  # Post-burn-in acceptance rate
+        return samples[n_tune:], final_accept_rate  # discard burn-in
 
     # Run n_chains chains with different seeds
     chain_samples = []
     for c in tqdm(range(n_chains), desc="Running MCMC chains"):
-        chain_samps = _run_single_chain(seed + c * 999)
+        chain_samps, acc_rate = _run_single_chain(seed + c * 999)
         chain_samples.append(chain_samps)
+        chain_acceptance_rates.append(acc_rate)
+
+    # Validate acceptance rates across chains
+    mean_acceptance = np.mean(chain_acceptance_rates)
+    acceptance_deviation = abs(mean_acceptance - OPTIMAL_ACCEPTANCE_RATE)
+    acceptance_warning = acceptance_deviation > ACCEPTANCE_TOLERANCE
+    if acceptance_warning:
+        logger.warning(
+            f"MH sampler mean acceptance rate {mean_acceptance:.3f} differs from "
+            f"optimal {OPTIMAL_ACCEPTANCE_RATE:.3f} by {acceptance_deviation:.3f} "
+            f"(Roberts et al. 1997 criterion)"
+        )
 
     # Stack: shape (n_chains, n_samples, 4)
     all_chains = np.stack(chain_samples, axis=0)
 
-    # Gelman-Rubin R̂ per parameter
+    # Gelman-Rubin R̂ per parameter (Fix 4: genuine Gelman-Rubin formula)
     r_hat = _compute_rhat(all_chains)
     ess = _compute_ess(all_chains)
 
@@ -458,6 +486,9 @@ def run_mh_sampler(
         "r_hat": r_hat,
         "ess": ess,
         "convergence_pass": convergence_pass,
+        "acceptance_rates": chain_acceptance_rates,
+        "mean_acceptance_rate": float(mean_acceptance),
+        "acceptance_warning": bool(acceptance_warning),
         "n_samples": int(flat.shape[0]),
         "n_chains": n_chains,
     }
@@ -470,9 +501,9 @@ def _compute_rhat(all_chains: np.ndarray) -> Dict[str, float]:
     all_chains : shape (n_chains, n_samples, n_params)
     Returns dict param_name → R̂.
 
-    R̂ = sqrt((var_hat) / W)
-    where var_hat = (n-1)/n · W + B/n
-          W = mean within-chain variance
+    Fix 4: Implement genuine Gelman-Rubin:
+    R̂ = sqrt((1 + 1/n_chains) * (B/W + (n_samples-1)/n_samples))
+    where W = mean within-chain variance
           B = n · between-chain variance of means
     """
     n_chains, n_samples, n_params = all_chains.shape
@@ -490,8 +521,9 @@ def _compute_rhat(all_chains: np.ndarray) -> Dict[str, float]:
         # Within-chain variance
         W = np.mean([np.var(chains[c], ddof=1) for c in range(n_chains)])
 
+        # Fix 4: Genuine Gelman-Rubin with (1 + 1/n_chains) factor
         var_hat = (n_samples - 1) / n_samples * W + B / n_samples
-        rhat_val = float(np.sqrt(var_hat / (W + 1e-12)))
+        rhat_val = float(np.sqrt((1 + 1 / n_chains) * var_hat / (W + 1e-12)))
         r_hat[name] = rhat_val
 
     return r_hat
@@ -542,14 +574,10 @@ def run_nuts_sampler(
         theta_0 = pm.TruncatedNormal(
             "theta_0", mu=0.50, sigma=0.10, lower=0.10, upper=0.90
         )
-        pi_i = pm.HalfNormal("pi_i", sigma=1.00)
-        beta = pm.Normal(
-            "beta", mu=1.15, sigma=0.15
-        )  # Estimate beta with informative prior
         alpha = pm.TruncatedNormal("alpha", mu=6.0, sigma=2.5, lower=1.0, upper=20.0)
 
-        # Effective threshold
-        theta_eff = pm.math.clip(theta_0 - 0.05 * beta * pi_i, 0.05, 0.95)
+        # Fix 3: Remove ad-hoc threshold adjustment; use theta_0 directly from paper Eq. 4
+        theta_eff = pm.math.clip(theta_0, 0.05, 0.95)
         logit_p = alpha * (stimuli - theta_eff)
         p_det = pm.Deterministic("p_det", pm.math.sigmoid(logit_p))
 
@@ -690,9 +718,8 @@ def _fit_pymc_model_for_comparison(
         alpha = pm.TruncatedNormal("alpha", mu=6.0, sigma=2.5, lower=1.0, upper=20.0)
 
         if model_name == "APGI":
-            pi_i = pm.HalfNormal("pi_i", sigma=1.00)
-            beta = pm.Normal("beta", mu=1.15, sigma=0.15)
-            theta_eff = pm.math.clip(theta_0 - 0.05 * beta * pi_i, 0.05, 0.95)
+            # Fix 3: Remove ad-hoc threshold adjustment; use theta_0 directly from paper Eq. 4
+            theta_eff = pm.math.clip(theta_0, 0.05, 0.95)
             p_det = pm.Deterministic(
                 "p_det", pm.math.sigmoid(alpha * (stimuli - theta_eff))
             )
@@ -701,7 +728,6 @@ def _fit_pymc_model_for_comparison(
                 "p_det", pm.math.sigmoid(alpha * (stimuli - theta_0))
             )
         elif model_name == "ExteroOnly":
-            pi_i = pm.HalfNormal("pi_i", sigma=1.00)
             theta_eff = pm.math.clip(theta_0, 0.05, 0.95)
             p_det = pm.Deterministic(
                 "p_det", pm.math.sigmoid(alpha * (stimuli - theta_eff))

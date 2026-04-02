@@ -437,7 +437,7 @@ class APGIMasterValidator:
 
         # Resolve ordering before executing the protocol queue
         in_degree = {p: 0 for p in all_protocols}
-        graph = {p: [] for p in all_protocols}
+        graph: Dict[str, List[str]] = {p: [] for p in all_protocols}
 
         for p in all_protocols:
             deps_entry = self.protocol_dependencies.get(p, {})

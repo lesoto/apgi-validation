@@ -396,13 +396,13 @@ LEVEL2_MI_FALSIFICATION_THRESHOLD: float = 0.15  # Falsification threshold for M
 NULL_BOOTSTRAP_N: int = 1000  # Number of bootstrap samples for null distribution
 
 # F4 - Phase Transition & Epistemic Architecture thresholds (in constants.py too, kept for compatibility)
+F4_MI_MAX_BITS_S: float = 40.0  # Maximum MI in bits/s for bandwidth constraint (FP-04)
+FMI_MIN_BITS_S: float = 0.5  # Minimum mutual information in bits/s (FP-04)
 F4_CRITICAL_SLOWING_MIN_RATIO: float = 1.2  # 20% increase threshold for τ_auto
 F4_CRITICAL_SLOWING_P_VALUE: float = 0.05  # p < 0.05 for surrogate test
 F4_TE_THRESHOLD: float = 0.1  # Transfer entropy threshold
 F4_PHI_MIN_BITS: float = 0.5  # Minimum integrated information (phi_proxy)
 F4_PHI_SIGNIFICANT_BITS: float = 1.0  # Significant phi_proxy threshold effect size
-GENERIC_MEDIUM_COHENS_D: float = 0.50  # medium effect size gate
-GENERIC_BINARY_DECISION_THRESHOLD: float = 0.50  # default binary decision cut-off
 
 # VP-02 behavioral threshold modulation constants
 VP2_DELTA_PI_COUPLING: float = 0.038
@@ -413,8 +413,9 @@ VP2_AROUSAL_BOOST_MAX: float = 0.60
 VP4_CALIBRATED_TAU: float = 0.20
 VP4_CALIBRATED_THETA_0: float = 0.12
 VP4_CALIBRATED_ALPHA: float = 35.0
-F4_MI_MAX_BITS_S: float = 40.0
-MI_MIN_BITS_S: float = 5.0
+
+# VP-04 transfer entropy threshold for Level 2 phase transition analysis
+TRANSFER_ENTROPY_THRESHOLD: float = 0.15  # Critical threshold for information flow
 
 # Liquid / echo-state threshold gates
 LIQUID_IGNITION_DETECTION_THRESHOLD: float = 0.50
@@ -437,8 +438,6 @@ THRESHOLD_REGISTRY = {
     "F2.1_COHENS_H": F2_1_MIN_COHENS_H,
     "F2.2_CORR": F2_2_MIN_CORR,
     "F2.2_FISHER_Z": F2_2_MIN_FISHER_Z,
-    "F2.3_RT_ADVANTAGE": F2_3_MIN_RT_ADVANTAGE_MS,
-    "F2.3_ALPHA": F2_3_ALPHA,
     "F2.4_CONFIDENCE_EFFECT": F2_4_MIN_CONFIDENCE_EFFECT_PCT,
     "F2.4_BETA_INTERACTION": F2_4_MIN_BETA_INTERACTION,
     "F2.5_MAX_TRIALS": F2_5_MAX_TRIALS,
@@ -454,9 +453,6 @@ THRESHOLD_REGISTRY = {
     "F3.4_COHENS_D": F3_4_MIN_COHENS_D,
     "F3.6_MAX_TRIALS": F3_6_MAX_TRIALS,
     "F3.6_HAZARD_RATIO": F3_6_MIN_HAZARD_RATIO,
-    "F5.5_PCA_VARIANCE": F5_5_PCA_MIN_VARIANCE,
-    "F5.5_PCA_LOADING": F5_5_PCA_MIN_LOADING,
-    "F5.6_PERF_DIFF": F5_6_MIN_PERFORMANCE_DIFF_PCT,
     "F5.6_COHENS_D": F5_6_MIN_COHENS_D,
     "F5.6_ALPHA": F5_6_ALPHA,
     "F6.1_LTCN_TRANSITION": F6_1_LTCN_MAX_TRANSITION_MS,
@@ -484,8 +480,19 @@ THRESHOLD_REGISTRY = {
     "V7.1_COHENS_D": V7_1_MIN_COHENS_D,
     "V9.1_CORR": V9_1_MIN_CORRELATION,
     "V9.3_CORR": V9_3_MIN_CORRELATION,
+    # Missing keys added for threshold_lint.py compliance
+    "F2.3_ALPHA": F2_3_ALPHA,
+    "F2.3_RT_ADVANTAGE": F2_3_MIN_RT_ADVANTAGE_MS,
+    "F5.5_PCA_LOADING": F5_5_MIN_LOADING,
+    "F5.5_PCA_VARIANCE": F5_5_PCA_MIN_VARIANCE,
+    "F5.6_PERF_DIFF": F5_6_MIN_PERFORMANCE_DIFF_PCT,
 }
 
+
+# BIC thresholds for framework-level synthesis (FP-03)
+BIC_STRONG_EVIDENCE = 2.0  # ΔBIC ≥ 2 indicates strong evidence for Condition B
+BIC_VERY_STRONG = 6.0  # ΔBIC ≥ 6 indicates very strong evidence
+BIC_FRAMEWORK_THRESHOLD_B = 10.0  # ΔBIC ≥ 10 indicates framework-level advantage
 
 # =============================================================================
 # SHARED F6 TESTING FUNCTIONS
@@ -958,3 +965,16 @@ V12_2_FALSIFICATION_CORR = 0.40
 V12_2_MIN_PILLAIS_TRACE = 0.25
 V12_2_FALSIFICATION_PILLAIS = 0.15
 V12_2_ALPHA = 0.05
+
+# ---------------------------------------------------------------------------
+# V15 – fMRI vmPFC Anticipation Paradigm
+# ---------------------------------------------------------------------------
+# VP-15 connectivity and anticipatory window thresholds
+V15_ANTICIPATORY_CORRELATION_MIN: float = (
+    0.40  # vmPFC–posterior insula connectivity r > 0.40
+)
+V15_ANTICIPATORY_WINDOW_MS: tuple = (
+    -500,
+    0,
+)  # Anticipatory window: -500 to 0 ms pre-stimulus
+V15_ALPHA: float = 0.05  # Significance level for VP-15 tests

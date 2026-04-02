@@ -386,6 +386,9 @@ class ProtocolRunnerGUI:
                     "window_size": {
                         "default": 1000,
                         "min": 500,
+                        "max": 5000,
+                        "type": "int",
+                        "description": "Window size (ms)",
                     },
                     "n_chains": {
                         "default": 2,
@@ -493,8 +496,12 @@ class ProtocolRunnerGUI:
         self.stop_event = threading.Event()
         self.running_thread = None
 
-        # Parameter storage
+        # Parameter storage - initialize with default values
         self.parameter_values = {}
+        self.load_default_parameters()
+
+        # Initialize selected protocol
+        self.selected_protocol = None
 
         # Add window close handler for proper thread cleanup
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
@@ -840,9 +847,22 @@ class ProtocolRunnerGUI:
     def save_parameters(self):
         """Save current parameter values with validation."""
         selected = self.protocol_selector.get()
-        if not selected or selected not in self.parameter_values:
+        if not selected:
             messagebox.showwarning("No Selection", "Please select a protocol first.")
             return
+
+        # First, update parameter values from widgets if they exist
+        if hasattr(self, "parameter_widgets") and self.parameter_widgets:
+            # Get current values from widgets
+            for param_name, widget_info in self.parameter_widgets.items():
+                try:
+                    value = widget_info["var"].get()
+                    self.parameter_values[selected][param_name] = value
+                except Exception as e:
+                    messagebox.showerror(
+                        "Update Error", f"Error updating {param_name}: {e}"
+                    )
+                    return
 
         # Validate parameter values
         validation_errors = []
@@ -860,7 +880,7 @@ class ProtocolRunnerGUI:
                             validation_errors.append(
                                 f"{param_name}: {value} is out of range [{param_config['min']}, {param_config['max']}]"
                             )
-                    except ValueError:
+                    except (ValueError, TypeError):
                         validation_errors.append(
                             f"{param_name}: Invalid float value '{current_value}'"
                         )
@@ -872,7 +892,7 @@ class ProtocolRunnerGUI:
                             validation_errors.append(
                                 f"{param_name}: {value} is out of range [{param_config['min']}, {param_config['max']}]"
                             )
-                    except ValueError:
+                    except (ValueError, TypeError):
                         validation_errors.append(
                             f"{param_name}: Invalid integer value '{current_value}'"
                         )
@@ -889,7 +909,7 @@ class ProtocolRunnerGUI:
                                 validation_errors.append(
                                     f"{param_name}: Must be in format [min, max]"
                                 )
-                        except json.JSONDecodeError:
+                        except (json.JSONDecodeError, TypeError):
                             validation_errors.append(
                                 f"{param_name}: Invalid range format '{current_value}'"
                             )
@@ -924,78 +944,14 @@ class ProtocolRunnerGUI:
             self.log_message(f"Error saving parameters: {e}")
             return
 
-        # Update parameter values from widgets with validation
-        if hasattr(self, "parameter_widgets"):
-            # BUG-040: Create a thread-safe copy to avoid race condition
-            widgets_copy = dict(self.parameter_widgets)
-            for param_name, widget_info in widgets_copy.items():
-                try:
-                    value = widget_info["var"].get()
-                    param_config = self.protocols[selected]["parameters"][param_name]
-
-                    # Validate range
-                    if param_config["type"] == "float":
-                        if not isinstance(value, (int, float)):
-                            messagebox.showerror(
-                                "Validation Error",
-                                f"Parameter {param_name} must be a number",
-                            )
-                            return
-                        if value < param_config["min"] or value > param_config["max"]:
-                            messagebox.showerror(
-                                "Validation Error",
-                                f"Parameter {param_name} must be between {param_config['min']} and {param_config['max']}",
-                            )
-                            return
-                    elif param_config["type"] == "int":
-                        if not isinstance(value, int):
-                            messagebox.showerror(
-                                "Validation Error",
-                                f"Parameter {param_name} must be an integer",
-                            )
-                            return
-                        if value < param_config["min"] or value > param_config["max"]:
-                            messagebox.showerror(
-                                "Validation Error",
-                                f"Parameter {param_name} must be between {param_config['min']} and {param_config['max']}",
-                            )
-                            return
-                    elif param_config["type"] == "str":
-                        if not isinstance(value, str):
-                            messagebox.showerror(
-                                "Validation Error",
-                                f"Parameter {param_name} must be a string",
-                            )
-                            return
-
-                except Exception as e:
-                    messagebox.showerror(
-                        "Validation Error", f"Error validating {param_name}: {e}"
-                    )
-                    return
-
-            # Update parameter values in self.parameter_values
-            for param_name, widget_info in widgets_copy.items():
-                try:
-                    value = widget_info["var"].get()
-                    self.parameter_values[selected][param_name] = value
-                except Exception as e:
-                    messagebox.showerror(
-                        "Update Error", f"Error updating {param_name}: {e}"
-                    )
-                    return
-
-            # Refresh the parameter list
-            self.refresh_parameter_list()
-
     def refresh_parameter_list(self):
-        pass
+        """Refresh the parameter display for the currently selected protocol."""
+        selected = self.protocol_selector.get()
+        if selected:
+            self.display_protocol_parameters(selected)
 
     def run_all_protocols(self):
         """Run all protocols sequentially with default parameters."""
-        import tkinter as tk
-        from tkinter import messagebox
-
         # Confirm with user
         protocol_count = len(self.protocols)
         if not messagebox.askyesno(
@@ -1150,8 +1106,6 @@ class ProtocolRunnerGUI:
                     pass
 
         # Merge with protocol info
-
-        # Merge with protocol info
         protocol_info_with_params = protocol_info.copy()
         protocol_info_with_params["configured_params"] = params
 
@@ -1184,8 +1138,8 @@ class ProtocolRunnerGUI:
 
     def clear_console(self):
         """Clear the console output."""
-        if hasattr(self, "console_text"):
-            self.console_text.delete(1.0, tk.END)
+        if hasattr(self, "output_console"):
+            self.output_console.delete(1.0, tk.END)
 
     def _setup_tab_order(self) -> None:
         """Configure tab order for consistent keyboard navigation."""
@@ -1413,7 +1367,7 @@ class ProtocolRunnerGUI:
         """Run the full falsification protocol for APGI agent with configured parameters."""
         try:
             # Import the run_falsification function
-            run_func = getattr(self.module, "run_falsification", None)
+            run_func = getattr(module, "run_falsification", None)
             if run_func:
                 # Run the full protocol
                 result = run_func()
@@ -1451,7 +1405,7 @@ class ProtocolRunnerGUI:
         """Run the full falsification protocol for Iowa Gambling Task with configured parameters."""
         try:
             # Import the run_falsification function
-            run_func = getattr(self.module, "run_falsification", None)
+            run_func = getattr(module, "run_falsification", None)
             if run_func:
                 # Run the full protocol
                 result = run_func()
@@ -1487,9 +1441,13 @@ class ProtocolRunnerGUI:
             # Try to pass parameters to constructor if they match expected signature
             try:
                 instance = cls(**params)
-            except tk.TclError as e:
-                logger.warning(f"TclError in application: {e}")
-                pass  # Widget configuration errors are non-critical
+            except (TypeError, ValueError) as e:
+                # These are expected when parameters don't match constructor signature
+                logger.warning(f"Parameter mismatch for {cls.__name__}: {e}")
+                instance = cls()  # Create instance with defaults
+                self.log_message(
+                    "Warning: Could not apply configured parameters, using defaults"
+                )
             except Exception as e:
                 # Log unexpected errors but don't suppress them
                 logger.warning(f"Unexpected error in application: {e}")

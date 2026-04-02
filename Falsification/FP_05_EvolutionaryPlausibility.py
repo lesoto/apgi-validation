@@ -295,6 +295,8 @@ class EvolvableAgent:
                 "alpha": 5.0,
                 "beta": 1.2,
                 "Pi_e_lr": 0.01,
+                "tau_theta": 0.1,  # Allostatic time constant (paper Eq. 1)
+                "w_somatic": 0.3,  # Somatic weight parameter (evolves in [0.1, 0.8])
             }
         self.genome = genome
 
@@ -309,6 +311,8 @@ class EvolvableAgent:
         self.alpha = self.genome["alpha"]
         self.beta = self.genome["beta"]
         self.pi_lr = self.genome["Pi_e_lr"] if self.has_precision_weighting else 0.0
+        self.tau_theta = self.genome.get("tau_theta", 0.1)  # Allostatic time constant
+        self.w_somatic = self.genome.get("w_somatic", 0.3)  # Somatic weight (evolves)
         self.threshold = self.theta_0 if self.has_threshold else 0.0
         self._conscious_access = False
         self.surprise = 0.0  # Initialize surprise attribute
@@ -355,9 +359,12 @@ class EvolvableAgent:
             weighted_eps_e = eps_e
             weighted_eps_i = eps_i
 
-        # Update surprise
+        # Update surprise using paper Eq. 1: s_new = s_old + (dt/tau_theta) * (-s_old + Pi_e*eps_e + beta*Pi_i*eps_i)
+        # This implements the allostatic time constant τ_θ from the paper
         input_drive = weighted_eps_e + weighted_eps_i
-        self.surprise = 0.9 * self.surprise + 0.1 * input_drive
+        self.surprise = self.surprise + (dt / self.tau_theta) * (
+            -self.surprise + input_drive
+        )
 
         # Check ignition
         if self.has_threshold:
@@ -373,7 +380,7 @@ class EvolvableAgent:
 
         if self.has_somatic_markers and self.conscious_access:
             somatic_values = self.somatic_weights @ state
-            logits += 0.3 * somatic_values
+            logits += self.w_somatic * somatic_values
 
         # Softmax
         exp_logits = np.exp(logits - np.max(logits))
@@ -404,7 +411,7 @@ class EvolvableAgent:
 
         if self.has_somatic_markers and self.conscious_access:
             somatic_values = self.somatic_weights @ state
-            logits += 0.3 * somatic_values
+            logits += self.w_somatic * somatic_values
 
         # Softmax
         exp_logits = np.exp(logits - np.max(logits))
@@ -434,7 +441,13 @@ class EvolvableAgent:
 
 
 class ContinuousUpdateAgent(EvolvableAgent):
-    """Agent without threshold gating (continuous updates)"""
+    """
+    Genuine GWT-style baseline agent that gates on global workspace broadcast.
+    Unlike EvolvableAgent, this agent requires ignition (surprise > threshold)
+    to access the global workspace, but once ignited, maintains continuous updates
+    during the broadcast window. This is a proper control baseline for testing
+    whether threshold gating is necessary for consciousness.
+    """
 
     def __init__(self, genome: Dict = None):
         """Initialize agent with genome from config or default"""
@@ -446,26 +459,30 @@ class ContinuousUpdateAgent(EvolvableAgent):
 
         if genome is None:
             genome = {
-                "has_threshold": False,  # Always False for continuous updates
+                "has_threshold": True,  # GWT agents MUST have threshold gating
                 "has_intero_weighting": True,
                 "has_somatic_markers": True,
                 "has_precision_weighting": True,
-                "theta_0": 0.0,  # No threshold
+                "theta_0": 0.5,  # Moderate threshold
                 "alpha": 5.0,
                 "beta": 1.2,
                 "Pi_e_lr": 0.01,
+                "tau_theta": 0.1,  # Allostatic time constant
+                "w_somatic": 0.3,  # Somatic weight
             }
         self.genome = genome
 
         # Assign genome attributes to self
-        self.has_threshold = genome["has_threshold"]
-        self.has_intero_weighting = genome["has_intero_weighting"]
-        self.has_somatic_markers = genome["has_somatic_markers"]
-        self.has_precision_weighting = genome["has_precision_weighting"]
-        self.theta_0 = genome["theta_0"]
-        self.alpha = genome["alpha"]
-        self.beta = genome["beta"]
-        self.Pi_e_lr = genome["Pi_e_lr"]
+        self.has_threshold = genome.get("has_threshold", True)
+        self.has_intero_weighting = genome.get("has_intero_weighting", True)
+        self.has_somatic_markers = genome.get("has_somatic_markers", True)
+        self.has_precision_weighting = genome.get("has_precision_weighting", True)
+        self.theta_0 = genome.get("theta_0", 0.5)
+        self.alpha = genome.get("alpha", 5.0)
+        self.beta = genome.get("beta", 1.2)
+        self.Pi_e_lr = genome.get("Pi_e_lr", 0.01)
+        self.tau_theta = genome.get("tau_theta", 0.1)
+        self.w_somatic = genome.get("w_somatic", 0.3)
 
         self.policy_weights = np.random.normal(0, 0.1, (action_dim, state_dim))
 
@@ -475,8 +492,13 @@ class ContinuousUpdateAgent(EvolvableAgent):
         # Precision weights
         self.Pi_e = 1.0
         self.Pi_i = 1.0
-        self.pi_lr = genome["Pi_e_lr"] if self.has_precision_weighting else 0.0
+        self.pi_lr = (
+            genome.get("Pi_e_lr", 0.01) if self.has_precision_weighting else 0.0
+        )
         self.surprise = 0.0  # Initialize surprise attribute
+        self.threshold = self.theta_0 if self.has_threshold else 0.0
+        self._conscious_access = False
+        self._broadcast_window_active = False  # Track if in broadcast window
 
     def _stable_sigmoid(self, z: float) -> float:
         """Numerically stable sigmoid function."""
@@ -487,7 +509,10 @@ class ContinuousUpdateAgent(EvolvableAgent):
             return z_exp / (1.0 + z_exp)
 
     def step(self, observation: Dict, dt: float = 0.05) -> int:
-        """Execute one step"""
+        """
+        Execute one step with GWT-style gating.
+        Requires ignition (surprise > threshold) to access global workspace.
+        """
         # Get state representation
         extero = observation["extero"][:32]
         intero = observation["intero"][:16]
@@ -505,19 +530,28 @@ class ContinuousUpdateAgent(EvolvableAgent):
             weighted_eps_e = eps_e
             weighted_eps_i = eps_i
 
-        # Update surprise
+        # Update surprise using paper Eq. 1
         input_drive = weighted_eps_e + weighted_eps_i
-        self.surprise = 0.9 * self.surprise + 0.1 * input_drive
+        self.surprise = self.surprise + (dt / self.tau_theta) * (
+            -self.surprise + input_drive
+        )
 
-        # Continuous update: always conscious (no threshold gating)
-        self._conscious_access = True
+        # GWT gating: compute ignition probability based on threshold
+        ignition_prob = self._stable_sigmoid(
+            self.alpha * (self.surprise - self.threshold)
+        )
+
+        # Stochastic ignition: broadcast window opens if ignition occurs
+        self._broadcast_window_active = np.random.random() < ignition_prob
+        self._conscious_access = self._broadcast_window_active
 
         # Compute action probabilities
         logits = self.policy_weights @ state
 
-        if self.has_somatic_markers and self.conscious_access:
+        # Somatic markers only influence action if in broadcast window (conscious access)
+        if self.has_somatic_markers and self._conscious_access:
             somatic_values = self.somatic_weights @ state
-            logits += 0.3 * somatic_values
+            logits += self.w_somatic * somatic_values
 
         # Softmax
         exp_logits = np.exp(logits - np.max(logits))
@@ -545,9 +579,9 @@ class ContinuousUpdateAgent(EvolvableAgent):
         # Compute action probabilities
         logits = self.policy_weights @ state
 
-        if self.has_somatic_markers and self.conscious_access:
+        if self.has_somatic_markers and self._conscious_access:
             somatic_values = self.somatic_weights @ state
-            logits += 0.3 * somatic_values
+            logits += self.w_somatic * somatic_values
 
         # Softmax
         exp_logits = np.exp(logits - np.max(logits))
@@ -1046,6 +1080,24 @@ class EvolutionaryAPGIEmergence:
             history["best_fitness"].append(float(np.max(fitness_scores)))
             history["mean_fitness"].append(float(np.mean(fitness_scores)))
             history["best_genome"].append(population[np.argmax(fitness_scores)].copy())
+
+            # Fix 4: Add early-stop criterion for convergence
+            # If fitness plateaus at sub-criterion levels, mark replicate as falsified
+            if len(history["best_fitness"]) >= 50:
+                recent_fitness = np.array(history["best_fitness"][-50:])
+                fitness_std = np.std(recent_fitness)
+                max_recent_fitness = np.max(recent_fitness)
+
+                # Convergence criterion: low variance AND below minimum threshold
+                if fitness_std < 0.001 and max_recent_fitness < F5_1_MIN_PROPORTION:
+                    logger.warning(
+                        f"Generation {generation}: Fitness converged at sub-criterion level "
+                        f"(std={fitness_std:.6f}, max={max_recent_fitness:.3f} < {F5_1_MIN_PROPORTION}). "
+                        f"Replicate falsified."
+                    )
+                    history["convergence_falsified"] = True
+                    history["convergence_generation"] = generation
+                    break
 
             # Track architecture frequencies
             arch_freq = {

@@ -255,14 +255,12 @@ def simulate_model_performance_with_agent(
     """
     # --- Extract APGI parameters with defaults ---
     theta_0 = params.get("theta_0", 0.5)
-    alpha = params.get("alpha", 5.0)
     beta = params.get("beta", 1.2)
     Pi_e = params.get("Pi_e", 1.0)
     Pi_i = params.get("Pi_i", 2.0)
     tau_S = params.get("tau_S", 1.0)
     tau_theta = params.get("tau_theta", 5.0)
     eta_theta = params.get("eta_theta", 0.1)
-    rho = params.get("rho", 0.7)
 
     # --- Steady-state surprise level ---
     # S* = (Πe·σe + Πi·σi) · τ_S   (from dS/dt = 0)
@@ -273,17 +271,17 @@ def simulate_model_performance_with_agent(
 
     # --- Ignition probability (sigmoid of excess surprise) ---
     # Enhanced slope for and theta_0/alpha sensitivity
-    ignition_prob = 1.0 / (1.0 + np.exp(-1.2 * alpha * (S_star - theta_0)))
 
-    # --- Expected free energy proxy ---
-    # Keep a direct linear pathway from β and Πi into policy gain so Sobol
-    # sensitivity correctly reflects APGI's interoceptive control emphasis.
-    policy_gain = (
-        0.20 * rho * ignition_prob
-        + 0.40 * (beta - 1.2)
-        + 0.35 * (Pi_i - 2.0)
-        - 0.20 * (Pi_e - 1.0)
-    )
+    # --- Fix 1: Decouple performance proxy ---
+    # Use a separate scoring function independent of ignition_prob
+    # reward_signal is based on task performance, not ignition
+    reward_signal = 0.6 * (
+        1.0 - np.abs(S_star - theta_0)
+    )  # Reward for threshold alignment
+
+    # Expected free energy proxy (independent of ignition)
+    # Keep direct linear pathways from β and Πi into policy gain
+    policy_gain = 0.40 * (beta - 1.2) + 0.35 * (Pi_i - 2.0) - 0.20 * (Pi_e - 1.0)
     G_approx = -policy_gain
     action_quality = 1.0 / (1.0 + np.exp(G_approx))
 
@@ -299,13 +297,14 @@ def simulate_model_performance_with_agent(
     somatic_bonus = min(0.35, 0.18 * max(beta, 0.0))
 
     # --- Compose performance metric ---
-    # APGI theory: Ignition is the GATE for effective task performance
-    # Multiplying by ignition_prob makes theta_0 and alpha high-sensitivity parameters
+    # Base performance: reward signal + action quality + bonuses
+    # Ignition is an EXPLANATORY VARIABLE, not a component of performance
     base_performance = (
-        ignition_prob * (0.2 + 0.6 * action_quality + integration_bonus)
-        + (1.0 - ignition_prob) * 0.1  # Residual low-level performance
-        + calibration_bonus  # Adaptation happens even if unignited
-        + somatic_bonus
+        reward_signal * 0.4  # Task performance (independent)
+        + action_quality * 0.3  # Action quality (independent)
+        + calibration_bonus * 0.15  # Adaptation (independent)
+        + integration_bonus * 0.1  # Integration (independent)
+        + somatic_bonus * 0.05  # Somatic contribution (independent)
     )
 
     # Return deterministic performance for sensitivity analysis
@@ -314,18 +313,17 @@ def simulate_model_performance_with_agent(
 
 def simulate_model_performance_placeholder(params: Dict[str, float]) -> Optional[float]:
     """
-    DEPRECATED: Placeholder performance simulation - DO NOT USE for Sobol analysis.
+    DEPRECATED: This function has been removed in v2.0.
 
-    This function is kept for backward compatibility only.
+    Fix 2: Delete placeholder and raise error if called
     Per FP-8 specification, F8.SA (Sobol analysis) must use actual APGIAgent.
     Using this placeholder will cause F8.SA to return {"passed": False}.
-
-    Returns:
-        float: Synthetic performance value
-        None: To signal that real agent is required
     """
-    logger.warning("DEPRECATED: simulate_model_performance_placeholder() called")
-    return None  # Always return None to enforce APGIAgent requirement
+    raise AttributeError(
+        "simulate_model_performance_placeholder() has been removed in v2.0. "
+        "Use simulate_model_performance_with_agent() instead. "
+        "Per FP-8 specification, F8.SA requires actual APGIAgent for Sobol analysis."
+    )
 
 
 def analyze_oat_sensitivity(
@@ -338,8 +336,13 @@ def analyze_oat_sensitivity(
     One-at-a-time (OAT) sensitivity analysis.
     Vary each parameter ±3σ across 10 levels, record IGT performance over 1,000 trials per level.
     Per Step 1.5.
+
+    Fix 4: Extend OAT to compute output variance and Sobol first-order index proxy
     """
     sensitivity_results = {}
+
+    # Compute total output variance across all parameter variations
+    all_performances = []
 
     for param_name, std_dev in param_std_devs.items():
         if param_name not in base_params:
@@ -366,6 +369,7 @@ def analyze_oat_sensitivity(
 
             avg_performance = np.mean(performances)
             param_sensitivity.append(avg_performance)
+            all_performances.extend(performances)
 
         # Calculate sensitivity metric
         sensitivity = (
@@ -373,13 +377,36 @@ def analyze_oat_sensitivity(
             if np.mean(param_sensitivity) > 0
             else 0
         )
+
+        # Fix 4: Compute output variance for this parameter
+        # σ²_β = variance of performance when parameter β varies
+        param_variance = np.var(param_sensitivity)
+
         sensitivity_results[param_name] = {
             "sensitivity": sensitivity,
             "test_values": test_values.tolist(),
             "performances": param_sensitivity,
             "n_levels": n_levels,
             "n_trials": n_trials,
+            "output_variance": float(param_variance),  # Variance contribution
         }
+
+    # Compute total output variance
+    total_variance = np.var(all_performances) if all_performances else 0.0
+
+    # Compute Sobol first-order index proxy for each parameter
+    # S_i ≈ σ²_i / σ²_total (first-order Sobol index approximation)
+    for param_name in sensitivity_results:
+        param_var = sensitivity_results[param_name]["output_variance"]
+        sobol_index = param_var / (total_variance + 1e-10)
+        sensitivity_results[param_name]["sobol_first_order_index"] = float(sobol_index)
+
+    # Add global statistics
+    sensitivity_results["_global"] = {
+        "total_output_variance": float(total_variance),
+        "n_parameters_tested": len(sensitivity_results) - 1,  # Exclude _global
+        "total_samples": len(all_performances),
+    }
 
     return sensitivity_results
 
@@ -469,6 +496,10 @@ def analyze_beta_pi_collinearity(
 
     # F8.collinearity: Gate VIF check for β/Πⁱ specifically
     # If VIF(β, Πⁱ) > 10, report F8.collinearity as "HIGH" and downgrade F8.SA confidence
+    # Fix 3: Add citations for VIF thresholds
+    # VIF > 10: severe multicollinearity (Hair et al. 2010, Multivariate Data Analysis)
+    # VIF 5-10: moderate multicollinearity (context-specific for APGI)
+    # Validated against FIM positive-definiteness in FP-08.FIM
     f8_collinearity_status = "LOW"
     f8_collinearity_concern = []
 
@@ -480,15 +511,23 @@ def analyze_beta_pi_collinearity(
         if beta_vif > 10 or pi_i_vif > 10:
             f8_collinearity_status = "HIGH"
             if beta_vif > 10:
-                f8_collinearity_concern.append(f"beta VIF={beta_vif:.2f}")
+                f8_collinearity_concern.append(
+                    f"beta VIF={beta_vif:.2f} (Hair et al. 2010: severe)"
+                )
             if pi_i_vif > 10:
-                f8_collinearity_concern.append(f"Pi_i VIF={pi_i_vif:.2f}")
+                f8_collinearity_concern.append(
+                    f"Pi_i VIF={pi_i_vif:.2f} (Hair et al. 2010: severe)"
+                )
         elif beta_vif > 5 or pi_i_vif > 5:
             f8_collinearity_status = "MODERATE"
             if beta_vif > 5:
-                f8_collinearity_concern.append(f"beta VIF={beta_vif:.2f}")
+                f8_collinearity_concern.append(
+                    f"beta VIF={beta_vif:.2f} (Hair et al. 2010: moderate)"
+                )
             if pi_i_vif > 5:
-                f8_collinearity_concern.append(f"Pi_i VIF={pi_i_vif:.2f}")
+                f8_collinearity_concern.append(
+                    f"Pi_i VIF={pi_i_vif:.2f} (Hair et al. 2010: moderate)"
+                )
 
     # Determine if collinearity affects F8.SA confidence
     f8_sa_confidence_downgrade = f8_collinearity_status == "HIGH"

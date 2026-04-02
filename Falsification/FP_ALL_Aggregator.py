@@ -13,7 +13,16 @@ import json
 import math
 import logging
 from pathlib import Path
+from typing import Any, Dict
 import numpy as np
+
+# FP-12 Fix 3: Import APGI_IGNITION_THRESHOLD for GNWT predictions
+try:
+    from utils.constants import DIM_CONSTANTS
+
+    APGI_IGNITION_THRESHOLD = getattr(DIM_CONSTANTS, "IGNITION_THRESHOLD", 0.8)
+except ImportError:
+    APGI_IGNITION_THRESHOLD = 0.8  # Fallback default
 
 # Set up logging for framework audit
 logging.basicConfig(level=logging.INFO)
@@ -77,6 +86,24 @@ PREDICTION_TO_PROTOCOL = {
     "fp10c_mae": "FP_10_BayesianEstimation_MCMC",
     "fp10b_scaling": "FP_10_BayesianEstimation_MCMC",
 }
+
+# FP-12 Fix 4: Validate PREDICTION_TO_PROTOCOL mapping at module load time
+# This catches typos in protocol IDs early rather than silently failing at runtime
+VALID_PROTOCOL_IDS = {
+    "FP_01_ActiveInference",
+    "VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2",
+    "FP_02_AgentComparison_ConvergenceBenchmark",
+    "FP_09_NeuralSignatures_P3b_HEP",
+    "FP_05_EvolutionaryPlausibility",
+    "FP_10_BayesianEstimation_MCMC",
+}
+
+for pred_id, proto_id in PREDICTION_TO_PROTOCOL.items():
+    if proto_id not in VALID_PROTOCOL_IDS:
+        raise ValueError(
+            f"Unknown protocol '{proto_id}' for prediction '{pred_id}' in PREDICTION_TO_PROTOCOL. "
+            f"Valid protocols: {VALID_PROTOCOL_IDS}"
+        )
 
 
 def _iter_result_items(results_input):
@@ -330,7 +357,11 @@ def extract_apgi_bic_advantage(results_input) -> float:
     if audit["missing_files"] or audit["extraction_errors"]:
         return float("-inf")
 
-    return float("inf")  # default to pass if no BIC data
+    # FP-12 Fix 1: Replace float('inf') with ValueError when no BIC data available
+    raise ValueError(
+        "Cannot evaluate Condition B: no BIC data in any protocol result. "
+        "Ensure all protocol results include bic_values or P3.bic prediction."
+    )
 
 
 ALTERNATIVE_PARSIMONY_THRESHOLD_B = 10.0  # ΔBIC threshold for Condition B (FB)
@@ -411,6 +442,10 @@ def generate_gnwt_predictions(results_input=None, apgi_predictions=None) -> dict
     1. Compute global synchrony proxy from prediction values
     2. Fit θ via MLE (Gaussian mixture model for ignited/non-ignited)
     3. Apply framework-specific sensory gain for P1 (visual/sensory bias)
+
+    FP-12 Fix 3: GNWT uses APGI_IGNITION_THRESHOLD (0.8) for consistency with APGI model.
+    GWT model uses 0.5 as a separate threshold for global workspace theory comparison.
+    See Dehaene & Changeux 2011 for GWT ignition threshold rationale.
     """
     reference = apgi_predictions or aggregate_prediction_results(results_input)
 
@@ -422,12 +457,12 @@ def generate_gnwt_predictions(results_input=None, apgi_predictions=None) -> dict
     ]
 
     if not values:
-        theta = 0.5
+        pass
     else:
         values_array = np.array(values)
         # MLE for threshold: Assume two states (ignited/non-ignited)
         # Fit Gaussian mixture with 2 components via EM algorithm
-        theta = _fit_gnwt_threshold_mle(values_array)
+        _fit_gnwt_threshold_mle(values_array)
 
     # Framework-specific predictions based on GNWT theory
     gnwt_preds = {}
@@ -438,15 +473,24 @@ def generate_gnwt_predictions(results_input=None, apgi_predictions=None) -> dict
         # Calculate global synchrony proxy (normalized activity)
         synchrony = _compute_gnwt_synchrony(val, values)
 
-        # GNWT-specific ignition probability
-        ignition_prob = _gnwt_ignition_probability(synchrony, theta, pred_id)
+        # FP-12 Fix 3: Use APGI_IGNITION_THRESHOLD for GNWT predictions
+        # Assert consistency with APGI model threshold
+        assert APGI_IGNITION_THRESHOLD == 0.8, (
+            f"APGI_IGNITION_THRESHOLD={APGI_IGNITION_THRESHOLD} expected to be 0.8. "
+            f"GNWT predictions require consistent threshold with APGI model."
+        )
+
+        # GNWT-specific ignition probability using APGI threshold
+        ignition_prob = _gnwt_ignition_probability(
+            synchrony, APGI_IGNITION_THRESHOLD, pred_id
+        )
         ignited = ignition_prob >= 0.5
 
         gnwt_preds[pred_id] = {
             "passed": bool(ignited),
             "framework": "GNWT",
             "model": "global_workspace_ignition_mle",
-            "threshold_theta": float(theta),
+            "threshold_theta": float(APGI_IGNITION_THRESHOLD),
             "synchrony_proxy": float(synchrony),
             "ignition_probability": float(ignition_prob),
             "effective_value": float(val),
@@ -682,7 +726,7 @@ def _compute_iit_phi(value: float, pred_id: str, all_values: list) -> float:
     # IIT framework-specific integration complexity factors
     # Based on theoretical predictions from IIT about which phenomena
     # require high vs low integrated information
-    complexity_factors = {
+    complexity_factors: Dict[str, Any] = {
         "P1": 0.85,  # Simple sensory: modular processing, lower Φ
         "P2": {
             "default": 1.0,
@@ -778,11 +822,17 @@ def run_framework_falsification(results_input) -> dict:
     else:
         status = "NOT_FALSIFIED"
 
+    # FP-12 Fix 2: Add partial_falsification_score even when framework is not fully falsified
+    # This provides a continuous measure of framework support across all predictions
+    passing_count = sum(1 for pred in apgi_predictions.values() if pred.get("passed"))
+    partial_falsification_score = passing_count / len(NAMED_PREDICTIONS)
+
     return {
         "framework_falsified": condition_a or condition_b,
         "status": status,
         "condition_a_met": condition_a,
         "condition_b_met": condition_b,
+        "partial_falsification_score": float(partial_falsification_score),
         "partial_falsification": {
             "threshold": PARTIAL_FALSIFICATION_THRESHOLD,
             "met": partial_falsification,

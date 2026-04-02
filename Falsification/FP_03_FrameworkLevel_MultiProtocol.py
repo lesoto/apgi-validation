@@ -208,8 +208,6 @@ def _json_default(value: Any) -> Any:
         return value.tolist()
     if isinstance(value, (np.integer,)):
         return int(value)
-    if isinstance(value, (np.floating,)):
-        return float(value)
     if isinstance(value, (np.bool_,)):
         return bool(value)
     if isinstance(value, Path):
@@ -225,11 +223,21 @@ def _protocol_results_dir() -> Path:
 
 
 def _persist_protocol_result(protocol_label: str, result: Dict[str, Any]) -> Path:
-    """Persist a protocol result as JSON for downstream synthesis checks."""
+    """Persist a protocol result as JSON for downstream synthesis checks.
+
+    Uses atomic write pattern (write to .tmp then os.replace) to prevent
+    partial reads under parallel execution.
+    """
+    import os
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_path = _protocol_results_dir() / f"{protocol_label.lower()}_{timestamp}.json"
-    with output_path.open("w", encoding="utf-8") as handle:
+    tmp_path = output_path.with_suffix(".json.tmp")
+
+    # Atomic write: write to temp file then replace
+    with tmp_path.open("w", encoding="utf-8") as handle:
         json.dump(result, handle, indent=2, default=_json_default)
+    os.replace(tmp_path, output_path)
     return output_path
 
 
@@ -413,13 +421,11 @@ def _compute_wall_clock_efficiency(
             "performance_retention_pct": retention_pct,
         }
 
-    method = efficiency_gain.get("measurement_method", "")
+    method = efficiency_gain.get("measurement_method", "wall_clock")
     if method != "wall_clock":
-        return {
-            "valid": False,
-            "reason": "F3.5 requires wall-clock timing measured with time.perf_counter().",
-            "performance_retention_pct": retention_pct,
-        }
+        raise ValueError(
+            "F3.5 requires wall-clock timing measured with time.perf_counter()."
+        )
 
     apgi_seconds = _to_numeric_array(
         efficiency_gain.get("apgi_seconds") or efficiency_gain.get("full_model_seconds")
@@ -467,6 +473,15 @@ def _compute_sample_efficiency(
     t_stat, p_value = stats.ttest_ind(baseline_trials, apgi_trials, equal_var=False)
     mean_apgi = float(np.mean(apgi_trials))
     mean_baseline = float(np.mean(baseline_trials))
+    mean_apgi = float(np.mean(apgi_trials))
+
+    # Guard against division by zero
+    if mean_apgi <= 0:
+        return {
+            "valid": False,
+            "reason": "APGI mean_trials is zero or negative",
+        }
+
     hazard_ratio = mean_baseline / max(1e-10, mean_apgi)
     return {
         "valid": True,
@@ -956,8 +971,11 @@ class AgentComparisonExperiment:
             )
 
             try:
-                with output_file.open("w", encoding="utf-8") as f:
+                # Atomic write: write to temp file then replace
+                tmp_file = output_file.with_suffix(".json.tmp")
+                with tmp_file.open("w", encoding="utf-8") as f:
                     json.dump(falsification, f, indent=2, default=_json_default)
+                os.replace(tmp_file, output_file)
                 logger.info(f"Framework-level results saved to {output_file}")
             except (OSError, IOError) as e:
                 logger.error(f"Failed to save results to {output_file}: {e}")
@@ -966,8 +984,10 @@ class AgentComparisonExperiment:
                     f"framework_falsification_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                 )
                 try:
-                    with alt_output_file.open("w", encoding="utf-8") as f:
+                    tmp_alt = alt_output_file.with_suffix(".json.tmp")
+                    with tmp_alt.open("w", encoding="utf-8") as f:
                         json.dump(falsification, f, indent=2, default=_json_default)
+                    os.replace(tmp_alt, alt_output_file)
                     logger.info(
                         f"Framework-level results saved to alternative location: {alt_output_file}"
                     )

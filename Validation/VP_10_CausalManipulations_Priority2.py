@@ -52,10 +52,36 @@ try:
         P2_C_MIN_ETA_SQ,
     )
 except ImportError:
-    P2_A_MIN_THRESHOLD_SHIFT = 0.12
-    P2_B_MIN_HEP_REDUCTION = 35.0
-    P2_B_MIN_PCI_REDUCTION = 25.0
-    P2_C_MIN_ETA_SQ = 0.12
+    # Fix 2: Make utils.falsification_thresholds a hard dependency
+    # Remove local fallback thresholds entirely
+    logger.error(
+        "CRITICAL: utils.falsification_thresholds is required for VP-10. "
+        "Install or configure the utils module."
+    )
+    raise ImportError(
+        "VP-10 requires utils.falsification_thresholds. "
+        "This is a hard dependency to ensure paper spec alignment."
+    )
+
+# Fix 1: Assert that imported values match expected paper specifications
+# This ensures VP-10 and VP-07 produce consistent P2.a–P2.c outcomes
+_EXPECTED_P2_A_MIN_THRESHOLD_SHIFT = 0.12
+_EXPECTED_P2_B_MIN_HEP_REDUCTION = 35.0
+_EXPECTED_P2_B_MIN_PCI_REDUCTION = 25.0
+_EXPECTED_P2_C_MIN_ETA_SQ = 0.12
+
+assert (
+    P2_A_MIN_THRESHOLD_SHIFT == _EXPECTED_P2_A_MIN_THRESHOLD_SHIFT
+), f"P2_A_MIN_THRESHOLD_SHIFT mismatch: {P2_A_MIN_THRESHOLD_SHIFT} != {_EXPECTED_P2_A_MIN_THRESHOLD_SHIFT}"
+assert (
+    P2_B_MIN_HEP_REDUCTION == _EXPECTED_P2_B_MIN_HEP_REDUCTION
+), f"P2_B_MIN_HEP_REDUCTION mismatch: {P2_B_MIN_HEP_REDUCTION} != {_EXPECTED_P2_B_MIN_HEP_REDUCTION}"
+assert (
+    P2_B_MIN_PCI_REDUCTION == _EXPECTED_P2_B_MIN_PCI_REDUCTION
+), f"P2_B_MIN_PCI_REDUCTION mismatch: {P2_B_MIN_PCI_REDUCTION} != {_EXPECTED_P2_B_MIN_PCI_REDUCTION}"
+assert (
+    P2_C_MIN_ETA_SQ == _EXPECTED_P2_C_MIN_ETA_SQ
+), f"P2_C_MIN_ETA_SQ mismatch: {P2_C_MIN_ETA_SQ} != {_EXPECTED_P2_C_MIN_ETA_SQ}"
 
 # Set random seeds
 

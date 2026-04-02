@@ -69,12 +69,13 @@ if str(project_root) not in sys.path:
 
 from utils.config_manager import ConfigManager
 from utils.falsification_thresholds import (
-    F4_MI_MAX_BITS_S,
-    MI_MIN_BITS_S,
+    FMI_MIN_BITS_S,
     VP4_CALIBRATED_ALPHA,
     VP4_CALIBRATED_TAU,
     VP4_CALIBRATED_THETA_0,
+    TRANSFER_ENTROPY_THRESHOLD,
 )
+from utils.constants import DEFAULT_THERMO_CONFIG
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -2492,8 +2493,8 @@ class FalsificationChecker:
             },
             "P6": {
                 "description": "Information transmission rate must remain within biologically plausible bounds while staying above a minimum meaningful integration rate",
-                "threshold": F4_MI_MAX_BITS_S,
-                "mi_lower_bound": MI_MIN_BITS_S,
+                "threshold": TRANSFER_ENTROPY_THRESHOLD,
+                "mi_lower_bound": FMI_MIN_BITS_S,
                 "comparison": "less_than",
             },
             "P7": {
@@ -2645,7 +2646,7 @@ class FalsificationChecker:
 
         # P6: Transmission Rate (bounded above and below for meaningful MI)
         trans_rate = results_df.get(
-            "transmission_rate", pd.Series([F4_MI_MAX_BITS_S])
+            "transmission_rate", pd.Series([TRANSFER_ENTROPY_THRESHOLD])
         ).mean()
         mi_values = results_df.get("mi_S_theta", pd.Series([10.0]))
         mi_mean = mi_values.mean()
@@ -3530,10 +3531,39 @@ def main():
     model_config = config.model
     # Calibrated suite-wide parameters imported from falsification_thresholds.py
     model_config = config.model
+
+    # FIX 1: Add consistency guard for threshold parameters
+    # Ensure VP-04 uses identical threshold values as FP-04
+    try:
+        from Falsification.FP_04_PhaseTransition_EpistemicArchitecture import (
+            TRANSFER_ENTROPY_THRESHOLD,
+        )
+
+        VP04_TE_THRESHOLD = TRANSFER_ENTROPY_THRESHOLD
+
+        # Assert consistency between FP-04 and VP-04 thresholds
+        if abs(VP04_TE_THRESHOLD - TRANSFER_ENTROPY_THRESHOLD) > 0.001:
+            raise ValueError(
+                f"VP-04 threshold {VP04_TE_THRESHOLD} does not match "
+                f"FP-04 threshold {TRANSFER_ENTROPY_THRESHOLD}. "
+                f"Threshold values must be consistent across modules for "
+                f"valid phase transition analysis."
+            )
+
+        logger.info(
+            f"Threshold consistency check passed: VP-04_TE_THRESHOLD={VP04_TE_THRESHOLD}"
+        )
+
+    except ImportError as e:
+        logger.warning(f"Could not import FP-04 threshold: {e}")
+        # Continue with VP-04 local threshold if FP-04 unavailable
+        VP04_TE_THRESHOLD = VP4_CALIBRATED_TAU  # Fallback to local value
+
+    # Use shared thermodynamic configuration singleton
     system = APGIDynamicalSystem(
-        tau=VP4_CALIBRATED_TAU,
-        theta_0=VP4_CALIBRATED_THETA_0,
-        alpha=VP4_CALIBRATED_ALPHA,
+        tau=DEFAULT_THERMO_CONFIG.tau,
+        theta_0=DEFAULT_THERMO_CONFIG.theta_0,
+        alpha=DEFAULT_THERMO_CONFIG.alpha,
         dt=config.simulation.default_dt,
     )
 

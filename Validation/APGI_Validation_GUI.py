@@ -202,12 +202,6 @@ class APGIValidationGUI:
         # Setup logging
         self._setup_logging()
 
-        # Initialize parameter exploration attributes
-        self.param_vars = {}
-        self.param_labels = {}
-        self.param_sliders = {}
-        self.param_configs = {}
-
         # Create GUI elements
         try:
             self.create_widgets()

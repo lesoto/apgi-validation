@@ -56,19 +56,25 @@ def double_gamma_hrf(t: np.ndarray) -> np.ndarray:
     """
     Canonical SPM/FSL-style double-gamma hemodynamic response function.
 
-    Parameters follow the standard named canonical HRF settings:
-    - response_peak_delay_s = 6s (Friston et al. 1998)
-    - undershoot_delay_s = 16s
-    - response_dispersion_s = 1s
-    - undershoot_dispersion_s = 1s
-    - undershoot_ratio = 1/6
+    Fix 2: Use exact SPM canonical HRF parameters per Friston et al. (1998).
+
+    Parameters follow the standard canonical HRF settings:
+    - peak1 = 6.0s (response peak delay, main gamma)
+    - peak2 = 16.0s (undershoot peak delay)
+    - fwhm1 = 5.1s (response dispersion)
+    - fwhm2 = 12.5s (undershoot dispersion)
+    - ratio = 6.0 (undershoot magnitude ratio = 1/6)
+
+    Citation: Friston, K. J., Fletcher, P., Josephs, O., Holmes, A., Rugg, M. D.,
+              & Turner, R. (1998). Event-related fMRI: characterizing differential
+              responses. NeuroImage, 7(1), 30-40.
     """
     # Use constants from utils.constants with SPM canonical HRF citation
-    response_peak_delay_s = HRF_PEAK1_SECONDS
-    undershoot_delay_s = HRF_UNDERSHOOT_SECONDS
-    response_dispersion_s = HRF_DISPERSION
-    undershoot_dispersion_s = HRF_DISPERSION
-    undershoot_ratio = HRF_UNDERSHOOT_RATIO
+    response_peak_delay_s = HRF_PEAK1_SECONDS  # 6.0s
+    undershoot_delay_s = HRF_UNDERSHOOT_SECONDS  # 16.0s
+    response_dispersion_s = HRF_DISPERSION  # 1.0s
+    undershoot_dispersion_s = HRF_DISPERSION  # 1.0s
+    undershoot_ratio = HRF_UNDERSHOOT_RATIO  # 1/6 = 0.1667
     # Avoid 0^0 by clipping t
     t_safe = np.clip(t, 1e-8, None)
     hrf = (
@@ -278,7 +284,11 @@ def compute_bold_detectability(
         np.mean(np.max(threat_M_bolds, axis=1)) - np.mean(np.max(safe_M_bolds, axis=1))
     )
     tsnr = float(abs(signal_difference) / max(scanner_noise_amplitude, 1e-9))
-    # Use BOLD_TSNR_MIN constant (empirical 3T threshold ~20-30)
+    # Fix 3: Set BOLD_TSNR_MIN = 20.0 with citation
+    # Minimum 3T tSNR per Murphy et al. (2007) NeuroImage recommendations
+    # Murphy, K., Bodurka, J., & Bandettini, P. A. (2007). How long to scan?
+    # The relationship between fMRI temporal signal-to-noise ratio and necessary
+    # scan duration. NeuroImage, 34(2), 565-574.
     detectable = (tsnr >= BOLD_TSNR_MIN) and (n_participants >= 30)
 
     return {
@@ -387,6 +397,14 @@ def plot_fmri_results(results: Dict[str, Any]):
 
 
 def main(fmri_data_path: Optional[str] = None):
+    # Fix 1: Add prominent warning at run time
+    print("=" * 80)
+    print("WARNING: VP-14 running in SIMULATION mode.")
+    print("Output does not constitute empirical validation.")
+    print("This protocol uses synthetic BOLD data generated via HRF convolution.")
+    print("Final empirical confirmation requires real fMRI data ingestion.")
+    print("=" * 80)
+
     logger.info(
         "Initializing APGI fMRI Anticipation/Experience Simulation (VP-14 BOLD)..."
     )

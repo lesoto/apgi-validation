@@ -78,6 +78,9 @@ except ImportError:
 
     DIM_CONSTANTS: Any = MockDIM_CONSTANTS()
 
+# Re-export dimension constants for backward compatibility
+DIM_CONSTANTS_EXPORT: Any = DIM_CONSTANTS
+
 from utils.falsification_thresholds import (
     F2_1_MIN_ADVANTAGE_PCT,
     F2_3_MIN_RT_ADVANTAGE_MS,
@@ -165,10 +168,11 @@ def bootstrap_one_sample_test(
     alpha: float = 0.05,
 ) -> Tuple[float, float]:
     """
-    Perform one-sample test using pivotal bootstrap (TODO-3).
+    Perform one-sample test using BCa (bias-corrected accelerated) bootstrap.
 
-    Pivotal bootstrap uses studentized statistics for better accuracy
-    compared to percentile bootstrap.
+    BCa bootstrap provides better accuracy than percentile bootstrap by
+    accounting for bias and skewness in the sampling distribution.
+    Uses scipy.stats.bootstrap with method='BCa' for non-normal EEG residuals.
 
     Args:
         data: Sample data
@@ -182,40 +186,57 @@ def bootstrap_one_sample_test(
     if len(data) < 2:
         return 0.0, 1.0
 
-    observed_mean = np.mean(data)
-    observed_std = np.std(data, ddof=1)
+    # Use scipy.stats.bootstrap with BCa method for better accuracy
+    from scipy.stats import bootstrap
 
-    # Calculate observed t-statistic
-    t_observed = (
-        (observed_mean - null_value) / (observed_std / np.sqrt(len(data)))
-        if observed_std > 0
+    data_arr = np.array(data)
+    observed_mean = np.mean(data_arr)
+
+    # Define statistic function for bootstrap
+    def stat_func(x):
+        return np.mean(x)
+
+    # Perform BCa bootstrap
+    try:
+        res = bootstrap(
+            (data_arr,),
+            stat_func,
+            n_resamples=n_bootstrap,
+            method="BCa",
+            random_state=None,
+        )
+        # Calculate confidence interval
+        ci_lower, ci_upper = res.confidence_interval
+
+        # Calculate p-value based on whether null_value is in CI
+        if ci_lower <= null_value <= ci_upper:
+            p_value = 1.0  # Not significant
+        else:
+            p_value = alpha  # Significant at alpha level
+    except Exception:
+        # Fallback to basic bootstrap if BCa fails
+        bootstrap_means = []
+        for _ in range(n_bootstrap):
+            sample = np.random.choice(data_arr, size=len(data_arr), replace=True)
+            bootstrap_means.append(np.mean(sample))
+        bootstrap_means_arr = np.array(bootstrap_means)
+
+        # Two-sided p-value
+        if observed_mean >= null_value:
+            p_value = np.mean(bootstrap_means_arr >= 2 * null_value - observed_mean)
+        else:
+            p_value = np.mean(bootstrap_means_arr <= 2 * null_value - observed_mean)
+        p_value = min(2 * p_value, 1.0)
+
+    # Test statistic
+    test_stat = (
+        (observed_mean - null_value)
+        / (np.std(data_arr, ddof=1) / np.sqrt(len(data_arr)))
+        if np.std(data_arr, ddof=1) > 0
         else 0.0
     )
 
-    # Bootstrap studentized statistics (pivotal bootstrap)
-    bootstrap_t_stats: List[float] = []
-    for _ in range(n_bootstrap):
-        # Resample from data
-        sample = np.random.choice(data, size=len(data), replace=True)
-        sample_mean = np.mean(sample)
-        sample_std = np.std(sample, ddof=1)
-
-        # Studentize: (mean - observed_mean) / (std / sqrt(n))
-        if sample_std > 0:
-            t_bootstrap = (sample_mean - observed_mean) / (
-                sample_std / np.sqrt(len(data))
-            )
-        else:
-            t_bootstrap = 0.0
-        bootstrap_t_stats.append(t_bootstrap)
-
-    bootstrap_t_stats_arr = np.array(bootstrap_t_stats)
-
-    # Two-sided p-value using pivotal method
-    # Proportion of bootstrap t-stats as extreme or more extreme than observed
-    p_value = np.mean(np.abs(bootstrap_t_stats_arr) >= np.abs(t_observed))
-
-    return t_observed, min(2 * p_value, 1.0)
+    return test_stat, p_value
 
 
 def check_F5_family(
@@ -235,7 +256,16 @@ def check_F5_family(
 
     Returns:
         Dictionary with F5.1-F5.3 test results
+
+    Raises:
+        ValueError: If genome_data is None (VP-5 genome_data required)
     """
+    # Explicit guard: VP-5 genome_data is required for valid falsification
+    if genome_data is None:
+        raise ValueError(
+            "VP-5 genome_data required - run VP-5_EvolutionaryEmergence first to generate valid evolutionary data"
+        )
+
     results = {}
 
     # F5.1: Threshold Filtering Emergence
@@ -260,7 +290,7 @@ def check_F5_family(
         from utils.statistical_tests import compute_cohens_d
 
         # Generate simulated evolved alpha values around threshold + effect
-        n_samples = max(30, f5_thresholds.get("n_samples", 100))
+        n_samples = int(max(30, f5_thresholds.get("n_samples", 100)))
         evolved_alpha_values = np.random.normal(
             loc=f5_thresholds["F5_1_MIN_ALPHA"] + 0.5,  # Slightly above threshold
             scale=0.5,
@@ -358,7 +388,6 @@ try:
         get_threshold_reduction_min,
         get_cohens_d_adaptation_threshold,
     )
-    from utils.threshold_registry import ThresholdRegistry
 
     # Load PAC configuration
     def load_pac_bands():
@@ -380,8 +409,18 @@ try:
 
 except ImportError:
     # Fallback functions if config_loader not available
-    def get_cumulative_reward_advantage_threshold(default=18.0):
-        return default
+    # Import from centralized falsification_thresholds to ensure single-source-of-truth
+    from utils.falsification_thresholds import (
+        F1_1_MIN_ADVANTAGE_PCT as _F1_1_ADV,
+        F1_1_MIN_COHENS_D as _F1_1_D,
+        F1_1_ALPHA as _F1_1_ALPHA,
+        F6_1_LTCN_MAX_TRANSITION_MS as _TAU_THETA_MIN,
+        F6_5_HYSTERESIS_MIN as _TAU_THETA_MAX,
+        F3_3_MIN_REDUCTION_PCT as _THRESHOLD_REDUCTION_MIN,
+    )
+
+    def get_cumulative_reward_advantage_threshold(default=None):
+        return default if default is not None else _F1_1_ADV
 
     # Fallback PAC configuration
     PAC_BANDS = {
@@ -390,54 +429,23 @@ except ImportError:
         "L3_L4": {"phase": [1, 4], "amplitude": [4, 8]},
     }
 
-    def get_cohens_d_threshold(default=0.60):
-        return default
+    def get_cohens_d_threshold(default=None):
+        return default if default is not None else _F1_1_D
 
-    def get_significance_level(default=0.01):
-        return default
+    def get_significance_level(default=None):
+        return default if default is not None else _F1_1_ALPHA
 
-    def get_tau_theta_min(default=10.0):
-        return default
+    def get_tau_theta_min(default=None):
+        return default if default is not None else _TAU_THETA_MIN
 
-    def get_tau_theta_max(default=100.0):
-        return default
+    def get_tau_theta_max(default=None):
+        return default if default is not None else _TAU_THETA_MAX
 
-    def get_threshold_reduction_min(default=20.0):
-        return default
+    def get_threshold_reduction_min(default=None):
+        return default if default is not None else _THRESHOLD_REDUCTION_MIN
 
     def get_cohens_d_adaptation_threshold(default=0.70):
         return default
-
-    # Mock ThresholdRegistry if not available
-    class ThresholdRegistry:
-        """Mock ThresholdRegistry with consistent default thresholds."""
-
-        # Define consistent thresholds as class attributes
-        DEFAULT_THRESHOLDS = {
-            "cumulative_reward_advantage_threshold": 18.0,
-            "cohens_d_threshold": 0.60,
-            "significance_level": 0.01,
-            "tau_theta_min": 10.0,
-            "tau_theta_max": 100.0,
-            "threshold_reduction_min": 20.0,
-            "cohens_d_adaptation_threshold": 0.70,
-            "F5_1_MIN_PROPORTION": 0.75,
-            "F5_1_BINOMIAL_ALPHA": 0.05,
-            "F5_1_MIN_ALPHA": 3.0,
-            "F5_1_FALSIFICATION_ALPHA": 2.5,
-            "F5_1_MIN_COHENS_D": 0.60,
-        }
-
-        def __init__(self, config_manager=None):
-            self.config_manager = config_manager
-
-        def get_falsification_thresholds(self):
-            """Return all falsification thresholds as a dictionary."""
-            return self.DEFAULT_THRESHOLDS.copy()
-
-        def get_threshold(self, name):
-            """Get a specific threshold by name."""
-            return self.DEFAULT_THRESHOLDS.get(name, 0.60)
 
 
 EXTERO_DIM = DIM_CONSTANTS.EXTERO_DIM
@@ -537,7 +545,13 @@ class HierarchicalGenerativeModel:
 
     def get_all_levels(self) -> np.ndarray:
         """Get all levels concatenated"""
-        return np.concatenate([self.states[level["name"]] for level in self.levels])
+        output = np.concatenate([self.states[level["name"]] for level in self.levels])
+        # Validate concatenated shape matches sum of level dimensions
+        level_dims = [level["dim"] for level in self.levels]
+        assert output.shape[-1] == sum(
+            level_dims
+        ), f"Expected {sum(level_dims)}, got {output.shape[-1]}"
+        return output
 
 
 class SomaticMarkerNetwork:
@@ -979,7 +993,7 @@ def analyze_bifurcation_structure(
 
         ignition_probs.append(1.0 if ignited else 0.0)
 
-    ignition_probs = np.array(ignition_probs)
+    ignition_probs_arr = np.array(ignition_probs)
 
     # Fit sigmoid to ignition probabilities
     def sigmoid(x, a, b, c):
@@ -989,7 +1003,7 @@ def analyze_bifurcation_structure(
         popt, pcov = curve_fit(
             sigmoid,
             drives,
-            ignition_probs,
+            ignition_probs_arr,
             p0=[1, 1, theta_t],
             bounds=([0.5, 0.1, 0], [1.5, 10, 2 * theta_t]),
         )
@@ -1112,10 +1126,10 @@ class APGIActiveInferenceAgent:
         # =====================
 
         self.workspace_content: Dict[str, Any] = {}
-        self.ignition_history = []
+        self.ignition_history: List[Dict[str, Any]] = []
         self.conscious_access = False
-        self._eps_e_buffer = deque(maxlen=50)
-        self._eps_i_buffer = deque(maxlen=50)
+        self._eps_e_buffer: deque[float] = deque(maxlen=50)
+        self._eps_i_buffer: deque[float] = deque(maxlen=50)
         self.last_policy_entropy = 1.0
 
         # =====================
@@ -1409,10 +1423,11 @@ class APGIActiveInferenceAgent:
     def _update_precision(self, eps_e: np.ndarray, eps_i: np.ndarray):
         """Update precision based on prediction error statistics"""
 
-        # Track running variance of prediction errors
+        # Track running variance of prediction errors - initialize if needed
         if not hasattr(self, "_eps_e_buffer"):
-            self._eps_e_buffer: deque[float] = deque(maxlen=50)
-            self._eps_i_buffer: deque[float] = deque(maxlen=50)
+            self._eps_e_buffer = deque(maxlen=50)
+        if not hasattr(self, "_eps_i_buffer"):
+            self._eps_i_buffer = deque(maxlen=50)
 
         self._eps_e_buffer.append(np.linalg.norm(eps_e))
         self._eps_i_buffer.append(np.linalg.norm(eps_i))
@@ -1635,7 +1650,7 @@ class GWTOnlyAgent:
         # Workspace for broadcast (but no somatic integration)
         self.workspace_content: Optional[Dict[str, Any]] = None
         self.conscious_access = False
-        self.ignition_history = []
+        self.ignition_history: List[Dict[str, Any]] = []
 
         # Tracking
         self.time = 0.0
@@ -2643,7 +2658,7 @@ def check_falsification(
             shuffled_ign = np.random.permutation(ign_mi_vals)
             shuffled_base = np.random.permutation(base_mi_vals)
             surrogate_diff = np.mean(shuffled_ign) - np.mean(shuffled_base)
-            surrogate_diffs.append(surrogate_diff)
+            surrogate_diffs.append(float(surrogate_diff))
 
         surrogate_diffs = np.array(surrogate_diffs)
         # One-tailed test: proportion of surrogates >= observed

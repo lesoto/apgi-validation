@@ -77,7 +77,47 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed(RANDOM_SEED)
 
 # =============================================================================
+# Fix 1: Verify fallback thresholds match imported values
+# =============================================================================
+# Fallback thresholds (used if utils.falsification_thresholds import fails)
+# These must match the imported values to ensure paper spec alignment
+_FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT = 15.0
+_FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN = 60.0
+_FALLBACK_V7_1_MIN_COHENS_D = 0.70
+_FALLBACK_V7_1_ALPHA = 0.01
+_FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT = 25.0
+_FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT = 30.0
+_FALLBACK_V7_2_MIN_ETA_SQUARED = 0.20
+_FALLBACK_V7_2_MIN_COHENS_D = 0.50
+_FALLBACK_V7_2_ALPHA = 0.01
+
+# Fix 1: Assert that imported values match fallback values
+# This ensures paper spec alignment even if import fails
+assert (
+    V7_1_MIN_THRESHOLD_REDUCTION_PCT == _FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT
+), f"V7_1_MIN_THRESHOLD_REDUCTION_PCT mismatch: {V7_1_MIN_THRESHOLD_REDUCTION_PCT} != {_FALLBACK_V7_1_MIN_THRESHOLD_REDUCTION_PCT}"
+assert (
+    V7_1_MIN_EFFECT_DURATION_MIN == _FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN
+), f"V7_1_MIN_EFFECT_DURATION_MIN mismatch: {V7_1_MIN_EFFECT_DURATION_MIN} != {_FALLBACK_V7_1_MIN_EFFECT_DURATION_MIN}"
+assert (
+    V7_1_MIN_COHENS_D == _FALLBACK_V7_1_MIN_COHENS_D
+), f"V7_1_MIN_COHENS_D mismatch: {V7_1_MIN_COHENS_D} != {_FALLBACK_V7_1_MIN_COHENS_D}"
+assert (
+    V7_2_MIN_PRECISION_INCREASE_PCT == _FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT
+), f"V7_2_MIN_PRECISION_INCREASE_PCT mismatch: {V7_2_MIN_PRECISION_INCREASE_PCT} != {_FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT}"
+assert (
+    V7_2_MIN_IGNITION_REDUCTION_PCT == _FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT
+), f"V7_2_MIN_IGNITION_REDUCTION_PCT mismatch: {V7_2_MIN_IGNITION_REDUCTION_PCT} != {_FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT}"
+assert (
+    V7_2_MIN_ETA_SQUARED == _FALLBACK_V7_2_MIN_ETA_SQUARED
+), f"V7_2_MIN_ETA_SQUARED mismatch: {V7_2_MIN_ETA_SQUARED} != {_FALLBACK_V7_2_MIN_ETA_SQUARED}"
+assert (
+    V7_2_MIN_COHENS_D == _FALLBACK_V7_2_MIN_COHENS_D
+), f"V7_2_MIN_COHENS_D mismatch: {V7_2_MIN_COHENS_D} != {_FALLBACK_V7_2_MIN_COHENS_D}"
+
+# =============================================================================
 # PART 1: INTERVENTION MODELS
+# =============================================================================
 # =============================================================================
 
 
@@ -138,7 +178,16 @@ class TMSInterventions:
 
     Each intervention targets specific APGI parameters based on
     known neural mechanisms.
+
+    Fix 2: Add MNI coordinates to TMS site specifications per Huang et al. (2019)
     """
+
+    # MNI coordinates for TMS sites (Huang et al., 2019)
+    # Standard stereotactic coordinates for neuronavigation
+    DLPFC_MNI = (-46, 36, 20)  # Left dorsolateral prefrontal cortex
+    INSULA_MNI = (-38, 4, -8)  # Left anterior insula
+    V1_MNI = (0, -90, 10)  # Primary visual cortex (midline)
+    VERTEX_MNI = (0, 0, 80)  # Vertex (control site, top of head)
 
     @staticmethod
     def dlpfc_tms() -> InterventionEffect:
@@ -147,6 +196,8 @@ class TMSInterventions:
 
         Target: Increases external precision (Pi_e) via top-down attention
         Mechanism: Enhances sensory gain control
+
+        MNI coordinates: (-46, 36, 20) per Huang et al. (2019)
         """
         return InterventionEffect(
             name="dlPFC_TMS",
@@ -166,6 +217,8 @@ class TMSInterventions:
 
         Target: Increases interoceptive precision (Pi_i)
         Mechanism: Enhances interoceptive signal processing
+
+        MNI coordinates: (-38, 4, -8) per Huang et al. (2019)
         """
         return InterventionEffect(
             name="Insula_TMS",
@@ -185,6 +238,8 @@ class TMSInterventions:
 
         Target: Decreases threshold (makes ignition easier)
         Mechanism: Direct cortical excitation
+
+        MNI coordinates: (0, -90, 10) per Huang et al. (2019)
         """
         return InterventionEffect(
             name="V1_TMS",
@@ -204,6 +259,8 @@ class TMSInterventions:
 
         Target: None (null effect)
         Mechanism: Auditory/somatosensory artifact only
+
+        MNI coordinates: (0, 0, 80) - top of head (control site)
         """
         return InterventionEffect(
             name="Vertex_TMS_Control",

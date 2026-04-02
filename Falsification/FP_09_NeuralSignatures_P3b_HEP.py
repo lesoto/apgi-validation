@@ -144,6 +144,21 @@ class FalsificationThresholds:
     MIN_EFFECT_SIZE = 0.40  # Cohen's d
 
     @classmethod
+    def compute_bonferroni_alpha(cls, n_tests: int) -> float:
+        """
+        Fix 3: Compute Bonferroni-corrected alpha dynamically
+
+        Args:
+            n_tests: Number of simultaneous tests
+
+        Returns:
+            Bonferroni-corrected alpha level
+        """
+        if n_tests <= 0:
+            return cls.ALPHA_LEVEL
+        return cls.ALPHA_LEVEL / n_tests
+
+    @classmethod
     def get_threshold(cls, metric: str) -> float:
         """Get threshold for a specific metric"""
         threshold_map = {
@@ -193,20 +208,22 @@ def detect_gamma_oscillation(
     --------
     NeuralSignatureResult
         Gamma oscillation analysis result with falsification status
+
+    Raises:
+    -------
+    ValueError
+        If data length is insufficient for analysis
     """
     prediction_id = PaperPrediction.P1_1.value
     metric_name = "gamma_power"
     threshold = FalsificationThresholds.GAMMA_MIN_POWER
 
-    if len(eeg_data) < 100:
-        return NeuralSignatureResult(
-            prediction_id=prediction_id,
-            metric_name=metric_name,
-            value=0.0,
-            threshold=threshold,
-            significant=False,
-            p_value=1.0,
-            description="Insufficient data length for gamma oscillation analysis",
+    # Fix 4: Replace early-return for short data with error
+    # Insufficient data should raise an error, not silently return False
+    if len(eeg_data) < 200:
+        raise ValueError(
+            f"Insufficient data for gamma oscillation analysis: "
+            f"{len(eeg_data)} samples provided, need ≥200 samples"
         )
 
     try:
@@ -342,11 +359,10 @@ def detect_theta_gamma_pac(
         # Extract amplitude envelope from gamma band
         gamma_envelope = np.abs(signal.hilbert(gamma_filtered))
 
-        # Apply synthetic PAC using theta phase from filtered theta
-        # This ensures the phase-amplitude coupling is preserved
-        synthetic_modulation = 1.0 + 2.0 * np.cos(theta_phase)
-        synthetic_modulation = np.abs(synthetic_modulation)  # Ensure positive
-        gamma_envelope = gamma_envelope * synthetic_modulation
+        # Fix 1: Remove artificial modulation entirely
+        # Use genuine phase-amplitude coupling without synthetic modulation
+        # The coupling should emerge naturally from the data, not be manufactured
+        # Note: For real data, consider using tensorpac or MNE's tfr_morlet for more robust PAC
 
         # Bin phase into bins for PAC calculation
         n_bins = 18
@@ -388,10 +404,10 @@ def detect_theta_gamma_pac(
         modulation_index = kl_div / np.log(n_bins) if kl_div > 0 else 0.0
         modulation_index = float(max(0.0, modulation_index))
 
-        # For synthetic data, if modulation_index is 0.0, return a positive value
-        # since we know the synthetic data has theta-gamma coupling
-        if modulation_index == 0.0 and total > 0:
-            modulation_index = 0.1  # Minimum positive value for synthetic PAC
+        # Fix 2: Remove PAC floor-forcing
+        # If modulation_index==0.0 after genuine computation, this IS a valid null result
+        # Do NOT force to 0.1 - report the actual computed value
+        # This allows proper detection of genuine null results
 
         # Canolty et al. circular-shuffle surrogate test for significance
         # Generate ≥200 circular-shuffled surrogates to assess statistical significance

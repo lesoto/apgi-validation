@@ -91,23 +91,38 @@ except ImportError:
 
 
 def apply_shared_mcc_vp09(
-    p_values: List[float], method: str = "bonferroni", alpha: float = 0.05
+    p_values: List[float], method: str = "fdr_bh", alpha: float = 0.05
 ) -> Dict[str, Any]:
     """
     Apply shared multiple comparison correction for VP-09.
 
     Wraps the shared apply_multiple_comparison_correction function with fallback.
 
+    Fix 2: Document correction method with choices and citation.
+    Default method changed to FDR-BH (Benjamini & Hochberg, 1995) for better power
+    while controlling false discovery rate.
+
     Args:
         p_values: List of raw p-values from multiple tests
-        method: Correction method - "bonferroni" or "fdr_bh"
+        method: Correction method - "bonferroni", "fdr_bh", or "holm"
+                - "bonferroni": Bonferroni correction (most conservative)
+                - "fdr_bh": Benjamini & Hochberg FDR control (recommended, default)
+                - "holm": Holm-Bonferroni sequential correction (compromise)
         alpha: Significance level (default 0.05)
+
+    Citation: Benjamini, Y., & Hochberg, Y. (1995). Controlling the false discovery
+              rate: a practical and powerful approach to multiple testing.
+              Journal of the Royal Statistical Society, 57(1), 289-300.
 
     Returns:
         Dictionary with corrected p-values and significance flags
     """
     if apply_multiple_comparison_correction is None:
         # Fallback to simple Bonferroni
+        logger.warning(
+            f"apply_multiple_comparison_correction not available. "
+            f"Using local {method} implementation."
+        )
         m = len(p_values)
         corrected = [min(p * m, 1.0) for p in p_values]
         significant = [p < alpha / m for p in p_values]
@@ -127,6 +142,11 @@ def apply_shared_mcc_vp09(
         )
         return {
             "method": method,
+            "citation": (
+                "Benjamini & Hochberg (1995)"
+                if method == "fdr_bh"
+                else "Holm (1979)" if method == "holm" else "Bonferroni"
+            ),
             "alpha": alpha,
             "original_p_values": p_values,
             "corrected_p_values": result.get("corrected_p_values", []),
@@ -169,6 +189,8 @@ class APGIP3bAnalyzer:
         """
         Load and preprocess EEG data using MNE pipeline.
 
+        Fix 3: Add BIDS compliance check for real data pathway.
+
         Args:
             filepath: Path to EEG data file
             filter_low: High-pass filter frequency (Hz)
@@ -182,6 +204,21 @@ class APGIP3bAnalyzer:
         """
         if not MNE_AVAILABLE:
             raise ImportError("MNE required for EEG analysis")
+
+        # Fix 3: Check BIDS compliance for real data
+        try:
+            from mne_bids import check_dataset_integrity
+
+            data_dir = Path(filepath).parent.parent  # Assume BIDS structure
+            logger.info(f"Checking BIDS compliance for {data_dir}")
+            check_dataset_integrity(str(data_dir))
+            logger.info("BIDS compliance check passed")
+        except ImportError:
+            logger.warning("mne_bids not available - skipping BIDS compliance check")
+        except Exception as e:
+            logger.warning(
+                f"BIDS compliance check failed: {e}. Proceeding with caution."
+            )
 
         # Load data based on format
         if filepath.endswith(".fif"):
@@ -939,9 +976,10 @@ class APGINeuralSignaturesValidator:
             # Check if we have EEG data available
             eeg_path = str(PROCESSED_DATA_DIR / "eeg_data.fif")
             if not Path(eeg_path).exists():
-                # Use synthetic data for testing
+                # Fix 1: Add explicit warning that synthetic data is being used
                 logger.warning(
-                    "No EEG data available - using synthetic data for PAC analysis"
+                    "VP-09: Running on synthetic data. Results are simulations only; "
+                    "empirical validation required with real EEG data."
                 )
                 sfreq = 500.0
                 n_samples = 50000  # 100 seconds at 500 Hz

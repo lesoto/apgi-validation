@@ -15,6 +15,26 @@ supporting interoceptive awareness. Nat Neurosci. 2004;7(2):189-195.
 from dataclasses import dataclass
 from typing import Dict
 
+try:
+    from .falsification_thresholds import (
+        VP4_CALIBRATED_TAU,
+        VP4_CALIBRATED_ALPHA,
+        VP4_CALIBRATED_THETA_0,
+        TRANSFER_ENTROPY_THRESHOLD,
+    )
+except ImportError:
+    # Handle direct script execution
+    import sys
+    import os
+
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils.falsification_thresholds import (
+        VP4_CALIBRATED_TAU,
+        VP4_CALIBRATED_ALPHA,
+        VP4_CALIBRATED_THETA_0,
+        TRANSFER_ENTROPY_THRESHOLD,
+    )
+
 # VP-02 physiological arousal coupling defaults (Critchley et al. 2004-inspired)
 ALPHA_AROUSAL: float = 0.15
 SIGMA_AROUSAL: float = 2.5
@@ -50,6 +70,21 @@ class ModelParameters:
     rho: float = 0.8
     sigma_S: float = 0.1
     sigma_theta: float = 0.05
+
+
+@dataclass
+class ThermodynamicConfig:
+    """Shared thermodynamic configuration for FP-04 and VP-04 consistency"""
+
+    def __init__(self):
+        self.tau = VP4_CALIBRATED_TAU
+        self.theta_0 = VP4_CALIBRATED_THETA_0
+        self.alpha = VP4_CALIBRATED_ALPHA
+        self.transfer_entropy_threshold = TRANSFER_ENTROPY_THRESHOLD
+
+
+# Global singleton instance for shared thermodynamic configuration
+DEFAULT_THERMO_CONFIG = ThermodynamicConfig()
 
 
 @dataclass
@@ -252,17 +287,10 @@ F4_CRITICAL_SLOWING_MIN_RATIO: float = 1.2  # 20% increase threshold for τ_auto
 F4_CRITICAL_SLOWING_P_VALUE: float = 0.05  # p < 0.05 for surrogate test
 F4_TE_THRESHOLD: float = 0.1  # Transfer entropy threshold
 F4_PHI_MIN_BITS: float = 0.5  # Minimum integrated information (phi_proxy)
-F4_PHI_SIGNIFICANT_BITS: float = 1.0  # Significant phi_proxy threshold
+F4_PHI_SIGNIFICANT_BITS: float = 1.0  # Significant phi_proxy threshold effect size
 F4_MIN_SENSITIVITY: float = 0.70  # Minimum sensitivity for clinical biomarkers
 F4_MIN_SPECIFICITY: float = 0.70  # Minimum specificity for clinical biomarkers
 F4_MIN_POWER: float = 0.80  # Minimum statistical power
-
-# VP-04 suite-calibrated phase transition parameters
-VP4_CALIBRATED_TAU: float = 0.20
-VP4_CALIBRATED_THETA_0: float = 0.12
-VP4_CALIBRATED_ALPHA: float = 35.0
-F4_MI_MAX_BITS_S: float = 40.0
-MI_MIN_BITS_S: float = 5.0
 
 # Global instances
 MODEL_PARAMS = ModelParameters()

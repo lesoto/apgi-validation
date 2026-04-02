@@ -9,7 +9,7 @@
 ## Phase 3: Implementation
 - [x] 3.1 Fix test_backup_hmac_validation.py collection errors
 - [x] 3.2 Fix test_cli_coverage.py collection errors
-- [ ] 3.3 Fix test_cli_integration.py collection errors
+- [-] 3.3 Fix test_cli_integration.py collection errors
 - [ ] 3.4 Fix test_data_processing_functions.py collection errors
 - [ ] 3.5 Fix test_main.py collection errors
 - [ ] 3.6 Fix test_toctou_mitigation.py collection errors

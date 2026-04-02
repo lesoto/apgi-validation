@@ -48,6 +48,18 @@ import numpy as np
 from scipy import stats
 from scipy.signal import convolve
 
+# Fix 2: Import ANTICIPATORY_CORRELATION_MIN from falsification_thresholds
+try:
+    from utils.falsification_thresholds import (
+        V15_ANTICIPATORY_CORRELATION_MIN,
+        V15_ANTICIPATORY_WINDOW_MS,
+    )
+except ImportError:
+    logger = logging.getLogger(__name__)
+    logger.warning("Could not import V15 thresholds from falsification_thresholds")
+    V15_ANTICIPATORY_CORRELATION_MIN = 0.40
+    V15_ANTICIPATORY_WINDOW_MS = (-500, 0)
+
 try:
     import nibabel as nib
 
@@ -63,7 +75,17 @@ logger = logging.getLogger(__name__)
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
-ANTICIPATORY_WINDOW_MS = (-500, 0)
+# Fix 3: Synchronize anticipatory window with VP-08
+# Import from VP-08 if available, otherwise use local constant
+try:
+    from Validation.VP_08_Psychophysical_ThresholdEstimation import (
+        ANTICIPATORY_WINDOW_MS as VP08_ANTICIPATORY_WINDOW_MS,
+    )
+
+    ANTICIPATORY_WINDOW_MS = VP08_ANTICIPATORY_WINDOW_MS
+except ImportError:
+    # Fallback to local constant if VP-08 import fails
+    ANTICIPATORY_WINDOW_MS = V15_ANTICIPATORY_WINDOW_MS
 
 
 def double_gamma_hrf(t: np.ndarray) -> np.ndarray:
@@ -310,7 +332,8 @@ def validate_vmPFC_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
     v15_2_data = None
     if len(vmPFC_threat) > 1:
         r_conn, p_conn = stats.pearsonr(vmPFC_threat, post_threat)
-        v15_2_pass = r_conn > 0.40 and p_conn < 0.05
+        # Fix 2: Use imported V15_ANTICIPATORY_CORRELATION_MIN instead of hardcoded 0.40
+        v15_2_pass = r_conn > V15_ANTICIPATORY_CORRELATION_MIN and p_conn < 0.05
     else:
         v15_2_data = {
             "r": None,
@@ -343,7 +366,7 @@ def validate_vmPFC_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
                 "passed": v15_2_pass,
                 "pearson_r": float(r_conn),
                 "p_value": float(p_conn),
-                "threshold": "> 0.40",
+                "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
             }
         ),
         "V15.3_AntPost_Insula_Dissociation": {
@@ -379,7 +402,7 @@ def run_validation(
                     "V15.2": {
                         "passed": report["V15.2_vmPFC_Insula_Connectivity"]["passed"],
                         "actual": f"r = {report['V15.2_vmPFC_Insula_Connectivity'].get('pearson_r', 0):.2f}",
-                        "threshold": "> 0.40",
+                        "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
                     },
                     "V15.3": {
                         "passed": report["V15.3_AntPost_Insula_Dissociation"]["passed"],
@@ -427,7 +450,7 @@ def run_validation(
                 "V15.2": {
                     "passed": report["V15.2_vmPFC_Insula_Connectivity"]["passed"],
                     "actual": f"r = {report['V15.2_vmPFC_Insula_Connectivity'].get('pearson_r', 0):.2f}",
-                    "threshold": "> 0.40",
+                    "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
                 },
                 "V15.3": {
                     "passed": report["V15.3_AntPost_Insula_Dissociation"]["passed"],
@@ -456,7 +479,7 @@ def run_validation(
             },
             "V15.2_vmPFC_Insula_Connectivity": {
                 "passed": None,
-                "threshold": "> 0.40",
+                "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
                 "reason": "Awaiting empirical fMRI data",
             },
             "V15.3_AntPost_Insula_Dissociation": {
@@ -473,7 +496,7 @@ def run_validation(
             },
             "V15.2": {
                 "passed": None,
-                "threshold": "> 0.40",
+                "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
                 "reason": "Awaiting empirical fMRI data",
             },
             "V15.3": {
@@ -497,8 +520,8 @@ def get_falsification_criteria() -> Dict[str, Any]:
             "alpha": 0.05,
         },
         "V15.2": {
-            "description": "vmPFC–posterior insula connectivity r > 0.40",
-            "threshold": "> 0.40",
+            "description": f"vmPFC–posterior insula connectivity r > {V15_ANTICIPATORY_CORRELATION_MIN}",
+            "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
             "statistical_test": "Pearson correlation",
             "alpha": 0.05,
         },

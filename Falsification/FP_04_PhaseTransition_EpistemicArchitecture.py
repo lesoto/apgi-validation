@@ -235,11 +235,10 @@ if HAS_TORCH:
             # Compute physical energy
             total_energy = self.compute_physical_energy(state)
 
-            # Compute partition function from energy distribution
-            energy_samples = self.energy_function(state)
-            Z = self.compute_partition_function(energy_samples)
-
             # Thermodynamic entropy: S = k_B * ln(Z) + <E>/T
+            # Compute partition function Z
+            Z = self.compute_partition_function(state)
+
             if self.config.use_physical_temperature:
                 log_Z = torch.log(Z)
                 mean_energy = total_energy.mean(dim=-1, keepdim=True)
@@ -256,11 +255,10 @@ if HAS_TORCH:
                 )
             else:
                 log_Z = torch.log(Z)
-                mean_energy = energy_samples.mean(dim=-1, keepdim=True)
+                mean_energy = total_energy.mean(dim=-1, keepdim=True)
                 S_thermo = log_Z + mean_energy / self.kB_T
                 F_thermo = -self.kB_T * log_Z
 
-            # True entropy production rate from state transitions
             entropy_production_rate = self.compute_entropy_production_rate(
                 state, total_energy, dt
             )
@@ -552,7 +550,18 @@ class InformationTheoreticAnalysis:
             raise ValueError(f"Data length ({len(X)}) < lag + 1 ({lag + 1})")
 
         # Build conditional probability tables from the data
+        cache_key = f"{id(history)}_{DEFAULT_N_BINS}"
         self._build_conditional_probabilities(history)
+
+        # Validate that probability rows sum to 1.0
+        if (
+            cache_key in self.data_cache
+            and "conditional_probs" in self.data_cache[cache_key]
+        ):
+            conditional_probs = self.data_cache[cache_key]["conditional_probs"]
+            for prob_array in conditional_probs.values():
+                if not np.allclose(prob_array.sum(axis=-1), 1.0, atol=1e-6):
+                    raise ValueError("CPT rows do not sum to 1")
 
         # Discretize for MI estimation
         n_bins = DEFAULT_N_BINS
@@ -582,11 +591,8 @@ class InformationTheoreticAnalysis:
         Compute Φ proxy measure: How much more information is in the whole
         than in the parts.
 
-        IMPORTANT CAVEAT: This is a PROXY measure (sum of MI between node pairs),
-        NOT true Integrated Information (IIT Φ) or even a validated approximation.
-        For accurate Φ estimation, consider using phytools or jpype-based PyInform.
-
-        Prediction: Φ spikes at ignition
+        Optimized version: Uses vectorized operations where possible and avoids
+        unnecessary sliding window entropy calculations if a global estimate is sufficient.
 
         Args:
             history: Dictionary containing time series data
@@ -601,22 +607,43 @@ class InformationTheoreticAnalysis:
         if len(S) < window_size:
             raise ValueError(f"Data length ({len(S)}) < window_size ({window_size})")
 
+        # Global discretization for efficiency
+        n_bins = DEFAULT_N_BINS
+        S_min, S_max = S.min(), S.max()
+        theta_min, theta_max = theta.min(), theta.max()
+
+        if S_max == S_min or theta_max == theta_min:
+            return np.zeros(len(S) - window_size)
+
+        S_binned = np.digitize(S, np.linspace(S_min, S_max, n_bins))
+        theta_binned = np.digitize(theta, np.linspace(theta_min, theta_max, n_bins))
+
+        # sliding window MI computation
         phi_values = np.zeros(len(S) - window_size)
 
+        # Pre-calculate histograms for the first window
+        # To further optimize, we could use a rolling histogram approach
+        # but for now, we'll keep it simple but more efficient than the previous version
         for t in range(window_size, len(S)):
-            window_S = S[t - window_size : t]
-            window_theta = theta[t - window_size : t]
+            window_S = S_binned[t - window_size : t]
+            window_theta = theta_binned[t - window_size : t]
+
+            # Mutual Information approximation using binned counts
+            # MI(S; theta) = H(S) + H(theta) - H(S, theta)
+
+            # Use a faster bin-based entropy estimation
+            def fast_entropy(labels):
+                _, counts = np.unique(labels, return_counts=True)
+                probs = counts / len(labels)
+                return -np.sum(probs * np.log2(probs + 1e-10))
+
+            H_S = fast_entropy(window_S)
+            H_theta = fast_entropy(window_theta)
 
             # Joint entropy
-            joint_data = np.column_stack([window_S, window_theta])
-            H_joint = self._estimate_entropy(joint_data)
+            joint_labels = window_S * n_bins + window_theta
+            H_joint = fast_entropy(joint_labels)
 
-            # Sum of marginal entropies
-            H_S = self._estimate_entropy(window_S)
-            H_theta = self._estimate_entropy(window_theta)
-
-            # Φ_proxy ≈ sum of marginals - joint (mutual information), ensure non-negative
-            # NOTE: This is a PROXY measure, NOT true IIT Φ
             phi_values[t - window_size] = max(0.0, H_S + H_theta - H_joint)
 
         return phi_values
@@ -2078,8 +2105,22 @@ class ClinicalBiomarkerFalsification:
             features, labels, bootstrap_n, bootstrap_alpha
         )
 
-        # Falsification criteria - use centralized constants
+        # Import DOC_AUC thresholds with fallback
+        try:
+            from utils.falsification_thresholds import DOC_AUC_MIN, DOC_AUC_MAX
+        except ImportError:
+            # Fallback to hardcoded values if import fails
+            logger.warning("Could not import DOC_AUC thresholds, using fallback values")
+            DOC_AUC_MIN = 0.75
+            DOC_AUC_MAX = 0.85
+
+        # Validate AUC is in target range
         auc_in_range = DOC_AUC_MIN <= results["auc"] <= DOC_AUC_MAX
+
+        if not auc_in_range:
+            logger.warning(
+                f"AUC {results['auc']:.3f} outside target range [{DOC_AUC_MIN}, {DOC_AUC_MAX}]"
+            )
         sensitivity_acceptable = results["sensitivity"] >= MIN_SENSITIVITY
         specificity_acceptable = results["specificity"] >= MIN_SPECIFICITY
 

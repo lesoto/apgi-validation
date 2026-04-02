@@ -38,6 +38,49 @@ from pathlib import Path
 _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
+
+# Import for genome data dependency checking
+try:
+    from utils.genome_data import requires_genome_data
+except ImportError:
+
+    def requires_genome_data(func):
+        """Fallback decorator when genome_data module is not available"""
+
+        def wrapper(*args, **kwargs):
+            # Check if VP-05 has completed by looking for genome_data.json
+            genome_data_file = (
+                _proj_root / "data_repository" / "metadata" / "genome_data.json"
+            )
+            if not genome_data_file.exists():
+                raise RuntimeError(
+                    "VP-05 requires genome_data from completed Protocol-5. "
+                    "Run Protocol-5 first to generate genome_data.json"
+                )
+            return func(*args, **kwargs)
+
+        return wrapper
+
+except ImportError:
+    # Fallback implementation if utils.genome_data is not available
+    def requires_genome_data(func):
+        """Fallback decorator when genome_data module is not available"""
+
+        def wrapper(*args, **kwargs):
+            # Check if VP-05 has completed by looking for genome_data.json
+            genome_data_file = (
+                _proj_root / "data_repository" / "metadata" / "genome_data.json"
+            )
+            if not genome_data_file.exists():
+                raise RuntimeError(
+                    "VP-05 requires genome_data from completed Protocol-5. "
+                    "Run Protocol-5 first to generate genome_data.json"
+                )
+            return func(*args, **kwargs)
+
+        return wrapper
+
+
 from utils.statistical_tests import (
     safe_pearsonr,
 )
@@ -2978,6 +3021,7 @@ def save_genome_data(
 # =============================================================================
 
 
+@requires_genome_data
 def main() -> Dict[str, Any]:
     """Main execution pipeline for Protocol 5.
 
@@ -3786,6 +3830,104 @@ class APGIValidationProtocol5:
 
     def check_criteria(self) -> Dict[str, Any]:
         """Check validation criteria against results."""
+        criteria_results = self.results.get("criteria", {})
+
+        # Fix 1: Map analytical scores to F5 criteria explicitly
+        # Component Emergence → F5.1+F5.2, Fitness Advantage → F5.3, Metabolic Efficiency → F5.6
+        analytical_verification = criteria_results.get(
+            "v5_1_analytical_verification", {}
+        )
+        total_test_cases = analytical_verification.get("total_test_cases", 0)
+
+        # Calculate individual F5 component scores
+        f5_3_score = 0  # Fitness Advantage
+        f5_6_score = 0  # Metabolic Efficiency
+
+        # Map analytical test cases to F5 components
+        if total_test_cases > 0:
+            # Component Emergence (F5.1+F5.2): Test steady-state surprise, ignition time, phase boundary
+            emergence_tests = [
+                "Steady-state surprise",
+                "Ignition time",
+                "Phase boundary",
+            ]
+            f5_1_f5_2_score = (
+                sum(
+                    1
+                    for test in analytical_verification.get("test_results", [])
+                    if test.get("passed", False)
+                    and test.get("test_name", "") in emergence_tests
+                )
+                / 3
+            )
+
+            # Fitness Advantage (F5.3): Test effective interoceptive precision
+            fitness_tests = ["Effective interoceptive precision"]
+            f5_3_score = (
+                sum(
+                    1
+                    for test in analytical_verification.get("test_results", [])
+                    if test.get("passed", False)
+                    and test.get("test_name", "") in fitness_tests
+                )
+                / 1
+            )
+
+            # Metabolic Efficiency (F5.6): Test ignition probability scenarios
+            metabolic_tests = [
+                "Ignition probability - 50%",
+                "Ignition probability - high",
+            ]
+            f5_6_score = (
+                sum(
+                    1
+                    for test in analytical_verification.get("test_results", [])
+                    if test.get("passed", False)
+                    and test.get("test_name", "") in metabolic_tests
+                )
+                / 2
+            )
+
+            # Mathematical Rigor (F5.4): All analytical verification tests
+            f5_4_score = (
+                sum(
+                    1
+                    for test in analytical_verification.get("test_results", [])
+                    if test.get("passed", False)
+                    and test.get("test_name", "")
+                    in [
+                        "Steady-state surprise",
+                        "Ignition time",
+                        "Phase boundary",
+                        "Effective interoceptive precision",
+                    ]
+                )
+                / 4
+            )
+
+            # Calculate total Standard 6 score
+            standard_6_total = f5_1_f5_2_score + f5_3_score + f5_6_score + f5_4_score
+
+            # Apply explicit F5 criteria: fail if any sub-criterion fails even if total ≥ 12
+            standard_6_passed = (
+                f5_1_f5_2_score >= 1  # Component Emergence: at least 1 point
+                and f5_3_score >= 2  # Fitness Advantage: at least 2 points
+                and f5_6_score >= 2  # Metabolic Efficiency: at least 2 points
+                and f5_4_score >= 3  # Mathematical Rigor: at least 3 points
+            )
+
+            # Update criteria with explicit F5 mapping
+            criteria_results["standard_6"] = {
+                "component_emergence_score": f5_1_f5_2_score,
+                "fitness_advantage_score": f5_3_score,
+                "metabolic_efficiency_score": f5_6_score,
+                "mathematical_rigor_score": f5_4_score,
+                "total_score": standard_6_total,
+                "passed": standard_6_passed,
+                "threshold": "≥12/15 points with individual component requirements",
+                "actual": f"F5.1+F5.2={f5_1_f5_2_score}, F5.3={f5_3_score}, F5.6={f5_6_score}, F5.4={f5_4_score}, Total={standard_6_total}",
+            }
+
         return self.results.get("criteria", {})
 
     def get_results(self) -> Dict[str, Any]:

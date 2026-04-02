@@ -51,6 +51,10 @@ except ImportError:
     HAS_SKLEARN = False
     accuracy_score = None
     roc_auc_score = None
+    raise ImportError(
+        "scikit-learn is required for VP-06 AUROC calculation. "
+        "Install with: pip install scikit-learn"
+    )
 
 from tqdm import tqdm
 
@@ -113,10 +117,17 @@ if torch.cuda.is_available():
 # =============================================================================
 
 # ATP energy budget per spike (Attwell & Laughlin, 2001)
-ATP_PER_SPIKE = 1e9  # ~10^9 ATP molecules per action potential
+# Fix 3: Add explicit units documentation
+# ATP_PER_SPIKE = 1e9  # ATP molecules per action potential (Attwell & Laughlin 2001, J Cereb Blood Flow Metab)
+ATP_PER_SPIKE = (
+    1e9  # ~10^9 ATP molecules per action potential (Attwell & Laughlin 2001)
+)
 
 # Energy falsification threshold: ≤20% energy increase per correct detection
-ENERGY_FALSIFICATION_THRESHOLD_PCT = 20.0
+# Fix 3: Cite energy threshold with Attwell & Laughlin (2001)
+ENERGY_FALSIFICATION_THRESHOLD_PCT = (
+    20.0  # per FP-06 Table 2; Attwell & Laughlin (2001)
+)
 
 # Baseline energy cost assumptions (kcal/mol)
 ATP_ENERGY_CONTENT = 7.3  # kcal/mol ATP hydrolyzed
@@ -338,8 +349,15 @@ class SpikeEnergyMonitor:
                             average="macro",
                         )
                 else:
-                    # Fallback when sklearn not available
-                    auroc = 0.75  # Reasonable default
+                    # Fix 2: Raise error instead of assuming pass value
+                    # AUROC requires scikit-learn; cannot assume pass value
+                    raise RuntimeError(
+                        "AUROC requires scikit-learn; cannot assume pass value. "
+                        "Install scikit-learn to compute AUROC metrics."
+                    )
+            except RuntimeError:
+                # Re-raise RuntimeError for missing sklearn
+                raise
             except Exception as e:
                 logger.warning(f"AUROC calculation failed for {network_name}: {e}")
                 auroc = 0.5  # Default to random performance
@@ -405,7 +423,8 @@ class LTCNCell(nn.Module):
     def __init__(self, input_size: int, hidden_size: int):
         super().__init__()
         self.hidden_size = hidden_size
-        self.tau_sys = nn.Parameter(torch.ones(hidden_size) * 10.0)
+        # Fix 3: Initialize tau to paper spec 400ms instead of 10.0ms
+        self.tau_sys = nn.Parameter(torch.ones(hidden_size) * 0.4)  # 400ms paper spec
         self.A = nn.Parameter(torch.ones(hidden_size))
         self.f_net = nn.Sequential(
             nn.Linear(input_size + hidden_size, hidden_size), nn.Tanh()
@@ -420,6 +439,8 @@ class LTCNCell(nn.Module):
         combined = torch.cat([input_t, h_t], dim=-1)
         f_val = self.f_net(combined)
         tau_val = self.tau_sys * (1.0 + self.tau_net(combined))
+        # Fix 3: Clamp tau to physiological range [300-500ms] as per paper spec
+        tau_val = torch.clamp(tau_val, 0.3, 0.5)
         dx = -h_t / tau_val + (self.A - h_t) * f_val
         return h_t + dt * dx
 
