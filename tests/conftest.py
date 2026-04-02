@@ -23,6 +23,46 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+@pytest.fixture
+def apgi_backup_hmac_key(monkeypatch):
+    """Provide APGI_BACKUP_HMAC_KEY for tests.
+
+    This fixture injects a test HMAC key into the environment,
+    allowing tests to run without external environment configuration.
+    """
+    key = "test_backup_hmac_key_" + "x" * 32
+    monkeypatch.setenv("APGI_BACKUP_HMAC_KEY", key)
+    yield key
+
+
+@pytest.fixture
+def pickle_secret_key(monkeypatch):
+    """Provide PICKLE_SECRET_KEY for tests.
+
+    This fixture injects a test pickle secret key into the environment,
+    allowing tests to run without external environment configuration.
+    """
+    key = "test_pickle_secret_key_" + "x" * 32
+    monkeypatch.setenv("PICKLE_SECRET_KEY", key)
+    yield key
+
+
+@pytest.fixture
+def env_vars(monkeypatch):
+    """Provide all required environment variables for tests.
+
+    This fixture injects both APGI_BACKUP_HMAC_KEY and PICKLE_SECRET_KEY
+    into the environment, allowing tests to run without external configuration.
+    """
+    env_vars = {
+        "APGI_BACKUP_HMAC_KEY": "test_key_" + "x" * 32,
+        "PICKLE_SECRET_KEY": "test_secret_" + "x" * 32,
+    }
+    for key, value in env_vars.items():
+        monkeypatch.setenv(key, value)
+    yield env_vars
+
+
 @pytest.fixture(scope="session")
 def cli():
     """Lazy-load CLI to avoid hanging during test collection.
@@ -348,11 +388,9 @@ def pytest_configure(config):
 
 def pytest_collection_finish(session):
     """Called after test collection is complete."""
-    # If we're only collecting (--collect-only), exit immediately to avoid hanging
-    if session.config.option.collectonly:
-        import sys
-
-        sys.exit(0)
+    # If we're only collecting (--collect-only), we should not exit
+    # as it causes pytest to report collection errors
+    pass
 
 
 def pytest_collection_modifyitems(config, items):

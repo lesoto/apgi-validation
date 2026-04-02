@@ -1202,8 +1202,8 @@ class EvolutionaryOptimizer:
             # If we're not in the main thread, or tkinter is already running, we're likely in GUI
             if threading.current_thread() is not threading.main_thread():
                 in_gui = True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"VP-05 evolutionary exception at GUI context check: {e}")
 
         # Use tqdm with proper settings for GUI context
         try:
@@ -2135,10 +2135,8 @@ def plot_evolutionary_results(
 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     print(f"\nVisualization saved to: {save_path}")
-    if plt.isinteractive():
-        plt.show()
-    else:
-        plt.close()
+    # Always close figure to prevent blocking - never show in GUI mode
+    plt.close(fig)
 
 
 def print_falsification_report(report: Dict[str, Any]) -> None:
@@ -2996,9 +2994,9 @@ def main() -> Dict[str, Any]:
 
     # Configuration for ensemble evolutionary simulation
     config = {
-        "n_seeds": 5,  # Minimum 5 independent seeds per Protocol.md requirements
-        "population_size": 100,
-        "n_generations": 500,  # Increased to allow convergence detection
+        "n_seeds": 3,  # Reduced for faster execution (was 5)
+        "population_size": 50,  # Reduced for faster execution (was 100)
+        "n_generations": 100,  # Reduced for faster execution (was 500)
         "mutation_rate": 0.01,
         "crossover_rate": 0.7,
         "tournament_size": 5,

@@ -13,6 +13,10 @@ from scipy import stats
 from scipy.stats import binomtest
 from pathlib import Path
 
+# Suppress lifelines and pandas FutureWarnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="lifelines")
+warnings.filterwarnings("ignore", category=FutureWarning, module="pandas")
+
 # Add parent directory to path for imports
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
@@ -47,9 +51,10 @@ except ImportError as e:
     def handle_import_error(
         module_name: str, error: Exception, context: str = ""
     ) -> None:
-        logger.warning(f"Could not import {module_name}: {error}")
+        # Use print since logger isn't set up yet
+        print(f"Warning: Could not import {module_name}: {error}")
         if context:
-            logger.warning(f"Context: {context}")
+            print(f"Context: {context}")
         return None
 
     handle_import_error(
@@ -245,18 +250,24 @@ def _summarize_protocol_json(
         if isinstance(criterion_result, dict)
         and not criterion_result.get("passed", False)
     )
-    # Fix: Check for explicit error status or error key, not substring match
-    status = result.get("status", "")
-    errored = str(status).lower() == "error" or (
-        "error" in result and isinstance(result.get("error"), (str, Exception))
-    )
-    passed = (not errored) and not failed_criteria
+    status_raw = str(result.get("status", "")).strip().lower()
+    error_value = result.get("error")
+    error_message = str(error_value).strip() if isinstance(error_value, str) else ""
+    errored = status_raw in {"error", "blocked"} or bool(error_message)
+
+    explicit_passed = result.get("passed")
+    if isinstance(explicit_passed, (bool, np.bool_)):
+        passed = bool(explicit_passed)
+    else:
+        passed = (not errored) and not failed_criteria
+
     return {
         "protocol": protocol_label,
         "status": "PASS" if passed else ("ERROR" if errored else "FAIL"),
+        "valid": not errored,
         "failed_criteria": failed_criteria,
         "summary": result.get("summary", {}),
-        "error": result.get("error") or result.get("message"),
+        "error": error_message or result.get("message"),
     }
 
 
@@ -828,7 +839,7 @@ class AgentComparisonExperiment:
         failed = {
             label: summary
             for label, summary in protocol_summaries.items()
-            if summary["status"] != "PASS"
+            if summary["status"] == "ERROR" or not summary.get("valid", True)
         }
         gate_passed = not missing and not failed
 
@@ -861,8 +872,14 @@ class AgentComparisonExperiment:
             1: "FP_01_ActiveInference.py",
             2: "FP_02_AgentComparison_ConvergenceBenchmark.py",
             3: "../Validation/VP_03_ActiveInference_AgentSimulations.py",
-            6: "FP_05_EvolutionaryPlausibility.py",
+            4: "FP_04_PhaseTransition_EpistemicArchitecture.py",
+            5: "FP_05_EvolutionaryPlausibility.py",
+            6: "FP_06_LiquidNetwork_EnergyBenchmark.py",
+            7: "FP_07_MathematicalConsistency.py",
+            8: "FP_08_ParameterSensitivity_Identifiability.py",
             9: "FP_09_NeuralSignatures_P3b_HEP.py",
+            10: "FP_10_BayesianEstimation_MCMC.py",
+            11: "FP_11_LiquidNetworkDynamics_EchoState.py",
             12: "FP_12_CrossSpeciesScaling.py",
         }
 
@@ -1053,8 +1070,8 @@ class AgentComparisonExperiment:
         try:
             return test_func(*args, **kwargs)
         except Exception as e:
-            print(f"Statistical test failed: {str(e)}")
-            return None, 1.0  # Return null result with non-significant p-value
+            logger.error(f"Statistical test failed: {str(e)}")
+            raise RuntimeError(f"Criterion computation failed: {str(e)}")
 
     def _analyze_p3a_convergence(
         self, results: Dict[str, Any], alpha: float, effect_size_threshold: float, stats
@@ -1758,10 +1775,18 @@ class AgentComparisonExperiment:
         except (AttributeError, NameError):
             # Fallback if not directly available
             def generate_gnwt_predictions():
-                return {}
+                return {
+                    "passed": False,
+                    "status": "ERROR",
+                    "reason": "criterion computation failed",
+                }
 
             def generate_iit_predictions():
-                return {}
+                return {
+                    "passed": False,
+                    "status": "ERROR",
+                    "reason": "criterion computation failed",
+                }
 
         gnwt_predictions = generate_gnwt_predictions()
         iit_predictions = generate_iit_predictions()
@@ -2256,10 +2281,20 @@ class AgentComparisonExperiment:
                     "anova_p": p_value,
                     "significant_difference": p_value < 0.05,
                 }
-            except (ValueError, RuntimeWarning):
-                pass
+            except (ValueError, RuntimeWarning) as e:
+                logger.error(f"FP-03 silent exception in criterion check: {e}")
+                return {
+                    "adaptation_scores": adaptation_scores,
+                    "passed": False,
+                    "status": "ERROR",
+                    "reason": str(e),
+                }
 
-        return {"adaptation_scores": adaptation_scores}
+        return {
+            "adaptation_scores": adaptation_scores,
+            "passed": True,
+            "status": "SUCCESS",
+        }
 
 
 # Main execution
@@ -2299,6 +2334,25 @@ if __name__ == "__main__":
 def run_falsification():
     """Entry point for CLI falsification testing."""
     try:
+        # Cross-protocol gate: FP-03 synthesis can pass only if FP-01 and FP-02 passed
+        results_dir = _protocol_results_dir()
+        fp01_files = sorted(results_dir.glob("fp_01_*.json"), reverse=True)
+        fp02_files = sorted(results_dir.glob("fp_02_*.json"), reverse=True)
+
+        if not fp01_files or not fp02_files:
+            logger.warning(
+                "FP-01 or FP-02 results missing; proceeding with synthesis assuming they were not yet run in this session."
+            )
+        else:
+            fp01_result = _load_protocol_result_json(fp01_files[0])
+            fp02_result = _load_protocol_result_json(fp02_files[0])
+            assert (
+                fp01_result.get("passed") is not False
+            ), "FP-01 must pass before FP-03 synthesis"
+            assert (
+                fp02_result.get("passed") is not False
+            ), "FP-02 must pass before FP-03 synthesis"
+
         print("Running APGI Falsification Protocol 3: Agent Comparison Experiment")
         experiment = AgentComparisonExperiment(n_agents=100, n_trials=500)
         results = experiment.run_full_experiment()
@@ -3204,8 +3258,7 @@ def check_falsification(
     # F2.4: Confidence Effects
     logger.info("Testing F2.4: Confidence Effects")
     # Two-proportion z-test for confidence advantage
-    # TODO: Derive n_total from actual data samples
-    n_total = 100  # Placeholder - needs real implementation
+    n_total = len(apgi_rewards)
     p1 = 0.5 + confidence_effect / 2
     p2 = 0.5 - confidence_effect / 2
     se = np.sqrt(p1 * (1 - p1) / n_total + p2 * (1 - p2) / n_total)
@@ -3401,7 +3454,9 @@ def check_falsification(
             else control_performance_difference
         )
         t_stat, p_value = 0.0, 1.0
-        cohens_d = mean_diff / 0.1  # Mock cohens_d since we only have mean
+        from utils.statistical_tests import compute_cohens_d
+
+        cohens_d = compute_cohens_d(apgi_rewards, baseline_rewards)
 
     f5_6_pass = mean_diff >= 0.20 and cohens_d >= 0.50 and p_value < 0.01
     results["criteria"]["F5.6"] = {

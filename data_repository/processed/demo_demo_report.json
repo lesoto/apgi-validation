@@ -1,0 +1,157 @@
+{
+  "processing_timestamp": "2026-04-02T09:17:36.550279",
+  "pipeline_config": {
+    "eeg_bandpass_low": 0.5,
+    "eeg_bandpass_high": 40.0,
+    "eeg_notch_freq": 50.0,
+    "eeg_notch_width": 2.0,
+    "eeg_artifact_threshold": 5.0,
+    "pupil_blink_detection": true,
+    "pupil_interpolation_method": "linear",
+    "pupil_smoothing_window": 5,
+    "eda_lowpass_cutoff": 5.0,
+    "eda_smoothing_window": 10,
+    "hr_outlier_threshold": 3.0,
+    "hr_interpolation_method": "cubic",
+    "missing_data_strategy": "interpolate",
+    "handle_missing": true,
+    "remove_outliers": true,
+    "normalize_data": true,
+    "outlier_method": "iqr",
+    "outlier_threshold": 1.5,
+    "normalization_method": "zscore",
+    "target_sampling_rate": 250.0,
+    "resample_method": "interpolate"
+  },
+  "initial_validation": {
+    "file_info": {
+      "file_path": "data_repository/demo_demo.csv",
+      "file_exists": true,
+      "file_size": 1119076,
+      "file_extension": ".csv",
+      "is_readable": true,
+      "format_valid": false,
+      "errors": [
+        "Missing required columns: ['EEG_Cz']"
+      ],
+      "warnings": []
+    },
+    "data_quality": {
+      "total_samples": 7500,
+      "missing_data": {
+        "time_seconds": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "eeg_fz": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "eeg_pz": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "pupil_diameter": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "eda": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "heart_rate": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "event_marker": {
+          "count": 0,
+          "percentage": 0.0
+        }
+      },
+      "outliers": {
+        "time_seconds": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "eeg_fz": {
+          "count": 451,
+          "percentage": 6.013333333333333
+        },
+        "eeg_pz": {
+          "count": 455,
+          "percentage": 6.066666666666666
+        },
+        "pupil_diameter": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "eda": {
+          "count": 36,
+          "percentage": 0.48
+        },
+        "heart_rate": {
+          "count": 0,
+          "percentage": 0.0
+        },
+        "event_marker": {
+          "count": 190,
+          "percentage": 2.533333333333333
+        }
+      },
+      "signal_quality": {
+        "pupil_diameter": {
+          "score": 100.0,
+          "issues": [],
+          "mean": 34.366724561556495,
+          "std": 20.271178046058928,
+          "samples": 7500
+        },
+        "eda": {
+          "score": 100.0,
+          "issues": [],
+          "mean": 1.9449849006893283,
+          "std": 0.20592049304404578,
+          "samples": 7500
+        }
+      },
+      "temporal_consistency": {
+        "score": 80.0,
+        "issues": [
+          "Irregular sampling: 3499 irregular intervals"
+        ],
+        "expected_interval": "0 days 00:00:00.004001",
+        "total_duration": "0 days 00:00:30"
+      },
+      "overall_score": 84.90666666666667,
+      "quality_score": 84.90666666666667
+    },
+    "recommendations": [
+      "Fix file format errors before processing",
+      "Review outliers in eeg_fz (6.0%)",
+      "Review outliers in eeg_pz (6.1%)",
+      "Data quality is acceptable but could be improved with preprocessing"
+    ],
+    "validation_timestamp": "2026-04-02T09:17:36.275148",
+    "validator_version": "1.0.0"
+  },
+  "final_quality": {
+    "overall_score": 85.0
+  },
+  "pipeline_log": [
+    "Starting complete pipeline for demo_demo.csv",
+    "Validation complete - Quality score: 84.90666666666667",
+    "Loaded data: (7500, 10)",
+    "Handled missing values",
+    "Removed outliers",
+    "Normalized data",
+    "Resampled to 250.0 Hz",
+    "Saved processed data: data_repository/processed/demo_demo_processed.json"
+  ],
+  "preprocessing_steps": [
+    "Missing data cleaned using interpolate strategy",
+    "Removed 685 outliers using iqr method",
+    "Normalized Index(['time_seconds', 'eeg_fz', 'eeg_pz', 'pupil_diameter', 'eda',\n       'heart_rate', 'event_marker', 'eda_tonic', 'eda_phasic'],\n      dtype='object') using zscore method",
+    "Resampled data to 250.0 Hz"
+  ],
+  "quality_improvement": 0.09333333333333371
+}

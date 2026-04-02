@@ -24,6 +24,18 @@ import numpy as np
 from scipy import stats
 from scipy.signal import convolve
 
+# Import APGI constants for HRF parameters and thresholds
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.constants import (
+    HRF_PEAK1_SECONDS,
+    HRF_UNDERSHOOT_SECONDS,
+    HRF_DISPERSION,
+    HRF_UNDERSHOOT_RATIO,
+    BOLD_TSNR_MIN,
+)
+
 try:
     import nibabel as nib
 
@@ -45,17 +57,18 @@ def double_gamma_hrf(t: np.ndarray) -> np.ndarray:
     Canonical SPM/FSL-style double-gamma hemodynamic response function.
 
     Parameters follow the standard named canonical HRF settings:
-    - response_peak_delay_s = 6s
+    - response_peak_delay_s = 6s (Friston et al. 1998)
     - undershoot_delay_s = 16s
     - response_dispersion_s = 1s
     - undershoot_dispersion_s = 1s
     - undershoot_ratio = 1/6
     """
-    response_peak_delay_s = 6.0
-    undershoot_delay_s = 16.0
-    response_dispersion_s = 1.0
-    undershoot_dispersion_s = 1.0
-    undershoot_ratio = 1.0 / 6.0
+    # Use constants from utils.constants with SPM canonical HRF citation
+    response_peak_delay_s = HRF_PEAK1_SECONDS
+    undershoot_delay_s = HRF_UNDERSHOOT_SECONDS
+    response_dispersion_s = HRF_DISPERSION
+    undershoot_dispersion_s = HRF_DISPERSION
+    undershoot_ratio = HRF_UNDERSHOOT_RATIO
     # Avoid 0^0 by clipping t
     t_safe = np.clip(t, 1e-8, None)
     hrf = (
@@ -265,7 +278,8 @@ def compute_bold_detectability(
         np.mean(np.max(threat_M_bolds, axis=1)) - np.mean(np.max(safe_M_bolds, axis=1))
     )
     tsnr = float(abs(signal_difference) / max(scanner_noise_amplitude, 1e-9))
-    detectable = (tsnr >= 2.0) and (n_participants >= 30)
+    # Use BOLD_TSNR_MIN constant (empirical 3T threshold ~20-30)
+    detectable = (tsnr >= BOLD_TSNR_MIN) and (n_participants >= 30)
 
     return {
         "signal_difference": signal_difference,
@@ -274,7 +288,7 @@ def compute_bold_detectability(
         "tsnr": tsnr,
         "n_participants": int(n_participants),
         "detectable_at_n30": bool(detectable),
-        "criterion": "tSNR >= 2.0 with N >= 30",
+        "criterion": f"tSNR >= {BOLD_TSNR_MIN} with N >= 30",
     }
 
 
@@ -442,12 +456,18 @@ def main(fmri_data_path: Optional[str] = None):
     }
 
 
-def run_validation(**kwargs) -> Dict[str, Any]:
+def run_validation(fmri_data_path: Optional[str] = None, **kwargs) -> Dict[str, Any]:
     """Run validation protocol for Master_Validation integration.
 
     This function provides the interface expected by Master_Validation.py
+
+    Args:
+        fmri_data_path: Optional path to empirical fMRI data (.nii, .nii.gz, or .npz).
+            If provided, attempts to load real fMRI data via nibabel/numpy.
+            If None, falls back to synthetic simulation.
+        **kwargs: Additional keyword arguments (for compatibility)
     """
-    return main(fmri_data_path=kwargs.get("fmri_data_path"))
+    return main(fmri_data_path=fmri_data_path)
 
 
 if __name__ == "__main__":

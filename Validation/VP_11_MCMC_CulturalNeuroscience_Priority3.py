@@ -103,14 +103,14 @@ try:
         V11_MIN_COHENS_D,
     )
 except ImportError:
-    logger.warning("Could not import from falsification_thresholds.py, using defaults")
-    DEFAULT_ALPHA = 0.05
-    V11_MIN_R2 = 0.75
-    V11_MIN_DELTA_R2 = 0.10
-    V11_MIN_COHENS_D = 0.50  # Changed from 0.45 to 0.50
+    raise ImportError(
+        "Could not import from falsification_thresholds.py. "
+        "Ensure utils/falsification_thresholds.py exists and contains "
+        "V11_MIN_R2, V11_MIN_DELTA_R2, V11_MIN_COHENS_D thresholds."
+    )
 
 # Standardize all significance gates in this protocol to the stated alpha.
-DEFAULT_ALPHA = 0.05
+# Note: DEFAULT_ALPHA is imported from falsification_thresholds.py
 
 # ---------------------------------------------------------------------------
 # Optional heavy dependencies
@@ -236,6 +236,12 @@ def generate_synthetic_dataset(
 
     for i, group in enumerate(group_labels):
         # Draw parameters with cultural modulation
+        # SYNTHETIC_PENDING_EMPIRICAL: These values are synthetic placeholders
+        # pending empirical cross-cultural neuroscience data collection.
+        # Reference: Kitayama et al. (2003) demonstrated collectivism-individualism
+        # differences in attention (e.g., Americans more field-independent on
+        # rod-and-frame tasks; d≈0.50). Future work should map real cultural
+        # differences in interoceptive precision and threshold parameters.
         # Culture 1 has higher theta_0 (conservative) and lower Pi_i (precision)
         t0_mu = 0.45 if group == 0 else 0.55
         pi_mu = 1.40 if group == 0 else 1.00
@@ -864,8 +870,18 @@ def compute_model_comparison(
             delta_elpd_null = apgi_elpd - null_elpd
             delta_elpd_extero = apgi_elpd - extero_elpd
 
-            evidence_ratio_null = float(np.exp(delta_elpd_null))
-            evidence_ratio_extero = float(np.exp(delta_elpd_extero))
+            # Laplace approximation Bayes Factor using PSIS-LOO
+            # delta_looic = elpd_loo difference (LOOIC = -2 * elpd_loo)
+            # BF_approx = exp(delta_looic / 2) per Gelman et al. (2013)
+            delta_looic_null = -2 * delta_elpd_null
+            delta_looic_extero = -2 * delta_elpd_extero
+            bf_approx_null = float(np.exp(delta_looic_null / 2))
+            bf_approx_extero = float(np.exp(delta_looic_extero / 2))
+
+            # Log BF for numerical stability comparison
+            log_bf_null = float(delta_looic_null / 2)
+            log_bf_extero = float(delta_looic_extero / 2)
+
             pareto_k = {name: _max_pareto_k(res) for name, res in loo_results.items()}
 
             passed = (
@@ -892,9 +908,17 @@ def compute_model_comparison(
                     "APGI_vs_Null": delta_elpd_null,
                     "APGI_vs_ExteroOnly": delta_elpd_extero,
                 },
+                "delta_looic": {
+                    "APGI_vs_Null": delta_looic_null,
+                    "APGI_vs_ExteroOnly": delta_looic_extero,
+                },
                 "bayes_factors": {
-                    "APGI_vs_Null": evidence_ratio_null,
-                    "APGI_vs_ExteroOnly": evidence_ratio_extero,
+                    "APGI_vs_Null": bf_approx_null,
+                    "APGI_vs_ExteroOnly": bf_approx_extero,
+                },
+                "log_bayes_factors": {
+                    "APGI_vs_Null": log_bf_null,
+                    "APGI_vs_ExteroOnly": log_bf_extero,
                 },
                 "criterion": "Δelpd_loo > 10 and Pareto-k < 0.7",
                 "n_obs": n_obs,
@@ -1289,6 +1313,8 @@ def run_validation(
                 _max_pareto_k(group1_loo),
             ) < 0.7
         else:
+            # Fallback: BIC-based model comparison when PyMC unavailable
+            # CRITICAL: V11.1 must also gate on R̂ ≤ 1.01 even in MH fallback
             null_mc = compute_model_comparison(pooled_df, seed=seed)
             ll_group = sum(
                 [
@@ -1301,7 +1327,13 @@ def run_validation(
             bic_pooled = null_mc["BIC"]["APGI"]
             bic_group = -2 * ll_group + 8 * np.log(len(df))
             bf_11_1 = float(np.exp(-(bic_group - bic_pooled) / 2.0))
-            gate_v11_1 = bf_11_1 >= 5.0
+            # V11.1 requires both BF >= 5 AND R̂ convergence (V11.4 already checked)
+            # If R̂ > 1.01, mark V11.1 as failed per protocol spec
+            gate_v11_1 = bf_11_1 >= 5.0 and gate_v11_4
+            if not gate_v11_4:
+                logger.warning(
+                    f"V11.1 failed due to R̂ convergence failure (R̂ > {RHAT_GATE})"
+                )
 
         # V11.2: Πⁱ varies by cultural context (HDI)
         samples0 = results_per_group[0]["samples"][:, 1]  # Πⁱ is index 1

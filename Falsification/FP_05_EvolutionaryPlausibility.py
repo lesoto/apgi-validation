@@ -9,11 +9,31 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from utils.constants import DIM_CONSTANTS
+    from utils.constants import DIM_CONSTANTS, APGI_GLOBAL_SEED
     from utils.config_manager import ConfigManager
     from utils.falsification_thresholds import (
         F2_3_MIN_RT_ADVANTAGE_MS,
         F2_3_ALPHA,
+        F5_1_BINOMIAL_ALPHA,
+        F5_1_MIN_PROPORTION,
+        F5_1_MIN_ALPHA,
+        F5_1_MIN_COHENS_D,
+        F5_2_BINOMIAL_ALPHA,
+        F5_2_MIN_PROPORTION,
+        F5_2_MIN_CORRELATION,
+        F5_3_BINOMIAL_ALPHA,
+        F5_3_MIN_PROPORTION,
+        F5_3_MIN_GAIN_RATIO,
+        F5_4_MIN_PROPORTION,
+        F5_4_MIN_PEAK_SEPARATION,
+        F5_5_PCA_MIN_VARIANCE,
+        F5_5_PCA_MIN_LOADING,
+        F5_6_MIN_PERFORMANCE_DIFF_PCT,
+        F5_6_MIN_COHENS_D,
+        F5_6_ALPHA,
+        F6_5_HYSTERESIS_MIN,
+        F6_5_HYSTERESIS_MAX,
+        F6_5_BIFURCATION_ERROR_MAX,
     )
 except ImportError:
     # Fallback if utils not available
@@ -30,52 +50,29 @@ except ImportError:
 
     DIM_CONSTANTS = MockDimConstants()  # type: ignore
     ConfigManager = MockConfigManager  # type: ignore
-
-try:
-    from utils.falsification_thresholds import (
-        F5_1_BINOMIAL_ALPHA,
-        F5_1_MIN_PROPORTION,
-        F5_1_MIN_ALPHA,
-        F5_2_BINOMIAL_ALPHA,
-        F5_2_MIN_PROPORTION,
-        F5_2_MIN_CORRELATION,
-        F5_3_MIN_PROPORTION,
-        F5_3_MIN_GAIN_RATIO,
-        F5_4_MIN_PROPORTION,
-        F5_4_MIN_PEAK_SEPARATION,
-        F5_5_PCA_MIN_VARIANCE,
-        F5_5_PCA_MIN_LOADING,
-        F5_6_MIN_PERFORMANCE_DIFF_PCT,
-        F5_6_MIN_COHENS_D,
-        F5_6_ALPHA,
-        F6_5_HYSTERESIS_MIN,
-        F6_5_HYSTERESIS_MAX,
-    )
-except ImportError:
-    # Fallback thresholds
+    APGI_GLOBAL_SEED = 42  # Fallback default
+    # Fallback thresholds (should match falsification_thresholds.py values)
     F2_3_MIN_RT_ADVANTAGE_MS = 50.0
     F2_3_ALPHA = 0.05
-    F5_1_BINOMIAL_ALPHA = 0.05
+    F5_1_BINOMIAL_ALPHA = 0.01
     F5_1_MIN_PROPORTION = 0.75
-    F5_1_MIN_ALPHA = 0.01
-    F5_2_BINOMIAL_ALPHA = 0.05
-    F5_2_MIN_PROPORTION = 0.65
-    F5_2_MIN_CORRELATION = 0.3
+    F5_1_MIN_ALPHA = 4.0
+    F5_1_MIN_COHENS_D = 0.50
+    F5_2_BINOMIAL_ALPHA = 0.01
+    F5_2_MIN_PROPORTION = 0.70
+    F5_2_MIN_CORRELATION = 0.30
+    F5_3_BINOMIAL_ALPHA = 0.05
     F5_3_MIN_PROPORTION = 0.6
     F5_3_MIN_GAIN_RATIO = 1.5
     F5_4_MIN_PROPORTION = 0.6
     F5_4_MIN_PEAK_SEPARATION = 3.0
     F5_5_PCA_MIN_VARIANCE = 0.70
     F5_5_PCA_MIN_LOADING = 0.60
-    F5_6_MIN_PERFORMANCE_DIFF_PCT = 5.0
+    F5_6_MIN_PERFORMANCE_DIFF_PCT = 40.0
     F5_6_MIN_COHENS_D = 0.40
     F5_6_ALPHA = 0.05
     F6_5_HYSTERESIS_MIN = 0.08
     F6_5_HYSTERESIS_MAX = 0.25
-
-# Additional constants not in falsification_thresholds.py
-F5_3_BINOMIAL_ALPHA = 0.05
-F6_5_BIFURCATION_ERROR_MAX = 0.15
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -251,6 +248,11 @@ def _summarize_replicate(
         for genome in final_population
         if genome.get("has_intero_weighting", False)
     ]
+    alpha_values = [
+        float(genome.get("alpha", 0.0))
+        for genome in final_population
+        if genome.get("has_threshold", False)
+    ]
     mean_gain_ratio = float(np.mean(gain_ratios)) if gain_ratios else 0.0
     spectral_summary = _assess_population_frequency_bands(final_population)
     replicate_pass = (
@@ -273,6 +275,7 @@ def _summarize_replicate(
         "pca_variance_explained": analysis.get("pca_variance_explained", 0.0),
         "pca_loadings": analysis.get("pca_loadings", 0.0),
         "spectral_summary": spectral_summary,
+        "alpha_values": alpha_values,
     }
 
 
@@ -786,7 +789,25 @@ def compute_pca_on_evolved_agents(
         estimated_variance = min(
             1.0, n_significant / 3.0
         )  # Estimate: 3 main components
-        estimated_loading = 0.6 if n_significant >= 3 else 0.4
+
+        # Compute actual PCA loadings using sklearn when available
+        try:
+            from sklearn.decomposition import PCA
+
+            trait_matrix = np.array(
+                [
+                    [g.get("has_threshold", False) for g in population],
+                    [g.get("has_intero_weighting", False) for g in population],
+                    [g.get("has_somatic_markers", False) for g in population],
+                    [g.get("has_precision_weighting", False) for g in population],
+                ]
+            ).T.astype(float)
+            pca = PCA(n_components=min(3, trait_matrix.shape[1]))
+            pca.fit(trait_matrix)
+            estimated_loading = float(np.mean(np.abs(pca.components_)))
+        except ImportError:
+            # Fallback: use binary rule if sklearn not available
+            estimated_loading = 0.6 if n_significant >= 3 else 0.4
 
         return {
             "pca_variance_explained": estimated_variance,
@@ -1118,7 +1139,10 @@ class EvolutionaryAPGIEmergence:
             try:
                 slope, _ = np.polyfit(x, logit_y, 1)
                 selection_coefficients[trait] = float(slope)
-            except (TypeError, ValueError, np.linalg.LinAlgError):
+            except (TypeError, ValueError, np.linalg.LinAlgError) as e:
+                logger.warning(
+                    f"FP-05 exception swallowed in selection coefficient calculation for {trait}: {e}"
+                )
                 selection_coefficients[trait] = 0.0
 
         return {
@@ -1253,6 +1277,12 @@ if __name__ == "__main__":
     print("=== Protocol completed successfully ===")
 
 
+import numpy as np
+from utils.constants import APGI_GLOBAL_SEED
+
+np.random.seed(APGI_GLOBAL_SEED)
+
+
 def run_falsification(
     genome_data: Dict[str, Any] | None = None,
     random_seeds: List[int] | None = None,
@@ -1263,11 +1293,11 @@ def run_falsification(
     """Entry point for CLI falsification testing."""
     try:
         print("Running APGI Falsification Protocol 5: Evolutionary APGI Emergence")
-        target_replicates = max(3, n_replicates)
+        target_replicates = max(5, n_replicates)
         if random_seeds:
             seeds = list(random_seeds)
         else:
-            seeds = [11, 22, 33]
+            seeds = [42, 123, 456, 789, 1000]
             while len(seeds) < target_replicates:
                 seeds.append(seeds[-1] + 11)
         replicate_results: List[Dict[str, Any]] = []
@@ -1310,10 +1340,19 @@ def run_falsification(
         )
 
         overall_pass = all(rep["passed"] for rep in replicate_results)
+
+        # Report genome_data as the ensemble
+        if genome_data is None:
+            genome_data = {}
+        genome_data["evolved_alpha_values"] = np.concatenate(
+            [np.array(rep.get("alpha_values", [])) for rep in replicate_results]
+        ).tolist()
+
         results = {
             "status": "success" if overall_pass else "failed",
             "passed": overall_pass,
-            "genome_data_available": genome_data is not None,
+            "genome_data_available": True,
+            "genome_data": genome_data,
             "replicates": replicate_results,
             "replicate_summary": {
                 "n_replicates": len(replicate_results),
@@ -1484,6 +1523,7 @@ def check_falsification(
     hysteresis_width_ratio: float,
     alternative_modules_needed: float,
     performance_gap_without_addons: float,
+    genome_data: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """
     Implement all statistical tests for Falsification-Protocol-5.
@@ -1926,8 +1966,11 @@ def check_falsification(
     # F2.4: Confidence Effects
     logger.info("Testing F2.4: Confidence Effects")
     # Two-proportion z-test for confidence advantage
-    # TODO: Derive n_total from actual data samples
-    n_total = 100  # Placeholder - needs real implementation
+    # Derive n_total from genome_data if available, otherwise use apgi_rewards length
+    if genome_data is not None and "evolved_alpha_values" in genome_data:
+        n_total = len(genome_data["evolved_alpha_values"])
+    else:
+        n_total = len(apgi_rewards) if len(apgi_rewards) > 0 else 100
     p1 = 0.5 + confidence_effect / 2
     p2 = 0.5 - confidence_effect / 2
     n_safe = max(1, n_total)

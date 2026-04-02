@@ -24,6 +24,39 @@ from scipy import stats
 
 logger = logging.getLogger(__name__)
 
+# Import shared multiple comparison correction
+try:
+    from utils.statistical_tests import apply_multiple_comparison_correction
+except ImportError:
+    apply_multiple_comparison_correction = None  # type: ignore[misc,assignment]
+    logger.warning(
+        "statistical_tests.apply_multiple_comparison_correction not available"
+    )
+
+try:
+    from utils.constants import (
+        TMS_MOTOR_THRESHOLD_ADJUST,
+        TMS_PULSE_WIDTH_MS,
+        TMS_SIGMOID_STEEPNESS,
+    )
+except ImportError:
+    TMS_PULSE_WIDTH_MS = 0.3
+    TMS_MOTOR_THRESHOLD_ADJUST = 0.8
+    TMS_SIGMOID_STEEPNESS = 5.0
+
+try:
+    from utils.falsification_thresholds import (
+        P2_A_MIN_THRESHOLD_SHIFT,
+        P2_B_MIN_HEP_REDUCTION,
+        P2_B_MIN_PCI_REDUCTION,
+        P2_C_MIN_ETA_SQ,
+    )
+except ImportError:
+    P2_A_MIN_THRESHOLD_SHIFT = 0.12
+    P2_B_MIN_HEP_REDUCTION = 35.0
+    P2_B_MIN_PCI_REDUCTION = 25.0
+    P2_C_MIN_ETA_SQ = 0.12
+
 # Set random seeds
 
 
@@ -40,9 +73,9 @@ class TMSIntervention:
         self.intensity = intensity
 
         # TMS parameters
-        self.pulse_width = 0.3  # ms
+        self.pulse_width = TMS_PULSE_WIDTH_MS
         self.inter_pulse_interval = 50  # ms for paired-pulse
-        self.mt_adjustment = 0.8  # Adjustment factor for MT
+        self.mt_adjustment = TMS_MOTOR_THRESHOLD_ADJUST
 
     def apply_tms_pulse(
         self, neural_state: Dict, target_region: str, timing: float
@@ -132,7 +165,7 @@ class TMSIntervention:
             + state["Pi_i_effective"] * 0.1
         )
         theta = state["theta_t"]
-        alpha = 5.0  # Sigmoid steepness
+        alpha = TMS_SIGMOID_STEEPNESS
 
         return 1.0 / (1.0 + np.exp(-alpha * (S - theta)))
 
@@ -390,8 +423,8 @@ class CausalManipulationsValidator:
         ss_total = ss_interaction + df2  # Simplified total SS
         partial_eta_squared = ss_interaction / ss_total if ss_total > 0 else 0
 
-        # P2.c passes if partial eta-squared >= 0.10 AND p < 0.05
-        p2c_passed = (partial_eta_squared >= 0.10) and (p_interaction < 0.05)
+        # P2.c passes if partial eta-squared meets the shared threshold and p < 0.05
+        p2c_passed = (partial_eta_squared >= P2_C_MIN_ETA_SQ) and (p_interaction < 0.05)
 
         return {
             "interaction_f": float(f_interaction),
@@ -579,14 +612,19 @@ class CausalManipulationsValidator:
                 # Baseline
                 baseline_S = baseline_state["Pi_e_baseline"] * intensity
                 baseline_prob = 1.0 / (
-                    1.0 + np.exp(-5.0 * (baseline_S - baseline_state["theta_t"]))
+                    1.0
+                    + np.exp(
+                        -TMS_SIGMOID_STEEPNESS
+                        * (baseline_S - baseline_state["theta_t"])
+                    )
                 )
                 baseline_responses.append(baseline_prob)
 
                 # Drug
                 drug_S = drug_state["Pi_e_baseline"] * intensity
                 drug_prob = 1.0 / (
-                    1.0 + np.exp(-5.0 * (drug_S - drug_state["theta_t"]))
+                    1.0
+                    + np.exp(-TMS_SIGMOID_STEEPNESS * (drug_S - drug_state["theta_t"]))
                 )
                 drug_responses.append(drug_prob)
 
@@ -818,14 +856,19 @@ class CausalManipulationsValidator:
                 # Baseline
                 baseline_S = baseline_state["Pi_e_effective"] * intensity
                 baseline_prob = 1.0 / (
-                    1.0 + np.exp(-5.0 * (baseline_S - baseline_state["theta_t"]))
+                    1.0
+                    + np.exp(
+                        -TMS_SIGMOID_STEEPNESS
+                        * (baseline_S - baseline_state["theta_t"])
+                    )
                 )
                 baseline_responses.append(baseline_prob)
 
                 # tACS
                 tacs_S = tacs_state["Pi_e_effective"] * intensity
                 tacs_prob = 1.0 / (
-                    1.0 + np.exp(-5.0 * (tacs_S - tacs_state["theta_t"]))
+                    1.0
+                    + np.exp(-TMS_SIGMOID_STEEPNESS * (tacs_S - tacs_state["theta_t"]))
                 )
                 tacs_responses.append(tacs_prob)
 
@@ -882,9 +925,9 @@ class CausalManipulationsValidator:
         Extract named predictions P2.a, P2.b, P2.c from validation results.
 
         Paper-specified thresholds:
-        - P2.a: dlPFC threshold shift > 0.1 log units (t-test, p < 0.01)
-        - P2.b: HEP reduction >= 0.30 AND PCI reduction >= 0.20
-        - P2.c: Interaction F with partial η² >= 0.10
+        - P2.a: dlPFC threshold shift above the shared minimum log-unit threshold
+        - P2.b: HEP and PCI reductions meet shared minimum reduction thresholds
+        - P2.c: Interaction F with shared partial eta-squared threshold
 
         Returns:
             Dictionary with structured results for each named prediction
@@ -899,8 +942,10 @@ class CausalManipulationsValidator:
         )
         dlpfc_p_value = atomoxetine_result.get("p_value", 1.0)
 
-        # P2.a passes if threshold shift > 0.1 log units AND p < 0.01
-        p2a_passed = (dlpfc_threshold_shift_log > 0.1) and (dlpfc_p_value < 0.01)
+        # P2.a passes if threshold shift exceeds the shared log-unit threshold
+        p2a_passed = (dlpfc_threshold_shift_log > P2_A_MIN_THRESHOLD_SHIFT) and (
+            dlpfc_p_value < 0.01
+        )
 
         # P2.b: HEP and PCI reductions from TMS ignition disruption
         tms_results = results.get("tms_ignition_disruption", {})
@@ -928,8 +973,10 @@ class CausalManipulationsValidator:
             hep_reduction = 0.0
             pci_reduction = 0.0
 
-        # P2.b passes if HEP reduction >= 0.30 AND PCI reduction >= 0.20
-        p2b_passed = (hep_reduction >= 0.30) and (pci_reduction >= 0.20)
+        # P2.b passes if HEP/PCI reductions exceed shared minima
+        p2b_passed = (hep_reduction >= P2_B_MIN_HEP_REDUCTION / 100.0) and (
+            pci_reduction >= P2_B_MIN_PCI_REDUCTION / 100.0
+        )
 
         # P2.c: High-IA × insula interaction from actual interaction test
         interaction_results = results.get("high_ia_insula_interaction", {})
@@ -937,16 +984,16 @@ class CausalManipulationsValidator:
         interaction_p = interaction_results.get("interaction_p", 1.0)
         partial_eta_squared = interaction_results.get("partial_eta_squared", 0)
 
-        # P2.c passes if partial eta-squared >= 0.10 AND p < 0.05
-        p2c_passed = (partial_eta_squared >= 0.10) and (interaction_p < 0.05)
+        # P2.c passes if partial eta-squared exceeds the shared threshold
+        p2c_passed = (partial_eta_squared >= P2_C_MIN_ETA_SQ) and (interaction_p < 0.05)
 
         return {
             "P2.a": {
                 "passed": p2a_passed,
-                "description": "dlPFC threshold shift > 0.1 log units",
+                "description": "dlPFC threshold shift exceeds shared minimum log units",
                 "threshold_shift_log": float(dlpfc_threshold_shift_log),
                 "p_value": float(dlpfc_p_value),
-                "threshold": "> 0.1 log units, p < 0.01",
+                "threshold": f"> {P2_A_MIN_THRESHOLD_SHIFT:.2f} log units, p < 0.01",
                 "actual": f"Log shift: {dlpfc_threshold_shift_log:.3f}, p: {dlpfc_p_value:.4f}",
             },
             "P2.b": {
@@ -954,7 +1001,10 @@ class CausalManipulationsValidator:
                 "description": "Insula reduces HEP ~30% AND PCI ~20%",
                 "hep_reduction": float(hep_reduction),
                 "pci_reduction": float(pci_reduction),
-                "threshold": "HEP >= 0.30 AND PCI >= 0.20",
+                "threshold": (
+                    f"HEP >= {P2_B_MIN_HEP_REDUCTION / 100.0:.2f} "
+                    f"AND PCI >= {P2_B_MIN_PCI_REDUCTION / 100.0:.2f}"
+                ),
                 "actual": f"HEP: {hep_reduction:.2f}, PCI: {pci_reduction:.2f}",
             },
             "P2.c": {
@@ -963,7 +1013,7 @@ class CausalManipulationsValidator:
                 "interaction_f": float(interaction_f),
                 "interaction_p": float(interaction_p),
                 "partial_eta_squared": float(partial_eta_squared),
-                "threshold": "partial η² >= 0.10",
+                "threshold": f"partial η² >= {P2_C_MIN_ETA_SQ:.2f}",
                 "actual": f"η²: {partial_eta_squared:.3f}, F: {interaction_f:.2f}, p: {interaction_p:.3f}",
             },
         }
@@ -1635,6 +1685,34 @@ def check_falsification(
                 "actual": criterion_data["actual"],
             }
         )
+
+    # Apply multiple comparison correction to all criteria p-values
+    criteria_p_values = []
+    for criterion_id in results["criteria"]:
+        criterion = results["criteria"][criterion_id]
+        # Extract p-value if available, default to 1.0
+        p_val = criterion.get("p_value", 1.0)
+        criteria_p_values.append(p_val)
+
+    # Apply Bonferroni and FDR-BH correction if function available
+    if apply_multiple_comparison_correction is not None and criteria_p_values:
+        bonferroni_result = apply_multiple_comparison_correction(
+            p_values=criteria_p_values, method="bonferroni", alpha=0.05
+        )
+        fdr_result = apply_multiple_comparison_correction(
+            p_values=criteria_p_values, method="fdr_bh", alpha=0.05
+        )
+        results["multiple_comparison_correction"] = {
+            "bonferroni": bonferroni_result,
+            "fdr_bh": fdr_result,
+            "n_tests": len(criteria_p_values),
+            "correction_applied": True,
+        }
+    else:
+        results["multiple_comparison_correction"] = {
+            "correction_applied": False,
+            "reason": "apply_multiple_comparison_correction not available or no p-values",
+        }
 
     return results
 

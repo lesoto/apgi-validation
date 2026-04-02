@@ -58,7 +58,13 @@ def safe_import_module(module_name: str, file_path: Path) -> Optional[Any]:
     except SyntaxError as e:
         logging.error(f"Syntax error in module {module_name}: {e}")
         return None
-    except (AttributeError, ValueError, TypeError, RuntimeError) as e:
+    except RuntimeError as e:
+        logging.warning(
+            f"Runtime issue loading module {module_name}: {e}. "
+            "Module will be treated as unavailable."
+        )
+        return None
+    except (AttributeError, ValueError, TypeError) as e:
         logging.error(f"Error loading module {module_name}: {type(e).__name__}: {e}")
         return None
 
@@ -2150,32 +2156,39 @@ Interpretation:
             )
 
     def _execute_single_protocol(
-        self, protocol_num: int, i: int, total_protocols: int, protocol_tiers: Dict
+        self,
+        protocol_num: int,
+        i: int,
+        total_protocols: int,
+        protocol_tiers: Dict[int, str],
     ) -> None:
-        """Execute a single protocol and handle its results"""
-        self.update_status(f"Running Protocol {protocol_num}...")
-        self.update_results(f"=== Protocol {protocol_num} ===\n")
-
+        """Execute a single protocol with proper error handling"""
         try:
-            # Execute actual protocol in isolated environment
-            # Mapping based on Master_Validation configuration
+            self.update_status(f"Starting Protocol {protocol_num}...")
+            self.update_results(f"\n--- Protocol {protocol_num} ---\n")
+            logging.info(f"Starting Protocol {protocol_num}")
+
+            # Protocol file mapping
             protocol_files = [
-                ("APGI_Protocol_1", "VP_01_SyntheticEEG_MLClassification.py"),
-                ("APGI_Protocol_2", "VP_02_Behavioral_BayesianComparison.py"),
-                ("APGI_Protocol_3", "VP_03_ActiveInference_AgentSimulations.py"),
-                ("APGI_Protocol_4", "VP_04_PhaseTransition_EpistemicLevel2.py"),
-                ("APGI_Protocol_5", "VP_05_EvolutionaryEmergence.py"),
-                ("APGI_Protocol_6", "VP_06_LiquidNetwork_InductiveBias.py"),
-                ("APGI_Protocol_7", "VP_07_TMS_CausalInterventions.py"),
-                ("APGI_Protocol_8", "VP_08_Psychophysical_ThresholdEstimation.py"),
-                ("APGI_Protocol_9", "VP_09_NeuralSignatures_EmpiricalPriority1.py"),
-                ("APGI_Protocol_10", "VP_10_CausalManipulations_Priority2.py"),
-                ("APGI_Protocol_11", "VP_11_MCMC_CulturalNeuroscience_Priority3.py"),
-                ("APGI_Protocol_12", "VP_12_Clinical_CrossSpecies_Convergence.py"),
-                ("APGI_Protocol_13", "VP_13_Epistemic_Architecture.py"),
-                ("APGI_Protocol_14", "VP_14_fMRI_Anticipation_Experience.py"),
-                ("APGI_Protocol_15", "VP_15_fMRI_Anticipation_vmPFC.py"),
+                (1, "VP_01_SyntheticEEG_MLClassification.py"),
+                (2, "VP_02_Behavioral_BayesianComparison.py"),
+                (3, "VP_03_ActiveInference_AgentSimulations.py"),
+                (4, "VP_04_PhaseTransition_EpistemicLevel2.py"),
+                (5, "VP_05_EvolutionaryEmergence.py"),
+                (6, "VP_06_LiquidNetwork_InductiveBias.py"),
+                (7, "VP_07_TMS_CausalInterventions.py"),
+                (8, "VP_08_Psychophysical_ThresholdEstimation.py"),
+                (9, "VP_09_NeuralSignatures_EmpiricalPriority1.py"),
+                (10, "VP_10_CausalManipulations_Priority2.py"),
+                (11, "VP_11_MCMC_CulturalNeuroscience_Priority3.py"),
+                (12, "VP_12_Clinical_CrossSpecies_Convergence.py"),
+                (13, "VP_13_Epistemic_Architecture.py"),
+                (14, "VP_14_fMRI_Anticipation_Experience.py"),
+                (15, "VP_15_fMRI_Anticipation_vmPFC.py"),
             ]
+
+            if protocol_num < 1 or protocol_num > len(protocol_files):
+                raise ValueError(f"Invalid protocol number: {protocol_num}")
 
             protocol_file = protocol_files[protocol_num - 1][1]
             protocol_path = Path(__file__).parent / protocol_file
@@ -2190,11 +2203,13 @@ Interpretation:
             with self._cache_lock:
                 if cache_key in self._protocol_cache:
                     protocol_module = self._protocol_cache[cache_key]
+                    logging.debug(f"Using cached module for Protocol {protocol_num}")
                 else:
                     protocol_module = None
 
             # Import if not cached
             if protocol_module is None:
+                logging.info(f"Importing Protocol {protocol_num} from {protocol_file}")
                 # Import protocol module dynamically
                 spec = importlib.util.spec_from_file_location(cache_key, protocol_path)
                 if spec is None or spec.loader is None:
@@ -2205,24 +2220,40 @@ Interpretation:
                 protocol_module = importlib.util.module_from_spec(spec)
                 # Register module in sys.modules BEFORE execution for cross-import compatibility
                 sys.modules[cache_key] = protocol_module
+
+                logging.debug(f"Executing module for Protocol {protocol_num}")
                 spec.loader.exec_module(protocol_module)
+                logging.debug(f"Module execution complete for Protocol {protocol_num}")
 
                 # Cache the module with lock protection
                 with self._cache_lock:
                     self._protocol_cache[cache_key] = protocol_module
             else:
                 # Use cached module - ensure it's fresh by reloading
+                logging.debug(f"Reloading cached module for Protocol {protocol_num}")
                 importlib.reload(protocol_module)
+                logging.debug(f"Module reload complete for Protocol {protocol_num}")
 
             # Capture stdout to get results
             captured_output = io.StringIO()
 
+            logging.info(f"Executing Protocol {protocol_num} main function")
+            logging.debug(f"Protocol {protocol_num} - About to enter redirect_stdout")
+
             # Execute protocol in a completely isolated manner
             with contextlib.redirect_stdout(captured_output):
+                logging.debug(
+                    f"Protocol {protocol_num} - Inside redirect_stdout, calling _execute_protocol_safely"
+                )
                 # Create a subprocess-like environment for protocol execution
                 protocol_result = self._execute_protocol_safely(
                     protocol_module, protocol_num, i, total_protocols
                 )
+                logging.debug(
+                    f"Protocol {protocol_num} - _execute_protocol_safely returned"
+                )
+
+            logging.info(f"Protocol {protocol_num} main function completed")
 
             # Parse captured output for results
             output_text = captured_output.getvalue()
@@ -2252,10 +2283,13 @@ Interpretation:
             )
 
         except (ImportError, FileNotFoundError, SyntaxError) as e:
+            logging.error(f"Protocol {protocol_num} import/syntax error: {e}")
             self._handle_protocol_execution_error(e, protocol_num, protocol_tiers)
         except (ValueError, TypeError, AttributeError, KeyError) as e:
+            logging.error(f"Protocol {protocol_num} runtime error: {e}")
             self._handle_protocol_execution_error(e, protocol_num, protocol_tiers)
         except (RuntimeError, MemoryError, FutureTimeoutError) as e:
+            logging.error(f"Protocol {protocol_num} critical error: {e}")
             self._handle_protocol_execution_error(e, protocol_num, protocol_tiers)
 
     def _determine_protocol_success(
@@ -2464,17 +2498,18 @@ Interpretation:
                 except Exception as e:
                     logging.error(f"Error clearing GUI update queue: {e}")
 
-                # Clear validation thread reference and force cleanup
+                # Clear validation thread reference without blocking
                 if self.validation_thread:
-                    if self.validation_thread.is_alive():
+                    is_current_thread = (
+                        self.validation_thread is threading.current_thread()
+                    )
+                    if self.validation_thread.is_alive() and not is_current_thread:
                         logging.warning(
-                            "Validation thread still alive in finally block, forcing cleanup"
+                            "Validation thread still alive in finally block"
                         )
-                        # Force thread to terminate by waiting with timeout
-                        try:
-                            self.validation_thread.join(timeout=2.0)
-                        except Exception:
-                            pass
+                        # Don't wait for thread - let daemon thread die with process
+                        # This prevents hanging on thread cleanup
+                        pass
                     self.validation_thread = None
 
                 # Force garbage collection to clean up any lingering resources
@@ -2656,19 +2691,16 @@ Interpretation:
             # Set flag to stop the worker thread loop
             self.is_running = False
 
-            # Wait for thread to finish with timeout
+            # Don't wait for thread to finish - set daemon and let it die with process
             with self._thread_cleanup_lock:
                 if self.validation_thread and self.validation_thread.is_alive():
-                    # Wait up to 5 seconds for clean exit (increased from 3s)
-                    self.validation_thread.join(timeout=5.0)
-
+                    # Brief wait for clean exit (reduced from 5s to 0.5s)
+                    self.validation_thread.join(timeout=0.5)
                     if self.validation_thread.is_alive():
-                        self.update_results(
-                            "Warning: Validation thread did not stop cleanly within timeout\n"
-                        )
                         logging.warning(
-                            "Validation thread did not stop cleanly, may be zombie thread"
+                            "Validation thread did not stop cleanly within timeout"
                         )
+                        # Don't block - the thread is daemon and will die with process
                     else:
                         logging.info("Validation thread stopped successfully")
 
@@ -2812,44 +2844,45 @@ Interpretation:
             # Execute protocol with timeout in a separate thread to ensure isolation
             from concurrent.futures import ThreadPoolExecutor
 
-            # Use with-statement for automatic executor shutdown
-            with ThreadPoolExecutor(
+            # Create executor manually (NOT using context manager to avoid blocking shutdown)
+            executor = ThreadPoolExecutor(
                 max_workers=1, thread_name_prefix=f"protocol_{protocol_num}"
-            ) as executor:
-                # Check if protocol accepts progress callback
-                import inspect
+            )
 
-                # Validate module has main function
-                if not hasattr(protocol_module, "main"):
-                    raise AttributeError(
-                        f"Protocol module {protocol_num} missing 'main' function"
-                    )
+            # Check if protocol accepts progress callback
+            import inspect
 
-                sig = inspect.signature(protocol_module.main)
+            # Validate module has main function
+            if not hasattr(protocol_module, "main"):
+                raise AttributeError(
+                    f"Protocol module {protocol_num} missing 'main' function"
+                )
 
-                if "progress_callback" in sig.parameters:
-                    future = executor.submit(
-                        protocol_module.main, progress_callback=safe_progress_callback
-                    )
-                else:
-                    future = executor.submit(protocol_module.main)
+            sig = inspect.signature(protocol_module.main)
 
-                try:
-                    result = future.result(timeout=self.validator.timeout_seconds)
-                    # Do NOT default to passed=True - require explicit success
-                    if result is None:
-                        return {
-                            "status": "INDETERMINATE",
-                            "message": "Protocol returned None - cannot determine success",
-                            "passed": False,
-                        }
-                    return result
-                except FutureTimeoutError:
-                    # Cancel and re-raise for caller handling
-                    future.cancel()
-                    raise TimeoutError(
-                        f"Protocol {protocol_num} timed out after {self.validator.timeout_seconds} seconds"
-                    )
+            if "progress_callback" in sig.parameters:
+                future = executor.submit(
+                    protocol_module.main, progress_callback=safe_progress_callback
+                )
+            else:
+                future = executor.submit(protocol_module.main)
+
+            try:
+                result = future.result(timeout=self.validator.timeout_seconds)
+                # Do NOT default to passed=True - require explicit success
+                if result is None:
+                    return {
+                        "status": "INDETERMINATE",
+                        "message": "Protocol returned None - cannot determine success",
+                        "passed": False,
+                    }
+                return result
+            except FutureTimeoutError:
+                # Cancel and re-raise for caller handling
+                future.cancel()
+                raise TimeoutError(
+                    f"Protocol {protocol_num} timed out after {self.validator.timeout_seconds} seconds"
+                )
 
         except Exception as e:
             # Return error result instead of raising to prevent GUI crashes
@@ -2864,8 +2897,8 @@ Interpretation:
             # Shut down executor in ALL cases to prevent hanging threads
             if executor is not None:
                 try:
-                    # Cancel any pending futures first
-                    executor.shutdown(wait=True, cancel_futures=True)
+                    # Cancel any pending futures first (non-blocking)
+                    executor.shutdown(wait=False, cancel_futures=True)
                 except Exception as e:
                     logging.warning(
                         f"Error shutting down executor for protocol {protocol_num}: {e}"

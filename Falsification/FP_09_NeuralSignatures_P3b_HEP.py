@@ -10,6 +10,15 @@ import logging
 import numpy as np
 from typing import Dict, Any, List, Tuple, Optional, Union
 from scipy import signal
+from pathlib import Path
+import sys
+
+# Add project root to path for imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from utils.statistical_tests import apply_multiple_comparison_correction
 
 try:
     from scipy.integrate import simpson as simps
@@ -85,7 +94,15 @@ class EEGData:
         if not MNE_AVAILABLE:
             # Return structured error result to prevent NoneType AttributeErrors
             logger.warning("MNE not available - cannot convert to MNE format")
-            return None
+            return NeuralSignatureResult(
+                prediction_id="MNE_ERROR",
+                metric_name="to_mne_epochs",
+                value=0.0,
+                threshold=0.0,
+                significant=False,
+                description="insufficient_data_length",
+                falsification_passed=False,
+            )
 
         info = create_info(ch_names=self.channels, sfreq=self.fs, ch_types="eeg")
 
@@ -260,16 +277,8 @@ def detect_gamma_oscillation(
         )
 
     except Exception as e:
-        logger.error(f"Error in gamma oscillation detection: {e}")
-        return NeuralSignatureResult(
-            prediction_id=prediction_id,
-            metric_name=metric_name,
-            value=0.0,
-            threshold=threshold,
-            significant=False,
-            p_value=1.0,
-            description=f"Error in gamma oscillation analysis: {str(e)}",
-        )
+        logger.error(f"FP-09 P1.1 failed: {e}")
+        return {"passed": False, "status": "ERROR", "reason": str(e)}
 
 
 def detect_theta_gamma_pac(
@@ -486,19 +495,12 @@ def detect_theta_gamma_pac(
                 significant=False,
                 p_value=1.0,
                 description=f"Error in PAC result creation: {str(e)}",
+                falsification_passed=False,
             )
 
     except Exception as e:
-        logger.error(f"Error in theta-gamma PAC detection: {e}")
-        return NeuralSignatureResult(
-            prediction_id=prediction_id,
-            metric_name=metric_name,
-            value=0.0,
-            threshold=threshold,
-            significant=False,
-            p_value=1.0,
-            description=f"Error in theta-gamma PAC analysis: {str(e)}",
-        )
+        logger.error(f"FP-09 P1.2 failed: {e}")
+        return {"passed": False, "status": "ERROR", "reason": str(e)}
 
 
 def detect_hep_amplitude(
@@ -645,16 +647,8 @@ def detect_hep_amplitude(
         )
 
     except Exception as e:
-        logger.error(f"Error in HEP amplitude detection: {e}")
-        return NeuralSignatureResult(
-            prediction_id=prediction_id,
-            metric_name=metric_name,
-            value=0.0,
-            threshold=threshold,
-            significant=False,
-            p_value=1.0,
-            description=f"Error in HEP analysis: {str(e)}",
-        )
+        logger.error(f"FP-09 P2.a failed: {e}")
+        return {"passed": False, "status": "ERROR", "reason": str(e)}
 
 
 def detect_p3b_amplitude(
@@ -789,16 +783,8 @@ def detect_p3b_amplitude(
         )
 
     except Exception as e:
-        logger.error(f"Error in P3b amplitude detection: {e}")
-        return NeuralSignatureResult(
-            prediction_id=prediction_id,
-            metric_name=metric_name,
-            value=0.0,
-            threshold=threshold,
-            significant=False,
-            p_value=1.0,
-            description=f"Error in P3b analysis: {str(e)}",
-        )
+        logger.error(f"FP-09 P1.3 failed: {e}")
+        return {"passed": False, "status": "ERROR", "reason": str(e)}
 
 
 def tms_double_dissociation_test(
@@ -1009,16 +995,8 @@ def tms_double_dissociation_test(
         )
 
     except Exception as e:
-        logger.error(f"Error in TMS double-dissociation test: {e}")
-        return NeuralSignatureResult(
-            prediction_id=prediction_id,
-            metric_name=metric_name,
-            value=0.0,
-            threshold=threshold,
-            significant=False,
-            p_value=1.0,
-            description=f"Error in TMS dissociation analysis: {str(e)}",
-        )
+        logger.error(f"FP-09 P2.b failed: {e}")
+        return {"passed": False, "status": "ERROR", "reason": str(e)}
 
 
 def frequency_specific_power_analysis(
@@ -1152,18 +1130,8 @@ def frequency_specific_power_analysis(
             results[band_name] = result
 
     except Exception as e:
-        logger.error(f"Error in frequency-specific power analysis: {e}")
-        # Create error results for each band
-        for band_name in frequency_bands.keys():
-            results[band_name] = NeuralSignatureResult(
-                prediction_id="ERROR",
-                metric_name=f"{band_name}_power",
-                value=0.0,
-                threshold=0.0,
-                significant=False,
-                p_value=1.0,
-                description=f"Error in {band_name} power analysis: {str(e)}",
-            )
+        logger.error(f"FP-09 frequency_power failed: {e}")
+        return {"passed": False, "status": "ERROR", "reason": str(e)}
 
     return results
 
@@ -1224,7 +1192,15 @@ def mne_compatible_analysis(
         else:
             # Log MNE unavailability for debugging
             logger.warning("MNE not available - cannot create EpochsArray")
-            return None
+            return NeuralSignatureResult(
+                prediction_id="MNE_ERROR",
+                metric_name="convert_to_mne_format",
+                value=0.0,
+                threshold=0.0,
+                significant=False,
+                description="insufficient_data_length",
+                falsification_passed=False,
+            )
 
     results = {
         "mne_available": MNE_AVAILABLE,
@@ -1688,16 +1664,8 @@ def pci_hep_joint_auc_classification(
         )
 
     except Exception as e:
-        logger.error(f"Error in PCI+HEP joint AUC analysis: {e}")
-        return NeuralSignatureResult(
-            prediction_id=prediction_id,
-            metric_name=metric_name,
-            value=0.0,
-            threshold=threshold,
-            significant=False,
-            p_value=1.0,
-            description=f"Error in PCI+HEP joint AUC analysis: {str(e)}",
-        )
+        logger.error(f"FP-09 P4.a failed: {e}")
+        return {"passed": False, "status": "ERROR", "reason": str(e)}
 
 
 def dmn_connectivity_specificity(
@@ -1811,16 +1779,8 @@ def dmn_connectivity_specificity(
         )
 
     except Exception as e:
-        logger.error(f"Error in DMN connectivity specificity analysis: {e}")
-        return NeuralSignatureResult(
-            prediction_id=prediction_id,
-            metric_name=metric_name,
-            value=0.0,
-            threshold=threshold,
-            significant=False,
-            p_value=1.0,
-            description=f"Error in DMN connectivity analysis: {str(e)}",
-        )
+        logger.error(f"FP-09 P4.b failed: {e}")
+        return {"passed": False, "status": "ERROR", "reason": str(e)}
 
 
 def cold_pressor_pci_response(
@@ -1978,16 +1938,8 @@ def cold_pressor_pci_response(
         )
 
     except Exception as e:
-        logger.error(f"Error in cold pressor PCI response analysis: {e}")
-        return NeuralSignatureResult(
-            prediction_id=prediction_id,
-            metric_name=metric_name,
-            value=0.0,
-            threshold=threshold,
-            significant=False,
-            p_value=1.0,
-            description=f"Error in cold pressor analysis: {str(e)}",
-        )
+        logger.error(f"FP-09 P4.c failed: {e}")
+        return {"passed": False, "status": "ERROR", "reason": str(e)}
 
 
 def baseline_recovery_prediction(
@@ -2203,16 +2155,8 @@ def baseline_recovery_prediction(
         )
 
     except Exception as e:
-        logger.error(f"Error in baseline recovery prediction analysis: {e}")
-        return NeuralSignatureResult(
-            prediction_id=prediction_id,
-            metric_name=metric_name,
-            value=0.0,
-            threshold=threshold,
-            significant=False,
-            p_value=1.0,
-            description=f"Error in recovery prediction analysis: {str(e)}",
-        )
+        logger.error(f"FP-09 P4.d failed: {e}")
+        return {"passed": False, "status": "ERROR", "reason": str(e)}
 
 
 class NeuralSignatureValidator:
@@ -2254,15 +2198,36 @@ class NeuralSignatureValidator:
         if data is None:
             data = self._generate_synthetic_data()
 
+        data_source = "synthetic" if data is None else "provided"
         results = {
             "protocol": "FP-9",
             "named_predictions": {},
             "metadata": {
                 "total_predictions": 0,
                 "passed_predictions": 0,
-                "data_source": "synthetic" if data is None else "provided",
+                "data_source": data_source,
             },
         }
+
+        # Define a safe helper to format results for the aggregator
+        def format_res(
+            r: Union[NeuralSignatureResult, Dict[str, Any]],
+        ) -> Dict[str, Any]:
+            if isinstance(r, NeuralSignatureResult):
+                return {
+                    "passed": r.falsification_passed,
+                    "value": float(r.value),
+                    "threshold": float(r.threshold),
+                    "p_value": float(r.p_value or 1.0),
+                    "effect_size": float(r.effect_size or 0),
+                    "description": r.description,
+                }
+            elif isinstance(r, dict):
+                # Ensure it has the minimum required fields
+                if "passed" not in r:
+                    r["passed"] = False
+                return r
+            return {"passed": False, "status": "ERROR", "reason": "Invalid result type"}
 
         # P4.a: PCI+HEP joint AUC > 0.80 for DoC classification
         if all(
@@ -2273,14 +2238,7 @@ class NeuralSignatureValidator:
                 data["hep_amplitudes"],
                 data["consciousness_labels"],
             )
-            results["named_predictions"]["P4.a"] = {
-                "passed": result_p4a.falsification_passed,
-                "value": float(result_p4a.value),
-                "threshold": float(result_p4a.threshold),
-                "p_value": float(result_p4a.p_value),
-                "effect_size": float(result_p4a.effect_size or 0),
-                "description": result_p4a.description,
-            }
+            results["named_predictions"]["P4.a"] = format_res(result_p4a)
 
         # P4.b: DMN↔PCI r > 0.50; DMN↔HEP r < 0.20
         if all(k in data for k in ["dmn_pci_correlations", "dmn_hep_correlations"]):
@@ -2288,14 +2246,7 @@ class NeuralSignatureValidator:
                 data["dmn_pci_correlations"],
                 data["dmn_hep_correlations"],
             )
-            results["named_predictions"]["P4.b"] = {
-                "passed": result_p4b.falsification_passed,
-                "value": float(result_p4b.value),
-                "threshold": float(result_p4b.threshold),
-                "p_value": float(result_p4b.p_value),
-                "effect_size": float(result_p4b.effect_size or 0),
-                "description": result_p4b.description,
-            }
+            results["named_predictions"]["P4.b"] = format_res(result_p4b)
 
         # P4.c: Cold pressor increases PCI >10% in MCS, not VS
         if all(
@@ -2306,14 +2257,7 @@ class NeuralSignatureValidator:
                 data["pci_cold_pressor"],
                 data["patient_states"],
             )
-            results["named_predictions"]["P4.c"] = {
-                "passed": result_p4c.falsification_passed,
-                "value": float(result_p4c.value),
-                "threshold": float(result_p4c.threshold),
-                "p_value": float(result_p4c.p_value),
-                "effect_size": float(result_p4c.effect_size or 0),
-                "description": result_p4c.description,
-            }
+            results["named_predictions"]["P4.c"] = format_res(result_p4c)
 
         # P4.d: Baseline PCI+HEP predicts 6-month recovery ΔR² > 0.10
         if all(
@@ -2329,19 +2273,48 @@ class NeuralSignatureValidator:
                 data["recovery_hep_baseline"],
                 data["recovery_scores"],
             )
-            results["named_predictions"]["P4.d"] = {
-                "passed": result_p4d.falsification_passed,
-                "value": float(result_p4d.value),
-                "threshold": float(result_p4d.threshold),
-                "p_value": float(result_p4d.p_value),
-                "effect_size": float(result_p4d.effect_size or 0),
-                "description": result_p4d.description,
-            }
+            results["named_predictions"]["P4.d"] = format_res(result_p4d)
+
+        # Bonferroni correction across P4.a-P4.d (4 simultaneous tests)
+        p4_order = ["P4.a", "P4.b", "P4.c", "P4.d"]
+        p4_keys = [k for k in p4_order if k in results["named_predictions"]]
+        p4_pvals = [
+            results["named_predictions"][k].get("p_value", 1.0) for k in p4_keys
+        ]
+
+        if p4_pvals and apply_multiple_comparison_correction is not None:
+            bonferroni = apply_multiple_comparison_correction(
+                p_values=p4_pvals, method="bonferroni", alpha=0.05
+            )
+            adj = bonferroni.get("adjusted_p_values", p4_pvals)
+            for key, adj_p in zip(p4_keys, adj):
+                results["named_predictions"][key]["p_value_bonferroni"] = float(adj_p)
+                # Re-evaluate pass using Bonferroni-corrected threshold
+                results["named_predictions"][key]["passed"] = (
+                    results["named_predictions"][key]["passed"]
+                    and adj_p < FalsificationThresholds.ALPHA_BONFERRONI_P4
+                )
+            results["metadata"]["bonferroni_applied"] = True
+            results["metadata"][
+                "bonferroni_alpha"
+            ] = FalsificationThresholds.ALPHA_BONFERRONI_P4
+        else:
+            results["metadata"]["bonferroni_applied"] = False
+
+        # Synthetic gate: if data was generated internally mark all criteria
+        # as SYNTHETIC_PENDING_EMPIRICAL so the aggregator cannot treat
+        # them as real empirical evidence (passed=None, not True/False).
+        if results["metadata"].get("data_source") == "synthetic":
+            for key in results["named_predictions"]:
+                results["named_predictions"][key]["passed"] = None
+                results["named_predictions"][key][
+                    "validation_status"
+                ] = "SYNTHETIC_PENDING_EMPIRICAL"
 
         # Update metadata
         results["metadata"]["total_predictions"] = len(results["named_predictions"])
         results["metadata"]["passed_predictions"] = sum(
-            1 for p in results["named_predictions"].values() if p["passed"]
+            1 for p in results["named_predictions"].values() if p["passed"] is True
         )
 
         self.logger.info(
@@ -2431,13 +2404,31 @@ class NeuralSignatureValidator:
 def run_protocol():
     """Entry point for framework-level synthesis."""
     logger.info("Running Falsification Protocol 9: Neural Signatures Validation")
-    # Use dummy data or load from provided data if available
-    # For now, create a mock result that satisfies the aggregator
+    # SYNTHETIC GATE: no real EEG data is loaded here, so all criteria must be
+    # tagged SYNTHETIC_PENDING_EMPIRICAL with passed=None so the aggregator
+    # can distinguish them from real empirical validation outcomes.
+    data_source = "synthetic"
+    _synthetic = data_source == "synthetic"
     return {
-        "status": "success",
+        "status": "synthetic_pending" if _synthetic else "success",
+        "data_source": data_source,
         "named_predictions": {
-            "P9.a": {"passed": True, "actual": "0.45 µV", "threshold": "> 0.3 µV"},
-            "P9.b": {"passed": True, "actual": "0.32 µV", "threshold": "> 0.2 µV"},
+            "P9.a": {
+                "passed": None if _synthetic else True,
+                "actual": "0.45 µV",
+                "threshold": "> 0.3 µV",
+                "validation_status": (
+                    "SYNTHETIC_PENDING_EMPIRICAL" if _synthetic else "VALIDATED"
+                ),
+            },
+            "P9.b": {
+                "passed": None if _synthetic else True,
+                "actual": "0.32 µV",
+                "threshold": "> 0.2 µV",
+                "validation_status": (
+                    "SYNTHETIC_PENDING_EMPIRICAL" if _synthetic else "VALIDATED"
+                ),
+            },
         },
     }
 

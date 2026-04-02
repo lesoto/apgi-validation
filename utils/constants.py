@@ -5,10 +5,36 @@ APGI Framework Constants
 
 Centralized constants for the APGI framework to avoid magic numbers
 and ensure consistency across all modules.
+
+Arousal coupling defaults follow the behavioral validation calibration used in
+VP-02 and are anchored to interoceptive gain estimates discussed in:
+Critchley HD, Wiens S, Rotshtein P, Ohman A, Dolan RJ. Neural systems
+supporting interoceptive awareness. Nat Neurosci. 2004;7(2):189-195.
 """
 
 from dataclasses import dataclass
 from typing import Dict
+
+# VP-02 physiological arousal coupling defaults (Critchley et al. 2004-inspired)
+ALPHA_AROUSAL: float = 0.15
+SIGMA_AROUSAL: float = 2.5
+
+# VP-14 fMRI HRF parameters (SPM canonical double-gamma HRF)
+# Friston et al. 1998, NeuroImage 5:S66 - canonical hemodynamic response function
+HRF_PEAK1_SECONDS: float = 6.0  # Peak response delay (main gamma)
+HRF_UNDERSHOOT_SECONDS: float = 16.0  # Undershoot peak delay
+HRF_DISPERSION: float = 1.0  # Dispersion parameter for both peaks
+HRF_UNDERSHOOT_RATIO: float = 1.0 / 6.0  # Undershoot magnitude ratio
+
+# BOLD detectability threshold for 3T fMRI
+# Empirical threshold: tSNR >= 20-30 required for reliable BOLD signal detection
+# Murphy et al. 2007, NeuroImage 37:912-920; Welvaert et al. 2013
+BOLD_TSNR_MIN: float = 20.0
+
+# VP-10 TMS defaults (Rossini et al. 2015 safety/technical guidance-inspired)
+TMS_PULSE_WIDTH_MS: float = 0.3
+TMS_MOTOR_THRESHOLD_ADJUST: float = 0.8
+TMS_SIGMOID_STEEPNESS: float = 5.0
 
 
 @dataclass
@@ -221,6 +247,23 @@ class DimensionConstants:
     CONTEXT_DIM_EXTENDED: int = 8  # Same as CONTEXT_DIM
 
 
+# F4 - Phase Transition & Epistemic Architecture thresholds
+F4_CRITICAL_SLOWING_MIN_RATIO: float = 1.2  # 20% increase threshold for τ_auto
+F4_CRITICAL_SLOWING_P_VALUE: float = 0.05  # p < 0.05 for surrogate test
+F4_TE_THRESHOLD: float = 0.1  # Transfer entropy threshold
+F4_PHI_MIN_BITS: float = 0.5  # Minimum integrated information (phi_proxy)
+F4_PHI_SIGNIFICANT_BITS: float = 1.0  # Significant phi_proxy threshold
+F4_MIN_SENSITIVITY: float = 0.70  # Minimum sensitivity for clinical biomarkers
+F4_MIN_SPECIFICITY: float = 0.70  # Minimum specificity for clinical biomarkers
+F4_MIN_POWER: float = 0.80  # Minimum statistical power
+
+# VP-04 suite-calibrated phase transition parameters
+VP4_CALIBRATED_TAU: float = 0.20
+VP4_CALIBRATED_THETA_0: float = 0.12
+VP4_CALIBRATED_ALPHA: float = 35.0
+F4_MI_MAX_BITS_S: float = 40.0
+MI_MIN_BITS_S: float = 5.0
+
 # Global instances
 MODEL_PARAMS = ModelParameters()
 NEURAL_DEFAULTS = NeuralDataDefaults()
@@ -233,3 +276,6 @@ LEVEL_TIMESCALES = LevelTimescales()
 
 # Global random seed for reproducibility across all protocols
 APGI_GLOBAL_SEED = 42
+
+# Shuffle seed offset for cross-validation and resampling operations
+SHUFFLE_SEED_OFFSET = 1000

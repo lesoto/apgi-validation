@@ -618,11 +618,14 @@ class APGIMasterFalsifier:
                 logger.info(f"Running falsification protocol {protocol_name}...")
                 protocol_info = self.available_protocols[protocol_name]
                 protocol_kwargs = dict(kwargs)
-                if protocol_name == "FP-05" and "genome_data" not in protocol_kwargs:
-                    logger.info(
-                        "Running VP-05 prerequisite before FP-05 to prepare genome_data."
-                    )
-                    protocol_kwargs["genome_data"] = self._prepare_vp5_genome_data()
+                if protocol_name == "FP-05":
+                    if "genome_data" not in protocol_kwargs:
+                        logger.info(
+                            "Running VP-05 prerequisite before FP-05 to prepare genome_data."
+                        )
+                        protocol_kwargs["genome_data"] = self._prepare_vp5_genome_data()
+                    # Set n_replicates=5 for FP-05 as per specification
+                    protocol_kwargs.setdefault("n_replicates", 5)
                 result = self._run_single_protocol(protocol_info, **protocol_kwargs)
                 results[protocol_name] = result
                 logger.info(

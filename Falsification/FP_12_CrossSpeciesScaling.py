@@ -216,7 +216,8 @@ class CrossSpeciesScalingAnalyzer:
         ]
 
         # Simulated parameters following power law M^exp
-        results = {"species_references": species_data}
+        results: dict[str, Any] = {"species_references": species_data}
+        n_species = len(species_masses)
         for param, exp in self.expected.items():
             true_exp = exp + float(np.random.normal(0, 0.02))  # Add slight noise
             values: list[float] = [
@@ -228,19 +229,43 @@ class CrossSpeciesScalingAnalyzer:
             log_v = np.log10(np.array(values, dtype=float))
             slope, intercept, r_val, p_val, std_err = stats.linregress(log_m, log_v)
 
-            # Falsification check: exponent within ±2 SD
-            # (Assuming SD error from literature is approx 0.05)
-            deviation = abs(slope - exp)
-            within_2sd = deviation <= 0.10  # 2 * 0.05
+            # Bootstrap CI: resample species 1000 times with replacement
+            n_bootstrap = 1000
+            bootstrap_slopes: list[float] = []
+            for _ in range(n_bootstrap):
+                indices = np.random.choice(n_species, size=n_species, replace=True)
+                boot_log_m = log_m[indices]
+                boot_log_v = log_v[indices]
+
+                # Ensure x-values are not all identical to avoid linregress error
+                if np.unique(boot_log_m).size > 1:
+                    boot_slope, _, _, _, _ = stats.linregress(boot_log_m, boot_log_v)
+                    bootstrap_slopes.append(float(boot_slope))
+
+            # If bootstrap failed completely (extremely unlikely but for safety)
+            if not bootstrap_slopes:
+                bootstrap_slopes = [slope]
+
+            ci_lower = float(np.percentile(bootstrap_slopes, 2.5))
+            ci_upper = float(np.percentile(bootstrap_slopes, 97.5))
+            exponent_in_ci = ci_lower <= exp <= ci_upper
 
             results[str(param)] = {
-                "observed_exponent": float(slope),  # type: ignore[dict-item]
-                "expected_exponent": float(exp),  # type: ignore[dict-item]
-                "r_squared": float(r_val**2),  # type: ignore[dict-item]
-                "passed": bool(within_2sd),  # type: ignore[dict-item]
+                "observed_exponent": float(slope),
+                "expected_exponent": float(exp),
+                "r_squared": float(r_val**2),
+                "exponent_ci_95": (ci_lower, ci_upper),
+                "exponent_passes_ci": exponent_in_ci,
+                "passed": exponent_in_ci,
             }
 
         return results
+
+
+import numpy as np
+from utils.constants import APGI_GLOBAL_SEED
+
+np.random.seed(APGI_GLOBAL_SEED)
 
 
 def run_falsification() -> Dict[str, Any]:
@@ -257,6 +282,7 @@ def run_falsification() -> Dict[str, Any]:
 
     # 3. Clinical Convergence (Propofol Simulation)
     # Signs of falsification: if reduction < thresholds
+    np.random.seed(APGI_GLOBAL_SEED)
     n_subjects = 20
     baseline_ign = np.random.normal(0.8, 0.05, n_subjects)
     propofol_ign = baseline_ign * np.random.uniform(0.1, 0.25, n_subjects)

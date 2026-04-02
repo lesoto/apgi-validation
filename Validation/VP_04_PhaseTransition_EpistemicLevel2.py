@@ -69,6 +69,8 @@ if str(project_root) not in sys.path:
 
 from utils.config_manager import ConfigManager
 from utils.falsification_thresholds import (
+    F4_MI_MAX_BITS_S,
+    MI_MIN_BITS_S,
     VP4_CALIBRATED_ALPHA,
     VP4_CALIBRATED_TAU,
     VP4_CALIBRATED_THETA_0,
@@ -96,9 +98,9 @@ class APGIDynamicalSystem:
 
     def __init__(
         self,
-        tau: float = 0.2,  # Refined from 0.08 (too fast)
-        theta_0: float = 0.5,
-        alpha: float = 25.0,  # Refined from 35.0 (too sharp)
+        tau: float = VP4_CALIBRATED_TAU,
+        theta_0: float = VP4_CALIBRATED_THETA_0,
+        alpha: float = VP4_CALIBRATED_ALPHA,
         dt: float = 0.01,
     ):
         """
@@ -1054,9 +1056,9 @@ class FiniteSizeScalingAnalysis:
         from types import SimpleNamespace
 
         model_config = SimpleNamespace()
-        model_config.tau_S = 1.0
-        model_config.theta_0 = 0.5
-        model_config.alpha = 0.1
+        model_config.tau_S = VP4_CALIBRATED_TAU
+        model_config.theta_0 = VP4_CALIBRATED_THETA_0
+        model_config.alpha = VP4_CALIBRATED_ALPHA
 
         config = SimpleNamespace()
         config.simulation = SimpleNamespace()
@@ -1130,7 +1132,16 @@ class FiniteSizeScalingAnalysis:
         crossing_point = self._find_binder_crossing(
             results["binder_cumulants"], parameter_range[parameter_name]
         )
-        results["critical_point_estimate"] = crossing_point
+        if isinstance(crossing_point, dict):
+            results["critical_point_estimate"] = crossing_point["binder_crossing"]
+            results["binder_crossing_status"] = crossing_point
+        else:
+            results["critical_point_estimate"] = crossing_point
+            results["binder_crossing_status"] = {
+                "passed": crossing_point is not None,
+                "binder_crossing": crossing_point,
+                "reason": None if crossing_point is not None else "crossing_not_found",
+            }
 
         return results
 
@@ -1293,9 +1304,9 @@ class FiniteSizeScalingAnalysis:
         for param_value in param_values:
             # Create system with this parameter value
             model_config = SimpleNamespace()
-            model_config.tau_S = 1.0
-            model_config.theta_0 = 0.5
-            model_config.alpha = 0.1
+            model_config.tau_S = VP4_CALIBRATED_TAU
+            model_config.theta_0 = VP4_CALIBRATED_THETA_0
+            model_config.alpha = VP4_CALIBRATED_ALPHA
 
             config = SimpleNamespace()
             config.simulation = SimpleNamespace()
@@ -1729,12 +1740,16 @@ class FiniteSizeScalingAnalysis:
 
     def _find_binder_crossing(
         self, binder_data: Dict[int, List[float]], parameter_values: np.ndarray
-    ) -> Optional[float]:
+    ) -> Any:
         """Find crossing point of Binder cumulants for different system sizes"""
         sizes = sorted(binder_data.keys())
 
         if len(sizes) < 2:
-            return None
+            return {
+                "passed": False,
+                "binder_crossing": None,
+                "reason": "insufficient_system_sizes_for_finite_scaling",
+            }
 
         # Find crossing between largest and second-largest systems
         size1, size2 = sizes[-2], sizes[-1]
@@ -2372,9 +2387,9 @@ class ComprehensivePhaseTransitionAnalysis:
                 from types import SimpleNamespace
 
                 model_config = SimpleNamespace()
-                model_config.tau_S = 1.0
-                model_config.theta_0 = 0.5
-                model_config.alpha = 0.1
+                model_config.tau_S = VP4_CALIBRATED_TAU
+                model_config.theta_0 = VP4_CALIBRATED_THETA_0
+                model_config.alpha = VP4_CALIBRATED_ALPHA
 
                 config = SimpleNamespace()
                 config.simulation = SimpleNamespace()
@@ -2476,9 +2491,9 @@ class FalsificationChecker:
                 "comparison": "greater_than_or_equal",
             },
             "P6": {
-                "description": "Information transmission rate ~40 bits/s (biological ceiling < 100), MI must be >= 5 bits/s for meaningful integration",
-                "threshold": 40.0,
-                "mi_lower_bound": 5.0,  # Lower bound: meaningful integration requires >= 5 bits/s
+                "description": "Information transmission rate must remain within biologically plausible bounds while staying above a minimum meaningful integration rate",
+                "threshold": F4_MI_MAX_BITS_S,
+                "mi_lower_bound": MI_MIN_BITS_S,
                 "comparison": "less_than",
             },
             "P7": {
@@ -2628,16 +2643,16 @@ class FalsificationChecker:
             }
         )
 
-        # P6: Transmission Rate (with MI lower bound check)
-        trans_rate = results_df.get("transmission_rate", pd.Series([40.0])).mean()
-        # MI must be >= 5 bits/s to ensure meaningful information integration (not just below ceiling)
+        # P6: Transmission Rate (bounded above and below for meaningful MI)
+        trans_rate = results_df.get(
+            "transmission_rate", pd.Series([F4_MI_MAX_BITS_S])
+        ).mean()
         mi_values = results_df.get("mi_S_theta", pd.Series([10.0]))
         mi_mean = mi_values.mean()
         mi_lower_bound = self.criteria["P6"]["mi_lower_bound"]
+        mi_acceptable = mi_lower_bound <= mi_mean <= self.criteria["P6"]["threshold"]
 
-        p6_pass_rate = (
-            trans_rate <= self.criteria["P6"]["threshold"] and mi_mean >= mi_lower_bound
-        )
+        p6_pass_rate = trans_rate <= self.criteria["P6"]["threshold"] and mi_acceptable
         report["passed_criteria" if p6_pass_rate else "falsified_criteria"].append(
             {
                 "code": "P6",
@@ -2646,6 +2661,7 @@ class FalsificationChecker:
                 "value": float(trans_rate),
                 "mi_value": float(mi_mean),
                 "mi_lower_bound": mi_lower_bound,
+                "mi_acceptable": bool(mi_acceptable),
                 "threshold": self.criteria["P6"]["threshold"],
             }
         )
@@ -3158,10 +3174,8 @@ def plot_phase_transition_results(
 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     print(f"\nVisualization saved to: {save_path}")
-    if plt.isinteractive():
-        plt.show()
-    else:
-        plt.close()
+    # Always close figure to prevent blocking - never show in GUI mode
+    plt.close(fig)
 
 
 # =============================================================================
@@ -3707,21 +3721,40 @@ def run_validation(**kwargs) -> Dict[str, Any]:
         f"\n[VP-4] Running Phase Transition Analysis (n_trials={n_trials}, n_agents={n_agents})..."
     )
 
-    analyzer = ComprehensivePhaseTransitionAnalysis(
-        n_trials=n_trials, n_agents=n_agents
-    )
-    results = analyzer.run_analysis()
+    analyzer = ComprehensivePhaseTransitionAnalysis()
+    results_df = analyzer.run_monte_carlo(n_simulations=n_trials, duration=100.0)
 
-    # Check if overall validation passed
-    passed = results.get("falsification_report", {}).get(
-        "overall_validation_passed", False
-    )
+    # Run falsification check on the results
+    checker = FalsificationChecker()
+    falsification_report = checker.check_all_criteria(results_df)
+
+    # Check if overall validation passed (overall_falsified should be False)
+    passed = not falsification_report.get("overall_falsified", True)
 
     return {
-        "status": "success",
+        "status": "success" if passed else "failed",
         "passed": passed,
-        "results": results,
-        "metrics": results.get("mean_metrics", {}),
+        "results": {
+            "falsification_report": falsification_report,
+            "n_simulations": len(results_df),
+        },
+        "metrics": {
+            "susceptibility_ratio": (
+                float(results_df["susceptibility_susceptibility_ratio"].mean())
+                if "susceptibility_susceptibility_ratio" in results_df.columns
+                else 0.0
+            ),
+            "phi_ratio": (
+                float(results_df["phi_ratio"].mean())
+                if "phi_ratio" in results_df.columns
+                else 0.0
+            ),
+            "critical_slowing_ratio": (
+                float(results_df["critical_slowing_critical_slowing_ratio"].mean())
+                if "critical_slowing_critical_slowing_ratio" in results_df.columns
+                else 0.0
+            ),
+        },
     }
 
 

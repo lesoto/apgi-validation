@@ -9,9 +9,14 @@ import os
 import sys
 import threading
 import tkinter as tk
+import warnings
 from pathlib import Path
 from tkinter import messagebox, scrolledtext, ttk
 from typing import List, Callable, Any
+
+# Suppress lifelines and pandas FutureWarnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="lifelines")
+warnings.filterwarnings("ignore", category=FutureWarning, module="pandas")
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -398,7 +403,7 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 11: Bayesian Estimation": {
+            "Protocol 10: Bayesian Estimation": {
                 "file": "FP_10_BayesianEstimation_MCMC.py",
                 "class": "BayesianParameterRecovery",
                 "description": "Bayesian parameter recovery analysis",
@@ -426,7 +431,7 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
-            "Protocol 12: Liquid Network Dynamics": {
+            "Protocol 11: Liquid Network Dynamics": {
                 "file": "FP_11_LiquidNetworkDynamics_EchoState.py",
                 "class": "LiquidNetworkDynamicsAnalyzer",
                 "description": "Liquid network dynamics and echo state analysis",
@@ -451,6 +456,34 @@ class ProtocolRunnerGUI:
                         "max": 500,
                         "type": "int",
                         "description": "Number of liquid units",
+                    },
+                },
+            },
+            "Protocol 12: Cross Species Scaling": {
+                "file": "FP_12_CrossSpeciesScaling.py",
+                "class": "LiquidTimeConstantChecker",
+                "description": "Cross-species allometric scaling and clinical convergence analysis",
+                "parameters": {
+                    "spectral_radius": {
+                        "default": 0.98,
+                        "min": 0.1,
+                        "max": 2.0,
+                        "type": "float",
+                        "description": "ESN spectral radius",
+                    },
+                    "leak_rate": {
+                        "default": 0.01,
+                        "min": 0.001,
+                        "max": 1.0,
+                        "type": "float",
+                        "description": "LTC leak rate",
+                    },
+                    "n_nodes": {
+                        "default": 100,
+                        "min": 10,
+                        "max": 500,
+                        "type": "int",
+                        "description": "Number of ESN nodes",
                     },
                 },
             },

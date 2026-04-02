@@ -171,26 +171,19 @@ def _initialize_registry():
     PROTOCOL_REGISTRY.register_protocol(
         ProtocolInfo(
             canonical_id="BayesianEstimation-MCMC",
-            filename="Falsification/FP_10_Falsification_BayesianEstimation_MCMC.py",
+            filename="Falsification/FP_10_BayesianEstimation_MCMC.py",
             title="Bayesian Estimation with MCMC",
             description="MCMC-based Bayesian parameter estimation",
             priority_level="Advanced",
             category="Estimation",
-            aliases=["MCMC", "BayesianMCMC"],
+            aliases=["MCMC", "BayesianMCMC", "FP10"],
         )
     )
 
-    PROTOCOL_REGISTRY.register_protocol(
-        ProtocolInfo(
-            canonical_id="BayesianEstimation-Recovery",
-            filename="Falsification/FP_10_Falsification_BayesianEstimation_ParameterRecovery.py",
-            title="Bayesian Parameter Recovery",
-            description="Parameter recovery validation using Bayesian methods",
-            priority_level="Advanced",
-            category="Estimation",
-            aliases=["ParameterRecovery", "BayesianRecovery"],
-        )
-    )
+    # NOTE: FP_10_Falsification_BayesianEstimation_ParameterRecovery.py is DEPRECATED
+    # and NOT registered as a standalone protocol. It re-exports from the canonical
+    # FP_10_BayesianEstimation_MCMC.py file for backward compatibility only.
+    # All FP-10 calls should route through the canonical MCMC file.
 
     # Evolutionary Plausibility
     PROTOCOL_REGISTRY.register_protocol(

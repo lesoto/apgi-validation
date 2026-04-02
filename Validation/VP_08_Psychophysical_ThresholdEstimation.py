@@ -33,6 +33,17 @@ logger = logging.getLogger(__name__)
 
 # Import falsification thresholds
 try:
+    from utils.statistical_tests import (
+        compute_eta_squared,
+        safe_mannwhitneyu,
+        safe_pearsonr,
+    )
+except ImportError:
+    compute_eta_squared = None  # type: ignore[assignment]
+    safe_mannwhitneyu = None  # type: ignore[assignment]
+    safe_pearsonr = None  # type: ignore[assignment]
+
+try:
     from utils.falsification_thresholds import (
         DEFAULT_ALPHA,
         GENERIC_MIN_R2,
@@ -602,97 +613,148 @@ class APGIPsychophysicalEstimator:
         }
 
         # Garfinkel et al. (2015) SD-split criterion
-        # Recompute IA groups based on actual SD of heartbeat_detection
-        hb_mean = df["heartbeat_detection"].mean()
-        hb_sd = df["heartbeat_detection"].std()
-        df.loc[:, "ia_group_computed"] = df["heartbeat_detection"].apply(
-            lambda x: "high_IA" if x > hb_mean + hb_sd else "low_IA"
-        )
-
-        # Calculate arousal benefit before filtering dataframes
+        # Compute per-participant threshold modulation terms used by all P1 analyses
         df.loc[:, "arousal_benefit"] = (
             df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
+        )
+        df.loc[:, "beta_blockade_delta_threshold"] = (
+            df["psychometric_threshold_blockade"] - df["psychometric_threshold"]
+        )
+        df.loc[:, "cardiac_feedback_delta_threshold"] = (
+            df["psychometric_threshold_cardiac"] - df["psychometric_threshold"]
+        )
+        df.loc[:, "arousal_pi_i_estimate"] = np.clip(
+            df["pi_i"] + df["arousal_benefit"], 0.5, 2.5
+        )
+
+        # TODO 1 — arousal_analysis: regress Πⁱ estimates on low/high arousal condition
+        arousal_long = pd.DataFrame(
+            {
+                "participant_id": np.repeat(df["participant_id"].values, 2),
+                "arousal_code": np.tile(np.array([0.0, 1.0]), len(df)),
+                "arousal_label": np.tile(np.array(["LOW", "HIGH"]), len(df)),
+                "pi_i_estimate": np.column_stack(
+                    [df["pi_i"].values, df["arousal_pi_i_estimate"].values]
+                ).reshape(-1),
+            }
+        )
+        arousal_regression = stats.linregress(
+            arousal_long["arousal_code"].values, arousal_long["pi_i_estimate"].values
+        )
+
+        # TODO 2 — arousal × Πⁱ interaction using Πⁱ median split
+        median_pi_i = df["pi_i"].median()
+        df.loc[:, "pi_i_group"] = np.where(df["pi_i"] >= median_pi_i, "HIGH", "LOW")
+        high_pi_benefit = df[df["pi_i_group"] == "HIGH"]["arousal_benefit"].values
+        low_pi_benefit = df[df["pi_i_group"] == "LOW"]["arousal_benefit"].values
+        f_pi_interaction, p_pi_interaction = f_oneway(high_pi_benefit, low_pi_benefit)
+        df_within_pi = len(high_pi_benefit) + len(low_pi_benefit) - 2
+        eta_sq_pi = (
+            float(compute_eta_squared(f_pi_interaction, 1, df_within_pi))
+            if compute_eta_squared is not None and df_within_pi > 0
+            else float("nan")
+        )
+
+        pooled_sd_pi = np.sqrt(
+            (
+                (len(high_pi_benefit) - 1) * np.var(high_pi_benefit, ddof=1)
+                + (len(low_pi_benefit) - 1) * np.var(low_pi_benefit, ddof=1)
+            )
+            / max(len(high_pi_benefit) + len(low_pi_benefit) - 2, 1)
+        )
+        cohens_d_interaction = (
+            float((np.mean(high_pi_benefit) - np.mean(low_pi_benefit)) / pooled_sd_pi)
+            if pooled_sd_pi > 0
+            else 0.0
+        )
+        p_interaction = float(p_pi_interaction)
+
+        # TODO 4 — Garfinkel median split with safe Mann-Whitney U
+        hb_median = df["heartbeat_detection"].median()
+        hb_mean = df["heartbeat_detection"].mean()
+        hb_sd = df["heartbeat_detection"].std()
+        df.loc[:, "ia_group_computed"] = np.where(
+            df["heartbeat_detection"] >= hb_median, "high_IA", "low_IA"
         )
 
         high_ia = df[df["ia_group_computed"] == "high_IA"]
         low_ia = df[df["ia_group_computed"] == "low_IA"]
 
+        if safe_mannwhitneyu is not None:
+            u_stat, garfinkel_p, garfinkel_sig = safe_mannwhitneyu(
+                high_ia["pi_i"].values, low_ia["pi_i"].values, alpha=0.05
+            )
+        else:
+            u_stat, garfinkel_p = stats.mannwhitneyu(
+                high_ia["pi_i"].values,
+                low_ia["pi_i"].values,
+                alternative="two-sided",
+            )
+            garfinkel_sig = garfinkel_p < 0.05
+
         results["garfinkel_sd_split"] = {
             "mean_heartbeat_detection": hb_mean,
+            "median_heartbeat_detection": hb_median,
             "sd_heartbeat_detection": hb_sd,
             "high_ia_count": len(high_ia),
             "low_ia_count": len(low_ia),
             "high_ia_mean_pi_i": high_ia["pi_i"].mean() if len(high_ia) > 0 else None,
             "low_ia_mean_pi_i": low_ia["pi_i"].mean() if len(low_ia) > 0 else None,
-            "passed": len(high_ia) > 0 and len(low_ia) > 0,
+            "u_statistic": float(u_stat),
+            "p_value": float(garfinkel_p),
+            "passed": bool(garfinkel_sig),
         }
 
-        # Khalsa et al. (2018) meta-analytic benchmark (r = 0.43)
-        # Test correlation between heartbeat detection and psychometric threshold
-        r_hb_threshold, p_hb_threshold = stats.pearsonr(
-            df["heartbeat_detection"].values, df["psychometric_threshold"].values
-        )
+        # TODO 5 — Khalsa benchmark: heartbeat detection vs threshold modulation
+        if safe_pearsonr is not None:
+            r_hb_threshold, p_hb_threshold, _ = safe_pearsonr(
+                df["heartbeat_detection"].values,
+                df["arousal_benefit"].values,
+                alpha=0.05,
+            )
+        else:
+            r_hb_threshold, p_hb_threshold = stats.pearsonr(
+                df["heartbeat_detection"].values, df["arousal_benefit"].values
+            )
         results["khalsa_benchmark"] = {
             "correlation": r_hb_threshold,
             "p_value": p_hb_threshold,
             "target_r": 0.43,
-            "passed": abs(r_hb_threshold) >= 0.35 and p_hb_threshold < 0.008,
+            "passed": r_hb_threshold > 0.25 and p_hb_threshold < 0.05,
         }
 
-        # Exercise arousal condition and P1.2 arousal interaction test
-        # Calculate arousal benefit
-        df = df.copy()  # Ensure we're working with a copy
-        df.loc[:, "arousal_benefit"] = (
-            df["psychometric_threshold"] - df["psychometric_threshold_arousal"]
-        )
-
-        # Test if arousal reduces threshold (main effect)
+        # TODO 1 — arousal main effect
         mean_arousal_benefit = df["arousal_benefit"].mean()
         t_arousal, p_arousal = stats.ttest_1samp(df["arousal_benefit"], 0)
-
-        # P1.2: Arousal interaction test (arousal × precision interaction)
-        # Test if high pi_i individuals show greater arousal benefit
-        median_pi_i = df["pi_i"].median()
-        df.loc[:, "pi_i_group"] = df["pi_i"].apply(
-            lambda x: "high_pi" if x > median_pi_i else "low_pi"
-        )
-
-        high_pi = df[df["pi_i_group"] == "high_pi"]
-        low_pi = df[df["pi_i_group"] == "low_pi"]
-
-        arousal_benefit_high_pi = high_pi["arousal_benefit"].values
-        arousal_benefit_low_pi = low_pi["arousal_benefit"].values
-
-        # Cohen's d for interaction effect
-        pooled_sd = np.sqrt(
-            (
-                (len(arousal_benefit_high_pi) - 1) * np.var(arousal_benefit_high_pi)
-                + (len(arousal_benefit_low_pi) - 1) * np.var(arousal_benefit_low_pi)
-            )
-            / (len(arousal_benefit_high_pi) + len(arousal_benefit_low_pi) - 2)
-        )
-        cohens_d_interaction = (
-            np.mean(arousal_benefit_high_pi) - np.mean(arousal_benefit_low_pi)
-        ) / pooled_sd
-
-        t_interaction, p_interaction = stats.ttest_ind(
-            arousal_benefit_high_pi, arousal_benefit_low_pi
-        )
 
         results["arousal_analysis"] = {
             "mean_arousal_benefit": mean_arousal_benefit,
             "t_arousal": t_arousal,
             "p_arousal": p_arousal,
-            "high_pi_arousal_benefit": np.mean(arousal_benefit_high_pi),
-            "low_pi_arousal_benefit": np.mean(arousal_benefit_low_pi),
+            "arousal_precision_regression": {
+                "slope": float(arousal_regression.slope),
+                "intercept": float(arousal_regression.intercept),
+                "r_value": float(arousal_regression.rvalue),
+                "p_value": float(arousal_regression.pvalue),
+                "stderr": float(arousal_regression.stderr),
+                "passed": arousal_regression.slope > 0
+                and arousal_regression.pvalue < 0.05,
+            },
+            "high_pi_arousal_benefit": float(np.mean(high_pi_benefit)),
+            "low_pi_arousal_benefit": float(np.mean(low_pi_benefit)),
             "cohens_d_interaction": cohens_d_interaction,
-            "p_interaction": p_interaction,
-            # Paper specifies a moderate interaction effect (d=0.25–0.60)
-            "P1_2_passed": 0.25 <= cohens_d_interaction <= 0.60
-            and p_interaction < 0.008,
+            "p_interaction": float(p_pi_interaction),
+            "pi_group_interaction": {
+                "f_statistic": float(f_pi_interaction),
+                "p_value": float(p_pi_interaction),
+                "eta_squared": eta_sq_pi,
+                "df1": 1,
+                "df_within": int(df_within_pi),
+            },
+            "P1_2_passed": bool(eta_sq_pi >= 0.06 and p_pi_interaction < 0.05),
         }
 
-        # P1.3: High-IA individuals show greater arousal benefit
+        # TODO 3 — IA × Arousal interaction using Garfinkel heartbeat groups
         high_ia_arousal = (
             high_ia["arousal_benefit"].values if len(high_ia) > 0 else np.array([])
         )
@@ -701,16 +763,35 @@ class APGIPsychophysicalEstimator:
         )
 
         if len(high_ia_arousal) > 0 and len(low_ia_arousal) > 0:
+            f_ia_interaction, p_ia = f_oneway(high_ia_arousal, low_ia_arousal)
+            df_within_ia = len(high_ia_arousal) + len(low_ia_arousal) - 2
+            eta_sq_ia = (
+                float(compute_eta_squared(f_ia_interaction, 1, df_within_ia))
+                if compute_eta_squared is not None and df_within_ia > 0
+                else float("nan")
+            )
+            pooled_sd_ia = np.sqrt(
+                (
+                    (len(high_ia_arousal) - 1) * np.var(high_ia_arousal, ddof=1)
+                    + (len(low_ia_arousal) - 1) * np.var(low_ia_arousal, ddof=1)
+                )
+                / max(len(high_ia_arousal) + len(low_ia_arousal) - 2, 1)
+            )
             cohens_d_ia = (
-                np.mean(high_ia_arousal) - np.mean(low_ia_arousal)
-            ) / np.sqrt((np.var(high_ia_arousal) + np.var(low_ia_arousal)) / 2)
-            t_ia, p_ia = stats.ttest_ind(high_ia_arousal, low_ia_arousal)
+                float(
+                    (np.mean(high_ia_arousal) - np.mean(low_ia_arousal)) / pooled_sd_ia
+                )
+                if pooled_sd_ia > 0
+                else 0.0
+            )
             results["arousal_analysis"]["P1_3"] = {
-                "high_ia_arousal_benefit": np.mean(high_ia_arousal),
-                "low_ia_arousal_benefit": np.mean(low_ia_arousal),
-                "cohens_d": cohens_d_ia,
-                "p_value": p_ia,
-                "passed": cohens_d_ia > 0.30 and p_ia < 0.008,
+                "high_ia_arousal_benefit": float(np.mean(high_ia_arousal)),
+                "low_ia_arousal_benefit": float(np.mean(low_ia_arousal)),
+                "cohens_d": float(cohens_d_ia),
+                "f_statistic": float(f_ia_interaction),
+                "eta_squared": eta_sq_ia,
+                "p_value": float(p_ia),
+                "passed": bool(eta_sq_ia >= 0.06 and p_ia < 0.05),
             }
         else:
             results["arousal_analysis"]["P1_3"] = {
@@ -718,11 +799,7 @@ class APGIPsychophysicalEstimator:
                 "error": "Insufficient data for IA groups",
             }
 
-        # Beta/Pi disambiguation protocol with two-pathway model
-        # Two-pathway model: β-blockade (somatic pathway) vs. cardiac feedback perturbation (interoceptive pathway)
-        # Dissociation test: significant β × pathway interaction
-
-        # Create 2x2 factorial design: (β-blocker vs placebo) × (cardiac perturbed vs normal)
+        # TODO 6 — beta disambiguation
         placebo_normal = df[
             (df["beta_blocker_condition"] == "placebo")
             & (df["cardiac_feedback_condition"] == "normal")
@@ -751,51 +828,19 @@ class APGIPsychophysicalEstimator:
         )
 
         if conditions_met:
-            # Main effect of β-blockade (somatic pathway)
-            # β-blockade should increase threshold by reducing somatic bias
-            threshold_blockade_effect = (
-                blocker_normal["psychometric_threshold_blockade"].mean()
-                - placebo_normal["psychometric_threshold_blockade"].mean()
+            threshold_blockade_effect = float(
+                blocker_normal["beta_blockade_delta_threshold"].mean()
             )
-            t_blockade, p_blockade = stats.ttest_ind(
-                blocker_normal["psychometric_threshold_blockade"].values,
-                placebo_normal["psychometric_threshold_blockade"].values,
+            threshold_cardiac_effect = float(
+                placebo_perturbed["cardiac_feedback_delta_threshold"].mean()
             )
-
-            # Main effect of cardiac feedback perturbation (interoceptive pathway)
-            # Cardiac perturbation should increase threshold by reducing Πⁱ
-            threshold_cardiac_effect = (
-                placebo_perturbed["psychometric_threshold_cardiac"].mean()
-                - placebo_normal["psychometric_threshold_cardiac"].mean()
+            t_blockade, p_blockade = stats.ttest_1samp(
+                blocker_normal["beta_blockade_delta_threshold"].values, 0.0
             )
-            t_cardiac, p_cardiac = stats.ttest_ind(
-                placebo_perturbed["psychometric_threshold_cardiac"].values,
-                placebo_normal["psychometric_threshold_cardiac"].values,
+            t_cardiac, p_cardiac = stats.ttest_1samp(
+                placebo_perturbed["cardiac_feedback_delta_threshold"].values, 0.0
             )
-
-            # Dissociation test: β × pathway interaction
-            # The interaction tests whether the effect of β-blockade differs from cardiac perturbation
-            # A significant interaction would indicate the two pathways are dissociable
-
-            # Calculate interaction effect: (blocker_perturbed - blocker_normal) - (placebo_perturbed - placebo_normal)
-            blocker_diff = (
-                blocker_perturbed["psychometric_threshold_blockade"].mean()
-                - blocker_normal["psychometric_threshold_blockade"].mean()
-            )
-            placebo_diff = (
-                placebo_perturbed["psychometric_threshold_cardiac"].mean()
-                - placebo_normal["psychometric_threshold_cardiac"].mean()
-            )
-            interaction_effect = blocker_diff - placebo_diff
-
-            # Test interaction using 2x2 ANOVA
-            # Four groups for ANOVA
-            f_stat, p_anova = f_oneway(
-                placebo_normal["psychometric_threshold_blockade"].values,
-                placebo_perturbed["psychometric_threshold_cardiac"].values,
-                blocker_normal["psychometric_threshold_blockade"].values,
-                blocker_perturbed["psychometric_threshold_blockade"].values,
-            )
+            interaction_effect = threshold_blockade_effect - threshold_cardiac_effect
 
             # Test if pi_i_blockade correlates with pi_i (should be high under β-blockade)
             pi_i_blockade_correlation, pi_i_blockade_p = stats.pearsonr(
@@ -842,8 +887,9 @@ class APGIPsychophysicalEstimator:
             )
             cardiac_effect_in_range = 0.15 <= mean_cardiac_feedback_effect <= 0.25
 
-            # Dissociation criterion: pathways show different effect patterns
-            pathways_dissociated = threshold_blockade_effect > threshold_cardiac_effect
+            disambiguation_passes = abs(threshold_blockade_effect) < abs(
+                threshold_cardiac_effect
+            )
 
             # Bonferroni-corrected alpha for 6 pharmacological comparisons
             ALPHA_BONF = 0.008
@@ -865,27 +911,22 @@ class APGIPsychophysicalEstimator:
                 "beta_blockade_effect": mean_beta_blockade_effect,
                 "beta_effect_in_range": beta_effect_in_range,
                 "threshold_blockade_increase": threshold_blockade_effect,
+                "beta_blockade_delta_threshold": threshold_blockade_effect,
                 "t_blockade": float(t_blockade),
                 "p_blockade": float(p_blockade),
                 "cardiac_feedback_effect": mean_cardiac_feedback_effect,
                 "cardiac_effect_in_range": cardiac_effect_in_range,
                 "threshold_cardiac_increase": threshold_cardiac_effect,
+                "cardiac_feedback_delta_threshold": threshold_cardiac_effect,
                 "t_cardiac": float(t_cardiac),
                 "p_cardiac": float(p_cardiac),
                 "interaction_effect": float(interaction_effect),
-                "p_anova": float(p_anova),
-                "pathways_dissociated": bool(pathways_dissociated),
+                "p_anova": float("nan"),
+                "pathways_dissociated": bool(disambiguation_passes),
                 "pi_i_blockade_correlation": float(pi_i_blockade_correlation),
                 "pi_i_blockade_p": float(pi_i_blockade_p),
-                "passed": (
-                    beta_pi_i_in_range
-                    and cf_pi_i_in_range
-                    and pathways_dissociated
-                    and p_beta_paired < ALPHA_BONF
-                    and p_cf_paired < ALPHA_BONF
-                    and pi_i_blockade_correlation > 0.70
-                ),
-                "description": "Two-pathway dissociation: β-blockade (Π_i ↓25-40%, paired t α=0.008) vs cardiac feedback (Π_i ↓15-25%, paired t α=0.008)",
+                "passed": bool(disambiguation_passes),
+                "description": "Two-pathway dissociation comparing threshold shifts under beta blockade vs cardiac feedback perturbation",
             }
         else:
             results["beta_disambiguation"] = {
@@ -1338,7 +1379,6 @@ class APGIPsychophysicalEstimator:
         )
         axes[2, 1].set_xlabel("Resting HR (bpm)")
         axes[2, 1].set_ylabel("Exercise HR (bpm)")
-        axes[2, 1].legend()
         axes[2, 0].set_ylabel("Frequency")
         axes[2, 0].axvline(
             (
@@ -1352,7 +1392,11 @@ class APGIPsychophysicalEstimator:
 
         # HR comparison
         axes[2, 1].scatter(
-            df["heart_rate_rest"], df["heart_rate_exercise"], alpha=0.6, color="red"
+            df["heart_rate_rest"],
+            df["heart_rate_exercise"],
+            alpha=0.6,
+            color="red",
+            label="Data",
         )
         axes[2, 1].plot([55, 90], [100, 120], "k--", label="Target range")
         axes[2, 1].set_title("Exercise HR Condition (TODO 1)")

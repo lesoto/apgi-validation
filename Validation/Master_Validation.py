@@ -70,23 +70,36 @@ class APGIMasterValidator:
             "secondary": [],
             "tertiary": [],
         }
-        self.timeout_seconds = 120
+        self.timeout_seconds = 3600  # Increased to prevent GUI hanging or premature aborts of complex protocols like VP-05
         # Protocol dependencies: protocols that must run before others
         self.protocol_dependencies = {
-            "Protocol-1": [],
-            "Protocol-2": [],
-            "Protocol-3": [],
-            "Protocol-4": [],
-            "Protocol-6": [],
-            "Protocol-7": [],
-            "Protocol-8": [],
-            "Protocol-9": [],
-            "Protocol-10": [],
-            "Protocol-11": [],
-            "Protocol-12": [],
-            "Protocol-13": [],
-            "Protocol-14": [],
-            "Protocol-15": [],
+            "Protocol-1": {"dependencies": []},
+            "Protocol-2": {"dependencies": []},
+            "Protocol-3": {"dependencies": []},
+            "Protocol-4": {"dependencies": []},
+            "Protocol-5": {
+                "dependencies": [],
+                "must_run_before": ["FP_01", "FP_02", "FP_03", "FP_05", "FP_06"],
+            },  # VP-05: Evolutionary Emergence
+            "Protocol-6": {"dependencies": []},
+            "Protocol-7": {"dependencies": []},
+            "Protocol-8": {"dependencies": []},
+            "Protocol-9": {"dependencies": []},
+            "Protocol-10": {"dependencies": []},
+            "Protocol-11": {"dependencies": []},
+            "Protocol-12": {"dependencies": []},
+            "Protocol-13": {"dependencies": []},
+            "Protocol-14": {"dependencies": []},
+            "Protocol-15": {"dependencies": []},
+        }
+
+        # Falsification protocol dependencies: VP-05 must complete before certain falsification protocols
+        self.falsification_dependencies = {
+            "FP-01": ["Protocol-5"],  # ActiveInference depends on VP-05
+            "FP-02": ["Protocol-5"],  # AgentComparison depends on VP-05
+            "FP-03": ["Protocol-5"],  # FrameworkLevel depends on VP-05
+            "FP-05": ["Protocol-5"],  # EvolutionaryPlausibility depends on VP-05
+            "FP-06": ["Protocol-5"],  # LiquidNetwork_EnergyBenchmark depends on VP-05
         }
         # Pending protocols: awaiting empirical data (excluded from scoring denominator)
         self.PENDING_PROTOCOLS = []  # All current protocols implemented
@@ -422,22 +435,56 @@ class APGIMasterValidator:
         # Get all available protocols
         all_protocols = list(self.available_protocols.keys())
 
-        # Run in dependency order (topological sort)
+        # Resolve ordering before executing the protocol queue
+        in_degree = {p: 0 for p in all_protocols}
+        graph = {p: [] for p in all_protocols}
+
+        for p in all_protocols:
+            deps_entry = self.protocol_dependencies.get(p, {})
+            deps = (
+                deps_entry.get("dependencies", [])
+                if isinstance(deps_entry, dict)
+                else deps_entry
+            )
+
+            # backward deps
+            for d in deps:
+                if d in all_protocols:
+                    graph[d].append(p)
+                    in_degree[p] += 1
+
+            # forward deps (must_run_before)
+            if isinstance(deps_entry, dict):
+                forward_deps = deps_entry.get("must_run_before", [])
+                for fd in forward_deps:
+                    if fd in all_protocols:
+                        graph[p].append(fd)
+                        in_degree[fd] += 1
+
+        # Topological Sort
+        queue = []
+        zero_in_degree = [p for p in all_protocols if in_degree[p] == 0]
+        while zero_in_degree:
+            curr = zero_in_degree.pop(0)
+            queue.append(curr)
+            for neighbor in graph.get(curr, []):
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0:
+                    zero_in_degree.append(neighbor)
+
+        for p in all_protocols:
+            if p not in queue:
+                queue.append(p)
+
+        all_protocols = queue
+
+        # Run in dependency order
         executed = set()
         results = {}
 
         for protocol_name in all_protocols:
             if protocol_name in executed:
                 continue
-
-            # Check dependencies
-            dependencies = self.protocol_dependencies.get(protocol_name, [])
-            for dep in dependencies:
-                if dep not in executed:
-                    # Run dependency first
-                    dep_results = self.run_validation([dep], **kwargs)
-                    results.update(dep_results)
-                    executed.add(dep)
 
             # Run current protocol
             protocol_results = self.run_validation([protocol_name], **kwargs)
@@ -477,6 +524,9 @@ class APGIMasterValidator:
             "tier_weights": {"primary": 1.0, "secondary": 1.0, "tertiary": 1.0},
             "available_protocols": self.available_protocols,
             "protocol_dependencies": self.protocol_dependencies,
+            "falsification_dependencies": getattr(
+                self, "falsification_dependencies", {}
+            ),
         }
 
         # Save reproducibility data

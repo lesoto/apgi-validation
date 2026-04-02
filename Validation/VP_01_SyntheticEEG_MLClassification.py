@@ -494,17 +494,40 @@ class APGISyntheticSignalGenerator:
 
         return eeg
 
-    def _pink_noise(self, n_samples: int, amplitude: float) -> np.ndarray:
-        """Generate 1/f pink noise"""
-        pink = np.zeros(n_samples)
-        for octave in range(5):
-            step = 2**octave
-            n_octave_samples = n_samples // step + 1
-            pink += np.repeat(np.random.randn(n_octave_samples), step)[:n_samples] / (
-                octave + 1
-            )
+    def _pink_noise(
+        self, n_samples: int, amplitude: float, sfreq: float = 1000.0
+    ) -> np.ndarray:
+        """
+        Generate 1/f pink noise using FFT-based power spectrum method.
 
-        # Normalize
+        Pink noise has a power spectral density proportional to 1/f,
+        which matches the characteristic 1/f spectrum of real EEG signals.
+
+        Args:
+            n_samples: Number of samples to generate
+            amplitude: Scaling amplitude for the output noise
+            sfreq: Sampling frequency in Hz (default 1000 Hz)
+
+        Returns:
+            Pink noise array with 1/f spectral characteristics
+        """
+        # Generate frequency bins for real FFT
+        freqs = np.fft.rfftfreq(n_samples, d=1.0 / sfreq)
+
+        # Create 1/f amplitude spectrum (pink noise: power ~ 1/f, so amplitude ~ 1/sqrt(f))
+        # Avoid division by zero at DC (f=0) by setting it to a small value
+        pink_spectrum = 1.0 / np.where(freqs == 0, 1.0, np.sqrt(freqs))
+
+        # Generate random phase
+        random_phase = np.random.randn(len(pink_spectrum))
+
+        # Apply pink spectrum to white noise
+        pink_fft = pink_spectrum * random_phase
+
+        # Inverse FFT to get time domain signal
+        pink = np.fft.irfft(pink_fft, n=n_samples)
+
+        # Normalize and scale to desired amplitude
         if np.std(pink) > 1e-10:
             pink = amplitude * pink / np.std(pink)
 
@@ -884,6 +907,7 @@ class APGIDatasetGenerator:
 
                 torch.manual_seed(seed)
             except ImportError:
+                logger.warning("torch not available, seed not set for torch")
                 pass
         print(
             f"Generating dataset: {n_trials_per_model} trials × 4 models = "
@@ -2108,7 +2132,11 @@ def evaluate_model_identifier(
     # Classification report
     model_names = ["APGI", "StandardPP", "GWTOnly", "Continuous"]
     report = classification_report(
-        all_labels, all_predictions, target_names=model_names, output_dict=True
+        all_labels,
+        all_predictions,
+        target_names=model_names,
+        output_dict=True,
+        zero_division=0,
     )
 
     return {
@@ -4088,17 +4116,28 @@ def run_validation(progress_callback=None, **kwargs):
 
         # Extract falsification report to determine actual pass/fail status
         falsification = results_summary.get("falsification", {})
-        criteria = falsification.get("criteria", {})
+        passed_criteria = falsification.get("passed_criteria", [])
+        falsified_criteria = falsification.get("falsified_criteria", [])
 
-        # Check if key criteria passed
-        v1_1_passed = criteria.get("V1.1", {}).get("passed", False)
-        v1_2_passed = criteria.get("V1.2", {}).get("passed", False)
-        v1_3_passed = criteria.get("V1.3", {}).get("passed", False)
-        v1_4_passed = criteria.get("V1.4", {}).get("passed", False)
+        # Build criteria lookup from passed/falsified lists
+        criteria_status = {}
+        for criterion in passed_criteria:
+            code = criterion.get("code", "")
+            criteria_status[code] = True
+        for criterion in falsified_criteria:
+            code = criterion.get("code", "")
+            criteria_status[code] = False
+
+        # Check if key criteria passed (using correct key names from generate_report)
+        # V1.1 is stored as V1.1_ML in the criteria registry
+        v1_1_passed = criteria_status.get("V1.1_ML", False)
+        v1_2_passed = criteria_status.get("V1.2", False)
+        v1_3_passed = criteria_status.get("V1.3", False)
+        v1_4_passed = criteria_status.get("V1.4", False)
 
         # Overall pass requires at least 3 of 4 criteria to pass
         passed_count = sum([v1_1_passed, v1_2_passed, v1_3_passed, v1_4_passed])
-        overall_passed = passed_count >= 2  # At least 2 of 4 criteria must pass
+        overall_passed = passed_count >= 3  # At least 3 of 4 criteria must pass
 
         if overall_passed:
             return {
@@ -4196,6 +4235,8 @@ def check_falsification(
     multimodal_advantage: float,
     odds_ratio: float,
     interaction_p_value: float,
+    degraded_accuracy_distribution: Optional[Union[list, np.ndarray]] = None,
+    baseline_accuracy_distribution: Optional[Union[list, np.ndarray]] = None,
 ) -> Dict[str, Any]:
     """
     Implement all statistical tests for Validation_Protocol_1.
@@ -4211,6 +4252,8 @@ def check_falsification(
         multimodal_advantage: Percentage increase in ignition probability for multimodal trials
         odds_ratio: Odds ratio for multimodal advantage
         interaction_p_value: P-value for interaction term in logistic regression
+        degraded_accuracy_distribution: Optional distribution of degraded accuracies for t-test
+        baseline_accuracy_distribution: Optional distribution of baseline accuracies for t-test
 
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
@@ -4251,6 +4294,27 @@ def check_falsification(
         },
     )
     p_degradation = 0.0  # Placeholder
+    # Perform actual statistical test for V1.2 (accuracy degradation)
+    try:
+        from utils.statistical_tests import safe_ttest_ind
+    except ImportError:
+        safe_ttest_ind = None  # type: ignore[misc,assignment]
+
+    if (
+        safe_ttest_ind is not None
+        and isinstance(degraded_accuracy_distribution, (list, np.ndarray))
+        and isinstance(baseline_accuracy_distribution, (list, np.ndarray))
+        and len(degraded_accuracy_distribution) >= 30
+        and len(baseline_accuracy_distribution) >= 30
+    ):
+        _, p_degradation, _ = safe_ttest_ind(
+            degraded_accuracy_distribution, baseline_accuracy_distribution, alpha=0.05
+        )
+    else:
+        logger.warning(
+            "V1.2: Insufficient data for statistical test, using placeholder p=1.0"
+        )
+        p_degradation = 1.0  # Non-significant when data insufficient
     results["criteria"]["V1.2"] = {
         "passed": v1_2_pass,
         "accuracy_degradation_pct": accuracy_degradation,

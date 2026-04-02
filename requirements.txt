@@ -1,87 +1,58 @@
-# APGI Theory Framework Dependencies
-
-# Core numerical computing - use versions with Python 3.14 pre-built wheels
 numpy>=2.3.0,<2.5.0
 scipy>=1.15.0,<1.16.0
-
-# Data processing
 pandas>=2.2.0,<3.0.0
-
-# Machine learning - pin to minimum compatible with recent security fixes
 scikit-learn>=1.5.0,<2.0.0
 torch>=2.1.0,<2.2.0
 torchvision>=0.15.0,<0.16.0
-
-# Explainability libraries
 shap>=0.44.0,<0.45.0
 captum>=0.7.0,<0.8.0
-
-# EEG processing - use recent stable versions
 mne>=1.6.0,<1.7.0
-
-# Spectral parameterization (for 1/f spectral slope analysis)
 specparam>=2.0.0,<2.1.0
-
-# Progress bars
 tqdm>=4.62.0,<4.65.0
-
-# CLI and UI
 click>=8.0.0,<8.1.0
 rich>=13.0.0,<14.0.0
-
-# Web framework
 dash>=2.0.0,<2.1.0
-
-# Configuration
 pyyaml>=6.0,<6.1.0
-
-# Logging
 loguru>=0.6.0,<0.7.0
-
-# Data validation
 jsonschema>=4.0.0,<4.1.0
 pydantic>=2.0.0,<2.1.0
-
-# Database
 sqlalchemy>=2.0.0,<3.0.0
-
-# Database migrations
 alembic>=1.13.0,<2.0.0
-
-# System utilities
 python-dateutil>=2.8.0,<2.9.0
 pytz>=2021.3
 psutil>=5.8.0,<5.9.0
-
-# Data serialization
 msgpack>=1.0.0,<1.1.0
-
-# Scientific reporting
 reportlab>=4.0.0,<4.1.0
-
-# Profiling
 numba>=0.60.0,<1.0.0
-
-# Nonlinear time series analysis (for DFA)
 nolds>=0.5.2,<0.6.0
-
-# Cryptography and security
 cryptography>=42.0.0,<44.0.0
 requests>=2.31.0,<3.0.0
-
-# Environment variables
 python-dotenv>=1.0.0,<2.0.0
-
-# Bayesian modeling
+pytest>=8.3.3,<9.0.0
+pytest-cov>=2.12.0,<5.0.0
+pytest-mock>=3.6.0,<4.0.0
+pytest-xdist>=2.5.0,<3.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+hypothesis>=6.0.0,<7.0.0
+black>=22.0.0,<24.0.0
+isort>=5.13.2,<6.0.0
+flake8>=4.0.0,<7.0.0
+mypy>=1.0.0,<2.0.0
+sphinx>=5.0.0,<7.0.0
+sphinx-rtd-theme>=1.2.0,<2.0.0
+bandit>=1.7.0,<2.0.0
+safety>=2.0.0,<3.0.0
+pip-audit>=2.0.0,<3.0.0
+memory-profiler>=0.60.0,<1.0.0
+line-profiler>=4.0.0,<5.0.0
+pre-commit>=3.0.0,<4.0.0
+tox>=4.0.0,<5.0.0
+coverage>=6.0.0,<7.0.0
 pymc>=5.0.0,<6.0.0
 arviz>=0.16.0,<1.0.0
-
-# Survival analysis (for F2.5 log-rank test)
+mne>=1.6.0,<1.7.0
 lifelines>=0.27.0,<0.29.0
+captum>=0.7.0,<0.8.0
+SALib>=1.4.0,<2.0.0
+scikit-learn>=1.5.0,<2.0.0
 sympy>=1.12,<2.0.0
-
-# Sensitivity analysis (for parameter sensitivity & identifiability)
-salib>=1.4.0,<2.0.0
-
-# Bayesian statistics (Bayes factor t-tests)
-pingouin>=0.5.0,<0.6.0

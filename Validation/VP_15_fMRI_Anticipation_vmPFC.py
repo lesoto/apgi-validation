@@ -63,6 +63,8 @@ logger = logging.getLogger(__name__)
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
+ANTICIPATORY_WINDOW_MS = (-500, 0)
+
 
 def double_gamma_hrf(t: np.ndarray) -> np.ndarray:
     """Canonical SPM/FSL-style double-gamma hemodynamic response function."""
@@ -301,16 +303,21 @@ def validate_vmPFC_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
             onset_ms = -(4.0 - (cue_pts + peak_idx) * dt) * 1000
             ant_onsets.append(onset_ms)
     mean_onset = np.mean(ant_onsets) if ant_onsets else -350
-    v15_1_pass = mean_onset > -500 and mean_onset < 0
+    v15_1_pass = ANTICIPATORY_WINDOW_MS[0] <= mean_onset <= ANTICIPATORY_WINDOW_MS[1]
 
     vmPFC_threat = np.concatenate([t["vmPFC"] for t in threat_trials])
     post_threat = np.concatenate([t["post"] for t in threat_trials])
-    r_conn, p_conn = (
-        stats.pearsonr(vmPFC_threat, post_threat)
-        if len(vmPFC_threat) > 1
-        else (0.55, 0.001)
-    )
-    v15_2_pass = r_conn > 0.40 and p_conn < 0.05
+    v15_2_data = None
+    if len(vmPFC_threat) > 1:
+        r_conn, p_conn = stats.pearsonr(vmPFC_threat, post_threat)
+        v15_2_pass = r_conn > 0.40 and p_conn < 0.05
+    else:
+        v15_2_data = {
+            "r": None,
+            "p": None,
+            "passed": False,
+            "reason": "Pearson correlation failed",
+        }
 
     exp_pts = int(1.0 / dt)
     ant_ant = sum(np.sum(t["ant"][cue_pts:stim_pts]) for t in threat_trials)
@@ -329,12 +336,16 @@ def validate_vmPFC_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
             "mean_onset_ms": float(mean_onset),
             "threshold": "< 500ms pre-stimulus",
         },
-        "V15.2_vmPFC_Insula_Connectivity": {
-            "passed": v15_2_pass,
-            "pearson_r": float(r_conn),
-            "p_value": float(p_conn),
-            "threshold": "> 0.40",
-        },
+        "V15.2_vmPFC_Insula_Connectivity": (
+            v15_2_data
+            if v15_2_data
+            else {
+                "passed": v15_2_pass,
+                "pearson_r": float(r_conn),
+                "p_value": float(p_conn),
+                "threshold": "> 0.40",
+            }
+        ),
         "V15.3_AntPost_Insula_Dissociation": {
             "passed": v15_3_pass,
             "threshold": "Ant high in anticipation, Post high in experience",
@@ -438,16 +449,38 @@ def run_validation(
         "protocol_id": "VP-15",
         "protocol_name": "fMRI vmPFC Anticipation Paradigm",
         "criteria": {
-            k: {"passed": None, "reason": "Awaiting empirical fMRI data"}
-            for k in [
-                "V15.1_Anticipatory_Insula_Onset",
-                "V15.2_vmPFC_Insula_Connectivity",
-                "V15.3_AntPost_Insula_Dissociation",
-            ]
+            "V15.1_Anticipatory_Insula_Onset": {
+                "passed": None,
+                "threshold": "< 500ms pre-stimulus",
+                "reason": "Awaiting empirical fMRI data",
+            },
+            "V15.2_vmPFC_Insula_Connectivity": {
+                "passed": None,
+                "threshold": "> 0.40",
+                "reason": "Awaiting empirical fMRI data",
+            },
+            "V15.3_AntPost_Insula_Dissociation": {
+                "passed": None,
+                "threshold": "Ant high in anticipation, Post high in experience",
+                "reason": "Awaiting empirical fMRI data",
+            },
         },
         "named_predictions": {
-            f"V15.{i}": {"passed": None, "reason": "Awaiting empirical fMRI data"}
-            for i in [1, 2, 3]
+            "V15.1": {
+                "passed": None,
+                "threshold": "< 500ms pre-stimulus",
+                "reason": "Awaiting empirical fMRI data",
+            },
+            "V15.2": {
+                "passed": None,
+                "threshold": "> 0.40",
+                "reason": "Awaiting empirical fMRI data",
+            },
+            "V15.3": {
+                "passed": None,
+                "threshold": "Ant/Post dissociation",
+                "reason": "Awaiting empirical fMRI data",
+            },
         },
         "data_source": None,
         "reason": "Awaiting empirical fMRI data for vmPFC anticipation paradigm",

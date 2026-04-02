@@ -8,6 +8,41 @@ Utility modules for the APGI framework.
 import os
 import sys
 import secrets
+import sys
+import numpy as np
+import types
+
+# Fix for missing numpy.lib.array_utils in some NumPy versions (e.g. 1.26.4 with Python 3.14)
+# This module is expected by PyMC 5.27.0 and ArviZ.
+if not hasattr(np.lib, "array_utils"):
+    try:
+        # Create module
+        array_utils = types.ModuleType("numpy.lib.array_utils")
+        # Link it to numpy.lib
+        np.lib.array_utils = array_utils
+        # Add to sys.modules
+        sys.modules["numpy.lib.array_utils"] = array_utils
+
+        # Import needed functions from where they actually are in NumPy 1.26
+        try:
+            from numpy.core.multiarray import normalize_axis_index
+
+            array_utils.normalize_axis_index = normalize_axis_index
+        except (ImportError, AttributeError):
+            pass
+
+        try:
+            from numpy.core.numeric import normalize_axis_tuple
+
+            array_utils.normalize_axis_tuple = normalize_axis_tuple
+        except (ImportError, AttributeError):
+            pass
+    except Exception:
+        # If anything fails during monkey-patching, we still want to continue
+        pass
+
+# Note: Standard dependency-handling logic follows
+
 import warnings
 from typing import Optional, Any
 
@@ -143,7 +178,7 @@ except ImportError as e:
     else:
         raise
 
-# Check optional protocol dependencies and emit RuntimeWarning if absent
+# Check optional protocol dependencies and emit an import-level warning if absent.
 _OPTIONAL_DEPS = {
     "pymc": ("pymc", "5.0.0"),  # Bayesian modeling (VP-11, FP-10)
     "arviz": ("arviz", "0.16.0"),  # Bayesian visualization
@@ -160,7 +195,7 @@ _MISSING_OPTIONAL_DEPS = []
 for dep_name, (import_name, min_version) in _OPTIONAL_DEPS.items():
     try:
         __import__(import_name)
-    except ImportError:
+    except Exception:
         _MISSING_OPTIONAL_DEPS.append(dep_name)
 
 if _MISSING_OPTIONAL_DEPS:
@@ -168,7 +203,7 @@ if _MISSING_OPTIONAL_DEPS:
         f"Optional protocol dependencies missing: {', '.join(_MISSING_OPTIONAL_DEPS)}. "
         f"Install with: pip install -r requirements-protocols.txt. "
         f"Some validation/falsification protocols will be unavailable.",
-        RuntimeWarning,
+        ImportWarning,
         stacklevel=2,
     )
 

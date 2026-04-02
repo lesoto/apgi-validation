@@ -699,7 +699,7 @@ class StandardMLPNetwork(nn.Module):
         }
 
     def reset(self):
-        pass
+        return None
 
 
 class LSTMNetwork(nn.Module):
@@ -783,7 +783,7 @@ class AttentionNetwork(nn.Module):
         }
 
     def reset(self):
-        pass
+        return None
 
 
 # =============================================================================
@@ -1401,9 +1401,9 @@ class NetworkTrainer:
 
     def evaluate_echo_state_property(
         self,
-        sequence_length: int = 150,
-        epsilon: float = 1e-3,
-        washout_threshold: int = 100,
+        sequence_length: int = 200,
+        epsilon: float = 0.01,
+        washout_threshold: int = 50,
     ) -> Dict[str, Any]:
         """
         Evaluate echo state property with a three-part verification.
@@ -1411,14 +1411,17 @@ class NetworkTrainer:
         The protocol verifies:
         1. Spectral radius < 1
         2. Input-driven convergence from two random initial conditions
-        3. Washout time < 100 steps
+        3. Washout time < 50 steps
         """
         recurrent_matrix = self._extract_recurrent_matrix()
-        if recurrent_matrix is None:
+        if isinstance(recurrent_matrix, dict):
             return {
                 "applicable": False,
                 "passed": False,
-                "reason": f"{self.network_name} has no extractable recurrent reservoir matrix",
+                "reason": recurrent_matrix.get(
+                    "reason", "recurrent_matrix_unavailable"
+                ),
+                "error": recurrent_matrix,
             }
 
         eigenvalues = np.linalg.eigvals(recurrent_matrix)
@@ -1426,33 +1429,41 @@ class NetworkTrainer:
 
         input_sequence = self._generate_esp_input_sequence(sequence_length)
         state_distances = self._simulate_state_convergence(input_sequence)
-        final_distance = float(state_distances[-1]) if state_distances else float("inf")
-        converged = final_distance < epsilon
-        washout_time = self._estimate_washout_time(state_distances, epsilon)
-
-        passed = (
-            spectral_radius < 1.0
-            and converged
-            and washout_time is not None
-            and washout_time < washout_threshold
+        peak_state_distance = (
+            float(np.max(np.asarray(state_distances, dtype=float)))
+            if state_distances
+            else float("inf")
         )
+        max_state_distance = (
+            float(state_distances[-1]) if state_distances else float("inf")
+        )
+        final_distance = max_state_distance
+        converged = max_state_distance < epsilon
+        washout_time = self._estimate_washout_time(state_distances, epsilon)
+        washout_pass = (
+            isinstance(washout_time, int) and washout_time < washout_threshold
+        )
+
+        passed = spectral_radius < 1.0 and converged and washout_pass
 
         return {
             "applicable": True,
             "passed": passed,
+            "sequence_length": sequence_length,
             "spectral_radius": spectral_radius,
             "spectral_radius_pass": spectral_radius < 1.0,
+            "peak_state_distance": peak_state_distance,
+            "max_state_distance": max_state_distance,
             "final_state_distance": final_distance,
             "convergence_pass": converged,
             "epsilon": epsilon,
             "washout_time": washout_time,
-            "washout_pass": washout_time is not None
-            and washout_time < washout_threshold,
+            "washout_pass": washout_pass,
             "washout_threshold": washout_threshold,
             "state_distances": np.array(state_distances, dtype=float),
         }
 
-    def _extract_recurrent_matrix(self) -> Optional[np.ndarray]:
+    def _extract_recurrent_matrix(self) -> Any:
         if self.network_name == "APGI" and hasattr(self.network, "surprise_rnn"):
             cell = self.network.surprise_rnn
             input_size = 2
@@ -1472,7 +1483,11 @@ class NetworkTrainer:
             gate_blocks = np.split(weight_hh, 4, axis=0)
             return np.mean(np.stack(gate_blocks, axis=0), axis=0)
 
-        return None
+        return {
+            "error": "recurrent_matrix_unavailable",
+            "reason": f"{self.network_name} has no extractable recurrent reservoir matrix",
+            "network_name": self.network_name,
+        }
 
     def _generate_esp_input_sequence(
         self, sequence_length: int
@@ -1528,7 +1543,7 @@ class NetworkTrainer:
                     state_b = self.network.surprise_hidden.detach().clone()
 
                     distances.append(
-                        float(torch.norm(state_a - state_b, dim=-1).max().item())
+                        float(torch.max(torch.abs(state_a - state_b)).item())
                     )
 
             elif self.network_name == "LSTM":
@@ -1554,7 +1569,7 @@ class NetworkTrainer:
                     cell_b = self.network.hidden[1].detach().clone()
 
                     distances.append(
-                        float(torch.norm(state_a - state_b, dim=-1).max().item())
+                        float(torch.max(torch.abs(state_a - state_b)).item())
                     )
 
         self.network.reset()  # type: ignore[operator]
@@ -1562,15 +1577,26 @@ class NetworkTrainer:
 
     def _estimate_washout_time(
         self, state_distances: List[float], epsilon: float, stable_window: int = 5
-    ) -> Optional[int]:
+    ) -> Any:
         if len(state_distances) < stable_window:
-            return None
+            return {
+                "error": "insufficient_state_distance_history",
+                "reason": "washout estimation requires at least stable_window samples",
+                "stable_window": stable_window,
+                "n_distances": len(state_distances),
+            }
 
         distances = np.asarray(state_distances, dtype=float)
         for idx in range(0, len(distances) - stable_window + 1):
             if np.all(distances[idx : idx + stable_window] < epsilon):
                 return idx + 1
-        return None
+        return {
+            "error": "washout_not_reached",
+            "reason": "state trajectories did not remain below epsilon for stable_window steps",
+            "stable_window": stable_window,
+            "epsilon": float(epsilon),
+            "n_distances": len(state_distances),
+        }
 
     def train(
         self, train_loader: DataLoader, val_loader: DataLoader, n_epochs: int = 100
@@ -2589,10 +2615,8 @@ def plot_comprehensive_results(
 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     print(f"\nVisualization saved to: {save_path}")
-    if plt.isinteractive():
-        plt.show()
-    else:
-        plt.close()
+    # Always close figure to prevent blocking - never show in GUI mode
+    plt.close(fig)
 
 
 def print_falsification_report(report: Dict):
@@ -2655,14 +2679,20 @@ def visualize_attention_patterns(model, test_loader, return_attention=False):
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     axes = axes.flatten()
 
-    # Dummy attention maps for demonstration
+    n_nodes = 10
+    n_steps = 10
+    attention_payload = {
+        "attribution_unavailable": True,
+        "captum_required": True,
+        "attention": np.zeros((n_nodes, n_steps), dtype=float),
+    }
+
+    # Zero placeholder maps make the missing attribution explicit.
     for i, ax in enumerate(axes):
-        # Create fake attention data
-        attention = np.random.rand(10, 10)
-        attention = attention / attention.sum()  # Normalize
+        attention = attention_payload["attention"]
 
         im = ax.imshow(attention, cmap="viridis", aspect="auto")
-        ax.set_title(f"Attention Map {i + 1}")
+        ax.set_title(f"Attention Map {i + 1} (Unavailable)")
         ax.set_xlabel("Feature Dimension")
         ax.set_ylabel("Time Step")
         plt.colorbar(im, ax=ax, shrink=0.8)
@@ -2670,7 +2700,7 @@ def visualize_attention_patterns(model, test_loader, return_attention=False):
     plt.tight_layout()
 
     if return_attention:
-        return fig, attention
+        return fig, attention_payload
     return fig
 
 
