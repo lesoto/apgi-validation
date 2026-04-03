@@ -259,18 +259,45 @@ if HAS_TORCH:
                 S_thermo = log_Z + mean_energy / self.kB_T
                 F_thermo = -self.kB_T * log_Z
 
-            entropy_production_rate = self.compute_entropy_production_rate(
-                state, total_energy, dt
-            )
-
-            return {
+            fwd_result = {
                 "S_thermodynamic": S_thermo,
                 "F_thermodynamic": F_thermo,
                 "Z": Z,
                 "mean_energy": mean_energy,
-                "entropy_production_rate": entropy_production_rate,
+                "entropy_production_rate": self.compute_entropy_production_rate(
+                    state, total_energy, dt
+                ),
                 "total_energy": total_energy,
             }
+
+            # Cross-validate against analytical steady-state surprise solution
+            # Import here to avoid circular dependencies
+            from utils.analytical_solutions import AnalyticalAPGISolutions
+
+            # Get current APGI parameters from state
+            Pi_e = self.config.Pi_e if hasattr(self.config, "Pi_e") else 1.0
+            eps_e = self.config.eps_e if hasattr(self.config, "eps_e") else 1.0
+            Pi_i = self.config.Pi_i if hasattr(self.config, "Pi_i") else 1.0
+            eps_i = self.config.eps_i if hasattr(self.config, "eps_i") else 0.5
+            tau_S = self.config.tau_S if hasattr(self.config, "tau_S") else 0.3
+
+            # Compute analytical steady-state surprise
+            S_analytical = AnalyticalAPGISolutions.steady_state_surprise(
+                Pi_e, eps_e, Pi_i, eps_i, tau_S
+            )
+
+            # Cross-validation assertion: torch-computed entropy should match analytical
+            # within tolerance (allowing for numerical and implementation differences)
+            S_torch = (
+                S_thermo.mean().item() if hasattr(S_thermo, "mean") else float(S_thermo)
+            )
+            assert abs(S_torch - S_analytical) < 2.0, (
+                f"Thermodynamic entropy cross-validation failed: "
+                f"torch={S_torch:.6f} vs analytical={S_analytical:.6f}, "
+                f"diff={abs(S_torch - S_analytical):.6f} >= 2.0"
+            )
+
+            return fwd_result
 
 
 class SurpriseIgnitionSystem:
@@ -568,9 +595,14 @@ class InformationTheoreticAnalysis:
         X_min, X_max = X.min(), X.max()
         Y_min, Y_max = Y.min(), Y.max()
 
-        # Handle constant data
+        # Handle constant data - flag as invalid instead of returning zeros silently
         if X_max == X_min or Y_max == Y_min:
-            return np.zeros(len(X) - lag)
+            return {
+                "te": np.nan,
+                "valid": False,
+                "reason": "constant_signal — TE undefined for constant input",
+                "n_samples": len(X),
+            }
 
         X_binned = np.digitize(X, np.linspace(X_min, X_max, n_bins))
         Y_binned = np.digitize(Y, np.linspace(Y_min, Y_max, n_bins))

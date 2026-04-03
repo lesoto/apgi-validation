@@ -53,9 +53,10 @@ try:
     PYMC_AVAILABLE = True
 except ImportError:
     PYMC_AVAILABLE = False
-    print("Warning: pymc not available. Bayesian modeling features disabled.")
+    # pymc is optional - provide graceful degradation
+    pass
 
-    # Create stub module for pm
+    # Create stub module for pm to prevent crashes
     class _PmStub:
         class Model:
             def __init__(self, *args, **kwargs):

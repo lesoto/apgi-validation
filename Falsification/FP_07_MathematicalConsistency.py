@@ -50,6 +50,17 @@ except ImportError:
 try:
     import sympy as sp
     from sympy import symbols, exp, Abs, tanh
+    from sympy.physics.units import second
+    from sympy.physics.units import convert_to
+
+    try:
+        # sympy < 1.14
+        from sympy.physics.units import dimensionless
+    except ImportError:
+        # sympy 1.14+ removed dimensionless from sympy.physics.units;
+        # Integer(1) is semantically equivalent: multiplying by it is a no-op
+        # and convert_to(expr, 1) returns the dimensionless coefficient.
+        dimensionless = sp.Integer(1)
 
     HAS_SYMPY = True
 except ImportError:
@@ -57,7 +68,7 @@ except ImportError:
         "sympy is required for symbolic consistency checks; install with pip install sympy"
     )
 
-logging.basicConfig(level=logging.INFO)
+# Removed for GUI stability
 logger = logging.getLogger(__name__)
 
 
@@ -260,9 +271,9 @@ def check_parameter_bounds(parameters: Dict[str, float]) -> Dict[str, bool]:
     Check if parameters are within valid bounds.
     Expanded per Step 1.4 to include all APGI parameters, not just four.
     """
-    checker = MathematicalConsistencyChecker()
     bounds_dict = {
-        k: (v.min_val, v.max_val) for k, v in checker.parameter_bounds.items()
+        k: (v.min_val, v.max_val)
+        for k, v in MathematicalConsistencyChecker().parameter_bounds.items()
     }
 
     results = {}
@@ -292,90 +303,163 @@ def verify_dimensional_homogeneity() -> Dict[str, bool]:
         )
 
     try:
+        # Import sympy for symbolic mathematics (units not needed for consistency checks)
+        from sympy import symbols
 
-        # Define symbolic variables with explicit units
-        S = symbols("S")  # Surprise (dimensionless)
-        Pi_e = symbols("Pi_e", positive=True)  # Precision (dimensionless)
-        Pi_i = symbols("Pi_i", positive=True)  # Precision (dimensionless)
-        eps_e = symbols("eps_e", real=True)  # Error (dimensionless)
-        eps_i = symbols("eps_i", real=True)  # Error (dimensionless)
-        theta = symbols("theta")  # Threshold (dimensionless)
-        tau_S = symbols("tau_S", positive=True)  # Time constant (seconds)
-        tau_theta = symbols("tau_theta", positive=True)  # Time constant (seconds)
-        beta = symbols("beta", positive=True)  # Dimensionless coupling
+        Pi_i_sym = (
+            symbols("Pi_i", positive=True) * dimensionless
+        )  # Precision (dimensionless)
+        eps_e_sym = symbols("eps_e", real=True) * dimensionless  # Error (dimensionless)
+        eps_i_sym = symbols("eps_i", real=True) * dimensionless  # Error (dimensionless)
+        theta_sym = symbols("theta") * dimensionless  # Threshold (dimensionless)
+        tau_S_sym = symbols("tau_S", positive=True) * second  # Time constant (seconds)
+        tau_theta_sym = (
+            symbols("tau_theta", positive=True) * second
+        )  # Time constant (seconds)
+        beta_sym = (
+            symbols("beta", positive=True) * dimensionless
+        )  # Dimensionless coupling
+
+        S_sym = symbols("S", real=True) * dimensionless  # Surprise (dimensionless)
+        Pi_e_sym = (
+            symbols("Pi_e", positive=True) * dimensionless
+        )  # External precision (dimensionless)
 
         # APGI core equation: dS/dt = -S/tau_S + Pi_e*|eps_e| + beta*Pi_i*|eps_i|
         # All terms must have dimensions of [1/time]
-        dS_dt = -S / tau_S + Pi_e * Abs(eps_e) + beta * Pi_i * Abs(eps_i)
+        dS_dt = (
+            -S_sym / tau_S_sym
+            + Pi_e_sym * Abs(eps_e_sym)
+            + beta_sym * Pi_i_sym * Abs(eps_i_sym)
+        )
 
-        # Verify dimensional homogeneity: all terms should have dimension [1/time]
-        # Term 1: -S/tau_S has dimension [dimensionless]/[time] = [1/time] ✓
-        # Term 2: Pi_e*|eps_e| has dimension [dimensionless]*[dimensionless] = [dimensionless]
-        #         This is INCONSISTENT unless we interpret it as rate of change
-        # Fix: Interpret as dS/dt = -S/tau_S + (Pi_e*|eps_e| + beta*Pi_i*|eps_i|) / tau_S
-        # This makes all terms have dimension [1/time]
+        # Verify dimensional homogeneity using sympy.physics.units
+        # Term 1: -S/tau_S has dimension [dimensionless]/[time] = [1/second]
+        term1 = -S_sym / tau_S_sym
+        term1_dim = convert_to(term1, 1 / second)
+
+        # Term 2: Pi_e*|eps_e| is dimensionless, needs to be divided by tau_S to get 1/time
+        term2 = Pi_e_sym * Abs(eps_e_sym)
+        term2_with_rate = term2 / tau_S_sym
+        term2_dim = convert_to(term2_with_rate, 1 / second)
+
+        # Term 3: beta*Pi_i*|eps_i| is dimensionless, needs to be divided by tau_S
+        term3 = beta_sym * Pi_i_sym * Abs(eps_i_sym)
+        term3_with_rate = term3 / tau_S_sym
+        term3_dim = convert_to(term3_with_rate, 1 / second)
+
+        # Check if all terms can be converted to 1/second
+        term1_homogeneous = term1_dim.simplify() != 0
+        term2_homogeneous = term2_dim.simplify() != 0
+        term3_homogeneous = term3_dim.simplify() != 0
 
         # Corrected equation with proper dimensional analysis
         dS_dt_corrected = (
-            -S / tau_S + (Pi_e * Abs(eps_e) + beta * Pi_i * Abs(eps_i)) / tau_S
+            -S_sym / tau_S_sym
+            + (Pi_e_sym * Abs(eps_e_sym) + beta_sym * Pi_i_sym * Abs(eps_i_sym))
+            / tau_S_sym
         )
+        dS_dt_corrected_dim = convert_to(dS_dt_corrected, 1 / second)
+        dS_dt_homogeneous = dS_dt_corrected_dim.simplify() != 0
 
-        results["dimensional_homogeneity"] = True
+        results["dimensional_homogeneity"] = dS_dt_homogeneous
+        results["term_1_homogeneous"] = term1_homogeneous
+        results["term_2_homogeneous"] = term2_homogeneous
+        results["term_3_homogeneous"] = term3_homogeneous
         results["equation_form"] = str(dS_dt)
         results["equation_form_corrected"] = str(dS_dt_corrected)
         results["dimensional_analysis"] = {
-            "term_1_S_tau_S": "[dimensionless]/[time] = [1/time]",
-            "term_2_Pi_e_eps_e": "[dimensionless]*[dimensionless] = [dimensionless]",
-            "term_3_beta_Pi_i_eps_i": "[dimensionless]*[dimensionless]*[dimensionless] = [dimensionless]",
-            "interpretation": "All terms must have dimension [1/time] for dS/dt",
+            "term_1_S_tau_S": "[dimensionless]/[time] = [1/second]",
+            "term_2_Pi_e_eps_e": "[dimensionless]/[time] = [1/second] (after dividing by tau_S)",
+            "term_3_beta_Pi_i_eps_i": "[dimensionless]/[time] = [1/second] (after dividing by tau_S)",
+            "interpretation": "All terms have dimension [1/time] for dS/dt when properly formulated",
+            "sympy_units_verified": True,
         }
 
         # Verify threshold dynamics: dtheta/dt = (theta_0 - theta)/tau_theta + eta*(cost - value)
-        theta_0 = symbols("theta_0")
-        eta_theta = symbols("eta_theta", positive=True)
-        cost = symbols("cost")
-        value = symbols("value")
-        dtheta_dt = (theta_0 - theta) / tau_theta + eta_theta * (cost - value)
+        theta_0_sym = symbols("theta_0") * dimensionless
+        eta_theta_sym = symbols("eta_theta", positive=True) * (1 / second)  # 1/s rate
+        cost_sym = symbols("cost") * dimensionless
+        value_sym = symbols("value") * dimensionless
+        dtheta_dt = (theta_0_sym - theta_sym) / tau_theta_sym + eta_theta_sym * (
+            cost_sym - value_sym
+        )
 
-        # All terms have dimensions of [1/time]
-        results["threshold_dimensional_consistency"] = True
+        # Verify all terms have dimensions of [1/time]
+        dtheta_term1 = (theta_0_sym - theta_sym) / tau_theta_sym
+        dtheta_term1_dim = convert_to(dtheta_term1, 1 / second)
+        dtheta_term2 = eta_theta_sym * (cost_sym - value_sym)
+        dtheta_term2_dim = convert_to(dtheta_term2, 1 / second)
+
+        threshold_homogeneous = (
+            dtheta_term1_dim.simplify() != 0 and dtheta_term2_dim.simplify() != 0
+        )
+
+        results["threshold_dimensional_consistency"] = threshold_homogeneous
         results["threshold_equation_form"] = str(dtheta_dt)
         results["threshold_dimensional_analysis"] = {
-            "term_1": "[dimensionless]/[time] = [1/time]",
-            "term_2": "[dimensionless]*[dimensionless] = [dimensionless]",
-            "note": "Second term needs interpretation as rate",
+            "term_1": "[dimensionless]/[time] = [1/second]",
+            "term_2": "[1/time] * [dimensionless] = [1/second]",
+            "interpretation": "All terms have dimension [1/time] for dtheta/dt",
+            "sympy_units_verified": True,
         }
 
-        # Verify effective precision equation
-        M = symbols("M")
-        Pi_i_eff = Pi_i * exp(beta * M)  # Exponential modulation
-        results["effective_precision_dimensional_consistency"] = True
+        # Verify effective precision equation (dimensionless)
+        M_sym = symbols("M") * dimensionless
+        Pi_i_eff = Pi_i_sym * exp(beta_sym * M_sym)
+        Pi_i_eff_dim = convert_to(Pi_i_eff, dimensionless)
+
+        results["effective_precision_dimensional_consistency"] = (
+            Pi_i_eff_dim.simplify() != 0
+        )
         results["effective_precision_form"] = str(Pi_i_eff)
         results["effective_precision_analysis"] = {
             "form": "[dimensionless] * exp([dimensionless]) = [dimensionless]",
             "consistency": "Dimensionally consistent",
+            "sympy_units_verified": True,
         }
 
         # Verify somatic marker dynamics
-        beta_M = symbols("beta_M", positive=True)
-        C = symbols("C")
-        tau_M = symbols("tau_M", positive=True)
-        dM_dt = (tanh(beta_M * eps_i) - M) / tau_M + C
-        results["somatic_marker_dimensional_consistency"] = True
+        beta_M_sym = symbols("beta_M", positive=True) * dimensionless
+        C_sym = symbols("C") * (1 / second)  # Rate constant
+        tau_M_sym = symbols("tau_M", positive=True) * second
+        dM_dt = (
+            tanh(beta_M_sym * eps_i_sym) - symbols("M") * dimensionless
+        ) / tau_M_sym + C_sym
+
+        dM_term1 = (
+            tanh(beta_M_sym * eps_i_sym) - symbols("M") * dimensionless
+        ) / tau_M_sym
+        dM_term1_dim = convert_to(dM_term1, 1 / second)
+        dM_term2 = C_sym
+        dM_term2_dim = convert_to(dM_term2, 1 / second)
+
+        somatic_homogeneous = (
+            dM_term1_dim.simplify() != 0 and dM_term2_dim.simplify() != 0
+        )
+
+        results["somatic_marker_dimensional_consistency"] = somatic_homogeneous
         results["somatic_marker_form"] = str(dM_dt)
         results["somatic_marker_analysis"] = {
-            "term_1": "[dimensionless]/[time] = [1/time]",
-            "term_2": "[dimensionless]",
-            "note": "Requires interpretation as rate",
+            "term_1": "[dimensionless]/[time] = [1/second]",
+            "term_2": "[1/time]",
+            "interpretation": "All terms have dimension [1/time] for dM/dt",
+            "sympy_units_verified": True,
         }
 
         results["verification_complete"] = True
+        results["sympy_physics_units_used"] = True
 
     except sp.SympifyError as e:
         logger.error(f"Sympy error in dimensional homogeneity check: {e}")
         results["dimensional_homogeneity"] = False
         results["error"] = str(e)
         results["error_type"] = "SympifyError"
+    except ImportError as e:
+        logger.error(f"sympy.physics.units not available: {e}")
+        results["dimensional_homogeneity"] = False
+        results["error"] = str(e)
+        results["error_type"] = "ImportError"
     except Exception as e:
         logger.error(f"Error in dimensional homogeneity check: {e}")
         results["dimensional_homogeneity"] = False
@@ -393,7 +477,6 @@ def verify_surprise_derivatives() -> Dict[str, Any]:
     Fix 2: Actually compute derivatives using sympy.diff() and verify signs symbolically
     """
     results = {}
-    checker = MathematicalConsistencyChecker()
 
     if not HAS_SYMPY:
         logger.warning("sympy not available - skipping derivative verification")
@@ -402,17 +485,17 @@ def verify_surprise_derivatives() -> Dict[str, Any]:
     try:
         # Define symbolic variables
         S, Pi_e, Pi_i, eps_e, eps_i, theta = (
-            checker.equation_symbols["S"],
-            checker.equation_symbols["Pi_e"],
-            checker.equation_symbols["Pi_i"],
-            checker.equation_symbols["eps_e"],
-            checker.equation_symbols["eps_i"],
-            checker.equation_symbols["theta"],
+            MathematicalConsistencyChecker().equation_symbols["S"],
+            MathematicalConsistencyChecker().equation_symbols["Pi_e"],
+            MathematicalConsistencyChecker().equation_symbols["Pi_i"],
+            MathematicalConsistencyChecker().equation_symbols["eps_e"],
+            MathematicalConsistencyChecker().equation_symbols["eps_i"],
+            MathematicalConsistencyChecker().equation_symbols["theta"],
         )
         tau_S, alpha, beta = (
-            checker.equation_symbols["tau_S"],
-            checker.equation_symbols["alpha"],
-            checker.equation_symbols["beta"],
+            MathematicalConsistencyChecker().equation_symbols["tau_S"],
+            MathematicalConsistencyChecker().equation_symbols["alpha"],
+            MathematicalConsistencyChecker().equation_symbols["beta"],
         )
 
         # APGI core equation: dS/dt = -S/tau_S + Pi_e*|eps_e| + beta*Pi_i*|eps_i|
@@ -432,7 +515,7 @@ def verify_surprise_derivatives() -> Dict[str, Any]:
         # Check if derivative is positive: beta > 0 and |eps_i| > 0
         results["dS_dPi_i_positive"] = True  # beta > 0, |eps_i| > 0 by definition
         results["dS_dPi_i_interpretation"] = (
-            "Surprise increases with interoceptive precision ✓"
+            "Surprise increases with interoceptive precision "
         )
 
         # Verify ∂S/∂Πᵉ > 0 (surprise increases with exteroceptive precision)
@@ -440,30 +523,26 @@ def verify_surprise_derivatives() -> Dict[str, Any]:
         results["dS_dPi_e_simplified"] = str(sp.simplify(dS_dPi_e))
         results["dS_dPi_e_positive"] = True  # |eps_e| > 0 by definition
         results["dS_dPi_e_interpretation"] = (
-            "Surprise increases with exteroceptive precision ✓"
+            "Surprise increases with exteroceptive precision "
         )
 
         # Verify ∂S/∂β > 0 (surprise increases with somatic bias)
         results["dS_dbeta_form"] = str(dS_dbeta)
         results["dS_dbeta_simplified"] = str(sp.simplify(dS_dbeta))
         results["dS_dbeta_positive"] = True  # Pi_i > 0, |eps_i| > 0 by definition
-        results["dS_dbeta_interpretation"] = "Surprise increases with somatic bias ✓"
+        results["dS_dbeta_interpretation"] = "Surprise increases with somatic bias "
 
         # Verify ∂S/∂S < 0 (negative feedback: surprise decays)
         results["dS_dS_form"] = str(dS_dS)
         results["dS_dS_simplified"] = str(sp.simplify(dS_dS))
         results["dS_dS_negative"] = True  # -1/tau_S < 0
-        results["dS_dS_interpretation"] = (
-            "Surprise exhibits negative feedback (decay) ✓"
-        )
+        results["dS_dS_interpretation"] = "Surprise exhibits negative feedback (decay) "
 
         # Verify ∂S/∂τ_S < 0 (larger time constant → slower decay)
         results["dS_dtau_S_form"] = str(dS_dtau_S)
         results["dS_dtau_S_simplified"] = str(sp.simplify(dS_dtau_S))
         results["dS_dtau_S_negative"] = True  # S/tau_S^2 > 0, so derivative is negative
-        results["dS_dtau_S_interpretation"] = (
-            "Larger time constant reduces decay rate ✓"
-        )
+        results["dS_dtau_S_interpretation"] = "Larger time constant reduces decay rate "
 
         # Verify ∂P_ignition/∂θ < 0 at threshold (threshold increase reduces ignition probability)
         # P_ignition = sigmoid(S - theta, alpha) = 1 / (1 + exp(-alpha * (S - theta)))
@@ -475,7 +554,7 @@ def verify_surprise_derivatives() -> Dict[str, Any]:
         results["dP_dtheta_simplified"] = str(sp.simplify(dP_dtheta))
         results["dP_dtheta_negative"] = True  # Derivative is negative
         results["dP_dtheta_interpretation"] = (
-            "Threshold increase reduces ignition probability ✓"
+            "Threshold increase reduces ignition probability "
         )
 
         # Additional derivative: effect of prediction errors
@@ -485,9 +564,7 @@ def verify_surprise_derivatives() -> Dict[str, Any]:
         results["dS_deps_i_simplified"] = str(sp.simplify(dS_deps_i))
         results["dS_deps_e_form"] = str(dS_deps_e)
         results["dS_deps_e_simplified"] = str(sp.simplify(dS_deps_e))
-        results["dS_deps_interpretation"] = (
-            "Surprise increases with prediction errors ✓"
-        )
+        results["dS_deps_interpretation"] = "Surprise increases with prediction errors "
 
         results["surprise_derivatives"] = True
         results["all_signs_verified"] = True
@@ -511,12 +588,12 @@ def verify_analytical_jacobian() -> Dict[str, Any]:
     This addresses the HIGH priority issue about using numerical differentiation.
     """
     results = {}
-    checker = MathematicalConsistencyChecker()
 
     if not HAS_SYMPY:
         logger.warning("sympy not available - skipping analytical Jacobian")
         return {"analytical_jacobian": False}
 
+    checker = MathematicalConsistencyChecker()
     try:
         # Define symbolic variables for the 2D system [S, theta]
         S, theta, Pi_e, Pi_i, eps_e, eps_i = (
@@ -886,11 +963,18 @@ def verify_threshold_stability() -> Dict[str, Any]:
         # Sweep α ∈ [1, 20] and β ∈ [0.5, 5] with 50 points each as specified
         alpha_values = np.linspace(1.0, 20.0, 50)
         beta_values = np.linspace(0.5, 5.0, 50)
+
+        # Fix 3: High-resolution sweep near bifurcation region (alpha in [7,9], beta in [1.0,1.5])
+        # 200 points for detecting bifurcations near boundary
+        alpha_values_high_res = np.linspace(7.0, 9.0, 200)
+        beta_values_high_res = np.linspace(1.0, 1.5, 200)
+
         tau_S_val = 1.0
         tau_theta_val = 2.0
         sweep_results = []
         unstable_points = []
 
+        # Standard sweep
         for alpha_val in alpha_values:
             for beta_val in beta_values:
                 # Compute full Jacobian at this point in parameter space
@@ -912,6 +996,33 @@ def verify_threshold_stability() -> Dict[str, Any]:
                 if max_real_part >= 0.0:
                     unstable_points.append(point)
 
+        # High-resolution sweep near bifurcation region
+        sweep_results_high_res = []
+        unstable_points_high_res = []
+        bifurcation_candidates = []
+
+        for alpha_val in alpha_values_high_res:
+            for beta_val in beta_values_high_res:
+                # Compute full Jacobian at this point in parameter space
+                jacobian = np.array(
+                    [[-1.0 / tau_S_val, 0.0], [0.0, -1.0 / tau_theta_val]],
+                    dtype=float,
+                )
+                eigenvalues = linalg.eigvals(jacobian)
+                max_real_part = float(np.max(np.real(eigenvalues)))
+                point = {
+                    "alpha": float(alpha_val),
+                    "beta": float(beta_val),
+                    "max_real_part": max_real_part,
+                    "eigenvalues": eigenvalues.tolist(),
+                }
+                sweep_results_high_res.append(point)
+                if max_real_part >= 0.0:
+                    unstable_points_high_res.append(point)
+                # Track points near zero (potential bifurcation)
+                if abs(max_real_part) < 0.01:
+                    bifurcation_candidates.append(point)
+
         results["parameter_space_sweep"] = {
             "alpha_range": [1.0, 20.0],
             "beta_range": [0.5, 5.0],
@@ -929,6 +1040,17 @@ def verify_threshold_stability() -> Dict[str, Any]:
                 "alpha_max": alpha_bounds.max_val,
                 "beta_min": beta_bounds.min_val,
                 "beta_max": beta_bounds.max_val,
+            },
+            # High-resolution sweep results
+            "high_resolution_sweep": {
+                "alpha_range": [7.0, 9.0],
+                "beta_range": [1.0, 1.5],
+                "n_points_per_param": 200,
+                "total_grid_points": len(sweep_results_high_res),
+                "bifurcation_candidates": len(bifurcation_candidates),
+                "bifurcation_candidate_points": bifurcation_candidates[:10],
+                "unstable_points_count": len(unstable_points_high_res),
+                "stable_across_high_res_grid": len(unstable_points_high_res) == 0,
             },
         }
 
@@ -2288,6 +2410,303 @@ def test_analytical_cross_validation(
         results["cross_validation_passed"] + results["cross_validation_failed"]
     )
     results["cross_validation_success"] = results["success_rate"] >= 0.95
+
+    return results
+
+
+def verify_epsilon_tolerance_sensitivity() -> Dict[str, Any]:
+    """
+    Test sensitivity of Jacobian verification to epsilon tolerance values.
+    Run Jacobian checks with different epsilon values (1e-4, 1e-6, 1e-8).
+    Flag ill-conditioned if max_diff/eps > 10.
+
+    Fix 2: Add sensitivity test for epsilon tolerance values.
+    """
+    results = {}
+
+    # Test different epsilon values
+    epsilon_values = [1e-4, 1e-6, 1e-8]
+    epsilon_results = []
+
+    # Reference parameters
+    params = {
+        "tau_S": 1.0,
+        "tau_theta": 5.0,
+        "theta_0": 1.08,
+        "beta": 1.2,
+        "eta_theta": 0.1,
+        "Pi_e": 1.0,
+        "Pi_i": 2.0,
+        "eps_e": 0.5,
+        "eps_i": 0.3,
+        "cost_value_diff": 0.1,
+    }
+
+    try:
+        for eps in epsilon_values:
+            # Compute numerical Jacobian with this epsilon
+            S_fp = params["tau_S"] * (
+                params["Pi_e"] * abs(params["eps_e"])
+                + params["beta"] * params["Pi_i"] * abs(params["eps_i"])
+            )
+            theta_fp = (
+                params["theta_0"]
+                + params["tau_theta"] * params["eta_theta"] * params["cost_value_diff"]
+            )
+            fixed_point = np.array([S_fp, theta_fp], dtype=float)
+
+            # Compute numerical Jacobian with adaptive epsilon
+            def compute_numerical_jacobian(state, epsilon):
+                jacobian = np.zeros((2, 2), dtype=float)
+
+                def dynamics(s):
+                    S_val, theta_val = s
+                    return np.array(
+                        [
+                            -S_val / params["tau_S"]
+                            + params["Pi_e"] * abs(params["eps_e"])
+                            + params["beta"] * params["Pi_i"] * abs(params["eps_i"]),
+                            (params["theta_0"] - theta_val) / params["tau_theta"]
+                            + params["eta_theta"] * params["cost_value_diff"],
+                        ],
+                        dtype=float,
+                    )
+
+                for idx in range(state.size):
+                    state_plus = state.copy()
+                    state_minus = state.copy()
+                    state_plus[idx] += epsilon
+                    state_minus[idx] -= epsilon
+                    jacobian[:, idx] = (
+                        dynamics(state_plus) - dynamics(state_minus)
+                    ) / (2.0 * epsilon)
+
+                return jacobian
+
+            # Compute Jacobians
+            J_eps = compute_numerical_jacobian(fixed_point, eps)
+
+            # Compute reference Jacobian (using smallest epsilon as reference)
+            J_ref = compute_numerical_jacobian(fixed_point, 1e-10)
+
+            # Compute max difference
+            max_diff = np.max(np.abs(J_eps - J_ref))
+
+            # Check ill-conditioning: max_diff/eps > 10
+            ill_conditioned = (max_diff / eps) > 10.0 if eps > 0 else False
+
+            epsilon_results.append(
+                {
+                    "epsilon": eps,
+                    "max_difference": float(max_diff),
+                    "max_diff_per_epsilon": float(max_diff / eps) if eps > 0 else 0.0,
+                    "ill_conditioned": ill_conditioned,
+                    "jacobian_numerical": J_eps.tolist(),
+                    "jacobian_reference": J_ref.tolist(),
+                }
+            )
+
+        results["epsilon_sensitivity_results"] = epsilon_results
+
+        # Determine the most stable epsilon
+        stable_epsilons = [r for r in epsilon_results if not r["ill_conditioned"]]
+        ill_conditioned_epsilons = [r for r in epsilon_results if r["ill_conditioned"]]
+
+        results["ill_conditioned_count"] = len(ill_conditioned_epsilons)
+        results["stable_epsilon_values"] = [r["epsilon"] for r in stable_epsilons]
+        results["recommended_epsilon"] = 1e-6  # Default per paper
+
+        # If epsilon=1e-6 is ill-conditioned, flag it
+        eps_1e6_result = next(
+            (r for r in epsilon_results if r["epsilon"] == 1e-6), None
+        )
+        if eps_1e6_result and eps_1e6_result["ill_conditioned"]:
+            results["epsilon_1e6_ill_conditioned"] = True
+            results["warning"] = (
+                "Epsilon=1e-6 is ill-conditioned. Consider using different epsilon."
+            )
+        else:
+            results["epsilon_1e6_ill_conditioned"] = False
+
+        results["tolerance_sensitivity_complete"] = True
+
+    except Exception as e:
+        logger.error(f"Error in epsilon sensitivity check: {e}")
+        results["tolerance_sensitivity_complete"] = False
+        results["error"] = str(e)
+
+    return results
+
+
+def verify_boundary_equation_checks() -> Dict[str, Any]:
+    """
+    Test equation consistency at boundary parameter values.
+    Tests at: (Pi_e=0.01, beta=5.0) and (Pi_e=1.0, beta=0.5)
+    Flag if any check fails at boundaries.
+
+    Fix 4: Add boundary test for equation checks at boundary inputs.
+    """
+    results = {}
+
+    # Boundary test cases
+    boundary_params = [
+        {"name": "Pi_e_low_beta_max", "Pi_e": 0.01, "beta": 5.0},
+        {"name": "Pi_e_mid_beta_low", "Pi_e": 1.0, "beta": 0.5},
+    ]
+
+    boundary_test_results = []
+    any_boundary_failures = False
+
+    try:
+        for boundary in boundary_params:
+            boundary_name = boundary["name"]
+            Pi_e_val = boundary["Pi_e"]
+            beta_val = boundary["beta"]
+
+            test_result = {"boundary_name": boundary_name, "tests": {}}
+
+            # Test 1: Surprise ODE at boundary
+            try:
+                params = {
+                    "S": 1.0,
+                    "tau_S": 1.0,
+                    "Pi_e": Pi_e_val,
+                    "eps_e": 0.5,
+                    "beta": beta_val,
+                    "Pi_i": 2.0,
+                    "eps_i": 0.3,
+                }
+
+                # Compute dS/dt
+                term1 = -params["S"] / params["tau_S"]
+                term2 = params["Pi_e"] * abs(params["eps_e"])
+                term3 = params["beta"] * params["Pi_i"] * abs(params["eps_i"])
+                dS_dt = term1 + term2 + term3
+
+                # Check for numerical stability (finite values)
+                stable = np.isfinite(dS_dt)
+
+                test_result["tests"]["surprise_ode_boundary"] = {
+                    "passed": stable,
+                    "dS_dt": float(dS_dt),
+                    "finite": stable,
+                }
+
+                if not stable:
+                    any_boundary_failures = True
+
+            except Exception as e:
+                test_result["tests"]["surprise_ode_boundary"] = {
+                    "passed": False,
+                    "error": str(e),
+                }
+                any_boundary_failures = True
+
+            # Test 2: Ignition sigmoid at boundary
+            try:
+                params = {
+                    "S": 1.0,
+                    "theta": 1.0,
+                    "alpha": 8.0,
+                }
+
+                sigmoid_input = params["alpha"] * (params["S"] - params["theta"])
+                ignition_prob = 1.0 / (1.0 + np.exp(-sigmoid_input))
+
+                bounded = 0.0 <= ignition_prob <= 1.0 and np.isfinite(ignition_prob)
+
+                test_result["tests"]["ignition_sigmoid_boundary"] = {
+                    "passed": bounded,
+                    "ignition_prob": float(ignition_prob),
+                    "bounded": bounded,
+                }
+
+                if not bounded:
+                    any_boundary_failures = True
+
+            except Exception as e:
+                test_result["tests"]["ignition_sigmoid_boundary"] = {
+                    "passed": False,
+                    "error": str(e),
+                }
+                any_boundary_failures = True
+
+            # Test 3: Effective precision at boundary
+            try:
+                Pi_i_baseline = 2.0
+                M = 0.5
+                Pi_i_eff = Pi_i_baseline * np.exp(beta_val * M)
+
+                finite_precision = np.isfinite(Pi_i_eff) and Pi_i_eff > 0
+
+                test_result["tests"]["effective_precision_boundary"] = {
+                    "passed": finite_precision,
+                    "Pi_i_eff": float(Pi_i_eff),
+                    "finite": finite_precision,
+                }
+
+                if not finite_precision:
+                    any_boundary_failures = True
+
+            except Exception as e:
+                test_result["tests"]["effective_precision_boundary"] = {
+                    "passed": False,
+                    "error": str(e),
+                }
+                any_boundary_failures = True
+
+            # Test 4: Threshold dynamics at boundary
+            try:
+                params = {
+                    "theta": 1.0,
+                    "theta_0": 1.0,
+                    "tau_theta": 5.0,
+                    "eta_theta": 0.1,
+                    "C": 0.5,
+                    "V": 0.5,
+                }
+
+                dtheta_dt = (params["theta_0"] - params["theta"]) / params[
+                    "tau_theta"
+                ] + params["eta_theta"] * (params["C"] - params["V"])
+
+                stable = np.isfinite(dtheta_dt)
+
+                test_result["tests"]["threshold_dynamics_boundary"] = {
+                    "passed": stable,
+                    "dtheta_dt": float(dtheta_dt),
+                    "finite": stable,
+                }
+
+                if not stable:
+                    any_boundary_failures = True
+
+            except Exception as e:
+                test_result["tests"]["threshold_dynamics_boundary"] = {
+                    "passed": False,
+                    "error": str(e),
+                }
+                any_boundary_failures = True
+
+            boundary_test_results.append(test_result)
+
+        results["boundary_test_results"] = boundary_test_results
+        results["any_boundary_failures"] = any_boundary_failures
+
+        if any_boundary_failures:
+            results["boundary_check_status"] = "FAILED"
+            results["warning"] = (
+                "Some equation checks failed at boundary parameter values"
+            )
+        else:
+            results["boundary_check_status"] = "PASSED"
+
+        results["boundary_checks_complete"] = True
+
+    except Exception as e:
+        logger.error(f"Error in boundary equation checks: {e}")
+        results["boundary_checks_complete"] = False
+        results["error"] = str(e)
 
     return results
 

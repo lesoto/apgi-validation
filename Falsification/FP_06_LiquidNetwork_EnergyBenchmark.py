@@ -18,12 +18,6 @@ try:
     from utils.falsification_thresholds import (
         F2_3_MIN_RT_ADVANTAGE_MS,
         F2_3_ALPHA,
-        F6_1_LTCN_MAX_TRANSITION_MS,
-        F6_1_CLIFFS_DELTA_MIN,
-        F6_1_MANN_WHITNEY_ALPHA,
-        F6_2_LTCN_MIN_WINDOW_MS,
-        F6_2_MIN_INTEGRATION_RATIO,
-        F6_2_MIN_CURVE_FIT_R2,
         F6_2_WILCOXON_ALPHA,
         F6_5_HYSTERESIS_MIN,
         F6_5_HYSTERESIS_MAX,
@@ -74,6 +68,12 @@ except ImportError:
 
 try:
     from utils.constants import DIM_CONSTANTS
+
+    # Fix 2: Import BIC thresholds from falsification_thresholds
+    from utils.falsification_thresholds import (
+        BIC_STRONG_EVIDENCE,
+        BIC_FRAMEWORK_THRESHOLD_B,
+    )
 except ImportError:
     # Fallback constants
     class MockDimConstants:
@@ -84,9 +84,18 @@ except ImportError:
             self.n_hidden = 64
 
     DIM_CONSTANTS = MockDimConstants()
+    # Fix 2: Fallback BIC thresholds if import fails
+    BIC_STRONG_EVIDENCE = 2
+    BIC_FRAMEWORK_THRESHOLD_B = 6
 
-logging.basicConfig(level=logging.INFO)
+# Removed for GUI stability
 logger = logging.getLogger(__name__)
+
+# Fix 3: ATP_PER_SPIKE constant with Attwell & Laughlin citation
+# ATP_PER_SPIKE = 1e9 ATP molecules per spike
+# Reference: Attwell & Laughlin (2001) J Cereb Blood Flow Metab 21:1133
+# "An energy budget for signaling in the grey matter of the brain"
+ATP_PER_SPIKE = 1.0  # Normalized units; absolute = 1e9 ATP molecules per spike
 
 
 def bootstrap_ci(
@@ -1725,15 +1734,23 @@ class NetworkComparisonExperiment:
             idx_90 = np.where(ignition_array > threshold_90)[0]
 
             if len(idx_10) > 0 and len(idx_90) > 0:
-                raw_transition = (idx_90[0] - idx_10[0]) * dt_ms
-                # CRITICAL FIX: The 10ms timestep causes coarse quantization;
-                # if raw measurement exceeds the LTCN spec (≤50ms), use the
-                # architectural default which reflects true LTCN dynamics.
-                transition_time = raw_transition if raw_transition <= 50.0 else 35.0
+                transition_time = (idx_90[0] - idx_10[0]) * dt_ms
             else:
-                transition_time = 35.0  # Default LTCN characteristic
+                # Fix 1: Remove 35ms fallback, return proper failure dict
+                return {
+                    "transition_ms": np.inf,
+                    "cliff_delta": 0.0,
+                    "passed": False,
+                    "reason": "no_threshold_transition_detected",
+                }
         else:
-            transition_time = 35.0
+            # Fix 1: Remove 35ms fallback, return proper failure dict
+            return {
+                "transition_ms": np.inf,
+                "cliff_delta": 0.0,
+                "passed": False,
+                "reason": "no_ignition_data_available",
+            }
 
         # CRITICAL FIX: Calculate memory decay τ via exponential fit to autocorrelation
         # This requires the extended 5s simulation window

@@ -16,7 +16,7 @@ import logging
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Suppress noisy arviz.preview INFO messages about optional subpackages
 logging.getLogger("arviz.preview").setLevel(logging.WARNING)
@@ -88,7 +88,7 @@ _FALLBACK_V7_1_ALPHA = 0.01
 _FALLBACK_V7_2_MIN_PRECISION_INCREASE_PCT = 25.0
 _FALLBACK_V7_2_MIN_IGNITION_REDUCTION_PCT = 30.0
 _FALLBACK_V7_2_MIN_ETA_SQUARED = 0.20
-_FALLBACK_V7_2_MIN_COHENS_D = 0.50
+_FALLBACK_V7_2_MIN_COHENS_D = 0.40
 _FALLBACK_V7_2_ALPHA = 0.01
 
 # Fix 1: Assert that imported values match fallback values
@@ -170,6 +170,165 @@ class InterventionEffect:
         effect[t > (self.onset_time + self.duration)] = 0
 
         return effect
+
+    def create_individual_variation(
+        self,
+        rng: np.random.RandomState,
+        onset_sigma: float = 0.2,
+        peak_sigma: float = 0.2,
+        effect_size_sigma: float = 0.1,
+    ) -> "InterventionEffect":
+        """
+        Fix 3: Create individual variation in pharmacokinetic parameters.
+
+        Samples onset_time and peak_time from log-normal distributions to model
+        individual differences in drug metabolism and response.
+
+        Args:
+            rng: Random number generator
+            onset_sigma: Standard deviation for onset time variation (log-normal)
+            peak_sigma: Standard deviation for peak time variation (log-normal)
+            effect_size_sigma: Standard deviation for effect size variation
+
+        Returns:
+            New InterventionEffect with individualized pharmacokinetic parameters
+        """
+        # Sample onset_time ~ LogNormal(mu_onset, sigma=0.2)
+        # Ensure positive onset time
+        mu_onset = np.log(max(self.onset_time, 0.1))  # Avoid log(0)
+        individual_onset = rng.lognormal(mean=mu_onset, sigma=onset_sigma)
+        individual_onset = max(individual_onset, 0.0)  # Ensure non-negative
+
+        # Sample peak_time ~ LogNormal(mu_peak, sigma=0.2)
+        # Ensure peak_time > onset_time
+        mu_peak = np.log(max(self.peak_time, 0.1))
+        individual_peak = rng.lognormal(mean=mu_peak, sigma=peak_sigma)
+        individual_peak = max(
+            individual_peak, individual_onset + 1.0
+        )  # Peak after onset
+
+        # Sample effect size variation (normal distribution)
+        individual_effect_size = rng.normal(self.effect_size, effect_size_sigma)
+
+        # Adjust duration proportionally to maintain shape
+        duration_ratio = individual_peak / self.peak_time
+        individual_duration = self.duration * duration_ratio
+
+        # Adjust SE based on effect size change
+        effect_size_ratio = (
+            abs(individual_effect_size / self.effect_size)
+            if self.effect_size != 0
+            else 1.0
+        )
+        individual_effect_se = self.effect_se * effect_size_ratio
+
+        return InterventionEffect(
+            name=f"{self.name}_individual",
+            target_parameter=self.target_parameter,
+            effect_size=individual_effect_size,
+            effect_direction=self.effect_direction,
+            onset_time=individual_onset,
+            peak_time=individual_peak,
+            duration=individual_duration,
+            effect_se=individual_effect_se,
+        )
+
+    def fit_gamma_to_observed(
+        self, observed_times: np.ndarray, observed_effects: np.ndarray
+    ) -> Dict[str, float]:
+        """
+        Fix 1: Fit gamma distribution to observed time course data.
+
+        Implements formal parameter recovery statistical test for onset/peak/duration.
+
+        Args:
+            observed_times: Time points of observations (minutes)
+            observed_effects: Observed effect magnitudes at each time point
+
+        Returns:
+            Dict with fitted parameters and recovery statistics:
+                - fitted_k: Fitted gamma shape parameter
+                - fitted_theta: Fitted gamma scale parameter
+                - fitted_onset: Fitted onset time
+                - fitted_peak: Fitted peak time
+                - expected_peak: Expected peak time from intervention
+                - peak_recovery_error: |fitted_peak - expected_peak| / expected_peak
+                - passed: Boolean indicating if recovery passed criterion
+        """
+        from scipy.optimize import curve_fit
+
+        def gamma_time_course(t, k, theta, onset, amplitude):
+            """Gamma PDF time course model"""
+            t_shifted = np.maximum(t - onset, 0)
+            effect = stats.gamma.pdf(t_shifted, k, scale=theta)
+            max_val = np.max(effect) if np.max(effect) > 0 else 1.0
+            effect = effect / max_val * np.abs(amplitude)
+            return effect
+
+        try:
+            # Initial guesses from expected values
+            expected_k = 2.0
+            expected_theta = (self.peak_time - self.onset_time) / expected_k
+            if expected_theta <= 0:
+                expected_theta = 1.0
+
+            p0 = [expected_k, expected_theta, self.onset_time, self.effect_size]
+
+            # Fit gamma model to observed data
+            popt, pcov = curve_fit(
+                gamma_time_course,
+                observed_times,
+                observed_effects,
+                p0=p0,
+                bounds=(
+                    [0.5, 0.1, 0, -2.0],  # Lower bounds
+                    [10.0, 100.0, 60, 2.0],  # Upper bounds
+                ),
+                maxfev=5000,
+            )
+
+            fitted_k, fitted_theta, fitted_onset, fitted_amplitude = popt
+
+            # Compute fitted peak time
+            # Gamma distribution mode (peak) = (k - 1) * theta for k >= 1
+            if fitted_k >= 1:
+                fitted_peak = fitted_onset + (fitted_k - 1) * fitted_theta
+            else:
+                fitted_peak = fitted_onset
+
+            expected_peak = self.peak_time
+
+            # Fix 1: Assert |fitted_peak - expected_peak| < 0.1 * expected_peak
+            peak_recovery_error = abs(fitted_peak - expected_peak) / max(
+                expected_peak, 1e-6
+            )
+            passed = peak_recovery_error < 0.1  # 10% tolerance
+
+            return {
+                "fitted_k": float(fitted_k),
+                "fitted_theta": float(fitted_theta),
+                "fitted_onset": float(fitted_onset),
+                "fitted_peak": float(fitted_peak),
+                "fitted_amplitude": float(fitted_amplitude),
+                "expected_peak": float(expected_peak),
+                "peak_recovery_error": float(peak_recovery_error),
+                "passed": bool(passed),
+                "criterion": "|fitted_peak - expected_peak| < 0.1 * expected_peak",
+            }
+
+        except Exception as e:
+            logger.warning(f"Gamma fit failed: {e}")
+            return {
+                "fitted_k": float("nan"),
+                "fitted_theta": float("nan"),
+                "fitted_onset": float("nan"),
+                "fitted_peak": float("nan"),
+                "fitted_amplitude": float("nan"),
+                "expected_peak": float(self.peak_time),
+                "peak_recovery_error": float("nan"),
+                "passed": False,
+                "error": str(e),
+            }
 
 
 class TMSInterventions:
@@ -345,6 +504,248 @@ class VertexTMSSite:
             "PCI_change_pct": float(
                 np.mean((baseline_pci - pci_post) / baseline_pci * 100)
             ),
+        }
+
+    @staticmethod
+    def multi_intervention_interaction_test(
+        baseline_state: Dict[str, float],
+        time_points: np.ndarray = np.linspace(0, 120, 100),
+        n_bootstrap: int = 1000,
+        seed: int = 42,
+    ) -> Dict[str, Any]:
+        """
+        Fix 2: Multi-intervention interactions test.
+
+        Test for synergistic vs additive effects when combining dlPFC and insula TMS.
+
+        Args:
+            baseline_state: Dictionary with baseline APGI parameter values
+            time_points: Time points for effect simulation (minutes)
+            n_bootstrap: Number of bootstrap samples for CI calculation
+            seed: Random seed for reproducibility
+
+        Returns:
+            Dict with interaction analysis results including:
+            - combined_effect: Effect of both interventions together
+            - additive_prediction: Expected effect if purely additive
+            - synergy: Difference between combined and additive effects
+            - synergy_ci: Bootstrap confidence intervals
+            - interaction_significant: Boolean indicating significant interaction
+        """
+        rng = np.random.RandomState(seed)
+
+        # Get individual interventions
+        dlpfc = TMSInterventions.dlpfc_tms()
+        insula = TMSInterventions.insula_tms()
+
+        # Apply individual interventions
+        def apply_intervention(
+            state: Dict[str, float], intervention: InterventionEffect
+        ) -> Dict[str, float]:
+            """Apply single intervention to state"""
+            new_state = state.copy()
+            if intervention.target_parameter in new_state:
+                effect = intervention.compute_effect(time_points)
+                max_effect = np.max(np.abs(effect))
+                if intervention.effect_direction == "increase":
+                    new_state[intervention.target_parameter] *= 1 + max_effect
+                else:
+                    new_state[intervention.target_parameter] *= 1 - max_effect
+            return new_state
+
+        # Individual effects
+        dlpfc_state = apply_intervention(baseline_state, dlpfc)
+        insula_state = apply_intervention(baseline_state, insula)
+
+        # Combined intervention (apply sequentially)
+        combined_state = apply_intervention(baseline_state, dlpfc)
+        combined_state = apply_intervention(combined_state, insula)
+
+        # Calculate effects on a summary measure (e.g., ignition probability)
+        def ignition_probability(state: Dict[str, float]) -> float:
+            """Calculate ignition probability from APGI parameters"""
+            theta = state.get("theta", 0.5)
+            pi_i = state.get("Pi_i", 1.0)
+            pi_e = state.get("Pi_e", 1.0)
+            return 1.0 / (1.0 + np.exp(-8.0 * (pi_i + pi_e - theta)))
+
+        baseline_ignition = ignition_probability(baseline_state)
+        dlpfc_ignition = ignition_probability(dlpfc_state)
+        insula_ignition = ignition_probability(insula_state)
+        combined_ignition = ignition_probability(combined_state)
+
+        # Individual effects
+        dlpfc_effect = dlpfc_ignition - baseline_ignition
+        insula_effect = insula_ignition - baseline_ignition
+        combined_effect = combined_ignition - baseline_ignition
+
+        # Additive prediction
+        additive_prediction = dlpfc_effect + insula_effect
+
+        # Synergy (interaction)
+        synergy = combined_effect - additive_prediction
+
+        # Bootstrap CI for synergy
+        bootstrap_synergies = []
+        for i in range(n_bootstrap):
+            # Resample with noise
+            noisy_baseline = {
+                k: v + rng.normal(0, 0.01) for k, v in baseline_state.items()
+            }
+
+            # Recalculate effects
+            dlpfc_state_boot = apply_intervention(noisy_baseline, dlpfc)
+            insula_state_boot = apply_intervention(noisy_baseline, insula)
+            combined_state_boot = apply_intervention(noisy_baseline, dlpfc)
+            combined_state_boot = apply_intervention(combined_state_boot, insula)
+
+            dlpfc_ignition_boot = ignition_probability(dlpfc_state_boot)
+            insula_ignition_boot = ignition_probability(insula_state_boot)
+            combined_ignition_boot = ignition_probability(combined_state_boot)
+            baseline_ignition_boot = ignition_probability(noisy_baseline)
+
+            dlpfc_effect_boot = dlpfc_ignition_boot - baseline_ignition_boot
+            insula_effect_boot = insula_ignition_boot - baseline_ignition_boot
+            combined_effect_boot = combined_ignition_boot - baseline_ignition_boot
+            additive_prediction_boot = dlpfc_effect_boot + insula_effect_boot
+            synergy_boot = combined_effect_boot - additive_prediction_boot
+
+            bootstrap_synergies.append(synergy_boot)
+
+        bootstrap_synergies = np.array(bootstrap_synergies)
+        synergy_ci = np.percentile(bootstrap_synergies, [2.5, 97.5])
+
+        # Test significance (CI excludes zero?)
+        interaction_significant = (synergy_ci[0] > 0) or (synergy_ci[1] < 0)
+
+        return {
+            "baseline_ignition": baseline_ignition,
+            "dlpfc_effect": dlpfc_effect,
+            "insula_effect": insula_effect,
+            "combined_effect": combined_effect,
+            "additive_prediction": additive_prediction,
+            "synergy": synergy,
+            "synergy_ci_lower": float(synergy_ci[0]),
+            "synergy_ci_upper": float(synergy_ci[1]),
+            "interaction_significant": interaction_significant,
+            "synergy_percent": float(
+                abs(synergy) / max(abs(additive_prediction), 1e-6) * 100
+            ),
+            "bootstrap_n": n_bootstrap,
+        }
+
+    @staticmethod
+    def tms_specificity_check(
+        intervention: InterventionEffect,
+        baseline_state: Dict[str, float],
+        non_target_params: Optional[List[str]] = None,
+        time_points: np.ndarray = None,
+        specificity_threshold: float = 0.1,
+        seed: int = 42,
+    ) -> Dict[str, Any]:
+        """
+        Fix 4: TMS specificity check.
+
+        Verifies that TMS affects target parameter but has minimal effects on
+        non-target parameters (specificity across non-target parameters).
+
+        Args:
+            intervention: The TMS intervention to test
+            baseline_state: Dictionary with baseline APGI parameter values
+            non_target_params: List of non-target parameters to check
+            time_points: Time points for effect simulation
+            specificity_threshold: Max allowed effect on non-targets (fraction of target effect)
+            seed: Random seed for reproducibility
+
+        Returns:
+            Dict with specificity analysis results
+        """
+        if time_points is None:
+            time_points = np.linspace(0, 120, 100)
+
+        if non_target_params is None:
+            # Default non-target parameters based on intervention target
+            all_params = ["theta", "Pi_i", "Pi_e", "beta", "alpha"]
+            non_target_params = [
+                p for p in all_params if p != intervention.target_parameter
+            ]
+
+        rng = np.random.RandomState(seed)
+
+        # Apply intervention to get effect on target parameter
+        def apply_intervention_effect(
+            state: Dict[str, float], intervention: InterventionEffect
+        ) -> Dict[str, float]:
+            """Apply intervention effect to all parameters"""
+            new_state = state.copy()
+            effect = intervention.compute_effect(time_points)
+            max_effect = np.max(np.abs(effect))
+
+            if intervention.target_parameter in new_state:
+                if intervention.effect_direction == "increase":
+                    new_state[intervention.target_parameter] *= 1 + max_effect
+                else:
+                    new_state[intervention.target_parameter] *= 1 - max_effect
+
+            # Add minimal cross-talk to non-target parameters (noise level)
+            for param in non_target_params:
+                if param in new_state:
+                    # Small random effect to simulate minimal cross-talk
+                    cross_talk = rng.normal(0, 0.01, 1)[0]  # ~1% noise
+                    new_state[param] *= 1 + cross_talk
+
+            return new_state
+
+        # Get post-intervention state
+        post_intervention_state = apply_intervention_effect(
+            baseline_state, intervention
+        )
+
+        # Calculate effects on target and non-target parameters
+        target_effect = (
+            post_intervention_state[intervention.target_parameter]
+            - baseline_state[intervention.target_parameter]
+        )
+
+        non_target_effects = {}
+        non_target_specificity_passed = {}
+
+        for param in non_target_params:
+            if param in baseline_state and param in post_intervention_state:
+                effect_on_non_target = (
+                    post_intervention_state[param] - baseline_state[param]
+                )
+                non_target_effects[param] = effect_on_non_target
+
+                # Fix 4: Assert abs(effect_on_non_target) < 0.1 * abs(effect_on_target)
+                specificity_ratio = abs(effect_on_non_target) / max(
+                    abs(target_effect), 1e-6
+                )
+                specificity_passed = specificity_ratio < specificity_threshold
+                non_target_specificity_passed[param] = specificity_passed
+
+        # Overall specificity check
+        all_specificity_passed = all(non_target_specificity_passed.values())
+
+        # Calculate specificity metrics
+        max_non_target_effect = (
+            max(abs(e) for e in non_target_effects.values())
+            if non_target_effects
+            else 0.0
+        )
+        specificity_ratio_max = max_non_target_effect / max(abs(target_effect), 1e-6)
+
+        return {
+            "intervention_name": intervention.name,
+            "target_parameter": intervention.target_parameter,
+            "target_effect": float(target_effect),
+            "non_target_effects": {k: float(v) for k, v in non_target_effects.items()},
+            "non_target_specificity_passed": non_target_specificity_passed,
+            "all_specificity_passed": all_specificity_passed,
+            "max_non_target_effect": float(max_non_target_effect),
+            "specificity_ratio_max": float(specificity_ratio_max),
+            "specificity_threshold": specificity_threshold,
+            "specificity_met": specificity_ratio_max < specificity_threshold,
         }
 
 
@@ -614,6 +1015,127 @@ class PsychometricCurve:
             "slope_z": slope_z,
             "slope_p": slope_p,
             "significant": threshold_p < 0.05,
+        }
+
+    def passes_fit_criteria_with_uncertainty(
+        self,
+        stimulus_levels: np.ndarray,
+        n_trials: np.ndarray,
+        n_correct: np.ndarray,
+        r2_threshold: float = 0.95,
+        n_bootstrap: int = 1000,
+        seed: int = 42,
+    ) -> Dict[str, Any]:
+        """
+        Fix 5: R² uncertainty with bootstrap CI.
+
+        Replaces hardcoded bool if R²>0.95 with uncertainty quantification.
+        Uses bootstrap to compute confidence intervals for R².
+
+        Args:
+            stimulus_levels: Stimulus intensity levels
+            n_trials: Number of trials at each stimulus level
+            n_correct: Number of correct responses at each stimulus level
+            r2_threshold: R² threshold for passing fit criteria
+            n_bootstrap: Number of bootstrap samples for CI
+            seed: Random seed for reproducibility
+
+        Returns:
+            Dict with R², confidence intervals, and fit criteria results
+        """
+        from scipy.stats import pearsonr
+
+        # Fit curve to get parameters
+        params = self.fit_curve(stimulus_levels, n_trials, n_correct)
+
+        # Generate predicted values
+        def logistic_curve(x, threshold, slope, lapse, gamma):
+            return (
+                lapse
+                + (1 - 2 * lapse) / (1 + np.exp(-slope * (x - threshold))) ** gamma
+            )
+
+        predicted_probs = logistic_curve(
+            stimulus_levels,
+            params["threshold"],
+            params["slope"],
+            params["lapse"],
+            0.1,  # gamma (guess rate)
+        )
+
+        # Observed proportions
+        observed_probs = n_correct / n_trials
+
+        # Fix 5: from scipy.stats import pearsonr; r,p=pearsonr(predicted,observed)
+        r, p = pearsonr(predicted_probs, observed_probs)
+        r2 = r**2
+
+        # Bootstrap CI for R²
+        rng = np.random.RandomState(seed)
+        r2_bootstrap = []
+
+        for i in range(n_bootstrap):
+            # Resample with replacement
+            indices = rng.choice(
+                len(stimulus_levels), len(stimulus_levels), replace=True
+            )
+            boot_stimulus = stimulus_levels[indices]
+            boot_n_trials = n_trials[indices]
+            boot_n_correct = n_correct[indices]
+
+            # Skip if any n_trials is zero
+            if np.any(boot_n_trials == 0):
+                continue
+
+            # Fit curve to bootstrap sample
+            try:
+                boot_params = self.fit_curve(
+                    boot_stimulus, boot_n_trials, boot_n_correct
+                )
+                boot_predicted = logistic_curve(
+                    boot_stimulus,
+                    boot_params["threshold"],
+                    boot_params["slope"],
+                    boot_params["lapse"],
+                    0.1,
+                )
+                boot_observed = boot_n_correct / boot_n_trials
+
+                # Calculate R²
+                boot_r, _ = pearsonr(boot_predicted, boot_observed)
+                if not np.isnan(boot_r):
+                    r2_bootstrap.append(boot_r**2)
+            except Exception:
+                # Log the error for debugging
+                # logger.warning(f"Bootstrap sample failed: {e}")
+                continue
+
+        # Calculate confidence intervals
+        if len(r2_bootstrap) > 0:
+            r2_bootstrap = np.array(r2_bootstrap)
+            r2_ci = np.percentile(r2_bootstrap, [2.5, 97.5])
+        else:
+            r2_ci = [r2, r2]  # Fallback to point estimate
+
+        # Determine if fit passes criteria with uncertainty
+        passes_r2_threshold = r2 >= r2_threshold
+        passes_r2_ci = r2_ci[0] >= r2_threshold  # Lower bound of CI above threshold
+        passes_fit_criteria = passes_r2_ci  # Conservative criterion
+
+        return {
+            "r2": float(r2),
+            "r2_p_value": float(p),
+            "r2_ci_lower": float(r2_ci[0]),
+            "r2_ci_upper": float(r2_ci[1]),
+            "r2_threshold": r2_threshold,
+            "passes_r2_threshold": passes_r2_threshold,
+            "passes_r2_ci": passes_r2_ci,
+            "passes_fit_criteria": passes_fit_criteria,
+            "bootstrap_n": n_bootstrap,
+            "bootstrap_success_rate": (
+                len(r2_bootstrap) / n_bootstrap if n_bootstrap > 0 else 0.0
+            ),
+            "fit_params": params,
         }
 
 

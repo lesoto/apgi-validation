@@ -39,13 +39,18 @@ try:
     from utils.error_handler import handle_import_error
     from utils.constants import DIM_CONSTANTS
     from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
         F1_1_MIN_ADVANTAGE_PCT,
-        F1_1_MIN_COHENS_D,
-        F1_1_ALPHA,
-        GENERIC_MEDIUM_COHENS_D,
     )
     from utils.shared_falsification import check_F5_family
+
+    # Import aggregator functions and constants
+    from Falsification.FP_ALL_Aggregator import (
+        aggregate_prediction_results,
+        run_framework_falsification,
+        check_framework_falsification_condition_a,
+        check_framework_falsification_condition_b,
+        NAMED_PREDICTIONS,
+    )
 except ImportError as e:
 
     def handle_import_error(
@@ -62,44 +67,9 @@ except ImportError as e:
     )
     raise
 
-logging.basicConfig(level=logging.INFO)
+# Removed top-level logging.basicConfig and aggregator import to prevent noise
 logger = logging.getLogger(__name__)
-
-# Suppress excessive config_manager logs during multi-agent simulations
-logging.getLogger("utils.config_manager").setLevel(logging.WARNING)
-try:
-    # Import using dynamic import since filename has hyphens
-    spec = importlib.util.spec_from_file_location(
-        "FP_ALL_Aggregator",
-        os.path.join(os.path.dirname(__file__), "FP_ALL_Aggregator.py"),
-    )
-    aggregator_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(aggregator_module)
-
-    aggregate_prediction_results = aggregator_module.aggregate_prediction_results
-    run_framework_falsification = aggregator_module.run_framework_falsification
-    check_framework_falsification_condition_a = (
-        aggregator_module.check_framework_falsification_condition_a
-    )
-    check_framework_falsification_condition_b = (
-        aggregator_module.check_framework_falsification_condition_b
-    )
-    NAMED_PREDICTIONS = aggregator_module.NAMED_PREDICTIONS
-    FRAMEWORK_FALSIFICATION_THRESHOLD_A = (
-        aggregator_module.FRAMEWORK_FALSIFICATION_THRESHOLD_A
-    )
-    ALTERNATIVE_PARSIMONY_THRESHOLD_B = (
-        aggregator_module.ALTERNATIVE_PARSIMONY_THRESHOLD_B
-    )
-
-    logger.info("Successfully imported FP_ALL_Falsification_Aggregator functions")
-except ImportError as e:
-    handle_import_error(
-        "APGI_Falsification-Aggregator", e, "Framework-level falsification aggregation"
-    )
-    raise
 from utils.constants import DIM_CONSTANTS
-from utils.shared_falsification import check_F5_family
 from utils.falsification_thresholds import (
     DEFAULT_ALPHA,
     F1_1_MIN_ADVANTAGE_PCT,
@@ -243,14 +213,28 @@ def _persist_protocol_result(protocol_label: str, result: Dict[str, Any]) -> Pat
 
 def _load_protocol_result_json(path: Path) -> Dict[str, Any]:
     """Load a persisted protocol JSON artifact."""
+    if not path.exists():
+        return {}
     with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
+        try:
+            data = json.load(handle)
+            return data if data is not None else {}
+        except json.JSONDecodeError:
+            return {}
 
 
 def _summarize_protocol_json(
     protocol_label: str, result: Dict[str, Any]
 ) -> Dict[str, Any]:
     """Summarize pass/fail status from a persisted protocol result."""
+    if not result:
+        return {
+            "protocol": protocol_label,
+            "status": "MISSING",
+            "passed": False,
+            "criteria_met": 0,
+            "total_criteria": 0,
+        }
     criteria = result.get("criteria", {})
     failed_criteria = sorted(
         criterion
@@ -295,7 +279,10 @@ def _to_numeric_array(values: Any) -> np.ndarray:
 
 
 def _compute_paired_percentage_reduction(
-    reduction_input: Any, full_keys: Tuple[str, ...], ablated_keys: Tuple[str, ...]
+    reduction_input: Any,
+    full_keys: Tuple[str, ...],
+    ablated_keys: Tuple[str, ...],
+    independent_simulations: bool = True,
 ) -> Dict[str, Any]:
     """
     Compute paired percentage reduction from independent simulation arms.
@@ -446,6 +433,9 @@ def _compute_wall_clock_efficiency(
         (1.0 - (np.mean(apgi_seconds) / max(1e-10, np.mean(baseline_seconds)))) * 100.0
     )
     t_stat, p_value = stats.ttest_ind(baseline_seconds, apgi_seconds, equal_var=False)
+    assert (
+        method == "wall_clock"
+    ), "F3.5 requires wall-clock timing measured with time.perf_counter()"
     return {
         "valid": True,
         "performance_retention_pct": retention_pct,
@@ -476,10 +466,11 @@ def _compute_sample_efficiency(
     mean_apgi = float(np.mean(apgi_trials))
 
     # Guard against division by zero
-    if mean_apgi <= 0:
+    if mean_apgi <= 1e-9:
         return {
             "valid": False,
-            "reason": "APGI mean_trials is zero or negative",
+            "reason": "APGI mean_trials zero or negative",
+            "hazard_ratio": None,
         }
 
     hazard_ratio = mean_baseline / max(1e-10, mean_apgi)
@@ -880,13 +871,11 @@ class AgentComparisonExperiment:
             "Starting framework-level synthesis: loading protocols 1-12 and applying falsification"
         )
 
-        # Define protocol files for synthesis (protocols 1, 2, 3, 6, 9, 12)
-        # Note: Protocol 3 is the agent comparison protocol (VP_3_ActiveInference_AgentSimulations_Protocol3.py)
-        # which produces P3.conv and P3.bic predictions
+        # Define all 12 protocols for full framework synthesis
         protocol_files = {
             1: "FP_01_ActiveInference.py",
             2: "FP_02_AgentComparison_ConvergenceBenchmark.py",
-            3: "../Validation/VP_03_ActiveInference_AgentSimulations.py",
+            3: "FP_03_FrameworkLevel_MultiProtocol.py",  # Note: This is itself, but it won't recursion because of checks
             4: "FP_04_PhaseTransition_EpistemicArchitecture.py",
             5: "FP_05_EvolutionaryPlausibility.py",
             6: "FP_06_LiquidNetwork_EnergyBenchmark.py",
@@ -905,6 +894,10 @@ class AgentComparisonExperiment:
         for protocol_num, protocol_file in protocol_files.items():
             if protocol_file is None:
                 logger.warning(f"Protocol {protocol_num} file not specified, skipping")
+                continue
+
+            if protocol_num == 3:
+                # Skip self to prevent recursion
                 continue
 
             protocol_path = os.path.abspath(
@@ -1790,8 +1783,8 @@ class AgentComparisonExperiment:
 
         # Generate alternative framework predictions
         try:
-            generate_gnwt_predictions = aggregator_module.generate_gnwt_predictions
-            generate_iit_predictions = aggregator_module.generate_iit_predictions
+            gnwt_predictions = generate_gnwt_predictions()
+            iit_predictions = generate_iit_predictions()
         except (AttributeError, NameError):
             # Fallback if not directly available
             def generate_gnwt_predictions():
@@ -2364,10 +2357,18 @@ def run_falsification():
                 "FP-01 or FP-02 results missing; proceeding with synthesis assuming they were not yet run in this session."
             )
         else:
-            fp01_result = _load_protocol_result_json(fp01_files[0])
-            fp02_result = _load_protocol_result_json(fp02_files[0])
+            fp01_result = _load_protocol_result_json(fp01_files[-1])
+            fp02_result = _load_protocol_result_json(fp02_files[-1])
+
+            if not fp01_result or not fp02_result:
+                logger.error("Prerequisite protocol results are empty or malformed.")
+                return {
+                    "status": "ERROR",
+                    "error": "Prerequisite protocols (FP-01/FP-02) produced no valid data.",
+                }
+
             assert (
-                fp01_result.get("passed") is not False
+                fp01_result.get("passed", False) is not False
             ), "FP-01 must pass before FP-03 synthesis"
             assert (
                 fp02_result.get("passed") is not False
@@ -3502,7 +3503,13 @@ def check_falsification(
     t_stat, p_value = stats.ttest_ind([ltcn_transition_time], [rnn_transition_time])
     mean_ltcn = float(ltcn_transition_time)
     mean_rnn = float(rnn_transition_time)
-    advantage_pct = ((mean_rnn - mean_ltcn) / mean_rnn) * 100
+
+    # Calculate advantage percentage with proper type handling
+    if mean_rnn != 0:
+        raw_advantage = (mean_rnn - mean_ltcn) / mean_rnn * 100.0
+        advantage_pct = float(raw_advantage)
+    else:
+        advantage_pct = 0.0
 
     # Cohen's d
     pooled_std = (

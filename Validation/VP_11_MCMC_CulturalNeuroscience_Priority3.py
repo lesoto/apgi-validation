@@ -52,6 +52,7 @@ Dependencies:
 Gelman-Rubin convergence criterion: R̂ ≤ 1.01 for all parameters.
 """
 
+import os
 import logging
 import sys
 import warnings
@@ -91,19 +92,30 @@ if str(project_root) not in sys.path:
 try:
     from utils.logging_config import apgi_logger as logger
 except ImportError:
-    logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)  # type: ignore[misc,assignment]
 
-# Optional heavy dependencies (PyMC/ArviZ)
-try:
-    import pymc as pm
-    import arviz as az
 
-    HAS_PYMC = True
+# Lazy import helpers for heavy Bayesian dependencies
+def safe_import_bayesian() -> Tuple[bool, Any, Any]:
+    """Environment-aware lazy loading of PyMC/ArviZ."""
+    try:
+        import pymc as pm
+        import arviz as az
+
+        return True, pm, az
+    except (ImportError, RuntimeError, Exception):
+        return False, None, None
+
+
+HAS_PYMC, pm, az = safe_import_bayesian()
+
+if HAS_PYMC:
     logger.info("PyMC/ArviZ available — NUTS sampler active.")
-except ImportError:
-    HAS_PYMC = False
-    logger.warning("PyMC not found — falling back to Metropolis-Hastings sampler.")
+else:
+    logger.warning(
+        "PyMC not found or unstable — falling back to Metropolis-Hastings sampler."
+    )
+
 try:
     from utils.falsification_thresholds import (
         DEFAULT_ALPHA,
@@ -4857,8 +4869,44 @@ class ArchitectureFailureChecker:
 # SECTION 14 — CLI ENTRY POINT
 # =============================================================================
 
+
+def main(**kwargs) -> Dict[str, Any]:
+    """
+    Main entry point for Protocol 11 (GUI/Master_Validation compatible).
+    """
+    # Force NumPy MCMC if environment variable is set
+    if os.environ.get("APGI_FORCE_NUMPY_MCMC") == "1":
+        global HAS_PYMC
+        HAS_PYMC = False
+        logger.info(
+            "Forcing NumPy MCMC fallback via APGI_FORCE_NUMPY_MCMC environment variable."
+        )
+
+    # Defaults for quick validation if not specified
+    if "n_subjects" not in kwargs:
+        kwargs["n_subjects"] = 20  # Reduced for standard GUI run
+    if "n_trials_per_subject" not in kwargs:
+        kwargs["n_trials_per_subject"] = 100
+    if "n_samples" not in kwargs:
+        kwargs["n_samples"] = 500
+    if "n_tune" not in kwargs:
+        kwargs["n_tune"] = 200
+
+    try:
+        return run_validation(**kwargs)
+    except Exception as e:
+        logger.error(f"VP-11 Runtime Error: {e}")
+        return {
+            "passed": False,
+            "status": "error",
+            "message": str(e),
+            "protocol_id": "VP-11",
+        }
+
+
 if __name__ == "__main__":
     import argparse
+    import sys
 
     parser = argparse.ArgumentParser(
         description="APGI Validation Protocol 11 — Bayesian Estimation & Individual Differences"
@@ -4899,7 +4947,10 @@ if __name__ == "__main__":
     parser.add_argument("--quiet", action="store_true", help="Suppress printed summary")
     args = parser.parse_args()
 
-    result = run_validation(
+    # Configure logging for CLI run
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    result = main(
         n_subjects=args.n_subjects,
         n_trials_per_subject=args.n_trials,
         n_samples=args.n_samples,
@@ -4908,4 +4959,4 @@ if __name__ == "__main__":
         seed=args.seed,
         verbose=not args.quiet,
     )
-    sys.exit(0 if result["passed"] else 1)
+    sys.exit(0 if result.get("passed", False) else 1)

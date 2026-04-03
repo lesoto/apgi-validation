@@ -31,8 +31,16 @@ from typing import Dict, List, Tuple
 import numpy as np
 
 # NEW: Import for Bayesian inversion
-import pymc as pm
-import pytensor.tensor as pt
+try:
+    import pymc as pm
+    import pytensor.tensor as pt
+
+    HAS_PYMC = True
+except (ImportError, AttributeError):
+    HAS_PYMC = False
+    pm = None
+    pt = None
+
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report

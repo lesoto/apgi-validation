@@ -39,26 +39,30 @@ Expected Result Schema:
 """
 
 import logging
-import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy import stats
 from scipy.signal import convolve
 
-# Fix 2: Import ANTICIPATORY_CORRELATION_MIN from falsification_thresholds
+# Fix 3: Import HRF from shared module (removes duplicate definition)
+from utils.hrf_utils import double_gamma_hrf
+
+# Fix 2: Import thresholds from falsification_thresholds
 try:
     from utils.falsification_thresholds import (
         V15_ANTICIPATORY_CORRELATION_MIN,
         V15_ANTICIPATORY_WINDOW_MS,
+        V15_ALPHA,
     )
 except ImportError:
     logger = logging.getLogger(__name__)
     logger.warning("Could not import V15 thresholds from falsification_thresholds")
     V15_ANTICIPATORY_CORRELATION_MIN = 0.40
     V15_ANTICIPATORY_WINDOW_MS = (-500, 0)
+    V15_ALPHA = 0.05
 
 try:
     import nibabel as nib
@@ -68,51 +72,17 @@ except ImportError:
     HAS_NIBABEL = False
     nib = None
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+try:
+    from utils.logging_config import apgi_logger as logger
+except ImportError:
+    logger = logging.getLogger(__name__)  # type: ignore[assignment]
 
 # Set random seeds for reproducibility
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
-# Fix 3: Synchronize anticipatory window with VP-08
-# Import from VP-08 if available, otherwise use local constant
-try:
-    from Validation.VP_08_Psychophysical_ThresholdEstimation import (
-        ANTICIPATORY_WINDOW_MS as VP08_ANTICIPATORY_WINDOW_MS,
-    )
-
-    ANTICIPATORY_WINDOW_MS = VP08_ANTICIPATORY_WINDOW_MS
-except ImportError:
-    # Fallback to local constant if VP-08 import fails
-    ANTICIPATORY_WINDOW_MS = V15_ANTICIPATORY_WINDOW_MS
-
-
-def double_gamma_hrf(t: np.ndarray) -> np.ndarray:
-    """Canonical SPM/FSL-style double-gamma hemodynamic response function."""
-    response_peak_delay_s = 6.0
-    undershoot_delay_s = 16.0
-    response_dispersion_s = 1.0
-    undershoot_dispersion_s = 1.0
-    undershoot_ratio = 1.0 / 6.0
-    t_safe = np.clip(t, 1e-8, None)
-    hrf = (
-        t_safe ** (response_peak_delay_s - 1)
-        * np.exp(-t_safe / response_dispersion_s)
-        / (
-            response_dispersion_s**response_peak_delay_s
-            * math.factorial(int(response_peak_delay_s) - 1)
-        )
-    ) - undershoot_ratio * (
-        t_safe ** (undershoot_delay_s - 1)
-        * np.exp(-t_safe / undershoot_dispersion_s)
-        / (
-            undershoot_dispersion_s**undershoot_delay_s
-            * math.factorial(int(undershoot_delay_s) - 1)
-        )
-    )
-    hrf[t <= 0] = 0.0
-    return hrf / np.max(hrf)
+# Fix 2: Synchronize anticipatory window with falsification_thresholds
+ANTICIPATORY_WINDOW_MS = V15_ANTICIPATORY_WINDOW_MS
 
 
 @dataclass
@@ -256,16 +226,15 @@ def load_fmri_data(fmri_data_path: str) -> Dict[str, Any]:
         if not HAS_NIBABEL:
             raise ImportError("nibabel required for NIfTI files")
         img = nib.load(str(path))
-        data = np.asarray(img.get_fdata(), dtype=float)
+        # Type ignore: nibabel typing issue with get_fdata
+        data = np.asarray(img.get_fdata(), dtype=float)  # type: ignore
         if data.ndim < 4:
             raise ValueError("Expected 4D NIfTI (x, y, z, time)")
         voxel_ts = data.reshape(-1, data.shape[-1])
         mean_ts = np.nanmean(voxel_ts, axis=0)
-        dt = (
-            float(img.header.get_zooms()[-1])
-            if len(img.header.get_zooms()) >= 4
-            else 1.0
-        )
+        # Type ignore: nibabel typing issue with get_zooms
+        header_zooms = img.header.get_zooms()  # type: ignore
+        dt = float(header_zooms[-1]) if len(header_zooms) >= 4 else 1.0
         return {
             "vmPFC_bold": mean_ts.copy(),
             "ant_insula_bold": mean_ts.copy(),
@@ -287,7 +256,8 @@ def validate_vmPFC_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
     dt = sim_results["dt"]
     pts_per_trial = int(sim_results["trial_duration"] / dt)
 
-    threat_trials, safe_trials = [], []
+    threat_trials: List[Dict[str, np.ndarray]] = []
+    safe_trials: List[Dict[str, np.ndarray]] = []
     for i, cond in enumerate(conditions):
         idx_start = i * pts_per_trial
         idx_end = idx_start + pts_per_trial
@@ -510,6 +480,60 @@ def run_validation(
     }
 
 
+def compute_power_analysis_v15_2(
+    expected_correlation: float = 0.40,
+    power: float = 0.80,
+    alpha: float = 0.05,
+) -> Dict[str, Any]:
+    """
+    Fix 5: Add power analysis for V15.2 vmPFC-insula connectivity.
+
+    Computes required sample size N for detecting correlation r > 0.40
+    at specified power level. Uses VP-14 effect size estimates as prior.
+
+    Args:
+        expected_correlation: Expected Pearson r (default: 0.40 from V15.2 threshold)
+        power: Desired statistical power (default: 0.80)
+        alpha: Significance level (default: 0.05)
+
+    Returns:
+        Dictionary with power analysis results
+    """
+    from scipy import stats
+
+    # Convert correlation r to Cohen's q (effect size for correlations)
+    # Using Fisher z-transformation for more accurate power analysis
+    z_r = np.arctanh(expected_correlation)
+
+    # For one-sided test (testing r > threshold), use alpha not alpha/2
+    z_alpha = stats.norm.ppf(1 - alpha)
+    z_beta = stats.norm.ppf(power)
+
+    # Sample size formula for correlation tests
+    # N ≈ ((Z_α + Z_β) / Z_r)^2 + 3
+    n_required = ((z_alpha + z_beta) / z_r) ** 2 + 3
+
+    # Conservative estimate: round up and add 10% buffer
+    n_conservative = int(np.ceil(n_required * 1.1))
+
+    # Compute minimum detectable effect at N=30 (VP-14 default sample size)
+    n_default = 30
+    z_critical = (z_alpha + z_beta) / np.sqrt(n_default - 3)
+    min_detectable_r = np.tanh(z_critical)
+
+    return {
+        "required_n": n_conservative,
+        "expected_correlation": expected_correlation,
+        "power": power,
+        "alpha": alpha,
+        "z_transform": float(z_r),
+        "formula": "N ≈ ((Z_α + Z_β) / Z_r)² + 3",
+        "min_detectable_at_n30": float(min_detectable_r),
+        "prior_source": "VP-14 effect size estimates (r ≈ 0.40 from vmPFC-SCR connectivity)",
+        "note": f"Based on VP-14 prior: need N={n_conservative} for 80% power at r=0.40",
+    }
+
+
 def get_falsification_criteria() -> Dict[str, Any]:
     """Return VP-15 falsification criteria."""
     return {
@@ -524,6 +548,7 @@ def get_falsification_criteria() -> Dict[str, Any]:
             "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
             "statistical_test": "Pearson correlation",
             "alpha": 0.05,
+            "power_analysis": compute_power_analysis_v15_2(),  # Fix 5
         },
         "V15.3": {
             "description": "Anterior/posterior insula dissociation",
@@ -534,8 +559,25 @@ def get_falsification_criteria() -> Dict[str, Any]:
     }
 
 
+def main(**kwargs) -> Dict[str, Any]:
+    """
+    Main entry point for Protocol 15 (GUI/Master_Validation compatible).
+    """
+    try:
+        return run_validation(**kwargs)
+    except Exception as e:
+        logger.error(f"VP-15 Runtime Error: {e}")
+        return {
+            "passed": False,
+            "status": "error",
+            "message": str(e),
+            "protocol_id": "VP-15",
+        }
+
+
 if __name__ == "__main__":
     import argparse
+    import sys
 
     parser = argparse.ArgumentParser(description="VP-15: fMRI vmPFC Anticipation")
     parser.add_argument("--fmri-data", type=str, help="Path to fMRI data")
@@ -543,9 +585,11 @@ if __name__ == "__main__":
         "--no-synthetic", action="store_true", help="Return STUB instead of synthetic"
     )
     args = parser.parse_args()
-    result = run_validation(
-        fmri_data_path=args.fmri_data, allow_synthetic=not args.no_synthetic
-    )
+
+    # Configure logging for CLI run
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    result = main(fmri_data_path=args.fmri_data, allow_synthetic=not args.no_synthetic)
     print(f"\nVP-15 Status: {result['status']}")
     print(f"Passed: {result['passed']}")
     if result.get("reason"):
@@ -561,3 +605,4 @@ if __name__ == "__main__":
         print(
             f"  {pred_id}: {status} - {pred_data.get('actual', pred_data.get('reason', ''))}"
         )
+    sys.exit(0 if result.get("passed") else (1 if result.get("passed") is False else 0))

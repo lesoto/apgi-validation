@@ -40,6 +40,8 @@ except ImportError:
 from sklearn.linear_model import LogisticRegression
 from tqdm import tqdm
 
+from abc import ABC, abstractmethod
+
 # Add parent directory to path for utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.constants import LEVEL_TIMESCALES
@@ -51,9 +53,10 @@ if str(project_root) not in sys.path:
 
 from utils.constants import DIM_CONSTANTS
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+try:
+    from utils.logging_config import apgi_logger as logger
+except ImportError:
+    logger = logging.getLogger(__name__)  # type: ignore[assignment]
 
 # Set random seeds
 RANDOM_SEED = 42
@@ -63,13 +66,13 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed(RANDOM_SEED)
 
 # =============================================================================
-# AGENT INTERFACE ABSTRACTION
+# AGENT INTERFACE ABSTRACTION (ABC)
 # =============================================================================
 
 
-class AgentInterface:
+class AgentInterface(ABC):
     """
-    Thin interface wrapper for agent comparison and validation
+    Abstract Base Class for agent comparison and validation
 
     This interface eliminates cross-module dependencies by providing
     a standardized contract that all agents must implement.
@@ -82,6 +85,7 @@ class AgentInterface:
         self.last_action: Optional[int] = None
         self.last_obs: Optional[Dict] = None
 
+    @abstractmethod
     def step(self, observation: Dict, dt: float = 0.05) -> Tuple[int, np.ndarray]:
         """
         Execute one agent step
@@ -93,21 +97,31 @@ class AgentInterface:
         Returns:
             Tuple of (action, action_probabilities)
         """
-        raise NotImplementedError("Subclasses must implement step()")
+        pass
 
+    @abstractmethod
     def receive_outcome(
         self, reward: float, intero_cost: float, next_observation: Dict
     ):
         """Process outcome and learn"""
-        raise NotImplementedError("Subclasses must implement receive_outcome()")
+        pass
 
-    def get_n_observations(self) -> int:
-        """Get number of observation dimensions"""
-        raise NotImplementedError("Subclasses must implement get_n_observations()")
+    @property
+    @abstractmethod
+    def observation_dim(self) -> int:
+        """Get number of observation dimensions for fairness validation"""
+        pass
 
+    @property
+    @abstractmethod
+    def action_space(self) -> int:
+        """Get action space size for fairness validation"""
+        pass
+
+    @abstractmethod
     def get_reward_structure(self) -> Dict:
         """Get reward structure for fairness validation"""
-        raise NotImplementedError("Subclasses must implement get_reward_structure()")
+        pass
 
 
 # =============================================================================
@@ -850,11 +864,17 @@ class APGIActiveInferenceAgent(AgentInterface):
             ]
         )
 
-    def get_n_observations(self) -> int:
+    @property
+    def observation_dim(self) -> int:
         """Get number of observation dimensions for fairness validation"""
         # APGI agent uses concatenated exteroceptive (32+16+8=56) + interoceptive (16+8+4=28) = 84 total
         # But for comparison fairness, we report the effective observation space that StandardPP uses
         return 60  # Match StandardPP's state_dim for fair comparison
+
+    @property
+    def action_space(self) -> int:
+        """Get action space size for fairness validation"""
+        return self.config.get("n_actions", DIM_CONSTANTS.ACTION_DIM)
 
     def get_reward_structure(self) -> Dict:
         """Get reward structure for fairness validation"""
@@ -930,10 +950,16 @@ class StandardPPAgent(AgentInterface):
     ):
         self.policy_network.update(reward - intero_cost)
 
-    def get_n_observations(self) -> int:
+    @property
+    def observation_dim(self) -> int:
         """Get number of observation dimensions for fairness validation"""
         # StandardPP uses concatenated exteroceptive (32+16+8=56) + interoceptive (16+8+4=28) = 84 total
         return 60  # Match APGI agent's effective observation space
+
+    @property
+    def action_space(self) -> int:
+        """Get action space size for fairness validation"""
+        return self.config.get("n_actions", 4)
 
     def get_reward_structure(self) -> Dict:
         """Get reward structure for fairness validation"""
@@ -945,13 +971,11 @@ class StandardPPAgent(AgentInterface):
         }
 
 
-class GWTOnlyAgent:
+class GWTOnlyAgent(AgentInterface):
     """Global workspace without interoceptive precision weighting"""
 
     def __init__(self, config: Dict):
-        self.config = config
-        self.time = 0.0
-
+        super().__init__(config)
         self.extero_model = HierarchicalGenerativeModel(
             levels=[
                 {"name": "sensory", "dim": 32, "tau": LEVEL_TIMESCALES.TAU_SENSORY},
@@ -1018,12 +1042,31 @@ class GWTOnlyAgent:
     ):
         self.policy_network.update(reward)
 
+    @property
+    def observation_dim(self) -> int:
+        """Get number of observation dimensions for fairness validation"""
+        return 20  # GWT only uses exteroceptive context
 
-class ActorCriticAgent:
+    @property
+    def action_space(self) -> int:
+        """Get action space size for fairness validation"""
+        return self.config.get("n_actions", 4)
+
+    def get_reward_structure(self) -> Dict:
+        """Get reward structure for fairness validation"""
+        return {
+            "type": "reinforcement_learning",
+            "has_interoceptive_cost": False,
+            "reward_range": [-1.0, 1.0],
+            "cost_range": [0.0, 0.0],
+        }
+
+
+class ActorCriticAgent(AgentInterface):
     """Simple baseline agent using random actions (numpy only to avoid torch issues)"""
 
     def __init__(self, config: Dict):
-        self.config = config
+        super().__init__(config)
         self.n_actions = config.get("n_actions", 4)
         self.last_action: Optional[int] = None
         self.conscious_access = False
@@ -1046,6 +1089,25 @@ class ActorCriticAgent:
             "reason": "exception in agent evaluation",
         }
 
+    @property
+    def observation_dim(self) -> int:
+        """Get number of observation dimensions for fairness validation"""
+        return 0  # Random agent doesn't use observations
+
+    @property
+    def action_space(self) -> int:
+        """Get action space size for fairness validation"""
+        return self.n_actions
+
+    def get_reward_structure(self) -> Dict:
+        """Get reward structure for fairness validation"""
+        return {
+            "type": "random_baseline",
+            "has_interoceptive_cost": False,
+            "reward_range": [-1.0, 1.0],
+            "cost_range": [0.0, 0.0],
+        }
+
 
 # =============================================================================
 # COMPARISON FAIRNESS VALIDATION
@@ -1064,11 +1126,26 @@ def comparison_fairness_check(
 
     Returns:
         Dictionary with validation results
+
+    Raises:
+        AssertionError: If observation dimensions or action spaces do not match
     """
     try:
-        # Check observation space dimensions
-        apgi_obs_dim = apgi_agent.get_n_observations()
-        baseline_obs_dim = baseline_agent.get_n_observations()
+        # Check observation space dimensions using properties
+        apgi_obs_dim = apgi_agent.observation_dim
+        baseline_obs_dim = baseline_agent.observation_dim
+        apgi_action_space = apgi_agent.action_space
+        baseline_action_space = baseline_agent.action_space
+
+        # EXPLICIT ASSERTIONS for fairness validation (Fix 2)
+        assert apgi_obs_dim == baseline_obs_dim, (
+            f"Observation dimension mismatch: APGI={apgi_obs_dim}, "
+            f"Baseline={baseline_obs_dim}"
+        )
+        assert apgi_action_space == baseline_action_space, (
+            f"Action space mismatch: APGI={apgi_action_space}, "
+            f"Baseline={baseline_action_space}"
+        )
 
         # Check reward structure compatibility
         apgi_reward_struct = apgi_agent.get_reward_structure()
@@ -1076,6 +1153,7 @@ def comparison_fairness_check(
 
         # Validate fairness criteria
         obs_space_match = apgi_obs_dim == baseline_obs_dim
+        action_space_match = apgi_action_space == baseline_action_space
         reward_struct_match = (
             apgi_reward_struct["type"] == baseline_reward_struct["type"]
             and apgi_reward_struct["has_interoceptive_cost"]
@@ -1083,16 +1161,26 @@ def comparison_fairness_check(
         )
 
         return {
-            "passed": obs_space_match and reward_struct_match,
+            "passed": obs_space_match and action_space_match and reward_struct_match,
             "apgi_obs_dim": apgi_obs_dim,
             "baseline_obs_dim": baseline_obs_dim,
+            "apgi_action_space": apgi_action_space,
+            "baseline_action_space": baseline_action_space,
             "obs_space_match": obs_space_match,
+            "action_space_match": action_space_match,
             "apgi_reward_struct": apgi_reward_struct,
             "baseline_reward_struct": baseline_reward_struct,
             "reward_struct_match": reward_struct_match,
             "fairness_validated": True,
         }
 
+    except AssertionError as ae:
+        return {
+            "passed": False,
+            "error": str(ae),
+            "assertion_failed": True,
+            "fairness_validated": False,
+        }
     except Exception as e:
         return {
             "passed": False,
@@ -1107,11 +1195,25 @@ def comparison_fairness_check(
 
 
 class IowaGamblingTaskEnvironment:
-    """Iowa Gambling Task with interoceptive costs"""
+    """Iowa Gambling Task with interoceptive costs and configurable reward distributions"""
 
-    def __init__(self, n_trials: int = 80):
+    def __init__(self, n_trials: int = 80, reward_dist: str = "gaussian"):
+        """
+        Args:
+            n_trials: Number of trials per episode
+            reward_dist: Reward distribution type ("gaussian" or "levy")
+                        "levy" uses heavy-tailed Levy distribution for testing
+                        convergence robustness under extreme outcomes
+        """
         self.n_trials = n_trials
         self.trial = 0
+        self.reward_dist = reward_dist
+
+        # Validate reward distribution
+        if reward_dist not in ["gaussian", "levy"]:
+            raise ValueError(
+                f"Invalid reward_dist: {reward_dist}. Must be 'gaussian' or 'levy'"
+            )
 
         # Deck parameters
         self.decks = {
@@ -1153,11 +1255,21 @@ class IowaGamblingTaskEnvironment:
         deck_name = ["A", "B", "C", "D"][action]
         deck = self.decks[deck_name]
 
-        # Reward
-        reward = np.random.normal(deck["reward_mean"], deck["reward_std"])
-        reward = float(reward)  # Ensure Python float
+        # Reward based on selected distribution
+        if self.reward_dist == "levy":
+            # Heavy-tailed Levy distribution (alpha=1.5 for heavy tails)
+            # This tests convergence robustness under extreme outcomes
+            reward = self._levy_random(deck["reward_mean"], deck["reward_std"])
+        else:
+            # Standard Gaussian distribution
+            reward = np.random.normal(deck["reward_mean"], deck["reward_std"])
+        reward = float(reward)
+
         if np.random.random() < deck["loss_prob"]:
-            loss = np.random.exponential(deck["loss_mean"])
+            if self.reward_dist == "levy":
+                loss = self._levy_random(deck["loss_mean"], deck["loss_mean"] * 0.5)
+            else:
+                loss = np.random.exponential(deck["loss_mean"])
             reward -= float(loss)
 
         # Interoceptive cost
@@ -1172,6 +1284,26 @@ class IowaGamblingTaskEnvironment:
         done = self.trial >= self.n_trials
 
         return reward, intero_cost, observation, done
+
+    def _levy_random(self, loc: float, scale: float) -> float:
+        """
+        Sample from Levy-stable distribution (alpha=1.5, beta=0)
+        Alpha=1.5 gives heavy tails but finite mean (unlike Cauchy alpha=1.0)
+        This creates extreme outcomes while maintaining convergence possibility
+        """
+        # Use scipy.stats.levy_stable if available, else approximate
+        try:
+            from scipy.stats import levy_stable
+
+            # levy_stable.rvs(alpha, beta, loc, scale)
+            sample = levy_stable.rvs(1.5, 0, loc=loc, scale=scale)
+            return float(sample)
+        except ImportError:
+            # Approximate with t-distribution (df=3 for heavy tails) as fallback
+            from scipy.stats import t as t_dist
+
+            sample = t_dist.rvs(df=3, loc=loc, scale=scale)
+            return float(sample)
 
     def _get_observation(
         self, action: int = 0, reward: float = 0, intero_cost: float = 0
@@ -1970,6 +2102,113 @@ class AgentComparisonExperiment:
             "beta": 2.0,  # Increased from 1.2 for stronger somatic/intero bias
             "Pi_e_init": 1.0,
             "Pi_i_init": 2.0,  # Increased from 1.0 for intero-dominant ignitions
+        }
+
+    def test_heavy_tailed_convergence(self, n_agents: int = 10) -> Dict[str, Any]:
+        """
+        Test convergence criterion robustness under heavy-tailed (Levy) reward distribution.
+
+        Fix 3: Convergence criterion (50-80 trials) should hold ±20 trials under
+        non-Gaussian reward distributions with heavy tails.
+
+        Args:
+            n_agents: Number of agent runs to test
+
+        Returns:
+            Dictionary with test results and convergence statistics
+        """
+        print("\n" + "=" * 60)
+        print("HEAVY-TAILED REWARD CONVERGENCE TEST (Levy Distribution)")
+        print("=" * 60)
+
+        results = {"APGI": [], "StandardPP": []}
+        expected_convergence_range = (30, 100)  # Original 50-80 ±20 trials tolerance
+
+        for agent_name, AgentClass in [
+            ("APGI", APGIActiveInferenceAgent),
+            ("StandardPP", StandardPPAgent),
+        ]:
+            print(f"\nTesting {agent_name} with Levy reward distribution...")
+
+            for _ in tqdm(range(n_agents), desc=f"  {agent_name}"):
+                config = self._get_config("IGT")
+                agent = AgentClass(config)
+                # Create environment with heavy-tailed Levy distribution
+                env = IowaGamblingTaskEnvironment(
+                    n_trials=self.n_trials, reward_dist="levy"
+                )
+
+                episode_data = self._run_episode(agent, env, "IGT")
+                results[agent_name].append(episode_data)
+
+        # Analyze convergence
+        analysis = {}
+        for agent_name in ["APGI", "StandardPP"]:
+            convergence_trials = [
+                r["convergence_trial"]
+                for r in results[agent_name]
+                if r["convergence_trial"] is not None
+            ]
+            non_converged = sum(
+                1 for r in results[agent_name] if r["convergence_trial"] is None
+            )
+
+            if convergence_trials:
+                mean_convergence = np.mean(convergence_trials)
+                std_convergence = np.std(convergence_trials)
+                min_convergence = np.min(convergence_trials)
+                max_convergence = np.max(convergence_trials)
+
+                # Check if convergence falls within expected range
+                within_range = (
+                    expected_convergence_range[0]
+                    <= mean_convergence
+                    <= expected_convergence_range[1]
+                )
+
+                analysis[agent_name] = {
+                    "mean_convergence": float(mean_convergence),
+                    "std_convergence": float(std_convergence),
+                    "min_convergence": float(min_convergence),
+                    "max_convergence": float(max_convergence),
+                    "non_converged_count": non_converged,
+                    "convergence_rate": len(convergence_trials) / n_agents,
+                    "within_expected_range": within_range,
+                    "expected_range": expected_convergence_range,
+                }
+            else:
+                analysis[agent_name] = {
+                    "mean_convergence": None,
+                    "convergence_rate": 0.0,
+                    "within_expected_range": False,
+                    "error": "No agents converged",
+                }
+
+        # Test passes if APGI converges within expected range under heavy tails
+        test_passed = analysis["APGI"].get("within_expected_range", False)
+
+        print(f"\n{'=' * 60}")
+        print("HEAVY-TAILED CONVERGENCE TEST RESULTS")
+        print(f"{'=' * 60}")
+        print(
+            f"APGI Mean Convergence: {analysis['APGI'].get('mean_convergence', 'N/A'):.1f} trials"
+        )
+        print(
+            f"StandardPP Mean Convergence: {analysis['StandardPP'].get('mean_convergence', 'N/A'):.1f} trials"
+        )
+        print(
+            f"Expected Range: {expected_convergence_range[0]}-{expected_convergence_range[1]} trials"
+        )
+        print(f"Test Status: {'PASSED' if test_passed else 'FAILED'}")
+        print(f"{'=' * 60}")
+
+        return {
+            "test_name": "heavy_tailed_convergence",
+            "reward_distribution": "levy",
+            "n_agents": n_agents,
+            "results": results,
+            "analysis": analysis,
+            "passed": test_passed,
         }
 
     def analyze_predictions(self, results: Dict) -> Dict:
@@ -2822,7 +3061,47 @@ def convert(obj):
     return obj
 
 
-def main():
+def main(**kwargs) -> Dict[str, Any]:
+    """
+    Main entry point for Protocol 3 (GUI/Master_Validation compatible).
+    """
+    # Reduce duration for standard GUI run if not specified
+    if "n_agents" not in kwargs:
+        kwargs["n_agents"] = 2
+    if "n_trials" not in kwargs:
+        kwargs["n_trials"] = 20
+
+    try:
+        return run_validation_v3(**kwargs)
+    except Exception as e:
+        logger.error(f"VP-03 Runtime Error: {e}")
+        return {
+            "passed": False,
+            "status": "error",
+            "message": str(e),
+            "protocol_id": "VP-03",
+        }
+
+
+if __name__ == "__main__":
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        description="APGI Protocol 3 — Active Inference Agents"
+    )
+    parser.add_argument("--n-agents", type=int, default=10, help="Number of agents")
+    parser.add_argument("--n-trials", type=int, default=80, help="Number of trials")
+    args = parser.parse_args()
+
+    # Configure logging for CLI run
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    result = main(n_agents=args.n_agents, n_trials=args.n_trials)
+    sys.exit(0 if result.get("passed", False) else 1)
+
+
+def run_validation_v3(n_agents=10, n_trials=80):
     """Main execution pipeline"""
 
     print("=" * 80)

@@ -31,7 +31,7 @@ try:
 
     BAYESIAN_AVAILABLE = True
     logger.info("PyMC and dependencies successfully imported")
-except ImportError as e:
+except (ImportError, AttributeError) as e:
     BAYESIAN_AVAILABLE = False
     logger.warning(f"PyMC/ArviZ/xarray not available: {e}")
     logger.warning(

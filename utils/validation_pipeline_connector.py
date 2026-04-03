@@ -321,11 +321,27 @@ class ValidationPipelineConnector:
         """Dynamically import validation protocol module."""
         import importlib.util
 
-        protocol_file = (
-            Path(__file__).parent.parent
-            / "Validation"
-            / f"Validation-Protocol-{protocol}.py"
-        )
+        # Protocol mapping for dynamic import
+        protocol_mapping = {
+            1: "VP_01_SyntheticEEG_MLClassification",
+            2: "VP_02_Behavioral_BayesianComparison",
+            3: "VP_03_ActiveInference_AgentSimulations",
+            4: "VP_04_PhaseTransition_EpistemicLevel2",
+            5: "VP_05_EvolutionaryEmergence",
+            6: "VP_06_LiquidNetwork_InductiveBias",
+            7: "VP_07_TMS_CausalInterventions",
+            8: "VP_08_Psychophysical_ThresholdEstimation",
+            9: "VP_09_NeuralSignatures_EmpiricalPriority1",
+            10: "VP_10_CausalManipulations_Priority2",
+            11: "VP_11_MCMC_CulturalNeuroscience_Priority3",
+            12: "VP_12_Clinical_CrossSpecies_Convergence",
+        }
+
+        if protocol not in protocol_mapping:
+            raise ValueError(f"Unsupported protocol number: {protocol}")
+
+        filename = f"{protocol_mapping[protocol]}.py"
+        protocol_file = Path(__file__).parent.parent / "Validation" / filename
 
         if not protocol_file.exists():
             raise FileNotFoundError(

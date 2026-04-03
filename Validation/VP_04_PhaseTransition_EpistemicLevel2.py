@@ -77,9 +77,10 @@ from utils.falsification_thresholds import (
 )
 from utils.constants import DEFAULT_THERMO_CONFIG
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+try:
+    from utils.logging_config import apgi_logger as logger
+except ImportError:
+    logger = logging.getLogger(__name__)  # type: ignore[assignment]
 
 # Set random seeds
 RANDOM_SEED = 42
@@ -2355,6 +2356,101 @@ class ComprehensivePhaseTransitionAnalysis:
 
         return results
 
+    def compute_hysteresis_quantification(
+        self, history: Dict, ascending_input: np.ndarray, descending_input: np.ndarray
+    ) -> Dict[str, Any]:
+        """
+        Measure hysteresis width to quantify bifurcation strength.
+
+        Fix 3: Bifurcation validation should test quantitative hysteresis width.
+        Hysteresis width = S_t at 50% ignition probability (ascending) -
+                          S_t at 50% ignition probability (descending)
+
+        Expected hysteresis width for valid phase transition: 0.08 <= width <= 0.25
+
+        Args:
+            history: Simulation history from APGIDynamicalSystem
+            ascending_input: Input values during ascending phase
+            descending_input: Input values during descending phase
+
+        Returns:
+            Dictionary with hysteresis measurements and assertions
+        """
+        S = history["S"]
+        theta = history["theta"]
+        ignition_events = history.get("ignition_events", np.array([]))
+
+        # Compute ignition probability as function of S_t
+        # Using kernel density estimation for smooth probability curve
+        # from scipy.stats import gaussian_kde  # Currently unused
+
+        # Separate S values near ignition threshold (within 0.5 units)
+        # threshold_proximity = 0.5  # Currently unused
+
+        # Find ignition probability at different S_t values
+        s_bins = np.linspace(max(0, np.min(S)), np.max(S) + 0.1, 50)
+        ignition_prob = np.zeros(len(s_bins))
+
+        for i, s_val in enumerate(s_bins):
+            # Find trials where S is near this value
+            nearby_mask = np.abs(S - s_val) < 0.1
+            if np.sum(nearby_mask) > 0:
+                # Check if ignition occurred in nearby trials
+                nearby_indices = np.where(nearby_mask)[0]
+                ignition_count = sum(
+                    1
+                    for idx in nearby_indices
+                    if idx in ignition_events or (idx > 0 and S[idx] > theta[idx])
+                )
+                ignition_prob[i] = ignition_count / len(nearby_indices)
+
+        # Find S_t at 50% ignition probability
+        # Interpolate to find crossing points
+        if np.any(ignition_prob >= 0.5) and np.any(ignition_prob <= 0.5):
+            # Ascending phase: find first crossing from below
+            below_50 = s_bins[ignition_prob < 0.5]
+            above_50 = s_bins[ignition_prob >= 0.5]
+
+            if len(below_50) > 0 and len(above_50) > 0:
+                s_t_up_50pct = np.max(below_50)
+                s_t_down_50pct = np.min(above_50)
+
+                hysteresis_width = s_t_up_50pct - s_t_down_50pct
+            else:
+                hysteresis_width = 0.0
+                s_t_up_50pct = 0.0
+                s_t_down_50pct = 0.0
+        else:
+            hysteresis_width = 0.0
+            s_t_up_50pct = 0.0
+            s_t_down_50pct = 0.0
+
+        # Validate hysteresis width against expected range
+        HYSTERESIS_MIN = 0.08
+        HYSTERESIS_MAX = 0.25
+
+        width_valid = HYSTERESIS_MIN <= hysteresis_width <= HYSTERESIS_MAX
+
+        result = {
+            "hysteresis_width": float(hysteresis_width),
+            "s_t_up_50pct": float(s_t_up_50pct),
+            "s_t_down_50pct": float(s_t_down_50pct),
+            "hysteresis_valid": width_valid,
+            "hysteresis_min_threshold": HYSTERESIS_MIN,
+            "hysteresis_max_threshold": HYSTERESIS_MAX,
+            "assertion_passed": width_valid,
+        }
+
+        # Explicit assertion for hysteresis width (Fix 3)
+        if hysteresis_width > 0:
+            assert HYSTERESIS_MIN <= hysteresis_width <= HYSTERESIS_MAX, (
+                f"Hysteresis width {hysteresis_width:.3f} outside valid range "
+                f"[{HYSTERESIS_MIN}, {HYSTERESIS_MAX}]. "
+                f"This indicates insufficient phase transition strength."
+            )
+
+        return result
+
     def run_monte_carlo(
         self,
         n_simulations: int = 100,
@@ -3505,8 +3601,12 @@ class ClinicalDoCBiomarkerValidation:
         return metrics
 
 
-def main():
-    """Main execution pipeline for Protocol 4"""
+def run_validation(**kwargs) -> Dict[str, Any]:
+    """
+    Validation entry point for Protocol 4.
+    """
+    # Get number of simulations for standard GUI run if not specified
+    n_simulations = kwargs.get("n_trials", kwargs.get("n_simulations", 10))
 
     print("=" * 80)
     print("APGI PROTOCOL 4: INFORMATION-THEORETIC PHASE TRANSITION ANALYSIS")
@@ -3535,31 +3635,51 @@ def main():
     # FIX 1: Add consistency guard for threshold parameters
     # Ensure VP-04 uses identical threshold values as FP-04
     try:
-        from Falsification.FP_04_PhaseTransition_EpistemicArchitecture import (
-            TRANSFER_ENTROPY_THRESHOLD,
+        # Import thresholds from centralized source (source of truth)
+        from utils.falsification_thresholds import (
+            # LEVEL2_TE_THRESHOLD as CENTRAL_TE_THRESHOLD,  # Currently unused
+            # LEVEL2_MI_THRESHOLD as CENTRAL_MI_THRESHOLD,  # Currently unused
+            F4_TE_THRESHOLD as F4_TE_THRESHOLD,
+            F4_MI_MAX_BITS_S as F4_MI_THRESHOLD,
         )
 
-        VP04_TE_THRESHOLD = TRANSFER_ENTROPY_THRESHOLD
+        # VP-04 uses TRANSFER_ENTROPY_THRESHOLD from centralized thresholds
+        VP04_TE_THRESHOLD = TRANSFER_ENTROPY_THRESHOLD  # Imported at module level
+        VP04_MI_THRESHOLD = FMI_MIN_BITS_S  # Imported at module level
 
-        # Assert consistency between FP-04 and VP-04 thresholds
-        if abs(VP04_TE_THRESHOLD - TRANSFER_ENTROPY_THRESHOLD) > 0.001:
+        # Assert consistency between VP-04 and centralized FP-04 thresholds
+        te_consistent = abs(VP04_TE_THRESHOLD - F4_TE_THRESHOLD) < 0.001
+        mi_consistent = VP04_MI_THRESHOLD <= F4_MI_THRESHOLD
+
+        if not te_consistent:
             raise ValueError(
-                f"VP-04 threshold {VP04_TE_THRESHOLD} does not match "
-                f"FP-04 threshold {TRANSFER_ENTROPY_THRESHOLD}. "
+                f"VP-04 TE threshold {VP04_TE_THRESHOLD} does not match "
+                f"FP-04 threshold {F4_TE_THRESHOLD}. "
+                f"Threshold values must be consistent across modules for "
+                f"valid phase transition analysis."
+            )
+
+        if not mi_consistent:
+            raise ValueError(
+                f"VP-04 MI threshold {VP04_MI_THRESHOLD} exceeds "
+                f"FP-04 threshold {F4_MI_THRESHOLD}. "
                 f"Threshold values must be consistent across modules for "
                 f"valid phase transition analysis."
             )
 
         logger.info(
-            f"Threshold consistency check passed: VP-04_TE_THRESHOLD={VP04_TE_THRESHOLD}"
+            f"Threshold consistency check passed: "
+            f"TE={VP04_TE_THRESHOLD} (vs FP-04: {F4_TE_THRESHOLD}), "
+            f"MI={VP04_MI_THRESHOLD} (vs FP-04: {F4_MI_THRESHOLD})"
         )
 
     except ImportError as e:
-        logger.warning(f"Could not import FP-04 threshold: {e}")
-        # Continue with VP-04 local threshold if FP-04 unavailable
-        VP04_TE_THRESHOLD = VP4_CALIBRATED_TAU  # Fallback to local value
+        logger.warning(f"Could not import thresholds for comparison: {e}")
+        # Continue with VP-04 local thresholds if imports unavailable
+        pass
 
-    # Use shared thermodynamic configuration singleton
+    # FIX 2: Use shared thermodynamic configuration singleton
+    # This ensures VP-04 and FP-04 use identical parameter values
     system = APGIDynamicalSystem(
         tau=DEFAULT_THERMO_CONFIG.tau,
         theta_0=DEFAULT_THERMO_CONFIG.theta_0,
@@ -3621,7 +3741,7 @@ def main():
     print("=" * 80)
 
     results_df = analyzer.run_monte_carlo(
-        n_simulations=config.validation.n_simulations,
+        n_simulations=n_simulations,
         duration=30.0,  # Increased duration for IT analysis
         save_results=True,
     )
@@ -3740,53 +3860,42 @@ def main():
     return results_summary
 
 
-def run_validation(**kwargs) -> Dict[str, Any]:
+def main(**kwargs) -> Dict[str, Any]:
     """
-    Validation entry point for Master_Validation.py
+    Main entry point for Protocol 4 (GUI/Master_Validation compatible).
     """
-    n_trials = kwargs.get("n_trials", 50)
-    n_agents = kwargs.get("n_agents", 5)
+    try:
+        if "duration" not in kwargs:
+            kwargs["duration"] = 5.0
+        return run_validation(**kwargs)
+    except Exception as e:
+        logger.error(f"VP-04 Runtime Error: {e}")
+        import traceback
 
-    print(
-        f"\n[VP-4] Running Phase Transition Analysis (n_trials={n_trials}, n_agents={n_agents})..."
-    )
-
-    analyzer = ComprehensivePhaseTransitionAnalysis()
-    results_df = analyzer.run_monte_carlo(n_simulations=n_trials, duration=100.0)
-
-    # Run falsification check on the results
-    checker = FalsificationChecker()
-    falsification_report = checker.check_all_criteria(results_df)
-
-    # Check if overall validation passed (overall_falsified should be False)
-    passed = not falsification_report.get("overall_falsified", True)
-
-    return {
-        "status": "success" if passed else "failed",
-        "passed": passed,
-        "results": {
-            "falsification_report": falsification_report,
-            "n_simulations": len(results_df),
-        },
-        "metrics": {
-            "susceptibility_ratio": (
-                float(results_df["susceptibility_susceptibility_ratio"].mean())
-                if "susceptibility_susceptibility_ratio" in results_df.columns
-                else 0.0
-            ),
-            "phi_ratio": (
-                float(results_df["phi_ratio"].mean())
-                if "phi_ratio" in results_df.columns
-                else 0.0
-            ),
-            "critical_slowing_ratio": (
-                float(results_df["critical_slowing_critical_slowing_ratio"].mean())
-                if "critical_slowing_critical_slowing_ratio" in results_df.columns
-                else 0.0
-            ),
-        },
-    }
+        logger.error(traceback.format_exc())
+        return {
+            "passed": False,
+            "status": "error",
+            "message": str(e),
+            "protocol_id": "VP-04",
+        }
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        description="APGI Protocol 4 — Phase Transition Analysis"
+    )
+    parser.add_argument(
+        "--duration", type=float, default=20.0, help="Simulation duration (s)"
+    )
+    parser.add_argument("--n-trials", type=int, default=50, help="Number of trials")
+    args = parser.parse_args()
+
+    # Configure logging for CLI run
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    result = main(duration=args.duration, n_trials=args.n_trials)
+    sys.exit(0 if result.get("passed", False) else 1)

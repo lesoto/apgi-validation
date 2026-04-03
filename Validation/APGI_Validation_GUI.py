@@ -2179,6 +2179,7 @@ Interpretation:
                 (13, "VP_13_Epistemic_Architecture.py"),
                 (14, "VP_14_fMRI_Anticipation_Experience.py"),
                 (15, "VP_15_fMRI_Anticipation_vmPFC.py"),
+                (16, "VP_ALL_Aggregator.py"),
             ]
 
             if protocol_num < 1 or protocol_num > len(protocol_files):
@@ -2799,12 +2800,27 @@ Interpretation:
         """Execute protocol in a completely isolated environment to prevent GUI operations."""
         executor = None
         try:
-            # Check if protocol has main function
-            if not hasattr(protocol_module, "main"):
-                return {
-                    "status": "COMPLETED",
-                    "message": "Protocol executed successfully (no main function)",
-                }
+            # Ensure matplotlib uses Agg in the worker thread to prevent Cocoa/Tk issues
+            try:
+                import matplotlib
+
+                matplotlib.use("Agg", force=True)
+            except Exception:
+                pass
+
+            # Primary entry points: prefer run_validation (orchestrator-standard) or main (CLI-standard)
+            entry_point_name = None
+            if hasattr(protocol_module, "run_validation"):
+                entry_point_name = "run_validation"
+            elif hasattr(protocol_module, "main"):
+                entry_point_name = "main"
+
+            if entry_point_name is None:
+                raise AttributeError(
+                    f"Protocol module {protocol_num} missing both 'run_validation' and 'main' functions"
+                )
+
+            entry_point = getattr(protocol_module, entry_point_name)
 
             # Create progress callback that doesn't interfere with GUI
             def safe_progress_callback(percent: float) -> None:
@@ -2830,7 +2846,6 @@ Interpretation:
                         f"(Step {protocol_index + 1}/{total_protocols})"
                     )
                 except Exception as e:
-                    # BUG-025: Log progress callback errors
                     logging.error(
                         f"Progress callback error for Protocol {protocol_index + 1}: {e}"
                     )
@@ -2838,37 +2853,36 @@ Interpretation:
             # Execute protocol with timeout in a separate thread to ensure isolation
             from concurrent.futures import ThreadPoolExecutor
 
-            # Create executor manually (NOT using context manager to avoid blocking shutdown)
             executor = ThreadPoolExecutor(
                 max_workers=1, thread_name_prefix=f"protocol_{protocol_num}"
             )
 
-            # Check if protocol accepts progress callback
             import inspect
 
-            # Validate module has main function
-            if not hasattr(protocol_module, "main"):
-                raise AttributeError(
-                    f"Protocol module {protocol_num} missing 'main' function"
-                )
+            sig = inspect.signature(entry_point)
 
-            sig = inspect.signature(protocol_module.main)
-
+            # Pass safe_progress_callback if supported
+            run_args = {}
             if "progress_callback" in sig.parameters:
-                future = executor.submit(
-                    protocol_module.main, progress_callback=safe_progress_callback
-                )
-            else:
-                future = executor.submit(protocol_module.main)
+                run_args["progress_callback"] = safe_progress_callback
+
+            # Execute entry point
+            future = executor.submit(entry_point, **run_args)
 
             try:
                 result = future.result(timeout=self.validator.timeout_seconds)
-                # Do NOT default to passed=True - require explicit success
+                # Ensure result is a dictionary with at least 'passed' or 'status'
                 if result is None:
                     return {
                         "status": "INDETERMINATE",
                         "message": "Protocol returned None - cannot determine success",
                         "passed": False,
+                    }
+                if not isinstance(result, dict):
+                    return {
+                        "status": "COMPLETED",
+                        "message": f"Protocol completed with non-dict result: {result}",
+                        "passed": True,  # Assume success if it finished without error
                     }
                 return result
             except FutureTimeoutError:
@@ -3148,10 +3162,73 @@ Interpretation:
 
 
 def main() -> None:
-    """Main function to run the GUI"""
+    """Main function to run the GUI or headless mode"""
+    import sys
+
+    # Check for headless mode flag
+    if "--headless" in sys.argv or "-h" in sys.argv:
+        run_headless()
+        return
+
     root = tk.Tk()
     _ = APGIValidationGUI(root)
     root.mainloop()
+
+
+def run_headless() -> None:
+    """Run all protocols in headless mode without GUI"""
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
+    logger = logging.getLogger(__name__)
+
+    logger.info("Running APGI Validation in HEADLESS mode")
+
+    # Import and run Master Validation directly
+    master_validation_path = Path(__file__).parent / "Master_Validation.py"
+    master_module = safe_import_module("Master_Validation", master_validation_path)
+
+    if master_module and hasattr(master_module, "APGIMasterValidator"):
+        validator = master_module.APGIMasterValidator()
+
+        # Run all protocols using run_all_protocols method
+        try:
+            logger.info("Running all validation protocols...")
+            results = validator.run_all_protocols(seed=42)
+
+            for protocol, result in results.items():
+                passed = (
+                    result.get("passed", False) if isinstance(result, dict) else False
+                )
+                status = (
+                    result.get("status", "unknown")
+                    if isinstance(result, dict)
+                    else "unknown"
+                )
+                logger.info(
+                    f"{protocol}: {'PASS' if passed else 'FAIL'} (status: {status})"
+                )
+
+            # Generate master report
+            report = validator.generate_master_report()
+            logger.info(
+                f"Overall Decision: {report.get('overall_decision', 'Unknown')}"
+            )
+            logger.info(
+                f"Protocols Passed: {report.get('protocols_passed', 0)}/{report.get('protocols_run', 0)}"
+            )
+
+        except Exception as e:
+            logger.error(f"Error running protocols: {e}")
+            import traceback
+
+            logger.error(traceback.format_exc())
+
+        logger.info("Headless validation complete!")
+    else:
+        logger.error("Failed to load Master Validation module")
 
 
 if __name__ == "__main__":

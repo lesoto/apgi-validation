@@ -490,6 +490,12 @@ class ProtocolRunnerGUI:
                     },
                 },
             },
+            "Protocol 13: Framework Aggregator": {
+                "file": "FP_ALL_Aggregator.py",
+                "class": "FalsificationAggregator",
+                "description": "Full Framework Falsification Report",
+                "parameters": {},
+            },
         }
 
         # Thread management
@@ -1016,70 +1022,108 @@ class ProtocolRunnerGUI:
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
-            # Get the main class
-            cls = getattr(module, protocol_info["class"])
-
             # Get configured parameters
             configured_params = protocol_info.get("configured_params", {})
 
-            # Run based on class type
-            if protocol_info["class"] == "NetworkComparisonExperiment":
-                config = {
-                    "extero_dim": configured_params.get("extero_dim", 32),
-                    "intero_dim": configured_params.get("intero_dim", 16),
-                    "action_dim": configured_params.get("action_dim", 4),
-                    "context_dim": configured_params.get("context_dim", 8),
-                    "n_episodes": configured_params.get("n_episodes", 50),
-                }
-                instance = cls(config)
-                result = instance.run_full_experiment()
-                self.log_message(f"  Result: {type(result)}")
-            elif protocol_info["class"] == "APGIActiveInferenceAgent":
-                run_func = getattr(module, "run_falsification", None)
-                if run_func:
-                    result = run_func()
-                    self.log_message(f"  Falsification completed: {result}")
-                else:
-                    self.log_message("  No run_falsification function found")
-            elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
-                run_func = getattr(module, "run_falsification", None)
-                if run_func:
-                    result = run_func()
-                    self.log_message(f"  Falsification completed: {result}")
-                else:
-                    self.log_message("  No run_falsification function found")
-            elif hasattr(cls, "run_full_experiment"):
-                try:
-                    instance = cls(**configured_params)
-                except Exception:
-                    instance = cls()
-                result = instance.run_full_experiment()
-                self.log_message("  Experiment completed")
-            elif hasattr(cls, "run_phase_transition_analysis"):
-                surprise_system = module.SurpriseIgnitionSystem()
-                instance = cls(surprise_system)
-                result = instance.run_phase_transition_analysis()
-                self.log_message("  Analysis completed")
-            elif hasattr(cls, "run_evolution"):
-                config = {
-                    "population_size": configured_params.get("population_size", 50),
-                    "n_generations": configured_params.get("n_generations", 100),
-                    "mutation_rate": configured_params.get("mutation_rate", 0.1),
-                    "selection_pressure": configured_params.get(
-                        "selection_pressure", 2.0
-                    ),
-                }
-                instance = cls(stop_event=self.stop_event, **config)
-                result = instance.run_evolution()
-                self.log_message("  Evolution completed")
-            else:
-                try:
-                    cls(**configured_params)
-                except TypeError:
-                    cls()
-                self.log_message("  Instance created successfully")
+            # Protocol 13 – Framework Aggregator: special entry point
+            if protocol_info["class"] == "FalsificationAggregator":
+                result = self._handle_framework_aggregator(module)
 
-            self._save_results({}, protocol_info["file"])
+            else:
+                # Get the main class for all other protocols
+                cls = getattr(module, protocol_info["class"])
+
+                # Robust protocol execution logic
+                result = {}
+                if protocol_info["class"] == "NetworkComparisonExperiment":
+                    config = {
+                        "extero_dim": configured_params.get("extero_dim", 32),
+                        "intero_dim": configured_params.get("intero_dim", 16),
+                        "action_dim": configured_params.get("action_dim", 4),
+                        "context_dim": configured_params.get("context_dim", 8),
+                        "n_episodes": configured_params.get("n_episodes", 50),
+                    }
+                    instance = cls(config)
+                    result = instance.run_full_experiment()
+                    self.log_message(f"  Result: {type(result)}")
+
+                elif protocol_info["class"] == "APGIActiveInferenceAgent":
+                    run_func = getattr(module, "run_falsification", None)
+                    if run_func:
+                        result = run_func()
+                        self.log_message(f"  Falsification completed: {result}")
+                    else:
+                        self.log_message("  No run_falsification function found")
+
+                elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
+                    run_func = getattr(module, "run_falsification", None)
+                    if run_func:
+                        result = run_func()
+                        self.log_message(f"  Falsification completed: {result}")
+                    else:
+                        self.log_message("  No run_falsification function found")
+
+                elif hasattr(module, "run_falsification"):
+                    self.log_message("  Running run_falsification from module scope...")
+                    result = module.run_falsification()
+                    status = "Done"
+                    if result and isinstance(result, dict):
+                        status = result.get("status", "Done")
+                    elif result is None:
+                        status = "ERROR (Returned None)"
+                    self.log_message(f"  Protocol completed: {status}")
+
+                elif hasattr(cls, "run_full_experiment"):
+                    self.log_message("  Running instance.run_full_experiment()...")
+                    try:
+                        instance = cls(**configured_params)
+                    except Exception:
+                        instance = cls()
+                    result = instance.run_full_experiment()
+                    self.log_message("  Experiment completed")
+
+                elif hasattr(cls, "run_phase_transition_analysis"):
+                    self.log_message("  Running phase transition analysis...")
+                    surprise_system = module.SurpriseIgnitionSystem()
+                    instance = cls(surprise_system)
+                    result = instance.run_phase_transition_analysis()
+                    self.log_message("  Analysis completed")
+
+                elif hasattr(cls, "run_evolution"):
+                    self.log_message("  Running evolutionary simulation...")
+                    config = {
+                        "population_size": configured_params.get("population_size", 50),
+                        "n_generations": configured_params.get("n_generations", 100),
+                        "mutation_rate": configured_params.get("mutation_rate", 0.1),
+                        "selection_pressure": configured_params.get(
+                            "selection_pressure", 2.0
+                        ),
+                    }
+                    instance = cls(stop_event=self.stop_event, **config)
+                    result = instance.run_evolution()
+                    self.log_message("  Evolution completed")
+
+                else:
+                    self.log_message(f"  Using generic runner for {cls.__name__}...")
+                    try:
+                        instance = cls(**configured_params)
+                    except TypeError:
+                        instance = cls()
+
+                    if hasattr(instance, "run_validation"):
+                        result = instance.run_validation()
+                    elif hasattr(module, "run_validation"):
+                        result = module.run_validation()
+                    elif hasattr(instance, "run_falsification"):
+                        result = instance.run_falsification()
+                    else:
+                        self.log_message(
+                            "  WARNING: No standard execution method found. Result will be empty."
+                        )
+                        result = {"status": "Incomplete", "warning": "No runner found"}
+
+            # FIX: Actually save the result instead of an empty dict
+            self._save_results(result, protocol_info["file"])
             self.log_message("  Protocol completed successfully")
 
         except Exception as e:
@@ -1263,9 +1307,6 @@ class ProtocolRunnerGUI:
                 spec.loader.exec_module(module)
                 self.module = module
 
-                # Get the main class
-                cls = getattr(module, protocol_info["class"])
-
                 # Handle protocol based on class with configured parameters
                 configured_params = protocol_info.get("configured_params", {})
 
@@ -1294,22 +1335,32 @@ class ProtocolRunnerGUI:
                         )
                         # Don't add invalid params to validated_params
 
-                if protocol_info["class"] == "NetworkComparisonExperiment":
-                    results = self._handle_network_comparison(cls, validated_params)
-                elif protocol_info["class"] == "APGIActiveInferenceAgent":
-                    results = self._handle_apgi_agent(cls, module, validated_params)
-                elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
-                    results = self._handle_iowa_gambling(cls, module, validated_params)
-                elif hasattr(cls, "run_full_experiment"):
-                    results = self._handle_run_full_experiment(cls, validated_params)
-                elif hasattr(cls, "run_phase_transition_analysis"):
-                    results = self._handle_phase_transition(
-                        cls, module, validated_params
-                    )
-                elif hasattr(cls, "run_evolution"):
-                    results = self._handle_evolution(cls, validated_params)
+                if protocol_info["class"] == "FalsificationAggregator":
+                    # Framework aggregator: no class instantiation needed
+                    results = self._handle_framework_aggregator(module)
                 else:
-                    results = self._handle_default(cls, validated_params)
+                    # All other protocols: resolve class then dispatch
+                    cls = getattr(module, protocol_info["class"])
+                    if protocol_info["class"] == "NetworkComparisonExperiment":
+                        results = self._handle_network_comparison(cls, validated_params)
+                    elif protocol_info["class"] == "APGIActiveInferenceAgent":
+                        results = self._handle_apgi_agent(cls, module, validated_params)
+                    elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
+                        results = self._handle_iowa_gambling(cls, module, validated_params)
+                    elif hasattr(module, "run_falsification"):
+                        # Fallback to module-level run_falsification
+                        self.log_message("Running run_falsification from module scope...")
+                        results = module.run_falsification()
+                    elif hasattr(cls, "run_full_experiment"):
+                        results = self._handle_run_full_experiment(cls, validated_params)
+                    elif hasattr(cls, "run_phase_transition_analysis"):
+                        results = self._handle_phase_transition(
+                            cls, module, validated_params
+                        )
+                    elif hasattr(cls, "run_evolution"):
+                        results = self._handle_evolution(cls, validated_params)
+                    else:
+                        results = self._handle_default(cls, module, validated_params)
 
                 # Save results to file
                 self._save_results(results, protocol_info["file"])
@@ -1347,6 +1398,44 @@ class ProtocolRunnerGUI:
         self.running_thread = thread
         self.stop_btn.config(state=tk.NORMAL)
         thread.start()
+
+    def _handle_framework_aggregator(self, module):
+        """Handle FP_ALL_Aggregator: collect saved result files and run aggregation."""
+        project_root = Path(__file__).parent.parent
+        validation_dir = project_root / "validation_results"
+
+        result_files = []
+        if validation_dir.exists():
+            result_files = [str(f) for f in sorted(validation_dir.glob("*.json"))]
+
+        self.log_message(
+            f"Framework Aggregator: found {len(result_files)} result file(s) in {validation_dir}"
+        )
+
+        run_fn = getattr(module, "run_framework_falsification", None)
+        if run_fn is None:
+            # Fall back to class method
+            aggregator_cls = getattr(module, "FalsificationAggregator")
+            agg = aggregator_cls()
+            if result_files:
+                result = agg.run_full_analysis(result_files)
+            else:
+                result = {
+                    "status": "NO_RESULTS",
+                    "message": "No previous validation results found. Run individual protocols first.",
+                }
+        else:
+            if result_files:
+                result = run_fn(result_files)
+            else:
+                result = {
+                    "status": "NO_RESULTS",
+                    "message": "No previous validation results found. Run individual protocols first.",
+                }
+
+        status = result.get("status", "Done") if isinstance(result, dict) else "Done"
+        self.log_message(f"Framework Aggregator completed: {status}")
+        return result
 
     def _handle_network_comparison(self, cls, params):
         """Handle NetworkComparisonExperiment with configured parameters."""
@@ -1412,6 +1501,7 @@ class ProtocolRunnerGUI:
                 self.log_message(
                     f"Iowa Gambling Task falsification completed: {result}"
                 )
+                return {"result": result, "type": "IowaGamblingTaskEnvironment"}
             else:
                 # Fallback to old behavior with configured parameters
                 n_trials = params.get("n_trials", 100)
@@ -1431,12 +1521,14 @@ class ProtocolRunnerGUI:
                     )
 
                 self.log_message(f"Demo completed. Total reward: {total_reward:.2f}")
+                return {"total_reward": total_reward, "type": "IowaGamblingTaskEnvironment"}
         except Exception as e:
             self.log_message(f"Error in Iowa Gambling protocol: {str(e)}")
             raise
 
     def _handle_run_full_experiment(self, cls, params):
         """Handle protocols with run_full_experiment method using configured parameters."""
+        result = {}
         try:
             # Try to pass parameters to constructor if they match expected signature
             try:
@@ -1466,6 +1558,7 @@ class ProtocolRunnerGUI:
                 self.log_message("Protocol-3 needs observation size alignment")
             else:
                 raise
+        return result
 
     def _handle_phase_transition(self, cls, module, params):
         """Handle phase transition analysis with configured parameters."""
@@ -1482,6 +1575,7 @@ class ProtocolRunnerGUI:
         instance = cls(surprise_system)
         result = instance.run_phase_transition_analysis()
         self.log_message(f"Phase transition analysis completed: {type(result)}")
+        return result
 
     def _handle_evolution(self, cls, params):
         """Handle evolutionary protocols with configured parameters."""
@@ -1509,18 +1603,28 @@ class ProtocolRunnerGUI:
             self.log_message(f"Error in evolution: {str(e)}")
             self.log_message("EvolutionaryAPGIEmergence instance creation failed")
 
-    def _handle_default(self, cls, params):
+    def _handle_default(self, cls, module, params):
         """Handle default protocol execution with configured parameters."""
         try:
-            cls(**params)  # Create instance with parameters
+            instance = cls(**params)  # Create instance with parameters
             self.log_message(f"Created {cls.__name__} instance with parameters")
         except TypeError:
-            cls()  # Create instance with defaults
+            instance = cls()  # Create instance with defaults
             self.log_message(
                 "Warning: Could not apply configured parameters, using defaults"
             )
 
-        self.log_message(f"Created {cls.__name__} instance")
+        # Try to find any standard run method
+        self.log_message(f"Attempting to run {cls.__name__}...")
+        if hasattr(instance, "run_validation"):
+            return instance.run_validation()
+        elif hasattr(module, "run_validation"):
+            return module.run_validation()
+        elif hasattr(instance, "run_falsification"):
+            return instance.run_falsification()
+        else:
+            self.log_message(f"No standard run method found for {cls.__name__}")
+            return {"status": "Completed (No Test)", "instance": str(instance)}
 
     def _save_results(self, results, protocol_file):
         """Save validation results to a JSON file."""

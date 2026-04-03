@@ -20,11 +20,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import arviz as az
+try:
+    import arviz as az
+    import pymc as pm
+
+    HAS_PYMC = True
+except (ImportError, AttributeError):
+    HAS_PYMC = False
+    az = None
+    pm = None
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pymc as pm
 from scipy import linalg, stats
 from sklearn.linear_model import Ridge
 from sklearn.metrics import r2_score

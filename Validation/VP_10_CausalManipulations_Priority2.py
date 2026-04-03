@@ -357,24 +357,22 @@ class CausalManipulationsValidator:
         """
         np.random.seed(42)
 
-        # Simulate participant groups: High-IA vs Low-IA
+        # Fix 2: Sample IA scores from Beta(2,2) distribution instead of hardcoded distributions
         n_participants = 40
         ia_scores = np.random.beta(
             2, 2, n_participants
         )  # Beta distribution for IA scores
 
-        # Split into High-IA (top 33%) and Low-IA (bottom 33%)
-        ia_threshold_high = np.percentile(ia_scores, 67)
-        ia_threshold_low = np.percentile(ia_scores, 33)
-
-        high_ia_mask = ia_scores >= ia_threshold_high
-        low_ia_mask = ia_scores <= ia_threshold_low
+        # Median split to create High-IA and Low-IA groups
+        median_ia = np.median(ia_scores)
+        high_ia_mask = ia_scores >= median_ia
+        low_ia_mask = ia_scores < median_ia
 
         high_ia_participants = np.where(high_ia_mask)[0]
         low_ia_participants = np.where(low_ia_mask)[0]
 
         # Simulate insula stimulation vs control conditions
-
+        # Derive response distributions from APGI model predictions given IA scores
         results: Dict[str, List[float]] = {
             "high_ia_insula": [],
             "high_ia_control": [],
@@ -382,17 +380,29 @@ class CausalManipulationsValidator:
             "low_ia_control": [],
         }
 
-        for participant in high_ia_participants:
-            # High-IA participants: strong response to insula stimulation
-            insula_response = np.random.normal(8.5, 1.2, 20)  # Higher mean response
-            control_response = np.random.normal(5.2, 1.1, 20)  # Baseline response
+        # APGI model: response = baseline + IA_effect * (IA_score - 0.5) + condition_effect + noise
+        baseline_response = 5.0
+        ia_effect = 3.0  # Amplification based on IA
+        insula_effect = 2.5  # Additional response to insula stimulation
+        noise_std = 1.2
+
+        for participant_idx in high_ia_participants:
+            ia_score = ia_scores[participant_idx]
+            # High-IA participants: stronger response to insula stimulation
+            base = baseline_response + ia_effect * (ia_score - 0.5)
+            insula_response = np.random.normal(base + insula_effect, noise_std, 20)
+            control_response = np.random.normal(base, noise_std, 20)
             results["high_ia_insula"].extend(insula_response)
             results["high_ia_control"].extend(control_response)
 
-        for participant in low_ia_participants:
+        for participant_idx in low_ia_participants:
+            ia_score = ia_scores[participant_idx]
             # Low-IA participants: weaker response to insula stimulation
-            insula_response = np.random.normal(6.1, 1.3, 20)  # Lower response
-            control_response = np.random.normal(5.4, 1.0, 20)  # Similar baseline
+            base = baseline_response + ia_effect * (ia_score - 0.5)
+            insula_response = np.random.normal(
+                base + insula_effect * 0.6, noise_std, 20
+            )
+            control_response = np.random.normal(base, noise_std, 20)
             results["low_ia_insula"].extend(insula_response)
             results["low_ia_control"].extend(control_response)
 
@@ -402,52 +412,142 @@ class CausalManipulationsValidator:
         low_ia_insula = np.array(results["low_ia_insula"])
         low_ia_control = np.array(results["low_ia_control"])
 
-        # Perform two-way mixed ANOVA: Group (High-IA vs Low-IA) × Condition (Insula vs Control)
-        # Calculate main effects and interaction
+        # Fix 1: Replace simplified F-test with pingouin.mixed_anova
+        # Create DataFrame for proper mixed-model ANOVA
+        import pandas as pd
 
-        # Main effect of condition
-        all_insula = np.concatenate([high_ia_insula, low_ia_insula])
-        all_control = np.concatenate([high_ia_control, low_ia_control])
-        f_condition, p_condition = stats.f_oneway(all_insula, all_control)
+        # Build data structure for mixed ANOVA
+        n_trials_per_participant = 20
+        data_rows = []
 
-        # Main effect of group
-        all_high_ia = np.concatenate([high_ia_insula, high_ia_control])
-        all_low_ia = np.concatenate([low_ia_insula, low_ia_control])
-        f_group, p_group = stats.f_oneway(all_high_ia, all_low_ia)
+        # Assign subject IDs
+        subject_id = 0
+        for _ in range(len(high_ia_participants)):
+            for _ in range(n_trials_per_participant):
+                data_rows.append(
+                    {
+                        "subject_id": subject_id,
+                        "IA_group": "High",
+                        "condition": "insula",
+                        "response": high_ia_insula[
+                            subject_id * n_trials_per_participant % len(high_ia_insula)
+                        ],
+                    }
+                )
+            for _ in range(n_trials_per_participant):
+                data_rows.append(
+                    {
+                        "subject_id": subject_id,
+                        "IA_group": "High",
+                        "condition": "control",
+                        "response": high_ia_control[
+                            subject_id * n_trials_per_participant % len(high_ia_control)
+                        ],
+                    }
+                )
+            subject_id += 1
 
-        # Interaction effect: differential response to insula stimulation
-        # Calculate the interaction as the difference in condition effects between groups
+        for _ in range(len(low_ia_participants)):
+            for _ in range(n_trials_per_participant):
+                data_rows.append(
+                    {
+                        "subject_id": subject_id,
+                        "IA_group": "Low",
+                        "condition": "insula",
+                        "response": low_ia_insula[
+                            (subject_id - len(high_ia_participants))
+                            * n_trials_per_participant
+                            % len(low_ia_insula)
+                        ],
+                    }
+                )
+            for _ in range(n_trials_per_participant):
+                data_rows.append(
+                    {
+                        "subject_id": subject_id,
+                        "IA_group": "Low",
+                        "condition": "control",
+                        "response": low_ia_control[
+                            (subject_id - len(high_ia_participants))
+                            * n_trials_per_participant
+                            % len(low_ia_control)
+                        ],
+                    }
+                )
+            subject_id += 1
+
+        df = pd.DataFrame(data_rows)
+
+        # Run proper mixed-model ANOVA using pingouin if available
+        mixed_anova_result = None
+        try:
+            import pingouin as pg
+
+            mixed_anova_result = pg.mixed_anova(
+                data=df,
+                dv="response",
+                within="condition",
+                between="IA_group",
+                subject="subject_id",
+            )
+            # Extract interaction effect
+            interaction_row = mixed_anova_result[
+                mixed_anova_result["Source"] == "condition * IA_group"
+            ]
+            f_interaction = (
+                float(interaction_row["F"].values[0]) if len(interaction_row) > 0 else 0
+            )
+            p_interaction = (
+                float(interaction_row["p-unc"].values[0])
+                if len(interaction_row) > 0
+                else 1.0
+            )
+            partial_eta_squared = (
+                float(interaction_row["np2"].values[0])
+                if len(interaction_row) > 0
+                else 0
+            )
+        except ImportError:
+            logger.warning("pingouin not available - using fallback simplified F-test")
+            # Fallback to simplified calculation
+            high_ia_diff = np.mean(high_ia_insula) - np.mean(high_ia_control)
+            low_ia_diff = np.mean(low_ia_insula) - np.mean(low_ia_control)
+            interaction_effect = high_ia_diff - low_ia_diff
+
+            n_high = len(high_ia_insula)
+            n_low = len(low_ia_insula)
+
+            var_high = np.var(high_ia_insula - high_ia_control, ddof=1)
+            var_low = np.var(low_ia_insula - low_ia_control, ddof=1)
+            pooled_var = ((n_high - 1) * var_high + (n_low - 1) * var_low) / (
+                n_high + n_low - 2
+            )
+
+            if pooled_var > 0:
+                f_interaction = (interaction_effect**2) / (2 * pooled_var)
+                df1 = 1
+                df2 = n_high + n_low - 2
+                p_interaction = 1 - stats.f.cdf(f_interaction, df1, df2)
+            else:
+                f_interaction = 0
+                p_interaction = 1.0
+
+            ss_interaction = f_interaction * 1
+            ss_total = ss_interaction + (n_high + n_low - 2)
+            partial_eta_squared = ss_interaction / ss_total if ss_total > 0 else 0
+
+            mixed_anova_result = {
+                "note": "Fallback calculation - pingouin not available",
+                "interaction_effect": float(interaction_effect),
+                "pooled_variance": (
+                    float(pooled_var) if "pooled_var" in locals() else None
+                ),
+            }
+
+        # Calculate simple effects for interpretation
         high_ia_diff = np.mean(high_ia_insula) - np.mean(high_ia_control)
         low_ia_diff = np.mean(low_ia_insula) - np.mean(low_ia_control)
         interaction_effect = high_ia_diff - low_ia_diff
-
-        # Calculate interaction F-statistic using appropriate error terms
-        # For simplicity, using a pooled variance approach
-        n_high = len(high_ia_insula)
-        n_low = len(low_ia_insula)
-
-        # Pooled variance for interaction
-        var_high = np.var(high_ia_insula - high_ia_control, ddof=1)
-        var_low = np.var(low_ia_insula - low_ia_control, ddof=1)
-        pooled_var = ((n_high - 1) * var_high + (n_low - 1) * var_low) / (
-            n_high + n_low - 2
-        )
-
-        # Interaction F-statistic
-        if pooled_var > 0:
-            f_interaction = (interaction_effect**2) / (2 * pooled_var)
-            # Approximate p-value using F-distribution
-            df1 = 1  # Interaction degrees of freedom
-            df2 = n_high + n_low - 2  # Error degrees of freedom
-            p_interaction = 1 - stats.f.cdf(f_interaction, df1, df2)
-        else:
-            f_interaction = 0
-            p_interaction = 1.0
-
-        # Calculate partial eta-squared for interaction
-        ss_interaction = f_interaction * df1
-        ss_total = ss_interaction + df2  # Simplified total SS
-        partial_eta_squared = ss_interaction / ss_total if ss_total > 0 else 0
 
         # P2.c passes if partial eta-squared meets the shared threshold and p < 0.05
         p2c_passed = (partial_eta_squared >= P2_C_MIN_ETA_SQ) and (p_interaction < 0.05)
@@ -462,6 +562,7 @@ class CausalManipulationsValidator:
             "p2c_passed": p2c_passed,
             "n_high_ia": len(high_ia_participants),
             "n_low_ia": len(low_ia_participants),
+            "mixed_anova_result": mixed_anova_result,
             "validation_passed": p2c_passed,
         }
 
@@ -504,6 +605,23 @@ class CausalManipulationsValidator:
         """Validate TMS disruption of ignition at specific timing windows"""
 
         results = {}
+
+        # Fix 3: Add power analysis
+        try:
+            from utils.statistical_tests import compute_required_n
+
+            # Calculate required sample size for expected TMS disruption effect
+            n_required = compute_required_n(
+                effect_size=0.5,  # Medium effect size for TMS disruption
+                desired_power=0.80,
+                alpha=0.01,
+            )
+            logger.info(
+                f"Power analysis: Required n = {n_required} for TMS disruption detection"
+            )
+        except ImportError:
+            logger.warning("compute_required_n not available - power analysis skipped")
+            n_required = None
 
         # Test different target regions
         regions = ["dlPFC", "posterior_parietal", "control"]
@@ -583,10 +701,31 @@ class CausalManipulationsValidator:
             _, p_value = stats.ttest_ind(ignition_clean, control_clean)
             ignition_mean = np.mean(ignition_clean)
             control_mean = np.mean(control_clean)
+
+            # Fix 4: Add effect size check (Cohen's d >= V10_MIN_COHENS_D)
+            V10_MIN_COHENS_D = 0.5  # Minimum effect size for TMS disruption
+            pooled_std = np.sqrt(
+                (np.var(ignition_clean, ddof=1) + np.var(control_clean, ddof=1)) / 2
+            )
+            cohens_d = (
+                (ignition_mean - control_mean) / pooled_std if pooled_std > 0 else 0
+            )
+            effect_size_passed = abs(cohens_d) >= V10_MIN_COHENS_D
+
+            # Assert for effect size criterion
+            assert (
+                effect_size_passed
+            ), f"TMS disruption effect size {abs(cohens_d):.3f} < minimum {V10_MIN_COHENS_D}"
         else:
             p_value = np.nan
             ignition_mean = np.nan
             control_mean = np.nan
+            cohens_d = np.nan
+            effect_size_passed = False
+
+        # Check sample size against power analysis
+        n_trials_used = len(ignition_clean) + len(control_clean)
+        power_sufficient = n_required is None or n_trials_used >= n_required
 
         return {
             "region_specific_effects": results,
@@ -598,12 +737,23 @@ class CausalManipulationsValidator:
             "statistical_significance": (
                 p_value < 0.05 if not np.isnan(p_value) else False
             ),
+            "power_analysis": {
+                "n_required": n_required,
+                "n_trials_used": n_trials_used,
+                "power_sufficient": power_sufficient,
+            },
+            "effect_size": {
+                "cohens_d": float(cohens_d) if not np.isnan(cohens_d) else None,
+                "effect_size_passed": effect_size_passed,
+                "V10_MIN_COHENS_D": 0.5,
+            },
             "validation_passed": (p_value < 0.05 if not np.isnan(p_value) else False)
             and (
                 ignition_mean < control_mean
                 if not np.isnan(ignition_mean) and not np.isnan(control_mean)
                 else False
-            ),
+            )
+            and effect_size_passed,
         }
 
     def _validate_pharmacological_effects(self) -> Dict:

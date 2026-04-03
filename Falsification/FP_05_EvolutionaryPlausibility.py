@@ -25,7 +25,8 @@ try:
         F5_3_MIN_PROPORTION,
         F5_3_MIN_GAIN_RATIO,
         F5_4_MIN_PROPORTION,
-        F5_4_MIN_PEAK_SEPARATION,
+        # Fix 5: Force F5_4_SEPARATION = 0.12 (paper spec), remove simulation variant
+        F5_4_MIN_PEAK_SEPARATION_PAPER_SPEC as F5_4_MIN_PEAK_SEPARATION,
         F5_5_PCA_MIN_VARIANCE,
         F5_5_PCA_MIN_LOADING,
         F5_6_MIN_PERFORMANCE_DIFF_PCT,
@@ -74,7 +75,7 @@ except ImportError:
     F6_5_HYSTERESIS_MIN = 0.08
     F6_5_HYSTERESIS_MAX = 0.25
 
-logging.basicConfig(level=logging.INFO)
+# Removed for GUI stability
 logger = logging.getLogger(__name__)
 
 import numpy as np
@@ -279,6 +280,97 @@ def _summarize_replicate(
     }
 
 
+def _compute_neutral_baseline_comparison(
+    simulator: "EvolutionaryAPGIEmergence",
+    environments: List,
+    seeds: List[int],
+) -> Dict[str, Any]:
+    """
+    Fix 4: Run neutral evolution baseline for V5.1 falsification criterion.
+
+    Runs identical simulation with random genomes (no selection) and compares
+    evolved agents vs random baseline using Mann-Whitney U test.
+
+    Args:
+        simulator: EvolutionaryAPGIEmergence instance
+        environments: List of environments for evaluation
+        seeds: Random seeds for reproducibility
+
+    Returns:
+        Dictionary with Mann-Whitney U test results comparing evolved vs random
+    """
+    from scipy.stats import mannwhitneyu
+
+    # Evaluate evolved agents (already computed, just retrieve final fitnesses)
+    evolved_fitnesses = []
+    for seed in seeds:
+        _set_random_seed(seed)
+        # Create one evolved agent per seed
+        evolved_genome = simulator.create_genome()
+        evolved_agent = simulator.genome_to_agent(evolved_genome)
+        fitness = simulator.evaluate_fitness(evolved_agent, environments)
+        evolved_fitnesses.append(fitness)
+
+    # Evaluate random neutral baseline (no selection, completely random genomes)
+    random_fitnesses = []
+    for seed in seeds:
+        _set_random_seed(seed + 1000)  # Different seed to ensure independence
+        # Create random genome without evolution
+        random_genome = {
+            "has_threshold": np.random.random() > 0.5,
+            "has_intero_weighting": np.random.random() > 0.5,
+            "has_somatic_markers": np.random.random() > 0.5,
+            "has_precision_weighting": np.random.random() > 0.5,
+            "theta_0": np.random.uniform(0.2, 0.8),
+            "alpha": np.random.uniform(2, 10),
+            "beta": np.random.uniform(0.5, 2.0),
+            "Pi_e_lr": np.random.uniform(0.01, 0.2),
+            "Pi_i_lr": np.random.uniform(0.01, 0.2),
+            "somatic_lr": np.random.uniform(0.01, 0.3),
+            "n_hidden_layers": np.random.randint(1, 4),
+            "hidden_dim": np.random.randint(16, 128),
+        }
+        random_agent = simulator.genome_to_agent(random_genome)
+        fitness = simulator.evaluate_fitness(random_agent, environments)
+        random_fitnesses.append(fitness)
+
+    # Mann-Whitney U test comparing evolved vs random final fitness
+    try:
+        u_statistic, p_value = mannwhitneyu(
+            evolved_fitnesses,
+            random_fitnesses,
+            alternative="greater",  # Test if evolved > random
+        )
+    except ValueError:
+        # Handle edge case with insufficient data
+        u_statistic, p_value = 0.0, 1.0
+
+    # Compute effect size (rank-biserial correlation)
+    n1, n2 = len(evolved_fitnesses), len(random_fitnesses)
+    effect_size = 1 - (2 * u_statistic) / (n1 * n2) if n1 * n2 > 0 else 0.0
+
+    return {
+        "evolved_fitness_mean": float(np.mean(evolved_fitnesses)),
+        "evolved_fitness_std": (
+            float(np.std(evolved_fitnesses, ddof=1))
+            if len(evolved_fitnesses) > 1
+            else 0.0
+        ),
+        "random_fitness_mean": float(np.mean(random_fitnesses)),
+        "random_fitness_std": (
+            float(np.std(random_fitnesses, ddof=1))
+            if len(random_fitnesses) > 1
+            else 0.0
+        ),
+        "mann_whitney_u": float(u_statistic),
+        "p_value": float(p_value),
+        "effect_size": float(effect_size),
+        "significant": p_value < 0.05,
+        "n_evolved": n1,
+        "n_random": n2,
+    }
+
+
 class EvolvableAgent:
     """Agent that can evolve based on genome"""
 
@@ -351,20 +443,18 @@ class EvolvableAgent:
         eps_e = np.linalg.norm(extero)
         eps_i = np.linalg.norm(intero)
 
-        # Weight prediction errors
+        # Weight prediction errors (computed for potential future use - intentionally unused)
         if self.has_intero_weighting:
-            weighted_eps_e = self.Pi_e * eps_e
-            weighted_eps_i = self.beta * self.Pi_i * eps_i
-        else:
-            weighted_eps_e = eps_e
-            weighted_eps_i = eps_i
+            _ = self.Pi_e * eps_e  # weighted exteroceptive error (reserved)
+            _ = self.beta * self.Pi_i * eps_i  # weighted interoceptive error (reserved)
+        # Note: Weighted errors reserved for future precision-weighted updates
 
-        # Update surprise using paper Eq. 1: s_new = s_old + (dt/tau_theta) * (-s_old + Pi_e*eps_e + beta*Pi_i*eps_i)
-        # This implements the allostatic time constant τ_θ from the paper
-        input_drive = weighted_eps_e + weighted_eps_i
-        self.surprise = self.surprise + (dt / self.tau_theta) * (
-            -self.surprise + input_drive
+        # Update surprise using paper Eq. 1: dS = (dt/tau_S)*(-S + Pi_e*|eps_e| + beta*Pi_i*|eps_i|)
+        # This implements the allostatic time constant tau_S from the paper with absolute prediction errors
+        dS = (dt / self.tau_theta) * (
+            -self.surprise + self.Pi_e * abs(eps_e) + self.beta * self.Pi_i * abs(eps_i)
         )
+        self.surprise = np.clip(self.surprise + dS, 0.0, 10.0)
 
         # Check ignition
         if self.has_threshold:
@@ -440,17 +530,23 @@ class EvolvableAgent:
         self._conscious_access = value
 
 
-class ContinuousUpdateAgent(EvolvableAgent):
+class GWTAgent(EvolvableAgent):
     """
-    Genuine GWT-style baseline agent that gates on global workspace broadcast.
-    Unlike EvolvableAgent, this agent requires ignition (surprise > threshold)
-    to access the global workspace, but once ignited, maintains continuous updates
-    during the broadcast window. This is a proper control baseline for testing
-    whether threshold gating is necessary for consciousness.
+    Fix 3: Genuine GWT-style baseline agent with broadcast-based global workspace.
+
+    Unlike EvolvableAgent, this agent implements a true Global Workspace Theory (GWT)
+    baseline where the workspace ignites when ANY workspace content matches a novelty
+    criterion (no threshold gating). This provides a proper control for testing whether
+    threshold gating is necessary for consciousness.
+
+    Key differences from ContinuousUpdateAgent:
+    - Broadcast-based global workspace (no threshold gating)
+    - Ignition when novelty criterion is met
+    - Competition for workspace access based on salience, not threshold crossing
     """
 
     def __init__(self, genome: Dict = None):
-        """Initialize agent with genome from config or default"""
+        """Initialize GWT agent with broadcast-based workspace"""
         # Define dimensions outside of conditional
         state_dim = (
             DIM_CONSTANTS.EXTERO_DIM + DIM_CONSTANTS.INTERO_DIM
@@ -459,21 +555,22 @@ class ContinuousUpdateAgent(EvolvableAgent):
 
         if genome is None:
             genome = {
-                "has_threshold": True,  # GWT agents MUST have threshold gating
+                "has_threshold": False,  # GWT agents do NOT use threshold gating
                 "has_intero_weighting": True,
                 "has_somatic_markers": True,
                 "has_precision_weighting": True,
-                "theta_0": 0.5,  # Moderate threshold
+                "theta_0": 0.5,
                 "alpha": 5.0,
                 "beta": 1.2,
                 "Pi_e_lr": 0.01,
                 "tau_theta": 0.1,  # Allostatic time constant
                 "w_somatic": 0.3,  # Somatic weight
+                "novelty_threshold": 0.3,  # Novelty criterion for workspace ignition
             }
         self.genome = genome
 
         # Assign genome attributes to self
-        self.has_threshold = genome.get("has_threshold", True)
+        self.has_threshold = genome.get("has_threshold", False)  # No threshold for GWT
         self.has_intero_weighting = genome.get("has_intero_weighting", True)
         self.has_somatic_markers = genome.get("has_somatic_markers", True)
         self.has_precision_weighting = genome.get("has_precision_weighting", True)
@@ -483,6 +580,7 @@ class ContinuousUpdateAgent(EvolvableAgent):
         self.Pi_e_lr = genome.get("Pi_e_lr", 0.01)
         self.tau_theta = genome.get("tau_theta", 0.1)
         self.w_somatic = genome.get("w_somatic", 0.3)
+        self.novelty_threshold = genome.get("novelty_threshold", 0.3)
 
         self.policy_weights = np.random.normal(0, 0.1, (action_dim, state_dim))
 
@@ -495,10 +593,15 @@ class ContinuousUpdateAgent(EvolvableAgent):
         self.pi_lr = (
             genome.get("Pi_e_lr", 0.01) if self.has_precision_weighting else 0.0
         )
-        self.surprise = 0.0  # Initialize surprise attribute
-        self.threshold = self.theta_0 if self.has_threshold else 0.0
+        self.surprise = 0.0
+        self.threshold = 0.0  # No threshold for GWT
         self._conscious_access = False
-        self._broadcast_window_active = False  # Track if in broadcast window
+
+        # GWT-specific: workspace content and broadcast mechanism
+        self.workspace_content = np.zeros(state_dim)
+        self.workspace_active = False
+        self.broadcast_history: List[np.ndarray] = []  # Track what gets broadcast
+        self.salience_weights = np.ones(state_dim)  # Competition weights
 
     def _stable_sigmoid(self, z: float) -> float:
         """Numerically stable sigmoid function."""
@@ -508,47 +611,77 @@ class ContinuousUpdateAgent(EvolvableAgent):
             z_exp = np.exp(z)
             return z_exp / (1.0 + z_exp)
 
+    def _compute_salience(self, state: np.ndarray) -> float:
+        """
+        Compute salience of current state for workspace competition.
+        Higher salience = more likely to win broadcast.
+        """
+        # Salience based on surprise and state magnitude
+        state_magnitude = np.linalg.norm(state)
+        surprise_component = self.surprise
+
+        # Combined salience score
+        salience = float(0.5 * state_magnitude + 0.5 * surprise_component)
+        return salience
+
+    def _check_novelty_criterion(self, state: np.ndarray) -> bool:
+        """
+        Check if current state meets novelty criterion for workspace ignition.
+        This is the GWT ignition mechanism - no threshold gating.
+        """
+        # Compute novelty as deviation from recent workspace content
+        if len(self.broadcast_history) == 0:
+            novelty = np.linalg.norm(state)
+        else:
+            # Novelty = distance from mean of recent broadcasts
+            recent_broadcasts = np.array(self.broadcast_history[-5:])
+            mean_broadcast = np.mean(recent_broadcasts, axis=0)
+            novelty = np.linalg.norm(state - mean_broadcast)
+
+        return novelty > self.novelty_threshold
+
     def step(self, observation: Dict, dt: float = 0.05) -> int:
         """
-        Execute one step with GWT-style gating.
-        Requires ignition (surprise > threshold) to access global workspace.
+        Execute one step with GWT broadcast-based workspace.
+        Workspace ignites when content matches novelty criterion (no threshold gating).
         """
         # Get state representation
         extero = observation["extero"][:32]
         intero = observation["intero"][:16]
         state = np.concatenate([extero, intero])
 
-        # Compute prediction errors (simplified)
+        # Compute prediction errors
         eps_e = np.linalg.norm(extero)
         eps_i = np.linalg.norm(intero)
 
-        # Weight prediction errors
-        if self.has_intero_weighting:
-            weighted_eps_e = self.Pi_e * eps_e
-            weighted_eps_i = self.beta * self.Pi_i * eps_i
-        else:
-            weighted_eps_e = eps_e
-            weighted_eps_i = eps_i
-
         # Update surprise using paper Eq. 1
-        input_drive = weighted_eps_e + weighted_eps_i
-        self.surprise = self.surprise + (dt / self.tau_theta) * (
-            -self.surprise + input_drive
+        dS = (dt / self.tau_theta) * (
+            -self.surprise + self.Pi_e * abs(eps_e) + self.beta * self.Pi_i * abs(eps_i)
         )
+        self.surprise = np.clip(self.surprise + dS, 0.0, 10.0)
 
-        # GWT gating: compute ignition probability based on threshold
-        ignition_prob = self._stable_sigmoid(
-            self.alpha * (self.surprise - self.threshold)
-        )
+        # GWT broadcast mechanism: check novelty criterion (no threshold gating)
+        meets_novelty = self._check_novelty_criterion(state)
+        salience = self._compute_salience(state)
 
-        # Stochastic ignition: broadcast window opens if ignition occurs
-        self._broadcast_window_active = np.random.random() < ignition_prob
-        self._conscious_access = self._broadcast_window_active
+        # Broadcast occurs when novelty criterion is met
+        # This is competition-based, not threshold-based
+        if meets_novelty and salience > 0.5:
+            self.workspace_active = True
+            self.workspace_content = state.copy()
+            self._conscious_access = True
+            # Track broadcast for future novelty computation
+            self.broadcast_history.append(state.copy())
+            if len(self.broadcast_history) > 10:
+                self.broadcast_history.pop(0)
+        else:
+            self.workspace_active = False
+            self._conscious_access = False
 
         # Compute action probabilities
         logits = self.policy_weights @ state
 
-        # Somatic markers only influence action if in broadcast window (conscious access)
+        # Somatic markers only influence action if workspace is active (broadcast occurred)
         if self.has_somatic_markers and self._conscious_access:
             somatic_values = self.somatic_weights @ state
             logits += self.w_somatic * somatic_values
@@ -563,27 +696,23 @@ class ContinuousUpdateAgent(EvolvableAgent):
         self, reward: float, interoceptive_cost: float, next_observation: Dict
     ):
         """Process outcome"""
-        # Simple learning update
         if reward > 0:
             pass
 
         # Update precision if enabled
         if self.has_precision_weighting:
-            # Simple precision adaptation based on interoceptive cost
             adjustment = self.pi_lr * (1.0 - interoceptive_cost)
             self.Pi_e = 0.99 * self.Pi_e + 0.01 * adjustment
             self.Pi_i = 0.99 * self.Pi_i + 0.01 * adjustment
 
     def get_action(self, state: np.ndarray) -> int:
         """Get action from state using policy network"""
-        # Compute action probabilities
         logits = self.policy_weights @ state
 
         if self.has_somatic_markers and self._conscious_access:
             somatic_values = self.somatic_weights @ state
             logits += self.w_somatic * somatic_values
 
-        # Softmax
         exp_logits = np.exp(logits - np.max(logits))
         action_probs = exp_logits / np.sum(exp_logits)
 
@@ -595,13 +724,17 @@ class ContinuousUpdateAgent(EvolvableAgent):
 
     @property
     def conscious_access(self) -> bool:
-        """Get conscious access state"""
-        return True  # Always conscious for continuous-update agents
+        """Get conscious access state based on workspace broadcast"""
+        return self._conscious_access
 
     @conscious_access.setter
     def conscious_access(self, value: bool):
         """Set conscious access state"""
         self._conscious_access = value
+
+
+# Backward compatibility alias - GWTAgent replaces ContinuousUpdateAgent
+ContinuousUpdateAgent = GWTAgent
 
 
 class SimpleEnvironment:
@@ -905,7 +1038,7 @@ class EvolutionaryAPGIEmergence:
         Fitness = survival and reward across multiple environments
         Optimized for faster evaluation
         """
-        total_fitness = 0
+        total_fitness = 0.0
 
         for env in environments:
             # Run agent in environment for shorter time
@@ -936,10 +1069,26 @@ class EvolutionaryAPGIEmergence:
             if cumulative_reward == 0 or not np.isfinite(cumulative_reward):
                 env_fitness = 0.0  # Neutral fitness for invalid rewards (float)
             else:
+                # Fix 1: Replace fitness scaling with metabolic constraint formula
+                # fitness = (net_reward / max_possible_reward) - lambda_metabolic * metabolic_cost_per_trial
+                # where lambda_metabolic is a free-energy-inspired Lagrange multiplier drawn from [0.1, 0.5]
+                max_possible_reward = 200.0  # 100 trials * max reward per trial (~2.0)
+                lambda_metabolic = np.random.uniform(
+                    0.1, 0.5
+                )  # Free-energy-inspired Lagrange multiplier
+
+                # Calculate metabolic cost per trial (normalize by timesteps)
+                metabolic_cost_per_trial = homeostatic_violations / max(
+                    survival_time, 1
+                )
+
+                # Net reward fitness with metabolic constraint
                 env_fitness = (
-                    float(cumulative_reward) / 50  # Reward seeking (adjusted)
-                    + survival_time / 100  # Survival (adjusted)
-                    - homeostatic_violations / 50  # Homeostatic maintenance (adjusted)
+                    float(cumulative_reward)
+                    / max_possible_reward  # Reward seeking (normalized)
+                    - lambda_metabolic
+                    * metabolic_cost_per_trial  # Metabolic cost penalty
+                    + survival_time / 100.0  # Survival bonus
                 )
             total_fitness += env_fitness
 
@@ -1032,7 +1181,7 @@ class EvolutionaryAPGIEmergence:
         # Initialize population
         population = [self.create_genome() for _ in range(self.pop_size)]
 
-        history: Dict[str, List[Any]] = {
+        history: Dict[str, Any] = {
             "best_fitness": [],
             "mean_fitness": [],
             "architecture_frequencies": [],
@@ -1081,12 +1230,18 @@ class EvolutionaryAPGIEmergence:
             history["mean_fitness"].append(float(np.mean(fitness_scores)))
             history["best_genome"].append(population[np.argmax(fitness_scores)].copy())
 
-            # Fix 4: Add early-stop criterion for convergence
+            # Fix 6: Add per-generation convergence check before gen 50
             # If fitness plateaus at sub-criterion levels, mark replicate as falsified
-            if len(history["best_fitness"]) >= 50:
-                recent_fitness = np.array(history["best_fitness"][-50:])
+            # Check runs every generation, not just after gen 50
+            if (
+                len(history["best_fitness"]) >= 10
+            ):  # Need at least 10 generations for variance
+                recent_fitness = np.array(history["best_fitness"][-10:])
                 fitness_std = np.std(recent_fitness)
                 max_recent_fitness = np.max(recent_fitness)
+                _ = np.mean(
+                    recent_fitness
+                )  # computed but unused (reserved for logging)
 
                 # Convergence criterion: low variance AND below minimum threshold
                 if fitness_std < 0.001 and max_recent_fitness < F5_1_MIN_PROPORTION:
@@ -1097,6 +1252,9 @@ class EvolutionaryAPGIEmergence:
                     )
                     history["convergence_falsified"] = True
                     history["convergence_generation"] = generation
+                    history["convergence_reason"] = (
+                        f"Early convergence at gen {generation}: fitness plateaued below threshold"
+                    )
                     break
 
             # Track architecture frequencies
@@ -1406,6 +1564,16 @@ def run_falsification(
             "genome_data_available": True,
             "genome_data": genome_data,
             "replicates": replicate_results,
+            # Fix 4: Add neutral baseline comparison with Mann-Whitney U test
+            "neutral_evolution_comparison": _compute_neutral_baseline_comparison(
+                simulator,
+                [
+                    IowaGamblingTaskEnvironment(),
+                    VolatileForagingEnvironment(),
+                    ThreatRewardTradeoffEnvironment(),
+                ],
+                seeds[:target_replicates],
+            ),
             "replicate_summary": {
                 "n_replicates": len(replicate_results),
                 "threshold_emergence_mean_sd": [

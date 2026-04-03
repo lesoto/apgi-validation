@@ -197,7 +197,8 @@ def main():
     """Main function to extract genome data from VP-5 results."""
 
     # Check if VP-5 results exist
-    results_path = "utils/protocol5_results.json"
+    # VP-05 saves to current working directory, not utils/
+    results_path = "protocol5_results.json"
     if not Path(results_path).exists():
         print(f"⚠️ VP-5 results not found at: {results_path}")
         print("   Generating mock genome data for testing...")

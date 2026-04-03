@@ -190,11 +190,14 @@ _OPTIONAL_DEPS = {
     "sympy": ("sympy", "1.12"),  # Symbolic mathematics (FP-07, FP-08)
 }
 
+import importlib.util
+
 _MISSING_OPTIONAL_DEPS = []
 
 for dep_name, (import_name, min_version) in _OPTIONAL_DEPS.items():
     try:
-        __import__(import_name)
+        if importlib.util.find_spec(import_name) is None:
+            _MISSING_OPTIONAL_DEPS.append(dep_name)
     except Exception:
         _MISSING_OPTIONAL_DEPS.append(dep_name)
 

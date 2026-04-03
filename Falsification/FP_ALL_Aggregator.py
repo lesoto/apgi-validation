@@ -25,7 +25,7 @@ except ImportError:
     APGI_IGNITION_THRESHOLD = 0.8  # Fallback default
 
 # Set up logging for framework audit
-logging.basicConfig(level=logging.INFO)
+# Removed for GUI stability
 logger = logging.getLogger(__name__)
 
 NAMED_PREDICTIONS = {
@@ -355,7 +355,9 @@ def extract_apgi_bic_advantage(results_input) -> float:
         return min(advantages)
 
     if audit["missing_files"] or audit["extraction_errors"]:
-        return float("-inf")
+        raise ValueError(
+            "Condition B evaluation requires BIC data; no results found in protocol outputs"
+        )
 
     # FP-12 Fix 1: Replace float('inf') with ValueError when no BIC data available
     raise ValueError(

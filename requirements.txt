@@ -52,3 +52,5 @@ scikit-learn>=1.5.0,<2.0.0
 sympy>=1.12,<2.0.0
 tifffile>=2021.7.0,<2024.0
 pyreadr>=0.8.0,<1.0.0
+# FP-12 Fix 5: Add FP_ALL_Aggregator imported dynamically by FP-03
+# FP_ALL_Aggregator imported dynamically by FP_03

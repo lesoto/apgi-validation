@@ -64,6 +64,7 @@ class APGIMasterValidator:
             13: "secondary",
             14: "tertiary",
             15: "tertiary",
+            16: "secondary",  # Protocol ALL (Aggregator)
         }
         self.falsification_status = {
             "primary": [],

@@ -1204,6 +1204,242 @@ class EvolutionaryOptimizer:
 
         return len(signatures) / 16  # 16 possible architectures
 
+    def compute_genetic_diversity_hamming(self) -> float:
+        """
+        Compute genetic diversity as mean pairwise Hamming distance between genomes.
+
+        Returns:
+            Mean pairwise Hamming distance (0-1 scale)
+        """
+        if len(self.population) < 2:
+            return 0.0
+
+        # Extract binary gene vectors for each genome
+        gene_vectors = []
+        for genome in self.population:
+            # Structural genes as binary vector
+            gene_vec = [
+                int(genome.has_threshold),
+                int(genome.has_intero_weighting),
+                int(genome.has_somatic_markers),
+                int(genome.has_precision_weighting),
+                int(genome.theta_0 * 10) % 2,  # Discretize continuous params
+                int(genome.alpha * 10) % 2,
+                int(genome.beta * 10) % 2,
+            ]
+            gene_vectors.append(gene_vec)
+
+        # Compute pairwise Hamming distances
+        distances = []
+        n = len(gene_vectors)
+        for i in range(n):
+            for j in range(i + 1, n):
+                # Hamming distance: proportion of differing bits
+                hamming = sum(a != b for a, b in zip(gene_vectors[i], gene_vectors[j]))
+                distances.append(hamming / len(gene_vectors[i]))
+
+        return float(np.mean(distances)) if distances else 0.0
+
+    def compute_modularity_q_score(self, genome: AgentGenome) -> float:
+        """
+        Compute modularity Q score for a genome.
+
+        Q = (within_community_edges - expected_edges) / total_edges
+
+        For neural network architectures, we estimate modularity based on
+        the presence/absence of functional components and their connectivity.
+
+        Returns:
+            Modularity Q score (can be negative for non-modular structures)
+        """
+        # Define community structure based on APGI components
+        communities = {
+            "threshold": {"threshold_gate", "workspace_gate"},
+            "interoceptive": {"intero_encoder", "Pi_i_network"},
+            "exteroceptive": {"extero_encoder", "Pi_e_network"},
+            "somatic": {"somatic_network", "value_head"},
+        }
+
+        # Track which communities are present in genome
+        active_communities = set()
+        if genome.has_threshold:
+            active_communities.add("threshold")
+        if genome.has_intero_weighting:
+            active_communities.add("interoceptive")
+            active_communities.add("exteroceptive")
+        if genome.has_somatic_markers:
+            active_communities.add("somatic")
+        if genome.has_precision_weighting:
+            active_communities.add("exteroceptive")
+            active_communities.add("interoceptive")
+
+        if not active_communities:
+            return 0.0
+
+        # Count within-community and between-community edges
+        total_edges = 0
+        within_edges = 0
+
+        for i, comm_a in enumerate(active_communities):
+            for j, comm_b in enumerate(active_communities):
+                if i == j:
+                    # Within community
+                    comm_nodes = len(communities.get(comm_a, set()))
+                    within_edges += (
+                        comm_nodes * (comm_nodes - 1) / 2 if comm_nodes > 1 else 1
+                    )
+                    total_edges += (
+                        comm_nodes * (comm_nodes - 1) / 2 if comm_nodes > 1 else 1
+                    )
+                else:
+                    # Between communities
+                    nodes_a = len(communities.get(comm_a, set()))
+                    nodes_b = len(communities.get(comm_b, set()))
+                    total_edges += nodes_a * nodes_b
+
+        if total_edges == 0:
+            return 0.0
+
+        expected_edges = total_edges * 0.5
+        q_score = (within_edges - expected_edges) / total_edges
+
+        return float(q_score)
+
+    def test_adversarial_robustness(
+        self, best_genome: AgentGenome, perturbations: List[float] = None
+    ) -> Dict[str, Any]:
+        """
+        V5.4: Test adversarial robustness by mutating best genome and measuring fitness retention.
+
+        For perturbation in [0.1, 0.2, 0.4]: mutate best genome; measure fitness retention;
+        pass if retention > 0.80
+
+        Args:
+            best_genome: The best genome from evolution
+            perturbations: List of mutation rates to test (default: [0.1, 0.2, 0.4])
+
+        Returns:
+            Dictionary with robustness test results
+        """
+        if perturbations is None:
+            perturbations = [0.1, 0.2, 0.4]
+
+        # Get baseline fitness
+        baseline_fitness = self.evaluate_fitness(best_genome)
+
+        results = {
+            "baseline_fitness": baseline_fitness,
+            "perturbation_tests": [],
+            "overall_pass": True,
+        }
+
+        for perturbation in perturbations:
+            # Create mutated copy with specified perturbation rate
+            mutated = copy.deepcopy(best_genome)
+            mutated = mutated.mutate(mutation_rate=perturbation)
+
+            # Evaluate mutated fitness
+            mutated_fitness = self.evaluate_fitness(mutated)
+
+            # Calculate fitness retention
+            if abs(baseline_fitness) > 1e-10:
+                retention = mutated_fitness / baseline_fitness
+            else:
+                retention = 1.0 if mutated_fitness >= baseline_fitness else 0.0
+
+            test_pass = retention > 0.80
+
+            results["perturbation_tests"].append(
+                {
+                    "perturbation_rate": perturbation,
+                    "mutated_fitness": mutated_fitness,
+                    "fitness_retention": retention,
+                    "pass": test_pass,
+                }
+            )
+
+            if not test_pass:
+                results["overall_pass"] = False
+
+        results["min_retention"] = min(
+            t["fitness_retention"] for t in results["perturbation_tests"]
+        )
+
+        return results
+
+    def run_neutral_evolution_baseline(
+        self, n_generations: int = None, population_size: int = None
+    ) -> Dict[str, Any]:
+        """
+        V5.1: Run neutral evolution baseline (mutation only, no selection) for comparison.
+
+        Run simulation with mutation_only=True, no_selection=True;
+        compare fitness to selection run; assert Mann-Whitney U p<0.01
+
+        Args:
+            n_generations: Number of generations for baseline (default: same as main run)
+            population_size: Population size for baseline (default: same as main run)
+
+        Returns:
+            Dictionary with neutral baseline results and statistical comparison
+        """
+        if n_generations is None:
+            n_generations = self.n_generations
+        if population_size is None:
+            population_size = self.pop_size
+
+        # Create neutral optimizer (mutation only, no selection)
+        neutral_pop = [AgentGenome.random() for _ in range(population_size)]
+        neutral_fitness_history = []
+
+        for gen in range(n_generations):
+            # Evaluate fitness (but don't use for selection)
+            gen_fitness = [self.evaluate_fitness(genome) for genome in neutral_pop]
+            neutral_fitness_history.append(np.mean(gen_fitness))
+
+            # Mutation only (no selection pressure)
+            new_pop = []
+            for genome in neutral_pop:
+                mutated = genome.mutate(mutation_rate=self.mutation_rate)
+                new_pop.append(mutated)
+            neutral_pop = new_pop
+
+        # Get selection run fitness history
+        selection_fitness = self.history.get("mean_fitness", [])
+
+        # Compare with Mann-Whitney U test
+        if len(selection_fitness) > 0 and len(neutral_fitness_history) > 0:
+            try:
+                from scipy import stats
+
+                u_stat, p_value = stats.mannwhitneyu(
+                    selection_fitness, neutral_fitness_history, alternative="greater"
+                )
+                selection_superior = p_value < 0.01
+            except ImportError:
+                # Fallback if scipy not available
+                u_stat = 0.0
+                p_value = 1.0
+                selection_superior = np.mean(selection_fitness) > np.mean(
+                    neutral_fitness_history
+                )
+        else:
+            u_stat = 0.0
+            p_value = 1.0
+            selection_superior = False
+
+        return {
+            "neutral_fitness_history": neutral_fitness_history,
+            "neutral_final_fitness": float(np.mean(neutral_fitness_history[-10:])),
+            "selection_final_fitness": (
+                float(np.mean(selection_fitness[-10:])) if selection_fitness else 0.0
+            ),
+            "mann_whitney_u": float(u_stat),
+            "mann_whitney_p": float(p_value),
+            "selection_superior": selection_superior,
+            "pass": selection_superior,
+        }
+
     def run_evolution(self, seed: Optional[int] = None) -> Dict[str, Any]:
         """Execute evolutionary optimization
 
@@ -1268,6 +1504,12 @@ class EvolutionaryOptimizer:
         min_generations_for_convergence = 20
         early_stop_generation = None
 
+        # Fix 3: Track genetic diversity for premature convergence detection
+        initial_diversity = self.compute_genetic_diversity_hamming()
+        genetic_diversity_history = [initial_diversity]
+        premature_convergence_flag = False
+        diversity_convergence_threshold = 0.1 * initial_diversity  # 10% of initial
+
         for generation in pbar:
             # Alternating multi-environment evolutionary pressure
             env_cycle = generation % 3
@@ -1313,6 +1555,21 @@ class EvolutionaryOptimizer:
 
             diversity = self.compute_diversity()
             self.history["diversity"].append(diversity)
+
+            # Fix 3: Track genetic diversity for premature convergence detection
+            genetic_diversity = self.compute_genetic_diversity_hamming()
+            genetic_diversity_history.append(genetic_diversity)
+            if (
+                genetic_diversity < diversity_convergence_threshold
+                and not premature_convergence_flag
+            ):
+                premature_convergence_flag = True
+                print(
+                    f"\n[WARNING] Premature convergence detected at generation {generation}"
+                )
+                print(
+                    f"  Genetic diversity {genetic_diversity:.4f} < threshold {diversity_convergence_threshold:.4f}"
+                )
 
             # Store best genome
             best_idx = np.argmax(fitness_scores)
@@ -1370,6 +1627,16 @@ class EvolutionaryOptimizer:
             ),
             "convergence_threshold": convergence_threshold,
             "min_generations_for_convergence": min_generations_for_convergence,
+            # Fix 3: Genetic diversity tracking
+            "initial_diversity": float(initial_diversity),
+            "final_diversity": (
+                float(genetic_diversity_history[-1])
+                if genetic_diversity_history
+                else 0.0
+            ),
+            "genetic_diversity_history": genetic_diversity_history,
+            "premature_convergence": premature_convergence_flag,
+            "diversity_convergence_threshold": float(diversity_convergence_threshold),
         }
 
         print(f"\n{'=' * 80}")

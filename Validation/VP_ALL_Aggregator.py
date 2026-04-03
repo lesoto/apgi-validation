@@ -14,7 +14,7 @@ Aggregates named predictions across all validation protocols for framework
 validation status reporting.
 """
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 import json
 
@@ -239,7 +239,26 @@ def aggregate_prediction_results(
         protocol_source = data.get("protocol_id", data.get("protocol", "unknown"))
 
         for pred_id, result_info in data.get("named_predictions", {}).items():
-            # Skip supplementary predictions - they don't count toward Condition A
+            # Fix 5: Mark V10 supplementary predictions to prevent double-counting
+            skip_canonical_overwrite = pred_id in SUPPLEMENTARY_PREDICTIONS
+
+            # Skip supplementary predictions if they would overwrite canonical results
+            if skip_canonical_overwrite:
+                # Check if canonical VP-07 result already exists for this prediction
+                existing_source = tallies.get(pred_id, {}).get("protocol_source", "")
+                if "VP-07" in str(existing_source) or "VP_07" in str(existing_source):
+                    # VP-07 canonical result exists, skip VP-10 supplementary
+                    logger = __import__("logging").getLogger(__name__)
+                    logger.info(
+                        f"Skipping supplementary {pred_id} from {protocol_source}: "
+                        f"VP-07 canonical result already exists"
+                    )
+                    continue
+                # Mark as supplementary in evidence tracking
+                tallies[pred_id]["is_supplementary"] = True
+                tallies[pred_id]["supplementary_source"] = protocol_source
+
+            # Skip supplementary predictions from main tally if marked
             if pred_id in SUPPLEMENTARY_PREDICTIONS:
                 continue
 
@@ -452,11 +471,34 @@ class ValidationAggregator:
         self.named_predictions = NAMED_PREDICTIONS
         self.protocol_tiers = PROTOCOL_TIERS
         self.prediction_to_protocol = PREDICTION_TO_PROTOCOL
+        self._prediction_statuses: Dict[str, Dict[str, Any]] = {}
+
+    def set_prediction(
+        self, prediction_id: str, status: str, evidence: Optional[str] = None
+    ) -> None:
+        """Set the status of a named prediction manually.
+
+        Used for marking predictions as PENDING_DATA when protocols
+        return STUB status (e.g., VP-15 awaiting empirical fMRI data).
+
+        Args:
+            prediction_id: The prediction ID (e.g., "V15.1")
+            status: Status string ("PENDING_DATA", "PASS", "FAIL", etc.)
+            evidence: Optional evidence string explaining the status
+        """
+        if prediction_id not in self._prediction_statuses:
+            self._prediction_statuses[prediction_id] = {}
+
+        self._prediction_statuses[prediction_id]["status"] = status
+        if evidence:
+            self._prediction_statuses[prediction_id]["evidence"] = evidence
 
     def aggregate_results(
         self, results_input: Union[Dict, List]
     ) -> Dict[str, Dict[str, Any]]:
         """Aggregate prediction results from all protocols.
+
+        Handles VP-15 STUB status by marking predictions as PENDING_DATA.
 
         Args:
             results_input: List of file paths, dicts, or dict of results
@@ -464,7 +506,26 @@ class ValidationAggregator:
         Returns:
             dict: Tally of pass/fail for each named prediction
         """
-        return aggregate_prediction_results(results_input)
+        results = aggregate_prediction_results(results_input)
+
+        # Fix 1: Handle VP-15 STUB status - mark predictions as PENDING_DATA
+        items = results_input if isinstance(results_input, list) else [results_input]
+        for item in items:
+            if isinstance(item, dict):
+                protocol_id = item.get("protocol_id", item.get("protocol", ""))
+                status = item.get("status", "").upper()
+
+                if "VP-15" in str(protocol_id) and status == "STUB":
+                    # Mark all VP-15 predictions as PENDING_DATA
+                    for pred_id in ["V15.1", "V15.2", "V15.3"]:
+                        if pred_id in results:
+                            results[pred_id]["passed"] = None
+                            results[pred_id]["status"] = "PENDING_DATA"
+                            results[pred_id][
+                                "evidence"
+                            ] = "Awaiting empirical fMRI data"
+
+        return results
 
     def compute_summary(self, predictions: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         """Compute validation summary statistics.
