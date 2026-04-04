@@ -1048,6 +1048,42 @@ def run_framework_falsification(results_input) -> dict:
     }
 
 
+def run_falsification():
+    """Entry point for CLI falsification testing."""
+    import logging
+    import os
+    import json
+    
+    logger = logging.getLogger(__name__)
+    logger.info("Starting framework falsification aggregation")
+    
+    # Collect results from all protocols
+    # In GUI context, results would be passed from protocol execution
+    # For standalone execution, load from saved results
+    results_input = {}
+    
+    try:
+        # Try to load from saved results directory
+        results_dir = os.path.join(os.path.dirname(__file__), "results")
+        if os.path.exists(results_dir):
+            for filename in os.listdir(results_dir):
+                if filename.endswith(".json"):
+                    filepath = os.path.join(results_dir, filename)
+                    try:
+                        with open(filepath, 'r') as f:
+                            results_input[filename] = json.load(f)
+                    except Exception as e:
+                        logger.warning(f"Could not load {filename}: {e}")
+    except Exception as e:
+        logger.warning(f"Could not load saved results: {e}")
+    
+    # Run framework falsification
+    results = run_framework_falsification(results_input)
+    
+    logger.info("Framework falsification aggregation completed")
+    return results
+
+
 def generate_recommendation(aggregated_results: dict) -> str:
     """Generate contextual recommendation based on falsification results.
 

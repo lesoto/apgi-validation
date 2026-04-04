@@ -1794,6 +1794,19 @@ def run_falsification(
                 ],
                 "all_replicates_passed": overall_pass,
             },
+            "named_predictions": {
+                "P5.a": {
+                    "passed": bool(np.mean(threshold_props) >= 0.75),
+                    "actual": f"Mean threshold emergence: {np.mean(threshold_props):.2%}",
+                    "threshold": ">= 75%",
+                },
+                "P5.b": {
+                    "passed": bool(np.mean(pca_vars) >= 0.70),
+                    "actual": f"Mean PCA variance: {np.mean(pca_vars):.2%}",
+                    "threshold": ">= 70%",
+                },
+            },
+            "errors": [],
             "failure_reason": (
                 None
                 if overall_pass
@@ -3165,3 +3178,40 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
     except Exception as e:
         logger.error(f"Failed to convert FP-05 to standardized schema: {e}")
         return results
+
+
+def run_protocol(config=None):
+    """Legacy compatibility entry point."""
+    return run_falsification()
+
+
+# FIX: Add standardized ProtocolResult wrapper for FP-05
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_protocol()
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    named_predictions = {}
+    for pred_id in ["P5.a", "P5.b"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
+            evidence=[f"Evolutionary metric: {pred_id}"],
+            sources=["FP_05_EvolutionaryPlausibility"],
+            metadata=pred_data,
+        )
+
+    return ProtocolResult(
+        protocol_id="FP_05_EvolutionaryPlausibility",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=80,
+        data_sources=["Evolutionary simulation"],
+        methodology="agent_simulation",
+        errors=legacy_result.get("errors", []),
+        metadata={"status": legacy_result.get("status")},
+    )

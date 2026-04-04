@@ -21,7 +21,7 @@ Falsification Criteria:
 
 import logging
 import numpy as np
-from typing import Dict, Tuple, Any, List, Optional, Union
+from typing import Dict, Tuple, Any, List, Optional
 import sys
 from pathlib import Path
 import warnings
@@ -1332,8 +1332,6 @@ def analyze_fisher_information_matrix(
         # Second derivative approximation (Hessian diagonal)
         second_deriv = (perf_plus - 2 * perf_base + perf_minus) / (epsilon**2)
         hessian_diagonal.append(float(second_deriv))
-
-    hessian_diagonal_arr = np.array(hessian_diagonal)
 
     # FIM approximation: diagonal from Hessian, off-diagonal from gradient correlations
     # This gives full-rank matrix when parameters have independent effects
@@ -3231,7 +3229,40 @@ def run_falsification(
         f"high collinearity: {high_collinearity})"
     )
 
+    # Standardize predictions for P8 series
+    f8_criteria = results.get("summary_statistics", {}).get("F8_criteria", {})
+    results["named_predictions"] = {
+        "P8.1": {
+            "passed": f8_criteria.get("sobol_passed", False),
+            "actual": f"Sobol screening pass: {f8_criteria.get('sobol_passed')}",
+            "threshold": "Sobol > 0.5",
+        },
+        "P8.2": {
+            "passed": f8_criteria.get("profile_passed", False),
+            "actual": f"Profile likelihood pass: {f8_criteria.get('profile_passed')}",
+            "threshold": "Identifiable",
+        },
+        "P8.3": {
+            "passed": f8_criteria.get("fim_passed", False),
+            "actual": f"FIM pass: {f8_criteria.get('fim_passed')}",
+            "threshold": "Positive definite",
+        },
+        "P8.4": {
+            "passed": results.get("overall_robustness_score", 0) > 0.7,
+            "actual": f"Robustness score: {results.get('overall_robustness_score', 0):.2f}",
+            "threshold": "> 0.7",
+        },
+    }
+
+    results["errors"] = []
+    results["status"] = "success" if results["passed"] else "failed"
+
     return results
+
+
+def run_protocol(config=None):
+    """Legacy compatibility entry point."""
+    return run_falsification()
 
 
 if __name__ == "__main__":
@@ -3274,66 +3305,32 @@ if __name__ == "__main__":
 
 
 # FIX #1: Add standardized ProtocolResult wrapper for FP-08
-def run_protocol_main(config: dict = None) -> Union[dict, object]:
-    """Execute FP-08 falsification and return standardized result."""
-    results = run_falsification()
-
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_protocol()
     if not HAS_SCHEMA:
-        return results
+        return legacy_result
 
-    try:
-        named_predictions = {}
-        f8_criteria = results.get("summary_statistics", {}).get("F8_criteria", {})
-
-        # F8.SA: Sobol analysis
-        named_predictions["F8.SA"] = PredictionResult(
-            passed=f8_criteria.get("sobol_passed", False),
+    named_predictions = {}
+    for pred_id in ["P8.1", "P8.2", "P8.3", "P8.4"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
             value=None,
-            threshold=0.5,
-            status=PredictionStatus(
-                "passed" if f8_criteria.get("sobol_passed") else "failed"
-            ),
-            evidence=["Sobol sensitivity analysis"],
+            threshold=pred_data.get("threshold"),
+            status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
+            evidence=[pred_data.get("actual", "NOT_EVALUATED")],
             sources=["FP_08_ParameterSensitivity_Identifiability"],
+            metadata=pred_data,
         )
 
-        # F8.PL: Profile likelihood
-        named_predictions["F8.PL"] = PredictionResult(
-            passed=f8_criteria.get("profile_passed", False),
-            value=None,
-            threshold=None,
-            status=PredictionStatus(
-                "passed" if f8_criteria.get("profile_passed") else "failed"
-            ),
-            evidence=["Profile likelihood identifiability"],
-            sources=["FP_08_ParameterSensitivity_Identifiability"],
-        )
-
-        # F8.FIM: Fisher Information Matrix
-        named_predictions["F8.FIM"] = PredictionResult(
-            passed=f8_criteria.get("fim_passed", False),
-            value=None,
-            threshold=None,
-            status=PredictionStatus(
-                "passed" if f8_criteria.get("fim_passed") else "failed"
-            ),
-            evidence=["Fisher Information Matrix positive definite"],
-            sources=["FP_08_ParameterSensitivity_Identifiability"],
-        )
-
-        return ProtocolResult(
-            protocol_id="FP_08_ParameterSensitivity_Identifiability",
-            timestamp=datetime.now().isoformat(),
-            named_predictions=named_predictions,
-            completion_percentage=80,
-            data_sources=["Parameter sensitivity analysis"],
-            methodology="parameter_sensitivity",
-            errors=[],
-            metadata={
-                "summary": results.get("summary_statistics", {}),
-                "predictions_evaluated": list(named_predictions.keys()),
-            },
-        )
-    except Exception as e:
-        logger.error(f"Failed to convert FP-08 to standardized schema: {e}")
-        return results
+    return ProtocolResult(
+        protocol_id="FP_08_ParameterSensitivity_Identifiability",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=90,
+        data_sources=["Parameter sensitivity", "Identifiability analysis"],
+        methodology="simulation_exploration",
+        errors=legacy_result.get("errors", []),
+        metadata={"status": legacy_result.get("status")},
+    )

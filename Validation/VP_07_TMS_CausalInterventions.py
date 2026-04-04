@@ -17,6 +17,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
 
 # Suppress noisy arviz.preview INFO messages about optional subpackages
 logging.getLogger("arviz.preview").setLevel(logging.WARNING)
@@ -3794,31 +3795,104 @@ def run_validation(**kwargs):
         )
         named_predictions["P2.c"] = p2c_result
 
+        # Map to V7 series for aggregator
+        v7_named_predictions = {
+            "V7.1": {
+                "passed": results.get("check_falsification", {})
+                .get("criteria", {})
+                .get("V7.1", {})
+                .get("passed", False),
+                "actual": results.get("check_falsification", {})
+                .get("criteria", {})
+                .get("V7.1", {})
+                .get("threshold_reduction_pct"),
+                "threshold": "≥15% (30min reduction)",
+            },
+            "V7.2": {
+                "passed": named_predictions.get("P2.b", {}).get("passed", False),
+                "actual": named_predictions.get("P2.b", {}).get("HEP_p_value"),
+                "threshold": "Double dissociation (p < 0.01)",
+            },
+            "V7.3": {
+                "passed": results.get("check_falsification", {})
+                .get("criteria", {})
+                .get("P7.1", {})
+                .get("passed", False),
+                "actual": results.get("check_falsification", {})
+                .get("criteria", {})
+                .get("P7.1", {})
+                .get("p3b_mm_ratio_post"),
+                "threshold": "P3b suppressed:MMN intact (Ratio ≥ 1.5:1)",
+            },
+        }
+
         # Overall pass requires all three predictions to pass
-        overall_pass = (
-            named_predictions.get("P2.a", {}).get("passed", False)
-            and named_predictions.get("P2.b", {}).get("passed", False)
-            and named_predictions.get("P2.c", {}).get("passed", False)
-        )
+        overall_pass = all(p["passed"] for p in v7_named_predictions.values())
 
         return {
             "passed": overall_pass,
             "status": "success" if overall_pass else "partial",
             "results": results,
-            "named_predictions": named_predictions,
+            "named_predictions": v7_named_predictions,
+            "legacy_named_predictions": named_predictions,
         }
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
-        logger.error(f"Error in validation protocol 7: {e}")
+        print(f"Error in validation protocol 7: {e}")
         return {
             "passed": False,
             "status": "failed",
             "error": str(e),
             "named_predictions": {
-                "P2.a": {"passed": False, "error": str(e)},
-                "P2.b": {"passed": False, "error": str(e)},
-                "P2.c": {"passed": False, "error": str(e)},
+                "V7.1": {"passed": False, "error": str(e)},
+                "V7.2": {"passed": False, "error": str(e)},
+                "V7.3": {"passed": False, "error": str(e)},
             },
         }
+
+
+def run_protocol():
+    """Legacy compatibility entry point."""
+    return run_validation()
+
+
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
+
+
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_validation()
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    named_predictions = {}
+    for pred_id in ["V7.1", "V7.2", "V7.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=(
+                PredictionStatus.PASSED
+                if pred_data.get("passed", False)
+                else PredictionStatus.FAILED
+            ),
+        )
+
+    return ProtocolResult(
+        protocol_id="VP_07_TMS_CausalInterventions",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=100,
+        data_sources=["TMS Simulation", "Pharmacological Model"],
+        methodology="causal_intervention_psychophysics",
+        errors=[],
+        metadata=legacy_result.get("results", {}).get("summary", {}),
+    ).to_dict()
 
 
 # =============================================================================

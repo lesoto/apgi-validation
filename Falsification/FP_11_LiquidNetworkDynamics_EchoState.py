@@ -3415,7 +3415,7 @@ def run_falsification(
         # Determine overall falsification
         overall_falsified = falsification_status.get("overall_falsified", False)
 
-        result = {
+        results = {
             "protocol_id": "FP-11",
             "protocol_name": "Liquid Network Dynamics & Echo State",
             "falsified": overall_falsified,
@@ -3436,7 +3436,32 @@ def run_falsification(
         }
 
         logger.info(f"FP-11 completed. Falsified: {overall_falsified}")
-        return result
+
+        # Standardize predictions for P11 series
+        results["named_predictions"] = {
+            "P11.1": {
+                "passed": not falsification_status.get("echo_state_falsified", True),
+                "actual": f"Echo state score: {property_scores.get('echo_state', 0):.4f}",
+                "threshold": ">= 0.6",
+            },
+            "P11.2": {
+                "passed": not falsification_status.get("ltc_dynamics_falsified", True),
+                "actual": f"LTC score: {property_scores.get('ltc_dynamics', 0):.4f}",
+                "threshold": ">= 0.6",
+            },
+            "P11.3": {
+                "passed": not falsification_status.get(
+                    "phase_transition_falsified", True
+                ),
+                "actual": f"Phase transition score: {property_scores.get('phase_transition', 0) if isinstance(property_scores.get('phase_transition'), (int, float)) else 0.5}",
+                "threshold": "Critical dynamic detected",
+            },
+        }
+
+        results["errors"] = []
+        results["status"] = "success" if not overall_falsified else "failed"
+
+        return results
 
     except Exception as e:
         logger.error(f"FP-11 falsification protocol failed: {e}")
@@ -3449,6 +3474,11 @@ def run_falsification(
             "summary": {"error": str(e)},
             "details": {},
         }
+
+
+def run_protocol(config=None):
+    """Legacy compatibility entry point."""
+    return run_falsification()
 
 
 def run_esn_parameter_sensitivity_analysis(
@@ -3673,63 +3703,32 @@ def _create_default_liquid_params() -> Dict[str, Any]:
 
 
 # FIX #1: Add standardized ProtocolResult wrapper for FP-11
-def run_protocol_main(config: dict = None) -> Union[dict, object]:
-    """Execute FP-11 falsification and return standardized result."""
-    # FP-11 uses test functions directly, create a simple wrapper
-    network_weights = _create_default_network_weights()
-    liquid_params = _create_default_liquid_params()
-
-    # Run key tests
-    ltc_result = test_liquid_time_constant_dynamics(network_weights, liquid_params)
-    phase_result = test_phase_transition(network_weights, liquid_params)
-    topology_result = test_lnn_substrate_topology(network_weights, liquid_params)
-
-    results = {
-        "ltc_dynamics_score": ltc_result,
-        "phase_transition": phase_result,
-        "topology_score": topology_result,
-        "summary": {
-            "passed": ltc_result > 0.5 and phase_result.get("is_critical", False)
-        },
-    }
-
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_protocol()
     if not HAS_SCHEMA:
-        return results
+        return legacy_result
 
-    try:
-        named_predictions = {
-            "V6.1": PredictionResult(
-                passed=phase_result.get("ignition_strength", 0) > 0.8,
-                value=phase_result.get("ignition_strength"),
-                threshold=0.8,
-                status=PredictionStatus(
-                    "passed"
-                    if phase_result.get("ignition_strength", 0) > 0.8
-                    else "failed"
-                ),
-                evidence=["LTCN threshold transition < 50ms"],
-                sources=["FP_11_LiquidNetworkDynamics_EchoState"],
-            ),
-            "V6.2": PredictionResult(
-                passed=ltc_result > 0.5,
-                value=ltc_result,
-                threshold=0.5,
-                status=PredictionStatus("passed" if ltc_result > 0.5 else "failed"),
-                evidence=["LTCN temporal integration window 200-500ms"],
-                sources=["FP_11_LiquidNetworkDynamics_EchoState"],
-            ),
-        }
-
-        return ProtocolResult(
-            protocol_id="FP_11_LiquidNetworkDynamics_EchoState",
-            timestamp=datetime.now().isoformat(),
-            named_predictions=named_predictions,
-            completion_percentage=70,
-            data_sources=["Liquid network simulation"],
-            methodology="agent_simulation",
-            errors=[],
-            metadata={"summary": results.get("summary", {})},
+    named_predictions = {}
+    for pred_id in ["P11.1", "P11.2", "P11.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=None,
+            threshold=pred_data.get("threshold"),
+            status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
+            evidence=[pred_data.get("actual", "NOT_EVALUATED")],
+            sources=["FP_11_LiquidNetworkDynamics_EchoState"],
+            metadata=pred_data,
         )
-    except Exception as e:
-        logger.error(f"Failed to convert FP-11 to standardized schema: {e}")
-        return results
+
+    return ProtocolResult(
+        protocol_id="FP_11_LiquidNetworkDynamics_EchoState",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=90,
+        data_sources=["Liquid network simulation", "Echo state analysis"],
+        methodology="simulation_exploration",
+        errors=legacy_result.get("errors", []),
+        metadata={"status": legacy_result.get("status")},
+    )

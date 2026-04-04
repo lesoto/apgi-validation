@@ -3252,7 +3252,54 @@ def check_falsification(
         f"F6.6: {'PASS' if f6_6_pass else 'FAIL'} - Modules: {alternative_modules_needed:.0f}, gap: {performance_gap_without_addons:.2f}%"
     )
 
+    # Explicitly map F1.1-F1.3 to standardized prediction names P6.1-P6.3
+    # Note: FP-06 implements core F1.x criteria via its Liquid Network architecture
+    results["named_predictions"] = {
+        f"P6.{i}": results["criteria"].get(f"F1.{i}", {}) for i in range(1, 4)
+    }
+
+    # Add mandatory fields for integration
+    results["status"] = "success" if results["summary"]["passed"] > 0 else "failed"
+    results["errors"] = []
+
     logger.info(
         f"\nFalsification-Protocol-6 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
     )
     return results
+
+
+def run_protocol(config=None):
+    """Legacy compatibility entry point."""
+    return run_falsification()
+
+
+# FIX: Add standardized ProtocolResult wrapper for FP-06
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_protocol()
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    named_predictions = {}
+    for pred_id in ["P6.1", "P6.2", "P6.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
+            evidence=[pred_data.get("description", "NOT_EVALUATED")],
+            sources=["FP_06_LiquidNetwork_EnergyBenchmark"],
+            metadata=pred_data,
+        )
+
+    return ProtocolResult(
+        protocol_id="FP_06_LiquidNetwork_EnergyBenchmark",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=95,
+        data_sources=["Liquid Network simulation", "Energy benchmarking"],
+        methodology="agent_simulation",
+        errors=legacy_result.get("errors", []),
+        metadata={"status": legacy_result.get("status")},
+    )

@@ -2596,15 +2596,23 @@ def run_falsification(
     Returns:
         Dict with falsification results and named_predictions for aggregator
     """
-    # VP-11 Fix 1: Set data source (defaults to SYNTHETIC for backward compatibility)
-    if data_source is None:
-        data_source = DataSource.SYNTHETIC
-    set_data_source(data_source)
+    # FP-10 Enhancement: Search for empirical behavioral data
+    data_repo = Path(__file__).parent.parent / "data_repository"
+    empirical_file = data_repo / "metadata" / "behavioral_data.csv"
 
-    # Generate synthetic data (with data source flag)
-    stimulus_data, response_data = generate_synthetic_data(
-        n_trials=200, set_data_source_flag=False
-    )
+    if empirical_file.exists() and data_source == DataSource.SYNTHETIC:
+        logger.info(
+            f"FP-10: Empirical behavioral data found at {empirical_file}. Upgrading to EMPIRICAL."
+        )
+        stimulus_data, response_data, data_source = load_empirical_data(
+            str(empirical_file)
+        )
+        set_data_source(data_source)
+    else:
+        # Generate synthetic data (with data source flag)
+        stimulus_data, response_data = generate_synthetic_data(
+            n_trials=200, set_data_source_flag=False
+        )
 
     # Run complete analysis with prior sensitivity
     results = run_complete_mcmc_analysis(
@@ -2619,6 +2627,11 @@ def run_falsification(
 
     # Extract falsification status from criteria
     f10_criteria = results.get("f10_criteria", {})
+
+    # FP-10 Enhancement: Enhanced MCMC convergence check
+    conv_diag = results.get("apgi_results", {}).get("convergence_diagnostics", {})
+    max_r_hat = conv_diag.get("max_r_hat", 2.0)
+    convergence_pass = max_r_hat <= 1.01
 
     # VP-11 Fix 1: Check data source status
     simulation_only = data_source == DataSource.SYNTHETIC
@@ -2637,10 +2650,17 @@ def run_falsification(
 
     # Return standardized format for aggregator
     return {
-        "passed": results.get("passed", False) and divergence_pass,
-        "status": "falsified" if not results.get("passed", False) else "passed",
-        "falsified": not results.get("passed", False) or not divergence_pass,
+        "passed": results.get("passed", False) and divergence_pass and convergence_pass,
+        "status": (
+            "passed"
+            if results.get("passed", False) and convergence_pass
+            else "falsified"
+        ),
+        "falsified": not results.get("passed", False)
+        or not divergence_pass
+        or not convergence_pass,
         "f10_criteria": f10_criteria,
+        "max_r_hat": max_r_hat,
         "data_source": {  # VP-11 Fix 1
             "type": data_source.value,
             "simulation_only": simulation_only,
@@ -2670,6 +2690,11 @@ def run_falsification(
         "bayes_factor_comparison": results.get("bayes_factor_comparison"),
         "mae_comparison": results.get("mae_comparison"),
     }
+
+
+def run_protocol(config=None):
+    """Legacy compatibility entry point."""
+    return run_falsification()
 
 
 class FP10Dispatcher:

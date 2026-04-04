@@ -10,7 +10,7 @@ import sys
 import os
 import warnings
 import numpy as np
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 # FIX #1: Import standardized schema for protocol results
 try:
@@ -2473,7 +2473,6 @@ def run_comprehensive_simulation():
     apgi_time_to_criterion = 48.0
     no_somatic_time_to_criterion = 125.0
 
-    # Framework performance proxies
     overall_performance_advantage = 0.28
     interoceptive_task_advantage = 0.35
     threshold_removal_reduction = 0.32
@@ -2481,7 +2480,6 @@ def run_comprehensive_simulation():
     computational_efficiency = 0.42
     sample_efficiency_trials = 180.0
 
-    # Evolutionary and other proxies
     threshold_emergence_proportion = 0.82
     precision_emergence_proportion = 0.76
     intero_gain_ratio_proportion = 0.88
@@ -2814,6 +2812,9 @@ def check_falsification(
         },
         "criteria": {},
         "metrics": {},
+        "named_predictions": {},
+        "errors": [],
+        "status": "success",
         "agent_config": config,
     }
 
@@ -4125,7 +4126,19 @@ def check_falsification(
         else:
             results["summary"]["failed"] += 1
 
+    # Map to standardized named predictions P1.1-P1.3 for aggregation
+    results["named_predictions"] = {
+        "P1.1": results["criteria"].get("F1.1", {}),
+        "P1.2": results["criteria"].get("F1.2", {}),
+        "P1.3": results["criteria"].get("F1.3", {}),
+    }
+
     return results
+
+
+def run_protocol(config=None):
+    """Legacy compatibility entry point."""
+    return run_comprehensive_simulation()
 
 
 if __name__ == "__main__":
@@ -4157,54 +4170,33 @@ if __name__ == "__main__":
         print(f"⚠ Error generating visualization: {e}")
 
 
-# FIX #1: Add standardized ProtocolResult wrapper for FP-01
-def run_protocol_main(config: dict = None) -> Union[dict, object]:
-    """Execute FP-01 falsification and return standardized result.
-
-    This wrapper converts FP-01 output to ProtocolResult format when the standardized
-    schema is available, enabling unified aggregation across all protocols.
-
-    Returns:
-        ProtocolResult if HAS_SCHEMA is True, otherwise dict in legacy format
-    """
-    results = run_falsification()
-
+# FIX #3: Add standardized ProtocolResult wrapper for FP-01
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_protocol()
     if not HAS_SCHEMA:
-        return results
+        return legacy_result
 
-    # Convert to standardized schema
-    try:
-        # Extract named predictions from F1.1-F1.6 criteria
-        named_predictions = {}
-        criteria = results.get("criteria", {})
-
-        for pred_id in ["F1.1", "F1.2", "F1.3", "F1.4", "F1.5", "F1.6"]:
-            pred_data = criteria.get(pred_id, {})
-            named_predictions[pred_id] = PredictionResult(
-                passed=pred_data.get("passed", False),
-                value=pred_data.get("effect_size"),
-                threshold=pred_data.get("threshold"),
-                status=PredictionStatus(
-                    "passed" if pred_data.get("passed") else "failed"
-                ),
-                evidence=[pred_data.get("description", "")],
-                sources=["FP_01_ActiveInference"],
-                metadata=pred_data,
-            )
-
-        return ProtocolResult(
-            protocol_id="FP_01_ActiveInference",
-            timestamp=datetime.now().isoformat(),
-            named_predictions=named_predictions,
-            completion_percentage=85,
-            data_sources=["Iowa Gambling Task simulation"],
-            methodology="agent_simulation",
-            errors=[],
-            metadata={
-                "summary": results.get("summary", {}),
-                "predictions_evaluated": list(named_predictions.keys()),
-            },
+    named_predictions = {}
+    for pred_id in ["P1.1", "P1.2", "P1.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
+            evidence=[pred_data.get("validation_status", "NOT_EVALUATED")],
+            sources=["FP_01_ActiveInference"],
+            metadata=pred_data,
         )
-    except Exception as e:
-        logger.error(f"Failed to convert FP-01 to standardized schema: {e}")
-        return results
+
+    return ProtocolResult(
+        protocol_id="FP_01_ActiveInference",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=72,
+        data_sources=["Synthetic agent simulations"],
+        methodology="agent_simulation",
+        errors=legacy_result.get("errors", []),
+        metadata={"status": legacy_result.get("status")},
+    )

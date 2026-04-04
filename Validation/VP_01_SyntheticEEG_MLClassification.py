@@ -17,6 +17,7 @@ import gc
 import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
+from datetime import datetime
 
 try:
     import matplotlib
@@ -4546,29 +4547,76 @@ def run_validation(progress_callback=None, **kwargs):
         passed_count = sum([v1_1_passed, v1_2_passed, v1_3_passed, v1_4_passed])
         overall_passed = passed_count >= 3  # At least 3 of 4 criteria must pass
 
-        if overall_passed:
-            return {
-                "passed": True,
-                "status": "success",
-                "message": f"Protocol 1 completed: {passed_count}/4 criteria passed",
-                "criteria_passed": passed_count,
-                "results": results_summary,
-            }
-        else:
-            return {
-                "passed": False,
-                "status": "failed",
-                "message": f"Protocol 1 failed: only {passed_count}/4 criteria passed",
-                "criteria_passed": passed_count,
-                "results": results_summary,
-            }
-
-    except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         return {
-            "passed": False,
-            "status": "failed",
-            "error": f"Protocol 1 failed: {str(e)}",
+            "passed": overall_passed,
+            "status": "passed" if overall_passed else "failed",
+            "criteria": criteria_status,
+            "results": results_summary,
+            "named_predictions": {
+                "V1.1": {
+                    "passed": v1_1_passed,
+                    "actual": results_summary["task_1a"]
+                    .get("APGI", {})
+                    .get("accuracy", 0),
+                    "threshold": 0.80,
+                },
+                "V1.2": {
+                    "passed": v1_2_passed,
+                    "actual": results_summary["task_1b"].get("accuracy", 0),
+                    "threshold": 0.50,
+                },
+            },
         }
+    except Exception as e:
+        logger.error(f"Validation failed: {e}")
+        return {"passed": False, "status": "error", "error": str(e)}
+
+
+def run_protocol():
+    """Legacy compatibility entry point."""
+    return run_validation()
+
+
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
+
+
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_validation()
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    named_predictions = {}
+    for pred_id in ["V1.1", "V1.2", "V1.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=(
+                PredictionStatus.PASSED
+                if pred_data.get("passed", False)
+                else PredictionStatus.FAILED
+            ),
+            evidence=[str(pred_data.get("actual", ""))],
+            sources=["VP_01_SyntheticEEG_MLClassification"],
+        )
+
+    return ProtocolResult(
+        protocol_id="VP_01_SyntheticEEG_MLClassification",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=100,
+        data_sources=["Synthetic EEG Dataset"],
+        methodology="ml_classification",
+        errors=[],
+        metadata=legacy_result.get("results", {}).get("config", {}),
+    ).to_dict()
 
 
 # =============================================================================

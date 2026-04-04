@@ -29,7 +29,7 @@ Per V5.1 criteria_registry: numerical accuracy ε ≤ 1e-6
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional
 import numpy as np
 
 # FIX #1: Import standardized schema for protocol results
@@ -3450,7 +3450,40 @@ def run_falsification(seed: Optional[int] = None) -> Dict[str, Any]:
     except ImportError as e:
         logger.warning(f"Could not export validated bounds: {e}")
 
+    # Standardize predictions for P7 series
+    results["named_predictions"] = {
+        "P7.1": {
+            "passed": results.get("formal_proofs", {}).get(
+                "formal_proofs_success", False
+            ),
+            "actual": f"Guaranteed ignition condition: {results.get('formal_proofs', {}).get('guaranteed_ignition_condition', 'FAIL')}",
+            "threshold": "Proof successful",
+        },
+        "P7.2": {
+            "passed": results.get("formal_proofs", {}).get(
+                "formal_proofs_success", False
+            ),
+            "actual": f"Impossible ignition condition: {results.get('formal_proofs', {}).get('impossible_ignition_condition', 'FAIL')}",
+            "threshold": "Proof successful",
+        },
+        "P7.3": {
+            "passed": results.get("formal_proofs", {}).get(
+                "formal_proofs_success", False
+            ),
+            "actual": f"Phase space stability: {results.get('formal_proofs', {}).get('phase_space_analysis', {}).get('critical_line', 'FAIL')}",
+            "threshold": "Analysis stable",
+        },
+    }
+
+    results["errors"] = []
+    results["status"] = "success" if results["passed"] else "failed"
+
     return results
+
+
+def run_protocol(config=None):
+    """Legacy compatibility entry point."""
+    return run_falsification()
 
 
 if __name__ == "__main__":
@@ -3493,75 +3526,32 @@ if __name__ == "__main__":
 
 
 # FIX #1: Add standardized ProtocolResult wrapper for FP-07
-def run_protocol_main(config: dict = None) -> Union[dict, object]:
-    """Execute FP-07 falsification and return standardized result."""
-    results = run_falsification()
-
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_protocol()
     if not HAS_SCHEMA:
-        return results
+        return legacy_result
 
-    try:
-        named_predictions = {}
-
-        # E1-E5 criteria from FP-07
-        for pred_id in [
-            "E1.1",
-            "E1.2",
-            "E1.3",
-            "E2.1",
-            "E2.2",
-            "E3.1",
-            "E3.2",
-            "E4.1",
-            "E4.2",
-            "E5.1",
-            "E5.2",
-        ]:
-            # Check corresponding result sections
-            passed = False
-            if pred_id.startswith("E1") and results.get(
-                "dimensional_homogeneity", {}
-            ).get("dimensional_homogeneity", False):
-                passed = True
-            elif pred_id.startswith("E2") and results.get(
-                "surprise_derivatives", {}
-            ).get("surprise_derivatives", False):
-                passed = True
-            elif pred_id.startswith("E5") and results.get(
-                "analytical_jacobian", {}
-            ).get("analytical_jacobian_success", False):
-                passed = True
-            elif pred_id in ["E3.1", "E3.2"]:
-                passed = results.get("effective_precision", {}).get(
-                    "effective_precision_success", False
-                )
-            elif pred_id in ["E4.1", "E4.2"]:
-                passed = results.get("threshold_stability", {}).get(
-                    "threshold_stability_success", False
-                )
-
-            named_predictions[pred_id] = PredictionResult(
-                passed=passed,
-                value=None,
-                threshold=None,
-                status=PredictionStatus("passed" if passed else "failed"),
-                evidence=[f"Mathematical consistency check for {pred_id}"],
-                sources=["FP_07_MathematicalConsistency"],
-            )
-
-        return ProtocolResult(
-            protocol_id="FP_07_MathematicalConsistency",
-            timestamp=datetime.now().isoformat(),
-            named_predictions=named_predictions,
-            completion_percentage=85,
-            data_sources=["Mathematical analysis", "Symbolic computation"],
-            methodology="mathematical_verification",
-            errors=[],
-            metadata={
-                "summary": results.get("summary", {}),
-                "predictions_evaluated": list(named_predictions.keys()),
-            },
+    named_predictions = {}
+    for pred_id in ["P7.1", "P7.2", "P7.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=None,
+            threshold=pred_data.get("threshold"),
+            status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
+            evidence=[pred_data.get("actual", "NOT_EVALUATED")],
+            sources=["FP_07_MathematicalConsistency"],
+            metadata=pred_data,
         )
-    except Exception as e:
-        logger.error(f"Failed to convert FP-07 to standardized schema: {e}")
-        return results
+
+    return ProtocolResult(
+        protocol_id="FP_07_MathematicalConsistency",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=95,
+        data_sources=["Mathematical analysis", "Formal proofs"],
+        methodology="mathematical_verification",
+        errors=legacy_result.get("errors", []),
+        metadata={"status": legacy_result.get("status")},
+    )

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import json  # FP-02 Fix: Add json for JSON operations
 import logging
@@ -1157,7 +1157,22 @@ def run_falsification():
     print(f"APGI BIC: {apgi_bic:.2f}, PP BIC: {pp_bic:.2f}")
     print("=" * 50)
 
+    # Explicitly map F2.1 and F2.2 to standardized prediction names P2.a and P2.b
+    results["named_predictions"] = {
+        "P2.a": results["criteria"].get("F2.1", {}),
+        "P2.b": results["criteria"].get("F2.2", {}),
+    }
+
+    # Add mandatory fields for integration
+    results["status"] = "success" if results["summary"]["passed"] > 0 else "failed"
+    results["errors"] = []
+
     return results
+
+
+def run_protocol(config=None):
+    """Legacy compatibility entry point."""
+    return run_falsification()
 
 
 # =============================================================================
@@ -2700,77 +2715,33 @@ if __name__ == "__main__":
     main()
 
 
-# FIX #1: Add standardized ProtocolResult wrapper for FP-02
-def run_protocol_main(config: dict = None) -> Union[dict, object]:
-    """Execute FP-02 falsification and return standardized result.
-
-    This wrapper converts FP-02 output to ProtocolResult format when the standardized
-    schema is available, enabling unified aggregation across all protocols.
-
-    Returns:
-        ProtocolResult if HAS_SCHEMA is True, otherwise dict in legacy format
-    """
-    results = run_falsification()
-
+# FIX #3: Add standardized ProtocolResult wrapper for FP-02
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_protocol()
     if not HAS_SCHEMA:
-        return results
+        return legacy_result
 
-    # Convert to standardized schema
-    try:
-        # Extract named predictions from F2.1-F2.5 criteria
-        named_predictions = {}
-        f2_criteria = results.get("f2_criteria", {})
-
-        for pred_id in ["F2.1", "F2.2", "F2.3", "F2.4", "F2.5"]:
-            pred_data = f2_criteria.get(pred_id, {})
-            named_predictions[pred_id] = PredictionResult(
-                passed=pred_data.get("passed", False),
-                value=pred_data.get("effect_size"),
-                threshold=pred_data.get("threshold"),
-                status=PredictionStatus(
-                    "passed" if pred_data.get("passed") else "failed"
-                ),
-                evidence=[pred_data.get("description", "")],
-                sources=["FP_02_AgentComparison_ConvergenceBenchmark"],
-                metadata=pred_data,
-            )
-
-        # Add P3.conv and P3.bic if available
-        if "P3.conv" in results:
-            named_predictions["P3.conv"] = PredictionResult(
-                passed=results["P3.conv"].get("passed", False),
-                value=results["P3.conv"].get("value"),
-                threshold=results["P3.conv"].get("threshold"),
-                status=PredictionStatus(
-                    "passed" if results["P3.conv"].get("passed") else "failed"
-                ),
-                sources=["FP_02_AgentComparison_ConvergenceBenchmark"],
-            )
-
-        if "P3.bic" in results:
-            named_predictions["P3.bic"] = PredictionResult(
-                passed=results["P3.bic"].get("passed", False),
-                value=results["P3.bic"].get("value"),
-                threshold=results["P3.bic"].get("threshold"),
-                status=PredictionStatus(
-                    "passed" if results["P3.bic"].get("passed") else "failed"
-                ),
-                sources=["FP_02_AgentComparison_ConvergenceBenchmark"],
-            )
-
-        return ProtocolResult(
-            protocol_id="FP_02_AgentComparison_ConvergenceBenchmark",
-            timestamp=datetime.now().isoformat(),
-            named_predictions=named_predictions,
-            completion_percentage=90,
-            data_sources=["Iowa Gambling Task simulation", "Agent comparison"],
-            methodology="agent_simulation",
-            errors=[],
-            metadata={
-                "n_agents": results.get("n_agents", 50),
-                "predictions_evaluated": list(named_predictions.keys()),
-            },
+    named_predictions = {}
+    for pred_id in ["P2.a", "P2.b"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
+            evidence=[pred_data.get("description", "NOT_EVALUATED")],
+            sources=["FP_02_AgentComparison_ConvergenceBenchmark"],
+            metadata=pred_data,
         )
-    except Exception as e:
-        logger.error(f"Failed to convert FP-02 to standardized schema: {e}")
-        return results
+
+    return ProtocolResult(
+        protocol_id="FP_02_AgentComparison_ConvergenceBenchmark",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=90,
+        data_sources=["Iowa Gambling Task simulation", "Agent comparison"],
+        methodology="agent_simulation",
+        errors=legacy_result.get("errors", []),
+        metadata={"status": legacy_result.get("status")},
+    )

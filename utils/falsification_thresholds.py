@@ -467,7 +467,9 @@ VP4_CALIBRATED_THETA_0: float = 0.12
 VP4_CALIBRATED_ALPHA: float = 35.0
 
 # VP-04 transfer entropy threshold for Level 2 phase transition analysis
-TRANSFER_ENTROPY_THRESHOLD: float = 0.15  # Critical threshold for information flow
+TRANSFER_ENTROPY_THRESHOLD: float = (
+    0.1  # Critical threshold for information flow (aligned with F4_TE_THRESHOLD)
+)
 
 # Liquid / echo-state threshold gates
 LIQUID_IGNITION_DETECTION_THRESHOLD: float = 0.50

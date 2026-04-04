@@ -1111,6 +1111,10 @@ class CausalManipulationsValidator:
         Returns:
             Dictionary with structured results for each named prediction
         """
+        # Handle None results gracefully
+        if results is None:
+            results = {}
+
         # P2.a: dlPFC threshold shift from pharmacological effects (log units)
         pharma_results = results.get("pharmacological_precision_modulation", {})
         atomoxetine_result = pharma_results.get("atomoxetine", {})
@@ -1598,6 +1602,27 @@ def run_validation(**kwargs):
                 },
             },
         }
+
+
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    from datetime import datetime
+    
+    legacy_result = run_validation()
+    
+    if not legacy_result:
+        legacy_result = {}
+    
+    return {
+        "protocol_id": "VP_10_CausalManipulations_Priority2",
+        "protocol": "VP-10",
+        "passed": legacy_result.get("passed", False),
+        "status": legacy_result.get("status", "unknown"),
+        "named_predictions": legacy_result.get("named_predictions", {}),
+        "overall_causal_validation_score": legacy_result.get("overall_causal_validation_score", 0),
+        "supplementary_tests": legacy_result.get("supplementary_tests", {}),
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 # =============================================================================

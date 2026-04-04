@@ -18,6 +18,7 @@ Key Features:
 import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
 
 import logging
 
@@ -1585,7 +1586,9 @@ class APGIPsychophysicalEstimator:
                 beta_som
             ),  # In this context, beta_som is the effect size
             "somatic_signal_correlation": float(
-                np.corr(somatic_signal, df["pi_i"].values)
+                np.corrcoef(somatic_signal, df["pi_i"].values)[0, 1]
+                if len(set(somatic_signal)) > 1 and len(set(df["pi_i"].values)) > 1
+                else 0.0
             ),
             "description": "F3.4 somatic markers: d_prime_somatic = d_prime_baseline + beta_som * somatic_signal * pi_i",
         }
@@ -1633,24 +1636,39 @@ class APGIPsychophysicalEstimator:
 
             y = data["threshold"].values
 
-            # OLS estimation
-            XTX = X.T @ X
-            beta = np.linalg.solve(XTX, X.T @ y)
-
-            # Calculate predictions and residuals
-            y_pred = X @ beta
-            residuals = y - y_pred
-
-            # Calculate standard errors
-            mse = np.sum(residuals**2) / (len(y) - X.shape[1])
-            var_beta = mse * np.linalg.inv(XTX)
-            se_beta = np.sqrt(np.diag(var_beta))
+            # OLS estimation with error handling for singular matrices
+            try:
+                XTX = X.T @ X
+                # Check condition number to detect near-singular matrices
+                if np.linalg.cond(XTX) > 1e10:
+                    # Use pseudo-inverse for ill-conditioned matrices
+                    beta = np.linalg.lstsq(X, y, rcond=None)[0]
+                    # Approximate standard errors
+                    residuals = y - X @ beta
+                    mse = np.sum(residuals**2) / (len(y) - X.shape[1])
+                    var_beta = mse * np.linalg.pinv(XTX)
+                else:
+                    beta = np.linalg.solve(XTX, X.T @ y)
+                    # Calculate predictions and residuals
+                    y_pred = X @ beta
+                    residuals = y - y_pred
+                    # Calculate standard errors
+                    mse = np.sum(residuals**2) / (len(y) - X.shape[1])
+                    var_beta = mse * np.linalg.inv(XTX)
+                se_beta = np.sqrt(np.diag(var_beta))
+            except np.linalg.LinAlgError:
+                # Fallback: use least squares with regularization
+                beta = np.linalg.lstsq(X, y, rcond=None)[0]
+                residuals = y - X @ beta
+                mse = np.sum(residuals**2) / max(1, len(y) - X.shape[1])
+                # Approximate standard errors with pseudo-inverse
+                se_beta = np.sqrt(np.diag(np.linalg.pinv(X.T @ X))) * np.sqrt(mse)
 
             # t-statistics and p-values
-            t_stats = beta / se_beta
+            t_stats = beta / np.maximum(se_beta, 1e-10)  # Avoid division by zero
             p_values = 2 * (1 - stats.t.cdf(np.abs(t_stats), len(y) - X.shape[1]))
 
-            return beta, se_beta, t_stats, p_values, y_pred, residuals
+            return beta, se_beta, t_stats, p_values, X @ beta, residuals
 
         # Fit GLM to all data
         beta_glm, se_glm, t_glm, p_glm, y_pred_glm, residuals_glm = fit_glm_interaction(
@@ -3241,10 +3259,91 @@ def check_falsification(
         f"F6.2: {status} - LTCN: {ltcn_integration_window:.1f}ms, ratio: {integration_ratio:.1f}, power: {power:.2f}"
     )
 
-    logger.info(
-        f"\nValidation_Protocol_8 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed, {results['summary']['underpowered']} underpowered"
-    )
-    return results
+    # Protocol 8 specific validation logic
+    bias_checker = InteroceptiveBiasChecker()
+    bias_results = bias_checker.check_bias()
+
+    precision_checker = PrecisionWeightingValidator()
+    precision_results = precision_checker.validate()
+
+    disorder_results = validate_disorder_parameters()
+
+    # Map to V8 series for aggregator
+    named_predictions = {
+        "V8.1": {
+            "passed": bias_results.get("passed", False),
+            "actual": bias_results.get("mean_accuracy_difference"),
+            "threshold": "IA Accuracy advantage ≥ 0.10",
+        },
+        "V8.2": {
+            "passed": precision_results.get("passed", False),
+            "actual": precision_results.get("mean_intero_extero_ratio"),
+            "threshold": "Precision Ratio ≥ 1.35 (90% of 1.5)",
+        },
+        "V8.3": {
+            "passed": disorder_results.get("passed", False),
+            "actual": len(disorder_results.get("discrepancies", [])),
+            "threshold": "0 discrepancies in disorder mapping",
+        },
+    }
+
+    return {
+        "passed": all(p["passed"] for p in named_predictions.values()),
+        "status": "success",
+        "results": {
+            "individual_checks": {
+                "bias": bias_results,
+                "precision": precision_results,
+                "disorders": disorder_results,
+            }
+        },
+        "named_predictions": named_predictions,
+    }
+
+
+def run_protocol():
+    """Legacy compatibility entry point."""
+    return run_validation()
+
+
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
+
+
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_validation()
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    named_predictions = {}
+    for pred_id in ["V8.1", "V8.2", "V8.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=(
+                PredictionStatus.PASSED
+                if pred_data.get("passed", False)
+                else PredictionStatus.FAILED
+            ),
+        )
+
+    return ProtocolResult(
+        protocol_id="VP_08_Psychophysical_ThresholdEstimation",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=100,
+        data_sources=["Psychophysical Simulations", "Clinical Meta-analysis"],
+        methodology="precision_weighting_validation",
+        errors=[],
+        metadata=legacy_result.get("results", {}).get("individual_checks", {}),
+    ).to_dict()
 
 
 class APGIValidationProtocol8:

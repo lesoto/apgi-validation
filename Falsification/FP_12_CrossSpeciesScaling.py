@@ -15,7 +15,7 @@ CRITICAL FEATURES:
 
 import logging
 import numpy as np
-from typing import Dict, Any, Optional, List, Tuple, Union
+from typing import Dict, Any, Optional, List, Tuple
 from scipy import stats
 from scipy.stats import wilcoxon
 from pathlib import Path
@@ -758,7 +758,7 @@ def run_falsification(vp5_genome_path: Optional[str] = None) -> Dict[str, Any]:
         "P12.a": {
             "passed": scaling_results["pi_i"]["passed"]
             and scaling_results["theta_t"]["passed"]
-            and all_2sd_passed,  # FP-12 Fix 5: Include ±2 SD validation
+            and all_2sd_passed,
             "actual": f"Scaling exponents: pi={scaling_results['pi_i']['observed_exponent']:.2f}, theta={scaling_results['theta_t']['observed_exponent']:.2f}, 2SD_pass={all_2sd_passed}",
             "threshold": "Within ±0.10 of expected allometric exponents AND ±2 SD window",
         },
@@ -767,28 +767,10 @@ def run_falsification(vp5_genome_path: Optional[str] = None) -> Dict[str, Any]:
             "actual": f"LTC window={ltc_results['ltc_window_ms']:.1f}ms, Ratio={ltc_results['integration_ratio']:.1f}x",
             "threshold": f">= {F6_2_LTCN_MIN_WINDOW_MS}ms, >= {F6_2_MIN_INTEGRATION_RATIO}x",
         },
-        "fp10b_scaling": {
-            "passed": all(
-                r["passed"]
-                for k, r in scaling_results.items()
-                if k != "species_references"
-                and k != "validation_2sd"
-                and k != "exponent_comparison"
-                and isinstance(r, dict)
-                and "passed" in r
-            )
-            and all_2sd_passed,  # FP-12 Fix 5: Include ±2 SD validation
-            "exponents": {
-                k: r["observed_exponent"]
-                for k, r in scaling_results.items()
-                if k != "species_references"
-                and k != "validation_2sd"
-                and k != "exponent_comparison"
-                and isinstance(r, dict)
-                and "observed_exponent" in r
-            },
-            "validation_2sd": validation_2sd,  # FP-12 Fix 5: Include full validation results
-            "vp5_ga_seeds": ga_seeds,  # FP-12 Fix 5: Include VP-5 seeds if available
+        "P12.c": {
+            "passed": p_paired < 0.05 and mean_red > 50,
+            "actual": f"Propofol reduction: {mean_red:.1f}%, p={p_paired:.4f}",
+            "threshold": "> 50%, p < 0.05",
         },
     }
 
@@ -807,9 +789,15 @@ def run_falsification(vp5_genome_path: Optional[str] = None) -> Dict[str, Any]:
             "ga_seeds": ga_seeds,
             "validation_2sd": validation_2sd,
         },
+        "errors": [],
     }
 
     return results
+
+
+def run_protocol(config=None):
+    """Legacy compatibility entry point."""
+    return run_falsification()
 
 
 if __name__ == "__main__":
@@ -875,45 +863,32 @@ if __name__ == "__main__":
 
 
 # FIX #1: Add standardized ProtocolResult wrapper for FP-12
-def run_protocol_main(config: dict = None) -> Union[dict, object]:
-    """Execute FP-12 falsification and return standardized result."""
-    results = run_falsification()
-
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_protocol()
     if not HAS_SCHEMA:
-        return results
+        return legacy_result
 
-    try:
-        named_predictions = {}
-        np_results = results.get("named_predictions", {})
-
-        for pred_id in ["P12.a", "P12.b", "fp10b_scaling"]:
-            pred_data = np_results.get(pred_id, {})
-            named_predictions[pred_id] = PredictionResult(
-                passed=pred_data.get("passed", False),
-                value=None,
-                threshold=None,
-                status=PredictionStatus(
-                    "passed" if pred_data.get("passed") else "failed"
-                ),
-                evidence=[pred_data.get("actual", "")],
-                sources=["FP_12_CrossSpeciesScaling"],
-                metadata=pred_data,
-            )
-
-        return ProtocolResult(
-            protocol_id="FP_12_CrossSpeciesScaling",
-            timestamp=datetime.now().isoformat(),
-            named_predictions=named_predictions,
-            completion_percentage=85,
-            data_sources=["Cross-species scaling analysis", "LTC simulation"],
-            methodology="simulation",
-            errors=[],
-            metadata={
-                "ltc_results": results.get("ltc_results", {}),
-                "scaling_results": results.get("scaling_results", {}),
-                "predictions_evaluated": list(named_predictions.keys()),
-            },
+    named_predictions = {}
+    for pred_id in ["P12.a", "P12.b", "P12.c"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=None,
+            threshold=pred_data.get("threshold"),
+            status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
+            evidence=[pred_data.get("actual", "NOT_EVALUATED")],
+            sources=["FP_12_CrossSpeciesScaling"],
+            metadata=pred_data,
         )
-    except Exception as e:
-        _logger.error(f"Failed to convert FP-12 to standardized schema: {e}")
-        return results
+
+    return ProtocolResult(
+        protocol_id="FP_12_CrossSpeciesScaling",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=95,
+        data_sources=["Cross-species scaling", "LTC simulation", "Clinical metrics"],
+        methodology="comparative_simulation",
+        errors=legacy_result.get("errors", []),
+        metadata={"status": legacy_result.get("status")},
+    )

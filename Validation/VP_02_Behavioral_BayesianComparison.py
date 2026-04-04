@@ -36,6 +36,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -1678,7 +1679,10 @@ def compute_power_analysis(
 
 
 def run_validation(
-    n_participants: int = N_PARTICIPANTS, seed: int = RANDOM_SEED, verbose: bool = True
+    n_participants: int = N_PARTICIPANTS,
+    seed: int = RANDOM_SEED,
+    verbose: bool = True,
+    **kwargs,
 ) -> Dict[str, Any]:
     """
     Execute the complete Behavioral Validation Protocol (Protocol 2).
@@ -1876,15 +1880,23 @@ def run_validation(
             "status": status,
             "message": message,
             "results": results,
-            # Aggregator-facing named prediction outputs
+            # Aggregator-facing named prediction outputs (Standardized to V2 series)
             "named_predictions": {
-                "P1.1": {"passed": p1_1.get("passed", False), "detail": p1_1},
-                "P1.2": {"passed": p1_2.get("passed", False), "detail": p1_2},
-                "P1.3": {"passed": p1_3.get("passed", False), "detail": p1_3},
-                "P1.2_x_P1.3": {
-                    "passed": p1_2_x_p1_3.get("passed", False),
-                    "detail": p1_2_x_p1_3,
-                },  # NEW
+                "V2.1": {
+                    "passed": p1_1.get("passed", False),
+                    "actual": p1_1.get("cohens_d"),
+                    "threshold": "0.40-0.60",
+                },
+                "V2.2": {
+                    "passed": p1_2.get("passed", False),
+                    "actual": p1_2.get("arousal_x_pi_interaction", {}).get("cohens_d"),
+                    "threshold": "0.25-0.45",
+                },
+                "V2.3": {
+                    "passed": p1_3.get("passed", False),
+                    "actual": p1_3.get("cohens_d"),
+                    "threshold": "> 0.30",
+                },
             },
         }
 
@@ -1896,12 +1908,56 @@ def run_validation(
             "message": f"Protocol 2 failed with exception: {type(exc).__name__}: {exc}",
             "results": {},
             "named_predictions": {
-                "P1.1": {"passed": False, "error": str(exc)},
-                "P1.2": {"passed": False, "error": str(exc)},
-                "P1.3": {"passed": False, "error": str(exc)},
-                "P1.2_x_P1.3": {"passed": False, "error": str(exc)},  # NEW
+                "V2.1": {"passed": False, "error": str(exc)},
+                "V2.2": {"passed": False, "error": str(exc)},
+                "V2.3": {"passed": False, "error": str(exc)},
             },
         }
+
+
+def run_protocol():
+    """Legacy compatibility entry point."""
+    return run_validation()
+
+
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
+
+
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_validation()
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    named_predictions = {}
+    for pred_id in ["V2.1", "V2.2", "V2.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=(
+                PredictionStatus.PASSED
+                if pred_data.get("passed", False)
+                else PredictionStatus.FAILED
+            ),
+        )
+
+    return ProtocolResult(
+        protocol_id="VP_02_Behavioral_BayesianComparison",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=100,
+        data_sources=["Synthetic Behavioral Dataset"],
+        methodology="bayesian_comparison",
+        errors=[],
+        metadata=legacy_result.get("results", {}).get("population_summary", {}),
+    ).to_dict()
 
 
 # =============================================================================

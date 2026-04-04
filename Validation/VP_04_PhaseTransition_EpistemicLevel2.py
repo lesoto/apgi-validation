@@ -48,6 +48,7 @@ import logging
 import math
 from collections import Counter
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -3864,7 +3865,85 @@ def run_validation(**kwargs) -> Dict[str, Any]:
     print("PROTOCOL 4 EXECUTION COMPLETE")
     print("=" * 80)
 
-    return results_summary
+    # Convert falsification report to named predictions for aggregator
+    named_predictions = {}
+    criteria_map = {
+        "F4.1": "V4.1",
+        "F4.2": "V4.2",
+        "F4.3": "V4.3",
+    }
+
+    # Process passed criteria
+    for crit in falsification_report.get("passed_criteria", []):
+        code = crit.get("code")
+        if code in criteria_map:
+            named_predictions[criteria_map[code]] = {
+                "passed": True,
+                "actual": crit.get("value"),
+                "threshold": crit.get("threshold"),
+            }
+
+    # Process falsified criteria
+    for crit in falsification_report.get("falsified_criteria", []):
+        code = crit.get("code")
+        if code in criteria_map:
+            named_predictions[criteria_map[code]] = {
+                "passed": False,
+                "actual": crit.get("value"),
+                "threshold": crit.get("threshold"),
+            }
+
+    return {
+        "passed": not falsification_report.get("overall_falsified", False),
+        "status": "success",
+        "results": results_summary,
+        "named_predictions": named_predictions,
+    }
+
+
+def run_protocol():
+    """Legacy compatibility entry point."""
+    return run_validation()
+
+
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
+
+
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_validation()
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    named_predictions = {}
+    for pred_id in ["V4.1", "V4.2", "V4.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=(
+                PredictionStatus.PASSED
+                if pred_data.get("passed", False)
+                else PredictionStatus.FAILED
+            ),
+        )
+
+    return ProtocolResult(
+        protocol_id="VP_04_PhaseTransition_EpistemicLevel2",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=100,
+        data_sources=["Information-Theoretic Simulations"],
+        methodology="dynamical_systems_analysis",
+        errors=[],
+        metadata=legacy_result.get("results", {}).get("summary_statistics", {}),
+    ).to_dict()
 
 
 def main(**kwargs) -> Dict[str, Any]:

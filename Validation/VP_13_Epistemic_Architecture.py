@@ -26,6 +26,7 @@ Critical Fixes:
 
 import logging
 from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 # Set up logger early
 logger = logging.getLogger(__name__)
@@ -1140,14 +1141,45 @@ def run_validation(**kwargs) -> Dict[str, Any]:
                 "reason": "apply_multiple_comparison_correction not available or no p-values",
             }
 
+        # Map to V13 series for aggregator
+        named_predictions = {
+            "V13.1": {
+                "passed": not results.get("level_1_predictions", {})
+                .get("P12", {})
+                .get("falsified", True),
+                "actual": results.get("level_1_predictions", {})
+                .get("P12", {})
+                .get("scaling_results", {})
+                .get("threshold", {})
+                .get("exponent"),
+                "threshold": "Evolutionary Scaling (α ≈ 0.75)",
+            },
+            "V13.2": {
+                "passed": not results.get("level_1_predictions", {})
+                .get("P11", {})
+                .get("falsified", True),
+                "actual": results.get("level_1_predictions", {})
+                .get("P11", {})
+                .get("fitted_slope"),
+                "threshold": "Developmental Load Sensitivity (slope > 0)",
+            },
+            "V13.3": {
+                "passed": not results.get("level_1_predictions", {})
+                .get("P10", {})
+                .get("falsified", True),
+                "actual": results.get("level_1_predictions", {})
+                .get("P10", {})
+                .get("efficiency_advantage_pct"),
+                "threshold": "Metabolic Efficiency Gain (ΔE ≥ 15%)",
+            },
+        }
+
         return {
-            "passed": passed,
+            "passed": all(p["passed"] for p in named_predictions.values()),
             "status": "success" if passed else "failed",
             "message": f"Protocol P4 completed: Overall epistemic validation score {results.get('overall_epistemic_score', 0):.3f}",
             "results": results,
-            "V13.1": results.get("level_1_predictions", {}),
-            "V13.2": results.get("level_2_predictions", {}),
-            "V13.3": results.get("level_3_predictions", {}),
+            "named_predictions": named_predictions,
         }
     except Exception as e:
         return {
@@ -1155,6 +1187,51 @@ def run_validation(**kwargs) -> Dict[str, Any]:
             "status": "error",
             "message": f"Protocol P4 failed: {str(e)}",
         }
+
+
+def run_protocol():
+    """Legacy compatibility entry point."""
+    return run_validation()
+
+
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
+
+
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_validation()
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    named_predictions = {}
+    for pred_id in ["V13.1", "V13.2", "V13.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=(
+                PredictionStatus.PASSED
+                if pred_data.get("passed", False)
+                else PredictionStatus.FAILED
+            ),
+        )
+
+    return ProtocolResult(
+        protocol_id="VP_13_Epistemic_Architecture",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=100,
+        data_sources=["Epistemic Simulations", "Information Theory Benchmarks"],
+        methodology="epistemic_architecture_validation",
+        errors=[],
+        metadata=legacy_result.get("results", {}).get("overall_epistemic_score"),
+    ).to_dict()
 
 
 def main(**kwargs) -> Dict[str, Any]:

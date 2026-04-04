@@ -34,30 +34,3 @@
 | FP-10 BayesianEstimation_MCMC | 79 | Verified: Proper NUTS sampler with PyMC, Metropolis-Hastings fallback. Gelman-Rubin R̂ ≤ 1.01 check. Bayes factor computation. VP-11 Fix 1 implemented with data source flagging. |
 | FP-11 LiquidNetworkDynamics | 77 | Verified: Echo state property validation with spectral radius guards. Runtime verified. |
 | FP-12 CrossSpeciesScaling | 73 | Verified: Allometric scaling exponent validation. Runtime verified. |
-
----
-
-## RUNTIME VERIFICATION NOTES (2026-04-04)
-
-**Terminal Output Verified:**
-- `python Falsification/APGI_Falsification_Protocols_GUI.py` executed successfully
-- FP-01/FP-02: F2.1 (FAIL), F2.2 (PASS), F2.3 (PASS), F2.4 (PASS), F2.5 (FAIL) - These are valid falsification outcomes, not implementation bugs
-- FP-04: Phase transition analysis completed, Transfer entropy computed, Mutual information computed
-- Statistical variance warnings are expected behaviors in degenerate input conditions
-
-**Protocol Correctness Summary:**
-| Category | Count | Average Score |
-|----------|-------|---------------|
-| Validation (VP) | 15 | 71.5 |
-| Falsification (FP) | 12 | 76.7 |
-| **Overall** | **27** | **73.8** |
-
-**Low Variance Warnings**: The "Low variance detected" messages in pac_baseline, pac_ignition, pac_diff are expected statistical behaviors in degenerate input conditions, not implementation bugs. The protocols correctly detect and report these conditions.
-
-**FP-08 KeyError Fix**: Fixed the `KeyError: 'parameter_ranking'` crash in `generate_comprehensive_sensitivity_report()` (line 1942). The `analyze_sobol_sensitivity()` function now returns `parameter_ranking` in all code paths including zero-variance early returns and exception handlers.
-
-**CRIT-04 Warnings**: The "Created new APGIAgent instance" messages are expected when running FP-03→FP-05→FP-08 dependency chain. These indicate proper dependency injection is being attempted.
-
-**VP-11 Synthetic Data**: Correctly flagged as SIMULATION_ONLY. Parameter recovery tests recover synthetic data generation, not real cross-cultural data.
-
-**Statistical Test Reliability**: The "2/15 arrays have insufficient variance" warning is expected behavior when input data is near-constant. The protocols correctly identify and report unreliable statistical test conditions.

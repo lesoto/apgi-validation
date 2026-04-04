@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 import logging
 from dataclasses import dataclass
 
@@ -2801,7 +2801,34 @@ def run_falsification():
         except Exception as e:
             print(f"⚠ Error generating visualization: {e}")
 
-        return {"status": "success", "results": results}
+        results_dict = {
+            "status": "success",
+            "results": results,
+            "named_predictions": {
+                "P4.a": {
+                    "passed": results.get("transfer_entropy_means_mean", 0) > 0.1,
+                    "actual": f"{results.get('transfer_entropy_means_mean', 0):.3f} bits",
+                    "threshold": "> 0.1 bits",
+                },
+                "P4.b": {
+                    "passed": results.get("mutual_info_means_mean", 0) > 0.1,
+                    "actual": f"{results.get('mutual_info_means_mean', 0):.3f} bits/s",
+                    "threshold": "> 0.1 bits/s",
+                },
+                "P4.c": {
+                    "passed": results.get("critical_slowing_ratio_mean", 0) >= 1.2,
+                    "actual": f"{results.get('critical_slowing_ratio_mean', 0):.2f}",
+                    "threshold": ">= 1.2",
+                },
+                "P4.d": {
+                    "passed": results.get("level2_falsification_rate", 0) >= 0.8,
+                    "actual": f"{results.get('level2_falsification_rate', 0):.2%}",
+                    "threshold": ">= 80%",
+                },
+            },
+            "errors": [],
+        }
+        return results_dict
 
     except KeyboardInterrupt:
         print("\n=== INTERRUPTED BY USER ===")
@@ -2812,75 +2839,38 @@ def run_falsification():
 
 
 # FIX #1: Add standardized ProtocolResult wrapper for FP-04
-def run_protocol_main(config: dict = None) -> Union[dict, object]:
-    """Execute FP-04 falsification and return standardized result.
+def run_protocol(config=None):
+    """Legacy compatibility entry point."""
+    return run_falsification()
 
-    This wrapper converts FP-04 output to ProtocolResult format when the standardized
-    schema is available, enabling unified aggregation across all protocols.
 
-    Returns:
-        ProtocolResult if HAS_SCHEMA is True, otherwise dict in legacy format
-    """
-    result = run_falsification()
-    legacy_result = result.get("results", result)
-
+# FIX: Add standardized ProtocolResult wrapper for FP-04
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_protocol()
     if not HAS_SCHEMA:
         return legacy_result
 
-    # Convert to standardized schema
-    try:
-        # Extract named predictions
-        named_predictions = {}
-
-        # F4.1: Transfer Entropy
-        te_mean = legacy_result.get("transfer_entropy_means_mean", 0)
-        te_pass = te_mean > 0.1
-        named_predictions["F4.1"] = PredictionResult(
-            passed=te_pass,
-            value=te_mean,
-            threshold=0.1,
-            status=PredictionStatus("passed" if te_pass else "failed"),
-            evidence=[f"Transfer entropy: {te_mean:.3f} bits"],
+    named_predictions = {}
+    for pred_id in ["P4.a", "P4.b", "P4.c", "P4.d"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=PredictionStatus("passed" if pred_data.get("passed") else "failed"),
+            evidence=[f"Metric: {pred_id}"],
             sources=["FP_04_PhaseTransition_EpistemicArchitecture"],
+            metadata=pred_data,
         )
 
-        # F4.2: Mutual Information
-        mi_mean = legacy_result.get("mutual_info_means_mean", 0)
-        mi_pass = mi_mean > 0.1
-        named_predictions["F4.2"] = PredictionResult(
-            passed=mi_pass,
-            value=mi_mean,
-            threshold=0.1,
-            status=PredictionStatus("passed" if mi_pass else "failed"),
-            evidence=[f"Mutual information: {mi_mean:.3f} bits/s"],
-            sources=["FP_04_PhaseTransition_EpistemicArchitecture"],
-        )
-
-        # F4.3: Critical Slowing
-        cs_ratio = legacy_result.get("critical_slowing_ratio_mean", 0)
-        cs_pass = cs_ratio >= 1.2
-        named_predictions["F4.3"] = PredictionResult(
-            passed=cs_pass,
-            value=cs_ratio,
-            threshold=1.2,
-            status=PredictionStatus("passed" if cs_pass else "failed"),
-            evidence=[f"Critical slowing ratio: {cs_ratio:.2f}"],
-            sources=["FP_04_PhaseTransition_EpistemicArchitecture"],
-        )
-
-        return ProtocolResult(
-            protocol_id="FP_04_PhaseTransition_EpistemicArchitecture",
-            timestamp=datetime.now().isoformat(),
-            named_predictions=named_predictions,
-            completion_percentage=75,
-            data_sources=["Phase transition simulation"],
-            methodology="agent_simulation",
-            errors=[],
-            metadata={
-                "n_simulations": legacy_result.get("n_simulations", 0),
-                "predictions_evaluated": list(named_predictions.keys()),
-            },
-        )
-    except Exception as e:
-        logger.error(f"Failed to convert FP-04 to standardized schema: {e}")
-        return legacy_result
+    return ProtocolResult(
+        protocol_id="FP_04_PhaseTransition_EpistemicArchitecture",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=75,
+        data_sources=["Phase transition simulation"],
+        methodology="agent_simulation",
+        errors=legacy_result.get("errors", []),
+        metadata={"status": legacy_result.get("status")},
+    )

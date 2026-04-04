@@ -80,6 +80,16 @@ NAMED_PREDICTIONS = {
     "V15.3": "Anterior/posterior insula dissociation (anticipation vs. experience)",
 }
 
+# BIC thresholds for empirical vs theoretical data
+try:
+    from utils.constants import DIM_CONSTANTS
+
+    EMPIRICAL_BIC_THRESHOLD = getattr(DIM_CONSTANTS, "EMPIRICAL_BIC_THRESHOLD", 10.0)
+    THEORETICAL_BIC_PENALTY = getattr(DIM_CONSTANTS, "THEORETICAL_BIC_PENALTY", 15.0)
+except ImportError:
+    EMPIRICAL_BIC_THRESHOLD = 10.0  # ΔBIC threshold for empirical data
+    THEORETICAL_BIC_PENALTY = 15.0  # Penalty for theoretical-only comparisons
+
 # Protocol routing table - maps named predictions to validation protocols
 PREDICTION_TO_PROTOCOL = {
     # VP-1: Synthetic EEG ML Classification
@@ -638,6 +648,346 @@ def load_protocol_results_from_directory(
             continue
 
     return results
+
+
+def extract_bic_comparison(
+    results_input: Union[Dict, List],
+    data_source: str = "auto",
+) -> Dict[str, Any]:
+    """Extract and validate BIC comparisons from protocol results.
+
+    Addresses theoretical fallback by detecting data source type and
+    applying appropriate thresholds. Empirical BIC comparisons are prioritized
+    over theoretical estimates.
+
+    Args:
+        results_input: Dictionary of results or list of file paths/result dicts
+        data_source: Data source type ("empirical", "theoretical", "auto")
+
+    Returns:
+        Dict with BIC comparison results and data source classification
+    """
+    bic_results = {
+        "data_source": data_source,
+        "empirical_comparisons": [],
+        "theoretical_estimates": [],
+        "apgi_bic": None,
+        "alternative_bics": {},
+        "bic_advantage": None,
+        "is_empirical": False,
+        "threshold_used": EMPIRICAL_BIC_THRESHOLD,
+        "warnings": [],
+    }
+
+    items: List[Union[str, dict]] = []
+    if isinstance(results_input, dict):
+        items = list(results_input.values())
+    elif isinstance(results_input, list):
+        items = results_input
+
+    for item in items:
+        data = None
+        if isinstance(item, str):
+            try:
+                with open(item) as f:
+                    data = json.load(f)
+            except Exception:
+                continue
+        elif isinstance(item, dict):
+            data = item
+
+        if not data:
+            continue
+
+        # Check for BIC values in results
+        if "bic_values" in data:
+            bic_vals = data["bic_values"]
+            for agent_type, metrics in bic_vals.items():
+                if isinstance(metrics, dict) and "bic" in metrics:
+                    if agent_type.upper() == "APGI":
+                        bic_results["apgi_bic"] = metrics["bic"]
+                    else:
+                        bic_results["alternative_bics"][agent_type] = metrics["bic"]
+
+        # Check metadata for data source
+        metadata = data.get("metadata", {})
+        if metadata.get("data_source") in ["empirical", "clinical", "neuroimaging"]:
+            bic_results["is_empirical"] = True
+        elif metadata.get("methodology") in [
+            "clinical_data",
+            "empirical",
+            "neuroimaging",
+        ]:
+            bic_results["is_empirical"] = True
+
+        # Check for empirical data flags
+        if data.get("empirical_data_used") or metadata.get("empirical_validation"):
+            bic_results["is_empirical"] = True
+
+    # Auto-detect data source if not specified
+    if data_source == "auto":
+        if bic_results["is_empirical"]:
+            bic_results["data_source"] = "empirical"
+        else:
+            bic_results["data_source"] = "theoretical"
+            bic_results["threshold_used"] = THEORETICAL_BIC_PENALTY
+
+    # Calculate BIC advantage
+    if bic_results["apgi_bic"] is not None and bic_results["alternative_bics"]:
+        best_alt_bic = min(bic_results["alternative_bics"].values())
+        bic_results["bic_advantage"] = best_alt_bic - bic_results["apgi_bic"]
+
+        # Validate against appropriate threshold
+        if bic_results["data_source"] == "empirical":
+            if bic_results["bic_advantage"] < EMPIRICAL_BIC_THRESHOLD:
+                bic_results["warnings"].append(
+                    f"APGI BIC advantage ({bic_results['bic_advantage']:.2f}) "
+                    f"below empirical threshold ({EMPIRICAL_BIC_THRESHOLD})"
+                )
+        else:
+            # Theoretical fallback warning
+            bic_results["warnings"].append(
+                "Using theoretical BIC estimates. Empirical data recommended for "
+                "publication-ready validation."
+            )
+
+    return bic_results
+
+
+def run_end_to_end_validation_pipeline(
+    protocol_modules: Optional[List[str]] = None,
+    output_dir: Optional[Union[str, Path]] = None,
+    min_primary_rate: float = 0.8,
+    min_overall_rate: float = 0.7,
+) -> Dict[str, Any]:
+    """Run complete end-to-end validation pipeline across all protocols.
+
+    Implements full pipeline testing from protocol execution through
+    aggregation to final validation report generation.
+
+    Args:
+        protocol_modules: List of protocol module names to run (None = all)
+        output_dir: Directory to save intermediate JSON results
+        min_primary_rate: Minimum pass rate for primary validations
+        min_overall_rate: Minimum overall pass rate
+
+    Returns:
+        Complete pipeline results with execution status and validation report
+    """
+    from datetime import datetime
+    import importlib
+
+    pipeline_results = {
+        "pipeline_started": datetime.now().isoformat(),
+        "protocols_executed": [],
+        "protocols_failed": [],
+        "aggregation_status": None,
+        "validation_status": None,
+        "bic_analysis": None,
+        "consistency_checks": None,
+        "pipeline_completed": None,
+        "errors": [],
+    }
+
+    if protocol_modules is None:
+        # Default: run all VP protocols
+        protocol_modules = [
+            "Validation.VP_01_SyntheticEEG_MLClassification",
+            "Validation.VP_02_Behavioral_BayesianComparison",
+            "Validation.VP_03_ActiveInference_AgentSimulations",
+            "Validation.VP_04_PhaseTransition_EpistemicLevel2",
+            "Validation.VP_05_EvolutionaryEmergence",
+            "Validation.VP_06_LiquidNetwork_InductiveBias",
+            "Validation.VP_07_TMS_CausalInterventions",
+            "Validation.VP_08_Psychophysical_ThresholdEstimation",
+            "Validation.VP_09_NeuralSignatures_EmpiricalPriority1",
+            "Validation.VP_10_CausalManipulations_Priority2",
+            "Validation.VP_11_MCMC_CulturalNeuroscience_Priority3",
+            "Validation.VP_12_Clinical_CrossSpecies_Convergence",
+            "Validation.VP_13_Epistemic_Architecture",
+            "Validation.VP_14_fMRI_Anticipation_Experience",
+            "Validation.VP_15_fMRI_Anticipation_vmPFC",
+        ]
+
+    protocol_outputs = []
+
+    # Phase 1: Execute all protocols
+    for module_path in protocol_modules:
+        try:
+            module = importlib.import_module(module_path)
+            if hasattr(module, "run_protocol_main"):
+                result = module.run_protocol_main()
+                protocol_outputs.append(result)
+                pipeline_results["protocols_executed"].append(module_path)
+
+                # Save to output directory if specified
+                if output_dir:
+                    out_path = (
+                        Path(output_dir) / f"{module_path.split('.')[-1]}_result.json"
+                    )
+                    Path(output_dir).mkdir(parents=True, exist_ok=True)
+                    if hasattr(result, "to_dict"):
+                        with open(out_path, "w") as f:
+                            json.dump(result.to_dict(), f, indent=2)
+                    elif isinstance(result, dict):
+                        with open(out_path, "w") as f:
+                            json.dump(result, f, indent=2)
+            else:
+                pipeline_results["protocols_failed"].append(
+                    {"module": module_path, "reason": "No run_protocol_main function"}
+                )
+        except Exception as e:
+            pipeline_results["protocols_failed"].append(
+                {"module": module_path, "reason": str(e)}
+            )
+
+    # Phase 2: Aggregate results
+    if protocol_outputs:
+        try:
+            predictions = aggregate_prediction_results(protocol_outputs)
+            pipeline_results["aggregation_status"] = {
+                "predictions_aggregated": len(predictions),
+                "protocols_included": len(pipeline_results["protocols_executed"]),
+            }
+
+            # Phase 3: Run validation
+            summary = compute_validation_summary(predictions)
+            validation = check_framework_validated(
+                predictions, min_primary_rate, min_overall_rate
+            )
+            pipeline_results["validation_status"] = {
+                "summary": summary,
+                "validation": validation,
+            }
+
+            # Phase 4: BIC analysis
+            pipeline_results["bic_analysis"] = extract_bic_comparison(protocol_outputs)
+
+            # Phase 5: Consistency checks
+            pipeline_results["consistency_checks"] = (
+                run_cross_protocol_consistency_checks(protocol_outputs, predictions)
+            )
+
+        except Exception as e:
+            pipeline_results["errors"].append(f"Aggregation/validation failed: {e}")
+
+    pipeline_results["pipeline_completed"] = datetime.now().isoformat()
+    return pipeline_results
+
+
+def run_cross_protocol_consistency_checks(
+    protocol_outputs: List[Dict],
+    predictions: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Run consistency checks across all protocols.
+
+    Validates that related predictions across protocols are consistent,
+    detects contradictions, and ensures no double-counting of supplementary
+    predictions (VP-10 vs VP-07).
+
+    Args:
+        protocol_outputs: List of protocol result dictionaries
+        predictions: Aggregated prediction results
+
+    Returns:
+        Dict with consistency check results and any detected issues
+    """
+    consistency_report = {
+        "checks_performed": [],
+        "inconsistencies_found": [],
+        "warnings": [],
+        "overall_consistent": True,
+    }
+
+    # Check 1: VP-07 vs VP-10 boundary (canonical vs supplementary)
+    vp10_supplementary = ["V10.1", "V10.2", "V10.3"]
+
+    for pred in vp10_supplementary:
+        if pred in predictions and predictions[pred].get("passed") is not None:
+            # Check if VP-07 canonical result exists
+            canonical_pred = pred.replace("V10.", "V7.")
+            if canonical_pred in predictions:
+                vp07_passed = predictions[canonical_pred].get("passed")
+                vp10_passed = predictions[pred].get("passed")
+                if vp07_passed != vp10_passed:
+                    consistency_report["warnings"].append(
+                        f"VP-07 ({canonical_pred}) and VP-10 ({pred}) disagree: "
+                        f"{vp07_passed} vs {vp10_passed}"
+                    )
+
+    consistency_report["checks_performed"].append("vp07_vp10_boundary")
+
+    # Check 2: Cross-prediction logical consistency
+    # V2.1 (threshold modulation) should imply V2.2 (arousal amplification)
+    if "V2.1" in predictions and "V2.2" in predictions:
+        v2_1_passed = predictions["V2.1"].get("passed")
+        v2_2_passed = predictions["V2.2"].get("passed")
+        if v2_1_passed and not v2_2_passed:
+            consistency_report["inconsistencies_found"].append(
+                "V2.1 passed but V2.2 failed - arousal amplification should follow threshold modulation"
+            )
+
+    # Check 3: Tier progression consistency
+    # Primary validations should generally pass before secondary/tertiary
+    primary_passed = sum(
+        1
+        for p, r in predictions.items()
+        if p in PREDICTION_TO_PROTOCOL
+        and PROTOCOL_TIERS.get(PREDICTION_TO_PROTOCOL[p]) == "primary"
+        and r.get("passed")
+    )
+    primary_total = len(
+        [
+            p
+            for p in predictions
+            if p in PREDICTION_TO_PROTOCOL
+            and PROTOCOL_TIERS.get(PREDICTION_TO_PROTOCOL[p]) == "primary"
+        ]
+    )
+
+    if primary_total > 0 and primary_passed / primary_total < 0.5:
+        consistency_report["warnings"].append(
+            f"Primary validations below 50% ({primary_passed}/{primary_total}) - "
+            "framework may need fundamental revision"
+        )
+
+    consistency_report["checks_performed"].extend(
+        [
+            "cross_prediction_logic",
+            "tier_progression",
+        ]
+    )
+
+    # Check 4: Data source consistency
+    empirical_protocols = []
+    theoretical_protocols = []
+    for output in protocol_outputs:
+        metadata = output.get("metadata", {}) if isinstance(output, dict) else {}
+        protocol_id = output.get("protocol_id", "unknown")
+        if metadata.get("data_source") in ["empirical", "clinical"]:
+            empirical_protocols.append(protocol_id)
+        else:
+            theoretical_protocols.append(protocol_id)
+
+    consistency_report["data_source_breakdown"] = {
+        "empirical_protocols": empirical_protocols,
+        "theoretical_protocols": theoretical_protocols,
+        "empirical_ratio": (
+            len(empirical_protocols) / len(protocol_outputs) if protocol_outputs else 0
+        ),
+    }
+
+    if len(empirical_protocols) < 3:
+        consistency_report["warnings"].append(
+            f"Only {len(empirical_protocols)} protocols use empirical data - "
+            "recommend increasing empirical validation for publication readiness"
+        )
+
+    consistency_report["overall_consistent"] = (
+        len(consistency_report["inconsistencies_found"]) == 0
+    )
+
+    return consistency_report
 
 
 if __name__ == "__main__":

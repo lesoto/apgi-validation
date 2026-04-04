@@ -26,6 +26,7 @@ import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
 
 import logging
 
@@ -3615,10 +3616,83 @@ def run_validation(**kwargs) -> Dict[str, Any]:
             "Running APGI Validation Protocol 5: Computational Falsification Framework"
         )
         results = main()
-        return {"passed": True, "status": "success", "results": results}
+
+        # Map F5 criteria to V5 series for aggregator
+        falsification = results.get("criteria", {})
+        named_predictions = {
+            "V5.1": {
+                "passed": falsification.get("F5.1", {}).get("passed", False),
+                "actual": falsification.get("F5.1", {}).get(
+                    "proportion_threshold_agents"
+                ),
+                "threshold": ">=75% (0.60 gate)",
+            },
+            "V5.2": {
+                "passed": falsification.get("F5.2", {}).get("passed", False),
+                "actual": falsification.get("F5.2", {}).get("mean_correlation_r"),
+                "threshold": "r >= 0.45 (0.35 gate)",
+            },
+            "V5.3": {
+                "passed": falsification.get("F5.3", {}).get("passed", False),
+                "actual": falsification.get("F5.3", {}).get("mean_gain_ratio"),
+                "threshold": "ratio >= 1.3 (1.15 gate)",
+            },
+        }
+
+        return {
+            "passed": all(p["passed"] for p in named_predictions.values()),
+            "status": "success",
+            "results": results,
+            "named_predictions": named_predictions,
+        }
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in validation protocol 5: {e}")
         return {"passed": False, "status": "failed", "error": str(e)}
+
+
+def run_protocol():
+    """Legacy compatibility entry point."""
+    return run_validation()
+
+
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
+
+
+def run_protocol_main(config=None):
+    """Execute and return standardized ProtocolResult."""
+    legacy_result = run_validation()
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    named_predictions = {}
+    for pred_id in ["V5.1", "V5.2", "V5.3"]:
+        pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+        named_predictions[pred_id] = PredictionResult(
+            passed=pred_data.get("passed", False),
+            value=pred_data.get("actual"),
+            threshold=pred_data.get("threshold"),
+            status=(
+                PredictionStatus.PASSED
+                if pred_data.get("passed", False)
+                else PredictionStatus.FAILED
+            ),
+        )
+
+    return ProtocolResult(
+        protocol_id="VP_05_EvolutionaryEmergence",
+        timestamp=datetime.now().isoformat(),
+        named_predictions=named_predictions,
+        completion_percentage=100,
+        data_sources=["Evolutionary Simulations"],
+        methodology="evolutionary_computation",
+        errors=[],
+        metadata=legacy_result.get("results", {}).get("summary", {}),
+    ).to_dict()
 
 
 # =============================================================================

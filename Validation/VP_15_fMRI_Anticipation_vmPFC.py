@@ -410,35 +410,38 @@ def run_validation(
         all_passed = all(v.get("passed", False) for v in report.values())
 
         # CRIT-05 FIX: Mark as simulation_validated_only, not synthetic_pending
+        # Map to V15 series for aggregator
+        named_predictions = {
+            "V15.1": {
+                "passed": report["V15.1_Anticipatory_Insula_Onset"]["passed"],
+                "actual": report["V15.1_Anticipatory_Insula_Onset"].get(
+                    "mean_onset_ms"
+                ),
+                "threshold": "< 500ms",
+            },
+            "V15.2": {
+                "passed": report["V15.2_vmPFC_Insula_Connectivity"]["passed"],
+                "actual": report["V15.2_vmPFC_Insula_Connectivity"].get("pearson_r"),
+                "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
+            },
+            "V15.3": {
+                "passed": report["V15.3_AntPost_Insula_Dissociation"]["passed"],
+                "actual": (
+                    "confirmed"
+                    if report["V15.3_AntPost_Insula_Dissociation"]["passed"]
+                    else "failed"
+                ),
+                "threshold": "Ant high in anticipation, Post high in experience",
+            },
+        }
+
+        # CRIT-05 FIX: Mark as simulation_validated_only, not synthetic_pending
         return {
             "status": "simulation_validated_only",  # CRIT-05 FIX: New status
             "passed": all_passed,
             "protocol_id": "VP-15",
             "protocol_name": "fMRI vmPFC Anticipation Paradigm [SIMULATION_VALIDATED_ONLY]",
-            "named_predictions": {
-                "P5.a": {
-                    "passed": report["V15.1_Anticipatory_Insula_Onset"]["passed"],
-                    "actual": f"Onset: {report['V15.1_Anticipatory_Insula_Onset'].get('mean_onset_ms', 0):.1f}ms",
-                    "threshold": "< 500ms",
-                    "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
-                },
-                "P5.b": {
-                    "passed": report["V15.2_vmPFC_Insula_Connectivity"]["passed"],
-                    "actual": f"r = {report['V15.2_vmPFC_Insula_Connectivity'].get('pearson_r', 0):.2f}",
-                    "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
-                    "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
-                },
-                "P5.c": {
-                    "passed": report["V15.3_AntPost_Insula_Dissociation"]["passed"],
-                    "actual": (
-                        "Dissociation confirmed"
-                        if report["V15.3_AntPost_Insula_Dissociation"]["passed"]
-                        else "No dissociation"
-                    ),
-                    "threshold": "Ant high in anticipation, Post high in experience",
-                    "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
-                },
-            },
+            "named_predictions": named_predictions,
             "criteria": {
                 "V15.1_Anticipatory_Insula_Onset": report[
                     "V15.1_Anticipatory_Insula_Onset"
@@ -586,6 +589,11 @@ def main(**kwargs) -> Dict[str, Any]:
         }
 
 
+def run_protocol():
+    """Legacy compatibility entry point."""
+    return run_validation(allow_synthetic=True)
+
+
 # FIX: Add standardized ProtocolResult wrapper for VP-15
 def run_protocol_main(config: dict = None) -> Union[dict, object]:
     """Execute VP-15 validation and return standardized result."""
@@ -598,20 +606,20 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
         named_predictions = {}
         np_results = results.get("named_predictions", {})
 
-        for pred_id in ["P5.a", "P5.b", "P5.c"]:
+        for pred_id in ["V15.1", "V15.2", "V15.3"]:
             pred_data = np_results.get(pred_id, {})
             named_predictions[pred_id] = PredictionResult(
                 passed=pred_data.get("passed", False),
-                value=None,
-                threshold=None,
-                status=PredictionStatus(
-                    "passed" if pred_data.get("passed") else "failed"
+                value=pred_data.get("actual"),
+                threshold=pred_data.get("threshold"),
+                status=(
+                    PredictionStatus.PASSED
+                    if pred_data.get("passed", False)
+                    else PredictionStatus.FAILED
                 ),
-                evidence=[pred_data.get("actual", "")],
+                evidence=[str(pred_data.get("actual", ""))],
                 sources=["VP_15_fMRI_Anticipation_vmPFC"],
-                metadata={
-                    "validation_status": pred_data.get("validation_status", "unknown")
-                },
+                metadata={"validation_status": "SIMULATION_VALIDATED_ONLY"},
             )
 
         return ProtocolResult(
@@ -627,7 +635,7 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
                 "data_source": results.get("data_source", "unknown"),
                 "predictions_evaluated": list(named_predictions.keys()),
             },
-        )
+        ).to_dict()
     except Exception as e:
         logger.error(f"Failed to convert VP-15 to standardized schema: {e}")
         return results
