@@ -36,15 +36,18 @@ from scipy.integrate import solve_ivp
 from dataclasses import dataclass
 from enum import Enum
 
-# Import centralized analytical solutions
+# Removed for GUI stability
+logger = logging.getLogger(__name__)
+
+# Import centralized analytical solutions with graceful degradation
 try:
     from utils.analytical_solutions import AnalyticalAPGISolutions
 
     HAS_ANALYTICAL_SOLUTIONS = True
 except ImportError:
-    raise RuntimeError(
-        "AnalyticalAPGISolutions is required for FP-07 analytical Jacobian cross-validation; "
-        "ensure utils.analytical_solutions is available before running this protocol."
+    HAS_ANALYTICAL_SOLUTIONS = False
+    logger.warning(
+        "AnalyticalAPGISolutions not available - FP-7 will run with reduced functionality"
     )
 
 try:
@@ -64,12 +67,11 @@ try:
 
     HAS_SYMPY = True
 except ImportError:
-    raise RuntimeError(
-        "sympy is required for symbolic consistency checks; install with pip install sympy"
-    )
+    HAS_SYMPY = False
+    logger.warning("sympy not available - FP-7 will skip symbolic consistency checks")
 
-# Removed for GUI stability
-logger = logging.getLogger(__name__)
+# Global availability flag for orchestrator
+FP7_AVAILABLE = HAS_SYMPY and HAS_ANALYTICAL_SOLUTIONS
 
 
 class EquationType(Enum):
@@ -225,10 +227,8 @@ class MathematicalConsistencyChecker:
     def _initialize_symbols(self) -> Dict[str, Any]:
         """Initialize symbolic variables for analysis"""
         if not HAS_SYMPY:
-            raise ImportError(
-                "sympy is required for FP-07 symbolic consistency checks. "
-                "Install with: pip install sympy"
-            )
+            logger.warning("sympy not available - using placeholder symbols")
+            return {"error": "sympy not available for symbolic analysis"}
 
         symbols_dict = {
             # Core state variables
@@ -297,10 +297,8 @@ def verify_dimensional_homogeneity() -> Dict[str, bool]:
     results = {}
 
     if not HAS_SYMPY:
-        raise ImportError(
-            "sympy is required for FP-07 symbolic consistency checks. "
-            "Install with: pip install sympy"
-        )
+        logger.warning("sympy not available - skipping dimensional homogeneity check")
+        return {"dimensional_homogeneity": False, "error": "sympy not available"}
 
     try:
         # Import sympy for symbolic mathematics (units not needed for consistency checks)
@@ -806,10 +804,8 @@ def verify_asymptotic_behavior() -> Dict[str, Any]:
     checker = MathematicalConsistencyChecker()
 
     if not HAS_SYMPY:
-        raise ImportError(
-            "sympy is required for FP-07 symbolic consistency checks. "
-            "Install with: pip install sympy"
-        )
+        logger.warning("sympy not available - skipping asymptotic behavior check")
+        return {"asymptotic_behavior": False, "error": "sympy not available"}
 
     try:
         # Define symbolic variables
@@ -874,10 +870,8 @@ def verify_threshold_stability() -> Dict[str, Any]:
     checker = MathematicalConsistencyChecker()
 
     if not HAS_SYMPY:
-        raise ImportError(
-            "sympy is required for FP-07 symbolic consistency checks. "
-            "Install with: pip install sympy"
-        )
+        logger.warning("sympy not available - skipping threshold stability check")
+        return {"threshold_stability": False, "error": "sympy not available"}
 
     try:
         # Define symbolic variables for threshold dynamics
@@ -3286,3 +3280,36 @@ if __name__ == "__main__":
     results = run_mathematical_consistency_check()
     print("Mathematical consistency check results:")
     print(results)
+
+    # Generate PNG output
+    try:
+        from utils.protocol_visualization import add_standard_png_output
+
+        def fp07_custom_plot(fig, ax):
+            """Custom plot for FP-07 Mathematical Consistency"""
+            success_rate = results.get("summary", {}).get("success_rate", 0)
+            total = results.get("summary", {}).get("total_checks", 0)
+            passed = results.get("summary", {}).get("passed_checks", 0)
+
+            metrics = ["Passed", "Failed"]
+            values = [passed, total - passed]
+            colors = ["#2ecc71", "#e74c3c"]
+
+            wedges, texts, autotexts = ax.pie(
+                values, labels=metrics, colors=colors, autopct="%1.1f%%"
+            )
+            ax.set_title(f"Mathematical Consistency\nSuccess Rate: {success_rate:.1%}")
+
+            return True
+
+        success = add_standard_png_output(
+            7, results, fp07_custom_plot, "Mathematical Consistency"
+        )
+        if success:
+            print("✓ Generated protocol07.png visualization")
+        else:
+            print("⚠ Failed to generate protocol07.png visualization")
+    except ImportError:
+        print("⚠ Visualization utilities not available")
+    except Exception as e:
+        print(f"⚠ Error generating visualization: {e}")

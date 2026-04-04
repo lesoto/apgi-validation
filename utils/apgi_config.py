@@ -130,8 +130,30 @@ class APGIConfig:
     reservoir_scaling: float = 1.0  # Scaling factor for reservoir weights
     volatility_history_max: int = 100  # Maximum volatility history length
 
-    # Entropy calculation parameters
-    entropy_calculation_interval: int = 10  # Interval for entropy calculations
+    # VP-03: Agent Simulation Hyperparameters (HIGH-06)
+    # Learning rates for hierarchical generative models
+    lr_extero: float = 0.01  # Exteroceptive model learning rate
+    lr_intero: float = 0.01  # Interoceptive model learning rate
+    lr_somatic: float = 0.1  # Somatic policy network learning rate
+    lr_policy: float = 0.001  # Policy network baseline learning rate
+    lr_value: float = 0.001  # Value network learning rate
+    lr_precision: float = 0.05  # Precision learning rate
+
+    # Ignition parameters
+    alpha_ignition: float = 8.0  # Steepness of ignition sigmoid
+    tau_S: float = 0.3  # Surprise decay time constant
+    tau_theta: float = 10.0  # Threshold adaptation time constant
+    eta_theta: float = 0.01  # Threshold learning rate
+
+    # Initial parameter values
+    theta_init: float = 0.5  # Initial ignition threshold
+    theta_baseline: float = 0.5  # Baseline ignition threshold
+    Pi_e_init: float = 1.0  # Initial exteroceptive precision
+    Pi_i_init: float = 1.5  # Initial interoceptive precision (calibrated higher)
+    beta_somatic: float = 1.8  # Somatic bias strength (calibrated)
+
+    # Workspace parameters
+    workspace_update_rate: float = 0.1  # Rate of workspace content update
 
     def __post_init__(self):
         """Validate configuration parameters"""

@@ -19,10 +19,15 @@ try:
         F2_3_MIN_RT_ADVANTAGE_MS,
         F2_3_ALPHA,
         F6_2_WILCOXON_ALPHA,
+        F6_2_LTCN_MIN_WINDOW_MS,
+        F6_2_MIN_INTEGRATION_RATIO,
+        F6_2_MIN_CURVE_FIT_R2,
+        F6_1_LTCN_MAX_TRANSITION_MS,
         F6_5_HYSTERESIS_MIN,
         F6_5_HYSTERESIS_MAX,
         F6_SPARSITY_ACTIVATION_THRESHOLD,
         LIQUID_IGNITION_DETECTION_THRESHOLD,
+        F1_6_MIN_LOW_AROUSAL_SLOPE,  # HIGH-01: Import from falsification_thresholds
     )
 except ImportError:
     # Fallback thresholds — values must match falsification_thresholds.py exactly
@@ -1963,7 +1968,9 @@ if __name__ == "__main__":
 
 
 def run_falsification():
-    """Entry point for CLI falsification testing."""
+    """
+    Main entry point for FP-06 Liquid Network Energy Benchmark.
+    """
     try:
         print("Running APGI Falsification Protocol 6: Network Comparison Experiment")
         config = {
@@ -1977,6 +1984,50 @@ def run_falsification():
         results = experiment.run_full_experiment()
 
         print("=== Protocol completed successfully ===")
+
+        # Generate PNG output
+        try:
+            from utils.protocol_visualization import add_standard_png_output
+
+            def fp06_custom_plot(fig, ax):
+                """Custom plot for FP-06 Energy Benchmark"""
+                efficiency = results.get("energy_efficiency", 0)
+                sparsity = results.get("sparsity_activation", 0)
+
+                metrics = ["Energy Efficiency", "Sparsity Activation"]
+                values = [efficiency, sparsity]
+
+                bars = ax.bar(metrics, values, color=["#2ecc71", "#3498db"], alpha=0.7)
+                ax.set_ylim(0, 1.0)
+                ax.set_ylabel("Percentage")
+                ax.set_title("Liquid Network Energy Benchmark")
+                ax.grid(True, alpha=0.3, axis="y")
+
+                # Add value labels
+                for bar, value in zip(bars, values):
+                    height = bar.get_height()
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        height + 0.02,
+                        f"{value:.2%}",
+                        ha="center",
+                        va="bottom",
+                    )
+
+                return True
+
+            success = add_standard_png_output(
+                6, results, fp06_custom_plot, "Energy Benchmark"
+            )
+            if success:
+                print("✓ Generated protocol06.png visualization")
+            else:
+                print("⚠ Failed to generate protocol06.png visualization")
+        except ImportError:
+            print("⚠ Visualization utilities not available")
+        except Exception as e:
+            print(f"⚠ Error generating visualization: {e}")
+
         return {"status": "success", "results": results}
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in falsification protocol 6: {e}")
@@ -2354,7 +2405,8 @@ def check_falsification(
 
     f1_6_pass = (
         mean_active <= 1.4
-        and mean_low_arousal >= 1.3
+        and mean_low_arousal
+        >= F1_6_MIN_LOW_AROUSAL_SLOPE  # HIGH-01: Using imported constant
         and delta_slope >= 0.25
         and cohens_d_slope >= 0.50
         and r_squared >= 0.85

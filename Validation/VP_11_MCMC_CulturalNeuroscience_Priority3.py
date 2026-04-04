@@ -394,7 +394,10 @@ def run_mh_sampler(
     ACCEPTANCE_TOLERANCE = 0.10  # Allowable deviation from optimal
 
     param_names = ["theta_0", "pi_i", "beta", "alpha"]
-    initial_proposals = np.array([0.03, 0.10, 0.08, 0.50])
+    # Fix: Reduced initial proposal scales to achieve optimal acceptance rate
+    # Previous values [0.03, 0.10, 0.08, 0.50] were too large, causing ~8% acceptance
+    # These smaller values target the optimal 23.4% acceptance rate
+    initial_proposals = np.array([0.015, 0.05, 0.04, 0.25])
 
     # Track acceptance rates for monitoring
     chain_acceptance_rates = []
@@ -417,9 +420,11 @@ def run_mh_sampler(
         accepts = np.zeros(total, dtype=bool)
 
         for t in range(total):
-            # Adaptive tuning during burn-in using Robbins-Monro schedule
-            if t < n_tune and t > 0 and t % 200 == 0:
-                accept_rate = accepts[max(0, t - 200) : t].mean()
+            # Fix: More aggressive adaptive tuning during burn-in
+            # Previous: adapted every 200 steps with factor 0.5
+            # Now: adapt every 100 steps with factor 1.0 for faster convergence
+            if t < n_tune and t > 0 and t % 100 == 0:
+                accept_rate = accepts[max(0, t - 100) : t].mean()
                 # Robbins-Monro adaptive schedule: scale step size based on deviation from optimal
                 deviation = accept_rate - OPTIMAL_ACCEPTANCE_RATE
                 if abs(deviation) > ACCEPTANCE_TOLERANCE:
@@ -429,9 +434,12 @@ def run_mh_sampler(
                         f"optimal {OPTIMAL_ACCEPTANCE_RATE:.3f} by {abs(deviation):.3f} "
                         f"(tolerance: {ACCEPTANCE_TOLERANCE:.3f})"
                     )
-                # Robbins-Monro adaptation: increase step if acceptance too high, decrease if too low
-                factor = 1.0 + 0.5 * deviation  # Scale by deviation
-                factor = np.clip(factor, 0.5, 2.0)  # Bound adaptation
+                # Fix: More aggressive adaptation - scale by 1.0 * deviation instead of 0.5
+                # and allow wider bounds for faster adjustment
+                factor = 1.0 + 1.0 * deviation  # Increased from 0.5 to 1.0
+                factor = np.clip(
+                    factor, 0.3, 3.0
+                )  # Wider bounds: 0.3-3.0 instead of 0.5-2.0
                 proposals = np.clip(proposals * factor, 1e-4, 2.0)
 
             proposal = current + chain_rng.normal(0, proposals)

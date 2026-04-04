@@ -25,7 +25,7 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 
 **User Story:** As a test engineer, I want all test files to be discoverable and executable by pytest, so that the entire test suite can run without collection errors.
 
-#### Acceptance Criteria
+#### Acceptance Criteria: Requirement 1
 
 1. WHEN pytest attempts to collect tests from test_backup_hmac_validation.py, THE Test_Collector SHALL successfully import all required modules without errors
 2. WHEN pytest attempts to collect tests from test_cli_coverage.py, THE Test_Collector SHALL successfully import all required modules without errors
@@ -44,7 +44,7 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 
 **User Story:** As a test engineer, I want to identify all uncovered code paths in the framework, so that I can create targeted tests to achieve 100% coverage.
 
-#### Acceptance Criteria
+#### Acceptance Criteria: Requirement 2
 
 1. WHEN pytest-cov generates a coverage report, THE Coverage_Analyzer SHALL identify all lines with zero coverage across Theory/ modules
 2. WHEN pytest-cov generates a coverage report, THE Coverage_Analyzer SHALL identify all lines with zero coverage across Falsification/ modules
@@ -58,7 +58,7 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 
 **User Story:** As a test engineer, I want to create comprehensive tests for all uncovered code paths, so that the framework achieves 100% test coverage.
 
-#### Acceptance Criteria
+#### Acceptance Criteria: Requirement 3
 
 1. FOR EACH uncovered code path in Theory modules, THE Test_Suite SHALL include at least one test case that exercises that path
 2. FOR EACH uncovered code path in Falsification modules, THE Test_Suite SHALL include at least one test case that exercises that path
@@ -72,7 +72,7 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 
 **User Story:** As a project manager, I want the test suite to achieve 100% code coverage, so that all code paths are validated and the framework is production-ready.
 
-#### Acceptance Criteria
+#### Acceptance Criteria: Requirement 4
 
 1. WHEN pytest-cov runs with --cov-fail-under=100, THE Test_Suite SHALL pass without failing due to insufficient coverage
 2. WHEN pytest-cov generates a coverage report, THE Coverage_Report SHALL show 100% coverage for all source files in Theory/ modules
@@ -86,7 +86,7 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 
 **User Story:** As a developer, I want tests to follow best practices and be maintainable, so that future developers can easily understand and modify tests.
 
-#### Acceptance Criteria
+#### Acceptance Criteria: Requirement 5
 
 1. WHEN a test is written, THE Test_Suite SHALL follow the Arrange-Act-Assert (AAA) pattern
 2. WHEN a test is written, THE Test_Suite SHALL have a descriptive name that clearly indicates what is being tested
@@ -103,7 +103,7 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 
 **User Story:** As a developer, I want tests to handle platform differences gracefully, so that the test suite passes on Windows, Linux, and macOS.
 
-#### Acceptance Criteria
+#### Acceptance Criteria: Requirement 6
 
 1. WHEN a test uses the fcntl module (Unix-only), THE Test_Suite SHALL skip the test on Windows with a clear skip reason
 2. WHEN a test uses file paths, THE Test_Suite SHALL use pathlib.Path instead of string concatenation
@@ -117,7 +117,7 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 
 **User Story:** As a test engineer, I want tests to manage environment variable dependencies, so that tests can run in any environment without external configuration.
 
-#### Acceptance Criteria
+#### Acceptance Criteria: Requirement 7
 
 1. WHEN a test requires APGI_BACKUP_HMAC_KEY, THE Test_Fixture SHALL provide a mock or fixture-based value
 2. WHEN a test requires PICKLE_SECRET_KEY, THE Test_Fixture SHALL provide a mock or fixture-based value
@@ -131,7 +131,7 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 
 **User Story:** As a test engineer, I want to use property-based testing for critical code paths, so that edge cases and corner cases are automatically discovered.
 
-#### Acceptance Criteria
+#### Acceptance Criteria: Requirement 8
 
 1. FOR EACH parser or serializer in the framework, THE Test_Suite SHALL include a round-trip property test (parse → print → parse)
 2. FOR EACH data transformation function, THE Test_Suite SHALL include invariant property tests
@@ -144,7 +144,7 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 
 **User Story:** As a developer, I want clear documentation of test coverage and test organization, so that I can understand which code paths are tested and where to add new tests.
 
-#### Acceptance Criteria
+#### Acceptance Criteria: Requirement 9
 
 1. WHEN the test suite is complete, THE Documentation SHALL include a coverage report showing percentage by module
 2. WHEN the test suite is complete, THE Documentation SHALL include a list of all test files and their purposes
@@ -156,7 +156,7 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 
 **User Story:** As a CI/CD engineer, I want the test suite to execute reliably in automated environments, so that code quality is consistently validated.
 
-#### Acceptance Criteria
+#### Acceptance Criteria: Requirement 10
 
 1. WHEN the test suite runs, THE Test_Runner SHALL execute all tests without collection errors
 2. WHEN the test suite runs, THE Test_Runner SHALL report coverage metrics in multiple formats (HTML, XML, terminal)
@@ -165,4 +165,3 @@ The APGI Validation Framework currently has 80% test coverage with multiple test
 5. WHEN the test suite runs, THE Test_Runner SHALL complete in under 5 minutes
 6. WHEN a test fails, THE Test_Runner SHALL provide clear error messages and stack traces
 7. WHEN the test suite completes, THE Test_Runner SHALL generate a summary report with pass/fail counts
-

@@ -76,10 +76,12 @@ except ImportError:
         WEIGHT_CLIP_VALUE = 2.0
         POLICY_GRAD_CLIP = 5.0
 
-    DIM_CONSTANTS: Any = MockDIM_CONSTANTS()
 
-# Re-export dimension constants for backward compatibility
-DIM_CONSTANTS_EXPORT: Any = DIM_CONSTANTS
+# Use imported DIM_CONSTANTS or fallback
+try:
+    DIM_CONSTANTS_EXPORT: Any = DIM_CONSTANTS
+except NameError:
+    DIM_CONSTANTS_EXPORT: Any = MockDIM_CONSTANTS()
 
 from utils.falsification_thresholds import (
     F2_1_MIN_ADVANTAGE_PCT,
@@ -445,10 +447,15 @@ try:
                 return config.get("pac_bands", {})
         except Exception:
             # Fallback configuration if file not found
+            from utils.constants import EEG_THETA_BAND_HZ, EEG_GAMMA_BAND_HZ
+
             return {
-                "L1_L2": {"phase": [4, 8], "amplitude": [30, 80]},
-                "L2_L3": {"phase": [1, 4], "amplitude": [4, 8]},
-                "L3_L4": {"phase": [1, 4], "amplitude": [4, 8]},
+                "L1_L2": {
+                    "phase": list(EEG_THETA_BAND_HZ),
+                    "amplitude": list(EEG_GAMMA_BAND_HZ),
+                },
+                "L2_L3": {"phase": [1, 4], "amplitude": list(EEG_THETA_BAND_HZ)},
+                "L3_L4": {"phase": [1, 4], "amplitude": list(EEG_THETA_BAND_HZ)},
             }
 
     PAC_BANDS = load_pac_bands()
@@ -469,10 +476,15 @@ except ImportError:
         return default if default is not None else _F1_1_ADV
 
     # Fallback PAC configuration
+    from utils.constants import EEG_THETA_BAND_HZ, EEG_GAMMA_BAND_HZ
+
     PAC_BANDS = {
-        "L1_L2": {"phase": [4, 8], "amplitude": [30, 80]},
-        "L2_L3": {"phase": [1, 4], "amplitude": [4, 8]},
-        "L3_L4": {"phase": [1, 4], "amplitude": [4, 8]},
+        "L1_L2": {
+            "phase": list(EEG_THETA_BAND_HZ),
+            "amplitude": list(EEG_GAMMA_BAND_HZ),
+        },
+        "L2_L3": {"phase": [1, 4], "amplitude": list(EEG_THETA_BAND_HZ)},
+        "L3_L4": {"phase": [1, 4], "amplitude": list(EEG_THETA_BAND_HZ)},
     }
 
     def get_cohens_d_threshold(default=None):
@@ -1121,17 +1133,30 @@ class APGIActiveInferenceAgent:
     - Somatic marker learning (M(c,a))
     - Global workspace ignition (S_t > θ_t)
     - Adaptive threshold (metabolic cost vs information value)
+
+    Attributes:
+        config: Configuration dictionary
+        extero_model: Hierarchical exteroceptive model
+        intero_model: Hierarchical interoceptive model
+        context_model: Hierarchical context model
+        somatic_model: Somatic marker model
+        homeostatic_model: Homeostatic cost model
+        precision_weights: Dynamic precision weights
+        items: Dictionary of stimulus-response items
+        surprise_accumulator: Running total surprise
+        eps_e_buffer: Exteroceptive precision buffer
+        eps_i_buffer: Interoceptive precision buffer
     """
 
     def __init__(self, config: Dict):
-        self.config = config
+        self.config: Dict[str, Any] = config
 
         # =====================
         # GENERATIVE MODELS
         # =====================
 
         # Exteroceptive model (3 levels)
-        self.extero_model = HierarchicalGenerativeModel(
+        self.extero_model: Any = HierarchicalGenerativeModel(
             levels=[
                 {"name": "sensory", "dim": SENSORY_DIM, "tau": 0.05},
                 {"name": "objects", "dim": OBJECTS_DIM, "tau": 0.2},
@@ -1142,7 +1167,7 @@ class APGIActiveInferenceAgent:
         )
 
         # Interoceptive model (3 levels)
-        self.intero_model = HierarchicalGenerativeModel(
+        self.intero_model: Any = HierarchicalGenerativeModel(
             levels=[
                 {"name": "visceral", "dim": VISCERAL_DIM, "tau": 0.05},
                 {"name": "organ", "dim": ORGAN_DIM, "tau": 0.2},
@@ -1156,8 +1181,8 @@ class APGIActiveInferenceAgent:
         # PRECISION MECHANISMS
         # =====================
 
-        self.Pi_e = config.get("Pi_e_init", 1.0)  # Exteroceptive precision
-        self.Pi_i = config.get("Pi_i_init", 1.0)  # Interoceptive precision
+        self.Pi_e: float = config.get("Pi_e_init", 1.0)  # Exteroceptive precision
+        self.Pi_i: float = config.get("Pi_i_init", 1.0)  # Interoceptive precision
         self.beta = config.get("beta", 1.2)  # Somatic bias
 
         # Precision learning rates
@@ -1498,8 +1523,8 @@ class APGIActiveInferenceAgent:
         if not hasattr(self, "_eps_i_buffer"):
             self._eps_i_buffer = deque(maxlen=50)
 
-        self._eps_e_buffer.append(np.linalg.norm(eps_e))
-        self._eps_i_buffer.append(np.linalg.norm(eps_i))
+        self._eps_e_buffer.append(float(np.linalg.norm(eps_e)))
+        self._eps_i_buffer.append(float(np.linalg.norm(eps_i)))
 
         if len(self._eps_e_buffer) > 10:
             # Precision = 1 / variance (approximately)
@@ -1690,11 +1715,11 @@ class StandardPPAgent:
         if not hasattr(self, "_eps_e_buffer"):
             from collections import deque
 
-            self._eps_e_buffer = deque(maxlen=50)
-            self._eps_i_buffer = deque(maxlen=50)
+            self._eps_e_buffer: deque = deque(maxlen=50)
+            self._eps_i_buffer: deque = deque(maxlen=50)
 
-        self._eps_e_buffer.append(np.linalg.norm(eps_e))
-        self._eps_i_buffer.append(np.linalg.norm(eps_i))
+        self._eps_e_buffer.append(float(np.linalg.norm(eps_e)))
+        self._eps_i_buffer.append(float(np.linalg.norm(eps_i)))
 
         if len(self._eps_e_buffer) > 10:
             var_e = np.var(list(self._eps_e_buffer)) + 0.01
@@ -1981,11 +2006,11 @@ class GWTOnlyAgent:
         if not hasattr(self, "_eps_e_buffer"):
             from collections import deque
 
-            self._eps_e_buffer = deque(maxlen=50)
-            self._eps_i_buffer = deque(maxlen=50)
+            self._eps_e_buffer: deque = deque(maxlen=50)
+            self._eps_i_buffer: deque = deque(maxlen=50)
 
-        self._eps_e_buffer.append(np.linalg.norm(eps_e))
-        self._eps_i_buffer.append(np.linalg.norm(eps_i))
+        self._eps_e_buffer.append(float(np.linalg.norm(eps_e)))
+        self._eps_i_buffer.append(float(np.linalg.norm(eps_i)))
 
         if len(self._eps_e_buffer) > 10:
             var_e = np.var(list(self._eps_e_buffer)) + 0.01
@@ -2757,12 +2782,12 @@ def check_falsification(
     }
 
     # Convert inputs to numpy arrays for reliable subtraction/operations
-    timescales = np.asarray(timescales)
-    apgi_rewards = np.asarray(apgi_rewards)
-    pp_rewards = np.asarray(pp_rewards)
-    threshold_adaptation = np.asarray(threshold_adaptation)
-    apgi_advantageous_selection = np.asarray(apgi_advantageous_selection)
-    no_somatic_selection = np.asarray(no_somatic_selection)
+    timescales = np.asarray(timescales)  # type: ignore[assignment]
+    apgi_rewards = np.asarray(apgi_rewards)  # type: ignore[assignment]
+    pp_rewards = np.asarray(pp_rewards)  # type: ignore[assignment]
+    threshold_adaptation = np.asarray(threshold_adaptation)  # type: ignore[assignment]
+    apgi_advantageous_selection = np.asarray(apgi_advantageous_selection)  # type: ignore[assignment]
+    no_somatic_selection = np.asarray(no_somatic_selection)  # type: ignore[assignment]
 
     def exp_decay(t, tau, a, b):
         return a * np.exp(-t / tau) + b
@@ -2776,11 +2801,10 @@ def check_falsification(
 
     # Only perform t-test if there's meaningful variance in both groups
     if apgi_variance > 1e-6 and pp_variance > 1e-6:
-        t_stat, p_value = (
-            stats.ttest_ind(apgi_rewards, pp_rewards)
-            if len(apgi_rewards) > 1
-            else (0, 1.0)
-        )
+        if len(apgi_rewards) > 1:
+            t_stat, p_value = stats.ttest_ind(apgi_rewards, pp_rewards)
+        else:
+            t_stat, p_value = 0.0, 1.0
     else:
         # If data is nearly identical, use descriptive statistics instead
         logger.info(
@@ -4081,3 +4105,17 @@ if __name__ == "__main__":
         status = "PASS" if data["passed"] else "FAIL"
         print(f"{criterion}: {status}")
     print("=" * 50)
+
+    # Generate PNG output
+    try:
+        from utils.protocol_visualization import add_standard_png_output
+
+        success = add_standard_png_output(1, results)
+        if success:
+            print("✓ Generated protocol01.png visualization")
+        else:
+            print("⚠ Failed to generate protocol01.png visualization")
+    except ImportError:
+        print("⚠ Visualization utilities not available")
+    except Exception as e:
+        print(f"⚠ Error generating visualization: {e}")

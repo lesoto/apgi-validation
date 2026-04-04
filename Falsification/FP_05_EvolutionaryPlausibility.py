@@ -25,8 +25,7 @@ try:
         F5_3_MIN_PROPORTION,
         F5_3_MIN_GAIN_RATIO,
         F5_4_MIN_PROPORTION,
-        # Fix 5: Force F5_4_SEPARATION = 0.12 (paper spec), remove simulation variant
-        F5_4_MIN_PEAK_SEPARATION_PAPER_SPEC as F5_4_MIN_PEAK_SEPARATION,
+        F5_4_MIN_PEAK_SEPARATION,
         F5_5_PCA_MIN_VARIANCE,
         F5_5_PCA_MIN_LOADING,
         F5_6_MIN_PERFORMANCE_DIFF_PCT,
@@ -35,6 +34,7 @@ try:
         F6_5_HYSTERESIS_MIN,
         F6_5_HYSTERESIS_MAX,
         F6_5_BIFURCATION_ERROR_MAX,
+        F1_6_MIN_LOW_AROUSAL_SLOPE,
     )
 except ImportError:
     # Fallback if utils not available
@@ -86,8 +86,11 @@ from utils.statistical_tests import (
 import time
 from typing import Dict, List, Any, Tuple
 
-THETA_BAND_HZ = (4.0, 8.0)
-GAMMA_BAND_HZ = (30.0, 80.0)
+# Import spectral band constants from centralized location
+from utils.constants import EEG_THETA_BAND_HZ, EEG_GAMMA_BAND_HZ
+
+THETA_BAND_HZ = EEG_THETA_BAND_HZ
+GAMMA_BAND_HZ = EEG_GAMMA_BAND_HZ
 
 
 def _set_random_seed(seed: int) -> None:
@@ -115,6 +118,90 @@ def _compute_band_peak(
         "peak_hz": float(band_freqs[peak_idx]),
         "peak_power": float(band_power[peak_idx]),
     }
+
+
+def validate_against_empirical_constraints(
+    evolved_genomes: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    Validate evolved genomes against real-world empirical constraints
+
+    Args:
+        evolved_genomes: List of evolved genome dictionaries
+
+    Returns:
+        Dictionary containing empirical validation results
+    """
+    validation_results = {
+        "theta_gamma_ratio_valid": [],
+        "conscious_access_patterns": [],
+        "interoceptive_integration": [],
+        "energy_efficiency": [],
+        "empirical_compliance_rate": 0.0,
+    }
+
+    # Empirical constraints from literature
+    THETA_GAMMA_MIN_RATIO = 3.0  # Minimum theta/gamma ratio from empirical studies
+    MAX_CONSCIOUS_ACCESS_DURATION = 0.3  # Max proportion of time conscious
+    MIN_INTEROCEPTIVE_WEIGHT = 0.1  # Minimum interoceptive integration
+
+    for genome in evolved_genomes:
+        # Extract genome parameters
+        theta_weight = genome.get("theta_weight", 0.5)
+        gamma_weight = genome.get("gamma_weight", 0.5)
+        interoceptive_weight = genome.get("interoceptive_weight", 0.2)
+
+        # Validate theta/gamma ratio
+        ratio = gamma_weight / max(theta_weight, 1e-6)
+        ratio_valid = ratio >= THETA_GAMMA_MIN_RATIO
+        validation_results["theta_gamma_ratio_valid"].append(ratio_valid)
+
+        # Simulate conscious access patterns
+        agent = EvolvableAgent(genome)
+        env = ThreatRewardTradeoffEnvironment()
+        obs = env.reset()
+        conscious_access_count = 0
+        total_steps = 100
+
+        for _ in range(total_steps):
+            action = agent.step(obs)
+            if agent.conscious_access:
+                conscious_access_count += 1
+            reward, cost, next_obs, done = env.step(action)
+            agent.receive_outcome(reward, cost, next_obs)
+            obs = next_obs if not done else env.reset()
+
+        conscious_access_rate = conscious_access_count / total_steps
+        access_pattern_valid = conscious_access_rate <= MAX_CONSCIOUS_ACCESS_DURATION
+        validation_results["conscious_access_patterns"].append(access_pattern_valid)
+
+        # Validate interoceptive integration
+        interoceptive_valid = interoceptive_weight >= MIN_INTEROCEPTIVE_WEIGHT
+        validation_results["interoceptive_integration"].append(interoceptive_valid)
+
+        # Energy efficiency (simplified)
+        energy_efficient = theta_weight < 0.8 and gamma_weight < 0.8
+        validation_results["energy_efficiency"].append(energy_efficient)
+
+    # Calculate overall empirical compliance rate
+    total_validations = 0
+    total_checks = 0
+
+    for key in [
+        "theta_gamma_ratio_valid",
+        "conscious_access_patterns",
+        "interoceptive_integration",
+        "energy_efficiency",
+    ]:
+        if validation_results[key]:
+            total_validations += sum(validation_results[key])
+            total_checks += len(validation_results[key])
+
+    validation_results["empirical_compliance_rate"] = (
+        total_validations / total_checks if total_checks > 0 else 0.0
+    )
+
+    return validation_results
 
 
 def _simulate_ignition_trace(
@@ -1144,30 +1231,63 @@ class EvolutionaryAPGIEmergence:
         ]
 
         # Try to import more complex environments, but use fallbacks if it fails
+        # FIX: Improved environment import with better error handling
+        # Primary: Try to import from Protocol-2 for consistency
+        # Fallback: Use local environment definitions
         try:
             import importlib.util
 
-            spec2 = importlib.util.spec_from_file_location(
-                "Protocol_2",
+            # Use absolute path for reliable import
+            protocol2_path = os.path.abspath(
                 os.path.join(
                     os.path.dirname(__file__),
                     "FP_02_AgentComparison_ConvergenceBenchmark.py",
-                ),
+                )
             )
-            protocol2 = importlib.util.module_from_spec(spec2)
-            spec2.loader.exec_module(protocol2)
 
-            # Only use imported environments if they exist and work
-            imported_envs = [
-                protocol2.IowaGamblingTaskEnvironment(),
-                protocol2.VolatileForagingEnvironment(),
-                protocol2.ThreatRewardTradeoffEnvironment(),
+            if os.path.exists(protocol2_path):
+                spec2 = importlib.util.spec_from_file_location(
+                    "Protocol_2", protocol2_path
+                )
+                if spec2 and spec2.loader:
+                    protocol2 = importlib.util.module_from_spec(spec2)
+                    spec2.loader.exec_module(protocol2)
+
+                    # Verify all required environment classes exist
+                    required_envs = [
+                        "IowaGamblingTaskEnvironment",
+                        "VolatileForagingEnvironment",
+                        "ThreatRewardTradeoffEnvironment",
+                    ]
+
+                    if all(hasattr(protocol2, env) for env in required_envs):
+                        environments = [
+                            protocol2.IowaGamblingTaskEnvironment(),
+                            protocol2.VolatileForagingEnvironment(),
+                            protocol2.ThreatRewardTradeoffEnvironment(),
+                        ]
+                        print("Using primary environments from Protocol-2")
+                    else:
+                        missing = [
+                            env for env in required_envs if not hasattr(protocol2, env)
+                        ]
+                        print(f"Protocol-2 missing environments: {missing}")
+                        raise ImportError(f"Missing environment classes: {missing}")
+                else:
+                    raise ImportError("Failed to load Protocol-2 spec")
+            else:
+                raise ImportError(f"Protocol-2 file not found: {protocol2_path}")
+
+        except Exception as e:
+            print(f"Primary environment import failed: {e}")
+            print("Using local fallback environments")
+            # Use local fallback environments defined in this module
+            environments = [
+                IowaGamblingTaskEnvironment(),
+                VolatileForagingEnvironment(),
+                ThreatRewardTradeoffEnvironment(),
             ]
-            if len(imported_envs) == 3:
-                environments = imported_envs
-                print("Using imported environments from Protocol-2")
-        except (ImportError, AttributeError, KeyError, Exception) as e:
-            print(f"Using fallback environments (import failed: {e})")
+            print("Using local fallback environments")
 
         if not environments:
             print("Error: No environments available for evaluation")
@@ -2012,7 +2132,8 @@ def check_falsification(
 
     f1_6_pass = (
         mean_active <= 1.4
-        and mean_low_arousal >= 1.3
+        and mean_low_arousal
+        >= F1_6_MIN_LOW_AROUSAL_SLOPE  # HIGH-01: Using imported constant
         and delta_slope >= 0.25
         and cohens_d_slope >= 0.50
         and r_squared >= 0.85
@@ -2899,3 +3020,44 @@ def check_falsification(
         f"\nFalsification-Protocol-5 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
     )
     return results
+
+
+if __name__ == "__main__":
+    print("Running FP-05 Evolutionary Plausibility Protocol...")
+    # Note: This would need proper data inputs to run fully
+    # For now, we create a placeholder to demonstrate PNG output
+    placeholder_results = {
+        "status": "placeholder",
+        "summary": {"passed": 0, "failed": 0, "total": 16},
+        "criteria": {},
+    }
+
+    # Generate PNG output
+    try:
+        from utils.protocol_visualization import add_standard_png_output
+
+        def fp05_custom_plot(fig, ax):
+            """Custom plot for FP-05 Evolutionary Plausibility"""
+            # Placeholder visualization
+            ax.text(
+                0.5,
+                0.5,
+                "FP-05 Evolutionary Plausibility\n(Requires simulation data)",
+                ha="center",
+                va="center",
+                fontsize=14,
+            )
+            ax.set_title("Evolutionary Plausibility Analysis")
+            return True
+
+        success = add_standard_png_output(
+            5, placeholder_results, fp05_custom_plot, "Evolutionary Plausibility"
+        )
+        if success:
+            print("✓ Generated protocol05.png visualization")
+        else:
+            print("⚠ Failed to generate protocol05.png visualization")
+    except ImportError:
+        print("⚠ Visualization utilities not available")
+    except Exception as e:
+        print(f"⚠ Error generating visualization: {e}")

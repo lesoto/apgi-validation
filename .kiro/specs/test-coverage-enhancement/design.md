@@ -5,6 +5,7 @@
 The APGI Validation Framework currently maintains 80% test coverage with multiple test collection errors and uncovered code paths across its complex module structure. This design document outlines a comprehensive strategy to achieve 100% test coverage by systematically fixing collection errors, identifying uncovered paths, and implementing maintainable tests following best practices.
 
 The framework consists of:
+
 - **16 Theory modules** implementing theoretical APGI framework components
 - **13 Falsification protocol modules** for testing methodology
 - **56+ utility modules** providing common functionality
@@ -33,7 +34,7 @@ The test collection errors stem from three primary sources:
 
 #### Resolution Approach
 
-```
+```text
 Test Collection Error Resolution
 ├── Phase 1: Import Resolution
 │   ├── Expose missing functions from main.py (cli, _process_csv_file, _create_distribution_plot, _load_visualization_data)
@@ -53,7 +54,7 @@ Test Collection Error Resolution
 
 The coverage analysis uses pytest-cov to identify uncovered code paths:
 
-```
+```text
 Coverage Analysis Pipeline
 ├── Run pytest with --cov=. --cov-report=html --cov-report=xml
 ├── Parse coverage reports to identify:
@@ -69,7 +70,7 @@ Coverage Analysis Pipeline
 
 Tests are organized by module type and coverage category:
 
-```
+```text
 Test Organization
 ├── Theory Module Tests
 │   ├── Core functionality tests
@@ -424,85 +425,85 @@ class TestConfig:
 
 *For any* test file in the tests/ directory, pytest should successfully collect all test functions without import errors or collection failures.
 
-**Validates: Requirements 1.1-1.9, 1.10**
+#### Validates: Requirements 1.1-1.9, 1.10
 
 ### Property 2: Platform-Specific Test Skipping
 
 *For any* test marked with platform-specific decorators (skipif_windows, skipif_unix), the test should be skipped on incompatible platforms rather than failing collection.
 
-**Validates: Requirements 1.11, 6.1, 6.3, 6.4, 6.7**
+#### Validates: Requirements 1.11, 6.1, 6.3, 6.4, 6.7
 
 ### Property 3: Environment Variable Fixture Injection
 
 *For any* test requiring environment variables (APGI_BACKUP_HMAC_KEY, PICKLE_SECRET_KEY), the test should execute successfully using fixture-provided values without requiring external environment configuration.
 
-**Validates: Requirements 1.12, 7.1-7.7**
+#### Validates: Requirements 1.12, 7.1-7.7
 
 ### Property 4: Coverage Analysis Accuracy
 
 *For any* module in Theory/, Falsification/, or utils/, the coverage report should accurately identify all lines with zero coverage and all uncovered conditional branches.
 
-**Validates: Requirements 2.1-2.7**
+#### Validates: Requirements 2.1-2.7
 
 ### Property 5: Uncovered Path Test Coverage
 
 *For any* uncovered code path identified by coverage analysis, the test suite should include at least one test case that exercises that path and verifies correct behavior.
 
-**Validates: Requirements 3.1-3.7**
+#### Validates: Requirements 3.1-3.7
 
 ### Property 6: 100% Coverage Achievement
 
 *For any* source file in Theory/, Falsification/, utils/, or main.py, the coverage report should show 100% line coverage when pytest runs with --cov-fail-under=100.
 
-**Validates: Requirements 4.1-4.7**
+#### Validates: Requirements 4.1-4.7
 
 ### Property 7: Test Best Practices Compliance
 
 *For any* test function in the test suite, the test should follow the Arrange-Act-Assert pattern, have a descriptive name, include a docstring, and use appropriate fixtures and mocking.
 
-**Validates: Requirements 5.1-5.10**
+#### Validates: Requirements 5.1-5.10
 
 ### Property 8: Cross-Platform Path Handling
 
 *For any* test using file paths, the test should use pathlib.Path instead of string concatenation and should execute correctly on Windows, Linux, and macOS.
 
-**Validates: Requirements 6.2, 6.5, 6.6**
+#### Validates: Requirements 6.2, 6.5, 6.6
 
 ### Property 9: Serialization Round-Trip
 
 *For any* parser or serializer in the framework, parsing then printing then parsing should produce an equivalent value to the original.
 
-**Validates: Requirements 8.1**
+#### Validates: Requirements 8.1
 
 ### Property 10: Data Transformation Invariants
 
 *For any* data transformation function, the transformation should preserve specified invariants (e.g., list length, data type, key presence).
 
-**Validates: Requirements 8.2**
+#### Validates: Requirements 8.2
 
 ### Property 11: Collection Operation Metamorphic Properties
 
 *For any* collection operation (filter, map, reduce), the operation should satisfy metamorphic relationships (e.g., filter reduces or maintains size, map preserves length).
 
-**Validates: Requirements 8.3**
+#### Validates: Requirements 8.3
 
 ### Property 12: Hypothesis Property Test Configuration
 
 *For any* property-based test using Hypothesis, the test should run at least 100 examples and provide minimal failing examples when failures occur.
 
-**Validates: Requirements 8.4-8.6**
+#### Validates: Requirements 8.4-8.6
 
 ### Property 13: Test Execution Performance
 
 *For any* complete test suite run with full coverage analysis, the execution should complete in under 5 minutes.
 
-**Validates: Requirements 4.7, 10.5**
+#### Validates: Requirements 4.7, 10.5
 
 ### Property 14: Test Suite Execution Reliability
 
 *For any* test suite run, all tests should execute without collection errors, and the test runner should generate coverage reports in HTML, XML, and terminal formats.
 
-**Validates: Requirements 10.1-10.7**
+#### Validates: Requirements 10.1-10.7
 
 ---
 
@@ -513,12 +514,14 @@ class TestConfig:
 **Scenario**: Test file fails to import required module
 
 **Resolution**:
+
 1. Check for circular imports using import analysis tools
 2. Use lazy imports or conditional imports for optional dependencies
 3. Create mock objects for unavailable modules
 4. Document import requirements in test file docstring
 
 **Example**:
+
 ```python
 try:
     from optional_module import function

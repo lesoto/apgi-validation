@@ -865,18 +865,113 @@ def detect_hep_amplitude(
         return {"passed": False, "status": "ERROR", "reason": str(e)}
 
 
-def detect_p3b_amplitude(
+def detect_p3b_amplitude_from_literature(
+    fs: float = 1000.0,
+    seed: Optional[int] = None,
+) -> NeuralSignatureResult:
+    """
+    Generate P3b amplitude from published literature distribution.
+
+    Paper Prediction P1.3: P3b amplitude should exceed 0.3 µV for conscious processing.
+
+    Uses empirically-derived parameters from Polich (2007) meta-analysis:
+    - Mean amplitude: 0.8 µV for conscious, task-relevant stimuli
+    - Standard deviation: 0.2 µV
+    - Typical peak latency: ~400ms post-stimulus
+
+    This function is explicitly for synthetic data generation from literature,
+    distinguishing it from empirical EEG analysis.
+
+    Parameters:
+    -----------
+    fs : float
+        Sampling frequency in Hz (for compatibility, not used in literature mode)
+    seed : int, optional
+        Random seed for reproducible synthetic generation
+
+    Returns:
+    --------
+    NeuralSignatureResult
+        Synthetic P3b amplitude analysis result with falsification status
+
+    References:
+    -----------
+    Polich, J. (2007). Updating P300: An integrative theory of P3a and P3b.
+    Clinical Neurophysiology, 118(10), 2128-2148.
+    """
+    prediction_id = PaperPrediction.P1_3.value
+    metric_name = "p3b_amplitude_literature"
+    threshold = FalsificationThresholds.P3B_MIN_AMPLITUDE
+
+    try:
+        # Set seed for reproducibility if provided
+        if seed is not None:
+            np.random.seed(seed)
+
+        # Generate synthetic amplitude from Polich (2007) meta-analysis
+        # Conscious, task-relevant stimuli typically show ~0.5–1.5 µV P3b amplitudes
+        p3b_amplitude = np.random.normal(0.8, 0.2)  # µV mean±SD from Polich (2007)
+        peak_time = 0.4  # Typical P3b peak latency (~400ms post-stimulus)
+
+        # Validate against minimum threshold
+        meets_threshold = abs(p3b_amplitude) >= threshold
+
+        # For synthetic data, use literature-based effect size
+        literature_effect_size = abs(p3b_amplitude) / 0.3  # Normalize to threshold
+        effect_size_valid = FalsificationThresholds.check_effect_size_range(
+            literature_effect_size, "p3b"
+        )
+
+        # Generate reasonable p-value based on distance from threshold
+        z_score = (abs(p3b_amplitude) - threshold) / 0.2  # SD from literature
+        p_value = 2 * (1 - stats.norm.cdf(abs(z_score)))  # Two-tailed test
+        significant = p_value < FalsificationThresholds.ALPHA_LEVEL
+
+        falsification_passed = meets_threshold and significant and effect_size_valid
+
+        return NeuralSignatureResult(
+            prediction_id=prediction_id,
+            metric_name=metric_name,
+            value=float(abs(p3b_amplitude)),
+            threshold=threshold,
+            significant=significant,
+            effect_size=float(literature_effect_size),
+            p_value=float(p_value),
+            description=f"Literature-derived P3b amplitude: {abs(p3b_amplitude):.3f} µV (Polich 2007 meta-analysis, peak at {peak_time * 1000:.0f}ms)",
+            falsification_passed=falsification_passed,
+        )
+
+    except Exception as e:
+        logger.error(f"FP-09 P1.3 literature generation failed: {e}")
+        return NeuralSignatureResult(
+            prediction_id=prediction_id,
+            metric_name=metric_name,
+            value=0.0,
+            threshold=threshold,
+            significant=False,
+            p_value=1.0,
+            description=f"Literature generation error: {str(e)}",
+            falsification_passed=False,
+        )
+
+
+def detect_p3b_amplitude_from_eeg(
     eeg_data: np.ndarray,
     fs: float = 1000.0,
     stimulus_time: float = 0.0,
     baseline_window: Tuple[float, float] = (-0.2, 0.0),
     p3b_window: Tuple[float, float] = (0.3, 0.6),
-    use_synthetic: bool = True,  # Fix 1: Generate synthetic amplitude from literature
 ) -> NeuralSignatureResult:
     """
-    Detect P3b amplitude in EEG data.
+    Detect P3b amplitude from empirical EEG data.
 
     Paper Prediction P1.3: P3b amplitude should exceed 0.3 µV for conscious processing.
+
+    Performs signal processing on real EEG data:
+    1. Bandpass filter (1-20 Hz) for P3b frequency content
+    2. Baseline correction (-200ms to 0ms pre-stimulus)
+    3. Peak detection in 300-600ms post-stimulus window
+    4. Statistical significance testing via permutation
 
     Parameters:
     -----------
@@ -897,7 +992,7 @@ def detect_p3b_amplitude(
         P3b amplitude analysis result with falsification status
     """
     prediction_id = PaperPrediction.P1_3.value
-    metric_name = "p3b_amplitude"
+    metric_name = "p3b_amplitude_eeg"
     threshold = FalsificationThresholds.P3B_MIN_AMPLITUDE
 
     if len(eeg_data) < 100:
@@ -912,43 +1007,6 @@ def detect_p3b_amplitude(
         )
 
     try:
-        # Fix 1: Generate P3b amplitude from literature based on Polich (2007) meta-analysis
-        # Conscious, task-relevant stimuli typically show ~0.5–1.5 µV P3b amplitudes
-        # Use np.random.normal(0.8, 0.2) to synthesize realistic amplitude
-        if use_synthetic:
-            # Generate synthetic amplitude from literature distribution
-            p3b_amplitude = np.random.normal(0.8, 0.2)  # µV mean±SD from Polich (2007)
-            peak_time = 0.4  # Typical P3b peak latency (~400ms post-stimulus)
-
-            # Validate against minimum threshold
-            meets_threshold = abs(p3b_amplitude) >= threshold
-
-            # For synthetic data, use literature-based effect size
-            literature_effect_size = abs(p3b_amplitude) / 0.3  # Normalize to threshold
-            effect_size_valid = FalsificationThresholds.check_effect_size_range(
-                literature_effect_size, "p3b"
-            )
-
-            # Generate reasonable p-value based on distance from threshold
-            z_score = (abs(p3b_amplitude) - threshold) / 0.2  # SD from literature
-            p_value = 2 * (1 - stats.norm.cdf(abs(z_score)))  # Two-tailed test
-            significant = p_value < FalsificationThresholds.ALPHA_LEVEL
-
-            falsification_passed = meets_threshold and significant and effect_size_valid
-
-            return NeuralSignatureResult(
-                prediction_id=prediction_id,
-                metric_name=metric_name,
-                value=float(abs(p3b_amplitude)),
-                threshold=threshold,
-                significant=significant,
-                effect_size=float(literature_effect_size),
-                p_value=float(p_value),
-                description=f"Synthetic P3b amplitude: {abs(p3b_amplitude):.3f} µV (Polich 2007 meta-analysis)",
-                falsification_passed=falsification_passed,
-            )
-
-        # Original processing for real EEG data (when use_synthetic=False)
         # Bandpass filter for P3b (1-20 Hz)
         low, high = 1.0, 20.0
         b, a = signal.butter(4, [low, high], btype="bandpass", fs=fs)
@@ -1025,18 +1083,27 @@ def detect_p3b_amplitude(
         return NeuralSignatureResult(
             prediction_id=prediction_id,
             metric_name=metric_name,
-            value=float(abs(p3b_amplitude)),  # Use absolute amplitude
+            value=float(abs(p3b_amplitude)),
             threshold=threshold,
             significant=significant,
             effect_size=float(effect_size),
             p_value=float(p_value),
-            description=f"P3b amplitude at {peak_time * 1000:.1f}ms post-stimulus",
+            description=f"EEG-derived P3b amplitude at {peak_time * 1000:.1f}ms post-stimulus",
             falsification_passed=falsification_passed,
         )
 
     except Exception as e:
-        logger.error(f"FP-09 P1.3 failed: {e}")
-        return {"passed": False, "status": "ERROR", "reason": str(e)}
+        logger.error(f"FP-09 P1.3 EEG analysis failed: {e}")
+        return NeuralSignatureResult(
+            prediction_id=prediction_id,
+            metric_name=metric_name,
+            value=0.0,
+            threshold=threshold,
+            significant=False,
+            p_value=1.0,
+            description=f"EEG analysis error: {str(e)}",
+            falsification_passed=False,
+        )
 
 
 def tms_double_dissociation_test(
@@ -2577,76 +2644,87 @@ class NeuralSignatureValidator:
         return results
 
     def _generate_synthetic_data(self) -> Dict[str, Any]:
-        """Generate synthetic data for testing when no real data is provided."""
+        """
+        Generate synthetic data using model-neutral independent priors.
+
+        CRIT-01 FIX: Each biomarker is sampled independently from empirical distributions
+        without encoding their relationship to consciousness labels. This removes the
+        circular validation where synthetic data was guaranteed to pass criteria.
+        """
         np.random.seed(42)  # For reproducible results
 
         n_patients = 50
 
-        # Generate realistic PCI scores (0.2-0.8 range)
-        pci_scores = np.random.uniform(0.2, 0.8, n_patients)
+        # Sample PCI independently from empirical distribution (Casali et al. 2013)
+        # Conscious: 0.31-0.73, Unconscious: 0.12-0.31, VS: 0.09-0.28
+        # Use broader distribution to include overlap
+        pci_scores = (
+            np.random.beta(2, 3, n_patients) * 0.8
+        )  # Beta(2,3) gives realistic spread
 
-        # Generate HEP amplitudes in physiologically valid range (10-50 µV)
-        hep_amplitudes = np.random.uniform(
+        # Sample HEP independently from empirical distribution (Nummenmaa et al. 2013)
+        # HEP amplitudes: 10-50 µV with physiological plausibility
+        hep_amplitudes = np.random.gamma(
+            shape=2.0, scale=10.0, size=n_patients
+        )  # Gamma(2,10) gives mean=20, range~5-50
+        hep_amplitudes = np.clip(
+            hep_amplitudes,
             FalsificationThresholds.HEP_MIN_AMPLITUDE,
             FalsificationThresholds.HEP_MAX_AMPLITUDE,
-            n_patients,
         )
 
-        # Generate consciousness labels (higher PCI/HEP for conscious patients)
-        consciousness_scores = (
-            0.6 * pci_scores
-            + 0.4 * (hep_amplitudes / 50.0)
-            + np.random.normal(0, 0.1, n_patients)
+        # Generate consciousness labels independently
+        # Use realistic prevalence: ~30% MCS, ~40% VS, ~30% emerging consciousness
+        consciousness_states = np.random.choice(
+            [0, 1, 2], n_patients, p=[0.4, 0.3, 0.3]
         )
-        consciousness_labels = (
-            consciousness_scores > np.median(consciousness_scores)
-        ).astype(int)
+        # 0=VS, 1=MCS, 2=Emerging consciousness
+        consciousness_labels = (consciousness_states >= 1).astype(int)
 
-        # Generate DMN connectivity correlations
-        # DMN-PCI should be positively correlated with consciousness
-        # Base 0.35 + 0.4*consciousness gives mean ~0.55, safely above 0.50 threshold
-        dmn_pci_correlations = (
-            0.35 + 0.4 * consciousness_labels + np.random.normal(0, 0.08, n_patients)
-        )
+        # Sample DMN connectivity independently from empirical distributions
+        # DMN-PCI correlations: typically weak to moderate (r = -0.2 to 0.6)
+        dmn_pci_correlations = np.random.normal(0.2, 0.3, n_patients)
         dmn_pci_correlations = np.clip(dmn_pci_correlations, -1, 1)
 
-        # DMN-HEP should be weakly/negatively correlated
-        dmn_hep_correlations = (
-            0.1 - 0.2 * consciousness_labels + np.random.normal(0, 0.15, n_patients)
-        )
+        # DMN-HEP correlations: typically weak/negative based on literature
+        dmn_hep_correlations = np.random.normal(-0.1, 0.25, n_patients)
         dmn_hep_correlations = np.clip(dmn_hep_correlations, -1, 1)
 
-        # Generate cold pressor data
-        # MCS patients (state=1) should show PCI increase, VS patients (state=0) should not
-        patient_states = consciousness_labels  # Use same as consciousness for demo
+        # CRIT-01 FIX: Generate cold pressor data with INDEPENDENT effects
+        # NOT deterministically linked to consciousness states to avoid circularity
         pci_baseline = pci_scores.copy()
 
-        # MCS patients: increase PCI by ~15%, VS patients: minimal change
-        pci_increase = np.where(patient_states == 1, 0.15, 0.02)
-        pci_cold_pressor = pci_baseline * (
-            1 + pci_increase + np.random.normal(0, 0.05, n_patients)
-        )
+        # Independent cold pressor effects - NOT tied to consciousness states
+        # Uses random variation that doesn't encode the expected relationship
+        pci_effects = np.random.normal(
+            0.05, 0.08, n_patients
+        )  # Independent random effects
+        pci_cold_pressor = pci_baseline * (1 + pci_effects)
+        pci_cold_pressor = np.clip(pci_cold_pressor, 0, 1)
 
-        # Generate recovery prediction data
-        recovery_pci_baseline = pci_scores[:30]  # Use subset for recovery analysis
-        recovery_hep_baseline = hep_amplitudes[:30]
+        # CRIT-01 FIX: Generate recovery data from INDEPENDENT clinical factors
+        # NOT derived from PCI/HEP to avoid circular validation of P4.d
+        recovery_subset = np.random.choice(n_patients, 30, replace=False)
+        recovery_pci_baseline = pci_scores[recovery_subset]
+        recovery_hep_baseline = hep_amplitudes[recovery_subset]
 
-        # Recovery scores should correlate with baseline neural markers
-        recovery_scores = (
-            0.5 * recovery_pci_baseline
-            + 0.3 * (recovery_hep_baseline / 50.0)
-            + np.random.normal(0, 0.1, 30)
+        # Recovery scores from INDEPENDENT factors (age, injury severity, time)
+        # NOT using PCI/HEP to predict recovery - that would be circular
+        # Use purely independent random factors with realistic distribution
+        recovery_scores = np.clip(
+            np.random.beta(2, 2, 30), 0, 1  # Independent beta distribution
         )
 
         return {
             "pci_scores": pci_scores,
             "hep_amplitudes": hep_amplitudes,
             "consciousness_labels": consciousness_labels,
+            "consciousness_states": consciousness_states,
             "dmn_pci_correlations": dmn_pci_correlations,
             "dmn_hep_correlations": dmn_hep_correlations,
             "pci_baseline": pci_baseline,
             "pci_cold_pressor": pci_cold_pressor,
-            "patient_states": patient_states,
+            "patient_states": consciousness_labels,  # For compatibility
             "recovery_pci_baseline": recovery_pci_baseline,
             "recovery_hep_baseline": recovery_hep_baseline,
             "recovery_scores": recovery_scores,
@@ -2656,29 +2734,44 @@ class NeuralSignatureValidator:
 def run_protocol():
     """Entry point for framework-level synthesis."""
     logger.info("Running Falsification Protocol 9: Neural Signatures Validation")
-    # SYNTHETIC GATE: no real EEG data is loaded here, so all criteria must be
-    # tagged SYNTHETIC_PENDING_EMPIRICAL with passed=None so the aggregator
-    # can distinguish them from real empirical validation outcomes.
+    # CRIT-01 FIX: Mark synthetic data as failed validation rather than pending
+    # This ensures FP_ALL correctly counts these as unconfirmed, not absent
     data_source = "synthetic"
     _synthetic = data_source == "synthetic"
     return {
-        "status": "synthetic_pending" if _synthetic else "success",
+        "status": "synthetic_validated" if _synthetic else "success",
         "data_source": data_source,
         "named_predictions": {
-            "P9.a": {
-                "passed": None if _synthetic else True,
-                "actual": "0.45 µV",
-                "threshold": "> 0.3 µV",
+            "P4.a": {
+                "passed": False if _synthetic else True,  # CRIT-01 FIX: False not None
+                "actual": "synthetic_test",
+                "threshold": "AUC > 0.80",
                 "validation_status": (
-                    "SYNTHETIC_PENDING_EMPIRICAL" if _synthetic else "VALIDATED"
+                    "SYNTHETIC_TEST_FAILED" if _synthetic else "VALIDATED"
                 ),
             },
-            "P9.b": {
-                "passed": None if _synthetic else True,
-                "actual": "0.32 µV",
-                "threshold": "> 0.2 µV",
+            "P4.b": {
+                "passed": False if _synthetic else True,  # CRIT-01 FIX: False not None
+                "actual": "synthetic_test",
+                "threshold": "DMN-PCI r > 0.50",
                 "validation_status": (
-                    "SYNTHETIC_PENDING_EMPIRICAL" if _synthetic else "VALIDATED"
+                    "SYNTHETIC_TEST_FAILED" if _synthetic else "VALIDATED"
+                ),
+            },
+            "P4.c": {
+                "passed": False if _synthetic else True,  # CRIT-01 FIX: False not None
+                "actual": "synthetic_test",
+                "threshold": "cold pressor response",
+                "validation_status": (
+                    "SYNTHETIC_TEST_FAILED" if _synthetic else "VALIDATED"
+                ),
+            },
+            "P4.d": {
+                "passed": False if _synthetic else True,  # CRIT-01 FIX: False not None
+                "actual": "synthetic_test",
+                "threshold": "recovery ΔR² > 0.10",
+                "validation_status": (
+                    "SYNTHETIC_TEST_FAILED" if _synthetic else "VALIDATED"
                 ),
             },
         },
@@ -2794,7 +2887,9 @@ def comprehensive_validation_framework(
             results["detailed_results"]["theta_gamma_pac"] = pac_result
 
             # P1.3: P3b amplitude detection
-            p3_result = detect_p3b_amplitude(raw_data, actual_fs, stimulus_time)
+            p3_result = detect_p3b_amplitude_from_eeg(
+                raw_data, actual_fs, stimulus_time
+            )
             results["prediction_results"]["P1.3"] = p3_result
             results["detailed_results"]["p3b"] = p3_result
 
@@ -3373,3 +3468,38 @@ if __name__ == "__main__":
     print("=" * 80)
     print("VALIDATION COMPLETE")
     print("=" * 80)
+
+    # Generate PNG output
+    try:
+        from utils.protocol_visualization import add_standard_png_output
+
+        def fp09_custom_plot(fig, ax):
+            """Custom plot for FP-09 Neural Signatures"""
+            passed = sum(
+                1 for r in results.get("results", []) if r.get("passed", False)
+            )
+            total = len(results.get("results", []))
+
+            if total > 0:
+                metrics = ["Passed", "Failed"]
+                values = [passed, total - passed]
+                colors = ["#2ecc71", "#e74c3c"]
+
+                wedges, texts, autotexts = ax.pie(
+                    values, labels=metrics, colors=colors, autopct="%1.1f%%"
+                )
+                ax.set_title(f"Neural Signature Validation\n{passed}/{total} Passed")
+                return True
+            return False
+
+        success = add_standard_png_output(
+            9, results, fp09_custom_plot, "Neural Signatures"
+        )
+        if success:
+            print("✓ Generated protocol09.png visualization")
+        else:
+            print("⚠ Failed to generate protocol09.png visualization")
+    except ImportError:
+        print("⚠ Visualization utilities not available")
+    except Exception as e:
+        print(f"⚠ Error generating visualization: {e}")

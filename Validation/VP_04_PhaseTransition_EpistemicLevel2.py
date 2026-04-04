@@ -240,12 +240,19 @@ class InformationTheoreticAnalysis:
         - Entropy rates
     """
 
-    def __init__(self, n_bins: int = 20):
+    def __init__(self, n_bins: int = None):
         """
         Args:
             n_bins: Number of bins for discretization (for MI/TE estimation)
         """
-        self.n_bins = n_bins
+        # Use centralized constant from falsification_thresholds
+        try:
+            from utils.falsification_thresholds import VP4_TE_N_BINS
+
+            self.n_bins = VP4_TE_N_BINS if n_bins is None else n_bins
+        except ImportError:
+            # Fallback if falsification_thresholds not available
+            self.n_bins = 20
 
     def compute_transfer_entropy(
         self, source: np.ndarray, target: np.ndarray, lag: int = 1

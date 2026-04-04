@@ -27,8 +27,11 @@ logger = logging.getLogger(__name__)
 # Import shared multiple comparison correction
 try:
     from utils.statistical_tests import apply_multiple_comparison_correction
+    from utils.falsification_thresholds import VP7_BASELINE_ESTIMATION_MIN_TRIALS
 except ImportError:
-    apply_multiple_comparison_correction = None  # type: ignore[misc,assignment]
+    # Fallback if dependencies not available
+    apply_multiple_comparison_correction = None
+    VP7_BASELINE_ESTIMATION_MIN_TRIALS = 50  # type: ignore[misc,assignment]
     logger.warning(
         "statistical_tests.apply_multiple_comparison_correction not available"
     )

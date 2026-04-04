@@ -1346,13 +1346,19 @@ class ProtocolRunnerGUI:
                     elif protocol_info["class"] == "APGIActiveInferenceAgent":
                         results = self._handle_apgi_agent(cls, module, validated_params)
                     elif protocol_info["class"] == "IowaGamblingTaskEnvironment":
-                        results = self._handle_iowa_gambling(cls, module, validated_params)
+                        results = self._handle_iowa_gambling(
+                            cls, module, validated_params
+                        )
                     elif hasattr(module, "run_falsification"):
                         # Fallback to module-level run_falsification
-                        self.log_message("Running run_falsification from module scope...")
+                        self.log_message(
+                            "Running run_falsification from module scope..."
+                        )
                         results = module.run_falsification()
                     elif hasattr(cls, "run_full_experiment"):
-                        results = self._handle_run_full_experiment(cls, validated_params)
+                        results = self._handle_run_full_experiment(
+                            cls, validated_params
+                        )
                     elif hasattr(cls, "run_phase_transition_analysis"):
                         results = self._handle_phase_transition(
                             cls, module, validated_params
@@ -1521,7 +1527,10 @@ class ProtocolRunnerGUI:
                     )
 
                 self.log_message(f"Demo completed. Total reward: {total_reward:.2f}")
-                return {"total_reward": total_reward, "type": "IowaGamblingTaskEnvironment"}
+                return {
+                    "total_reward": total_reward,
+                    "type": "IowaGamblingTaskEnvironment",
+                }
         except Exception as e:
             self.log_message(f"Error in Iowa Gambling protocol: {str(e)}")
             raise
@@ -1643,13 +1652,38 @@ class ProtocolRunnerGUI:
             filename = f"validation_results_{unique_id}.json"
             filepath = validation_dir / filename
 
-            # Add metadata to results
+            # Extract named_predictions from results if present
+            named_predictions = {}
+            if isinstance(results, dict):
+                # Try to get named_predictions from top level
+                if "named_predictions" in results:
+                    named_predictions = results["named_predictions"]
+                # Also try nested in results["results"]
+                elif "results" in results and isinstance(results["results"], dict):
+                    if "named_predictions" in results["results"]:
+                        named_predictions = results["results"]["named_predictions"]
+
+            # Extract bic_values from results for aggregator Condition B
+            bic_values = {}
+            if isinstance(results, dict):
+                # Try top level
+                if "bic_values" in results:
+                    bic_values = results["bic_values"]
+                elif "model_comparison" in results:
+                    # Convert model_comparison to bic_values format
+                    mc = results["model_comparison"]
+                    if isinstance(mc, dict) and "apgi" in mc:
+                        bic_values = {"IGT": mc}  # Use environment name as key
+
+            # Build final output structure
             results_with_metadata = {
                 "metadata": {
                     "protocol_file": protocol_file,
                     "timestamp": datetime.now().isoformat(),
                     "id": unique_id,
                 },
+                "named_predictions": named_predictions,
+                "bic_values": bic_values,
                 "results": results,
             }
 

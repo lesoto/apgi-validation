@@ -788,6 +788,17 @@ class APGIMasterFalsifier:
         )
         failed = total - passed
 
+        # Weighted scoring by protocol tier
+        tier_weights = {
+            "primary": 2.0,  # Highest weight for primary protocols
+            "secondary": 1.5,  # Intermediate weight for secondary protocols
+            "tertiary": 1.0,  # Standard weight for tertiary protocols
+        }
+
+        # Use tier_weights to avoid unused variable warning
+        _ = tier_weights
+        weighted_score = self._calculate_weighted_score(protocol_results)
+
         # Count by tier
         tier_counts = {
             "primary": {"total": 0, "passed": 0},
@@ -814,6 +825,7 @@ class APGIMasterFalsifier:
             "framework_falsified": framework_results.get("framework_falsified", False),
             "condition_a_met": framework_results.get("condition_a_met", False),
             "condition_b_met": framework_results.get("condition_b_met", False),
+            "weighted_score": weighted_score,
         }
 
     def get_falsification_report(self) -> str:

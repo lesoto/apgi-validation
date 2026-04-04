@@ -1,12 +1,17 @@
 """
-APGI Framework-Level Falsification Aggregator (FP-12)
+APGI Framework-Level Falsification Aggregator (FP-AGG)
 
 Implements conditions A and B from the framework falsification specification.
 Requires all 12 falsification protocol files (FP-1 to FP-12) to have produced JSON result files.
 
 Falsification Criteria:
 - FA (Condition A): All 14 named predictions fail simultaneously
-- FB (Condition B): GWT or IIT is strictly more parsimonious (ΔBIC < threshold)
+- FB (Condition B): Alternative models more parsimonious (ΔBIC > 10)
+
+Usage:
+    from Falsification.FP_ALL_Aggregator import FalsificationAggregator
+    aggregator = FalsificationAggregator()
+    results = aggregator.run_full_analysis()
 """
 
 import json

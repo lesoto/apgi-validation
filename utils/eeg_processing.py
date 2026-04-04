@@ -2,15 +2,18 @@
 Real EEG Signal Processing
 =========================
 
-Utility functions for real EEG signal processing to replace synthetic generation
-in VP-1. Implements gamma detection, theta-gamma PAC, and P3 amplitude analysis
-following the specifications in TODO.md.
+Utility functions for EEG processing and analysis.
+
+Implements standardized EEG preprocessing, spectral analysis, and
+component detection following the specifications in TODO.md.
 
 Functions:
-- detect_gamma_band_power: Welch PSD with Simpson integration over 30-80 Hz
+- detect_gamma_band_power: Welch PSD with Simpson integration over canonical gamma band
 - compute_theta_gamma_pac: Modulation Index (Tort et al., 2010) for theta-gamma coupling
 - detect_p3_amplitude: Bandpass filtering and peak detection for P3b component
 - get_pac_bands: Load PAC band configuration from config file
+
+All spectral bands use centralized constants from utils.constants.py
 """
 
 import numpy as np
@@ -20,6 +23,29 @@ from scipy.integrate import trapezoid  # Use trapezoid instead of deprecated sim
 from typing import Dict, Any, Tuple
 from pathlib import Path
 import yaml
+import logging
+import sys
+import os
+
+# Add parent directory to path for direct script execution
+if __name__ == "__main__":
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import centralized spectral band constants
+try:
+    from .constants import (
+        EEG_THETA_BAND_HZ,
+        EEG_GAMMA_BAND_HZ,
+    )
+except ImportError:
+    # Handle direct script execution
+    from utils.constants import (
+        EEG_THETA_BAND_HZ,
+        EEG_GAMMA_BAND_HZ,
+    )
+
+# Removed for GUI stability
+logger = logging.getLogger(__name__)
 
 
 def get_pac_bands() -> Dict[str, Dict[str, Tuple[float, float]]]:
@@ -44,18 +70,18 @@ def get_pac_bands() -> Dict[str, Dict[str, Tuple[float, float]]]:
 
         return pac_bands
     except Exception:
-        # Fallback configuration if file not found
+        # Fallback configuration using centralized constants
         return {
-            "L1_L2": {"phase": (4, 8), "amplitude": (30, 80)},
-            "L2_L3": {"phase": (1, 4), "amplitude": (4, 8)},
-            "L3_L4": {"phase": (1, 4), "amplitude": (4, 8)},
+            "L1_L2": {"phase": EEG_THETA_BAND_HZ, "amplitude": EEG_GAMMA_BAND_HZ},
+            "L2_L3": {"phase": (1, 4), "amplitude": EEG_THETA_BAND_HZ},
+            "L3_L4": {"phase": (1, 4), "amplitude": EEG_THETA_BAND_HZ},
         }
 
 
 def detect_gamma_band_power(
     eeg_data: np.ndarray,
     fs: float = 1000.0,
-    gamma_band: Tuple[float, float] = (30.0, 80.0),
+    gamma_band: Tuple[float, float] = EEG_GAMMA_BAND_HZ,
     n_permutations: int = 1000,
     alpha: float = 0.01,
 ) -> Dict[str, Any]:
@@ -176,8 +202,8 @@ def _permutation_test_gamma(
 def compute_pac_with_bands(
     eeg_data: np.ndarray,
     fs: float = 1000.0,
-    phase_band: Tuple[float, float] = (4.0, 8.0),
-    amplitude_band: Tuple[float, float] = (30.0, 80.0),
+    phase_band: Tuple[float, float] = EEG_THETA_BAND_HZ,
+    amplitude_band: Tuple[float, float] = EEG_GAMMA_BAND_HZ,
     n_permutations: int = 1000,
     alpha: float = 0.01,
     level_boundary: str = "L1_L2",
@@ -278,8 +304,8 @@ def compute_pac_with_bands(
 def compute_theta_gamma_pac(
     eeg_data: np.ndarray,
     fs: float = 1000.0,
-    theta_band: Tuple[float, float] = (4.0, 8.0),
-    gamma_band: Tuple[float, float] = (30.0, 80.0),
+    theta_band: Tuple[float, float] = EEG_THETA_BAND_HZ,
+    gamma_band: Tuple[float, float] = EEG_GAMMA_BAND_HZ,
     n_permutations: int = 1000,
     alpha: float = 0.01,
 ) -> Dict[str, Any]:

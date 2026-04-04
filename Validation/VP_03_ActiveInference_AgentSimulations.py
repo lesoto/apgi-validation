@@ -44,14 +44,16 @@ from abc import ABC, abstractmethod
 
 # Add parent directory to path for utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.constants import LEVEL_TIMESCALES
 
 # Add parent directory to path for imports
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from utils.constants import DIM_CONSTANTS
+from utils.constants import DIM_CONSTANTS, LEVEL_TIMESCALES
+
+# HIGH-06: Import APGIConfig for centralized hyperparameters
+from utils.apgi_config import APGIConfig
 
 try:
     from utils.logging_config import apgi_logger as logger
@@ -566,7 +568,9 @@ class APGIActiveInferenceAgent(AgentInterface):
                 {"name": "objects", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
                 {"name": "context", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
             ],
-            learning_rate=config.get("lr_extero", 0.01),
+            learning_rate=config.get(
+                "lr_extero", APGIConfig.lr_extero
+            ),  # HIGH-06: Use APGIConfig
         )
 
         self.intero_model = HierarchicalGenerativeModel(
@@ -579,35 +583,53 @@ class APGIActiveInferenceAgent(AgentInterface):
                     "tau": LEVEL_TIMESCALES.TAU_COGNITIVE,
                 },
             ],
-            learning_rate=config.get("lr_intero", 0.01),
+            learning_rate=config.get(
+                "lr_intero", APGIConfig.lr_intero
+            ),  # HIGH-06: Use APGIConfig
         )
 
         # Precision
-        self.Pi_e = config.get("Pi_e_init", 1.0)
+        self.Pi_e = config.get(
+            "Pi_e_init", APGIConfig.Pi_e_init
+        )  # HIGH-06: Use APGIConfig
         self.Pi_i = config.get(
-            "Pi_i_init", 1.5
+            "Pi_i_init", APGIConfig.Pi_i_init  # HIGH-06: Use APGIConfig
         )  # Calibrated: Higher baseline interoceptive precision
         self.beta = config.get(
-            "beta", 1.8
+            "beta", APGIConfig.beta_somatic  # HIGH-06: Use APGIConfig
         )  # Calibrated: Stronger somatic bias for IGT dominance
-        self.lr_precision = config.get("lr_precision", 0.05)
+        self.lr_precision = config.get(
+            "lr_precision", APGIConfig.lr_precision
+        )  # HIGH-06: Use APGIConfig
 
         # Somatic markers
         self.somatic_markers = SomaticMarkerNetwork(
             context_dim=DIM_CONSTANTS.CONTEXT_DIM
             + DIM_CONSTANTS.HOMEOSTATIC_DIM,  # 8 + 4
             action_dim=config.get("n_actions", DIM_CONSTANTS.ACTION_DIM),
-            learning_rate=config.get("lr_somatic", 0.1),
+            learning_rate=config.get(
+                "lr_somatic", APGIConfig.lr_somatic
+            ),  # HIGH-06: Use APGIConfig
         )
 
         # Ignition
         self.S_t = 0.0
-        self.theta_t = config.get("theta_init", 0.5)
-        self.theta_0 = config.get("theta_baseline", 0.5)
-        self.alpha = config.get("alpha", 8.0)
-        self.tau_S = config.get("tau_S", 0.3)
-        self.tau_theta = config.get("tau_theta", 10.0)
-        self.eta_theta = config.get("eta_theta", 0.01)
+        self.theta_t = config.get(
+            "theta_init", APGIConfig.theta_init
+        )  # HIGH-06: Use APGIConfig
+        self.theta_0 = config.get(
+            "theta_baseline", APGIConfig.theta_baseline
+        )  # HIGH-06: Use APGIConfig
+        self.alpha = config.get(
+            "alpha", APGIConfig.alpha_ignition
+        )  # HIGH-06: Use APGIConfig
+        self.tau_S = config.get("tau_S", APGIConfig.tau_S)  # HIGH-06: Use APGIConfig
+        self.tau_theta = config.get(
+            "tau_theta", APGIConfig.tau_theta
+        )  # HIGH-06: Use APGIConfig
+        self.eta_theta = config.get(
+            "eta_theta", APGIConfig.eta_theta
+        )  # HIGH-06: Use APGIConfig
 
         # Global workspace
         self.workspace_content: Optional[Dict[str, Any]] = None

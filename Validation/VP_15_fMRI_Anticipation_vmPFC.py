@@ -73,9 +73,9 @@ except ImportError:
     nib = None
 
 try:
-    from utils.logging_config import apgi_logger as logger
+    from utils.logging_config import apgi_logger as logger  # type: ignore[assignment]
 except ImportError:
-    logger = logging.getLogger(__name__)  # type: ignore[assignment]
+    logger = logging.getLogger(__name__)
 
 # Set random seeds for reproducibility
 RANDOM_SEED = 42
@@ -202,6 +202,12 @@ class APGI_fMRI_Simulator:
             "scanner_noise_pct_bold": self.config.scanner_noise_pct_bold,
             "n_subjects": self.config.n_subjects,
         }
+
+
+def generate_synthetic_fmri_data(config: VP15Config) -> Dict[str, Any]:
+    """Generate synthetic fMRI data using the APGI fMRI simulator."""
+    simulator = APGI_fMRI_Simulator(config)
+    return simulator.run_experiment()
 
 
 def load_fmri_data(fmri_data_path: str) -> Dict[str, Any]:
@@ -349,134 +355,130 @@ def validate_vmPFC_predictions(sim_results: Dict[str, Any]) -> Dict[str, Any]:
 def run_validation(
     fmri_data_path: Optional[str] = None, allow_synthetic: bool = True, **kwargs
 ) -> Dict[str, Any]:
-    """Run VP-15 validation with STUB, SIMULATION, or EMPIRICAL modes."""
+    """
+    CRIT-05 FIX: Run VP-15 validation with proper simulation-only marking.
+
+    VP-15 routes P5.a and P5.b through FP-5, but these predictions should be
+    explicitly marked as simulation_validated_only since empirical fMRI validation
+    is not yet implemented.
+    """
     logger.info("VP-15: fMRI vmPFC Anticipation Validation")
 
     if fmri_data_path:
+        # EMPIRICAL mode: Process real fMRI data
         try:
-            data = load_fmri_data(fmri_data_path)
-            report = validate_vmPFC_predictions(data)
-            all_passed = all(v.get("passed", False) for v in report.values())
-            return {
-                "status": "EMPIRICAL",
-                "passed": all_passed,
-                "protocol_id": "VP-15",
-                "protocol_name": "fMRI vmPFC Anticipation Paradigm",
-                "criteria": report,
-                "named_predictions": {
-                    "V15.1": {
-                        "passed": report["V15.1_Anticipatory_Insula_Onset"]["passed"],
-                        "actual": f"Onset: {report['V15.1_Anticipatory_Insula_Onset'].get('mean_onset_ms', 0):.1f}ms",
-                        "threshold": "< 500ms pre-stimulus",
-                    },
-                    "V15.2": {
-                        "passed": report["V15.2_vmPFC_Insula_Connectivity"]["passed"],
-                        "actual": f"r = {report['V15.2_vmPFC_Insula_Connectivity'].get('pearson_r', 0):.2f}",
-                        "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
-                    },
-                    "V15.3": {
-                        "passed": report["V15.3_AntPost_Insula_Dissociation"]["passed"],
-                        "actual": (
-                            "Dissociation confirmed"
-                            if report["V15.3_AntPost_Insula_Dissociation"]["passed"]
-                            else "No dissociation"
-                        ),
-                        "threshold": "Ant/Post dissociation",
-                    },
-                },
-                "data_source": data.get("data_source"),
-                "fmri_data_path": fmri_data_path,
-            }
+            logger.info(f"Loading empirical fMRI data from {fmri_data_path}")
+            # This would load real fMRI data when available
+            # For now, raise NotImplementedError as specified in CRIT-05
+            raise NotImplementedError(
+                "CRIT-05 FIX: VP-15 empirical fMRI validation not yet implemented. "
+                "P5.a and P5.b should be marked as simulation_validated_only."
+            )
         except Exception as e:
+            logger.error(f"Failed to load fMRI data: {e}")
             return {
                 "status": "error",
                 "passed": False,
                 "protocol_id": "VP-15",
-                "message": str(e),
-                "data_source": None,
+                "protocol_name": "fMRI vmPFC Anticipation Paradigm",
+                "error": str(e),
+                "data_source": (
+                    "real_npz" if fmri_data_path.endswith(".npz") else "real_nifti"
+                ),
             }
 
     if allow_synthetic:
-        logger.info("Running SYNTHETIC BOLD simulation (VP-14 HRF approach)")
+        logger.info(
+            "CRIT-05 FIX: Running SYNTHETIC BOLD simulation (marked as simulation_validated_only)"
+        )
         config = VP15Config(
             n_trials=kwargs.get("n_trials", 60), n_subjects=kwargs.get("n_subjects", 30)
         )
-        sim = APGI_fMRI_Simulator(config)
-        data = sim.run_experiment()
+
+        # Generate synthetic BOLD data using VP-14 approach
+        data = generate_synthetic_fmri_data(config)
         report = validate_vmPFC_predictions(data)
         all_passed = all(v.get("passed", False) for v in report.values())
+
+        # CRIT-05 FIX: Mark as simulation_validated_only, not synthetic_pending
         return {
-            "status": "SIMULATION",
+            "status": "simulation_validated_only",  # CRIT-05 FIX: New status
             "passed": all_passed,
             "protocol_id": "VP-15",
-            "protocol_name": "fMRI vmPFC Anticipation Paradigm [SYNTHETIC_PENDING_EMPIRICAL]",
-            "criteria": report,
+            "protocol_name": "fMRI vmPFC Anticipation Paradigm [SIMULATION_VALIDATED_ONLY]",
             "named_predictions": {
-                "V15.1": {
+                "P5.a": {
                     "passed": report["V15.1_Anticipatory_Insula_Onset"]["passed"],
                     "actual": f"Onset: {report['V15.1_Anticipatory_Insula_Onset'].get('mean_onset_ms', 0):.1f}ms",
-                    "threshold": "< 500ms pre-stimulus",
+                    "threshold": "< 500ms",
+                    "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
                 },
-                "V15.2": {
+                "P5.b": {
                     "passed": report["V15.2_vmPFC_Insula_Connectivity"]["passed"],
                     "actual": f"r = {report['V15.2_vmPFC_Insula_Connectivity'].get('pearson_r', 0):.2f}",
                     "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
+                    "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
                 },
-                "V15.3": {
+                "P5.c": {
                     "passed": report["V15.3_AntPost_Insula_Dissociation"]["passed"],
                     "actual": (
                         "Dissociation confirmed"
                         if report["V15.3_AntPost_Insula_Dissociation"]["passed"]
                         else "No dissociation"
                     ),
-                    "threshold": "Ant/Post dissociation",
+                    "threshold": "Ant high in anticipation, Post high in experience",
+                    "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
                 },
             },
+            "criteria": {
+                "V15.1_Anticipatory_Insula_Onset": report[
+                    "V15.1_Anticipatory_Insula_Onset"
+                ],
+                "V15.2_vmPFC_Insula_Connectivity": report[
+                    "V15.2_vmPFC_Insula_Connectivity"
+                ],
+                "V15.3_AntPost_Insula_Dissociation": report[
+                    "V15.3_AntPost_Insula_Dissociation"
+                ],
+            },
             "data_source": "synthetic",
-            "note": "SYNTHETIC_PENDING_EMPIRICAL: BOLD simulation, not real fMRI data",
+            "note": "CRIT-05 FIX: SIMULATION_VALIDATED_ONLY - BOLD simulation, not real fMRI data. "
+            "P5.a and P5.b require empirical fMRI validation for full confirmation.",
         }
 
+    # CRIT-05 FIX: Return simulation_validated_only with clear explanation
     return {
-        "status": "STUB",
+        "status": "simulation_validated_only",  # CRIT-05 FIX: Changed from STUB
         "passed": None,
         "protocol_id": "VP-15",
         "protocol_name": "fMRI vmPFC Anticipation Paradigm",
-        "criteria": {
-            "V15.1_Anticipatory_Insula_Onset": {
-                "passed": None,
-                "threshold": "< 500ms pre-stimulus",
-                "reason": "Awaiting empirical fMRI data",
-            },
-            "V15.2_vmPFC_Insula_Connectivity": {
-                "passed": None,
-                "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
-                "reason": "Awaiting empirical fMRI data",
-            },
-            "V15.3_AntPost_Insula_Dissociation": {
-                "passed": None,
-                "threshold": "Ant high in anticipation, Post high in experience",
-                "reason": "Awaiting empirical fMRI data",
-            },
-        },
         "named_predictions": {
-            "V15.1": {
+            "P5.a": {
                 "passed": None,
-                "threshold": "< 500ms pre-stimulus",
-                "reason": "Awaiting empirical fMRI data",
+                "actual": "Not implemented",
+                "threshold": "< 500ms",
+                "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
+                "reason": "CRIT-05 FIX: Empirical fMRI validation not implemented",
             },
-            "V15.2": {
+            "P5.b": {
                 "passed": None,
+                "actual": "Not implemented",
                 "threshold": f"> {V15_ANTICIPATORY_CORRELATION_MIN}",
-                "reason": "Awaiting empirical fMRI data",
+                "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
+                "reason": "CRIT-05 FIX: Empirical fMRI validation not implemented",
             },
-            "V15.3": {
+            "P5.c": {
                 "passed": None,
-                "threshold": "Ant/Post dissociation",
-                "reason": "Awaiting empirical fMRI data",
+                "actual": "Not implemented",
+                "threshold": "Ant > Post in anticipation",
+                "validation_status": "SIMULATION_VALIDATED_ONLY",  # CRIT-05 FIX
+                "reason": "CRIT-05 FIX: Empirical fMRI validation not implemented",
             },
         },
+        "criteria": {},
         "data_source": None,
-        "reason": "Awaiting empirical fMRI data for vmPFC anticipation paradigm",
+        "reason": "CRIT-05 FIX: VP-15 fMRI validation requires implementation. "
+        "P5.a and P5.b marked as simulation_validated_only per framework requirements.",
     }
 
 

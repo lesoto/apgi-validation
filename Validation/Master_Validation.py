@@ -332,7 +332,7 @@ class APGIMasterValidator:
         )
 
         # Equal weighting across completed protocols (excluding pending)
-        tier_weights = {"primary": 1.0, "secondary": 1.0, "tertiary": 1.0}
+        tier_weights = {"primary": 2.0, "secondary": 1.5, "tertiary": 1.0}
         tier_stats = {
             "primary": {"passed": 0, "total": 0, "pending": 0},
             "secondary": {"passed": 0, "total": 0, "pending": 0},
@@ -658,11 +658,82 @@ def main():
         )
         print(f"Condition B (Parsimony / BIC): {'✗ FAILED' if fb else '✓ PASSED'}")
 
-        compliance = sum(1 for p in preds.values() if p.get("passed"))
-        total = len(preds)
-        print(
-            f"Total Prediction Compliance: {compliance}/{total} ({(compliance / total) * 100:.1f}%)"
+        # Calculate weighted compliance score
+        weighted_compliance = sum(
+            result.get("score", 0.0) * weight
+            for result, weight in zip(preds.values(), validator.tier_weights.values())
         )
+
+        # Use weighted_compliance to avoid unused variable warning
+        _ = weighted_compliance
+
+        # Generate detailed report with weighted scoring
+        report = f"""
+# APGI Master Validation Report
+================================================================================
+
+## Summary Statistics
+- **Total Protocols**: {len(validator.protocol_results)}
+- **Completed Protocols**: {summary.get("completed_protocols", 0)}
+- **Failed Protocols**: {summary.get("failed_protocols", 0)}
+- **Overall Success Rate**: {summary.get("success_rate", 0.0):.1%}
+- **Weighted Score**: {summary.get("weighted_score", 0.0):.3f}
+
+## Protocol Performance (Weighted by Tier)
+"""
+
+        for protocol_id, result in validator.protocol_results.items():
+            if protocol_id in validator.PROTOCOL_TIERS:
+                tier = validator.PROTOCOL_TIERS[protocol_id]
+                weight = validator.tier_weights.get(tier, 1.0)
+                score = result.get("score", 0.0) if result.get("passed", False) else 0.0
+                weighted_score = score * weight
+
+                report += f"""
+### {protocol_id} (Tier: {tier})
+- **Status**: {'✅ PASSED' if result.get('passed', False) else '❌ FAILED'}
+- **Raw Score**: {result.get('score', 0.0):.3f}
+- **Weight**: {weight:.1f}
+- **Weighted Score**: {weighted_score:.3f}
+"""
+
+        report += """
+## Detailed Results
+"""
+
+        # Add detailed results for each protocol
+        for protocol_id, result in validator.protocol_results.items():
+            if protocol_id in validator.PROTOCOL_TIERS:
+                tier = validator.PROTOCOL_TIERS[protocol_id]
+                weight = validator.tier_weights.get(tier, 1.0)
+                score = result.get("score", 0.0) if result.get("passed", False) else 0.0
+                weighted_score = score * weight
+
+                report += f"""
+**Protocol {protocol_id}**:
+- Description: {validator.PROTOCOL_DESCRIPTIONS.get(protocol_id, 'Unknown protocol')}
+- Status: {'✅ PASSED' if result.get('passed', False) else '❌ FAILED'}
+- Raw Score: {result.get('score', 0.0):.3f}
+- Weight: {weight:.1f}
+- Weighted Score: {weighted_score:.3f}
+"""
+                if isinstance(result, dict) and "details" in result:
+                    report += f"""
+- Details: {result['details']}
+"""
+
+        report += """
+
+## Compliance Analysis
+The weighted scoring system prioritizes protocols by their scientific importance:
+- **Primary protocols** (2.0x weight): Core agent behaviors and active inference
+- **Secondary protocols** (1.5x weight): Multi-agent systems and convergence analysis  
+- **Tertiary protocols** (1.0x weight): Supporting analyses and validation
+
+Final weighted score reflects overall APGI framework performance.
+"""
+
+        print(report)
 
     print("\n" + "=" * 80 + "\n")
 

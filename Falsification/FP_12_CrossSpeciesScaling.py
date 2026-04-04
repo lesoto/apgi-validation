@@ -91,8 +91,8 @@ class LiquidTimeConstantChecker:
             self._estimate_window(rnn_states[:, i], dt_ms) for i in sample_indices
         ]
 
-        ltc_median = np.median(ltc_windows)
-        rnn_median = np.median(rnn_windows)
+        ltc_median = float(np.median(ltc_windows))
+        rnn_median = float(np.median(rnn_windows))
         ratio = ltc_median / (rnn_median + 1e-6)
 
         # Ensure LTC window is in target range [200, 500] ms
@@ -100,9 +100,9 @@ class LiquidTimeConstantChecker:
         if ltc_median < 200.0:
             # Scale up: lower leak rate should give longer window
             # tau ≈ dt / leak_rate for ESN-like dynamics
-            ltc_median = max(ltc_median, 250.0)  # Ensure minimum 250ms
+            ltc_median = float(max(ltc_median, 250.0))  # Ensure minimum 250ms
         elif ltc_median > 500.0:
-            ltc_median = min(ltc_median, 350.0)  # Cap at 350ms
+            ltc_median = float(min(ltc_median, 350.0))  # Cap at 350ms
 
         # Recalculate ratio with adjusted window
         ratio = ltc_median / (rnn_median + 1e-6)
@@ -654,3 +654,55 @@ if __name__ == "__main__":
         print(
             f"{pred}: {'PASS' if data['passed'] else 'FAIL'} - {data.get('actual', '')}"
         )
+
+    # Generate PNG output
+    try:
+        from utils.protocol_visualization import add_standard_png_output
+
+        def fp12_custom_plot(fig, ax):
+            """Custom plot for FP-12 Cross-Species Scaling"""
+            named_predictions = results.get("named_predictions", {})
+
+            if named_predictions:
+                pred_names = list(named_predictions.keys())
+                status_colors = []
+                for pred in pred_names:
+                    passed = named_predictions.get(pred, {}).get("passed", False)
+                    if passed:
+                        status_colors.append("#2ecc71")
+                    else:
+                        status_colors.append("#e74c3c")
+
+                bars = ax.bar(pred_names, [1] * len(pred_names), color=status_colors)
+                ax.set_title("Cross-Species Scaling Predictions")
+                ax.set_ylabel("Status")
+                ax.set_ylim(0, 1.2)
+                ax.set_xticklabels(pred_names, rotation=45, ha="right")
+
+                # Add status labels
+                for i, (bar, pred) in enumerate(zip(bars, pred_names)):
+                    passed = named_predictions.get(pred, {}).get("passed", False)
+                    status = "PASS" if passed else "FAIL"
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        0.5,
+                        status,
+                        ha="center",
+                        va="center",
+                        fontweight="bold",
+                    )
+
+                return True
+            return False
+
+        success = add_standard_png_output(
+            12, results, fp12_custom_plot, "Cross-Species Scaling"
+        )
+        if success:
+            print("✓ Generated protocol12.png visualization")
+        else:
+            print("⚠ Failed to generate protocol12.png visualization")
+    except ImportError:
+        print("⚠ Visualization utilities not available")
+    except Exception as e:
+        print(f"⚠ Error generating visualization: {e}")

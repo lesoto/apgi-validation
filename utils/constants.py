@@ -15,6 +15,8 @@ supporting interoceptive awareness. Nat Neurosci. 2004;7(2):189-195.
 from dataclasses import dataclass
 from typing import Dict
 
+import numpy as np
+
 try:
     from .falsification_thresholds import (
         VP4_CALIBRATED_TAU,
@@ -263,7 +265,7 @@ class DimensionConstants:
     ACTION_DIM: int = 4
 
     # Thresholds
-    IGNITION_THRESHOLD: float = 0.5
+    IGNITION_THRESHOLD: float = 0.8
 
     # Sample sizes
     MIN_SAMPLES_FOR_REGRESSION: int = 10
@@ -307,3 +309,72 @@ APGI_GLOBAL_SEED = 42
 
 # Shuffle seed offset for cross-validation and resampling operations
 SHUFFLE_SEED_OFFSET = 1000
+
+# HIGH-02: FP-04 DoC Synthetic Classification Feature Weights
+# Feature weights for biomarker-based DoC (Disorders of Consciousness) classification
+# Used in FP_04_PhaseTransition_EpistemicArchitecture.py for ROC analysis
+FP3_DOC_SYNTHETIC_FEATURE_WEIGHTS = np.array(
+    [1.2, 0.8, 1.0, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05]
+)
+
+# Signal multipliers for APGI-specific biomarker signals in DoC classification
+# These multipliers are applied to DoC samples during synthetic data generation
+# Order: [entropy, temporal_pattern, integration_complexity, threshold_modulation]
+FP3_DOC_SIGNAL_MULTIPLIERS = {
+    "entropy": 1.2,
+    "temporal_pattern": 0.8,
+    "integration_complexity": 1.0,
+    "threshold_modulation": 0.6,
+}
+
+# EEG frequency band definitions (Hz)
+# Based on standard 10-20 international EEG electrode placement system
+# Source: Jurcak, V. et al. (2007). International 10-20 system of EEG
+# and standardized electrode placement. Revue d'Electroencéphalogie et
+# Neurophysiologie Clinique 170(4):241-257.
+EEG_DELTA_BAND_HZ = (0.5, 4.0)  # Delta band: 0.5-4 Hz
+EEG_THETA_BAND_HZ = (4.0, 8.0)  # Theta band: 4-8 Hz
+EEG_ALPHA_BAND_HZ = (8.0, 12.0)  # Alpha band: 8-12 Hz
+EEG_BETA_BAND_HZ = (12.0, 30.0)  # Beta band: 12-30 Hz
+EEG_GAMMA_BAND_HZ = (30.0, 80.0)  # Gamma band: 30-100 Hz
+
+# Centralized citation dictionary for scientific references
+# Used across validation protocols to ensure consistent citation management
+CITATIONS = {
+    "P3b_baseline": "Polich J. (2007). Updating P300: An integrative theory. Clin Neurophysiol, 118(10):2128-2148.",
+    "HEP_baseline": "Nummenmaa L. et al. (2013). Bodily maps of emotions. PNAS, 111(2):646-651.",
+}
+
+# =============================================================================
+# ECHO STATE NETWORK (ESN) PARAMETERS
+# =============================================================================
+# ESN hyperparameters control the echo state property and temporal integration.
+# These values are derived from reservoir computing theory (Jaeger 2001) and
+# calibrated for the critical edge-of-chaos regime where computational
+# performance is maximized.
+#
+# Spectral radius controls the reservoir's memory capacity:
+#   - ρ < 1.0: fading memory (echo state property guaranteed)
+#   - ρ ≈ 1.0: critical edge-of-chaos (maximal computational power)
+#   - ρ > 1.0: potential instability
+#
+# Leak rate controls the integration time constant:
+#   - Small α: slow integration, longer memory
+#   - Large α: fast integration, shorter memory
+#   - α = 0.01 provides ~100ms effective time constant at 1000Hz sampling
+#
+# References:
+#   Jaeger, H. (2001). The "echo state" approach to analysing and training
+#   recurrent neural networks. GMD Report 148, German National Research Center
+#   for Information Technology.
+#
+#   Lukoševičius, M., & Jaeger, H. (2009). Reservoir computing approaches to
+#   recurrent neural network training. Computer Science Review, 3(3), 127-149.
+# =============================================================================
+ESN_SPECTRAL_RADIUS: float = 0.98  # Critical edge-of-chaos regime (ρ ≈ 1.0)
+ESN_LEAK_RATE: float = 0.01  # Slow integration for 100ms effective window
+
+# ESN sensitivity analysis parameter ranges
+# Used for robustness testing across hyperparameter space
+ESN_SPECTRAL_RADIUS_RANGE: tuple = (0.90, 0.95, 0.98, 1.00)
+ESN_LEAK_RATE_RANGE: tuple = (0.01, 0.05, 0.10)

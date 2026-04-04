@@ -38,10 +38,11 @@ def test_f5_1_constants():
         F5_5_PCA_MIN_LOADING == 0.60
     ), f"F5_5_PCA_MIN_LOADING should be 0.60, got {F5_5_PCA_MIN_LOADING}"
 
-    # Test peak separation threshold - should be 3.0 per paper spec
+    # Test peak separation threshold - should be 0.12 per paper spec (bits)
+    # Source: APGI Framework Paper, Appendix A.4, Table S3
     assert (
-        F5_4_MIN_PEAK_SEPARATION == 3.0
-    ), f"F5_4_MIN_PEAK_SEPARATION should be 3.0, got {F5_4_MIN_PEAK_SEPARATION}"
+        F5_4_MIN_PEAK_SEPARATION == 0.12
+    ), f"F5_4_MIN_PEAK_SEPARATION should be 0.12 (bits), got {F5_4_MIN_PEAK_SEPARATION}"
 
 
 def test_f6_1_constants():

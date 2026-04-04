@@ -394,7 +394,7 @@ class UtilsRunnerGUI:
         try:
             line_count = int(self.output_text.index("end-1c").split(".")[0])
             if (
-                line_count > self.max_output_lines + 100
+                line_count > self.max_output_lines + 50
             ):  # Larger buffer to reduce frequent trimming
                 # Batch delete multiple lines at once for better performance
                 lines_to_delete = line_count - self.max_output_lines + 50
