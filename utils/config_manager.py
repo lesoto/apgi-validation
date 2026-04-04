@@ -57,6 +57,10 @@ CONFIG_DIR = PROJECT_ROOT / "config"
 PROFILES_DIR = CONFIG_DIR / "profiles"
 VERSIONS_DIR = CONFIG_DIR / "versions"
 
+# Module-level flag to prevent duplicate config loading messages
+_config_loaded = False
+_config_lock = threading.Lock()
+
 
 def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
     """Validate file path to prevent directory traversal attacks.
@@ -644,7 +648,13 @@ class ConfigManager:
                 )
                 return False
 
-            apgi_logger.logger.info(f"Schema integrity verified for {schema_file}")
+            # Only log schema verification once per process
+            global _config_loaded
+            with _config_lock:
+                if not _config_loaded:
+                    apgi_logger.logger.info(
+                        f"Schema integrity verified for {schema_file}"
+                    )
             return True
 
         except Exception as e:
@@ -691,7 +701,18 @@ class ConfigManager:
                 # Update configuration
                 self._update_config(config_data)
 
-                apgi_logger.logger.info(f"Loaded configuration from {self.config_file}")
+                # Only log config loading once per process
+                global _config_loaded
+                with _config_lock:
+                    if not _config_loaded:
+                        apgi_logger.logger.info(
+                            f"Loaded configuration from {self.config_file}"
+                        )
+                        _config_loaded = True
+                    else:
+                        apgi_logger.logger.debug(
+                            f"Configuration reloaded from {self.config_file}"
+                        )
 
             except (
                 FileNotFoundError,

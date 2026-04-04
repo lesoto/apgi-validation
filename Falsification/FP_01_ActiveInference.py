@@ -1,9 +1,25 @@
+"""
+Falsification Protocol 1: Active Inference Validation
+======================================================
+
+Implements F1.1-F1.6 falsification criteria for APGI framework.
+"""
+
 import logging
 import sys
 import os
 import warnings
 import numpy as np
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+# FIX #1: Import standardized schema for protocol results
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from datetime import datetime
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
 
 # Suppress SciPy precision warnings for nearly identical data
 warnings.filterwarnings(
@@ -75,6 +91,26 @@ except ImportError:
         GRAD_CLIP_VALUE = 1.0
         WEIGHT_CLIP_VALUE = 2.0
         POLICY_GRAD_CLIP = 5.0
+
+
+# FIX #2: Import FP-07 validated parameter bounds for cross-protocol consistency
+try:
+    from utils.interprotocol_schema import (
+        load_fp7_validated_bounds,
+    )
+
+    # Override with dynamically loaded bounds if available
+    _VALIDATED_BOUNDS = load_fp7_validated_bounds()
+except ImportError:
+    # Fallback to defaults from falsification_thresholds
+    _VALIDATED_BOUNDS = {
+        "beta": (0.001, 1.0),
+        "Pi_i": (0.01, 15.0),
+        "tau_theta": (1, 500),
+        "sigma_baseline": (0.01, 2.0),
+        "alpha": (1.0, 20.0),
+        "theta_0": (0.1, 0.9),
+    }
 
 
 # Use imported DIM_CONSTANTS or fallback
@@ -4119,3 +4155,56 @@ if __name__ == "__main__":
         print("⚠ Visualization utilities not available")
     except Exception as e:
         print(f"⚠ Error generating visualization: {e}")
+
+
+# FIX #1: Add standardized ProtocolResult wrapper for FP-01
+def run_protocol_main(config: dict = None) -> Union[dict, object]:
+    """Execute FP-01 falsification and return standardized result.
+
+    This wrapper converts FP-01 output to ProtocolResult format when the standardized
+    schema is available, enabling unified aggregation across all protocols.
+
+    Returns:
+        ProtocolResult if HAS_SCHEMA is True, otherwise dict in legacy format
+    """
+    results = run_falsification()
+
+    if not HAS_SCHEMA:
+        return results
+
+    # Convert to standardized schema
+    try:
+        # Extract named predictions from F1.1-F1.6 criteria
+        named_predictions = {}
+        criteria = results.get("criteria", {})
+
+        for pred_id in ["F1.1", "F1.2", "F1.3", "F1.4", "F1.5", "F1.6"]:
+            pred_data = criteria.get(pred_id, {})
+            named_predictions[pred_id] = PredictionResult(
+                passed=pred_data.get("passed", False),
+                value=pred_data.get("effect_size"),
+                threshold=pred_data.get("threshold"),
+                status=PredictionStatus(
+                    "passed" if pred_data.get("passed") else "failed"
+                ),
+                evidence=[pred_data.get("description", "")],
+                sources=["FP_01_ActiveInference"],
+                metadata=pred_data,
+            )
+
+        return ProtocolResult(
+            protocol_id="FP_01_ActiveInference",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=85,
+            data_sources=["Iowa Gambling Task simulation"],
+            methodology="agent_simulation",
+            errors=[],
+            metadata={
+                "summary": results.get("summary", {}),
+                "predictions_evaluated": list(named_predictions.keys()),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to convert FP-01 to standardized schema: {e}")
+        return results

@@ -219,7 +219,7 @@ class TestGUIErrorPaths:
 
         # Verify error was logged
         assert len(results_calls) > 0
-        assert any("IOError" in str(call) for call in results_calls)
+        assert any("OSError" in str(call) for call in results_calls)
 
     def test_memory_cleanup_after_error(self):
         """Test memory cleanup after error conditions - protocol_cache exists"""

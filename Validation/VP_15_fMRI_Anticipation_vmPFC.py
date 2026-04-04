@@ -41,11 +41,20 @@ Expected Result Schema:
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy import stats
 from scipy.signal import convolve
+
+# FIX: Import standardized schema for protocol results
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from datetime import datetime
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
 
 # Fix 3: Import HRF from shared module (removes duplicate definition)
 from utils.hrf_utils import double_gamma_hrf
@@ -575,6 +584,53 @@ def main(**kwargs) -> Dict[str, Any]:
             "message": str(e),
             "protocol_id": "VP-15",
         }
+
+
+# FIX: Add standardized ProtocolResult wrapper for VP-15
+def run_protocol_main(config: dict = None) -> Union[dict, object]:
+    """Execute VP-15 validation and return standardized result."""
+    results = run_validation(allow_synthetic=True)
+
+    if not HAS_SCHEMA:
+        return results
+
+    try:
+        named_predictions = {}
+        np_results = results.get("named_predictions", {})
+
+        for pred_id in ["P5.a", "P5.b", "P5.c"]:
+            pred_data = np_results.get(pred_id, {})
+            named_predictions[pred_id] = PredictionResult(
+                passed=pred_data.get("passed", False),
+                value=None,
+                threshold=None,
+                status=PredictionStatus(
+                    "passed" if pred_data.get("passed") else "failed"
+                ),
+                evidence=[pred_data.get("actual", "")],
+                sources=["VP_15_fMRI_Anticipation_vmPFC"],
+                metadata={
+                    "validation_status": pred_data.get("validation_status", "unknown")
+                },
+            )
+
+        return ProtocolResult(
+            protocol_id="VP_15_fMRI_Anticipation_vmPFC",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=60,
+            data_sources=["fMRI BOLD simulation"],
+            methodology="simulation",
+            errors=[],
+            metadata={
+                "status": results.get("status", "unknown"),
+                "data_source": results.get("data_source", "unknown"),
+                "predictions_evaluated": list(named_predictions.keys()),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to convert VP-15 to standardized schema: {e}")
+        return results
 
 
 if __name__ == "__main__":

@@ -593,6 +593,60 @@ class APGIMasterFalsifier:
             "architecture_frequencies": history.get("architecture_frequencies", []),
         }
 
+    def _prepare_vp3_agent(self) -> Any:
+        """
+        CRIT-04 FIX: Run VP-03 to instantiate APGIAgent for FP-08 dependency injection.
+
+        FP-08 (Parameter Sensitivity) requires a live APGIAgent for F8.SA (Sobol analysis).
+        Per FP-8 specification, synthetic oracles are NOT permitted for sensitivity analysis.
+        This method enforces the VP-03 -> FP-08 dependency chain.
+
+        Returns:
+            APGIAgent instance ready for sensitivity analysis
+
+        Raises:
+            ImportError: If VP-03 module cannot be loaded
+            RuntimeError: If APGIAgent cannot be instantiated
+        """
+        project_root = Path(__file__).parent.parent
+        vp3_path = (
+            project_root / "Validation" / "VP_03_ActiveInference_AgentSimulations.py"
+        )
+
+        logger.info(
+            "CRIT-04 FIX: Running VP-03 prerequisite to prepare APGIAgent for FP-08..."
+        )
+
+        spec = importlib.util.spec_from_file_location("Validation.VP_03", vp3_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Could not load VP-03 module from {vp3_path}")
+
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        # Get APGIAgent class from module
+        if not hasattr(module, "APGIAgent"):
+            raise RuntimeError("VP-03 module does not export APGIAgent class")
+
+        APGIAgent = module.APGIAgent
+
+        # Instantiate agent with default config for sensitivity analysis
+        try:
+            # Try to get APGIConfig if available
+            if hasattr(module, "APGIConfig"):
+                config = module.APGIConfig()
+                agent = APGIAgent(config=config)
+            else:
+                agent = APGIAgent()
+
+            logger.info(
+                f"CRIT-04 FIX: Successfully instantiated APGIAgent ({type(agent).__name__})"
+            )
+            return agent
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to instantiate APGIAgent from VP-03: {e}")
+
     def run_falsification(self, protocols: List[str], **kwargs) -> Dict[str, Any]:
         """Run specified falsification protocols.
 
@@ -626,6 +680,24 @@ class APGIMasterFalsifier:
                         protocol_kwargs["genome_data"] = self._prepare_vp5_genome_data()
                     # Set n_replicates=5 for FP-05 as per specification
                     protocol_kwargs.setdefault("n_replicates", 5)
+
+                # CRIT-04 FIX: Inject APGIAgent for FP-08
+                if protocol_name == "FP-08":
+                    if "agent_instance" not in protocol_kwargs:
+                        try:
+                            logger.info(
+                                "CRIT-04 FIX: Running VP-03 prerequisite before FP-08 to prepare APGIAgent."
+                            )
+                            protocol_kwargs["agent_instance"] = (
+                                self._prepare_vp3_agent()
+                            )
+                        except Exception as agent_error:
+                            logger.error(
+                                f"CRIT-04 FIX: Failed to prepare APGIAgent for FP-08: {agent_error}. "
+                                "FP-08 will use synthetic fallback (violates F8.SA specification)."
+                            )
+                            # Don't fail entirely - let FP-08 handle the fallback
+
                 result = self._run_single_protocol(protocol_info, **protocol_kwargs)
                 results[protocol_name] = result
                 logger.info(

@@ -145,12 +145,14 @@ class TestModelComparisonFramework:
 
     def test_framework_initialization(self):
         """Test framework initialization."""
-        if BAYESIAN_AVAILABLE:
-            framework = ModelComparisonFramework()
-            assert framework is not None
-        else:
+        # ModelComparisonFramework can now be initialized without PyMC
+        # for access to utility methods like _interpret_bayes_factor
+        framework = ModelComparisonFramework()
+        assert framework is not None
+        # PyMC-dependent methods will raise ImportError when called without PyMC
+        if not BAYESIAN_AVAILABLE:
             with pytest.raises(ImportError):
-                ModelComparisonFramework()
+                framework._check_bayesian_available()
 
     @pytest.mark.slow
     @pytest.mark.timeout(90)
@@ -303,7 +305,12 @@ class TestParameterRecoveryAnalysis:
         """Test parameter recovery analysis initialization."""
         recovery = ParameterRecoveryAnalysis()
         assert recovery is not None
-        assert recovery.bayesian_model is not None
+        # bayesian_model is now lazily initialized (None until first use)
+        assert recovery.bayesian_model is None
+        # Will raise ImportError when accessed without PyMC
+        if not BAYESIAN_AVAILABLE:
+            with pytest.raises(ImportError):
+                recovery._get_bayesian_model()
 
     def test_assess_parameter_recovery(self):
         """Test parameter recovery assessment."""
@@ -363,10 +370,11 @@ class TestBayesianValidationFramework:
         """Test validation framework initialization."""
         framework = BayesianValidationFramework()
         assert framework is not None
-        assert framework.apgi_model is not None
-        assert framework.comparison_framework is not None
-        assert framework.iit_convergence is not None
-        assert framework.parameter_recovery is not None
+        # Components are now lazily initialized (None until first use)
+        assert framework.apgi_model is None
+        assert framework.comparison_framework is None
+        assert framework.iit_convergence is None
+        assert framework.parameter_recovery is None
 
     @pytest.mark.slow
     @pytest.mark.timeout(10)  # Reduced timeout with mocking
@@ -387,26 +395,40 @@ class TestBayesianValidationFramework:
         }
 
         # Mock the expensive Bayesian operations to avoid timeout
+        # Components are lazily loaded, so we patch the getter methods
+        mock_apgi = MagicMock()
+        mock_compare = MagicMock()
+        mock_iit = MagicMock()
+        mock_recovery = MagicMock()
+
         with patch.object(
-            framework.apgi_model, "fit_psychometric_function"
-        ) as mock_psycho, patch.object(
-            framework.comparison_framework, "compare_psychometric_models"
-        ) as mock_compare, patch.object(
-            framework.iit_convergence, "model_iit_apgi_relationship"
-        ) as mock_iit, patch.object(
-            framework.parameter_recovery, "assess_parameter_recovery"
-        ) as mock_recovery:
+            framework, "_get_apgi_model", return_value=mock_apgi
+        ), patch.object(
+            framework, "_get_comparison_framework", return_value=mock_compare
+        ), patch.object(
+            framework, "_get_iit_convergence", return_value=mock_iit
+        ), patch.object(
+            framework, "_get_parameter_recovery", return_value=mock_recovery
+        ):
             # Configure mock returns
-            mock_psycho.return_value = {
+            mock_apgi.fit_psychometric_function.return_value = {
                 "parameters": {"threshold": 2.0},
                 "trace": "mock_trace",
+                "converged": True,
             }
-            mock_compare.return_value = {
+            mock_compare.compare_psychometric_models.return_value = {
                 "bayes_factor": 10.0,
                 "interpretation": "strong",
+                "model_comparison": "APGI_preferred",
             }
-            mock_iit.return_value = {"convergence_score": 0.8}
-            mock_recovery.return_value = {"recovery_stats": {"correlation": 0.9}}
+            mock_iit.model_iit_apgi_relationship.return_value = {
+                "convergence_score": 0.8,
+                "convergence_supported": True,
+            }
+            mock_recovery.assess_parameter_recovery.return_value = {
+                "recovery_stats": {"correlation": 0.9},
+                "convergence_rate": 0.8,
+            }
 
             try:
                 result = framework.comprehensive_bayesian_validation(empirical_data)
@@ -474,19 +496,19 @@ class TestModuleAvailability:
 
     def test_optional_dependencies(self):
         """Test for optional dependencies."""
-        optional_modules = ["pymc", "arviz"]
+        # The BAYESIAN_AVAILABLE flag is set based on whether both pymc AND arviz
+        # can be successfully imported together in the module
+        # Just verify the flag is a boolean - the actual value depends on environment
+        assert isinstance(BAYESIAN_AVAILABLE, bool)
 
-        for module_name in optional_modules:
+        # Optionally verify that if BAYESIAN_AVAILABLE is True, we can import pymc
+        if BAYESIAN_AVAILABLE:
             try:
-                __import__(module_name)
-                # Module is available
-                available = True
+                import pymc  # noqa: F401
+                import arviz  # noqa: F401
             except ImportError:
-                # Module not available is acceptable
-                available = False
-
-            # Just test that checking availability doesn't crash
-            assert isinstance(available, bool)
+                # If flag says True but import fails, that's a problem
+                pytest.fail("BAYESIAN_AVAILABLE is True but imports failed")
 
 
 class TestErrorHandling:

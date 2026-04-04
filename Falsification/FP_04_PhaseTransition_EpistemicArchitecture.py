@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 import logging
 from dataclasses import dataclass
 
@@ -7,6 +7,15 @@ import numpy as np
 from scipy.stats import entropy
 from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix
 from sklearn.utils import resample
+
+# FIX #1: Import standardized schema for protocol results
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from datetime import datetime
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
 
 # Import constants from centralized location
 from utils.constants import (
@@ -82,6 +91,26 @@ DEFAULT_DISCONTINUITY_WINDOW = 10
 DEFAULT_PHI_LOOKBACK = 50
 DEFAULT_HISTOGRAM_BINS = 10
 DEFAULT_EPSILON = 1e-10
+
+# FIX #2: Import FP-07 validated parameter bounds for cross-protocol consistency
+try:
+    from utils.interprotocol_schema import (
+        load_fp7_validated_bounds,
+    )
+
+    # Override with dynamically loaded bounds if available
+    _VALIDATED_BOUNDS = load_fp7_validated_bounds()
+except ImportError:
+    # Fallback to defaults
+    _VALIDATED_BOUNDS = {
+        "beta": (0.001, 1.0),
+        "Pi_i": (0.01, 15.0),
+        "tau_theta": (1, 500),
+        "sigma_baseline": (0.01, 2.0),
+        "alpha": (1.0, 20.0),
+        "theta_0": (0.1, 0.9),
+    }
+
 
 # Use centralized F4 constants from utils.constants
 CRITICAL_SLOWING_MIN_RATIO = F4_CRITICAL_SLOWING_MIN_RATIO
@@ -607,11 +636,11 @@ class InformationTheoreticAnalysis:
 
         # Discretize for MI estimation
         n_bins = DEFAULT_N_BINS
-        
+
         # FIX: Check for empty arrays before calling min/max
         if len(X) == 0 or len(Y) == 0:
             return np.full(max(0, len(X) - lag), np.nan)
-        
+
         X_min, X_max = X.min(), X.max()
         Y_min, Y_max = Y.min(), Y.max()
 
@@ -680,11 +709,11 @@ class InformationTheoreticAnalysis:
 
         # Global discretization for efficiency
         n_bins = DEFAULT_N_BINS
-        
+
         # FIX: Check for empty arrays before calling min/max
         if len(S) == 0 or len(theta) == 0:
             return np.array([])
-        
+
         S_min, S_max = S.min(), S.max()
         theta_min, theta_max = theta.min(), theta.max()
 
@@ -1282,7 +1311,7 @@ class InformationTheoreticAnalysis:
             # FIX: Ensure data is not empty before calling min/max
             if len(data) == 0:
                 return 0.0
-            
+
             data_min, data_max = data.min(), data.max()
 
             if data_min == data_max:
@@ -1508,16 +1537,18 @@ class InformationTheoreticAnalysis:
                 # Count occurrences - ensure we have data to count
                 y_past_slice = Y_binned[:history_length]
                 y_past_count = np.sum(y_past_slice == y_past) + epsilon
-                
+
                 # FIX: Ensure we have valid lag:t slice
                 y_current_slice = Y_binned[lag:t] if t > lag else np.array([])
                 y_past_lag_slice = Y_binned[:history_length]
-                
+
                 if len(y_current_slice) == 0 or len(y_past_lag_slice) == 0:
                     joint_count = epsilon
                 else:
                     joint_count = (
-                        np.sum((y_current_slice == y_val) & (y_past_lag_slice == y_past))
+                        np.sum(
+                            (y_current_slice == y_val) & (y_past_lag_slice == y_past)
+                        )
                         + epsilon
                     )
 
@@ -1534,8 +1565,12 @@ class InformationTheoreticAnalysis:
                 y_current_slice = Y_binned[lag:t] if t > lag else np.array([])
                 y_past_lag_slice = Y_binned[:history_length]
                 x_past_lag_slice = X_binned[:history_length]
-                
-                if len(y_current_slice) == 0 or len(y_past_lag_slice) == 0 or len(x_past_lag_slice) == 0:
+
+                if (
+                    len(y_current_slice) == 0
+                    or len(y_past_lag_slice) == 0
+                    or len(x_past_lag_slice) == 0
+                ):
                     both_count = epsilon
                     conditioning_count = epsilon
                 else:
@@ -1551,8 +1586,7 @@ class InformationTheoreticAnalysis:
                     # Count conditioning events
                     conditioning_count = (
                         np.sum(
-                            (y_past_lag_slice == y_past)
-                            & (x_past_lag_slice == x_past)
+                            (y_past_lag_slice == y_past) & (x_past_lag_slice == x_past)
                         )
                         + epsilon
                     )
@@ -1591,10 +1625,10 @@ class InformationTheoreticAnalysis:
         # FIX: Check for empty input arrays
         if len(X_binned) == 0 or len(Y_binned) == 0:
             return np.array([])
-        
+
         if len(X_binned) <= lag:
             return np.zeros(len(X_binned))
-        
+
         te_values = np.zeros(len(X_binned) - lag)
 
         for t in range(lag, len(X_binned)):
@@ -1602,7 +1636,7 @@ class InformationTheoreticAnalysis:
             p_Y_given_Ypast = self._conditional_prob(
                 Y_binned[t], Y_binned[t - lag], n_bins
             )
-            
+
             # FIX: Ensure probability array is valid before calling entropy
             if p_Y_given_Ypast is None or len(p_Y_given_Ypast) == 0:
                 H_Y_given_Ypast = 0.0
@@ -1613,7 +1647,7 @@ class InformationTheoreticAnalysis:
             p_Y_given_both = self._conditional_prob_joint(
                 Y_binned[t], Y_binned[t - lag], X_binned[t - lag], n_bins
             )
-            
+
             # FIX: Ensure probability array is valid before calling entropy
             if p_Y_given_both is None or len(p_Y_given_both) == 0:
                 H_Y_given_both = 0.0
@@ -2775,3 +2809,78 @@ def run_falsification():
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in falsification protocol 4: {e}")
         return {"status": "error", "message": str(e)}
+
+
+# FIX #1: Add standardized ProtocolResult wrapper for FP-04
+def run_protocol_main(config: dict = None) -> Union[dict, object]:
+    """Execute FP-04 falsification and return standardized result.
+
+    This wrapper converts FP-04 output to ProtocolResult format when the standardized
+    schema is available, enabling unified aggregation across all protocols.
+
+    Returns:
+        ProtocolResult if HAS_SCHEMA is True, otherwise dict in legacy format
+    """
+    result = run_falsification()
+    legacy_result = result.get("results", result)
+
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    # Convert to standardized schema
+    try:
+        # Extract named predictions
+        named_predictions = {}
+
+        # F4.1: Transfer Entropy
+        te_mean = legacy_result.get("transfer_entropy_means_mean", 0)
+        te_pass = te_mean > 0.1
+        named_predictions["F4.1"] = PredictionResult(
+            passed=te_pass,
+            value=te_mean,
+            threshold=0.1,
+            status=PredictionStatus("passed" if te_pass else "failed"),
+            evidence=[f"Transfer entropy: {te_mean:.3f} bits"],
+            sources=["FP_04_PhaseTransition_EpistemicArchitecture"],
+        )
+
+        # F4.2: Mutual Information
+        mi_mean = legacy_result.get("mutual_info_means_mean", 0)
+        mi_pass = mi_mean > 0.1
+        named_predictions["F4.2"] = PredictionResult(
+            passed=mi_pass,
+            value=mi_mean,
+            threshold=0.1,
+            status=PredictionStatus("passed" if mi_pass else "failed"),
+            evidence=[f"Mutual information: {mi_mean:.3f} bits/s"],
+            sources=["FP_04_PhaseTransition_EpistemicArchitecture"],
+        )
+
+        # F4.3: Critical Slowing
+        cs_ratio = legacy_result.get("critical_slowing_ratio_mean", 0)
+        cs_pass = cs_ratio >= 1.2
+        named_predictions["F4.3"] = PredictionResult(
+            passed=cs_pass,
+            value=cs_ratio,
+            threshold=1.2,
+            status=PredictionStatus("passed" if cs_pass else "failed"),
+            evidence=[f"Critical slowing ratio: {cs_ratio:.2f}"],
+            sources=["FP_04_PhaseTransition_EpistemicArchitecture"],
+        )
+
+        return ProtocolResult(
+            protocol_id="FP_04_PhaseTransition_EpistemicArchitecture",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=75,
+            data_sources=["Phase transition simulation"],
+            methodology="agent_simulation",
+            errors=[],
+            metadata={
+                "n_simulations": legacy_result.get("n_simulations", 0),
+                "predictions_evaluated": list(named_predictions.keys()),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to convert FP-04 to standardized schema: {e}")
+        return legacy_result

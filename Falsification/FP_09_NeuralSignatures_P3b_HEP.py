@@ -21,6 +21,15 @@ if str(project_root) not in sys.path:
 
 from utils.statistical_tests import apply_multiple_comparison_correction
 
+# FIX #2: Import standardized schema for protocol results
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from datetime import datetime
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
+
 
 def compute_band_power(
     eeg_data: np.ndarray,
@@ -3503,3 +3512,58 @@ if __name__ == "__main__":
         print("⚠ Visualization utilities not available")
     except Exception as e:
         print(f"⚠ Error generating visualization: {e}")
+
+
+# FIX #2: Add standardized ProtocolResult wrapper for FP-09
+def run_protocol_main(config: dict = None) -> Union[dict, object]:
+    """Execute protocol and return standardized result (if schema available) or legacy dict.
+
+    This wrapper converts FP-09 output to ProtocolResult format when the standardized
+    schema is available, enabling unified aggregation across all protocols.
+
+    Returns:
+        ProtocolResult if HAS_SCHEMA is True, otherwise dict in legacy format
+    """
+    legacy_result = run_protocol()
+
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    # Convert to standardized schema
+    try:
+        # Extract named predictions from legacy format
+        named_predictions = {}
+        for pred_id in ["P4.a", "P4.b", "P4.c", "P4.d"]:
+            pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+            named_predictions[pred_id] = PredictionResult(
+                passed=pred_data.get("passed", False),
+                value=pred_data.get("actual"),
+                threshold=pred_data.get("threshold"),
+                status=PredictionStatus(
+                    "passed" if pred_data.get("passed") else "failed"
+                ),
+                evidence=[pred_data.get("validation_status", "NOT_EVALUATED")],
+                sources=["FP_09_NeuralSignatures_P3b_HEP"],
+                metadata={
+                    "validation_status": pred_data.get("validation_status"),
+                    "data_source": legacy_result.get("data_source"),
+                },
+            )
+
+        return ProtocolResult(
+            protocol_id="FP_09_NeuralSignatures_P3b_HEP",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=55,  # Updated from Protocols.md
+            data_sources=["Synthetic DoC EEG data"],
+            methodology="synthetic_data",
+            errors=[],
+            metadata={
+                "status": legacy_result.get("status"),
+                "data_source": legacy_result.get("data_source"),
+                "predictions_evaluated": list(named_predictions.keys()),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to convert FP-09 to standardized schema: {e}")
+        return legacy_result

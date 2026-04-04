@@ -102,7 +102,8 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 
 ---
 
-Full cross-reference of all FP (Falsification Protocol) and VP (Validation Protocol) assignments across the four-paper APGI series. Compiled from source code audit of all 14 protocol files (FP_01–FP_12, FP_10 Dispatcher, FP_ALL_Aggregator)
+### Full cross-reference of all FP (Falsification Protocol) and VP (Validation Protocol) assignments across the four-paper APGI series. Compiled from source code audit of all 14 protocol files (FP_01–FP_12, FP_10 Dispatcher, FP_ALL_Aggregator)
+
 ---
 
 ### Badge Key
@@ -117,6 +118,7 @@ Full cross-reference of all FP (Falsification Protocol) and VP (Validation Proto
 - **—** = Not referenced in this paper
 
 ---
+
 ### 2.1 Falsification Protocols (FP) by Paper
 
 | Protocol | Name | Key Criteria Summary | Paper 1 — Framework | Paper 2 — Liquid Networks | Paper 3 — Multi-Scale | Paper 4 — Epistemic Architecture |
@@ -135,6 +137,7 @@ Full cross-reference of all FP (Falsification Protocol) and VP (Validation Proto
 | **FP-12** | Framework Aggregator (FP_ALL_Aggregator) | Condition A (FA): All 14 named predictions (P1.1–P1.3, P2.a–P2.c, P3.conv, P3.bic, P4.a–P4.d, P5.a–P5.b, fp10a_mcmc, fp10b_bf, fp10c_mae, fp10b_scaling) fail simultaneously. Condition B (FB): ΔBIC <10.0 — alternative framework (GWT/IIT) strictly more parsimonious. Either condition = framework falsified. Routes via PREDICTION_TO_PROTOCOL mapping table. | **Primary** — Synthesis | **Primary** — Framework Falsification | **Primary** — Framework Falsification | **Terminal** — Framework Falsification |
 
 ---
+
 ### 2.2 Validation Protocols (VP) by Paper
 
 | Protocol | Name | Key Criteria Summary | Paper 1 — Framework | Paper 2 — Liquid Networks | Paper 3 — Multi-Scale | Paper 4 — Epistemic Architecture |
@@ -151,7 +154,9 @@ Full cross-reference of all FP (Falsification Protocol) and VP (Validation Proto
 | **VP-10** | Causal Manipulations | Full TMS/pharmacological causal protocol (VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2). Validates P2.a–P2.c named predictions in aggregator. Paper 3 clinical causal validation. Paper 4 Priority 2 listing in causal roadmap (Std 7). | P2 (TMS/pharmacological; Appendix A.3) | — | Clinical (H4; disorder-specific causal tests) | **Priority 2** (Std 7 Causal Roadmap) |
 | **VP-11** | Cultural Neuroscience | Validates cross-cultural generalizability of APGI precision profiles and threshold parameters. Paper 3 includes disorder-specific precision profiles across DSM-5 conditions (60+ parameter table). Paper 4 cites P1–P4 predictions (Level 1 thermodynamic tier) including cross-population biological constraints. | — | — | Disorder-specific precision profiles | P1–P4 (Level 1 thermodynamic preds) |
 | **VP-12** | Clinical / Cross-Species Validation | Combines DoC clinical validation (P4.a–P4.d) with cross-species allometric scaling (P12.a, P12.b). Paper 3 covers DoC clinical protocols and cross-species predictions. Paper 4 Priority 4 in causal roadmap; P12 named predictions in framework aggregator (FP-12). Allometric exponent 0.70–0.80, >85% cross-species consistency. | — | — | DoC / Clinical (Disorders of Consciousness table) | **Priority 4** (Std 7 Causal Roadmap; P12) |
+
 ---
+
 ### 2.3 Named Predictions Cross-Reference (FP_ALL_Aggregator — 18 predictions tracked)
 
 | Prediction ID | Description | Source Protocol | Falsified if… |

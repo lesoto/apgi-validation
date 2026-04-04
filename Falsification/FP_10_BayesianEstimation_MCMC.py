@@ -39,11 +39,31 @@ VP-11 FIXES IMPLEMENTED:
 import logging
 import sys
 import numpy as np
-from typing import Dict, Tuple, Any, List, Optional
+from typing import Dict, Tuple, Any, List, Optional, Union
 from pathlib import Path
 import types
 import os
 import warnings
+
+# Bayesian modeling imports
+try:
+    import pymc3 as pm
+    import arviz as az
+
+    HAS_PYMC3 = True
+except ImportError:
+    pm = None
+    az = None
+    HAS_PYMC3 = False
+
+# FIX #3: Import standardized schema for protocol results
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from datetime import datetime
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
 
 # VP-11 Fix 1: Data source enumeration for validation gate
 from enum import Enum
@@ -158,7 +178,11 @@ def _ensure_numpy_array_utils_shim() -> None:
     module = types.ModuleType("numpy.lib.array_utils")
 
     try:
-        from numpy.core.multiarray import normalize_axis_index
+        # Try newer NumPy location first
+        try:
+            from numpy.lib.array_utils import normalize_axis_index
+        except ImportError:
+            from numpy.core.multiarray import normalize_axis_index
 
         module.normalize_axis_index = normalize_axis_index
     except (ImportError, AttributeError):
@@ -167,13 +191,19 @@ def _ensure_numpy_array_utils_shim() -> None:
             return np.mean(arr, axis=axis, keepdims=True)
 
     try:
-        from numpy.core.numeric import normalize_axis_tuple
+        # Try newer NumPy location first
+        try:
+            from numpy.lib.array_utils import normalize_axis_tuple
+        except ImportError:
+            from numpy.core.numeric import normalize_axis_tuple
 
         module.normalize_axis_tuple = normalize_axis_tuple
     except (ImportError, AttributeError):
         # Use alternative implementation for newer NumPy versions
-        def normalize_axis_tuple(arr, axis):
-            return np.mean(arr, axis=axis, keepdims=True)
+        def normalize_axis_tuple(axis, ndim):
+            if isinstance(axis, tuple):
+                return axis
+            return (axis,)
 
     np.lib.array_utils = module
     sys.modules["numpy.lib.array_utils"] = module
@@ -633,7 +663,7 @@ def run_prior_sensitivity_check(
     all_cv_values = []
     for v in sensitivity_results.values():
         all_cv_values.append(v["coefficient_of_variation"])
-    mean_cv = np.mean(all_cv_values) if all_cv_values else 0.0
+    mean_cv = float(np.mean(all_cv_values)) if all_cv_values else 0.0
 
     # VP-11 Fix 4: Flag as prior_sensitive if any parameter fails the criterion
     has_prior_sensitivity = len(prior_sensitive_params) > 0
@@ -1748,9 +1778,6 @@ def run_posterior_predictive_check(
             test_stats_predicted.append(float(test_stat_pred))
 
         # Compute Bayesian p-value
-        test_stats_observed = np.array(test_stats_observed)
-        test_stats_predicted = np.array(test_stats_predicted)
-
         # P(T(y_pred, theta) >= T(y_obs, theta))
         # This is the proportion of times the predictive discrepancy exceeds observed
         bayesian_p_value = float(np.mean(test_stats_predicted >= test_stats_observed))
@@ -2985,3 +3012,63 @@ if __name__ == "__main__":
         print("⚠ Visualization utilities not available")
     except Exception as e:
         print(f"⚠ Error generating visualization: {e}")
+
+
+# FIX #3: Add standardized ProtocolResult wrapper for FP-10
+def run_protocol_main(config: dict = None) -> Union[dict, object]:
+    """Execute FP-10 dispatcher and return standardized result.
+
+    This wrapper converts FP-10 output to ProtocolResult format when the standardized
+    schema is available, enabling unified aggregation across all protocols.
+
+    Returns:
+        ProtocolResult if HAS_SCHEMA is True, otherwise dict in legacy format
+    """
+    # Run the FP10 dispatcher
+    dispatcher = FP10Dispatcher()
+    legacy_result = dispatcher.run_falsification()
+
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    # Convert to standardized schema
+    try:
+        # Extract named predictions from legacy format
+        named_predictions = {}
+        legacy_preds = legacy_result.get("named_predictions", {})
+
+        for pred_id in ["fp10a_mcmc", "fp10b_bf", "fp10c_mae", "fp10b_scaling"]:
+            pred_data = legacy_preds.get(pred_id, {})
+            if isinstance(pred_data, dict):
+                named_predictions[pred_id] = PredictionResult(
+                    passed=pred_data.get("passed", False),
+                    value=pred_data.get("value"),
+                    threshold=pred_data.get("threshold"),
+                    status=PredictionStatus(
+                        "passed" if pred_data.get("passed") else "failed"
+                    ),
+                    evidence=[str(pred_data.get("evidence", ""))],
+                    sources=["FP_10_BayesianEstimation_MCMC"],
+                    metadata=pred_data.copy(),
+                )
+
+        return ProtocolResult(
+            protocol_id="FP_10_BayesianEstimation_MCMC",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=55,  # Updated from Protocols.md
+            data_sources=["Synthetic behavioral data"],
+            methodology="agent_simulation",
+            errors=legacy_result.get("errors", []),
+            metadata={
+                "falsified": legacy_result.get("falsified", False),
+                "predictions_evaluated": list(named_predictions.keys()),
+                "sub_protocols": {
+                    "mcmc": legacy_result.get("fp10a_mcmc_result"),
+                    "scaling": legacy_result.get("fp10b_scaling_result"),
+                },
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to convert FP-10 to standardized schema: {e}")
+        return legacy_result

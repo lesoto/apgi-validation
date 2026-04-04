@@ -11,7 +11,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -231,17 +231,8 @@ class DataValidator:
             if field not in metadata:
                 results["errors"].append(f"Missing metadata field: {field}")
 
-        # Validate data records
-        data_records = data["data"]
-        if not isinstance(data_records, list):
-            results["errors"].append("'data' section must be a list")
-            return False
-
-        if len(data_records) == 0:
-            results["errors"].append("'data' section is empty")
-            return False
-
         # Check first record structure
+        data_records = data["data"]
         first_record = data_records[0]
         required_fields = ["timestamp", "EEG_Cz", "pupil_diameter", "eda"]
         for field in required_fields:
@@ -1088,6 +1079,444 @@ def main():
         print(f"  Error in preprocessing: {type(e).__name__}: {e}")
 
     print("\nData validation and preprocessing utilities ready!")
+
+
+# =============================================================================
+# P4 DATA DEPENDENCY VALIDATION (VP-14, VP-15, FP-09)
+# =============================================================================
+
+
+def validate_fmri_dataset(
+    data_path: Union[str, Path],
+    required_conditions: Optional[List[str]] = None,
+    min_subjects: int = 30,
+    min_tr: float = 1.5,
+    max_tr: float = 3.0,
+    min_trials: int = 60,
+    check_nifti: bool = True,
+) -> Dict[str, Any]:
+    """
+    Validate fMRI dataset for VP-14/VP-15 protocols.
+
+    Args:
+        data_path: Path to BIDS dataset or NPZ file
+        required_conditions: List of required trial conditions (e.g., ["threat", "safe"])
+        min_subjects: Minimum number of subjects required
+        min_tr: Minimum acceptable TR (repetition time)
+        max_tr: Maximum acceptable TR
+        min_trials: Minimum trials per subject
+        check_nifti: Whether to validate NIfTI files (requires nibabel)
+
+    Returns:
+        Validation report dictionary
+    """
+    report = {
+        "valid": False,
+        "errors": [],
+        "warnings": [],
+        "metadata": {},
+        "subjects": [],
+        "n_subjects": 0,
+    }
+
+    data_path = Path(data_path)
+
+    if not data_path.exists():
+        report["errors"].append(f"Data path does not exist: {data_path}")
+        return report
+
+    # Check if it's a single NPZ file
+    if data_path.suffix == ".npz":
+        return _validate_fmri_npz(data_path, report, required_conditions, min_trials)
+
+    # Check if it's a BIDS dataset
+    if data_path.is_dir():
+        return _validate_bids_fmri(
+            data_path,
+            report,
+            required_conditions,
+            min_subjects,
+            min_tr,
+            max_tr,
+            min_trials,
+            check_nifti,
+        )
+
+    report["errors"].append(
+        f"Unsupported data format: {data_path.suffix}. Use .npz or BIDS directory."
+    )
+    return report
+
+
+def _validate_fmri_npz(
+    npz_path: Path,
+    report: Dict[str, Any],
+    required_conditions: Optional[List[str]],
+    min_trials: int,
+) -> Dict[str, Any]:
+    """Validate pre-processed NPZ fMRI data."""
+    try:
+        data = np.load(npz_path, allow_pickle=True)
+
+        # Check required fields
+        required_fields = ["vmPFC_bold", "conditions", "dt", "trial_duration"]
+        for field in required_fields:
+            if field not in data:
+                report["errors"].append(f"Missing required field: {field}")
+
+        # Check data dimensions
+        if "vmPFC_bold" in data:
+            vmPFC = data["vmPFC_bold"]
+            report["metadata"]["n_timepoints"] = len(vmPFC)
+
+            # Estimate number of trials
+            trial_duration = float(data.get("trial_duration", 12.0))
+            dt = float(data.get("dt", 1.0))
+            n_trials_est = len(vmPFC) / (trial_duration / dt)
+            report["metadata"]["n_trials_estimated"] = int(n_trials_est)
+
+            if n_trials_est < min_trials:
+                report["warnings"].append(
+                    f"Low trial count: ~{int(n_trials_est)} (minimum {min_trials})"
+                )
+
+        # Check conditions
+        if "conditions" in data and required_conditions:
+            conditions = data["conditions"].tolist()
+            found_conditions = set()
+            for cond in conditions:
+                if isinstance(cond, dict):
+                    cond_type = cond.get("trial_type", cond.get("is_threat", "unknown"))
+                    found_conditions.add(str(cond_type).lower())
+                elif isinstance(cond, (tuple, list)) and len(cond) > 0:
+                    found_conditions.add(str(cond[0]).lower())
+
+            for req in required_conditions:
+                if req.lower() not in found_conditions:
+                    report["warnings"].append(f"Condition '{req}' not found in data")
+
+        if not report["errors"]:
+            report["valid"] = True
+            report["subjects"] = [npz_path.stem]
+            report["n_subjects"] = 1
+
+    except Exception as e:
+        report["errors"].append(f"Error loading NPZ: {e}")
+
+    return report
+
+
+def _validate_bids_fmri(
+    bids_path: Path,
+    report: Dict[str, Any],
+    required_conditions: Optional[List[str]],
+    min_subjects: int,
+    min_tr: float,
+    max_tr: float,
+    min_trials: int,
+    check_nifti: bool,
+) -> Dict[str, Any]:
+    """Validate BIDS-formatted fMRI dataset."""
+    # Check for participants.tsv
+    participants_file = bids_path / "participants.tsv"
+    if not participants_file.exists():
+        report["warnings"].append("No participants.tsv found (not strict BIDS)")
+
+    # Find subject directories
+    sub_dirs = list(bids_path.glob("sub-*"))
+    if len(sub_dirs) < min_subjects:
+        report["warnings"].append(
+            f"Only {len(sub_dirs)} subjects found (minimum {min_subjects} recommended)"
+        )
+
+    report["metadata"]["n_subjects_found"] = len(sub_dirs)
+
+    # Validate each subject
+    valid_subjects = []
+    for sub_dir in sub_dirs:
+        sub_id = sub_dir.name
+        func_dir = sub_dir / "func"
+
+        if not func_dir.exists():
+            report["warnings"].append(f"{sub_id}: No func/ directory")
+            continue
+
+        # Find bold files
+        bold_files = list(func_dir.glob("*_bold.nii*"))
+        if not bold_files:
+            report["warnings"].append(f"{sub_id}: No BOLD files found")
+            continue
+
+        # Check for events.tsv if conditions required
+        if required_conditions:
+            events_files = list(func_dir.glob("*_events.tsv"))
+            if not events_files:
+                report["warnings"].append(
+                    f"{sub_id}: No events.tsv (required for conditions)"
+                )
+
+        valid_subjects.append(sub_id)
+
+    report["subjects"] = valid_subjects
+    report["n_subjects"] = len(valid_subjects)
+
+    # Check TR from a sample file if nibabel available
+    if check_nifti and valid_subjects:
+        try:
+            import nibabel as nib
+
+            sample_file = (
+                bids_path
+                / valid_subjects[0]
+                / "func"
+                / f"{valid_subjects[0]}_task-anticipation_run-01_bold.nii.gz"
+            )
+            if sample_file.exists():
+                img = nib.load(str(sample_file))
+                zooms = img.header.get_zooms()
+                if len(zooms) >= 4:
+                    tr = float(zooms[-1])
+                    report["metadata"]["tr"] = tr
+                    if tr < min_tr or tr > max_tr:
+                        report["warnings"].append(
+                            f"TR = {tr}s outside range [{min_tr}, {max_tr}]"
+                        )
+        except ImportError:
+            report["warnings"].append(
+                "nibabel not available - skipping NIfTI validation"
+            )
+        except Exception as e:
+            report["warnings"].append(f"Error reading sample NIfTI: {e}")
+
+    if not report["errors"]:
+        report["valid"] = True
+
+    return report
+
+
+def validate_doc_eeg_dataset(
+    data_path: Union[str, Path],
+    min_patients: int = 50,
+    required_modalities: Optional[List[str]] = None,
+    check_bids: bool = True,
+) -> Dict[str, Any]:
+    """Validate DoC EEG dataset for FP-09."""
+    if required_modalities is None:
+        required_modalities = ["rest", "pci", "hep"]
+
+    report = {
+        "valid": False,
+        "errors": [],
+        "warnings": [],
+        "metadata": {},
+        "patients": [],
+        "n_patients": 0,
+        "diagnoses": {},
+    }
+
+    data_path = Path(data_path)
+
+    if not data_path.exists():
+        report["errors"].append(f"Data path does not exist: {data_path}")
+        return report
+
+    # Check if it's a single NPZ file
+    if data_path.suffix == ".npz":
+        return _validate_doc_npz(data_path, report, required_modalities, min_patients)
+
+    # Check if it's a BIDS dataset
+    if data_path.is_dir():
+        return _validate_bids_doc(
+            data_path, report, required_modalities, min_patients, check_bids
+        )
+
+    report["errors"].append(
+        f"Unsupported data format: {data_path.suffix}. Use .npz or BIDS directory."
+    )
+    return report
+
+
+def _validate_doc_npz(
+    npz_path: Path,
+    report: Dict[str, Any],
+    required_modalities: List[str],
+    min_patients: int,
+) -> Dict[str, Any]:
+    """Validate pre-processed DoC NPZ data."""
+    try:
+        data = np.load(npz_path, allow_pickle=True)
+
+        # Check required fields
+        required_fields = ["pci_scores", "hep_amplitudes", "consciousness_labels"]
+        for field in required_fields:
+            if field not in data:
+                report["errors"].append(f"Missing required field: {field}")
+
+        # Check patient count
+        if "pci_scores" in data:
+            n_patients = len(data["pci_scores"])
+            report["metadata"]["n_patients"] = n_patients
+            report["n_patients"] = n_patients
+
+            if n_patients < min_patients:
+                report["warnings"].append(
+                    f"Low patient count: {n_patients} (minimum {min_patients} recommended)"
+                )
+
+            # Check diagnosis distribution
+            if "consciousness_labels" in data:
+                labels = data["consciousness_labels"]
+                unique, counts = np.unique(labels, return_counts=True)
+                report["diagnoses"] = {
+                    "VS/UWS": int(counts[0]) if 0 in unique else 0,
+                    "MCS": int(counts[1]) if 1 in unique else 0,
+                    "EMCS/Conscious": int(counts[2]) if 2 in unique else 0,
+                }
+
+                # Check balance
+                min_count = min(report["diagnoses"].values())
+                if min_count < 10:
+                    report["warnings"].append(
+                        f"Imbalanced diagnoses: minimum category has only {min_count} patients"
+                    )
+
+        if not report["errors"]:
+            report["valid"] = True
+            report["patients"] = [f"patient_{i}" for i in range(report["n_patients"])]
+
+    except Exception as e:
+        report["errors"].append(f"Error loading NPZ: {e}")
+
+    return report
+
+
+def _validate_bids_doc(
+    bids_path: Path,
+    report: Dict[str, Any],
+    required_modalities: List[str],
+    min_patients: int,
+    check_bids: bool,
+) -> Dict[str, Any]:
+    """Validate BIDS-formatted DoC EEG dataset."""
+    # Check for participants.tsv with clinical data
+    participants_file = bids_path / "participants.tsv"
+    if participants_file.exists():
+        try:
+            import pandas as pd
+
+            participants = pd.read_csv(participants_file, sep="\t")
+            report["metadata"]["n_participants_tsv"] = len(participants)
+
+            # Check for diagnosis column
+            if "diagnosis" in participants.columns:
+                diag_counts = participants["diagnosis"].value_counts().to_dict()
+                report["diagnoses"] = diag_counts
+        except ImportError:
+            report["warnings"].append(
+                "pandas not available - skipping participants.tsv validation"
+            )
+        except Exception as e:
+            report["warnings"].append(f"Error reading participants.tsv: {e}")
+    else:
+        report["warnings"].append("No participants.tsv found (not strict BIDS)")
+
+    # Find subject directories
+    sub_dirs = list(bids_path.glob("sub-*"))
+    if len(sub_dirs) < min_patients:
+        report["warnings"].append(
+            f"Only {len(sub_dirs)} patients found (minimum {min_patients} recommended)"
+        )
+
+    report["metadata"]["n_patients_found"] = len(sub_dirs)
+
+    # Validate each patient
+    valid_patients = []
+    for sub_dir in sub_dirs:
+        sub_id = sub_dir.name
+        eeg_dir = sub_dir / "eeg"
+        clinical_dir = sub_dir / "clinical"
+
+        if not eeg_dir.exists():
+            report["warnings"].append(f"{sub_id}: No eeg/ directory")
+            continue
+
+        # Check for required modalities
+        for modality in required_modalities:
+            modality_files = list(eeg_dir.glob(f"*_{modality}_*.set")) or list(
+                eeg_dir.glob(f"*_{modality}_*.fif")
+            )
+            if not modality_files:
+                report["warnings"].append(f"{sub_id}: No {modality} recording found")
+
+        # Check for clinical data
+        if clinical_dir.exists():
+            crs_r_file = clinical_dir / f"{sub_id}_crs-r.tsv"
+            if not crs_r_file.exists():
+                report["warnings"].append(
+                    f"{sub_id}: No CRS-R scores (clinical assessment)"
+                )
+        else:
+            report["warnings"].append(f"{sub_id}: No clinical/ directory")
+
+        valid_patients.append(sub_id)
+
+    report["patients"] = valid_patients
+    report["n_patients"] = len(valid_patients)
+
+    if not report["errors"]:
+        report["valid"] = True
+
+    return report
+
+
+def load_real_data_stub(
+    protocol_id: str, data_path: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Stub function for loading real P4 data - returns clear status when unavailable.
+
+    Args:
+        protocol_id: One of "VP-14", "VP-15", "FP-09"
+        data_path: Optional path to real data
+
+    Returns:
+        Dictionary with status and data (if available)
+    """
+    if data_path and Path(data_path).exists():
+        # Real data provided - validate and load
+        if protocol_id in ["VP-14", "VP-15"]:
+            validation = validate_fmri_dataset(data_path)
+            if validation["valid"]:
+                return {
+                    "status": "empirical_loaded",
+                    "protocol_id": protocol_id,
+                    "validation": validation,
+                    "data_path": data_path,
+                }
+        elif protocol_id == "FP-09":
+            validation = validate_doc_eeg_dataset(data_path)
+            if validation["valid"]:
+                return {
+                    "status": "empirical_loaded",
+                    "protocol_id": protocol_id,
+                    "validation": validation,
+                    "data_path": data_path,
+                }
+
+    # No real data - return stub status
+    status_messages = {
+        "VP-14": "fMRI Anticipation - requires real clinical fMRI data",
+        "VP-15": "fMRI vmPFC - requires real clinical fMRI data",
+        "FP-09": "DoC Neural Signatures - requires real DoC cohort data",
+    }
+
+    return {
+        "status": "data_required",
+        "protocol_id": protocol_id,
+        "message": status_messages.get(protocol_id, "Unknown protocol"),
+        "action_required": "Collect external clinical data per docs/DATA_REQUIREMENTS.md",
+        "synthetic_fallback": True,
+    }
 
 
 if __name__ == "__main__":

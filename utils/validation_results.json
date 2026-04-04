@@ -1,0 +1,34 @@
+{
+  "fp02_data_variance": {
+    "status": "ERROR",
+    "error": "No module named 'Falsification'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/lesoto/Sites/PYTHON/apgi-validation/utils/validation_runner.py\", line 37, in validate_fp02_data_variance\n    from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import (\n    ...<2 lines>...\n    )\nModuleNotFoundError: No module named 'Falsification'\n"
+  },
+  "fp03_dependencies": {
+    "status": "ERROR",
+    "error": "No module named 'Falsification'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/lesoto/Sites/PYTHON/apgi-validation/utils/validation_runner.py\", line 76, in validate_fp03_dependencies\n    from Falsification.FP_03_FrameworkLevel_MultiProtocol import (\n    ...<2 lines>...\n    )\nModuleNotFoundError: No module named 'Falsification'\n"
+  },
+  "fp04_te_computation": {
+    "status": "ERROR",
+    "error": "No module named 'Falsification'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/lesoto/Sites/PYTHON/apgi-validation/utils/validation_runner.py\", line 98, in validate_fp04_te_computation\n    from Falsification.FP_04_PhaseTransition_EpistemicArchitecture import (\n    ...<2 lines>...\n    )\nModuleNotFoundError: No module named 'Falsification'\n"
+  },
+  "fp05_empirical_validation": {
+    "status": "ERROR",
+    "error": "No module named 'Falsification'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/lesoto/Sites/PYTHON/apgi-validation/utils/validation_runner.py\", line 143, in validate_fp05_empirical_data\n    from Falsification.FP_05_EvolutionaryPlausibility import (\n        validate_against_empirical_constraints,\n    )\nModuleNotFoundError: No module named 'Falsification'\n"
+  },
+  "parameter_consistency": {
+    "status": "ERROR",
+    "error": "No module named 'utils.falsification_thresholds'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/lesoto/Sites/PYTHON/apgi-validation/utils/validation_runner.py\", line 203, in validate_parameter_consistency\n    from utils.falsification_thresholds import (\n    ...<7 lines>...\n    )\nModuleNotFoundError: No module named 'utils.falsification_thresholds'\n"
+  },
+  "summary": {
+    "overall_status": "ERROR",
+    "total_checks": 5,
+    "passed": 0,
+    "failed": 0,
+    "errors": 5
+  }
+}

@@ -7,11 +7,19 @@ import sys
 import time
 import warnings
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 from scipy import stats
 from scipy.stats import binomtest
 from pathlib import Path
+
+# FIX #1: Import standardized schema for protocol results
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
 
 # Try to import matplotlib for visualization
 try:
@@ -2502,7 +2510,7 @@ def run_falsification():
             # This allows FP-03 to run independently while still enforcing for full synthesis
             fp01_passed = fp01_result.get("passed", False)
             fp02_passed = fp02_result.get("passed", False)
-            
+
             if not fp01_passed:
                 logger.warning(
                     "FP-01 did not pass or has no valid 'passed' field; "
@@ -3852,3 +3860,56 @@ def check_falsification(
         f"\nFalsification-Protocol-3 Summary: {results['summary']['passed']}/{results['summary']['total']} criteria passed"
     )
     return results
+
+
+# FIX #1: Add standardized ProtocolResult wrapper for FP-03
+def run_protocol_main(config: dict = None) -> Union[dict, object]:
+    """Execute FP-03 falsification and return standardized result.
+
+    This wrapper converts FP-03 output to ProtocolResult format when the standardized
+    schema is available, enabling unified aggregation across all protocols.
+
+    Returns:
+        ProtocolResult if HAS_SCHEMA is True, otherwise dict in legacy format
+    """
+    results = run_falsification()
+
+    if not HAS_SCHEMA:
+        return results
+
+    # Convert to standardized schema
+    try:
+        # Extract named predictions from F3.x criteria
+        named_predictions = {}
+        criteria = results.get("criteria", {})
+
+        for pred_id in ["F3.1", "F3.2", "F3.3", "F3.4", "F3.5", "F3.6"]:
+            pred_data = criteria.get(pred_id, {})
+            named_predictions[pred_id] = PredictionResult(
+                passed=pred_data.get("passed", False),
+                value=pred_data.get("effect_size"),
+                threshold=pred_data.get("threshold"),
+                status=PredictionStatus(
+                    "passed" if pred_data.get("passed") else "failed"
+                ),
+                evidence=[pred_data.get("description", "")],
+                sources=["FP_03_FrameworkLevel_MultiProtocol"],
+                metadata=pred_data,
+            )
+
+        return ProtocolResult(
+            protocol_id="FP_03_FrameworkLevel_MultiProtocol",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=80,
+            data_sources=["Multi-protocol agent comparison"],
+            methodology="agent_simulation",
+            errors=[],
+            metadata={
+                "summary": results.get("summary", {}),
+                "predictions_evaluated": list(named_predictions.keys()),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to convert FP-03 to standardized schema: {e}")
+        return results

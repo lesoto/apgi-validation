@@ -1439,17 +1439,22 @@ def run_validation(
 
         results = {
             "passed": overall_passed,
-            "status": "success",
+            "status": "SIMULATION_ONLY",  # CRIT-FIX: Mark as simulation-only, not empirical
+            "data_source": "synthetic",  # CRIT-FIX: All data generated from APGI model
+            "validation_reliability": "simulation_validated",  # CRIT-FIX: Parameter recovery tests recover synthetic data generation
             "falsification_status": falsification_status,
             "summary": {
                 "gates_passed": sum(
                     [gate_v11_1, gate_v11_2, gate_v11_3, gate_v11_4, gate_v11_5]
                 ),
                 "gates_total": 5,
+                "note": "SYNTHETIC_DATA: Parameter recovery tests recover model's own synthetic data generation, not real cross-cultural data. Results marked as SIMULATION_ONLY.",
             },
         }
 
-        logger.info(f"Protocol 11 Completed. Passed: {overall_passed}")
+        logger.info(
+            f"Protocol 11 Completed. Passed: {overall_passed} (SIMULATION_ONLY - synthetic data)"
+        )
         return results
 
     except Exception as exc:

@@ -19,7 +19,7 @@ methods for each standard.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Type
 from enum import Enum
 
 
@@ -436,7 +436,7 @@ def _initialize_standards():
 _initialize_standards()
 
 
-def get_seven_standards_registry() -> SevenStandardsRegistry:
+def get_seven_standards_registry() -> Type[SevenStandardsRegistry]:
     """Get the seven standards registry instance."""
     return SevenStandardsRegistry
 

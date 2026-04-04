@@ -157,7 +157,7 @@ class TMSIntervention:
             "detection_rates": [],
             "reaction_times": [],
             "timings": list(np.linspace(0.1, 0.5, n_trials)),
-            "target_region": target_region,
+            "target_region": [target_region],
         }
 
         for timing in results["timings"]:
@@ -1605,6 +1605,67 @@ def run_validation(**kwargs):
 # =============================================================================
 
 
+def validate_tms_causal_consistency(fp01_results: dict, vp10_results: dict) -> dict:
+    """
+    Ensure VP-10 TMS effects are consistent with FP-01 active inference model.
+
+    Consistency check:
+    - If FP-01 predicts dlPFC drives threshold (τ_θ parameter) via F1.4
+    - Then VP-10 TMS to dlPFC should shift threshold in predicted direction via P2.a
+
+    Args:
+        fp01_results: Results from FP-01 protocol
+        vp10_results: Results from VP-10 protocol
+
+    Returns:
+        dict: Consistency validation results
+    """
+    # Extract relevant predictions
+    fp01_threshold_dynamics = fp01_results.get("F1.4", {})
+    vp10_dlpfc_tms = vp10_results.get("P2.a", {})
+
+    # Check consistency
+    passed = fp01_threshold_dynamics.get("passed", False) and vp10_dlpfc_tms.get(
+        "passed", False
+    )
+
+    # Determine direction consistency
+    direction_consistent = True
+    if fp01_threshold_dynamics.get("passed") and vp10_dlpfc_tms.get("passed"):
+        # Both passed - check if directions align
+        fp01_direction = fp01_threshold_dynamics.get("threshold_direction", "unknown")
+        vp10_direction = vp10_dlpfc_tms.get("threshold_shift_direction", "unknown")
+
+        if fp01_direction != "unknown" and vp10_direction != "unknown":
+            # Direction consistency check
+            if fp01_direction == vp10_direction:
+                direction_consistent = True
+            else:
+                direction_consistent = False
+
+    return {
+        "consistency_check": "FP-01 ↔ VP-10 TMS coupling",
+        "passed": passed and direction_consistent,
+        "evidence": [
+            f"FP-01 F1.4 (threshold dynamics): {fp01_threshold_dynamics.get('passed')}",
+            f"VP-10 P2.a (dlPFC TMS): {vp10_dlpfc_tms.get('passed')}",
+            f"Direction consistency: {direction_consistent}",
+        ],
+        "fp01_threshold_direction": fp01_threshold_dynamics.get(
+            "threshold_direction", "unknown"
+        ),
+        "vp10_threshold_shift_direction": vp10_dlpfc_tms.get(
+            "threshold_shift_direction", "unknown"
+        ),
+        "cross_protocol_prediction_alignment": direction_consistent,
+    }
+
+
+# =============================================================================
+# FALSIFICATION CRITERIA IMPLEMENTATION
+# =============================================================================
+
+
 def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     """
     Return complete falsification specifications for Validation_Protocol_10.
@@ -2420,7 +2481,7 @@ class ColdPressorTest:
             "duration_s": 0,
             "breathlessness_rating": 0,
             "pain_rating": 0,
-            "cardiovascular_responses": {},
+            "cardiovascular_responses": [],
             "safety_violations": [],
         }
 
@@ -2440,33 +2501,32 @@ class ColdPressorTest:
             hr_increase = 20 * pain_rating  # 20 bpm per pain unit
             sbp_increase = 15 * pain_rating  # 15 mmHg per pain unit
 
-            results["cardiovascular_responses"][t] = {
+            cardiovascular_response = {
+                "time_s": t,
                 "hr_bpm": 70 + hr_increase,
                 "sbp_mmhg": 120 + sbp_increase,
                 "spo2_percent": 98 - 2 * pain_rating,  # Mild desaturation
             }
+            results["cardiovascular_responses"].append(cardiovascular_response)
 
             # Check safety criteria
-            if (
-                results["cardiovascular_responses"][t]["hr_bpm"]
-                > self.safety_criteria["max_hr_bpm"]
-            ):
+            if cardiovascular_response["hr_bpm"] > self.safety_criteria["max_hr_bpm"]:
                 results["safety_violations"].append(
-                    f"HR exceeded: {results['cardiovascular_responses'][t]['hr_bpm']}"
+                    f"HR exceeded: {cardiovascular_response['hr_bpm']}"
                 )
             if (
-                results["cardiovascular_responses"][t]["sbp_mmhg"]
+                cardiovascular_response["sbp_mmhg"]
                 > self.safety_criteria["max_sbp_mmhg"]
             ):
                 results["safety_violations"].append(
-                    f"SBP exceeded: {results['cardiovascular_responses'][t]['sbp_mmhg']}"
+                    f"SBP exceeded: {cardiovascular_response['sbp_mmhg']}"
                 )
             if (
-                results["cardiovascular_responses"][t]["spo2_percent"]
+                cardiovascular_response["spo2_percent"]
                 < self.safety_criteria["min_spo2_percent"]
             ):
                 results["safety_violations"].append(
-                    f"SpO2 too low: {results['cardiovascular_responses'][t]['spo2_percent']}"
+                    f"SpO2 too low: {cardiovascular_response['spo2_percent']}"
                 )
 
             if len(results["safety_violations"]) > 0:

@@ -14,6 +14,32 @@ from pathlib import Path
 from tkinter import messagebox, scrolledtext, ttk
 from typing import List, Callable, Any
 
+# Pre-import torch to prevent circular import issues with dynamically loaded protocols
+try:
+    import torch
+
+    TORCH_AVAILABLE = True
+    _ = torch.__version__  # Use torch to avoid 'unused import' warning
+except ImportError:
+    TORCH_AVAILABLE = False
+
+# Fix temp directory and cache issues for matplotlib/sklearn
+import tempfile
+
+os.environ["TMPDIR"] = tempfile.gettempdir()
+os.environ["MPLCONFIGDIR"] = os.path.join(tempfile.gettempdir(), "matplotlib_cache")
+
+# Ensure cache directories exist
+cache_dirs = [
+    os.path.join(tempfile.gettempdir(), "matplotlib_cache"),
+    os.path.expanduser("~/.cache/matplotlib"),
+]
+for cache_dir in cache_dirs:
+    try:
+        os.makedirs(cache_dir, exist_ok=True)
+    except Exception:
+        pass
+
 # Suppress lifelines and pandas FutureWarnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="lifelines")
 warnings.filterwarnings("ignore", category=FutureWarning, module="pandas")

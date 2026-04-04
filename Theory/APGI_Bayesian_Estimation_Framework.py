@@ -39,6 +39,22 @@ except (ImportError, AttributeError) as e:
     )
 
 
+def _interpret_bayes_factor(bf: float) -> str:
+    """Interpret Bayes factor strength - standalone function that doesn't require PyMC"""
+    if bf > 100:
+        return "decisive"
+    elif bf > 30:
+        return "very_strong"
+    elif bf > 10:
+        return "strong"
+    elif bf > 3:
+        return "substantial"
+    elif bf > 1:
+        return "anecdotal"
+    else:
+        return "no_evidence"
+
+
 class APGIBayesianModel:
     """Bayesian implementation of APGI dynamical system"""
 
@@ -355,6 +371,11 @@ class ModelComparisonFramework:
     """Bayesian model comparison between APGI, GNW, and IIT"""
 
     def __init__(self):
+        # Allow initialization without PyMC - individual methods will check availability
+        pass
+
+    def _check_bayesian_available(self):
+        """Check if PyMC is available, raise ImportError if not"""
         if not BAYESIAN_AVAILABLE:
             raise ImportError("PyMC required for model comparison")
 
@@ -588,19 +609,8 @@ class ModelComparisonFramework:
             return 0.1
 
     def _interpret_bayes_factor(self, bf: float) -> str:
-        """Interpret Bayes factor strength"""
-        if bf > 100:
-            return "decisive"
-        elif bf > 30:
-            return "very_strong"
-        elif bf > 10:
-            return "strong"
-        elif bf > 3:
-            return "substantial"
-        elif bf > 1:
-            return "anecdotal"
-        else:
-            return "no_evidence"
+        """Interpret Bayes factor strength using standalone function"""
+        return _interpret_bayes_factor(bf)
 
 
 class IITConvergenceBayesian:
@@ -672,7 +682,13 @@ class ParameterRecoveryAnalysis:
     """Parameter recovery and uncertainty analysis"""
 
     def __init__(self):
-        self.bayesian_model = APGIBayesianModel()
+        self.bayesian_model = None
+
+    def _get_bayesian_model(self):
+        """Lazy initialization of bayesian model"""
+        if self.bayesian_model is None:
+            self.bayesian_model = APGIBayesianModel()
+        return self.bayesian_model
 
     def assess_parameter_recovery(
         self, true_parameters: Dict, n_simulations: int = 50
@@ -694,13 +710,15 @@ class ParameterRecoveryAnalysis:
             "convergence_rates": [],
         }
 
+        bayesian_model = self._get_bayesian_model()
+
         for sim in tqdm(range(n_simulations), desc="Parameter recovery simulations"):
             # Generate synthetic data with true parameters
             synthetic_data = self._generate_synthetic_data(true_parameters)
 
             # Attempt recovery
             try:
-                recovery_result = self.bayesian_model.fit_psychometric_function(
+                recovery_result = bayesian_model.fit_psychometric_function(
                     synthetic_data["stimuli"], synthetic_data["detections"]
                 )
 
@@ -775,10 +793,34 @@ class BayesianValidationFramework:
     """Complete Bayesian validation framework"""
 
     def __init__(self):
-        self.apgi_model = APGIBayesianModel()
-        self.comparison_framework = ModelComparisonFramework()
-        self.iit_convergence = IITConvergenceBayesian()
-        self.parameter_recovery = ParameterRecoveryAnalysis()
+        self.apgi_model = None
+        self.comparison_framework = None
+        self.iit_convergence = None
+        self.parameter_recovery = None
+
+    def _get_apgi_model(self):
+        """Lazy initialization of APGI model"""
+        if self.apgi_model is None:
+            self.apgi_model = APGIBayesianModel()
+        return self.apgi_model
+
+    def _get_comparison_framework(self):
+        """Lazy initialization of comparison framework"""
+        if self.comparison_framework is None:
+            self.comparison_framework = ModelComparisonFramework()
+        return self.comparison_framework
+
+    def _get_iit_convergence(self):
+        """Lazy initialization of IIT convergence"""
+        if self.iit_convergence is None:
+            self.iit_convergence = IITConvergenceBayesian()
+        return self.iit_convergence
+
+    def _get_parameter_recovery(self):
+        """Lazy initialization of parameter recovery"""
+        if self.parameter_recovery is None:
+            self.parameter_recovery = ParameterRecoveryAnalysis()
+        return self.parameter_recovery
 
     def comprehensive_bayesian_validation(self, empirical_data: Dict) -> Dict:
         """
@@ -803,10 +845,10 @@ class BayesianValidationFramework:
         if "psychometric_data" in empirical_data:
             psycho_data = empirical_data["psychometric_data"]
             try:
-                results["psychometric_estimation"] = (
-                    self.apgi_model.fit_psychometric_function(
-                        psycho_data["stimuli"], psycho_data["detections"]
-                    )
+                results[
+                    "psychometric_estimation"
+                ] = self._get_apgi_model().fit_psychometric_function(
+                    psycho_data["stimuli"], psycho_data["detections"]
                 )
             except Exception as e:
                 results["psychometric_estimation"] = {"error": str(e)}
@@ -815,10 +857,10 @@ class BayesianValidationFramework:
         if "psychometric_data" in empirical_data:
             psycho_data = empirical_data["psychometric_data"]
             try:
-                results["model_comparison"] = (
-                    self.comparison_framework.compare_psychometric_models(
-                        psycho_data["stimuli"], psycho_data["detections"]
-                    )
+                results[
+                    "model_comparison"
+                ] = self._get_comparison_framework().compare_psychometric_models(
+                    psycho_data["stimuli"], psycho_data["detections"]
                 )
             except Exception as e:
                 results["model_comparison"] = {"error": str(e)}
@@ -826,10 +868,10 @@ class BayesianValidationFramework:
         # 3. IIT convergence analysis
         if "ignition_data" in empirical_data and "phi_data" in empirical_data:
             try:
-                results["iit_convergence"] = (
-                    self.iit_convergence.model_iit_apgi_relationship(
-                        empirical_data["ignition_data"], empirical_data["phi_data"]
-                    )
+                results[
+                    "iit_convergence"
+                ] = self._get_iit_convergence().model_iit_apgi_relationship(
+                    empirical_data["ignition_data"], empirical_data["phi_data"]
                 )
             except Exception as e:
                 results["iit_convergence"] = {"error": str(e)}
@@ -837,10 +879,10 @@ class BayesianValidationFramework:
         # 4. Parameter recovery analysis
         true_params = {"beta": 12.0, "theta": 0.5, "amplitude": 1.0, "baseline": 0.0}
         try:
-            results["parameter_recovery"] = (
-                self.parameter_recovery.assess_parameter_recovery(
-                    true_params, n_simulations=10  # Reduced for demonstration
-                )
+            results[
+                "parameter_recovery"
+            ] = self._get_parameter_recovery().assess_parameter_recovery(
+                true_params, n_simulations=10  # Reduced for demonstration
             )
         except Exception as e:
             results["parameter_recovery"] = {"error": str(e)}

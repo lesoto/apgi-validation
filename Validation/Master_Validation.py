@@ -14,7 +14,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 
-# Add project root to sys.path for Falsification imports
+# Add project root to sys.path for imports
 _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
@@ -26,6 +26,17 @@ except ImportError:
     import logging
 
     logger = logging.getLogger(__name__)  # type: ignore[misc,assignment]
+
+# Import validation-falsification consistency checker
+try:
+    from utils.validation_falsification_consistency import (
+        ValidationFalsificationConsistency,
+        ConsistencyIssue,
+    )
+except ImportError:
+    # Fallback placeholders when module is not available
+    ValidationFalsificationConsistency = None  # type: ignore[misc]
+    ConsistencyIssue = None  # type: ignore[misc]
 
 
 class APGIMasterValidator:
@@ -104,6 +115,11 @@ class APGIMasterValidator:
         }
         # Pending protocols: awaiting empirical data (excluded from scoring denominator)
         self.PENDING_PROTOCOLS = []  # All current protocols implemented
+        self.tier_weights = {
+            "primary": 2.0,
+            "secondary": 1.5,
+            "tertiary": 1.0,
+        }  # Initialize tier weights
         self.available_protocols = {
             "Protocol-1": {
                 "file": "VP_01_SyntheticEEG_MLClassification.py",
@@ -333,6 +349,9 @@ class APGIMasterValidator:
 
         # Equal weighting across completed protocols (excluding pending)
         tier_weights = {"primary": 2.0, "secondary": 1.5, "tertiary": 1.0}
+        self.tier_weights = (
+            tier_weights  # Store as instance attribute for external access
+        )
         tier_stats = {
             "primary": {"passed": 0, "total": 0, "pending": 0},
             "secondary": {"passed": 0, "total": 0, "pending": 0},
@@ -522,7 +541,8 @@ class APGIMasterValidator:
             "timestamp": datetime.now().isoformat(),
             "protocol_results": self.protocol_results,
             "tier_classification": self.PROTOCOL_TIERS,
-            "tier_weights": {"primary": 1.0, "secondary": 1.0, "tertiary": 1.0},
+            "tier_weights": {"primary": 2.0, "secondary": 1.5, "tertiary": 1.0},
+            "instance_tier_weights": self.tier_weights,
             "available_protocols": self.available_protocols,
             "protocol_dependencies": self.protocol_dependencies,
             "falsification_dependencies": getattr(
@@ -646,8 +666,67 @@ def main():
             check_framework_falsification_condition_a,
             check_framework_falsification_condition_b,
         )
+        from ValidationFalsificationConsistency import (
+            ValidationFalsificationConsistency,
+        )
 
         preds = aggregate_prediction_results(validator.protocol_results)
+
+        # Run validation-falsification consistency checks
+        if ValidationFalsificationConsistency is not None:
+            consistency_checker = ValidationFalsificationConsistency(
+                fp_results=validator.protocol_results, vp_results={}
+            )
+
+            # Extract VP results for consistency checking
+            # VP results are stored with different keys, so we need to extract them
+            vp_results_for_consistency = {}
+            for protocol_name, protocol_data in validator.protocol_results.items():
+                if protocol_name.startswith("VP_"):
+                    vp_results_for_consistency[protocol_name] = protocol_data
+
+            consistency_report = consistency_checker.generate_consistency_report()
+
+            # Add consistency report to summary
+            if consistency_report["total_issues"] > 0:
+                print("\n" + "=" * 80)
+                print(" VALIDATION-FALSIFICATION CONSISTENCY CHECKS ".center(80, "="))
+                print("=" * 80)
+
+                print(f"Total Issues Found: {consistency_report['total_issues']}")
+                print(
+                    f"High Severity Issues: {consistency_report['high_severity_issues']}"
+                )
+
+                if consistency_report["assumption_violations"] > 0:
+                    print("⚠️  ASSUMPTION VIOLATIONS DETECTED:")
+                    for issue in consistency_report["assumption_violations"]:
+                        print(f"  - {issue.description}")
+
+                if consistency_report["contradictions"] > 0:
+                    print("⚠️  CONTRADICTIONS DETECTED:")
+                    for issue in consistency_report["contradictions"]:
+                        print(f"  - {issue.description}")
+
+                if consistency_report["missing_validations"] > 0:
+                    print("⚠️  MISSING VALIDATION PROTOCOLS:")
+                    for issue in consistency_report["missing_validations"]:
+                        print(f"  - {issue.description}")
+
+                print("\nRecommendations:")
+                for rec in consistency_report["recommendations"]:
+                    print(f"  - {rec}")
+
+                # Check if ready for falsification
+                if not consistency_report["ready_for_falsification"]:
+                    print(
+                        "\n🚨 CRITICAL: High-severity consistency issues must be resolved before falsification"
+                    )
+                    print("HALTING falsification evaluation")
+                    return summary
+
+                print("=" * 80)
+
         fa = check_framework_falsification_condition_a(preds)
         fb = check_framework_falsification_condition_b(
             results_input=validator.protocol_results

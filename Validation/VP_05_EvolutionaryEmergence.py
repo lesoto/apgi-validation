@@ -3246,6 +3246,9 @@ def save_genome_data(
     """
     Save genome_data to JSON file for use in downstream falsification protocols.
 
+    Also exports to the standard interprotocol schema location for cross-protocol
+    data sharing (VP-05 → FP-01, FP-02, FP-05, FP-06).
+
     Args:
         genome_data: Dictionary containing ensemble genome_data
         output_path: Path to save JSON file
@@ -3267,10 +3270,23 @@ def save_genome_data(
 
     serializable_data = convert_for_json(genome_data)
 
+    # Save to local file
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(serializable_data, f, indent=2)
 
     print(f"\n[OK] Genome data saved to: {output_path}")
+
+    # Also export to standard interprotocol schema location
+    try:
+        from utils.interprotocol_schema import export_vp5_genome_data
+
+        interprotocol_path = export_vp5_genome_data(genome_data)
+        print(
+            f"[OK] Genome data exported to interprotocol schema: {interprotocol_path}"
+        )
+    except ImportError as e:
+        print(f"[WARN] Could not export to interprotocol schema: {e}")
+
     print(f"  Seeds: {genome_data.get('n_seeds', 'N/A')}")
     print(
         f"  Ensemble mean α: {genome_data.get('ensemble_mean', {}).get('alpha', 'N/A')}"

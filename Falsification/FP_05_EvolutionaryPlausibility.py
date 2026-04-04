@@ -2,11 +2,71 @@ import logging
 import os
 import sys
 from pathlib import Path
+from typing import Dict, List, Any, Tuple, Union
+
+# FIX #1: Import standardized schema for protocol results
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from datetime import datetime
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
 
 # Add parent directory to path for imports
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+# FIX #2: Import VP-05 genome data loader for cross-protocol data dependency
+try:
+    from utils.interprotocol_schema import (
+        load_vp5_genome_data,
+        requires_vp5_data,
+    )
+
+    HAS_VP5_LOADER = True
+except ImportError:
+    HAS_VP5_LOADER = False
+
+    # Fallback loader function
+    def load_vp5_genome_data(base_path=None, metadata_file="genome_data.json"):
+        """Fallback genome data loader when interprotocol_schema not available."""
+        import json
+        from pathlib import Path
+
+        paths_to_try = [
+            Path("genome_data.json"),
+            Path("protocol5_results.json"),
+            Path("data_repository/processed/VP_05_outputs/genome_data.json"),
+        ]
+
+        if base_path:
+            paths_to_try.insert(0, Path(base_path) / metadata_file)
+
+        for path in paths_to_try:
+            if path.exists():
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+
+        raise FileNotFoundError(
+            "VP-05 genome data not found. Run VP-05_EvolutionaryEmergence first."
+        )
+
+    def requires_vp5_data(func):
+        """Fallback decorator that checks for genome_data.json existence."""
+
+        def wrapper(*args, **kwargs):
+            try:
+                _ = load_vp5_genome_data()
+            except FileNotFoundError:
+                raise RuntimeError(
+                    "VP-05 genome_data required - run VP-05_EvolutionaryEmergence first."
+                )
+            return func(*args, **kwargs)
+
+        return wrapper
+
 
 try:
     from utils.constants import DIM_CONSTANTS, APGI_GLOBAL_SEED
@@ -3061,3 +3121,47 @@ if __name__ == "__main__":
         print("⚠ Visualization utilities not available")
     except Exception as e:
         print(f"⚠ Error generating visualization: {e}")
+
+
+# FIX #1: Add standardized ProtocolResult wrapper for FP-05
+def run_protocol_main(config: dict = None) -> Union[dict, object]:
+    """Execute FP-05 falsification and return standardized result."""
+    results = run_falsification()
+
+    if not HAS_SCHEMA:
+        return results
+
+    try:
+        named_predictions = {}
+        criteria = results.get("criteria", {})
+
+        for pred_id in ["F5.1", "F5.2", "F5.3", "F5.4", "F5.5", "F5.6"]:
+            pred_data = criteria.get(pred_id, {})
+            named_predictions[pred_id] = PredictionResult(
+                passed=pred_data.get("passed", False),
+                value=pred_data.get("effect_size"),
+                threshold=pred_data.get("threshold"),
+                status=PredictionStatus(
+                    "passed" if pred_data.get("passed") else "failed"
+                ),
+                evidence=[pred_data.get("description", "")],
+                sources=["FP_05_EvolutionaryPlausibility"],
+                metadata=pred_data,
+            )
+
+        return ProtocolResult(
+            protocol_id="FP_05_EvolutionaryPlausibility",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=70,
+            data_sources=["Evolutionary simulation"],
+            methodology="evolutionary_simulation",
+            errors=[],
+            metadata={
+                "summary": results.get("summary", {}),
+                "predictions_evaluated": list(named_predictions.keys()),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to convert FP-05 to standardized schema: {e}")
+        return results

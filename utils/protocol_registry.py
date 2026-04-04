@@ -7,7 +7,7 @@ a unified interface for protocol discovery and loading.
 """
 
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Type
 from dataclasses import dataclass
 
 
@@ -266,7 +266,7 @@ def _initialize_registry():
 _initialize_registry()
 
 
-def get_protocol_registry() -> PROTOCOL_REGISTRY:
+def get_protocol_registry() -> Type[PROTOCOL_REGISTRY]:
     """Get the protocol registry instance."""
     return PROTOCOL_REGISTRY
 

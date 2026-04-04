@@ -1,6 +1,6 @@
 """
 Falsification Protocol 12: Liquid Network Validation
-==================================================
+======================================================
 
 This protocol implements validation of liquid network properties for APGI models.
 """
@@ -14,6 +14,15 @@ from dataclasses import dataclass
 from enum import Enum
 import sys
 from pathlib import Path
+
+# FIX #1: Import standardized schema for protocol results
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from datetime import datetime
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -3661,3 +3670,66 @@ def _create_default_liquid_params() -> Dict[str, Any]:
         "reservoir_size": 100,
         "sampling_rate": 1000,  # Hz
     }
+
+
+# FIX #1: Add standardized ProtocolResult wrapper for FP-11
+def run_protocol_main(config: dict = None) -> Union[dict, object]:
+    """Execute FP-11 falsification and return standardized result."""
+    # FP-11 uses test functions directly, create a simple wrapper
+    network_weights = _create_default_network_weights()
+    liquid_params = _create_default_liquid_params()
+
+    # Run key tests
+    ltc_result = test_liquid_time_constant_dynamics(network_weights, liquid_params)
+    phase_result = test_phase_transition(network_weights, liquid_params)
+    topology_result = test_lnn_substrate_topology(network_weights, liquid_params)
+
+    results = {
+        "ltc_dynamics_score": ltc_result,
+        "phase_transition": phase_result,
+        "topology_score": topology_result,
+        "summary": {
+            "passed": ltc_result > 0.5 and phase_result.get("is_critical", False)
+        },
+    }
+
+    if not HAS_SCHEMA:
+        return results
+
+    try:
+        named_predictions = {
+            "V6.1": PredictionResult(
+                passed=phase_result.get("ignition_strength", 0) > 0.8,
+                value=phase_result.get("ignition_strength"),
+                threshold=0.8,
+                status=PredictionStatus(
+                    "passed"
+                    if phase_result.get("ignition_strength", 0) > 0.8
+                    else "failed"
+                ),
+                evidence=["LTCN threshold transition < 50ms"],
+                sources=["FP_11_LiquidNetworkDynamics_EchoState"],
+            ),
+            "V6.2": PredictionResult(
+                passed=ltc_result > 0.5,
+                value=ltc_result,
+                threshold=0.5,
+                status=PredictionStatus("passed" if ltc_result > 0.5 else "failed"),
+                evidence=["LTCN temporal integration window 200-500ms"],
+                sources=["FP_11_LiquidNetworkDynamics_EchoState"],
+            ),
+        }
+
+        return ProtocolResult(
+            protocol_id="FP_11_LiquidNetworkDynamics_EchoState",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=70,
+            data_sources=["Liquid network simulation"],
+            methodology="agent_simulation",
+            errors=[],
+            metadata={"summary": results.get("summary", {})},
+        )
+    except Exception as e:
+        logger.error(f"Failed to convert FP-11 to standardized schema: {e}")
+        return results

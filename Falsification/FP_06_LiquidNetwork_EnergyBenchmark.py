@@ -1,12 +1,69 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-# Add parent directory to path for imports
+try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from datetime import datetime
+
+    HAS_SCHEMA = True
+except ImportError:
+    HAS_SCHEMA = False
+
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+try:
+    from utils.interprotocol_schema import (
+        load_vp5_genome_data,
+        requires_vp5_data,
+    )
+
+    HAS_VP5_LOADER = True
+except ImportError:
+    HAS_VP5_LOADER = False
+
+    def load_vp5_genome_data(
+        base_path: Optional[str] = None, metadata_file: str = "genome_data.json"
+    ) -> Dict[str, Any]:
+        """Fallback genome data loader when interprotocol_schema not available."""
+        import json
+        from pathlib import Path
+
+        paths_to_try = [
+            Path("genome_data.json"),
+            Path("protocol5_results.json"),
+            Path("data_repository/processed/VP_05_outputs/genome_data.json"),
+        ]
+
+        if base_path:
+            paths_to_try.insert(0, Path(base_path) / metadata_file)
+
+        for path in paths_to_try:
+            if path.exists():
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+
+        raise FileNotFoundError(
+            "VP-05 genome data not found. Run VP-05_EvolutionaryEmergence first."
+        )
+
+    def requires_vp5_data(func: callable) -> callable:
+        """Fallback decorator that checks for genome_data.json existence."""
+
+        def wrapper(*args, **kwargs):  # type: ignore[misc]
+            try:
+                _ = load_vp5_genome_data()
+            except FileNotFoundError:
+                raise RuntimeError(
+                    "VP-05 genome_data required - run VP-05_EvolutionaryEmergence first."
+                )
+            return func(*args, **kwargs)
+
+        return wrapper
+
 
 # Import APGI_GLOBAL_SEED for reproducibility
 try:
@@ -88,7 +145,7 @@ except ImportError:
             self.n_intero_states = 16
             self.n_hidden = 64
 
-    DIM_CONSTANTS = MockDimConstants()
+    DIM_CONSTANTS: Any = MockDimConstants()
     # Fix 2: Fallback BIC thresholds if import fails
     BIC_STRONG_EVIDENCE = 2
     BIC_FRAMEWORK_THRESHOLD_B = 6
@@ -125,7 +182,7 @@ def bootstrap_ci(
         sample = np.random.choice(data, size=len(data), replace=True)
         bootstrap_means.append(np.mean(sample))
 
-    bootstrap_means = np.array(bootstrap_means)
+    bootstrap_means = list(bootstrap_means)
     mean = np.mean(data)
     lower = np.percentile(bootstrap_means, (1 - ci) / 2 * 100)
     upper = np.percentile(bootstrap_means, (1 + ci) / 2 * 100)
@@ -192,7 +249,7 @@ def bootstrap_one_sample_test(
         sample = np.random.choice(data, size=len(data), replace=True)
         bootstrap_means.append(np.mean(sample))
 
-    bootstrap_means = np.array(bootstrap_means)
+    bootstrap_means = list(bootstrap_means)
 
     # Two-sided p-value: proportion of bootstrap means as extreme as observed
     if observed_mean >= null_value:
@@ -501,7 +558,7 @@ class APGIInspiredNetwork(nn.Module):
         self.spike_count = 0
         self.total_activations = 0
         self.time_steps = 0
-        self.active_neurons = 0  # Track actually active neurons for efficiency
+        self.active_neurons: int = 0  # Track actually active neurons for efficiency
 
         # LTCN time constant bounds (in ms)
         # Fix 1: Set tau_min = 300.0, tau_max = 500.0 ms to match paper spec for LTCN
@@ -620,9 +677,9 @@ class APGIInspiredNetwork(nn.Module):
         self.alpha = nn.Parameter(torch.tensor(5.0))  # Sigmoid steepness
 
         # State
-        self.surprise_hidden = None
-        self.liquid_state = None
-        self.prev_tau = None  # Store previous time constants
+        self.surprise_hidden: Optional[torch.Tensor] = None
+        self.liquid_state: Optional[torch.Tensor] = None
+        self.prev_tau: Optional[torch.Tensor] = None  # Store previous time constants
 
     def ltcn_step(
         self, h_prev: torch.Tensor, x: torch.Tensor, tau: torch.Tensor
@@ -1071,7 +1128,7 @@ class NetworkComparisonExperiment:
             for epoch in range(n_epochs):
                 # Training
                 network.train()
-                epoch_loss = 0
+                epoch_loss: float = 0
 
                 for batch in train_loader:
                     optimizer.zero_grad()
@@ -1136,7 +1193,7 @@ class NetworkComparisonExperiment:
         3. Attentional blink prediction
         4. Interoceptive accuracy
         """
-        task_results = {}
+        task_results: Dict[str, Any] = {}
 
         # Get parameter counts for BIC/AIC comparison
         param_counts = get_model_parameter_counts(self.networks)
@@ -1150,11 +1207,14 @@ class NetworkComparisonExperiment:
             all_targets = []
 
             for net_name, network in self.networks.items():
+                if not HAS_TORCH:
+                    continue
+
                 network.eval()
                 network.reset_energy_tracking()
 
-                predictions = []
-                targets = []
+                predictions_list = []
+                targets_list = []
 
                 with torch.no_grad():
                     for batch in dataset:
@@ -1174,11 +1234,11 @@ class NetworkComparisonExperiment:
                         else:
                             pred = outputs["policy"].argmax(dim=-1)
 
-                        predictions.append(pred)
-                        targets.append(batch["target"])
+                        predictions_list.append(pred)
+                        targets_list.append(batch["target"])
 
-                predictions = torch.cat(predictions)
-                targets = torch.cat(targets)
+                predictions = torch.cat(predictions_list)
+                targets = torch.cat(targets_list)
 
                 # Store for BIC/AIC comparison
                 model_predictions[net_name] = predictions.cpu().numpy()
@@ -1230,7 +1290,13 @@ class NetworkComparisonExperiment:
                         "atp_comparison": atp_comparison,
                     }
                 else:
-                    accuracy = (predictions == targets).float().mean().item()
+                    if isinstance(predictions, torch.Tensor) and isinstance(
+                        targets, torch.Tensor
+                    ):
+                        accuracy = (predictions == targets).float().mean().item()
+                    else:
+                        # Handle numpy arrays
+                        accuracy = float(np.mean(predictions == targets))
 
                     # Calculate energy per correct detection
                     if accuracy > 0:
@@ -1276,7 +1342,7 @@ class NetworkComparisonExperiment:
         print("Starting Network Comparison Experiment...")
 
         # Create synthetic datasets for evaluation
-        task_datasets = {}
+        task_datasets: Dict[str, Any] = {}
 
         # Task 1: Conscious/unconscious classification
         n_samples = 200
@@ -1380,15 +1446,19 @@ class NetworkComparisonExperiment:
         apgi_n_neurons = 0
         apgi_n_correct_total = 0
 
-        baseline_energies = {name: [] for name in ["MLP", "LSTM", "Attention"]}
-        baseline_performances = {name: [] for name in ["MLP", "LSTM", "Attention"]}
+        baseline_energies: Dict[str, List[float]] = {
+            name: [] for name in ["MLP", "LSTM", "Attention"]
+        }
+        baseline_performances: Dict[str, List[float]] = {
+            name: [] for name in ["MLP", "LSTM", "Attention"]
+        }
         baseline_spike_counts = {name: 0 for name in ["MLP", "LSTM", "Attention"]}
         baseline_n_neurons = {name: 0 for name in ["MLP", "LSTM", "Attention"]}
         baseline_n_correct = {name: 0 for name in ["MLP", "LSTM", "Attention"]}
 
         # BIC/AIC tracking
-        bic_scores_all = {}
-        aic_scores_all = {}
+        bic_scores_all: Dict[str, List[float]] = {}
+        aic_scores_all: Dict[str, List[float]] = {}
 
         for task_name, task_results in results.items():
             if "APGI" not in task_results:
@@ -1473,7 +1543,7 @@ class NetworkComparisonExperiment:
 
                 # Calculate effect size (Cliff's delta approximation)
                 # Positive = APGI is faster (lower time)
-                cliff_delta = min(0.8, (speedup_ratio - 1) / 2.0)
+                cliff_delta = min(0.8, float((speedup_ratio - 1) / 2.0))
 
                 # Statistical test: APGI transition < threshold AND significant effect
                 # CRITICAL FIX: Cliff's delta >= 0.60 is now a hard AND condition (not just p-value)
@@ -1743,7 +1813,7 @@ class NetworkComparisonExperiment:
             else:
                 # Fix 1: Remove 35ms fallback, return proper failure dict
                 return {
-                    "transition_ms": np.inf,
+                    "transition_time_ms": float(np.inf),
                     "cliff_delta": 0.0,
                     "passed": False,
                     "reason": "no_threshold_transition_detected",
@@ -1751,7 +1821,7 @@ class NetworkComparisonExperiment:
         else:
             # Fix 1: Remove 35ms fallback, return proper failure dict
             return {
-                "transition_ms": np.inf,
+                "transition_time_ms": float(np.inf),
                 "cliff_delta": 0.0,
                 "passed": False,
                 "reason": "no_ignition_data_available",
@@ -1779,23 +1849,23 @@ class NetworkComparisonExperiment:
             usable_lags = min(len(autocorr) // 2, 300)  # Use up to 300 lags (3s)
             lags = np.arange(usable_lags) * dt_ms / 1000.0  # Convert to seconds
 
-            try:
-                from scipy.optimize import curve_fit
+        try:
+            from scipy.optimize import curve_fit
 
-                def exp_decay(t, tau):
-                    return np.exp(-t / tau)
+            def exp_decay(t, tau):
+                return np.exp(-t / tau)
 
-                # Fit only positive lags where autocorr > 0.1
-                valid_idx = np.where(autocorr[:usable_lags] > 0.1)[0]
-                if len(valid_idx) > 10:
-                    popt, _ = curve_fit(
-                        exp_decay, lags[valid_idx], autocorr[valid_idx], p0=[1.0]
-                    )
-                    fitted_tau = popt[0]
-                else:
-                    fitted_tau = 2.0  # Default LTCN characteristic
-            except Exception:
-                fitted_tau = 2.0
+            # Fit only positive lags where autocorr > 0.1
+            valid_idx = np.where(autocorr[:usable_lags] > 0.1)[0]
+            if len(valid_idx) > 10:
+                popt, _ = curve_fit(
+                    exp_decay, lags[valid_idx], autocorr[valid_idx], p0=[1.0]
+                )
+                fitted_tau = popt[0]
+            else:
+                fitted_tau = 2.0  # Default LTCN characteristic
+        except Exception:
+            fitted_tau = 2.0
 
             # CRITICAL FIX: Clamp τ to the LTCN theoretical range [1s, 3s].
             # Autocorrelation fits on short impulse-response windows consistently
@@ -2032,6 +2102,51 @@ def run_falsification():
     except (RuntimeError, ValueError, TypeError, ImportError, KeyError) as e:
         print(f"Error in falsification protocol 6: {e}")
         return {"status": "error", "message": str(e)}
+
+
+# FIX #1: Add standardized ProtocolResult wrapper for FP-06
+def run_protocol_main(config: dict = None) -> Union[dict, object]:
+    """Execute FP-06 falsification and return standardized result."""
+    result = run_falsification()
+    legacy_result = result.get("results", result)
+
+    if not HAS_SCHEMA:
+        return legacy_result
+
+    try:
+        named_predictions = {}
+        criteria = legacy_result.get("criteria", {})
+
+        for pred_id in ["F6.1", "F6.2", "F6.3", "F6.4", "F6.5", "F6.6"]:
+            pred_data = criteria.get(pred_id, {})
+            named_predictions[pred_id] = PredictionResult(
+                passed=pred_data.get("passed", False),
+                value=pred_data.get("effect_size"),
+                threshold=pred_data.get("threshold"),
+                status=PredictionStatus(
+                    "passed" if pred_data.get("passed") else "failed"
+                ),
+                evidence=[pred_data.get("description", "")],
+                sources=["FP_06_LiquidNetwork_EnergyBenchmark"],
+                metadata=pred_data,
+            )
+
+        return ProtocolResult(
+            protocol_id="FP_06_LiquidNetwork_EnergyBenchmark",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=75,
+            data_sources=["Liquid network simulation"],
+            methodology="agent_simulation",
+            errors=[],
+            metadata={
+                "summary": legacy_result.get("summary", {}),
+                "predictions_evaluated": list(named_predictions.keys()),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to convert FP-06 to standardized schema: {e}")
+        return legacy_result
 
 
 # =============================================================================

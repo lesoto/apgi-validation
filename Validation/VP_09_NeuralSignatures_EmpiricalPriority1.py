@@ -1514,7 +1514,7 @@ class APGINeuralSignaturesValidator:
         try:
             from APGI_Equations import CoreIgnitionSystem
         except ImportError:
-            logger.warning("APGI_Equations not available - using simplified simulation")
+            logger.debug("APGI_Equations not available - using simplified simulation")
             CoreIgnitionSystem = None
 
         # Define population parameters based on Paper 3 clinical translation table

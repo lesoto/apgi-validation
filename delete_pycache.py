@@ -206,10 +206,12 @@ DEFAULT_EXTRA_FILE_PATTERNS = [
     "*~",
     "*.swp",
     "*.swo",
+    "*.swn",
+    "*.un~",
     "*.bak",
     "*.orig",
-    "#*#",
     ".#*",
+    "#*#",
     "*.debug",
     "*.test",
     "*.old",
@@ -218,7 +220,6 @@ DEFAULT_EXTRA_FILE_PATTERNS = [
     "*.save",
     "*.saved",
     "*.new",
-    "*.orig",
     "*.rej",
     "*.patch",
     "*.diff",
@@ -232,14 +233,6 @@ DEFAULT_EXTRA_FILE_PATTERNS = [
     "*.mine",
     "*.theirs",
     "*.r*",
-    "*~",
-    "*.swp",
-    "*.swo",
-    "*.swn",
-    "*.un~",
-    ".*.swp",
-    ".*.swo",
-    ".*.swn",
     "4913",
 ]
 
@@ -450,8 +443,6 @@ def preview_deletions(
     Returns detailed information about files and directories that would be removed,
     including file sizes and directory counts for better decision making.
     """
-    import os
-
     stats: dict[str, Any] = {
         "dirs_to_remove": [],
         "files_to_remove": [],
@@ -883,20 +874,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     exclude_file_patterns = list(args.exclude_file)
 
     if args.apgi_only:
-        # Only remove APGI-specific files and directories
+        # Only remove APGI-specific files and directories (complement to DEFAULT_EXTRA_*)
         include_dir_patterns.extend(
             [
                 "apgi_*",
-                "cache",
-                "logs",
-                "screenshots",
-                "temp",
-                "tmp",
-                "output",
-                "results",
-                "figures",
-                "plots",
-                "backups",
+                "apgi_output*",
+                "apgi_complete_output",
+                "data_output",
+                "analysis_output",
+                "experiment_output",
+                "validation_output",
+                "testing_output",
+                "debug_output",
             ]
         )
         include_file_patterns.extend(
