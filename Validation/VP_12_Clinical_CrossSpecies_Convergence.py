@@ -809,6 +809,7 @@ def _compute_protocol12_pass(results: Dict) -> bool:
 
 def main(progress_callback=None):
     """Main execution pipeline for Protocol 12: Clinical & Cross-Species Convergence"""
+
     def report_progress(percent, message=""):
         if progress_callback is not None:
             try:
@@ -817,7 +818,7 @@ def main(progress_callback=None):
                 pass
         if message:
             print(message)
-    
+
     report_progress(10, "Starting Protocol 12 validation...")
     results = run_validation()
     report_progress(100, "Protocol 12 complete!")

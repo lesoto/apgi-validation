@@ -4423,6 +4423,7 @@ class AdaptiveThresholdChecker:
 
 def main(progress_callback=None):
     """Main execution pipeline for Protocol 6: Temporal Dynamics and Inductive Bias"""
+
     def report_progress(percent, message=""):
         if progress_callback is not None:
             try:
@@ -4431,7 +4432,7 @@ def main(progress_callback=None):
                 pass
         if message:
             print(message)
-    
+
     report_progress(10, "Starting Protocol 6 validation...")
     results = run_validation()
     report_progress(100, "Protocol 6 complete!")

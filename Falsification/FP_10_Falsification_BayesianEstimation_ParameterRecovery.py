@@ -364,21 +364,19 @@ def run_mcmc_bayesian_estimation(*args, **kwargs):
 def run_falsification():
     """Entry point for CLI falsification testing."""
     import logging
+
     logger = logging.getLogger(__name__)
-    
+
     logger.info("Starting FP-10b Bayesian Estimation Parameter Recovery falsification")
-    
+
     # Create validator instance
     validator = FP10bParameterRecovery()
-    
+
     # Run parameter recovery validation
     results = validator.run_parameter_recovery_validation(
-        n_synthetic_datasets=50,
-        mcmc_samples=10000,
-        burn_in=2000,
-        noise_level=0.1
+        n_synthetic_datasets=50, mcmc_samples=10000, burn_in=2000, noise_level=0.1
     )
-    
+
     logger.info("FP-10b falsification completed")
     return results
 

@@ -1053,15 +1053,15 @@ def run_falsification():
     import logging
     import os
     import json
-    
+
     logger = logging.getLogger(__name__)
     logger.info("Starting framework falsification aggregation")
-    
+
     # Collect results from all protocols
     # In GUI context, results would be passed from protocol execution
     # For standalone execution, load from saved results
     results_input = {}
-    
+
     try:
         # Try to load from saved results directory
         results_dir = os.path.join(os.path.dirname(__file__), "results")
@@ -1070,16 +1070,16 @@ def run_falsification():
                 if filename.endswith(".json"):
                     filepath = os.path.join(results_dir, filename)
                     try:
-                        with open(filepath, 'r') as f:
+                        with open(filepath, "r") as f:
                             results_input[filename] = json.load(f)
                     except Exception as e:
                         logger.warning(f"Could not load {filename}: {e}")
     except Exception as e:
         logger.warning(f"Could not load saved results: {e}")
-    
+
     # Run framework falsification
     results = run_framework_falsification(results_input)
-    
+
     logger.info("Framework falsification aggregation completed")
     return results
 

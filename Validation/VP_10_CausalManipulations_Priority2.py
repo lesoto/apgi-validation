@@ -27,25 +27,22 @@ logger = logging.getLogger(__name__)
 # Import shared multiple comparison correction
 try:
     from utils.statistical_tests import apply_multiple_comparison_correction
-    from utils.falsification_thresholds import VP7_BASELINE_ESTIMATION_MIN_TRIALS
-except ImportError:
-    # Fallback if dependencies not available
-    apply_multiple_comparison_correction = None
-    VP7_BASELINE_ESTIMATION_MIN_TRIALS = 50  # type: ignore[misc,assignment]
-    logger.warning(
-        "statistical_tests.apply_multiple_comparison_correction not available"
-    )
-
-try:
+    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from utils.constants import (
         TMS_MOTOR_THRESHOLD_ADJUST,
         TMS_PULSE_WIDTH_MS,
         TMS_SIGMOID_STEEPNESS,
     )
+
+    HAS_SCHEMA = True
 except ImportError:
+    HAS_SCHEMA = False
+    apply_multiple_comparison_correction = None
+    VP7_BASELINE_ESTIMATION_MIN_TRIALS = 50  # type: ignore[misc,assignment]
     TMS_PULSE_WIDTH_MS = 0.3
     TMS_MOTOR_THRESHOLD_ADJUST = 0.8
     TMS_SIGMOID_STEEPNESS = 5.0
+    logger.warning("protocol_schema or constants not available")
 
 try:
     from utils.falsification_thresholds import (
@@ -157,7 +154,7 @@ class TMSIntervention:
             "detection_rates": [],
             "reaction_times": [],
             "timings": list(np.linspace(0.1, 0.5, n_trials)),
-            "target_region": [target_region],
+            "target_region": [float(target_region)],
         }
 
         for timing in results["timings"]:
@@ -1607,19 +1604,55 @@ def run_validation(**kwargs):
 def run_protocol_main(config=None):
     """Execute and return standardized ProtocolResult."""
     from datetime import datetime
-    
+
     legacy_result = run_validation()
-    
+
     if not legacy_result:
         legacy_result = {}
-    
+
+    # Convert to standardized ProtocolResult format
+    if HAS_SCHEMA:
+        named_predictions = {}
+        for pred_id in ["V10.1", "V10.2"]:
+            pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
+            named_predictions[pred_id] = PredictionResult(
+                passed=pred_data.get("passed", False),
+                value=pred_data.get("actual"),
+                threshold=pred_data.get("threshold"),
+                status=PredictionStatus(
+                    "passed" if pred_data.get("passed") else "failed"
+                ),
+                evidence=[pred_data.get("validation_status", "NOT_EVALUATED")],
+                sources=["VP_10_CausalManipulations_Priority2"],
+                metadata=pred_data,
+            )
+
+        return ProtocolResult(
+            protocol_id="VP_10_CausalManipulations_Priority2",
+            timestamp=datetime.now().isoformat(),
+            named_predictions=named_predictions,
+            completion_percentage=75,
+            data_sources=["Causal manipulation simulations"],
+            methodology="causal_intervention",
+            errors=legacy_result.get("errors", []),
+            metadata={
+                "status": legacy_result.get("status"),
+                "overall_causal_validation_score": legacy_result.get(
+                    "overall_causal_validation_score", 0
+                ),
+            },
+        )
+
+    # Fallback to dict format if schema not available
     return {
         "protocol_id": "VP_10_CausalManipulations_Priority2",
         "protocol": "VP-10",
         "passed": legacy_result.get("passed", False),
         "status": legacy_result.get("status", "unknown"),
         "named_predictions": legacy_result.get("named_predictions", {}),
-        "overall_causal_validation_score": legacy_result.get("overall_causal_validation_score", 0),
+        "overall_causal_validation_score": legacy_result.get(
+            "overall_causal_validation_score", 0
+        ),
         "supplementary_tests": legacy_result.get("supplementary_tests", {}),
         "timestamp": datetime.now().isoformat(),
     }

@@ -1282,10 +1282,15 @@ def run_validation(
     n_chains: int = 4,
     seed: int = RANDOM_SEED,
     verbose: bool = True,
+    empirical_data_path: str = None,
     **kwargs,
 ) -> Dict[str, Any]:
     """
     Execute VP-11: Bayesian Estimation & Individual Differences.
+
+    Args:
+        empirical_data_path: Path to empirical cross-cultural EEG data.
+                            If provided, uses real data instead of synthetic.
     """
     logger.info("=" * 70)
     logger.info("Validation Protocol 11: Bayesian Estimation & Cultural Neuroscience")
@@ -1295,10 +1300,35 @@ def run_validation(
     logger.info("=" * 70)
 
     try:
-        # 1. Data Generation
-        subjects, df = generate_synthetic_dataset(
-            n_subjects, n_trials_per_subject, seed=seed
-        )
+        # 1. Data Loading (Empirical or Synthetic)
+        if empirical_data_path:
+            # EMPIRICAL MODE: Load real cross-cultural EEG data
+            logger.info(
+                f"Loading empirical cross-cultural EEG data from {empirical_data_path}"
+            )
+            try:
+                from utils.empirical_data_generators import load_cross_cultural_eeg_data
+
+                df, metadata = load_cross_cultural_eeg_data(empirical_data_path)
+                data_source = "empirical"
+                logger.info(
+                    f"Loaded empirical data: {len(df)} trials from {metadata.get('n_subjects_total')} subjects"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load empirical data: {e}. Falling back to synthetic."
+                )
+                subjects, df = generate_synthetic_dataset(
+                    n_subjects, n_trials_per_subject, seed=seed
+                )
+                data_source = "synthetic"
+        else:
+            # SYNTHETIC MODE: Generate synthetic data
+            logger.info("Generating synthetic cross-cultural EEG data")
+            subjects, df = generate_synthetic_dataset(
+                n_subjects, n_trials_per_subject, seed=seed
+            )
+            data_source = "synthetic"
 
         # 2. Split for Cultural Group Comparison
         results_per_group = {}
@@ -1441,21 +1471,25 @@ def run_validation(
 
         results = {
             "passed": overall_passed,
-            "status": "SIMULATION_ONLY",  # CRIT-FIX: Mark as simulation-only, not empirical
-            "data_source": "synthetic",  # CRIT-FIX: All data generated from APGI model
-            "validation_reliability": "simulation_validated",  # CRIT-FIX: Parameter recovery tests recover synthetic data generation
+            "status": "SIMULATION_ONLY" if data_source == "synthetic" else "COMPLETE",
+            "data_source": data_source,
+            "validation_reliability": (
+                "empirical_validated"
+                if data_source == "empirical"
+                else "simulation_validated"
+            ),
             "falsification_status": falsification_status,
             "summary": {
                 "gates_passed": sum(
                     [gate_v11_1, gate_v11_2, gate_v11_3, gate_v11_4, gate_v11_5]
                 ),
                 "gates_total": 5,
-                "note": "SYNTHETIC_DATA: Parameter recovery tests recover model's own synthetic data generation, not real cross-cultural data. Results marked as SIMULATION_ONLY.",
+                "note": f"Data source: {data_source}. {'Parameter recovery tests recover model\'s own synthetic data generation.' if data_source == 'synthetic' else 'Results validated on real cross-cultural EEG data.'}",
             },
         }
 
         logger.info(
-            f"Protocol 11 Completed. Passed: {overall_passed} (SIMULATION_ONLY - synthetic data)"
+            f"Protocol 11 Completed. Passed: {overall_passed} ({data_source.upper()} data)"
         )
         return results
 

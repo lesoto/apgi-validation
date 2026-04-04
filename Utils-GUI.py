@@ -62,7 +62,7 @@ class UtilsRunnerGUI:
         self.TAG_WARNING = "warning"
 
         # Output queue for thread-safe updates
-        self.output_queue = queue.Queue()
+        self.output_queue: queue.Queue[tuple[str, str]] = queue.Queue()
 
         # Load configuration
         self.config = self.load_config()
@@ -110,7 +110,7 @@ class UtilsRunnerGUI:
 
                 img = Image.open(icon_path)
                 photo = ImageTk.PhotoImage(img)
-                self.root.iconphoto(True, photo)
+                self.root.iconphoto(True, photo)  # type: ignore[arg-type]
                 self._icon_image = photo  # Keep reference
             else:
                 # Icon not found, use default tk icon (no warning needed)
@@ -557,8 +557,6 @@ class UtilsRunnerGUI:
             True if script started successfully, False if error occurred.
             When wait=True, returns True if script completed with return code 0.
         """
-        import time
-
         script_name = script.name
 
         # Prepare command
@@ -633,19 +631,26 @@ class UtilsRunnerGUI:
 
         except Exception as e:
             self.log_output(f"Error running {script.name}: {str(e)}", self.TAG_ERROR)
-            self.progress.stop()
+            self.root.after_idle(self.progress.stop)
             self.update_status("Error")
-            # Disable stop button on error
-            self.root.after_idle(self._update_stop_button_state)
+            # Reset button states on error (thread-safe)
+            self.root.after_idle(self._update_button_states)
 
-            # Retry logic for exceptions
-            if retry_count < 2:
+            # Retry logic for exceptions (only from main thread)
+            if (
+                retry_count < 2
+                and threading.current_thread() is threading.main_thread()
+            ):
                 self.log_output(
                     f"Retrying {script.name} due to exception (attempt {retry_count + 1}/2)",
                     self.TAG_WARNING,
                 )
-                time.sleep(1)
-                return self.run_script(script, wait, retry_count + 1, timeout)
+                # Use after_idle to avoid blocking GUI
+                self.root.after(
+                    1000,
+                    lambda: self.run_script(script, wait, retry_count + 1, timeout),
+                )
+                return True  # Return True to indicate retry scheduled
             return False
 
     def _read_output(self, process, script_name):
@@ -671,7 +676,7 @@ class UtilsRunnerGUI:
                             # Use non-blocking read with timeout
                             line = process.stdout.readline()
                             if line:
-                                output_queue.put(line)
+                                output_queue.put((line, "output"))
                             else:
                                 # Check if process has ended
                                 if process.poll() is not None:
@@ -679,10 +684,10 @@ class UtilsRunnerGUI:
                                 time.sleep(0.05)  # Short sleep before retry
                         except (IOError, OSError) as e:
                             # Don't log every read error, just put in queue
-                            output_queue.put(f"READ_ERROR: {e}")
+                            output_queue.put((f"READ_ERROR: {e}", "error"))
                             break
                 except Exception as e:
-                    output_queue.put(f"THREAD_ERROR: {e}")
+                    output_queue.put((f"THREAD_ERROR: {e}", "error"))
 
             reader_thread = threading.Thread(target=_windows_reader, daemon=True)
             reader_thread.start()

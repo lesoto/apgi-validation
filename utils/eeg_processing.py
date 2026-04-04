@@ -257,7 +257,7 @@ def compute_pac_with_bands(
             )
             if np.any(in_bin):
                 amp = amplitude_envelope[ch, in_bin]
-                amp_by_phase.append(np.mean(amp) if len(amp) > 0 else 0.0)
+                amp_by_phase.append(np.nanmean(amp) if len(amp) > 0 else 0.0)
             else:
                 amp_by_phase.append(0.0)
 
@@ -272,11 +272,11 @@ def compute_pac_with_bands(
         mi_values.append(mi)
 
     # Mean MI across channels
-    modulation_index = np.mean(mi_values)
+    modulation_index = np.nanmean(mi_values)
 
     # Phase and amplitude amplitudes
-    phase_amplitude = np.mean(np.abs(phase_filtered))
-    amplitude_amplitude = np.mean(amplitude_envelope)
+    phase_amplitude = np.nanmean(np.abs(phase_filtered))
+    amplitude_amplitude = np.nanmean(amplitude_envelope)
 
     # Permutation test (only if n_permutations > 1)
     if n_permutations > 1:
@@ -367,7 +367,7 @@ def compute_theta_gamma_pac(
                 gamma_amp = gamma_envelope[ch, in_bin]
                 # Compute mean gamma amplitude in this phase bin
                 gamma_amp_by_phase.append(
-                    np.mean(gamma_amp) if len(gamma_amp) > 0 else 0.0
+                    np.nanmean(gamma_amp) if len(gamma_amp) > 0 else 0.0
                 )
             else:
                 gamma_amp_by_phase.append(0.0)
@@ -386,11 +386,11 @@ def compute_theta_gamma_pac(
         mi_values.append(mi)
 
     # Mean MI across channels
-    modulation_index = np.mean(mi_values)
+    modulation_index = np.nanmean(mi_values)
 
     # Theta and gamma amplitudes
-    theta_amplitude = np.mean(theta_envelope)
-    gamma_amplitude = np.mean(gamma_envelope)
+    theta_amplitude = np.nanmean(theta_envelope)
+    gamma_amplitude = np.nanmean(gamma_envelope)
 
     # Permutation test (only if n_permutations > 1)
     if n_permutations > 1:
@@ -562,7 +562,7 @@ def detect_p3_amplitude(
         pz_data = eeg_filtered[0, :]
 
     # Baseline correction
-    baseline = np.mean(pz_data[baseline_start:baseline_end])
+    baseline = np.nanmean(pz_data[baseline_start:baseline_end])
     p3_data = pz_data[p3_start:p3_end] - baseline
 
     # Peak detection in 300-600ms window
@@ -583,7 +583,7 @@ def detect_p3_amplitude(
     ) / 2 / fs + p3_window[0]
 
     # Mean P3b amplitude
-    p3_amplitude = np.mean(p3_data) if len(p3_data) > 0 else 0.0
+    p3_amplitude = np.nanmean(p3_data) if len(p3_data) > 0 else 0.0
 
     # Determine significance (at least one peak detected)
     is_significant = len(peaks) > 0
