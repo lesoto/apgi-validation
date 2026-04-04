@@ -5,6 +5,8 @@ constants.py - Core model parameters and system defaults, defines global constan
 config_manager.py - Configuration management system, handles loading, validation, and persistence of configuration files
 apgi_config.py - APGI-specific configuration, manages framework-specific settings and parameters
 protocol_registry.py - Protocol registration system, maintains registry of available validation and falsification protocols
+protocol_schema.py - Protocol result schemas, defines standardized data structures for validation results
+metadata_standardizer.py - Metadata standardization, provides consistent metadata formatting across protocols
 error_handler.py - Centralized error handling, provides consistent error logging and exception management
 error_recovery.py - Error recovery mechanisms, handles graceful recovery from operational failures
 crash_recovery.py - Crash recovery system, provides automatic recovery from unexpected failures
@@ -22,6 +24,8 @@ criteria_registry.py - Falsification criteria definitions, manages registration 
 meta_falsification.py - Framework-level falsification, orchestrates falsification across multiple model components
 shared_falsification.py - Common falsification logic, provides reusable falsification utilities and helper functions
 algorithmic_verification.py - Core equation verification, validates mathematical equations and computational implementations
+analytical_solutions.py - Analytical solutions, provides mathematical solutions for validation benchmarks
+audit_threshold_leakage.py - Threshold leakage audit, detects and prevents threshold value leaks in validation
 threshold_registry.py - Threshold management, maintains and updates threshold values for various criteria
 threshold_lint.py - Threshold validation linter, checks threshold configurations for consistency and correctness
 statistical_tests.py - Shared statistical functions, implements common statistical tests and calculations
@@ -30,6 +34,10 @@ bayesian_model_comparison.py - Bayesian model comparison utilities, computes Bay
 cross_protocol_consistency.py - Cross-protocol consistency checks, validates coherence across validation protocols
 seven_standards_registry.py - Seven standards compliance registry, tracks adherence to scientific validation standards
 validation_pipeline_connector.py - Pipeline connection, integrates validation steps into cohesive workflows
+validation_runner.py - Validation execution runner, orchestrates execution of validation protocols
+validation_falsification_consistency.py - Consistency validation, ensures alignment between validation and falsification results
+interprotocol_schema.py - Inter-protocol schema, defines schemas for cross-protocol communication
+update_protocol_metadata.py - Metadata updater, standardizes and updates protocol metadata
 data_validation.py - Data quality validation, ensures data integrity and format compliance before processing
 data_quality_assessment.py - Data quality assessment, evaluates and reports on overall data quality metrics
 
@@ -52,15 +60,19 @@ dashboard_integration.py - Dashboard integration utilities, connects monitoring 
 monitoring_system.py - System monitoring, tracks health and performance of validation components
 performance_optimizer.py - Performance optimization, identifies and resolves performance bottlenecks
 progress_estimator.py - Progress tracking, estimates and reports progress for long-running operations
+protocol_visualization.py - Protocol visualization, creates visual representations of validation results
 
-## Data Processing
+## Data Processing & Generation
 
 sample_data_generator.py - Synthetic data generation, creates realistic test data for validation and testing
+empirical_data_generators.py - Empirical data generation, generates realistic cross-cultural EEG and fMRI data
+generate_empirical_data.py - Empirical data script, main script for generating empirical datasets for validation
 preprocessing_pipelines.py - Data preprocessing, implements data cleaning, normalization, and transformation pipelines
 data_collector.py - Data collection utilities, aggregates data from multiple sources for analysis
 eeg_processing.py - EEG signal processing, handles EEG data filtering, artifact removal, and feature extraction
 eeg_simulator.py - EEG simulation, generates synthetic EEG signals for testing
 spectral_analysis.py - Spectral analysis tools, performs frequency-domain analysis of signals
+hrf_utils.py - HRF utilities, provides hemodynamic response function calculations for fMRI analysis
 genome_data_extractor.py - VP-5 specific utility, extracts and processes VP-5 genome data
 batch_processor.py - Parallel processing, enables efficient execution of multiple tasks concurrently
 batch_config.py - Batch configuration, manages configuration for batch processing operations
@@ -70,3 +82,7 @@ parameter_validator.py - Parameter validation, ensures model parameters are with
 ## Backup & Recovery
 
 backup_manager.py - Backup/restore functionality, handles data backup creation and recovery operations
+
+## Framework Verification
+
+verify_framework_status.py - Framework status verifier, checks implementation status of all protocols and components
