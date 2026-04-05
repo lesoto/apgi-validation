@@ -197,6 +197,9 @@ class APGIMasterValidator:
                 "description": "fMRI Anticipation vmPFC (STUB — Awaiting Data)",
             },
         }
+        self.PROTOCOL_DESCRIPTIONS = {
+            k: v["description"] for k, v in self.available_protocols.items()
+        }
 
     def run_validation(self, protocols: List[str], **kwargs) -> Dict[str, Dict]:
         """
@@ -666,7 +669,7 @@ def main():
             check_framework_falsification_condition_a,
             check_framework_falsification_condition_b,
         )
-        from ValidationFalsificationConsistency import (
+        from utils.validation_falsification_consistency import (
             ValidationFalsificationConsistency,
         )
 
@@ -736,15 +739,6 @@ def main():
             f"\nCondition A (Simultaneous Failure): {'✗ FAILED' if fa else '✓ PASSED'}"
         )
         print(f"Condition B (Parsimony / BIC): {'✗ FAILED' if fb else '✓ PASSED'}")
-
-        # Calculate weighted compliance score
-        weighted_compliance = sum(
-            result.get("score", 0.0) * weight
-            for result, weight in zip(preds.values(), validator.tier_weights.values())
-        )
-
-        # Use weighted_compliance to avoid unused variable warning
-        _ = weighted_compliance
 
         # Generate detailed report with weighted scoring
         report = f"""

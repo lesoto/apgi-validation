@@ -45,7 +45,7 @@ def test_function():
         test_file.write_text("not a python file")
 
         with pytest.raises(ValueError) as exc_info:
-            secure_load_module("test_module", test_file)
+            secure_load_module("test_module", test_file, allow_temp_dir=True)
         assert "must be a .py file" in str(exc_info.value)
 
     def test_secure_load_module_nonexistent_file(self, temp_dir):
@@ -53,7 +53,7 @@ def test_function():
         test_file = temp_dir / "nonexistent.py"
 
         with pytest.raises((ImportError, FileNotFoundError)):
-            secure_load_module("test_module", test_file)
+            secure_load_module("test_module", test_file, allow_temp_dir=True)
 
     def test_secure_load_module_from_path_convenience(self, temp_dir):
         """Test convenience function for loading from path."""
@@ -63,7 +63,7 @@ def convenience_func():
     return "convenience"
 """)
 
-        module = secure_load_module_from_path(test_module)
+        module = secure_load_module_from_path(test_module, allow_temp_dir=True)
         assert hasattr(module, "convenience_func")
         assert module.convenience_func() == "convenience"
 

@@ -35,6 +35,7 @@ class PredictionResult:
     """Individual prediction result with threshold and evidence.
 
     Attributes:
+        name: Optional name/identifier for this prediction
         passed: Whether prediction passed (True/False)
         value: Observed/computed value (float or string for non-numeric thresholds)
         threshold: Expected threshold value or description
@@ -48,6 +49,7 @@ class PredictionResult:
     value: Optional[Union[float, str]] = None
     threshold: Optional[Union[float, str]] = None
     status: PredictionStatus = PredictionStatus.NOT_EVALUATED
+    name: Optional[str] = None
     evidence: List[str] = field(default_factory=list)
     sources: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -55,6 +57,7 @@ class PredictionResult:
     def to_dict(self) -> dict:
         """Convert to dictionary representation."""
         return {
+            "name": self.name,
             "passed": self.passed,
             "value": self.value,
             "threshold": self.threshold,

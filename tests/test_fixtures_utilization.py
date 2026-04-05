@@ -88,7 +88,7 @@ class TestFlakyOperationFixture:
                 raise ValueError("Temporary failure")
             return "success"
 
-        result = flaky_operation(flaky_func, max_attempts=5)
+        result = flaky_operation.retry(flaky_func, max_attempts=5)
         assert result == "success"
         assert call_count[0] == 3
 
@@ -101,7 +101,7 @@ class TestFlakyOperationFixture:
             time.sleep(0.1)
             return "done"
 
-        result = flaky_operation(slow_func, max_attempts=3, timeout=1.0)
+        result = flaky_operation.retry(slow_func, max_attempts=3, timeout=1.0)
         assert result == "done"
 
     def test_flaky_operation_max_attempts_exceeded(self, flaky_operation):
@@ -111,7 +111,7 @@ class TestFlakyOperationFixture:
             raise RuntimeError("Always fails")
 
         with pytest.raises(RuntimeError):
-            flaky_operation(always_fail_func, max_attempts=2)
+            flaky_operation.retry(always_fail_func, max_attempts=2)
 
     def test_flaky_operation_with_custom_backoff(self, flaky_operation):
         """Test flaky_operation with custom backoff strategy."""
@@ -123,7 +123,9 @@ class TestFlakyOperationFixture:
                 raise ValueError("Retry needed")
             return "final"
 
-        result = flaky_operation(flaky_with_backoff, max_attempts=3, backoff_factor=2)
+        result = flaky_operation.retry(
+            flaky_with_backoff, max_attempts=3, backoff_factor=2
+        )
         assert result == "final"
         assert attempt_count[0] == 2
 
@@ -141,15 +143,12 @@ class TestFixtureIntegration:
     def test_flaky_with_raises_validation(self, flaky_operation, raises_fixture):
         """Test flaky_operation with raises_fixture for validation."""
 
-        def flaky_with_validation():
-            import random
-
-            if random.random() < 0.7:
-                raise ValueError("Random failure")
-            return "valid"
+        def always_fail_validation():
+            """Always raise ValueError for deterministic test."""
+            raise ValueError("Expected failure")
 
         with raises_fixture(ValueError):
-            flaky_operation(flaky_with_validation, max_attempts=1)
+            flaky_operation.retry(always_fail_validation, max_attempts=1)
 
     def test_all_fixtures_together(self, raises_fixture, oom_fixture, flaky_operation):
         """Test all three fixtures together."""
@@ -166,4 +165,4 @@ class TestFixtureIntegration:
             arr = np.random.randn(100, 100)
             return arr.mean()
 
-        flaky_operation(complex_operation, max_attempts=5, timeout=10.0)
+        flaky_operation.retry(complex_operation, max_attempts=5, timeout=10.0)

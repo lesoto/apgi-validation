@@ -1792,8 +1792,12 @@ def analyze_sobol_sensitivity(
                 "params_checked": available_f8_sa_params,
             }
 
+            results: Dict[str, Any] = results
             # Add F8.SA to falsification criteria
             falsification_criteria = results.get("falsification_criteria", {})
+            if not isinstance(falsification_criteria, dict):
+                falsification_criteria = {}
+
             falsification_criteria["F8_SA"] = {
                 "falsified": not f8_sa_passed,
                 "falsification_reason": (
@@ -1864,17 +1868,19 @@ def analyze_sobol_sensitivity(
                     "pi_i_vif": pi_i_vif,
                     "message": (
                         f"VIF(β)={beta_vif:.2f}, VIF(Πⁱ)={pi_i_vif:.2f} exceed threshold 10. "
-                        "Sobol sensitivity hierarchy is UNRELIABLE due to collinearity."
+                        f"Sobol sensitivity hierarchy is UNRELIABLE due to collinearity."
                     ),
                 }
                 # Demote the hierarchy test result too
                 if "apgi_hierarchy_falsification" in results:
-                    hierarchy_falsification = results[
-                        "apgi_hierarchy_falsification"
-                    ].copy()
-                    hierarchy_falsification["hierarchy_reliable"] = False
-                    hierarchy_falsification["collinearity_warning"] = True
-                    results["apgi_hierarchy_falsification"] = hierarchy_falsification
+                    hierarchy_raw = results["apgi_hierarchy_falsification"]
+                    if isinstance(hierarchy_raw, dict):
+                        hierarchy_falsification = hierarchy_raw.copy()
+                        hierarchy_falsification["hierarchy_reliable"] = False
+                        hierarchy_falsification["collinearity_warning"] = True
+                        results["apgi_hierarchy_falsification"] = (
+                            hierarchy_falsification
+                        )
                 warnings.warn(
                     f"HIGH COLLINEARITY detected: VIF(β)={beta_vif:.2f}, "
                     f"VIF(Πⁱ)={pi_i_vif:.2f}. "
@@ -2377,7 +2383,9 @@ def run_comprehensive_parameter_sensitivity_analysis() -> Dict[str, Any]:
         fim_results,
         profile_likelihood_results,
     )
-    results["comprehensive_report"] = str(report)
+    results["comprehensive_report"] = (
+        report  # Use dict directly instead of str if results is Dict[str, Any]
+    )
 
     # 11. Summary statistics with comprehensive F8 criteria tracking
     # F8.PL: Profile likelihood CI finite
@@ -2595,7 +2603,7 @@ def analyze_parameter_robustness(
 
         # Robustness score (higher is better)
         robustness_score = 1 - (mean_degradation + std_degradation)
-        robustness_score = max(0.0, robustness_score)  # Clamp to [0, 1]
+        robustness_score = float(max(0.0, float(robustness_score)))  # Clamp to [0, 1]
 
         robustness_results[f"perturbation_{perturbation_level}"] = {
             "mean_degradation": float(mean_degradation),
@@ -3333,4 +3341,21 @@ def run_protocol_main(config=None):
         methodology="simulation_exploration",
         errors=legacy_result.get("errors", []),
         metadata={"status": legacy_result.get("status")},
+    )
+
+
+# Aliases for test compatibility
+def analyze_parameter_sensitivity(
+    base_params, param_std_devs, n_levels=10, n_trials=1000
+):
+    """Alias for analyze_oat_sensitivity for test compatibility."""
+    return analyze_oat_sensitivity(base_params, param_std_devs, n_levels, n_trials)
+
+
+def generate_sensitivity_report(
+    base_params, param_std_devs, n_levels=10, n_trials=1000
+):
+    """Alias for generate_comprehensive_sensitivity_report for test compatibility."""
+    return generate_comprehensive_sensitivity_report(
+        base_params, param_std_devs, n_levels, n_trials
     )

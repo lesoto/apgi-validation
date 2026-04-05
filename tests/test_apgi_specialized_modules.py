@@ -7,6 +7,8 @@ import pytest
 import numpy as np
 from pathlib import Path
 from unittest.mock import MagicMock
+import subprocess
+import unittest
 
 # Add project root to path
 import sys
@@ -654,13 +656,27 @@ class TestTestsGUI:
         try:
             gui = module.TestsGUI()
 
-            # Create test configuration
-            test_config = {"test_type": "unit", "coverage": True}
+            # Mock the subprocess.run call to avoid hanging in test environment
+            with unittest.mock.patch("subprocess.run") as mock_run:
+                # Configure mock to return successful result
+                mock_run.return_value = subprocess.CompletedProcess(
+                    args=["python", "-m", "pytest", "test"],
+                    returncode=0,
+                    stdout="✅ Tests PASSED\n",
+                    stderr="",
+                )
 
-            # Run tests through GUI
-            test_result = gui.run_tests(test_config)
-            assert isinstance(test_result, dict)
-            assert "test_results" in test_result
+                # Create test configuration
+                test_config = {"test_type": "unit", "coverage": False}
+
+                # Test the run_tests method
+                result = gui.run_tests(test_config)
+
+                # Verify the result structure without relying on actual subprocess execution
+                assert isinstance(result, dict)
+                assert "test_results" in result
+                assert result["test_results"]["success"] is True
+                assert "config" in result
 
         except Exception:
             assert True  # Expected if implementation incomplete

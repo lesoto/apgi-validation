@@ -304,7 +304,7 @@ class CrossSpeciesScalingAnalyzer:
         Returns:
             Dictionary with validation results for each parameter
         """
-        validation_results = {}
+        validation_results: Dict[str, Any] = {}
 
         for param, observed in observed_exponents.items():
             expected = self.expected.get(param, 0.0)
@@ -683,7 +683,7 @@ def run_comprehensive_cross_species_analysis(
     ancova_results = run_ancova_analysis(species_windows, species_masses)
 
     # Fix 3: PIC for each parameter
-    pic_results = {}
+    pic_results: Dict[str, Any] = {}
     if "exponent_comparison" in scaling_results:
         for param, exp_val in scaling_results["exponent_comparison"][
             "observed"
@@ -776,7 +776,7 @@ def run_falsification(vp5_genome_path: Optional[str] = None) -> Dict[str, Any]:
 
     passed = all(p["passed"] for p in named_predictions.values())
 
-    results = {
+    results: Dict[str, Any] = {
         "passed": passed,
         "status": "passed" if passed else "falsified",
         "falsified": not passed,
@@ -892,3 +892,18 @@ def run_protocol_main(config=None):
         errors=legacy_result.get("errors", []),
         metadata={"status": legacy_result.get("status")},
     )
+
+
+# Aliases for test compatibility
+def apply_cross_species_scaling(species_data, expected_exponents=None):
+    """Alias for CrossSpeciesScalingAnalyzer for test compatibility."""
+    analyzer = CrossSpeciesScalingAnalyzer(expected_exponents)
+    return analyzer.run_scaling_analysis(expected_exponents)
+
+
+def validate_scaling_laws(
+    observed_exponents, expected_exponents=None, expected_std_devs=None
+):
+    """Alias for validate_exponents_with_2sd_window for test compatibility."""
+    analyzer = CrossSpeciesScalingAnalyzer(expected_exponents, expected_std_devs)
+    return analyzer.validate_exponents_with_2sd_window(observed_exponents)

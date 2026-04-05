@@ -3732,3 +3732,14 @@ def run_protocol_main(config=None):
         errors=legacy_result.get("errors", []),
         metadata={"status": legacy_result.get("status")},
     )
+
+
+# Aliases for test compatibility
+def detect_neural_signatures(network_weights, liquid_params, n_trials=100):
+    """Alias for test_v61_ltcn_threshold_transition for test compatibility."""
+    return test_v61_ltcn_threshold_transition(network_weights, liquid_params, n_trials)
+
+
+def validate_network_topology(network_weights, liquid_params):
+    """Alias for test_liquid_network_properties for test compatibility."""
+    return test_liquid_network_properties(network_weights, liquid_params)

@@ -343,11 +343,29 @@ def reset_random_state_before_each_test():
 
 @pytest.fixture
 def flaky_operation():
-    """Fixture that provides a retry wrapper for flaky operations."""
+    """Fixture that provides a factory for creating flaky operations."""
     import time
     import numpy as np
 
-    def operation(func, max_attempts=3, timeout=None, backoff_factor=1):
+    def create_operation(success_rate=0.5):
+        """Create a flaky operation with specified success rate.
+
+        Args:
+            success_rate: Probability of success (0.0 to 1.0)
+
+        Returns:
+            A function that succeeds with the given probability
+        """
+
+        def operation():
+            if np.random.random() < success_rate:
+                return "success"
+            else:
+                raise RuntimeError("Operation failed")
+
+        return operation
+
+    def retry_wrapper(func, max_attempts=3, timeout=None, backoff_factor=1):
         """Execute a function with retry logic.
 
         Args:
@@ -373,7 +391,15 @@ def flaky_operation():
         # All attempts failed, raise the last exception
         raise last_exception
 
-    return operation
+    # Return both the factory and the retry wrapper
+    class FlakyOperationFactory:
+        def __call__(self, success_rate=0.5):
+            return create_operation(success_rate)
+
+        def retry(self, func, max_attempts=3, timeout=None, backoff_factor=1):
+            return retry_wrapper(func, max_attempts, timeout, backoff_factor)
+
+    return FlakyOperationFactory()
 
 
 def pytest_configure(config):

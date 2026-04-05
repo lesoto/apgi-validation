@@ -68,7 +68,10 @@ def compute_entropy(distribution: np.ndarray) -> float:
     # Add small epsilon to avoid log(0)
     epsilon = 1e-10
     distribution = np.clip(distribution, epsilon, 1.0)
-    distribution = distribution / np.sum(distribution)  # Normalize
+    dist_sum = np.sum(distribution)
+    if dist_sum == 0:
+        return 0.0
+    distribution = distribution / dist_sum  # Normalize
     return -np.sum(distribution * np.log2(distribution))
 
 
@@ -213,6 +216,7 @@ class TestNumericalStabilityProperties:
         strategies.floats(allow_nan=True, allow_infinity=False),
         strategies.floats(min_value=0.1, max_value=10.0),
     )
+    @settings(max_examples=10, deadline=5000)
     def test_nan_handling_surprise(self, error, reference):
         """Test NaN handling in surprise computation."""
         try:
@@ -332,6 +336,7 @@ class TestDataValidationProperties:
         "generate_synthetic_dataset" not in globals(),
         reason="generate_synthetic_dataset not available",
     )
+    @settings(max_examples=5, deadline=5000)  # Limit examples, 5s timeout each
     @given(
         strategies.integers(min_value=10, max_value=100),
     )

@@ -1,18 +1,18 @@
 {
   "pickle_key": {
     "current": {
-      "fingerprint": "aa96d922be453489",
+      "fingerprint": "ea1fec47c9911b89",
       "file": ".keys/pickle_secret_key.enc"
     },
     "rotation_history": []
   },
   "backup_key": {
     "current": {
-      "fingerprint": "5886dbb5827d31f9",
-      "file": ".keys\\backup_hmac_key.enc"
+      "fingerprint": "58ef3d27ab73a411",
+      "file": ".keys/backup_hmac_key.enc"
     },
     "rotation_history": []
   },
   "last_rotation": null,
-  "next_rotation": "2026-05-04T20:06:15.790901+00:00"
+  "next_rotation": "2026-05-05T22:15:06.770627+00:00"
 }

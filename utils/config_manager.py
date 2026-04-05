@@ -718,9 +718,6 @@ class ConfigManager:
                 FileNotFoundError,
                 PermissionError,
                 yaml.YAMLError,
-                json.JSONDecodeError,
-                ValueError,
-                KeyError,
             ) as e:
                 apgi_logger.log_error_with_context(
                     e,
@@ -732,6 +729,16 @@ class ConfigManager:
                 apgi_logger.logger.warning(
                     f"Using default configuration due to error: {e}"
                 )
+            except (json.JSONDecodeError, ValueError, KeyError) as e:
+                # Re-raise JSON and validation errors for tests
+                apgi_logger.log_error_with_context(
+                    e,
+                    {
+                        "operation": "load_config",
+                        "file": str(self.config_file),
+                    },
+                )
+                raise
         else:
             self._save_default_config()
             apgi_logger.logger.info(
@@ -787,8 +794,9 @@ class ConfigManager:
                 if self._validate_field_value(dataclass_instance, key, value):
                     setattr(dataclass_instance, key, value)
                 else:
-                    apgi_logger.logger.warning(
-                        f"Invalid value for {key}: {value}. Keeping existing value."
+                    # Raise ValueError for invalid types
+                    raise ValueError(
+                        f"Invalid value type for {key}: {value} (type: {type(value).__name__})"
                     )
             else:
                 apgi_logger.logger.warning(f"Unknown field {key} in configuration")

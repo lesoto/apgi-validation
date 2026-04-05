@@ -213,7 +213,8 @@ class TestExceptionTestCases:
         """Test exception_test_cases with KeyError."""
         error = exception_test_cases["key_error"]
         assert isinstance(error, KeyError)
-        assert str(error) == "Missing key"
+        # KeyError string representation includes quotes
+        assert str(error) == "'Missing key'"
 
     def test_exception_test_cases_attribute_error(self, exception_test_cases):
         """Test exception_test_cases with AttributeError."""

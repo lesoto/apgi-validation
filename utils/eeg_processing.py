@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from scipy import signal
 from scipy.integrate import trapezoid  # Use trapezoid instead of deprecated simps
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Union, List
 from pathlib import Path
 import yaml
 import logging
@@ -249,7 +249,7 @@ def compute_pac_with_bands(
 
     for ch in range(n_channels):
         # Compute amplitude for each phase bin
-        amp_by_phase = []
+        amp_by_phase: List[float] = []
         for i in range(n_bins):
             next_bin_idx = (i + 1) % n_bins  # Wrap around for last bin
             in_bin = (phase[ch] >= phase_bins[i]) & (
@@ -257,7 +257,8 @@ def compute_pac_with_bands(
             )
             if np.any(in_bin):
                 amp = amplitude_envelope[ch, in_bin]
-                amp_by_phase.append(np.nanmean(amp) if len(amp) > 0 else 0.0)
+                mean_val = np.nanmean(amp) if len(amp) > 0 else 0.0
+                amp_by_phase.append(mean_val)
             else:
                 amp_by_phase.append(0.0)
 
@@ -356,7 +357,7 @@ def compute_theta_gamma_pac(
     mi_values = []
     for ch in range(n_channels):
         # Compute gamma amplitude for each theta phase bin
-        gamma_amp_by_phase = []
+        gamma_amp_by_phase: List[float] = []
         for i in range(n_bins):
             # Find time points where theta phase is in this bin
             next_bin_idx = (i + 1) % n_bins  # Wrap around for last bin
@@ -415,11 +416,11 @@ def compute_theta_gamma_pac(
 
 
 def _bandpass_filter(
-    data: pd.Series,
+    data: Union[pd.Series, np.ndarray],
     fs: float,
     band: Tuple[float, float],
     order: int = 4,
-) -> pd.Series:
+) -> Union[pd.Series, np.ndarray]:
     """Apply Butterworth bandpass filter to data."""
     # Convert Series to numpy array for scipy
     data_array = data.values if isinstance(data, pd.Series) else data
@@ -446,9 +447,9 @@ def _bandpass_filter(
 
 
 def _amplitude_envelope(
-    data: pd.Series,
+    data: Union[pd.Series, np.ndarray],
     fs: float,
-) -> pd.Series:
+) -> Union[pd.Series, np.ndarray]:
     """Extract amplitude envelope using Hilbert transform."""
     # Convert Series to numpy array for scipy
     data_array = data.values if isinstance(data, pd.Series) else data

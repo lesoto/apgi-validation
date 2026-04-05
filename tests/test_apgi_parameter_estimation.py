@@ -986,7 +986,9 @@ class TestModuleAvailability:
 
         for module_name in required_modules:
             try:
-                __import__(module_name)
+                import importlib
+
+                importlib.import_module(module_name)
             except ImportError:
                 pytest.fail(f"Required dependency {module_name} not available")
 
@@ -996,11 +998,13 @@ class TestModuleAvailability:
 
         for module_name in optional_modules:
             try:
-                __import__(module_name)
+                import importlib
+
+                importlib.import_module(module_name)
                 # Module is available
                 True
-            except ImportError:
-                # Module not available is acceptable
+            except Exception:
+                # Module not available is acceptable (could be ImportError, AttributeError, etc.)
                 False
 
             # Just test that import doesn't crash

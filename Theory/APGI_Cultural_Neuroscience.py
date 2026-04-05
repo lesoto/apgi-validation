@@ -17,10 +17,20 @@ This module provides:
 from __future__ import annotations
 
 import sys
+import types
 
 # Fix for Python 3.14+ dataclass forward reference resolution
+# When loaded via importlib.util, the module is not yet in sys.modules at exec time,
+# so we register it using the current frame's globals (which IS the module object).
 if "APGI_Cultural_Neuroscience" not in sys.modules:
-    sys.modules["APGI_Cultural_Neuroscience"] = sys.modules[__name__]
+    _self = sys.modules.get(__name__)
+    if _self is None:
+        # Loaded via importlib: build a temporary module reference from globals
+        _self = types.ModuleType("APGI_Cultural_Neuroscience")
+        _self.__dict__.update(
+            {k: v for k, v in globals().items() if not k.startswith("__")}
+        )
+    sys.modules["APGI_Cultural_Neuroscience"] = _self
 
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple

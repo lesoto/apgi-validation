@@ -3097,3 +3097,23 @@ def run_protocol_main(config: dict = None) -> Union[dict, object]:
     except Exception as e:
         logger.error(f"Failed to convert FP-10 to standardized schema: {e}")
         return legacy_result
+
+
+# Aliases for test compatibility
+def run_bayesian_estimation(
+    stimulus_data, response_data, n_samples=5000, n_chains=4, burn_in=1000
+):
+    """Alias for run_mcmc_bayesian_estimation_np for test compatibility."""
+    return run_mcmc_bayesian_estimation_np(
+        stimulus_data, response_data, n_samples, n_chains, burn_in
+    )
+
+
+def compute_posterior_distributions(trace, param_names):
+    """Alias for extracting posterior distributions from MCMC results."""
+    posterior_samples = {}
+    if hasattr(trace, "posterior"):
+        for param in param_names:
+            if param in trace.posterior:
+                posterior_samples[param] = trace.posterior[param].values.flatten()
+    return posterior_samples

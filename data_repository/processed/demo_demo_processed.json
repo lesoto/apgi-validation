@@ -112522,7 +112522,7 @@
     "Normalized Index(['time_seconds', 'eeg_fz', 'eeg_pz', 'pupil_diameter', 'eda',\n       'heart_rate', 'event_marker', 'eda_tonic', 'eda_phasic'],\n      dtype='object') using zscore method",
     "Resampled data to 250.0 Hz"
   ],
-  "processing_timestamp": "2026-04-04T16:06:31.498280",
+  "processing_timestamp": "2026-04-05T16:41:09.378540",
   "metadata": {
     "shape": [
       7501,

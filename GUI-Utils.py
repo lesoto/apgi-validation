@@ -7,17 +7,79 @@ A tkinter-based GUI that allows running all scripts in the utils folder
 with output display and error handling.
 """
 
-import json
 import logging
+import platform
 import queue
+import re
 import select
+import shlex
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import scrolledtext, ttk, simpledialog
 from typing import Any, Dict, List, Optional
+
+# Configure basic logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("UtilsRunner")
+
+
+def strip_ansi_codes(text: str) -> str:
+    """Strip ANSI escape codes from text for clean display in GUI.
+
+    Args:
+        text: Text that may contain ANSI escape codes.
+
+    Returns:
+        Clean text with ANSI codes removed.
+    """
+    # ANSI escape sequence pattern: ESC[ followed by numbers/letters and ending with m
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", text)
+
+
+def is_progress_bar_line(text: str) -> bool:
+    """Check if text is a tqdm progress bar line.
+
+    Args:
+        text: Text to check.
+
+    Returns:
+        True if the line appears to be a tqdm progress bar.
+    """
+    # Match patterns like: "Processing jobs:   0%|          | 0/1 [00:00<?, ?it/s]"
+    # or "Loading data:  17%|█▋        | 1/6 [00:00<00:00,  6.36it/s]"
+    # Pattern: any text, then percentage, progress bar blocks, count, and timing
+    progress_pattern = re.compile(r"^.*\d+%\|[\s█▏▎▍▌▋▊▉]+\|\s*\d+/\d+\s*\[.*\].*$")
+    return bool(progress_pattern.match(text))
+
+
+def should_filter_line(text: str) -> bool:
+    """Determine if a line should be filtered from GUI output.
+
+    Args:
+        text: Text line to evaluate.
+
+    Returns:
+        True if the line should be suppressed.
+    """
+    if not text or text.isspace():
+        return True
+
+    # Filter tqdm progress bar lines
+    if is_progress_bar_line(text):
+        return True
+
+    # Filter carriage return lines (progress bar updates)
+    if "\r" in text and ("%" in text or "it/s" in text):
+        return True
+
+    return False
 
 
 class UtilsRunnerGUI:
@@ -71,6 +133,7 @@ class UtilsRunnerGUI:
 
         # Store running processes
         self.running_processes: Dict[str, subprocess.Popen] = {}
+        self._run_all_cancelled = False
 
         # Track daemon threads for cleanup
         self.daemon_threads: List[threading.Thread] = []
@@ -81,8 +144,8 @@ class UtilsRunnerGUI:
         self.setup_ui()
 
         # Add keyboard shortcut for quitting (Ctrl+Q or Cmd+Q)
-        self.root.bind("<Control-q>", lambda e: self.quit_application())
-        self.root.bind("<Command-q>", lambda e: self.quit_application())
+        self.root.bind("<Control-q>", self.quit_application)
+        self.root.bind("<Command-q>", self.quit_application)
 
         # Handle window close button
         self.root.protocol("WM_DELETE_WINDOW", self.quit_application)
@@ -177,11 +240,16 @@ class UtilsRunnerGUI:
         try:
             if config_path.exists():
                 with open(config_path, "r", encoding="utf-8") as f:
+                    import json
+
                     return json.load(f)
             else:
                 # Create default config file
-                with open(config_path, "w", encoding="utf-8") as f:
-                    json.dump(default_config, f, indent=2)
+                if config_path.parent.exists():
+                    with open(config_path, "w", encoding="utf-8") as f:
+                        import json
+
+                        json.dump(default_config, f, indent=2)
                 return default_config
         except Exception as e:
             self.log_output(f"Error loading config: {e}", self.TAG_WARNING)
@@ -220,8 +288,6 @@ class UtilsRunnerGUI:
 
         if dialog:
             # Split arguments while respecting quotes
-            import shlex
-
             try:
                 return shlex.split(dialog)
             except ValueError:
@@ -491,10 +557,16 @@ class UtilsRunnerGUI:
             self.root.after(0, lambda idx=index: self.scripts_listbox.see(idx))
 
             # Run without waiting - truly async
-            self.run_script(script, wait=False)
+            success = self.run_script(script, wait=False)
+            if not success:
+                self.log_output(f"Failed to start {script.name}", self.TAG_ERROR)
 
             # Monitor completion and schedule next
             def monitor_and_continue():
+                if self._run_all_cancelled:
+                    self._finish_run_all()
+                    return
+
                 process = self.running_processes.get(script.name)
                 if process and process.poll() is None:
                     # Still running, check again
@@ -515,6 +587,7 @@ class UtilsRunnerGUI:
 
         def start_run_all():
             """Start the async chain."""
+            self._run_all_cancelled = False
             threading.Thread(target=run_script_async, args=(0,), daemon=True).start()
 
         self.root.after(0, start_run_all)
@@ -589,6 +662,10 @@ class UtilsRunnerGUI:
         # Start process
         try:
             # Validate CWD exists before using it
+            if not self.utils_dir:
+                self.log_output("Error: Utils directory not configured", self.TAG_ERROR)
+                return False
+
             cwd_path = self.utils_dir.parent
             if not cwd_path.exists():
                 self.log_output(
@@ -613,7 +690,9 @@ class UtilsRunnerGUI:
 
             # Read output in real-time
             output_thread = threading.Thread(
-                target=self._read_output, args=(process, script_name), daemon=True
+                target=self._read_output,
+                args=(process, script_name, timeout),
+                daemon=True,
             )
             self.daemon_threads.append(output_thread)
             output_thread.start()
@@ -622,9 +701,9 @@ class UtilsRunnerGUI:
             self._update_button_states()
 
             if wait:
-                output_thread.join(
-                    timeout=30.0
-                )  # 30 second timeout to prevent GUI hangs
+                # Wait for process and output thread
+                process.wait(timeout=timeout + 5)  # Buffer for output reading
+                output_thread.join(timeout=5.0)
                 return process.returncode == 0
             else:
                 return True
@@ -636,11 +715,8 @@ class UtilsRunnerGUI:
             # Reset button states on error (thread-safe)
             self.root.after_idle(self._update_button_states)
 
-            # Retry logic for exceptions (only from main thread)
-            if (
-                retry_count < 2
-                and threading.current_thread() is threading.main_thread()
-            ):
+            # Retry logic for exceptions
+            if retry_count < 2:
                 self.log_output(
                     f"Retrying {script.name} due to exception (attempt {retry_count + 1}/2)",
                     self.TAG_WARNING,
@@ -653,14 +729,10 @@ class UtilsRunnerGUI:
                 return True  # Return True to indicate retry scheduled
             return False
 
-    def _read_output(self, process, script_name):
+    def _read_output(self, process, script_name, script_timeout=None):
         """Read output from subprocess in real-time with improved Windows handling."""
-        import time
-        import platform
-        import threading
-        import queue
-
-        script_timeout = self.get_script_timeout(script_name)
+        if script_timeout is None:
+            script_timeout = self.get_script_timeout(script_name)
         start_time = time.time()
 
         # Use a queue for thread-safe communication on Windows
@@ -734,7 +806,11 @@ class UtilsRunnerGUI:
                     elif not output and process.poll() is not None:
                         break
                     elif output:
-                        self.log_output(output.strip(), self.TAG_INFO)
+                        # Strip ANSI codes for clean display in GUI
+                        clean_output = strip_ansi_codes(output.rstrip())
+                        # Filter out progress bars and empty lines
+                        if clean_output and not should_filter_line(clean_output):
+                            self.log_output(clean_output, self.TAG_INFO)
 
                 # Check timeout
                 if time.time() - start_time > script_timeout:
@@ -864,7 +940,12 @@ class UtilsRunnerGUI:
                 process = self.running_processes[script.name]
                 self._force_kill_process(process, script.name)
                 self.log_output(f"Stopped: {script.name}", self.TAG_WARNING)
-                del self.running_processes[script.name]
+                if script.name in self.running_processes:
+                    del self.running_processes[script.name]
+
+                # If we are in "run all" mode, cancel the sequence
+                self._run_all_cancelled = True
+
                 # Disable stop button if no processes are running
                 self._update_stop_button_state()
                 self.progress.stop()
@@ -881,11 +962,12 @@ class UtilsRunnerGUI:
         self.output_text.delete(1.0, tk.END)
         self.log_output("Output cleared", self.TAG_INFO)
 
-    def quit_application(self):
+    def quit_application(self, event=None):
         """Quit the application safely.
 
         Stops all running processes and closes the application.
         """
+        self._run_all_cancelled = True
         # Stop all running processes
         for script_name, process in list(self.running_processes.items()):
             try:
