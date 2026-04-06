@@ -182,20 +182,40 @@ def _ensure_numpy_array_utils_shim() -> None:
         try:
             from numpy.lib.array_utils import normalize_axis_index
         except ImportError:
-            from numpy.core.multiarray import normalize_axis_index
+            # Fallback: define our own normalize_axis_index
+            def normalize_axis_index(axis: int, ndim: int) -> int:
+                if axis < 0:
+                    axis += ndim
+                if axis < 0 or axis >= ndim:
+                    raise ValueError(
+                        f"axis {axis} is out of bounds for array of dimension {ndim}"
+                    )
+                return axis
 
         module.normalize_axis_index = normalize_axis_index
     except (ImportError, AttributeError):
         # Use alternative implementation for newer NumPy versions
-        def normalize_axis_index(arr, axis):
+        def normalize_axis_index(arr: np.ndarray, axis: int) -> np.ndarray:
             return np.mean(arr, axis=axis, keepdims=True)
+
+        module.normalize_axis_index = normalize_axis_index
 
     try:
         # Try newer NumPy location first
         try:
             from numpy.lib.array_utils import normalize_axis_tuple
         except ImportError:
-            from numpy.core.numeric import normalize_axis_tuple
+            # Fallback: define our own normalize_axis_tuple
+            def normalize_axis_tuple(axis: int, ndim: int) -> tuple[int, ...]:
+                return (
+                    normalize_axis_index(axis, ndim) if normalize_axis_index else axis,
+                )
+
+        module.normalize_axis_tuple = normalize_axis_tuple
+    except (ImportError, AttributeError):
+        # Use alternative implementation for newer NumPy versions
+        def normalize_axis_tuple(arr: np.ndarray, axis: int) -> np.ndarray:
+            return np.mean(arr, axis=axis, keepdims=True)
 
         module.normalize_axis_tuple = normalize_axis_tuple
     except (ImportError, AttributeError):
@@ -660,9 +680,9 @@ def run_prior_sensitivity_check(
                 prior_sensitive_params.append(param)
 
     # Overall sensitivity assessment
-    all_cv_values = []
+    all_cv_values: list[float] = []
     for v in sensitivity_results.values():
-        all_cv_values.append(v["coefficient_of_variation"])
+        all_cv_values.append(float(v["coefficient_of_variation"]))
     mean_cv = float(np.mean(all_cv_values)) if all_cv_values else 0.0
 
     # VP-11 Fix 4: Flag as prior_sensitive if any parameter fails the criterion
@@ -2225,7 +2245,13 @@ def run_complete_mcmc_analysis(
                     apgi_psychometric_function_np(stimulus_data, *params)
                 )
 
-            ppc_samples = np.array(ppc_samples)
+            ppc_samples_list: list[np.ndarray] = []
+            for sample in posterior_samples:
+                ppc_samples_list.append(
+                    apgi_psychometric_function_np(stimulus_data, *sample)
+                )
+
+            ppc_samples = np.array(ppc_samples_list)
             observed_mean = np.mean(response_data)
             # Prop of times predictive mean >= observed mean
             ppc_p_value = np.mean(np.mean(ppc_samples, axis=1) >= observed_mean)
@@ -2548,7 +2574,11 @@ def load_empirical_data(
         logger.info(
             f"HIGH-03: Loaded empirical data: {len(stimulus_data)} trials from {data_path}"
         )
-        return stimulus_data, response_data, DataSource.EMPIRICAL
+        return (
+            stimulus_data if len(stimulus_data) > 0 else None,
+            response_data if len(response_data) > 0 else None,
+            DataSource.EMPIRICAL,
+        )
 
     except Exception as e:
         logger.error(f"Error loading empirical data: {e}")

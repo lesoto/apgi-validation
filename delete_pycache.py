@@ -142,7 +142,7 @@ DEFAULT_FILE_PATTERNS = [
     "*_copy.py",
     "*_old.py",
     "*_orig.py",
-    "*_test.py",
+    # NOTE: "*_test.py" removed - would delete actual test files
     "*_tmp.py",
     # Generated config/data files
     "*.generated.*",
@@ -165,7 +165,6 @@ DEFAULT_FILE_PATTERNS = [
     "*.lib",
     "*.o",
     "*.obj",
-    # Intermediate processing files
     "*.intermediate",
     "*.partial",
     "*.incomplete",
@@ -173,7 +172,6 @@ DEFAULT_FILE_PATTERNS = [
     "*.tmp.json",
     "*.tmp.csv",
     "*.tmp.parquet",
-    # Export/download artifacts
     "*.download",
     "*.crdownload",
     "*.part",
@@ -186,19 +184,38 @@ DEFAULT_EXTRA_DIR_NAMES = {
     "screenshots",
     "temp",
     "tmp",
-    "output",
-    "results",
+    # NOTE: Removed "output", "results", "logs" - these may contain important data
     "figures",
     "plots",
-    "data_output",
-    "analysis_output",
-    "experiment_output",
-    "validation_output",
-    "testing_output",
+    # "data_output", "analysis_output", etc. removed - use --apgi-only for selective cleanup
     "debug_output",
 }
 
 DEFAULT_SKIP_TRAVERSE_DIRS = {".git", ".svn", ".hg"}
+
+# Essential directories that should never be deleted by default
+DEFAULT_PROTECTED_DIR_NAMES = {
+    "tests",
+    "test",
+    "src",
+    "source",
+    "docs",
+    "doc",
+    "examples",
+    "example",
+    "scripts",
+    "bin",
+    "lib",
+    "utils",
+    "Validation",
+    "Falsification",
+    "Theory",
+    "config",
+    "data",
+    "data_repository",
+    ".keys",
+    ".kiro",
+}
 
 DEFAULT_EXTRA_FILE_PATTERNS = [
     "*.tmp",
@@ -252,8 +269,13 @@ def _should_remove_directory(
     remove_node_modules: bool,
     remove_venvs: bool,
     venv_names: Iterable[str],
+    protected_dir_names: set = None,
 ) -> bool:
     """Determine if a directory should be removed."""
+    # Never remove protected directories
+    if protected_dir_names and dirname in protected_dir_names:
+        return False
+
     return (
         dirname in default_dir_names
         or matches_any(dirname, default_dir_patterns)
@@ -370,10 +392,16 @@ def _process_directories(
     dry_run: bool,
     verbose: bool,
     stats: dict,
+    protected_dir_names: set = None,
 ) -> None:
     """Process directories in current path."""
     for d in list(dirnames):
         if d in DEFAULT_SKIP_TRAVERSE_DIRS or matches_any(d, exclude_dir_patterns):
+            dirnames.remove(d)
+            continue
+
+        # Skip protected directories
+        if protected_dir_names and d in protected_dir_names:
             dirnames.remove(d)
             continue
 
@@ -385,6 +413,7 @@ def _process_directories(
             remove_node_modules,
             remove_venvs,
             venv_names,
+            protected_dir_names,
         ):
             _remove_directory(dirpath, d, dry_run, verbose, stats)
             if d in dirnames:
@@ -612,6 +641,7 @@ def delete_temporary_items(
     default_file_patterns = list(DEFAULT_FILE_PATTERNS) + list(
         DEFAULT_EXTRA_FILE_PATTERNS
     )
+    protected_dir_names = DEFAULT_PROTECTED_DIR_NAMES
 
     for dirpath, dirnames, filenames in os.walk(
         root_dir, topdown=True, followlinks=follow_links
@@ -633,6 +663,7 @@ def delete_temporary_items(
             dry_run,
             verbose,
             stats,
+            protected_dir_names,
         )
 
         _process_files(
@@ -899,7 +930,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "*_copy.*",
                 "*_old.*",
                 "*_orig.*",
-                "*_test.*",
+                # NOTE: "*_test.*" removed - would delete test files
                 "*_tmp.*",
             ]
         )

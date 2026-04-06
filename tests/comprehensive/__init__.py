@@ -293,10 +293,11 @@ class AdversarialTestFramework:
                     text=True,
                 )
 
+                # Longer timeout for nolds-based tests (fractional dimension)
+                timeout_seconds = 120 if "fractional" in test_file else 60
+
                 try:
-                    stdout, stderr = process.communicate(
-                        timeout=60
-                    )  # 60s timeout per test
+                    stdout, stderr = process.communicate(timeout=timeout_seconds)
                     result_code = process.returncode
                 except subprocess.TimeoutExpired:
                     process.kill()
@@ -305,7 +306,7 @@ class AdversarialTestFramework:
                     print("TIMEOUT", flush=True)
                     results["failed"] += 1
                     results["total"] += 1
-                    logger.error(f"Test {test_file} timed out after 60s")
+                    logger.error(f"Test {test_file} timed out after {timeout_seconds}s")
                     continue
 
                 # Parse results

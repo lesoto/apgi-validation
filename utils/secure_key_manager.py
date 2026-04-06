@@ -14,6 +14,9 @@ from pathlib import Path
 import logging
 from cryptography.fernet import Fernet
 
+# Module-level lock for singleton initialization
+_singleton_lock = threading.Lock()
+
 
 class SecureKeyManager:
     """Thread-safe secure key manager with point-of-use retrieval."""
@@ -309,10 +312,13 @@ _secure_key_manager: Optional[SecureKeyManager] = None
 
 
 def get_secure_key_manager() -> SecureKeyManager:
-    """Get or create global secure key manager instance."""
+    """Get or create global secure key manager instance (thread-safe)."""
     global _secure_key_manager
     if _secure_key_manager is None:
-        _secure_key_manager = SecureKeyManager()
+        with _singleton_lock:
+            # Double-check pattern
+            if _secure_key_manager is None:
+                _secure_key_manager = SecureKeyManager()
     return _secure_key_manager
 
 

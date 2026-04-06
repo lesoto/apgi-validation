@@ -3944,13 +3944,13 @@ def run_protocol_main(config=None):
     named_predictions = {}
     for pred_id in ["P3.1", "P3.2", "P3.3", "P3.4", "P3.5", "P3.6"]:
         pred_data = legacy_result.get("named_predictions", {}).get(pred_id, {})
-        
+
         # Handle case where pred_data might be a boolean instead of dict
         if isinstance(pred_data, bool):
             pred_data = {"passed": pred_data}
         elif not isinstance(pred_data, dict):
             pred_data = {"passed": False}
-            
+
         named_predictions[pred_id] = PredictionResult(
             passed=pred_data.get("passed", False),
             value=pred_data.get("effect_size"),

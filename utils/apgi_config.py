@@ -125,11 +125,6 @@ class APGIConfig:
     use_shannon_entropy: bool = True  # Use Shannon entropy
     use_rigorous_variational_fe: bool = True  # Use rigorous variational free energy
 
-    # Reservoir and network parameters
-    reservoir_sparsity: float = 0.9  # Sparsity level for reservoir connections
-    reservoir_scaling: float = 1.0  # Scaling factor for reservoir weights
-    volatility_history_max: int = 100  # Maximum volatility history length
-
     # VP-03: Agent Simulation Hyperparameters (HIGH-06)
     # Learning rates for hierarchical generative models
     lr_extero: float = 0.01  # Exteroceptive model learning rate

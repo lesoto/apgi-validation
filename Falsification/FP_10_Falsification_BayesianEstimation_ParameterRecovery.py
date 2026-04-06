@@ -56,7 +56,7 @@ class FP10bParameterRecovery:
     4. Tests parameter identifiability
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.recovery_results: List[ParameterRecoveryResult] = []
         self.recovery_summary: Dict[str, Any] = {}
 
@@ -169,10 +169,10 @@ class FP10bParameterRecovery:
         dataset_results = []
         for param_name, true_value in true_params.items():
             if param_name in mcmc_results["posterior_means"]:
-                recovered_mean = mcmc_results["posterior_means"][param_name]
-                recovered_std = mcmc_results["posterior_stds"][param_name]
-                ci_lower = mcmc_results["credible_intervals"][param_name][0]
-                ci_upper = mcmc_results["credible_intervals"][param_name][1]
+                recovered_mean = float(mcmc_results["posterior_means"][param_name])
+                recovered_std = float(mcmc_results["posterior_stds"][param_name])
+                ci_lower = float(mcmc_results["credible_intervals"][param_name][0])
+                ci_upper = float(mcmc_results["credible_intervals"][param_name][1])
 
                 # Compute recovery metrics
                 recovery_error = abs(recovered_mean - true_value)
@@ -234,7 +234,7 @@ class FP10bParameterRecovery:
         # Combined identifiability score
         identifiability_score = 0.6 * accuracy_score + 0.4 * uncertainty_score
 
-        return np.clip(identifiability_score, 0.0, 1.0)
+        return min(max(identifiability_score, 0.0), 1.0)
 
     def _compute_recovery_summary(self) -> Dict[str, Any]:
         """Compute summary statistics across all recovery results"""
@@ -270,19 +270,28 @@ class FP10bParameterRecovery:
             )
 
             param_summary = {
-                "mean_relative_error": float(np.mean(relative_errors)),
-                "std_relative_error": float(np.std(relative_errors)),
-                "mean_identifiability_score": float(np.mean(identifiability_scores)),
-                "success_rate": float(success_rate),
+                "mean_relative_error": sum(relative_errors) / len(relative_errors),
+                "std_relative_error": (
+                    sum(
+                        (x - sum(relative_errors) / len(relative_errors)) ** 2
+                        for x in relative_errors
+                    )
+                    / len(relative_errors)
+                )
+                ** 0.5,
+                "mean_identifiability_score": sum(identifiability_scores)
+                / len(identifiability_scores),
+                "success_rate": success_rate,
                 "n_datasets": len(results),
                 "passed_thresholds": (
-                    np.mean(relative_errors) <= self.relative_error_threshold
-                    and np.mean(identifiability_scores)
+                    sum(relative_errors) / len(relative_errors)
+                    <= self.relative_error_threshold
+                    and sum(identifiability_scores) / len(identifiability_scores)
                     >= self.identifiability_threshold
                 ),
             }
 
-            summary["parameter_recovery_summary"][param_name] = param_summary  # type: ignore[index]
+            summary["parameter_recovery_summary"][param_name] = param_summary
 
             all_relative_errors.extend(relative_errors)
             all_identifiability_scores.extend(identifiability_scores)

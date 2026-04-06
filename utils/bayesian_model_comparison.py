@@ -3367,7 +3367,7 @@ def check_falsification(
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
-    results = {
+    results: Dict[str, Any] = {
         "protocol": "VP_2_Validation_Protocol_2",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "total": 11},
