@@ -273,7 +273,7 @@ class TestCombinedFixtureUsage:
         # Wrap it with retry logic (will eventually raise the last exception)
         with raises_fixture(RuntimeError):
             # Call the retry wrapper - it will retry 3 times then raise
-            flaky_operation(always_fails, max_attempts=3)
+            flaky_operation.retry(always_fails, max_attempts=3)
 
     def test_mock_memory_with_raises_fixture(self, raises_fixture, mock_memory_error):
         """Test mock_memory_error with raises_fixture."""

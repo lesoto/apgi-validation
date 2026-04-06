@@ -1991,26 +1991,48 @@ def cross_species(
             }
 
             if species.lower() in species_defaults:
-                params = species_defaults[species.lower()]
-                species_obj = module_info["module"].SpeciesParameters(**params)
+                # Use CrossSpeciesScaling class instead of SpeciesParameters
+                scaling_model = module_info["module"].CrossSpeciesScaling()
 
                 console.print(f"[blue]Analyzing species: {species}[/blue]")
-                predictions = module_info["module"].predict_species_consciousness(
-                    species_obj
-                )
 
-                console.print(
-                    f"[green]✓[/green] Predicted PCI: {predictions['predicted_pci']:.3f}"
-                )
-                console.print(
-                    f"[green]✓[/green] Hierarchical Levels: {predictions['hierarchical_levels']:.1f}"
-                )
-                console.print(
-                    f"[green]✓[/green] Intrinsic Timescale: {predictions['intrinsic_timescale']:.3f}s"
-                )
-                console.print(
-                    f"[green]✓[/green] Encephalization Quotient: {predictions['encephalization_quotient']:.2f}"
-                )
+                # Get species data and compute predictions
+                species_data = scaling_model.species_data.get(species.title())
+                if species_data:
+                    predicted_pci = scaling_model.compute_predicted_pci(
+                        species_data["brain_mass"]
+                    )
+
+                    # Create predictions dictionary
+                    predictions = {
+                        "predicted_pci": predicted_pci,
+                        "hierarchical_levels": predicted_pci * 10,  # Approximation
+                        "intrinsic_timescale": species_data.get("tau_empirical", 0.3),
+                        "encephalization_quotient": species_data["brain_mass"]
+                        / 1500.0
+                        * 100,  # Relative to human
+                        "brain_mass_g": species_data["brain_mass"],
+                        "neurons_millions": species_data["neurons"],
+                        "empirical_pci": species_data["pci_empirical"],
+                    }
+
+                    console.print(
+                        f"[green]✓[/green] Predicted PCI: {predictions['predicted_pci']:.3f}"
+                    )
+                    console.print(
+                        f"[green]✓[/green] Hierarchical Levels: {predictions['hierarchical_levels']:.1f}"
+                    )
+                    console.print(
+                        f"[green]✓[/green] Intrinsic Timescale: {predictions['intrinsic_timescale']:.3f}s"
+                    )
+                    console.print(
+                        f"[green]✓[/green] Encephalization Quotient: {predictions['encephalization_quotient']:.2f}"
+                    )
+                else:
+                    console.print(
+                        f"[red]✗[/red] Species '{species}' not found in database"
+                    )
+                    predictions = {"error": f"Species '{species}' not found"}
 
                 if output_file:
                     # Add explicit file encoding specification

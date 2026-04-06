@@ -28,6 +28,27 @@ from typing import Dict, Any, Optional
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
+def convert_numpy_types(obj):
+    """Convert numpy types to native Python types for JSON serialization."""
+    import numpy as np
+
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    else:
+        return obj
+
+
 # Import test modules
 from tests.comprehensive import (
     AdversarialTestFramework,
@@ -44,12 +65,11 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="APGI Comprehensive Test Runner",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
+        epilog="""Examples:
   %(prog)s --all                    Run all tests
   %(prog)s --category security      Run only security tests
   %(prog)s --mutation               Run mutation testing
-  %(prog)s --coverage-threshold 95  Enforce 95% coverage minimum
+  %(prog)s --coverage-threshold 95  Enforce 95%% coverage minimum
   %(prog)s --parallel 4              Run with 4 parallel workers
         """,
     )
@@ -242,7 +262,7 @@ class TestRunner:
 
         cov = coverage.Coverage()
         try:
-            summary = {
+            summary: Dict[str, Any] = {
                 "overall_line_coverage": 0.0,
                 "overall_branch_coverage": 0.0,
                 "by_module": {},
@@ -326,7 +346,7 @@ class TestRunner:
         # Save JSON report
         report_path = self.output_dir / "comprehensive_report.json"
         with open(report_path, "w") as f:
-            json.dump(final_report, f, indent=2)
+            json.dump(convert_numpy_types(final_report), f, indent=2)
 
         # Generate HTML report
         self._generate_html_report(final_report)

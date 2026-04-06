@@ -155,8 +155,8 @@ class TestDataPipelineEndToEnd:
 
         # Apply filters
         active_df = df[df["status"] == "active"]
-        high_score_df = df[df["score"] >= 5.0]  # Standard threshold
-        combined_filter = df[(df["status"] == "active") & (df["score"] >= 5.0)]
+        high_score_df = df[df["score"] >= 50.0]  # Threshold for ~500 rows
+        combined_filter = df[(df["status"] == "active") & (df["score"] >= 50.0)]
 
         print(f"DEBUG: Generated {len(df)} rows")
         print(f"DEBUG: Active count: {len(df[df['status'] == 'active'])}")

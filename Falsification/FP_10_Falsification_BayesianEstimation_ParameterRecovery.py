@@ -15,7 +15,6 @@ Implementation Strategy:
 """
 
 import logging
-import warnings
 from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
 from dataclasses import dataclass
@@ -156,15 +155,14 @@ class FP10bParameterRecovery:
             n_trials=100,
             true_params=true_params,
             noise_level=noise_level,
-            random_seed=42 + dataset_idx,  # Reproducible but varied
         )
 
         # Run MCMC Bayesian estimation
         mcmc_results = run_mcmc_bayesian_estimation(
-            data=synthetic_data,
+            stimulus_data=synthetic_data[0],
+            response_data=synthetic_data[1],
             n_samples=mcmc_samples,
             burn_in=burn_in,
-            random_seed=42 + dataset_idx,
         )
 
         # Compute recovery results for each parameter
@@ -244,7 +242,7 @@ class FP10bParameterRecovery:
             return {"error": "No recovery results available"}
 
         # Group results by parameter
-        param_results = {}
+        param_results: Dict[str, List[ParameterRecoveryResult]] = {}
         for result in self.recovery_results:
             param_name = result.parameter_name
             if param_name not in param_results:
@@ -252,7 +250,7 @@ class FP10bParameterRecovery:
             param_results[param_name].append(result)
 
         # Compute summary statistics for each parameter
-        summary = {
+        summary: Dict[str, Any] = {
             "parameter_recovery_summary": {},
             "overall_recovery_metrics": {},
             "validation_passed": True,
@@ -284,7 +282,7 @@ class FP10bParameterRecovery:
                 ),
             }
 
-            summary["parameter_recovery_summary"][param_name] = param_summary
+            summary["parameter_recovery_summary"][param_name] = param_summary  # type: ignore[index]
 
             all_relative_errors.extend(relative_errors)
             all_identifiability_scores.extend(identifiability_scores)
@@ -300,16 +298,16 @@ class FP10bParameterRecovery:
             "total_parameters_tested": total_recoveries,
             "parameters_passing_threshold": sum(
                 1
-                for ps in summary["parameter_recovery_summary"].values()
+                for ps in summary["parameter_recovery_summary"].values()  # type: ignore[index]
                 if ps["passed_thresholds"]
             ),
         }
 
         # Determine if validation passed
-        mean_error = summary["overall_recovery_metrics"][
+        mean_error = summary["overall_recovery_metrics"][  # type: ignore[index]
             "mean_relative_error_all_params"
         ]
-        mean_identifiability = summary["overall_recovery_metrics"][
+        mean_identifiability = summary["overall_recovery_metrics"][  # type: ignore[index]
             "mean_identifiability_score_all_params"
         ]
 
@@ -321,71 +319,21 @@ class FP10bParameterRecovery:
         # Generate recommendations
         if not summary["validation_passed"]:
             if mean_error > self.relative_error_threshold:
-                summary["recommendations"].append(
+                summary["recommendations"].append(  # type: ignore[index]
                     f"High recovery error ({mean_error:.3f} > {self.relative_error_threshold:.3f}). "
                     "Consider increasing data length or reducing observation noise."
                 )
             if mean_identifiability < self.identifiability_threshold:
-                summary["recommendations"].append(
+                summary["recommendations"].append(  # type: ignore[index]
                     f"Low identifiability ({mean_identifiability:.3f} < {self.identifiability_threshold:.3f}). "
                     "Parameters may be poorly identified; check model identifiability."
                 )
         else:
-            summary["recommendations"].append(
+            summary["recommendations"].append(  # type: ignore[index]
                 "Parameter recovery validation passed successfully."
             )
 
         return summary
-
-
-# Re-export canonical functions for backward compatibility
-def run_bayesian_estimation_complete(*args, **kwargs):
-    """Backward compatibility wrapper - delegates to canonical MCMC implementation"""
-    warnings.warn(
-        "run_bayesian_estimation_complete is deprecated. Use run_parameter_recovery_validation "
-        "for parameter recovery or run_mcmc_bayesian_estimation for standard MCMC.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    from Falsification.FP_10_BayesianEstimation_MCMC import (
-        run_bayesian_estimation_complete,
-    )
-
-    return run_bayesian_estimation_complete(*args, **kwargs)
-
-
-def run_mcmc_bayesian_estimation(*args, **kwargs):
-    """Backward compatibility wrapper - delegates to canonical MCMC implementation"""
-    from Falsification.FP_10_BayesianEstimation_MCMC import run_mcmc_bayesian_estimation
-
-    return run_mcmc_bayesian_estimation(*args, **kwargs)
-
-
-def run_falsification():
-    """Entry point for CLI falsification testing."""
-    import logging
-
-    logger = logging.getLogger(__name__)
-
-    logger.info("Starting FP-10b Bayesian Estimation Parameter Recovery falsification")
-
-    # Create validator instance
-    validator = FP10bParameterRecovery()
-
-    # Run parameter recovery validation
-    results = validator.run_parameter_recovery_validation(
-        n_synthetic_datasets=50, mcmc_samples=10000, burn_in=2000, noise_level=0.1
-    )
-
-    logger.info("FP-10b falsification completed")
-    return results
-
-
-def run_complete_mcmc_analysis(*args, **kwargs):
-    """Backward compatibility wrapper - delegates to canonical MCMC implementation"""
-    from Falsification.FP_10_BayesianEstimation_MCMC import run_complete_mcmc_analysis
-
-    return run_complete_mcmc_analysis(*args, **kwargs)
 
 
 # Forward canonical class references
@@ -394,9 +342,6 @@ FP10Dispatcher = None  # Not used in this implementation
 
 
 __all__ = [
-    "run_bayesian_estimation_complete",
-    "run_mcmc_bayesian_estimation",
-    "run_complete_mcmc_analysis",
     "generate_synthetic_data",
     "BayesianParameterRecovery",
     "FP10bParameterRecovery",

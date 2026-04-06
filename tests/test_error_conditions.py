@@ -215,9 +215,9 @@ class TestTensorMisalignment:
         """Test handling of tensor shape mismatches in operations."""
         import torch
 
-        # Create tensors with mismatched shapes
+        # Create tensors with incompatible shapes for matrix multiplication
         tensor1 = torch.randn(10, 5)
-        tensor2 = torch.randn(8, 5)
+        tensor2 = torch.randn(8, 3)  # Different inner dimension
 
         # This should raise a RuntimeError due to shape mismatch
         with pytest.raises(RuntimeError):
@@ -227,11 +227,11 @@ class TestTensorMisalignment:
         """Test handling of dimension mismatches in batch processing."""
         import torch
 
-        # Simulate batch processing with mismatched dimensions
+        # Simulate batch processing with incompatible dimensions
         batch1 = torch.randn(32, 10, 5)
-        batch2 = torch.randn(32, 8, 5)  # Different middle dimension
+        batch2 = torch.randn(32, 8, 3)  # Different last dimension
 
-        # Concatenation should fail
+        # Concatenation should fail due to incompatible dimensions
         with pytest.raises(RuntimeError):
             torch.cat([batch1, batch2], dim=1)
 

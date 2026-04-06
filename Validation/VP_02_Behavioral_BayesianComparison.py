@@ -656,7 +656,7 @@ def compute_somatic_marker_contribution(
         - somatic_marker_effect: Effect size of somatic marker contribution
         - comparison: Statistical comparison of models with/without somatic markers
     """
-    results = {
+    results: Dict[str, Any] = {
         "d_prime_with_som": None,
         "d_prime_without_som": None,
         "somatic_marker_effect": None,
@@ -671,12 +671,12 @@ def compute_somatic_marker_contribution(
 
         # Somatic marker strength: correlated with heartbeat accuracy (r ≈ 0.5)
         hb_acc = df["heartbeat_accuracy"].values
-        somatic_marker = 0.5 * hb_acc + 0.5 * rng.uniform(0, 1, n)
+        somatic_marker = 0.5 * hb_acc.astype(float) + 0.5 * rng.uniform(0, 1, n)
         somatic_marker = np.clip(somatic_marker, 0, 1)
 
         # Compute d' with and without somatic marker contribution
-        pi_i = df["pi_i"].values
-        d_prime_baseline = df["dprime_rest"].values
+        pi_i = df["pi_i"].to_numpy(dtype=float)
+        d_prime_baseline = df["dprime_rest"].to_numpy(dtype=float)
 
         # d' with somatic marker contribution
         d_prime_with_som = d_prime_baseline + beta_som * somatic_marker * pi_i

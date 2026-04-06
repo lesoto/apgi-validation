@@ -3356,7 +3356,7 @@ def detect_neural_signatures(
     return signature_scores
 
 
-def get_p3b_distributions() -> Dict[str, Dict[str, float]]:
+def get_p3b_distributions() -> Dict[str, Dict[str, Any]]:
     """
     Export empirical P3b amplitude distributions for consciousness classification.
 

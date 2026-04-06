@@ -11,7 +11,7 @@ Complete Bayesian parameter estimation for APGI model validation including:
 """
 
 import logging
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -312,11 +312,11 @@ class APGIBayesianModel:
         return {
             "trace": trace,
             "summary": summary,
-            "beta_group_mean": summary.loc["beta_mu", "mean"],
-            "theta_group_mean": summary.loc["theta_mu", "mean"],
+            "beta_group_mean": float(summary.loc["beta_mu", "mean"]),
+            "theta_group_mean": float(summary.loc["theta_mu", "mean"]),
             "individual_differences": {
-                "beta_variability": summary.loc["beta_sigma", "mean"],
-                "theta_variability": summary.loc["theta_sigma", "mean"],
+                "beta_variability": float(summary.loc["beta_sigma", "mean"]),
+                "theta_variability": float(summary.loc["theta_sigma", "mean"]),
             },
         }
 
@@ -544,8 +544,8 @@ class ModelComparisonFramework:
         return {
             "trace": trace,
             "summary": summary,
-            "slope_posterior_mean": summary.loc["slope", "mean"],
-            "threshold_posterior_mean": summary.loc["threshold", "mean"],
+            "slope_posterior_mean": float(summary.loc["slope", "mean"]),
+            "threshold_posterior_mean": float(summary.loc["threshold", "mean"]),
             "model_evidence": self._compute_model_evidence_simple(trace),
         }
 
@@ -579,8 +579,8 @@ class ModelComparisonFramework:
         return {
             "trace": trace,
             "summary": summary,
-            "slope_posterior_mean": summary.loc["slope", "mean"],
-            "intercept_posterior_mean": summary.loc["intercept", "mean"],
+            "slope_posterior_mean": float(summary.loc["slope", "mean"]),
+            "intercept_posterior_mean": float(summary.loc["intercept", "mean"]),
             "model_evidence": self._compute_model_evidence_simple(trace),
         }
 
@@ -663,8 +663,11 @@ class IITConvergenceBayesian:
         summary = az.summary(trace, round_to=3)
 
         # Compute convergence metrics
-        slope_mean = summary.loc["slope", "mean"]
-        slope_hdi = (summary.loc["slope", "hdi_3%"], summary.loc["slope", "hdi_97%"])
+        slope_mean = float(summary.loc["slope", "mean"])
+        slope_hdi = (
+            float(summary.loc["slope", "hdi_3%"]),
+            float(summary.loc["slope", "hdi_97%"]),
+        )
 
         convergence_supported = slope_hdi[0] > 0  # Positive relationship
 
@@ -674,7 +677,11 @@ class IITConvergenceBayesian:
             "slope_mean": slope_mean,
             "slope_hdi": slope_hdi,
             "convergence_supported": convergence_supported,
-            "correlation_coefficient": np.corrcoef(ignition_probs, phi_values)[0, 1],
+            "correlation_coefficient": float(
+                np.corrcoef(ignition_probs.astype(float), phi_values.astype(float))[
+                    0, 1
+                ]
+            ),
         }
 
 
@@ -704,7 +711,7 @@ class ParameterRecoveryAnalysis:
             Parameter recovery statistics
         """
 
-        recovery_results = {
+        recovery_results: Dict[str, List[float]] = {
             "beta_recovery": [],
             "theta_recovery": [],
             "convergence_rates": [],
