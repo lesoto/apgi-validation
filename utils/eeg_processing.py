@@ -562,8 +562,20 @@ def detect_p3_amplitude(
     else:
         pz_data = eeg_filtered[0, :]
 
-    # Baseline correction
-    baseline = np.nanmean(pz_data[baseline_start:baseline_end])
+    # Ensure indices are within bounds
+    n_samples = eeg_data.shape[1] if eeg_data.ndim == 2 else len(eeg_data)
+    baseline_start = max(0, min(baseline_start, n_samples))
+    baseline_end = max(baseline_start, min(baseline_end, n_samples))
+    p3_start = max(0, min(p3_start, n_samples))
+    p3_end = max(p3_start, min(p3_end, n_samples))
+    peak_start = max(0, min(peak_start, n_samples))
+    peak_end = max(peak_start, min(peak_end, n_samples))
+
+    # Baseline correction with bounds checking
+    if baseline_end > baseline_start:
+        baseline = np.nanmean(pz_data[baseline_start:baseline_end])
+    else:
+        baseline = 0.0
     p3_data = pz_data[p3_start:p3_end] - baseline
 
     # Peak detection in 300-600ms window

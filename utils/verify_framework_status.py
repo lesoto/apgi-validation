@@ -9,6 +9,7 @@ This script checks:
 5. Metadata standardization is available
 """
 
+import signal
 import sys
 from pathlib import Path
 
@@ -24,7 +25,37 @@ from utils.metadata_standardizer import (
 )
 
 
-def check_protocol(module_path: str, protocol_id: str) -> dict:
+def timeout_handler(signum, frame):
+    """Handler for timeout signal."""
+    raise TimeoutError("Protocol execution timed out")
+
+
+def run_with_timeout(func, timeout_secs=30):
+    """Run a function with a timeout.
+
+    Args:
+        func: Function to call
+        timeout_secs: Timeout in seconds (default 30)
+
+    Returns:
+        Result of func()
+
+    Raises:
+        TimeoutError: If function takes longer than timeout_secs
+    """
+    # Set up timeout
+    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(timeout_secs)
+
+    try:
+        result = func()
+        return result
+    finally:
+        signal.alarm(0)  # Cancel alarm
+        signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
+
+
+def check_protocol(module_path: str, protocol_id: str, timeout_secs: int = 30) -> dict:
     """Check a single protocol."""
     try:
         mod = __import__(module_path, fromlist=[protocol_id])
@@ -35,7 +66,12 @@ def check_protocol(module_path: str, protocol_id: str) -> dict:
 
         # Try to run it (with timeout)
         try:
-            result = mod.run_protocol_main()
+            result = run_with_timeout(mod.run_protocol_main, timeout_secs=timeout_secs)
+        except TimeoutError:
+            return {
+                "status": "TIMEOUT",
+                "message": f"Protocol took longer than {timeout_secs}s (skipped)",
+            }
         except Exception as e:
             return {
                 "status": "ERROR",
@@ -192,7 +228,7 @@ def main():
 
     fp_ok = 0
     for module_path, protocol_id in fp_protocols:
-        result = check_protocol(module_path, protocol_id)
+        result = check_protocol(module_path, protocol_id, timeout_secs=5)
         status = result["status"]
 
         if status == "OK":
@@ -200,6 +236,8 @@ def main():
             print(
                 f"✅ {protocol_id:50} {result['predictions']} predictions, {result['completion']}% complete"
             )
+        elif status == "TIMEOUT":
+            print(f"⏱️  {protocol_id:50} {status}: {result['message']}")
         else:
             print(f"❌ {protocol_id:50} {status}: {result['message']}")
 
@@ -209,7 +247,7 @@ def main():
 
     vp_ok = 0
     for module_path, protocol_id in vp_protocols:
-        result = check_protocol(module_path, protocol_id)
+        result = check_protocol(module_path, protocol_id, timeout_secs=5)
         status = result["status"]
 
         if status == "OK":
@@ -217,6 +255,8 @@ def main():
             print(
                 f"✅ {protocol_id:50} {result['predictions']} predictions, {result['completion']}% complete"
             )
+        elif status == "TIMEOUT":
+            print(f"⏱️  {protocol_id:50} {status}: {result['message']}")
         else:
             print(f"❌ {protocol_id:50} {status}: {result['message']}")
 

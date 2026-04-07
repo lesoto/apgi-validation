@@ -1,5 +1,5 @@
 {
-  "processing_timestamp": "2026-04-05T16:41:10.026244",
+  "processing_timestamp": "2026-04-06T21:13:08.351549",
   "pipeline_config": {
     "eeg_bandpass_low": 0.5,
     "eeg_bandpass_high": 40.0,
@@ -131,7 +131,7 @@
       "Review outliers in eeg_pz (6.1%)",
       "Data quality is acceptable but could be improved with preprocessing"
     ],
-    "validation_timestamp": "2026-04-05T16:41:08.788964",
+    "validation_timestamp": "2026-04-06T21:13:08.106488",
     "validator_version": "1.0.0"
   },
   "final_quality": {

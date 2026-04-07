@@ -45,7 +45,7 @@ DEFAULT_DIR_NAMES = {
     ".coverage",
     "site-packages",
     "cache",
-    "logs",
+    # NOTE: "logs" removed - handled separately by clear_log_files()
 }
 
 DEFAULT_DIR_PATTERNS = ["*.egg-info", "pip-wheel-metadata"]
@@ -63,13 +63,8 @@ DEFAULT_FILE_PATTERNS = [
     "*.log",
     ".DS_Store",
     "Thumbs.db",
-    # Visualizations
-    "*.png",
-    "*.jpg",
-    "*.jpeg",
-    "*.gif",
-    "*.svg",
-    # Serialized data formats
+    # NOTE: Visualization files removed from default - use --keep-visualizations to preserve
+    # Serialized data formats (temporary/cache)
     "*.pkl",
     "*.pickle",
     "*.npz",
@@ -77,7 +72,7 @@ DEFAULT_FILE_PATTERNS = [
     "*.h5",
     "*.hdf5",
     "*.mat",
-    # Data exchange formats
+    # Data exchange formats (temporary)
     "*.parquet",
     "*.feather",
     "*.arrow",
@@ -93,7 +88,7 @@ DEFAULT_FILE_PATTERNS = [
     "*.ldb",
     "*.pak",
     "*.pack",
-    # Model/checkpoint files
+    # Model/checkpoint files (large temporary files)
     "*.pt",
     "*.pth",
     "*.ckpt",
@@ -115,9 +110,7 @@ DEFAULT_FILE_PATTERNS = [
     # Jupyter/notebook outputs
     "*.nbconvert.ipynb",
     "*.ipynb_checkpoints",
-    # LaTeX build artifacts
-    "*.tex",
-    "*.dvi",
+    # LaTeX build artifacts (NOT .tex source files)
     "*.aux",
     "*.bbl",
     "*.blg",
@@ -125,7 +118,6 @@ DEFAULT_FILE_PATTERNS = [
     "*.fls",
     "*.synctex.gz",
     "*.toc",
-    "*.out",
     "*.snm",
     "*.nav",
     "*.vrb",
@@ -133,6 +125,7 @@ DEFAULT_FILE_PATTERNS = [
     "*.makefile",
     "*.xdv",
     "*.run.xml",
+    # NOTE: Removed "*.dvi", "*.out" - too generic
     # Generated Python files (temporary/debug)
     "debug_*.py",
     "temp_*.py",
@@ -400,12 +393,8 @@ def _process_directories(
             dirnames.remove(d)
             continue
 
-        # Skip protected directories
-        if protected_dir_names and d in protected_dir_names:
-            dirnames.remove(d)
-            continue
-
-        if _should_remove_directory(
+        # Check if this directory should be removed (including __pycache__ in protected paths)
+        should_remove = _should_remove_directory(
             d,
             default_dir_names,
             default_dir_patterns,
@@ -414,10 +403,18 @@ def _process_directories(
             remove_venvs,
             venv_names,
             protected_dir_names,
-        ):
+        )
+
+        if should_remove:
             _remove_directory(dirpath, d, dry_run, verbose, stats)
             if d in dirnames:
                 dirnames.remove(d)
+            continue
+
+        # Skip protected directories - don't delete them, but still descend into them
+        # to find nested cache directories like tests/__pycache__
+        if protected_dir_names and d in protected_dir_names:
+            continue
 
 
 def _process_files(
@@ -429,10 +426,24 @@ def _process_files(
     dry_run: bool,
     verbose: bool,
     stats: dict,
+    protected_dir_names: set = None,
 ) -> None:
     """Process files in current path."""
+    # Cache file patterns - safe to delete even in protected directories
+    cache_patterns = {"*.pyc", "*.pyo", "*.pyd", ".coverage", "*.log"}
+
     for f in list(filenames):
         if matches_any(f, exclude_file_patterns):
+            continue
+
+        is_cache_file = matches_any(f, cache_patterns)
+        is_protected_path = False
+        if protected_dir_names:
+            path_parts = dirpath.split(os.sep)
+            is_protected_path = any(part in protected_dir_names for part in path_parts)
+
+        # In protected paths: only remove cache files, skip other deletions
+        if is_protected_path and not is_cache_file:
             continue
 
         if matches_any(f, default_file_patterns) or matches_any(
@@ -675,6 +686,7 @@ def delete_temporary_items(
             dry_run,
             verbose,
             stats,
+            protected_dir_names,
         )
 
     return stats

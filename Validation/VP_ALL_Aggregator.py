@@ -777,12 +777,12 @@ def run_end_to_end_validation_pipeline(
     from datetime import datetime
     import importlib
 
-    pipeline_results = {
+    pipeline_results: Dict[str, Any] = {
         "pipeline_started": datetime.now().isoformat(),
         "protocols_executed": [],
         "protocols_failed": [],
-        "aggregation_status": None,
-        "validation_status": None,
+        "aggregation_status": {},
+        "validation_status": {},
         "bic_analysis": None,
         "consistency_checks": None,
         "pipeline_completed": None,

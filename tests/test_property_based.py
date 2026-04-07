@@ -354,6 +354,7 @@ class TestDataValidationProperties:
             pytest.skip("Synthetic dataset generation not available")
 
 
+@pytest.mark.slow
 class TestIntegrationProperties:
     """Test integration properties across modules."""
 
@@ -530,6 +531,7 @@ class TestConfigurationTransformationInvariants:
             assert value >= 0  # All config values should be non-negative
 
 
+@pytest.mark.slow
 class TestDataPipelineProperties:
     """Test data pipeline properties and invariants."""
 
@@ -700,6 +702,7 @@ class TestDataPipelineProperties:
         assert sampled_df.shape[0] <= df.shape[0]
 
 
+@pytest.mark.slow
 class TestNumericalStability:
     """Test numerical stability across parameter ranges."""
 
@@ -813,6 +816,7 @@ class TestNumericalStability:
         assert -1 <= cos_result <= 1
 
 
+@pytest.mark.slow
 class TestFileFormatHandlingProperties:
     """Test file format handling properties."""
 

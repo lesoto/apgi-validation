@@ -182,23 +182,29 @@ def _ensure_numpy_array_utils_shim() -> None:
         try:
             from numpy.lib.array_utils import normalize_axis_index
         except ImportError:
-            # Fallback: define our own normalize_axis_index
+
             def normalize_axis_index(axis: int, ndim: int) -> int:
-                if axis < 0:
-                    axis += ndim
-                if axis < 0 or axis >= ndim:
+                """Validate and normalize axis index for array operations."""
+                if axis < -ndim or axis >= ndim:
                     raise ValueError(
                         f"axis {axis} is out of bounds for array of dimension {ndim}"
                     )
-                return axis
+                return axis % ndim
 
-        module.normalize_axis_index = normalize_axis_index
+            module.normalize_axis_index = normalize_axis_index  # type: ignore[attr-defined]
+        else:
+            module.normalize_axis_index = normalize_axis_index  # type: ignore[attr-defined]
     except (ImportError, AttributeError):
-        # Use alternative implementation for newer NumPy versions
-        def normalize_axis_index(arr: np.ndarray, axis: int) -> np.ndarray:
-            return np.mean(arr, axis=axis, keepdims=True)
 
-        module.normalize_axis_index = normalize_axis_index
+        def normalize_axis_index(axis: int, ndim: int) -> int:
+            """Validate and normalize axis index for array operations."""
+            if axis < -ndim or axis >= ndim:
+                raise ValueError(
+                    f"axis {axis} is out of bounds for array of dimension {ndim}"
+                )
+            return axis % ndim
+
+        module.normalize_axis_index = normalize_axis_index  # type: ignore[attr-defined]
 
     try:
         # Try newer NumPy location first
@@ -211,13 +217,13 @@ def _ensure_numpy_array_utils_shim() -> None:
                     normalize_axis_index(axis, ndim) if normalize_axis_index else axis,
                 )
 
-        module.normalize_axis_tuple = normalize_axis_tuple
+        module.normalize_axis_tuple = normalize_axis_tuple  # type: ignore[attr-defined]
     except (ImportError, AttributeError):
         # Use alternative implementation for newer NumPy versions
         def normalize_axis_tuple(arr: np.ndarray, axis: int) -> np.ndarray:
             return np.mean(arr, axis=axis, keepdims=True)
 
-        module.normalize_axis_tuple = normalize_axis_tuple
+        module.normalize_axis_tuple = normalize_axis_tuple  # type: ignore[attr-defined]
     except (ImportError, AttributeError):
         # Use alternative implementation for newer NumPy versions
         def normalize_axis_tuple(axis, ndim):
@@ -682,7 +688,10 @@ def run_prior_sensitivity_check(
     # Overall sensitivity assessment
     all_cv_values: list[float] = []
     for v in sensitivity_results.values():
-        all_cv_values.append(float(v["coefficient_of_variation"]))
+        cv_value = v.get("coefficient_of_variation", 0.0)
+        all_cv_values.append(
+            float(cv_value) if isinstance(cv_value, (int, float, str)) else 0.0
+        )
     mean_cv = float(np.mean(all_cv_values)) if all_cv_values else 0.0
 
     # VP-11 Fix 4: Flag as prior_sensitive if any parameter fails the criterion
@@ -2251,10 +2260,10 @@ def run_complete_mcmc_analysis(
                     apgi_psychometric_function_np(stimulus_data, *sample)
                 )
 
-            ppc_samples = np.array(ppc_samples_list)
+            ppc_array: np.ndarray = np.array(ppc_samples_list)
             observed_mean = np.mean(response_data)
             # Prop of times predictive mean >= observed mean
-            ppc_p_value = np.mean(np.mean(ppc_samples, axis=1) >= observed_mean)
+            ppc_p_value = np.mean(np.mean(ppc_array, axis=1) >= observed_mean)
             ppc_results = {
                 "ppc_p_value": ppc_p_value,
                 "ppc_passed": 0.05 <= ppc_p_value <= 0.95,
@@ -2575,8 +2584,8 @@ def load_empirical_data(
             f"HIGH-03: Loaded empirical data: {len(stimulus_data)} trials from {data_path}"
         )
         return (
-            stimulus_data if len(stimulus_data) > 0 else None,
-            response_data if len(response_data) > 0 else None,
+            stimulus_data if len(stimulus_data) > 0 else None,  # type: ignore[return-value]
+            response_data if len(response_data) > 0 else None,  # type: ignore[return-value]
             DataSource.EMPIRICAL,
         )
 
@@ -2924,12 +2933,13 @@ def run_bayesian_estimation_complete(
                 posterior_samples[test_param] = samples
                 # Stats
                 if model_param in summary.index:
+                    row = summary.loc[model_param]  # type: ignore[index]
                     posterior_statistics[test_param] = {
-                        "mean": float(summary.loc[model_param, "mean"]),
-                        "std": float(summary.loc[model_param, "sd"]),
-                        "hdi_3%": float(summary.loc[model_param, "hdi_3%"]),
-                        "hdi_97%": float(summary.loc[model_param, "hdi_97%"]),
-                        "r_hat": float(summary.loc[model_param, "r_hat"]),
+                        "mean": float(row["mean"]),  # type: ignore[arg-type]
+                        "std": float(row["sd"]),  # type: ignore[arg-type]
+                        "hdi_3%": float(row["hdi_3%"]),  # type: ignore[arg-type]
+                        "hdi_97%": float(row["hdi_97%"]),  # type: ignore[arg-type]
+                        "r_hat": float(row["r_hat"]),  # type: ignore[arg-type]
                     }
                 else:
                     posterior_statistics[test_param] = {

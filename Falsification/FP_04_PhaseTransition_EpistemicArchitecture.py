@@ -68,6 +68,9 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Check if running in test mode to reduce computational load
+APGI_TEST_MODE = os.environ.get("APGI_TEST_MODE", "false").lower() == "true"
+
 # Constants for better maintainability - imported from utils.constants
 # Individual protocol-specific defaults that are not in central constants
 DEFAULT_SURPRISE_THRESHOLD = 0.5
@@ -81,7 +84,8 @@ DEFAULT_MIN_SUBSERIES = 10
 DEFAULT_HURST_LAG_MULTIPLIER = 4
 DEFAULT_SIMULATION_DURATION = 50.0
 DEFAULT_DT = 0.1
-DEFAULT_N_SIMULATIONS = 5  # Reduced from 10 to prevent hanging
+# Reduce simulations in test mode to prevent hanging
+DEFAULT_N_SIMULATIONS = 2 if APGI_TEST_MODE else 5  # Reduced from 10 to prevent hanging
 DEFAULT_PRINT_INTERVAL = 5
 DEFAULT_AC_LAG = 5
 DEFAULT_NEAR_THRESHOLD = 0.2
@@ -1786,9 +1790,12 @@ class InformationTheoreticAnalysis:
         # Compute actual integrated information
         phi_actual = self.compute_integrated_information(history, window_size)
 
+        # Use reduced bootstrap samples in test mode to prevent hanging
+        n_bootstrap = 10 if APGI_TEST_MODE else NULL_BOOTSTRAP_N
+
         # Generate shuffled baselines
         phi_baselines: List[np.ndarray] = []
-        for i in range(NULL_BOOTSTRAP_N):
+        for i in range(n_bootstrap):
             # Create shuffled version of history
             shuffled_history = self._create_shuffled_history(
                 history, SHUFFLE_SEED_OFFSET + i

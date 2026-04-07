@@ -1,7 +1,5 @@
 # APGI Comprehensive Testing Framework
 
-A world-class, adversarial testing framework for the APGI (Adaptive Phenomenology of Global Ignition) validation framework, designed to achieve near-100% code coverage while validating correctness, robustness, and failure handling.
-
 ## Features
 
 - **Adversarial Test Generation**: Targets edge cases and rarely-executed code paths

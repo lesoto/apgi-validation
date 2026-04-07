@@ -690,8 +690,8 @@ class LogAggregator:
                         )
                         if (
                             entry
-                            and entry.timestamp >= start_time
-                            and entry.timestamp <= end_time
+                            and datetime.fromisoformat(entry.timestamp) >= start_time
+                            and datetime.fromisoformat(entry.timestamp) <= end_time
                         ):
                             recent_entries.append(entry)
             except Exception as e:
@@ -1036,9 +1036,9 @@ class ReportGenerator:
         ]
 
         # System health score (0-100)
-        health_score = 100
-        health_score -= min(30, error_rate * 3)  # Up to 30 points for errors
-        health_score -= min(20, warning_rate * 2)  # Up to 20 points for warnings
+        health_score: float = 100.0
+        health_score -= min(30.0, error_rate * 3)  # Up to 30 points for errors
+        health_score -= min(20.0, warning_rate * 2)  # Up to 20 points for warnings
         health_score -= min(25, len(security_issues) * 5)  # Up to 25 for security
         health_score -= min(15, len(performance_issues) * 3)  # Up to 15 for performance
         health_score -= min(10, len(integrity_issues) * 10)  # Up to 10 for integrity
@@ -1637,8 +1637,8 @@ def verify_log_integrity(
     log_files: Dict[str, str], expected_hashes: Dict[str, str] = None
 ) -> Dict[str, bool]:
     """Convenience function to verify log file integrity."""
-    analyzer = LogAnalyzer()
-    analysis = analyzer.analyze_logs(log_files)
+    aggregator = LogAggregator(log_files)
+    analysis = aggregator.aggregate_logs()
 
     verifier = IntegrityVerifier(expected_hashes)
     return verifier._verify_file_integrity(analysis)

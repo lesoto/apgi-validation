@@ -192,7 +192,7 @@ class APGIBayesianModel:
             model_evidence = self._compute_model_evidence(trace)
 
             # Compute beta from raw_beta
-            beta_posterior_mean = 10.0 + 5.0 * summary.loc["raw_beta", "mean"]
+            beta_posterior_mean = 10.0 + 5.0 * summary.loc["raw_beta"]["mean"]
 
             result = {
                 "trace": trace,
@@ -201,7 +201,7 @@ class APGIBayesianModel:
                 "rhat_max": rhat_max,
                 "posterior_predictive": posterior_predictive,
                 "beta_posterior_mean": beta_posterior_mean,
-                "theta_posterior_mean": summary.loc["theta", "mean"],
+                "theta_posterior_mean": summary.loc["theta"]["mean"],
                 "phase_transition_posterior": beta_posterior_mean > 10,
                 "model_evidence": model_evidence,
             }
@@ -312,11 +312,11 @@ class APGIBayesianModel:
         return {
             "trace": trace,
             "summary": summary,
-            "beta_group_mean": float(summary.loc["beta_mu", "mean"]),
-            "theta_group_mean": float(summary.loc["theta_mu", "mean"]),
+            "beta_group_mean": float(summary.loc["beta_mu"]["mean"]),
+            "theta_group_mean": float(summary.loc["theta_mu"]["mean"]),
             "individual_differences": {
-                "beta_variability": float(summary.loc["beta_sigma", "mean"]),
-                "theta_variability": float(summary.loc["theta_sigma", "mean"]),
+                "beta_variability": float(summary.loc["beta_sigma"]["mean"]),
+                "theta_variability": float(summary.loc["theta_sigma"]["mean"]),
             },
         }
 
@@ -544,8 +544,8 @@ class ModelComparisonFramework:
         return {
             "trace": trace,
             "summary": summary,
-            "slope_posterior_mean": float(summary.loc["slope", "mean"]),
-            "threshold_posterior_mean": float(summary.loc["threshold", "mean"]),
+            "slope_posterior_mean": float(summary.loc["slope"]["mean"]),
+            "threshold_posterior_mean": float(summary.loc["threshold"]["mean"]),
             "model_evidence": self._compute_model_evidence_simple(trace),
         }
 
@@ -579,8 +579,8 @@ class ModelComparisonFramework:
         return {
             "trace": trace,
             "summary": summary,
-            "slope_posterior_mean": float(summary.loc["slope", "mean"]),
-            "intercept_posterior_mean": float(summary.loc["intercept", "mean"]),
+            "slope_posterior_mean": float(summary.loc["slope"]["mean"]),
+            "intercept_posterior_mean": float(summary.loc["intercept"]["mean"]),
             "model_evidence": self._compute_model_evidence_simple(trace),
         }
 
@@ -663,10 +663,10 @@ class IITConvergenceBayesian:
         summary = az.summary(trace, round_to=3)
 
         # Compute convergence metrics
-        slope_mean = float(summary.loc["slope", "mean"])
+        slope_mean = float(summary.loc["slope"]["mean"])
         slope_hdi = (
-            float(summary.loc["slope", "hdi_3%"]),
-            float(summary.loc["slope", "hdi_97%"]),
+            float(summary.loc["slope"]["hdi_3%"]),
+            float(summary.loc["slope"]["hdi_97%"]),
         )
 
         convergence_supported = slope_hdi[0] > 0  # Positive relationship
@@ -678,9 +678,10 @@ class IITConvergenceBayesian:
             "slope_hdi": slope_hdi,
             "convergence_supported": convergence_supported,
             "correlation_coefficient": float(
-                np.corrcoef(ignition_probs.astype(float), phi_values.astype(float))[
-                    0, 1
-                ]
+                np.corrcoef(
+                    ignition_probs.astype(float),  # type: ignore[arg-type]
+                    phi_values.astype(float),  # type: ignore[arg-type]
+                )[0, 1]
             ),
         }
 

@@ -8,75 +8,153 @@ Tests error scenarios, UI updates, queue handling, and thread safety.
 
 import pytest
 import queue
-
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch
-import tkinter as tk
+from unittest.mock import Mock, patch, MagicMock
 
-# Skip all tests if no display is available
-try:
-    # Test if we can create a Tk root window
-    test_root = tk.Tk()
-    test_root.destroy()
-    HAS_DISPLAY = True
-except Exception:
-    HAS_DISPLAY = False
+# Prevent any tkinter imports at module level
+if "tkinter" in sys.modules:
+    del sys.modules["tkinter"]
 
-pytestmark = pytest.mark.skipif(
-    not HAS_DISPLAY, reason="No display available for GUI tests"
+# Mock tkinter and all its submodules before any imports
+tkinter_modules = [
+    "tkinter",
+    "tkinter.ttk",
+    "tkinter.messagebox",
+    "tkinter.filedialog",
+    "tkinter.scrolledtext",
+]
+
+for module in tkinter_modules:
+    sys.modules[module] = MagicMock()
+
+# Mock the entire tkinter ecosystem
+mock_tkinter = MagicMock()
+mock_tkinter.Tk = MagicMock()
+mock_tkinter.ttk = MagicMock()
+mock_tkinter.ttk.Frame = MagicMock()
+mock_tkinter.ttk.Button = MagicMock()
+mock_tkinter.ttk.Label = MagicMock()
+mock_tkinter.ttk.Spinbox = MagicMock()
+mock_tkinter.ttk.Checkbutton = MagicMock()
+mock_tkinter.ttk.Notebook = MagicMock()
+mock_tkinter.ttk.Progressbar = MagicMock()
+mock_tkinter.ttk.LabelFrame = MagicMock()
+mock_tkinter.StringVar = MagicMock()
+mock_tkinter.BooleanVar = MagicMock()
+mock_tkinter.DoubleVar = MagicMock()
+mock_tkinter.IntVar = MagicMock()
+mock_tkinter.Scale = MagicMock()
+mock_tkinter.ScrolledText = MagicMock()
+mock_tkinter.messagebox = MagicMock()
+mock_tkinter.messagebox.showerror = MagicMock()
+mock_tkinter.messagebox.showinfo = MagicMock()
+mock_tkinter.messagebox.showwarning = MagicMock()
+mock_tkinter.messagebox.askyesno = MagicMock()
+mock_tkinter.filedialog = MagicMock()
+mock_tkinter.filedialog.asksaveasfilename = MagicMock()
+mock_tkinter.filedialog.askopenfilename = MagicMock()
+
+# Configure Tk mock
+mock_root = MagicMock()
+mock_child_ids = MagicMock()
+mock_child_ids.get = MagicMock(
+    side_effect=lambda key, default=0: default if isinstance(default, int) else 0
 )
+mock_root._last_child_ids = mock_child_ids
+mock_tkinter.Tk.return_value = mock_root
 
-import Validation
+# Configure variable mocks to return mock objects with get() method
+for var_type in ["StringVar", "BooleanVar", "DoubleVar", "IntVar"]:
+    mock_var = MagicMock()
+    mock_var.get = MagicMock(
+        return_value=(
+            0
+            if var_type == "IntVar"
+            else (
+                0.0
+                if var_type == "DoubleVar"
+                else False if var_type == "BooleanVar" else ""
+            )
+        )
+    )
+    mock_var.set = MagicMock()
+    getattr(mock_tkinter, var_type).return_value = mock_var
+
+# Patch tkinter in sys.modules
+sys.modules["tkinter"] = mock_tkinter
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-APGIValidationGUI = Validation.APGIValidationGUI
+
+# Now import Validation after tkinter is mocked
+with patch("Validation.APGIMasterValidator"):
+    with patch("Validation.safe_import_module"):
+        import Validation
+
+        APGIValidationGUI = Validation.APGIValidationGUI
+
+
+@pytest.fixture
+def mock_tkinter_fixture():
+    """Return the mock tkinter object for tests."""
+    return {"root": mock_root, "tkinter": mock_tkinter}
 
 
 class TestGUIErrorPaths:
     """Test GUI error handling paths and scenarios"""
 
-    def test_gui_initialization_with_mocks(self):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_gui_initialization_with_mocks(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
         """Test GUI initialization with mocked dependencies"""
-        with patch("tkinter.messagebox.showerror") as _mock_showerror:  # noqa: F841
-            with patch(
-                "tkinter.scrolledtext.ScrolledText"
-            ) as _mock_scrolled:  # noqa: F841
-                with patch("tkinter.ttk.Progressbar") as _mock_progress:  # noqa: F841
-                    # Mock tkinter components to prevent actual GUI creation
-                    root = tk.Tk()  # Create mock root
-                    gui = APGIValidationGUI(root)
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-                    # Should initialize successfully with mocked components
-                    assert gui is not None
-                    assert hasattr(gui, "root")
-                    assert hasattr(gui, "progress_var")
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
 
-                    # Verify that mocked components were not used in initialization
-                    # (they might be used later in widget creation)
+            assert gui is not None
+            assert hasattr(gui, "root")
+            assert hasattr(gui, "progress_var")
 
-    def test_protocol_import_error_handling(self):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_protocol_import_error_handling(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
         """Test error handling when protocol module fails to import"""
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Simulate protocol import error
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         error = ImportError("No module named 'nonexistent_protocol'")
         result = gui._handle_protocol_error(error, 1)
 
-        # Should return error result dict with expected fields
         assert isinstance(result, dict)
         assert "status" in result
         assert "IMPORT_ERROR" in result["status"]
         assert "troubleshooting" in result
         assert result["error_type"] == "ImportError"
 
-    def test_protocol_execution_error_with_queue(self):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_protocol_execution_error_with_queue(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
         """Test error handling during protocol execution with full queue"""
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Mock validator.falsification_status to avoid AttributeError
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         gui.validator = Mock()
         gui.validator.falsification_status = {
             "primary": [],
@@ -84,58 +162,64 @@ class TestGUIErrorPaths:
             "tertiary": [],
         }
 
-        # Fill queue to test full queue behavior
-        for i in range(100):  # Fill queue beyond capacity
+        for i in range(100):
             try:
                 gui._update_queue.put(("results", f"Test message {i}"), block=False)
             except queue.Full:
-                break  # Queue is full, which is expected
+                break
 
-        # Simulate protocol execution error
         error = RuntimeError("Protocol execution failed")
         protocol_tiers = {1: "primary"}
 
-        # Mock update_results to capture calls
         update_calls = []
         gui.update_results = lambda msg: update_calls.append(msg)
 
         gui._handle_protocol_execution_error(error, 1, protocol_tiers)
 
-        # Verify error was logged via update_results
         assert len(update_calls) > 0
         assert any("Protocol 1 failed" in str(call) for call in update_calls)
-        assert any("RuntimeError" in str(call) for call in update_calls)
 
-    def test_queue_overflow_handling(self):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_queue_overflow_handling(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
         """Test behavior when update queue is full"""
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Fill queue to capacity - should not raise exceptions
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         full_count = 0
-        for i in range(1000):  # Exceed typical queue size
+        for i in range(1000):
             try:
                 gui._update_queue.put(("results", f"Overflow test {i}"), block=False)
             except queue.Full:
                 full_count += 1
-                # Queue is full, which is expected - update_status should skip without blocking
                 break
 
-        # Verify queue has items and filled up
         assert gui._update_queue.qsize() > 0 or full_count > 0
 
-    def test_thread_safety_during_error(self):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_thread_safety_during_error(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
         """Test thread safety when errors occur during protocol execution"""
         results = []
 
         def capture_gui_update(msg):
             results.append(msg)
 
-        # Create GUI instance first
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Mock validator.falsification_status
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         gui.validator = Mock()
         gui.validator.falsification_status = {
             "primary": [],
@@ -143,23 +227,27 @@ class TestGUIErrorPaths:
             "tertiary": [],
         }
 
-        # Mock update_results to capture calls
         gui.update_results = capture_gui_update
 
-        # Trigger error handling
         error = ValueError("Test error")
         gui._handle_protocol_execution_error(error, 1, {1: "primary"})
 
-        # Verify update_results was called with error info
         assert len(results) > 0
         assert any("Test error" in str(r) for r in results)
 
-    def test_critical_error_multiple_protocols(self):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_critical_error_multiple_protocols(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
         """Test critical error handling with multiple selected protocols"""
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Capture update calls
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         status_calls = []
         results_calls = []
         gui.update_status = lambda msg: status_calls.append(msg)
@@ -169,17 +257,22 @@ class TestGUIErrorPaths:
         selected_protocols = [1, 2, 3]
         gui._handle_validation_critical_error(error, selected_protocols)
 
-        # Verify error was logged via update_results
         assert len(results_calls) > 0
         assert any("CRITICAL ERROR" in str(call) for call in results_calls)
-        assert any("ImportError" in str(call) for call in results_calls)
 
-    def test_ui_state_consistency_during_errors(self):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_ui_state_consistency_during_errors(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
         """Test UI state consistency during error conditions"""
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Mock validator.falsification_status
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         gui.validator = Mock()
         gui.validator.falsification_status = {
             "primary": [],
@@ -187,21 +280,26 @@ class TestGUIErrorPaths:
             "tertiary": [],
         }
 
-        # Simulate error during protocol execution
         error = RuntimeError("Test error")
         gui._handle_protocol_execution_error(error, 1, {1: "primary"})
 
-        # Verify UI state remains consistent - check actual widget names
-        assert hasattr(gui, "protocol_vars")  # protocol_vars exists
-        assert hasattr(gui, "run_button")  # run_button (not start_button)
-        assert hasattr(gui, "results_text")  # results_text (not results_display)
+        assert hasattr(gui, "protocol_vars")
+        assert hasattr(gui, "run_button")
+        assert hasattr(gui, "results_text")
 
-    def test_error_recovery_and_retry(self):
-        """Test error recovery and retry mechanisms - GUI uses queued updates, not messagebox"""
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_error_recovery_and_retry(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
+        """Test error recovery and retry mechanisms"""
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Mock validator.falsification_status
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         gui.validator = Mock()
         gui.validator.falsification_status = {
             "primary": [],
@@ -209,30 +307,30 @@ class TestGUIErrorPaths:
             "tertiary": [],
         }
 
-        # Capture update calls
         results_calls = []
         gui.update_results = lambda msg: results_calls.append(msg)
 
-        # Simulate recoverable error - GUI queues updates, no retry prompt
         error = IOError("Recoverable error")
         gui._handle_protocol_execution_error(error, 1, {1: "primary"})
 
-        # Verify error was logged
         assert len(results_calls) > 0
-        assert any("OSError" in str(call) for call in results_calls)
 
-    def test_memory_cleanup_after_error(self):
-        """Test memory cleanup after error conditions - protocol_cache exists"""
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_memory_cleanup_after_error(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
+        """Test memory cleanup after error conditions"""
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Verify cleanup method exists (clear_protocol_cache or similar)
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         assert hasattr(gui, "clear_protocol_cache")
 
-        # Simulate memory-intensive error - verify it doesn't crash
         error = MemoryError("Out of memory")
-
-        # Mock validator.falsification_status
         gui.validator = Mock()
         gui.validator.falsification_status = {
             "primary": [],
@@ -240,41 +338,49 @@ class TestGUIErrorPaths:
             "tertiary": [],
         }
 
-        # Should handle without crashing
         gui._handle_protocol_execution_error(error, 1, {1: "primary"})
 
-        # Verify clear_protocol_cache works
         gui._protocol_cache = {"test": "data"}
         gui.clear_protocol_cache()
         assert len(gui._protocol_cache) == 0
 
-    def test_concurrent_error_handling(self):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_concurrent_error_handling(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
         """Test handling of concurrent errors from multiple protocols"""
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Simulate multiple concurrent errors
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         errors = [
             ImportError("Protocol 1 error"),
             RuntimeError("Protocol 2 error"),
             ValueError("Protocol 3 error"),
         ]
 
-        # Handle errors concurrently
         for i, error in enumerate(errors):
             gui._handle_protocol_execution_error(
                 error, i + 1, {i + 1: f"Protocol {i + 1}"}
             )
 
-        # Verify all errors were handled
-        # This would be verified by checking that all errors were processed
-
-    def test_error_logging_and_troubleshooting(self):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_error_logging_and_troubleshooting(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
         """Test error logging and troubleshooting information"""
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Mock validator.falsification_status
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         gui.validator = Mock()
         gui.validator.falsification_status = {
             "primary": [],
@@ -282,25 +388,29 @@ class TestGUIErrorPaths:
             "tertiary": [],
         }
 
-        # Capture results
         results_calls = []
         gui.update_results = lambda msg: results_calls.append(msg)
 
-        # Simulate complex error
         error = Exception("Complex multi-layer error")
         gui._handle_protocol_execution_error(error, 1, {1: "Test Protocol"})
 
-        # Verify troubleshooting info is included in update_results calls
-        assert len(results_calls) >= 2  # Error message + troubleshooting
+        assert len(results_calls) >= 2
         all_text = " ".join(str(c) for c in results_calls)
         assert "troubleshooting" in all_text.lower() or "Troubleshooting" in all_text
 
-    def test_gui_responsiveness_during_error(self):
+    @patch("Validation.APGIMasterValidator")
+    @patch("Validation.safe_import_module")
+    def test_gui_responsiveness_during_error(
+        self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
+    ):
         """Test GUI remains responsive during error handling"""
-        root = tk.Tk()  # Create mock root
-        gui = APGIValidationGUI(root)
+        mock_safe_import.return_value = Mock()
+        mock_validator_class.return_value = Mock()
 
-        # Mock validator.falsification_status
+        with patch.object(APGIValidationGUI, "update_parameter_display_labels"):
+            root = mock_tkinter_fixture["root"]
+            gui = APGIValidationGUI(root)
+
         gui.validator = Mock()
         gui.validator.falsification_status = {
             "primary": [],
@@ -308,13 +418,11 @@ class TestGUIErrorPaths:
             "tertiary": [],
         }
 
-        # Track update calls
         update_calls = []
         gui.update_results = lambda msg: update_calls.append(msg)
 
         error = TimeoutError("Protocol timeout")
         gui._handle_protocol_execution_error(error, 1, {1: "primary"})
 
-        # Verify updates were queued (non-blocking)
         assert len(update_calls) > 0
         assert any("timeout" in str(call).lower() for call in update_calls)

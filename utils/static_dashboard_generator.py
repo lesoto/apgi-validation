@@ -10,26 +10,32 @@ from pathlib import Path
 from typing import List, Optional, Any
 
 # APGI imports - make imports optional for testing
-apgi_logger: Any = None
-performance_profiler: Any = None
+_apgi_logger: Any = None
+_performance_profiler: Any = None
 
 try:
-    from utils.logging_config import apgi_logger
-    from utils.performance_profiler import performance_profiler
+    from utils.logging_config import apgi_logger as actual_logger
+    from utils.performance_profiler import performance_profiler as actual_profiler
+
+    _apgi_logger = actual_logger
+    _performance_profiler = actual_profiler
 except ImportError:
     # Create fallback logger
     import logging
 
     class FallbackLogger:
-        def __init__(self):
+        def __init__(self) -> None:
             self.logger = logging.getLogger(__name__)
 
-    apgi_logger = FallbackLogger()
+    _apgi_logger = FallbackLogger()
 
     class DummyProfiler:
         pass
 
-    performance_profiler = DummyProfiler()
+    _performance_profiler = DummyProfiler()
+
+apgi_logger = _apgi_logger
+performance_profiler = _performance_profiler
 
 
 class StaticDashboardGenerator:

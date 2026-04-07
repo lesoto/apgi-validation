@@ -9,9 +9,37 @@ Provides common test fixtures and configuration:
 - Test configuration
 """
 
+# Mock tkinter BEFORE any imports to prevent GUI initialization during tests
+import sys
+from unittest.mock import MagicMock
+
+# Mock tkinter modules before any test imports them
+tkinter_modules = [
+    "tkinter",
+    "tkinter.ttk",
+    "tkinter.messagebox",
+    "tkinter.filedialog",
+    "tkinter.scrolledtext",
+    "tkinter.font",
+]
+
+for module in tkinter_modules:
+    if module not in sys.modules:
+        sys.modules[module] = MagicMock()
+
+# Configure mock tkinter with basic widget behavior
+mock_tk = sys.modules["tkinter"]
+mock_tk.Tk = MagicMock
+mock_tk.StringVar = MagicMock
+mock_tk.BooleanVar = MagicMock
+mock_tk.DoubleVar = MagicMock
+mock_tk.IntVar = MagicMock
+mock_tk.ttk = MagicMock()
+mock_tk.messagebox = MagicMock()
+mock_tk.filedialog = MagicMock()
+
 import json
 import os
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -21,6 +49,33 @@ import pytest
 import yaml
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+
+@pytest.fixture(scope="session", autouse=True)
+def headless_gui_setup():
+    """Ensure GUI tests run in headless mode by mocking tkinter before any imports.
+
+    This fixture runs at session start and mocks tkinter to prevent actual GUI
+    initialization during tests. Essential for CI/CD headless environments.
+    Note: tkinter is already mocked at module level in conftest.py, this fixture
+    ensures the mock persists throughout the test session.
+    """
+    # tkinter is already mocked at module level before any imports
+    # This fixture ensures the mock configuration is complete
+    mock_tk = sys.modules.get("tkinter")
+    if mock_tk:
+        mock_tk.Tk = MagicMock
+        mock_tk.StringVar = MagicMock
+        mock_tk.BooleanVar = MagicMock
+        mock_tk.DoubleVar = MagicMock
+        mock_tk.IntVar = MagicMock
+        mock_tk.ttk = MagicMock()
+        mock_tk.messagebox = MagicMock()
+        mock_tk.filedialog = MagicMock()
+
+    yield
+
+    # Cleanup not needed as mocks persist for session duration
 
 
 @pytest.fixture

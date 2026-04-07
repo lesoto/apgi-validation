@@ -70,17 +70,23 @@ class TestAllFPProtocols:
     def test_fp_protocol_returns_protocol_result(self, module_name, protocol_id):
         """Test that FP protocol returns standardized ProtocolResult."""
         try:
-            # Set test mode for FP_03 to prevent hanging
+            # Set test mode for computationally intensive protocols to prevent hanging
             import os
 
-            if module_name == "Falsification.FP_03_FrameworkLevel_MultiProtocol":
+            if module_name in [
+                "Falsification.FP_03_FrameworkLevel_MultiProtocol",
+                "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+            ]:
                 os.environ["APGI_TEST_MODE"] = "true"
 
             mod = importlib.import_module(module_name)
             result = mod.run_protocol_main()
 
             # Clean up environment variable
-            if module_name == "Falsification.FP_03_FrameworkLevel_MultiProtocol":
+            if module_name in [
+                "Falsification.FP_03_FrameworkLevel_MultiProtocol",
+                "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+            ]:
                 os.environ.pop("APGI_TEST_MODE", None)
 
             # Check result type
@@ -110,15 +116,21 @@ class TestAllFPProtocols:
 
         for module_path, protocol_id in self.FP_PROTOCOLS:
             try:
-                # Set test mode for FP_03 to prevent hanging
-                if module_path == "Falsification.FP_03_FrameworkLevel_MultiProtocol":
+                # Set test mode for computationally intensive protocols to prevent hanging
+                if module_path in [
+                    "Falsification.FP_03_FrameworkLevel_MultiProtocol",
+                    "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+                ]:
                     os.environ["APGI_TEST_MODE"] = "true"
 
                 mod = importlib.import_module(module_path, fromlist=[protocol_id])
                 result = mod.run_protocol_main()
 
                 # Clean up environment variable
-                if module_path == "Falsification.FP_03_FrameworkLevel_MultiProtocol":
+                if module_path in [
+                    "Falsification.FP_03_FrameworkLevel_MultiProtocol",
+                    "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+                ]:
                     os.environ.pop("APGI_TEST_MODE", None)
 
                 if isinstance(result, dict):

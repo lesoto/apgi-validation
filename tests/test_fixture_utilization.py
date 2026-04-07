@@ -399,8 +399,17 @@ class TestSampleConfigFixture:
         logging_config = sample_config["logging"]
 
         assert logging_config["level"] in ["DEBUG", "INFO", "WARNING", "ERROR"]
-        assert logging_config["log_rotation"] > 0
-        assert logging_config["log_retention"] > 0
+        # log_rotation and log_retention can be strings (e.g., "10 MB", "30 days") or numeric
+        log_rotation = logging_config["log_rotation"]
+        log_retention = logging_config["log_retention"]
+        if isinstance(log_rotation, (int, float)):
+            assert log_rotation > 0
+        else:
+            assert log_rotation and isinstance(log_rotation, str)
+        if isinstance(log_retention, (int, float)):
+            assert log_retention > 0
+        else:
+            assert log_retention and isinstance(log_retention, str)
 
 
 class TestTempDirFixture:

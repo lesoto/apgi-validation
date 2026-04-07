@@ -10,7 +10,6 @@ Comprehensive logging system using loguru with:
 - Error reporting and alerts
 """
 
-import json
 import queue
 import re
 import sys
@@ -22,11 +21,24 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+# Python finalization error handling
+# Note: _PythonFinalizationError is not reliably available in all Python versions
+# Use a generic fallback approach instead of trying to import it
 try:
-    from threading import _PythonFinalizationError as PythonFinalizationError
-except ImportError:
-    # Fallback for older Python versions
-    class PythonFinalizationError(RuntimeError):
+    # Try to get the exception class if available (Python 3.12+)
+    PythonFinalizationError = (
+        threading._PythonFinalizationError
+        if hasattr(threading, "_PythonFinalizationError")
+        else None
+    )
+except (ImportError, AttributeError):
+    PythonFinalizationError = None
+
+if PythonFinalizationError is None:
+    # Fallback for when the exception is not available
+    class PythonFinalizationError(RuntimeError):  # type: ignore[no-redef]
+        """Exception raised when Python is finalizing."""
+
         pass
 
 
@@ -96,8 +108,9 @@ class LogEntry:
     module: str
     function: str
     line: int
-    thread: str = None
-    exception: str = None
+    thread: Optional[str] = None
+    process: Optional[str] = None
+    exception: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -109,6 +122,7 @@ class LogEntry:
             "function": self.function,
             "line": self.line,
             "thread": self.thread,
+            "process": self.process,
             "exception": self.exception,
         }
 
@@ -117,11 +131,11 @@ class LogEntry:
 class SearchQuery:
     """Log search query parameters."""
 
-    text: str = None
-    level: str = None
-    module: str = None
-    start_time: str = None
-    end_time: str = None
+    text: Optional[str] = None
+    level: Optional[str] = None
+    module: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
     regex: bool = False
     max_results: int = 1000
     offset: int = 0
@@ -131,8 +145,8 @@ class LogStreamer:
     """Real-time log streaming functionality."""
 
     def __init__(self, max_queue_size: int = 10000):
-        self.subscribers = {}
-        self.queue = queue.Queue(
+        self.subscribers: Dict[str, Dict[str, Any]] = {}
+        self.queue: queue.Queue = queue.Queue(
             maxsize=max_queue_size
         )  # Bounded queue to prevent memory leaks
         self.running = False
@@ -237,9 +251,9 @@ class APGILogger:
         enable_console: bool = True,
         queue_size: int = 10000,
     ):
-        self.log_files = {}
-        self.performance_metrics = {}
-        self.error_counts = {}
+        self.log_files: Dict[str, Path] = {}
+        self.performance_metrics: Dict[str, List[Dict[str, Any]]] = {}
+        self.error_counts: Dict[str, int] = {}
         self.logger = logger  # Expose the loguru logger
         self._metrics_lock = threading.Lock()  # Lock for thread-safe metrics access
 
@@ -490,31 +504,27 @@ class APGILogger:
                 "timestamp": record.get("time", datetime.now()).strftime(
                     "%Y-%m-%dT%H:%M:%S.%fZ"
                 ),
-                "level": getattr(record.get("level"), "UNKNOWN"),
+                "level": str(getattr(record.get("level"), "name", "UNKNOWN")),
                 "message": record.get("message", ""),
                 "source": {
-                    "file": getattr(
-                        record.get("file"), type("", (), {"path": "unknown"})
-                    ).path,
+                    "file": str(getattr(record.get("file"), "path", "unknown")),
                     "module": record.get("name", "unknown"),
                     "function": record.get("function", "unknown"),
                     "line": record.get("line", 0),
                 },
                 "process": {
                     "pid": (
-                        getattr(record.get("process"), type("", (), {"id": None})).id
+                        getattr(record.get("process"), "id", None)
                         if hasattr(record.get("process"), "id")
                         else None
                     ),
                     "thread": (
-                        getattr(
-                            record.get("thread"), type("", (), {"name": "unknown"})
-                        ).name
+                        getattr(record.get("thread"), "name", "unknown")
                         if hasattr(record.get("thread"), "name")
                         else None
                     ),
                     "thread_id": (
-                        getattr(record.get("thread"), type("", (), {"id": None})).id
+                        getattr(record.get("thread"), "id", None)
                         if hasattr(record.get("thread"), "id")
                         else None
                     ),
@@ -584,7 +594,7 @@ class APGILogger:
         """
         import json
 
-        results = []
+        results: List[Dict[str, Any]] = []
         structured_log = self.log_files.get("structured")
 
         if not structured_log or not structured_log.exists():
@@ -706,7 +716,7 @@ class APGILogger:
 
     def get_performance_summary(self) -> Dict[str, Dict[str, Any]]:
         """Get summary of all performance metrics."""
-        summary = {}
+        summary: Dict[str, Dict[str, Any]] = {}
         with self._metrics_lock:
             for metric_name, values in self.performance_metrics.items():
                 if values:
@@ -806,7 +816,7 @@ class APGILogger:
             "connection_string",
         }
 
-        sanitized = {}
+        sanitized: Dict[str, Any] = {}
         for k, v in context.items():
             # Check if key contains sensitive keywords
             if any(sensitive in k.lower() for sensitive in sensitive_keys):
@@ -1204,7 +1214,7 @@ class APGILogger:
             FileNotFoundError,
             PermissionError,
             ValueError,
-            json.JSONEncodeError,
+            TypeError,
             OSError,
         ) as e:
             logger.error(f"Error exporting logs: {e}")
@@ -1231,7 +1241,7 @@ class APGILogger:
     # Log Search and Streaming Methods
     def search_logs(self, query: SearchQuery) -> List[LogEntry]:
         """Search logs based on query parameters."""
-        results = []
+        results: List[LogEntry] = []
 
         # Get log files to search
         log_files = list(LOGS_DIR.glob("*.log"))
@@ -1357,7 +1367,7 @@ class APGILogger:
 
     def get_log_stats(self) -> Dict[str, Any]:
         """Get statistics about log files."""
-        stats = {
+        stats: Dict[str, Any] = {
             "total_files": 0,
             "total_size": 0,
             "by_level": {},
@@ -1452,10 +1462,12 @@ class APGILogger:
     def __del__(self):
         """Cleanup when logger is destroyed."""
         try:
-            if hasattr(self, "streamer"):
-                self.streamer.stop_streaming()
-        except (AttributeError, RuntimeError, PythonFinalizationError):
-            # Ignore errors during interpreter shutdown
+            if hasattr(self, "streamer") and self.streamer is not None:
+                if hasattr(self.streamer, "running") and self.streamer.running:
+                    self.streamer.stop_streaming()
+        except Exception:
+            # Suppress all exceptions during interpreter shutdown
+            # This prevents "Exception ignored in deallocator" warnings
             pass
 
 

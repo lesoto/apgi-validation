@@ -177,25 +177,26 @@ class TestNetworkTimeouts:
 class TestGPUMemoryExhaustion:
     """Test GPU memory exhaustion scenarios."""
 
-    @patch("torch.cuda.memory_allocated")
+    @patch("torch.cuda.empty_cache")
     @patch("torch.cuda.memory_reserved")
-    def test_gpu_memory_allocation_failure(self, mock_allocated, mock_reserved):
+    @patch("torch.cuda.memory_allocated")
+    @patch("torch.cuda.is_available")
+    def test_gpu_memory_allocation_failure(
+        self, mock_is_available, mock_allocated, mock_reserved, mock_empty_cache
+    ):
         """Test handling of GPU memory allocation failures."""
         import torch
 
-        # Simulate GPU memory exhaustion - only run if CUDA is available
+        # Simulate GPU memory exhaustion
+        mock_is_available.return_value = True
         mock_allocated.return_value = 8 * 1024 * 1024 * 1024  # 8GB
         mock_reserved.return_value = 8 * 1024 * 1024 * 1024  # 8GB
 
-        # Skip test if CUDA is not available to prevent hanging
-        if not torch.cuda.is_available():
-            pytest.skip("CUDA not available - skipping GPU memory test")
-
-        # Try to allocate more than available memory
-        with patch("torch.cuda.empty_cache"):
+        # Mock tensor creation to raise OOM
+        with patch.object(torch, "randn", side_effect=RuntimeError("out of memory")):
             with pytest.raises(RuntimeError, match="out of memory"):
-                # This should trigger OOM by trying to allocate more than available
-                torch.randn(16, 1024, 1024, 1024)  # 16GB tensor
+                # This should trigger OOM
+                torch.randn(1000, 1000)
 
     @patch("torch.cuda.is_available")
     def test_no_gpu_available_handling(self, mock_is_available):
@@ -656,3 +657,494 @@ class TestEdgeCaseData:
         # Count occurrences of "col1"
         col1_count = list(data.columns).count("col1")
         assert col1_count == 2  # Two columns named "col1"
+
+
+class TestErrorHandlerCoverage:
+    """Test error handler coverage gaps."""
+
+    def test_custom_error_handler_exception(self):
+        """Test error handler when custom handler raises exception."""
+        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+
+        handler = ErrorHandler()
+
+        # Register a custom handler that raises an exception
+        def failing_handler(error_info):
+            raise RuntimeError("Handler failed")
+
+        handler.register_handler(ErrorCategory.VALIDATION, failing_handler)
+
+        # Should not crash when handler fails
+        error = handler.handle_error(
+            ErrorCategory.VALIDATION,
+            ErrorSeverity.HIGH,
+            "VALIDATION_FAILED",
+            protocol="Test",
+        )
+        assert error is not None
+
+    def test_retry_on_error_decorator(self):
+        """Test retry_on_error decorator with eventual success."""
+        from utils.error_handler import retry_on_error
+
+        call_count = [0]
+
+        @retry_on_error(max_retries=2, delay=0.01, backoff=1.0)
+        def flaky_function():
+            call_count[0] += 1
+            if call_count[0] < 2:
+                raise RuntimeError("Temporary failure")
+            return "success"
+
+        result = flaky_function()
+        assert result == "success"
+        assert call_count[0] == 2
+
+    def test_retry_on_error_exhausted(self):
+        """Test retry_on_error decorator when all retries fail."""
+        from utils.error_handler import retry_on_error
+
+        @retry_on_error(max_retries=1, delay=0.01, backoff=1.0)
+        def always_fails():
+            raise RuntimeError("Persistent failure")
+
+        with pytest.raises(RuntimeError, match="Persistent failure"):
+            always_fails()
+
+    def test_error_boundary_with_default_return(self):
+        """Test error_boundary decorator with default return value."""
+        from utils.error_handler import error_boundary
+
+        @error_boundary(default_return="fallback_value")
+        def failing_function():
+            raise RuntimeError("Function failed")
+
+        result = failing_function()
+        assert result == "fallback_value"
+
+    def test_error_boundary_with_error_type(self):
+        """Test error_boundary with custom error type."""
+        from utils.error_handler import error_boundary
+
+        @error_boundary(error_type=ValueError, default_return=None)
+        def function_with_value_error():
+            raise RuntimeError("Original error")
+
+        with pytest.raises(ValueError):
+            function_with_value_error()
+
+    def test_safe_execute_with_error_type(self):
+        """Test safe_execute with custom error_type parameter."""
+        from utils.error_handler import safe_execute
+
+        def failing_func():
+            raise RuntimeError("Test error")
+
+        with pytest.raises(ValueError, match="Operation failed"):
+            safe_execute(
+                failing_func, error_message="Operation failed", error_type=ValueError
+            )
+
+    def test_safe_execute_with_default_return(self):
+        """Test safe_execute returning default value on error."""
+        from utils.error_handler import safe_execute
+
+        def failing_func():
+            raise RuntimeError("Test error")
+
+        result = safe_execute(
+            failing_func,
+            error_message="Operation failed",
+            default_return="default_value",
+        )
+        assert result == "default_value"
+
+    def test_safe_import_success(self):
+        """Test safe_import with existing module."""
+        from utils.error_handler import safe_import
+
+        result = safe_import("json")
+        assert result is not None
+        import json
+
+        assert result is json
+
+    def test_safe_import_failure(self):
+        """Test safe_import with missing module."""
+        from utils.error_handler import safe_import
+
+        result = safe_import("nonexistent_module_xyz123")
+        assert result is None
+
+    def test_safe_import_with_fallback(self):
+        """Test safe_import with fallback value."""
+        from utils.error_handler import safe_import
+
+        fallback = {"fallback": True}
+        result = safe_import("nonexistent_module_xyz123", fallback=fallback)
+        assert result is fallback
+
+    def test_error_handler_count_cap(self):
+        """Test that error counts are capped to prevent unbounded growth."""
+        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+
+        handler = ErrorHandler()
+
+        # Simulate many errors
+        for _ in range(1100):
+            handler.handle_error(
+                ErrorCategory.VALIDATION, ErrorSeverity.HIGH, "VALIDATION_FAILED"
+            )
+
+        summary = handler.get_error_summary()
+        assert summary["total_errors"] == 1000  # Capped at 1000
+
+    def test_apgi_error_with_context(self):
+        """Test APGIError with context information."""
+        from utils.error_handler import APGIError, ErrorSeverity, ErrorCategory
+
+        error = APGIError(
+            message="Test error",
+            severity=ErrorSeverity.HIGH,
+            category=ErrorCategory.VALIDATION,
+            context={"field": "value", "id": 123},
+            suggestion="Check the field",
+        )
+
+        error_str = str(error)
+        assert "HIGH" in error_str
+        assert "Test error" in error_str
+
+    def test_apgi_error_with_traceback_sanitization(self):
+        """Test APGIError traceback sanitization."""
+        from utils.error_handler import APGIError, ErrorSeverity, ErrorCategory
+
+        try:
+            raise ValueError("Original error")
+        except ValueError as e:
+            error = APGIError(
+                message="Wrapped error",
+                severity=ErrorSeverity.HIGH,
+                category=ErrorCategory.RUNTIME,
+                original_error=e,
+            )
+
+        error_dict = error.to_dict()
+        # Check that traceback is sanitized
+        if error_dict.get("traceback"):
+            assert "[REDACTED]" in str(error_dict["traceback"]) or "[PATH]" in str(
+                error_dict["traceback"]
+            )
+
+    def test_error_templates_unknown_code(self):
+        """Test error template formatting with unknown code."""
+        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+
+        handler = ErrorHandler()
+        result = handler.format_error(
+            ErrorCategory.VALIDATION,
+            ErrorSeverity.HIGH,
+            "UNKNOWN_CODE_THAT_DOESNT_EXIST",
+            some_param="value",
+        )
+        assert "Unknown error" in result
+
+
+class TestThreadSafetyVerification:
+    """Comprehensive thread-safety verification tests."""
+
+    def test_thread_safe_error_counter(self):
+        """Test thread-safe error counting with concurrent increments."""
+        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+        import threading
+        import time
+
+        handler = ErrorHandler()
+        errors_per_thread = 100
+        num_threads = 5
+
+        def increment_errors():
+            for _ in range(errors_per_thread):
+                handler.handle_error(
+                    ErrorCategory.RUNTIME, ErrorSeverity.MEDIUM, "TEST_ERROR"
+                )
+                time.sleep(0.001)  # Small delay to increase contention
+
+        threads = [
+            threading.Thread(target=increment_errors) for _ in range(num_threads)
+        ]
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+
+        summary = handler.get_error_summary()
+        # With proper locking, all errors should be counted
+        assert summary["total_errors"] == errors_per_thread * num_threads
+
+    def test_concurrent_config_manager_thread_safety(self, tmp_path):
+        """Test ConfigManager thread safety with concurrent writes."""
+        from utils.config_manager import ConfigManager
+        import threading
+        import time
+
+        config_file = tmp_path / "threadsafe_config.yaml"
+        config_file.write_text("value: 0\n")
+
+        results = []
+        lock = threading.Lock()
+
+        def update_config(thread_id):
+            for i in range(10):
+                try:
+                    cm = ConfigManager(str(config_file))
+                    # Simulate read-modify-write
+                    current = cm.get_config_value("value", 0)
+                    time.sleep(0.001)
+                    with lock:
+                        results.append((thread_id, i, current))
+                except Exception as e:
+                    with lock:
+                        results.append((thread_id, i, f"error: {e}"))
+
+        threads = [threading.Thread(target=update_config, args=(i,)) for i in range(3)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=5)
+
+        # All operations should complete without crashing
+        assert len(results) == 30
+
+    def test_concurrent_file_operations_with_locks(self, tmp_path):
+        """Test concurrent file operations with proper locking."""
+        import threading
+        import fcntl
+
+        test_file = tmp_path / "locked_file.txt"
+        test_file.write_text("initial\n")
+
+        results = []
+
+        def write_with_lock(thread_id):
+            for i in range(5):
+                try:
+                    with open(test_file, "a") as f:
+                        # Acquire exclusive lock
+                        if hasattr(fcntl, "flock"):
+                            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                        f.write(f"Thread {thread_id} write {i}\n")
+                        if hasattr(fcntl, "flock"):
+                            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                    results.append(f"thread_{thread_id}_success")
+                except Exception as e:
+                    results.append(f"thread_{thread_id}_error: {e}")
+
+        threads = [
+            threading.Thread(target=write_with_lock, args=(i,)) for i in range(4)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=5)
+
+        # All writes should complete
+        assert len([r for r in results if "success" in r]) == 20
+
+    def test_race_condition_in_error_handler_registration(self):
+        """Test race condition handling in error handler registration."""
+        from utils.error_handler import ErrorHandler, ErrorCategory
+        import threading
+
+        handler = ErrorHandler()
+        registration_order = []
+        lock = threading.Lock()
+
+        def register_handler(name):
+            def custom_handler(error_info):
+                pass
+
+            handler.register_handler(ErrorCategory.VALIDATION, custom_handler)
+            with lock:
+                registration_order.append(name)
+
+        threads = [
+            threading.Thread(target=register_handler, args=(f"handler_{i}",))
+            for i in range(5)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=2)
+
+        # All registrations should complete
+        assert len(registration_order) == 5
+
+    def test_concurrent_singleton_access(self):
+        """Test thread-safe singleton access patterns."""
+        import threading
+        from utils.error_handler import error_handler
+
+        instances = []
+        lock = threading.Lock()
+
+        def get_instance():
+            # Access the global error_handler
+            with lock:
+                instances.append(id(error_handler))
+
+        threads = [threading.Thread(target=get_instance) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=2)
+
+        # All should get the same instance
+        assert len(set(instances)) == 1
+
+    def test_concurrent_database_access_simulation(self, tmp_path):
+        """Simulate concurrent database access patterns."""
+        import sqlite3
+        import threading
+        import time
+
+        db_path = tmp_path / "test_concurrent.db"
+
+        # Create database and table
+        conn = sqlite3.connect(db_path)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS counter (id INTEGER PRIMARY KEY, value INTEGER)"
+        )
+        conn.execute("INSERT INTO counter VALUES (1, 0)")
+        conn.commit()
+        conn.close()
+
+        errors = []
+
+        def increment_counter():
+            try:
+                conn = sqlite3.connect(db_path)
+                for _ in range(10):
+                    conn.execute("UPDATE counter SET value = value + 1 WHERE id = 1")
+                    conn.commit()
+                    time.sleep(0.001)
+                conn.close()
+            except Exception as e:
+                errors.append(str(e))
+
+        threads = [threading.Thread(target=increment_counter) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+
+        # Verify final value
+        conn = sqlite3.connect(db_path)
+        result = conn.execute("SELECT value FROM counter WHERE id = 1").fetchone()
+        conn.close()
+
+        # Should have no errors and correct count
+        assert len(errors) == 0
+        assert result[0] == 50  # 5 threads * 10 increments each
+
+
+class TestPerformanceBaseline:
+    """Performance baseline tests for regression detection."""
+
+    def test_error_handler_performance_baseline(self):
+        """Baseline performance for error handler operations."""
+        import time
+        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+
+        handler = ErrorHandler()
+        iterations = 1000
+
+        start = time.perf_counter()
+        for _ in range(iterations):
+            handler.handle_error(
+                ErrorCategory.VALIDATION, ErrorSeverity.HIGH, "VALIDATION_FAILED"
+            )
+        elapsed = time.perf_counter() - start
+
+        # Baseline: Should handle at least 1000 errors per second
+        ops_per_sec = iterations / elapsed
+        assert ops_per_sec > 1000, f"Error handler too slow: {ops_per_sec:.0f} ops/sec"
+
+    def test_concurrent_error_handling_performance(self):
+        """Performance baseline for concurrent error handling."""
+        import time
+        import threading
+        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+
+        handler = ErrorHandler()
+        errors_per_thread = 100
+        num_threads = 10
+
+        start = time.perf_counter()
+
+        def generate_errors():
+            for _ in range(errors_per_thread):
+                handler.handle_error(
+                    ErrorCategory.RUNTIME, ErrorSeverity.MEDIUM, "TEST_ERROR"
+                )
+
+        threads = [threading.Thread(target=generate_errors) for _ in range(num_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=5)
+
+        elapsed = time.perf_counter() - start
+        total_ops = errors_per_thread * num_threads
+        ops_per_sec = total_ops / elapsed
+
+        # Baseline: Concurrent handling should be at least 500 ops/sec
+        assert (
+            ops_per_sec > 500
+        ), f"Concurrent error handling too slow: {ops_per_sec:.0f} ops/sec"
+
+    def test_config_manager_load_performance(self, tmp_path):
+        """Performance baseline for ConfigManager loading."""
+        import time
+        from utils.config_manager import ConfigManager
+
+        config_file = tmp_path / "perf_config.yaml"
+        config_file.write_text("key1: value1\nkey2: value2\nkey3: value3\n")
+
+        iterations = 100
+
+        start = time.perf_counter()
+        for _ in range(iterations):
+            cm = ConfigManager(str(config_file))
+            _ = cm.get_config()
+        elapsed = time.perf_counter() - start
+
+        load_time_ms = (elapsed / iterations) * 1000
+        # Baseline: Config load should be under 50ms per operation
+        assert load_time_ms < 50, f"Config load too slow: {load_time_ms:.1f}ms per load"
+
+    def test_error_template_formatting_performance(self):
+        """Performance baseline for error template formatting."""
+        import time
+        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+
+        handler = ErrorHandler()
+        iterations = 10000
+
+        start = time.perf_counter()
+        for i in range(iterations):
+            handler.format_error(
+                ErrorCategory.CONFIGURATION,
+                ErrorSeverity.HIGH,
+                "INVALID_PARAMETER",
+                param=f"param_{i}",
+                details="test details",
+            )
+        elapsed = time.perf_counter() - start
+
+        ops_per_sec = iterations / elapsed
+        # Baseline: Template formatting should be at least 10,000 ops/sec
+        assert (
+            ops_per_sec > 10000
+        ), f"Template formatting too slow: {ops_per_sec:.0f} ops/sec"

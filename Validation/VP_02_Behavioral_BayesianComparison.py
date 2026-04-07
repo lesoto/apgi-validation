@@ -670,8 +670,8 @@ def compute_somatic_marker_contribution(
         n = len(df)
 
         # Somatic marker strength: correlated with heartbeat accuracy (r ≈ 0.5)
-        hb_acc = df["heartbeat_accuracy"].values
-        somatic_marker = 0.5 * hb_acc.astype(float) + 0.5 * rng.uniform(0, 1, n)
+        hb_acc = df["heartbeat_accuracy"].to_numpy(dtype=float)
+        somatic_marker = 0.5 * hb_acc + 0.5 * rng.uniform(0, 1, n)
         somatic_marker = np.clip(somatic_marker, 0, 1)
 
         # Compute d' with and without somatic marker contribution
