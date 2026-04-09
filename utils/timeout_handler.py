@@ -38,13 +38,13 @@ class TimeoutInfo:
 class TimeoutHandler:
     """Handles timeouts for long-running operations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.timeouts: Dict[str, TimeoutInfo] = {}
         self._lock = threading.Lock()
         self._monitor_thread: Optional[threading.Thread] = None
         self._running = False
 
-    def start_monitoring(self):
+    def start_monitoring(self) -> None:
         """Start the timeout monitoring thread."""
         if self._running:
             return
@@ -256,7 +256,7 @@ def run_subprocess_with_timeout(
     command: List[str],
     timeout_seconds: float = 300.0,
     cwd: Optional[str] = None,
-    env: Optional[dict] = None,
+    env: Optional[Dict[str, str]] = None,
     encoding: Optional[str] = None,
 ) -> subprocess.CompletedProcess:
     """Run a subprocess with a timeout.
@@ -264,7 +264,7 @@ def run_subprocess_with_timeout(
     Only accepts an explicit allowlist of Popen parameters to prevent
     injection of dangerous options such as ``shell=True``.
     """
-    popen_kwargs = {}
+    popen_kwargs: Dict[str, Any] = {}
     if cwd is not None:
         popen_kwargs["cwd"] = cwd
     if env is not None:
@@ -279,7 +279,9 @@ def run_subprocess_with_timeout(
             stderr=subprocess.PIPE,
             text=True,
             shell=False,  # Explicitly disable shell to prevent injection
-            **popen_kwargs,
+            cwd=cwd,
+            env=env,
+            encoding=encoding,
         )
 
         stdout, stderr = process.communicate(timeout=timeout_seconds)

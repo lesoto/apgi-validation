@@ -226,7 +226,7 @@ class APGINormalizer:
 
     def transform(
         self,
-        raw_measurements: Dict[str, float],
+        raw_measurements: Dict[str, Any],
         use_session_stats: bool = False,
         session_stats: Optional[Dict[str, Dict]] = None,
     ) -> Dict[str, float]:
@@ -250,14 +250,14 @@ class APGINormalizer:
             if isinstance(value, np.ndarray):
                 if var_name == "eeg":
                     # For EEG, compute mean power in different bands
-                    transformed_val = np.mean(value)  # Simple mean for now
+                    transformed_val = float(np.mean(value))  # Simple mean for now
                 elif var_name == "fmri":
                     # For fMRI, compute mean activation
-                    transformed_val = np.mean(value)  # Simple mean for now
+                    transformed_val = float(np.mean(value))  # Simple mean for now
                 else:
-                    transformed_val = np.mean(value)
+                    transformed_val = float(np.mean(value))
             else:
-                transformed_val = self._apply_transform(var_name, value)
+                transformed_val = float(self._apply_transform(var_name, value))
 
             if use_session_stats and session_stats and var_name in session_stats:
                 mu = session_stats[var_name]["mean"]
@@ -292,11 +292,13 @@ class APGINormalizer:
 
         import numpy as np
 
-        serializable_norms = {}
+        serializable_norms: Dict[str, Dict[str, Any]] = {}
         for var_name, stats_dict in self.norms.items():
             serializable_norms[var_name] = {}
             for key, value in stats_dict.items():
-                if isinstance(value, np.ndarray):
+                if value is None:
+                    serializable_norms[var_name][key] = None
+                elif isinstance(value, np.ndarray):
                     serializable_norms[var_name][key] = value.tolist()
                 elif isinstance(value, (np.integer, np.floating)):
                     serializable_norms[var_name][key] = float(value)
@@ -397,7 +399,7 @@ class APGICoreIntegration:
         self.individual_profile = individual_profile or {}
 
         # Running variance estimators for precision calculation
-        self.variance_buffers = {"extero": [], "intero": []}
+        self.variance_buffers: Dict[str, List[float]] = {"extero": [], "intero": []}
 
     def estimate_beta_from_profile(self) -> float:
         """
@@ -609,8 +611,8 @@ class APGICoreIntegration:
             raise ValueError("Need at least one extero and one intero modality")
 
         # Aggregate (could be weighted average in future)
-        z_e = np.mean(z_extero_list)
-        z_i = np.mean(z_intero_list)
+        z_e = float(np.mean(z_extero_list))
+        z_i = float(np.mean(z_intero_list))
 
         # 2. Compute precision for each category
         extero_signals = [
@@ -863,7 +865,7 @@ def integrate_with_existing_normalizer():
 class APGIArtifactRejection:
     """Automated artifact detection and rejection for multi-modal data"""
 
-    def __init__(self, config: Dict[str, Dict]):
+    def __init__(self, config: Dict[str, Any]):
         """
         config example:
         {
@@ -1121,7 +1123,7 @@ class APGISpectralAnalysis:
             eeg = eeg[np.newaxis, :]
 
         if channels is None:
-            channels = range(eeg.shape[0])
+            channels = list(range(eeg.shape[0]))
 
         freq_range = self.BANDS[band]
 
@@ -1392,7 +1394,7 @@ class APGIStatisticalValidation:
 
         Useful for uncertainty quantification
         """
-        bootstrap_zscores = []
+        bootstrap_zscores: List[float] = []
 
         for _ in range(n_bootstrap):
             # Resample with replacement
@@ -1402,14 +1404,14 @@ class APGIStatisticalValidation:
             z = (
                 np.mean(sample) - self.normalizer.norms[modality]["mean"]
             ) / self.normalizer.norms[modality]["std"]
-            bootstrap_zscores.append(z)
+            bootstrap_zscores.append(float(z))
 
-        bootstrap_zscores = np.array(bootstrap_zscores)
+        bootstrap_zscores_arr = np.array(bootstrap_zscores)
 
         # Percentile method
         alpha = 1 - confidence
-        lower = np.percentile(bootstrap_zscores, 100 * alpha / 2)
-        upper = np.percentile(bootstrap_zscores, 100 * (1 - alpha / 2))
+        lower = np.percentile(bootstrap_zscores_arr, 100 * alpha / 2)
+        upper = np.percentile(bootstrap_zscores_arr, 100 * (1 - alpha / 2))
 
         return lower, upper
 
@@ -1540,7 +1542,7 @@ class APGITemporalDynamics:
         max_samples = int(window_range[1] * self.fs)
         window_sizes = np.linspace(min_samples, max_samples, n_windows_test, dtype=int)
 
-        results = {
+        results: Dict[str, Any] = {
             "window_sizes_sec": window_sizes / self.fs,
             "stability_scores": [],
             "snr_scores": [],
@@ -1716,7 +1718,7 @@ class APGITemporalDynamics:
                     print(f"Warning: Could not validate {modality}: {e}")
 
         # Compile recommendations
-        recommendations = {
+        recommendations: Dict[str, Any] = {
             "primary_optimal_window": validation_results["optimal_window_sec"],
             "primary_criterion": validation_results["optimal_criterion"],
             "primary_score": validation_results.get("optimal_score", 0),
@@ -2098,7 +2100,7 @@ class EnhancedClinicalInterpreter:
             else:
                 z_scalar = float(z)
             scalar_values.append(z_scalar)
-        apgi_index = np.mean(scalar_values)
+        apgi_index = float(np.mean(scalar_values))
         interpretation = self.interpret_zscore(apgi_index, "Overall APGI")
         report.append(f"Composite APGI Index: {apgi_index:.2f} ({interpretation})")
 
@@ -2705,8 +2707,10 @@ class RealtimeAPGIMonitor:
     def __init__(self, normalizer: APGINormalizer, buffer_size: int = 1000):
         self.normalizer = normalizer
         self.buffer_size = buffer_size
-        self.buffers = defaultdict(lambda: deque(maxlen=buffer_size))
-        self.session_stats = {}
+        self.buffers: defaultdict[str, deque] = defaultdict(
+            lambda: deque(maxlen=buffer_size)
+        )
+        self.session_stats: Dict[str, Dict[str, float]] = {}
 
     def update(self, modality: str, value: float) -> Optional[Dict[str, float]]:
         """
@@ -2944,7 +2948,7 @@ class APGIDataset(Dataset):
 
     def __init__(
         self,
-        raw_data: Dict[str, np.ndarray],
+        raw_data: Dict[str, Any],
         normalizer: APGINormalizer,
         label_keys: List[str] = ["precision", "threshold", "surprise", "ignition"],
         apply_decorrelation: bool = False,
@@ -3097,7 +3101,7 @@ class APGIDataset(Dataset):
         self, labels_dict: Dict[str, np.ndarray]
     ) -> Dict[str, np.ndarray]:
         """Extract and validate labels"""
-        labels = {}
+        labels: Dict[str, np.ndarray] = {}
         for key in self.label_keys:
             if key in labels_dict:
                 labels[key] = labels_dict[key]
@@ -3118,7 +3122,7 @@ class APGIDataset(Dataset):
         return len(self.z_data["eeg"])
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        item = {
+        item: Dict[str, torch.Tensor] = {
             "eeg": torch.FloatTensor(self.z_data["eeg"][idx]),
             "fmri": torch.FloatTensor(self.z_data["fmri"][idx]),
             "peripheral": torch.FloatTensor(self.z_data["peripheral"][idx]),
@@ -3152,7 +3156,7 @@ def train_apgi_model(
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=patience // 2, verbose=True
+        optimizer, mode="min", factor=0.5, patience=patience // 2
     )
 
     best_val_loss = float("inf")
@@ -3318,7 +3322,7 @@ class APGIBatchProcessor:
         """
         Full processing pipeline for one subject
         """
-        results = {
+        results: Dict[str, Any] = {
             "raw": subject_data,
             "preprocessed": {},
             "quality_metrics": {},
@@ -3440,10 +3444,12 @@ class APGIBatchProcessor:
         return data
 
     def _compute_band_power(
-        self, signal: np.ndarray, freq_range: Tuple[float, float]
+        self, signal_data: np.ndarray, freq_range: Tuple[float, float]
     ) -> float:
         """Compute power in frequency band"""
-        f, Pxx = signal.welch(signal, fs=self.config.get("fs", 250))
+        from scipy.signal import welch
+
+        f, Pxx = welch(signal_data, fs=self.config.get("fs", 250))
         mask = (f >= freq_range[0]) & (f <= freq_range[1])
         return np.mean(Pxx[mask])
 
@@ -3478,8 +3484,8 @@ class APGIBatchProcessor:
 
 
 def compute_fallback_apgi_parameters(
-    z_scores: Dict[str, float],
-    new_subject: Dict[str, float],
+    z_scores: Dict[str, Any],
+    new_subject: Dict[str, Any],
     normalizer: APGINormalizer,
     raw_signals: Optional[Dict[str, np.ndarray]] = None,
 ) -> Dict[str, float]:
@@ -3611,7 +3617,7 @@ if __name__ == "__main__":
     interpreter = EnhancedClinicalInterpreter(normalizer)
 
     # 8. Process new subject
-    new_subject = {
+    new_subject: Dict[str, Any] = {
         "gamma_power": 1.2,
         "HEP_amplitude": 7.5,
         "pupil_diameter": 5.0,

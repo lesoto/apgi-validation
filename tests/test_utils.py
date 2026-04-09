@@ -246,7 +246,10 @@ class TestErrorHandling:
     def test_apgi_error_creation(self):
         """Test APGIError exception creation."""
         error = APGIError("Test error message")
-        assert str(error) == "Test error message"
+        # APGIError now includes severity and category in string representation
+        assert "Test error message" in str(error)
+        assert "[MEDIUM]" in str(error)
+        assert "VALIDATION" in str(error)
 
         # Test with error code
         error_with_code = APGIError("Test error", error_code=123)
@@ -280,13 +283,13 @@ class TestEEGProcessing:
 
     def test_eeg_preprocessor_initialization(self):
         """Test EEGPreprocessor initialization."""
-        config = PreprocessingConfig(sampling_rate=100.0)
+        config = PreprocessingConfig(target_sampling_rate=100.0)
         processor = EEGPreprocessor(config)
         assert hasattr(processor, "preprocess_eeg")
 
     def test_eeg_preprocessor_with_sample_data(self):
         """Test EEG processing with sample data."""
-        config = PreprocessingConfig(sampling_rate=100.0)
+        config = PreprocessingConfig(target_sampling_rate=100.0)
         processor = EEGPreprocessor(config)
         # Create sample EEG data
         eeg_data = np.random.randn(5, 100)  # 5 channels, 100 time points
@@ -320,23 +323,20 @@ class TestPreprocessingPipelines:
 
     def test_preprocessor_initialization(self):
         """Test EEGPreprocessor initialization."""
-        config = PreprocessingConfig()
+        config = PreprocessingConfig(target_sampling_rate=100.0)
         preprocessor = EEGPreprocessor(config)
         assert hasattr(preprocessor, "preprocess_eeg")
         assert hasattr(preprocessor, "apply_filters")
 
     def test_preprocessor_with_sample_data(self):
         """Test preprocessing pipeline with sample data."""
-        config = PreprocessingConfig()
+        config = PreprocessingConfig(target_sampling_rate=100.0)
         preprocessor = EEGPreprocessor(config)
-        # Create sample data
-        sample_data = {
-            "eeg": np.random.randn(5, 100),
-            "metadata": {"sampling_rate": 100.0},
-        }
+        # Create sample data - numpy array format
+        sample_data = np.random.randn(5, 100)  # 5 channels, 100 samples
         result = preprocessor.preprocess_eeg(sample_data)
         assert isinstance(result, dict)
-        assert "processed_data" in result or "error" in result
+        assert "processed_eeg" in result or "error" in result
 
 
 class TestGenomeDataExtractor:
@@ -359,14 +359,14 @@ class TestOrdinalLogisticRegression:
 
     def test_model_initialization(self):
         """Test OrdinalLogisticRegression initialization."""
-        model = OrdinalLogisticRegression(n_classes=3)
-        assert model.n_classes == 3
+        model = OrdinalLogisticRegression(n_categories=3)
+        assert model.n_categories == 3
         assert hasattr(model, "fit")
         assert hasattr(model, "predict")
 
     def test_model_with_sample_data(self):
         """Test ordinal regression model with sample data."""
-        model = OrdinalLogisticRegression(n_classes=3)
+        model = OrdinalLogisticRegression(n_categories=3)
         # Create sample data
         X = np.random.randn(100, 5)  # 100 samples, 5 features
         y = np.random.randint(0, 3, 100)  # 3 ordinal classes
@@ -385,10 +385,13 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_empty_name_raises_error(self):
         """Test that empty name raises ValueError."""
-        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+        from Theory.APGI_Falsification_Framework import (
+            FalsificationCriterion,
+            TestStatistic,
+        )
 
         with pytest.raises(ValueError, match="non-empty string"):
-            FalsificationFramework.FalsificationCriterion(
+            FalsificationCriterion(
                 name="",
                 description="Test",
                 test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
@@ -399,10 +402,13 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_whitespace_only_name_raises_error(self):
         """Test that whitespace-only name raises ValueError."""
-        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+        from Theory.APGI_Falsification_Framework import (
+            FalsificationCriterion,
+            TestStatistic,
+        )
 
         with pytest.raises(ValueError, match="non-empty string"):
-            FalsificationFramework.FalsificationCriterion(
+            FalsificationCriterion(
                 name="   ",
                 description="Test",
                 test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
@@ -413,10 +419,13 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_empty_description_raises_error(self):
         """Test that empty description raises ValueError."""
-        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+        from Theory.APGI_Falsification_Framework import (
+            FalsificationCriterion,
+            TestStatistic,
+        )
 
         with pytest.raises(ValueError, match="non-empty string"):
-            FalsificationFramework.FalsificationCriterion(
+            FalsificationCriterion(
                 name="test",
                 description="",
                 test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
@@ -427,10 +436,13 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_invalid_direction_raises_error(self):
         """Test that invalid direction raises ValueError."""
-        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+        from Theory.APGI_Falsification_Framework import (
+            FalsificationCriterion,
+            TestStatistic,
+        )
 
         with pytest.raises(ValueError, match="Invalid direction"):
-            FalsificationFramework.FalsificationCriterion(
+            FalsificationCriterion(
                 name="test",
                 description="Test",
                 test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
@@ -441,10 +453,13 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_alpha_greater_than_one_raises_error(self):
         """Test that alpha > 1 raises ValueError."""
-        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+        from Theory.APGI_Falsification_Framework import (
+            FalsificationCriterion,
+            TestStatistic,
+        )
 
         with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
-            FalsificationFramework.FalsificationCriterion(
+            FalsificationCriterion(
                 name="test",
                 description="Test",
                 test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
@@ -455,10 +470,13 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_alpha_zero_raises_error(self):
         """Test that alpha = 0 raises ValueError."""
-        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+        from Theory.APGI_Falsification_Framework import (
+            FalsificationCriterion,
+            TestStatistic,
+        )
 
         with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
-            FalsificationFramework.FalsificationCriterion(
+            FalsificationCriterion(
                 name="test",
                 description="Test",
                 test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
@@ -469,10 +487,13 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_alpha_negative_raises_error(self):
         """Test that negative alpha raises ValueError."""
-        from APGI_Falsification_Framework import FalsificationFramework, TestStatistic
+        from Theory.APGI_Falsification_Framework import (
+            FalsificationCriterion,
+            TestStatistic,
+        )
 
         with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
-            FalsificationFramework.FalsificationCriterion(
+            FalsificationCriterion(
                 name="test",
                 description="Test",
                 test_statistic=TestStatistic.MEAN_DIFFERENCE.value,
@@ -483,10 +504,10 @@ class TestFalsificationCriterionNegativePaths:
 
     def test_invalid_test_statistic_raises_error(self):
         """Test that invalid test_statistic raises ValueError."""
-        from APGI_Falsification_Framework import FalsificationFramework
+        from Theory.APGI_Falsification_Framework import FalsificationCriterion
 
         with pytest.raises(ValueError, match="Unsupported test statistic"):
-            FalsificationFramework.FalsificationCriterion(
+            FalsificationCriterion(
                 name="test",
                 description="Test",
                 test_statistic="invalid_statistic",

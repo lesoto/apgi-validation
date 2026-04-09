@@ -21,7 +21,7 @@ import psutil
 import sys
 from collections import deque
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type
 from datetime import datetime
 
 import matplotlib.pyplot as plt
@@ -52,6 +52,19 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.constants import DIM_CONSTANTS, LEVEL_TIMESCALES
+
+# Import falsification thresholds
+# ---------------------------------------------------------------------------
+try:
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        F2_1_MIN_ADVANTAGE_PCT,
+        F2_1_MIN_COHENS_H,
+    )
+except ImportError:
+    DEFAULT_ALPHA = 0.05
+    F2_1_MIN_ADVANTAGE_PCT = 22.0
+    F2_1_MIN_COHENS_H = 0.55
 
 # HIGH-06: Import APGIConfig for centralized hyperparameters
 from utils.apgi_config import APGIConfig
@@ -385,7 +398,7 @@ class PolicyNetwork(nn.Module):
         self.saved_log_probs.append(action_dist.log_prob(action))
         self.saved_values.append(value)
 
-        return action.item(), probs.detach()
+        return action.item(), probs.detach()  # type: ignore[return-value]
 
     def update(self, final_reward: float):
         """Policy gradient update"""
@@ -559,7 +572,7 @@ class APGIActiveInferenceAgent(AgentInterface):
     """
 
     def __init__(self, config: Dict):
-        self.config = config
+        super().__init__(config)
         self.time = 0.0
 
         # Generative models
@@ -913,7 +926,7 @@ class StandardPPAgent(AgentInterface):
     """Standard predictive processing without ignition"""
 
     def __init__(self, config: Dict):
-        self.config = config
+        super().__init__(config)
         self.time = 0.0
 
         self.extero_model = HierarchicalGenerativeModel(
@@ -1527,7 +1540,7 @@ class ThreatRewardTradeoffEnvironment:
         self.trial = 0
 
         # Options with varying reward-threat profiles.
-        self.options = {
+        self.options: Dict[int, Dict[str, Any]] = {
             0: {"reward": 10.0, "reward_std": 4.0, "threat": 0.10, "name": "safe_low"},
             1: {"reward": 30.0, "reward_std": 7.5, "threat": 0.30, "name": "moderate"},
             2: {"reward": 60.0, "reward_std": 12.0, "threat": 0.60, "name": "risky"},
@@ -1538,7 +1551,7 @@ class ThreatRewardTradeoffEnvironment:
                 "name": "dangerous",
             },
         }
-        self.threat_accumulator = 0.0
+        self.threat_accumulator: float = 0.0
         self.threat_decay = 0.90
 
     def reset(self) -> Dict:
@@ -1558,12 +1571,12 @@ class ThreatRewardTradeoffEnvironment:
         reward = np.random.normal(option["reward"], option["reward_std"])
         reward = float(reward)
 
-        immediate_threat = option["threat"]
+        immediate_threat = float(option["threat"])
         self.threat_accumulator = (
             self.threat_decay * self.threat_accumulator + immediate_threat
         )
 
-        intero_cost = immediate_threat + 0.3 * self.threat_accumulator
+        intero_cost = immediate_threat + 0.3 * float(self.threat_accumulator)
         if self.threat_accumulator > 2.0:
             intero_cost += float(np.random.exponential(1.0))
             self.threat_accumulator *= 0.5
@@ -1586,7 +1599,7 @@ class ThreatRewardTradeoffEnvironment:
         expected net value is reward minus the interoceptive penalty proxy.
         """
         expected_net_values = [
-            option["reward"] - 100.0 * option["threat"]
+            float(option["reward"]) - 100.0 * float(option["threat"])
             for option in self.options.values()
         ]
         return 0.8 * max(expected_net_values)
@@ -1596,7 +1609,7 @@ class ThreatRewardTradeoffEnvironment:
         encoding[action] = 1.0
         encoding[4 + action] = np.clip(reward / 100.0, 0.0, 1.0)
         encoding[8] = self.threat_accumulator / 3.0
-        encoding[9] = self.options[action]["threat"]
+        encoding[9] = float(self.options[action]["threat"])
         encoding[10:] = np.random.normal(0, 0.1, 22)
         return encoding
 
@@ -1883,7 +1896,7 @@ class AgentComparisonExperiment:
         self.consecutive_windows_required = 3
         self.optimal_policy_percentile = 0.80
 
-        self.agent_types = {
+        self.agent_types: Dict[str, Type[AgentInterface]] = {
             "APGI": APGIActiveInferenceAgent,
             "StandardPP": StandardPPAgent,
             "GWTOnly": GWTOnlyAgent,
@@ -2144,7 +2157,7 @@ class AgentComparisonExperiment:
         print("HEAVY-TAILED REWARD CONVERGENCE TEST (Levy Distribution)")
         print("=" * 60)
 
-        results = {"APGI": [], "StandardPP": []}
+        results: Dict[str, List[Dict]] = {"APGI": [], "StandardPP": []}
         expected_convergence_range = (30, 100)  # Original 50-80 ±20 trials tolerance
 
         for agent_name, AgentClass in [
@@ -2155,7 +2168,8 @@ class AgentComparisonExperiment:
 
             for _ in tqdm(range(n_agents), desc=f"  {agent_name}"):
                 config = self._get_config("IGT")
-                agent = AgentClass(config)
+                # Cast to Any to avoid abstract class instantiation error
+                agent: Any = AgentClass(config)
                 # Create environment with heavy-tailed Levy distribution
                 env = IowaGamblingTaskEnvironment(
                     n_trials=self.n_trials, reward_dist="levy"
@@ -2173,7 +2187,10 @@ class AgentComparisonExperiment:
                 if r["convergence_trial"] is not None
             ]
             non_converged = sum(
-                1 for r in results[agent_name] if r["convergence_trial"] is None
+                1
+                for r in results[agent_name]
+                if r["convergence_trial"] is None
+                # Generator returns int (1) which is fine for sum()
             )
 
             if convergence_trials:
@@ -2892,7 +2909,7 @@ def plot_experiment_results(
 
         # Fix numpy RuntimeWarning by checking for empty arrays
         if isinstance(p3d_improvement, np.ndarray) and len(p3d_improvement) > 0:
-            p3d_improvement_mean = np.mean(p3d_improvement)
+            p3d_improvement_mean = float(np.mean(p3d_improvement))
         else:
             p3d_improvement_mean = 0.0
 
@@ -3449,69 +3466,6 @@ def compare_agent_to_human_baseline(agent_performance, task_name):
     return similarity_metrics
 
 
-class SystematicAblationStudy:
-    """Systematically test contributions of APGI components"""
-
-    def __init__(self, base_agent_config: Dict):
-        self.base_config = base_agent_config
-
-    def generate_ablation_conditions(self):
-        """Generate all combinations of APGI components to test"""
-        return {
-            "full_apgi": self._create_agent_config(True, True, True, True),
-            "no_threshold": self._create_agent_config(False, True, True, True),
-            "no_intero_weighting": self._create_agent_config(True, False, True, True),
-            "no_somatic_markers": self._create_agent_config(True, True, False, True),
-            "no_precision": self._create_agent_config(True, True, True, False),
-            "minimal": self._create_agent_config(False, False, False, False),
-        }
-
-    def _create_agent_config(
-        self, has_threshold, has_intero_weighting, has_somatic_markers, has_precision
-    ):
-        config = self.base_config.copy()
-        config.update(
-            {
-                "has_threshold": has_threshold,
-                "has_intero_weighting": has_intero_weighting,
-                "has_somatic_markers": has_somatic_markers,
-                "has_precision_weighting": has_precision,
-            }
-        )
-        return config
-
-    def run_ablation_study(self, env, n_episodes=100):
-        """Run comparison across all ablation conditions"""
-        conditions = self.generate_ablation_conditions()
-        results = {}
-
-        for name, config in conditions.items():
-            agent = APGIActiveInferenceAgent(config)
-            episode_rewards = []
-
-            for _ in range(n_episodes):
-                obs = env.reset()
-                done = False
-                total_reward = 0
-
-                while not done:
-                    action = agent.step(obs)
-                    reward, intero_cost, next_obs, done = env.step(action)
-                    agent.receive_outcome(reward, intero_cost, next_obs)
-                    total_reward += reward
-                    obs = next_obs
-
-                episode_rewards.append(total_reward)
-
-            results[name] = {
-                "mean_reward": np.mean(episode_rewards),
-                "std_reward": np.std(episode_rewards),
-                "learning_curve": episode_rewards,
-            }
-
-        return results
-
-
 def analyze_computational_cost(agent, env, n_trials=1000):
     """
     Measure computational cost of agent decisions.
@@ -3697,7 +3651,7 @@ def test_agent_generalization(trained_agent, test_environments):
     return generalization_results
 
 
-def compute_bic_comparison(results: Dict, analysis: Dict) -> Dict[str, float]:
+def compute_bic_comparison(results: Dict, analysis: Dict) -> Dict[str, Dict[str, Any]]:
     """
     Compute Bayesian Information Criterion (BIC) for model comparison.
 
@@ -3713,7 +3667,7 @@ def compute_bic_comparison(results: Dict, analysis: Dict) -> Dict[str, float]:
     Returns:
         Dictionary with BIC values for each agent
     """
-    bic_values = {}
+    bic_values: Dict[str, Dict[str, Any]] = {}
 
     # Estimate number of parameters for each agent type
     # This is approximate based on network architecture
@@ -3789,7 +3743,7 @@ def verify_interoceptive_cost_weighting(results: Dict) -> Dict[str, Any]:
     Returns:
         Dictionary with cost weighting verification metrics
     """
-    verification = {}
+    verification: Dict[str, Any] = {}
 
     # For each environment, analyze cost-reward tradeoffs
     for env_name in results.keys():
@@ -3819,19 +3773,20 @@ def verify_interoceptive_cost_weighting(results: Dict) -> Dict[str, Any]:
 
         # Compute correlation between costs and action avoidance
         # Higher cost should lead to lower selection probability
-        action_selection_counts = {}
+        action_selection_counts: Dict[Any, int] = {}
         for action in actions:
             action_selection_counts[action] = action_selection_counts.get(action, 0) + 1
 
         # Compute mean cost per action
-        action_mean_costs = {}
+        action_costs: Dict[Any, List[float]] = {}
         for i, action in enumerate(actions):
-            if action not in action_mean_costs:
-                action_mean_costs[action] = []
-            action_mean_costs[action].append(costs[i])
+            if action not in action_costs:
+                action_costs[action] = []
+            action_costs[action].append(float(costs[i]))
 
-        for action in action_mean_costs:
-            action_mean_costs[action] = np.mean(action_mean_costs[action])
+        action_mean_costs: Dict[Any, float] = {}
+        for action in action_costs:
+            action_mean_costs[action] = float(np.mean(action_costs[action]))
 
         # Correlation: higher mean cost should correlate with lower selection
         if len(action_mean_costs) > 1:
@@ -4114,8 +4069,15 @@ def sensitivity_analysis_grid(
     print("\nAnalyzing sensitivity patterns...")
 
     # Find best performing parameter combination
+    def get_mean_reward(k: Any) -> float:
+        result = sensitivity_results[k]
+        if isinstance(result, dict):
+            return float(result.get("mean_reward", 0.0))
+        return 0.0
+
     best_params = max(
-        sensitivity_results.keys(), key=lambda k: sensitivity_results[k]["mean_reward"]
+        sensitivity_results.keys(),
+        key=get_mean_reward,
     )
     best_result = sensitivity_results[best_params]
 
@@ -4127,19 +4089,24 @@ def sensitivity_analysis_grid(
     # Parameter sensitivity analysis
     print("\nParameter sensitivity analysis:")
     for param_name in ["alpha", "beta", "theta_baseline"]:
-        param_values = [
-            sensitivity_results[k]["parameters"][param_name]
-            for k in sensitivity_results.keys()
-        ]
+        param_values: List[float] = []
+        mean_rewards: List[float] = []
+        for k in sensitivity_results.keys():
+            result = sensitivity_results[k]
+            if isinstance(result, dict):
+                params = result.get("parameters", {})
+                if isinstance(params, dict):
+                    param_val = params.get(param_name, 0.0)
+                    param_values.append(float(param_val))
+                mean_reward_val = result.get("mean_reward", 0.0)
+                mean_rewards.append(float(mean_reward_val))
 
         if param_values:
-            mean_rewards = [sensitivity_results[k]["mean_reward"] for k in param_values]
             correlation = (
-                np.corrcoef(param_values, mean_rewards)[0, 1]
+                float(np.corrcoef(param_values, mean_rewards)[0, 1])
                 if len(param_values) > 1
-                else 0
+                else 0.0
             )
-
             print(f"  {param_name}: correlation with mean reward = {correlation:.3f}")
 
     return sensitivity_results
@@ -4218,13 +4185,13 @@ def autocorrelation_with_surrogate_analysis(
             if len(surrogate_peaks_temp) > 0:
                 surrogate_peaks.extend(surrogate_autocorr[surrogate_peaks_temp])
 
-        # Convert to numpy array
-        surrogate_peaks = np.array(surrogate_peaks)
+        # Convert to numpy array (store in new variable to avoid type conflict)
+        surrogate_peaks_array = np.array(surrogate_peaks)
 
         # Compute significance threshold from surrogate distribution
-        if len(surrogate_peaks) > 0:
+        if len(surrogate_peaks_array) > 0:
             significance_threshold = np.percentile(
-                surrogate_peaks, percentile_threshold
+                surrogate_peaks_array, percentile_threshold
             )
         else:
             significance_threshold = 0.0
@@ -4245,7 +4212,7 @@ def autocorrelation_with_surrogate_analysis(
         # Count hierarchical levels based on timescale separation
         # Expected timescales: τ₁ < 0.5s, τ₂ = 1-3s, τ₃ = 5-20s
         hierarchical_levels = 0
-        level_timescales = []
+        level_timescales: Dict[str, List[float]] = {}
 
         if len(timescales) >= 3:
             # Sort timescales
@@ -4269,9 +4236,15 @@ def autocorrelation_with_surrogate_analysis(
             )
 
             level_timescales = {
-                "level_1": level_1.tolist() if len(level_1) > 0 else [],
-                "level_2": level_2.tolist() if len(level_2) > 0 else [],
-                "level_3": level_3.tolist() if len(level_3) > 0 else [],
+                "level_1": (
+                    [float(x) for x in level_1.tolist()] if len(level_1) > 0 else []
+                ),
+                "level_2": (
+                    [float(x) for x in level_2.tolist()] if len(level_2) > 0 else []
+                ),
+                "level_3": (
+                    [float(x) for x in level_3.tolist()] if len(level_3) > 0 else []
+                ),
             }
 
         # Compute peak separation ratio
@@ -4289,11 +4262,11 @@ def autocorrelation_with_surrogate_analysis(
             if total_variance > 0:
                 # Between-group variance (simplified)
                 group_means = [
-                    np.mean(level_1) if len(level_1) > 0 else 0,
-                    np.mean(level_2) if len(level_2) > 0 else 0,
-                    np.mean(level_3) if len(level_3) > 0 else 0,
+                    float(np.mean(level_1)) if len(level_1) > 0 else 0.0,
+                    float(np.mean(level_2)) if len(level_2) > 0 else 0.0,
+                    float(np.mean(level_3)) if len(level_3) > 0 else 0.0,
                 ]
-                between_variance = np.var(group_means)
+                between_variance = float(np.var(group_means))
                 eta_squared = between_variance / total_variance
             else:
                 eta_squared = 0.0
@@ -4510,7 +4483,7 @@ def check_falsification(
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
-    results = {
+    results: Dict[str, Any] = {
         "protocol": "Validation_Protocol_3",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "underpowered": 0, "total": 11},

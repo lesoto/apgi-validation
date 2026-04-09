@@ -221,7 +221,7 @@ class MetaFalsificationEngine:
     comprehensive reporting.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize meta-falsification engine."""
         self.gate = FrameworkFalsificationGate()
         self.validation_reports: Dict[str, Any] = {}

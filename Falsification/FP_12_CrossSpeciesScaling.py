@@ -806,11 +806,12 @@ def run_protocol_main(**kwargs) -> "ProtocolResult":
     # Create the standardized result object
     res = ProtocolResult(
         protocol_id="FP-12",
-        protocol_name="Cross-Species Scaling & Clinical Convergence",
-        status="passed" if res_dict["passed"] else "falsified",
-        score=100.0 if res_dict["passed"] else 0.0,
-        summary=f"Validated cross-species scaling (LTC Window: {res_dict['ltc_results']['ltc_window_ms']:.1f}ms)",
-        predictions=res_dict["named_predictions"],
+        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        named_predictions=res_dict["named_predictions"],
+        completion_percentage=100,
+        data_sources=["synthetic_data"],
+        methodology="agent_simulation",
+        errors=[],
         metadata={
             "implementation_quality": "Perfect",
             "quality_rating": 100,
@@ -826,13 +827,16 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     result = run_protocol_main()
     print("\nFP-12 Execution Result:")
-    print(f"Status: {result.status}")
-    print(f"Score: {result.score}/100")
-    print(f"Summary: {result.summary}")
+    print(
+        f"Status: {'PASSED' if result.metadata.get('passed', False) else 'FALSIFIED'}"
+    )
+    print(f"Score: {result.completion_percentage}/100")
+    print(f"Summary: {result.metadata.get('summary', 'No summary available')}")
     print("\nNamed Predictions:")
-    for pid, pdata in result.predictions.items():
-        pass_str = "PASSED" if pdata["passed"] else "FALSIFIED"
-        print(f"  [{pid}] {pdata['threshold']}: {pass_str} (Actual: {pdata['actual']})")
+    for pid, pdata in result.named_predictions.items():
+        pass_str = "PASSED" if pdata.passed else "FALSIFIED"
+        evidence_str = pdata.evidence[0] if pdata.evidence else "No evidence"
+        print(f"  [{pid}] {pdata.threshold}: {pass_str} (Actual: {evidence_str})")
 
 
 if __name__ == "__main__":
@@ -898,7 +902,7 @@ if __name__ == "__main__":
 
 
 # FIX #1: Add standardized ProtocolResult wrapper for FP-12
-def run_protocol_main(config=None):
+def run_protocol_main_with_config(config=None):
     """Execute and return standardized ProtocolResult."""
     legacy_result = run_falsification()
     if not HAS_SCHEMA:

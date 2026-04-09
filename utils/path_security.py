@@ -41,8 +41,9 @@ def validate_file_path(file_path: str, base_dir: Optional[str] = None) -> Path:
     temp_dir = Path(tempfile.gettempdir()).absolute()
 
     # If a base_dir is provided, use it as the primary allowed root
-    if base_dir:
-        base_path = Path(base_dir).absolute()
+    if base_dir is not None:
+        # Handle both str and Path objects
+        base_path = Path(str(base_dir)).absolute()
         allowed_roots = [base_path]
     else:
         base_path = Path(os.getcwd()).absolute()

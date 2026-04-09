@@ -2,7 +2,7 @@
 APGI Validation GUI
 ==================
 
-Simple tkinter GUI for running APGI validation protocols with real-time progress tracking and results visualization.
+GUI for running APGI validation protocols with real-time progress tracking and results visualization.
 """
 
 import contextlib
@@ -29,7 +29,7 @@ logging.getLogger("arviz.preview").setLevel(logging.WARNING)
 
 import numpy as np
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent
 
 
 def safe_import_module(module_name: str, file_path: Path) -> Optional[Any]:
@@ -70,7 +70,7 @@ def safe_import_module(module_name: str, file_path: Path) -> Optional[Any]:
 
 
 # Try to import master validation module
-master_validation_path = Path(__file__).parent / "Master_Validation.py"
+master_validation_path = Path(__file__).parent / "Validation" / "Master_Validation.py"
 APGI_Master_Validation = safe_import_module("Master_Validation", master_validation_path)
 
 if APGI_Master_Validation:
@@ -102,7 +102,7 @@ protocol_files = [
 ]
 
 for protocol_name, filename in protocol_files:
-    protocol_path = Path(__file__).parent / filename
+    protocol_path = Path(__file__).parent / "Validation" / filename
     protocol_module = safe_import_module(protocol_name, protocol_path)
 
 
@@ -223,7 +223,7 @@ class APGIValidationGUI:
     def _setup_logging(self) -> None:
         """Setup logging system with error handling."""
         try:
-            log_dir = Path(__file__).parent.parent / "logs"
+            log_dir = Path(__file__).parent / "logs"
             log_dir.mkdir(exist_ok=True)
             # Set restrictive permissions: owner read/write/execute only (0o700)
             log_dir.chmod(0o700)
@@ -364,7 +364,7 @@ class APGIValidationGUI:
         # Protocol status
         text_widget.insert(tk.END, "\n=== Protocol Status ===\n")
         for protocol_name, filename in protocol_files:
-            protocol_path = Path(__file__).parent / filename
+            protocol_path = Path(__file__).parent / "Validation" / filename
             exists = protocol_path.exists()
             status_symbol = "[OK]" if exists else "[FAIL]"
             text_widget.insert(
@@ -2186,7 +2186,7 @@ Interpretation:
                 raise ValueError(f"Invalid protocol number: {protocol_num}")
 
             protocol_file = protocol_files[protocol_num - 1][1]
-            protocol_path = Path(__file__).parent / protocol_file
+            protocol_path = Path(__file__).parent / "Validation" / protocol_file
 
             if not protocol_path.exists():
                 raise FileNotFoundError(f"Protocol file {protocol_file} not found")
@@ -3187,7 +3187,9 @@ def run_headless() -> None:
     logger.info("Running APGI Validation in HEADLESS mode")
 
     # Import and run Master Validation directly
-    master_validation_path = Path(__file__).parent / "Master_Validation.py"
+    master_validation_path = (
+        Path(__file__).parent / "Validation" / "Master_Validation.py"
+    )
     master_module = safe_import_module("Master_Validation", master_validation_path)
 
     if master_module and hasattr(master_module, "APGIMasterValidator"):

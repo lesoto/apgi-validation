@@ -192,7 +192,7 @@ class APGIBayesianModel:
             model_evidence = self._compute_model_evidence(trace)
 
             # Compute beta from raw_beta
-            beta_posterior_mean = 10.0 + 5.0 * summary.loc["raw_beta"]["mean"]
+            beta_posterior_mean = float(10.0 + 5.0 * float(summary.loc["raw_beta", "mean"]))  # type: ignore
 
             result = {
                 "trace": trace,
@@ -201,7 +201,7 @@ class APGIBayesianModel:
                 "rhat_max": rhat_max,
                 "posterior_predictive": posterior_predictive,
                 "beta_posterior_mean": beta_posterior_mean,
-                "theta_posterior_mean": summary.loc["theta"]["mean"],
+                "theta_posterior_mean": float(summary.loc["theta", "mean"]),  # type: ignore
                 "phase_transition_posterior": beta_posterior_mean > 10,
                 "model_evidence": model_evidence,
             }
@@ -243,9 +243,9 @@ class APGIBayesianModel:
             response_data.extend(subj_data["detected"].astype(int).values)
             subject_indices.extend([i] * len(subj_data))
 
-        stimulus_data = np.array(stimulus_data)
-        response_data = np.array(response_data)
-        subject_indices = np.array(subject_indices)
+        stimulus_data = stimulus_data
+        response_data = response_data
+        subject_indices = subject_indices
 
         with pm.Model():
             # Hyperpriors for group-level parameters
@@ -312,11 +312,11 @@ class APGIBayesianModel:
         return {
             "trace": trace,
             "summary": summary,
-            "beta_group_mean": float(summary.loc["beta_mu"]["mean"]),
-            "theta_group_mean": float(summary.loc["theta_mu"]["mean"]),
+            "beta_group_mean": float(summary.at["beta_mu", "mean"]),  # type: ignore
+            "theta_group_mean": float(summary.at["theta_mu", "mean"]),  # type: ignore
             "individual_differences": {
-                "beta_variability": float(summary.loc["beta_sigma"]["mean"]),
-                "theta_variability": float(summary.loc["theta_sigma"]["mean"]),
+                "beta_variability": float(summary.at["beta_sigma", "mean"]),  # type: ignore
+                "theta_variability": float(summary.at["theta_sigma", "mean"]),  # type: ignore
             },
         }
 
@@ -544,8 +544,8 @@ class ModelComparisonFramework:
         return {
             "trace": trace,
             "summary": summary,
-            "slope_posterior_mean": float(summary.loc["slope"]["mean"]),
-            "threshold_posterior_mean": float(summary.loc["threshold"]["mean"]),
+            "slope_posterior_mean": float(summary.at["slope", "mean"]),  # type: ignore
+            "threshold_posterior_mean": float(summary.at["threshold", "mean"]),  # type: ignore
             "model_evidence": self._compute_model_evidence_simple(trace),
         }
 
@@ -579,8 +579,8 @@ class ModelComparisonFramework:
         return {
             "trace": trace,
             "summary": summary,
-            "slope_posterior_mean": float(summary.loc["slope"]["mean"]),
-            "intercept_posterior_mean": float(summary.loc["intercept"]["mean"]),
+            "slope_posterior_mean": float(summary.at["slope", "mean"]),  # type: ignore
+            "intercept_posterior_mean": float(summary.at["intercept", "mean"]),  # type: ignore
             "model_evidence": self._compute_model_evidence_simple(trace),
         }
 
@@ -663,10 +663,10 @@ class IITConvergenceBayesian:
         summary = az.summary(trace, round_to=3)
 
         # Compute convergence metrics
-        slope_mean = float(summary.loc["slope"]["mean"])
+        slope_mean = float(summary.at["slope", "mean"])  # type: ignore
         slope_hdi = (
-            float(summary.loc["slope"]["hdi_3%"]),
-            float(summary.loc["slope"]["hdi_97%"]),
+            float(summary.at["slope", "hdi_3%"]),  # type: ignore
+            float(summary.at["slope", "hdi_97%"]),  # type: ignore
         )
 
         convergence_supported = slope_hdi[0] > 0  # Positive relationship

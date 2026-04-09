@@ -1,6 +1,7 @@
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Any, List, Optional, Tuple, Union
 import logging
 import numpy as np
+from scipy import signal
 
 try:
     from specparam import FOOOF
@@ -205,21 +206,29 @@ def validate_specparam_fit(results: Dict[str, Union[float, bool, str]]) -> bool:
     if not results.get("fit_success", False):
         return False
 
-    # Check R² threshold (APGI requires R² ≥ 0.90)
+    # Check R² threshold (APGI requires R² >= 0.90)
     r_squared = results.get("r_squared", 0.0)
-    if r_squared < 0.90:
+    try:
+        r_squared_float = float(r_squared)
+    except (ValueError, TypeError):
+        return False
+    if r_squared_float < 0.90:
         return False
 
     # Check exponent is in reasonable range
     exponent = results.get("exponent", np.nan)
-    if not np.isfinite(exponent) or exponent < 0.1 or exponent > 5.0:
+    try:
+        exponent_float = float(exponent)
+    except (ValueError, TypeError):
+        return False
+    if not np.isfinite(exponent_float) or exponent_float < 0.1 or exponent_float > 5.0:
         return False
 
     return True
 
 
 def compute_power_spectrum(
-    signal: np.ndarray,
+    input_signal: np.ndarray,
     fs: float,
     method: str = "welch",
     **kwargs,
@@ -228,7 +237,7 @@ def compute_power_spectrum(
     Compute power spectrum density for spectral analysis.
 
     Args:
-        signal: Input signal
+        input_signal: Input signal
         fs: Sampling frequency in Hz
         method: Method for PSD computation ('welch' or 'periodogram')
         **kwargs: Additional arguments passed to scipy.signal method
@@ -240,7 +249,7 @@ def compute_power_spectrum(
         # Default parameters for Welch's method
         defaults = {
             "window": "hann",
-            "nperseg": min(256, len(signal) // 4),
+            "nperseg": min(256, len(input_signal) // 4),
             "noverlap": None,
             "nfft": None,
             "detrend": "constant",
@@ -249,7 +258,7 @@ def compute_power_spectrum(
         }
         defaults.update(kwargs)
 
-        freqs, power_spectrum = signal.welch(signal, fs=fs, **defaults)
+        freqs, power_spectrum = signal.welch(input_signal, fs=fs, **defaults)
 
     elif method == "periodogram":
         # Default parameters for periodogram
@@ -262,7 +271,7 @@ def compute_power_spectrum(
         }
         defaults.update(kwargs)
 
-        freqs, power_spectrum = signal.periodogram(signal, fs=fs, **defaults)
+        freqs, power_spectrum = signal.periodogram(input_signal, fs=fs, **defaults)
 
     else:
         raise ValueError(f"Unknown method: {method}")
@@ -411,7 +420,7 @@ def compare_fooof_vs_loglog(
     power_spectrum: np.ndarray,
     freq_range: Tuple[float, float] = (1.0, 40.0),
     **fooof_kwargs,
-) -> Dict[str, Union[float, Dict[str, float]]]:
+) -> Dict[str, Any]:
     """
     Compare FOOOF results with manual log-log regression.
 
@@ -513,8 +522,14 @@ if __name__ == "__main__":
     comparison = compare_fooof_vs_loglog(freqs, spectrum)
 
     print(f"True exponent: {true_exponent}")
-    print(f"FOOOF exponent: {comparison['fooof']['exponent']:.3f}")
-    print(f"Log-log exponent: {comparison['loglog']['exponent']:.3f}")
-    print(f"FOOOF R²: {comparison['fooof']['r_squared']:.3f}")
-    print(f"Log-log R²: {comparison['loglog']['r_squared']:.3f}")
-    print(f"Exponent difference: {comparison['difference']['exponent_diff']:.3f}")
+    fooof_exponent = float(comparison["fooof"]["exponent"])
+    loglog_exponent = float(comparison["loglog"]["exponent"])
+    fooof_r2 = float(comparison["fooof"]["r_squared"])
+    loglog_r2 = float(comparison["loglog"]["r_squared"])
+    exponent_diff = float(comparison["difference"]["exponent_diff"])
+
+    print(f"FOOOF exponent: {float(fooof_exponent):.3f}")
+    print(f"Log-log exponent: {float(loglog_exponent):.3f}")
+    print(f"FOOOF R²: {float(fooof_r2):.3f}")
+    print(f"Log-log R²: {float(loglog_r2):.3f}")
+    print(f"Exponent difference: {float(exponent_diff):.3f}")

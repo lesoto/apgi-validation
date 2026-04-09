@@ -21,7 +21,7 @@ def generate_synthetic_data_with_ground_truth(
     seed: int = 42,
 ) -> Tuple[np.ndarray, Dict[str, float]]:
     """
-    Generate synthetic data with known ground-truth parameters.
+    Generate synthetic binary response data with known ground-truth parameters.
 
     Args:
         n_subjects: Number of subjects
@@ -31,24 +31,35 @@ def generate_synthetic_data_with_ground_truth(
         seed: Random seed
 
     Returns:
-        Tuple of (data, true_parameters)
+        Tuple of (binary_response_data, true_parameters)
     """
     np.random.seed(seed)
 
     if true_params is None:
         true_params = {"beta": 0.7, "pi": 0.5}
 
-    # Generate latent states
-    latent_states = np.random.randn(n_subjects, n_timepoints)
+    # Generate stimulus data (linear ramp like FP-10 expects)
+    stimulus = np.linspace(0.05, 2.5, n_timepoints)
 
-    # Generate observations using APGI model
+    # Generate binary responses using logistic model
     beta = true_params["beta"]
     pi = true_params["pi"]
 
-    predictions = beta * latent_states + pi * np.random.randn(n_subjects, n_timepoints)
-    observations = predictions + noise_level * np.random.randn(n_subjects, n_timepoints)
+    # Create binary response matrix (n_subjects, n_timepoints)
+    responses = np.zeros((n_subjects, n_timepoints), dtype=int)
 
-    return observations, true_params
+    for i in range(n_subjects):
+        # Subject-specific sensitivity variation
+        subject_beta = beta * (1 + 0.1 * np.random.randn())
+
+        # Log-odds = beta * stimulus + noise
+        log_odds = subject_beta * stimulus + pi * np.random.randn(n_timepoints)
+        probabilities = 1 / (1 + np.exp(-log_odds))
+
+        # Generate binary responses
+        responses[i] = (np.random.rand(n_timepoints) < probabilities).astype(int)
+
+    return responses, true_params
 
 
 def calculate_recovery_metrics(

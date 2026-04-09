@@ -4,6 +4,14 @@
   "description": "Schema for validating APGI configuration YAML files",
   "type": "object",
   "properties": {
+    "version": {
+      "type": "string",
+      "description": "Version identifier for the configuration"
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Name of the project"
+    },
     "model": {
       "type": "object",
       "description": "Model parameters for APGI formal model",

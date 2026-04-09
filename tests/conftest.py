@@ -29,14 +29,14 @@ for module in tkinter_modules:
 
 # Configure mock tkinter with basic widget behavior
 mock_tk = sys.modules["tkinter"]
-mock_tk.Tk = MagicMock
-mock_tk.StringVar = MagicMock
-mock_tk.BooleanVar = MagicMock
-mock_tk.DoubleVar = MagicMock
-mock_tk.IntVar = MagicMock
-mock_tk.ttk = MagicMock()
-mock_tk.messagebox = MagicMock()
-mock_tk.filedialog = MagicMock()
+mock_tk.Tk = MagicMock()  # type: ignore
+mock_tk.StringVar = MagicMock()  # type: ignore
+mock_tk.BooleanVar = MagicMock()  # type: ignore
+mock_tk.DoubleVar = MagicMock()  # type: ignore
+mock_tk.IntVar = MagicMock()  # type: ignore
+mock_tk.ttk = MagicMock()  # type: ignore
+mock_tk.messagebox = MagicMock()  # type: ignore
+mock_tk.filedialog = MagicMock()  # type: ignore
 
 import json
 import os

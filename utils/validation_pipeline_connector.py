@@ -10,11 +10,12 @@ workflow automation for APGI framework.
 import json
 import logging
 import inspect
+import os
 import signal
 import sys
 import threading
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 # Add project root to Python path for imports
 project_root = Path(__file__).parent.parent
@@ -37,9 +38,11 @@ except ImportError:
 
 try:
     from utils.sample_data_generator import (
-        SampleDataGenerator,
+        SampleDataGenerator as SampleDataGeneratorClass,
         generate_sample_multimodal_data,
     )
+
+    SampleDataGenerator: Union[type, None] = SampleDataGeneratorClass
 except ImportError:
     import warnings
 
@@ -57,12 +60,19 @@ logger = logging.getLogger(__name__)
 class ValidationPipelineConnector:
     """Connects preprocessing pipelines with validation protocols."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, config: Optional[Union[Dict[str, Any], PreprocessingConfig]] = None
+    ):
         """Initialize connector with optional preprocessing configuration."""
-        self.config = config or PreprocessingConfig()
+        if config is None:
+            self.config = PreprocessingConfig()
+        elif isinstance(config, dict):
+            self.config = PreprocessingConfig(**config)
+        else:
+            self.config = config
         self.preprocessor = MultimodalPreprocessingPipeline(self.config)
         self.data_generator = SampleDataGenerator()
-        self.connection_log = []
+        self.connection_log: List[Union[str, Dict[str, Any]]] = []
         self._log_lock = threading.Lock()
 
     def prepare_data_for_validation(
@@ -205,7 +215,7 @@ class ValidationPipelineConnector:
         self, data: pd.DataFrame, protocol: int
     ) -> Dict[str, Any]:
         """Validate that data meets protocol requirements."""
-        compatibility = {
+        compatibility: Dict[str, Any] = {
             "valid": True,
             "warnings": [],
             "required_columns": [],
@@ -418,6 +428,11 @@ def main():
     print("APGI Framework - Validation Pipeline Connector")
     print("=" * 50)
 
+    # Check for test mode (faster execution for CI/testing)
+    test_mode = os.environ.get("APGI_TEST_MODE", "").lower() in ("1", "true", "yes")
+    if test_mode:
+        print("\n[TEST MODE ENABLED - Skipping full protocol execution]\n")
+
     # Set up signal handler for graceful shutdown
     def signal_handler(signum, frame):
         print(f"\nReceived signal {signum}. Gracefully shutting down...")
@@ -432,9 +447,19 @@ def main():
 
         # Test with Protocol 1 using synthetic data
         print("\n1. Testing Protocol 1 with synthetic data...")
-        result1 = connector.run_validation_with_pipeline(
-            validation_protocol=1, use_synthetic=True, n_samples=500
-        )
+
+        if test_mode:
+            # In test mode, only test data preparation (skip ML training)
+            result1 = connector.prepare_data_for_validation(
+                validation_protocol=1, use_synthetic=True, n_samples=100
+            )
+            # Add expected fields for consistent output
+            result1["pipeline_metadata"] = result1.get("metadata", {})
+            result1["validation_result"] = {"test_mode": True, "status": "skipped"}
+        else:
+            result1 = connector.run_validation_with_pipeline(
+                validation_protocol=1, use_synthetic=True, n_samples=500
+            )
 
         print(f"Protocol 1 Status: {result1['status']}")
         if result1["status"] == "success":
@@ -442,6 +467,8 @@ def main():
             print(
                 f"  Compatibility: {result1['pipeline_metadata']['compatibility']['valid']}"
             )
+            if test_mode:
+                print("  [Full protocol execution skipped in test mode]")
         else:
             print(f"  Error: {result1['error']}")
 

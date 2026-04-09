@@ -195,6 +195,14 @@ F6_5_HYSTERESIS_MIN: float = 0.08  # hysteresis ≥ 0.08
 F6_5_HYSTERESIS_MAX: float = 0.25  # hysteresis ≤ 0.25
 
 # ---------------------------------------------------------------------------
+# F6.6 – Alternative Architectures Require Add-Ons
+# Standard RNNs, LSTMs, Transformers require ≥2 explicit modules to match
+# ≥85% of LTCN performance
+# ---------------------------------------------------------------------------
+F6_6_MIN_ADD_ON_MODULES: float = 2.0  # ≥2 modules required
+F6_6_MIN_PERFORMANCE_GAP: float = 15.0  # ≥15% performance gap without add-ons
+
+# ---------------------------------------------------------------------------
 # Innovation 29 – LNN AUROC superiority threshold
 # ---------------------------------------------------------------------------
 F6_DELTA_AUROC_MIN: float = (
@@ -329,8 +337,8 @@ F1_1_MIN_ADVANTAGE_PCT_PAPER_SPEC = 18.0
 F1_1_MIN_ADVANTAGE_PCT_SIMULATION = 15.0
 F1_1_MIN_ADVANTAGE_PCT = F1_1_MIN_ADVANTAGE_PCT_PAPER_SPEC
 F1_1_MIN_APGI_ADVANTAGE = F1_1_MIN_ADVANTAGE_PCT
-F1_1_MIN_COHENS_D: float = 0.50
-F1_1_ALPHA: float = 0.05
+F1_1_MIN_COHENS_D: float = 0.60
+F1_1_ALPHA: float = 0.01
 
 # ---------------------------------------------------------------------------
 # F2 family (IGT / Somatic)
@@ -368,25 +376,25 @@ F2_CARDIAC_DETECTION_ADVANTAGE_MIN: float = (
 F3_1_MIN_ADVANTAGE_PCT_PAPER_SPEC = 18.0
 F3_1_MIN_ADVANTAGE_PCT_SIMULATION = 15.0
 F3_1_MIN_ADVANTAGE_PCT = F3_1_MIN_ADVANTAGE_PCT_PAPER_SPEC
-F3_1_MIN_COHENS_D = 0.55  # Calibrated from 0.60
-F3_1_ALPHA = 0.05  # Calibrated: relaxed from 0.01
+F3_1_MIN_COHENS_D = 0.60  # Paper spec
+F3_1_ALPHA = 0.01  # Paper spec
 
 F3_2_MIN_INTERO_ADVANTAGE_PCT_PAPER_SPEC = 28.0
 F3_2_MIN_INTERO_ADVANTAGE_PCT_SIMULATION = 25.0
 F3_2_MIN_INTERO_ADVANTAGE_PCT = F3_2_MIN_INTERO_ADVANTAGE_PCT_PAPER_SPEC
-F3_2_MIN_COHENS_D = 0.40  # Calibrated from 0.70
-F3_2_ALPHA = 0.05
+F3_2_MIN_COHENS_D = 0.70  # Paper spec
+F3_2_ALPHA = 0.01  # Paper spec
 
 F3_3_MIN_REDUCTION_PCT_PAPER_SPEC = 25.0
 F3_3_MIN_REDUCTION_PCT_SIMULATION = 20.0
 F3_3_MIN_REDUCTION_PCT = F3_3_MIN_REDUCTION_PCT_PAPER_SPEC
-F3_3_MIN_COHENS_D = 0.50  # Calibrated from 0.75
+F3_3_MIN_COHENS_D = 0.75  # Paper spec
 F3_3_ALPHA = 0.01
 
 F3_4_MIN_REDUCTION_PCT_PAPER_SPEC = 20.0
 F3_4_MIN_REDUCTION_PCT_SIMULATION = 15.0
 F3_4_MIN_REDUCTION_PCT = F3_4_MIN_REDUCTION_PCT_PAPER_SPEC
-F3_4_MIN_COHENS_D = 0.40  # Calibrated from 0.65
+F3_4_MIN_COHENS_D = 0.65  # Paper spec
 F3_4_ALPHA = 0.01
 
 F3_6_MAX_TRIALS: float = 200.0
@@ -1019,6 +1027,14 @@ V12_2_FALSIFICATION_CORR = 0.40
 V12_2_MIN_PILLAIS_TRACE = 0.25
 V12_2_FALSIFICATION_PILLAIS = 0.15
 V12_2_ALPHA = 0.05
+
+# ---------------------------------------------------------------------------
+# V14 – fMRI Anticipation Experience (vmPFC-SCR Correlation)
+# ---------------------------------------------------------------------------
+# VP-14 vmPFC-SCR correlation threshold for anticipatory processing
+V14_MIN_VMPFC_SCR_CORRELATION: float = (
+    0.30  # Minimum correlation between vmPFC activity and skin conductance response
+)
 
 # ---------------------------------------------------------------------------
 # V15 – fMRI vmPFC Anticipation Paradigm

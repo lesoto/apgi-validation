@@ -25,7 +25,7 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | **Validation Files — Orchestrators & Infrastructure** | | | | | |
 | 16 | VP_ALL_Aggregator.py | Validation | — | Framework-level validation aggregator (V1.1–V14.x) | Active |
 | 17 | Master_Validation.py | Validation | — | Orchestrator (APGIMasterValidator) | Active |
-| 18 | APGI_Validation_GUI.py | Validation | — | GUI runner (tkinter, not protocol logic) | Active |
+| 18 | APGI_Validation_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
 | 19 | **init**.py | Validation | — | Python package marker | — |
 | **Falsification Files — Protocol Scripts (FP_01–FP_12)** | | | | | |
 | 20 | FP_01_ActiveInference.py | Falsification | FP-1 | Active Inference & Hierarchical Dynamics | 74% |
@@ -43,7 +43,7 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | **Falsification Files — Orchestrators & Infrastructure** | | | | | |
 | 32 | FP_ALL_Aggregator.py | Falsification | FP-AGG | Terminal framework falsification (Conditions A & B) | Active |
 | 33 | Master_Falsification.py | Falsification | — | Orchestrator for all 12 FP runs [NEW] | Active |
-| 34 | APGI_Falsification_Protocols_GUI.py | Falsification | — | GUI runner (tkinter, not protocol logic) | Active |
+| 34 | APGI_Falsification_Protocols_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
 | 35 | **init**.py | Falsification | — | Python package marker | — |
 
 | GUI Protocol | Maps To |
@@ -83,7 +83,7 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | # | Filename | FP ID | Description |
 | --- | --------- | ------- | ----------- |
 | 1 | `FP_12_Falsification_Aggregator.py` | FP-AGG | Framework-level aggregator |
-| 2 | `APGI_Falsification_Protocols_GUI.py` | — | GUI runner (not a protocol) |
+| 2 | `APGI_Falsification_Protocols_GUI.py` (root) | — | GUI runner (not a protocol) |
 | 3 | `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` | FP-2 (support) | Causal manipulation engine |
 | 10 | `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py` | FP-1 (full) | Primary F1/F2 engine |
 | 11 | `FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py` | FP-2 (full) | Convergence benchmark |

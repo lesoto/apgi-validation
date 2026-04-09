@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import json  # FP-02 Fix: Add json for JSON operations
 import logging
@@ -58,7 +58,7 @@ except ImportError:
     HAS_VP5_LOADER = False
 
     # Fallback loader function
-    def load_vp5_genome_data(base_path=None, metadata_file="genome_data.json"):
+    def load_vp5_genome_data(base_path: Union[str, None] = None, metadata_file: str = "genome_data.json") -> Dict[str, Any]:  # type: ignore[misc]
         """Fallback genome data loader when interprotocol_schema not available."""
         import json
         from pathlib import Path
@@ -869,7 +869,7 @@ def compute_model_selection_metrics(
     return aic, bic
 
 
-def run_falsification():
+def run_falsification() -> Dict[str, Any]:
     """Entry point for CLI falsification testing."""
     from Falsification.FP_01_ActiveInference import (
         APGIActiveInferenceAgent,
@@ -890,13 +890,13 @@ def run_falsification():
     n_agents = 50
     n_trials = 80
 
-    apgi_results: dict = {
+    apgi_results: Dict[str, List[float]] = {
         "times_to_criterion": [],
         "rewards": [],
         "advantageous_pcts": [],
         "lls": [],
     }
-    pp_results: dict = {
+    pp_results: Dict[str, List[float]] = {
         "times_to_criterion": [],
         "rewards": [],
         "advantageous_pcts": [],

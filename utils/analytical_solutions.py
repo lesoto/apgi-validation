@@ -128,3 +128,41 @@ class AnalyticalAPGISolutions:
 
         logit = np.log(target_probability / (1.0 - target_probability))
         return logit / (S - theta)
+
+
+def compute_steady_state(params: dict) -> dict:
+    """
+    Compute steady-state values for APGI model parameters.
+
+    Args:
+        params: Dictionary containing model parameters (tau_S, tau_theta, alpha)
+
+    Returns:
+        Dictionary with steady-state values including S_steady and theta_steady
+    """
+    tau_S = params.get("tau_S", 0.5)
+    tau_theta = params.get("tau_theta", 30.0)
+    alpha = params.get("alpha", 10.0)
+
+    # Compute steady-state surprise using default precision values
+    Pi_e = 1.0
+    eps_e = 1.0
+    Pi_i_eff = 1.0
+    eps_i = 1.0
+
+    S_steady = AnalyticalAPGISolutions.steady_state_surprise(
+        Pi_e, eps_e, Pi_i_eff, eps_i, tau_S
+    )
+
+    # Compute steady-state threshold
+    theta_steady = S_steady * 0.8  # Threshold at 80% of steady-state surprise
+
+    return {
+        "S": S_steady,
+        "S_steady": S_steady,
+        "theta": theta_steady,
+        "theta_steady": theta_steady,
+        "tau_S": tau_S,
+        "tau_theta": tau_theta,
+        "alpha": alpha,
+    }

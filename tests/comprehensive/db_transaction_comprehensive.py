@@ -311,7 +311,7 @@ class DatabaseTransactionTester:
 
         # Run threads
         threads = []
-        thread_results = [None] * num_threads
+        thread_results: List[Optional[Dict[str, Any]]] = [None] * num_threads
 
         def run_worker(i):
             thread_results[i] = worker(i)
@@ -325,11 +325,14 @@ class DatabaseTransactionTester:
             t.join()
 
         # Calculate stats
-        successful = sum(1 for r in thread_results if r["got_connection"])
+        valid_results: List[Dict[str, Any]] = [
+            r for r in thread_results if r is not None
+        ]
+        successful = sum(1 for r in valid_results if r["got_connection"])
         failed = num_threads - successful
         avg_wait = (
-            sum(r["wait_time_ms"] for r in thread_results) / len(thread_results)
-            if thread_results
+            sum(r["wait_time_ms"] for r in valid_results) / len(valid_results)
+            if valid_results
             else 0
         )
 
@@ -455,7 +458,7 @@ class DatabaseTransactionTester:
         conn.commit()
         conn.close()
 
-        results = {"updates": []}
+        results: Dict[str, List] = {"updates": []}
         lock = threading.Lock()
 
         def update_worker(thread_id: int):
@@ -570,7 +573,7 @@ class DatabaseTransactionTester:
         isolation_passed = all(r.passed for r in isolation_results)
         print(f"  {'✓' if isolation_passed else '✗'} Isolation tests")
 
-        report = {
+        report: Dict[str, Any] = {
             "commit_rollback_tests": [
                 {
                     "transaction_id": r.transaction_id,
@@ -633,6 +636,6 @@ if __name__ == "__main__":
     # Save results
     output_path = Path("reports/db_transaction_report.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
     print(f"\nReport saved to {output_path}")

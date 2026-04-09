@@ -61,7 +61,7 @@ class SecureKeyManager:
             )
         return master_key
 
-    def _load_encrypted_key(self, key_file: Path) -> bytes:
+    def _load_encrypted_key(self, key_file: Path) -> str:
         """
         Load and decrypt key from encrypted file.
 
@@ -69,7 +69,7 @@ class SecureKeyManager:
             key_file: Path to encrypted key file
 
         Returns:
-            Decrypted key bytes
+            Decrypted key hex string
         """
         if not key_file.exists():
             raise FileNotFoundError(f"Key file {key_file} does not exist")

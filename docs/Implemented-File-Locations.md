@@ -122,7 +122,7 @@ Each protocol includes explicit power analyses, effect sizes, and pre-specified 
 
 ## 25. APGI Clinical Assessment Battery (APGI-CAB): Proposed Multimodal Diagnostic Instrument
 
-**Location**: Validation/APGI_Validation_GUI.py and Validation-Protocol-*.py  
+**Location**: APGI_Validation_GUI.py (root) and Validation/Validation-Protocol-*.py  
 Combines HEP + PCI + behavioral interoceptive tasks as assessment architecture targeting psychiatric populations (anxiety, depression, PTSD, autism) for validating APGI parameter profiles.
 
 ## 26. Parameter Estimation Workflow
@@ -186,6 +186,6 @@ The APGI-CAB Assessment Battery is a proposed clinical assessment battery that w
 3. **Interoceptive Accuracy** - Behavioral interoceptive discrimination tasks
 4. **Pupillometry** - Pupillometric response dynamics
 
-**Current Status**: The APGI_Validation_GUI.py contains a Tkinter runner GUI (APGIValidationGUI) that dispatches to protocol modules, but the actual CABBattery class has not yet been implemented. The document acknowledges this as "proposed (not yet validated)".
+**Current Status**: The APGI_Validation_GUI.py (at root level) contains a Tkinter runner GUI (APGIValidationGUI) that dispatches to protocol modules, but the actual CABBattery class has not yet been implemented. The document acknowledges this as "proposed (not yet validated)".
 
-**Implementation Path**: The CABBattery class would need to be implemented in APGI_Validation_GUI.py or a separate module to provide the four sub-measures with proper validation thresholds.
+**Implementation Path**: The CABBattery class would need to be implemented in APGI_Validation_GUI.py (root) or a separate module to provide the four sub-measures with proper validation thresholds.

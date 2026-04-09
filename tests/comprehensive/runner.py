@@ -356,7 +356,7 @@ class TestRunner:
 
     def _generate_summary(self) -> Dict[str, Any]:
         """Generate high-level summary."""
-        summary = {
+        summary: Dict[str, Any] = {
             "total_test_categories": len(self.results),
             "passed_categories": 0,
             "failed_categories": 0,

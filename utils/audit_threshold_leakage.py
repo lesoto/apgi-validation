@@ -8,8 +8,6 @@ It is intentionally conservative: findings are candidates for review, not all
 of them are guaranteed bugs.
 """
 
-from __future__ import annotations
-
 import ast
 from pathlib import Path
 
@@ -60,9 +58,9 @@ def _call_name(node: ast.Call) -> str | None:
     return None
 
 
-def _find_leaks(path: Path) -> list[tuple[int, str, float]]:
+def _find_leaks(path: Path) -> list[tuple[int, str, ast.expr]]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    findings: list[tuple[int, str, float]] = []
+    findings: list[tuple[int, str, ast.expr]] = []
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
@@ -72,9 +70,7 @@ def _find_leaks(path: Path) -> list[tuple[int, str, float]]:
                     if target_name in SUSPICIOUS_NAMES and _is_float_constant(
                         node.value
                     ):
-                        findings.append(
-                            (node.lineno, target.id, float(node.value.value))
-                        )
+                        findings.append((node.lineno, target.id, node.value))
         elif isinstance(node, ast.Call):
             call_name = _call_name(node)
             for kw in node.keywords:
@@ -85,7 +81,7 @@ def _find_leaks(path: Path) -> list[tuple[int, str, float]]:
                 ):
                     if kw.arg.lower() == "alpha" and call_name in PLOTTING_CALLS:
                         continue
-                    findings.append((node.lineno, kw.arg, float(kw.value.value)))
+                    findings.append((node.lineno, kw.arg, kw.value))
 
     return sorted(findings)
 

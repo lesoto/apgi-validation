@@ -117,7 +117,7 @@ except ImportError:
 try:
     DIM_CONSTANTS_EXPORT: Any = DIM_CONSTANTS
 except NameError:
-    DIM_CONSTANTS_EXPORT: Any = MockDIM_CONSTANTS()
+    DIM_CONSTANTS_EXPORT = MockDIM_CONSTANTS()  # type: ignore[misc]
 
 from utils.falsification_thresholds import (
     F2_1_MIN_ADVANTAGE_PCT,
@@ -768,11 +768,9 @@ class SomaticMarkerNetwork:
             W2_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE
         )  # Gradient clipping
 
-        self.W2 = self.W2.astype(np.float64) + self.learning_rate * W2_grad
-        self.W2 = np.clip(
-            self.W2, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE
-        )  # Weight clipping
-        self.W2 = self.W2.astype(np.float32)
+        W2_updated = self.W2.astype(np.float64) + self.learning_rate * W2_grad
+        W2_clipped = np.clip(W2_updated, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE)
+        self.W2 = W2_clipped.astype(np.float32)
 
         self.b2 = self.b2.astype(np.float64) + self.learning_rate * output_grad
         self.b2 = np.clip(self.b2, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE)
@@ -787,11 +785,9 @@ class SomaticMarkerNetwork:
             W1_grad, -GRAD_CLIP_VALUE, GRAD_CLIP_VALUE
         )  # Gradient clipping
 
-        self.W1 = self.W1.astype(np.float64) + self.learning_rate * W1_grad
-        self.W1 = np.clip(
-            self.W1, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE
-        )  # Weight clipping
-        self.W1 = self.W1.astype(np.float32)
+        W1_updated = self.W1.astype(np.float64) + self.learning_rate * W1_grad
+        W1_clipped = np.clip(W1_updated, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE)
+        self.W1 = W1_clipped.astype(np.float32)
 
         self.b1 = self.b1.astype(np.float64) + self.learning_rate * h_grad
         self.b1 = np.clip(self.b1, -WEIGHT_CLIP_VALUE, WEIGHT_CLIP_VALUE)
@@ -1575,8 +1571,8 @@ class APGIActiveInferenceAgent:
             self.Pi_i += self.lr_precision * (target_Pi_i - self.Pi_i)
 
             # Clip to reasonable range
-            self.Pi_e = np.clip(self.Pi_e, 0.1, 5.0)
-            self.Pi_i = np.clip(self.Pi_i, 0.1, 5.0)
+            self.Pi_e = float(np.clip(self.Pi_e, 0.1, 5.0))
+            self.Pi_i = float(np.clip(self.Pi_i, 0.1, 5.0))
 
     def _compute_metabolic_cost(self) -> float:
         """Compute metabolic cost of current processing"""
@@ -1773,8 +1769,8 @@ class StandardPPAgent:
             )
 
             # Clip to reasonable range
-            self.Pi_e = np.clip(self.Pi_e, 0.1, 5.0)
-            self.Pi_i = np.clip(self.Pi_i, 0.1, 5.0)
+            self.Pi_e = float(np.clip(self.Pi_e, 0.1, 5.0))
+            self.Pi_i = float(np.clip(self.Pi_i, 0.1, 5.0))
 
         # Update policy based on reward and interoceptive cost
         # Standard PP uses simple value update without somatic markers
@@ -1861,6 +1857,10 @@ class GWTOnlyAgent:
         # Tracking
         self.time = 0.0
         self.last_action = 0
+
+        # Precision weights (initialized for type safety)
+        self.Pi_e: float = 1.0
+        self.Pi_i: float = 1.0
 
     def _stable_sigmoid(self, x: float, alpha: float) -> float:
         """Numerically stable sigmoid function"""
@@ -2064,8 +2064,8 @@ class GWTOnlyAgent:
             )
 
             # Clip to reasonable range
-            self.Pi_e = np.clip(self.Pi_e, 0.1, 5.0)
-            self.Pi_i = np.clip(self.Pi_i, 0.1, 5.0)
+            self.Pi_e = float(np.clip(self.Pi_e, 0.1, 5.0))
+            self.Pi_i = float(np.clip(self.Pi_i, 0.1, 5.0))
 
         # Update policy based on reward and interoceptive cost
         # Actor-critic uses minimal interoceptive weighting
@@ -2804,7 +2804,7 @@ def check_falsification(
             "FP-01: genome_data required for F5 family criteria (F5.1-F5.6) — "
             "run VP-05 (EvolutionaryEmergence) first"
         )
-    results = {
+    results: Dict[str, Any] = {
         "summary": {
             "passed": 0,
             "failed": 0,
@@ -2850,8 +2850,8 @@ def check_falsification(
         t_stat = None
         p_value = None
         advantage_pct = None
-    mean_apgi = np.mean(apgi_rewards)
-    mean_pp = np.mean(pp_rewards)
+    mean_apgi = float(np.mean(apgi_rewards))
+    mean_pp = float(np.mean(pp_rewards))
     safe_mean_pp = max(1e-10, abs(mean_pp)) * (1 if mean_pp >= 0 else -1)
     advantage_pct = ((mean_apgi - mean_pp) / safe_mean_pp) * 100
 
@@ -2900,10 +2900,11 @@ def check_falsification(
             else 0
         )
         cluster_means = [timescales_array[clusters == i] for i in range(3)]
-        ss_total = np.sum((timescales - np.mean(timescales)) ** 2)
+        timescales_arr = np.array(timescales)
+        ss_total = np.sum((timescales_arr - np.mean(timescales_arr)) ** 2)
         ss_between = (
             sum(
-                len(cm) * (np.mean(cm) - np.mean(timescales)) ** 2
+                len(cm) * (np.mean(cm) - np.mean(timescales_arr)) ** 2
                 for cm in cluster_means
             )
             if ss_total > 0
@@ -2948,32 +2949,39 @@ def check_falsification(
                 exp_decay, time_pts, theta_vals, p0=[20.0, 0.5, 0.5], maxfev=5000
             )
             tau_theta = popt[0]
-            ss_res = np.sum((theta_vals - exp_decay(time_pts, *popt)) ** 2)
-            ss_tot = np.sum((theta_vals - np.mean(theta_vals)) ** 2)
+            ss_res: float = float(
+                np.sum((theta_vals - exp_decay(time_pts, *popt)) ** 2)
+            )
+            ss_tot: float = float(np.sum((theta_vals - np.mean(theta_vals)) ** 2))
             r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
             # Falsification Criteria: Adaptation <12% OR tau_theta < 5s or > 150s OR R^2 < 0.65
             f1_4_pass = not (
                 adaptation < 12.0 or tau_theta < 5.0 or tau_theta > 150.0 or r2 < 0.65
             )
+            error_msg = None  # Success - no error
         except Exception as e:
             logger.error(f"Failed to compute threshold adaptation: {e}")
-            tau_theta, r2, f1_4_pass = 0, 0, False
-            # Add error info to results for traceability
-            results["criteria"]["F1.4"]["adaptation_error"] = str(e)
+            tau_theta, r2, f1_4_pass, adaptation = 0, 0, False, 0
+            error_msg = str(e)
     else:
+        # len(threshold_adaptation) <= 5: insufficient data
         adaptation, tau_theta, r2, f1_4_pass = 0, 0, 0, False
+        error_msg = None
+
     results["criteria"]["F1.4"] = {
         "passed": f1_4_pass,
         "adaptation_pct": float(adaptation),
         "tau_theta": float(tau_theta),
         "r2": float(r2),
     }
+    if error_msg:
+        results["criteria"]["F1.4"]["adaptation_error"] = error_msg
 
     # F1.5: Cross-Level PAC with surrogate permutation test (≥200 permutations)
     base_mi_vals = [p[0] for p in pac_mi]
     ign_mi_vals = [p[1] for p in pac_mi]
-    mean_ign_mi = np.mean(ign_mi_vals) if ign_mi_vals else 0
-    mean_base_mi = np.mean(base_mi_vals) if base_mi_vals else 0
+    mean_ign_mi = float(np.mean(ign_mi_vals)) if ign_mi_vals else 0.0
+    mean_base_mi = float(np.mean(base_mi_vals)) if base_mi_vals else 0.0
 
     # Canolty et al. surrogate permutation correction (n=200)
     n_permutations = 200
@@ -2983,23 +2991,23 @@ def check_falsification(
 
         # Generate surrogate distribution by phase randomization
         np.random.seed(42)  # For reproducibility
-        surrogate_diffs = []
+        surrogate_diffs_list: List[float] = []
         for _ in range(n_permutations):
             # Shuffle ignition MI values to create null distribution
             shuffled_ign = np.random.permutation(ign_mi_vals)
             shuffled_base = np.random.permutation(base_mi_vals)
             surrogate_diff = np.mean(shuffled_ign) - np.mean(shuffled_base)
-            surrogate_diffs.append(float(surrogate_diff))
+            surrogate_diffs_list.append(float(surrogate_diff))
 
-        surrogate_diffs = np.array(surrogate_diffs)
+        surrogate_diffs = np.array(surrogate_diffs_list)
         # One-tailed test: proportion of surrogates >= observed
-        p_permutation = np.mean(surrogate_diffs >= actual_diff)
+        p_permutation = float(np.mean(surrogate_diffs >= actual_diff))
 
         # Falsification Criteria: MI < 0.008 OR increase < 15% OR permutation p >= 0.05
         f1_5_pass = not (
             mean_ign_mi < 0.008
             or (mean_ign_mi / mean_base_mi < 1.15 if mean_base_mi > 0 else True)
-            or p_permutation >= 0.05
+            or float(p_permutation) >= 0.05
         )
     else:
         # Insufficient data for permutation test
@@ -3091,7 +3099,7 @@ def check_falsification(
         f2_1_pass = mean_advantage >= F2_1_MIN_ADVANTAGE_PCT and p_value < 0.01
     else:
         # Fallback to simple threshold if insufficient data
-        mean_advantage = (
+        mean_advantage = float(
             np.mean(apgi_advantageous_selection) - np.mean(no_somatic_selection)
             if len(apgi_advantageous_selection) > 0 and len(no_somatic_selection) > 0
             else 0.0
@@ -3117,7 +3125,7 @@ def check_falsification(
     def fisher_z_transform(r: float, n: int) -> Tuple[float, float]:
         """Apply Fisher z-transformation for correlation CI"""
         if abs(r) >= 1:
-            return np.inf if r > 0 else -np.inf
+            return (np.inf if r > 0 else -np.inf, 0.0)
         z = 0.5 * np.log((1 + r) / (1 - r))
         se = 1 / np.sqrt(n - 3) if n > 3 else 1.0
         return z, se
@@ -3169,11 +3177,11 @@ def check_falsification(
             p_value_one_tailed = p_value / 2
         else:
             p_value_one_tailed = 1 - p_value / 2
-        mean_rt = np.mean(rt_data)
-        std_rt = np.std(rt_data, ddof=1)
+        mean_rt = float(np.mean(rt_data))
+        std_rt = float(np.std(rt_data, ddof=1))
         cohens_d = mean_rt / std_rt if std_rt > 0 else 0.0
     else:
-        mean_rt = rt_data[0] if len(rt_data) > 0 else 0.0
+        mean_rt = float(rt_data[0]) if len(rt_data) > 0 else 0.0
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
 
     # Falsification: RT advantage < 35ms
@@ -3261,9 +3269,9 @@ def check_falsification(
         n = min(len(apgi_data), len(no_somatic_data))
         if n < k:
             # Not enough data for CV - use simple mean comparison
-            mean_apgi = np.mean(apgi_data) if len(apgi_data) > 0 else 0.0
+            mean_apgi = float(np.mean(apgi_data)) if len(apgi_data) > 0 else 0.0
             mean_no_somatic = (
-                np.mean(no_somatic_data) if len(no_somatic_data) > 0 else 0.0
+                float(np.mean(no_somatic_data)) if len(no_somatic_data) > 0 else 0.0
             )
             hr = mean_no_somatic / mean_apgi if mean_apgi > 0 else 1.0
             return hr, 0.0, mean_apgi, mean_no_somatic
@@ -3398,7 +3406,7 @@ def check_falsification(
         std_advantage = np.std(perf_data, ddof=1)
         cohens_d = mean_advantage / std_advantage if std_advantage > 0 else 0.0
     else:
-        mean_advantage = (
+        mean_advantage = float(
             perf_data[0] if len(perf_data) > 0 else overall_performance_advantage
         )
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
@@ -3623,7 +3631,7 @@ def check_falsification(
         # Hazard ratio approximation: assuming exponential distribution
         # HR = λ_APGI / λ_standard ≈ mean_standard / mean_APGI
         # With mean_standard = 290 (from 200 * 1.45)
-        mean_standard = 290  # Assumed standard agent time
+        mean_standard = 290  # Representative standard agent time
         hazard_ratio = mean_standard / mean_trials if mean_trials > 0 else 1.0
     else:
         mean_trials = trial_data[0] if len(trial_data) > 0 else sample_efficiency_trials
@@ -3652,7 +3660,7 @@ def check_falsification(
     logger.info("Testing F5.1: Threshold Emergence")
 
     # Binomial test for proportion
-    n_agents = 100  # Assumed sample size
+    n_agents = 100  # Typical sample size for simulation
     successes = int(threshold_emergence_proportion * n_agents)
     binom_result = binomtest(successes, n_agents, p=0.5, alternative="greater")
     p_binomial = binom_result.pvalue

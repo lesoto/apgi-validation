@@ -32,7 +32,6 @@ def test_falsification_files_exist():
         "FP_11_LiquidNetworkDynamics_EchoState.py",
         "FP_12_CrossSpeciesScaling.py",
         "FP_ALL_Aggregator.py",
-        "APGI_Falsification_Protocols_GUI.py",
         "Master_Falsification.py",
     ]
 
@@ -53,6 +52,12 @@ def test_falsification_files_exist():
             assert False, f"Falsification file {file_name} has syntax error: {e}"
         except UnicodeDecodeError as e:
             assert False, f"Falsification file {file_name} has encoding error: {e}"
+
+    # Check APGI_Falsification_Protocols_GUI.py at root level (moved from Falsification/)
+    gui_path = Path(__file__).parent.parent / "APGI_Falsification_Protocols_GUI.py"
+    assert (
+        gui_path.exists()
+    ), "APGI_Falsification_Protocols_GUI.py not found at root level"
 
 
 def test_falsification_protocol_1_hierarchical_model():

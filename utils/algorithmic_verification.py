@@ -559,7 +559,7 @@ class AlgorithmicVerificationEngine:
         test_results = []
 
         for i, test_params in enumerate(test_params_list):
-            result_set = {"parameter_set": i, "tests": []}
+            result_set: Dict[str, Any] = {"parameter_set": i, "tests": []}
 
             # Run all verification tests
             result_set["tests"].append(self.verify_effective_precision(test_params))

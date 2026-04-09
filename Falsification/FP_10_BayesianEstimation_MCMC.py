@@ -183,7 +183,7 @@ def _ensure_numpy_array_utils_shim() -> None:
             from numpy.lib.array_utils import normalize_axis_index
         except ImportError:
 
-            def normalize_axis_index(axis: int, ndim: int) -> int:
+            def normalize_axis_index(axis: int, ndim: int) -> int:  # type: ignore[misc]
                 """Validate and normalize axis index for array operations."""
                 if axis < -ndim or axis >= ndim:
                     raise ValueError(
@@ -196,7 +196,7 @@ def _ensure_numpy_array_utils_shim() -> None:
             module.normalize_axis_index = normalize_axis_index  # type: ignore[attr-defined]
     except (ImportError, AttributeError):
 
-        def normalize_axis_index(axis: int, ndim: int) -> int:
+        def normalize_axis_index(axis: int, ndim: int) -> int:  # type: ignore[misc]
             """Validate and normalize axis index for array operations."""
             if axis < -ndim or axis >= ndim:
                 raise ValueError(
@@ -212,7 +212,7 @@ def _ensure_numpy_array_utils_shim() -> None:
             from numpy.lib.array_utils import normalize_axis_tuple
         except ImportError:
             # Fallback: define our own normalize_axis_tuple
-            def normalize_axis_tuple(axis: int, ndim: int) -> tuple[int, ...]:
+            def normalize_axis_tuple(axis: int, ndim: int) -> tuple[int, ...]:  # type: ignore[misc]
                 return (
                     normalize_axis_index(axis, ndim) if normalize_axis_index else axis,
                 )
@@ -220,13 +220,13 @@ def _ensure_numpy_array_utils_shim() -> None:
         module.normalize_axis_tuple = normalize_axis_tuple  # type: ignore[attr-defined]
     except (ImportError, AttributeError):
         # Use alternative implementation for newer NumPy versions
-        def normalize_axis_tuple(arr: np.ndarray, axis: int) -> np.ndarray:
+        def normalize_axis_tuple(arr: np.ndarray, axis: int) -> np.ndarray:  # type: ignore[misc]
             return np.mean(arr, axis=axis, keepdims=True)
 
         module.normalize_axis_tuple = normalize_axis_tuple  # type: ignore[attr-defined]
     except (ImportError, AttributeError):
         # Use alternative implementation for newer NumPy versions
-        def normalize_axis_tuple(axis, ndim):
+        def normalize_axis_tuple(axis, ndim):  # type: ignore[misc]
             if isinstance(axis, tuple):
                 return axis
             return (axis,)
@@ -2751,9 +2751,19 @@ class FP10Dispatcher:
             n_chains: Number of MCMC chains (default: 4 per paper spec)
             burn_in: Number of burn-in samples (default: 1000 per paper spec)
         """
-        self.n_samples = n_samples
-        self.n_chains = n_chains
-        self.burn_in = burn_in
+        # Check for test mode to prevent hanging in CI/test environments
+        if os.environ.get("APGI_TEST_MODE", "").lower() == "true":
+            # Use minimal parameters for fast test execution
+            self.n_samples = 100
+            self.n_chains = 2
+            self.burn_in = 50
+            logger.info(
+                "FP10Dispatcher: Using TEST MODE parameters (n_samples=100, n_chains=2, burn_in=50)"
+            )
+        else:
+            self.n_samples = n_samples
+            self.n_chains = n_chains
+            self.burn_in = burn_in
 
     def run_falsification(self) -> Dict[str, Any]:
         """Run both FP-10 sub-protocols and aggregate results.

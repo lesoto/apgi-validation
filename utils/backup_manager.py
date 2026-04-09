@@ -164,7 +164,11 @@ class BackupManager:
         except (UnicodeDecodeError, ValueError) as e:
             raise ValueError(f"APGI_BACKUP_HMAC_KEY must be a valid base64 string: {e}")
 
-        self._backup_hmac_key = backup_hmac_key.encode()  # Store as instance variable
+        # Store as hex string consistently
+        if isinstance(backup_hmac_key, bytes):
+            self._backup_hmac_key = backup_hmac_key.hex()
+        else:
+            self._backup_hmac_key = backup_hmac_key
 
         self.backup_dir = Path(backup_dir)
         self.backup_dir.mkdir(exist_ok=True)
@@ -247,7 +251,7 @@ class BackupManager:
                     import hashlib
 
                     # Use a fixed key for history integrity (not sensitive, just prevents tampering)
-                    history_key = self._backup_hmac_key
+                    history_key = self._backup_hmac_key.encode()
                     expected_signature = hmac.new(
                         history_key, history_data, hashlib.sha256
                     ).digest()
@@ -284,7 +288,7 @@ class BackupManager:
             import hashlib
 
             # Use a fixed key for history integrity
-            history_key = self._backup_hmac_key
+            history_key = self._backup_hmac_key.encode()
             history_data = json.dumps(self.backup_history, indent=2).encode("utf-8")
 
             # Generate HMAC signature
@@ -857,7 +861,7 @@ class BackupManager:
                     # Validate path to prevent path traversal attacks
                     # Use tarfile.data_filter for Python 3.12+ or manual validation
                     if hasattr(tarfile, "data_filter"):
-                        tarfile.extractall(
+                        tarf.extractall(
                             path=str(target_dir),
                             filter="data",
                         )
@@ -1018,12 +1022,13 @@ class BackupManager:
                         zipf.extractall(temp_path, members=file_list)
                 else:
                     with tarfile.open(backup_file, "r") as tarf:
-                        file_list = [
-                            f
+                        # Get TarInfo objects instead of just names
+                        members = [
+                            tarf.getmember(f)
                             for f in tarf.getnames()
                             if not f.endswith("backup_info.json")
                         ]
-                        tarf.extractall(temp_path, members=file_list)
+                        tarf.extractall(temp_path, members=members)
 
                 # Calculate checksum of extracted files
                 extracted_files = []

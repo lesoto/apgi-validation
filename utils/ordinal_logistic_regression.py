@@ -9,7 +9,7 @@ This is the preferred method over ANOVA/Cohen's d for ordinal outcomes as specif
 
 import numpy as np
 import pandas as pd
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from scipy.optimize import minimize
 from scipy.stats import chi2
 import logging
@@ -147,6 +147,7 @@ class OrdinalLogisticRegression:
         residual_deviance = 2 * self._negative_log_likelihood(fitted_params, X, y)
 
         return {
+            "model_fitted": result.success,
             "success": result.success,
             "message": result.message,
             "n_iterations": result.nit,
@@ -192,6 +193,8 @@ class OrdinalLogisticRegression:
         probs = np.zeros((n_samples, self.n_categories))
 
         # P(Y = 0) = 1 - sigmoid(eta - α_0)
+        if self.thresholds is None:
+            raise ValueError("Model not fitted - call fit() first")
         probs[:, 0] = 1 - 1 / (1 + np.exp(eta - self.thresholds[0]))
 
         # P(Y = j) for j = 1, ..., K-2
@@ -208,7 +211,7 @@ class OrdinalLogisticRegression:
 
         return probs
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: np.ndarray) -> Dict[str, Any]:
         """
         Predict class labels.
 
@@ -216,10 +219,17 @@ class OrdinalLogisticRegression:
             X: Feature matrix (n_samples, n_features)
 
         Returns:
-            Predicted classes (n_samples,)
+            Dictionary with 'predictions' key containing predicted classes
         """
-        probs = self.predict_proba(X)
-        return np.argmax(probs, axis=1)
+        try:
+            if not self.fitted:
+                return {"error": "Model must be fitted before prediction"}
+            probs = self.predict_proba(X)
+            predictions = np.argmax(probs, axis=1)
+            return {"predictions": predictions}
+        except Exception as e:
+            logger.error(f"Prediction error: {e}")
+            return {"error": str(e)}
 
     def get_coefficient_significance(
         self, X: np.ndarray, y: np.ndarray
@@ -238,14 +248,16 @@ class OrdinalLogisticRegression:
             raise ValueError("Model must be fitted before significance testing")
 
         n_params = len(self.coefficients)
-        p_values = []
-        std_errors = []
+        p_values: List[float] = []
+        std_errors: List[float] = []
 
         # Likelihood ratio test for each coefficient
         for i in range(n_params):
             # Fit model without this coefficient
             X_reduced = np.delete(X, i, axis=1)
-            beta_reduced = np.delete(self.coefficients, i)
+            if self.coefficients is None:
+                raise ValueError("Model not fitted - call fit() first")
+            beta_reduced: np.ndarray = np.delete(self.coefficients, i)
 
             # Compute reduced model likelihood
             params_reduced = np.concatenate([self.thresholds, beta_reduced])
@@ -261,6 +273,8 @@ class OrdinalLogisticRegression:
 
             # Approximate standard error using Fisher information
             # (simplified approximation)
+            if self.coefficients is None:
+                raise ValueError("Model not fitted - call fit() first")
             std_errors.append(np.abs(self.coefficients[i]) / np.sqrt(n_params))
 
         return {
@@ -291,12 +305,18 @@ def analyze_clinical_gradient_ordinal(
     if category_order is None:
         category_order = ["VS", "MCS", "EMCS", "Healthy"]
 
-    # Map categories to ordinal values
+    # Map categories to integers
     category_map = {cat: i for i, cat in enumerate(category_order)}
     y = patient_data[category_column].map(category_map).values
+    y = y.astype(int)  # Ensure integer type
+    y = np.asarray(y).reshape(-1)  # Ensure 1D numpy array
 
     # Extract features
     X = patient_data[feature_columns].values
+    X = X.astype(float)  # Ensure float type
+    X = (
+        X.reshape(-1, X.shape[1]) if len(X.shape) == 2 else X.reshape(-1, 1)
+    )  # Ensure 2D array
 
     # Fit ordinal logistic regression
     olr = OrdinalLogisticRegression(n_categories=len(category_order))
@@ -304,12 +324,14 @@ def analyze_clinical_gradient_ordinal(
 
     # Get predictions
     predicted_probs = olr.predict_proba(X)
-    predicted_classes = olr.predict(X)
+    predicted_result = olr.predict(X)
+    predicted_classes = predicted_result.get("predictions", np.array([]))
 
     # Compute confusion matrix
     confusion = np.zeros((len(category_order), len(category_order)))
-    for true_cat, pred_cat in zip(y, predicted_classes):
-        confusion[true_cat, pred_cat] += 1
+    if len(predicted_classes) > 0:
+        for true_cat, pred_cat in zip(y, predicted_classes):
+            confusion[true_cat, pred_cat] += 1
 
     # Compute per-class accuracy
     per_class_accuracy = []

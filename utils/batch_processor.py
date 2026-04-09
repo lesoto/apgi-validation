@@ -51,8 +51,21 @@ def load_env_file() -> None:
 # Load .env file before other imports
 load_env_file()
 
+
+# Define fallback classes first to avoid undefined references
+class _SurpriseIgnitionSystemFallback:
+    """Fallback implementation of SurpriseIgnitionSystem."""
+
+    def __init__(self):
+        pass
+
+    def simulate(self, duration=1.0, dt=0.01, input_generator=None):
+        n_steps = int(duration / dt)
+        return {"S": [0.0] * n_steps, "theta": [0.5] * n_steps, "B": [0] * n_steps}
+
+
 # Import batch configuration
-BatchProcessorConfig = None
+BatchProcessorConfig: Any = None
 try:
     from .batch_config import BatchProcessorConfig
 except ImportError:
@@ -70,7 +83,7 @@ except ImportError:
         except ImportError:
             # Define a minimal fallback class if all imports fail
             @dataclass
-            class BatchProcessorConfig:
+            class _BatchProcessorConfig:
                 """Minimal fallback configuration."""
 
                 _config: Dict[str, Any] = None
@@ -86,6 +99,9 @@ except ImportError:
 
                 def get(self, key, default=None):
                     return self._config.get(key, default)
+
+            # Assign fallback class to BatchProcessorConfig
+            BatchProcessorConfig = _BatchProcessorConfig
 
 
 # Optional import for tqdm
@@ -310,41 +326,15 @@ if formal_model_path.exists():
             SurpriseIgnitionSystem = formal_model_module.SurpriseIgnitionSystem
         else:
             # Fallback if loader became None
-            class SurpriseIgnitionSystem:
-                def __init__(self):
-                    pass
-
-                def simulate(self, duration=1.0, dt=0.01, input_generator=None):
-                    n_steps = int(duration / dt)
-                    return {
-                        "S": [0.0] * n_steps,
-                        "theta": [0.5] * n_steps,
-                        "B": [0] * n_steps,
-                    }
+            SurpriseIgnitionSystem = _SurpriseIgnitionSystemFallback
 
     else:
         # Fallback: create mock class if module can't be loaded
-        class SurpriseIgnitionSystem:
-            def __init__(self):
-                pass
-
-            def simulate(self, duration=1.0, dt=0.01, input_generator=None):
-                n_steps = int(duration / dt)
-                return {
-                    "S": [0.0] * n_steps,
-                    "theta": [0.5] * n_steps,
-                    "B": [0] * n_steps,
-                }
+        SurpriseIgnitionSystem = _SurpriseIgnitionSystemFallback
 
 else:
     # Fallback if file doesn't exist
-    class SurpriseIgnitionSystem:
-        def __init__(self):
-            pass
-
-        def simulate(self, duration=1.0, dt=0.01, input_generator=None):
-            n_steps = int(duration / dt)
-            return {"S": [0.0] * n_steps, "theta": [0.5] * n_steps, "B": [0] * n_steps}
+    SurpriseIgnitionSystem = _SurpriseIgnitionSystemFallback
 
 
 # Import logging_config using importlib to avoid package init issues
@@ -797,7 +787,7 @@ class BatchProcessor:
 
         # Return summary
         return {
-            "total": len(self.jobs),
+            "total_jobs": len(self.jobs),
             "completed": len(completed_jobs),
             "failed": len(failed_jobs),
             "results": completed_jobs + failed_jobs,

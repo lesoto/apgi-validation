@@ -66,7 +66,7 @@ class IntegrationTestSuite:
     - Output formatters
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.integration_results: List[IntegrationTestResult] = []
         self.e2e_results: List[E2ETestResult] = []
 

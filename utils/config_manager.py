@@ -293,6 +293,19 @@ class BatchConfig:
 
 
 @dataclass
+class FalsificationConfig:
+    """Falsification testing configuration."""
+
+    cumulative_reward_advantage_threshold: float = 18.0
+    cohens_d_threshold: float = 0.60
+    significance_level: float = 0.01
+    threshold_reduction_min: float = 20.0
+    cohens_d_adaptation_threshold: float = 0.70
+    tau_theta_min: float = 10.0
+    tau_theta_max: float = 100.0
+
+
+@dataclass
 class APGIConfig:
     """Main configuration container."""
 
@@ -302,6 +315,7 @@ class APGIConfig:
     data: DataConfig = field(default_factory=DataConfig)
     validation: ValidationConfig = field(default_factory=ValidationConfig)
     batch: BatchConfig = field(default_factory=BatchConfig)
+    falsification: FalsificationConfig = field(default_factory=FalsificationConfig)
 
 
 class ConfigManager:
@@ -633,7 +647,7 @@ class ConfigManager:
         # Expected SHA-256 hash of the legitimate schema
         # This hash should be updated when schema changes are made
         EXPECTED_SCHEMA_HASH = (
-            "fb2a035a8207ce640e76e7e62fec8275aebc6ecfe281202ada1edb010ef00254"
+            "13c1767e524b7ca5b709f8d25202ec084f5debdf97e84c1676975469816f9cc4"
         )
 
         try:
@@ -773,6 +787,11 @@ class ConfigManager:
 
     def _update_config(self, config_data: Dict[str, Any]):
         """Update configuration with loaded data."""
+        # Import main module to sync top-level config values
+        import sys
+
+        main_module = sys.modules.get("main")
+
         if "model" in config_data:
             self._update_dataclass(self.config.model, config_data["model"])
         if "simulation" in config_data:
@@ -785,6 +804,13 @@ class ConfigManager:
             self._update_dataclass(self.config.validation, config_data["validation"])
         if "batch" in config_data:
             self._update_dataclass(self.config.batch, config_data["batch"])
+
+        # Sync top-level metadata to global_config for CLI display
+        if main_module and hasattr(main_module, "global_config"):
+            if "version" in config_data:
+                main_module.global_config["version"] = config_data["version"]
+            if "project_name" in config_data:
+                main_module.global_config["project_name"] = config_data["project_name"]
 
     def _update_dataclass(self, dataclass_instance, data: Dict[str, Any]):
         """Update dataclass fields from dictionary with validation."""
@@ -2190,7 +2216,7 @@ class EnhancedConfigManager(ConfigManager):
         }
 
         for profile in profiles:
-            category = profile.category
+            category = profile["category"]
             if category not in stats["categories"]:
                 stats["categories"][category] = 0
             stats["categories"][category] += 1
@@ -2229,12 +2255,12 @@ def list_config_profiles(
     for p in profiles:
         result.append(
             {
-                "name": p.name,
-                "description": p.description,
-                "category": p.category,
-                "version": p.version,
-                "author": p.author,
-                "tags": p.tags,
+                "name": p["name"],
+                "description": p["description"],
+                "category": p["category"],
+                "version": p["version"],
+                "author": p.get("author"),
+                "tags": p["tags"],
             }
         )
     return result

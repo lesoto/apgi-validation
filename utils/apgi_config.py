@@ -52,6 +52,7 @@ class APGIConfig:
     precision_learning_rate: float = 0.01  # Meta-learning rate
     precision_history_max: int = 20  # Maximum precision history length
     precision_ema_steps: int = 5  # Steps for exponential moving average
+    volatility_history_max: int = 20  # Maximum volatility history length
 
     # Metabolic parameters
     alpha_broadcast: float = 1.0  # Broadcast cost scaling
@@ -88,6 +89,9 @@ class APGIConfig:
     neuromod_ne_scaling: float = 0.5  # Norepinephrine scaling factor
     neuromod_ach_baseline: float = 0.5  # Baseline ACh modulation
     neuromod_ach_scaling: float = 0.5  # ACh scaling factor
+
+    # Entropy calculation interval
+    entropy_calculation_interval: int = 10  # Steps between entropy calculations
 
     # Workspace dynamics
     workspace_sustained_scaling: float = 0.1  # Scaling for sustained activity

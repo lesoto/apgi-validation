@@ -215,9 +215,7 @@ class TestParseVisualizationParameters:
 class TestSetupPlottingStyle:
     """Test _setup_plotting_style function."""
 
-    @patch("matplotlib.pyplot.style.use")
-    @patch("seaborn.set_style")
-    def test_setup_seaborn_style(self, mock_sns_style, mock_plt_style):
+    def test_setup_seaborn_style(self):
         """Test setting up seaborn style."""
         sns_module = MagicMock()
         plt_module = MagicMock()
@@ -231,11 +229,10 @@ class TestSetupPlottingStyle:
             plt_module=plt_module,
         )
 
-        mock_sns_style.assert_called_once_with("whitegrid")
-        mock_plt_style.use.assert_called_once()
+        sns_module.set_style.assert_called_once_with("whitegrid")
+        plt_module.style.use.assert_called_once_with("seaborn-v0_8")
 
-    @patch("matplotlib.pyplot.style.use")
-    def test_setup_ggplot_style(self, mock_plt_style):
+    def test_setup_ggplot_style(self):
         """Test setting up ggplot style."""
         sns_module = MagicMock()
         plt_module = MagicMock()
@@ -249,10 +246,9 @@ class TestSetupPlottingStyle:
             plt_module=plt_module,
         )
 
-        mock_plt_style.use.assert_called_once_with("ggplot")
+        plt_module.style.use.assert_called_once_with("ggplot")
 
-    @patch("matplotlib.pyplot.style.use")
-    def test_setup_default_style(self, mock_plt_style):
+    def test_setup_default_style(self):
         """Test setting up default style."""
         sns_module = MagicMock()
         plt_module = MagicMock()
@@ -266,10 +262,9 @@ class TestSetupPlottingStyle:
             plt_module=plt_module,
         )
 
-        mock_plt_style.use.assert_called_once_with("default")
+        plt_module.style.use.assert_called_once_with("default")
 
-    @patch("seaborn.set_palette")
-    def test_setup_custom_palette(self, mock_set_palette):
+    def test_setup_custom_palette(self):
         """Test setting up custom color palette."""
         sns_module = MagicMock()
         plt_module = MagicMock()
@@ -284,12 +279,14 @@ class TestSetupPlottingStyle:
             plt_module=plt_module,
         )
 
-        mock_set_palette.assert_called_once_with("Set2")
+        sns_module.set_palette.assert_called_once_with("Set2")
 
     def test_setup_font_properties(self):
         """Test setting up font properties."""
         sns_module = MagicMock()
         plt_module = MagicMock()
+        # Use a real dictionary for rcParams to properly test dictionary access
+        plt_module.rcParams = {}
 
         _setup_plotting_style(
             style="default",
@@ -309,13 +306,13 @@ class TestSetupPlottingStyle:
 class TestCreateFigureAndAxes:
     """Test _create_figure_and_axes function."""
 
-    @patch("matplotlib.pyplot.subplots")
-    def test_create_single_subplot(self, mock_subplots):
+    def test_create_single_subplot(self):
         """Test creating figure with single subplot."""
         mock_fig = MagicMock()
-        mock_ax = MagicMock()
-        mock_subplots.return_value = (mock_fig, mock_ax)
+        mock_ax_array = MagicMock()
+        mock_ax_array.flatten.return_value = [MagicMock()]
         plt_module = MagicMock()
+        plt_module.subplots.return_value = (mock_fig, mock_ax_array)
 
         fig, axes = _create_figure_and_axes(
             fig_width=12,
@@ -328,16 +325,15 @@ class TestCreateFigureAndAxes:
 
         assert fig == mock_fig
         assert len(axes) == 1
-        mock_subplots.assert_called_once_with(figsize=(12, 8), squeeze=False)
+        plt_module.subplots.assert_called_once_with(figsize=(12, 8), squeeze=False)
 
-    @patch("matplotlib.pyplot.subplots")
-    def test_create_multiple_subplots(self, mock_subplots):
+    def test_create_multiple_subplots(self):
         """Test creating figure with multiple subplots."""
         mock_fig = MagicMock()
         mock_axes_array = MagicMock()
         mock_axes_array.flatten.return_value = [MagicMock() for _ in range(6)]
-        mock_subplots.return_value = (mock_fig, mock_axes_array)
         plt_module = MagicMock()
+        plt_module.subplots.return_value = (mock_fig, mock_axes_array)
 
         fig, axes = _create_figure_and_axes(
             fig_width=12,
@@ -350,14 +346,18 @@ class TestCreateFigureAndAxes:
 
         assert fig == mock_fig
         assert len(axes) == 6
-        mock_subplots.assert_called_once_with(2, 3, figsize=(12, 8), squeeze=False)
+        plt_module.subplots.assert_called_once_with(
+            2, 3, figsize=(12, 8), squeeze=False
+        )
 
     def test_set_aspect_ratio(self):
         """Test setting aspect ratio."""
         mock_fig = MagicMock()
         mock_ax = MagicMock()
+        mock_ax_array = MagicMock()
+        mock_ax_array.flatten.return_value = [mock_ax]
         plt_module = MagicMock()
-        plt_module.subplots.return_value = (mock_fig, mock_ax)
+        plt_module.subplots.return_value = (mock_fig, mock_ax_array)
 
         fig, axes = _create_figure_and_axes(
             fig_width=12,

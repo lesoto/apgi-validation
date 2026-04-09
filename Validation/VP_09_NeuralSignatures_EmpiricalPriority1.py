@@ -14,7 +14,7 @@ This protocol analyzes real neural data to demonstrate:
 """
 
 from pathlib import Path
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, Dict, List, cast
 from datetime import datetime
 import warnings
 
@@ -80,6 +80,19 @@ DATA_REPO = Path(__file__).parent.parent / "data_repository"
 RAW_DATA_DIR = DATA_REPO / "raw_data"
 PROCESSED_DATA_DIR = DATA_REPO / "processed_data"
 METADATA_DIR = DATA_REPO / "metadata"
+
+# Import falsification thresholds
+# ---------------------------------------------------------------------------
+try:
+    from utils.falsification_thresholds import (
+        V9_1_MIN_CORRELATION,
+        V9_3_MIN_CORRELATION,
+        DEFAULT_ALPHA,
+    )
+except ImportError:
+    V9_1_MIN_CORRELATION = 0.40
+    V9_3_MIN_CORRELATION = 0.35
+    DEFAULT_ALPHA = 0.05
 
 # Import shared multiple comparison correction
 try:
@@ -391,9 +404,7 @@ class APGIP3bAnalyzer:
 
         return np.array(p3b_amplitudes)
 
-    def extract_p3b_latency(
-        self, epochs: mne.Epochs, electrode: str = "Pz"
-    ) -> np.ndarray:
+    def extract_p3b_latency(self, epochs: Any, electrode: str = "Pz") -> np.ndarray:
         """
         Extract P3b peak latencies from epoched data.
 
@@ -424,9 +435,7 @@ class APGIP3bAnalyzer:
 
         return np.array(p3b_latencies)
 
-    def check_p3b_latency_criterion(
-        self, epochs: mne.Epochs, electrode: str = "Pz"
-    ) -> Dict:
+    def check_p3b_latency_criterion(self, epochs: Any, electrode: str = "Pz") -> Dict:
         """
         Check if P3b latency falls within 200-400ms window.
 
@@ -638,7 +647,7 @@ class APGIFMRIAnalyzer:
 
     def load_fmri_data(
         self, func_filepath: str, confounds_filepath: Optional[str] = None
-    ) -> nib.Nifti1Image:
+    ) -> Any:
         """Load fMRI data"""
         img = nib.load(func_filepath)  # type: ignore
 
@@ -656,13 +665,13 @@ class APGIFMRIAnalyzer:
 
         return img
 
-    def extract_roi_timeseries(
-        self, img: nib.Nifti1Image, roi_mask: nib.Nifti1Image
-    ) -> np.ndarray:
+    def extract_roi_timeseries(self, img: Any, roi_mask: Any) -> np.ndarray:
         """Extract mean timeseries from ROI"""
-        # Use nibabel operations directly
-        masked_img = nib.math_img(img, roi_mask)
-        timeseries = nib.mean_img(masked_img).get_fdata().flatten()
+        # Use nilearn operations directly
+        from nilearn import image as nilearn_image
+
+        masked_img = nilearn_image.math_img("img * mask", img=img, mask=roi_mask)
+        timeseries = nilearn_image.mean_img(masked_img).get_fdata().flatten()
         return timeseries
 
     def analyze_frontoparietal_coactivation(
@@ -1545,12 +1554,18 @@ class APGINeuralSignaturesValidator:
             # Simulate agents
             agents_data = []
             for agent_idx in range(n_agents):
-                # Sample agent parameters
-                precision_i = np.random.normal(
-                    params["precision_i_mean"], params["precision_i_std"]
+                # Sample agent parameters with explicit float casting
+                precision_i = float(
+                    np.random.normal(
+                        float(cast(float, params["precision_i_mean"])),
+                        float(cast(float, params["precision_i_std"])),
+                    )
                 )
-                theta_0 = np.random.normal(
-                    params["theta_0_mean"], params["theta_0_std"]
+                theta_0 = float(
+                    np.random.normal(
+                        float(cast(float, params["theta_0_mean"])),
+                        float(cast(float, params["theta_0_std"])),
+                    )
                 )
 
                 # Ensure positive values
@@ -1710,25 +1725,25 @@ class APGINeuralSignaturesValidator:
             from scipy.stats import permutation_test
 
             # Compute MI for cued condition
-            mi_cued: List[float] = []
+            mi_cued_values: List[float] = []
             for neuron_idx in range(cued_neural_responses.shape[1]):
                 mi = mutual_info_regression(
                     cued_stimulus_features, cued_neural_responses[:, neuron_idx]
                 )
-                mi_cued.append(mi[0])
+                mi_cued_values.append(float(mi[0]))
 
-            mi_cued = np.array(mi_cued)
+            mi_cued = np.array(mi_cued_values)
             mean_mi_cued = np.mean(mi_cued)
 
             # Compute MI for uncued condition
-            mi_uncued: List[float] = []
+            mi_uncued_values: List[float] = []
             for neuron_idx in range(uncued_neural_responses.shape[1]):
                 mi = mutual_info_regression(
                     uncued_stimulus_features, uncued_neural_responses[:, neuron_idx]
                 )
-                mi_uncued.append(mi[0])
+                mi_uncued_values.append(float(mi[0]))
 
-            mi_uncued = np.array(mi_uncued)
+            mi_uncued = np.array(mi_uncued_values)
             mean_mi_uncued = np.mean(mi_uncued)
 
             # Compute MI increase
@@ -1953,7 +1968,7 @@ class APGINeuralSignaturesValidator:
         )
 
         # Bootstrap confidence intervals for optimal threshold
-        bootstrap_thresholds: List[float] = []
+        bootstrap_thresholds_list: List[float] = []
         for _ in range(n_bootstrap):
             signal_sample = np.random.choice(
                 signal_distribution, size=len(signal_distribution), replace=True
@@ -1964,9 +1979,9 @@ class APGINeuralSignaturesValidator:
             signal_mean_boot = np.mean(signal_sample)
             noise_mean_boot = np.mean(noise_sample)
             bootstrap_threshold = (signal_mean_boot + noise_mean_boot) / 2
-            bootstrap_thresholds.append(bootstrap_threshold)
+            bootstrap_thresholds_list.append(float(bootstrap_threshold))
 
-        bootstrap_thresholds = np.array(bootstrap_thresholds)
+        bootstrap_thresholds = np.array(bootstrap_thresholds_list)
         optimal_ci_lower = np.percentile(bootstrap_thresholds, 2.5)
         optimal_ci_upper = np.percentile(bootstrap_thresholds, 97.5)
 
@@ -3360,7 +3375,7 @@ class APGIValidationProtocol9:
 
     def run_validation(self, data_path: Optional[str] = None) -> Dict[str, Any]:
         """Run the complete validation protocol."""
-        self.results = main() if data_path is None else main(data_path)
+        self.results = main()
         return self.results
 
     def check_criteria(self) -> Dict[str, Any]:

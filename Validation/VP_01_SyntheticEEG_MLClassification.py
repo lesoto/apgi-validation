@@ -50,6 +50,19 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+# Import falsification thresholds
+# ---------------------------------------------------------------------------
+try:
+    from utils.falsification_thresholds import (
+        P1_1_MIN_D_PRIME,
+        P1_1_MAX_D_PRIME,
+        DEFAULT_ALPHA,
+    )
+except ImportError:
+    P1_1_MIN_D_PRIME = 0.50
+    P1_1_MAX_D_PRIME = 0.60
+    DEFAULT_ALPHA = 0.05
+
 from utils.statistical_tests import safe_pearsonr
 from sklearn.metrics import (
     accuracy_score,
@@ -81,7 +94,7 @@ try:
 except ImportError:
     import logging
 
-    logger = logging.getLogger(__name__)  # type: ignore[misc]
+    logger: logging.Logger = logging.getLogger(__name__)  # type: ignore[no-redef]
 
     # Fallback functions if config_loader not available
     def get_tau_S(default=0.5):
@@ -662,7 +675,7 @@ class RealisticNoiseGenerator:
                 blink_duration = int(0.3 * fs)  # 300ms
                 if idx + blink_duration < n_samples:
                     blink_amp = np.random.uniform(50, 100)
-                    blink = blink_amp * np.windows.hann(blink_duration)
+                    blink = blink_amp * np.hanning(blink_duration)
                     signal[idx : idx + blink_duration] += blink[
                         : min(blink_duration, n_samples - idx)
                     ]
@@ -1299,7 +1312,7 @@ class APGIDatasetGenerator:
         )
 
         if save_path:
-            np.savez_compressed(save_path, **dataset_arr)
+            np.savez_compressed(save_path, **dataset_arr)  # type: ignore[arg-type]
             print(f"  Saved to: {save_path}")
 
         return dataset_arr
@@ -1784,13 +1797,13 @@ def subject_level_leave_one_out_split(
     n_subjects = len(unique_subjects)
 
     # Create subject-level labels (majority class for each subject)
-    subject_labels = []
+    subject_labels_list: List[int] = []
     for subject in unique_subjects:
         subject_mask = subject_ids == subject
         # Use majority class label for this subject
-        subject_label = np.bincount(labels[subject_mask]).argmax()
-        subject_labels.append(subject_label)
-    subject_labels = np.array(subject_labels)
+        subject_label = int(np.bincount(labels[subject_mask]).argmax())
+        subject_labels_list.append(subject_label)
+    subject_labels = np.array(subject_labels_list)
 
     # Use StratifiedGroupKFold to ensure balanced splits
     sgkf = StratifiedGroupKFold(n_splits=min(n_splits, n_subjects))
@@ -1811,8 +1824,8 @@ def subject_level_leave_one_out_split(
         train_idx = indices[train_mask]
         test_idx = indices[test_mask]
 
-        train_dataset_fold = torch.utils.data.Subset(dataset, train_idx)
-        test_dataset_fold = torch.utils.data.Subset(dataset, test_idx)
+        train_dataset_fold = torch.utils.data.Subset(dataset, train_idx.tolist())
+        test_dataset_fold = torch.utils.data.Subset(dataset, test_idx.tolist())
 
         folds.append((train_dataset_fold, test_dataset_fold))
 
@@ -1847,12 +1860,12 @@ def stratified_subject_aware_split(
     unique_subjects = np.unique(subject_ids)
 
     # Create subject-level labels (majority class for each subject)
-    subject_labels = []
+    subject_labels_list: List[int] = []
     for subject in unique_subjects:
         subject_mask = subject_ids == subject
-        subject_label = np.bincount(labels[subject_mask]).argmax()
-        subject_labels.append(subject_label)
-    subject_labels = np.array(subject_labels)
+        subject_label = int(np.bincount(labels[subject_mask]).argmax())
+        subject_labels_list.append(subject_label)
+    subject_labels = np.array(subject_labels_list)
 
     indices = np.arange(len(labels))
 
@@ -1865,12 +1878,12 @@ def stratified_subject_aware_split(
     )
 
     # Create labels for temp subjects
-    temp_labels = []
+    temp_labels_list: List[int] = []
     for subject in temp_subjects:
         subject_mask = subject_ids == subject
-        subject_label = np.bincount(labels[subject_mask]).argmax()
-        temp_labels.append(subject_label)
-    temp_labels = np.array(temp_labels)
+        subject_label = int(np.bincount(labels[subject_mask]).argmax())
+        temp_labels_list.append(subject_label)
+    temp_labels = np.array(temp_labels_list)
 
     # Second split: val subjects vs test subjects from temp
     val_ratio_adjusted = val_ratio / (val_ratio + (1 - train_ratio - val_ratio))
@@ -1891,9 +1904,9 @@ def stratified_subject_aware_split(
     test_idx = indices[test_mask]
 
     # Create subsets
-    train_dataset = torch.utils.data.Subset(dataset, train_idx)
-    val_dataset = torch.utils.data.Subset(dataset, val_idx)
-    test_dataset = torch.utils.data.Subset(dataset, test_idx)
+    train_dataset = torch.utils.data.Subset(dataset, train_idx.tolist())
+    val_dataset = torch.utils.data.Subset(dataset, val_idx.tolist())
+    test_dataset = torch.utils.data.Subset(dataset, test_idx.tolist())
 
     return train_dataset, val_dataset, test_dataset
 
@@ -2106,7 +2119,7 @@ def train_ignition_classifier(
     lr: float = 1e-4,
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
     class_weights: torch.Tensor = None,
-) -> Dict:
+) -> Tuple[nn.Module, Dict[str, List[float]]]:
     """Train binary ignition classifier"""
 
     model = model.to(device)
@@ -2166,8 +2179,8 @@ def train_ignition_classifier(
         val_loss = 0.0
         val_correct = 0
         val_total = 0
-        all_probs = []
-        all_labels = []
+        all_probs: List[float] = []
+        all_labels: List[int] = []
 
         with torch.no_grad():
             for batch_eeg, batch_labels in val_loader:
@@ -2244,7 +2257,7 @@ def train_model_identifier(
     epochs: int = 50,
     lr: float = 1e-4,
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
-) -> Dict:
+) -> Tuple[nn.Module, Dict[str, List[float]]]:
     """Train multi-class model identifier"""
 
     model = model.to(device)
@@ -2352,9 +2365,9 @@ def evaluate_ignition_classifier(
     """Comprehensive evaluation of ignition classifier"""
 
     model.eval()
-    all_predictions = []
-    all_labels = []
-    all_probs = []
+    all_predictions: List[int] = []
+    all_labels: List[int] = []
+    all_probs: List[float] = []
 
     with torch.no_grad():
         for batch_eeg, batch_labels in test_loader:
@@ -2363,26 +2376,26 @@ def evaluate_ignition_classifier(
             probs = F.softmax(outputs, dim=1)
             _, predicted = outputs.max(1)
 
-            all_predictions.extend(predicted.cpu().numpy())
-            all_labels.extend(batch_labels.numpy())
-            all_probs.extend(probs[:, 1].cpu().numpy())
+            all_predictions.extend(predicted.cpu().numpy().tolist())
+            all_labels.extend(batch_labels.numpy().tolist())
+            all_probs.extend(probs[:, 1].cpu().numpy().tolist())
 
-    all_predictions = np.array(all_predictions)
-    all_labels = np.array(all_labels)
-    all_probs = np.array(all_probs)
+    all_predictions_arr = np.array(all_predictions)
+    all_labels_arr = np.array(all_labels)
+    all_probs_arr = np.array(all_probs)
 
     # Compute metrics
-    accuracy = accuracy_score(all_labels, all_predictions)
+    accuracy = accuracy_score(all_labels_arr, all_predictions_arr)
     try:
-        f1 = f1_score(all_labels, all_predictions, average="binary")
+        f1 = f1_score(all_labels_arr, all_predictions_arr, average="binary")
     except (ValueError, RuntimeError) as e:
         f1 = 0.0  # Default value when undefined
         logger.error(f"Error calculating F1 score: {e}")
         # Explicitly log that we're using a baseline value due to computation failure
         logger.warning(f"Using baseline F1 value (0.0) due to computation error: {e}")
     try:
-        if len(np.unique(all_labels)) > 1:
-            auc = roc_auc_score(all_labels, all_probs)
+        if len(np.unique(all_labels_arr)) > 1:
+            auc = roc_auc_score(all_labels_arr, all_probs_arr)
         else:
             auc = 0.5
             logger.warning(
@@ -2426,23 +2439,23 @@ def evaluate_model_identifier(
             outputs = model(eeg, hep, pupil)
             _, predicted = outputs.max(1)
 
-            all_predictions.extend(predicted.cpu().numpy())
-            all_labels.extend(batch_labels.numpy())
+            all_predictions.extend(predicted.cpu().numpy().tolist())
+            all_labels.extend(batch_labels.numpy().tolist())
 
-    all_predictions = np.array(all_predictions)
-    all_labels = np.array(all_labels)
+    all_predictions_arr = np.array(all_predictions)
+    all_labels_arr = np.array(all_labels)
 
     # Compute metrics
-    accuracy = accuracy_score(all_labels, all_predictions)
+    accuracy = accuracy_score(all_labels_arr, all_predictions_arr)
 
     # Per-class metrics
-    cm = confusion_matrix(all_labels, all_predictions)
+    cm = confusion_matrix(all_labels_arr, all_predictions_arr)
 
     # Classification report
     model_names = ["APGI", "StandardPP", "GWTOnly", "Continuous"]
     report = classification_report(
-        all_labels,
-        all_predictions,
+        all_labels_arr,
+        all_predictions_arr,
         target_names=model_names,
         output_dict=True,
         zero_division=0,
@@ -2604,7 +2617,7 @@ class FalsificationChecker:
         except (ValueError, TypeError):
             # Fallback for insufficient data
             falsified = mean_apgi >= 70
-        return falsified, mean_apgi
+        return bool(falsified), float(mean_apgi)
 
     def check_F2_2(
         self, apgi_cost_correlation: float, cost_correlation_std: float = None
@@ -2646,7 +2659,7 @@ class FalsificationChecker:
             rt_array = np.array(rt_advantage_ms)
             rt_mean = np.mean(rt_array)
             try:
-                t_stat, p_value = safe_ttest_1samp(
+                t_stat, p_value, significant = safe_ttest_1samp(
                     rt_array, popmean=0.0, alpha=0.01, min_n=30
                 )
                 falsified = p_value < 0.01 and rt_mean >= 50
@@ -2839,7 +2852,7 @@ class FalsificationChecker:
             efficiency_array = np.array(efficiency_ratio)
             efficiency_mean = np.mean(efficiency_array)
             try:
-                t_stat, p_value = safe_ttest_1samp(
+                t_stat, p_value, significant = safe_ttest_1samp(
                     efficiency_array, popmean=1.0, alpha=0.01, min_n=30
                 )
                 efficiency_pass = p_value < 0.01 and efficiency_mean <= 0.6
@@ -3085,7 +3098,7 @@ class FalsificationChecker:
     ) -> Dict:
         """Generate comprehensive falsification report"""
 
-        falsification_report = {
+        falsification_report: Dict[str, Any] = {
             "falsified_criteria": [],
             "passed_criteria": [],
             "overall_falsified": False,
@@ -4494,19 +4507,23 @@ def test_noise_amplitude_sensitivity(
         results["std_accuracy"] = float(np.std(accuracies))
         results["max_accuracy"] = float(np.max(accuracies))
         results["min_accuracy"] = float(np.min(accuracies))
-        results["accuracy_range"] = results["max_accuracy"] - results["min_accuracy"]
+        max_acc = float(results["max_accuracy"])  # type: ignore[arg-type]
+        min_acc = float(results["min_accuracy"])  # type: ignore[arg-type]
+        results["accuracy_range"] = max_acc - min_acc
 
         # Flag if accuracy varies >10%
-        if results["accuracy_range"] > results["sensitivity_threshold"]:
+        acc_range = float(results["accuracy_range"])  # type: ignore[arg-type]
+        sens_thresh = float(results["sensitivity_threshold"])  # type: ignore[arg-type]
+        if acc_range > sens_thresh:
             results["sensitivity_flag"] = True
             logger.warning(
-                f"SENSITIVITY FLAG: Accuracy varies {results['accuracy_range']:.1%} "
-                f"across noise amplitudes (threshold: {results['sensitivity_threshold']:.1%})"
+                f"SENSITIVITY FLAG: Accuracy varies {acc_range:.1%} "
+                f"across noise amplitudes (threshold: {sens_thresh:.1%})"
             )
         else:
             logger.info(
-                f"Accuracy variation {results['accuracy_range']:.1%} within threshold "
-                f"({results['sensitivity_threshold']:.1%})"
+                f"Accuracy variation {acc_range:.1%} within threshold "
+                f"({sens_thresh:.1%})"
             )
 
         return results
@@ -4873,7 +4890,7 @@ class EEGPipeline:
         baseline_window: Tuple[float, float] = (-0.2, 0.0),
         analysis_window: Tuple[float, float] = (0.0, 0.6),
         reject_amplitude: float = 100.0,
-    ) -> Dict[str, np.ndarray]:
+    ) -> Dict[str, Any]:
         """
         Extract Heartbeat-Evoked Potential (HEP) from continuous EEG.
 
@@ -4916,13 +4933,13 @@ class EEGPipeline:
             logger.warning("No valid HEP epochs found")
             return {"epochs": None, "average": None, "n_epochs": 0}
 
-        epochs = np.array(epochs)
+        epochs_arr: np.ndarray = np.array(epochs)
 
         # Baseline correction
         baseline_mean = np.mean(
-            epochs[:, :, baseline_start:baseline_end], axis=2, keepdims=True
+            epochs_arr[:, :, baseline_start:baseline_end], axis=2, keepdims=True
         )
-        epochs_corrected = epochs - baseline_mean
+        epochs_corrected = epochs_arr - baseline_mean
 
         # Average across epochs
         average_hep = np.mean(epochs_corrected, axis=0)
@@ -5201,7 +5218,7 @@ class EEGPipeline:
         p_values: np.ndarray,
         alpha: float = 0.05,
         n_tests: int = 3,
-    ) -> Dict[str, np.ndarray]:
+    ) -> Dict[str, Any]:
         """
         Apply Bonferroni correction for multiple comparisons.
 
@@ -5255,7 +5272,7 @@ class EEGPipeline:
                 - effect_sizes: Dict of Cohen's d values
                 - statistical_tests: Dict of statistical test results
         """
-        results = {
+        results: Dict[str, Any] = {
             "passed": False,
             "p3b_amplitude": None,
             "p3b_latency": None,
@@ -5326,11 +5343,13 @@ class EEGPipeline:
                 )
                 if pooled_std > 0:
                     d = (np.mean(group1_amp) - np.mean(group2_amp)) / pooled_std
-                    results["effect_sizes"]["cohens_d"] = float(d)
+                    effect_sizes: Dict[str, float] = results["effect_sizes"]  # type: ignore[assignment]
+                    effect_sizes["cohens_d"] = float(d)
 
                 # t-test
                 t_stat, p_value = stats.ttest_ind(group1_amp, group2_amp)
-                results["statistical_tests"]["t_test"] = {
+                stat_tests: Dict[str, Any] = results["statistical_tests"]  # type: ignore[assignment]
+                stat_tests["t_test"] = {
                     "t_statistic": float(t_stat),
                     "p_value": float(p_value),
                     "significant": p_value < 0.05,
@@ -5342,7 +5361,7 @@ class EEGPipeline:
                         bf_result = self.pingouin.bayesfactor_ttest(
                             group1_amp, group2_amp, paired=False
                         )
-                        results["statistical_tests"]["bayesian_ttest"] = {
+                        stat_tests["bayesian_ttest"] = {
                             "bf10": float(bf_result),
                             "interpretation": (
                                 "moderate_evidence_h1"
@@ -5355,15 +5374,19 @@ class EEGPipeline:
 
         # 5. Determine if passed
         # Criteria: P3b amplitude in realistic range, significant condition effect
-        p3b_valid = -5.0 < results["p3b_amplitude"] < 15.0  # Realistic μV range
+        p3b_amp = float(results["p3b_amplitude"])  # type: ignore[arg-type]
+        p3b_valid = -5.0 < p3b_amp < 15.0  # Realistic μV range
+
+        effect_sizes = results["effect_sizes"]  # type: ignore[assignment]
         effect_valid = (
-            "cohens_d" in results["effect_sizes"]
-            and abs(results["effect_sizes"]["cohens_d"]) > 0.2
+            "cohens_d" in effect_sizes
+            and abs(float(effect_sizes["cohens_d"])) > 0.2  # type: ignore[arg-type]
         )
-        stat_valid = (
-            "t_test" in results["statistical_tests"]
-            and results["statistical_tests"]["t_test"]["significant"]
-        )
+
+        stat_tests = results["statistical_tests"]  # type: ignore[assignment]
+        stat_valid = "t_test" in stat_tests and bool(
+            stat_tests["t_test"]["significant"]
+        )  # type: ignore[index]
 
         results["passed"] = p3b_valid and (effect_valid or stat_valid)
 
@@ -5397,7 +5420,7 @@ class EEGPipeline:
                 - passed: Boolean indicating if MI > 0.012 with p < 0.05
                 - surrogate_distribution: Array of surrogate MI values
         """
-        results = {
+        results: Dict[str, Any] = {
             "mi": None,
             "p_value": None,
             "passed": False,
@@ -5485,8 +5508,8 @@ class EEGPipeline:
                 mi_shuffled = kl_shuffled / np.log(n_bins)
                 surrogate_mis.append(mi_shuffled)
 
-            surrogate_mis = np.array(surrogate_mis)
-            results["surrogate_distribution"] = surrogate_mis.tolist()
+            surrogate_mis_arr = np.array(surrogate_mis)
+            results["surrogate_distribution"] = surrogate_mis_arr.tolist()
 
             # Compute p-value (proportion of surrogates >= observed MI)
             p_value = np.mean(surrogate_mis >= mi)
@@ -5494,7 +5517,7 @@ class EEGPipeline:
 
             # 5. Determine if passed
             # Criterion: MI >= 0.012 with p < 0.05
-            results["passed"] = (mi >= 0.012) and (p_value < 0.05)
+            results["passed"] = bool((mi >= 0.012) and (p_value < 0.05))
 
             logger.info(
                 f"Cross-frequency coupling: MI={mi:.4f}, p={p_value:.4f}, "

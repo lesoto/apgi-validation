@@ -73,20 +73,25 @@ class TestAllFPProtocols:
             # Set test mode for computationally intensive protocols to prevent hanging
             import os
 
-            if module_name in [
+            # Protocols that need test mode to prevent timeouts
+            SLOW_PROTOCOLS = [
                 "Falsification.FP_03_FrameworkLevel_MultiProtocol",
                 "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
-            ]:
+                "Falsification.FP_05_EvolutionaryPlausibility",
+                "Falsification.FP_10_BayesianEstimation_MCMC",
+            ]
+
+            if module_name in SLOW_PROTOCOLS:
                 os.environ["APGI_TEST_MODE"] = "true"
 
             mod = importlib.import_module(module_name)
+            # Force reload to pick up APGI_TEST_MODE environment variable
+            if module_name in SLOW_PROTOCOLS:
+                importlib.reload(mod)
             result = mod.run_protocol_main()
 
             # Clean up environment variable
-            if module_name in [
-                "Falsification.FP_03_FrameworkLevel_MultiProtocol",
-                "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
-            ]:
+            if module_name in SLOW_PROTOCOLS:
                 os.environ.pop("APGI_TEST_MODE", None)
 
             # Check result type
@@ -120,16 +125,25 @@ class TestAllFPProtocols:
                 if module_path in [
                     "Falsification.FP_03_FrameworkLevel_MultiProtocol",
                     "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+                    "Falsification.FP_10_BayesianEstimation_MCMC",
                 ]:
                     os.environ["APGI_TEST_MODE"] = "true"
 
                 mod = importlib.import_module(module_path, fromlist=[protocol_id])
+                # Force reload to pick up APGI_TEST_MODE environment variable
+                if module_path in [
+                    "Falsification.FP_03_FrameworkLevel_MultiProtocol",
+                    "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+                    "Falsification.FP_10_BayesianEstimation_MCMC",
+                ]:
+                    importlib.reload(mod)
                 result = mod.run_protocol_main()
 
                 # Clean up environment variable
                 if module_path in [
                     "Falsification.FP_03_FrameworkLevel_MultiProtocol",
                     "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+                    "Falsification.FP_10_BayesianEstimation_MCMC",
                 ]:
                     os.environ.pop("APGI_TEST_MODE", None)
 
@@ -209,12 +223,35 @@ class TestAllVPProtocols:
         ("Validation.VP_15_fMRI_Anticipation_vmPFC", "VP_15_fMRI_Anticipation_vmPFC"),
     ]
 
+    # VP protocols that need test mode to prevent timeouts
+    SLOW_VP_PROTOCOLS = [
+        "Validation.VP_11_MCMC_CulturalNeuroscience_Priority3",
+        "Validation.VP_12_Clinical_CrossSpecies_Convergence",
+        "Validation.VP_13_Epistemic_Architecture",
+        "Validation.VP_14_fMRI_Anticipation_Experience",
+        "Validation.VP_15_fMRI_Anticipation_vmPFC",
+    ]
+
     @pytest.mark.parametrize("module_path,protocol_id", VP_PROTOCOLS)
     def test_vp_protocol_returns_protocol_result(self, module_path, protocol_id):
         """Test that VP protocol returns standardized ProtocolResult."""
         try:
+            import os
+
+            if module_path in self.SLOW_VP_PROTOCOLS:
+                os.environ["APGI_TEST_MODE"] = "true"
+
             mod = importlib.import_module(module_path, fromlist=[protocol_id])
+
+            # Force reload to pick up APGI_TEST_MODE environment variable
+            if module_path in self.SLOW_VP_PROTOCOLS:
+                importlib.reload(mod)
+
             result = mod.run_protocol_main()
+
+            # Clean up environment variable
+            if module_path in self.SLOW_VP_PROTOCOLS:
+                os.environ.pop("APGI_TEST_MODE", None)
 
             # Check result type
             assert (

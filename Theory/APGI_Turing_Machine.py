@@ -238,8 +238,8 @@ class APGITuringMachine:
         self._update_individual_parameters()
 
         # Running statistics for precision estimation
-        self.extero_buffer = deque(maxlen=2500)  # ~10s at 250Hz
-        self.intero_buffer = deque(maxlen=2500)
+        self.extero_buffer: deque = deque(maxlen=2500)  # ~10s at 250Hz
+        self.intero_buffer: deque = deque(maxlen=2500)
 
     def _update_individual_parameters(self):
         """Update parameters based on individual differences"""
@@ -992,7 +992,7 @@ class APGIVisualizer:
 
         fig, ax = plt.subplots(figsize=(14, 6))
 
-        event_types = {}
+        event_types: Dict[str, List[float]] = {}
         for event in machine.events:
             if event.event_type not in event_types:
                 event_types[event.event_type] = []

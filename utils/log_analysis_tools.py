@@ -1764,7 +1764,7 @@ class AutomatedLogAnalyzer:
             Analysis results with any triggered alerts
         """
         timestamp = datetime.now().isoformat()
-        results = {
+        results: Dict[str, Any] = {
             "timestamp": timestamp,
             "analysis": None,
             "alerts": [],

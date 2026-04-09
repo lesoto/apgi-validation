@@ -7,7 +7,7 @@ Implements Time-OfCheck-TimeOfUse race condition mitigation with file locking.
 import os
 import stat
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 import logging
 import platform
 
@@ -36,7 +36,7 @@ class FileLock:
         """
         self.lock_file = Path(lock_file)
         self.timeout = timeout
-        self.lock_fd = None
+        self.lock_fd: Optional[int] = None
         self.logger = logging.getLogger("file_lock")
 
         # Ensure lock file directory exists
@@ -438,7 +438,7 @@ class SecureFileOperations:
 
     def concurrent_safe_operation(
         self, file_path: str, operation: str, **kwargs
-    ) -> Optional:
+    ) -> Any:
         """
         Perform concurrent-safe file operation.
 
@@ -450,7 +450,9 @@ class SecureFileOperations:
         Returns:
             Operation result, or None if operation failed
         """
-        operations = {
+        from typing import Callable, Dict
+
+        operations: Dict[str, Callable[..., Any]] = {
             "read": self.safe_read,
             "write": self.safe_write,
             "delete": self.safe_delete,
@@ -463,7 +465,8 @@ class SecureFileOperations:
         if operation not in operations:
             raise ValueError(f"Unknown operation: {operation}")
 
-        return operations[operation](file_path, **kwargs)
+        func = operations[operation]
+        return func(file_path, **kwargs)
 
 
 # Global instance

@@ -13,7 +13,7 @@ Complete falsification testing framework for APGI theory including:
 import logging
 import warnings
 from enum import Enum
-from typing import Dict, List, Union
+from typing import Any, Dict, List
 
 import numpy as np
 import scipy.stats as stats
@@ -46,7 +46,7 @@ class FalsificationCriterion:
         threshold: float,
         direction: str,
         alpha: float = 0.05,
-    ):
+    ) -> None:
         """
         Args:
             name: Short name for the criterion
@@ -85,7 +85,7 @@ class FalsificationCriterion:
 
         logger.debug(f"Initialized falsification criterion: {name}")
 
-    def test(self, data: Union[np.ndarray, Dict]) -> Dict:
+    def test(self, data: Dict) -> Dict:
         """Test the falsification criterion"""
 
         if self.test_statistic == "mean_difference":
@@ -473,7 +473,7 @@ class APGIFalsificationProtocol:
                 logger.error("Test data must be a dictionary")
                 return {"error": "Test data must be a dictionary"}
 
-            results = {
+            results: Dict[str, Any] = {
                 "priority": priority,
                 "criteria_results": [],
                 "overall_falsified": False,
@@ -564,7 +564,7 @@ class APGIFalsificationProtocol:
                 logger.error("All test data must be a dictionary")
                 return {"error": "Test data must be a dictionary"}
 
-            comprehensive_results = {
+            comprehensive_results: Dict[str, Any] = {
                 "priority_results": [],
                 "overall_falsification": False,
                 "falsification_summary": {},

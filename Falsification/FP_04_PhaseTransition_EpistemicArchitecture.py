@@ -253,10 +253,10 @@ if HAS_TORCH:
             dE_dt = (current_energies - self.prev_energies) / dt
 
             # Heat dissipation component (always positive)
-            heat_dissipation = torch.abs(dE_dt) / (self.kB_T * float(self.energy_scale))
+            heat_dissipation = torch.abs(dE_dt) / (self.kB_T * self.energy_scale.item())  # type: ignore[operator]
 
             # Total entropy production (always non-negative by Second Law)
-            entropy_production = heat_dissipation * float(self.entropy_scale.item())
+            entropy_production = heat_dissipation * self.entropy_scale.item()  # type: ignore[operator]
 
             # Update previous states
             self.prev_state = current_state.detach().clone()
@@ -279,12 +279,8 @@ if HAS_TORCH:
                 log_Z = torch.log(Z)
                 mean_energy = total_energy.mean(dim=-1, keepdim=True)
 
-                S_thermo = (
-                    self.config.boltzmann_constant * log_Z * self.entropy_scale
-                    + mean_energy
-                    / (  # type: ignore[arg-type]
-                        self.config.boltzmann_constant * self.config.temperature_kelvin
-                    )
+                S_thermo = self.config.boltzmann_constant * log_Z * self.entropy_scale.item() + mean_energy / (  # type: ignore[operator]
+                    self.config.boltzmann_constant * self.config.temperature_kelvin
                 )
                 F_thermo = (
                     -self.config.boltzmann_constant
@@ -1008,7 +1004,7 @@ class InformationTheoreticAnalysis:
         if n_simulations < 1:
             raise ValueError(f"n_simulations must be >= 1, got {n_simulations}")
 
-        results: Dict[str, List[Any]] = {
+        results: Dict[str, Any] = {
             "discontinuities": [],
             "susceptibility_ratios": [],
             "critical_slowing": [],
@@ -1192,22 +1188,22 @@ class InformationTheoreticAnalysis:
                 if r.get("critical_slowing_falsified", False)
             )
 
-            results["level2_te_failure_rate"] = (
+            results["level2_te_failure_rate"] = float(
                 te_failures / len(results["level2_falsification"])
                 if len(results["level2_falsification"]) > 0
                 else 0.0
             )
-            results["level2_mi_failure_rate"] = (
+            results["level2_mi_failure_rate"] = float(
                 mi_failures / len(results["level2_falsification"])
                 if len(results["level2_falsification"]) > 0
                 else 0.0
             )
-            results["level2_phi_failure_rate"] = (
+            results["level2_phi_failure_rate"] = float(
                 phi_failures / len(results["level2_falsification"])
                 if len(results["level2_falsification"]) > 0
                 else 0.0
             )
-            results["level2_critical_slowing_failure_rate"] = (
+            results["level2_critical_slowing_failure_rate"] = float(
                 cs_failures / len(results["level2_falsification"])
                 if len(results["level2_falsification"]) > 0
                 else 0.0
@@ -1688,7 +1684,7 @@ class InformationTheoreticAnalysis:
 
         # Normalize and compute entropy
         probs = probs / np.sum(probs)
-        entropy_nats = -np.sum(probs * np.log(probs + DEFAULT_EPSILON))
+        entropy_nats: float = -np.sum(probs * np.log(probs + DEFAULT_EPSILON))
         return entropy_nats / np.log(2)  # Convert to bits
 
     def _compute_joint_conditional_entropy_vectorized(
@@ -1722,7 +1718,7 @@ class InformationTheoreticAnalysis:
 
         # Normalize and compute entropy
         probs = probs / np.sum(probs)
-        entropy_nats = -np.sum(probs * np.log(probs + DEFAULT_EPSILON))
+        entropy_nats: float = -np.sum(probs * np.log(probs + DEFAULT_EPSILON))
         return entropy_nats / np.log(2)  # Convert to bits
 
     def compute_mutual_information(
@@ -1805,12 +1801,12 @@ class InformationTheoreticAnalysis:
             )
             phi_baselines.append(phi_shuffled)
 
-        phi_baselines = np.array(phi_baselines)
+        phi_baselines_array = np.array(phi_baselines)
 
         # Compute baseline statistics
-        if len(phi_baselines) > 0:
-            baseline_mean = np.mean(phi_baselines, axis=0)
-            baseline_std = np.std(phi_baselines, axis=0)
+        if len(phi_baselines_array) > 0:
+            baseline_mean = np.mean(phi_baselines_array, axis=0)
+            baseline_std = np.std(phi_baselines_array, axis=0)
         else:
             baseline_mean = 0.0
             baseline_std = 0.0
@@ -1824,7 +1820,7 @@ class InformationTheoreticAnalysis:
             "phi_baseline_std": baseline_std,
             "phi_z_scores": z_scores,
             "phi_significant": z_scores > 2.0,  # p < 0.05 threshold
-            "phi_baselines": phi_baselines,
+            "phi_baselines": phi_baselines_array,
         }
 
     def _create_shuffled_history(
@@ -1874,7 +1870,7 @@ class InformationTheoreticAnalysis:
         Returns:
             Dictionary containing falsification results
         """
-        results = {
+        results: Dict[str, Any] = {
             "transfer_entropy_falsified": False,
             "mutual_info_falsified": False,
             "integrated_info_falsified": False,
@@ -2019,20 +2015,20 @@ class InformationTheoreticAnalysis:
 
             # Compute thermodynamic quantities across time
             thermo_results = []
-            entropy_production_rates = []
-            thermodynamic_entropies = []
+            entropy_production_rates_list: List[float] = []
+            thermodynamic_entropies_list: List[float] = []
 
             for i in range(len(S_tensor)):
                 state = S_tensor[i : i + 1]  # Keep batch dimension
                 result = thermo_calc(state, dt=dt)
                 thermo_results.append(result)
-                entropy_production_rates.append(
+                entropy_production_rates_list.append(
                     result["entropy_production_rate"].item()
                 )
-                thermodynamic_entropies.append(result["S_thermodynamic"].item())
+                thermodynamic_entropies_list.append(result["S_thermodynamic"].item())
 
-            entropy_production_rates = np.array(entropy_production_rates)
-            thermodynamic_entropies = np.array(thermodynamic_entropies)
+            entropy_production_rates = np.array(entropy_production_rates_list)
+            thermodynamic_entropies = np.array(thermodynamic_entropies_list)
 
             # Level 1 Falsification Criteria
 
@@ -2045,7 +2041,7 @@ class InformationTheoreticAnalysis:
             BASELINE_METABOLIC_RATE = 1.0  # Normalized baseline
             BIOLOGICAL_CEILING = 1.2  # 20% above baseline
 
-            n_ignitions = np.sum(B > DEFAULT_IGNITION_THRESHOLD)
+            n_ignitions: int = int(np.sum(B > DEFAULT_IGNITION_THRESHOLD))
             total_atp_consumed = n_ignitions * ATP_PER_SPIKE
             duration = time[-1] - time[0] if len(time) > 1 else 1.0
             metabolic_rate = total_atp_consumed / duration
@@ -2132,7 +2128,7 @@ class InformationTheoreticAnalysis:
         """
         Fallback Level 1 falsification without thermodynamic calculator
         """
-        results = {
+        results: Dict[str, Any] = {
             "thermodynamic_entropy_falsified": False,
             "metabolic_cost_falsified": False,
             "energy_efficiency_falsified": False,
@@ -2270,7 +2266,7 @@ class ClinicalBiomarkerFalsification:
         auc = roc_auc_score(labels, scores)
 
         # Bootstrap confidence interval for AUC
-        auc_bootstrap = []
+        auc_bootstrap_list: List[float] = []
         for _ in range(bootstrap_n):
             # Resample with replacement
             indices = resample(np.arange(len(labels)), n_samples=len(labels))
@@ -2279,12 +2275,12 @@ class ClinicalBiomarkerFalsification:
 
             try:
                 auc_boot = roc_auc_score(labels_boot, scores_boot)
-                auc_bootstrap.append(auc_boot)
+                auc_bootstrap_list.append(auc_boot)
             except ValueError:
                 # Handle cases where only one class is present
-                auc_bootstrap.append(0.5)
+                auc_bootstrap_list.append(0.5)
 
-        auc_bootstrap = np.array(auc_bootstrap)
+        auc_bootstrap = np.array(auc_bootstrap_list)
         ci_lower = np.percentile(auc_bootstrap, (bootstrap_alpha / 2) * 100)
         ci_upper = np.percentile(auc_bootstrap, (1 - bootstrap_alpha / 2) * 100)
 
@@ -2654,7 +2650,7 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
 
     # Construct criteria dictionary matching FP-01 structure
     # Each criterion is keyed by F4.x with nested dict containing description, threshold, passed, actual
-    criteria: Dict[str, Dict[str, Any]] = {
+    criteria: Dict[str, Any] = {
         "protocol_id": "FP-4",
         "protocol_name": "Phase Transition & Epistemic Architecture",
         "level": "Level 2 (Information-Theoretic)",

@@ -34,7 +34,7 @@ SPECIALIZED_MODULE_NAMES = [
     "APGI_Turing_Machine",
     "falsification_thresholds",
     "Tests-GUI",
-    "Utils-GUI",
+    "Utils_GUI",
     "main.py",
 ]
 
@@ -686,12 +686,12 @@ class TestUtilsGUI:
     """Test Utils GUI."""
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["Utils-GUI"] is None,
-        reason="Utils-GUI module not available",
+        SPECIALIZED_MODULES["Utils_GUI"] is None,
+        reason="Utils_GUI module not available",
     )
     def test_utils_gui_initialization(self):
         """Test Utils GUI initialization."""
-        module = SPECIALIZED_MODULES["Utils-GUI"]
+        module = SPECIALIZED_MODULES["Utils_GUI"]
 
         try:
             gui = module.UtilsGUI()
@@ -702,12 +702,12 @@ class TestUtilsGUI:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        SPECIALIZED_MODULES["Utils-GUI"] is None,
-        reason="Utils-GUI module not available",
+        SPECIALIZED_MODULES["Utils_GUI"] is None,
+        reason="Utils_GUI module not available",
     )
     def test_utils_operations(self):
         """Test Utils GUI operations."""
-        module = SPECIALIZED_MODULES["Utils-GUI"]
+        module = SPECIALIZED_MODULES["Utils_GUI"]
 
         try:
             gui = module.UtilsGUI()

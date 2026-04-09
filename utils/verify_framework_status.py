@@ -9,6 +9,7 @@ This script checks:
 5. Metadata standardization is available
 """
 
+import os
 import signal
 import sys
 from pathlib import Path
@@ -55,14 +56,33 @@ def run_with_timeout(func, timeout_secs=30):
         signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
 
 
-def check_protocol(module_path: str, protocol_id: str, timeout_secs: int = 30) -> dict:
-    """Check a single protocol."""
+def check_protocol(
+    module_path: str, protocol_id: str, timeout_secs: int = 30, quick_mode: bool = False
+) -> dict:
+    """Check a single protocol.
+
+    Args:
+        module_path: Path to the module to import
+        protocol_id: Identifier for the protocol
+        timeout_secs: Timeout in seconds for protocol execution
+        quick_mode: If True, only check imports and basic structure without running
+    """
     try:
         mod = __import__(module_path, fromlist=[protocol_id])
 
         # Check run_protocol_main exists
         if not hasattr(mod, "run_protocol_main"):
             return {"status": "MISSING_MAIN", "message": "No run_protocol_main()"}
+
+        # In quick mode, just verify the function exists without running
+        if quick_mode:
+            return {
+                "status": "OK",
+                "predictions": "quick_check",
+                "completion": "N/A (quick mode)",
+                "data_source": "quick_mode",
+                "note": "Quick mode - protocol not executed",
+            }
 
         # Try to run it (with timeout)
         try:
@@ -122,9 +142,15 @@ def check_protocol(module_path: str, protocol_id: str, timeout_secs: int = 30) -
 
 def main():
     """Run verification."""
+    # Check for test mode (quick check without full execution)
+    test_mode = os.environ.get("APGI_TEST_MODE", "").lower() in ("1", "true", "yes")
+
     print("=" * 80)
     print("APGI FRAMEWORK IMPLEMENTATION STATUS")
     print("=" * 80)
+
+    if test_mode:
+        print("\n[TEST MODE ENABLED - Quick check only, protocols not executed]\n")
 
     fp_protocols = [
         ("Falsification.FP_01_ActiveInference", "FP_01_ActiveInference"),
@@ -228,7 +254,9 @@ def main():
 
     fp_ok = 0
     for module_path, protocol_id in fp_protocols:
-        result = check_protocol(module_path, protocol_id, timeout_secs=5)
+        result = check_protocol(
+            module_path, protocol_id, timeout_secs=5, quick_mode=test_mode
+        )
         status = result["status"]
 
         if status == "OK":
@@ -247,7 +275,9 @@ def main():
 
     vp_ok = 0
     for module_path, protocol_id in vp_protocols:
-        result = check_protocol(module_path, protocol_id, timeout_secs=5)
+        result = check_protocol(
+            module_path, protocol_id, timeout_secs=5, quick_mode=test_mode
+        )
         status = result["status"]
 
         if status == "OK":

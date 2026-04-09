@@ -624,20 +624,20 @@ def bootstrap_ci(
     """
     data_arr = validate_sample_array(data, min_n=2, name="data")
 
-    bootstrap_stats = []
+    bootstrap_stats_list = []
     for _ in range(n_bootstrap):
         sample = np.random.choice(data_arr, size=len(data_arr), replace=True)
 
         if statistic == "mean":
-            bootstrap_stats.append(np.mean(sample))
+            bootstrap_stats_list.append(np.mean(sample))
         elif statistic == "median":
-            bootstrap_stats.append(np.median(sample))
+            bootstrap_stats_list.append(np.median(sample))
         elif statistic == "std":
-            bootstrap_stats.append(np.std(sample, ddof=1))
+            bootstrap_stats_list.append(np.std(sample, ddof=1))
         else:
-            bootstrap_stats.append(np.mean(sample))
+            bootstrap_stats_list.append(np.mean(sample))
 
-    bootstrap_stats = np.array(bootstrap_stats)
+    bootstrap_stats = np.array(bootstrap_stats_list)
 
     if statistic == "mean":
         stat_value = np.mean(data_arr)
@@ -678,13 +678,13 @@ def bootstrap_one_sample_test(
         return 0.0, 1.0
 
     observed_mean = np.mean(data_arr)
-    bootstrap_means = []
+    bootstrap_means_list = []
 
     for _ in range(n_bootstrap):
         sample = np.random.choice(data_arr, size=len(data_arr), replace=True)
-        bootstrap_means.append(np.mean(sample))
+        bootstrap_means_list.append(np.mean(sample))
 
-    bootstrap_means = np.array(bootstrap_means)
+    bootstrap_means = np.array(bootstrap_means_list)
 
     # Two-sided p-value
     if observed_mean >= null_value:
@@ -744,7 +744,7 @@ def permutation_test(
         observed = np.mean(x_arr) - np.mean(y_arr)
 
     # Permutation distribution
-    perm_stats = []
+    perm_stats_list = []
     for _ in range(n_permutations):
         np.random.shuffle(combined)
         perm_x = combined[:n_x]
@@ -759,9 +759,9 @@ def permutation_test(
         else:
             perm_stat = np.mean(perm_x) - np.mean(perm_y)
 
-        perm_stats.append(perm_stat)
+        perm_stats_list.append(perm_stat)
 
-    perm_stats = np.array(perm_stats)
+    perm_stats = np.array(perm_stats_list)
 
     # Two-sided p-value
     p_value = np.mean(np.abs(perm_stats) >= np.abs(observed))

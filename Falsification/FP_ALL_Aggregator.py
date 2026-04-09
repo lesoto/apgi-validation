@@ -25,10 +25,10 @@ import numpy as np
 try:
     from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
 except ImportError:
-    # Fallback if schema not available
-    ProtocolResult = None
-    PredictionResult = None
-    PredictionStatus = None
+    # Fallback if schema not available - use type: ignore to suppress redefinition errors
+    ProtocolResult = None  # type: ignore[misc]
+    PredictionResult = None  # type: ignore[misc]
+    PredictionStatus = None  # type: ignore[misc]
 
 # FP-12 Fix 3: Import APGI_IGNITION_THRESHOLD for GNWT predictions
 try:
@@ -407,7 +407,7 @@ def generate_baseline_predictions(
     # Baseline BIC values derived from theoretical fit (not optimized)
     # GWT: Simpler global threshold model, fewer parameters
     # IIT: Complex integrated information calculations, more parameters
-    baseline = {
+    baseline: Dict[str, Dict[str, Any]] = {
         "GWT": {
             "bic": 150.0,  # Lower due to fewer parameters (just global threshold)
             "framework": "Global Workspace Theory",
@@ -424,8 +424,8 @@ def generate_baseline_predictions(
 
     # Add data source penalty: empirical data has higher fit
     if data_source == "empirical":
-        baseline["GWT"]["bic"] *= 0.95
-        baseline["IIT"]["bic"] *= 0.92
+        baseline["GWT"]["bic"] = float(baseline["GWT"]["bic"]) * 0.95
+        baseline["IIT"]["bic"] = float(baseline["IIT"]["bic"]) * 0.92
 
     return baseline
 
@@ -1259,11 +1259,41 @@ class FalsificationAggregator:
         threshold_b: ΔBIC threshold for Condition B parsimony comparison
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the falsification aggregator."""
         self.named_predictions = NAMED_PREDICTIONS
         self.threshold_a = FRAMEWORK_FALSIFICATION_THRESHOLD_A
         self.threshold_b = ALTERNATIVE_PARSIMONY_THRESHOLD_B
+        self.protocols: Dict[str, Dict[str, Any]] = {}
+
+    def add_protocol(self, protocol_id: str, data: Dict[str, Any]) -> None:
+        """Add a protocol result to the aggregator.
+
+        Args:
+            protocol_id: Unique identifier for the protocol
+            data: Dictionary containing protocol results
+        """
+        self.protocols[protocol_id] = data
+
+    def generate_text_report(self) -> str:
+        """Generate a text report of all aggregated results.
+
+        Returns:
+            str: Formatted report string
+        """
+        lines = ["Falsification Aggregation Report", "=" * 40, ""]
+
+        if not self.protocols:
+            lines.append("No protocols registered.")
+            return "\n".join(lines)
+
+        for protocol_id, data in self.protocols.items():
+            lines.append(f"Protocol: {protocol_id}")
+            for key, value in data.items():
+                lines.append(f"  {key}: {value}")
+            lines.append("")
+
+        return "\n".join(lines)
 
     def aggregate_results(self, results_input) -> dict:
         """Aggregate prediction results from all protocols.
@@ -1415,19 +1445,24 @@ class FalsificationAggregator:
                 "fp11_f6_results": fp11_f6,
             }
 
-    def generate_report(self, results_input) -> str:
+    def generate_report(self, results_input=None) -> str:
         """Generate human-readable falsification report.
 
         **GAP 9 FIX**: Convenience method to run analysis and generate report.
 
         Args:
-            results_input: Results from all falsification protocols
+            results_input: Results from all falsification protocols (optional).
+                         If not provided, uses protocols added via add_protocol().
 
         Returns:
             str: Formatted falsification report
         """
-        results = self.run_full_analysis(results_input)
-        return generate_framework_falsification_report(results)
+        if results_input is not None:
+            results = self.run_full_analysis(results_input)
+            return generate_framework_falsification_report(results)
+        else:
+            # Use protocols dict for simple text report
+            return self.generate_text_report()
 
     def run_full_analysis(self, results_input) -> dict:
         """Run complete framework falsification analysis.

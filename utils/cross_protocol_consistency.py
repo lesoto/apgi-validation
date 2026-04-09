@@ -24,7 +24,7 @@ class CrossProtocolConsistencyChecker:
     - Data processing pipelines are consistent
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.consistency_results: Dict[str, Any] = {}
         self.protocol_results: Dict[str, Dict] = {}
 
@@ -46,7 +46,7 @@ class CrossProtocolConsistencyChecker:
         Returns:
             Dictionary with consistency check results
         """
-        consistency_results = {
+        consistency_results: Dict[str, Any] = {
             "criteria_consistency": {},
             "inconsistencies_found": [],
             "overall_consistency_score": 0.0,
@@ -82,7 +82,7 @@ class CrossProtocolConsistencyChecker:
         ]
 
         # Collect criteria values from all protocols
-        criteria_values = {}
+        criteria_values: Dict[str, Dict[str, Any]] = {}
         for criterion in shared_criteria:
             criteria_values[criterion] = {}
 
@@ -144,7 +144,7 @@ class CrossProtocolConsistencyChecker:
             if criterion_consistent:
                 consistent_count += 1
             else:
-                inconsistency = {
+                inconsistency: Dict[str, Any] = {
                     "criterion": criterion,
                     "issue": "Inconsistent results",
                     "protocols": protocols_with_criterion,
@@ -178,7 +178,7 @@ class CrossProtocolConsistencyChecker:
         Returns:
             Dictionary with parameter consistency results
         """
-        parameter_results = {
+        parameter_results: Dict[str, Any] = {
             "parameter_consistency": {},
             "inconsistencies_found": [],
             "overall_consistency_score": 0.0,
@@ -194,7 +194,7 @@ class CrossProtocolConsistencyChecker:
         ]
 
         # Collect parameter estimates from all protocols
-        parameter_values = {}
+        parameter_values: Dict[str, Dict[str, Any]] = {}
         for param in key_parameters:
             parameter_values[param] = {}
 
@@ -265,7 +265,7 @@ class CrossProtocolConsistencyChecker:
             if param_consistent:
                 consistent_count += 1
             else:
-                inconsistency = {
+                inconsistency: Dict[str, Any] = {
                     "parameter": param,
                     "issue": "Inconsistent parameter estimate",
                     "protocols": protocols_with_param,
@@ -302,7 +302,7 @@ class CrossProtocolConsistencyChecker:
         Returns:
             Dictionary with threshold consistency results
         """
-        threshold_results = {
+        threshold_results: Dict[str, Any] = {
             "threshold_consistency": {},
             "inconsistencies_found": [],
             "overall_consistency_score": 0.0,
@@ -318,7 +318,7 @@ class CrossProtocolConsistencyChecker:
         }
 
         # Collect threshold values from all protocols
-        threshold_values = {}
+        threshold_values: Dict[str, Dict[str, Any]] = {}
         for threshold, target_value in key_thresholds.items():
             threshold_values[threshold] = {}
 
@@ -437,7 +437,7 @@ class CrossProtocolConsistencyChecker:
         """
         logger.info("Generating cross-protocol consistency report")
 
-        report = {
+        report: Dict[str, Any] = {
             "protocol_count": len(self.protocol_results),
             "criteria_consistency": self.verify_falsification_criteria_consistency(),
             "parameter_consistency": self.verify_parameter_consistency(),
@@ -632,7 +632,7 @@ def validate_cross_protocol_coupling(
     Returns:
         Dictionary with all coupling validation results
     """
-    coupling_results = {
+    coupling_results: Dict[str, Any] = {
         "coupling_checks": [],
         "total_checks": 0,
         "passed_checks": 0,

@@ -2565,29 +2565,29 @@ class ColdPressorTest:
                 "sbp_mmhg": 120 + sbp_increase,
                 "spo2_percent": 98 - 2 * pain_rating,  # Mild desaturation
             }
-            results["cardiovascular_responses"].append(cardiovascular_response)
+            results["cardiovascular_responses"].append(cardiovascular_response)  # type: ignore[attr-defined]
 
             # Check safety criteria
             if cardiovascular_response["hr_bpm"] > self.safety_criteria["max_hr_bpm"]:
-                results["safety_violations"].append(
+                results["safety_violations"].append(  # type: ignore[attr-defined]
                     f"HR exceeded: {cardiovascular_response['hr_bpm']}"
                 )
             if (
                 cardiovascular_response["sbp_mmhg"]
                 > self.safety_criteria["max_sbp_mmhg"]
             ):
-                results["safety_violations"].append(
+                results["safety_violations"].append(  # type: ignore[attr-defined]
                     f"SBP exceeded: {cardiovascular_response['sbp_mmhg']}"
                 )
             if (
                 cardiovascular_response["spo2_percent"]
                 < self.safety_criteria["min_spo2_percent"]
             ):
-                results["safety_violations"].append(
+                results["safety_violations"].append(  # type: ignore[attr-defined]
                     f"SpO2 too low: {cardiovascular_response['spo2_percent']}"
                 )
 
-            if len(results["safety_violations"]) > 0:
+            if len(results["safety_violations"]) > 0:  # type: ignore[arg-type]
                 break  # Stop for safety
 
             results["duration_s"] = t

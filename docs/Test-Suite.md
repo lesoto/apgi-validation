@@ -79,6 +79,46 @@ python -m tests.comprehensive.runner --all --fail-fast
 python -m tests.comprehensive.runner --all --output ./my-reports
 ```
 
+
+### Quick Test Run
+
+```bash
+# Run all tests with basic output
+make test
+
+# Run specific test file
+python -m pytest tests/test_basic.py -v
+
+# Run with coverage
+python -m pytest tests/ --cov=. --cov-report=term
+```
+
+### Full Test Suite
+
+```bash
+# Run full test suite with all coverage reports
+python -m pytest tests/ \
+    --cov=. \
+    --cov-report=html \
+    --cov-report=xml \
+    --cov-report=term-missing \
+    --cov-fail-under=100
+```
+
+```bash
+# Run only unit tests
+python -m pytest tests/ -m unit
+
+# Run only integration tests
+python -m pytest tests/ -m integration
+
+# Run only slow tests
+python -m pytest tests/ -m slow
+
+# Skip slow tests
+python -m pytest tests/ -m "not slow"
+```
+
 ## Test Categories
 
 ### 1. Unit Tests (`__init__.py`)

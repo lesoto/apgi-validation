@@ -126,7 +126,7 @@ except ImportError:
             def to_dict(self, *args, **kwargs):
                 return self.data
 
-    pd = _PdStub()
+    pd_stub = _PdStub()
 
 try:
     from utils.logging_config import apgi_logger

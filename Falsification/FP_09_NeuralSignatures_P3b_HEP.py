@@ -8,7 +8,7 @@ Per Step 1.6 - Implement FP-9 real EEG signal processing.
 
 import logging
 import numpy as np
-from typing import Dict, Any, List, Tuple, Optional, Union
+from typing import Dict, Any, List, Tuple, Optional, Union, cast
 from scipy import signal
 from scipy import stats
 from pathlib import Path
@@ -58,10 +58,10 @@ def compute_band_power(
     band_psd = psd[freq_mask]
 
     # Integrate power over frequency band using Simpson's rule
-    band_power = simps(band_psd, band_freqs)
+    band_power = float(simps(band_psd, band_freqs))
 
     # Baseline correction if specified
-    if baseline_window is not None:
+    if baseline_window is None:
         baseline_power = 0.0
         threshold = FalsificationThresholds.GAMMA_MIN_POWER
     else:
@@ -76,7 +76,7 @@ def compute_band_power(
             # Compute baseline power in same frequency band
             _, baseline_psd = signal.welch(baseline_data, fs=fs)
             baseline_band_psd = baseline_psd[freq_mask]
-            baseline_power = simps(baseline_band_psd, band_freqs)
+            baseline_power = float(simps(baseline_band_psd, band_freqs))
         else:
             baseline_power = 0.0
 
@@ -185,18 +185,25 @@ def detect_ecg_r_peaks(
             results["method_used"] = "scipy_find_peaks"
 
         # Calculate heart rate and detection quality
-        if len(results["r_peak_indices"]) >= 2:
-            rr_intervals = np.diff(results["r_peak_times"])
-            mean_rr = np.mean(rr_intervals)
+        r_peak_indices = results["r_peak_indices"]
+        if isinstance(r_peak_indices, list) and len(r_peak_indices) >= 2:
+            r_peak_times = cast(Union[List[float], np.ndarray], results["r_peak_times"])
+            rr_intervals = (
+                np.diff(r_peak_times)
+                if isinstance(r_peak_times, (list, np.ndarray))
+                else np.diff(list(cast(List[float], r_peak_times)))
+            )
+            mean_rr = float(np.mean(rr_intervals))
             results["heart_rate_bpm"] = 60.0 / mean_rr if mean_rr > 0 else 0.0
 
             # Detection quality: coefficient of variation of RR intervals
             # Lower CV = more regular = better quality
-            cv_rr = np.std(rr_intervals) / mean_rr if mean_rr > 0 else 1.0
+            cv_rr = float(np.std(rr_intervals)) / mean_rr if mean_rr > 0 else 1.0
             results["detection_quality"] = max(0.0, 1.0 - cv_rr)
 
+            r_peak_indices_count = len(cast(List[int], results["r_peak_indices"]))
             logger.info(
-                f"ECG R-peak detection: {len(results['r_peak_indices'])} peaks found, "
+                f"ECG R-peak detection: {r_peak_indices_count} peaks found, "
                 f"HR={results['heart_rate_bpm']:.1f} BPM, quality={results['detection_quality']:.2f}"
             )
         else:
@@ -466,7 +473,7 @@ def detect_gamma_oscillation(
         # )
 
         # Calculate p-value against surrogate distribution
-        p_value = np.sum(perm_powers >= gamma_power) / n_permutations
+        p_value = np.sum(np.array(perm_powers) >= gamma_power) / n_permutations
 
         # Calculate effect size (Cohen's d)
         perm_mean = np.mean(perm_powers)
@@ -485,7 +492,7 @@ def detect_gamma_oscillation(
         )
 
         # Determine significance and falsification status
-        significant = p_value < FalsificationThresholds.ALPHA_LEVEL
+        significant = bool(p_value < FalsificationThresholds.ALPHA_LEVEL)
         meets_threshold = normalized_gamma >= threshold
         falsification_passed = meets_threshold and significant and effect_size_valid
 
@@ -504,7 +511,16 @@ def detect_gamma_oscillation(
 
     except Exception as e:
         logger.error(f"FP-09 P1.1 failed: {e}")
-        return {"passed": False, "status": "ERROR", "reason": str(e)}
+        return NeuralSignatureResult(
+            prediction_id=prediction_id,
+            metric_name=metric_name,
+            value=0.0,
+            threshold=FalsificationThresholds.GAMMA_MIN_POWER,
+            significant=False,
+            p_value=1.0,
+            description=f"Error in gamma analysis: {str(e)}",
+            falsification_passed=False,
+        )
 
 
 def detect_theta_gamma_pac(
@@ -584,21 +600,21 @@ def detect_theta_gamma_pac(
         )  # Ensure valid indices
 
         # Calculate mean amplitude for each phase bin
-        mean_amplitudes = []
+        mean_amplitudes: List[float] = []
         for i in range(n_bins):
             mask = phase_bin_indices == i
             if np.any(mask):
-                mean_amp = np.mean(gamma_envelope[mask])
+                mean_amp = float(np.mean(gamma_envelope[mask]))
                 mean_amplitudes.append(mean_amp)
             else:
                 mean_amplitudes.append(0.0)
 
-        mean_amplitudes = np.array(mean_amplitudes)
+        mean_amplitudes_arr = np.array(mean_amplitudes)
 
         # Normalize to sum to 1
-        total = np.sum(mean_amplitudes)
+        total = np.sum(mean_amplitudes_arr)
         if total > 0:
-            normalized_amplitudes = mean_amplitudes / total
+            normalized_amplitudes = mean_amplitudes_arr / total
         else:
             normalized_amplitudes = np.ones(n_bins) / n_bins
 
@@ -630,19 +646,19 @@ def detect_theta_gamma_pac(
             shifted_envelope = np.roll(gamma_envelope, shift_amount)
 
             # Calculate MI for shifted (surrogate) data
-            surr_mean_amps = []
+            surr_mean_amps: List[float] = []
             for j in range(n_bins):
                 mask = phase_bin_indices == j
                 if np.any(mask):
-                    surr_mean_amp = np.mean(shifted_envelope[mask])
+                    surr_mean_amp = float(np.mean(shifted_envelope[mask]))
                     surr_mean_amps.append(surr_mean_amp)
                 else:
                     surr_mean_amps.append(0.0)
 
-            surr_mean_amps = np.array(surr_mean_amps)
-            surr_total = np.sum(surr_mean_amps)
+            surr_mean_amps_arr = np.array(surr_mean_amps)
+            surr_total = np.sum(surr_mean_amps_arr)
             if surr_total > 0:
-                surr_normalized = surr_mean_amps / surr_total
+                surr_normalized = surr_mean_amps_arr / surr_total
             else:
                 surr_normalized = np.ones(n_bins) / n_bins
 
@@ -653,22 +669,22 @@ def detect_theta_gamma_pac(
             surr_mi = float(max(0.0, surr_kl / np.log(n_bins)))
             surrogate_mi_values.append(surr_mi)
 
-        surrogate_mi_values = np.array(surrogate_mi_values)
+        surrogate_mi_values_arr = np.array(surrogate_mi_values)
 
         # Calculate p-value against surrogate distribution
-        surr_mean = np.mean(surrogate_mi_values)
-        surr_std = np.std(surrogate_mi_values)
+        surr_mean = np.mean(surrogate_mi_values_arr)
+        surr_std = np.std(surrogate_mi_values_arr)
 
         # Calculate effect size (Cohen's d) against surrogate distribution
         cohens_d = (modulation_index - surr_mean) / surr_std if surr_std > 0 else 0.0
         effect_size = float(cohens_d)
 
         # Calculate surrogate 95th percentile for Canolty criterion
-        surrogate_95th = np.percentile(surrogate_mi_values, 95)
+        surrogate_95th = float(np.percentile(surrogate_mi_values_arr, 95))
 
         # Calculate p-value using surrogate distribution
-        p_value_surrogate = (
-            np.sum(surrogate_mi_values >= modulation_index) / n_surrogates
+        p_value_surrogate = float(
+            np.sum(surrogate_mi_values_arr >= modulation_index) / n_surrogates
         )
 
         # Calculate confidence interval using surrogate distribution
@@ -691,7 +707,7 @@ def detect_theta_gamma_pac(
             # 1. MI exceeds threshold
             # 2. MI exceeds 95th percentile of surrogate distribution (Canolty criterion)
             # 3. Effect size is valid
-            falsification_passed = (
+            falsification_passed = bool(
                 meets_threshold and exceeds_surrogate_95th and effect_size_valid
             )
 
@@ -722,7 +738,16 @@ def detect_theta_gamma_pac(
 
     except Exception as e:
         logger.error(f"FP-09 P1.2 failed: {e}")
-        return {"passed": False, "status": "ERROR", "reason": str(e)}
+        return NeuralSignatureResult(
+            prediction_id=prediction_id,
+            metric_name=metric_name,
+            value=0.0,
+            threshold=threshold,
+            significant=False,
+            p_value=1.0,
+            description=f"Error in PAC analysis: {str(e)}",
+            falsification_passed=False,
+        )
 
 
 def detect_hep_amplitude(
@@ -871,7 +896,16 @@ def detect_hep_amplitude(
 
     except Exception as e:
         logger.error(f"FP-09 P2.a failed: {e}")
-        return {"passed": False, "status": "ERROR", "reason": str(e)}
+        return NeuralSignatureResult(
+            prediction_id=prediction_id,
+            metric_name=metric_name,
+            value=0.0,
+            threshold=threshold,
+            significant=False,
+            p_value=1.0,
+            description=f"Error in HEP analysis: {str(e)}",
+            falsification_passed=False,
+        )
 
 
 def detect_p3b_amplitude_from_literature(
@@ -1256,7 +1290,7 @@ def tms_double_dissociation_test(
         # Statistical significance test
         # Use permutation test to assess if dissociation is significant
         n_permutations = 1000
-        null_distributions = []
+        null_distributions: List[float] = []
 
         for _ in range(n_permutations):
             # Randomly shuffle data between conditions
@@ -1279,25 +1313,29 @@ def tms_double_dissociation_test(
             )
             null_distributions.append(perm_diff)
 
-        null_distributions = np.array(null_distributions)
-        p_value = np.sum(null_distributions >= weighted_dissociation) / n_permutations
+        null_distributions_arr = np.array(null_distributions)
+        p_value = (
+            np.sum(null_distributions_arr >= weighted_dissociation) / n_permutations
+        )
 
         # Calculate overall effect size
         overall_effect_size = np.mean(list(effect_sizes.values()))
 
         # Confidence interval for dissociation metric
-        ci_lower = np.percentile(null_distributions, 2.5)
-        ci_upper = np.percentile(null_distributions, 97.5)
+        ci_lower = float(np.percentile(null_distributions_arr, 2.5))
+        ci_upper = float(np.percentile(null_distributions_arr, 97.5))
         confidence_interval = (ci_lower, ci_upper)
 
         # Determine significance and falsification status
-        significant = p_value < FalsificationThresholds.ALPHA_LEVEL
-        meets_threshold = weighted_dissociation >= threshold
-        effect_size_valid = (
+        significant = bool(p_value < FalsificationThresholds.ALPHA_LEVEL)
+        meets_threshold = bool(weighted_dissociation >= threshold)
+        effect_size_valid = bool(
             overall_effect_size >= FalsificationThresholds.MIN_EFFECT_SIZE
         )
 
-        falsification_passed = significant and meets_threshold and effect_size_valid
+        falsification_passed = bool(
+            significant and meets_threshold and effect_size_valid
+        )
 
         # Create detailed description
         description_parts = [
@@ -1324,7 +1362,16 @@ def tms_double_dissociation_test(
 
     except Exception as e:
         logger.error(f"FP-09 P2.b failed: {e}")
-        return {"passed": False, "status": "ERROR", "reason": str(e)}
+        return NeuralSignatureResult(
+            prediction_id=prediction_id,
+            metric_name=metric_name,
+            value=0.0,
+            threshold=threshold,
+            significant=False,
+            p_value=1.0,
+            description=f"Error in TMS dissociation analysis: {str(e)}",
+            falsification_passed=False,
+        )
 
 
 def frequency_specific_power_analysis(
@@ -1422,7 +1469,7 @@ def frequency_specific_power_analysis(
                 perm_band_power = simps(perm_band_psd, band_freqs)
                 perm_powers.append(perm_band_power)
 
-            p_value = np.sum(perm_powers >= band_power) / n_permutations
+            p_value = np.sum(np.array(perm_powers) >= band_power) / n_permutations
 
             # Calculate effect size
             perm_mean = np.mean(perm_powers)
@@ -1459,7 +1506,8 @@ def frequency_specific_power_analysis(
 
     except Exception as e:
         logger.error(f"FP-09 frequency_power failed: {e}")
-        return {"passed": False, "status": "ERROR", "reason": str(e)}
+        # Return empty dict on error to satisfy return type
+        return {}
 
     return results
 
@@ -1530,7 +1578,7 @@ def mne_compatible_analysis(
                 falsification_passed=False,
             )
 
-    results = {
+    results: Dict[str, Any] = {
         "mne_available": MNE_AVAILABLE,
         "analysis_type": analysis_type,
         "results": {},
@@ -1983,17 +2031,26 @@ def pci_hep_joint_auc_classification(
             metric_name=metric_name,
             value=float(auc),
             threshold=threshold,
-            significant=significant,
+            significant=bool(significant),
             effect_size=float(effect_size),
             confidence_interval=confidence_interval,
             p_value=float(p_value),
             description=f"PCI+HEP joint AUC for DoC classification: {auc:.3f}",
-            falsification_passed=falsification_passed,
+            falsification_passed=bool(falsification_passed),
         )
 
     except Exception as e:
         logger.error(f"FP-09 P4.a failed: {e}")
-        return {"passed": False, "status": "ERROR", "reason": str(e)}
+        return NeuralSignatureResult(
+            prediction_id=PaperPrediction.P4_A.value,
+            metric_name="pci_hep_auc_doc",
+            value=0.0,
+            threshold=0.80,
+            significant=False,
+            p_value=1.0,
+            description=f"Error: {str(e)}",
+            falsification_passed=False,
+        )
 
 
 def dmn_connectivity_specificity(
@@ -2108,7 +2165,15 @@ def dmn_connectivity_specificity(
 
     except Exception as e:
         logger.error(f"FP-09 P4.b failed: {e}")
-        return {"passed": False, "status": "ERROR", "reason": str(e)}
+        return NeuralSignatureResult(
+            prediction_id=PaperPrediction.P4_B.value,
+            metric_name="dmn_connectivity_specificity",
+            value=0.0,
+            threshold=0.0,
+            significant=False,
+            p_value=1.0,
+            description=f"Error: {str(e)}",
+        )
 
 
 def cold_pressor_pci_response(
@@ -2267,7 +2332,15 @@ def cold_pressor_pci_response(
 
     except Exception as e:
         logger.error(f"FP-09 P4.c failed: {e}")
-        return {"passed": False, "status": "ERROR", "reason": str(e)}
+        return NeuralSignatureResult(
+            prediction_id=PaperPrediction.P4_C.value,
+            metric_name="cold_pressor_pci_response",
+            value=0.0,
+            threshold=0.10,
+            significant=False,
+            p_value=1.0,
+            description=f"Error: {str(e)}",
+        )
 
 
 def baseline_recovery_prediction(
@@ -2367,7 +2440,7 @@ def baseline_recovery_prediction(
         if SKLEARN_AVAILABLE and len(pci_baseline) >= 10:
             # Use RepeatedKFold for robust cross-validation
             rkf = RepeatedKFold(n_splits=5, n_repeats=10, random_state=42)
-            fold_r2_scores = []
+            fold_r2_scores: List[float] = []
 
             X_features = np.column_stack([pci_norm, hep_norm])
 
@@ -2386,9 +2459,9 @@ def baseline_recovery_prediction(
                 fold_r2 = r2_score(y_test, y_pred_fold)
                 fold_r2_scores.append(fold_r2)
 
-            fold_r2_scores = np.array(fold_r2_scores)
-            r_squared_mean = np.mean(fold_r2_scores)
-            r_squared_std = np.std(fold_r2_scores)
+            fold_r2_arr = np.array(fold_r2_scores)
+            r_squared_mean = float(np.mean(fold_r2_arr))
+            r_squared_std = float(np.std(fold_r2_arr))
             r_squared = r_squared_mean  # Use mean R² as primary metric
         else:
             # Fallback to single split if sklearn not available or insufficient data
@@ -2461,7 +2534,9 @@ def baseline_recovery_prediction(
         meets_threshold = r_squared >= threshold
         effect_size_valid = effect_size >= FalsificationThresholds.MIN_EFFECT_SIZE
 
-        falsification_passed = meets_threshold and significant and effect_size_valid
+        falsification_passed = bool(
+            meets_threshold and significant and effect_size_valid
+        )
 
         # Report mean ± SD of R² when using RepeatedKFold
         if SKLEARN_AVAILABLE and len(pci_baseline) >= 10:
@@ -2474,17 +2549,25 @@ def baseline_recovery_prediction(
             metric_name=metric_name,
             value=float(r_squared),
             threshold=threshold,
-            significant=significant,
+            significant=bool(significant),
             effect_size=float(effect_size),
             confidence_interval=confidence_interval,
             p_value=float(p_value),
             description=r2_description,
-            falsification_passed=falsification_passed,
+            falsification_passed=bool(falsification_passed),
         )
 
     except Exception as e:
         logger.error(f"FP-09 P4.d failed: {e}")
-        return {"passed": False, "status": "ERROR", "reason": str(e)}
+        return NeuralSignatureResult(
+            prediction_id=PaperPrediction.P4_D.value,
+            metric_name="baseline_recovery_prediction",
+            value=0.0,
+            threshold=0.10,
+            significant=False,
+            p_value=1.0,
+            description=f"Error: {str(e)}",
+        )
 
 
 class NeuralSignatureValidator:
@@ -2527,7 +2610,7 @@ class NeuralSignatureValidator:
             data = self._generate_synthetic_data()
 
         data_source = "synthetic" if data is None else "provided"
-        results = {
+        results: Dict[str, Any] = {
             "protocol": "FP-9",
             "named_predictions": {},
             "metadata": {
@@ -2892,7 +2975,8 @@ def comprehensive_validation_framework(
         actual_fs = fs
         channels = ["EEG001"]
 
-    results = {
+    # Explicitly type the results dictionary
+    results: Dict[str, Any] = {
         "validation_summary": {
             "total_predictions": 0,
             "passed_predictions": 0,
@@ -2958,7 +3042,7 @@ def comprehensive_validation_framework(
             theta_power = power_results.get("theta")
             if gamma_power and theta_power:
                 cross_freq_metric = gamma_power.value / (theta_power.value + 1e-10)
-                significant = gamma_power.significant and theta_power.significant
+                significant = bool(gamma_power.significant and theta_power.significant)
                 meets_threshold = cross_freq_metric >= 0.3
                 falsification_passed = meets_threshold and significant
                 cross_freq_result = NeuralSignatureResult(
@@ -2992,10 +3076,12 @@ def comprehensive_validation_framework(
                     metric_name="consciousness_integration",
                     value=float(avg_falsification),
                     threshold=0.5,  # 50% of markers should pass (more lenient)
-                    significant=avg_significance > 0.5,
-                    effect_size=np.mean([r.effect_size or 0 for r in core_results]),
+                    significant=bool(avg_significance > 0.5),
+                    effect_size=float(
+                        np.mean([r.effect_size or 0 for r in core_results])
+                    ),
                     description=f"Integrated consciousness markers: {avg_falsification:.2f} passed",
-                    falsification_passed=avg_falsification >= 0.5,
+                    falsification_passed=bool(avg_falsification >= 0.5),
                 )
                 results["prediction_results"]["P3.1"] = integration_result
 
@@ -3348,9 +3434,9 @@ def detect_neural_signatures(
         else:
             signature_scores[marker] = {
                 "score": 0.0,
-                "significant": False,
-                "falsification_passed": False,
-                "error": f"Unknown marker: {marker}",
+                "significant": bool(False),
+                "falsification_passed": bool(False),
+                "error_code": 1.0,  # Error indicator as float
             }
 
     return signature_scores

@@ -189,7 +189,7 @@ class UtilsRunnerGUI:
             pass  # Use default tk icon
 
     def _create_menu_bar(self) -> None:
-        """Create menu bar for consistency with Tests-GUI."""
+        """Create menu bar for consistency with GUI-Utils."""
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
         # File menu

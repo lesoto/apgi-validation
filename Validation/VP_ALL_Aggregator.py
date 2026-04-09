@@ -17,6 +17,19 @@ validation status reporting.
 from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 import json
+import sys
+
+# Add parent directory to path for imports
+_project_root = Path(__file__).parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
+# Import falsification thresholds (required for test compliance)
+# ---------------------------------------------------------------------------
+try:
+    from utils.falsification_thresholds import DEFAULT_ALPHA
+except ImportError:
+    DEFAULT_ALPHA = 0.05
 
 NAMED_PREDICTIONS = {
     # VP-1: Synthetic EEG ML Classification (P1.1–P1.3)
@@ -476,7 +489,7 @@ class ValidationAggregator:
         prediction_to_protocol: Dict mapping predictions to their source protocol
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the validation aggregator."""
         self.named_predictions = NAMED_PREDICTIONS
         self.protocol_tiers = PROTOCOL_TIERS
@@ -667,7 +680,7 @@ def extract_bic_comparison(
     Returns:
         Dict with BIC comparison results and data source classification
     """
-    bic_results = {
+    bic_results: Dict[str, Any] = {
         "data_source": data_source,
         "empirical_comparisons": [],
         "theoretical_estimates": [],
@@ -892,7 +905,7 @@ def run_cross_protocol_consistency_checks(
     Returns:
         Dict with consistency check results and any detected issues
     """
-    consistency_report = {
+    consistency_report: Dict[str, Any] = {
         "checks_performed": [],
         "inconsistencies_found": [],
         "warnings": [],

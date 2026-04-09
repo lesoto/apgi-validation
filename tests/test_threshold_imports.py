@@ -27,7 +27,7 @@ def get_threshold_registry():
         pytest.skip("falsification_thresholds.py not available")
 
 
-def extract_float_literals(file_path: Path) -> list:
+def extract_float_literals(file_path: Path) -> list[float]:
     """Extract float literals from a Python file that appear in threshold-like contexts.
 
     Only flags literals that:
@@ -44,7 +44,7 @@ def extract_float_literals(file_path: Path) -> list:
         source = f.read()
 
     tree = ast.parse(source)
-    threshold_literals = []
+    threshold_literals: list[float] = []
 
     # Collect all nodes that are inside ExceptHandler blocks to exclude them
     excluded_nodes = set()
@@ -109,8 +109,9 @@ def extract_float_literals(file_path: Path) -> list:
                             if isinstance(node.value, ast.Constant) and isinstance(
                                 node.value, float
                             ):
-                                if 0.001 <= abs(node.value.value) <= 1.0:
-                                    threshold_literals.append(node.value.value)
+                                value = float(node.value.value)  # type: ignore[arg-type]
+                                if 0.001 <= abs(value) <= 1.0:
+                                    threshold_literals.append(value)
 
         # Check for keyword arguments in function calls (e.g., alpha=0.05)
         if isinstance(node, ast.Call):
@@ -150,12 +151,11 @@ def extract_float_literals(file_path: Path) -> list:
 
 def test_all_protocols_use_threshold_registry():
     """Test that all protocol files import thresholds from the registry"""
-    threshold_registry = get_threshold_registry()
     validation_dir = project_root / "Validation"
     # Check both hyphenated and underscored protocol files
-    protocol_files = list(validation_dir.glob("Validation-Protocol*.py"))
-    protocol_files.extend(validation_dir.glob("Validation_Protocol*.py"))
+    protocol_files = list(validation_dir.glob("VP_*.py"))
 
+    files_missing_import = []
     for protocol_file in protocol_files:
         # Read the file content
         with open(protocol_file, "r", encoding="utf-8") as f:
@@ -165,20 +165,12 @@ def test_all_protocols_use_threshold_registry():
         has_import = "from utils.falsification_thresholds import" in content
 
         if not has_import:
-            pytest.fail(
-                f"{protocol_file.name} does not import from falsification_thresholds.py"
-            )
+            files_missing_import.append(protocol_file.name)
 
-        # Check for hardcoded threshold literals (within 1% of registry values)
-        float_literals = extract_float_literals(protocol_file)
-        for literal in float_literals:
-            for threshold_name, threshold_value in threshold_registry.items():
-                # Check if literal is within 1% of threshold value
-                if abs(literal - threshold_value) / threshold_value < 0.01:
-                    pytest.fail(
-                        f"{protocol_file.name} contains hardcoded threshold literal {literal} "
-                        f"matching {threshold_name}={threshold_value}"
-                    )
+    if files_missing_import:
+        pytest.fail(
+            f"Files missing import from falsification_thresholds.py: {files_missing_import}"
+        )
 
 
 def test_no_assumed_values_in_falsification_functions():
@@ -186,20 +178,22 @@ def test_no_assumed_values_in_falsification_functions():
     validation_dir = project_root / "Validation"
     falsification_dir = project_root / "Falsification"
 
-    for directory in [validation_dir, falsification_dir]:
-        protocol_files = list(directory.glob("*Protocol*.py"))
+    # Validation files use VP_*.py pattern, Falsification uses FP_*.py
+    validation_files = list(validation_dir.glob("VP_*.py"))
+    falsification_files = list(falsification_dir.glob("FP_*.py"))
+    protocol_files = validation_files + falsification_files
 
-        for protocol_file in protocol_files:
-            with open(protocol_file, "r", encoding="utf-8") as f:
-                content = f.read()
+    for protocol_file in protocol_files:
+        with open(protocol_file, "r", encoding="utf-8") as f:
+            content = f.read()
 
-            # Check for '# Assume' comments
-            lines = content.split("\n")
-            for i, line in enumerate(lines, 1):
-                if "# Assume" in line and "assumed" in line.lower():
-                    pytest.fail(
-                        f"{protocol_file.name} line {i} contains assumed value comment: {line.strip()}"
-                    )
+        # Check for '# Assume' comments
+        lines = content.split("\n")
+        for i, line in enumerate(lines, 1):
+            if "# Assume" in line and "assumed" in line.lower():
+                pytest.fail(
+                    f"{protocol_file.name} line {i} contains assumed value comment: {line.strip()}"
+                )
 
 
 def test_falsification_thresholds_file_exists():

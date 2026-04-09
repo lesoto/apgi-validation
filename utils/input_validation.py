@@ -53,7 +53,7 @@ class ValidationResult:
 class InputValidator:
     """Comprehensive input validation system."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.custom_validators: Dict[str, Callable[[Any], ValidationResult]] = {}
 
     def validate(self, value: Any, rules: List[ValidationRule]) -> ValidationResult:

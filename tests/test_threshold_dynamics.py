@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def test_threshold_dynamics_core():
     """Test threshold dynamics function directly."""
-    from APGI_Equations import DynamicalSystemEquations
+    from Theory.APGI_Equations import DynamicalSystemEquations
 
     # Test basic functionality
     theta_new = DynamicalSystemEquations.threshold_dynamics(
@@ -47,10 +47,12 @@ def test_threshold_dynamics_with_liquid_network():
     try:
         import importlib.util
 
-        # Load APGI_Liquid_Network_Implementation from hyphenated filename
+        # Load APGI_Liquid_Network_Implementation from Theory directory
         spec = importlib.util.spec_from_file_location(
             "APGI_Liquid_Network_Implementation",
-            Path(__file__).parent.parent / "APGI_Liquid_Network_Implementation.py",
+            Path(__file__).parent.parent
+            / "Theory"
+            / "APGI_Liquid_Network_Implementation.py",
         )
         APGI_Liquid_Network_Implementation = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(APGI_Liquid_Network_Implementation)

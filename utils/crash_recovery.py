@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Callable
 from dataclasses import dataclass, asdict
 
+apgi_logger: Any
 try:
     from utils.logging_config import apgi_logger
 except ImportError:

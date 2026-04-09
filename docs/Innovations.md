@@ -300,7 +300,7 @@ This item describes a proposed multimodal diagnostic instrument concept, not a v
 
 ### Connection to App Implementation (Innovation 25)
 
-The APGI Clinical Assessment Battery is proposed in the validation framework of APGI_Validation_GUI.py and Validation-Protocol-*.py, combining HEP, PCI, and behavioral interoceptive tasks for multimodal diagnostic assessment targeting psychiatric populations.
+The APGI Clinical Assessment Battery is proposed in the validation framework of APGI_Validation_GUI.py (root) and Validation/Validation-Protocol-*.py, combining HEP, PCI, and behavioral interoceptive tasks for multimodal diagnostic assessment targeting psychiatric populations.
 
 ## 26. Parameter Estimation Workflow
 

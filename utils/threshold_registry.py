@@ -25,16 +25,12 @@ from typing import Dict
 from dataclasses import dataclass
 
 try:
-    from .constants import (
-        ParameterBounds,
-        IGNITION_THRESHOLD,
-        MIN_SAMPLES_FOR_REGRESSION,
-        DEFAULT_EPSILON,
-    )
+    from .constants import ParameterBounds  # type: ignore[misc]
+    from .constants import IGNITION_THRESHOLD  # type: ignore[attr-defined]
 except ImportError:
     # Fallback constants if constants module not available
     @dataclass
-    class ParameterBounds:
+    class ParameterBounds:  # type: ignore[no-redef]
         """Fallback parameter bounds."""
 
         precision_min: float = 0.1

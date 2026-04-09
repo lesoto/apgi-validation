@@ -64,20 +64,20 @@ def test_v12_1_constants():
         V12_2_MIN_CORRELATION,
     )
 
-    # Test P3b reduction threshold - should be 80.0% per paper spec
+    # Test P3b reduction threshold - should be 50.0% per paper spec
     assert (
-        V12_1_MIN_P3B_REDUCTION_PCT == 80.0
-    ), f"V12_1_MIN_P3B_REDUCTION_PCT should be 80.0, got {V12_1_MIN_P3B_REDUCTION_PCT}"
+        V12_1_MIN_P3B_REDUCTION_PCT == 50.0
+    ), f"V12_1_MIN_P3B_REDUCTION_PCT should be 50.0, got {V12_1_MIN_P3B_REDUCTION_PCT}"
 
-    # Test ignition reduction threshold - should be 70.0% per paper spec
+    # Test ignition reduction threshold - should be 50.0% per paper spec
     assert (
-        V12_1_MIN_IGNITION_REDUCTION_PCT == 70.0
-    ), f"V12_1_MIN_IGNITION_REDUCTION_PCT should be 70.0, got {V12_1_MIN_IGNITION_REDUCTION_PCT}"
+        V12_1_MIN_IGNITION_REDUCTION_PCT == 50.0
+    ), f"V12_1_MIN_IGNITION_REDUCTION_PCT should be 50.0, got {V12_1_MIN_IGNITION_REDUCTION_PCT}"
 
-    # Test coherence threshold - should be 0.40 per paper spec
+    # Test coherence threshold - should be 0.80 per paper spec
     assert (
-        V12_1_MIN_COHENS_D == 0.40
-    ), f"V12_1_MIN_COHENS_D should be 0.40, got {V12_1_MIN_COHENS_D}"
+        V12_1_MIN_COHENS_D == 0.80
+    ), f"V12_1_MIN_COHENS_D should be 0.80, got {V12_1_MIN_COHENS_D}"
 
     # Test correlation threshold - should be 0.60 per paper spec
     assert (

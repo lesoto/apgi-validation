@@ -17,7 +17,8 @@ This module provides:
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
+from dataclasses import dataclass
 
 # Add project root to sys.path for imports
 _proj_root = Path(__file__).parent.parent
@@ -28,7 +29,6 @@ if str(_proj_root) not in sys.path:
 from Falsification.FP_ALL_Aggregator import (
     FalsificationAggregator,
     NAMED_PREDICTIONS,
-    PREDICTION_TO_PROTOCOL,
     run_framework_falsification,
 )
 
@@ -42,6 +42,44 @@ except ImportError:
     APGILogger = logging.Logger  # type: ignore[misc,assignment,no-redef]
 
 logger = _logger  # type: ignore[assignment]
+
+
+@dataclass
+class FalsificationResults:
+    """Results from a falsification protocol test.
+
+    Attributes:
+        protocol_id: Unique identifier for the protocol
+        hypothesis_tested: Description of the hypothesis being tested
+        p_value: Statistical p-value from the test
+        effect_size: Effect size measure
+        confidence_interval: Tuple of (lower, upper) confidence bounds
+        falsified: Boolean indicating if the hypothesis was falsified
+    """
+
+    protocol_id: str
+    hypothesis_tested: str
+    p_value: float
+    effect_size: float
+    confidence_interval: Tuple[float, float]
+    falsified: bool
+
+
+@dataclass
+class ProtocolResult:
+    """Result from running a single protocol.
+
+    Attributes:
+        protocol_name: Name of the protocol
+        status: Execution status (completed, failed, etc.)
+        outcome: Outcome classification (success, failure, etc.)
+        metrics: Dictionary of result metrics
+    """
+
+    protocol_name: str
+    status: str
+    outcome: str
+    metrics: Dict[str, Any]
 
 
 class APGIMasterFalsifier:
@@ -64,7 +102,7 @@ class APGIMasterFalsifier:
     - Condition B (FB): Alternative frameworks (GWT, IIT) are more parsimonious
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.protocol_results: Dict[str, Any] = {}
         self.falsification_aggregator = FalsificationAggregator()
 
@@ -880,85 +918,113 @@ class APGIMasterFalsifier:
         for name, result in protocol_results.items():
             # Extract protocol number
             try:
-                proto_num = int(name.split("-")[1].split("a")[0].split("b")[0])
-                tier = self.PROTOCOL_TIERS.get(proto_num, "tertiary")
-                tier_counts[tier]["total"] += 1
-                if not result.get("falsified", True):
-                    tier_counts[tier]["passed"] += 1
+                protocol_num = int(name.split("_")[-1])
+                if protocol_num <= 3:
+                    tier = "primary"
+                elif protocol_num <= 6:
+                    tier = "secondary"
+                else:
+                    tier = "tertiary"
             except (ValueError, IndexError):
-                pass
+                tier = "tertiary"
+
+            tier_counts[tier]["total"] += 1
+            if isinstance(result, dict) and not result.get("falsified", True):
+                tier_counts[tier]["passed"] += 1
 
         return {
             "total_protocols": total,
-            "passed": passed,
-            "failed": failed,
-            "falsification_rate": failed / total if total > 0 else 0,
-            "by_tier": tier_counts,
-            "framework_falsified": framework_results.get("framework_falsified", False),
-            "condition_a_met": framework_results.get("condition_a_met", False),
-            "condition_b_met": framework_results.get("condition_b_met", False),
+            "passed_protocols": passed,
+            "failed_protocols": failed,
+            "pass_rate": passed / total if total > 0 else 0.0,
             "weighted_score": weighted_score,
+            "tier_counts": tier_counts,
+            "framework_results": framework_results,
         }
 
+    def _calculate_weighted_score(self, protocol_results: Dict[str, Any]) -> float:
+        """Calculate weighted score based on protocol results."""
+        tier_weights = {
+            "primary": 2.0,  # Highest weight for primary protocols
+            "secondary": 1.5,  # Intermediate weight for secondary protocols
+            "tertiary": 1.0,  # Standard weight for tertiary protocols
+        }
+
+        weighted_score = 0.0
+        total_weight = 0.0
+
+        for protocol_name, result in protocol_results.items():
+            if isinstance(result, dict) and "passed" in result:
+                # Determine tier based on protocol name
+                if any(
+                    keyword in protocol_name.lower()
+                    for keyword in ["vp01", "vp02", "vp03"]
+                ):
+                    tier = "primary"
+                elif any(
+                    keyword in protocol_name.lower()
+                    for keyword in ["vp04", "vp05", "vp06"]
+                ):
+                    tier = "secondary"
+                else:
+                    tier = "tertiary"
+
+                weight = tier_weights.get(tier, 1.0)
+                weighted_score += weight * (1.0 if result["passed"] else 0.0)
+                total_weight += weight
+
+        return weighted_score / total_weight if total_weight > 0 else 0.0
+
     def get_falsification_report(self) -> str:
-        """Generate human-readable falsification report.
+        """Generate a formatted falsification criteria report.
 
         Returns:
-            Markdown-formatted report string
+            Markdown-formatted string with all falsification criteria
         """
-        lines = [
-            "# APGI Falsification Report",
-            "",
-            "## Falsification Criteria Registry",
-            "",
-        ]
-
-        # Group by protocol
-        for proto_num in range(1, 13):
-            proto_key = f"FP-{proto_num:02d}"
-            criteria = self.get_criteria_by_protocol(proto_num)
-            if not criteria:
-                continue
-
-            tier = self.PROTOCOL_TIERS.get(proto_num, "unknown")
-            lines.append(f"### {proto_key} ({tier.upper()})")
-            lines.append("")
-
-            for criterion_id, info in sorted(criteria.items()):
-                lines.append(f"- **{criterion_id}**: {info['description']}")
-                lines.append(f"  - Threshold: {info['threshold']}")
-            lines.append("")
-
-        # Named predictions section
-        lines.append("## Named Predictions (Framework-Level)")
-        lines.append("")
-        for pred_id, desc in NAMED_PREDICTIONS.items():
-            proto = PREDICTION_TO_PROTOCOL.get(pred_id, "Unknown")
-            lines.append(f"- **{pred_id}**: {desc} → {proto}")
-        lines.append("")
-
-        # Framework falsification conditions
-        lines.append("## Framework Falsification Conditions")
-        lines.append("")
-        lines.append(
-            "- **Condition A (FA)**: All 14 named predictions fail simultaneously"
+        report = []
+        report.append("# APGI Falsification Criteria Registry")
+        report.append("")
+        report.append(
+            "This document contains all falsification criteria organized by protocol tier."
         )
-        lines.append(
-            "- **Condition B (FB)**: Alternative frameworks more parsimonious (ΔBIC < 10)"
-        )
-        lines.append("")
+        report.append("")
 
-        return "\n".join(lines)
+        # Group criteria by tier
+        tier_groups: Dict[str, List[Tuple[str, Dict[str, Any]]]] = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": [],
+        }
+        for criterion, info in self.FALSIFICATION_CRITERIA.items():
+            protocol_num = info["protocol"]
+            tier = self.PROTOCOL_TIERS.get(protocol_num, "unknown")
+            tier_groups[tier].append((criterion, info))
+
+        # Generate tier sections
+        for tier in ["primary", "secondary", "tertiary"]:
+            if tier_groups[tier]:
+                report.append(f"## {tier.title()} Protocols")
+                report.append("")
+
+                for criterion, info in tier_groups[tier]:
+                    report.append(f"### {criterion}")
+                    report.append(f"**Protocol:** FP-{info['protocol']:02d}")
+                    report.append(f"**Description:** {info['description']}")
+                    if "threshold" in info:
+                        report.append(f"**Threshold:** {info['threshold']}")
+                    report.append("")
+
+        return "\n".join(report)
 
 
-def get_all_falsification_criteria() -> Dict[str, Dict]:
-    """Convenience function: Return complete falsification criteria registry.
+def main():
+    """Run master falsification protocol."""
+    falsifier = APGIMasterFalsifier()
+    return falsifier.run_master_falsification()
 
-    Returns:
-        Dictionary of all falsification criteria
-    """
-    master = APGIMasterFalsifier()
-    return master.get_all_criteria()
+
+if __name__ == "__main__":
+    main()
 
 
 def get_named_predictions() -> Dict[str, str]:

@@ -21,6 +21,7 @@ Bayesian model comparison supporting Protocol 2 predictions.
 """
 
 import json
+import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -492,7 +493,7 @@ class Protocol2TMSCausalIntervention:
 
     def simulate_hep_measurement(
         self, participant_id: int, tms_condition: str = "sham"
-    ) -> Dict[str, float]:
+    ) -> Dict[str, Any]:
         """
         Simulate Heartbeat-Evoked Potential (HEP) measurement
 
@@ -725,7 +726,7 @@ class Protocol2TMSCausalIntervention:
         Returns:
             Dictionary with all experimental results
         """
-        results = {
+        results: Dict[str, Any] = {
             "participants": self.n_participants,
             "safety_screening": [],
             "neuronavigation": [],
@@ -898,13 +899,17 @@ def validate_parameter_recovery(n_simulations: int = 100):
         true_params.append([theta_0_true, Pi_i_true, beta_true])
         recovered_params.append([theta_0_recovered, Pi_i_recovered, beta_recovered])
 
-    true_params = np.array(true_params)
-    recovered_params = np.array(recovered_params)
+    true_params_arr: np.ndarray = np.array(true_params)
+    recovered_params_arr: np.ndarray = np.array(recovered_params)
 
     # Compute correlations
-    r_theta = np.corrcoef(true_params[:, 0], recovered_params[:, 0])[0, 1]
-    r_Pi_i = np.corrcoef(true_params[:, 1], recovered_params[:, 1])[0, 1]
-    r_beta = np.corrcoef(true_params[:, 2], recovered_params[:, 2])[0, 1]
+    corr_matrix_theta = np.corrcoef(true_params_arr[:, 0], recovered_params_arr[:, 0])
+    corr_matrix_Pi_i = np.corrcoef(true_params_arr[:, 1], recovered_params_arr[:, 1])
+    corr_matrix_beta = np.corrcoef(true_params_arr[:, 2], recovered_params_arr[:, 2])
+
+    r_theta = float(corr_matrix_theta[0, 1])
+    r_Pi_i = float(corr_matrix_Pi_i[0, 1])
+    r_beta = float(corr_matrix_beta[0, 1])
 
     # Check against thresholds
     validation_passed = (r_theta > 0.85) and (r_beta > 0.85) and (r_Pi_i > 0.75)
@@ -1123,11 +1128,12 @@ def analyze_beta_pi_identifiability(
     Returns:
         Dictionary with identifiability metrics
     """
-    results = {
+    results: Dict[str, Any] = {
         "beta_pi_correlation": None,
         "fim_diagonal": None,
         "sensitivity_analysis": None,
         "identifiable": False,
+        "reasons": [],
     }
 
     if "beta" not in trace.posterior or "Pi_i" not in trace.posterior:
@@ -1897,7 +1903,7 @@ class BayesianModelComparison:
         unique_subjects = np.unique(data.subject_idx)
         kf = KFold(n_splits=n_folds, shuffle=True, random_state=42)
 
-        cv_results = {name: [] for name in self.models.keys()}
+        cv_results: Dict[str, List[float]] = {name: [] for name in self.models.keys()}
 
         for fold_idx, (train_subjects, test_subjects) in enumerate(
             kf.split(unique_subjects)
@@ -2037,7 +2043,11 @@ class FalsificationChecker:
         apgi_waic = comparison_df[comparison_df["model"] == "APGI"]["waic"].values[0]
 
         falsified = False
-        details = {"primary_loo": {}, "primary_waic": {}, "secondary_bic": {}}
+        details: Dict[str, Dict[str, float]] = {
+            "primary_loo": {},
+            "primary_waic": {},
+            "secondary_bic": {},
+        }
 
         for competitor in ["StandardSDT", "GlobalWorkspace"]:
             if competitor in comparison_df["model"].values:
@@ -2193,10 +2203,10 @@ class FalsificationChecker:
     ) -> Dict[str, Any]:
         """Generate comprehensive falsification report"""
 
-        report = {
+        report: Dict[str, Any] = {
             "dataset": data.name,
-            "falsified_criteria": [],
-            "passed_criteria": [],
+            "falsified_criteria": [],  # type: ignore[assignment]
+            "passed_criteria": [],  # type: ignore[assignment]
             "overall_falsified": False,
         }
 
@@ -2223,9 +2233,9 @@ class FalsificationChecker:
                 "details": f2_2_details,
             }
             if f2_2_result:
-                report["falsified_criteria"].append(criterion)
+                report["falsified_criteria"].append(criterion)  # type: ignore[assignment]
             else:
-                report["passed_criteria"].append(criterion)
+                report["passed_criteria"].append(criterion)  # type: ignore[assignment]
 
         # F2.3
         if apgi_trace is not None and data.P3b_amplitude is not None:
@@ -2237,9 +2247,9 @@ class FalsificationChecker:
                 "details": f2_3_details,
             }
             if f2_3_result:
-                report["falsified_criteria"].append(criterion)
+                report["falsified_criteria"].append(criterion)  # type: ignore[assignment]
             else:
-                report["passed_criteria"].append(criterion)
+                report["passed_criteria"].append(criterion)  # type: ignore[assignment]
 
         # F2.4
         if apgi_trace is not None and data.reaction_time is not None:
@@ -2251,9 +2261,9 @@ class FalsificationChecker:
                 "details": f2_4_details,
             }
             if f2_4_result:
-                report["falsified_criteria"].append(criterion)
+                report["falsified_criteria"].append(criterion)  # type: ignore[assignment]
             else:
-                report["passed_criteria"].append(criterion)
+                report["passed_criteria"].append(criterion)  # type: ignore[assignment]
 
         # F2.5
         f2_5_result, f2_5_value = self.check_F2_5(comparison_df)
@@ -2264,11 +2274,11 @@ class FalsificationChecker:
             "details": {"bayes_factor": f2_5_value},
         }
         if f2_5_result:
-            report["falsified_criteria"].append(criterion)
+            report["falsified_criteria"].append(criterion)  # type: ignore[assignment]
         else:
-            report["passed_criteria"].append(criterion)
+            report["passed_criteria"].append(criterion)  # type: ignore[assignment]
 
-        report["overall_falsified"] = len(report["falsified_criteria"]) > 0
+        report["overall_falsified"] = len(report["falsified_criteria"]) > 0  # type: ignore[arg-type]
 
         return report
 
@@ -2307,8 +2317,8 @@ def plot_model_comparison_results(
 
     ax1.barh(
         y_pos,
-        -loos,
-        xerr=loo_ses,
+        -loos,  # type: ignore[operator]
+        xerr=loo_ses,  # type: ignore[arg-type]
         color=bar_colors,
         alpha=0.7,
         edgecolor="black",
@@ -2336,7 +2346,7 @@ def plot_model_comparison_results(
     delta_loos = comparison_df["delta_loo"].values
 
     ax2.barh(
-        y_pos, delta_loos, color=bar_colors, alpha=0.7, edgecolor="black", linewidth=1.5
+        y_pos, delta_loos, color=bar_colors, alpha=0.7, edgecolor="black", linewidth=1.5  # type: ignore[arg-type]
     )
     ax2.set_yticks(y_pos)
     ax2.set_yticklabels(models)
@@ -2354,7 +2364,7 @@ def plot_model_comparison_results(
     p_loos = comparison_df["p_loo"].values
 
     ax3.barh(
-        y_pos, p_loos, color=bar_colors, alpha=0.7, edgecolor="black", linewidth=1.5
+        y_pos, p_loos, color=bar_colors, alpha=0.7, edgecolor="black", linewidth=1.5  # type: ignore[arg-type]
     )
     ax3.set_yticks(y_pos)
     ax3.set_yticklabels(models)
@@ -2372,8 +2382,8 @@ def plot_model_comparison_results(
 
     ax4.barh(
         y_pos,
-        -waics,
-        xerr=waic_ses,
+        -waics,  # type: ignore[operator]
+        xerr=waic_ses,  # type: ignore[arg-type]
         color=bar_colors,
         alpha=0.7,
         edgecolor="black",
@@ -2463,7 +2473,7 @@ def plot_model_comparison_results(
     if len(comparison_df) > 0:
         best_model_idx = comparison_df["loo"].argmin() + 1
         for i in range(4):
-            table[(best_model_idx, i)].set_facecolor("#FFE082")
+            table[(best_model_idx, i)].set_facecolor("#FFE082")  # type: ignore[index]
 
     ax6.set_title("Model Comparison Summary", fontsize=12, fontweight="bold", pad=20)
 
@@ -2730,7 +2740,11 @@ def posterior_predictive_check(trace, data, model) -> Dict[str, Any]:
         ),
     }
 
-    return ppc, ppc_metrics, fig
+    return {
+        "posterior_predictive": ppc,
+        "metrics": ppc_metrics,
+        "figure": fig,
+    }
 
 
 def compute_all_ic_metrics(trace, model, data):
@@ -2892,31 +2906,44 @@ def parameter_recovery_simulation(true_params, n_simulations=100):
 # =============================================================================
 
 
-def main():
+def main() -> Dict[str, Any]:
     """Main execution pipeline for Protocol 2"""
 
     print("=" * 80)
     print("APGI PROTOCOL 2: BAYESIAN MODEL COMPARISON")
     print("=" * 80)
 
+    # Check for test mode (reduced computation for CI/testing)
+    test_mode = os.environ.get("APGI_TEST_MODE", "").lower() in ("1", "true", "yes")
+    if test_mode:
+        print("\n[TEST MODE ENABLED - Reduced sampling for faster execution]\n")
+
     # Check dependencies
     if not PYMC_AVAILABLE:
         print("Error: pymc is required for Bayesian model comparison")
         print("Install with: pip install pymc")
-        return
+        return {}
 
     if not ARVIZ_AVAILABLE:
         print("Error: arviz is required for Bayesian analysis")
         print("Install with: pip install arviz")
-        return
+        return {}
 
     if not SKLEARN_AVAILABLE:
         print("Error: scipy/sklearn are required for statistical analysis")
         print("Install with: pip install scikit-learn scipy")
-        return
+        return {}
 
-    # Configuration (Faster for validation)
-    config = {"n_samples": 1000, "n_tune": 500, "n_chains": 4, "target_accept": 0.85}
+    # Configuration (Faster for validation, much faster for test mode)
+    if test_mode:
+        config = {"n_samples": 100, "n_tune": 50, "n_chains": 2, "target_accept": 0.8}
+    else:
+        config = {
+            "n_samples": 1000,
+            "n_tune": 500,
+            "n_chains": 4,
+            "target_accept": 0.85,
+        }
 
     print("\nSampling Configuration:")
     for k, v in config.items():
@@ -2931,23 +2958,33 @@ def main():
 
     generator = SyntheticConsciousnessDataGenerator(seed=42)
 
-    # Generate two datasets (Mini version for stable validation)
-    melloni_data = generator.generate_melloni_style_data(
-        n_subjects=2, trials_per_subject=200
-    )
+    # Generate datasets (smaller in test mode for faster execution)
+    if test_mode:
+        melloni_data = generator.generate_melloni_style_data(
+            n_subjects=1, trials_per_subject=50
+        )
+    else:
+        melloni_data = generator.generate_melloni_style_data(
+            n_subjects=2, trials_per_subject=200
+        )
     print(
         f"\n✅ {melloni_data.name}: {melloni_data.n_subjects} subjects, "
         f"{melloni_data.n_trials} trials"
     )
 
-    canales_data = generator.generate_canales_johnson_style_data(
-        n_subjects=2, trials_per_subject=200
-    )
-    print(
-        f"✅ {canales_data.name}: {canales_data.n_subjects} subjects, "
-        f"{canales_data.n_trials} trials"
-    )
-    print(f"   Includes HEP data: {canales_data.HEP_amplitude is not None}")
+    # Only generate Canales-Johnson in non-test mode to save time
+    if not test_mode:
+        canales_data = generator.generate_canales_johnson_style_data(
+            n_subjects=2, trials_per_subject=200
+        )
+        print(
+            f"✅ {canales_data.name}: {canales_data.n_subjects} subjects, "
+            f"{canales_data.n_trials} trials"
+        )
+        print(f"   Includes HEP data: {canales_data.HEP_amplitude is not None}")
+    else:
+        canales_data = None  # type: ignore
+        print("   [Skipping Canales-Johnson dataset in test mode]")
 
     # =========================================================================
     # STEP 2: Setup Model Comparison
@@ -2979,10 +3016,10 @@ def main():
 
     comparison_melloni.fit_all_models(
         melloni_data,
-        n_samples=config["n_samples"],
-        n_tune=config["n_tune"],
-        n_chains=config["n_chains"],
-        target_accept=config["target_accept"],
+        n_samples=int(config["n_samples"]),
+        n_tune=int(config["n_tune"]),
+        n_chains=int(config["n_chains"]),
+        target_accept=float(config["target_accept"]),
     )
 
     # Compute comparison metrics
@@ -2998,36 +3035,43 @@ def main():
     )
 
     # =========================================================================
-    # STEP 4: Fit Models to Canales-Johnson Dataset
+    # STEP 4: Fit Models to Canales-Johnson Dataset (skipped in test mode)
     # =========================================================================
-    print("\n" + "=" * 80)
-    print("STEP 4: FITTING MODELS TO CANALES-JOHNSON DATASET")
-    print("=" * 80)
+    if not test_mode:
+        print("\n" + "=" * 80)
+        print("STEP 4: FITTING MODELS TO CANALES-JOHNSON DATASET")
+        print("=" * 80)
 
-    comparison_canales = BayesianModelComparison()
-    comparison_canales.add_model(APGIGenerativeModel, "APGI")
-    comparison_canales.add_model(StandardSDTModel, "StandardSDT")
-    comparison_canales.add_model(GlobalWorkspaceModel, "GlobalWorkspace")
-    comparison_canales.add_model(ContinuousIntegrationModel, "Continuous")
+        comparison_canales = BayesianModelComparison()
+        comparison_canales.add_model(APGIGenerativeModel, "APGI")
+        comparison_canales.add_model(StandardSDTModel, "StandardSDT")
+        comparison_canales.add_model(GlobalWorkspaceModel, "GlobalWorkspace")
+        comparison_canales.add_model(ContinuousIntegrationModel, "Continuous")
 
-    comparison_canales.fit_all_models(
-        canales_data,
-        n_samples=config["n_samples"],
-        n_tune=config["n_tune"],
-        n_chains=config["n_chains"],
-        target_accept=config["target_accept"],
-    )
-
-    canales_comparison_df = comparison_canales.compute_comparison_metrics()
-
-    print("\n" + "-" * 80)
-    print("MODEL COMPARISON SUMMARY - CANALES-JOHNSON")
-    print("-" * 80)
-    print(
-        canales_comparison_df[["model", "loo", "delta_loo", "p_loo"]].to_string(
-            index=False
+        comparison_canales.fit_all_models(
+            canales_data,
+            n_samples=int(config["n_samples"]),
+            n_tune=int(config["n_tune"]),
+            n_chains=int(config["n_chains"]),
+            target_accept=float(config["target_accept"]),
         )
-    )
+
+        canales_comparison_df = comparison_canales.compute_comparison_metrics()
+
+        print("\n" + "-" * 80)
+        print("MODEL COMPARISON SUMMARY - CANALES-JOHNSON")
+        print("-" * 80)
+        print(
+            canales_comparison_df[["model", "loo", "delta_loo", "p_loo"]].to_string(
+                index=False
+            )
+        )
+    else:
+        print("\n" + "=" * 80)
+        print("STEP 4: SKIPPED (Canales-Johnson in test mode)")
+        print("=" * 80)
+        canales_comparison_df = None  # type: ignore
+        comparison_canales = None  # type: ignore
 
     # =========================================================================
     # STEP 5: Posterior Predictive Checks
@@ -3039,8 +3083,12 @@ def main():
     print("\nMelloni Dataset:")
     ppc_melloni = comparison_melloni.posterior_predictive_check(melloni_data)
 
-    print("\nCanales-Johnson Dataset:")
-    ppc_canales = comparison_canales.posterior_predictive_check(canales_data)
+    if not test_mode:
+        print("\nCanales-Johnson Dataset:")
+        ppc_canales = comparison_canales.posterior_predictive_check(canales_data)
+    else:
+        ppc_canales = None  # type: ignore
+        print("\n   [Skipping Canales-Johnson predictive check in test mode]")
 
     # =========================================================================
     # STEP 6: Falsification Analysis
@@ -3058,12 +3106,15 @@ def main():
     )
     print_falsification_report(melloni_report)
 
-    # Canales-Johnson dataset
-    apgi_trace_canales = comparison_canales.traces.get("APGI")
-    canales_report = checker.generate_report(
-        canales_comparison_df, apgi_trace_canales, canales_data
-    )
-    print_falsification_report(canales_report)
+    # Canales-Johnson dataset (skipped in test mode)
+    if not test_mode:
+        apgi_trace_canales = comparison_canales.traces.get("APGI")
+        canales_report = checker.generate_report(
+            canales_comparison_df, apgi_trace_canales, canales_data
+        )
+        print_falsification_report(canales_report)
+    else:
+        canales_report = None  # type: ignore
 
     # =========================================================================
     # STEP 7: Visualizations
@@ -3077,9 +3128,10 @@ def main():
         melloni_comparison_df, save_path="protocol2_melloni_comparison.png"
     )
 
-    plot_model_comparison_results(
-        canales_comparison_df, save_path="protocol2_canales_comparison.png"
-    )
+    if not test_mode:
+        plot_model_comparison_results(
+            canales_comparison_df, save_path="protocol2_canales_comparison.png"
+        )
 
     # Posterior distributions (for APGI model)
     if apgi_trace_melloni is not None:
@@ -3087,10 +3139,11 @@ def main():
             apgi_trace_melloni, save_path="protocol2_melloni_posteriors.png"
         )
 
-    if apgi_trace_canales is not None:
-        plot_posterior_distributions(
-            apgi_trace_canales, save_path="protocol2_canales_posteriors.png"
-        )
+    if not test_mode:
+        if apgi_trace_canales is not None:
+            plot_posterior_distributions(
+                apgi_trace_canales, save_path="protocol2_canales_posteriors.png"
+            )
 
     # =========================================================================
     # STEP 8: Save Results
@@ -3099,7 +3152,7 @@ def main():
     print("STEP 8: SAVING RESULTS")
     print("=" * 80)
 
-    results_summary = {
+    results_summary: Dict[str, Any] = {
         "config": config,
         "melloni": {
             "comparison": melloni_comparison_df.to_dict("records"),
@@ -3113,7 +3166,11 @@ def main():
             },
             "falsification": melloni_report,
         },
-        "canales_johnson": {
+    }
+
+    # Only add Canales-Johnson results in non-test mode
+    if not test_mode:
+        results_summary["canales_johnson"] = {
             "comparison": canales_comparison_df.to_dict("records"),
             "ppc": {
                 k: {
@@ -3124,8 +3181,7 @@ def main():
                 for k, v in ppc_canales.items()
             },
             "falsification": canales_report,
-        },
-    }
+        }
 
     # Convert numpy/pandas types for JSON serialization
     def convert_for_json(obj):
@@ -3167,7 +3223,7 @@ def main():
     return results_summary
 
 
-def run_validation():
+def run_validation() -> Dict[str, Any]:
     """Entry point for CLI validation."""
     try:
         print(

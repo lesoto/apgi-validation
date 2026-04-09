@@ -236,7 +236,7 @@ class ScreenshotComparator:
 class UIStateMachine:
     """State machine for testing UI state transitions."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.states: Dict[str, UIState] = {}
         self.transitions: List[UIStateTransition] = []
         self.current_state: Optional[str] = None
@@ -559,7 +559,7 @@ class HeadlessBrowserTester:
 class GUITestSuite:
     """Comprehensive GUI testing suite."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.screenshot_comparator = ScreenshotComparator()
         self.state_machine = UIStateMachine()
         self.browser_tester = HeadlessBrowserTester()

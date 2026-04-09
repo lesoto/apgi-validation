@@ -250,7 +250,7 @@ class TestGetRecentOperations:
             logger.log_file_access("read", f"/test/file_{i}.txt")
 
         recent = logger.get_recent_operations()
-        assert len(recent) == 100  # Default is 100, but we only have 10
+        assert len(recent) == 10  # We only added 10 entries, default is 100
 
     def test_get_recent_operations_custom_count(self, tmp_path):
         """Test getting recent operations with custom count."""
@@ -307,6 +307,8 @@ class TestSearchAuditTrail:
 
     def test_search_by_time_range(self, tmp_path):
         """Test searching audit trail by time range."""
+        from datetime import timezone
+
         log_file = tmp_path / "security_audit.log"
         logger = SecurityAuditLogger(str(log_file))
 
@@ -316,7 +318,7 @@ class TestSearchAuditTrail:
 
         time.sleep(0.1)
 
-        start_time = datetime.utcnow()
+        start_time = datetime.now(tz=timezone.utc)
         logger.log_file_access("write", "/test/file2.txt")
 
         results = logger.search_audit_trail(start_time=start_time)

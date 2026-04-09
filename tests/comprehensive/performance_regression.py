@@ -466,7 +466,7 @@ class PerformanceRegressionTester:
         failed = len(self.results) - passed
         alerts = len(self.alerts)
 
-        report = {
+        report: Dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "summary": {
                 "total_tests": len(self.results),

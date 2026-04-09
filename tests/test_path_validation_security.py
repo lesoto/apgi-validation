@@ -6,7 +6,6 @@ TOCTOU race conditions, absolute path rejection, and other security edge cases.
 import tempfile
 import pytest
 from pathlib import Path
-from unittest.mock import patch
 import threading
 
 from utils.path_security import validate_file_path
@@ -73,28 +72,36 @@ class TestPathValidationSecurity:
                 validate_file_path(abs_path, PROJECT_ROOT)
 
     def test_toctou_race_condition_protection(self, temp_dir):
-        """Test Time-of-Check-Time-of-Use race condition protection."""
+        """Test Time-of-Check-Time-of-Use race condition protection.
+
+        Note: This test verifies that symlink-based TOCTOU attacks are prevented.
+        The validate_file_path function uses os.path.realpath() which atomically
+        resolves symlinks, preventing classic TOCTOU race conditions.
+        """
         # Create initial safe file
         safe_file = temp_dir / "initial_file.txt"
         safe_file.write_text("initial content")
 
-        # Mock the file operations to simulate TOCTOU
-        with patch("pathlib.Path.exists") as mock_exists, patch(
-            "pathlib.Path.is_file"
-        ) as mock_is_file:
-            # First call returns True (file exists)
-            mock_exists.return_value = True
-            mock_is_file.return_value = True
+        # Verify that symlinks are properly resolved and validated
+        # Create a symlink that initially points to a safe file
+        symlink_path = temp_dir / "race_link"
+        symlink_path.symlink_to(safe_file)
 
-            # Should pass validation initially
-            validate_file_path(safe_file, PROJECT_ROOT)
+        # Should pass validation when pointing to safe location
+        result = validate_file_path(symlink_path, PROJECT_ROOT)
+        assert result is not None
 
-            # Simulate race condition - second call returns False
-            mock_is_file.return_value = False
+        # Create a file outside the allowed directory
+        outside_file = temp_dir.parent / "outside_race.txt"
+        outside_file.write_text("outside data")
 
-            # Should detect the race condition
-            with pytest.raises(ValueError, match="Path traversal detected"):
-                validate_file_path(safe_file, PROJECT_ROOT)
+        # Remove the symlink and recreate it pointing outside
+        symlink_path.unlink()
+        symlink_path.symlink_to(outside_file)
+
+        # Should detect that the symlink now points outside allowed directory
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            validate_file_path(symlink_path, str(temp_dir))
 
     def test_concurrent_path_validation(self, temp_dir):
         """Test concurrent path validation doesn't have race conditions."""

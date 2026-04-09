@@ -50,7 +50,7 @@ except ImportError:
             "VP-05 genome data not found. Run VP-05_EvolutionaryEmergence first."
         )
 
-    def requires_vp5_data(func: callable) -> callable:
+    def requires_vp5_data(func: Any) -> Any:
         """Fallback decorator that checks for genome_data.json existence."""
 
         def wrapper(*args, **kwargs):  # type: ignore[misc]
@@ -145,7 +145,7 @@ except ImportError:
             self.n_intero_states = 16
             self.n_hidden = 64
 
-    DIM_CONSTANTS: Any = MockDimConstants()
+    FALLBACK_DIM_CONSTANTS: Any = MockDimConstants()
     # Fix 2: Fallback BIC thresholds if import fails
     BIC_STRONG_EVIDENCE = 2
     BIC_FRAMEWORK_THRESHOLD_B = 6
@@ -791,7 +791,9 @@ class APGIInspiredNetwork(nn.Module):
         self.liquid_state = self.ltcn_step(self.liquid_state, combined_enc, tau)
 
         # Track active neurons (sparsity for energy efficiency)
-        active_neurons_this_step = (torch.abs(self.liquid_state) > 0.01).sum().item()
+        active_neurons_this_step = int(
+            (torch.abs(self.liquid_state) > 0.01).sum().item()
+        )
         self.active_neurons += active_neurons_this_step
 
         # =====================
@@ -1095,14 +1097,17 @@ class NetworkComparisonExperiment:
 
     def __init__(self, config: Dict):
         # Ensure required dimensions are present with centralized defaults
+        dim_constants = (
+            DIM_CONSTANTS if "DIM_CONSTANTS" in globals() else FALLBACK_DIM_CONSTANTS
+        )
         if "extero_dim" not in config:
-            config["extero_dim"] = DIM_CONSTANTS.EXTERO_DIM
+            config["extero_dim"] = dim_constants.EXTERO_DIM
         if "intero_dim" not in config:
-            config["intero_dim"] = DIM_CONSTANTS.INTERO_DIM
+            config["intero_dim"] = dim_constants.INTERO_DIM
         if "action_dim" not in config:
-            config["action_dim"] = DIM_CONSTANTS.ACTION_DIM
+            config["action_dim"] = dim_constants.ACTION_DIM
         if "context_dim" not in config:
-            config["context_dim"] = DIM_CONSTANTS.CONTEXT_DIM
+            config["context_dim"] = dim_constants.CONTEXT_DIM
 
         self.config = config
 
@@ -1210,15 +1215,16 @@ class NetworkComparisonExperiment:
                 if not HAS_TORCH:
                     continue
 
-                network.eval()
-                network.reset_energy_tracking()
+                net_instance: Any = network  # type: ignore[assignment]
+                net_instance.eval()
+                net_instance.reset_energy_tracking()  # type: ignore[call-arg]
 
                 predictions_list = []
                 targets_list = []
 
                 with torch.no_grad():
                     for batch in dataset:
-                        outputs = network(
+                        outputs = net_instance(
                             batch["extero"], batch["intero"], batch["context"]
                         )
 
@@ -1245,7 +1251,7 @@ class NetworkComparisonExperiment:
                 all_targets.append(targets.cpu().numpy())
 
                 # Compute energy metrics
-                energy_metrics = network.get_energy_metrics()
+                energy_metrics = net_instance.get_energy_metrics()  # type: ignore[call-arg]
 
                 # Compute metrics
                 if task_name == "conscious_classification":
@@ -1711,7 +1717,7 @@ class NetworkComparisonExperiment:
 
         return falsification_results
 
-    def _measure_ltcn_dynamics(self) -> Dict[str, float]:
+    def _measure_ltcn_dynamics(self) -> Dict[str, Any]:
         """
         Measure actual LTCN transition times and integration windows via simulation.
 
@@ -1728,7 +1734,7 @@ class NetworkComparisonExperiment:
                 "sparsity_reduction_pct": 35.0,
             }
 
-        network = self.networks.get("APGI")
+        network: Any = self.networks.get("APGI")
         if not network:
             return {
                 "transition_time_ms": 35.0,
@@ -1738,7 +1744,7 @@ class NetworkComparisonExperiment:
             }
 
         network.eval()
-        network.reset()
+        network.reset()  # type: ignore[operator]
 
         # CRITICAL FIX: Extended simulation for ≥5s (500 steps at 10ms resolution)
         n_steps = 500  # 500 steps × 10ms = 5000ms = 5s
@@ -1791,9 +1797,9 @@ class NetworkComparisonExperiment:
                     hasattr(network, "liquid_state")
                     and network.liquid_state is not None
                 ):
-                    liquid_states.append(network.liquid_state.clone())
+                    liquid_states.append(network.liquid_state.clone())  # type: ignore[operator]
                     # Count active neurons for sparsity
-                    active = (torch.abs(network.liquid_state) > 0.01).sum().item()
+                    active = (torch.abs(network.liquid_state) > 0.01).sum().item()  # type: ignore[arg-type]
                     active_neurons.append(active)
 
         # Calculate transition time: time from 10% to 90% of max ignition probability
@@ -1816,7 +1822,7 @@ class NetworkComparisonExperiment:
                     "transition_time_ms": float(np.inf),
                     "cliff_delta": 0.0,
                     "passed": False,
-                    "reason": "no_threshold_transition_detected",
+                    "reason": "no_threshold_transition_detected",  # type: ignore[dict-item]
                 }
         else:
             # Fix 1: Remove 35ms fallback, return proper failure dict
@@ -1824,7 +1830,7 @@ class NetworkComparisonExperiment:
                 "transition_time_ms": float(np.inf),
                 "cliff_delta": 0.0,
                 "passed": False,
-                "reason": "no_ignition_data_available",
+                "reason": "no_ignition_data_available",  # type: ignore[dict-item]
             }
 
         # CRITICAL FIX: Calculate memory decay τ via exponential fit to autocorrelation
@@ -1966,7 +1972,7 @@ class NetworkComparisonExperiment:
 
         # Evaluate full network (baseline)
         full_network.eval()
-        full_accuracy = 0
+        full_accuracy: float = 0.0
         with torch.no_grad():
             for batch in test_data:
                 outputs = full_network(
@@ -1993,7 +1999,7 @@ class NetworkComparisonExperiment:
             if net_name in self.networks:
                 network = self.networks[net_name]
                 network.eval()
-                acc = 0
+                acc = 0.0
                 with torch.no_grad():
                     for batch in test_data:
                         outputs = network(
@@ -2279,7 +2285,7 @@ def check_falsification(
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
-    results = {
+    results: Dict[str, Any] = {
         "protocol": "Falsification-Protocol-6",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "total": 16},
@@ -2337,9 +2343,9 @@ def check_falsification(
     f_stat, p_anova = stats.f_oneway(*cluster_means)
 
     # Eta-squared
-    ss_total = np.sum((timescales - np.mean(timescales)) ** 2)
+    ss_total = np.sum((timescales_array - np.mean(timescales_array)) ** 2)
     ss_between = sum(
-        len(cm) * (np.mean(cm) - np.mean(timescales)) ** 2 for cm in cluster_means
+        len(cm) * (np.mean(cm) - np.mean(timescales_array)) ** 2 for cm in cluster_means
     )
     eta_squared = ss_between / ss_total
 
@@ -3274,7 +3280,7 @@ def run_protocol(config=None):
 
 
 # FIX: Add standardized ProtocolResult wrapper for FP-06
-def run_protocol_main(config=None):
+def run_protocol_main_alias(config=None):
     """Execute and return standardized ProtocolResult."""
     legacy_result = run_protocol()
     if not HAS_SCHEMA:

@@ -35,7 +35,7 @@ import time
 import warnings
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 import numpy as np
 import torch
@@ -250,8 +250,8 @@ class ThermodynamicEntropyCalculator(nn.Module):
         self.register_buffer("entropy_scale", torch.tensor(config.entropy_scale_factor))
 
         # Previous state for entropy production calculation
-        self.prev_state = None
-        self.prev_energies = None
+        self.prev_state: Optional[torch.Tensor] = None
+        self.prev_energies: Optional[torch.Tensor] = None
 
     def compute_physical_energy(self, state: torch.Tensor) -> torch.Tensor:
         """
@@ -336,9 +336,11 @@ class ThermodynamicEntropyCalculator(nn.Module):
         information_flux = torch.abs(dx_dt).sum(dim=-1, keepdim=True)
 
         # Total entropy production (always non-negative by Second Law)
+        entropy_scale_tensor: torch.Tensor = self.entropy_scale  # type: ignore[attr-defined,assignment]
+        entropy_scale_val = float(entropy_scale_tensor.item())
         entropy_production = (
             heat_dissipation + 0.1 * information_flux
-        ) * self.entropy_scale.item()
+        ) * entropy_scale_val
 
         # Update previous states
         self.prev_state = current_state.detach().clone()
@@ -1326,10 +1328,10 @@ class PrecisionEstimator(nn.Module):
         )
 
         # Buffer for tracking precision history (for volatility)
-        self.precision_history_buffer = []
+        self.precision_history_buffer: List[torch.Tensor] = []
 
         # NEW: Buffer for prediction accuracy history (for meta-learning)
-        self.accuracy_history_buffer = []
+        self.accuracy_history_buffer: List[float] = []
 
     def forward(
         self,
@@ -1381,13 +1383,19 @@ class PrecisionEstimator(nn.Module):
         # NEW: Apply meta-learning from prediction accuracy
         if prediction_accuracy is not None:
             # Update accuracy history
-            self.accuracy_history_buffer.append(prediction_accuracy.detach().mean())
+            self.accuracy_history_buffer.append(
+                float(prediction_accuracy.detach().mean())
+            )
             if len(self.accuracy_history_buffer) > 10:
                 self.accuracy_history_buffer.pop(0)
 
             # Create accuracy features for meta-learning
             if len(self.accuracy_history_buffer) > 1:
-                accuracy_features = torch.stack(self.accuracy_history_buffer, dim=0)
+                accuracy_tensor_list = [
+                    torch.tensor(acc, device=prediction_accuracy.device)
+                    for acc in self.accuracy_history_buffer
+                ]
+                accuracy_features = torch.stack(accuracy_tensor_list, dim=0)
                 # Pad or truncate to fixed size
                 if len(accuracy_features) < 10:
                     padding = torch.zeros(
@@ -1948,6 +1956,7 @@ class APGILiquidNetwork(nn.Module):
 
         # Step counter for entropy calculation
         self.step_counter = 0
+        self._state: Optional[APGIState] = None
 
     def initialize_state(self, batch_size: int, device: torch.device) -> APGIState:
         """
@@ -1998,15 +2007,15 @@ class APGILiquidNetwork(nn.Module):
         allostatic_load = torch.zeros(batch_size, 1, device=device)
 
         # Initialize cost-benefit history
-        cost_history = []
-        benefit_history = []
+        cost_history: List[torch.Tensor] = []
+        benefit_history: List[torch.Tensor] = []
 
         # NEW: Initialize precision and accuracy tracking
-        precision_history = []
-        prediction_accuracy_history = []
+        precision_history: List[Tuple[torch.Tensor, torch.Tensor]] = []
+        prediction_accuracy_history: List[torch.Tensor] = []
 
         # NEW: Initialize entropy tracking
-        entropy_history = []
+        entropy_history: List[EntropyOutput] = []
 
         # NEW: Initialize physical state tracking for thermodynamics
         prev_energies = torch.zeros(batch_size, 1, device=device)
@@ -2067,9 +2076,9 @@ class APGILiquidNetwork(nn.Module):
 
     def _setup_context_and_state(
         self, intero_input: torch.Tensor, context: Optional[Dict[str, torch.Tensor]]
-    ) -> Tuple[torch.Tensor, torch.device, Dict[str, torch.Tensor]]:
+    ) -> Tuple[int, torch.device, Dict[str, torch.Tensor]]:
         """Setup context and initial state"""
-        batch_size = intero_input.shape[0]
+        batch_size = int(intero_input.shape[0])
         device = intero_input.device
 
         # Default context if not provided
@@ -2077,9 +2086,9 @@ class APGILiquidNetwork(nn.Module):
             context = {
                 "metabolic": torch.ones(batch_size, device=device) * 0.7,
                 "cognitive": torch.ones(batch_size, device=device) * 0.6,
-                "affective": torch.zeros(batch_size, device=device),
-                "arousal": torch.ones(batch_size, device=device) * 0.5,
-                "attention": torch.ones(batch_size, device=device) * 0.8,
+                "affective": torch.zeros(batch_size, 1, device=device),
+                "arousal": torch.ones(batch_size, 1, device=device) * 0.5,
+                "attention": torch.ones(batch_size, 1, device=device) * 0.8,
             }
 
         return batch_size, device, context
@@ -2149,7 +2158,7 @@ class APGILiquidNetwork(nn.Module):
         state: APGIState,
         metabolic_output: MetabolicOutput,
         dt: float,
-    ) -> Tuple[IgnitionState, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[IgnitionState, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Compute ignition decision with hysteresis"""
         # Adaptive threshold update
         theta_new = self.adaptive_threshold(
@@ -2392,7 +2401,7 @@ class APGILiquidNetwork(nn.Module):
             "epsilon_intero": prediction_output.epsilon_intero,
             "epsilon_extero": prediction_output.epsilon_extero,
         }
-        return diagnostics
+        return diagnostics  # type: ignore[return-value]
 
     def forward(
         self,
@@ -2414,9 +2423,10 @@ class APGILiquidNetwork(nn.Module):
         dt = self.config.dt_ms / 1000.0  # Convert to seconds
 
         # Setup context and get basic info
-        batch_size, device, context = self._setup_context_and_state(
+        batch_size_val, device, context = self._setup_context_and_state(
             intero_input, context
         )
+        batch_size = int(batch_size_val)  # Ensure int type for mypy
 
         # Compute surprise and precision
         (
@@ -2463,8 +2473,10 @@ class APGILiquidNetwork(nn.Module):
         neuromod_output = self.neuromodulation(
             workspace_new,
             precision_output.volatility,
-            context.get("arousal", torch.ones(batch_size, 1, device=device) * 0.5),
-            context.get("attention", torch.ones(batch_size, 1, device=device) * 0.8),
+            context.get("arousal", torch.ones(int(batch_size), 1, device=device) * 0.5),
+            context.get(
+                "attention", torch.ones(int(batch_size), 1, device=device) * 0.8
+            ),
             precision_output.Pi_intero,
         )
 
@@ -2598,7 +2610,7 @@ class EnhancedAPGIValidator:
     """
 
     @staticmethod
-    def validate_three_level_entropy(network: APGILiquidNetwork) -> Dict[str, any]:
+    def validate_three_level_entropy(network: APGILiquidNetwork) -> Dict[str, Any]:
         """
         Validate that all three entropy levels are computed correctly.
         """
@@ -2641,7 +2653,7 @@ class EnhancedAPGIValidator:
     @staticmethod
     def validate_cross_level_consistency(
         network: APGILiquidNetwork, num_steps: int = 10
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         Validate cross-level entropy consistency over multiple steps.
         """
@@ -2678,7 +2690,7 @@ class EnhancedAPGIValidator:
     @staticmethod
     def validate_information_gain_positive(
         network: APGILiquidNetwork, num_steps: int = 10
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         Validate that information gain is always non-negative.
         """

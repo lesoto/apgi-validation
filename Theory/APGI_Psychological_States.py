@@ -35,7 +35,7 @@ Usage:
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -81,13 +81,13 @@ class APGIParameters:
     def verify_S_t(self) -> bool:
         """Verify S_t matches the formula: S_t = Π_e·|z_e| + Π_i_eff·|z_i|"""
         computed = self.Pi_e * abs(self.z_e) + self.Pi_i_eff * abs(self.z_i)
-        return np.isclose(self.S_t, computed, rtol=0.001)
+        return bool(np.isclose(self.S_t, computed, rtol=0.001))
 
     def verify_Pi_i_eff(self) -> bool:
         """Verify Π_i_eff matches the formula: Π_i_eff = Π_i_baseline · exp(β·M)"""
         computed = self.Pi_i_baseline * np.exp(self.beta * self.M_ca)
         computed = np.clip(computed, 0.1, 15.0)
-        return np.isclose(self.Pi_i_eff, computed, rtol=0.001)
+        return bool(np.isclose(self.Pi_i_eff, computed, rtol=0.001))
 
 
 @dataclass
@@ -1010,7 +1010,7 @@ def compute_transition_cost(from_state: str, to_state: str) -> Dict[str, float]:
 
 def validate_transition_plausibility(
     from_state: str, to_state: str, pathway: List[str]
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Validate psychological plausibility of a transition pathway.
 
@@ -1231,10 +1231,13 @@ def generate_state_comparison_table(states: List[str]) -> str:
 # =============================================================================
 
 
-def validate_all_states() -> Dict[str, Dict[str, bool]]:
+def validate_all_states() -> Tuple[
+    Dict[str, Dict[str, bool]],
+    List[Dict[str, List[str]]],
+]:
     """Validate all state parameters and formulas"""
-    results = {}
-    edge_cases = []
+    results: Dict[str, Dict[str, bool]] = {}
+    edge_cases: List[Dict[str, List[str]]] = []
 
     for name, params in PSYCHOLOGICAL_STATES.items():
         checks = {

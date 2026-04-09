@@ -84,7 +84,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any, Callable
 
 import matplotlib
 
@@ -799,7 +799,6 @@ class APGIParameters:
     wi: float = 0.5  # Internal signal weight
 
     # ========== THRESHOLD DYNAMICS PARAMETERS ==========
-    tau_theta: float = 50.0  # Threshold adaptation time constant
     eta_theta: float = 0.1  # Allostatic modulation gain
     phi: float = 0.3  # Post-ignition facilitation
     theta_0_sleep: float = 0.2  # Sleep threshold
@@ -903,7 +902,7 @@ class APGIParameters:
 
     def validate(self) -> List[str]:
         """Validate parameters against CORRECTED A.2 constraints"""
-        violations = []
+        violations: List[str] = []
 
         # Validate different parameter groups
         self._validate_time_ranges(violations)
@@ -2469,7 +2468,7 @@ class NeuromodulatorSystem:
 
     def __init__(self) -> None:
         self.levels = self.BASELINES.copy()
-        self.history = defaultdict(list)
+        self.history: defaultdict = defaultdict(list)
 
     def set_levels(self, **kwargs) -> None:
         """Set neuromodulator levels"""
@@ -2484,7 +2483,7 @@ class NeuromodulatorSystem:
 
     def compute_parameter_modifications(self) -> Dict[str, float]:
         """Compute APGI parameter modifications from current neuromodulator levels"""
-        modifications = defaultdict(float)
+        modifications: defaultdict = defaultdict(float)
 
         for mod, level in self.levels.items():
             if mod in self.PARAMETER_MAPPINGS:
@@ -2592,7 +2591,7 @@ class EnhancedSurpriseIgnitionSystem:
         self.running_stats_i = RunningStatistics(alpha_mu=0.01, alpha_sigma=0.005)
 
         # History tracking (must be before reset)
-        self.history = defaultdict(list)
+        self.history: Dict[str, List[Any]] = defaultdict(list)
 
         # Initialize state
         self.reset()
@@ -2641,7 +2640,7 @@ class EnhancedSurpriseIgnitionSystem:
         self.running_stats_i = RunningStatistics(alpha_mu=0.01, alpha_sigma=0.005)
 
         # History for interoceptive errors (for arousal computation)
-        self.eps_i_history = []
+        self.eps_i_history: List[float] = []
 
         # Clear history
         for key in self.history:
@@ -2665,7 +2664,7 @@ class EnhancedSurpriseIgnitionSystem:
         else:
             return self.params.theta_0
 
-    def step(self, inputs: Dict[str, float], dt: float) -> Dict[str, float]:
+    def step(self, inputs: Dict[str, Any], dt: float) -> Dict[str, Any]:
         """
         Execute one time step using ALL equations
 
@@ -2690,7 +2689,7 @@ class EnhancedSurpriseIgnitionSystem:
         Pi_e_input = inputs.get("Pi_e", 1.0)
         Pi_i_input = inputs.get("Pi_i", 1.0)
         beta_input = inputs.get("beta", self.params.beta)
-        content_domain = inputs.get("content_domain", self.content_domain)
+        content_domain = str(inputs.get("content_domain", self.content_domain))
         context_C = inputs.get("context_C", 0.0)
         gamma_context = inputs.get("gamma_context", 0.1)
 
@@ -2901,7 +2900,7 @@ class EnhancedSurpriseIgnitionSystem:
         return state
 
     def simulate(
-        self, duration: float, dt: float, input_generator: callable
+        self, duration: float, dt: float, input_generator: Callable[..., Any]
     ) -> Dict[str, np.ndarray]:
         """Run a complete simulation"""
         self.reset()
@@ -3287,7 +3286,7 @@ def run_complete_demo() -> None:
     # ========== 5. RUN SIMULATION ==========
     print("\n5. RUNNING COMPREHENSIVE SIMULATION...")
 
-    def simulation_inputs(t: float) -> Dict[str, float]:
+    def simulation_inputs(t: float) -> Dict[str, Any]:
         """Generate inputs that transition between states with different domains
 
         Updated to use complete dynamical system inputs (observed/predicted values)
@@ -3336,7 +3335,10 @@ def run_complete_demo() -> None:
 
         # Add occasional surprise events
         if np.random.random() < 0.01:  # 1% chance per timestep
-            complete_inputs["observed_e"] += np.random.normal(3.0, 0.8)
+            observed_e_val = float(complete_inputs["observed_e"])  # type: ignore[arg-type]
+            complete_inputs["observed_e"] = observed_e_val + float(
+                np.random.normal(3.0, 0.8)
+            )
             print(f"      Surprise event at t={t:.1f}s")
 
         return complete_inputs
@@ -3417,8 +3419,6 @@ def run_complete_demo() -> None:
 
     # Show dashboard
     plt.show()
-
-    return system, library, visualizer, history
 
 
 # =============================================================================

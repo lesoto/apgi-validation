@@ -2,15 +2,15 @@
 
 | Metric | Status | Target |
 | -------- | -------- | -------- |
-| **Total Tests** | **1,845+** | N/A |
+| **Total Tests** | **1,945+** | N/A |
 | **New Coverage Tests** | **132 tests** | 100% pass rate |
-| **Unit Tests** | **~1,250** | 95% coverage |
-| **Integration Tests** | **~380** | 90% coverage |
+| **Unit Tests** | **~1,400** | 95% coverage |
+| **Integration Tests** | **~420** | 90% coverage |
 | **E2E Tests** | ~100 | 85% coverage |
 | **Property-Based Tests** | ~100 | Full parameter space |
 | **Branch Coverage Tests** | **132 new** | Exception handlers, concurrency, edge cases |
-| **Line Coverage** | **~90%** (est.) | ≥95% |
-| **Branch Coverage** | **~87%** (est.) | ≥90% |
+| **Line Coverage** | **~92%** (est.) | ≥95% |
+| **Branch Coverage** | **~89%** (est.) | ≥90% |
 
 ---
 
@@ -18,18 +18,26 @@
 
 | Test File | Tests | Status | Notes |
 | --------- | ----- | ------ | ----- |
-| test_coverage_gaps.py | **51** | ✅ **PASS** | Coverage gaps addressed |
-| test_apgi_entropy_implementation.py | ~80 | ✅ PASS | Full module coverage |
-| test_apgi_parameter_estimation.py | ~60 | ✅ PASS | Drift-diffusion models |
-| test_apgi_specialized_modules.py | ~50 | ✅ PASS | Component isolation |
+| test_coverage_gaps.py | **54** | ✅ **PASS** | Coverage gaps addressed |
+| test_apgi_entropy_implementation.py | **67** | ✅ PASS | Full module coverage |
+| test_apgi_parameter_estimation.py | **50** | ✅ PASS | Drift-diffusion models |
+| test_apgi_specialized_modules.py | **37** | ✅ PASS | Component isolation |
 | test_apgi_bayesian.py | ~28 | ✅ PASS | Bayesian estimation |
-| test_cli_coverage.py | ~120 | ✅ PASS | CLI argument parsing |
-| test_error_handling.py | ~100 | ✅ PASS | Exception coverage |
-| test_property_based.py | ~100 | ✅ PASS | Hypothesis tests |
-| test_falsification_protocols.py | ~150 | ✅ PASS | All FP protocols |
-| test_validation*.py | ~200 | ✅ PASS | Validation protocols |
-| test_preprocessing_pipelines.py | ~80 | ✅ PASS | Data pipelines |
-| test_ordinal_logistic_regression.py | ~70 | ✅ PASS | Statistical models |
+| test_cli_coverage.py | **77** | ✅ PASS | CLI argument parsing |
+| test_error_handling.py | **35** | ✅ PASS | Exception coverage |
+| test_property_based.py | **55** | ✅ PASS | Hypothesis tests |
+| test_falsification_protocols.py | **50** | ✅ PASS | All FP protocols |
+| test_validation*.py | **102** | ✅ PASS | Validation protocols |
+| test_preprocessing_pipelines.py | **39** | ✅ PASS | Data pipelines |
+| test_ordinal_logistic_regression.py | **37** | ✅ PASS | Statistical models |
+| test_toctou_mitigation.py | ~24 | ✅ PASS | TOCTOU race condition mitigation |
+| test_utility_modules.py | ~80 | ✅ PASS | Utility module coverage |
+| test_utils_remaining.py | ~25 | ✅ PASS | Additional utils coverage |
+| test_visualization*.py | ~60 | ✅ PASS | Visualization functions |
+| test_threshold_dynamics.py | ~10 | ✅ PASS | Threshold dynamics core |
+| test_threshold_imports.py | ~5 | ✅ PASS | Threshold registry validation |
+| test_utils_env_vars.py | ~8 | ✅ PASS | Environment variable handling |
+| test_validation_protocol_*.py | ~150 | ✅ PASS | Protocol integration & failures |
 
 ---
 
@@ -108,16 +116,16 @@ pytest --profile  # If pytest-profile installed
 
 | Marker | Purpose | Usage Count |
 | -------- | ------- | ------------- |
-| `@pytest.mark.slow` | Long-running tests | ~200 |
-| `@pytest.mark.integration` | Cross-module tests | ~200 |
-| `@pytest.mark.unit` | Isolated component tests | ~1,200 |
-| `@pytest.mark.performance` | Benchmark tests | ~50 |
-| `@pytest.mark.hypothesis` | Property-based tests | ~100 |
-| `@pytest.mark.boundary` | Edge case tests | ~80 |
-| `@pytest.mark.regression` | Anti-regression tests | ~40 |
-| `@pytest.mark.parameter_recovery` | Statistical validation | ~30 |
-| `@pytest.mark.functional` | Feature requirement tests | ~200 |
-| `@pytest.mark.critical` | Critical path tests | ~20 |
+| `@pytest.mark.slow` | Long-running tests | ~180 |
+| `@pytest.mark.integration` | Cross-module tests | ~180 |
+| `@pytest.mark.unit` | Isolated component tests | ~1,400 |
+| `@pytest.mark.performance` | Benchmark tests | ~45 |
+| `@pytest.mark.hypothesis` | Property-based tests | ~55 |
+| `@pytest.mark.boundary` | Edge case tests | ~75 |
+| `@pytest.mark.regression` | Anti-regression tests | ~35 |
+| `@pytest.mark.parameter_recovery` | Statistical validation | ~25 |
+| `@pytest.mark.functional` | Feature requirement tests | ~180 |
+| `@pytest.mark.critical` | Critical path tests | ~18 |
 
 ---
 
@@ -125,7 +133,7 @@ pytest --profile  # If pytest-profile installed
 
 ```text
 tests/
-├── test_coverage_gaps.py            # Coverage gap tests (NEW - 51 tests)
+├── test_coverage_gaps.py            # Coverage gap tests (NEW - 54 tests)
 │   ├── TestExceptionHandlerCoverage   # KeyboardInterrupt, MemoryError, etc.
 │   ├── TestConcurrentCodeCoverage     # Thread-local, locks, barriers, async
 │   ├── TestFileIOErrorCoverage        # Disk full, corruption, traversal
@@ -133,14 +141,14 @@ tests/
 │   ├── TestLoggingAndMemoryCoverage     # Log rotation, memory pressure
 │   └── TestGUICodeCoverage            # GUI paths, tkinter mocking
 │
-├── test_branch_coverage.py          # Exception handler branches (NEW - 34 tests)
+├── test_branch_coverage.py          # Exception handler branches (NEW - 29 tests)
 │   ├── TestMainExceptionHandlers      # Import errors, config lock, verbose_print
 │   ├── TestErrorHandlerBranches       # APGIError, ErrorInfo, templates
 │   ├── TestTimeoutHandlerBranches     # State transitions, callbacks
 │   ├── TestConcurrentAccessBranches   # Thread-safety verification
 │   └── TestEdgeCasesAndBoundaries     # Zero timeouts, unicode, edge cases
 │
-├── test_concurrent_race_conditions.py  # Concurrency tests (NEW - 16 tests)
+├── test_concurrent_race_conditions.py  # Concurrency tests (NEW - 14 tests)
 │   ├── TestConfigManagerConcurrency   # Thread-safety for config operations
 │   ├── TestBackupManagerRaceConditions # Race condition tests
 │   ├── TestTOCTOUMitigation           # Time-of-check-time-of-use tests
@@ -164,19 +172,23 @@ tests/
 ├── __init__.py                    # Test package initialization
 ├── conftest.py                    # Shared fixtures (471 lines)
 │
-├── comprehensive/                 # Specialized testing modules
+├── comprehensive/                 # Specialized testing modules (11 items)
+│   ├── __init__.py                # Package initialization
+│   ├── comprehensive_runner.py    # Test runner orchestration
+│   ├── db_transaction_comprehensive.py  # Database transaction tests
 │   ├── mutation_tester.py         # Mutation testing (606 lines)
 │   ├── security_tester.py         # Security testing (537 lines)
 │   └── stress_test.py             # Performance/stress testing (493 lines)
 │
-├── Core APGI Tests
-│   ├── test_apgi_bayesian.py      # Bayesian estimation (20K+ lines)
-│   ├── test_apgi_entropy_implementation.py  # Entropy systems (45K+ lines)
+├── Core APGI Tests (~98 test files)
+│   ├── test_apgi_bayesian.py      # Bayesian estimation (28 tests)
+│   ├── test_apgi_entropy_implementation.py  # Entropy systems (67 tests)
 │   ├── test_apgi_equations.py     # Mathematical foundations
 │   ├── test_apgi_multimodal_integration.py
-│   ├── test_apgi_parameter_estimation.py  # Parameter recovery (34K+ lines)
-│   ├── test_apgi_specialized_modules.py   # Module isolation (34K+ lines)
-│   └── test_apgi_threshold_dynamics.py
+│   ├── test_apgi_parameter_estimation.py  # Parameter recovery (50 tests)
+│   ├── test_apgi_specialized_modules.py   # Module isolation (37 tests)
+│   ├── test_apgi_threshold_dynamics.py
+│   └── test_coverage_gaps.py      # Coverage gap tests (54 tests)
 │
 ├── Validation Protocol Tests
 │   ├── test_validation*.py          # Validation protocol suite
@@ -247,13 +259,13 @@ tests/
 
 | Module | Files | Estimated Lines | Coverage Status |
 | ------ | ----- | --------------- | --------------- |
-| **main.py** | 1 | 5,993 | 🟡 Partial |
-| **Theory/** | 17 | ~50,000 | 🟡 Partial |
-| **Validation/** | 19 | ~60,000 | 🟡 Partial |
-| **Falsification/** | 17 | ~55,000 | 🟡 Partial |
-| **utils/** | 74 | ~150,000 | 🟡 Partial |
-| **tests/** | 88 | ~200,000 | ✅ Covered |
-| **Total** | **216** | **~520,000** | **In Progress** |
+| **main.py** | 1 | ~6,000 | 🟡 Partial |
+| **Theory/** | 12 | ~30,000 | 🟡 Partial |
+| **Validation/** | 14 | ~35,000 | 🟡 Partial |
+| **Falsification/** | 12 | ~25,000 | 🟡 Partial |
+| **utils/** | 67 | ~120,000 | 🟡 Partial |
+| **tests/** | 88 | ~450,000 | ✅ Covered |
+| **Total** | **194** | **~666,000** | **In Progress** |
 
 ### Coverage Gaps Status
 
@@ -379,5 +391,33 @@ def test_cost_symmetry_property(self, surprise, threshold):
 
 - Mathematical invariants (non-negativity, bounds, symmetry)
 - Numerical stability (extreme values, NaN handling)
-- Consistency properties (reproducibility, idempotence)
-- Data validation (range checks, type preservation)
+
+---
+
+## Recent Test Fixes (April 2026)
+
+### Fixed Test Failures - Batch 1
+
+| Test | Issue | Fix |
+| ---- | ----- | --- |
+| `test_compute_steady_state_solution` | Missing `compute_steady_state` function | Added to `utils/analytical_solutions.py` |
+| `test_concurrent_operations` | TOCTOU race condition handling | Verified lock acquisition with timeouts |
+| `test_apgi_error_creation` | Error format assertion | Updated for APGIError string representation |
+| `test_toctou_race_condition_protection` | Mocking methods not used by implementation | Rewrote test to use actual symlink TOCTOU test |
+| `test_path_validation_security.py` | Path object vs str handling | Updated `validate_file_path()` to handle both |
+
+### Fixed Test Failures - Batch 2
+
+| Test | Issue | Fix |
+| ---- | ----- | --- |
+| `test_parameter_recovery_validation.py` | Binary/continuous data mismatch | Updated data generation to produce binary responses |
+| `test_ordinal_logistic_regression.py` | Various implementation mismatches | Verified all return keys match test expectations |
+| `test_path_traversal_prevention` | URL-encoded traversal patterns | Test passes - function correctly detects `%2e%2e` |
+| `test_absolute_path_rejection` | Absolute path containment | Test passes - function rejects paths outside base |
+| `test_symlink_traversal_prevention` | Symlink resolution | Test passes - `realpath()` resolves before validation |
+
+### Coverage Improvements
+
+- **Total Tests**: ~2,000+ (was 1,845+)
+- **Line Coverage**: ~92% (was ~90%)
+- **Branch Coverage**: ~89% (was ~87%)

@@ -173,29 +173,28 @@ class TestSignalHandlerRestoration:
         def mock_shutdown():
             shutdown_called.append(True)
 
-        SignalHandler()
-        SignalHandler().shutdown_callback = mock_shutdown
+        handler = SignalHandler(shutdown_callback=mock_shutdown)
 
-        # Simulate SIGINT
-        sigint_handler = signal.getsignal(signal.SIGINT)
-
-        # Send signal to current process (this might not work in all environments)
+        # Simulate SIGINT by calling the handler directly
         try:
-            sigint_handler(signal.SIGINT, None)
-        except Exception:
-            pass  # Signal handling might not work in test environment
+            handler._handle_signal(signal.SIGINT, None)
+        except KeyboardInterrupt:
+            pass  # Expected
 
-        # In real scenario, shutdown would be called
-        # assert len(shutdown_called) > 0
+        # Verify shutdown callback was called
+        assert len(shutdown_called) == 1
 
     def test_signal_handler_cleanup_on_destruction(self, original_handlers):
         """Test signal handler cleanup on object destruction."""
-        SignalHandler()
+        # Use context manager to install handlers
+        with SignalHandler():
+            # Handlers should be installed
+            assert signal.getsignal(signal.SIGINT) != original_handlers[signal.SIGINT]
 
-        # Handlers should be installed
-        assert signal.getsignal(signal.SIGINT) != original_handlers[signal.SIGINT]
+        # After context exit, handlers should be restored
+        assert signal.getsignal(signal.SIGINT) == original_handlers[signal.SIGINT]
 
-        # Delete handler object
+        # Test that destruction doesn't crash even when not using context manager
         handler = SignalHandler()
         del handler
 
@@ -204,9 +203,8 @@ class TestSignalHandlerRestoration:
 
         gc.collect()
 
-        # Handlers might be restored depending on implementation
-        # This test verifies that destruction doesn't crash
-        assert True  # If we get here, no crash occurred
+        # If we get here, no crash occurred
+        assert True
 
 
 class TestSignalHandlerEdgeCases:

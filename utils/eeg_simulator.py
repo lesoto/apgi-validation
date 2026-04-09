@@ -7,7 +7,7 @@ and P3b amplitude/latency (300–600ms). This is essential for the core mechanis
 """
 
 import numpy as np
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,8 +23,10 @@ class EEGSimulator:
 
     def __init__(
         self,
+        n_channels: int = 32,  # Number of EEG channels
         sampling_rate: float = 1000.0,  # Hz
         eeg_duration: float = 1.5,  # seconds
+        duration_seconds: float = None,  # Alias for eeg_duration (for test compatibility)
         cardiac_cycle_duration: float = 0.9,  # seconds (average heart rate ~67 bpm)
         r_wave_duration: float = 0.05,  # seconds
         hep_window_start: float = 0.2,  # seconds post-R-wave (200ms)
@@ -37,8 +39,10 @@ class EEGSimulator:
         Initialize EEG simulator.
 
         Args:
+            n_channels: Number of EEG channels to simulate
             sampling_rate: EEG sampling rate in Hz
             eeg_duration: Duration of each EEG epoch in seconds
+            duration_seconds: Alias for eeg_duration (for test compatibility)
             cardiac_cycle_duration: Duration of cardiac cycle in seconds
             r_wave_duration: Duration of R-wave in seconds
             hep_window_start: HEP analysis window start post-R-wave (seconds)
@@ -47,8 +51,13 @@ class EEGSimulator:
             p3b_window_end: P3b analysis window end post-stimulus (seconds)
             noise_level: Noise level (standard deviation of background noise)
         """
+        self.n_channels = n_channels
         self.sampling_rate = sampling_rate
-        self.eeg_duration = eeg_duration
+        # Use duration_seconds if provided (for test compatibility)
+        if duration_seconds is not None:
+            self.eeg_duration = duration_seconds
+        else:
+            self.eeg_duration = eeg_duration
         self.cardiac_cycle_duration = cardiac_cycle_duration
         self.r_wave_duration = r_wave_duration
         self.hep_window_start = hep_window_start
@@ -57,8 +66,8 @@ class EEGSimulator:
         self.p3b_window_end = p3b_window_end
         self.noise_level = noise_level
 
-        # Convert to samples
-        self.n_samples = int(sampling_rate * eeg_duration)
+        # Convert to samples (use self.eeg_duration which may have been set from duration_seconds)
+        self.n_samples = int(sampling_rate * self.eeg_duration)
         self.r_wave_samples = int(sampling_rate * r_wave_duration)
         self.hep_start_sample = int(sampling_rate * hep_window_start)
         self.hep_end_sample = int(sampling_rate * hep_window_end)
@@ -378,6 +387,32 @@ class EEGSimulator:
             r_wave_times.append(current_time)
 
         return np.array(r_wave_times)
+
+    def simulate_eeg(self) -> Dict[str, Any]:
+        """
+        Simulate multi-channel EEG data.
+
+        Returns:
+            Dictionary with simulated EEG data or error information
+        """
+        try:
+            # Generate background EEG for all channels
+            n_samples = int(self.sampling_rate * self.eeg_duration)
+            eeg_data = np.zeros((self.n_channels, n_samples))
+
+            for ch in range(self.n_channels):
+                eeg_data[ch, :] = self.generate_background_eeg()
+
+            return {
+                "eeg_data": eeg_data,
+                "n_channels": self.n_channels,
+                "n_samples": n_samples,
+                "sampling_rate": self.sampling_rate,
+                "duration": self.eeg_duration,
+            }
+        except Exception as e:
+            logger.error(f"Error simulating EEG: {e}")
+            return {"error": str(e)}
 
 
 def create_default_simulator() -> EEGSimulator:

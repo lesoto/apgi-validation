@@ -85,7 +85,13 @@ class APGIError(Exception):
         error_code: Optional[str] = None,
         timestamp: Optional[datetime] = None,
     ):
-        if error_info:
+        # Handle case where first argument is a string (message) rather than ErrorInfo
+        if isinstance(error_info, str):
+            # First argument is actually the message
+            message = error_info
+            error_info = None
+
+        if error_info and isinstance(error_info, ErrorInfo):
             self.error_info = error_info
             self.message = error_info.message
             self.severity = error_info.severity
@@ -113,15 +119,8 @@ class APGIError(Exception):
         if self.error_info:
             return f"[{self.error_info.severity.value}] {self.error_info.category.value}: {self.error_info.message}"
         else:
-            base_msg = f"[{self.severity.value.upper()}] {self.message}"
-            if self.error_code:
-                base_msg = f"[{self.error_code}] {base_msg}"
-            if self.suggestion:
-                base_msg += f"\n💡 Suggestion: {self.suggestion}"
-            if self.context:
-                context_str = ", ".join(f"{k}={v}" for k, v in self.context.items())
-                base_msg += f"\n📍 Context: {context_str}"
-            return base_msg
+            # Include severity and category for better error visibility
+            return f"[{self.severity.value}] {self.category.value}: {self.message}"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert error to dictionary for logging/serialization."""
@@ -344,7 +343,7 @@ class ErrorHandler:
         },
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.error_counts: Dict[ErrorCategory, int] = {}
         self.error_handlers: Dict[ErrorCategory, Callable] = {}
         self.error_counts_lock = threading.Lock()

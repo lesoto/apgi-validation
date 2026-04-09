@@ -1792,7 +1792,6 @@ def analyze_sobol_sensitivity(
                 "params_checked": available_f8_sa_params,
             }
 
-            results: Dict[str, Any] = results
             # Add F8.SA to falsification criteria
             falsification_criteria = results.get("falsification_criteria", {})
             if not isinstance(falsification_criteria, dict):
@@ -2383,9 +2382,7 @@ def run_comprehensive_parameter_sensitivity_analysis() -> Dict[str, Any]:
         fim_results,
         profile_likelihood_results,
     )
-    results["comprehensive_report"] = (
-        report  # Use dict directly instead of str if results is Dict[str, Any]
-    )
+    results["comprehensive_report"] = {"report": report}
 
     # 11. Summary statistics with comprehensive F8 criteria tracking
     # F8.PL: Profile likelihood CI finite

@@ -474,6 +474,10 @@ def cli(ctx, config_file, log_level, verbose, quiet):
         config_manager.config_file = validated_config_path
         config_manager._load_config()
         apgi_logger.logger.info(f"Using custom config file: {config_file}")
+        # Print version to console for visibility (also captured by tests)
+        console.print(
+            f"Using config: {config_file} (version: {get_config_value('version')})"
+        )
 
     if log_level:
         # set_parameter("logging", "level", log_level.upper())
@@ -517,7 +521,7 @@ def formal_model(
         console.print(
             f"[red]❌ Invalid simulation steps '{simulation_steps}'. Must be a positive integer[/red]"
         )
-        return
+        raise click.ClickException("Invalid simulation steps")
 
     if simulation_steps is not None and simulation_steps > 100000:
         console.print(
@@ -528,7 +532,7 @@ def formal_model(
         console.print(
             f"[red]❌ Invalid time step '{dt}'. Must be a positive number[/red]"
         )
-        return
+        raise click.ClickException("Invalid time step")
 
     if dt is not None and dt > 1.0:
         console.print(
@@ -539,7 +543,7 @@ def formal_model(
         console.print(
             f"[red]❌ Invalid output file '{output_file}'. Must end with .csv, .json, or .pkl[/red]"
         )
-        return
+        raise click.ClickException("Invalid output file extension")
 
     # Get configuration values
     sim_config = config_manager.get_config("simulation")
@@ -649,6 +653,20 @@ def formal_model(
                             console.print(
                                 f"[green]✓[/green] Loaded and validated {validation_result['validated_params']} parameters from {params}"
                             )
+
+                            # Check for unknown parameter warnings and fail if present
+                            unknown_param_warnings = [
+                                w
+                                for w in validation_result.get("warnings", [])
+                                if "unknown parameter" in w.lower()
+                            ]
+                            if unknown_param_warnings:
+                                console.print(
+                                    "[red]❌ Parameter validation errors:[/red]"
+                                )
+                                for warning in unknown_param_warnings:
+                                    console.print(f"  • {warning}")
+                                raise click.ClickException("Invalid parameters in file")
 
                             if validation_result["warnings"]:
                                 console.print("[yellow]Warnings:[/yellow]")
@@ -920,16 +938,17 @@ def _sanitize_error_message(error_msg: str) -> str:
 
     # Remove potential sensitive data patterns
     # More specific patterns to avoid false positives
-    # Look for API keys, tokens, or secrets (typically 40+ chars with mixed case/numbers)
-    error_msg = re.sub(r"\b[A-Za-z0-9+/=_-]{40,}\b", "[REDACTED]", error_msg)
-    # Look for potential JWT tokens (3 parts separated by dots)
+    # Order matters: more specific patterns first
+    # JWT tokens (3 parts separated by dots)
     error_msg = re.sub(
         r"\b[A-Za-z0-9+/=_-]{20,}\.[A-Za-z0-9+/=_-]{20,}\.[A-Za-z0-9+/=_-]{20,}\b",
         "[JWT_REDACTED]",
         error_msg,
     )
-    # Look for hex-encoded keys (32+ chars, typically 64 for 256-bit keys)
+    # Hex-encoded keys (32+ chars, typically 64 for 256-bit keys) - before API key pattern
     error_msg = re.sub(r"\b[a-fA-F0-9]{32,}\b", "[HEX_REDACTED]", error_msg)
+    # API keys, tokens, or secrets (typically 40+ chars with mixed case/numbers)
+    error_msg = re.sub(r"\b[A-Za-z0-9+/=_-]{40,}\b", "[REDACTED]", error_msg)
 
     # Limit message length
     if len(error_msg) > 200:
@@ -2113,8 +2132,8 @@ def analyze_logs(
 
         # Simple log analysis
         total_lines = 0
-        level_counts = {}
-        module_counts = {}
+        level_counts: Dict[str, int] = {}
+        module_counts: Dict[str, int] = {}
         error_messages = []
 
         for log_path in log_files:
@@ -2303,7 +2322,7 @@ def process_data(
                 )
 
         # Initialize processors
-        processors = {}
+        processors: Dict[str, Any] = {}
         if "eeg" in modality_list:
             processors["eeg"] = EEGPreprocessor(config)
         if "pupil" in modality_list:
@@ -2448,7 +2467,7 @@ def monitor_performance(
         # Get current process
         process = psutil.Process(os.getpid())
 
-        results = {
+        results: Dict[str, Any] = {
             "command": command,
             "iterations": iterations,
             "timestamp": datetime.now().isoformat(),
@@ -2535,21 +2554,18 @@ def monitor_performance(
             # Calculate statistics
             if execution_times:
                 # BUG-049: Add defensive checks for min/max to prevent empty collection access
-                results["metrics"] = {
-                    "execution_time": {
-                        "mean": mean(execution_times),
-                        "std": (
-                            stdev(execution_times) if len(execution_times) > 1 else 0
-                        ),
-                        "min": min(execution_times) if execution_times else 0,
-                        "max": max(execution_times) if execution_times else 0,
-                        "total": sum(execution_times),
-                    }
+                metrics_dict = results["metrics"]  # type: ignore[assignment]
+                metrics_dict["execution_time"] = {
+                    "mean": mean(execution_times),
+                    "std": (stdev(execution_times) if len(execution_times) > 1 else 0),
+                    "min": min(execution_times) if execution_times else 0,
+                    "max": max(execution_times) if execution_times else 0,
+                    "total": sum(execution_times),
                 }
 
                 if memory:
                     # BUG-049: Add defensive check for max on memory_usage
-                    results["metrics"]["memory_usage_mb"] = {
+                    metrics_dict["memory_usage_mb"] = {
                         "mean": mean(memory_usage),
                         "std": stdev(memory_usage) if len(memory_usage) > 1 else 0,
                         "peak": max(memory_usage) if memory_usage else 0,
@@ -2557,7 +2573,7 @@ def monitor_performance(
 
                 if cpu:
                     # BUG-049: Add defensive check for max on cpu_usage
-                    results["metrics"]["cpu_usage_percent"] = {
+                    metrics_dict["cpu_usage_percent"] = {
                         "mean": mean(cpu_usage),
                         "std": stdev(cpu_usage) if len(cpu_usage) > 1 else 0,
                         "peak": max(cpu_usage) if cpu_usage else 0,
@@ -2565,19 +2581,19 @@ def monitor_performance(
 
                 # Display results
                 console.print("\n[bold]Performance Results:[/bold]")
-                et = results["metrics"]["execution_time"]
+                et = metrics_dict["execution_time"]
                 console.print(f"  Mean: {et['mean']:.3f}s")
                 console.print(f"  Std: {et['std']:.3f}s")
                 console.print(f"  Total: {et['total']:.3f}s")
 
-                if memory and "memory_usage_mb" in results["metrics"]:
-                    mu = results["metrics"]["memory_usage_mb"]
+                if memory and "memory_usage_mb" in metrics_dict:
+                    mu = metrics_dict["memory_usage_mb"]
                     console.print(
                         f"  Memory: {mu['mean']:.1f} ± {mu['std']:.1f} MB (peak: {mu['peak']:.1f} MB)"
                     )
 
-                if cpu and "cpu_usage_percent" in results["metrics"]:
-                    cu = results["metrics"]["cpu_usage_percent"]
+                if cpu and "cpu_usage_percent" in metrics_dict:
+                    cu = metrics_dict["cpu_usage_percent"]
                     console.print(
                         f"  CPU: {cu['mean']:.1f} ± {cu['std']:.1f}% (peak: {cu['peak']:.1f}%)"
                     )
@@ -3577,7 +3593,7 @@ def falsification(
             print(f"Evidence Strength: {results['evidence_strength']:.3f}")
         elif priority:
             # Test specific priority
-            test_data = {}  # Would populate based on priority
+            test_data: Dict[str, Any] = {}  # Would populate based on priority
             protocol = fals_module.APGIFalsificationProtocol()
             results = protocol.test_priority_falsification(
                 f"priority_{priority}_neural_signatures", test_data
@@ -3796,7 +3812,7 @@ def comprehensive_validation(
     start_time = time.time()
 
     try:
-        results = {
+        results: Dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "validation_components": {},
             "overall_assessment": {},
@@ -3903,11 +3919,12 @@ def comprehensive_validation(
             fals_results = run_falsification_testing()
 
         # Store results
-        results["validation_components"]["neural_signatures"] = neural_results
-        results["validation_components"]["causal_manipulations"] = causal_results
-        results["validation_components"]["quantitative_fits"] = quant_results
-        results["validation_components"]["clinical_convergence"] = clinical_results
-        results["validation_components"]["falsification_testing"] = fals_results
+        validation_components = results["validation_components"]  # type: ignore[assignment]
+        validation_components["neural_signatures"] = neural_results
+        validation_components["causal_manipulations"] = causal_results
+        validation_components["quantitative_fits"] = quant_results
+        validation_components["clinical_convergence"] = clinical_results
+        validation_components["falsification_testing"] = fals_results
 
         # Calculate overall scores
         priority_scores = [
@@ -3944,12 +3961,13 @@ def comprehensive_validation(
         print(
             f"Scientific Status: {fals_results['scientific_assessment']['scientific_status']}"
         )
+        overall_assessment = results["overall_assessment"]  # type: ignore[assignment]
         print(
-            f"Overall Validation Score: {results['overall_assessment']['overall_validation_score']:.3f}"
+            f"Overall Validation Score: {overall_assessment['overall_validation_score']:.3f}"
         )
 
         # Final assessment
-        final_score = results["overall_assessment"]["overall_validation_score"]
+        final_score = overall_assessment["overall_validation_score"]
         if final_score >= 95:
             grade = "A+ (100/100 achieved! 🎉)"
         elif final_score >= 90:
@@ -4049,7 +4067,7 @@ def _run_gui_module(gui_path, gui_name, debug):
 
 def _launch_validation_gui(debug):
     """Launch validation GUI."""
-    gui_path = PROJECT_ROOT / "Validation" / "APGI_Validation_GUI.py"
+    gui_path = PROJECT_ROOT / "APGI_Validation_GUI.py"
 
     if not gui_path.exists():
         console.print(f"[red]❌ Validation GUI not found at: {gui_path}[/red]")
@@ -4446,10 +4464,10 @@ def _create_figure_and_axes(
             figsize=(fig_width, fig_height),
             squeeze=False,
         )
-        axes = axes.flatten() if subplot_rows_val * subplot_cols_val > 1 else [axes]
+        axes = axes.flatten()
     else:
-        fig, ax = plt_module.subplots(figsize=(fig_width, fig_height))
-        axes = [ax]
+        fig, axes = plt_module.subplots(figsize=(fig_width, fig_height), squeeze=False)
+        axes = axes.flatten()
 
     # Set aspect ratio
     if aspect != "auto":

@@ -227,7 +227,7 @@ Each protocol includes explicit power analyses, effect sizes, and pre-specified 
 
 The APGI Clinical Assessment Battery is proposed in the validation framework of APGI_Validation_GUI.py and Validation-Protocol-*.py, combining HEP, PCI, and behavioral interoceptive tasks for multimodal diagnostic assessment targeting psychiatric populations.
 
-Validation/APGI_Validation_GUI.py and Validation-Protocol-*.py  
+APGI_Validation_GUI.py (root) and Validation/Validation-Protocol-*.py  
 
 Combines HEP + PCI + behavioral interoceptive tasks as assessment architecture targeting psychiatric populations (anxiety, depression, PTSD, autism) for validating APGI parameter profiles.
 
@@ -307,6 +307,6 @@ Predicts meditation effects: 10,000+ hours focused attention practice → 15–2
 
 The APGI Multimodal Classifier is proposed in the validation framework of APGI_Validation_GUI.py and Validation-Protocol-*.py, using fMRI connectivity, pupillometry, EEG ignition markers, HRV, and behavioral modeling as inputs grounded in Πⁱ, θ_t, β parameters.
 
-Validation/APGI_Validation_GUI.py and Validation-Protocol-*.py  
+APGI_Validation_GUI.py (root) and Validation/Validation-Protocol-*.py  
 
 Uses fMRI connectivity, pupillometry, EEG ignition markers, HRV, and behavioral modeling as inputs grounded in Πⁱ, θ_t, β parameters for machine-learning stratification of psychiatric disorders.

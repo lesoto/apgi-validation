@@ -1194,7 +1194,7 @@ def plot_cultural_parameter_comparison(save_path: Optional[str] = None):
 # =============================================================================
 
 
-def validate_cultural_modulation_effects() -> Dict[str, float]:
+def validate_cultural_modulation_effects() -> Dict[str, Any]:
     """
     Validate that cultural modulation produces expected effects with realistic criteria.
 
@@ -1207,7 +1207,7 @@ def validate_cultural_modulation_effects() -> Dict[str, float]:
     # Test known cultural effects
     cultures = create_cultural_database()
 
-    validation_results = {}
+    validation_results: Dict[str, Any] = {}
 
     # Test individualism vs collectivism
     western = next(c for c in cultures if c.culture_name == "Western Individualist")
@@ -1285,21 +1285,23 @@ def validate_cultural_modulation_effects() -> Dict[str, float]:
     ]
 
     effect_sizes = [
-        validation_results["individualism_pi_e_effect_size"],
-        validation_results["collectivism_coupling_effect_size"],
-        validation_results["contemplative_theta_effect_size"],
-        validation_results["contemplative_beta_effect_size"],
+        float(validation_results["individualism_pi_e_effect_size"]),
+        float(validation_results["collectivism_coupling_effect_size"]),
+        float(validation_results["contemplative_theta_effect_size"]),
+        float(validation_results["contemplative_beta_effect_size"]),
     ]
 
     binary_score = sum(binary_validations) / len(binary_validations)
     avg_effect_size = sum(effect_sizes) / len(effect_sizes)
 
     # Overall score combines binary success with effect magnitude
-    validation_results["overall_validation_score"] = 0.7 * binary_score + 0.3 * min(
-        avg_effect_size, 1.0
+    validation_results_float: Dict[str, float] = {}
+    validation_results_float["overall_validation_score"] = (
+        0.7 * binary_score + 0.3 * min(avg_effect_size, 1.0)
     )
-    validation_results["average_effect_size"] = avg_effect_size
-    validation_results["binary_success_rate"] = binary_score
+    validation_results_float["average_effect_size"] = avg_effect_size
+    validation_results_float["binary_success_rate"] = binary_score
+    validation_results.update(validation_results_float)  # type: ignore[arg-type]
 
     return validation_results
 

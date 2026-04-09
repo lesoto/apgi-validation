@@ -10,7 +10,7 @@ import logging
 import warnings
 import json
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Dict, Any, Optional, Tuple, List, cast
 from dataclasses import dataclass
 
 
@@ -821,9 +821,9 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
             else:
                 # Default range
                 thresholds = np.linspace(0.1, 2.0, 20)
-            branching_ratios = []
-            avalanche_sizes = []
-            perturbation_susceptibilities = []
+            branching_ratios: List[float] = []
+            avalanche_sizes: List[float] = []
+            perturbation_susceptibilities: List[float] = []
 
             for threshold in thresholds:
                 params = apgi_framework.default_params.copy()
@@ -840,14 +840,14 @@ class EnhancedBenchmarker(ComputationalBenchmarker):
                     )
                     branching_ratios.append(float(br))
                 else:
-                    branching_ratios.append(0)
+                    branching_ratios.append(0.0)
 
                 # Avalanche size distribution (simplified)
                 ignition_indices = np.where(ignition_events)[0]
                 if len(ignition_indices) > 1:
-                    avalanche_sizes.append(np.mean(np.diff(ignition_indices)))
+                    avalanche_sizes.append(float(np.mean(np.diff(ignition_indices))))
                 else:
-                    avalanche_sizes.append(0)
+                    avalanche_sizes.append(0.0)
 
                 # Perturbation susceptibility (response to small changes)
                 noise_level = 0.01
@@ -1072,9 +1072,13 @@ class NeuromorphicSimulator:
         """Validate neuromorphic implementation feasibility"""
         constraints = self.constraints.get(self.hardware_type, {})
 
+        max_neurons_raw = constraints.get("max_neurons", 1000)
+        max_neurons_val: int = (
+            int(cast(Any, max_neurons_raw)) if max_neurons_raw is not None else 1000
+        )
         validation = {
             "neuron_count_feasible": framework.get_parameter_count()
-            <= int(constraints.get("max_neurons", 1000)) / 100,
+            <= (max_neurons_val // 100),
             "synapse_count_feasible": True,  # Simplified
             "precision_feasible": True,  # Assume floating point conversion possible
             "temporal_feasible": True,
@@ -1118,7 +1122,7 @@ class AIBenchmarkingExtension:
     def create_ann_model(self, architecture: str = "LSTM"):
         """Create ANN model for comparison"""
         if architecture == "LSTM":
-            model = LSTMModel()
+            model: nn.Module = LSTMModel()
         else:
             model = nn.Sequential(
                 nn.Linear(1, 64),

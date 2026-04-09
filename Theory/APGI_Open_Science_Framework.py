@@ -379,7 +379,7 @@ class ReplicationProtocol:
             Replication validation results
         """
 
-        validation_results = {
+        validation_results: Dict[str, Any] = {
             "effect_size_similarity": self._compare_effect_sizes(
                 original_results, replication_results
             ),
@@ -736,7 +736,7 @@ class OpenScienceValidator:
             Compliance validation results
         """
 
-        compliance_results = {
+        compliance_results: Dict[str, Any] = {
             "data_sharing": {},
             "preregistration": {},
             "replication": {},

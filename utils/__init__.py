@@ -27,14 +27,14 @@ if not hasattr(np.lib, "array_utils"):
         try:
             from numpy.core.multiarray import normalize_axis_index
 
-            array_utils.normalize_axis_index = normalize_axis_index
+            array_utils.normalize_axis_index = normalize_axis_index  # type: ignore[attr-defined]
         except (ImportError, AttributeError):
             pass
 
         try:
             from numpy.core.numeric import normalize_axis_tuple
 
-            array_utils.normalize_axis_tuple = normalize_axis_tuple
+            array_utils.normalize_axis_tuple = normalize_axis_tuple  # type: ignore[attr-defined]
         except (ImportError, AttributeError):
             pass
     except Exception:

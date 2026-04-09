@@ -1,13 +1,15 @@
 # APGI Validation Framework Makefile
 # ==================================
 
-.PHONY: help clean test lint threshold-lint install dev-install venv docs
+.PHONY: help clean test test-fast test-full lint threshold-lint install dev-install venv docs
 
 help:
 	@echo "Available targets:"
 	@echo "  venv         - Create virtual environment"
 	@echo "  clean        - Remove temporary files and cache directories"
 	@echo "  test         - Run test suite"
+	@echo "  test-fast    - Run fast test suite (< 5 minutes)"
+	@echo "  test-full    - Run full test suite with 100% coverage"
 	@echo "  lint         - Run linting checks"
 	@echo "  install      - Install package and dependencies"
 	@echo "  dev-install  - Install in development mode"
@@ -22,6 +24,16 @@ clean:
 
 test:
 	python3 -m pytest
+
+test-fast:
+	@echo "Running fast test suite (< 5 minutes)..."
+	python3 -m pytest -c pytest-fast.ini --ignore=tests/comprehensive
+
+test-full:
+	@echo "Running full test suite with 100% coverage..."
+	python3 -m pytest tests/ --ignore=tests/comprehensive \
+		--cov=. --cov-report=html --cov-report=xml --cov-report=term-missing \
+		--cov-fail-under=100
 
 lint:
 	python3 -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 

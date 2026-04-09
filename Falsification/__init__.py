@@ -118,6 +118,20 @@ except Exception as e:
 # GUI Components - Not loaded at import to avoid tkinter side effects
 ProtocolRunnerGUI = None
 
+# Master Falsification module
+try:
+    _spec_master = importlib.util.spec_from_file_location(
+        "Master_Falsification", _dir / "Master_Falsification.py"
+    )
+    if _spec_master and _spec_master.loader:
+        Master_Falsification = importlib.util.module_from_spec(_spec_master)
+        _spec_master.loader.exec_module(Master_Falsification)
+    else:
+        raise ImportError("Could not load Master_Falsification")
+except Exception as e:
+    warnings.warn(f"Failed to load Master_Falsification: {e}")
+    Master_Falsification = None
+
 # Protocol 1 exports
 if Protocol_1:
     try:
@@ -227,6 +241,8 @@ __all__ = [
     "Protocol_6",
     # Framework-Level Aggregator
     "FP_ALL_Falsification_Aggregator",
+    # Master Falsification
+    "Master_Falsification",
     # Protocol 1
     "HierarchicalGenerativeModel",
     "SomaticMarkerNetwork",

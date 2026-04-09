@@ -127,27 +127,27 @@ class TestParseVisualizationParameters:
 class TestSetupPlottingStyle:
     """Test _setup_plotting_style function."""
 
-    @patch("main.plt")
-    @patch("main.sns")
-    def test_setup_plotting_style_seaborn(self, mock_sns, mock_plt):
+    def test_setup_plotting_style_seaborn(self):
         """Test setting up seaborn style."""
+        mock_sns = MagicMock()
+        mock_plt = MagicMock()
         _setup_plotting_style("seaborn", "Set2", "Arial", 12, mock_sns, mock_plt)
 
         mock_sns.set_style.assert_called_once_with("whitegrid")
         mock_plt.style.use.assert_called()
 
-    @patch("main.plt")
-    @patch("main.sns")
-    def test_setup_plotting_style_ggplot(self, mock_sns, mock_plt):
+    def test_setup_plotting_style_ggplot(self):
         """Test setting up ggplot style."""
+        mock_sns = MagicMock()
+        mock_plt = MagicMock()
         _setup_plotting_style("ggplot", "default", "Arial", 12, mock_sns, mock_plt)
 
         mock_plt.style.use.assert_called_with("ggplot")
 
-    @patch("main.plt")
-    @patch("main.sns")
-    def test_setup_plotting_style_default(self, mock_sns, mock_plt):
+    def test_setup_plotting_style_default(self):
         """Test setting up default style."""
+        mock_sns = MagicMock()
+        mock_plt = MagicMock()
         _setup_plotting_style("invalid", "default", "Arial", 12, mock_sns, mock_plt)
 
         mock_plt.style.use.assert_called_with("default")
@@ -156,9 +156,9 @@ class TestSetupPlottingStyle:
 class TestCreateFigureAndAxes:
     """Test _create_figure_and_axes function."""
 
-    @patch("main.plt")
-    def test_create_figure_and_axes_single(self, mock_plt):
+    def test_create_figure_and_axes_single(self):
         """Test creating single figure and axes."""
+        mock_plt = MagicMock()
         mock_fig = MagicMock()
         mock_ax = MagicMock()
         mock_plt.subplots.return_value = (mock_fig, mock_ax)
@@ -168,9 +168,9 @@ class TestCreateFigureAndAxes:
         assert fig == mock_fig
         assert axes == [mock_ax]
 
-    @patch("main.plt")
-    def test_create_figure_and_axes_multiple(self, mock_plt):
+    def test_create_figure_and_axes_multiple(self):
         """Test creating multiple subplots."""
+        mock_plt = MagicMock()
         mock_fig = MagicMock()
         mock_axes_flat = [MagicMock() for _ in range(4)]
         mock_axes_array = MagicMock()
@@ -186,8 +186,7 @@ class TestCreateFigureAndAxes:
 class TestCreateTimeSeriesPlot:
     """Test _create_time_series_plot function."""
 
-    @patch("main.plt")
-    def test_create_time_series_plot_success(self, mock_plt):
+    def test_create_time_series_plot_success(self):
         """Test creating time series plot successfully."""
         data = pd.DataFrame({"col1": [1, 2, 3, 4, 5], "col2": [2, 4, 6, 8, 10]})
         axes = [MagicMock()]
@@ -198,8 +197,7 @@ class TestCreateTimeSeriesPlot:
 
         assert axes[0].plot.called
 
-    @patch("main.plt")
-    def test_create_time_series_plot_no_numeric(self, mock_plt):
+    def test_create_time_series_plot_no_numeric(self):
         """Test creating time series plot with no numeric data."""
         data = pd.DataFrame({"col1": ["a", "b", "c"]})
         axes = [MagicMock()]
@@ -243,24 +241,22 @@ class TestCreateScatterPlot:
 class TestCreateHeatmapPlot:
     """Test _create_heatmap_plot function."""
 
-    @patch("main.plt")
-    @patch("main.sns")
-    @patch("main.console")
-    def test_create_heatmap_plot_success(self, mock_console, mock_sns, mock_plt):
+    def test_create_heatmap_plot_success(self):
         """Test creating heatmap plot successfully."""
         data = pd.DataFrame({"col1": [1, 2, 3], "col2": [2, 4, 6], "col3": [3, 6, 9]})
+        mock_sns = MagicMock()
+        mock_plt = MagicMock()
 
         result = _create_heatmap_plot(data, "viridis", 0.8, mock_sns, mock_plt)
 
         assert result is True
         assert mock_sns.heatmap.called
 
-    @patch("main.plt")
-    @patch("main.sns")
-    @patch("main.console")
-    def test_create_heatmap_plot_no_numeric(self, mock_console, mock_sns, mock_plt):
+    def test_create_heatmap_plot_no_numeric(self):
         """Test creating heatmap plot with no numeric data."""
         data = pd.DataFrame({"col1": ["a", "b", "c"]})
+        mock_sns = MagicMock()
+        mock_plt = MagicMock()
 
         result = _create_heatmap_plot(data, "viridis", 0.8, mock_sns, mock_plt)
 
@@ -270,21 +266,19 @@ class TestCreateHeatmapPlot:
 class TestCreateDistributionPlot:
     """Test _create_distribution_plot function."""
 
-    @patch("main.plt")
-    @patch("main.console")
-    def test_create_distribution_plot_success(self, mock_console, mock_plt):
+    def test_create_distribution_plot_success(self):
         """Test creating distribution plot successfully."""
         data = pd.DataFrame({"col1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        mock_plt = MagicMock()
 
         result = _create_distribution_plot(data, 30, 0.8, True, mock_plt)
 
         assert result is True
 
-    @patch("main.plt")
-    @patch("main.console")
-    def test_create_distribution_plot_no_numeric(self, mock_console, mock_plt):
+    def test_create_distribution_plot_no_numeric(self):
         """Test creating distribution plot with no numeric data."""
         data = pd.DataFrame({"col1": ["a", "b", "c"]})
+        mock_plt = MagicMock()
 
         result = _create_distribution_plot(data, 30, 0.8, True, mock_plt)
 
@@ -295,14 +289,12 @@ class TestCreatePlotByType:
     """Test _create_plot_by_type function."""
 
     @patch("main._create_time_series_plot")
-    @patch("main.plt")
-    @patch("main.sns")
-    def test_create_plot_by_type_time_series(
-        self, mock_sns, mock_plt, mock_time_series
-    ):
+    def test_create_plot_by_type_time_series(self, mock_time_series):
         """Test creating time series plot by type."""
         data = pd.DataFrame({"col1": [1, 2, 3]})
         axes = [MagicMock()]
+        mock_sns = MagicMock()
+        mock_plt = MagicMock()
         mock_time_series.return_value = True
 
         result = _create_plot_by_type(
@@ -330,15 +322,12 @@ class TestCreatePlotByType:
         mock_time_series.assert_called_once()
 
     @patch("main._create_scatter_plot")
-    @patch("main.plt")
-    @patch("main.sns")
-    @patch("main.console")
-    def test_create_plot_by_type_scatter(
-        self, mock_console, mock_sns, mock_plt, mock_scatter
-    ):
+    def test_create_plot_by_type_scatter(self, mock_scatter):
         """Test creating scatter plot by type."""
         data = pd.DataFrame({"col1": [1, 2, 3], "col2": [2, 4, 6]})
         axes = [MagicMock()]
+        mock_sns = MagicMock()
+        mock_plt = MagicMock()
         mock_scatter.return_value = True
 
         result = _create_plot_by_type(
@@ -366,12 +355,12 @@ class TestCreatePlotByType:
         mock_scatter.assert_called_once()
 
     @patch("main._create_heatmap_plot")
-    @patch("main.plt")
-    @patch("main.sns")
-    def test_create_plot_by_type_heatmap(self, mock_sns, mock_plt, mock_heatmap):
+    def test_create_plot_by_type_heatmap(self, mock_heatmap):
         """Test creating heatmap plot by type."""
         data = pd.DataFrame({"col1": [1, 2, 3], "col2": [2, 4, 6]})
         axes = [MagicMock()]
+        mock_sns = MagicMock()
+        mock_plt = MagicMock()
         mock_heatmap.return_value = True
 
         result = _create_plot_by_type(
@@ -399,14 +388,12 @@ class TestCreatePlotByType:
         mock_heatmap.assert_called_once()
 
     @patch("main._create_distribution_plot")
-    @patch("main.plt")
-    @patch("main.sns")
-    def test_create_plot_by_type_distribution(
-        self, mock_sns, mock_plt, mock_distribution
-    ):
+    def test_create_plot_by_type_distribution(self, mock_distribution):
         """Test creating distribution plot by type."""
         data = pd.DataFrame({"col1": [1, 2, 3, 4, 5]})
         axes = [MagicMock()]
+        mock_sns = MagicMock()
+        mock_plt = MagicMock()
         mock_distribution.return_value = True
 
         result = _create_plot_by_type(
@@ -433,13 +420,12 @@ class TestCreatePlotByType:
         assert result is True
         mock_distribution.assert_called_once()
 
-    @patch("main.plt")
-    @patch("main.sns")
-    @patch("main.console")
-    def test_create_plot_by_type_invalid(self, mock_console, mock_sns, mock_plt):
+    def test_create_plot_by_type_invalid(self):
         """Test creating plot with invalid type."""
         data = pd.DataFrame({"col1": [1, 2, 3]})
         axes = [MagicMock()]
+        mock_sns = MagicMock()
+        mock_plt = MagicMock()
 
         result = _create_plot_by_type(
             "invalid",

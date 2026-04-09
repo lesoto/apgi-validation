@@ -22,8 +22,9 @@ class SignalHandler:
             shutdown_callback: Optional callback to call on shutdown
         """
         self.shutdown_callback = shutdown_callback
-        self.original_handlers = {}
+        self.original_handlers: dict[signal.Signals, Callable] = {}
         self._lock = threading.Lock()
+        self._is_main_thread = threading.current_thread() == threading.main_thread()
 
     def __enter__(self):
         """Context manager entry - install signal handlers."""
@@ -36,6 +37,10 @@ class SignalHandler:
 
     def _install_handlers(self):
         """Install signal handlers for SIGINT and SIGTERM."""
+        # Signal handlers can only be registered from main thread
+        if not self._is_main_thread:
+            return
+
         with self._lock:
             # Store original handlers
             self.original_handlers[signal.SIGINT] = signal.getsignal(signal.SIGINT)
@@ -47,6 +52,10 @@ class SignalHandler:
 
     def _restore_handlers(self):
         """Restore original signal handlers."""
+        # Signal handlers can only be modified from main thread
+        if not self._is_main_thread:
+            return
+
         with self._lock:
             for sig, handler in self.original_handlers.items():
                 signal.signal(sig, handler)

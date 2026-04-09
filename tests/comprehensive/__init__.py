@@ -219,7 +219,7 @@ class AdversarialTestFramework:
         if categories:
             all_tests = {k: v for k, v in all_tests.items() if k in categories}
 
-        results_summary = {
+        results_summary: Dict[str, Any] = {
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "seed": self.seed,
             "total_tests": 0,
@@ -264,7 +264,12 @@ class AdversarialTestFramework:
         import tempfile
         import json
 
-        results = {"category": category.name, "total": 0, "passed": 0, "failed": 0}
+        results: Dict[str, Any] = {
+            "category": category.name,
+            "total": 0,
+            "passed": 0,
+            "failed": 0,
+        }
 
         print(f"\n  Running {len(test_files)} {category.name} test file(s)...")
 
@@ -341,7 +346,7 @@ class AdversarialTestFramework:
         cov = coverage.Coverage()
         cov.load()
 
-        summary = {
+        summary: Dict[str, Any] = {
             "overall_line_coverage": 0.0,
             "overall_branch_coverage": 0.0,
             "by_module": {},

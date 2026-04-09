@@ -236,7 +236,7 @@ class InterventionEffect:
 
     def fit_gamma_to_observed(
         self, observed_times: np.ndarray, observed_effects: np.ndarray
-    ) -> Dict[str, float]:
+    ) -> Dict[str, Any]:
         """
         Fix 1: Fit gamma distribution to observed time course data.
 
@@ -465,7 +465,7 @@ class VertexTMSSite:
         baseline_hep: Optional[np.ndarray] = None,
         baseline_pci: Optional[np.ndarray] = None,
         seed: int = 42,
-    ) -> Dict[str, np.ndarray]:
+    ) -> Dict[str, Any]:
         """
         Simulate vertex TMS control condition effects.
 
@@ -546,7 +546,7 @@ class VertexTMSSite:
             """Apply single intervention to state"""
             new_state = state.copy()
             if intervention.target_parameter in new_state:
-                effect = intervention.compute_effect(time_points)
+                effect = intervention.compute_time_course(time_points)
                 max_effect = np.max(np.abs(effect))
                 if intervention.effect_direction == "increase":
                     new_state[intervention.target_parameter] *= 1 + max_effect
@@ -613,8 +613,8 @@ class VertexTMSSite:
 
             bootstrap_synergies.append(synergy_boot)
 
-        bootstrap_synergies = np.array(bootstrap_synergies)
-        synergy_ci = np.percentile(bootstrap_synergies, [2.5, 97.5])
+        bootstrap_synergies_array = np.array(bootstrap_synergies)
+        synergy_ci = np.percentile(bootstrap_synergies_array, [2.5, 97.5])
 
         # Test significance (CI excludes zero?)
         interaction_significant = (synergy_ci[0] > 0) or (synergy_ci[1] < 0)
@@ -626,6 +626,7 @@ class VertexTMSSite:
             "combined_effect": combined_effect,
             "additive_prediction": additive_prediction,
             "synergy": synergy,
+            "bootstrap_synergies": bootstrap_synergies_array,
             "synergy_ci_lower": float(synergy_ci[0]),
             "synergy_ci_upper": float(synergy_ci[1]),
             "interaction_significant": interaction_significant,
@@ -679,7 +680,7 @@ class VertexTMSSite:
         ) -> Dict[str, float]:
             """Apply intervention effect to all parameters"""
             new_state = state.copy()
-            effect = intervention.compute_effect(time_points)
+            effect = intervention.compute_time_course(time_points)
             max_effect = np.max(np.abs(effect))
 
             if intervention.target_parameter in new_state:
@@ -870,12 +871,12 @@ class PsychometricCurve:
 
         def logistic(x, threshold, slope, lapse, gamma):
             """Logistic psychometric function with lapse rate and guess rate"""
-            return (
+            # Fix: Remove trailing comma from formula line
+            p = (
                 lapse
-                + (1 - 2 * lapse) / (1 + np.exp(-slope * (x - threshold))) ** gamma,
-                slope,
-                lapse,
+                + (1 - 2 * lapse) / (1 + np.exp(-slope * (x - threshold))) ** gamma
             )
+            return (p, slope, lapse)
 
         def negative_log_likelihood(params):
             """Negative log-likelihood for optimization"""
@@ -903,12 +904,14 @@ class PsychometricCurve:
 
         # Initial guess
         if initial_guess is None:
-            initial_guess = [
-                np.mean(stimulus_levels),  # threshold
-                5.0,  # slope
-                0.02,  # lapse
-                0.1,  # gamma (guess rate)
-            ]
+            initial_guess = np.array(
+                [
+                    np.mean(stimulus_levels),  # threshold
+                    5.0,  # slope
+                    0.02,  # lapse
+                    0.1,  # gamma (guess rate)
+                ]
+            )
 
         # Optimize
         result = minimize(
@@ -1113,8 +1116,8 @@ class PsychometricCurve:
 
         # Calculate confidence intervals
         if len(r2_bootstrap) > 0:
-            r2_bootstrap = np.array(r2_bootstrap)
-            r2_ci = np.percentile(r2_bootstrap, [2.5, 97.5])
+            r2_bootstrap_array = np.array(r2_bootstrap)
+            r2_ci = np.percentile(r2_bootstrap_array, [2.5, 97.5])
         else:
             r2_ci = [r2, r2]  # Fallback to point estimate
 
@@ -1755,7 +1758,7 @@ class InterventionFalsificationChecker:
             "high_IA_interaction_confirmed": interaction_significant,
         }
 
-    def check_P5c(
+    def check_P5c_high_IA_interaction(
         self,
         vmPFC_PCI_reduction: float,
         vmPFC_HEP_change: float,
@@ -2270,8 +2273,8 @@ def plot_intervention_results(
     )
     ax1.legend(fontsize=11)
     ax1.grid(alpha=0.3)
-    ax1.set_xlim([0, 1])
-    ax1.set_ylim([0, 1])
+    ax1.set_xlim(0, 1)
+    ax1.set_ylim(0, 1)
 
     # ==========================================================================
     # Panel 2: Threshold Shift
@@ -2491,7 +2494,7 @@ def plot_intervention_results(
     ax6.set_title("Power Analysis", fontsize=12, fontweight="bold")
     ax6.legend(fontsize=9)
     ax6.grid(alpha=0.3)
-    ax6.set_ylim([0, 1])
+    ax6.set_ylim(0, 1)
 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     print(f"\nVisualization saved to: {save_path}")
@@ -2662,7 +2665,7 @@ def predict_P2_a(
 
     # APGI-derived confidence: σ(Πⁱ · |εᵢ| − θₜ)
     # Simplified: use precision-weighted surprise as confidence metric
-    precision_i = 1.0  # Assumed normalized interoceptive precision
+    precision_i = 1.0  # Normalized interoceptive precision (unitless)
     epsilon_i = abs(log_shift)  # Prediction error magnitude
     theta_t = baseline_threshold
     apgi_confidence = 1 / (1 + np.exp(-(precision_i * epsilon_i - theta_t)))
@@ -2971,15 +2974,15 @@ def predict_P2_c(
         combined = np.concatenate([ia_high_combined, ia_low_combined])
         n_high = len(ia_high_combined)
 
-        perm_stats = []
+        perm_stats_list: List[float] = []
         for _ in range(n_permutations):
             np.random.shuffle(combined)
             perm_x = combined[:n_high]
             perm_y = combined[n_high:]
             perm_stat = np.mean(perm_x) - np.mean(perm_y)
-            perm_stats.append(perm_stat)
+            perm_stats_list.append(float(perm_stat))
 
-        perm_stats = np.array(perm_stats)
+        perm_stats = np.array(perm_stats_list)
         p_perm = np.mean(np.abs(perm_stats) >= np.abs(observed_diff))
 
     # Criterion: η² ≥ 0.10 AND p < 0.05 (permutation)
@@ -4181,7 +4184,7 @@ class APGIValidationProtocol7:
 
     def run_validation(self, data_path: Optional[str] = None) -> Dict[str, Any]:
         """Run the complete validation protocol."""
-        self.results = main() if data_path is None else main(data_path)
+        self.results = main()
         return self.results
 
     def check_criteria(self) -> Dict[str, Any]:

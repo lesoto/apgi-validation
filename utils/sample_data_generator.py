@@ -142,7 +142,7 @@ class SampleDataGenerator:
                     0, 5, artifact_end - artifact_idx
                 )
 
-        return eeg_signal, p300_events
+        return eeg_signal, {"p300_events": p300_events}
 
     def generate_pupil_data(self, task_related: bool = True) -> np.ndarray:
         """Generate realistic pupil diameter data."""
@@ -374,7 +374,7 @@ class SampleDataGenerator:
         timestamps = [start_time + timedelta(seconds=t) for t in self.time_vector]
 
         # Create DataFrame
-        data = {
+        data: Dict[str, Any] = {
             "timestamp": timestamps,
             "time_seconds": self.time_vector,
             "subject_id": [subject_id] * self.n_samples,

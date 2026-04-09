@@ -403,7 +403,7 @@ class TestCrossProtocolWorkflowIntegration:
 
             os.unlink(temp_path)
 
-    def test_configuration_propagation_across_protocols(self):
+    def test_configuration_propagation_across_protocols(self) -> None:
         """Test that configuration is properly shared across protocols."""
         from dataclasses import dataclass
 

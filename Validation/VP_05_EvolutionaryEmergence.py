@@ -25,8 +25,32 @@ import copy
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
+
+
+class EnsembleStats(TypedDict):
+    mean: float
+    std: float
+    values: List[float]
+
+
+class ConvergenceStats(TypedDict):
+    mean: float
+    std: float
+    values: List[int]
+    early_stop_rate: float
+
+
+class EnsembleStatistics(TypedDict):
+    threshold_frequency: EnsembleStats
+    interoceptive_frequency: EnsembleStats
+    somatic_frequency: EnsembleStats
+    precision_frequency: EnsembleStats
+    best_fitness: EnsembleStats
+    mean_fitness: EnsembleStats
+    convergence_generations: ConvergenceStats
+
 
 import logging
 
@@ -39,6 +63,19 @@ from pathlib import Path
 _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
+
+# Import falsification thresholds
+# ---------------------------------------------------------------------------
+try:
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        F5_1_MIN_PROPORTION,
+        F5_1_MIN_COHENS_D,
+    )
+except ImportError:
+    DEFAULT_ALPHA = 0.05
+    F5_1_MIN_PROPORTION = 0.75
+    F5_1_MIN_COHENS_D = 0.50
 
 # Import for genome data dependency checking
 try:
@@ -103,7 +140,7 @@ class AnalyticalValidationTestCases:
     """Test cases with known analytical solutions for V5.1 verification"""
 
     @staticmethod
-    def get_test_cases() -> List[Dict[str, any]]:
+    def get_test_cases() -> List[Dict[str, Any]]:
         """
         Return test cases with known analytical solutions
 
@@ -204,8 +241,8 @@ class AnalyticalValidationTestCases:
 
     @staticmethod
     def verify_analytical_solution(
-        test_case: Dict[str, any],
-    ) -> Dict[str, any]:
+        test_case: Dict[str, Any],
+    ) -> Dict[str, Any]:
         """
         Verify analytical solution against expected values
 
@@ -604,11 +641,12 @@ class EvolvableAgent:
         self.Pi_i = 1.0  # Internal precision
 
         # Somatic markers (state → value associations)
-        self.somatic_markers = {}
+        # Key is a tuple of observation values, value is an array of action values
+        self.somatic_markers: Dict[Tuple[np.ndarray, ...], np.ndarray] = {}
 
         # History
-        self.ignition_history = []
-        self.reward_history = []
+        self.ignition_history: List[float] = []
+        self.reward_history: List[float] = []
 
     def compute_surprise(self, external_signal: float, internal_signal: float) -> float:
         """
@@ -716,7 +754,7 @@ class EvolvableAgent:
             state_key = tuple(observation.round(6))
             if state_key in self.somatic_markers:
                 # Bias towards previously rewarding actions
-                marker_values = self.somatic_markers[state_key]
+                marker_values = self.somatic_markers.get(state_key, 0.0)
                 # Clip to prevent overflow in exp
                 marker_values = np.clip(marker_values, -10, 10)
                 logits += marker_values
@@ -771,7 +809,11 @@ class EvolvableAgent:
                 self.somatic_markers[state_key] = np.zeros(4)
 
             # Strengthen marker for taken action based on reward
-            self.somatic_markers[state_key][action] += self.genome.somatic_lr * reward
+            state_key_tuple = tuple(observation.round(6))
+            if state_key_tuple in self.somatic_markers:
+                self.somatic_markers[state_key_tuple][action] += (
+                    self.genome.somatic_lr * reward
+                )
 
             # Decay others
             for a in range(4):
@@ -1084,7 +1126,7 @@ class EvolutionaryOptimizer:
         self.population: List[AgentGenome] = []
 
         # History tracking
-        self.history = {
+        self.history: Dict[str, Any] = {
             "generation": [],
             "best_fitness": [],
             "mean_fitness": [],
@@ -1179,15 +1221,15 @@ class EvolutionaryOptimizer:
     def compute_architecture_frequencies(self) -> Dict[str, float]:
         """Compute frequency of each architectural feature"""
         return {
-            "has_threshold": np.mean([g.has_threshold for g in self.population]),
-            "has_intero_weighting": np.mean(
-                [g.has_intero_weighting for g in self.population]
+            "has_threshold": float(np.mean([g.has_threshold for g in self.population])),
+            "has_intero_weighting": float(
+                np.mean([g.has_intero_weighting for g in self.population])
             ),
-            "has_somatic_markers": np.mean(
-                [g.has_somatic_markers for g in self.population]
+            "has_somatic_markers": float(
+                np.mean([g.has_somatic_markers for g in self.population])
             ),
-            "has_precision_weighting": np.mean(
-                [g.has_precision_weighting for g in self.population]
+            "has_precision_weighting": float(
+                np.mean([g.has_precision_weighting for g in self.population])
             ),
         }
 
@@ -1278,19 +1320,19 @@ class EvolutionaryOptimizer:
             return 0.0
 
         # Count within-community and between-community edges
-        total_edges = 0
-        within_edges = 0
+        total_edges: float = 0.0
+        within_edges: float = 0.0
 
         for i, comm_a in enumerate(active_communities):
             for j, comm_b in enumerate(active_communities):
                 if i == j:
                     # Within community
                     comm_nodes = len(communities.get(comm_a, set()))
-                    within_edges += (
-                        comm_nodes * (comm_nodes - 1) / 2 if comm_nodes > 1 else 1
+                    within_edges += float(
+                        comm_nodes * (comm_nodes - 1) // 2 if comm_nodes > 1 else 1
                     )
-                    total_edges += (
-                        comm_nodes * (comm_nodes - 1) / 2 if comm_nodes > 1 else 1
+                    total_edges += float(
+                        comm_nodes * (comm_nodes - 1) // 2 if comm_nodes > 1 else 1
                     )
                 else:
                     # Between communities
@@ -1327,8 +1369,7 @@ class EvolutionaryOptimizer:
 
         # Get baseline fitness
         baseline_fitness = self.evaluate_fitness(best_genome)
-
-        results = {
+        results: Dict[str, Any] = {
             "baseline_fitness": baseline_fitness,
             "perturbation_tests": [],
             "overall_pass": True,
@@ -1503,7 +1544,6 @@ class EvolutionaryOptimizer:
         low_variance_generations = 0
         convergence_threshold = 1e-4
         min_generations_for_convergence = 20
-        early_stop_generation = None
 
         # Fix 3: Track genetic diversity for premature convergence detection
         initial_diversity = self.compute_genetic_diversity_hamming()
@@ -1535,7 +1575,6 @@ class EvolutionaryOptimizer:
 
             # Early stopping check
             if low_variance_generations >= min_generations_for_convergence:
-                early_stop_generation = generation
                 print(f"\n[CONVERGENCE] Early stopping at generation {generation}")
                 print(
                     f"  Fitness variance {gen_fitness_variance:.2e} < {convergence_threshold:.2e}"
@@ -1551,8 +1590,8 @@ class EvolutionaryOptimizer:
             self.history["mean_fitness"].append(np.mean(fitness_scores))
             self.history["std_fitness"].append(np.std(fitness_scores))
 
-            arch_freq = self.compute_architecture_frequencies()
-            self.history["architecture_frequencies"].append(arch_freq)
+            arch_freq_dict: Dict[str, float] = self.compute_architecture_frequencies()
+            self.history["architecture_frequencies"].append(arch_freq_dict)
 
             diversity = self.compute_diversity()
             self.history["diversity"].append(diversity)
@@ -1574,9 +1613,8 @@ class EvolutionaryOptimizer:
 
             # Store best genome
             best_idx = np.argmax(fitness_scores)
-            self.history["best_genomes"].append(
-                copy.deepcopy(self.population[best_idx])
-            )
+            best_genome: AgentGenome = copy.deepcopy(self.population[best_idx])
+            self.history["best_genomes"].append(best_genome)
 
             # Progress report - print directly when in GUI to ensure visibility
             if generation % 50 == 0 or (in_gui and generation % 10 == 0):
@@ -1585,10 +1623,10 @@ class EvolutionaryOptimizer:
                 print(f"  Mean fitness: {np.mean(fitness_scores):.3f}")
                 print(f"  Diversity: {diversity:.3f}")
                 print("  Architecture frequencies:")
-                print(f"    Threshold: {arch_freq['has_threshold']:.2f}")
-                print(f"    Intero: {arch_freq['has_intero_weighting']:.2f}")
-                print(f"    Somatic: {arch_freq['has_somatic_markers']:.2f}")
-                print(f"    Precision: {arch_freq['has_precision_weighting']:.2f}")
+                print(f"    Threshold: {arch_freq_dict['has_threshold']:.2f}")
+                print(f"    Intero: {arch_freq_dict['has_intero_weighting']:.2f}")
+                print(f"    Somatic: {arch_freq_dict['has_somatic_markers']:.2f}")
+                print(f"    Precision: {arch_freq_dict['has_precision_weighting']:.2f}")
                 sys.stdout.flush()  # Force flush for GUI visibility
 
             # Selection
@@ -1615,21 +1653,9 @@ class EvolutionaryOptimizer:
 
                 new_population.append(child)
 
-            self.population = new_population[: self.pop_size]
-
-        # Store convergence info in history
-        self.history["convergence_info"] = {
-            "early_stopped": early_stop_generation is not None,
-            "early_stop_generation": early_stop_generation,
-            "final_variance": (
-                float(gen_fitness_variance)
-                if "gen_fitness_variance" in locals()
-                else None
-            ),
-            "convergence_threshold": convergence_threshold,
-            "min_generations_for_convergence": min_generations_for_convergence,
-            # Fix 3: Genetic diversity tracking
-            "initial_diversity": float(initial_diversity),
+        new_pop_list: List[AgentGenome] = new_population[: self.pop_size]
+        self.population = new_pop_list
+        self.history["evolution_metrics"] = {
             "final_diversity": (
                 float(genetic_diversity_history[-1])
                 if genetic_diversity_history
@@ -1950,14 +1976,14 @@ class FalsificationChecker:
             ]
             agent_features.append(features)
 
-        agent_features = np.array(agent_features)
+        agent_features_arr: np.ndarray = np.array(agent_features)
 
         # Perform PCA
         pca = PCA(n_components=3)
-        pca.fit(agent_features)
+        pca.fit(agent_features_arr)
 
         # Check cumulative variance
-        cumulative_variance = np.sum(pca.explained_variance_ratio_)
+        cumulative_variance = float(np.sum(pca.explained_variance_ratio_))
 
         # Check PC loadings align with predicted dimensions
         # Predicted dimensions: threshold, precision, interoceptive bias
@@ -2033,12 +2059,14 @@ class FalsificationChecker:
             apgi_component_counts.append(component_count)
             fitness_values.append(history["mean_fitness"][i])
 
-        apgi_component_counts = np.array(apgi_component_counts)
-        fitness_values = np.array(fitness_values)
+        apgi_component_counts_arr: np.ndarray = np.array(apgi_component_counts)
+        fitness_values_arr: np.ndarray = np.array(fitness_values)
 
         # Compute correlation between component count and fitness
-        if len(apgi_component_counts) > 1:
-            correlation = np.corrcoef(apgi_component_counts, fitness_values)[0, 1]
+        if len(apgi_component_counts_arr) > 1:
+            correlation = np.corrcoef(apgi_component_counts_arr, fitness_values_arr)[
+                0, 1
+            ]
         else:
             correlation = 0.0
 
@@ -2046,11 +2074,11 @@ class FalsificationChecker:
         zero_component_fitness = []
         four_component_fitness = []
 
-        for i, count in enumerate(apgi_component_counts):
+        for i, count in enumerate(apgi_component_counts_arr):
             if count == 0:
-                zero_component_fitness.append(fitness_values[i])
+                zero_component_fitness.append(float(fitness_values_arr[i]))
             elif count == 4:
-                four_component_fitness.append(fitness_values[i])
+                four_component_fitness.append(float(fitness_values_arr[i]))
 
         if zero_component_fitness and four_component_fitness:
             mean_zero = np.mean(zero_component_fitness)
@@ -2083,7 +2111,7 @@ class FalsificationChecker:
     def generate_report(self, history: Dict, selection_coefficients: Dict) -> Dict:
         """Generate comprehensive falsification report"""
 
-        report = {
+        report: Dict[str, Any] = {
             "falsified_criteria": [],
             "passed_criteria": [],
             "overall_falsified": False,
@@ -2104,7 +2132,7 @@ class FalsificationChecker:
             report["passed_criteria"].append(criterion)
 
         # F5.2
-        f5_2_result, f5_2_details = self.check_F5_2(selection_coefficients)
+        f5_2_result, f5_2_details = self.check_F5_2(selection_coefficients, {})
         criterion = {
             "code": "F5.2",
             "description": self.criteria["F5.2"]["description"],
@@ -2249,7 +2277,7 @@ def plot_evolutionary_results(
         ax.set_xlabel("Generation", fontsize=11, fontweight="bold")
         ax.set_ylabel("Frequency", fontsize=11, fontweight="bold")
         ax.set_title(label, fontsize=12, fontweight="bold")
-        ax.set_ylim([0, 1])
+        ax.set_ylim(0, 1)
         ax.grid(alpha=0.3)
 
         if idx == 0:
@@ -2268,7 +2296,7 @@ def plot_evolutionary_results(
     ax_div.set_xlabel("Generation", fontsize=11, fontweight="bold")
     ax_div.set_ylabel("Genotypic Diversity", fontsize=11, fontweight="bold")
     ax_div.set_title("Architectural Diversity", fontsize=12, fontweight="bold")
-    ax_div.set_ylim([0, 1])
+    ax_div.set_ylim(0, 1)
     ax_div.grid(alpha=0.3)
 
     # Selection coefficients
@@ -2517,7 +2545,7 @@ def test_across_environmental_gradients() -> Dict[str, Any]:
         Dictionary containing test results
     """
     # Create different environmental conditions
-    environments = []
+    environments: List[Dict[str, Any]] = []
 
     # Vary penalty probability (harshness)
     for penalty_prob in [0.1, 0.3, 0.5, 0.7, 0.9]:
@@ -2539,10 +2567,10 @@ def test_across_environmental_gradients() -> Dict[str, Any]:
         }
         environments.append(env)
 
-    results = {}
+    results: Dict[str, Any] = {}
 
-    for env in environments:
-        print(f"Testing environment: {env['name']}")
+    for env_config in environments:
+        print(f"Testing environment: {env_config['name']}")
 
         # Create environment with modified parameters
         # In real implementation, this would create an actual Environment object
@@ -2553,9 +2581,9 @@ def test_across_environmental_gradients() -> Dict[str, Any]:
 
         # Simulate how different APGI components fare in this environment
         # Harsh environments should favor APGI components more
-        harshness_factor = env.get("penalty_probability", 0.5) * abs(
-            env.get("penalty_amount", 2.0)
-        )
+        env_penalty_prob: float = float(env_config["penalty_probability"])
+        penalty_amt: float = float(env_config["penalty_amount"])
+        harshness_factor = env_penalty_prob * abs(penalty_amt)
 
         # Simulate final architecture frequencies
         # Higher harshness should lead to higher frequencies of APGI components
@@ -2574,15 +2602,16 @@ def test_across_environmental_gradients() -> Dict[str, Any]:
             fitness = 0.2 + 0.6 * (gen / n_generations) + np.random.normal(0, 0.1)
             fitness_history.append(max(0, min(1, fitness)))
 
-        results[env["name"]] = {
-            "environment": env,
+        results[env_config["name"]] = {
+            "environment": env_config,
             "final_architecture_frequencies": final_freqs,
             "fitness_history": fitness_history,
             "harshness_factor": harshness_factor,
             "generations": n_generations,
         }
 
-    return results, plot_environmental_gradient_results(results)
+    plot_environmental_gradient_results(results)
+    return results  # type: ignore[return-value]
 
 
 def test_convergent_evolution(n_independent_runs=10):
@@ -2916,10 +2945,10 @@ def plot_environmental_gradient_results(results: Dict[str, Any]) -> None:
         ax.set_title(f'APGI Components vs {gradient_name.replace("_", " ").title()}')
         ax.legend()
         ax.grid(alpha=0.3)
-        ax.set_ylim([0, 1])
+        ax.set_ylim(0, 1)
 
     plt.tight_layout()
-    return fig
+    return
 
 
 # =============================================================================
@@ -3055,7 +3084,7 @@ def run_ensemble_evolution(
             convergence_generations.append(conv_gen)
 
     # Compute mean and std across seeds
-    ensemble_statistics = {
+    ensemble_statistics: EnsembleStatistics = {
         "threshold_frequency": {
             "mean": float(np.mean(threshold_freqs)) if threshold_freqs else 0.0,
             "std": float(np.std(threshold_freqs)) if threshold_freqs else 0.0,
@@ -3104,7 +3133,7 @@ def run_ensemble_evolution(
 
     # Generate ensemble genome_data for downstream protocols
     genome_data = _generate_ensemble_genome_data(
-        all_genomes, ensemble_statistics, phenotype_validation_results
+        all_genomes, ensemble_statistics, phenotype_validation_results  # type: ignore[arg-type]
     )
 
     # Print ensemble summary
@@ -3863,11 +3892,16 @@ def check_falsification(
     Returns:
         Dictionary with pass/fail results, effect sizes, and test statistics
     """
-    results = {
+    results: Dict[str, Any] = {
         "protocol": "Validation_Protocol_5",
         "criteria": {},
         "summary": {"passed": 0, "failed": 0, "underpowered": 0, "total": 10},
     }
+
+    def increment_summary(key: str) -> None:
+        """Helper function to safely increment summary counters."""
+        summary_dict: Dict[str, int] = results["summary"]  # type: ignore[assignment]
+        summary_dict[key] += 1
 
     # V5.1: Algorithmic Falsification
     logger.info("Testing V5.1: Algorithmic Falsification")
@@ -3889,9 +3923,9 @@ def check_falsification(
         "actual": f"Abs error: {max_absolute_error:.2e}, Rel error: {max_relative_error:.2e}, Pass: {test_pass_rate:.2%}",
     }
     if v5_1_pass:
-        results["summary"]["passed"] += 1
+        increment_summary("passed")
     else:
-        results["summary"]["failed"] += 1
+        increment_summary("failed")
     logger.info(
         f"V5.1: {'PASS' if v5_1_pass else 'FAIL'} - Abs error: {max_absolute_error:.2e}, Rel error: {max_relative_error:.2e}, Pass: {test_pass_rate:.2%}"
     )
@@ -3912,9 +3946,9 @@ def check_falsification(
         "actual": f"Reduction: {threshold_reduction:.2f}, d: {cohens_d_threshold:.3f}, p: {p_threshold:.4f}",
     }
     if f3_3_pass:
-        results["summary"]["passed"] += 1
+        increment_summary("passed")
     else:
-        results["summary"]["failed"] += 1
+        increment_summary("failed")
     logger.info(
         f"F3.3: {'PASS' if f3_3_pass else 'FAIL'} - Reduction: {threshold_reduction:.2f}, d: {cohens_d_threshold:.3f}"
     )
@@ -3937,9 +3971,9 @@ def check_falsification(
         "actual": f"Prop: {proportion_threshold_agents:.2f}, α: {mean_alpha:.2f}, d: {cohen_d_alpha:.2f}, p: {binomial_p_f5_1:.3f}",
     }
     if f5_1_pass:
-        results["summary"]["passed"] += 1
+        increment_summary("passed")
     else:
-        results["summary"]["failed"] += 1
+        increment_summary("failed")
     logger.info(
         f"F5.1: {'PASS' if f5_1_pass else 'FAIL'} - Prop: {proportion_threshold_agents:.2f}, α: {mean_alpha:.2f}, d: {cohen_d_alpha:.2f}"
     )
@@ -3960,9 +3994,9 @@ def check_falsification(
         "actual": f"Prop: {proportion_precision_agents:.2f}, r: {mean_correlation_r:.2f}, p: {binomial_p_f5_2:.3f}",
     }
     if f5_2_pass:
-        results["summary"]["passed"] += 1
+        increment_summary("passed")
     else:
-        results["summary"]["failed"] += 1
+        increment_summary("failed")
     logger.info(
         f"F5.2: {'PASS' if f5_2_pass else 'FAIL'} - Prop: {proportion_precision_agents:.2f}, r: {mean_correlation_r:.2f}"
     )
@@ -3985,9 +4019,9 @@ def check_falsification(
         "actual": f"Prop: {proportion_interoceptive_agents:.2f}, ratio: {mean_gain_ratio:.2f}, d: {cohen_d_gain:.2f}, p: {binomial_p_f5_3:.3f}",
     }
     if f5_3_pass:
-        results["summary"]["passed"] += 1
+        increment_summary("passed")
     else:
-        results["summary"]["failed"] += 1
+        increment_summary("failed")
     logger.info(
         f"F5.3: {'PASS' if f5_3_pass else 'FAIL'} - Prop: {proportion_interoceptive_agents:.2f}, ratio: {mean_gain_ratio:.2f}, d: {cohen_d_gain:.2f}"
     )
@@ -4008,9 +4042,9 @@ def check_falsification(
         "actual": f"Prop: {proportion_multiscale_agents:.2f}, ratio: {peak_separation_ratio:.1f}, p: {binomial_p_f5_4:.3f}",
     }
     if f5_4_pass:
-        results["summary"]["passed"] += 1
+        increment_summary("passed")
     else:
-        results["summary"]["failed"] += 1
+        increment_summary("failed")
     logger.info(
         f"F5.4: {'PASS' if f5_4_pass else 'FAIL'} - Prop: {proportion_multiscale_agents:.2f}, ratio: {peak_separation_ratio:.1f}"
     )
@@ -4026,9 +4060,9 @@ def check_falsification(
         "actual": f"Variance: {cumulative_variance:.2f}, loading: {min_loading:.2f}",
     }
     if f5_5_pass:
-        results["summary"]["passed"] += 1
+        increment_summary("passed")
     else:
-        results["summary"]["failed"] += 1
+        increment_summary("failed")
     logger.info(
         f"F5.5: {'PASS' if f5_5_pass else 'FAIL'} - Variance: {cumulative_variance:.2f}, loading: {min_loading:.2f}"
     )
@@ -4049,9 +4083,9 @@ def check_falsification(
         "actual": f"Diff: {performance_difference:.2f}, d: {cohen_d_performance:.2f}, p: {ttest_p_f5_6:.3f}",
     }
     if f5_6_pass:
-        results["summary"]["passed"] += 1
+        increment_summary("passed")
     else:
-        results["summary"]["failed"] += 1
+        increment_summary("failed")
     logger.info(
         f"F5.6: {'PASS' if f5_6_pass else 'FAIL'} - Diff: {performance_difference:.2f}, d: {cohen_d_performance:.2f}"
     )
@@ -4120,11 +4154,11 @@ def check_falsification(
         "actual": f"LTCN: {ltcn_transition_time:.1f}ms, Feedforward: {feedforward_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, p: {mann_whitney_p:.3f}",
     }
     if underpowered:
-        results["summary"]["underpowered"] += 1
+        increment_summary("underpowered")
     elif f6_1_pass:
-        results["summary"]["passed"] += 1
+        increment_summary("passed")
     else:
-        results["summary"]["failed"] += 1
+        increment_summary("failed")
     logger.info(
         f"F6.1: {status} - LTCN: {ltcn_transition_time:.1f}ms, delta: {cliffs_delta:.2f}, power: {power:.2f}"
     )
@@ -4158,11 +4192,11 @@ def check_falsification(
         "actual": f"LTCN: {ltcn_integration_window:.1f}ms, RNN: {rnn_integration_window:.1f}ms, R²: {curve_fit_r2:.2f}, p: {wilcoxon_p:.3f}",
     }
     if underpowered:
-        results["summary"]["underpowered"] += 1
+        increment_summary("underpowered")
     elif f6_2_pass:
-        results["summary"]["passed"] += 1
+        increment_summary("passed")
     else:
-        results["summary"]["failed"] += 1
+        increment_summary("failed")
     logger.info(
         f"F6.2: {status} - LTCN: {ltcn_integration_window:.1f}ms, ratio: {integration_ratio:.1f}, power: {power:.2f}"
     )
@@ -4197,8 +4231,8 @@ class APGIValidationProtocol5:
         total_test_cases = analytical_verification.get("total_test_cases", 0)
 
         # Calculate individual F5 component scores
-        f5_3_score = 0  # Fitness Advantage
-        f5_6_score = 0  # Metabolic Efficiency
+        f5_3_score = 0.0  # Fitness Advantage
+        f5_6_score = 0.0  # Metabolic Efficiency
 
         # Map analytical test cases to F5 components
         if total_test_cases > 0:
@@ -4208,7 +4242,7 @@ class APGIValidationProtocol5:
                 "Ignition time",
                 "Phase boundary",
             ]
-            f5_1_f5_2_score = (
+            f5_1_f5_2_score = int(
                 sum(
                     1
                     for test in analytical_verification.get("test_results", [])
@@ -4235,7 +4269,7 @@ class APGIValidationProtocol5:
                 "Ignition probability - 50%",
                 "Ignition probability - high",
             ]
-            f5_6_score = (
+            f5_6_score = int(
                 sum(
                     1
                     for test in analytical_verification.get("test_results", [])

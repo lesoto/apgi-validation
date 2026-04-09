@@ -8,7 +8,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 import threading
 
 
@@ -51,7 +51,7 @@ class PersistentAuditLogger:
         self.max_trail_size = max_trail_size
 
         # Statistics
-        self.stats = {
+        self.stats: Dict[str, Any] = {
             "total_operations": 0,
             "by_operation": {},
             "by_status": {"success": 0, "failure": 0},

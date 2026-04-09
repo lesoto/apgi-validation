@@ -16,7 +16,7 @@ try:
 except ImportError:
     import logging
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)  # type: ignore[assignment]
 
 
 class DataQualityAssessor:
@@ -43,7 +43,7 @@ class DataQualityAssessor:
         }
 
         # Calculate overall score
-        metrics["overall_score"] = np.mean(
+        metrics["overall_score"] = np.mean(  # type: ignore[assignment]
             [metrics["completeness"], metrics["consistency"], metrics["validity"]]
         )
 

@@ -29,22 +29,25 @@ class SecurityAuditLogger:
         self.log_file = Path(log_file)
         self.log_level = log_level
 
-        # Create audit logger
-        self.logger = logging.getLogger("security_audit")
+        # Create unique audit logger per instance (based on log file path)
+        # This prevents test isolation issues with shared handlers
+        logger_name = f"security_audit_{self.log_file.stem}_{id(self)}"
+        self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(log_level)
 
-        # Prevent duplicate handlers
-        if not self.logger.handlers:
-            # File handler for audit logs
-            file_handler = logging.FileHandler(self.log_file)
-            file_handler.setLevel(log_level)
+        # Clear any existing handlers to ensure clean state
+        self.logger.handlers.clear()
 
-            # Format: timestamp | level | operation | details
-            formatter = logging.Formatter(
-                "%(asctime)s | %(levelname)s | %(operation)s | %(message)s"
-            )
-            file_handler.setFormatter(formatter)
-            self.logger.addHandler(file_handler)
+        # File handler for audit logs
+        file_handler = logging.FileHandler(self.log_file)
+        file_handler.setLevel(log_level)
+
+        # Format: timestamp | level | operation | details
+        formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)s | %(operation)s | %(message)s"
+        )
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
 
         # In-memory audit trail for recent operations
         self.audit_trail: list = []

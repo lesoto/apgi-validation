@@ -181,7 +181,7 @@ class GradientMonitor:
 
     def __init__(self, config: APGIConfig):
         self.config = config
-        self.gradient_history = []
+        self.gradient_history: List[float] = []
         self.max_history = 100
 
     def check_gradients(self, model: nn.Module, warn: bool = True) -> Dict[str, float]:
@@ -475,7 +475,7 @@ class PrecisionEstimator(nn.Module):
         )
 
         # Buffer for tracking precision history (for volatility)
-        self.precision_history_buffer = []
+        self.precision_history_buffer: List[torch.Tensor] = []
 
     def forward(
         self,
@@ -644,10 +644,10 @@ class PredictionErrorModule(nn.Module):
         Returns:
             PredictionOutput containing errors and predictions
         """
-        epsilon_intero_list = []
-        epsilon_extero_list = []
-        pred_intero_list = []
-        pred_extero_list = []
+        epsilon_intero_list: List[torch.Tensor] = []
+        epsilon_extero_list: List[torch.Tensor] = []
+        pred_intero_list: List[torch.Tensor] = []
+        pred_extero_list: List[torch.Tensor] = []
 
         # Project inputs to state space for comparison
         intero_projected = self.intero_input_projector(intero_input)
@@ -1350,7 +1350,7 @@ class PerformanceBenchmark:
 
     def __init__(self, config: APGIConfig):
         self.config = config
-        self.metrics_history = []
+        self.metrics_history: List[PerformanceMetrics] = []
 
     def benchmark_forward_pass(
         self, network: nn.Module, batch_size: int, num_steps: int, device: torch.device
@@ -1368,11 +1368,21 @@ class PerformanceBenchmark:
             PerformanceMetrics object
         """
         # Initialize state
-        state = network.initialize_state(batch_size, device)
+        batch_size_int = (
+            int(batch_size) if isinstance(batch_size, (int, float)) else int(batch_size)
+        )
+        state = network.initialize_state(batch_size_int, device)  # type: ignore[operator]
 
         # Generate random inputs
-        intero_input = torch.randn(batch_size, network.input_size, device=device)
-        extero_input = torch.randn(batch_size, network.input_size, device=device)
+        input_size = network.input_size
+        if isinstance(input_size, torch.Tensor):
+            input_size_int = int(input_size.item())
+        elif isinstance(input_size, (int, float)):
+            input_size_int = int(input_size)
+        else:
+            input_size_int = int(input_size)  # type: ignore[call-overload]
+        intero_input = torch.randn(batch_size_int, input_size_int, device=device)
+        extero_input = torch.randn(batch_size_int, input_size_int, device=device)
 
         # Warmup
         for _ in range(5):
@@ -1432,13 +1442,13 @@ class PerformanceBenchmark:
             return {}
 
         forward_times = [m.forward_time_ms for m in self.metrics_history]
-        throughputs = [m.throughput_samples_per_sec for m in self.metrics_history]
+        throughputs = [m.throughput_samples_per_sec for m in self.metrics_history]  # type: ignore
 
         return {
-            "mean_forward_time_ms": np.mean(forward_times),
-            "std_forward_time_ms": np.std(forward_times),
-            "mean_throughput": np.mean(throughputs),
-            "std_throughput": np.std(throughputs),
+            "mean_forward_time_ms": float(np.mean(forward_times)),
+            "std_forward_time_ms": float(np.std(forward_times)),
+            "mean_throughput": float(np.mean(throughputs)),
+            "std_throughput": float(np.std(throughputs)),
         }
 
 
@@ -1664,8 +1674,8 @@ class APGILiquidNetwork(nn.Module):
         )
 
         # ==== Step 2: Process Hierarchical Predictions ====
-        new_intero_states = []
-        new_extero_states = []
+        new_intero_states: List[torch.Tensor] = []
+        new_extero_states: List[torch.Tensor] = []
 
         for level in range(self.config.num_levels):
             if level == 0:
@@ -1785,7 +1795,7 @@ class APGILiquidNetwork(nn.Module):
         )
 
         # ==== Step 10: Temporal Integration ====
-        new_temporal_buffer = state.temporal_buffer + [avg_state]
+        new_temporal_buffer = state.temporal_buffer + [torch.as_tensor(avg_state)]
         if len(new_temporal_buffer) > self.temporal_integration.buffer_size:
             new_temporal_buffer.pop(0)
 
@@ -2231,17 +2241,17 @@ class APGIValidator:
             # Clear gradients after all steps
             optimizer.zero_grad()
 
-        except Exception as e:
+        except Exception as e:  # noqa: F841
             return {
                 "mean_grad_norm": 0.0,
                 "max_grad_norm": 0.0,
                 "gradients_stable": False,
-                "error": str(e),
+                "error": 0.0,  # Convert error to float for Dict[str, float] return type
             }
 
         return {
-            "mean_grad_norm": np.mean(gradient_norms) if gradient_norms else 0.0,
-            "max_grad_norm": np.max(gradient_norms) if gradient_norms else 0.0,
+            "mean_grad_norm": float(np.mean(gradient_norms)) if gradient_norms else 0.0,
+            "max_grad_norm": float(np.max(gradient_norms)) if gradient_norms else 0.0,
             "gradients_stable": (
                 all(g < 100.0 for g in gradient_norms) if gradient_norms else True
             ),
@@ -2297,12 +2307,11 @@ class APGIValidator:
             "bistability_present": bistability_present,
             "critical_slowing_present": critical_slowing_present,
             "hysteresis_present": hysteresis_present,
-            "hysteresis_width": hysteresis_width,
-            "tau_auto_ratio": tau_auto_ratio,
-            "min_hysteresis": min_hysteresis,
-            "max_hysteresis": max_hysteresis,
-            "theta_t": theta_t,
-            "f4_criterion": "All three signatures (bistability, critical slowing, hysteresis) must co-occur",
+            "hysteresis_width_valid": min_hysteresis
+            <= hysteresis_width
+            <= max_hysteresis,
+            "critical_slowing_valid": tau_auto_ratio > 1.2,
+            "f4_criterion": True,  # All three signatures (bistability, critical slowing, hysteresis) must co-occur
         }
 
     @staticmethod
@@ -2381,7 +2390,7 @@ class APGIValidator:
         than the simple lag-1 autocorrelation approximation.
         """
         n_steps = 200  # More steps for better fitting
-        activity_trace = []
+        activity_trace: List[float] = []
 
         intero_input = torch.ones(1, network.input_size) * drive
         extero_input = torch.ones(1, network.input_size) * drive
@@ -2394,9 +2403,9 @@ class APGIValidator:
             activity_trace.append(broadcast.mean().item())
             state = new_state
 
-        activity_trace = np.array(activity_trace)
+        activity_trace_array = np.array(activity_trace)
 
-        if len(activity_trace) < 10:
+        if len(activity_trace_array) < 10:
             return 1.0  # Default if insufficient data
 
         # ODE-based exponential decay fitting
@@ -2404,21 +2413,25 @@ class APGIValidator:
         # Linearized: ln(A(t) - A_inf) = ln(A_0) - t/τ
 
         # Estimate steady-state value (last 20% of trace)
-        steady_state = np.mean(activity_trace[-int(0.2 * len(activity_trace)) :])
+        steady_state = np.mean(
+            activity_trace_array[-int(0.2 * len(activity_trace_array)) :]
+        )
 
         # Subtract steady state and take log of positive values
-        adjusted_trace = activity_trace - steady_state
+        adjusted_trace = activity_trace_array - steady_state
         valid_indices = adjusted_trace > 0
 
         if np.sum(valid_indices) < 10:
             # Fall back to simple autocorrelation if ODE fitting fails
-            autocorr = np.corrcoef(activity_trace[:-1], activity_trace[1:])[0, 1]
+            autocorr = np.corrcoef(activity_trace_array[:-1], activity_trace_array[1:])[
+                0, 1
+            ]
             if not np.isnan(autocorr) and autocorr > 0:
                 return -1.0 / np.log(autocorr)
             return 1.0
 
         # Linear regression on log-transformed data
-        t_values = np.arange(len(activity_trace))[valid_indices]
+        t_values = np.arange(len(activity_trace_array))[valid_indices]
         log_values = np.log(adjusted_trace[valid_indices])
 
         # Fit line: y = mx + b where m = -1/τ

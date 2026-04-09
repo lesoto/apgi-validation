@@ -414,7 +414,7 @@ class APGIFullDynamicModel:
         self,
         signal_time_series: np.ndarray,
         threshold_time_series: Optional[np.ndarray] = None,
-    ) -> Dict[str, float]:
+    ) -> Dict[str, Any]:
         """
         Compute Fractional Dimension Biomarker for clinical assessment.
 
@@ -662,7 +662,7 @@ class APGIFullDynamicModel:
         epsilon_i_sequence: np.ndarray,
         beta_sequence: Optional[np.ndarray] = None,
         deterministic_ignition: bool = False,
-    ) -> Dict[str, np.ndarray]:
+    ) -> Dict[str, Any]:
         """
         Run full simulation over sequence of inputs.
 
@@ -702,7 +702,7 @@ class APGIFullDynamicModel:
         max_window_size = 100000
         window_size = min(n_steps, max_window_size)
 
-        history = {
+        history: Dict[str, Any] = {
             "S": np.zeros(window_size),
             "theta_t": np.zeros(window_size),
             "eta_m": np.zeros(window_size),

@@ -39,10 +39,14 @@ FALSIFICATION_MODULE_NAMES = [
 for module_name in FALSIFICATION_MODULE_NAMES:
     try:
         # Use module name directly for import (already underscored)
-        module = __import__(f"Falsification.{module_name}", fromlist=[module_name])
+        # APGI_Falsification_Protocols_GUI is now at root level, others in Falsification/
+        if module_name == "APGI_Falsification_Protocols_GUI":
+            module = __import__(module_name, fromlist=[module_name])
+        else:
+            module = __import__(f"Falsification.{module_name}", fromlist=[module_name])
         FALSIFICATION_MODULES[module_name] = module
     except ImportError as e:
-        print(f"Warning: Falsification.{module_name} not available: {e}")
+        print(f"Warning: {module_name} not available: {e}")
         FALSIFICATION_MODULES[module_name] = None
 
 # Special handling for CausalManipulations which is in Validation/

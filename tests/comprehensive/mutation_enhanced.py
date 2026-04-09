@@ -654,7 +654,7 @@ class EnhancedMutationTester(MutationTester):
 
         # Calculate percentages
         for module, stats in coverage.items():
-            stats["mutation_score"] = (
+            stats["mutation_score"] = int(
                 stats["killed"] / stats["total"] * 100 if stats["total"] > 0 else 0
             )
 

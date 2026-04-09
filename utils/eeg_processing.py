@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from scipy import signal
 from scipy.integrate import trapezoid  # Use trapezoid instead of deprecated simps
-from typing import Dict, Any, Tuple, Union, List
+from typing import Dict, Any, Tuple, Union
 from pathlib import Path
 import yaml
 import logging
@@ -249,7 +249,7 @@ def compute_pac_with_bands(
 
     for ch in range(n_channels):
         # Compute amplitude for each phase bin
-        amp_by_phase: List[float] = []
+        amp_by_phase = []
         for i in range(n_bins):
             next_bin_idx = (i + 1) % n_bins  # Wrap around for last bin
             in_bin = (phase[ch] >= phase_bins[i]) & (
@@ -263,7 +263,7 @@ def compute_pac_with_bands(
                 amp_by_phase.append(0.0)
 
         # Normalize amplitudes
-        amp_by_phase = np.array(amp_by_phase)
+        amp_by_phase = np.array(amp_by_phase)  # type: ignore[assignment]
         if np.sum(amp_by_phase) > 0:
             amp_by_phase = amp_by_phase / np.sum(amp_by_phase)
 
@@ -357,7 +357,7 @@ def compute_theta_gamma_pac(
     mi_values = []
     for ch in range(n_channels):
         # Compute gamma amplitude for each theta phase bin
-        gamma_amp_by_phase: List[float] = []
+        gamma_amp_by_phase = []
         for i in range(n_bins):
             # Find time points where theta phase is in this bin
             next_bin_idx = (i + 1) % n_bins  # Wrap around for last bin
@@ -374,7 +374,7 @@ def compute_theta_gamma_pac(
                 gamma_amp_by_phase.append(0.0)
 
         # Normalize gamma amplitudes
-        gamma_amp_by_phase = np.array(gamma_amp_by_phase)
+        gamma_amp_by_phase = np.array(gamma_amp_by_phase)  # type: ignore[assignment]
         if np.sum(gamma_amp_by_phase) > 0:
             gamma_amp_by_phase = gamma_amp_by_phase / np.sum(gamma_amp_by_phase)
 
@@ -635,8 +635,18 @@ def compute_all_pac_bands(
     results = {}
 
     for level_boundary, bands in pac_bands.items():
-        phase_band = tuple(bands["phase"])
-        amplitude_band = tuple(bands["amplitude"])
+        phase_band_tuple = tuple(bands["phase"])[:2]  # Ensure only 2 elements
+        amplitude_band_tuple = tuple(bands["amplitude"])[:2]  # Ensure only 2 elements
+
+        # Ensure exactly 2 elements for type safety
+        phase_band: Tuple[float, float] = (
+            float(phase_band_tuple[0]) if len(phase_band_tuple) > 0 else 0.0,
+            float(phase_band_tuple[1]) if len(phase_band_tuple) > 1 else 1.0,
+        )
+        amplitude_band: Tuple[float, float] = (
+            float(amplitude_band_tuple[0]) if len(amplitude_band_tuple) > 0 else 30.0,
+            float(amplitude_band_tuple[1]) if len(amplitude_band_tuple) > 1 else 100.0,
+        )
 
         result = compute_pac_with_bands(
             eeg_data=eeg_data,
