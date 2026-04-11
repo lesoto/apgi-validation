@@ -14,17 +14,15 @@ Test Categories:
 - Error handling validation
 """
 
-import pytest
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
+import pytest
 
 # Import the protocol to test
 from Validation.VP_10_CausalManipulations_Priority2 import (
-    TMSIntervention,
-    PharmacologicalIntervention,
-    MetabolicIntervention,
-    CausalManipulationsValidator,
-)
+    CausalManipulationsValidator, MetabolicIntervention,
+    PharmacologicalIntervention, TMSIntervention)
 
 
 class TestCausalManipulationsTMSProtocol6:

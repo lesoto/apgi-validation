@@ -15,16 +15,15 @@ Implementation Strategy:
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple
-import numpy as np
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 # Import canonical MCMC functionality
 from Falsification.FP_10_BayesianEstimation_MCMC import (
-    generate_synthetic_data,
-    run_mcmc_bayesian_estimation,
-    BayesianParameterRecovery,
-)
+    BayesianParameterRecovery, generate_synthetic_data,
+    run_mcmc_bayesian_estimation)
 
 # Removed for GUI stability
 logger = logging.getLogger(__name__)

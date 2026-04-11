@@ -8,22 +8,24 @@ This module tests input validation functions with:
 - Type confusion attacks
 """
 
-import sys
 import json
-import tempfile
 import string
-import pytest
+import sys
+import tempfile
 from pathlib import Path
-from hypothesis import given, strategies as st, settings
+
+import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from utils.path_security import validate_file_path
 from utils.batch_processor import secure_load_json
-from utils.input_validation import validate_env_key
 from utils.config_manager import ConfigManager
+from utils.input_validation import validate_env_key
+from utils.path_security import validate_file_path
 
 # Use PROJECT_ROOT directly instead of importing from main
 MAIN_PROJECT_ROOT = PROJECT_ROOT

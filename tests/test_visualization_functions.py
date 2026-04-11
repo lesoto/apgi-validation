@@ -4,25 +4,20 @@ Tests for untested visualization functions in main.py
 Comprehensive tests for 9 visualization functions.
 """
 
-from unittest.mock import MagicMock, patch
-from pathlib import Path
-import pandas as pd
 import sys
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import (
-    _load_visualization_data,
-    _parse_visualization_parameters,
-    _setup_plotting_style,
-    _create_figure_and_axes,
-    _create_time_series_plot,
-    _create_scatter_plot,
-    _create_heatmap_plot,
-    _create_distribution_plot,
-    _create_plot_by_type,
-)
+from main import (_create_distribution_plot, _create_figure_and_axes,
+                  _create_heatmap_plot, _create_plot_by_type,
+                  _create_scatter_plot, _create_time_series_plot,
+                  _load_visualization_data, _parse_visualization_parameters,
+                  _setup_plotting_style)
 
 
 class TestLoadVisualizationData:
@@ -160,13 +155,15 @@ class TestCreateFigureAndAxes:
         """Test creating single figure and axes."""
         mock_plt = MagicMock()
         mock_fig = MagicMock()
+        mock_ax_flat = [MagicMock()]
         mock_ax = MagicMock()
+        mock_ax.flatten.return_value = mock_ax_flat
         mock_plt.subplots.return_value = (mock_fig, mock_ax)
 
         fig, axes = _create_figure_and_axes(12, 8, 1, 1, "auto", mock_plt)
 
         assert fig == mock_fig
-        assert axes == [mock_ax]
+        assert list(axes) == mock_ax_flat
 
     def test_create_figure_and_axes_multiple(self):
         """Test creating multiple subplots."""

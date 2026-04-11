@@ -7,7 +7,8 @@ Configuration management for the batch processing system.
 
 import os
 from pathlib import Path
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
+
 import yaml
 
 

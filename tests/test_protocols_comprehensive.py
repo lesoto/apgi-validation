@@ -9,6 +9,7 @@ to achieve 85%+ coverage across all APGI validation protocols.
 import sys
 import unittest
 from pathlib import Path
+
 import numpy as np
 
 # Add paths for imports
@@ -31,9 +32,8 @@ class TestFalsificationProtocol5(unittest.TestCase):
     def test_evolutionary_emergence_initialization(self):
         """Test FP-5 protocol initialization."""
         try:
-            from FP_1_Falsification_ActiveInferenceAgents_F1F2 import (
-                FalsificationProtocol as FP5,
-            )
+            from FP_1_Falsification_ActiveInferenceAgents_F1F2 import \
+                FalsificationProtocol as FP5
 
             protocol = FP5(protocol_id="FP-5")
             self.assertIsNotNone(protocol)
@@ -425,8 +425,9 @@ class TestPerformanceBenchmarks(unittest.TestCase):
 
     def test_memory_efficiency(self):
         """Test memory usage stays within limits."""
-        import psutil
         import os
+
+        import psutil
 
         process = psutil.Process(os.getpid())
         mem_before = process.memory_info().rss / (1024 * 1024)  # MB

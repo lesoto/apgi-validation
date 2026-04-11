@@ -31,11 +31,10 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
-
 # from scipy.signal import welch, windows  # Commented out - unused
 from scipy import signal, stats
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -1088,6 +1087,7 @@ class APGISpectralAnalysis:
         """Load PAC band configuration from config file."""
         try:
             from pathlib import Path
+
             import yaml
 
             config_path = Path(__file__).parent / "config" / "default.yaml"
@@ -3921,7 +3921,8 @@ def demonstrate_cardiac_phase_detection():
 
     # Import threshold from falsification thresholds
     try:
-        from utils.falsification_thresholds import F2_CARDIAC_DETECTION_ADVANTAGE_MIN
+        from utils.falsification_thresholds import \
+            F2_CARDIAC_DETECTION_ADVANTAGE_MIN
 
         threshold = F2_CARDIAC_DETECTION_ADVANTAGE_MIN
         print(f"Using registered threshold: {threshold * 100:.0f}% minimum advantage")

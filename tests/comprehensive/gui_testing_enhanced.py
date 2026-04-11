@@ -11,14 +11,15 @@ Comprehensive GUI testing with:
 This module provides advanced GUI testing capabilities for the APGI validation framework.
 """
 
-import numpy as np
-from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
+import json
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import Enum, auto
-import time
-import json
-from contextlib import contextmanager
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 # Try to import Playwright for headless browser testing
 try:

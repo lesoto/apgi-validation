@@ -4,26 +4,25 @@ Integration tests for end-to-end workflows in the APGI validation framework.
 Tests complete workflows that span multiple modules and components.
 """
 
-import pytest
-import numpy as np
-from unittest.mock import patch
-from pathlib import Path
-import tempfile
 import json
-
 # Add project root to path
 import sys
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
+import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import modules for integration testing
 try:
-    from APGI_Equations import (
-        FoundationalEquations,
-        CoreIgnitionSystem,
-        DynamicalSystemEquations,
-    )
-    from APGI_Parameter_Estimation import generate_synthetic_dataset, build_apgi_model
+    from APGI_Equations import (CoreIgnitionSystem, DynamicalSystemEquations,
+                                FoundationalEquations)
+    from APGI_Parameter_Estimation import (build_apgi_model,
+                                           generate_synthetic_dataset)
+
     from utils.config_manager import ConfigManager
     from utils.data_validation import DataValidator
 
@@ -242,6 +241,9 @@ class TestProtocolIntegration:
 class TestConfigurationIntegration:
     """Test configuration management integration."""
 
+    @pytest.mark.skipif(
+        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
+    )
     def test_config_to_workflow_integration(self):
         """Test workflow configuration management."""
         try:
@@ -479,6 +481,9 @@ class TestEndToEndWorkflows:
         except Exception as e:
             assert False, f"Simulation workflow failed: {e}"
 
+    @pytest.mark.skipif(
+        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
+    )
     def test_error_recovery_workflow(self):
         """Test error recovery in workflows."""
         try:
@@ -539,6 +544,9 @@ class TestEndToEndWorkflows:
 class TestPerformanceIntegration:
     """Test performance integration across workflows."""
 
+    @pytest.mark.skipif(
+        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
+    )
     def test_performance_benchmarking(self):
         """Test performance benchmarking integration."""
         try:
@@ -603,8 +611,9 @@ class TestPerformanceIntegration:
     def test_memory_usage_integration(self):
         """Test memory usage across workflows."""
         try:
-            import psutil
             import os
+
+            import psutil
 
             # Monitor memory usage during workflow
             initial_memory = psutil.Process(os.getpid()).memory_info.rss
@@ -637,6 +646,9 @@ class TestPerformanceIntegration:
 class TestRobustnessIntegration:
     """Test robustness of integrated workflows."""
 
+    @pytest.mark.skipif(
+        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
+    )
     def test_workflow_with_corrupted_data(self):
         """Test workflow robustness with corrupted data."""
         try:
@@ -676,6 +688,9 @@ class TestRobustnessIntegration:
         except Exception as e:
             assert False, f"Robustness test failed: {e}"
 
+    @pytest.mark.skipif(
+        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
+    )
     def test_workflow_with_missing_dependencies(self):
         """Test workflow behavior with missing dependencies."""
         try:
@@ -696,6 +711,9 @@ class TestRobustnessIntegration:
         except Exception as e:
             assert False, f"Missing dependency test failed: {e}"
 
+    @pytest.mark.skipif(
+        not APGI_CORE_AVAILABLE, reason="Core APGI modules not available"
+    )
     def test_workflow_with_extreme_parameters(self):
         """Test workflow with extreme parameter values."""
         try:

@@ -5,10 +5,11 @@ mimics actual cross-cultural EEG and fMRI datasets. These can be used as
 placeholders until real data is acquired.
 """
 
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Tuple, Dict, Any, List
-from pathlib import Path
 
 
 def generate_cross_cultural_eeg_data(

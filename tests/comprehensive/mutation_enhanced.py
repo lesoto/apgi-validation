@@ -11,12 +11,12 @@ Enhanced mutation testing with:
 This module extends the base mutation_tester.py with advanced reporting.
 """
 
-from dataclasses import dataclass, field
-from pathlib import Path
+import html
 import sys
 import time
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional
-import html
 
 # Import base mutation testing
 sys.path.insert(0, str(Path(__file__).parent))

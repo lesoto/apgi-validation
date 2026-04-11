@@ -30,9 +30,7 @@ except ImportError:
 # Import validation-falsification consistency checker
 try:
     from utils.validation_falsification_consistency import (
-        ValidationFalsificationConsistency,
-        ConsistencyIssue,
-    )
+        ConsistencyIssue, ValidationFalsificationConsistency)
 except ImportError:
     # Fallback placeholders when module is not available
     ValidationFalsificationConsistency = None  # type: ignore[misc]
@@ -528,9 +526,9 @@ class APGIMasterValidator:
         Returns:
             Dictionary with reproducibility information
         """
-        from pathlib import Path
         import json
         from datetime import datetime
+        from pathlib import Path
 
         if output_dir is None:
             output_path = Path(__file__).parent.parent / "reproducibility"
@@ -667,11 +665,9 @@ def main():
         from Falsification.FP_ALL_Aggregator import (
             aggregate_prediction_results,
             check_framework_falsification_condition_a,
-            check_framework_falsification_condition_b,
-        )
-        from utils.validation_falsification_consistency import (
-            ValidationFalsificationConsistency,
-        )
+            check_framework_falsification_condition_b)
+        from utils.validation_falsification_consistency import \
+            ValidationFalsificationConsistency
 
         preds = aggregate_prediction_results(validator.protocol_results)
 

@@ -4,9 +4,10 @@ TOCTOU race conditions, absolute path rejection, and other security edge cases.
 """
 
 import tempfile
-import pytest
-from pathlib import Path
 import threading
+from pathlib import Path
+
+import pytest
 
 from utils.path_security import validate_file_path
 

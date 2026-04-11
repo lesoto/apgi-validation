@@ -24,12 +24,12 @@ Usage:
 __version__ = "1.0.0"
 __author__ = "APGI Testing Team"
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from dataclasses import dataclass, field
-from enum import Enum, auto
 import logging
 import sys
+from dataclasses import dataclass, field
+from enum import Enum, auto
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -138,6 +138,7 @@ class AdversarialTestFramework:
 
         # Set random seeds for reproducibility
         import random
+
         import numpy as np
 
         random.seed(seed)
@@ -260,9 +261,9 @@ class AdversarialTestFramework:
         self, category: TestCategory, test_files: List[str], parallel: bool
     ) -> Dict[str, Any]:
         """Run tests for a specific category."""
+        import json
         import subprocess
         import tempfile
-        import json
 
         results: Dict[str, Any] = {
             "category": category.name,

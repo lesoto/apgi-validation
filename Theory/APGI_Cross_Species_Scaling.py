@@ -13,10 +13,11 @@ This module provides:
 =============================================================================
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-from typing import Dict, Any
 from dataclasses import dataclass
+from typing import Any, Dict
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 @dataclass

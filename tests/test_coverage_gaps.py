@@ -11,18 +11,19 @@ Addresses identified coverage gaps:
 - Logging/Memory Pressure (Medium severity)
 """
 
-import pytest
-import threading
-import time
+import gc
 import logging
 import os
-import sys
 import queue
-import gc
+import sys
+import threading
+import time
 import tracemalloc
+from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from io import StringIO
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))

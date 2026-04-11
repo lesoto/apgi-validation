@@ -14,16 +14,14 @@ Test Categories:
 - Error handling validation
 """
 
-import pytest
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
+import pytest
 
 # Import the protocol to test
 from Falsification.FP_09_NeuralSignatures_P3b_HEP import (
-    EEGData,
-    FalsificationThresholds,
-    NeuralSignatureValidator,
-)
+    EEGData, FalsificationThresholds, NeuralSignatureValidator)
 
 
 class TestNeuralSignaturesEEGProtocol8:

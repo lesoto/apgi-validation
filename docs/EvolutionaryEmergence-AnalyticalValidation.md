@@ -189,13 +189,85 @@ Where s = selection coefficient (rate of frequency increase)
 - **Interpretation**: Discrete ignition hypothesis falsified
 - **Implication**: Graded processing is equally or more efficient
 
+## Genetic Selection Coefficient Calculation
+
+To ensure researchers interpret Panel 7 results correctly, the genetic selection coefficient (s) is defined and calculated as follows:
+
+### Definition
+
+The selection coefficient **s** measures the rate of frequency increase for an APGI component under evolutionary pressure:
+
+```text
+s = (p(t+1) - p(t)) / (p(t) · (1 - p(t)))
+```
+
+Where:
+
+- `p(t)`: Frequency of the component at generation t
+- `p(t+1)`: Frequency at generation t+1
+- `s > 0`: Positive selection (component spreads)
+- `s < 0`: Negative selection (component declines)
+- `s = 0`: Neutral (no selective effect)
+
+### Panel 7 Interpretation Guide
+
+| Selection Coefficient | Interpretation | Color Code | Evolutionary Outcome |
+| ---------------------- | -------------- | ---------- | ------------------- |
+| s > 0.05 | Strong positive selection | Dark Green | Component reaches fixation (>95% by gen 500) |
+| 0.02 < s ≤ 0.05 | Moderate positive selection | Light Green | Component spreads but may not fix |
+| 0 < s ≤ 0.02 | Weak positive selection | Yellow | Slow spread, requires extended evolution |
+| s = 0 | Neutral | Gray | No evolutionary change (drift only) |
+| -0.02 ≤ s < 0 | Weak negative selection | Orange | Gradual decline |
+| s < -0.02 | Strong negative selection | Red | Rapid elimination |
+
+### Calculation Example
+
+```python
+# Panel 7: Threshold mechanism selection coefficient
+def calculate_selection_coefficient(frequencies, generation_interval=50):
+    """
+    Calculate s from frequency trajectory.
+
+    Args:
+        frequencies: List of frequencies [p_gen0, p_gen50, p_gen100, ...]
+        generation_interval: Generations between measurements
+
+    Returns:
+        s: Average selection coefficient
+    """
+    s_values = []
+    for i in range(len(frequencies) - 1):
+        p_t = frequencies[i]
+        p_t1 = frequencies[i + 1]
+        if 0 < p_t < 1:  # Avoid division by zero
+            s = (p_t1 - p_t) / (p_t * (1 - p_t))
+            s_values.append(s)
+
+    return np.mean(s_values) if s_values else 0
+
+# Example usage with Panel 7 data
+threshold_frequencies = [0.10, 0.15, 0.25, 0.40, 0.60, 0.78, 0.88, 0.93, 0.96, 0.98, 0.99]
+s_threshold = calculate_selection_coefficient(threshold_frequencies)
+print(f"Threshold mechanism s = {s_threshold:.4f}")  # Expected: s ≈ 0.03-0.05
+```
+
+### Falsification Thresholds
+
+The selection coefficient provides quantitative falsification criteria:
+
+- **F5.1**: If s < 0.02 by generation 200 → Threshold mechanism not under positive selection
+- **F5.2**: If s < 0 by generation 100 → Interoceptive weighting is maladaptive
+- **F5.3**: If max(p) < 0.50 by generation 500 → Somatic markers never beneficial
+
+---
+
 ## Understanding Results
 
 ### Output Files
 
 1. **protocol5_results.json**
    - Final statistics
-   - Selection coefficients
+   - Selection coefficients (s for each component)
    - Fixation generations
    - Falsification report
 

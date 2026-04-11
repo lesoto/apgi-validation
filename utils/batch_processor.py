@@ -8,23 +8,24 @@ validation protocols, and analyses in parallel with progress tracking.
 """
 
 import binascii
+import hashlib
+import hmac
 import importlib.util
 import json
 import logging
 import math
+import os
 import sys
-import time
-import hashlib
-import hmac
 import threading
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+import time
+from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
+                                as_completed)
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-import os
 
 # Define PROJECT_ROOT for secure path validation
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
@@ -216,7 +217,8 @@ def secure_json_dump(obj: Any, file_path: Path) -> None:
 
     with _keys_lock:
         if PICKLE_SECRET_KEY is None:
-            from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
+            from utils.error_handler import (ErrorCategory, ErrorSeverity,
+                                             error_handler)
 
             raise error_handler.handle_error(
                 category=ErrorCategory.IMPORT,
@@ -253,7 +255,8 @@ def secure_json_load(file_path: Path) -> Any:
 
     with _keys_lock:
         if PICKLE_SECRET_KEY is None:
-            from utils.error_handler import error_handler, ErrorCategory, ErrorSeverity
+            from utils.error_handler import (ErrorCategory, ErrorSeverity,
+                                             error_handler)
 
             raise error_handler.handle_error(
                 category=ErrorCategory.IMPORT,

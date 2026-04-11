@@ -15,16 +15,16 @@ Classes:
 - ReportGenerator: Automated report generation from log data
 """
 
-import re
 import hashlib
 import json
+import re
 import threading
 import time
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, field
-from collections import defaultdict, Counter
+from typing import Any, Dict, List, Optional, Tuple
 
 # Import logging configuration
 try:

@@ -85,6 +85,33 @@ pip install tqdm
 pip install pymc==5.10.0 arviz==0.17.0
 ```text
 
+## Data Readiness Checklist
+
+Before running Bayesian model comparison and parameter recovery for APGI, complete the following data readiness checklist:
+
+### Pre-Analysis Requirements
+
+| Check | Requirement | Minimum Criteria | Verification Method |
+|-------|-------------|------------------|---------------------|
+| ☐ **N Subjects** | Sample size sufficient | N ≥ 30 for group-level inference | Check data file count |
+| ☐ **N Trials** | Trials per subject | ≥ 50 trials per parameter to estimate | Per-subject trial count |
+| ☐ **Behavioral Data** | Detection/response recorded | Binary or continuous outcomes | Data file inspection |
+| ☐ **Physiological Data** | Interoceptive/exteroceptive signals | ECG, EEG, or pupillometry | Modality verification |
+| ☐ **Timing Data** | Trial onset/offset timestamps | Millisecond precision | Event file check |
+| ☐ **Missing Data** | Missing value handling | < 20% missing per subject | Data completeness audit |
+| ☐ **Outliers** | Extreme values addressed | Z-score filter ±3 SD | Descriptive stats |
+
+### Minimum Data Requirements by Analysis Type
+
+| Analysis | Min Subjects | Min Trials/Subject | Required Data Columns |
+|----------|--------------|-------------------|----------------------|
+| **Parameter Recovery** | 20 | 100 | stimulus_intensity, detection, response_time |
+| **Model Comparison** | 30 | 80 | detection, stimulus, subject_id |
+| **Group-Level Inference** | 40 | 60 | detection, subject_id, condition |
+| **Test-Retest Reliability** | 25 | 50 × 2 sessions | detection, session, subject_id |
+
+---
+
 ## Quick Start
 
 ```python

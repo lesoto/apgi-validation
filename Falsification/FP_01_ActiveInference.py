@@ -6,16 +6,19 @@ Implements F1.1-F1.6 falsification criteria for APGI framework.
 """
 
 import logging
-import sys
 import os
+import sys
 import warnings
-import numpy as np
 from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 # FIX #1: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from datetime import datetime
+
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -32,11 +35,13 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="pandas")
 
 # Add parent directory to path for utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.constants import LEVEL_TIMESCALES
 from collections import deque
+
 from scipy import stats
-from scipy.stats import binomtest
 from scipy.optimize import curve_fit
+from scipy.stats import binomtest
+
+from utils.constants import LEVEL_TIMESCALES
 
 try:
     from specparam import FOOOF
@@ -46,8 +51,8 @@ except ImportError:
     # Fallback if specparam not available
     FOOOF_AVAILABLE = False
     FOOOF = None
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -95,9 +100,7 @@ except ImportError:
 
 # FIX #2: Import FP-07 validated parameter bounds for cross-protocol consistency
 try:
-    from utils.interprotocol_schema import (
-        load_fp7_validated_bounds,
-    )
+    from utils.interprotocol_schema import load_fp7_validated_bounds
 
     # Override with dynamically loaded bounds if available
     _VALIDATED_BOUNDS = load_fp7_validated_bounds()
@@ -119,40 +122,38 @@ try:
 except NameError:
     DIM_CONSTANTS_EXPORT = MockDIM_CONSTANTS()  # type: ignore[misc]
 
-from utils.falsification_thresholds import (
-    F2_1_MIN_ADVANTAGE_PCT,
-    F2_3_MIN_RT_ADVANTAGE_MS,
-    F2_4_MIN_CONFIDENCE_EFFECT_PCT,
-    F2_5_MAX_TRIALS,
-    F3_1_MIN_ADVANTAGE_PCT,
-    F3_1_MIN_COHENS_D,
-    F3_2_MIN_INTERO_ADVANTAGE_PCT,
-    F3_3_MIN_REDUCTION_PCT,
-    F3_3_MIN_COHENS_D,
-    F3_4_MIN_REDUCTION_PCT,
-    F3_4_MIN_COHENS_D,
-    F3_6_MAX_TRIALS,
-    F3_6_MIN_HAZARD_RATIO,
-    F5_1_MIN_PROPORTION,
-    F5_1_MIN_ALPHA,
-    F5_2_MIN_CORRELATION,
-    F5_2_MIN_PROPORTION,
-    F5_3_MIN_GAIN_RATIO,
-    F5_3_MIN_PROPORTION,
-    F5_4_MIN_PROPORTION,
-    F5_4_MIN_PEAK_SEPARATION,
-    F5_5_PCA_MIN_VARIANCE,
-    F5_5_MIN_LOADING,
-    F5_6_MIN_COHENS_D,
-    F6_1_LTCN_MAX_TRANSITION_MS,
-    F6_1_CLIFFS_DELTA_MIN,
-    F6_2_LTCN_MIN_WINDOW_MS,
-    F6_2_MIN_INTEGRATION_RATIO,
-    F6_2_MIN_CURVE_FIT_R2,
-    F6_5_HYSTERESIS_MIN,
-    F6_5_HYSTERESIS_MAX,
-    F6_5_BIFURCATION_ERROR_MAX,
-)
+from utils.falsification_thresholds import (F2_1_MIN_ADVANTAGE_PCT,
+                                            F2_3_MIN_RT_ADVANTAGE_MS,
+                                            F2_4_MIN_CONFIDENCE_EFFECT_PCT,
+                                            F2_5_MAX_TRIALS,
+                                            F3_1_MIN_ADVANTAGE_PCT,
+                                            F3_1_MIN_COHENS_D,
+                                            F3_2_MIN_INTERO_ADVANTAGE_PCT,
+                                            F3_3_MIN_COHENS_D,
+                                            F3_3_MIN_REDUCTION_PCT,
+                                            F3_4_MIN_COHENS_D,
+                                            F3_4_MIN_REDUCTION_PCT,
+                                            F3_6_MAX_TRIALS,
+                                            F3_6_MIN_HAZARD_RATIO,
+                                            F5_1_MIN_ALPHA,
+                                            F5_1_MIN_PROPORTION,
+                                            F5_2_MIN_CORRELATION,
+                                            F5_2_MIN_PROPORTION,
+                                            F5_3_MIN_GAIN_RATIO,
+                                            F5_3_MIN_PROPORTION,
+                                            F5_4_MIN_PEAK_SEPARATION,
+                                            F5_4_MIN_PROPORTION,
+                                            F5_5_MIN_LOADING,
+                                            F5_5_PCA_MIN_VARIANCE,
+                                            F5_6_MIN_COHENS_D,
+                                            F6_1_CLIFFS_DELTA_MIN,
+                                            F6_1_LTCN_MAX_TRANSITION_MS,
+                                            F6_2_LTCN_MIN_WINDOW_MS,
+                                            F6_2_MIN_CURVE_FIT_R2,
+                                            F6_2_MIN_INTEGRATION_RATIO,
+                                            F6_5_BIFURCATION_ERROR_MAX,
+                                            F6_5_HYSTERESIS_MAX,
+                                            F6_5_HYSTERESIS_MIN)
 
 try:
     import matplotlib
@@ -463,15 +464,13 @@ def check_F5_family(
 # Import configuration loader and threshold registry
 try:
     import yaml
-    from utils.config_loader import (
-        get_cumulative_reward_advantage_threshold,
-        get_cohens_d_threshold,
-        get_significance_level,
-        get_tau_theta_min,
-        get_tau_theta_max,
-        get_threshold_reduction_min,
-        get_cohens_d_adaptation_threshold,
-    )
+
+    from utils.config_loader import (get_cohens_d_adaptation_threshold,
+                                     get_cohens_d_threshold,
+                                     get_cumulative_reward_advantage_threshold,
+                                     get_significance_level, get_tau_theta_max,
+                                     get_tau_theta_min,
+                                     get_threshold_reduction_min)
 
     # Load PAC configuration
     def load_pac_bands():
@@ -483,7 +482,7 @@ try:
                 return config.get("pac_bands", {})
         except Exception:
             # Fallback configuration if file not found
-            from utils.constants import EEG_THETA_BAND_HZ, EEG_GAMMA_BAND_HZ
+            from utils.constants import EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ
 
             return {
                 "L1_L2": {
@@ -499,20 +498,22 @@ try:
 except ImportError:
     # Fallback functions if config_loader not available
     # Import from centralized falsification_thresholds to ensure single-source-of-truth
-    from utils.falsification_thresholds import (
-        F1_1_MIN_ADVANTAGE_PCT as _F1_1_ADV,
-        F1_1_MIN_COHENS_D as _F1_1_D,
-        F1_1_ALPHA as _F1_1_ALPHA,
-        F6_1_LTCN_MAX_TRANSITION_MS as _TAU_THETA_MIN,
-        F6_5_HYSTERESIS_MIN as _TAU_THETA_MAX,
-        F3_3_MIN_REDUCTION_PCT as _THRESHOLD_REDUCTION_MIN,
-    )
+    from utils.falsification_thresholds import F1_1_ALPHA as _F1_1_ALPHA
+    from utils.falsification_thresholds import \
+        F1_1_MIN_ADVANTAGE_PCT as _F1_1_ADV
+    from utils.falsification_thresholds import F1_1_MIN_COHENS_D as _F1_1_D
+    from utils.falsification_thresholds import \
+        F3_3_MIN_REDUCTION_PCT as _THRESHOLD_REDUCTION_MIN
+    from utils.falsification_thresholds import \
+        F6_1_LTCN_MAX_TRANSITION_MS as _TAU_THETA_MIN
+    from utils.falsification_thresholds import \
+        F6_5_HYSTERESIS_MIN as _TAU_THETA_MAX
 
     def get_cumulative_reward_advantage_threshold(default=None):
         return default if default is not None else _F1_1_ADV
 
     # Fallback PAC configuration
-    from utils.constants import EEG_THETA_BAND_HZ, EEG_GAMMA_BAND_HZ
+    from utils.constants import EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ
 
     PAC_BANDS = {
         "L1_L2": {
@@ -2286,6 +2287,7 @@ def run_comprehensive_simulation():
     """Run simulations to collect all metrics needed for F1-F6 check"""
     # Set random seed for deterministic initialization
     import numpy as np
+
     from utils.constants import APGI_GLOBAL_SEED
 
     np.random.seed(APGI_GLOBAL_SEED)
@@ -2552,12 +2554,14 @@ def run_falsification():
     """Entry point for CLI falsification testing."""
     # Set random seed for deterministic initialization
     import numpy as np
+
     from utils.constants import APGI_GLOBAL_SEED
 
     np.random.seed(APGI_GLOBAL_SEED)
 
     # Compute power analysis for key tests
-    from utils.statistical_tests import compute_power_analysis, compute_required_n
+    from utils.statistical_tests import (compute_power_analysis,
+                                         compute_required_n)
 
     # F1.1 power analysis: Cohen's d = 0.60, alpha = 0.01
     power_f11 = compute_power_analysis(

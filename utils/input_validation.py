@@ -7,10 +7,10 @@ Provides comprehensive input validation for user inputs across the application.
 """
 
 import re
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Callable
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 
 class ValidationType(Enum):

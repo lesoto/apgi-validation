@@ -5,8 +5,10 @@ and missing HMAC key handling.
 
 import json
 import tempfile
-import pytest
 from pathlib import Path
+
+import pytest
+
 from utils.backup_manager import BackupManager
 
 

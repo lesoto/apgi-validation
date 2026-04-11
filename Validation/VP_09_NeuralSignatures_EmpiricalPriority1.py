@@ -13,15 +13,14 @@ This protocol analyzes real neural data to demonstrate:
 
 """
 
-from pathlib import Path
-from typing import Optional, Any, Dict, List, cast
-from datetime import datetime
-import warnings
-
 import logging
+import warnings
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, cast
 
-import numpy as np
 import nibabel as nib
+import numpy as np
 
 logger = logging.getLogger(__name__)
 import pandas as pd
@@ -53,10 +52,7 @@ except ImportError:
 # Import FP-09 theta-gamma PAC function (Tort et al. 2010 Modulation Index)
 try:
     from Falsification.FP_09_NeuralSignatures_P3b_HEP import (  # noqa: F401
-        detect_theta_gamma_pac,
-        NeuralSignatureResult,
-        FalsificationThresholds,
-    )
+        FalsificationThresholds, NeuralSignatureResult, detect_theta_gamma_pac)
 
     FP09_PAC_AVAILABLE = True
 except ImportError:
@@ -84,11 +80,9 @@ METADATA_DIR = DATA_REPO / "metadata"
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        V9_1_MIN_CORRELATION,
-        V9_3_MIN_CORRELATION,
-        DEFAULT_ALPHA,
-    )
+    from utils.falsification_thresholds import (DEFAULT_ALPHA,
+                                                V9_1_MIN_CORRELATION,
+                                                V9_3_MIN_CORRELATION)
 except ImportError:
     V9_1_MIN_CORRELATION = 0.40
     V9_3_MIN_CORRELATION = 0.35
@@ -1129,7 +1123,8 @@ class APGINeuralSignaturesValidator:
                 confidence_interval = None
 
             # Bonferroni correction for 4 frequency bands
-            from utils.statistical_tests import apply_multiple_comparison_correction
+            from utils.statistical_tests import \
+                apply_multiple_comparison_correction
 
             p_theta = p_value
             p_alpha = 0.5
@@ -1721,8 +1716,8 @@ class APGINeuralSignaturesValidator:
             Dictionary with MI values, comparison, and falsification result
         """
         try:
-            from sklearn.feature_selection import mutual_info_regression
             from scipy.stats import permutation_test
+            from sklearn.feature_selection import mutual_info_regression
 
             # Compute MI for cued condition
             mi_cued_values: List[float] = []
@@ -3327,7 +3322,8 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:

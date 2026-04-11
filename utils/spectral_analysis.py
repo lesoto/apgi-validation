@@ -1,5 +1,6 @@
-from typing import Dict, Any, List, Optional, Tuple, Union
 import logging
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 from scipy import signal
 

@@ -21,6 +21,8 @@ anticipation paradigm.
 
 import json
 import logging
+# Import APGI constants for HRF parameters and thresholds
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -30,19 +32,14 @@ import numpy as np
 from scipy import stats
 from scipy.signal import convolve
 
-# Import APGI constants for HRF parameters and thresholds
-import sys
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.constants import BOLD_TSNR_MIN
 
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        V14_MIN_VMPFC_SCR_CORRELATION,
-        DEFAULT_ALPHA,
-    )
+    from utils.falsification_thresholds import (DEFAULT_ALPHA,
+                                                V14_MIN_VMPFC_SCR_CORRELATION)
 except ImportError:
     V14_MIN_VMPFC_SCR_CORRELATION = 0.30
     DEFAULT_ALPHA = 0.05
@@ -591,7 +588,8 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:

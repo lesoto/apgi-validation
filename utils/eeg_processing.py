@@ -16,16 +16,18 @@ Functions:
 All spectral bands use centralized constants from utils.constants.py
 """
 
+import logging
+import os
+import sys
+from pathlib import Path
+from typing import Any, Dict, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from scipy import signal
-from scipy.integrate import trapezoid  # Use trapezoid instead of deprecated simps
-from typing import Dict, Any, Tuple, Union
-from pathlib import Path
 import yaml
-import logging
-import sys
-import os
+from scipy import signal
+from scipy.integrate import \
+    trapezoid  # Use trapezoid instead of deprecated simps
 
 # Add parent directory to path for direct script execution
 if __name__ == "__main__":
@@ -33,16 +35,10 @@ if __name__ == "__main__":
 
 # Import centralized spectral band constants
 try:
-    from .constants import (
-        EEG_THETA_BAND_HZ,
-        EEG_GAMMA_BAND_HZ,
-    )
+    from .constants import EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ
 except ImportError:
     # Handle direct script execution
-    from utils.constants import (
-        EEG_THETA_BAND_HZ,
-        EEG_GAMMA_BAND_HZ,
-    )
+    from utils.constants import EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ
 
 # Removed for GUI stability
 logger = logging.getLogger(__name__)

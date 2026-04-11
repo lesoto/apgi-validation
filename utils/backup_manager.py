@@ -247,8 +247,8 @@ class BackupManager:
                     history_data = f.read()
 
                     # Verify signature
-                    import hmac
                     import hashlib
+                    import hmac
 
                     # Use a fixed key for history integrity (not sensitive, just prevents tampering)
                     history_key = self._backup_hmac_key.encode()
@@ -284,8 +284,8 @@ class BackupManager:
     def _save_history(self) -> None:
         """Save backup history to file with integrity signature."""
         try:
-            import hmac
             import hashlib
+            import hmac
 
             # Use a fixed key for history integrity
             history_key = self._backup_hmac_key.encode()

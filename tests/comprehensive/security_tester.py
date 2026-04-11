@@ -14,12 +14,12 @@ This module tests that the framework properly handles malicious inputs
 and maintains data integrity under attack scenarios.
 """
 
-import os
 import html
+import os
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-import tempfile
 
 import numpy as np
 

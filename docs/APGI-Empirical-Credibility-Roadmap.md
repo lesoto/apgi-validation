@@ -197,4 +197,33 @@ Actively seek and support independent replication of APGI's core findings by gro
 
 Every APGI paper should report effect sizes with confidence intervals and, where Bayesian methods are used, Bayes factors alongside posterior distributions over key parameters. This enables meta-analysts to include APGI results in future syntheses without requesting raw data.
 
+## Effect Size Benchmarks for Strategic Pillars
+
+To match the quantitative rigor of the Falsification-Criteria specifications, each strategic pillar includes explicit effect size benchmarks with target Bayes Factors:
+
+| Pillar | Primary Effect Size Metric | Target Cohen's d | Target Bayes Factor (BF₁₀) | Falsification Threshold |
+| -------- | ---------------------------- | ------------------ | ---------------------------- | ------------------------- |
+| **Pillar 1** (Open Science) | Preregistered prediction accuracy | d > 0.5 | BF₁₀ > 3 | d < 0.3 or BF₁₀ < 1 |
+| **Pillar 2** (Adversarial Collaboration) | Crossover prediction resolution | d > 0.8 | BF₁₀ > 10 | d < 0.4 or BF₁₀ < 3 |
+| **Pillar 3** (Single-Unit/Laminar) | Spike-rate threshold modulation | d > 1.2 | BF₁₀ > 30 | d < 0.6 or BF₁₀ < 3 |
+| **Pillar 4** (Falsification Hierarchy) | Nested model comparison | d > 0.6 | BF₁₀ > 10 | d < 0.3 or BF₁₀ < 3 |
+| **Pillar 5** (Multimodal Biomarkers) | Cross-modal convergence | d > 0.7 | BF₁₀ > 10 | d < 0.4 or BF₁₀ < 3 |
+| **Pillar 6** (Developmental/Lifespan) | Age-related threshold change | d > 0.5 per decade | BF₁₀ > 3 per comparison | d < 0.3 or nonsignificant trend |
+| **Pillar 7** (Computational/AI) | APGI-FEP discriminability | d > 0.6 | BF₁₀ > 10 | d < 0.3 or BF₁₀ < 3 |
+| **Pillar 8** (Pharmacological) | Drug-induced threshold shift | d > 0.8 | BF₁₀ > 10 | d < 0.4 or BF₁₀ < 3 |
+| **Pillar 9** (Network Neuroscience) | Rich-club connectivity correlation | d > 0.5 | BF₁₀ > 3 | d < 0.3 or BF₁₀ < 1 |
+| **Pillar 10** (Philosophical) | No-report paradigm ignition | d > 0.6 | BF₁₀ > 10 | d < 0.3 or BF₁₀ < 3 |
+| **Pillar 11** (Metascience) | Meta-analytic effect size | d > 0.5 | BF₁₀ > 10 (cumulative) | d < 0.3 or heterogeneity I² > 75% |
+
+**Interpretation Guidelines:**
+
+- BF₁₀ > 3: Weak evidence (minimum publishable)
+- BF₁₀ > 10: Moderate evidence (standard for single studies)
+- BF₁₀ > 30: Strong evidence (required for extraordinary claims)
+- BF₁₀ > 100: Very strong evidence (required for paradigm shift claims)
+
+All Bayes factor calculations use default JZS priors with scale = √2/2. Alternative prior specifications must be reported as sensitivity analyses.
+
+---
+
 The above program does not exhaust the possible empirical directions for APGI, but represents the minimum portfolio required for the framework to achieve credibility parity with GNW and IIT at top-tier publication venues. Priorities 1–4 represent the critical path; Pillars 1–11 represent the infrastructure within which those priorities must be embedded.

@@ -3,8 +3,9 @@ Basic tests for APGI validation framework.
 =========================================
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 def test_import_main():

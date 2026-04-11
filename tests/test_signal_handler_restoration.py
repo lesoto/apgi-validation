@@ -3,10 +3,11 @@ Tests for signal handler restoration including exception paths and proper cleanu
 """
 
 import signal
-import time
-import pytest
-from unittest.mock import patch
 import threading
+import time
+from unittest.mock import patch
+
+import pytest
 
 from utils.signal_handler import SignalHandler, restore_signal_handlers
 

@@ -20,18 +20,21 @@ Falsification Criteria:
 """
 
 import logging
-import numpy as np
-from typing import Dict, Tuple, Any, List, Optional
 import sys
-from pathlib import Path
 import warnings
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 warnings.filterwarnings("ignore")
 
 # FIX #1: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from datetime import datetime
+
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -43,9 +46,8 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from Validation.VP_03_ActiveInference_AgentSimulations import (
-        APGIActiveInferenceAgent as APGIAgent,
-    )
+    from Validation.VP_03_ActiveInference_AgentSimulations import \
+        APGIActiveInferenceAgent as APGIAgent
 
     HAS_APPI_AGENT = True
 except ImportError as e:
@@ -75,8 +77,8 @@ except ImportError:
 # Try to import sklearn for parameter recovery
 try:
     from sklearn.ensemble import RandomForestRegressor
-    from sklearn.model_selection import train_test_split
     from sklearn.metrics import mean_squared_error
+    from sklearn.model_selection import train_test_split
 
     HAS_SKLEARN = True
 except ImportError:

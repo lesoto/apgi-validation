@@ -3,12 +3,11 @@ Tests for genome_data_extractor module.
 """
 
 import json
+
 import pytest
-from utils.genome_data_extractor import (
-    extract_genome_data_from_vp5,
-    save_genome_data,
-    load_genome_data,
-)
+
+from utils.genome_data_extractor import (extract_genome_data_from_vp5,
+                                         load_genome_data, save_genome_data)
 
 
 @pytest.fixture

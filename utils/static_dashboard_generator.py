@@ -7,7 +7,7 @@ Generates static HTML dashboards for APGI framework visualizations.
 
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 # APGI imports - make imports optional for testing
 _apgi_logger: Any = None
@@ -15,7 +15,8 @@ _performance_profiler: Any = None
 
 try:
     from utils.logging_config import apgi_logger as actual_logger
-    from utils.performance_profiler import performance_profiler as actual_profiler
+    from utils.performance_profiler import \
+        performance_profiler as actual_profiler
 
     _apgi_logger = actual_logger
     _performance_profiler = actual_profiler

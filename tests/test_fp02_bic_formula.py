@@ -5,17 +5,17 @@ This test verifies that the BIC formula correctly identifies APGI as superior
 to StandardPP when APGI has better fit and comparable complexity.
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import pytest
-from pathlib import Path
-import sys
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import (
-    compute_model_selection_metrics,
-)
+from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import \
+    compute_model_selection_metrics
 
 
 class TestBICFormula:

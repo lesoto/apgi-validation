@@ -1,5 +1,7 @@
 # FRAMEWORK QUALITY SYNTHESIS REPORT
+
 ## Complete APGI Implementation Assessment
+
 **Date:** April 4, 2026
 **Scope:** Theory (15 scripts) + Protocols (27 scripts) + Aggregators (2 modules)
 **Total Assessment:** 44 components analyzed
@@ -8,7 +10,7 @@
 
 ## EXECUTIVE SUMMARY: THREE-TIER QUALITY ASSESSMENT
 
-```
+```text
 TIER 1: THEORY LAYER
 ╔════════════════════════════════════════════════════════════════════╗
 ║ Average Score: 98.7/100                                            ║
@@ -45,7 +47,7 @@ TIER 3: AGGREGATION LAYER
 ### By Component Type
 
 | Component | Count | Avg Score | Status | Note |
-|-----------|-------|-----------|--------|------|
+| --------- | ----- | --------- | ------ | ---- |
 | **Theory Scripts** | 15 | 98.7/100 | ✅ Excellent | All production-ready |
 | **FP Protocols** | 12 | 76.8/100 | ⚠️ Good | Need schema integration |
 | **VP Protocols** | 15 | 74.1/100 | ⚠️ Fair | Need schema + empirics |
@@ -54,7 +56,7 @@ TIER 3: AGGREGATION LAYER
 
 ### Score Distribution
 
-```
+```text
 100/100     ██████████ (10 scripts: Theory perfect implementations)
 98.7/100    ██████████ (5 scripts: Theory excellent implementations)
 82.0/100    ████████░░ (1 script: FP_ALL_Aggregator partial)
@@ -67,7 +69,7 @@ TIER 3: AGGREGATION LAYER
 
 ### Quality by Responsibility Layer
 
-```
+```text
 Mathematical Foundation (Theory)
 ├─ Equations: 100/100 ✅
 ├─ Entropy: 100/100 ✅
@@ -100,7 +102,7 @@ Integration & Aggregation (Orchestration)
 
 ### The Problem Is NOT Mathematical
 
-```
+```text
 ✅ APGI_Equations (100/100)
    └─→ All differential equations verified
    └─→ Stability analysis complete
@@ -124,7 +126,7 @@ All core mathematics is CORRECT and VERIFIED.
 
 ### The Problem IS Integration Infrastructure
 
-```
+```text
 ❌ Schema Integration Missing (24/27 protocols)
    └─→ Protocols return legacy dict, not ProtocolResult
    └─→ Cannot aggregate at framework level
@@ -158,7 +160,7 @@ All core mathematics is CORRECT and VERIFIED.
 
 ### The Theory-Protocol Gap Visualized
 
-```
+```text
 Theory Quality (98.7/100)        Protocol Quality (75.5/100)
 ┌────────────────────────┐      ┌────────────────────────┐
 │ Mathematical excellence│      │ Logic is sound ✅      │
@@ -187,7 +189,8 @@ Theory Quality (98.7/100)        Protocol Quality (75.5/100)
 ## PATH TO 95-100/100: BOTTLENECK ANALYSIS
 
 ### Current State
-```
+
+```text
 Theory:       98.7/100 ✅ (Complete)
 Protocols:    75.5/100 ⚠️ (Needs integration)
 Framework:    82.0/100 ⚠️ (Bottlenecked at protocols)
@@ -195,7 +198,7 @@ Framework:    82.0/100 ⚠️ (Bottlenecked at protocols)
 
 ### The Bottleneck Chain
 
-```
+```text
 Gap #1: Schema Integration
   └─→ BLOCKS: Condition A evaluation, prediction aggregation
   └─→ WORK: 18 hours (add 24 run_protocol_main wrappers)
@@ -227,7 +230,7 @@ TIMELINE: 6-10 days at 5-8 hrs/day
 
 ### Why Theory Doesn't Need Work
 
-```
+```text
 Every bottleneck is DOWNSTREAM of theory, not caused by it:
 
 Gap #1 (Schema) → Protocol structure issue, not math
@@ -251,7 +254,7 @@ Building protocol infrastructure WILL help (45+ hours → 97+/100).
 ### Theory Layer (98.7/100) - Detailed Breakdown
 
 | Dimension | Score | Status |
-|-----------|-------|--------|
+| --------- | ----- | ------ |
 | Mathematical Correctness | 99/100 | ✅ Verified |
 | Algorithm Efficiency | 98/100 | ✅ Optimized |
 | Code Quality | 98/100 | ✅ Production-ready |
@@ -268,7 +271,7 @@ Building protocol infrastructure WILL help (45+ hours → 97+/100).
 ### Protocol Layer (75.5/100) - Blocker Analysis
 
 | Protocol | Score | Status | Blocker |
-|----------|-------|--------|---------|
+| -------- | ----- | ------ | ------- |
 | FP-01 to FP-08 | ~75/100 | ⚠️ Good logic | Schema wrapper (Gap #1) |
 | FP-09, FP-10 | ~77/100 | ✅ Good logic | Partial schema done |
 | FP-11, FP-12 | ~75/100 | ⚠️ Good logic | Schema wrapper (Gap #1) |
@@ -284,7 +287,7 @@ Building protocol infrastructure WILL help (45+ hours → 97+/100).
 ### Aggregation Layer (41/100) - Completion Status
 
 | Component | Status | Work |
-|-----------|--------|------|
+| --------- | ------ | ----- |
 | FP_ALL_Aggregator | ✅ 82/100 | Done |
 | VP_ALL_Aggregator | ❌ Missing | 2 hours |
 | Schema Module | ✅ 100/100 | Done |
@@ -301,6 +304,7 @@ Building protocol infrastructure WILL help (45+ hours → 97+/100).
 ### Recommendation: ✅ FREEZE THEORY LAYER
 
 **Do NOT modify theory scripts.** Current state (98.7/100) is:
+
 - ✅ Mathematically verified
 - ✅ Algorithmically efficient
 - ✅ Well-documented
@@ -309,6 +313,7 @@ Building protocol infrastructure WILL help (45+ hours → 97+/100).
 - ✅ All dependencies healthy
 
 **Instead, focus P2 work on:**
+
 1. Protocol schema integration (18h)
 2. Prediction extraction (8h)
 3. VP aggregator creation (2h)
@@ -320,23 +325,93 @@ Building protocol infrastructure WILL help (45+ hours → 97+/100).
 
 ---
 
+## PRIORITY-IMPACT MATRIX: Resource Allocation Guide for Phase 2
+
+To visually differentiate between "Code Refactoring" and "Scientific Validation" work during Phase 2, the following matrix guides resource allocation decisions:
+
+### Phase 2 Work Classification Matrix
+
+| Task | Category | Effort (hrs) | Quality Impact | Impact/Priority | Work Type |
+| ---- | -------- | ------------ | -------------- | ----------------- | --------- |
+| Schema integration (24 wrappers) | Code Refactoring | 18 | +12 pts → 87.5/100 | 0.67 pts/hr | HIGH |
+| Prediction extraction (43 wrappers) | Code Refactoring | 8 | +5 pts → 92.5/100 | 0.63 pts/hr | HIGH |
+| VP_ALL_Aggregator creation | Code Refactoring | 2 | +2 pts → 94.5/100 | 1.00 pts/hr | CRITICAL |
+| VP-11 empirical data integration | Scientific Validation | 6-8 | +8 pts → 99.5/100 | 1.14 pts/hr | CRITICAL |
+| VP-15 fMRI data integration | Scientific Validation | 6-8 | +7 pts → 100/100 | 0.88 pts/hr | CRITICAL |
+| Metadata standardization | Code Refactoring | 3 | +1 pt → 96.5/100 | 0.33 pts/hr | MEDIUM |
+| Integration testing | Code Refactoring | 3 | +1.5 pts → 97.5/100 | 0.50 pts/hr | MEDIUM |
+
+### Resource Allocation Decision Framework
+
+```text
+IF task.category == "Scientific Validation":
+    → Priority: CRITICAL (required for publication)
+    → Resource allocation: 50-60% of Phase 2 effort
+    → Rationale: Empirical grounding is the primary blocker
+
+IF task.category == "Code Refactoring" AND task.impact_per_hour > 0.6:
+    → Priority: HIGH (enables aggregation/falsification)
+    → Resource allocation: 30-40% of Phase 2 effort
+    → Rationale: Infrastructure enables scientific validation
+
+IF task.category == "Code Refactoring" AND task.impact_per_hour <= 0.6:
+    → Priority: MEDIUM (quality polish)
+    → Resource allocation: 10-20% of Phase 2 effort
+    → Rationale: Nice-to-have, not publication-blocking
+```
+
+### Visual Classification Legend
+
+| Symbol | Work Type | Investment Guidance |
+| ------ | --------- | ------------------- |
+| 🔬 | Scientific Validation | **Prioritize** - Required for publication credibility |
+| 🛠️ | Code Refactoring | **Enable** - Required for framework functionality |
+| ✨ | Quality Polish | **Defer** - Can be addressed post-publication |
+
+### Recommended Phase 2 Sequencing
+
+#### Week 1-2 (Scientific Validation Priority)
+
+1. 🔬 VP-11 empirical data integration (6-8 hrs)
+2. 🔬 VP-15 fMRI data integration (6-8 hrs)
+3. 🛠️ VP_ALL_Aggregator creation (2 hrs) - *enables validation aggregation*
+
+#### Week 3 (Infrastructure Enablement)
+
+1. 🛠️ Schema integration - FP protocols (9 hrs)
+2. 🛠️ Schema integration - VP protocols (9 hrs)
+
+#### Week 4 (Testing & Polish)
+
+1. 🛠️ Prediction extraction (8 hrs)
+2. ✨ Metadata standardization (3 hrs)
+3. ✨ Integration testing (3 hrs)
+
+**Total Phase 2 Investment: 46-50 hours**
+**Expected Outcome: 97-100/100 (Publication-ready)**
+
+---
+
 ## FINAL ASSESSMENT
 
 ### What's Working Perfectly ✅
+
 - Theory: 98.7/100 (all 15 scripts excellent)
 - Protocol Logic: All protocols implement correct algorithms
 - Mathematical Verification: Equations verified, entropy correct
 - Dependency Health: All core modules stable and robust
 
 ### What Needs Work ⚠️
+
 - Protocol Integration: Schema wrappers (24 missing)
-- Prediction Standardization: 43/50 not wrapped
+- Prediction Standardization: 43/50 predictions not wrapped
 - Validation Aggregation: VP_ALL_Aggregator missing
 - Empirical Grounding: VP-11, VP-15 fake data only
 - Metadata Consistency: Scattered formats
 - Integration Testing: No end-to-end tests
 
 ### What's Not the Problem ❌ (Don't Waste Time Here)
+
 - ❌ Mathematical foundations (98.7/100 — excellent)
 - ❌ Algorithm implementations (verified and optimal)
 - ❌ Core protocol logic (all correct)

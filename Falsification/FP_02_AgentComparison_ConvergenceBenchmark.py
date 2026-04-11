@@ -1,23 +1,24 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, Union
-
+import fcntl  # FP-02 Fix: Add fcntl for thread-safe file locking
 import json  # FP-02 Fix: Add json for JSON operations
 import logging
 import os  # FP-02 Fix: Add os for file operations
+import sys
 import warnings
 from pathlib import Path
-import fcntl  # FP-02 Fix: Add fcntl for thread-safe file locking
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy import stats
 from scipy.stats import binomtest
-import sys
 
 # FIX #1: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from datetime import datetime
+
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -48,10 +49,8 @@ except ImportError as e:
 
 # FIX #2: Import VP-05 genome data loader for cross-protocol data dependency
 try:
-    from utils.interprotocol_schema import (
-        load_vp5_genome_data,
-        requires_vp5_data,
-    )
+    from utils.interprotocol_schema import (load_vp5_genome_data,
+                                            requires_vp5_data)
 
     HAS_VP5_LOADER = True
 except ImportError:
@@ -97,39 +96,32 @@ except ImportError:
         return wrapper
 
 
-from utils.falsification_thresholds import (
-    F1_1_MIN_ADVANTAGE_PCT,
-    F1_1_MIN_COHENS_D,
-    F1_1_ALPHA,
-    F2_1_MIN_ADVANTAGE_PCT,
-    F2_1_MIN_PP_DIFF,
-    F2_1_MIN_COHENS_H,
-    F2_1_ALPHA,
-    F2_2_MIN_CORR,
-    F2_2_MIN_FISHER_Z,
-    F2_2_ALPHA,
-    F2_3_MIN_RT_ADVANTAGE_MS,
-    F2_3_MIN_BETA,
-    F2_4_MIN_CONFIDENCE_EFFECT_PCT,
-    F2_4_MIN_BETA_INTERACTION,
-    F2_4_ALPHA,
-    F2_5_MAX_TRIALS,
-    F2_5_MIN_TRIAL_ADVANTAGE,
-    F2_5_MIN_ADVANTAGE_PCT,
-    F2_5_MIN_HAZARD_RATIO,
-    F2_5_ALPHA,
-    F3_1_MIN_ADVANTAGE_PCT,
-    F3_1_MIN_COHENS_D,
-    F5_4_MIN_PEAK_SEPARATION,
-    F5_5_PCA_MIN_VARIANCE,
-    F6_1_LTCN_MAX_TRANSITION_MS,
-    F6_1_CLIFFS_DELTA_MIN,
-    F6_2_LTCN_MIN_WINDOW_MS,
-    F6_2_MIN_INTEGRATION_RATIO,
-    F6_5_HYSTERESIS_MIN,
-    F6_5_HYSTERESIS_MAX,
-    F6_5_BIFURCATION_ERROR_MAX,
-)
+from utils.falsification_thresholds import (F1_1_ALPHA, F1_1_MIN_ADVANTAGE_PCT,
+                                            F1_1_MIN_COHENS_D, F2_1_ALPHA,
+                                            F2_1_MIN_ADVANTAGE_PCT,
+                                            F2_1_MIN_COHENS_H,
+                                            F2_1_MIN_PP_DIFF, F2_2_ALPHA,
+                                            F2_2_MIN_CORR, F2_2_MIN_FISHER_Z,
+                                            F2_3_MIN_BETA,
+                                            F2_3_MIN_RT_ADVANTAGE_MS,
+                                            F2_4_ALPHA,
+                                            F2_4_MIN_BETA_INTERACTION,
+                                            F2_4_MIN_CONFIDENCE_EFFECT_PCT,
+                                            F2_5_ALPHA, F2_5_MAX_TRIALS,
+                                            F2_5_MIN_ADVANTAGE_PCT,
+                                            F2_5_MIN_HAZARD_RATIO,
+                                            F2_5_MIN_TRIAL_ADVANTAGE,
+                                            F3_1_MIN_ADVANTAGE_PCT,
+                                            F3_1_MIN_COHENS_D,
+                                            F5_4_MIN_PEAK_SEPARATION,
+                                            F5_5_PCA_MIN_VARIANCE,
+                                            F6_1_CLIFFS_DELTA_MIN,
+                                            F6_1_LTCN_MAX_TRANSITION_MS,
+                                            F6_2_LTCN_MIN_WINDOW_MS,
+                                            F6_2_MIN_INTEGRATION_RATIO,
+                                            F6_5_BIFURCATION_ERROR_MAX,
+                                            F6_5_HYSTERESIS_MAX,
+                                            F6_5_HYSTERESIS_MIN)
 
 
 def save_results_with_lock(results: Dict[str, Any], filepath: str) -> None:
@@ -871,10 +863,8 @@ def compute_model_selection_metrics(
 
 def run_falsification() -> Dict[str, Any]:
     """Entry point for CLI falsification testing."""
-    from Falsification.FP_01_ActiveInference import (
-        APGIActiveInferenceAgent,
-        StandardPPAgent,
-    )
+    from Falsification.FP_01_ActiveInference import (APGIActiveInferenceAgent,
+                                                     StandardPPAgent)
 
     config = {
         "n_actions": 4,
@@ -2359,16 +2349,14 @@ def check_falsification(
     }
 
     # Use thresholds from falsification_thresholds.py
-    from utils.falsification_thresholds import (
-        F5_1_MIN_PROPORTION,
-        F5_1_MIN_ALPHA,
-        F5_1_MIN_COHENS_D,
-        F5_2_MIN_PROPORTION,
-        F5_2_MIN_CORRELATION,
-        F5_3_MIN_PROPORTION,
-        F5_3_MIN_GAIN_RATIO,
-        F5_3_MIN_COHENS_D,
-    )
+    from utils.falsification_thresholds import (F5_1_MIN_ALPHA,
+                                                F5_1_MIN_COHENS_D,
+                                                F5_1_MIN_PROPORTION,
+                                                F5_2_MIN_CORRELATION,
+                                                F5_2_MIN_PROPORTION,
+                                                F5_3_MIN_COHENS_D,
+                                                F5_3_MIN_GAIN_RATIO,
+                                                F5_3_MIN_PROPORTION)
 
     f5_thresholds = {
         "F5_1_MIN_PROPORTION": F5_1_MIN_PROPORTION,

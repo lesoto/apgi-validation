@@ -5,28 +5,21 @@ APGI Theory Package
 Contains theoretical foundations and computational models for APGI theory.
 """
 
-# Import main classes from each module
-from .APGI_Equations import (
-    FoundationalEquations,
-    CoreIgnitionSystem,
-    DynamicalSystemEquations,
-    RunningStatistics,
-    DerivedQuantities,
-    APGIParameters,
-    PsychologicalState,
-)
-from .APGI_Bayesian_Estimation_Framework import (
-    APGIBayesianModel,
-    ModelComparisonFramework,
-    IITConvergenceBayesian,
-    ParameterRecoveryAnalysis,
-    BayesianValidationFramework,
-    BAYESIAN_AVAILABLE,
-)
+from .APGI_Bayesian_Estimation_Framework import (BAYESIAN_AVAILABLE,
+                                                 APGIBayesianModel,
+                                                 BayesianValidationFramework,
+                                                 IITConvergenceBayesian,
+                                                 ModelComparisonFramework,
+                                                 ParameterRecoveryAnalysis)
 from .APGI_Computational_Benchmarking import ComputationalBenchmarking
 from .APGI_Cross_Species_Scaling import CrossSpeciesScaling
 from .APGI_Cultural_Neuroscience import CulturalParameterModulator
 from .APGI_Entropy_Implementation import EnhancedAPGIValidator
+# Import main classes from each module
+from .APGI_Equations import (APGIParameters, CoreIgnitionSystem,
+                             DerivedQuantities, DynamicalSystemEquations,
+                             FoundationalEquations, PsychologicalState,
+                             RunningStatistics)
 from .APGI_Falsification_Framework import PopperianFalsificationFramework
 from .APGI_Full_Dynamic_Model import APGIFullDynamicModel
 from .APGI_Liquid_Network_Implementation import APGILiquidNetwork

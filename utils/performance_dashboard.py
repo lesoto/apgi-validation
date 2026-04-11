@@ -11,12 +11,12 @@ import json
 import threading
 import time
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 try:
     import dash
-    from dash import html, dcc, Input, Output
     import plotly.graph_objects as go
+    from dash import Input, Output, dcc, html
 
     DASH_AVAILABLE = True
 except ImportError:
@@ -1011,10 +1011,11 @@ class ComprehensivePerformanceDashboard:
     def _export_pdf(self, data: dict, filename: str = None) -> bool:
         """Export data to PDF format."""
         try:
-            from reportlab.lib.pagesizes import letter
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-            from reportlab.lib.styles import getSampleStyleSheet
             import io
+
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
             output_filename = (
                 filename

@@ -4,13 +4,13 @@ Regularly scans project dependencies for known security vulnerabilities.
 ============================================================================================
 """
 
-import subprocess
 import json
+import logging
+import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
-from datetime import datetime, timezone
-import logging
 
 
 class DependencyScanner:

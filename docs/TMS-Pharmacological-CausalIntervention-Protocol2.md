@@ -61,8 +61,105 @@ Parameters:
 - Useful when carryover effects possible
 
 
-### 4. Psychometric Analysis
+### 4. Gamma Function Parameters for TMS (rTMS Protocols)
 
+To standardize TMS dosage calculations and avoid computational errors, the following Gamma Function parameters are provided for repetitive TMS protocols affecting θₜ:
+
+#### TMS Gamma Function Model
+
+The TMS-induced threshold modulation follows a Gamma-function-shaped time course:
+
+```text
+θₜ_TMS(t) = θ₀ + A · t^α · e^(-t/β) · sin(2πft)
+```
+
+Where:
+
+- `A`: Peak amplitude (threshold shift in arbitrary units)
+- `α`: Shape parameter (rise time; α > 1 for smooth onset)
+- `β`: Decay time constant (recovery duration in ms)
+- `f`: Oscillation frequency (carrier frequency, not TMS pulse rate)
+- `t`: Time since TMS offset (ms)
+
+#### rTMS Protocol Parameter Sets
+
+| Protocol | Frequency (Hz) | A (amplitude) | α (shape) | β (decay, ms) | Induced Change |
+| -------- | -------------- | ------------- | --------- | ------------- | ---------------- |
+| **1 Hz (Inhibitory)** | 1 | +0.15 to +0.25 | 1.5 | 800–1200 | θₜ elevation (inhibition) |
+| **10 Hz (Excitatory)** | 10 | -0.10 to -0.18 | 2.0 | 600–900 | θₜ reduction (excitation) |
+| **iTBS (Intermittent TBS)** | 5 trains @ 50 Hz | -0.12 to -0.20 | 1.8 | 500–800 | θₜ reduction (LTP-like) |
+| **cTBS (Continuous TBS)** | Continuous 50 Hz | +0.10 to +0.18 | 1.6 | 900–1400 | θₜ elevation (LTD-like) |
+| **TBS Sham** | N/A | ±0.02 | 1.0 | 200 | Placebo-level effect |
+
+**Typical Application Duration:**
+
+- 1 Hz: 15–20 minutes (900–1200 pulses)
+- 10 Hz: 20–40 seconds per train, 10 trains
+- iTBS: 2 seconds on, 8 seconds off × 190 cycles
+- cTBS: 40 seconds continuous
+
+#### Implementation Example
+
+```python
+def gamma_tms_threshold(t, theta_0, protocol='1hz'):
+    """
+    Calculate TMS-modulated threshold using Gamma function.
+
+    Args:
+        t: Time since TMS offset (ms)
+        theta_0: Baseline threshold
+        protocol: One of ['1hz', '10hz', 'itbs', 'ctbs', 'sham']
+
+    Returns:
+        theta_t: Modulated threshold at time t
+    """
+    params = {
+        '1hz': {'A': 0.20, 'alpha': 1.5, 'beta': 1000},
+        '10hz': {'A': -0.14, 'alpha': 2.0, 'beta': 750},
+        'itbs': {'A': -0.16, 'alpha': 1.8, 'beta': 650},
+        'ctbs': {'A': 0.14, 'alpha': 1.6, 'beta': 1150},
+        'sham': {'A': 0.02, 'alpha': 1.0, 'beta': 200}
+    }
+
+    p = params[protocol]
+
+    # Gamma function shape
+    gamma_shape = (t ** p['alpha']) * np.exp(-t / p['beta'])
+
+    # Normalize to peak amplitude
+    t_peak = p['alpha'] * p['beta']
+    gamma_max = (t_peak ** p['alpha']) * np.exp(-p['alpha'])
+    normalized = gamma_shape / gamma_max
+
+    # Apply threshold shift
+    theta_t = theta_0 + p['A'] * normalized
+
+    return max(0.25, min(0.85, theta_t))  # Constrain to valid range
+```
+
+#### Computational Error Prevention
+
+**Common Errors to Avoid:**
+
+1. **Unit Mismatch**: β in milliseconds, but t may be in seconds → Always convert consistently
+2. **Amplitude Saturation**: A > 0.30 can push θₜ outside physiological range [0.25, 0.85]
+3. **Protocol Confusion**: Don't use excitatory parameters (10 Hz) for inhibitory predictions
+4. **Sham Control**: Sham should show A ≈ 0.02 (negligible), not A = 0
+
+**Validation Check:**
+
+```python
+def validate_tms_parameters(protocol, A, alpha, beta):
+    """Ensure parameters are within safe ranges."""
+    assert 0.02 <= abs(A) <= 0.30, f"Amplitude {A} outside safe range"
+    assert 1.0 <= alpha <= 3.0, f"Shape {alpha} unusual"
+    assert 200 <= beta <= 1500, f"Decay {beta} ms may be unrealistic"
+    print(f"✓ Parameters valid for {protocol}")
+```
+
+---
+
+### 5. Psychometric Analysis
 
 Fits logistic curves to detection data:
 

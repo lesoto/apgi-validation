@@ -10,9 +10,10 @@ falsification protocols that need genome_data to validate evolutionary emergence
 """
 
 import json
-import numpy as np
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import numpy as np
 
 
 def extract_genome_data_from_vp5(

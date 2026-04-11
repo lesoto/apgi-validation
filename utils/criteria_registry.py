@@ -15,7 +15,7 @@ Usage::
     )
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 # =============================================================================
 # CORE FALSIFICATION CRITERIA (F1.1–F6.2)

@@ -4,12 +4,12 @@ Implements Time-OfCheck-TimeOfUse race condition mitigation with file locking.
 =================================================================
 """
 
+import logging
 import os
+import platform
 import stat
 from pathlib import Path
 from typing import Any, Optional
-import logging
-import platform
 
 # Platform-specific imports
 if platform.system() != "Windows":

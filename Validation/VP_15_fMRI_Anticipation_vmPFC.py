@@ -49,8 +49,10 @@ from scipy.signal import convolve
 
 # FIX: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from datetime import datetime
+
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -62,10 +64,8 @@ from utils.hrf_utils import double_gamma_hrf
 # Fix 2: Import thresholds from falsification_thresholds
 try:
     from utils.falsification_thresholds import (
-        V15_ANTICIPATORY_CORRELATION_MIN,
-        V15_ANTICIPATORY_WINDOW_MS,
-        V15_ALPHA,
-    )
+        V15_ALPHA, V15_ANTICIPATORY_CORRELATION_MIN,
+        V15_ANTICIPATORY_WINDOW_MS)
 except ImportError:
     logger = logging.getLogger(__name__)
     logger.warning("Could not import V15 thresholds from falsification_thresholds")
@@ -82,7 +82,8 @@ except ImportError:
     nib = None
 
 try:
-    from utils.logging_config import apgi_logger as logger  # type: ignore[assignment]
+    from utils.logging_config import \
+        apgi_logger as logger  # type: ignore[assignment]
 except ImportError:
     logger = logging.getLogger(__name__)
 

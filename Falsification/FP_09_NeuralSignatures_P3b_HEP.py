@@ -7,12 +7,12 @@ Per Step 1.6 - Implement FP-9 real EEG signal processing.
 """
 
 import logging
-import numpy as np
-from typing import Dict, Any, List, Tuple, Optional, Union, cast
-from scipy import signal
-from scipy import stats
-from pathlib import Path
 import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
+
+import numpy as np
+from scipy import signal, stats
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -23,8 +23,10 @@ from utils.statistical_tests import apply_multiple_comparison_correction
 
 # FIX #2: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from datetime import datetime
+
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -2429,9 +2431,9 @@ def baseline_recovery_prediction(
         # sklearn.model_selection.RepeatedKFold(n_splits=5, n_repeats=10)
         # This reduces variance on small N compared to single train/test split
         try:
-            from sklearn.model_selection import RepeatedKFold
             from sklearn.linear_model import LinearRegression
             from sklearn.metrics import r2_score
+            from sklearn.model_selection import RepeatedKFold
 
             SKLEARN_AVAILABLE = True
         except ImportError:
@@ -2835,9 +2837,8 @@ def run_protocol():
     if eeg_files:
         try:
             # Try to integrate VP-09 empirical results
-            from Validation.VP_09_NeuralSignatures_EmpiricalPriority1 import (
-                APGINeuralSignaturesValidator,
-            )
+            from Validation.VP_09_NeuralSignatures_EmpiricalPriority1 import \
+                APGINeuralSignaturesValidator
 
             validator = APGINeuralSignaturesValidator()
             # Simplified mock run for aggregator - in production this would load real files

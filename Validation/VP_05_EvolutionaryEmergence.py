@@ -25,8 +25,8 @@ import copy
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, TypedDict
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 
 class EnsembleStats(TypedDict):
@@ -53,12 +53,12 @@ class EnsembleStatistics(TypedDict):
 
 
 import logging
-
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import sys
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
@@ -67,11 +67,9 @@ if str(_proj_root) not in sys.path:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        F5_1_MIN_PROPORTION,
-        F5_1_MIN_COHENS_D,
-    )
+    from utils.falsification_thresholds import (DEFAULT_ALPHA,
+                                                F5_1_MIN_COHENS_D,
+                                                F5_1_MIN_PROPORTION)
 except ImportError:
     DEFAULT_ALPHA = 0.05
     F5_1_MIN_PROPORTION = 0.75
@@ -119,9 +117,7 @@ except ImportError:
         return wrapper
 
 
-from utils.statistical_tests import (
-    safe_pearsonr,
-)
+from utils.statistical_tests import safe_pearsonr
 
 logger = logging.getLogger(__name__)
 
@@ -1949,8 +1945,8 @@ class FalsificationChecker:
         variance explained and PC loadings.
         """
         try:
-            from sklearn.decomposition import PCA
             from scipy.spatial.distance import cosine
+            from sklearn.decomposition import PCA
         except ImportError:
             # Fallback if sklearn not available
             return False, {
@@ -3685,7 +3681,8 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:

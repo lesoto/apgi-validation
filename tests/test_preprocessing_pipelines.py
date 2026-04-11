@@ -10,11 +10,12 @@ Tests all classes and functions in preprocessing_pipelines.py including:
 - HeartRatePreprocessor
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
-import sys
-from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -22,13 +23,11 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from utils.preprocessing_pipelines import (
-        PreprocessingConfig,
-        EEGPreprocessor,
-        PupilPreprocessor,
-        EDAPreprocessor,
-        HeartRatePreprocessor,
-    )
+    from utils.preprocessing_pipelines import (EDAPreprocessor,
+                                               EEGPreprocessor,
+                                               HeartRatePreprocessor,
+                                               PreprocessingConfig,
+                                               PupilPreprocessor)
 except ImportError as e:
     pytest.skip(f"Cannot import preprocessing_pipelines: {e}", allow_module_level=True)
 

@@ -28,9 +28,9 @@ Mathematical Formulation:
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple, Union
 
+import nolds
 import numpy as np
 from scipy.special import expit
-import nolds
 
 
 @dataclass

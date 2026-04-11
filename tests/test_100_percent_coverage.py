@@ -10,9 +10,10 @@ Target modules:
 - utils/backup_manager.py: All backup/restore operations
 """
 
-import pytest
 import threading
 import time
+
+import pytest
 
 
 class TestMainCLICoverage:
@@ -21,6 +22,7 @@ class TestMainCLICoverage:
     def test_cli_help_command(self):
         """Test CLI help output"""
         from click.testing import CliRunner
+
         from main import cli
 
         runner = CliRunner()
@@ -31,6 +33,7 @@ class TestMainCLICoverage:
     def test_cli_version_command(self):
         """Test version command"""
         from click.testing import CliRunner
+
         from main import cli
 
         runner = CliRunner()
@@ -40,6 +43,7 @@ class TestMainCLICoverage:
     def test_validate_config_command(self):
         """Test info CLI command (replaces validate-config)"""
         from click.testing import CliRunner
+
         from main import cli
 
         runner = CliRunner()
@@ -50,6 +54,7 @@ class TestMainCLICoverage:
     def test_run_validation_command_missing_config(self):
         """Test validate-pipeline command"""
         from click.testing import CliRunner
+
         from main import cli
 
         runner = CliRunner()
@@ -59,6 +64,7 @@ class TestMainCLICoverage:
     def test_run_falsification_command(self):
         """Test logs command (replaces run-falsification)"""
         from click.testing import CliRunner
+
         from main import cli
 
         runner = CliRunner()
@@ -68,6 +74,7 @@ class TestMainCLICoverage:
     def test_analyze_logs_command_no_logs(self):
         """Test logs command with default options"""
         from click.testing import CliRunner
+
         from main import cli
 
         runner = CliRunner()
@@ -79,6 +86,7 @@ class TestMainCLICoverage:
     def test_analyze_logs_command_with_logs(self):
         """Test logs command with level filter"""
         from click.testing import CliRunner
+
         from main import cli
 
         runner = CliRunner()
@@ -90,6 +98,7 @@ class TestMainCLICoverage:
     def test_monitor_performance_command(self):
         """Test performance command (replaces monitor-performance)"""
         from click.testing import CliRunner
+
         from main import cli
 
         runner = CliRunner()
@@ -136,7 +145,7 @@ class TestMainExceptionPaths:
 
     def test_verbose_print_all_branches(self):
         """Test all branches of verbose_print function"""
-        from main import verbose_print, set_config_value
+        from main import set_config_value, verbose_print
 
         # Test quiet mode (no output)
         set_config_value("quiet", True)
@@ -174,12 +183,8 @@ class TestErrorHandlerCoverage:
 
     def test_all_error_categories(self):
         """Test instantiation of all error categories"""
-        from utils.error_handler import (
-            ErrorCategory,
-            ErrorSeverity,
-            ErrorInfo,
-            APGIError,
-        )
+        from utils.error_handler import (APGIError, ErrorCategory, ErrorInfo,
+                                         ErrorSeverity)
 
         for category in ErrorCategory:
             for severity in ErrorSeverity:
@@ -403,7 +408,7 @@ class TestUtilityFunctionsCoverage:
 
     def test_validate_file_path_absolute(self):
         """Test file path validation with absolute paths"""
-        from utils.config_manager import _validate_file_path, PROJECT_ROOT
+        from utils.config_manager import PROJECT_ROOT, _validate_file_path
 
         # Valid path within project
         valid_path = str(PROJECT_ROOT / "config" / "test.yaml")

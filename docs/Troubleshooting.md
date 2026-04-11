@@ -700,7 +700,65 @@ def slow_function():
 
 # Run with profiler
 kernprof -l -v your_script.py
+
+## Glossary of Mathematical Warnings
+
+To distinguish between expected warnings and actual simulation bugs, this glossary explains the meaning of various mathematical warnings you may encounter:
+
+### Low Variance Warnings (Expected in PAC)
+
+| Warning | Meaning | Expected Context | Action Required |
+|---------|---------|-----------------|-----------------|
+| `LowVarianceWarning: Phase-amplitude coupling variance < 0.05` | PAC strength below detection threshold | Cross-frequency coupling in noisy signals; expected during baseline periods | **None** - This is normal for non-salient periods |
+| `ZeroDivisionWarning: Mean of empty slice` | No valid data points in coupling window | Short trials (< 500ms); inter-trial intervals | **None** - Expected for brief windows |
+| `RuntimeWarning: invalid value encountered in divide` | PAC calculation with insufficient cycles | Low-frequency phase (δ/θ) with short epochs | **None** - Minimum 3 cycles required |
+
+**Rationale**: Phase-amplitude coupling (PAC) is inherently sparse. During baseline periods, low variance is the expected state—not an error. Only elevated PAC during task-relevant periods constitutes a meaningful signal.
+
+### Anesthesia Spectral Slope Warnings
+
+| Warning | Meaning | Expected Context | Action Required |
+|---------|---------|-----------------|-----------------|
+| `SpectralSlopeWarning: β ≈ 0 detected, possible white noise` | Flat spectrum suggesting measurement artifact | Equipment malfunction; electrode disconnection | **Investigate** - Check electrode impedance |
+| `SpectralSlopeWarning: β > 3.0 (exceeds anesthesia range)` | Unusually steep slope | Deep coma; burst suppression; equipment filtering | **Document** - Note in methods if confirmed |
+| `SpectralSlopeWarning: β ≈ 0.5-1.0 (inconsistent with anesthesia)` | Slope more typical of wakefulness | Light anesthesia stage; arousal events | **Verify** - Check consciousness assessments |
+
+**Expected Anesthesia Range**: β ≈ 2.0–2.5 (Gao et al., 2017; Lendner et al., 2020; Colombo et al., 2019)
+
+### Actual Simulation Bugs (Require Action)
+
+| Warning/Error | Meaning | Diagnostic Action | Fix Required |
+|---------------|---------|-------------------|--------------|
+| `NaN encountered in surprise accumulation` | Mathematical overflow in S(t) computation | Check θ₀ bounds; verify input scaling | **Yes** - Clamp S(t) values |
+| `Threshold dynamics diverged: θ(t) → ∞` | Unstable threshold adaptation | Check τ_θ parameter; verify η_θ sign | **Yes** - Implement stability bounds |
+| `Precision weights negative: Π < 0` | Violation of variance constraint | Verify 1/σ² calculation; check σ² > 0 | **Yes** - Add positivity check |
+| `Eigenvalue convergence failed` | Matrix decomposition error in Bayesian update | Check covariance matrix condition | **Yes** - Add regularization |
+
+### Quick Diagnostic: Expected vs. Bug
+
+```text
+Is the warning during:
+├── Baseline/no-task period?
+│   └── Low variance warnings → EXPECTED
+│   └── Spectral slope outside range → DOCUMENT
+│
+├── Task-relevant period with normal inputs?
+│   └── Any mathematical warning → INVESTIGATE (likely bug)
+│
+└── Transition periods (onset/offset)?
+    └── Brief warnings → EXPECTED
+    └── Persistent warnings → INVESTIGATE
 ```
+
+### References for Warning Interpretation
+
+- **PAC Low Variance**: Tort et al. (2010), J Neurophysiology (expected baseline PAC ~ 0.02-0.05)
+- **Anesthesia Spectral Slope**: Gao et al. (2017), eLife; Lendner et al. (2020), eLife
+- **Threshold Stability**: See `threshold_dynamics()` stability proof in APGI_Full_Dynamic_Model.py
+
+---
+
+## Error Reference
 
 ## Common Error Messages
 

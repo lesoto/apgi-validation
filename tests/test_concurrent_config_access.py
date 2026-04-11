@@ -4,11 +4,12 @@ Tests thread-safety of configuration management.
 ==============================================
 """
 
-import pytest
+import sys
 import threading
 import time
-import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -229,8 +230,8 @@ class TestConcurrentConfigAccess:
     def test_config_lock_with_config_manager(self):
         """Test _config_lock with actual config manager operations."""
         try:
-            from utils.config_manager import ConfigManager
             from main import _config_lock
+            from utils.config_manager import ConfigManager
         except ImportError:
             pytest.skip("ConfigManager not available")
 

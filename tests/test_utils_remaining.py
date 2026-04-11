@@ -18,10 +18,11 @@ Tests for utils modules that need additional coverage:
 - verify_framework_status
 """
 
-import pytest
-import numpy as np
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -58,7 +59,8 @@ class TestAuditThresholdLeakage:
     def test_audit_threshold_scanner(self):
         """Test threshold leakage scanner"""
         try:
-            from utils.audit_threshold_leakage import scan_for_threshold_leakage
+            from utils.audit_threshold_leakage import \
+                scan_for_threshold_leakage
 
             result = scan_for_threshold_leakage()
             assert isinstance(result, (dict, list))
@@ -98,12 +100,8 @@ class TestConstants:
 
     def test_constant_values(self):
         """Test that key constants are defined"""
-        from utils.constants import (
-            MODEL_PARAMS,
-            DIM_CONSTANTS,
-            ModelParameters,
-            DimensionConstants,
-        )
+        from utils.constants import (DIM_CONSTANTS, MODEL_PARAMS,
+                                     DimensionConstants, ModelParameters)
 
         assert isinstance(MODEL_PARAMS, ModelParameters)
         assert isinstance(DIM_CONSTANTS, DimensionConstants)

@@ -4,11 +4,12 @@ Tests for performance-critical operations to detect regressions.
 =============================================================
 """
 
-import pytest
-import time
-import numpy as np
 import sys
+import time
 from pathlib import Path
+
+import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -102,8 +103,9 @@ class TestPerformanceRegression:
     @pytest.mark.performance
     def test_data_loading_performance(self):
         """Test data loading performance."""
-        import pandas as pd
         import tempfile
+
+        import pandas as pd
 
         # Create temporary CSV file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
@@ -144,8 +146,8 @@ class TestPerformanceRegression:
     @pytest.mark.performance
     def test_file_io_performance(self):
         """Test file I/O performance."""
-        import tempfile
         import json
+        import tempfile
 
         # Create test data
         test_data = {"key": list(range(1000))}

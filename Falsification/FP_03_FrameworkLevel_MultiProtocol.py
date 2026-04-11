@@ -7,15 +7,17 @@ import sys
 import time
 import warnings
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
 import numpy as np
 from scipy import stats
 from scipy.stats import binomtest
-from pathlib import Path
 
 # FIX #1: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -53,11 +55,9 @@ if str(project_root) not in sys.path:
 
 # Import centralized falsification aggregator
 try:
-    from utils.error_handler import handle_import_error
     from utils.constants import DIM_CONSTANTS
-    from utils.falsification_thresholds import (
-        F1_1_MIN_ADVANTAGE_PCT,
-    )
+    from utils.error_handler import handle_import_error
+    from utils.falsification_thresholds import F1_1_MIN_ADVANTAGE_PCT
 
     try:
         from utils.shared_falsification import check_F5_family
@@ -77,12 +77,10 @@ try:
     # Import aggregator functions and constants
     try:
         from Falsification.FP_ALL_Aggregator import (
-            aggregate_prediction_results,
-            run_framework_falsification,
+            NAMED_PREDICTIONS, aggregate_prediction_results,
             check_framework_falsification_condition_a,
             check_framework_falsification_condition_b,
-            NAMED_PREDICTIONS,
-        )
+            run_framework_falsification)
 
         AGGREGATOR_AVAILABLE = True
     except ImportError as e:
@@ -142,14 +140,9 @@ except ImportError as e:
 # Removed top-level logging.basicConfig and aggregator import to prevent noise
 logger = logging.getLogger(__name__)
 from utils.constants import DIM_CONSTANTS
-from utils.falsification_thresholds import (
-    DEFAULT_ALPHA,
-    F1_1_MIN_ADVANTAGE_PCT,
-    F1_1_MIN_COHENS_D,
-    F1_1_ALPHA,
-    GENERIC_MEDIUM_COHENS_D,
-    F1_6_MIN_LOW_AROUSAL_SLOPE,  # HIGH-01: Import from falsification_thresholds
-)
+from utils.falsification_thresholds import (  # HIGH-01: Import from falsification_thresholds
+    DEFAULT_ALPHA, F1_1_ALPHA, F1_1_MIN_ADVANTAGE_PCT, F1_1_MIN_COHENS_D,
+    F1_6_MIN_LOW_AROUSAL_SLOPE, GENERIC_MEDIUM_COHENS_D)
 
 # Suppress scipy deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -1501,8 +1494,9 @@ class AgentComparisonExperiment:
 
         # Scale features to prevent overflow in sklearn
         # Use RobustScaler instead of StandardScaler to handle outliers better
-        from sklearn.preprocessing import RobustScaler
         import warnings
+
+        from sklearn.preprocessing import RobustScaler
 
         try:
             scaler = RobustScaler(quantile_range=(5.0, 95.0))  # type: ignore[call-arg]
@@ -3585,16 +3579,14 @@ def check_falsification(
     }
 
     # Use thresholds from falsification_thresholds.py
-    from utils.falsification_thresholds import (
-        F5_1_MIN_PROPORTION,
-        F5_1_MIN_ALPHA,
-        F5_1_MIN_COHENS_D,
-        F5_2_MIN_PROPORTION,
-        F5_2_MIN_CORRELATION,
-        F5_3_MIN_PROPORTION,
-        F5_3_MIN_GAIN_RATIO,
-        F5_3_MIN_COHENS_D,
-    )
+    from utils.falsification_thresholds import (F5_1_MIN_ALPHA,
+                                                F5_1_MIN_COHENS_D,
+                                                F5_1_MIN_PROPORTION,
+                                                F5_2_MIN_CORRELATION,
+                                                F5_2_MIN_PROPORTION,
+                                                F5_3_MIN_COHENS_D,
+                                                F5_3_MIN_GAIN_RATIO,
+                                                F5_3_MIN_PROPORTION)
 
     f5_thresholds = {
         "F5_1_MIN_PROPORTION": F5_1_MIN_PROPORTION,

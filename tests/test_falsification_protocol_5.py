@@ -13,15 +13,14 @@ Test Categories:
 - Error handling validation
 """
 
-import pytest
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
+import pytest
 
 # Import the protocol to test
 from Falsification.FP_05_EvolutionaryPlausibility import (
-    EvolvableAgent,
-    EvolutionaryAPGIEmergence,
-)
+    EvolutionaryAPGIEmergence, EvolvableAgent)
 
 
 class TestEvolutionaryPlausibilityProtocol5:

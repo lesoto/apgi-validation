@@ -6,26 +6,28 @@ This module provides comprehensive functional tests for APGI utility modules,
 going beyond simple directory structure checks to test actual functionality.
 """
 
-import numpy as np
-import pytest
-
 # Import utility modules to test
 import sys
 from pathlib import Path
+
+import numpy as np
+import pytest
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
     from utils.config_manager import ConfigManager
-    from utils.threshold_registry import ThresholdRegistry, FalsificationThresholds
     from utils.constants import DIM_CONSTANTS
-    from utils.error_handler import APGIError
-    from utils.logging_config import apgi_logger
     from utils.eeg_simulator import EEGSimulator
-    from utils.preprocessing_pipelines import EEGPreprocessor, PreprocessingConfig
+    from utils.error_handler import APGIError
     from utils.genome_data_extractor import extract_genome_data_from_vp5
+    from utils.logging_config import apgi_logger
     from utils.ordinal_logistic_regression import OrdinalLogisticRegression
+    from utils.preprocessing_pipelines import (EEGPreprocessor,
+                                               PreprocessingConfig)
+    from utils.threshold_registry import (FalsificationThresholds,
+                                          ThresholdRegistry)
 except ImportError as e:
     pytest.skip(f"Cannot import utility modules: {e}", allow_module_level=True)
 
@@ -376,8 +378,8 @@ class TestOrdinalLogisticRegression:
 
         # Test prediction
         predictions = model.predict(X[:5])
-        assert isinstance(predictions, dict)
-        assert "predictions" in predictions or "error" in predictions
+        assert isinstance(predictions, np.ndarray)
+        assert len(predictions) == 5
 
 
 class TestFalsificationCriterionNegativePaths:
@@ -386,9 +388,7 @@ class TestFalsificationCriterionNegativePaths:
     def test_empty_name_raises_error(self):
         """Test that empty name raises ValueError."""
         from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+            FalsificationCriterion, TestStatistic)
 
         with pytest.raises(ValueError, match="non-empty string"):
             FalsificationCriterion(
@@ -403,9 +403,7 @@ class TestFalsificationCriterionNegativePaths:
     def test_whitespace_only_name_raises_error(self):
         """Test that whitespace-only name raises ValueError."""
         from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+            FalsificationCriterion, TestStatistic)
 
         with pytest.raises(ValueError, match="non-empty string"):
             FalsificationCriterion(
@@ -420,9 +418,7 @@ class TestFalsificationCriterionNegativePaths:
     def test_empty_description_raises_error(self):
         """Test that empty description raises ValueError."""
         from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+            FalsificationCriterion, TestStatistic)
 
         with pytest.raises(ValueError, match="non-empty string"):
             FalsificationCriterion(
@@ -437,9 +433,7 @@ class TestFalsificationCriterionNegativePaths:
     def test_invalid_direction_raises_error(self):
         """Test that invalid direction raises ValueError."""
         from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+            FalsificationCriterion, TestStatistic)
 
         with pytest.raises(ValueError, match="Invalid direction"):
             FalsificationCriterion(
@@ -454,9 +448,7 @@ class TestFalsificationCriterionNegativePaths:
     def test_alpha_greater_than_one_raises_error(self):
         """Test that alpha > 1 raises ValueError."""
         from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+            FalsificationCriterion, TestStatistic)
 
         with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
             FalsificationCriterion(
@@ -471,9 +463,7 @@ class TestFalsificationCriterionNegativePaths:
     def test_alpha_zero_raises_error(self):
         """Test that alpha = 0 raises ValueError."""
         from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+            FalsificationCriterion, TestStatistic)
 
         with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
             FalsificationCriterion(
@@ -488,9 +478,7 @@ class TestFalsificationCriterionNegativePaths:
     def test_alpha_negative_raises_error(self):
         """Test that negative alpha raises ValueError."""
         from Theory.APGI_Falsification_Framework import (
-            FalsificationCriterion,
-            TestStatistic,
-        )
+            FalsificationCriterion, TestStatistic)
 
         with pytest.raises(ValueError, match="Alpha must be between 0 and 1"):
             FalsificationCriterion(

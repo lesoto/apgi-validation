@@ -4,10 +4,11 @@ Tests for untested CLI commands in main.py.
 Comprehensive tests for 18 previously untested CLI commands.
 """
 
+import sys
+from pathlib import Path
+
 import pytest
 from click.testing import CliRunner
-from pathlib import Path
-import sys
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -500,7 +501,7 @@ class TestBayesianEstimationCommand:
     @pytest.mark.timeout(180)  # 3 minute timeout for MCMC computation
     def test_bayesian_estimation_with_method(self, cli):
         """Test bayesian_estimation command with method parameter."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
 
         # Mock the BayesianValidationFramework to avoid expensive MCMC
         mock_framework = MagicMock()
@@ -531,7 +532,7 @@ class TestBayesianEstimationCommand:
     @pytest.mark.timeout(180)  # 3 minute timeout for Bayesian computation
     def test_bayesian_estimation_with_data_file(self, cli, tmp_path):
         """Test bayesian_estimation command with data file."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
 
         data_file = tmp_path / "test_data.json"
         data_file.write_text('{"data": [1, 2, 3]}')
@@ -574,7 +575,7 @@ class TestBayesianEstimationCommand:
     @pytest.mark.timeout(180)  # 3 minute timeout for Bayesian computation
     def test_bayesian_estimation_with_output_file(self, cli, tmp_path):
         """Test bayesian_estimation command with output file."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
 
         output_file = tmp_path / "bayes_results.json"
 

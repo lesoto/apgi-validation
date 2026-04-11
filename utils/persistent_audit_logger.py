@@ -6,10 +6,10 @@ Implements persistent audit logging to disk for forensic analysis.
 
 import json
 import logging
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import threading
 
 
 class PersistentAuditLogger:

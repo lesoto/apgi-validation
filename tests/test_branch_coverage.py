@@ -8,10 +8,11 @@ Tests rarely-used exception branches in:
 - timeout_handler.py: Timeout state transitions, callback errors
 """
 
-import pytest
 import threading
 import time
 from unittest.mock import patch
+
+import pytest
 
 
 # Test exception handlers in main.py
@@ -78,7 +79,7 @@ class TestMainExceptionHandlers:
 
     def test_verbose_print_quiet_mode(self):
         """Test verbose_print when quiet mode is enabled"""
-        from main import verbose_print, set_config_value
+        from main import set_config_value, verbose_print
 
         # Enable quiet mode
         set_config_value("quiet", True)
@@ -91,7 +92,7 @@ class TestMainExceptionHandlers:
 
     def test_verbose_print_levels(self):
         """Test all verbose_print level branches"""
-        from main import verbose_print, set_config_value
+        from main import set_config_value, verbose_print
 
         set_config_value("quiet", False)
         set_config_value("verbose", True)
@@ -110,7 +111,7 @@ class TestErrorHandlerBranches:
 
     def test_error_info_with_none_details(self):
         """Test ErrorInfo with None details and suggestions"""
-        from utils.error_handler import ErrorInfo, ErrorCategory, ErrorSeverity
+        from utils.error_handler import ErrorCategory, ErrorInfo, ErrorSeverity
 
         error_info = ErrorInfo(
             category=ErrorCategory.CONFIGURATION,
@@ -127,12 +128,8 @@ class TestErrorHandlerBranches:
 
     def test_apgi_error_with_error_info(self):
         """Test APGIError initialization with ErrorInfo"""
-        from utils.error_handler import (
-            APGIError,
-            ErrorInfo,
-            ErrorCategory,
-            ErrorSeverity,
-        )
+        from utils.error_handler import (APGIError, ErrorCategory, ErrorInfo,
+                                         ErrorSeverity)
 
         error_info = ErrorInfo(
             category=ErrorCategory.VALIDATION,
@@ -172,7 +169,7 @@ class TestErrorHandlerBranches:
 
     def test_error_templates_all_categories(self):
         """Test error template lookup for all categories"""
-        from utils.error_handler import ErrorHandler, ErrorCategory
+        from utils.error_handler import ErrorCategory, ErrorHandler
 
         handler = ErrorHandler()
 
@@ -184,7 +181,8 @@ class TestErrorHandlerBranches:
 
     def test_error_templates_all_severities(self):
         """Test error template lookup for all severities"""
-        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
 

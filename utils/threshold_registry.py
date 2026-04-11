@@ -21,12 +21,12 @@ Example:
 """
 
 import logging
-from typing import Dict
 from dataclasses import dataclass
+from typing import Dict
 
 try:
-    from .constants import ParameterBounds  # type: ignore[misc]
     from .constants import IGNITION_THRESHOLD  # type: ignore[attr-defined]
+    from .constants import ParameterBounds  # type: ignore[misc]
 except ImportError:
     # Fallback constants if constants module not available
     @dataclass

@@ -11,6 +11,7 @@
 7. [Data Visualization](#data-visualization)
 8. [Advanced Usage](#advanced-usage)
 9. [Troubleshooting](#troubleshooting)
+10. [Common Misinterpretations](#common-misinterpretations)
 
 ## Getting Started
 
@@ -112,6 +113,70 @@ apgi_logger.export_logs("analysis_logs.json", format_type="json")
 python main.py logs --tail 20 --level INFO
 python main.py logs --export logs.json
 ```
+
+## Common Misinterpretations
+
+### The θ₀ vs Πᵉ Identifiability Paradox
+
+A frequent source of confusion in APGI parameter estimation is the distinction between:
+
+- __θ₀__: The baseline perceptual threshold (barrier for conscious access)
+- __Πᵉ__: The exteroceptive precision (weight on external prediction errors)
+
+#### Why They Must Be Estimated Separately
+
+These parameters are __not interchangeable__ despite both affecting detection probability. Consider the ignition condition:
+
+```text
+Ignition occurs when: Πᵉ · |εᵉ| + β · Πⁱ · |εⁱ| > θ₀
+```
+
+Scenario A: High Πᵉ (1.5) × Moderate |εᵉ| (0.4) = 0.6 → Ignites if θ₀ = 0.5
+Scenario B: Low Πᵉ (0.8) × High |εᵉ| (0.75) = 0.6 → Also ignites if θ₀ = 0.5
+
+Both scenarios produce the same ignition behavior, but for different neurophysiological reasons:
+
+- __Scenario A__: Subject has high confidence in external signals (high Πᵉ)
+- __Scenario B__: Subject experienced a large stimulus (high |εᵉ|)
+
+#### The Identifiability Problem
+
+If you only measure "detection" without measuring either Πᵉ or εᵉ independently, you cannot distinguish:
+
+- Subject with high θ₀ but also high Πᵉ (increased barrier but confident processing)
+- Subject with low θ₀ but low Πᵉ (lowered barrier but uncertain processing)
+
+### Solution: Multi-Measure Design
+
+To avoid the identifiability paradox, collect:
+
+1. __Behavioral__: Detection rates across stimulus intensities (constrains θ₀)
+2. __Neural__: P3b amplitude (constrains Πᵉ · |εᵉ|)
+3. __Physiological__: Pupil dilation (constrains uncertainty/effort, related to Πᵉ)
+
+#### Warning Signs of Misinterpretation
+
+- ✗ Assuming θ₀ alone explains individual differences in detection
+- ✗ Treating Πᵉ as a nuisance parameter rather than a meaningful construct
+- ✗ Using single-measure (binary detection) to estimate both parameters
+- ✗ Reporting "threshold" without specifying whether θ₀ or effective threshold (θ₀ - η·M)
+
+#### Correct Interpretation
+
+```python
+# Good: Joint parameter recovery
+apgi_params = fit_multimodal_model(
+    detection_data=detection_trials,
+    p3b_amplitude=eeg_data,
+    pupil_dilation=pupil_data
+)
+# Returns: θ₀ = 0.55 (±0.08), Πᵉ = 1.2 (±0.3)
+
+# Bad: Single measure estimate
+naive_threshold = estimate_threshold(detection_trials)  # θ₀ and Πᵉ confounded!
+```
+
+---
 
 ## Formal Model Simulation
 
@@ -715,7 +780,7 @@ def create_dashboard(data):
 
 ### Common Issues
 
-1. **Import Errors**
+1. __Import Errors__
 
    ```bash
    # Check virtual environment
@@ -726,7 +791,7 @@ def create_dashboard(data):
    pip install -e .
    ```
 
-2. **Configuration Issues**
+2. __Configuration Issues__
 
    ```python
    # Reset configuration
@@ -736,7 +801,7 @@ def create_dashboard(data):
    python main.py config --show
    ```
 
-3. **Memory Issues**
+3. __Memory Issues__
 
    ```python
    # Use batch processing for large datasets
@@ -747,7 +812,7 @@ def create_dashboard(data):
    gc.collect()
    ```
 
-4. **Performance Issues**
+4. __Performance Issues__
 
    ```python
    # Enable parallel processing

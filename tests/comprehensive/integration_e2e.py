@@ -20,6 +20,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 # Add parent to path for imports
@@ -142,7 +143,7 @@ class IntegrationTestSuite:
 
         try:
             # Test schema imports
-            from utils.protocol_schema import ProtocolResult, PredictionResult
+            from utils.protocol_schema import PredictionResult, ProtocolResult
 
             # Create sample protocol result
             prediction = PredictionResult(
@@ -196,10 +197,8 @@ class IntegrationTestSuite:
         passed = True
         for constant_name, expected_value in consistency_checks:
             try:
-                from utils.constants import (
-                    TMS_PULSE_WIDTH_MS,
-                    TMS_MOTOR_THRESHOLD_ADJUST,
-                )
+                from utils.constants import (TMS_MOTOR_THRESHOLD_ADJUST,
+                                             TMS_PULSE_WIDTH_MS)
 
                 if constant_name == "TMS_PULSE_WIDTH_MS":
                     actual = TMS_PULSE_WIDTH_MS

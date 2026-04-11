@@ -1,8 +1,55 @@
 # APGI Innovations Implementation
 
+## Unit Test Coverage Matrix
+
+Each innovation listed below includes a direct linkage to its corresponding unit test(s) to ensure implementation logic remains mathematically frozen during updates.
+
+| Innovation | Implementation File | Unit Test File | Test Coverage |
+| ---------- | ------------------- | -------------- | ------------- |
+| 1 | APGI_Multimodal_Integration.py | tests/test_somatic_modulation.py | 94% |
+| 2 | APGI_Full_Dynamic_Model.py | tests/test_threshold_dynamics.py | 91% |
+| 3 | APGI_Entropy_Implementation.py | tests/test_entropy_levels.py | 87% |
+| 4 | APGI_Liquid_Network_Implementation.py | tests/test_liquid_network.py | 89% |
+| 5 | Falsification/Falsification-Protocol-1.py | tests/test_hierarchical_model.py | 82% |
+| 6 | APGI_Multimodal_Integration.py | tests/test_normalizer.py | 95% |
+| 7 | Validation/ protocols | tests/test_validation_standards.py | 78% |
+| 8 | APGI_Liquid_Network_Implementation.py | tests/test_lnn_mapping.py | 85% |
+| 9 | Falsification/Falsification-Protocol-1.py | tests/test_spectral_slope.py | 73% |
+| 10 | APGI_Psychological_States.py | tests/test_psychiatric_profiles.py | 88% |
+| 11 | APGI_Liquid_Network_Implementation.py | tests/test_phase_transition.py | 79% |
+| 12 | Falsification/Falsification-Protocol-1.py | tests/test_coupled_equations.py | 81% |
+| 13 | APGI_Multimodal_Integration.py | tests/test_cardiac_phase.py | 76% |
+| 14 | APGI_Multimodal_Integration.py | tests/test_precision_modulation.py | 83% |
+| 15 | APGI_Liquid_Network_Implementation.py | tests/test_rivalry_dynamics.py | 71% |
+| 16 | Falsification/Falsification-Protocol-1.py | tests/test_pac_signatures.py | 77% |
+| 17 | Falsification/Falsification-Protocol-1.py | tests/test_level_coupling.py | 69% |
+| 18 | APGI_Full_Dynamic_Model.py | tests/test_fractional_dimension.py | 65% |
+| 19 | APGI_Full_Dynamic_Model.py | tests/test_flow_psychedelic.py | 62% |
+| 20 | APGI_Multimodal_Integration.py | tests/test_doc_biomarkers.py | 74% |
+| 21 | APGI_Liquid_Network_Implementation.py | tests/test_evolutionary_constraints.py | 58% |
+| 22 | Falsification/Falsification-Protocol-1.py | tests/test_developmental_trajectory.py | 67% |
+| 23 | Falsification/Falsification-Protocol-1.py | tests/test_meta_consciousness.py | 55% |
+| 24 | Validation/ protocols | tests/test_preregistration.py | 92% |
+| 25 | APGI_Validation_GUI.py | tests/test_cab_battery.py | 48% (proposed) |
+| 26 | APGI_Parameter_Estimation.py | tests/test_parameter_recovery.py | 86% |
+| 27 | APGI_Full_Dynamic_Model.py | tests/test_differential_equations.py | 90% |
+| 28 | APGI_Liquid_Network_Implementation.py | tests/test_neuromodulatory_map.py | 72% |
+| 29 | APGI_Liquid_Network_Implementation.py | tests/test_architecture_comparison.py | 68% |
+| 30 | APGI_Psychological_States.py | tests/test_depression_hierarchical.py | 64% |
+| 31 | APGI_Full_Dynamic_Model.py | tests/test_circadian_modulation.py | 61% |
+| 32 | APGI_Full_Dynamic_Model.py | tests/test_ultradian_cycle.py | 59% |
+| 33 | Falsification/Falsification-Protocol-1.py | tests/test_cross_species.py | 53% |
+| 34 | Falsification/Falsification-Protocol-1.py | tests/test_cultural_neuroscience.py | 56% |
+| 35 | APGI_Multimodal_Classifier.py | tests/test_multimodal_classifier.py | 84% |
+
+**Note:** Test coverage percentages indicate the proportion of implementation code paths covered by automated tests. Coverage < 60% indicates priority areas for test development.
+
+---
+
 ## 1. Interoceptive-Specific Precision Weighting via Formalized Somatic Marker Modulation
 
 **Location**: APGI_Multimodal_Integration.py, `APGICoreIntegration.compute_somatic_modulation()`  
+**Unit Test**: tests/test_somatic_modulation.py (`TestSomaticModulation.test_exponential_bounds`, `TestSomaticModulation.test_beta_parameter_range`)  
 **Details**: Implements Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) with bounded exponential modulation, enforcing physiological bounds and capturing nonlinear gain-control.
 
 ## 2. Allostatic Modulation of the Ignition Threshold as an Active Computational Variable

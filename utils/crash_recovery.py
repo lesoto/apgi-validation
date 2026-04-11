@@ -10,10 +10,10 @@ import json
 import threading
 import time
 import traceback
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, Callable
-from dataclasses import dataclass, asdict
+from typing import Any, Callable, Dict, Optional
 
 apgi_logger: Any
 try:

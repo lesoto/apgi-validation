@@ -7,12 +7,13 @@ VS (Vegetative State) → MCS (Minimally Conscious State) → EMCS (Emerging MCS
 This is the preferred method over ANOVA/Cohen's d for ordinal outcomes as specified in the paper.
 """
 
+import logging
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 import pandas as pd
-from typing import Dict, Any, Optional, List
 from scipy.optimize import minimize
 from scipy.stats import chi2
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,12 @@ class OrdinalLogisticRegression:
 
         Args:
             n_categories: Number of ordered categories (default 4: VS, MCS, EMCS, Healthy)
+
+        Raises:
+            ValueError: If n_categories is less than 2
         """
+        if n_categories < 2:
+            raise ValueError(f"n_categories must be at least 2, got {n_categories}")
         self.n_categories = n_categories
         self.n_thresholds = n_categories - 1
         self.thresholds = None  # α_j values
@@ -67,24 +73,28 @@ class OrdinalLogisticRegression:
         # Linear predictor
         eta = X @ betas  # Shape: (n_samples,)
 
-        # Compute probabilities for each category
+        # Compute probabilities for each category using cumulative probabilities
+        # P(Y ≤ j) = sigmoid(α_j - η)
+        # P(Y = j) = P(Y ≤ j) - P(Y ≤ j-1)
         n_samples = X.shape[0]
         probs = np.zeros((n_samples, self.n_categories))
 
-        # P(Y = 0) = 1 - sigmoid(eta - α_0)
-        probs[:, 0] = 1 - 1 / (1 + np.exp(eta - thresholds[0]))
+        # Compute cumulative probabilities
+        cum_probs = np.zeros((n_samples, self.n_categories))
+        for j in range(self.n_thresholds):
+            cum_probs[:, j] = 1 / (1 + np.exp(thresholds[j] - eta))
+        # P(Y ≤ K-1) is always 1 (all probability mass)
+        # cum_probs[:, -1] stays 0, we'll compute P(Y = K-1) as 1 - P(Y ≤ K-2)
 
-        # P(Y = j) = sigmoid(eta - α_{j-1}) - sigmoid(eta - α_j) for j = 1, ..., K-2
-        for j in range(1, n_thresholds - 1):
-            probs[:, j] = 1 / (1 + np.exp(eta - thresholds[j - 1])) - 1 / (
-                1 + np.exp(eta - thresholds[j])
-            )
+        # Convert cumulative to individual probabilities
+        probs[:, 0] = cum_probs[:, 0]  # P(Y = 0) = P(Y ≤ 0)
+        for j in range(1, self.n_thresholds):
+            probs[:, j] = cum_probs[:, j] - cum_probs[:, j - 1]
+        probs[:, -1] = 1 - cum_probs[:, -2]  # P(Y = K-1) = 1 - P(Y ≤ K-2)
 
-        # P(Y = K-1) = sigmoid(eta - α_{K-2})
-        probs[:, -1] = 1 / (1 + np.exp(eta - thresholds[-1]))
-
-        # Ensure probabilities are valid
-        probs = np.clip(probs, 1e-10, 1 - 1e-10)
+        # Ensure probabilities are valid to avoid log(0) errors
+        eps = 1e-10
+        probs = np.clip(probs, eps, 1 - eps)
 
         # Negative log-likelihood
         nll = 0
@@ -108,6 +118,31 @@ class OrdinalLogisticRegression:
             Dictionary with fitting results
         """
         n_samples, n_features = X.shape
+
+        # Validate dimensions
+        if len(y) != n_samples:
+            raise ValueError(
+                f"X and y must have same number of samples. Got X: {n_samples}, y: {len(y)}"
+            )
+
+        # Validate y values are in valid range
+        if np.any(y < 0) or np.any(y >= self.n_categories):
+            raise ValueError(f"y values must be in range [0, {self.n_categories - 1}]")
+
+        # Handle empty data
+        if n_samples == 0:
+            return {
+                "model_fitted": False,
+                "success": False,
+                "message": "Empty data provided",
+                "n_iterations": 0,
+                "thresholds": None,
+                "coefficients": None,
+                "accuracy": 0.0,
+                "null_deviance": 0.0,
+                "residual_deviance": 0.0,
+                "deviance_reduction": 0.0,
+            }
 
         # Initialize parameters
         if init_params is None:
@@ -164,6 +199,14 @@ class OrdinalLogisticRegression:
     def _compute_null_deviance(self, y: np.ndarray) -> float:
         """Compute null deviance (model with only intercepts)."""
         n_samples = len(y)
+
+        # Handle empty data
+        if n_samples == 0:
+            return 0.0
+
+        # Ensure y is integer type for bincount
+        y = y.astype(int)
+
         # Null model: predict proportion for each category
         category_counts = np.bincount(y, minlength=self.n_categories)
         category_probs = category_counts / n_samples
@@ -192,26 +235,31 @@ class OrdinalLogisticRegression:
         n_samples = X.shape[0]
         probs = np.zeros((n_samples, self.n_categories))
 
-        # P(Y = 0) = 1 - sigmoid(eta - α_0)
         if self.thresholds is None:
             raise ValueError("Model not fitted - call fit() first")
-        probs[:, 0] = 1 - 1 / (1 + np.exp(eta - self.thresholds[0]))
 
-        # P(Y = j) for j = 1, ..., K-2
-        for j in range(1, self.n_thresholds - 1):
-            probs[:, j] = 1 / (1 + np.exp(eta - self.thresholds[j - 1])) - 1 / (
-                1 + np.exp(eta - self.thresholds[j])
-            )
+        # Compute probabilities using cumulative probabilities
+        # P(Y ≤ j) = sigmoid(α_j - η)
+        # P(Y = j) = P(Y ≤ j) - P(Y ≤ j-1)
+        cum_probs = np.zeros((n_samples, self.n_categories))
+        for j in range(self.n_thresholds):
+            cum_probs[:, j] = 1 / (1 + np.exp(self.thresholds[j] - eta))
+        # P(Y ≤ K-1) is always 1 (all probability mass)
+        # cum_probs[:, -1] stays 0, we'll compute P(Y = K-1) as 1 - P(Y ≤ K-2)
 
-        # P(Y = K-1) = sigmoid(eta - α_{K-2})
-        probs[:, -1] = 1 / (1 + np.exp(eta - self.thresholds[-1]))
+        # Convert cumulative to individual probabilities
+        probs[:, 0] = cum_probs[:, 0]  # P(Y = 0) = P(Y ≤ 0)
+        for j in range(1, self.n_thresholds):
+            probs[:, j] = cum_probs[:, j] - cum_probs[:, j - 1]
+        probs[:, -1] = 1 - cum_probs[:, -2]  # P(Y = K-1) = 1 - P(Y ≤ K-2)
 
         # Ensure probabilities are valid
-        probs = np.clip(probs, 1e-10, 1 - 1e-10)
+        eps = 1e-10
+        probs = np.clip(probs, eps, 1 - eps)
 
         return probs
 
-    def predict(self, X: np.ndarray) -> Dict[str, Any]:
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Predict class labels.
 
@@ -219,17 +267,14 @@ class OrdinalLogisticRegression:
             X: Feature matrix (n_samples, n_features)
 
         Returns:
-            Dictionary with 'predictions' key containing predicted classes
+            Predicted classes (n_samples,)
         """
-        try:
-            if not self.fitted:
-                return {"error": "Model must be fitted before prediction"}
-            probs = self.predict_proba(X)
-            predictions = np.argmax(probs, axis=1)
-            return {"predictions": predictions}
-        except Exception as e:
-            logger.error(f"Prediction error: {e}")
-            return {"error": str(e)}
+        if not self.fitted:
+            raise ValueError("Model must be fitted before prediction")
+
+        probs = self.predict_proba(X)
+        predictions = np.argmax(probs, axis=1)
+        return predictions
 
     def get_coefficient_significance(
         self, X: np.ndarray, y: np.ndarray
@@ -324,8 +369,7 @@ def analyze_clinical_gradient_ordinal(
 
     # Get predictions
     predicted_probs = olr.predict_proba(X)
-    predicted_result = olr.predict(X)
-    predicted_classes = predicted_result.get("predictions", np.array([]))
+    predicted_classes = olr.predict(X)
 
     # Compute confusion matrix
     confusion = np.zeros((len(category_order), len(category_order)))
@@ -403,7 +447,16 @@ def compare_ordinal_vs_anova(
         if cat in patient_data[category_column].unique()
     ]
 
-    f_stat, p_value_anova = stats.f_oneway(*groups) if len(groups) > 1 else (0, 1)
+    # Handle case where groups have no variance
+    if len(groups) > 1 and all(len(g) > 0 for g in groups):
+        # Check if all groups have zero variance
+        has_variance = any(np.var(g, ddof=1) > 1e-10 for g in groups if len(g) > 1)
+        if not has_variance:
+            f_stat, p_value_anova = 0.0, 1.0
+        else:
+            f_stat, p_value_anova = stats.f_oneway(*groups)
+    else:
+        f_stat, p_value_anova = 0.0, 1.0
 
     # Cohen's d (pairwise comparisons)
     cohens_d_values = []

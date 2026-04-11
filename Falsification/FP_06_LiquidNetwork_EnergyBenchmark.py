@@ -4,8 +4,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from datetime import datetime
+
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -16,10 +18,8 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from utils.interprotocol_schema import (
-        load_vp5_genome_data,
-        requires_vp5_data,
-    )
+    from utils.interprotocol_schema import (load_vp5_genome_data,
+                                            requires_vp5_data)
 
     HAS_VP5_LOADER = True
 except ImportError:
@@ -72,20 +72,12 @@ except ImportError:
     APGI_GLOBAL_SEED = 42  # Fallback default
 
 try:
-    from utils.falsification_thresholds import (
-        F2_3_MIN_RT_ADVANTAGE_MS,
-        F2_3_ALPHA,
-        F6_2_WILCOXON_ALPHA,
-        F6_2_LTCN_MIN_WINDOW_MS,
-        F6_2_MIN_INTEGRATION_RATIO,
-        F6_2_MIN_CURVE_FIT_R2,
-        F6_1_LTCN_MAX_TRANSITION_MS,
-        F6_5_HYSTERESIS_MIN,
-        F6_5_HYSTERESIS_MAX,
-        F6_SPARSITY_ACTIVATION_THRESHOLD,
-        LIQUID_IGNITION_DETECTION_THRESHOLD,
-        F1_6_MIN_LOW_AROUSAL_SLOPE,  # HIGH-01: Import from falsification_thresholds
-    )
+    from utils.falsification_thresholds import (  # HIGH-01: Import from falsification_thresholds
+        F1_6_MIN_LOW_AROUSAL_SLOPE, F2_3_ALPHA, F2_3_MIN_RT_ADVANTAGE_MS,
+        F6_1_LTCN_MAX_TRANSITION_MS, F6_2_LTCN_MIN_WINDOW_MS,
+        F6_2_MIN_CURVE_FIT_R2, F6_2_MIN_INTEGRATION_RATIO, F6_2_WILCOXON_ALPHA,
+        F6_5_HYSTERESIS_MAX, F6_5_HYSTERESIS_MIN,
+        F6_SPARSITY_ACTIVATION_THRESHOLD, LIQUID_IGNITION_DETECTION_THRESHOLD)
 except ImportError:
     # Fallback thresholds — values must match falsification_thresholds.py exactly
     F2_3_MIN_RT_ADVANTAGE_MS = 50.0
@@ -102,19 +94,19 @@ except ImportError:
     F6_SPARSITY_ACTIVATION_THRESHOLD = 0.7  # activation > 0.7 counts as spike
     LIQUID_IGNITION_DETECTION_THRESHOLD = 0.50  # binary ignition gate
 
+import sys
+from pathlib import Path
+
 import numpy as np
 from scipy import stats
 from sklearn.metrics import roc_auc_score
-import sys
-from pathlib import Path
+
 from utils.statistical_tests import safe_ttest_1samp
 
 _proj_root = Path(__file__).parent.parent
 if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
-from utils.statistical_tests import (
-    safe_ttest_1samp,
-)
+from utils.statistical_tests import safe_ttest_1samp
 
 try:
     import torch
@@ -130,12 +122,9 @@ except ImportError:
 
 try:
     from utils.constants import DIM_CONSTANTS
-
     # Fix 2: Import BIC thresholds from falsification_thresholds
-    from utils.falsification_thresholds import (
-        BIC_STRONG_EVIDENCE,
-        BIC_FRAMEWORK_THRESHOLD_B,
-    )
+    from utils.falsification_thresholds import (BIC_FRAMEWORK_THRESHOLD_B,
+                                                BIC_STRONG_EVIDENCE)
 except ImportError:
     # Fallback constants
     class MockDimConstants:

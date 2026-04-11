@@ -15,6 +15,138 @@ Protocol 8 implements **adaptive psychophysical methods** and **individual diffe
 
 Unlike standard psychophysics that only estimates threshold and slope, Protocol 8 extracts **all four APGI parameters** (θ₀, Π_i, β, α) from behavioral and physiological data, enabling systematic investigation of individual differences in conscious access mechanisms.
 
+## Fatigue Guard Protocol
+
+When subjects' θₜ rises too rapidly due to metabolic depletion during extended testing sessions, implement the following Fatigue Guard protocol to adjust trial counts and maintain data quality.
+
+### Fatigue Detection Criteria
+
+| Indicator | Threshold | Interpretation | Action |
+| :--- | :--- | :--- | :--- |
+| **Rapid θₜ Increase** | Δθₜ > +0.15 over 20 trials | Fatigue-induced threshold elevation | Trigger Fatigue Guard |
+| **Response Time Increase** | RT > 150% of baseline | Cognitive slowing | Consider break |
+| **Error Rate Spike** | Errors > 30% in last 10 trials | Performance degradation | Immediate break |
+| **Pupil Dilation Drop** | Pupil < 80% of initial | Reduced arousal | End session |
+
+### Trial Count Adjustment Protocol
+
+```python
+class FatigueGuard:
+    """Implements fatigue-aware trial count adjustment."""
+
+    BASELINE_TRIALS = 50  # Standard trial count
+
+    def __init__(self, initial_theta_0):
+        self.initial_theta = initial_theta_0
+        self.trial_history = []
+        self.theta_history = []
+
+    def check_fatigue(self, current_theta, trial_number):
+        """Detect fatigue based on threshold trajectory."""
+        self.theta_history.append(current_theta)
+
+        if len(self.theta_history) < 20:
+            return False, self.BASELINE_TRIALS
+
+        # Calculate recent trend (last 20 trials)
+        recent_theta = np.mean(self.theta_history[-20:])
+        baseline_theta = np.mean(self.theta_history[:20])
+        theta_change = recent_theta - baseline_theta
+
+        # Fatigue threshold: θₜ rises >0.15 units
+        if theta_change > 0.15:
+            # Calculate adjusted trial count
+            excess_fatigue = (theta_change - 0.15) / 0.05  # per 0.05 excess
+            reduced_trials = max(30, self.BASELINE_TRIALS - int(excess_fatigue * 10))
+
+            return True, reduced_trials
+
+        return False, self.BASELINE_TRIALS
+
+    def get_recommended_break_interval(self, fatigue_detected):
+        """Recommend break schedule based on fatigue status."""
+        if fatigue_detected:
+            return {
+                'break_interval_trials': 15,  # Break every 15 trials
+                'break_duration_sec': 60,     # 1 minute rest
+                'max_total_trials': 40        # Cap at 40 trials
+            }
+        return {
+            'break_interval_trials': 50,      # Standard: break at end
+            'break_duration_sec': 120,
+            'max_total_trials': 50
+        }
+```
+
+### Implementation Guide
+
+#### Step 1: Monitor θₜ Trajectory
+
+```python
+fatigue_guard = FatigueGuard(initial_theta_0=0.55)
+
+for trial in range(max_trials):
+    # Run trial and get current θₜ estimate
+    current_theta = run_psi_trial()
+
+    # Check for fatigue
+    is_fatigued, adjusted_trials = fatigue_guard.check_fatigue(
+        current_theta, trial
+    )
+
+    if is_fatigued:
+        print(f"⚠️  FATIGUE DETECTED at trial {trial}")
+        print(f"   Reducing trial count to {adjusted_trials}")
+        print(f"   Inserting mandatory break")
+        insert_break(duration=60)
+
+    if trial >= adjusted_trials:
+        print("Session complete (adjusted for fatigue)")
+        break
+```
+
+#### Step 2: Post-Session Fatigue Correction
+
+If fatigue was detected, apply correction to estimated parameters:
+
+```python
+def correct_for_fatigue(raw_theta_0, fatigue_detected, fatigue_severity):
+    """
+    Adjust estimated θ₀ to compensate for fatigue-induced elevation.
+
+    Args:
+        raw_theta_0: Estimated threshold from fatigued session
+        fatigue_detected: Boolean from FatigueGuard
+        fatigue_severity: θₜ elevation magnitude (Δθ)
+
+    Returns:
+        corrected_theta_0: Fatigue-corrected threshold estimate
+    """
+    if not fatigue_detected:
+        return raw_theta_0
+
+    # Correction factor: Assume fatigue elevates measured threshold
+    # by ~60% of the observed θₜ increase
+    correction = 0.6 * fatigue_severity
+    corrected = raw_theta_0 - correction
+
+    return max(0.25, min(0.85, corrected))  # Keep in valid range
+```
+
+### Reporting Fatigue Adjustments
+
+When reporting results with Fatigue Guard intervention:
+
+```text
+Results (with Fatigue Guard):
+- Initial trial target: 50
+- Fatigue detected at trial 32 (Δθₜ = +0.18)
+- Adjusted trial count: 40
+- Breaks inserted: 2 × 60 seconds
+- Fatigue-corrected θ₀: 0.52 (raw: 0.58)
+- Reliability flag: Fatigue-adjusted data
+```
+
 ---
 
 ## Installation

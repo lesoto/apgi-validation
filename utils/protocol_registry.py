@@ -6,9 +6,9 @@ to their actual implementation filenames, resolving naming mismatches and provid
 a unified interface for protocol discovery and loading.
 """
 
-from pathlib import Path
-from typing import Dict, Optional, List, Type
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Type
 
 
 @dataclass

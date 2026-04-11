@@ -22,12 +22,12 @@ Usage Examples:
 """
 
 import argparse
+import errno
 import fnmatch
 import os
 import shutil
 import sys
 import time
-import errno
 from typing import Any, Iterable, List, Optional
 
 DEFAULT_DIR_NAMES = {

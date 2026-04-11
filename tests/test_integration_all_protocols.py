@@ -7,15 +7,17 @@ Verifies that:
 4. Framework falsification conditions can be evaluated
 """
 
-import sys
-import pytest
-from pathlib import Path
 import importlib
+import sys
+from pathlib import Path
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                   ProtocolResult)
 
 
 class TestAllFPProtocols:
@@ -125,15 +127,17 @@ class TestAllFPProtocols:
                 if module_path in [
                     "Falsification.FP_03_FrameworkLevel_MultiProtocol",
                     "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+                    "Falsification.FP_05_EvolutionaryPlausibility",
                     "Falsification.FP_10_BayesianEstimation_MCMC",
                 ]:
                     os.environ["APGI_TEST_MODE"] = "true"
 
-                mod = importlib.import_module(module_path, fromlist=[protocol_id])
+                mod = importlib.import_module(module_path)
                 # Force reload to pick up APGI_TEST_MODE environment variable
                 if module_path in [
                     "Falsification.FP_03_FrameworkLevel_MultiProtocol",
                     "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+                    "Falsification.FP_05_EvolutionaryPlausibility",
                     "Falsification.FP_10_BayesianEstimation_MCMC",
                 ]:
                     importlib.reload(mod)
@@ -143,6 +147,7 @@ class TestAllFPProtocols:
                 if module_path in [
                     "Falsification.FP_03_FrameworkLevel_MultiProtocol",
                     "Falsification.FP_04_PhaseTransition_EpistemicArchitecture",
+                    "Falsification.FP_05_EvolutionaryPlausibility",
                     "Falsification.FP_10_BayesianEstimation_MCMC",
                 ]:
                     os.environ.pop("APGI_TEST_MODE", None)
@@ -232,6 +237,7 @@ class TestAllVPProtocols:
         "Validation.VP_15_fMRI_Anticipation_vmPFC",
     ]
 
+    @pytest.mark.slow
     @pytest.mark.parametrize("module_path,protocol_id", VP_PROTOCOLS)
     def test_vp_protocol_returns_protocol_result(self, module_path, protocol_id):
         """Test that VP protocol returns standardized ProtocolResult."""
@@ -241,7 +247,7 @@ class TestAllVPProtocols:
             if module_path in self.SLOW_VP_PROTOCOLS:
                 os.environ["APGI_TEST_MODE"] = "true"
 
-            mod = importlib.import_module(module_path, fromlist=[protocol_id])
+            mod = importlib.import_module(module_path)
 
             # Force reload to pick up APGI_TEST_MODE environment variable
             if module_path in self.SLOW_VP_PROTOCOLS:
@@ -276,12 +282,28 @@ class TestAllVPProtocols:
         except Exception as e:
             pytest.fail(f"{protocol_id}: {str(e)}")
 
+    @pytest.mark.slow
     def test_all_vp_protocols_have_predictions(self):
         """Test that all VP protocols have named_predictions."""
+        import os
+
         for module_path, protocol_id in self.VP_PROTOCOLS:
             try:
-                mod = importlib.import_module(module_path, fromlist=[protocol_id])
+                # Set test mode for computationally intensive protocols to prevent hanging
+                if module_path in self.SLOW_VP_PROTOCOLS:
+                    os.environ["APGI_TEST_MODE"] = "true"
+
+                mod = importlib.import_module(module_path)
+
+                # Force reload to pick up APGI_TEST_MODE environment variable
+                if module_path in self.SLOW_VP_PROTOCOLS:
+                    importlib.reload(mod)
+
                 result = mod.run_protocol_main()
+
+                # Clean up environment variable
+                if module_path in self.SLOW_VP_PROTOCOLS:
+                    os.environ.pop("APGI_TEST_MODE", None)
 
                 if isinstance(result, dict):
                     result = ProtocolResult.from_dict(result)

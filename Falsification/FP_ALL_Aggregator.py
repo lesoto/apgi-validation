@@ -15,15 +15,17 @@ Usage:
 """
 
 import json
-import math
 import logging
+import math
 from pathlib import Path
 from typing import Any, Dict
+
 import numpy as np
 
 # Import standardized protocol schema (FIX #1)
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 except ImportError:
     # Fallback if schema not available - use type: ignore to suppress redefinition errors
     ProtocolResult = None  # type: ignore[misc]
@@ -178,7 +180,7 @@ def _aggregate_prediction_results_with_audit(results_input) -> dict:
     Uses standardized ProtocolResult schema (FIX #1) to handle inconsistent
     protocol output formats. Falls back to legacy extraction if schema unavailable.
     """
-    from typing import Dict, Any
+    from typing import Any, Dict
 
     tallies: Dict[str, Dict[str, Any]] = {
         k: {"passed": False, "evidence": [], "sources": [], "value": None}
@@ -1050,9 +1052,9 @@ def run_framework_falsification(results_input) -> dict:
 
 def run_falsification():
     """Entry point for CLI falsification testing."""
+    import json
     import logging
     import os
-    import json
 
     logger = logging.getLogger(__name__)
     logger.info("Starting framework falsification aggregation")

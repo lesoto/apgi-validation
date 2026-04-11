@@ -31,10 +31,12 @@ Based on:
 """
 
 import math
+import sys
 import time
 import warnings
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 import numpy as np
@@ -50,9 +52,6 @@ import torch.nn.functional as F
 # Configuration and Constants
 # ============================================================================
 
-
-import sys
-from pathlib import Path
 
 # Add parent directory to path for utils imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -2874,10 +2873,11 @@ def main() -> None:
     import sys  # Import sys for exit calls
 
     try:
-        import tkinter as tk
-        from tkinter import ttk, scrolledtext, messagebox
-        import numpy as np
         import threading
+        import tkinter as tk
+        from tkinter import messagebox, scrolledtext, ttk
+
+        import numpy as np
 
         class EntropyAnalysisGUI:
             def __init__(self, root):

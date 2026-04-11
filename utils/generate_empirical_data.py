@@ -11,12 +11,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from empirical_data_generators import (
-    generate_cross_cultural_eeg_data,
-    generate_fmri_vmPFC_data,
-    save_cross_cultural_eeg_data,
-    save_fmri_vmPFC_data,
-)
+from empirical_data_generators import (generate_cross_cultural_eeg_data,
+                                       generate_fmri_vmPFC_data,
+                                       save_cross_cultural_eeg_data,
+                                       save_fmri_vmPFC_data)
 
 
 def main():

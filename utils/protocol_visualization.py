@@ -7,7 +7,7 @@ Each protocol should output protocolNUMBER.png when run.
 
 import logging
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Try to import matplotlib with fallback
 try:

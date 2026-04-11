@@ -4,11 +4,12 @@ Performance benchmarks for critical functions in the APGI validation framework.
 Tests performance characteristics, scalability, and resource usage.
 """
 
-import pytest
-import numpy as np
-import time
 import sys
+import time
 from pathlib import Path
+
+import numpy as np
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -17,15 +18,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 APGI_CORE_AVAILABLE = False
 
 try:
-    from Theory.APGI_Equations import (
-        FoundationalEquations,
-        CoreIgnitionSystem,
-        DynamicalSystemEquations,
-    )
-    from Theory.APGI_Parameter_Estimation import (
-        generate_synthetic_dataset,
-        build_apgi_model,
-    )
+    from Theory.APGI_Equations import (CoreIgnitionSystem,
+                                       DynamicalSystemEquations,
+                                       FoundationalEquations)
+    from Theory.APGI_Parameter_Estimation import (build_apgi_model,
+                                                  generate_synthetic_dataset)
     from utils.data_validation import DataValidator
 
     APGI_CORE_AVAILABLE = True
@@ -151,8 +148,8 @@ class TestPerformanceBenchmarks:
         validator = DataValidator()
 
         # Create a minimal valid DataFrame for testing
-        import pandas as pd
         import numpy as np
+        import pandas as pd
 
         n_samples = 100
         df = pd.DataFrame(
@@ -308,8 +305,9 @@ class TestMemoryBenchmarks:
 
     def test_memory_usage_patterns(self):
         """Test memory usage patterns in different operations."""
-        import psutil
         import os
+
+        import psutil
 
         # Get initial memory usage
         process = psutil.Process(os.getpid())
@@ -362,8 +360,9 @@ class TestMemoryBenchmarks:
         equations = FoundationalEquations()
 
         # Get initial memory usage
-        import psutil
         import os
+
+        import psutil
 
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss
@@ -610,8 +609,9 @@ class TestResourceUtilization:
 
     def test_cpu_utilization(self):
         """Test CPU utilization patterns."""
-        import psutil
         import os
+
+        import psutil
 
         # Get CPU usage baseline
         process = psutil.Process(os.getpid())

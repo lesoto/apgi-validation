@@ -5,9 +5,9 @@ protocols, ensuring consistent status values, data source tracking, and dependen
 management.
 """
 
-from enum import Enum
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class ProtocolStatus(str, Enum):

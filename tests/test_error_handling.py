@@ -4,14 +4,14 @@ Comprehensive error handling tests for the APGI validation framework.
 Tests error handling, exception management, and graceful degradation across all modules.
 """
 
-import pytest
-import numpy as np
-from pathlib import Path
-import tempfile
 import logging
-
 # Add project root to path
 import sys
+import tempfile
+from pathlib import Path
+
+import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
@@ -284,8 +284,8 @@ class TestNetworkOperationErrors:
         """Test handling of network connection errors."""
         try:
             # Test network operations that might fail
-            import urllib.request
             import urllib.error
+            import urllib.request
 
             # Try to connect to non-existent server
             try:
@@ -308,8 +308,8 @@ class TestNetworkOperationErrors:
         """Test handling of timeout errors."""
         try:
             # Test operations that might timeout
-            import urllib.request
             import socket
+            import urllib.request
 
             # Set very short timeout
             socket.setdefaulttimeout(0.001)

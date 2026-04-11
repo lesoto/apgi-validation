@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-APGI (Active Perception and Generative Inference) Validation Framework - A CLI-based scientific computing framework for validating and falsifying active inference models through computational experiments.
+APGI Validation Framework - A CLI-based scientific computing framework for validating and falsifying active inference models through computational experiments.
 
 ## Development Commands
 

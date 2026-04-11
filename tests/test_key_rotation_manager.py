@@ -4,19 +4,17 @@ Tests periodic key rotation for PICKLE_SECRET_KEY and APGI_BACKUP_HMAC_KEY.
 ================================================================
 """
 
-import os
 import json
-from pathlib import Path
+import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.key_rotation_manager import (
-    KeyRotationManager,
-    get_key_rotation_manager,
-    check_and_rotate_keys_if_needed,
-    get_key_status,
-)
+from utils.key_rotation_manager import (KeyRotationManager,
+                                        check_and_rotate_keys_if_needed,
+                                        get_key_rotation_manager,
+                                        get_key_status)
 
 
 class TestKeyRotationManager:

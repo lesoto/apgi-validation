@@ -4,13 +4,15 @@ This is a faster version that uses mocking for slow operations.
 """
 
 import sys
-import pytest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                   ProtocolResult)
 
 
 class TestFPProtocolsOptimized:

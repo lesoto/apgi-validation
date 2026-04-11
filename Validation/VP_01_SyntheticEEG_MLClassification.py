@@ -12,12 +12,12 @@ simulations that support Protocol 1 predictions.
 
 """
 
-import json
 import gc
+import json
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, Union
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 try:
     import matplotlib
@@ -41,9 +41,10 @@ try:
 except ImportError:
     HAS_TORCH = False
 
-from scipy import stats
 import sys
 from pathlib import Path
+
+from scipy import stats
 
 # Add parent directory to path for imports when running from Validation directory
 project_root = Path(__file__).parent.parent
@@ -53,44 +54,30 @@ if str(project_root) not in sys.path:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        P1_1_MIN_D_PRIME,
-        P1_1_MAX_D_PRIME,
-        DEFAULT_ALPHA,
-    )
+    from utils.falsification_thresholds import (DEFAULT_ALPHA,
+                                                P1_1_MAX_D_PRIME,
+                                                P1_1_MIN_D_PRIME)
 except ImportError:
     P1_1_MIN_D_PRIME = 0.50
     P1_1_MAX_D_PRIME = 0.60
     DEFAULT_ALPHA = 0.05
 
-from utils.statistical_tests import safe_pearsonr
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    confusion_matrix,
-    f1_score,
-    roc_auc_score,
-)
+from sklearn.metrics import (accuracy_score, classification_report,
+                             confusion_matrix, f1_score, roc_auc_score)
 from torch.utils.data import DataLoader, Dataset, random_split
 from tqdm import tqdm
 
+from utils.statistical_tests import safe_pearsonr
+
 # APGI imports
 try:
+    from utils.config_loader import (get_alpha, get_cohens_d_threshold,
+                                     get_cumulative_reward_advantage_threshold,
+                                     get_gamma_A, get_gamma_M, get_rho,
+                                     get_sigma_S, get_sigma_theta,
+                                     get_significance_level, get_tau_S,
+                                     get_tau_theta, get_theta_0)
     from utils.logging_config import apgi_logger as logger
-    from utils.config_loader import (
-        get_tau_S,
-        get_tau_theta,
-        get_theta_0,
-        get_alpha,
-        get_gamma_M,
-        get_gamma_A,
-        get_rho,
-        get_sigma_S,
-        get_sigma_theta,
-        get_cumulative_reward_advantage_threshold,
-        get_cohens_d_threshold,
-        get_significance_level,
-    )
 except ImportError:
     import logging
 
@@ -3835,6 +3822,7 @@ def analyze_classifier_calibration(predictions_proba, true_labels, n_bins=10):
     Check if predicted probabilities match empirical frequencies
     """
     import gc
+
     from sklearn.calibration import calibration_curve
 
     fraction_of_positives, mean_predicted_value = calibration_curve(
@@ -4595,7 +4583,8 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -5437,7 +5426,6 @@ class EEGPipeline:
             from scipy import signal as sp_signal
 
             # from scipy.stats import circmean  # Currently unused
-
             # 1. Filter for phase (theta: 4-12 Hz)
             phase_low, phase_high = phase_freq_range
             phase_filter = sp_signal.butter(

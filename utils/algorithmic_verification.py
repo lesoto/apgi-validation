@@ -22,9 +22,10 @@ Usage::
     )
 """
 
-import numpy as np
-from typing import Dict, Any, Tuple, List, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 # =============================================================================
 # CORE APGI EQUATIONS

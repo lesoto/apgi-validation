@@ -6,11 +6,11 @@ Progress Estimation Utility
 Provides progress estimation and time tracking for long-running operations.
 """
 
-import time
 import threading
-from typing import Dict, Optional, Callable
+import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Callable, Dict, Optional
 
 
 class ProgressState(Enum):

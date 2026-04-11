@@ -1,22 +1,19 @@
-import numpy as np
 import logging
-from scipy.optimize import brentq
-from typing import Dict, Any, Optional
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-import sys
+from typing import Any, Dict, Optional
+
+import numpy as np
+from scipy.optimize import brentq
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from utils.statistical_tests import (
-    safe_ttest_ind,
-    safe_ttest_1samp,
-    compute_cohens_d,
-    safe_binomtest,
-)
+from utils.statistical_tests import (compute_cohens_d, safe_binomtest,
+                                     safe_ttest_1samp, safe_ttest_ind)
 
 logger = logging.getLogger(__name__)
 

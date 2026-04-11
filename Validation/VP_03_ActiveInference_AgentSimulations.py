@@ -17,15 +17,15 @@ This protocol implements:
 import json
 import logging
 import os
-import psutil
 import sys
 from collections import deque
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Type
-from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
+import psutil
 
 try:
     import torch
@@ -38,10 +38,10 @@ except ImportError:
     torch = None  # type: ignore
     nn = None  # type: ignore
     F = None  # type: ignore
+from abc import ABC, abstractmethod
+
 from sklearn.linear_model import LogisticRegression
 from tqdm import tqdm
-
-from abc import ABC, abstractmethod
 
 # Add parent directory to path for utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -56,11 +56,9 @@ from utils.constants import DIM_CONSTANTS, LEVEL_TIMESCALES
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        F2_1_MIN_ADVANTAGE_PCT,
-        F2_1_MIN_COHENS_H,
-    )
+    from utils.falsification_thresholds import (DEFAULT_ALPHA,
+                                                F2_1_MIN_ADVANTAGE_PCT,
+                                                F2_1_MIN_COHENS_H)
 except ImportError:
     DEFAULT_ALPHA = 0.05
     F2_1_MIN_ADVANTAGE_PCT = 22.0
@@ -2402,8 +2400,9 @@ class AgentComparisonExperiment:
         X = np.clip(X, -1e3, 1e3)
 
         # Robust scaling to prevent overflow in sklearn
-        from sklearn.preprocessing import RobustScaler
         import warnings
+
+        from sklearn.preprocessing import RobustScaler
 
         try:
             scaler = RobustScaler(quantile_range=(5.0, 95.0))
@@ -3910,7 +3909,8 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:

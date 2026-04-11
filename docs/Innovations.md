@@ -114,9 +114,34 @@ The APGI-LNN mapping table is implemented in `APGI_Liquid_Network_Implementation
 
 The 1/f structure of awake EEG is well-established, and prior work has provided mechanistic accounts. He et al. (2010) explicitly derived 1/f scaling from multi-scale temporal integration processes in cortex. Linkenkaer-Hansen et al. (2001) demonstrated 1/f structure reflects long-range temporal correlations in neuronal avalanches. Buzsáki & Mizuseki (2014) comprehensively reviewed how nested oscillations produce 1/f spectra through superposition.
 
-APGI's contribution is not deriving 1/f dynamics de novo but specifying which regulatory processes—precision weights and allostatic thresholds shaped by nested regulatory loops spanning milliseconds, minutes, and hours—generate the 1/f signature within a consciousness-specific framework. The framework predicts that the aperiodic exponent β (as measured with FOOOF/specparam; Donoghue et al., 2020) should be approximately 0.8 -- 1.2 during wakefulness and increase toward β ≈ 1.5 -- 2.0 in deep sleep. These directional predictions have cross-state falsification criteria that go beyond prior mechanistic accounts.
+APGI's contribution is not deriving 1/f dynamics de novo but specifying which regulatory processes—precision weights and allostatic thresholds shaped by nested regulatory loops spanning milliseconds, minutes, and hours—generate the 1/f signature within a consciousness-specific framework. The framework predicts that the aperiodic exponent β (as measured with FOOOF/specparam; Donoghue et al., 2020) should be approximately **β ≈ 0.8–1.2 during wakefulness** and **increase toward β ≈ 1.5–2.0 in deep sleep**.
 
-A critical correction applies here: earlier versions of this document predicted β ≈ 0 under general anesthesia. Published data contradict this. Donoghue et al. (2020, Nature Neuroscience) and related work report that propofol anesthesia increases rather than decreases the aperiodic slope, with values typically increasing to β ≈ 2 -- 2.5. The corrected APGI prediction is therefore that anesthesia produces an elevated aperiodic exponent (β > 1.5), reflecting the collapse of higher-level fast oscillatory activity while slower components persist—not a flat spectrum. This revision also changes the falsification criterion: an absence of aperiodic slope increase under anesthesia (or a slope decrease) would falsify this component of the hierarchical architecture.
+### CORRECTED: Anesthesia Spectral Slope Prediction (β ≈ 2.0–2.5)
+
+**Legacy Prediction (DISCARDED)**: Earlier versions predicted β ≈ 0 (white noise) under general anesthesia.
+
+**Updated Prediction (CURRENT)**: Published data from Gao et al. (2017, eLife), Lendner et al. (2020, eLife), and Colombo et al. (2019, J Neurosci) demonstrate that propofol anesthesia **increases** the aperiodic slope:
+
+| Consciousness State | Aperiodic Slope β | Mechanism |
+| ------------------- | ----------------- | --------- |
+| Wakefulness | 0.8 – 1.2 | Full hierarchical dynamics |
+| NREM Sleep (N2) | 1.2 – 1.5 | Reduced top-down modulation |
+| NREM Sleep (N3) | 1.5 – 2.0 | Slow-wave dominance |
+| **Anesthesia (Propofol)** | **2.0 – 2.5** | **Collapse of fast oscillations, persistent slow activity** |
+| Coma (non-TBI) | 2.5 – 3.0 | Minimal residual cortical dynamics |
+
+**Falsification Criterion (Updated)**:
+
+- **F9.1**: If β < 1.5 under propofol anesthesia → APGI hierarchical architecture falsified
+- **F9.2**: If β increases with arousal (opposite pattern) → Alternative mechanism required
+- **F9.3**: If no state-dependent β modulation → Precision-threshold hierarchy not reflected in spectral dynamics
+
+**References for Corrected Values**:
+
+- Gao et al. (2017): "Complexity of EEG signals correlates with anesthesia depth"
+- Lendner et al. (2020): "Sleep-like cortical activity explains propofol-induced behavioral unresponsiveness"
+- Colombo et al. (2019): "The spectral exponent of the resting EEG indexes cortical reactivity"
+- Donoghue et al. (2020): "Parameterizing neural power spectra" (methodology)
 
 ### Connection to App Implementation (Innovation 9)
 

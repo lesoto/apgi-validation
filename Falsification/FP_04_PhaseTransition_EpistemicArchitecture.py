@@ -1,40 +1,35 @@
-import warnings
-from typing import Any, Dict, List, Optional, Tuple
 import logging
+import warnings
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy.stats import entropy
-from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix
+from sklearn.metrics import confusion_matrix, roc_auc_score, roc_curve
 from sklearn.utils import resample
 
 # FIX #1: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from datetime import datetime
+
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
     HAS_SCHEMA = False
 
 # Import constants from centralized location
-from utils.constants import (
-    F4_CRITICAL_SLOWING_MIN_RATIO,
-    F4_CRITICAL_SLOWING_P_VALUE,
-    F4_MIN_SENSITIVITY,
-    F4_MIN_SPECIFICITY,
-    F4_MIN_POWER,
-    MODEL_PARAMS,
-    SHUFFLE_SEED_OFFSET,
-    FP3_DOC_SYNTHETIC_FEATURE_WEIGHTS,  # HIGH-02: Import from constants
-    FP3_DOC_SIGNAL_MULTIPLIERS,  # HIGH-02: Import from constants
-)
-from utils.falsification_thresholds import (
-    LEVEL2_TE_THRESHOLD,
-    LEVEL2_MI_THRESHOLD,
-    LEVEL2_MI_FALSIFICATION_THRESHOLD,
-    NULL_BOOTSTRAP_N,
-)
+from utils.constants import \
+    FP3_DOC_SIGNAL_MULTIPLIERS  # HIGH-02: Import from constants
+from utils.constants import (  # HIGH-02: Import from constants
+    F4_CRITICAL_SLOWING_MIN_RATIO, F4_CRITICAL_SLOWING_P_VALUE, F4_MIN_POWER,
+    F4_MIN_SENSITIVITY, F4_MIN_SPECIFICITY, FP3_DOC_SYNTHETIC_FEATURE_WEIGHTS,
+    MODEL_PARAMS, SHUFFLE_SEED_OFFSET)
+from utils.falsification_thresholds import (LEVEL2_MI_FALSIFICATION_THRESHOLD,
+                                            LEVEL2_MI_THRESHOLD,
+                                            LEVEL2_TE_THRESHOLD,
+                                            NULL_BOOTSTRAP_N)
 
 try:
     import torch
@@ -55,11 +50,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Power analysis functions
 try:
-    from utils.statistical_tests import (
-        compute_power_analysis,
-        compute_required_n,
-        permutation_test,
-    )
+    from utils.statistical_tests import (compute_power_analysis,
+                                         compute_required_n, permutation_test)
 
     POWER_ANALYSIS_AVAILABLE = True
 except ImportError:
@@ -98,9 +90,7 @@ DEFAULT_EPSILON = 1e-10
 
 # FIX #2: Import FP-07 validated parameter bounds for cross-protocol consistency
 try:
-    from utils.interprotocol_schema import (
-        load_fp7_validated_bounds,
-    )
+    from utils.interprotocol_schema import load_fp7_validated_bounds
 
     # Override with dynamically loaded bounds if available
     _VALIDATED_BOUNDS = load_fp7_validated_bounds()
@@ -2338,7 +2328,7 @@ class ClinicalBiomarkerFalsification:
 
         # Import DOC_AUC thresholds with fallback
         try:
-            from utils.falsification_thresholds import DOC_AUC_MIN, DOC_AUC_MAX
+            from utils.falsification_thresholds import DOC_AUC_MAX, DOC_AUC_MIN
         except ImportError:
             # Fallback to hardcoded values if import fails
             logger.warning("Could not import DOC_AUC thresholds, using fallback values")
@@ -2567,9 +2557,8 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     """
     # Import criteria registry for threshold definitions
     try:
-        from utils.criteria_registry import (
-            get_falsification_criteria as get_registry_criteria,
-        )
+        from utils.criteria_registry import \
+            get_falsification_criteria as get_registry_criteria
 
         registry = get_registry_criteria()
     except ImportError:

@@ -6,25 +6,20 @@ _create_heatmap_plot, _create_plot_by_type, _create_scatter_plot,
 _create_time_series_plot, _parse_visualization_parameters, _setup_plotting_style
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
 import sys
-from unittest.mock import patch, MagicMock
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import numpy as np
+import pandas as pd
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import (
-    _create_distribution_plot,
-    _create_figure_and_axes,
-    _create_heatmap_plot,
-    _create_plot_by_type,
-    _create_scatter_plot,
-    _create_time_series_plot,
-    _parse_visualization_parameters,
-    _setup_plotting_style,
-)
+from main import (_create_distribution_plot, _create_figure_and_axes,
+                  _create_heatmap_plot, _create_plot_by_type,
+                  _create_scatter_plot, _create_time_series_plot,
+                  _parse_visualization_parameters, _setup_plotting_style)
 
 
 class TestParseVisualizationParameters:

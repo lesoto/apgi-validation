@@ -11,15 +11,16 @@ Performance regression testing with:
 This module provides comprehensive performance monitoring for the APGI framework.
 """
 
-import time
 import json
 import statistics
-from dataclasses import dataclass, field, asdict
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Callable
-from datetime import datetime
-import numpy as np
 import sys
+import time
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+import numpy as np
 
 
 @dataclass

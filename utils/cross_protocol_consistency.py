@@ -7,8 +7,9 @@ consistent results across protocols that share them.
 """
 
 import logging
+from typing import Any, Dict
+
 import numpy as np
-from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 

@@ -9,16 +9,16 @@ and comprehensive export capabilities for the APGI Validation Framework.
 
 import json
 import sqlite3
+import statistics
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Any
-import statistics
+from typing import Any, Dict, List
 
 try:
     import dash
-    from dash import html, dcc, Input, Output
     import pandas as pd
+    from dash import Input, Output, dcc, html
 
     DASH_AVAILABLE = True
 except ImportError:

@@ -633,7 +633,7 @@ def test_f6_1_intrinsic_threshold_behavior(
     mean_rank_ff = np.mean(rank_ff)
     cliffs_delta = 2 * (mean_rank_ff - mean_rank_ltcn) / (n_ltcn * n_ff)
 
-    f6_1_pass = (
+    f6_1_pass = bool(
         np.median(ltcn_transition_times) <= ltcn_max_transition_ms
         and cliffs_delta >= cliffs_delta_min
         and p_value < mann_whitney_alpha
@@ -795,7 +795,7 @@ def test_f6_3_metabolic_selectivity(
         else 0
     )
 
-    f6_3_pass = (
+    f6_3_pass = bool(
         np.mean(ltcn_sparsity_reductions) >= min_reduction_pct
         and np.mean(standard_sparsity_reductions) <= max_standard_reduction_pct
         and cohens_d >= min_cohens_d

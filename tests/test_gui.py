@@ -5,9 +5,10 @@ GUI component tests for APGI validation framework.
 Tests for tkinter GUI components with proper mocking and fixtures.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 import sys
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Prevent any tkinter imports at module level
 if "tkinter" in sys.modules:
@@ -270,8 +271,9 @@ class TestAPGIValidationGUI:
     @patch("Validation.safe_import_module")
     def test_thread_safety(self, mock_safe_import, mock_validator_class):
         """Test thread safety mechanisms."""
-        from Validation import APGIValidationGUI
         from unittest.mock import Mock, patch
+
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()
@@ -526,6 +528,7 @@ class TestGUIPerformance:
     ):
         """Test GUI initialization performance."""
         import time
+
         from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
@@ -546,8 +549,9 @@ class TestGUIPerformance:
         self, mock_safe_import, mock_validator_class, mock_tkinter_fixture
     ):
         """Test UI update queue performance under load."""
-        from Validation import APGIValidationGUI
         import time
+
+        from Validation import APGIValidationGUI
 
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()

@@ -7,8 +7,8 @@ Provides standardized error messages, error categories, and centralized
 error handling with proper logging and user-friendly messages.
 """
 
-import signal
 import functools
+import signal
 import threading
 import traceback
 from dataclasses import dataclass

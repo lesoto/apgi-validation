@@ -14,17 +14,20 @@ CRITICAL FEATURES:
 """
 
 import logging
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
-from typing import Dict, Any, Optional, List, Tuple
 from scipy import stats
 from scipy.stats import wilcoxon
-from pathlib import Path
-import sys
 
 # FIX #1: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from datetime import datetime
+
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -35,13 +38,11 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from utils.falsification_thresholds import (
-    F6_1_LTCN_MAX_TRANSITION_MS,
-    F6_2_LTCN_MIN_WINDOW_MS,
-    F6_2_MIN_INTEGRATION_RATIO,
-    F6_2_WILCOXON_ALPHA,
-)
 from utils.constants import APGI_GLOBAL_SEED
+from utils.falsification_thresholds import (F6_1_LTCN_MAX_TRANSITION_MS,
+                                            F6_2_LTCN_MIN_WINDOW_MS,
+                                            F6_2_MIN_INTEGRATION_RATIO,
+                                            F6_2_WILCOXON_ALPHA)
 
 # Removed for GUI stability
 _logger = logging.getLogger(__name__)  # type: ignore[no-redef,assignment]
@@ -756,19 +757,21 @@ def run_falsification(vp5_genome_path: Optional[str] = None) -> Dict[str, Any]:
     # 4. Aggregate named predictions for FP_ALL_Aggregator
     named_predictions = {
         "P12.a": {
-            "passed": scaling_results["pi_i"]["passed"]
-            and scaling_results["theta_t"]["passed"]
-            and all_2sd_passed,
+            "passed": bool(
+                scaling_results["pi_i"]["passed"]
+                and scaling_results["theta_t"]["passed"]
+                and all_2sd_passed
+            ),
             "actual": f"Scaling exponents: pi={scaling_results['pi_i']['observed_exponent']:.2f}, theta={scaling_results['theta_t']['observed_exponent']:.2f}, 2SD_pass={all_2sd_passed}",
             "threshold": "Within ±0.10 of expected allometric exponents AND ±2 SD window",
         },
         "P12.b": {
-            "passed": ltc_results["f6_2_pass"] and ltc_results["f6_1_pass"],
+            "passed": bool(ltc_results["f6_2_pass"] and ltc_results["f6_1_pass"]),
             "actual": f"LTC window={ltc_results['ltc_window_ms']:.1f}ms, Ratio={ltc_results['integration_ratio']:.1f}x",
             "threshold": f">= {F6_2_LTCN_MIN_WINDOW_MS}ms, >= {F6_2_MIN_INTEGRATION_RATIO}x",
         },
         "P12.c": {
-            "passed": p_paired < 0.05 and mean_red > 50,
+            "passed": bool(p_paired < 0.05 and mean_red > 50),
             "actual": f"Propofol reduction: {mean_red:.1f}%, p={p_paired:.4f}",
             "threshold": "> 50%, p < 0.05",
         },
@@ -797,17 +800,29 @@ def run_falsification(vp5_genome_path: Optional[str] = None) -> Dict[str, Any]:
 
 def run_protocol_main(**kwargs) -> "ProtocolResult":
     """Standardized entry point for FP-12."""
-    from utils.protocol_schema import ProtocolResult
     from datetime import datetime
+
+    from utils.protocol_schema import PredictionResult, ProtocolResult
 
     # Run the core falsification logic
     res_dict = run_falsification()
 
+    # Convert dict predictions to PredictionResult objects
+    named_predictions = {
+        k: PredictionResult(
+            passed=v.get("passed", False),
+            value=v.get("actual", ""),
+            threshold=v.get("threshold", ""),
+            evidence=[v.get("actual", "")] if v.get("actual") else [],
+        )
+        for k, v in res_dict["named_predictions"].items()
+    }
+
     # Create the standardized result object
     res = ProtocolResult(
-        protocol_id="FP-12",
+        protocol_id="FP_12_CrossSpeciesScaling",
         timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        named_predictions=res_dict["named_predictions"],
+        named_predictions=named_predictions,
         completion_percentage=100,
         data_sources=["synthetic_data"],
         methodology="agent_simulation",

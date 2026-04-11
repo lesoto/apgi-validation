@@ -4,6 +4,49 @@
 
 The falsification protocols package provides a comprehensive suite of testing protocols designed to potentially falsify APGI theory predictions. Each protocol targets specific aspects of the theory with rigorous empirical tests.
 
+## Parameter Range Validation Table
+
+To prevent researchers from entering non-biological values, the following tables specify valid parameter ranges for each class constructor:
+
+### HierarchicalGenerativeModel Parameter Ranges
+
+| Parameter | Valid Range | Biological Constraint | Error if Outside Range |
+| --------- | ----------- | -------------------- | ---------------------- |
+| `learning_rate` | [0.001, 0.1] | Synaptic plasticity bounds | `ValueError: learning_rate must be in [0.001, 0.1]` |
+| `model_type` | {"extero", "intero"} | Modal specificity | `ValueError: model_type must be 'extero' or 'intero'` |
+| Level dimensions | [8, 256] | Neural population sizes | `ValueError: dimension must be in [8, 256]` |
+
+### APGIActiveInferenceAgent Parameter Ranges
+
+| Parameter | Valid Range | Biological Constraint | Error if Outside Range |
+| --------- | ----------- | -------------------- | ---------------------- |
+| `state_dim` | [16, 512] | Cortical column approximations | `ValueError: state_dim must be in [16, 512]` |
+| `action_dim` | [2, 16] | Effector degrees of freedom | `ValueError: action_dim must be in [2, 16]` |
+| `hidden_dim` | [32, 256] | Layer 2/3 pyramidale sizes | `ValueError: hidden_dim must be in [32, 256]` |
+| `learning_rate` | [0.001, 0.1] | NMDA receptor timescales | `ValueError: learning_rate must be in [0.001, 0.1]` |
+
+### IowaGamblingTaskEnvironment Parameter Ranges
+
+| Parameter | Valid Range | Biological Constraint | Error if Outside Range |
+| --------- | ----------- | -------------------- | ---------------------- |
+| `n_trials` | [50, 500] | Attention span limitations | `ValueError: n_trials must be in [50, 500]` |
+| Deck reward variance | [0.1, 0.9] | Realistic risk profiles | Automatically clamped with warning |
+
+### Validation Enforcement
+
+```python
+# Example validation in constructor
+if not (0.001 <= learning_rate <= 0.1):
+    raise ValidationError(
+        message=f"learning_rate {learning_rate} outside biological range [0.001, 0.1]",
+        data_field="learning_rate",
+        context={"value": learning_rate, "valid_range": [0.001, 0.1]},
+        suggestion="Use learning rate compatible with NMDA receptor kinetics"
+    )
+```
+
+---
+
 ## Package Import
 
 ```python

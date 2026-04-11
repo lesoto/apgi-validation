@@ -7,9 +7,9 @@ Connects preprocessing pipelines with validation protocols to enable end-to-end
 workflow automation for APGI framework.
 """
 
+import inspect
 import json
 import logging
-import inspect
 import os
 import signal
 import sys
@@ -26,10 +26,8 @@ import pandas as pd
 
 # Import preprocessing pipelines with proper fallback
 try:
-    from utils.preprocessing_pipelines import (
-        PreprocessingConfig,
-        MultimodalPreprocessingPipeline,
-    )
+    from utils.preprocessing_pipelines import (MultimodalPreprocessingPipeline,
+                                               PreprocessingConfig)
 except ImportError:
     raise ImportError(
         "Could not import preprocessing pipelines. "
@@ -37,10 +35,9 @@ except ImportError:
     )
 
 try:
-    from utils.sample_data_generator import (
-        SampleDataGenerator as SampleDataGeneratorClass,
-        generate_sample_multimodal_data,
-    )
+    from utils.sample_data_generator import \
+        SampleDataGenerator as SampleDataGeneratorClass
+    from utils.sample_data_generator import generate_sample_multimodal_data
 
     SampleDataGenerator: Union[type, None] = SampleDataGeneratorClass
 except ImportError:

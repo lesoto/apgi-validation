@@ -14,16 +14,15 @@ Test Categories:
 - Error handling validation
 """
 
-import pytest
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
+import pytest
 
 # Import the protocol to test
 from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import (
-    IowaGamblingTaskEnvironment,
-    VolatileForagingEnvironment,
-    ThreatRewardTradeoffEnvironment,
-)
+    IowaGamblingTaskEnvironment, ThreatRewardTradeoffEnvironment,
+    VolatileForagingEnvironment)
 
 
 class TestAgentComparisonConvergenceBenchmark:

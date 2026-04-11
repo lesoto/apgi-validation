@@ -21,7 +21,17 @@ Ideas whose specific formal structure does not exist in the prior literature and
 
 ## 1. Interoceptive-Specific Precision Weighting via Formalized Somatic Marker Modulation
 
-The somatic marker modulation equation Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a)) is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI_Multimodal_Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, with Πⁱ_eff hard-clamped to absolute bounds [0.1, 10.0] to prevent physiologically implausible precision values (typical dynamic range 0.1–10× when Πⁱ_baseline ≈ 1.0), capturing the nonlinear gain-control role of somatic markers.
+**Paper 1 Equation Reference**: Eq. 1 (Somatic Marker Modulation)
+
+```text
+Πⁱ_eff = Πⁱ_baseline · exp(β_som·M(c,a))     [Eq. 1]
+```
+
+**Implementation Details**:
+The somatic marker modulation equation is implemented in the `compute_somatic_modulation` method of the `APGICoreIntegration` class in `APGI_Multimodal_Integration.py`. This method applies the bounded exponential modulation to the baseline interoceptive precision using the somatic marker value and individual beta parameter, with Πⁱ_eff hard-clamped to absolute bounds [0.1, 10.0] to prevent physiologically implausible precision values (typical dynamic range 0.1–10× when Πⁱ_baseline ≈ 1.0), capturing the nonlinear gain-control role of somatic markers.
+
+- Equation location: Paper 1, Section 3.2, Eq. 1
+- Variable definitions: See Paper 1, Table 1 (Parameter Definitions)
 
 APGI_Multimodal_Integration.py, `APGICoreIntegration.compute_somatic_modulation(self, Pi_i_baseline: float, M_ca: float, beta: float) -> float`
 

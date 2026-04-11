@@ -34,6 +34,60 @@ The APGI Theory Framework is designed as a modular, extensible system for comput
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+## Data Flow Architecture (Mermaid.js Flowchart)
+
+The following Mermaid.js diagram shows the exact data path from a raw ECG signal through APGINormalizer to the MultimodalClassifier:
+
+```mermaid
+flowchart LR
+    subgraph Input["Raw Signal Input"]
+        ECG["ECG Signal<br/>(1000 Hz)"]
+    end
+
+    subgraph Preprocessing["APGINormalizer Pipeline"]
+        ECG --> Z1["Z-Score Normalization<br/>μ=0, σ=1"]
+        Z1 --> QC["Quality Control<br/>Artifact Detection"]
+        QC --> HEP["HEP Extraction<br/>R-peak Aligned"]
+    end
+
+    subgraph Integration["APGI Core Integration"]
+        HEP --> SM["Somatic Marker<br/>Modulation<br/>Πⁱ_eff = Πⁱ·exp(β·M)"]
+        EX["Exteroceptive<br/>(e.g., Gamma)"] --> COMBINE["Precision-Weighted<br/>Combination"]
+        SM --> COMBINE
+    end
+
+    subgraph Classification["MultimodalClassifier"]
+        COMBINE --> FEAT["Feature Extraction<br/>Temporal + Spectral"]
+        FEAT --> IGN["Ignition Detection<br/>S(t) > θ(t)"]
+        IGN --> OUT["Output:<br/>Ignition Probability<br/>+ Parameters"]
+    end
+
+    style Input fill:#e1f5fe
+    style Preprocessing fill:#fff3e0
+    style Integration fill:#e8f5e9
+    style Classification fill:#fce4ec
+```
+
+### Data Path Description
+
+| Stage | Processing Step | Output Format | Computational Cost |
+| ----- | --------------- | ------------- | ----------------- |
+| 1 | Raw ECG Input | 1000 Hz, 16-bit | O(n) memory |
+| 2 | Z-Score Normalization | Standardized signal | O(n) time |
+| 3 | HEP Extraction | 600ms epochs post-R | O(n) with FFT |
+| 4 | Somatic Modulation | Πⁱ_eff scalar | O(1) per sample |
+| 5 | Precision Combination | S(t) accumulated surprise | O(1) per timestep |
+| 6 | Ignition Detection | B(t) binary + P(ignition) | O(1) comparison |
+
+### Key Processing Nodes
+
+1. **APGINormalizer**: Handles modality-specific z-scoring with robust statistics
+2. **HEP Extraction**: Cardiac-phase aligned averaging (250-400ms post R-peak)
+3. **Somatic Modulation**: Exponential gain control via Πⁱ_eff = Πⁱ_baseline · exp(β·M)
+4. **Ignition Threshold**: Adaptive θ(t) based on pupil + alpha power
+
+---
+
 ## Component Architecture
 
 ### 1. CLI Interface Layer

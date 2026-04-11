@@ -33,7 +33,7 @@ if "APGI_Cultural_Neuroscience" not in sys.modules:
     sys.modules["APGI_Cultural_Neuroscience"] = _self
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np

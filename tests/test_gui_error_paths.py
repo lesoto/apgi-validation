@@ -6,11 +6,12 @@ Comprehensive tests for GUI error handling paths in APGI Validation GUI.
 Tests error scenarios, UI updates, queue handling, and thread safety.
 """
 
-import pytest
 import queue
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Prevent any tkinter imports at module level
 if "tkinter" in sys.modules:

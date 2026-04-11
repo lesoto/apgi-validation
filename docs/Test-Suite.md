@@ -79,7 +79,6 @@ python -m tests.comprehensive.runner --all --fail-fast
 python -m tests.comprehensive.runner --all --output ./my-reports
 ```
 
-
 ### Quick Test Run
 
 ```bash

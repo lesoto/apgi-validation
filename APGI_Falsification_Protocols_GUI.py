@@ -13,7 +13,7 @@ import tkinter as tk
 import warnings
 from pathlib import Path
 from tkinter import messagebox, scrolledtext, ttk
-from typing import List, Callable, Any
+from typing import Any, Callable, List
 
 # Pre-import torch to prevent circular import issues with dynamically loaded protocols
 try:

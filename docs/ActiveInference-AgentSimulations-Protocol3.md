@@ -180,14 +180,163 @@ for trial in range(100):
     reward, intero_cost, next_obs, done = env.step(action)
     agent.receive_outcome(reward, intero_cost, next_obs)
     observation = next_obs
-```text
+```
 
+## Metabolic Energy Budget Implementation
+
+To implement realistic metabolic costs of information processing in active inference simulations, the following energy budget parameters are provided:
+
+### Energy Budget Equation
+
+The total metabolic cost `C_metabolic` at each timestep combines baseline and information-processing components:
+
+```text
+C_metabolic(t) = C_base + C_process(t) + C_precision(t) + C_error(t)
+```
+
+Where:
+
+- `C_base`: Baseline metabolic rate (ATP/min for neural maintenance)
+- `C_process(t)`: Cost of policy evaluation and selection
+- `C_precision(t)`: Cost of precision-weighting (attention allocation)
+- `C_error(t)`: Cost of prediction error computation
+
+### Energy Budget Parameters
+
+| Component | Base Cost | Scaling Factor | Conditions | Units |
+| --------- | --------- | -------------- | ---------- | ------- |
+| **C_base** | 5.0 | - | Always active | ATP units/min |
+| **C_process** | 0.5 | +0.3 per policy | More policies = higher cost | ATP units/policy |
+| **C_precision** | 1.0 | × Π_eff | Higher precision = higher cost | ATP units × precision |
+| **C_error** | 0.8 | × ε | Larger errors = higher cost | ATP units × error |
+
+**Default Total Range**: 8–25 ATP units/min depending on cognitive load
+
+### Implementation Example
+
+```python
+class MetabolicEnergyBudget:
+    """Tracks metabolic costs for active inference agents."""
+
+    # Energy budget constants (in arbitrary ATP units)
+    BASE_COST = 5.0           # Neural maintenance
+    POLICY_COST = 0.3         # Per policy evaluated
+    PRECISION_COST = 1.0      # Base precision cost
+    ERROR_COST = 0.8          # Base prediction error cost
+
+    def __init__(self):
+        self.total_cost = 0.0
+        self.cost_history = []
+        self.budget_exhausted = False
+
+    def calculate_timestep_cost(self, n_policies, Pi_eff, prediction_error):
+        """
+        Calculate metabolic cost for one inference timestep.
+
+        Args:
+            n_policies: Number of policies evaluated
+            Pi_eff: Effective precision (attention weight)
+            prediction_error: |ε| magnitude
+
+        Returns:
+            cost: Total ATP units for this timestep
+        """
+        # Baseline maintenance
+        c_base = self.BASE_COST
+
+        # Policy evaluation cost (scales with cognitive load)
+        c_process = self.POLICY_COST * n_policies
+
+        # Precision allocation cost (attention is metabolically expensive)
+        c_precision = self.PRECISION_COST * Pi_eff
+
+        # Prediction error computation cost
+        c_error = self.ERROR_COST * abs(prediction_error)
+
+        total = c_base + c_process + c_precision + c_error
+
+        self.total_cost += total
+        self.cost_history.append(total)
+
+        return total
+
+    def check_exhaustion(self, max_budget=1000):
+        """Check if agent has exceeded metabolic budget."""
+        if self.total_cost > max_budget:
+            self.budget_exhausted = True
+            return True
+        return False
+
+    def get_efficiency_ratio(self, value_gained):
+        """
+        Calculate metabolic efficiency: value gained per ATP spent.
+
+        Args:
+            value_gained: Total reward/value accumulated
+
+        Returns:
+            efficiency: Value per ATP unit (higher = better)
+        """
+        if self.total_cost == 0:
+            return 0.0
+        return value_gained / self.total_cost
+```
+
+### Policy Selection with Energy Constraints
+
+```python
+def select_policy_with_budget(policies, energy_budget, min_budget_threshold=50):
+    """
+    Select policy considering metabolic constraints.
+
+    Args:
+        policies: List of available policies with expected utilities
+        energy_budget: Current MetabolicEnergyBudget state
+        min_budget_threshold: Minimum ATP required to continue
+
+    Returns:
+        selected_policy: Policy or None if budget exhausted
+    """
+    # Check if budget depleted
+    if energy_budget.total_cost < min_budget_threshold:
+        # Allow only default/low-cost policies
+        affordable_policies = [p for p in policies if p['cost'] < 2.0]
+    else:
+        affordable_policies = policies
+
+    # Standard policy selection among affordable options
+    best_policy = max(affordable_policies, key=lambda p: p['expected_utility'])
+
+    # Deduct cost
+    energy_budget.calculate_timestep_cost(
+        n_policies=len(affordable_policies),
+        Pi_eff=best_policy.get('precision', 1.0),
+        prediction_error=best_policy.get('error', 0.5)
+    )
+
+    return best_policy
+```
+
+### Metabolic Efficiency Metrics
+
+| Metric | Calculation | Interpretation |
+| -------- | ------------- | ---------------- |
+| **Cost per Decision** | Total ATP / N decisions | Efficiency of inference |
+| **Value per ATP** | Accumulated value / Total ATP | Metabolic ROI |
+| **Precision Efficiency** | Task accuracy / Precision cost | Attention allocation efficiency |
+| **Exhaustion Rate** | ΔATP / Δtime | Sustainability of processing |
+
+### Falsification Criteria (Innovation 2)
+
+| Prediction | Metabolic Cost Expectation | Falsification Threshold |
+| ---------- | -------------------------- | ------------------------ |
+| P3.1: Higher precision → higher cost | C_precision increases with Π | Cost doesn't scale with precision |
+| P3.2: More policies → higher cost | C_process increases with N_policies | Cost independent of policy count |
+| P3.3: Budget exhaustion → degraded performance | Performance drops as ATP → 0 | No performance change with exhaustion |
 
 ## Components
 
-
 ### Agent Types
-
 
 1. **APGIActiveInferenceAgent**
    - Full APGI architecture
@@ -212,12 +361,9 @@ for trial in range(100):
    - No predictive processing
    - Simple policy gradient
 
-
 ### Task Environments
 
-
 #### 1. Iowa Gambling Task (IGT)
-
 
 Simulates Bechara et al.'s classic decision-making paradigm with interoceptive costs:
 

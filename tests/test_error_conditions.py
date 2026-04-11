@@ -4,14 +4,15 @@ Tests for missing error conditions in the APGI validation framework.
 Tests for OOM scenarios, corrupted files, GPU memory exhaustion, tensor misalignment, and other edge cases.
 """
 
-import pytest
-import pandas as pd
-import numpy as np
-from pathlib import Path
-import sys
-import subprocess
 import json
-from unittest.mock import patch, MagicMock
+import subprocess
+import sys
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import numpy as np
+import pandas as pd
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -664,7 +665,8 @@ class TestErrorHandlerCoverage:
 
     def test_custom_error_handler_exception(self):
         """Test error handler when custom handler raises exception."""
-        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
 
@@ -786,7 +788,8 @@ class TestErrorHandlerCoverage:
 
     def test_error_handler_count_cap(self):
         """Test that error counts are capped to prevent unbounded growth."""
-        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
 
@@ -801,7 +804,7 @@ class TestErrorHandlerCoverage:
 
     def test_apgi_error_with_context(self):
         """Test APGIError with context information."""
-        from utils.error_handler import APGIError, ErrorSeverity, ErrorCategory
+        from utils.error_handler import APGIError, ErrorCategory, ErrorSeverity
 
         error = APGIError(
             message="Test error",
@@ -817,7 +820,7 @@ class TestErrorHandlerCoverage:
 
     def test_apgi_error_with_traceback_sanitization(self):
         """Test APGIError traceback sanitization."""
-        from utils.error_handler import APGIError, ErrorSeverity, ErrorCategory
+        from utils.error_handler import APGIError, ErrorCategory, ErrorSeverity
 
         try:
             raise ValueError("Original error")
@@ -838,7 +841,8 @@ class TestErrorHandlerCoverage:
 
     def test_error_templates_unknown_code(self):
         """Test error template formatting with unknown code."""
-        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
         result = handler.format_error(
@@ -855,9 +859,11 @@ class TestThreadSafetyVerification:
 
     def test_thread_safe_error_counter(self):
         """Test thread-safe error counting with concurrent increments."""
-        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
         import threading
         import time
+
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
         errors_per_thread = 100
@@ -885,9 +891,10 @@ class TestThreadSafetyVerification:
 
     def test_concurrent_config_manager_thread_safety(self, tmp_path):
         """Test ConfigManager thread safety with concurrent writes."""
-        from utils.config_manager import ConfigManager
         import threading
         import time
+
+        from utils.config_manager import ConfigManager
 
         config_file = tmp_path / "threadsafe_config.yaml"
         config_file.write_text("value: 0\n")
@@ -919,8 +926,8 @@ class TestThreadSafetyVerification:
 
     def test_concurrent_file_operations_with_locks(self, tmp_path):
         """Test concurrent file operations with proper locking."""
-        import threading
         import fcntl
+        import threading
 
         test_file = tmp_path / "locked_file.txt"
         test_file.write_text("initial\n")
@@ -954,8 +961,9 @@ class TestThreadSafetyVerification:
 
     def test_race_condition_in_error_handler_registration(self):
         """Test race condition handling in error handler registration."""
-        from utils.error_handler import ErrorHandler, ErrorCategory
         import threading
+
+        from utils.error_handler import ErrorCategory, ErrorHandler
 
         handler = ErrorHandler()
         registration_order = []
@@ -984,6 +992,7 @@ class TestThreadSafetyVerification:
     def test_concurrent_singleton_access(self):
         """Test thread-safe singleton access patterns."""
         import threading
+
         from utils.error_handler import error_handler
 
         instances = []
@@ -1055,7 +1064,9 @@ class TestPerformanceBaseline:
     def test_error_handler_performance_baseline(self):
         """Baseline performance for error handler operations."""
         import time
-        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
         iterations = 1000
@@ -1073,9 +1084,11 @@ class TestPerformanceBaseline:
 
     def test_concurrent_error_handling_performance(self):
         """Performance baseline for concurrent error handling."""
-        import time
         import threading
-        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+        import time
+
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
         errors_per_thread = 100
@@ -1107,6 +1120,7 @@ class TestPerformanceBaseline:
     def test_config_manager_load_performance(self, tmp_path):
         """Performance baseline for ConfigManager loading."""
         import time
+
         from utils.config_manager import ConfigManager
 
         config_file = tmp_path / "perf_config.yaml"
@@ -1127,7 +1141,9 @@ class TestPerformanceBaseline:
     def test_error_template_formatting_performance(self):
         """Performance baseline for error template formatting."""
         import time
-        from utils.error_handler import ErrorHandler, ErrorCategory, ErrorSeverity
+
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
         iterations = 10000

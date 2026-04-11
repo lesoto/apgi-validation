@@ -1,17 +1,12 @@
-"""
-Empirical Data Integration Report for VP-11 and VP-15
-=====================================================
+# Empirical Data Integration Report for VP-11 and VP-15
 
 This report documents the current state of empirical data integration
 and provides a roadmap for achieving publication-ready status.
-"""
 
 from pathlib import Path
 from typing import Dict, List, Any
 
-# =============================================================================
-# CURRENT STATUS: Gap #4 - Empirical Data Integration
-# =============================================================================
+## CURRENT STATUS: Gap #4 - Empirical Data Integration
 
 EMPIRICAL_DATA_STATUS = {
     "VP-11_MCMC_Cultural_Neuroscience": {
@@ -68,9 +63,7 @@ EMPIRICAL_DATA_STATUS = {
     },
 }
 
-# =============================================================================
-# DATA SOURCE RECOMMENDATIONS
-# =============================================================================
+## DATA SOURCE RECOMMENDATIONS
 
 RECOMMENDED_DATA_SOURCES = {
     "cross_cultural_eeg": [
@@ -106,9 +99,97 @@ RECOMMENDED_DATA_SOURCES = {
     ],
 }
 
-# =============================================================================
-# IMPLEMENTATION CHECKLIST
-# =============================================================================
+## PRIMARY INVESTIGATOR (PI) CONTACT DATABASE
+
+PI_CONTACT_DATABASE = {
+    "VP-11_MCMC_Cultural_Neuroscience": [
+        {
+            "pi_name": "Dr. Shinobu Kitayama",
+            "institution": "University of Michigan",
+            "email": "kitayama@umich.edu",
+            "research_focus": "Cultural neuroscience, individualism/collectivism",
+            "relevant_datasets": ["Cross-cultural ERP studies", "Cognitive style comparisons"],
+            "collaboration_status": "Contacted - awaiting response",
+            "data_sharing_policy": "Open via agreement",
+            "last_contact": "2026-03-15",
+        },
+        {
+            "pi_name": "Dr. Denise Park",
+            "institution": "University of Texas at Dallas",
+            "email": "denise.park@utdallas.edu",
+            "research_focus": "Cognitive aging, cross-cultural neuroscience",
+            "relevant_datasets": ["SCAN project - East Asian/US comparisons"],
+            "collaboration_status": "Not yet contacted",
+            "data_sharing_policy": "NDA required",
+            "last_contact": None,
+        },
+        {
+            "pi_name": "Dr. Yuri Miyamoto",
+            "institution": "University of Wisconsin-Madison",
+            "email": "miyamoto@wisc.edu",
+            "research_focus": "Cultural psychology, cognitive processes",
+            "relevant_datasets": ["Holistic vs. analytic processing EEG"],
+            "collaboration_status": "Not yet contacted",
+            "data_sharing_policy": "TBD",
+            "last_contact": None,
+        },
+    ],
+
+    "VP-15_fMRI_vmPFC_Anticipation": [
+        {
+            "pi_name": "Dr. Tor Wager",
+            "institution": "Dartmouth College",
+            "email": "tor.d.wager@dartmouth.edu",
+            "research_focus": "Pain neuroimaging, affective neuroscience",
+            "relevant_datasets": ["OpenNeuro ds001", "Pain anticipation fMRI"],
+            "collaboration_status": "OpenNeuro data already public",
+            "data_sharing_policy": "Open access",
+            "last_contact": "N/A - public dataset",
+        },
+        {
+            "pi_name": "Dr. Mauricio Delgado",
+            "institution": "Rutgers University",
+            "email": "delgado@psychology.rutgers.edu",
+            "research_focus": "Reward anticipation, vmPFC function",
+            "relevant_datasets": ["Reward processing fMRI datasets"],
+            "collaboration_status": "Not yet contacted",
+            "data_sharing_policy": "Collaboration agreement required",
+            "last_contact": None,
+        },
+        {
+            "pi_name": "Dr. Elizabeth Phelps",
+            "institution": "Harvard University",
+            "email": "liz_phelps@harvard.edu",
+            "research_focus": "Emotion, fear conditioning, anticipation",
+            "relevant_datasets": ["Fear anticipation neuroimaging"],
+            "collaboration_status": "Not yet contacted",
+            "data_sharing_policy": "TBD",
+            "last_contact": None,
+        },
+    ],
+}
+
+def print_pi_database():
+    """Print formatted PI contact database for empirical data integration."""
+    print("=" * 80)
+    print("PRIMARY INVESTIGATOR (PI) CONTACT DATABASE")
+    print("=" * 80)
+    print("\nFor VP-11 and VP-15 empirical data integration collaborative efforts.\n")
+
+    for protocol, contacts in PI_CONTACT_DATABASE.items():
+        print(f"\n{protocol}")
+        print("-" * 80)
+        for contact in contacts:
+            print(f"  PI: {contact['pi_name']}")
+            print(f"  Institution: {contact['institution']}")
+            print(f"  Email: {contact['email']}")
+            print(f"  Focus: {contact['research_focus']}")
+            print(f"  Collaboration Status: {contact['collaboration_status']}")
+            if contact['last_contact']:
+                print(f"  Last Contact: {contact['last_contact']}")
+            print()
+
+## IMPLEMENTATION CHECKLIST
 
 EMPIRICAL_INTEGRATION_CHECKLIST = """
 ## VP-11 Integration Checklist
@@ -141,7 +222,6 @@ EMPIRICAL_INTEGRATION_CHECKLIST = """
 - [ ] Add dataset citation
 - [ ] Update status from STUB to EMPIRICAL
 """
-
 
 def print_empirical_data_report():
     """Print a formatted report of empirical data integration status."""
@@ -181,7 +261,6 @@ def print_empirical_data_report():
     print("\n" + "=" * 80)
     print(EMPIRICAL_INTEGRATION_CHECKLIST)
     print("=" * 80)
-
 
 if __name__ == "__main__":
     print_empirical_data_report()

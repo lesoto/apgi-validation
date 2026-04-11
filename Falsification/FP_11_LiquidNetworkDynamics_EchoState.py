@@ -6,19 +6,22 @@ This protocol implements validation of liquid network properties for APGI models
 """
 
 import logging
-import numpy as np
-from typing import Any, Dict, List, Optional, Tuple, Union
-from scipy.optimize import curve_fit
-from sklearn.metrics import r2_score, silhouette_score
+import sys
 from dataclasses import dataclass
 from enum import Enum
-import sys
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score, silhouette_score
 
 # FIX #1: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from datetime import datetime
+
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -38,13 +41,9 @@ except ImportError:
 try:
     from utils import DIM_CONSTANTS
     from utils.falsification_thresholds import (
-        LIQUID_IGNITION_DETECTION_THRESHOLD,
-        F6_1_LTCN_MAX_TRANSITION_MS,
-        F6_1_CLIFFS_DELTA_MIN,
-        F6_2_LTCN_MIN_WINDOW_MS,
-        F6_2_MIN_INTEGRATION_RATIO,
-        F6_2_MIN_R2,
-    )
+        F6_1_CLIFFS_DELTA_MIN, F6_1_LTCN_MAX_TRANSITION_MS,
+        F6_2_LTCN_MIN_WINDOW_MS, F6_2_MIN_INTEGRATION_RATIO, F6_2_MIN_R2,
+        LIQUID_IGNITION_DETECTION_THRESHOLD)
 
     APGI_TAU_S_MIN = getattr(DIM_CONSTANTS, "TAU_S_MIN", 0.3)  # 0.3-0.5s from paper
     APGI_TAU_S_MAX = getattr(DIM_CONSTANTS, "TAU_S_MAX", 0.5)
@@ -3440,7 +3439,8 @@ def run_esn_parameter_sensitivity_analysis(
     """
     # Import ESN parameter ranges from constants
     try:
-        from utils.constants import ESN_SPECTRAL_RADIUS_RANGE, ESN_LEAK_RATE_RANGE
+        from utils.constants import (ESN_LEAK_RATE_RANGE,
+                                     ESN_SPECTRAL_RADIUS_RANGE)
 
         spectral_radii = ESN_SPECTRAL_RADIUS_RANGE
         leak_rates = ESN_LEAK_RATE_RANGE
@@ -3534,11 +3534,9 @@ def run_esn_parameter_sensitivity_analysis(
 
                 # F6.6: Alternative architectures test (imported from falsification_thresholds)
                 try:
-                    from utils.falsification_thresholds import (
-                        test_f6_6_alternative_architectures,
-                        F6_6_MIN_ADD_ON_MODULES,  # type: ignore[attr-defined]
-                        F6_6_MIN_PERFORMANCE_GAP,  # type: ignore[attr-defined]
-                    )
+                    from utils.falsification_thresholds import (  # type: ignore[attr-defined]
+                        F6_6_MIN_ADD_ON_MODULES, F6_6_MIN_PERFORMANCE_GAP,
+                        test_f6_6_alternative_architectures)
 
                     f6_6_result = test_f6_6_alternative_architectures(
                         alternative_modules_needed=F6_6_MIN_ADD_ON_MODULES,

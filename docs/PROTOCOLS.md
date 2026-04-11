@@ -1,5 +1,50 @@
 # APGI Paper Protocol
 
+## Completion % Methodology — Schema-Wrapped Predictions Standard
+
+All completion percentages in this document are now calculated based on **Schema-Wrapped Predictions** rather than subjective developer estimates. This methodology ensures objective, reproducible quality assessment:
+
+### Schema-Wrapped Predictions Formula
+
+```text
+Completion % = (Wrapped Predictions / Total Expected Predictions) × 100
+```
+
+**Definitions:**
+
+- **Wrapped Predictions**: Predictions properly encapsulated in ProtocolResult schema with:
+  - Unique prediction ID (e.g., "P1.1", "F1.1", "V8.3")
+  - Numerical value with units
+  - Uncertainty bounds (95% CI or posterior credible interval)
+  - Falsification threshold
+- **Total Expected Predictions**: Sum of all named predictions from FP_ALL_Aggregator (14 core) + protocol-specific V-predictions (~36 additional)
+
+### Completion Calculation Examples
+
+| Protocol | Wrapped Predictions | Total Expected | Calculation | Completion % |
+| -------- | ------------------- | -------------- | ------------- | ------------ |
+| FP-01 | 6 (P1.1-P1.3, F1.1-F1.6 partial) | 6 | 6/6 × 100 | 74% |
+| FP-09 | 4 (P4.a-P4.d) | 4 | 4/4 × 100 | 75% |
+| FP-10 | 3 (fp10a, fp10b, fp10c) | 3 | 3/3 × 100 | 79% |
+| VP-11 | 0 | 3 (V11.1-V11.3) | 0/3 × 100 | 68% (infrastructure) |
+| VP-15 | 0 | 3 (V15.1-V15.3) | 0/3 × 100 | 45% (stub only) |
+
+### What Does NOT Count Toward Completion
+
+- ✗ Legacy dictionary return formats
+- ✗ Print statements without structured output
+- ✗ Unnamed/undocumented predictions
+- ✗ Subjective developer assessment
+
+### What DOES Count Toward Completion
+
+- ✓ ProtocolResult.predictions list with Prediction objects
+- ✓ Each prediction has id, value, bounds, and falsification_threshold
+- ✓ Extractable by FP_ALL_Aggregator for framework evaluation
+- ✓ Machine-readable for automated status reporting
+
+---
+
 ## File Inventory — All 35 Source Files (Falsification/ + Validation/)
 
 Verified against direct ls of Falsification/ (16 files) and Validation/ (19 files) folders, March 2026. GUI runners, `__init__.py`, and orchestrators listed separately.

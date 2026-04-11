@@ -11,14 +11,16 @@ Expanded property-based testing with:
 This module extends test_property_based.py with advanced Hypothesis features.
 """
 
-import pytest
-import numpy as np
-from pathlib import Path
 import sys
-from hypothesis import given, strategies, settings, assume, Phase
-from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, precondition
+from pathlib import Path
+from typing import Any, Dict
+
+import numpy as np
+import pytest
+from hypothesis import Phase, assume, given, settings, strategies
 from hypothesis.extra import numpy as np_st
-from typing import Dict, Any
+from hypothesis.stateful import (RuleBasedStateMachine, invariant,
+                                 precondition, rule)
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))

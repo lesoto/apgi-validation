@@ -400,6 +400,7 @@ def reset_random_state_before_each_test():
 def flaky_operation():
     """Fixture that provides a factory for creating flaky operations."""
     import time
+
     import numpy as np
 
     def create_operation(success_rate=0.5):

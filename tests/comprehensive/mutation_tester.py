@@ -14,12 +14,12 @@ Mutation Operators:
 """
 
 import ast
+import sys
+import time
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-import sys
-import time
 from typing import Any, Dict, List, Optional
 
 
@@ -400,9 +400,9 @@ class MutationTester:
 
     def _test_mutant(self, mutant: Mutant) -> MutationResult:
         """Test a single mutant by applying it and running tests."""
+        import os
         import subprocess
         import tempfile
-        import os
 
         start_time = time.time()
         result = MutationResult(mutant=mutant)

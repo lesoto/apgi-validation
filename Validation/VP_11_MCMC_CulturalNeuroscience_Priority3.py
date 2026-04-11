@@ -52,14 +52,14 @@ Dependencies:
 Gelman-Rubin convergence criterion: R̂ ≤ 1.01 for all parameters.
 """
 
-import os
 import logging
+import os
 import sys
 import warnings
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime
 
 # Suppress noisy arviz.preview INFO messages about optional subpackages
 logging.getLogger("arviz.preview").setLevel(logging.WARNING)
@@ -67,8 +67,8 @@ logging.getLogger("arviz.preview").setLevel(logging.WARNING)
 import numpy as np
 import pandas as pd
 from scipy import optimize, stats
-from tqdm import tqdm
 from scipy.optimize import curve_fit
+from tqdm import tqdm
 
 try:
     from sklearn.metrics import r2_score
@@ -100,8 +100,8 @@ except ImportError:
 def safe_import_bayesian() -> Tuple[bool, Any, Any]:
     """Environment-aware lazy loading of PyMC/ArviZ."""
     try:
-        import pymc as pm
         import arviz as az
+        import pymc as pm
 
         return True, pm, az
     except (ImportError, RuntimeError, Exception):
@@ -118,12 +118,9 @@ else:
     )
 
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        V11_MIN_R2,
-        V11_MIN_DELTA_R2,
-        V11_MIN_COHENS_D,
-    )
+    from utils.falsification_thresholds import (DEFAULT_ALPHA,
+                                                V11_MIN_COHENS_D,
+                                                V11_MIN_DELTA_R2, V11_MIN_R2)
 
     FALSIFICATION_RHAT_GATE = 1.05  # Default value if not in falsification_thresholds
 
@@ -1310,7 +1307,8 @@ def run_validation(
                 f"Loading empirical cross-cultural EEG data from {empirical_data_path}"
             )
             try:
-                from utils.empirical_data_generators import load_cross_cultural_eeg_data
+                from utils.empirical_data_generators import \
+                    load_cross_cultural_eeg_data
 
                 df, metadata = load_cross_cultural_eeg_data(empirical_data_path)
                 data_source = "empirical"
@@ -4449,11 +4447,8 @@ def check_falsification(
 
     # F5.6: Non-APGI Architecture Failure
     logger.info("Testing F5.6: Non-APGI Architecture Failure")
-    from utils.falsification_thresholds import (
-        F5_6_MIN_PERFORMANCE_DIFF_PCT,
-        F5_6_MIN_COHENS_D,
-        F5_6_ALPHA,
-    )
+    from utils.falsification_thresholds import (F5_6_ALPHA, F5_6_MIN_COHENS_D,
+                                                F5_6_MIN_PERFORMANCE_DIFF_PCT)
 
     f5_6_pass = (
         performance_difference >= (F5_6_MIN_PERFORMANCE_DIFF_PCT / 100.0)
@@ -4478,11 +4473,9 @@ def check_falsification(
 
     # F6.1: Intrinsic Threshold Behavior
     logger.info("Testing F6.1: Intrinsic Threshold Behavior")
-    from utils.falsification_thresholds import (
-        F6_1_LTCN_MAX_TRANSITION_MS,
-        F6_1_CLIFFS_DELTA_MIN,
-        F6_1_MANN_WHITNEY_ALPHA,
-    )
+    from utils.falsification_thresholds import (F6_1_CLIFFS_DELTA_MIN,
+                                                F6_1_LTCN_MAX_TRANSITION_MS,
+                                                F6_1_MANN_WHITNEY_ALPHA)
 
     f6_1_pass = (
         ltcn_transition_time <= F6_1_LTCN_MAX_TRANSITION_MS
@@ -4508,12 +4501,10 @@ def check_falsification(
 
     # F6.2: Intrinsic Temporal Integration
     logger.info("Testing F6.2: Intrinsic Temporal Integration")
-    from utils.falsification_thresholds import (
-        F6_2_LTCN_MIN_WINDOW_MS,
-        F6_2_MIN_INTEGRATION_RATIO,
-        F6_2_MIN_CURVE_FIT_R2,
-        F6_2_WILCOXON_ALPHA,
-    )
+    from utils.falsification_thresholds import (F6_2_LTCN_MIN_WINDOW_MS,
+                                                F6_2_MIN_CURVE_FIT_R2,
+                                                F6_2_MIN_INTEGRATION_RATIO,
+                                                F6_2_WILCOXON_ALPHA)
 
     f6_2_pass = (
         ltcn_integration_window >= F6_2_LTCN_MIN_WINDOW_MS
@@ -4578,7 +4569,8 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -4735,7 +4727,8 @@ class NonAPGIComparisonValidator:
         bic_results = {}
         if "results" in comparison_data and "analysis" in comparison_data:
             try:
-                from Validation.Validation_Protocol_3 import compute_bic_comparison
+                from Validation.Validation_Protocol_3 import \
+                    compute_bic_comparison
 
                 bic_results = compute_bic_comparison(
                     comparison_data["results"], comparison_data["analysis"]

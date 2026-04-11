@@ -3,13 +3,11 @@ Tests for environment variable initialization and missing key handling.
 """
 
 import os
+
 import pytest
 
-from utils.secure_key_manager import (
-    SecureKeyManager,
-    get_pickle_secret_key,
-    get_backup_hmac_key,
-)
+from utils.secure_key_manager import (SecureKeyManager, get_backup_hmac_key,
+                                      get_pickle_secret_key)
 
 
 @pytest.fixture(autouse=True)

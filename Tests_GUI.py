@@ -6,16 +6,16 @@ Tests GUI for APGI validation framework
 A simple GUI for running and displaying test results.
 """
 
+import os
 import subprocess
 import sys
-import os
 
 # Add current directory to path
 sys.path.insert(0, os.getcwd())
 import tkinter as tk
+from pathlib import Path
 from tkinter import scrolledtext, ttk
 from typing import Any, Dict
-from pathlib import Path
 
 
 class TestsGUI:

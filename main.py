@@ -15,6 +15,7 @@ Provides command-line interface to all APGI framework components including:
 import contextlib
 import importlib.util
 import json
+import os
 import sys
 import threading
 import time
@@ -23,12 +24,11 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
-import os
 
 # Rich imports for UI
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 # Initialize rich console with better width handling
@@ -68,6 +68,7 @@ except ImportError:
     sys.exit(1)
 
 import pandas as pd
+
 from utils.timeout_handler import TimeoutError, run_with_timeout
 
 
@@ -143,22 +144,12 @@ def secure_load_module_from_path(
 
 
 try:
-    from utils.backup_manager import (
-        cleanup_backups_cli,
-        create_backup_cli,
-        delete_backup_cli,
-        list_backups_cli,
-        restore_backup_cli,
-    )
+    from utils.backup_manager import (cleanup_backups_cli, create_backup_cli,
+                                      delete_backup_cli, list_backups_cli,
+                                      restore_backup_cli)
     from utils.config_manager import config_manager
-    from utils.error_handler import (
-        APGIError,
-        ErrorCategory,
-        ErrorSeverity,
-        error_handler,
-        format_user_message,
-    )
-
+    from utils.error_handler import (APGIError, ErrorCategory, ErrorSeverity,
+                                     error_handler, format_user_message)
     # Import APGI framework components
     from utils.logging_config import apgi_logger
     from utils.validation_pipeline_connector import ValidationPipelineConnector
@@ -631,9 +622,8 @@ def formal_model(
                 # Validate and apply custom parameters if loaded successfully
                 if custom_params is not None:
                     try:
-                        from utils.parameter_validator import (
-                            validate_parameters,
-                        )
+                        from utils.parameter_validator import \
+                            validate_parameters
 
                         validation_result = validate_parameters(custom_params)
 
@@ -1353,10 +1343,8 @@ def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
     # Run integration using process_subject
     try:
         # Import multimodal components
-        from APGI_Multimodal_Integration import (
-            APGICoreIntegration,
-            APGIBatchProcessor,
-        )
+        from APGI_Multimodal_Integration import (APGIBatchProcessor,
+                                                 APGICoreIntegration)
 
         # Create integration
         integration = APGICoreIntegration()
@@ -1440,10 +1428,8 @@ def _run_demo_mode() -> None:
 
     try:
         # Import multimodal components
-        from APGI_Multimodal_Integration import (
-            APGICoreIntegration,
-            APGIBatchProcessor,
-        )
+        from APGI_Multimodal_Integration import (APGIBatchProcessor,
+                                                 APGICoreIntegration)
 
         # Create integration
         integration = APGICoreIntegration()
@@ -2236,14 +2222,13 @@ def process_data(
     console.print(Panel.fit("🔧 Data Processing Pipeline", style="bold cyan"))
 
     try:
-        from utils.preprocessing_pipelines import (
-            EEGPreprocessor,
-            PupilPreprocessor,
-            EDAPreprocessor,
-            HeartRatePreprocessor,
-            PreprocessingConfig,
-        )
         from pathlib import Path
+
+        from utils.preprocessing_pipelines import (EDAPreprocessor,
+                                                   EEGPreprocessor,
+                                                   HeartRatePreprocessor,
+                                                   PreprocessingConfig,
+                                                   PupilPreprocessor)
 
         # Set up paths
         project_root = Path(__file__).parent
@@ -2461,8 +2446,9 @@ def monitor_performance(
     console.print(Panel.fit("📊 Performance Monitoring", style="bold yellow"))
 
     try:
-        import psutil
         from statistics import mean, stdev
+
+        import psutil
 
         # Get current process
         process = psutil.Process(os.getpid())
@@ -5191,8 +5177,9 @@ def cache_cmd(ctx, action, sources, max_workers):
     console.print(Panel.fit("🗄️ Cache Management", style="bold yellow"))
 
     try:
-        from utils.cache_manager import CacheManager
         from rich.table import Table
+
+        from utils.cache_manager import CacheManager
 
         cache_manager = CacheManager()
 
@@ -5297,9 +5284,8 @@ def dashboard(output_dir, dashboard_type, open_browser):
             else:
                 # Generate specific dashboard type
                 try:
-                    from utils.static_dashboard_generator import (
-                        StaticDashboardGenerator,
-                    )
+                    from utils.static_dashboard_generator import \
+                        StaticDashboardGenerator
 
                     generator = StaticDashboardGenerator(str(output_dir))
 
@@ -5946,9 +5932,8 @@ def performance_dashboard(
     console.print(Panel.fit("📊 Performance Dashboard", style="bold magenta"))
 
     try:
-        from utils.comprehensive_performance_dashboard import (
-            ComprehensivePerformanceDashboard,
-        )
+        from utils.comprehensive_performance_dashboard import \
+            ComprehensivePerformanceDashboard
 
         dashboard = ComprehensivePerformanceDashboard(port=port, debug=debug)
         dashboard.run(host=host)

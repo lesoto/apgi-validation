@@ -4,26 +4,19 @@ Tests for untested data processing & protocol execution functions in main.py
 Comprehensive tests for data processing and protocol execution functions.
 """
 
-from unittest.mock import MagicMock, patch, mock_open
-from pathlib import Path
-import pandas as pd
 import sys
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
+
+import pandas as pd
 import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import (
-    _process_csv_file,
-    _run_demo_mode,
-    _validate_input_file,
-    _list_protocols,
-    _run_parallel,
-    _run_sequential,
-    _show_config,
-    _set_config,
-    _reset_config,
-)
+from main import (_list_protocols, _process_csv_file, _reset_config,
+                  _run_demo_mode, _run_parallel, _run_sequential, _set_config,
+                  _show_config, _validate_input_file)
 
 
 class TestProcessCsvFile:

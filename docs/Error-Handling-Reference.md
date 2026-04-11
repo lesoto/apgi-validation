@@ -287,6 +287,85 @@ except Exception as e:
     handle_error(e, logger=logger, context={"user": "admin"})
 ```
 
+## Visual Troubleshooting Flows
+
+The following flowcharts map specific APGIError classes to the relevant sections of the incident-response-playbook.md:
+
+### APGIError → Incident Response Mapping
+
+```text
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  APGIError      │     │  Severity       │     │  Playbook       │
+│  Class          │────▶│  Level          │────▶│  Section        │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+
+APGIError (base)        → MEDIUM     → incident-response-playbook.md#P3
+├── ValidationError     → MEDIUM     → incident-response-playbook.md#P3
+├── ConfigurationError  → MEDIUM     → incident-response-playbook.md#P3
+├── ProtocolError       → HIGH       → incident-response-playbook.md#P2
+├── DataError           → MEDIUM     → incident-response-playbook.md#P3
+└── ImportWarning       → LOW        → incident-response-playbook.md#P4
+```
+
+### Troubleshooting Decision Tree
+
+```text
+                    ┌─────────────────┐
+                    │   Error Raised  │
+                    │   (APGIError)   │
+                    └────────┬────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              │              │              │
+        ┌─────▼─────┐  ┌────▼─────┐  ┌─────▼──────┐
+        │ CRITICAL  │  │  HIGH    │  │  MEDIUM    │
+        │ P1 (≥15)  │  │  P2 (1hr)│  │  P3 (4hr)  │
+        └─────┬─────┘  └────┬─────┘  └─────┬──────┘
+              │             │              │
+        ┌─────▼─────┐  ┌────▼─────┐  ┌─────▼──────┐
+        │ Framework │  │ Protocol│  │ Validation │
+        │ Failure   │  │ Logic   │  │ or Config  │
+        │           │  │ Error   │  │ Issue      │
+        └───────────┘  └─────────┘  └────────────┘
+```
+
+### Common Error Patterns & Playbook Sections
+
+| Error Class | Example Scenario | Playbook Section | Response Time |
+| ----------- | ---------------- | ---------------- | --------------- |
+| `ValidationError` | Parameter out of range (θ₀ > 1.0) | P3 - Medium | 4 hours |
+| `ConfigurationError` | Missing API key for PyMC | P3 - Medium | 4 hours |
+| `ProtocolError` | FP-01 assertion failure | P2 - High | 1 hour |
+| `DataError` | OpenNeuro download failure | P3 - Medium | 4 hours |
+| `ImportWarning` | Optional dependency missing | P4 - Low | 24 hours |
+
+### Severity Escalation Rules
+
+1. **Auto-escalate to P2 (High)** if:
+   - Same error occurs >3 times within 1 hour
+   - Error blocks framework falsification (Condition A/B evaluation)
+   - Error affects >2 protocols simultaneously
+
+2. **Auto-escalate to P1 (Critical)** if:
+   - Framework crashes during validation
+   - Mathematical consistency check fails (FP-07)
+   - Data corruption detected in empirical datasets
+
+### Diagnostic Quick Reference
+
+```bash
+# Check error frequency
+python utils/error_recovery.py --summary --hours=1
+
+# View playbook section
+less docs/incident-response-playbook.md | grep -A 20 "P2 - High"
+
+# Trigger escalation
+python utils/escalation_trigger.py --error-id=<ERROR_ID> --severity=<NEW_LEVEL>
+```
+
+---
+
 ## Integration with Existing Code
 
 To update existing code to use the new error handling:

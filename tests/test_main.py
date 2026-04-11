@@ -3,30 +3,22 @@ Tests for main.py - CLI argument parsing and main execution flow.
 =========================================================
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
 import json
-from pathlib import Path
 import sys
 import threading
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 from click.testing import CliRunner
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import (
-    cli,
-    get_config_value,
-    set_config_value,
-    handle_file_error,
-    handle_validation_error,
-    _validate_file_path,
-    APGIModuleLoader,
-    _check_file_size,
-    _sanitize_error_message,
-    _create_signal_handler,
-    _validate_output_file_path,
-)
+from main import (APGIModuleLoader, _check_file_size, _create_signal_handler,
+                  _sanitize_error_message, _validate_file_path,
+                  _validate_output_file_path, cli, get_config_value,
+                  handle_file_error, handle_validation_error, set_config_value)
 
 
 class TestCLIArgumentParsing:

@@ -9,11 +9,12 @@ Tests all functions in eeg_processing.py including:
 - Helper functions
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
-import sys
-from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -21,16 +22,12 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from utils.eeg_processing import (
-        detect_gamma_band_power,
-        compute_theta_gamma_pac,
-        detect_p3_amplitude,
-        process_real_eeg,
-        _bandpass_filter,
-        _amplitude_envelope,
-        _permutation_test_gamma,
-        _permutation_test_pac,
-    )
+    from utils.eeg_processing import (_amplitude_envelope, _bandpass_filter,
+                                      _permutation_test_gamma,
+                                      _permutation_test_pac,
+                                      compute_theta_gamma_pac,
+                                      detect_gamma_band_power,
+                                      detect_p3_amplitude, process_real_eeg)
 except ImportError as e:
     pytest.skip(f"Cannot import eeg_processing: {e}", allow_module_level=True)
 

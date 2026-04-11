@@ -10,12 +10,12 @@ Classes:
     ProtocolResult: Complete protocol execution result (standardized schema)
 """
 
+import json
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-import json
+from typing import Any, Dict, List, Optional, Union
 
 
 class PredictionStatus(str, Enum):
@@ -275,7 +275,14 @@ class ProtocolResult:
         return cls.from_dict(data)
 
     def __repr__(self) -> str:
-        pass_count = sum(1 for p in self.named_predictions.values() if p.passed)
+        def _is_passed(p):
+            if isinstance(p, PredictionResult):
+                return p.passed
+            elif isinstance(p, dict):
+                return p.get("passed", False)
+            return False
+
+        pass_count = sum(1 for p in self.named_predictions.values() if _is_passed(p))
         total_count = len(self.named_predictions)
         return (
             f"ProtocolResult(id={self.protocol_id}, "

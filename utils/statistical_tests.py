@@ -19,9 +19,10 @@ Usage::
     )
 """
 
+from typing import Optional, Tuple, Union
+
 import numpy as np
 from scipy import stats
-from typing import Tuple, Optional, Union
 
 # =============================================================================
 # INPUT VALIDATION

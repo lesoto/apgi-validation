@@ -3,15 +3,15 @@ Tests for remaining 15 APGI specialized implementation modules - comprehensive c
 =========================================================================================================
 """
 
-import pytest
-import numpy as np
-from pathlib import Path
-from unittest.mock import MagicMock
 import subprocess
-import unittest
-
 # Add project root to path
 import sys
+import unittest
+from pathlib import Path
+from unittest.mock import MagicMock
+
+import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))

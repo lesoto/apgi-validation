@@ -23,7 +23,7 @@ import logging
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -50,14 +50,11 @@ def convert_numpy_types(obj):
 
 
 # Import test modules
-from tests.comprehensive import (
-    AdversarialTestFramework,
-    TestCategory,
-)
-from tests.comprehensive.mutation_tester import run_mutation_testing
-from tests.comprehensive.stress_test import run_performance_tests
-from tests.comprehensive.security_tester import run_security_tests
+from tests.comprehensive import AdversarialTestFramework, TestCategory
 from tests.comprehensive.integration_e2e import run_integration_tests
+from tests.comprehensive.mutation_tester import run_mutation_testing
+from tests.comprehensive.security_tester import run_security_tests
+from tests.comprehensive.stress_test import run_performance_tests
 
 
 def parse_arguments() -> argparse.Namespace:

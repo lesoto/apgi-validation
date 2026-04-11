@@ -4,25 +4,21 @@ Tests for utils/security_audit_logger.py
 Comprehensive tests for security audit logger.
 """
 
-import pytest
-from pathlib import Path
 import sys
 from datetime import datetime
+from pathlib import Path
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.security_audit_logger import (
-    SecurityAuditLogger,
-    get_audit_logger,
-    audit_file_operation,
-    audit_path_resolution,
-    audit_permission_check,
-    log_read,
-    log_write,
-    log_delete,
-    log_import,
-)
+from utils.security_audit_logger import (SecurityAuditLogger,
+                                         audit_file_operation,
+                                         audit_path_resolution,
+                                         audit_permission_check,
+                                         get_audit_logger, log_delete,
+                                         log_import, log_read, log_write)
 
 
 class TestSecurityAuditLoggerInit:

@@ -13,10 +13,11 @@ Tests for Falsification modules that need additional coverage:
 - FP_ALL_Aggregator
 """
 
-import pytest
-from pathlib import Path
-import sys
 import json
+import sys
+from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -26,14 +27,8 @@ class TestFalsificationPackageImports:
 
     def test_falsification_package_import(self):
         """Test Falsification package imports"""
-        from Falsification import (
-            Protocol_1,
-            Protocol_2,
-            Protocol_3,
-            Protocol_4,
-            Protocol_5,
-            Protocol_6,
-        )
+        from Falsification import (Protocol_1, Protocol_2, Protocol_3,
+                                   Protocol_4, Protocol_5, Protocol_6)
 
         # All protocols should be importable (may be None if load fails)
         protocols = [
@@ -54,14 +49,10 @@ class TestFalsificationPackageImports:
 
     def test_falsification_exports(self):
         """Test Falsification module exports"""
-        from Falsification import (
-            HierarchicalGenerativeModel,
-            IowaGamblingTaskEnvironment,
-            StandardPPAgent_P3,
-            SurpriseIgnitionSystem,
-            EvolvableAgent,
-            APGIInspiredNetwork,
-        )
+        from Falsification import (APGIInspiredNetwork, EvolvableAgent,
+                                   HierarchicalGenerativeModel,
+                                   IowaGamblingTaskEnvironment,
+                                   StandardPPAgent_P3, SurpriseIgnitionSystem)
 
         # These may be None if protocols fail to load, but they should exist
         # Using all imports to satisfy linter
@@ -158,9 +149,8 @@ class TestFP07MathematicalConsistency:
     def test_fp07_import(self):
         """Test FP_07 module import"""
         try:
-            from Falsification.FP_07_MathematicalConsistency import (
-                MathematicalConsistencyTest,
-            )
+            from Falsification.FP_07_MathematicalConsistency import \
+                MathematicalConsistencyTest
 
             assert MathematicalConsistencyTest is not None
         except ImportError:
@@ -173,9 +163,8 @@ class TestFP08ParameterSensitivity:
     def test_fp08_import(self):
         """Test FP_08 module import"""
         try:
-            from Falsification.FP_08_ParameterSensitivity_Identifiability import (
-                ParameterSensitivityAnalysis,
-            )
+            from Falsification.FP_08_ParameterSensitivity_Identifiability import \
+                ParameterSensitivityAnalysis
 
             assert ParameterSensitivityAnalysis is not None
         except ImportError:
@@ -188,9 +177,8 @@ class TestFP09NeuralSignatures:
     def test_fp09_import(self):
         """Test FP_09 module import"""
         try:
-            from Falsification.FP_09_NeuralSignatures_P3b_HEP import (
-                NeuralSignatureExtractor,
-            )
+            from Falsification.FP_09_NeuralSignatures_P3b_HEP import \
+                NeuralSignatureExtractor
 
             assert NeuralSignatureExtractor is not None
         except ImportError:
@@ -203,9 +191,8 @@ class TestFP10BayesianEstimation:
     def test_fp10_import(self):
         """Test FP_10 module import"""
         try:
-            from Falsification.FP_10_BayesianEstimation_MCMC import (
-                BayesianMCMCEstimation,
-            )
+            from Falsification.FP_10_BayesianEstimation_MCMC import \
+                BayesianMCMCEstimation
 
             assert BayesianMCMCEstimation is not None
         except ImportError:
@@ -218,9 +205,8 @@ class TestFP11LiquidNetwork:
     def test_fp11_import(self):
         """Test FP_11 module import"""
         try:
-            from Falsification.FP_11_LiquidNetworkDynamics_EchoState import (
-                LiquidNetworkDynamics,
-            )
+            from Falsification.FP_11_LiquidNetworkDynamics_EchoState import \
+                LiquidNetworkDynamics
 
             assert LiquidNetworkDynamics is not None
         except ImportError:
@@ -233,9 +219,8 @@ class TestFP12CrossSpecies:
     def test_fp12_import(self):
         """Test FP_12 module import"""
         try:
-            from Falsification.FP_12_CrossSpeciesScaling import (
-                CrossSpeciesFalsification,
-            )
+            from Falsification.FP_12_CrossSpeciesScaling import \
+                CrossSpeciesFalsification
 
             assert CrossSpeciesFalsification is not None
         except ImportError:

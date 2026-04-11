@@ -5,8 +5,9 @@ Performance tests for APGI validation framework.
 Benchmarks for simulation, validation, and data processing performance.
 """
 
-from utils import data_validation, sample_data_generator
 import time
+
+from utils import data_validation, sample_data_generator
 
 
 def test_simulation_performance():
@@ -192,4 +193,4 @@ def test_large_scale_simulation():
     # Should complete in reasonable time (< 10 seconds)
     assert duration < 10.0, f"Simulation too slow: {duration:.2f} seconds"
     assert len(eeg_signal) == 30000
-    assert len(p300_events) > 5
+    assert len(p300_events["p300_events"]) > 5

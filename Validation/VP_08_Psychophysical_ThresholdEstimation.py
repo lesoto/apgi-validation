@@ -16,11 +16,10 @@ Key Features:
 """
 
 import json
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime
-
 import logging
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,24 +33,19 @@ logger = logging.getLogger(__name__)
 
 # Import falsification thresholds
 try:
-    from utils.statistical_tests import (
-        compute_eta_squared,
-        safe_mannwhitneyu,
-        safe_pearsonr,
-    )
+    from utils.statistical_tests import (compute_eta_squared,
+                                         safe_mannwhitneyu, safe_pearsonr)
 except ImportError:
     compute_eta_squared = None  # type: ignore[assignment]
     safe_mannwhitneyu = None  # type: ignore[assignment]
     safe_pearsonr = None  # type: ignore[assignment]
 
 try:
-    from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        GENERIC_MIN_R2,
-        GENERIC_MIN_CORR,
-        GENERIC_MIN_COHENS_D,
-        V9_1_MIN_CORRELATION,
-    )
+    from utils.falsification_thresholds import (DEFAULT_ALPHA,
+                                                GENERIC_MIN_COHENS_D,
+                                                GENERIC_MIN_CORR,
+                                                GENERIC_MIN_R2,
+                                                V9_1_MIN_CORRELATION)
 except ImportError:
     logger.warning("falsification_thresholds not available, using default values")
     DEFAULT_ALPHA = 0.05
@@ -3335,7 +3329,8 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:

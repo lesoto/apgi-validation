@@ -7,10 +7,11 @@ Thread-safety tests for:
 - BackupManager: Parallel backup operations, HMAC key access
 """
 
-import pytest
+import tempfile
 import threading
 import time
-import tempfile
+
+import pytest
 
 
 class TestConfigManagerConcurrency:
@@ -338,7 +339,7 @@ class TestTOCTOUMitigation:
 
     def test_config_file_toctou(self):
         """Test TOCTOU protection for config file operations"""
-        from utils.config_manager import _validate_file_path, PROJECT_ROOT
+        from utils.config_manager import PROJECT_ROOT, _validate_file_path
 
         # Test path validation with project-relative path
         test_file = PROJECT_ROOT / "config" / "default.yaml"
@@ -382,8 +383,8 @@ class TestTOCTOUMitigation:
 
     def test_concurrent_file_access_protection(self):
         """Test protection against concurrent file access issues"""
-        import tempfile
         import os
+        import tempfile
 
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             temp_file = f.name

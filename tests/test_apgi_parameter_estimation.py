@@ -3,14 +3,14 @@ Tests for APGI_Parameter_Estimation.py - Bayesian estimation algorithms, MCMC sa
 =================================================================================================
 """
 
-import pytest
-import numpy as np
-from pathlib import Path
-from unittest.mock import MagicMock
-import tempfile
-
 # Add project root to path
 import sys
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock
+
+import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
@@ -18,22 +18,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
 # Import the module with error handling
 try:
     from Theory.APGI_Parameter_Estimation import (
-        APGIConstants,
-        DriftDiffusionGenerator,
-        ParameterIdentifiabilityAnalyzer,
-        NeuralMassGenerator,
-        generate_synthetic_dataset,
-        artifact_rejection_pipeline,
-        conduct_prior_predictive_checks,
-        build_apgi_model,
-        compute_fisher_information,
-        validate_parameter_recovery,
-        assess_test_retest,
-        load_independent_datasets,
-        assess_predictive_validity,
-        generate_comprehensive_visualizations,
-        print_measurement_summary,
-    )
+        APGIConstants, DriftDiffusionGenerator, NeuralMassGenerator,
+        ParameterIdentifiabilityAnalyzer, artifact_rejection_pipeline,
+        assess_predictive_validity, assess_test_retest, build_apgi_model,
+        compute_fisher_information, conduct_prior_predictive_checks,
+        generate_comprehensive_visualizations, generate_synthetic_dataset,
+        load_independent_datasets, print_measurement_summary,
+        validate_parameter_recovery)
 
     PARAMETER_ESTIMATION_AVAILABLE = True
 except ImportError as e:

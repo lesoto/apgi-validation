@@ -4,11 +4,12 @@ Tests all 18 previously untested CLI commands.
 ================================================================
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 from click.testing import CliRunner
 
 # Add project root to path

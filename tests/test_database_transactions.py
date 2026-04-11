@@ -12,17 +12,18 @@ Comprehensive database transaction testing including:
 This module provides robust transaction testing for the APGI validation framework.
 """
 
-import pytest
+import queue
 import sqlite3
+import sys
 import threading
 import time
-import queue
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, Set
 from pathlib import Path
-import sys
+from typing import Any, Dict, Optional, Set
+
+import pytest
 
 
 @dataclass

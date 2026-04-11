@@ -5,20 +5,18 @@ Tests audit log persistence to disk functionality.
 """
 
 import json
+import sys
 import time
 from pathlib import Path
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.persistent_audit_logger import (
-    PersistentAuditLogger,
-    get_persistent_audit_logger,
-    log_read_persistent,
-    log_write_persistent,
-    log_delete_persistent,
-    log_import_persistent,
-)
+from utils.persistent_audit_logger import (PersistentAuditLogger,
+                                           get_persistent_audit_logger,
+                                           log_delete_persistent,
+                                           log_import_persistent,
+                                           log_read_persistent,
+                                           log_write_persistent)
 
 
 class TestPersistentAuditLogger:

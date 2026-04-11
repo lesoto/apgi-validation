@@ -19,7 +19,7 @@ import threading
 import time
 import tkinter as tk
 from pathlib import Path
-from tkinter import scrolledtext, ttk, simpledialog
+from tkinter import scrolledtext, simpledialog, ttk
 from typing import Any, Dict, List, Optional
 
 # Configure basic logging

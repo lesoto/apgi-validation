@@ -114,6 +114,97 @@ Where:
 - β: Somatic bias parameter
 - τ = 0.2s: Decay constant
 
+### 1/f Pink Noise Synthesis Parameters (for Innovation 9)
+
+To ensure generated neural background matches real EEG spectral slopes predicted in Innovation 9 (β ≈ 0.8–1.2 wakefulness, β ≈ 1.5–2.0 deep sleep, β > 1.5 anesthesia), the following 1/f pink noise synthesis parameters are used:
+
+| Parameter | Value | Description | Matches Innovation 9 |
+| --------- | ----- | ----------- | ------------------- |
+| **Slope β (wakefulness)** | 1.0 ± 0.2 | Aperiodic exponent | β ≈ 0.8–1.2 |
+| **Slope β (deep sleep)** | 1.75 ± 0.25 | Increased slow power | β ≈ 1.5–2.0 |
+| **Slope β (anesthesia)** | 2.25 ± 0.25 | Steep spectral roll-off | β ≈ 2.0–2.5 |
+| **Knee frequency (f_knee)** | 15–25 Hz | Transition to flat spectrum | Matches FOOOF default |
+| **Amplitude scaling (A)** | 10–50 μV²/Hz | Power at 1 Hz | Biological range |
+| **Frequency range** | 1–100 Hz | EEG-relevant band | Standard EEG |
+
+**Pink Noise Generation Algorithm:**
+
+```python
+def generate_pink_noise(n_samples, fs, beta=1.0, amplitude=30):
+    """
+    Generate 1/f^β pink noise matching EEG spectral slopes.
+
+    Args:
+        n_samples: Number of time points
+        fs: Sampling frequency (Hz)
+        beta: Spectral slope (0=white, 1=pink, 2=brown)
+        amplitude: Power amplitude scaling
+
+    Returns:
+        pink_noise: 1/f^β colored noise signal
+    """
+    # White noise in frequency domain
+    freqs = np.fft.rfftfreq(n_samples, 1/fs)
+    white_real = np.random.randn(len(freqs))
+    white_imag = np.random.randn(len(freqs))
+    white_spectrum = white_real + 1j * white_imag
+
+    # Apply 1/f^β scaling (avoid division by zero at f=0)
+    freqs[0] = 1  # Set DC to 1 to avoid inf
+    pink_spectrum = white_spectrum / (freqs ** (beta / 2))
+    pink_spectrum[0] = 0  # Remove DC component
+
+    # Inverse FFT to get time domain signal
+    pink_noise = np.fft.irfft(pink_spectrum, n=n_samples)
+
+    # Scale to amplitude (μV range for EEG)
+    pink_noise = pink_noise / np.std(pink_noise) * amplitude
+
+    return pink_noise
+```
+
+**State-Specific Parameter Sets:**
+
+```python
+PINK_NOISE_PARAMETERS = {
+    'wakefulness': {
+        'beta': 1.0,           # Matches Innovation 9: β ≈ 0.8–1.2
+        'amplitude': 25,       # μV²/Hz at 1 Hz
+        'f_knee': 20,          # Hz
+        'knee_alpha': 0.8      # Spectral knee parameter
+    },
+    'deep_sleep': {
+        'beta': 1.75,          # Matches Innovation 9: β ≈ 1.5–2.0
+        'amplitude': 35,       # Higher amplitude (slower oscillations)
+        'f_knee': 12,          # Lower knee (slow wave dominance)
+        'knee_alpha': 1.2
+    },
+    'anesthesia': {
+        'beta': 2.25,          # Matches Innovation 9: β ≈ 2.0–2.5
+        'amplitude': 40,       # Matches propofol EEG
+        'f_knee': 8,           # Very low knee
+        'knee_alpha': 1.5
+    }
+}
+```
+
+**Falsification Criteria (Innovation 9):**
+
+If synthetic data generated with these parameters produces spectral slopes inconsistent with real EEG:
+
+- F9.1: If generated wakefulness β < 0.8 or β > 1.2 → Synthesis parameters incorrect
+- F9.2: If generated anesthesia β < 2.0 → Failed to capture propofol signature
+
+**Validation against FOOOF:**
+
+All synthetic spectra are validated using FOOOF (Donoghue et al., 2020) to ensure:
+
+- Aperiodic slope β within ±0.15 of target
+- Oscillatory peaks (alpha, theta) superimposable on 1/f background
+- Knee frequency within ±5 Hz of expected
+
+---
+
 ### Neural Network Architectures
 
 #### Ignition Classifier (Task 1A)

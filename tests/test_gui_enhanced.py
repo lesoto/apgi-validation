@@ -11,14 +11,15 @@ Comprehensive GUI testing with:
 This module provides advanced GUI testing capabilities for the APGI validation framework.
 """
 
-import pytest
-import numpy as np
-from unittest.mock import MagicMock
-import sys
 import io
-from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+from unittest.mock import MagicMock
+
+import numpy as np
+import pytest
 
 
 @dataclass

@@ -143,12 +143,134 @@ Implements a probabilistic model in PyMC with:
 | β | Interoceptive bias | [0.6, 2.3] |
 | α | Gain parameter | [2.5, 7.5] |
 
+## Visualization Templates for Recovered Parameter Distributions
+
+To aid clinical interpretation of psychiatric profiles, the following visualization templates are provided for recovered parameter distributions:
+
+### Violin Plot Template
+
+```python
+import arviz as az
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Create violin plots for clinical interpretation
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+# θ₀ (Threshold) - Clinical interpretation: barrier to conscious access
+az.plot_violin(trace, var_names=['theta_0'], ax=axes[0, 0])
+axes[0, 0].axvline(x=0.55, color='red', linestyle='--', label='Population mean')
+axes[0, 0].set_title('θ₀: Perceptual Threshold\n(Higher = More difficult conscious access)')
+axes[0, 0].set_xlabel('Threshold (arbitrary units)')
+
+# Πᵢ (Interoceptive Precision) - Clinical interpretation: body awareness
+az.plot_violin(trace, var_names=['Pi_i'], ax=axes[0, 1])
+axes[0, 1].axvline(x=1.0, color='green', linestyle='--', label='Normative')
+axes[0, 1].set_title('Πᵢ: Interoceptive Precision\n(Higher = Better body awareness)')
+axes[0, 1].set_xlabel('Precision (1/variance)')
+
+# β (Somatic Bias) - Clinical interpretation: emotional modulation
+az.plot_violin(trace, var_names=['beta'], ax=axes[1, 0])
+axes[1, 0].axvline(x=0.55, color='orange', linestyle='--', label='Typical anxiety')
+axes[1, 0].axvline(x=0.35, color='blue', linestyle='--', label='Typical alexithymia')
+axes[1, 0].set_title('β: Somatic Bias\n(Higher = Stronger emotional modulation)')
+axes[1, 0].set_xlabel('Bias parameter')
+
+# α (Gain) - Clinical interpretation: ignition sharpness
+az.plot_violin(trace, var_names=['alpha'], ax=axes[1, 1])
+axes[1, 1].axvline(x=5.0, color='purple', linestyle='--', label='Sharp transition')
+axes[1, 1].set_title('α: Ignition Gain\n(Higher = Sharper conscious transition)')
+axes[1, 1].set_xlabel('Sigmoid steepness')
+
+plt.tight_layout()
+plt.savefig('clinical_parameter_profile.png', dpi=300)
+```
+
+### Clinical Profile Interpretation Guide
+
+| Parameter | Typical Range | Clinical Marker | Condition Implication |
+| --------- | ------------- | --------------- | -------------------- |
+| **θ₀ > 0.65** | Elevated threshold | Reduced conscious access | Depression, dissociation |
+| **θ₀ < 0.45** | Lowered threshold | Hyper-accessibility | Mania, anxiety |
+| **Πᵢ > 1.5** | High interoception | Enhanced body awareness | Alexithymia (protective) |
+| **Πᵢ < 0.8** | Low interoception | Blunted body signals | Depression, somatization |
+| **β > 0.65** | High somatic bias | Emotional over-influence | GAD, panic |
+| **β < 0.40** | Low somatic bias | Emotional under-influence | Alexithymia, psychopathy |
+| **α > 6.0** | Sharp ignition | All-or-none consciousness | PTSD (hypervigilance) |
+| **α < 3.5** | Graded ignition | Fuzzy transitions | Brain fog, fatigue |
+
+### Parameter Correlation Matrix Template
+
+```python
+# Show parameter interdependencies for differential diagnosis
+def plot_parameter_correlation_matrix(trace):
+    """Create correlation matrix for APGI parameters."""
+    import pandas as pd
+
+    # Extract posterior samples
+    data = {
+        'θ₀ (Threshold)': trace.posterior['theta_0'].values.flatten(),
+        'Πᵢ (Precision)': trace.posterior['Pi_i'].values.flatten(),
+        'β (Somatic Bias)': trace.posterior['beta'].values.flatten(),
+        'α (Gain)': trace.posterior['alpha'].values.flatten()
+    }
+    df = pd.DataFrame(data)
+
+    # Correlation heatmap
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(df.corr(), annot=True, cmap='RdBu_r', center=0,
+                vmin=-1, vmax=1, square=True)
+    plt.title('APGI Parameter Intercorrelations\n(For Differential Diagnosis)')
+    plt.tight_layout()
+    plt.savefig('parameter_correlation_matrix.png', dpi=300)
+
+plot_parameter_correlation_matrix(trace)
+```
+
+### Group Comparison Template (Patient vs Control)
+
+```python
+# Compare patient group to healthy controls
+def plot_group_comparison(trace_patient, trace_control, param='theta_0'):
+    """Violin plot comparing patient and control groups."""
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    patient_data = trace_patient.posterior[param].values.flatten()
+    control_data = trace_control.posterior[param].values.flatten()
+
+    data_to_plot = [control_data, patient_data]
+    positions = [1, 2]
+
+    parts = ax.violinplot(data_to_plot, positions, showmeans=True, showmedians=True)
+
+    # Color code
+    parts['bodies'][0].set_facecolor('lightgreen')  # Control
+    parts['bodies'][1].set_facecolor('lightcoral')    # Patient
+
+    ax.set_xticks([1, 2])
+    ax.set_xticklabels(['Healthy Controls', 'Patient Group'])
+    ax.set_ylabel(f'{param} Value')
+    ax.set_title(f'Group Comparison: {param}')
+
+    # Effect size annotation
+    from scipy import stats
+    d = (np.mean(patient_data) - np.mean(control_data)) / np.sqrt(
+        (np.std(patient_data)**2 + np.std(control_data)**2) / 2)
+    ax.text(0.5, 0.95, f'Cohen\'s d = {d:.2f}', transform=ax.transAxes,
+            ha='center', va='top', bbox=dict(boxstyle='round', facecolor='wheat'))
+
+    plt.tight_layout()
+    return fig
+```
+
+---
+
 ## Output
 
 The script generates several outputs:
 
-1. Parameter recovery plots (true vs. recovered values)
-2. Posterior distributions for all parameters
+1. Parameter recovery plots (true vs. recovered values) with violin distributions
+2. Posterior distributions for all parameters (clinical interpretation overlays)
 3. Convergence diagnostics (R-hat, effective sample size)
 4. Predictive validity metrics
 5. Test-retest reliability statistics

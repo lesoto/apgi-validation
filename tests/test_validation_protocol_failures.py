@@ -9,11 +9,12 @@ This module tests:
 """
 
 import sys
-import time
 import tempfile
-import pytest
+import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent

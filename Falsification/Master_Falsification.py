@@ -16,9 +16,9 @@ This module provides:
 
 import importlib.util
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
-from dataclasses import dataclass
 
 # Add project root to sys.path for imports
 _proj_root = Path(__file__).parent.parent
@@ -26,15 +26,14 @@ if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
 
 # Import the framework-level aggregator
-from Falsification.FP_ALL_Aggregator import (
-    FalsificationAggregator,
-    NAMED_PREDICTIONS,
-    run_framework_falsification,
-)
+from Falsification.FP_ALL_Aggregator import (NAMED_PREDICTIONS,
+                                             FalsificationAggregator,
+                                             run_framework_falsification)
 
 # Try to import logging config
 try:
-    from utils.logging_config import APGILogger, apgi_logger as _logger
+    from utils.logging_config import APGILogger
+    from utils.logging_config import apgi_logger as _logger
 except ImportError:
     import logging
 

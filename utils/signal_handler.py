@@ -9,7 +9,7 @@ Provides signal handling functionality for graceful shutdown and cleanup.
 import signal
 import threading
 from contextlib import contextmanager
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 
 class SignalHandler:

@@ -9,10 +9,11 @@ Tests integration across protocol boundaries including:
 - Protocol interaction patterns
 """
 
-import pytest
-from datetime import datetime
 import threading
 import time
+from datetime import datetime
+
+import pytest
 
 
 class TestCrossProtocolDataFlow:
@@ -362,8 +363,8 @@ class TestCrossProtocolWorkflowIntegration:
 
     def test_full_validation_to_falsification_pipeline(self):
         """Test complete pipeline from validation through falsification."""
-        import tempfile
         import json
+        import tempfile
 
         # Create a temporary workflow result file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -480,8 +481,8 @@ class TestCrossProtocolWorkflowIntegration:
 
     def test_concurrent_protocol_execution_with_resource_pool(self):
         """Test concurrent protocol execution with shared resource pool."""
-        import threading
         import queue
+        import threading
         import time
 
         # Resource pool simulation

@@ -37,18 +37,19 @@ VP-11 FIXES IMPLEMENTED:
 
 # Imports
 import logging
-import sys
-import numpy as np
-from typing import Dict, Tuple, Any, List, Optional, Union
-from pathlib import Path
-import types
 import os
+import sys
+import types
 import warnings
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 
 # Bayesian modeling imports
 try:
-    import pymc3 as pm
     import arviz as az
+    import pymc3 as pm
 
     HAS_PYMC3 = True
 except ImportError:
@@ -58,8 +59,10 @@ except ImportError:
 
 # FIX #3: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
     from datetime import datetime
+
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
@@ -259,8 +262,8 @@ def attempt_imports():
                 # Potential mismatch found, risk of segfault
                 pass
 
-        import pymc as _pm
         import arviz as _az
+        import pymc as _pm
 
         pm = _pm
         az = _az
@@ -2773,7 +2776,8 @@ class FP10Dispatcher:
         """
         # Import sub-protocols
         try:
-            from FP_12_CrossSpeciesScaling import run_falsification as run_scaling
+            from FP_12_CrossSpeciesScaling import \
+                run_falsification as run_scaling
         except ImportError as e:
             logger.error(f"Failed to import FP_12_CrossSpeciesScaling: {e}")
             run_scaling = None
@@ -2924,8 +2928,11 @@ def run_bayesian_estimation_complete(
     )
 
     trace = results.get("trace")
-    if trace is None:
-        raise RuntimeError("MCMC sampling failed to produce a trace")
+    # Allow NumPy fallback which provides posterior_samples without trace
+    if trace is None and "posterior_samples" not in results:
+        raise RuntimeError(
+            "MCMC sampling failed to produce a trace or posterior_samples"
+        )
 
     # Extract posterior samples and statistics
     # Map model params to test params: beta -> beta, pi -> pi_e

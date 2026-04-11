@@ -9,10 +9,11 @@ Tests all functions and classes in eeg_simulator.py including:
 - Analysis functions
 """
 
-import numpy as np
-import pytest
 import sys
 from pathlib import Path
+
+import numpy as np
+import pytest
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -20,10 +21,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from utils.eeg_simulator import (
-        EEGSimulator,
-        create_default_simulator,
-    )
+    from utils.eeg_simulator import EEGSimulator, create_default_simulator
 except ImportError as e:
     pytest.skip(f"Cannot import eeg_simulator: {e}", allow_module_level=True)
 

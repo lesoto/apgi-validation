@@ -4,8 +4,9 @@ Tests for utils/__init__.py environment variable handling
 
 import os
 import sys
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 def test_check_required_env_vars_both_keys_set():
@@ -39,8 +40,8 @@ def test_check_required_env_vars_both_keys_set():
 
 def test_check_required_env_vars_missing_both_keys_production():
     """Test that EnvironmentError is raised when both keys are missing in production."""
-    import tempfile
     import shutil
+    import tempfile
 
     original_pickle = os.environ.get("PICKLE_SECRET_KEY")
     original_backup = os.environ.get("APGI_BACKUP_HMAC_KEY")
@@ -91,8 +92,8 @@ def test_check_required_env_vars_missing_both_keys_production():
 
 def test_check_required_env_vars_missing_both_keys_development():
     """Test that warning is issued when both keys are missing in development."""
-    import tempfile
     import shutil
+    import tempfile
     import warnings
 
     original_pickle = os.environ.get("PICKLE_SECRET_KEY")
@@ -152,8 +153,8 @@ def test_check_required_env_vars_missing_both_keys_development():
 
 def test_check_required_env_vars_missing_one_key():
     """Test that warning is issued when one key is missing in development."""
-    import tempfile
     import shutil
+    import tempfile
     import warnings
 
     original_backup = os.environ.get("APGI_BACKUP_HMAC_KEY")
@@ -215,8 +216,8 @@ def test_check_required_env_vars_keys_are_session_unique():
 
 def test_check_required_env_vars_errors_detectable():
     """Test that errors are raised in production mode when keys are missing."""
-    import tempfile
     import shutil
+    import tempfile
 
     original_env = os.environ.get("APGI_ENV")
     original_backup = os.environ.get("APGI_BACKUP_HMAC_KEY")

@@ -4,9 +4,10 @@ Tests for raises_fixture, oom_fixture, and flaky_operation.
 =======================================================
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -153,8 +154,9 @@ class TestFixtureIntegration:
     def test_all_fixtures_together(self, raises_fixture, oom_fixture, flaky_operation):
         """Test all three fixtures together."""
 
-        import numpy as np
         import random
+
+        import numpy as np
 
         def complex_operation():
             # Randomly fail

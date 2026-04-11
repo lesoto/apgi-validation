@@ -18,7 +18,7 @@ This playbook provides standardized procedures for responding to incidents affec
 | Level | Name | Response Time | Examples |
 | :---: | :---: | :---: | :--- |
 | P1 | Critical | 15 min | Complete failure, security breach |
-| P2 | High | 1 hour | Core protocols failing |
+| P2 | High | 1 hour | Core protocols failing, Scientific Drift |
 | P3 | Medium | 4 hours | Specialized protocols failing |
 | P4 | Low | 24 hours | Minor issues, UI glitches |
 

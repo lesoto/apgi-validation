@@ -8,11 +8,12 @@ Tests all functions and classes in ordinal_logistic_regression.py including:
 - compare_ordinal_vs_anova function
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
-import sys
-from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -21,10 +22,8 @@ if str(project_root) not in sys.path:
 
 try:
     from utils.ordinal_logistic_regression import (
-        OrdinalLogisticRegression,
-        analyze_clinical_gradient_ordinal,
-        compare_ordinal_vs_anova,
-    )
+        OrdinalLogisticRegression, analyze_clinical_gradient_ordinal,
+        compare_ordinal_vs_anova)
 except ImportError as e:
     pytest.skip(
         f"Cannot import ordinal_logistic_regression: {e}", allow_module_level=True
@@ -646,9 +645,9 @@ class TestErrorHandling:
         X = np.random.randn(100, 3)
         y = np.random.randint(-2, 6, 100)  # Values outside expected range
 
-        # Should handle invalid y values gracefully
-        result = model.fit(X, y)
-        assert isinstance(result, dict), "Should handle invalid y values"
+        # Should raise ValueError for invalid y values
+        with pytest.raises(ValueError, match="y values must be in range"):
+            model.fit(X, y)
 
     def test_empty_data(self):
         """Test with empty data."""

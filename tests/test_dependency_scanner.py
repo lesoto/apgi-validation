@@ -4,18 +4,15 @@ Tests for utils/dependency_scanner.py
 Comprehensive tests for dependency vulnerability scanner.
 """
 
-from unittest.mock import patch, MagicMock, mock_open
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.dependency_scanner import (
-    DependencyScanner,
-    run_dependency_scan,
-)
+from utils.dependency_scanner import DependencyScanner, run_dependency_scan
 
 
 class TestDependencyScannerInit:

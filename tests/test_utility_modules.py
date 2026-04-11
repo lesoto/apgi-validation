@@ -5,28 +5,25 @@ Tests for dependency_scanner.py, security_audit_logger.py, and security_logging_
 """
 
 import json
-import sys
-import subprocess
-from pathlib import Path
-from unittest.mock import patch, Mock
-from datetime import datetime
-import pytest
 import logging
+import subprocess
+import sys
 import threading
 import time
+from datetime import datetime
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.dependency_scanner import DependencyScanner
-from utils.security_audit_logger import (
-    SecurityAuditLogger,
-    log_read,
-    log_write,
-    log_delete,
-    log_import,
-)
-from utils.security_logging_integration import secure_file_read, secure_file_write
+from utils.security_audit_logger import (SecurityAuditLogger, log_delete,
+                                         log_import, log_read, log_write)
+from utils.security_logging_integration import (secure_file_read,
+                                                secure_file_write)
 
 
 class TestDependencyScanner:

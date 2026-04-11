@@ -196,7 +196,58 @@ normalizer.fit(normative_data)
 z_scores = normalizer.transform(raw_measurements)
 ```
 
-#### Supported Modalities
+#### Modality Compatibility Table for θₜ Proxy Signals
+
+The following table lists which biological signals can serve as interchangeable proxies for the dynamic threshold parameter θₜ:
+
+| Signal Type | Proxy Quality | θₜ Correlation | Best Use Case | Caution |
+| ----------- | ------------- | -------------- | ------------- | ------- |
+| **Pupillometry** | Excellent (Gold Standard) | r = 0.78-0.85 | Real-time monitoring; sleep studies | Light reflex contamination |
+| **Alpha Power (8-12 Hz)** | Very Good | r = 0.65-0.75 | EEG-based paradigms; anesthesia | Eyes-closed vs. open difference |
+| **HEP Amplitude** | Good | r = 0.55-0.68 | Cardiac-linked cognition | Requires ECG synchronization |
+| **P3b Latency** | Moderate | r = 0.45-0.60 | ERP studies | Trial-averaged only |
+| **ASL-MRI Perfusion** | Moderate | r = 0.40-0.55 | fMRI studies | Low temporal resolution (TR ≥ 2s) |
+| **Skin Conductance (SCR)** | Limited | r = 0.30-0.45 | Arousal paradigms | Emotional confounds |
+| **Gamma Power (30-80 Hz)** | Limited | r = 0.25-0.40 | High-frequency dynamics | Muscle artifact risk |
+| **fMRI BOLD (default mode)** | Poor (indirect) | r = 0.15-0.30 | Resting-state connectivity | Very slow; use with caution |
+
+### Proxy Interchangeability Guidelines
+
+**When to Use Interchangeable Proxies:**
+
+1. **Primary study uses pupillometry but data missing**: Substitute with alpha power (requires calibration)
+2. **MRI environment prohibits pupillometry**: Use ASL-MRI with reduced temporal precision
+3. **Cardiac-contingent paradigms**: HEP amplitude preferred for cardiac phase analysis
+
+**Calibration Formula for Proxy Substitution:**
+
+```python
+# Calibrate alternative proxy to match pupillometry standard
+def calibrate_proxy(measured_signal, proxy_type):
+    calibration_factors = {
+        'alpha_power': 1.35,      # Scale factor
+        'hep_amplitude': 1.85,    # Scale factor
+        'p3b_latency': -0.45,     # Negative correlation
+        'asl_mri': 2.10,          # Scale factor
+        'scr': 0.95               # Near 1:1 with caution
+    }
+    return measured_signal * calibration_factors[proxy_type]
+
+# Example: Convert alpha power to θₜ estimate
+theta_t_from_alpha = calibrate_proxy(alpha_power_zscore, 'alpha_power')
+```
+
+**Validation Required for Proxy Substitution:**
+
+| Validation Step | Minimum Criteria |
+| ------------- | ---------------- |
+| Pilot correlation | r > 0.50 with pupillometry in same subjects |
+| Within-subject stability | ICC > 0.60 across sessions |
+| Cross-modal calibration | Linear fit R² > 0.40 |
+
+---
+
+### Supported Modalities
 
 | Modality | Description | Typical Range |
 | --- | --- | --- |

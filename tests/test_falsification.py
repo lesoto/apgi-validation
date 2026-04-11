@@ -4,9 +4,10 @@ Tests for falsification protocols.
 
 """
 
-import pytest
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.constants import DIM_CONSTANTS
@@ -64,6 +65,7 @@ def test_falsification_protocol_1_hierarchical_model():
     """Test HierarchicalGenerativeModel from FP_01_ActiveInference.py"""
     try:
         import importlib.util
+
         import numpy as np
 
         spec = importlib.util.spec_from_file_location(
@@ -115,6 +117,7 @@ def test_falsification_protocol_1_somatic_marker_network():
     """Test SomaticMarkerNetwork from FP_01_ActiveInference.py"""
     try:
         import importlib.util
+
         import numpy as np
 
         spec = importlib.util.spec_from_file_location(
@@ -158,6 +161,7 @@ def test_falsification_protocol_5_evolvable_agent():
     """Test EvolvableAgent from FP_05_EvolutionaryPlausibility.py"""
     try:
         import importlib.util
+
         import numpy as np
 
         spec = importlib.util.spec_from_file_location(

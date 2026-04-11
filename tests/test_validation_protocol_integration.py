@@ -15,13 +15,14 @@ Tests are organized by priority tier and include both unit and integration
 testing patterns.
 """
 
-import pytest
-from pathlib import Path
+import json
 import sys
 import tempfile
-import json
-from unittest.mock import patch
 import time
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -371,8 +372,9 @@ class TestValidationProtocolPerformance:
     def test_memory_usage_during_execution(self):
         """Test that protocols don't have memory leaks."""
         import gc
-        import psutil
         import os
+
+        import psutil
 
         # Get initial memory usage
         process = psutil.Process(os.getpid())

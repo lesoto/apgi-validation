@@ -6,8 +6,8 @@ Tests for validating that hierarchical models use the correct tau values
 as specified in the LEVEL_TIMESCALES constant.
 """
 
-import sys
 import os
+import sys
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -54,9 +54,8 @@ class TestLevelTimescaleValidation:
         """Test that PyTorch model can be imported and uses constants"""
         try:
             # Try importing the PyTorch model
-            from Validation.ActiveInferenceAgentSimulations_Protocol3 import (
-                HierarchicalGenerativeModel,
-            )
+            from Validation.ActiveInferenceAgentSimulations_Protocol3 import \
+                HierarchicalGenerativeModel
 
             # Test that it validates tau values
             valid_levels = [
@@ -80,9 +79,8 @@ class TestLevelTimescaleValidation:
         """Test that NumPy model can be imported and uses constants"""
         try:
             # Try importing the NumPy model
-            from Falsification.FP_1_Falsification_ActiveInferenceAgents_F1F2 import (
-                HierarchicalGenerativeModel as NumpyHierarchicalGenerativeModel,
-            )
+            from Falsification.FP_1_Falsification_ActiveInferenceAgents_F1F2 import \
+                HierarchicalGenerativeModel as NumpyHierarchicalGenerativeModel
 
             # Test that it validates tau values
             valid_levels = [

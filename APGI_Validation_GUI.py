@@ -11,7 +11,6 @@ import importlib.util
 import io
 import json
 import logging
-import matplotlib
 import os
 import queue
 import sys
@@ -24,6 +23,8 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 from typing import Any, Dict, List, Optional
 from unittest.mock import Mock
+
+import matplotlib
 
 logging.getLogger("arviz.preview").setLevel(logging.WARNING)
 
@@ -1743,14 +1744,10 @@ class APGIValidationGUI:
         try:
             from reportlab.lib import colors
             from reportlab.lib.pagesizes import letter
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            from reportlab.platypus import (
-                SimpleDocTemplate,
-                Paragraph,
-                Spacer,
-                Table,
-                TableStyle,
-            )
+            from reportlab.lib.styles import (ParagraphStyle,
+                                              getSampleStyleSheet)
+            from reportlab.platypus import (Paragraph, SimpleDocTemplate,
+                                            Spacer, Table, TableStyle)
         except ImportError:
             raise ImportError(
                 "PDF generation requires reportlab. Install with: pip install reportlab"
@@ -3133,8 +3130,9 @@ Interpretation:
         if filename:
             try:
                 from reportlab.lib.pagesizes import letter
-                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
                 from reportlab.lib.styles import getSampleStyleSheet
+                from reportlab.platypus import (Paragraph, SimpleDocTemplate,
+                                                Spacer)
 
                 doc = SimpleDocTemplate(filename, pagesize=letter)
                 styles = getSampleStyleSheet()

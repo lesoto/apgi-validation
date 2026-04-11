@@ -17,22 +17,17 @@ import numpy as np
 import pandas as pd
 
 try:
-    from utils.data_validation import (
-        DataPreprocessor as DataPreprocessorUtil,
-        DataValidator as DataValidatorUtil,
-    )
+    from utils.data_validation import DataPreprocessor as DataPreprocessorUtil
+    from utils.data_validation import DataValidator as DataValidatorUtil
 except ImportError:
     try:
-        from data_validation import (
-            DataPreprocessor as DataPreprocessorLocal,
-            DataValidator as DataValidatorLocal,
-        )
+        from data_validation import DataPreprocessor as DataPreprocessorLocal
+        from data_validation import DataValidator as DataValidatorLocal
     except ImportError:
         try:
-            from .data_validation import (
-                DataPreprocessor as DataPreprocessorRelative,
-                DataValidator as DataValidatorRelative,
-            )
+            from .data_validation import \
+                DataPreprocessor as DataPreprocessorRelative
+            from .data_validation import DataValidator as DataValidatorRelative
         except ImportError:
             # Fallback if utils.data_validation is available
             import warnings

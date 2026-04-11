@@ -6,9 +6,10 @@ Validation protocols including
 functional tests for protocols 5-12 beyond simple import checks.
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -471,8 +472,9 @@ def test_validation_protocol_3_hierarchical_generative_model():
     """Test HierarchicalGenerativeModel from VP_03_ActiveInference_AgentSimulations.py"""
     try:
         import importlib.util
-        import torch
+
         import numpy as np
+        import torch
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
@@ -523,8 +525,9 @@ def test_validation_protocol_3_somatic_marker_network():
     """Test SomaticMarkerNetwork from VP_03_ActiveInference_AgentSimulations.py"""
     try:
         import importlib.util
-        import torch
+
         import numpy as np
+        import torch
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
@@ -564,8 +567,9 @@ def test_validation_protocol_3_policy_network():
     """Test PolicyNetwork from VP_03_ActiveInference_AgentSimulations.py"""
     try:
         import importlib.util
-        import torch
+
         import numpy as np
+        import torch
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
@@ -605,6 +609,7 @@ def test_validation_protocol_4_apgi_dynamical_system():
     """Test APGIDynamicalSystem from VP_04_PhaseTransition_EpistemicLevel2.py"""
     try:
         import importlib.util
+
         import numpy as np
 
         spec = importlib.util.spec_from_file_location(
@@ -893,6 +898,7 @@ def test_hierarchical_generative_model_edge_cases(levels_config):
     """Test HierarchicalGenerativeModel with edge case configurations"""
     try:
         import importlib.util
+
         import torch
 
         spec = importlib.util.spec_from_file_location(
@@ -940,8 +946,9 @@ def test_somatic_marker_network_edge_cases(context_dim, action_dim):
     """Test SomaticMarkerNetwork with edge case dimensions"""
     try:
         import importlib.util
-        import torch
+
         import numpy as np
+        import torch
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
@@ -980,8 +987,9 @@ def test_policy_network_edge_cases(state_dim, action_dim):
     """Test PolicyNetwork with edge case dimensions"""
     try:
         import importlib.util
-        import torch
+
         import numpy as np
+        import torch
 
         spec = importlib.util.spec_from_file_location(
             "protocol3",
@@ -1023,6 +1031,7 @@ def test_apgi_dynamical_system_parameter_ranges(tau_S, tau_theta, alpha):
     """Test APGIDynamicalSystem with different parameter ranges"""
     try:
         import importlib.util
+
         import numpy as np
 
         spec = importlib.util.spec_from_file_location(

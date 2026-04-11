@@ -6,9 +6,10 @@ and P3b amplitude/latency (300–600ms). This is essential for the core mechanis
 (Πⁱ → HEP → P3b coupling) to be testable in silico.
 """
 
-import numpy as np
-from typing import Any, Dict, Optional
 import logging
+from typing import Any, Dict, Optional
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 

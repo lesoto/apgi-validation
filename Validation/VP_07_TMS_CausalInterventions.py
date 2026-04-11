@@ -15,15 +15,15 @@ import json
 import logging
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime
 
 # Suppress noisy arviz.preview INFO messages about optional subpackages
 logging.getLogger("arviz.preview").setLevel(logging.WARNING)
 
-import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
@@ -37,27 +37,20 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from utils.falsification_thresholds import (
-    V7_1_MIN_THRESHOLD_REDUCTION_PCT,
-    V7_1_MIN_EFFECT_DURATION_MIN,
-    V7_1_MIN_COHENS_D,
-    V7_1_ALPHA,
-    V7_2_MIN_PRECISION_INCREASE_PCT,
-    V7_2_MIN_IGNITION_REDUCTION_PCT,
-    V7_2_MIN_ETA_SQUARED,
-    V7_2_MIN_COHENS_D,
-    V7_2_ALPHA,
-)
+from utils.falsification_thresholds import (V7_1_ALPHA, V7_1_MIN_COHENS_D,
+                                            V7_1_MIN_EFFECT_DURATION_MIN,
+                                            V7_1_MIN_THRESHOLD_REDUCTION_PCT,
+                                            V7_2_ALPHA, V7_2_MIN_COHENS_D,
+                                            V7_2_MIN_ETA_SQUARED,
+                                            V7_2_MIN_IGNITION_REDUCTION_PCT,
+                                            V7_2_MIN_PRECISION_INCREASE_PCT)
 
 logger = logging.getLogger(__name__)
 
 # Import shared multiple comparison correction
 try:
-    from utils.statistical_tests import (
-        apply_multiple_comparison_correction,
-        permutation_test,
-        compute_eta_squared,
-    )
+    from utils.statistical_tests import (apply_multiple_comparison_correction,
+                                         compute_eta_squared, permutation_test)
 except ImportError:
     apply_multiple_comparison_correction = None  # type: ignore[misc,assignment]
     permutation_test = None  # type: ignore[misc,assignment]
@@ -3859,7 +3852,8 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import ProtocolResult, PredictionResult, PredictionStatus
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except ImportError:
