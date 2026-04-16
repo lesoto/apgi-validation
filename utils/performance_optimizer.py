@@ -253,6 +253,7 @@ class ProtocolOptimizer:
         process_func: Callable,
         chunk_size: int = 100,
         parallel: bool = True,
+        cpu_bound: bool = False,
     ) -> List[Any]:
         """
         Process large datasets in chunks for memory efficiency.
@@ -262,18 +263,35 @@ class ProtocolOptimizer:
             process_func: Function to apply to each chunk
             chunk_size: Size of each chunk
             parallel: Whether to process chunks in parallel
+            cpu_bound: Use process pool for CPU-bound workloads
 
         Returns:
             Combined results from all chunks
         """
-        # Split data into chunks
-        chunks = [data[i : i + chunk_size] for i in range(0, len(data), chunk_size)]
+        adaptive_chunk_size = max(
+            25, min(chunk_size, max(1, len(data) // max(1, self.max_workers)))
+        )
+        chunks = [
+            data[i : i + adaptive_chunk_size]
+            for i in range(0, len(data), adaptive_chunk_size)
+        ]
 
         if parallel and len(chunks) > 1:
-            # Process chunks in parallel
-            futures = [
-                self._thread_pool.submit(process_func, chunk) for chunk in chunks
-            ]
+            if cpu_bound:
+                if self._process_pool is None:
+                    self._process_pool = ProcessPoolExecutor(
+                        max_workers=self.max_workers
+                    )
+                futures = [
+                    self._process_pool.submit(
+                        self._process_chunk_static, chunk, process_func
+                    )
+                    for chunk in chunks
+                ]
+            else:
+                futures = [
+                    self._thread_pool.submit(process_func, chunk) for chunk in chunks
+                ]
             results = [f.result() for f in futures]
         else:
             # Process sequentially
@@ -283,6 +301,11 @@ class ProtocolOptimizer:
         if results and isinstance(results[0], list):
             return [item for sublist in results for item in sublist]
         return results
+
+    @staticmethod
+    def _process_chunk_static(chunk: List[Any], process_func: Callable) -> List[Any]:
+        """Static helper for process-pool compatibility."""
+        return process_func(chunk)
 
     def lazy_evaluation(
         self, computation_chain: List[Callable], initial_data: Any
