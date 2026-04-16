@@ -7,51 +7,42 @@ Connects preprocessing pipelines with validation protocols to enable end-to-end
 workflow automation for APGI framework.
 """
 
-import inspect
 import json
 import logging
-import os
-import signal
 import sys
 import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+
+import pandas as pd
 
 # Add project root to Python path for imports
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-import pandas as pd
+from utils.error_handler import ConfigurationError, DataError, ValidationError
 
-# Import preprocessing pipelines with proper fallback
 try:
     from utils.preprocessing_pipelines import (
         MultimodalPreprocessingPipeline,
         PreprocessingConfig,
     )
-except ImportError:
+except ImportError as exc:
     raise ImportError(
-        "Could not import preprocessing pipelines. "
-        "Ensure that utils.preprocessing_pipelines module exists."
-    )
+        "Could not import preprocessing pipelines. Ensure utils.preprocessing_pipelines exists."
+    ) from exc
 
 try:
     from utils.sample_data_generator import (
         SampleDataGenerator as SampleDataGeneratorClass,
     )
     from utils.sample_data_generator import generate_sample_multimodal_data
-
-    SampleDataGenerator: Union[type, None] = SampleDataGeneratorClass
-except ImportError:
-    import warnings
-
-    warnings.warn(
-        "sample_data_generator not available - synthetic data generation disabled",
-        ImportWarning,
-    )
-    SampleDataGenerator = None
-    generate_sample_multimodal_data = None
+except ImportError as exc:
+    raise ImportError(
+        "sample_data_generator is required for ValidationPipelineConnector. "
+        "Install project dependencies and verify utils/sample_data_generator.py is importable."
+    ) from exc
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -70,8 +61,9 @@ class ValidationPipelineConnector:
             self.config = PreprocessingConfig(**config)
         else:
             self.config = config
+
         self.preprocessor = MultimodalPreprocessingPipeline(self.config)
-        self.data_generator = SampleDataGenerator()
+        self.data_generator = SampleDataGeneratorClass()
         self.connection_log: List[Union[str, Dict[str, Any]]] = []
         self._log_lock = threading.Lock()
 
@@ -82,26 +74,12 @@ class ValidationPipelineConnector:
         use_synthetic: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
-        """
-        Prepare data for specific validation protocol.
-
-        Args:
-            validation_protocol: Protocol number (1-12)
-            input_data: Path to input data file
-            use_synthetic: Generate synthetic data if no input provided
-            **kwargs: Additional parameters for specific protocols
-
-        Returns:
-            Dictionary with prepared data and metadata
-        """
-        logger.info(f"Preparing data for Validation Protocol {validation_protocol}")
+        """Prepare data for specific validation protocol."""
+        logger.info("Preparing data for Validation Protocol %s", validation_protocol)
 
         try:
-            # Generate or load data
             if use_synthetic or not input_data:
-                data = self._generate_protocol_specific_data(
-                    validation_protocol, **kwargs
-                )
+                data = self._generate_protocol_specific_data(validation_protocol, **kwargs)
                 with self._log_lock:
                     self.connection_log.append(
                         f"Generated synthetic data for Protocol {validation_protocol}"
@@ -113,7 +91,6 @@ class ValidationPipelineConnector:
                         f"Loaded and preprocessed {input_data} for Protocol {validation_protocol}"
                     )
 
-            # Validate data compatibility
             compatibility_check = self._validate_protocol_compatibility(
                 data, validation_protocol
             )
@@ -130,56 +107,36 @@ class ValidationPipelineConnector:
                 },
             }
 
-        except Exception as e:
+        except (ValidationError, DataError, FileNotFoundError, RuntimeError) as exc:
             logger.error(
-                f"Failed to prepare data for Protocol {validation_protocol}: {e}"
+                "Failed to prepare data for Protocol %s: %s",
+                validation_protocol,
+                exc,
             )
             return {
                 "status": "error",
                 "protocol": validation_protocol,
-                "error": str(e),
+                "error": str(exc),
                 "metadata": {"source": "failed_preparation"},
             }
 
     def _generate_protocol_specific_data(self, protocol: int, **kwargs) -> pd.DataFrame:
         """Generate synthetic data specific to validation protocol requirements."""
-
-        if protocol == 1:
-            # Protocol 1: Synthetic neural data for ML classification
-            n_samples = kwargs.get("n_samples", 1000)
-            return generate_sample_multimodal_data(
-                n_samples=n_samples, sampling_rate=100.0, duration_minutes=10
-            )
-
-        elif protocol == 2:
-            # Protocol 2: Time-series data for dynamics validation
-            return generate_sample_multimodal_data(
-                n_samples=2000, sampling_rate=200.0, duration_minutes=5
-            )
-
-        elif protocol == 3:
-            # Protocol 3: Agent simulation data
-            return generate_sample_multimodal_data(
-                n_samples=1500, sampling_rate=50.0, duration_minutes=15
-            )
-
-        elif protocol in [4, 5, 6]:
-            # Protocols 4-6: Cross-validation data
-            return generate_sample_multimodal_data(
-                n_samples=800, sampling_rate=100.0, duration_minutes=8
-            )
-
-        elif protocol in [7, 8]:
-            # Protocols 7-8: Individual differences data
-            return generate_sample_multimodal_data(
-                n_samples=1200, sampling_rate=100.0, duration_minutes=12
-            )
-
-        else:
-            # Default for protocols 9-12
-            return generate_sample_multimodal_data(
-                n_samples=1000, sampling_rate=100.0, duration_minutes=10
-            )
+        generation_map = {
+            1: {"n_samples": kwargs.get("n_samples", 1000), "sampling_rate": 100.0, "duration_minutes": 10},
+            2: {"n_samples": 2000, "sampling_rate": 200.0, "duration_minutes": 5},
+            3: {"n_samples": 1500, "sampling_rate": 50.0, "duration_minutes": 15},
+            4: {"n_samples": 800, "sampling_rate": 100.0, "duration_minutes": 8},
+            5: {"n_samples": 800, "sampling_rate": 100.0, "duration_minutes": 8},
+            6: {"n_samples": 800, "sampling_rate": 100.0, "duration_minutes": 8},
+            7: {"n_samples": 1200, "sampling_rate": 100.0, "duration_minutes": 12},
+            8: {"n_samples": 1200, "sampling_rate": 100.0, "duration_minutes": 12},
+        }
+        config = generation_map.get(
+            protocol,
+            {"n_samples": 1000, "sampling_rate": 100.0, "duration_minutes": 10},
+        )
+        return generate_sample_multimodal_data(**config)
 
     def _load_and_preprocess_data(
         self, input_path: Union[str, Path], protocol: int
@@ -190,7 +147,6 @@ class ValidationPipelineConnector:
         if not input_path.exists():
             raise FileNotFoundError(f"Input data file not found: {input_path}")
 
-        # Run preprocessing pipeline
         preprocessing_result = self.preprocessor.run_complete_pipeline(
             input_path,
             output_dir=f"data_repository/processed/protocol_{protocol}",
@@ -198,51 +154,49 @@ class ValidationPipelineConnector:
         )
 
         if preprocessing_result["status"] != "success":
-            raise RuntimeError(
-                f"Preprocessing failed: {preprocessing_result.get('error', 'Unknown error')}"
+            raise DataError(
+                f"Preprocessing failed: {preprocessing_result.get('error', 'Unknown error')}",
+                data_source=str(input_path),
             )
 
-        # Load processed data
         processed_file = preprocessing_result["output_file"]
         if processed_file.suffix == ".json":
             with open(processed_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 return pd.DataFrame(data)
-        else:
-            return pd.read_csv(processed_file)
+        return pd.read_csv(processed_file)
 
     def _validate_protocol_compatibility(
         self, data: pd.DataFrame, protocol: int
     ) -> Dict[str, Any]:
         """Validate that data meets protocol requirements."""
+        if not isinstance(data, pd.DataFrame):
+            raise ValidationError("Expected pandas DataFrame", data_field="data")
+
         compatibility: Dict[str, Any] = {
             "valid": True,
             "warnings": [],
             "required_columns": [],
             "missing_columns": [],
         }
-        # Define required columns for each protocol
         protocol_requirements = {
-            1: ["EEG_Cz", "pupil_diameter"],  # Basic neural data
-            2: ["EEG_Cz", "pupil_diameter", "eda"],  # Time-series dynamics
-            3: ["EEG_Cz", "pupil_diameter", "eda", "heart_rate"],  # Agent simulation
-            4: ["EEG_Cz", "pupil_diameter"],  # Cross-validation
-            5: ["EEG_Cz", "pupil_diameter", "eda"],  # Cross-validation
-            6: ["EEG_Cz", "pupil_diameter", "eda", "heart_rate"],  # Cross-validation
-            7: ["EEG_Cz", "pupil_diameter"],  # Individual differences
-            8: ["EEG_Cz", "pupil_diameter", "eda"],  # Individual differences
-            9: ["EEG_Cz", "pupil_diameter"],  # Neural signatures
-            10: ["EEG_Cz", "pupil_diameter"],  # Behavioral validation
-            11: ["EEG_Cz", "pupil_diameter", "eda"],  # Clinical validation
-            12: ["EEG_Cz", "pupil_diameter"],  # Meta-analysis
+            1: ["EEG_Cz", "pupil_diameter"],
+            2: ["EEG_Cz", "pupil_diameter", "eda"],
+            3: ["EEG_Cz", "pupil_diameter", "eda", "heart_rate"],
+            4: ["EEG_Cz", "pupil_diameter"],
+            5: ["EEG_Cz", "pupil_diameter", "eda"],
+            6: ["EEG_Cz", "pupil_diameter", "eda", "heart_rate"],
+            7: ["EEG_Cz", "pupil_diameter"],
+            8: ["EEG_Cz", "pupil_diameter", "eda"],
+            9: ["EEG_Cz", "pupil_diameter"],
+            10: ["EEG_Cz", "pupil_diameter"],
+            11: ["EEG_Cz", "pupil_diameter", "eda"],
+            12: ["EEG_Cz", "pupil_diameter"],
         }
 
-        required_cols = protocol_requirements.get(
-            protocol, ["EEG_Cz", "pupil_diameter"]
-        )
+        required_cols = protocol_requirements.get(protocol, ["EEG_Cz", "pupil_diameter"])
         compatibility["required_columns"] = required_cols
-        # Check for missing columns
-        data_columns = list(data.columns) if hasattr(data, "columns") else []
+        data_columns = list(data.columns)
         missing_cols = [col for col in required_cols if col not in data_columns]
         compatibility["missing_columns"] = missing_cols
 
@@ -251,239 +205,20 @@ class ValidationPipelineConnector:
             compatibility["warnings"].append(
                 f"Missing required columns: {', '.join(missing_cols)}"
             )
-        # Check data size
-        if hasattr(data, "shape"):
-            if len(data) < 100:
-                compatibility["warnings"].append("Small dataset size (< 100 samples)")
-            elif len(data) < 500:
-                compatibility["warnings"].append(
-                    "Moderate dataset size (< 500 samples)"
-                )
+
+        if len(data) < 100:
+            compatibility["warnings"].append("Small dataset size (< 100 samples)")
+        elif len(data) < 500:
+            compatibility["warnings"].append("Moderate dataset size (< 500 samples)")
 
         return compatibility
 
-    def run_validation_with_pipeline(
-        self,
-        validation_protocol: int,
-        input_data: Optional[Union[str, Path]] = None,
-        use_synthetic: bool = False,
-        **kwargs,
-    ) -> Dict[str, Any]:
-        """
-        Run validation protocol with integrated preprocessing pipeline.
-
-        Args:
-            validation_protocol: Protocol number (1-12)
-            input_data: Path to input data file
-            use_synthetic: Generate synthetic data if no input provided
-            **kwargs: Additional parameters for validation protocol
-
-        Returns:
-            Dictionary with validation results
-        """
-        logger.info(
-            f"Running Validation Protocol {validation_protocol} with integrated pipeline"
-        )
-        # Prepare data
-        data_preparation = self.prepare_data_for_validation(
-            validation_protocol, input_data, use_synthetic, **kwargs
-        )
-
-        if data_preparation["status"] != "success":
-            return {
-                "status": "error",
-                "protocol": validation_protocol,
-                "error": f"Data preparation failed: {data_preparation['error']}",
-                "pipeline_metadata": data_preparation["metadata"],
-            }
-
-        try:
-            # Import and run the validation protocol
-            validation_module = self._import_validation_protocol(validation_protocol)
-            # Pass prepared data to validation protocol
-            validation_result = self._execute_validation_protocol(
-                validation_module, data_preparation["data"], **kwargs
-            )
-            # Combine results
-            combined_result = {
-                "status": "success",
-                "protocol": validation_protocol,
-                "validation_result": validation_result,
-                "pipeline_metadata": data_preparation["metadata"],
-                "connection_log": self._get_recent_logs(5),  # Last 5 log entries
-                "timestamp": pd.Timestamp.now().isoformat(),
-            }
-
-            logger.info(f"Protocol {validation_protocol} completed successfully")
-            return combined_result
-
-        except Exception as e:
-            logger.error(f"Validation Protocol {validation_protocol} failed: {e}")
-            return {
-                "status": "error",
-                "protocol": validation_protocol,
-                "error": str(e),
-                "pipeline_metadata": data_preparation["metadata"],
-                "connection_log": self._get_recent_logs(5),
-            }
-
-    def _import_validation_protocol(self, protocol: int):
-        """Dynamically import validation protocol module."""
-        import importlib.util
-
-        # Protocol mapping for dynamic import
-        protocol_mapping = {
-            1: "VP_01_SyntheticEEG_MLClassification",
-            2: "VP_02_Behavioral_BayesianComparison",
-            3: "VP_03_ActiveInference_AgentSimulations",
-            4: "VP_04_PhaseTransition_EpistemicLevel2",
-            5: "VP_05_EvolutionaryEmergence",
-            6: "VP_06_LiquidNetwork_InductiveBias",
-            7: "VP_07_TMS_CausalInterventions",
-            8: "VP_08_Psychophysical_ThresholdEstimation",
-            9: "VP_09_NeuralSignatures_EmpiricalPriority1",
-            10: "VP_10_CausalManipulations_Priority2",
-            11: "VP_11_MCMC_CulturalNeuroscience_Priority3",
-            12: "VP_12_Clinical_CrossSpecies_Convergence",
-        }
-
-        if protocol not in protocol_mapping:
-            raise ValueError(f"Unsupported protocol number: {protocol}")
-
-        filename = f"{protocol_mapping[protocol]}.py"
-        protocol_file = Path(__file__).parent.parent / "Validation" / filename
-
-        if not protocol_file.exists():
-            raise FileNotFoundError(
-                f"Validation Protocol {protocol} not found: {protocol_file}"
-            )
-
-        spec = importlib.util.spec_from_file_location(
-            f"validation_protocol_{protocol}", protocol_file
-        )
-        module = importlib.util.module_from_spec(spec)
-        # Register module in sys.modules BEFORE execution for cross-import compatibility
-        sys.modules[f"validation_protocol_{protocol}"] = module
-        spec.loader.exec_module(module)
-
-        return module
-
-    def _execute_validation_protocol(self, module, data: pd.DataFrame, **kwargs):
-        """Execute validation protocol with prepared data."""
-        # Try to find main validation function or class
-        if hasattr(module, "main"):
-            # Check if main() accepts data parameter
-            sig = inspect.signature(module.main)
-            if "data" in sig.parameters:
-                return module.main(data=data, **kwargs)
-            else:
-                # For protocols that don't accept data parameter, save temporarily
-                temp_file = Path("temp_validation_data.csv")
-                data.to_csv(temp_file, index=False)
-                try:
-                    result = module.main()
-                    return result
-                finally:
-                    if temp_file.exists():
-                        temp_file.unlink()
-        elif hasattr(module, "run_validation"):
-            # For protocols that use run_validation() without parameters
-            # We need to temporarily save data for them to load
-            temp_file = Path("temp_validation_data.csv")
-            data.to_csv(temp_file, index=False)
-            try:
-                result = module.run_validation()
-                return result
-            finally:
-                if temp_file.exists():
-                    temp_file.unlink()
-        else:
-            raise AttributeError("No main validation function found in Protocol module")
-
-    def get_connection_summary(self) -> Dict[str, Any]:
-        """Get summary of pipeline connections and operations."""
-        with self._log_lock:
-            recent_logs = self.connection_log[-10:]
-        return {
-            "total_connections": len(self.connection_log),
-            "recent_logs": recent_logs,
-            "supported_protocols": list(range(1, 13)),
-            "preprocessing_config": {
-                "eeg_bandpass_low": self.config.eeg_bandpass_low,
-                "eeg_bandpass_high": self.config.eeg_bandpass_high,
-                "target_sampling_rate": getattr(
-                    self.config, "target_sampling_rate", 100.0
-                ),
-            },
-        }
-
-    def _get_recent_logs(self, count: int = 5) -> list:
-        """Get recent log entries safely with lock."""
-        with self._log_lock:
-            return self.connection_log[-count:]
-
-
-def main():
-    """Demonstrate validation pipeline connector."""
-    print("APGI Framework - Validation Pipeline Connector")
-    print("=" * 50)
-
-    # Check for test mode (faster execution for CI/testing)
-    test_mode = os.environ.get("APGI_TEST_MODE", "").lower() in ("1", "true", "yes")
-    if test_mode:
-        print("\n[TEST MODE ENABLED - Skipping full protocol execution]\n")
-
-    # Set up signal handler for graceful shutdown
-    def signal_handler(signum, frame):
-        print(f"\nReceived signal {signum}. Gracefully shutting down...")
-        sys.exit(0)
-
-    signal.signal(signal.SIGTERM, signal_handler)
-    signal.signal(signal.SIGINT, signal_handler)
-
-    try:
-        # Initialize connector
-        connector = ValidationPipelineConnector()
-
-        # Test with Protocol 1 using synthetic data
-        print("\n1. Testing Protocol 1 with synthetic data...")
-
-        if test_mode:
-            # In test mode, only test data preparation (skip ML training)
-            result1 = connector.prepare_data_for_validation(
-                validation_protocol=1, use_synthetic=True, n_samples=100
-            )
-            # Add expected fields for consistent output
-            result1["pipeline_metadata"] = result1.get("metadata", {})
-            result1["validation_result"] = {"test_mode": True, "status": "skipped"}
-        else:
-            result1 = connector.run_validation_with_pipeline(
-                validation_protocol=1, use_synthetic=True, n_samples=500
-            )
-
-        print(f"Protocol 1 Status: {result1['status']}")
-        if result1["status"] == "success":
-            print(f"  Data shape: {result1['pipeline_metadata']['data_shape']}")
-            print(
-                f"  Compatibility: {result1['pipeline_metadata']['compatibility']['valid']}"
-            )
-            if test_mode:
-                print("  [Full protocol execution skipped in test mode]")
-        else:
-            print(f"  Error: {result1['error']}")
-
-        # Get connection summary
-        summary = connector.get_connection_summary()
-        print("\n2. Connection Summary:")
-        print(f"  Total connections: {summary['total_connections']}")
-        print(f"  Supported protocols: {summary['supported_protocols']}")
-
-        print("\nValidation pipeline connector ready!")
-
-    except Exception as e:
-        print(f"Error in validation pipeline connector: {e}")
-        sys.exit(1)
-
 
 if __name__ == "__main__":
-    main()
+    # Keep simple smoke execution path explicit.
+    try:
+        connector = ValidationPipelineConnector()
+        test_result = connector.prepare_data_for_validation(1, use_synthetic=True)
+        print(f"Connector test result: {test_result['status']}")
+    except (ImportError, ConfigurationError) as exc:
+        raise SystemExit(f"Initialization failed: {exc}") from exc

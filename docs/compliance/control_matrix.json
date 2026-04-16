@@ -1,0 +1,25 @@
+{
+  "version": "2026-04-16",
+  "frameworks": {
+    "SOC2": {
+      "CC6.1": "Access control and role-based authorization enforced via SecurityContext middleware.",
+      "CC7.2": "Security audit logging is mandatory via audited wrappers and decorators.",
+      "CC8.1": "Change management includes CI validation and benchmark regression checks."
+    },
+    "GDPR": {
+      "Art5(1)(c)": "Data minimization required in protocol payload schemas and storage paths.",
+      "Art15": "Audit trail export supports access reporting for data subject requests.",
+      "Art17": "Data retention and deletion procedures are documented and testable."
+    },
+    "HIPAA": {
+      "164.312(a)(1)": "Role-based authorization checks for read/write/import operations.",
+      "164.312(b)": "Audit controls implemented with structured audit log events.",
+      "164.312(c)(1)": "Integrity checks include signed artifact hash verification requirements."
+    }
+  },
+  "governance": {
+    "retention_policy": "docs/compliance/data_retention_policy.md",
+    "privacy_threat_model": "docs/compliance/privacy_threat_model.md",
+    "annual_review_checklist": "docs/compliance/annual_security_review_checklist.md"
+  }
+}

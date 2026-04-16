@@ -9,10 +9,13 @@ Coordinates execution of all validation protocols and aggregates results.
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 import numpy as np
 import pandas as pd
+
+from utils.protocol_contracts import ProtocolContract, ProtocolContractRegistry
+from utils.error_handler import ConfigurationError
 
 # Add project root to sys.path for imports
 _proj_root = Path(__file__).parent.parent
@@ -197,9 +200,57 @@ class APGIMasterValidator:
                 "description": "fMRI Anticipation vmPFC (STUB — Awaiting Data)",
             },
         }
+        self.protocol_contracts = ProtocolContractRegistry(
+            ProtocolContract(
+                protocol_id=protocol_id,
+                file=details["file"],
+                entrypoint=details["function"],
+                schema_version="1.0",
+            )
+            for protocol_id, details in self.available_protocols.items()
+        )
+        self.contract_diagnostics = self.protocol_contracts.validate(_proj_root)
+        self._validate_dependency_graph()
+
         self.PROTOCOL_DESCRIPTIONS = {
             k: v["description"] for k, v in self.available_protocols.items()
         }
+
+    def _validate_dependency_graph(self) -> None:
+        """Validate protocol dependency graph is well formed and acyclic."""
+        graph: Dict[str, List[str]] = {
+            protocol: deps.get("dependencies", [])
+            for protocol, deps in self.protocol_dependencies.items()
+        }
+
+        for protocol_name, dependencies in graph.items():
+            for dep in dependencies:
+                if dep not in graph:
+                    raise ConfigurationError(
+                        f"Unknown dependency '{dep}' referenced by '{protocol_name}'",
+                        config_file="protocol_dependencies",
+                    )
+
+        visiting: Set[str] = set()
+        visited: Set[str] = set()
+
+        def dfs(node: str) -> None:
+            if node in visiting:
+                raise ConfigurationError(
+                    f"Cyclic dependency detected at '{node}'",
+                    config_file="protocol_dependencies",
+                )
+            if node in visited:
+                return
+
+            visiting.add(node)
+            for dep in graph.get(node, []):
+                dfs(dep)
+            visiting.remove(node)
+            visited.add(node)
+
+        for protocol in graph:
+            dfs(protocol)
 
     def run_validation(self, protocols: List[str], **kwargs) -> Dict[str, Dict]:
         """
@@ -232,7 +283,7 @@ class APGIMasterValidator:
                     f"{protocol_name} completed: {result.get('status', 'unknown')}"
                 )
 
-            except Exception as e:
+            except (ImportError, AttributeError, RuntimeError, ValueError, TypeError) as e:
                 logger.error(f"Error running {protocol_name}: {e}")
                 results[protocol_name] = {
                     "status": "error",
@@ -315,7 +366,7 @@ class APGIMasterValidator:
                     "reason": "Awaiting empirical fMRI data for vmPFC anticipation paradigm",
                 }
             return {"status": "error", "message": str(e), "passed": False}
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError) as e:
             return {"status": "error", "message": str(e), "passed": False}
 
     def generate_master_report(self) -> Dict:
