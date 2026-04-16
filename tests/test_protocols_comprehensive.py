@@ -32,12 +32,12 @@ class TestFalsificationProtocol5(unittest.TestCase):
     def test_evolutionary_emergence_initialization(self):
         """Test FP-5 protocol initialization."""
         try:
-            from FP_1_Falsification_ActiveInferenceAgents_F1F2 import \
-                FalsificationProtocol as FP5
+            from Falsification.FP_05_EvolutionaryPlausibility import (
+                EvolutionaryAPGIEmergence as FP5,
+            )
 
-            protocol = FP5(protocol_id="FP-5")
+            protocol = FP5()
             self.assertIsNotNone(protocol)
-            self.assertEqual(protocol.protocol_id, "FP-5")
         except ImportError:
             self.skipTest("FP-5 module not available")
 

@@ -128,8 +128,12 @@ class TestErrorHandlerBranches:
 
     def test_apgi_error_with_error_info(self):
         """Test APGIError initialization with ErrorInfo"""
-        from utils.error_handler import (APGIError, ErrorCategory, ErrorInfo,
-                                         ErrorSeverity)
+        from utils.error_handler import (
+            APGIError,
+            ErrorCategory,
+            ErrorInfo,
+            ErrorSeverity,
+        )
 
         error_info = ErrorInfo(
             category=ErrorCategory.VALIDATION,
@@ -181,8 +185,7 @@ class TestErrorHandlerBranches:
 
     def test_error_templates_all_severities(self):
         """Test error template lookup for all severities"""
-        from utils.error_handler import (ErrorCategory, ErrorHandler,
-                                         ErrorSeverity)
+        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
 
         handler = ErrorHandler()
 

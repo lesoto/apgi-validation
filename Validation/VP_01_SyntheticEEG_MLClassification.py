@@ -54,16 +54,23 @@ if str(project_root) not in sys.path:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (DEFAULT_ALPHA,
-                                                P1_1_MAX_D_PRIME,
-                                                P1_1_MIN_D_PRIME)
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        P1_1_MAX_D_PRIME,
+        P1_1_MIN_D_PRIME,
+    )
 except ImportError:
     P1_1_MIN_D_PRIME = 0.50
     P1_1_MAX_D_PRIME = 0.60
     DEFAULT_ALPHA = 0.05
 
-from sklearn.metrics import (accuracy_score, classification_report,
-                             confusion_matrix, f1_score, roc_auc_score)
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    roc_auc_score,
+)
 from torch.utils.data import DataLoader, Dataset, random_split
 from tqdm import tqdm
 
@@ -71,12 +78,20 @@ from utils.statistical_tests import safe_pearsonr
 
 # APGI imports
 try:
-    from utils.config_loader import (get_alpha, get_cohens_d_threshold,
-                                     get_cumulative_reward_advantage_threshold,
-                                     get_gamma_A, get_gamma_M, get_rho,
-                                     get_sigma_S, get_sigma_theta,
-                                     get_significance_level, get_tau_S,
-                                     get_tau_theta, get_theta_0)
+    from utils.config_loader import (
+        get_alpha,
+        get_cohens_d_threshold,
+        get_cumulative_reward_advantage_threshold,
+        get_gamma_A,
+        get_gamma_M,
+        get_rho,
+        get_sigma_S,
+        get_sigma_theta,
+        get_significance_level,
+        get_tau_S,
+        get_tau_theta,
+        get_theta_0,
+    )
     from utils.logging_config import apgi_logger as logger
 except ImportError:
     import logging
@@ -4583,8 +4598,7 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:

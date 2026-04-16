@@ -67,9 +67,11 @@ if str(_proj_root) not in sys.path:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (DEFAULT_ALPHA,
-                                                F5_1_MIN_COHENS_D,
-                                                F5_1_MIN_PROPORTION)
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        F5_1_MIN_COHENS_D,
+        F5_1_MIN_PROPORTION,
+    )
 except ImportError:
     DEFAULT_ALPHA = 0.05
     F5_1_MIN_PROPORTION = 0.75
@@ -3681,8 +3683,7 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:

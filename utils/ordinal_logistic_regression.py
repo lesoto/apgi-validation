@@ -84,17 +84,17 @@ class OrdinalLogisticRegression:
         for j in range(self.n_thresholds):
             cum_probs[:, j] = 1 / (1 + np.exp(thresholds[j] - eta))
         # P(Y ≤ K-1) is always 1 (all probability mass)
-        # cum_probs[:, -1] stays 0, we'll compute P(Y = K-1) as 1 - P(Y ≤ K-2)
+        cum_probs[:, -1] = 1.0  # Set last cumulative prob to 1
 
         # Convert cumulative to individual probabilities
         probs[:, 0] = cum_probs[:, 0]  # P(Y = 0) = P(Y ≤ 0)
-        for j in range(1, self.n_thresholds):
+        for j in range(1, self.n_categories):
             probs[:, j] = cum_probs[:, j] - cum_probs[:, j - 1]
-        probs[:, -1] = 1 - cum_probs[:, -2]  # P(Y = K-1) = 1 - P(Y ≤ K-2)
 
         # Ensure probabilities are valid to avoid log(0) errors
         eps = 1e-10
         probs = np.clip(probs, eps, 1 - eps)
+        probs = probs / probs.sum(axis=1, keepdims=True)
 
         # Negative log-likelihood
         nll = 0
@@ -245,17 +245,17 @@ class OrdinalLogisticRegression:
         for j in range(self.n_thresholds):
             cum_probs[:, j] = 1 / (1 + np.exp(self.thresholds[j] - eta))
         # P(Y ≤ K-1) is always 1 (all probability mass)
-        # cum_probs[:, -1] stays 0, we'll compute P(Y = K-1) as 1 - P(Y ≤ K-2)
+        cum_probs[:, -1] = 1.0  # Set last cumulative prob to 1
 
         # Convert cumulative to individual probabilities
         probs[:, 0] = cum_probs[:, 0]  # P(Y = 0) = P(Y ≤ 0)
-        for j in range(1, self.n_thresholds):
+        for j in range(1, self.n_categories):
             probs[:, j] = cum_probs[:, j] - cum_probs[:, j - 1]
-        probs[:, -1] = 1 - cum_probs[:, -2]  # P(Y = K-1) = 1 - P(Y ≤ K-2)
 
-        # Ensure probabilities are valid
+        # Ensure probabilities are valid and normalize to sum to 1
         eps = 1e-10
         probs = np.clip(probs, eps, 1 - eps)
+        probs = probs / probs.sum(axis=1, keepdims=True)
 
         return probs
 

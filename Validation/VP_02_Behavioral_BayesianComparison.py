@@ -66,7 +66,10 @@ if str(project_root) not in sys.path:
 
 try:
     from utils.bayesian_model_comparison import (  # noqa: F401  (available for callers)
-        APGIGenerativeModel, BayesianModelComparison, ConsciousnessDataset)
+        APGIGenerativeModel,
+        BayesianModelComparison,
+        ConsciousnessDataset,
+    )
 except ImportError:
     BayesianModelComparison = None  # type: ignore[assignment,misc]
     ConsciousnessDataset = None  # type: ignore[assignment,misc]
@@ -79,8 +82,10 @@ except ImportError:
 
 # Import shared multiple comparison correction
 try:
-    from utils.statistical_tests import (apply_multiple_comparison_correction,
-                                         compute_eta_squared)
+    from utils.statistical_tests import (
+        apply_multiple_comparison_correction,
+        compute_eta_squared,
+    )
 except ImportError:
     apply_multiple_comparison_correction = None  # type: ignore[misc,assignment]
     compute_eta_squared = None  # type: ignore[misc,assignment]
@@ -98,15 +103,20 @@ except ImportError:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (DEFAULT_ALPHA, F1_1_ALPHA,
-                                                F1_1_MIN_ADVANTAGE_PCT,
-                                                F1_1_MIN_COHENS_D, F2_3_ALPHA,
-                                                F2_3_MIN_BETA, F2_3_MIN_R2,
-                                                F2_3_MIN_RT_ADVANTAGE_MS,
-                                                F2_3_MIN_STANDARDIZED_BETA,
-                                                VP2_AROUSAL_BOOST_MAX,
-                                                VP2_AROUSAL_COUPLING_SCALE,
-                                                VP2_DELTA_PI_COUPLING)
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        F1_1_ALPHA,
+        F1_1_MIN_ADVANTAGE_PCT,
+        F1_1_MIN_COHENS_D,
+        F2_3_ALPHA,
+        F2_3_MIN_BETA,
+        F2_3_MIN_R2,
+        F2_3_MIN_RT_ADVANTAGE_MS,
+        F2_3_MIN_STANDARDIZED_BETA,
+        VP2_AROUSAL_BOOST_MAX,
+        VP2_AROUSAL_COUPLING_SCALE,
+        VP2_DELTA_PI_COUPLING,
+    )
 except ImportError:
     logger.warning("falsification_thresholds not available, using default values")
     DEFAULT_ALPHA = 0.05
@@ -1911,8 +1921,7 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:

@@ -25,10 +25,12 @@ logger = logging.getLogger(__name__)
 
 # Import shared multiple comparison correction
 try:
-    from utils.constants import (TMS_MOTOR_THRESHOLD_ADJUST,
-                                 TMS_PULSE_WIDTH_MS, TMS_SIGMOID_STEEPNESS)
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.constants import (
+        TMS_MOTOR_THRESHOLD_ADJUST,
+        TMS_PULSE_WIDTH_MS,
+        TMS_SIGMOID_STEEPNESS,
+    )
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
     from utils.statistical_tests import apply_multiple_comparison_correction
 
     HAS_SCHEMA = True
@@ -42,10 +44,12 @@ except ImportError:
     logger.warning("protocol_schema or constants not available")
 
 try:
-    from utils.falsification_thresholds import (P2_A_MIN_THRESHOLD_SHIFT,
-                                                P2_B_MIN_HEP_REDUCTION,
-                                                P2_B_MIN_PCI_REDUCTION,
-                                                P2_C_MIN_ETA_SQ)
+    from utils.falsification_thresholds import (
+        P2_A_MIN_THRESHOLD_SHIFT,
+        P2_B_MIN_HEP_REDUCTION,
+        P2_B_MIN_PCI_REDUCTION,
+        P2_C_MIN_ETA_SQ,
+    )
 except ImportError:
     # Fix 2: Make utils.falsification_thresholds a hard dependency
     # Remove local fallback thresholds entirely

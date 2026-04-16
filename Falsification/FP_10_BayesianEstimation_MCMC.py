@@ -61,8 +61,7 @@ except ImportError:
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -270,6 +269,7 @@ def attempt_imports():
         HAS_PYMC = True
         HAS_ARVIZ = True
         LAST_IMPORT_ERROR = None
+        logger.debug("PyMC/ArviZ imports successful - NUTS sampler available")
     except (
         ImportError,
         AttributeError,
@@ -2776,8 +2776,7 @@ class FP10Dispatcher:
         """
         # Import sub-protocols
         try:
-            from FP_12_CrossSpeciesScaling import \
-                run_falsification as run_scaling
+            from FP_12_CrossSpeciesScaling import run_falsification as run_scaling
         except ImportError as e:
             logger.error(f"Failed to import FP_12_CrossSpeciesScaling: {e}")
             run_scaling = None

@@ -72,13 +72,17 @@ except ImportError:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (DEFAULT_ALPHA,
-                                                F5_5_MIN_LOADING,
-                                                F5_5_PCA_MIN_VARIANCE,
-                                                F5_6_ALPHA, F5_6_MIN_COHENS_D,
-                                                F5_6_MIN_PERFORMANCE_DIFF_PCT,
-                                                GENERIC_MIN_R2, P7_MIN_AUC,
-                                                P11_MIN_R2)
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        F5_5_MIN_LOADING,
+        F5_5_PCA_MIN_VARIANCE,
+        F5_6_ALPHA,
+        F5_6_MIN_COHENS_D,
+        F5_6_MIN_PERFORMANCE_DIFF_PCT,
+        GENERIC_MIN_R2,
+        P7_MIN_AUC,
+        P11_MIN_R2,
+    )
 
     # Fix 1: Assert DEFAULT_ALPHA value is 0.05
     assert DEFAULT_ALPHA == 0.05, f"DEFAULT_ALPHA must be 0.05, got {DEFAULT_ALPHA}"
@@ -372,8 +376,9 @@ class EpistemicArchitectureValidator:
         # Fix 1: Replace hardcoded distributions with empirical data from VP-09
         # Import P3b distributions from FP-09's validated EEG analysis
         try:
-            from Falsification.FP_09_NeuralSignatures_P3b_HEP import \
-                get_p3b_distributions
+            from Falsification.FP_09_NeuralSignatures_P3b_HEP import (
+                get_p3b_distributions,
+            )
 
             p3b_dists = get_p3b_distributions()
 
@@ -892,8 +897,9 @@ class EpistemicArchitectureValidator:
 
         try:
             # Import FP-04's falsification criteria function
-            from Falsification.FP_04_PhaseTransition_EpistemicArchitecture import \
-                get_falsification_criteria as get_fp04_criteria
+            from Falsification.FP_04_PhaseTransition_EpistemicArchitecture import (
+                get_falsification_criteria as get_fp04_criteria,
+            )
 
             # Get FP-04's Level 2 falsification criteria (for reference)
             fp04_criteria = get_fp04_criteria()
@@ -1186,8 +1192,7 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:

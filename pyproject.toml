@@ -1,0 +1,21 @@
+[tool.mutmut]
+paths_to_mutate = "Validation/"
+backup = false
+runner = "pytest -v"
+tests_dir = "tests/"
+dict_synonyms = ["Struct", "Bunch"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+
+[tool.mypy]
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true

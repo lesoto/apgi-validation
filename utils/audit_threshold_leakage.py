@@ -86,6 +86,22 @@ def _find_leaks(path: Path) -> list[tuple[int, str, ast.expr]]:
     return sorted(findings)
 
 
+def scan_for_threshold_leakage() -> list:
+    """
+    Scan for threshold leakage across all target directories.
+
+    Returns:
+        List of findings: each finding is a tuple of (file_path, lineno, name, value)
+    """
+    findings_list = []
+    for path in _iter_python_files():
+        findings = _find_leaks(path)
+        if findings:
+            for lineno, name, value in findings:
+                findings_list.append((str(path.relative_to(ROOT)), lineno, name, value))
+    return findings_list
+
+
 def main() -> int:
     total = 0
     for path in _iter_python_files():

@@ -87,7 +87,7 @@ NAMED_PREDICTIONS = {
     "V14.1": "vmPFC–SCR anticipatory correlation r > 0.40",
     "V14.2": "vmPFC uncorrelated with posterior insula (r < 0.20)",
     "V14.3": "Anticipation-experience dynamics match APGI model",
-    # VP-15: fMRI Anticipation/vmPFC Protocol (STUB)
+    # VP-15: fMRI Anticipation/vmPFC Protocol (Simulation-Validated)
     "V15.1": "Anticipatory insula activation onset < 500ms pre-stimulus",
     "V15.2": "vmPFC–posterior insula anticipatory connectivity r > 0.40",
     "V15.3": "Anterior/posterior insula dissociation (anticipation vs. experience)",

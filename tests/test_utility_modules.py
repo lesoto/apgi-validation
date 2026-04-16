@@ -20,10 +20,14 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.dependency_scanner import DependencyScanner
-from utils.security_audit_logger import (SecurityAuditLogger, log_delete,
-                                         log_import, log_read, log_write)
-from utils.security_logging_integration import (secure_file_read,
-                                                secure_file_write)
+from utils.security_audit_logger import (
+    SecurityAuditLogger,
+    log_delete,
+    log_import,
+    log_read,
+    log_write,
+)
+from utils.security_logging_integration import secure_file_read, secure_file_write
 
 
 class TestDependencyScanner:
@@ -410,10 +414,6 @@ class TestSecurityLoggingIntegration:
         """Test filtering operations by time range."""
         log_file = temp_dir / "test_audit.log"
         logger = SecurityAuditLogger(log_file=str(log_file))
-
-        # Skip if method not available
-        if not hasattr(logger, "get_operations_by_time_range"):
-            pytest.skip("get_operations_by_time_range method not implemented")
 
         # Log operations at different times
         logger.log_file_access("read", "/path/file1.txt", success=True)

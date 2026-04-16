@@ -37,8 +37,7 @@ import numpy as np
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -3441,8 +3440,10 @@ def run_falsification(seed: Optional[int] = None) -> Dict[str, Any]:
 
     # Export validated parameter bounds for downstream protocols (FP-01, FP-04)
     try:
-        from utils.interprotocol_schema import (VALIDATED_PARAMETER_BOUNDS,
-                                                export_fp7_validated_bounds)
+        from utils.interprotocol_schema import (
+            VALIDATED_PARAMETER_BOUNDS,
+            export_fp7_validated_bounds,
+        )
 
         export_fp7_validated_bounds()
         logger.info(

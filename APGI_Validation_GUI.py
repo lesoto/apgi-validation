@@ -1744,10 +1744,14 @@ class APGIValidationGUI:
         try:
             from reportlab.lib import colors
             from reportlab.lib.pagesizes import letter
-            from reportlab.lib.styles import (ParagraphStyle,
-                                              getSampleStyleSheet)
-            from reportlab.platypus import (Paragraph, SimpleDocTemplate,
-                                            Spacer, Table, TableStyle)
+            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+            from reportlab.platypus import (
+                Paragraph,
+                SimpleDocTemplate,
+                Spacer,
+                Table,
+                TableStyle,
+            )
         except ImportError:
             raise ImportError(
                 "PDF generation requires reportlab. Install with: pip install reportlab"
@@ -3131,8 +3135,7 @@ Interpretation:
             try:
                 from reportlab.lib.pagesizes import letter
                 from reportlab.lib.styles import getSampleStyleSheet
-                from reportlab.platypus import (Paragraph, SimpleDocTemplate,
-                                                Spacer)
+                from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
                 doc = SimpleDocTemplate(filename, pagesize=letter)
                 styles = getSampleStyleSheet()

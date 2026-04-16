@@ -16,9 +16,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
 # Import the module with error handling
 try:
     from Theory.APGI_Bayesian_Estimation_Framework import (
-        BAYESIAN_AVAILABLE, APGIBayesianModel, BayesianValidationFramework,
-        IITConvergenceBayesian, ModelComparisonFramework,
-        ParameterRecoveryAnalysis)
+        BAYESIAN_AVAILABLE,
+        APGIBayesianModel,
+        BayesianValidationFramework,
+        IITConvergenceBayesian,
+        ModelComparisonFramework,
+        ParameterRecoveryAnalysis,
+    )
 
     BAYESIAN_FRAMEWORK_AVAILABLE = True
 except ImportError as e:

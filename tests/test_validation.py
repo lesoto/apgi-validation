@@ -881,8 +881,6 @@ def test_formal_model_validation_edge_cases(simulation_steps, dt, expected_error
             {"dim": 10, "tau": 0.05, "name": "bottom"},  # TAU_SENSORY
             {"dim": 5, "tau": 0.2, "name": "middle"},  # TAU_ORGAN
         ],
-        # Edge case: single level
-        [{"dim": 10, "tau": 0.05, "name": "single"}],
         # Edge case: many levels - using valid tau values
         [
             {"dim": 10, "tau": 0.05, "name": "l1"},  # TAU_SENSORY
@@ -890,8 +888,6 @@ def test_formal_model_validation_edge_cases(simulation_steps, dt, expected_error
             {"dim": 6, "tau": 0.5, "name": "l3"},  # TAU_COGNITIVE
             {"dim": 4, "tau": 2.0, "name": "l4"},  # TAU_HOMEOSTATIC
         ],
-        # Edge case: zero dimensions (should handle gracefully)
-        [{"dim": 0, "tau": 0.05, "name": "empty"}],
     ],
 )
 def test_hierarchical_generative_model_edge_cases(levels_config):
@@ -912,14 +908,6 @@ def test_hierarchical_generative_model_edge_cases(levels_config):
         HierarchicalGenerativeModel = protocol3.HierarchicalGenerativeModel
     except ImportError:
         pytest.skip("HierarchicalGenerativeModel import failed")
-
-    # Skip invalid configurations
-    if any(level["dim"] <= 0 for level in levels_config):
-        pytest.skip("Invalid level configuration")
-
-    # Skip single-level configurations (need at least 2 levels for inter-level networks)
-    if len(levels_config) < 2:
-        pytest.skip("Single-level configuration not supported - need at least 2 levels")
 
     model = HierarchicalGenerativeModel(levels_config)
 

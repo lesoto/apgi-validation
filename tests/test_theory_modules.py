@@ -65,7 +65,9 @@ class TestCrossSpeciesScaling:
     def test_predict_species_consciousness(self):
         """Test species consciousness prediction"""
         from Theory.APGI_Cross_Species_Scaling import (
-            SpeciesParameters, predict_species_consciousness)
+            SpeciesParameters,
+            predict_species_consciousness,
+        )
 
         params = SpeciesParameters(
             name="TestSpecies",
@@ -88,7 +90,9 @@ class TestCrossSpeciesScaling:
     def test_predict_species_zero_body_mass(self):
         """Test species consciousness prediction with zero body mass"""
         from Theory.APGI_Cross_Species_Scaling import (
-            SpeciesParameters, predict_species_consciousness)
+            SpeciesParameters,
+            predict_species_consciousness,
+        )
 
         params = SpeciesParameters(
             name="TestSpecies",
@@ -106,8 +110,7 @@ class TestCrossSpeciesScaling:
 
     def test_generate_species_comparison_report(self):
         """Test species comparison report generation"""
-        from Theory.APGI_Cross_Species_Scaling import \
-            generate_species_comparison_report
+        from Theory.APGI_Cross_Species_Scaling import generate_species_comparison_report
 
         report = generate_species_comparison_report()
 
@@ -117,8 +120,7 @@ class TestCrossSpeciesScaling:
 
     def test_get_implementation_metadata(self):
         """Test implementation metadata retrieval"""
-        from Theory.APGI_Cross_Species_Scaling import \
-            get_implementation_metadata
+        from Theory.APGI_Cross_Species_Scaling import get_implementation_metadata
 
         metadata = get_implementation_metadata()
 
@@ -260,8 +262,7 @@ class TestCulturalNeuroscience:
 
     def test_cultural_parameter_modulator_init(self):
         """Test CulturalParameterModulator initialization"""
-        from Theory.APGI_Cultural_Neuroscience import \
-            CulturalParameterModulator
+        from Theory.APGI_Cultural_Neuroscience import CulturalParameterModulator
 
         modulator = CulturalParameterModulator()
         assert hasattr(modulator, "modulate_cultural_dimensions")
@@ -269,8 +270,11 @@ class TestCulturalNeuroscience:
     def test_cultural_baseline_shift(self):
         """Test cultural baseline shift computation"""
         from Theory.APGI_Cultural_Neuroscience import (
-            ContemplativeParameters, CulturalContext,
-            CulturalParameterModulator, LinguisticParameters)
+            ContemplativeParameters,
+            CulturalContext,
+            CulturalParameterModulator,
+            LinguisticParameters,
+        )
 
         modulator = CulturalParameterModulator()
         # Create a Japanese-like cultural context
@@ -321,7 +325,10 @@ class TestCulturalNeuroscience:
     def test_all_cultural_regions(self):
         """Test that all cultural regions have defined parameters"""
         from Theory.APGI_Cultural_Neuroscience import (
-            CulturalContext, CulturalParameterModulator, LinguisticParameters)
+            CulturalContext,
+            CulturalParameterModulator,
+            LinguisticParameters,
+        )
 
         modulator = CulturalParameterModulator()
 
@@ -424,8 +431,7 @@ class TestPsychologicalStates:
 
     def test_psychological_state_init(self):
         """Test PsychologicalState initialization"""
-        from Theory.APGI_Psychological_States import (APGIParameters,
-                                                      PsychologicalState)
+        from Theory.APGI_Psychological_States import APGIParameters, PsychologicalState
 
         params = APGIParameters(
             Pi_e=3.0,
@@ -453,8 +459,7 @@ class TestPsychologicalStates:
 
     def test_psychological_state_attributes(self):
         """Test PsychologicalState attributes"""
-        from Theory.APGI_Psychological_States import (APGIParameters,
-                                                      PsychologicalState)
+        from Theory.APGI_Psychological_States import APGIParameters, PsychologicalState
 
         params = APGIParameters(
             Pi_e=3.0,
@@ -496,9 +501,13 @@ class TestTheoryModuleImports:
 
     def test_theory_package_import(self):
         """Test Theory package imports"""
-        from Theory import (APGITuringMachine, CrossSpeciesScaling,
-                            CulturalParameterModulator, OpenScienceValidator,
-                            PsychState)
+        from Theory import (
+            APGITuringMachine,
+            CrossSpeciesScaling,
+            CulturalParameterModulator,
+            OpenScienceValidator,
+            PsychState,
+        )
 
         assert CrossSpeciesScaling is not None
         assert OpenScienceValidator is not None

@@ -18,8 +18,7 @@ import os
 import sys
 import threading
 import time
-from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
-                                as_completed)
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -217,8 +216,7 @@ def secure_json_dump(obj: Any, file_path: Path) -> None:
 
     with _keys_lock:
         if PICKLE_SECRET_KEY is None:
-            from utils.error_handler import (ErrorCategory, ErrorSeverity,
-                                             error_handler)
+            from utils.error_handler import ErrorCategory, ErrorSeverity, error_handler
 
             raise error_handler.handle_error(
                 category=ErrorCategory.IMPORT,
@@ -255,8 +253,7 @@ def secure_json_load(file_path: Path) -> Any:
 
     with _keys_lock:
         if PICKLE_SECRET_KEY is None:
-            from utils.error_handler import (ErrorCategory, ErrorSeverity,
-                                             error_handler)
+            from utils.error_handler import ErrorCategory, ErrorSeverity, error_handler
 
             raise error_handler.handle_error(
                 category=ErrorCategory.IMPORT,

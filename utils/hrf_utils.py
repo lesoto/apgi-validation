@@ -20,8 +20,12 @@ import numpy as np
 
 # Import APGI constants for HRF parameters
 try:
-    from utils.constants import (HRF_DISPERSION, HRF_PEAK1_SECONDS,
-                                 HRF_UNDERSHOOT_RATIO, HRF_UNDERSHOOT_SECONDS)
+    from utils.constants import (
+        HRF_DISPERSION,
+        HRF_PEAK1_SECONDS,
+        HRF_UNDERSHOOT_RATIO,
+        HRF_UNDERSHOOT_SECONDS,
+    )
 except ImportError:
     # Fallback defaults if constants not available
     HRF_PEAK1_SECONDS = 6.0

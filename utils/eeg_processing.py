@@ -26,8 +26,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from scipy import signal
-from scipy.integrate import \
-    trapezoid  # Use trapezoid instead of deprecated simps
+from scipy.integrate import trapezoid  # Use trapezoid instead of deprecated simps
 
 # Add parent directory to path for direct script execution
 if __name__ == "__main__":

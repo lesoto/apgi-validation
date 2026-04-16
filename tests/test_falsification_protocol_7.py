@@ -21,8 +21,10 @@ import pytest
 
 # Import the protocol to test
 from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import (
-    IowaGamblingTaskEnvironment, ThreatRewardTradeoffEnvironment,
-    VolatileForagingEnvironment)
+    IowaGamblingTaskEnvironment,
+    ThreatRewardTradeoffEnvironment,
+    VolatileForagingEnvironment,
+)
 
 
 class TestAgentComparisonConvergenceBenchmark:

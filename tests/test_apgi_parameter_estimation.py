@@ -18,13 +18,22 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
 # Import the module with error handling
 try:
     from Theory.APGI_Parameter_Estimation import (
-        APGIConstants, DriftDiffusionGenerator, NeuralMassGenerator,
-        ParameterIdentifiabilityAnalyzer, artifact_rejection_pipeline,
-        assess_predictive_validity, assess_test_retest, build_apgi_model,
-        compute_fisher_information, conduct_prior_predictive_checks,
-        generate_comprehensive_visualizations, generate_synthetic_dataset,
-        load_independent_datasets, print_measurement_summary,
-        validate_parameter_recovery)
+        APGIConstants,
+        DriftDiffusionGenerator,
+        NeuralMassGenerator,
+        ParameterIdentifiabilityAnalyzer,
+        artifact_rejection_pipeline,
+        assess_predictive_validity,
+        assess_test_retest,
+        build_apgi_model,
+        compute_fisher_information,
+        conduct_prior_predictive_checks,
+        generate_comprehensive_visualizations,
+        generate_synthetic_dataset,
+        load_independent_datasets,
+        print_measurement_summary,
+        validate_parameter_recovery,
+    )
 
     PARAMETER_ESTIMATION_AVAILABLE = True
 except ImportError as e:

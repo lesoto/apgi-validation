@@ -33,8 +33,7 @@ warnings.filterwarnings("ignore")
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -46,8 +45,9 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from Validation.VP_03_ActiveInference_AgentSimulations import \
-        APGIActiveInferenceAgent as APGIAgent
+    from Validation.VP_03_ActiveInference_AgentSimulations import (
+        APGIActiveInferenceAgent as APGIAgent,
+    )
 
     HAS_APPI_AGENT = True
 except ImportError as e:

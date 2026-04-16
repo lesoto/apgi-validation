@@ -21,7 +21,7 @@ Tests for utils modules that need additional coverage:
 import sys
 from pathlib import Path
 
-import numpy as np
+import pandas as pd
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -58,14 +58,10 @@ class TestAuditThresholdLeakage:
 
     def test_audit_threshold_scanner(self):
         """Test threshold leakage scanner"""
-        try:
-            from utils.audit_threshold_leakage import \
-                scan_for_threshold_leakage
+        from utils.audit_threshold_leakage import scan_for_threshold_leakage
 
-            result = scan_for_threshold_leakage()
-            assert isinstance(result, (dict, list))
-        except ImportError as e:
-            pytest.skip(f"Function not available: {e}")
+        result = scan_for_threshold_leakage()
+        assert isinstance(result, (dict, list))
 
 
 class TestBatchConfig:
@@ -78,15 +74,12 @@ class TestBatchConfig:
         assert batch_config is not None
 
     def test_batch_configuration_class(self):
-        """Test BatchConfiguration class"""
-        try:
-            from utils.batch_config import BatchConfiguration
+        """Test BatchProcessorConfig class"""
+        from utils.batch_config import BatchProcessorConfig
 
-            config = BatchConfiguration(batch_size=10, parallel=True)
-            assert config.batch_size == 10
-            assert config.parallel is True
-        except (ImportError, AttributeError) as e:
-            pytest.skip(f"Class not available: {e}")
+        config = BatchProcessorConfig()
+        assert config.get_max_workers() > 0
+        assert config.get("use_processes") in [True, False]
 
 
 class TestConstants:
@@ -100,8 +93,12 @@ class TestConstants:
 
     def test_constant_values(self):
         """Test that key constants are defined"""
-        from utils.constants import (DIM_CONSTANTS, MODEL_PARAMS,
-                                     DimensionConstants, ModelParameters)
+        from utils.constants import (
+            DIM_CONSTANTS,
+            MODEL_PARAMS,
+            DimensionConstants,
+            ModelParameters,
+        )
 
         assert isinstance(MODEL_PARAMS, ModelParameters)
         assert isinstance(DIM_CONSTANTS, DimensionConstants)
@@ -128,15 +125,14 @@ class TestCrashRecovery:
 
     def test_save_checkpoint(self, tmp_path):
         """Test checkpoint saving"""
-        try:
-            from utils.crash_recovery import CrashRecovery
+        from utils.crash_recovery import CrashRecovery
 
-            recovery = CrashRecovery(app_name="test_app", recovery_dir=str(tmp_path))
-            recovery.save_checkpoint("test_id", {"data": "value"})
+        recovery = CrashRecovery(app_name="test_app", recovery_dir=str(tmp_path))
+        recovery.save_state({"data": "value"})
 
-            assert True  # If no exception, test passes
-        except (ImportError, AttributeError) as e:
-            pytest.skip(f"Function not available: {e}")
+        # Verify state was saved
+        assert recovery.state_file.exists()
+        assert recovery.current_state is not None
 
 
 class TestEmpiricalDataGenerators:
@@ -150,14 +146,16 @@ class TestEmpiricalDataGenerators:
 
     def test_generate_eeg_sample(self):
         """Test EEG sample generation"""
-        try:
-            from utils.empirical_data_generators import generate_eeg_sample
+        from utils.empirical_data_generators import generate_cross_cultural_eeg_data
 
-            sample = generate_eeg_sample(duration=1.0, sfreq=100)
-            assert isinstance(sample, np.ndarray)
-            assert len(sample) > 0
-        except (ImportError, AttributeError) as e:
-            pytest.skip(f"Function not available: {e}")
+        data, metadata = generate_cross_cultural_eeg_data(
+            n_subjects_per_culture=2, n_trials=10, n_channels=8, sampling_rate=100.0
+        )
+
+        assert isinstance(data, pd.DataFrame)
+        assert len(data) > 0
+        assert isinstance(metadata, dict)
+        assert "n_subjects_total" in metadata
 
 
 class TestGenomeDataExtractor:
@@ -171,13 +169,35 @@ class TestGenomeDataExtractor:
 
     def test_extract_genomic_features(self):
         """Test genomic feature extraction"""
-        try:
-            from utils.genome_data_extractor import extract_genomic_features
+        from utils.genome_data_extractor import extract_genome_data_from_vp5
 
-            features = extract_genomic_features("sample_data")
+        # Test with mock data structure
+        import json
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            mock_data = {
+                "final_statistics": {
+                    "final_frequencies": {
+                        "has_threshold": 0.5,
+                        "has_precision_weighting": 0.3,
+                        "has_interoceptive_weighting": 0.4,
+                    }
+                },
+                "config": {"n_generations": 500},
+            }
+            json.dump(mock_data, f)
+            temp_path = f.name
+
+        try:
+            features = extract_genome_data_from_vp5(temp_path)
             assert isinstance(features, dict)
-        except (ImportError, AttributeError) as e:
-            pytest.skip(f"Function not available: {e}")
+            assert "evolved_alpha_values" in features
+            assert "timescale_correlations" in features
+            assert "intero_gain_ratios" in features
+        finally:
+            Path(temp_path).unlink()
 
 
 class TestHRFUtils:
@@ -191,14 +211,15 @@ class TestHRFUtils:
 
     def test_create_hrf_kernel(self):
         """Test HRF kernel creation"""
-        try:
-            from utils.hrf_utils import create_hrf_kernel
+        from utils.hrf_utils import double_gamma_hrf
 
-            hrf = create_hrf_kernel(tr=2.0, oversampling=10)
-            assert isinstance(hrf, np.ndarray)
-            assert len(hrf) > 0
-        except (ImportError, AttributeError) as e:
-            pytest.skip(f"Function not available: {e}")
+        import numpy as np
+
+        t = np.arange(0, 25, 0.1)
+        hrf = double_gamma_hrf(t)
+        assert isinstance(hrf, np.ndarray)
+        assert len(hrf) > 0
+        assert hrf.max() <= 1.0  # Normalized
 
 
 class TestMetaFalsification:
@@ -211,14 +232,13 @@ class TestMetaFalsification:
         assert meta_falsification is not None
 
     def test_meta_falsification_class(self):
-        """Test MetaFalsification class"""
-        try:
-            from utils.meta_falsification import MetaFalsification
+        """Test FrameworkFalsificationGate class"""
+        from utils.meta_falsification import FrameworkFalsificationGate
 
-            meta = MetaFalsification()
-            assert hasattr(meta, "protocols")
-        except (ImportError, AttributeError) as e:
-            pytest.skip(f"Class not available: {e}")
+        gate = FrameworkFalsificationGate()
+        assert hasattr(gate, "protocol_results")
+        assert hasattr(gate, "min_criteria")
+        assert hasattr(gate, "fail_threshold")
 
 
 class TestProgressEstimator:
@@ -232,15 +252,21 @@ class TestProgressEstimator:
 
     def test_estimate_completion_time(self):
         """Test completion time estimation"""
-        try:
-            from utils.progress_estimator import estimate_completion_time
+        from utils.progress_estimator import ProgressEstimator
 
-            estimate = estimate_completion_time(
-                current_iteration=50, total_iterations=100, elapsed_seconds=10
-            )
-            assert isinstance(estimate, (float, dict))
-        except (ImportError, AttributeError) as e:
-            pytest.skip(f"Function not available: {e}")
+        estimator = ProgressEstimator()
+        estimator.start_operation("test_op", "Test Operation", total_steps=100)
+
+        # Update progress to 50%
+        import time
+
+        time.sleep(0.1)  # Small delay to calculate rate
+        estimator.update_progress("test_op", 50)
+
+        # Get estimated time remaining
+        remaining = estimator.estimate_time_remaining("test_op")
+        assert remaining is not None
+        assert remaining >= 0
 
 
 class TestSignalHandler:
@@ -254,13 +280,13 @@ class TestSignalHandler:
 
     def test_setup_signal_handlers(self):
         """Test signal handler setup"""
-        try:
-            from utils.signal_handler import setup_signal_handlers
+        from utils.signal_handler import SignalHandler
 
-            # Just test that it doesn't raise
-            setup_signal_handlers()
-        except (ImportError, AttributeError) as e:
-            pytest.skip(f"Function not available: {e}")
+        # Test that SignalHandler can be instantiated
+        handler = SignalHandler()
+        assert hasattr(handler, "shutdown_callback")
+        assert hasattr(handler, "_install_handlers")
+        assert hasattr(handler, "_restore_handlers")
 
 
 class TestUpdateProtocolMetadata:
@@ -273,16 +299,16 @@ class TestUpdateProtocolMetadata:
         assert update_protocol_metadata is not None
 
     def test_update_metadata(self, tmp_path):
-        """Test metadata update function"""
-        try:
-            from utils.update_protocol_metadata import update_metadata
+        """Test metadata check function"""
+        from utils.update_protocol_metadata import check_protocol_metadata
 
-            result = update_metadata(
-                protocol_id="P1", status="completed", output_dir=str(tmp_path)
-            )
-            assert isinstance(result, (bool, dict, str))
-        except (ImportError, AttributeError) as e:
-            pytest.skip(f"Function not available: {e}")
+        # Create a temporary protocol file
+        protocol_file = tmp_path / "test_protocol.py"
+        protocol_file.write_text("def run_protocol_main(): pass\n")
+
+        has_std, msg = check_protocol_metadata(str(protocol_file))
+        assert isinstance(has_std, bool)
+        assert isinstance(msg, str)
 
 
 class TestVerifyFrameworkStatus:
@@ -296,14 +322,17 @@ class TestVerifyFrameworkStatus:
 
     def test_verify_framework(self):
         """Test framework verification"""
-        try:
-            from utils.verify_framework_status import verify_framework
+        from utils.verify_framework_status import check_protocol
 
-            result = verify_framework()
-            assert isinstance(result, dict)
-            assert "status" in result or "verified" in result
-        except (ImportError, AttributeError) as e:
-            pytest.skip(f"Function not available: {e}")
+        # Test check_protocol in quick mode
+        result = check_protocol(
+            "utils.constants",  # Use a known module
+            "constants",
+            timeout_secs=5,
+            quick_mode=True,
+        )
+        assert isinstance(result, dict)
+        assert "status" in result
 
 
 class TestUtilsErrorHandling:

@@ -52,7 +52,10 @@ except ImportError:
 # Import FP-09 theta-gamma PAC function (Tort et al. 2010 Modulation Index)
 try:
     from Falsification.FP_09_NeuralSignatures_P3b_HEP import (  # noqa: F401
-        FalsificationThresholds, NeuralSignatureResult, detect_theta_gamma_pac)
+        FalsificationThresholds,
+        NeuralSignatureResult,
+        detect_theta_gamma_pac,
+    )
 
     FP09_PAC_AVAILABLE = True
 except ImportError:
@@ -80,9 +83,11 @@ METADATA_DIR = DATA_REPO / "metadata"
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (DEFAULT_ALPHA,
-                                                V9_1_MIN_CORRELATION,
-                                                V9_3_MIN_CORRELATION)
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        V9_1_MIN_CORRELATION,
+        V9_3_MIN_CORRELATION,
+    )
 except ImportError:
     V9_1_MIN_CORRELATION = 0.40
     V9_3_MIN_CORRELATION = 0.35
@@ -1123,8 +1128,7 @@ class APGINeuralSignaturesValidator:
                 confidence_interval = None
 
             # Bonferroni correction for 4 frequency bands
-            from utils.statistical_tests import \
-                apply_multiple_comparison_correction
+            from utils.statistical_tests import apply_multiple_comparison_correction
 
             p_theta = p_value
             p_alpha = 0.5
@@ -3322,8 +3326,7 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:

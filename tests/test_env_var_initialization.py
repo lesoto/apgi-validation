@@ -6,8 +6,11 @@ import os
 
 import pytest
 
-from utils.secure_key_manager import (SecureKeyManager, get_backup_hmac_key,
-                                      get_pickle_secret_key)
+from utils.secure_key_manager import (
+    SecureKeyManager,
+    get_backup_hmac_key,
+    get_pickle_secret_key,
+)
 
 
 @pytest.fixture(autouse=True)

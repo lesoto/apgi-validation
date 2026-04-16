@@ -12,24 +12,30 @@ from sklearn.utils import resample
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
     HAS_SCHEMA = False
 
 # Import constants from centralized location
-from utils.constants import \
-    FP3_DOC_SIGNAL_MULTIPLIERS  # HIGH-02: Import from constants
+from utils.constants import FP3_DOC_SIGNAL_MULTIPLIERS  # HIGH-02: Import from constants
 from utils.constants import (  # HIGH-02: Import from constants
-    F4_CRITICAL_SLOWING_MIN_RATIO, F4_CRITICAL_SLOWING_P_VALUE, F4_MIN_POWER,
-    F4_MIN_SENSITIVITY, F4_MIN_SPECIFICITY, FP3_DOC_SYNTHETIC_FEATURE_WEIGHTS,
-    MODEL_PARAMS, SHUFFLE_SEED_OFFSET)
-from utils.falsification_thresholds import (LEVEL2_MI_FALSIFICATION_THRESHOLD,
-                                            LEVEL2_MI_THRESHOLD,
-                                            LEVEL2_TE_THRESHOLD,
-                                            NULL_BOOTSTRAP_N)
+    F4_CRITICAL_SLOWING_MIN_RATIO,
+    F4_CRITICAL_SLOWING_P_VALUE,
+    F4_MIN_POWER,
+    F4_MIN_SENSITIVITY,
+    F4_MIN_SPECIFICITY,
+    FP3_DOC_SYNTHETIC_FEATURE_WEIGHTS,
+    MODEL_PARAMS,
+    SHUFFLE_SEED_OFFSET,
+)
+from utils.falsification_thresholds import (
+    LEVEL2_MI_FALSIFICATION_THRESHOLD,
+    LEVEL2_MI_THRESHOLD,
+    LEVEL2_TE_THRESHOLD,
+    NULL_BOOTSTRAP_N,
+)
 
 try:
     import torch
@@ -50,8 +56,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Power analysis functions
 try:
-    from utils.statistical_tests import (compute_power_analysis,
-                                         compute_required_n, permutation_test)
+    from utils.statistical_tests import (
+        compute_power_analysis,
+        compute_required_n,
+        permutation_test,
+    )
 
     POWER_ANALYSIS_AVAILABLE = True
 except ImportError:
@@ -2557,8 +2566,9 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
     """
     # Import criteria registry for threshold definitions
     try:
-        from utils.criteria_registry import \
-            get_falsification_criteria as get_registry_criteria
+        from utils.criteria_registry import (
+            get_falsification_criteria as get_registry_criteria,
+        )
 
         registry = get_registry_criteria()
     except ImportError:

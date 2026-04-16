@@ -66,37 +66,42 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.constants import DIM_CONSTANTS
-from utils.falsification_thresholds import (F1_1_MIN_ADVANTAGE_PCT,
-                                            F1_1_MIN_COHENS_D,
-                                            F1_5_COHENS_D_MIN,
-                                            F1_5_PAC_INCREASE_MIN,
-                                            F1_5_PAC_MI_MIN,
-                                            F1_5_PERMUTATION_ALPHA,
-                                            F2_3_MIN_BETA, F2_3_MIN_R2,
-                                            F2_3_MIN_RT_ADVANTAGE_MS,
-                                            F2_3_MIN_STANDARDIZED_BETA,
-                                            F5_2_MIN_CORRELATION,
-                                            F5_2_MIN_PROPORTION,
-                                            F5_3_MIN_COHENS_D,
-                                            F5_3_MIN_GAIN_RATIO,
-                                            F5_3_MIN_PROPORTION,
-                                            F5_4_MIN_PEAK_SEPARATION,
-                                            F5_4_MIN_PROPORTION,
-                                            F5_5_PCA_MIN_LOADING,
-                                            F5_5_PCA_MIN_VARIANCE, F5_6_ALPHA,
-                                            F5_6_MIN_COHENS_D,
-                                            F5_6_MIN_PERFORMANCE_DIFF_PCT,
-                                            F6_1_CLIFFS_DELTA_MIN,
-                                            F6_1_LTCN_MAX_TRANSITION_MS,
-                                            F6_1_MANN_WHITNEY_ALPHA,
-                                            F6_2_LTCN_MIN_WINDOW_MS,
-                                            F6_2_MIN_CURVE_FIT_R2,
-                                            F6_2_MIN_INTEGRATION_RATIO,
-                                            F6_2_WILCOXON_ALPHA,
-                                            F6_DELTA_AUROC_MIN,
-                                            GENERIC_BINARY_DECISION_THRESHOLD,
-                                            V6_1_ALPHA, V6_1_MAX_LATENCY_MS,
-                                            V6_1_MIN_PROCESSING_RATE)
+from utils.falsification_thresholds import (
+    F1_1_MIN_ADVANTAGE_PCT,
+    F1_1_MIN_COHENS_D,
+    F1_5_COHENS_D_MIN,
+    F1_5_PAC_INCREASE_MIN,
+    F1_5_PAC_MI_MIN,
+    F1_5_PERMUTATION_ALPHA,
+    F2_3_MIN_BETA,
+    F2_3_MIN_R2,
+    F2_3_MIN_RT_ADVANTAGE_MS,
+    F2_3_MIN_STANDARDIZED_BETA,
+    F5_2_MIN_CORRELATION,
+    F5_2_MIN_PROPORTION,
+    F5_3_MIN_COHENS_D,
+    F5_3_MIN_GAIN_RATIO,
+    F5_3_MIN_PROPORTION,
+    F5_4_MIN_PEAK_SEPARATION,
+    F5_4_MIN_PROPORTION,
+    F5_5_PCA_MIN_LOADING,
+    F5_5_PCA_MIN_VARIANCE,
+    F5_6_ALPHA,
+    F5_6_MIN_COHENS_D,
+    F5_6_MIN_PERFORMANCE_DIFF_PCT,
+    F6_1_CLIFFS_DELTA_MIN,
+    F6_1_LTCN_MAX_TRANSITION_MS,
+    F6_1_MANN_WHITNEY_ALPHA,
+    F6_2_LTCN_MIN_WINDOW_MS,
+    F6_2_MIN_CURVE_FIT_R2,
+    F6_2_MIN_INTEGRATION_RATIO,
+    F6_2_WILCOXON_ALPHA,
+    F6_DELTA_AUROC_MIN,
+    GENERIC_BINARY_DECISION_THRESHOLD,
+    V6_1_ALPHA,
+    V6_1_MAX_LATENCY_MS,
+    V6_1_MIN_PROCESSING_RATE,
+)
 
 try:
     from utils.logging_config import apgi_logger as logger
@@ -4553,8 +4558,7 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:

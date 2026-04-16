@@ -25,8 +25,7 @@ from utils.statistical_tests import apply_multiple_comparison_correction
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -2837,8 +2836,9 @@ def run_protocol():
     if eeg_files:
         try:
             # Try to integrate VP-09 empirical results
-            from Validation.VP_09_NeuralSignatures_EmpiricalPriority1 import \
-                APGINeuralSignaturesValidator
+            from Validation.VP_09_NeuralSignatures_EmpiricalPriority1 import (
+                APGINeuralSignaturesValidator,
+            )
 
             validator = APGINeuralSignaturesValidator()
             # Simplified mock run for aggregator - in production this would load real files

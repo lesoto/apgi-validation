@@ -205,15 +205,15 @@ class GradientMonitor:
 
                 # Check for problematic gradients
                 if warn and self.config.gradient_monitoring_enabled:
-                    if grad_norm > self.config.gradient_clip_value:
+                    if grad_norm > self.config.gradient_clip_value:  # type: ignore[attr-defined]
                         warnings.warn(
                             f"Exploding gradient in {name}: {grad_norm:.2f} "
-                            f"(threshold: {self.config.gradient_clip_value})"
+                            f"(threshold: {self.config.gradient_clip_value})"  # type: ignore[attr-defined]
                         )
-                    elif grad_norm > self.config.gradient_warn_threshold:
+                    elif grad_norm > self.config.gradient_warn_threshold:  # type: ignore[attr-defined]
                         warnings.warn(
                             f"Large gradient in {name}: {grad_norm:.2f} "
-                            f"(warning threshold: {self.config.gradient_warn_threshold})"
+                            f"(warning threshold: {self.config.gradient_warn_threshold})"  # type: ignore[attr-defined]
                         )
                     elif grad_norm < 1e-7:
                         warnings.warn(f"Vanishing gradient in {name}: {grad_norm:.2e}")
@@ -239,7 +239,7 @@ class GradientMonitor:
             Total gradient norm before clipping
         """
         return torch.nn.utils.clip_grad_norm_(
-            model.parameters(), self.config.gradient_clip_value
+            model.parameters(), self.config.gradient_clip_value  # type: ignore[attr-defined]
         ).item()
 
     def get_statistics(self) -> Dict[str, float]:
@@ -293,11 +293,11 @@ class LTCNeuron(nn.Module):
 
         # Recurrent connections (reservoir-style, sparse)
         self.W_rec = nn.Parameter(
-            torch.randn(hidden_size, hidden_size) * config.reservoir_scaling
+            torch.randn(hidden_size, hidden_size) * config.reservoir_scaling  # type: ignore[attr-defined]
         )
         # Apply sparsity during initialization only
         with torch.no_grad():
-            mask = torch.rand_like(self.W_rec) > config.reservoir_sparsity
+            mask = torch.rand_like(self.W_rec) > config.reservoir_sparsity  # type: ignore[attr-defined]
             self.W_rec.mul_(mask.float())
 
         self.sigma = torch.tanh  # Biologically plausible activation
@@ -1160,8 +1160,8 @@ class RefractoryPeriodModule(nn.Module):
             self.config.max_refractory_ms
             * ignited
             * (
-                self.config.refractory_cost_baseline
-                + self.config.refractory_cost_scaling * torch.sigmoid(metabolic_cost)
+                self.config.refractory_cost_baseline  # type: ignore[attr-defined]
+                + self.config.refractory_cost_scaling * torch.sigmoid(metabolic_cost)  # type: ignore[attr-defined]
             )
         )
 

@@ -56,9 +56,11 @@ from utils.constants import DIM_CONSTANTS, LEVEL_TIMESCALES
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (DEFAULT_ALPHA,
-                                                F2_1_MIN_ADVANTAGE_PCT,
-                                                F2_1_MIN_COHENS_H)
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        F2_1_MIN_ADVANTAGE_PCT,
+        F2_1_MIN_COHENS_H,
+    )
 except ImportError:
     DEFAULT_ALPHA = 0.05
     F2_1_MIN_ADVANTAGE_PCT = 22.0
@@ -3909,8 +3911,7 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -4794,8 +4795,122 @@ def check_falsification(
 
 
 # =============================================================================
-# MAIN EXECUTION
+# PART 4: VECTORIZED BATCH PROCESSING
 # =============================================================================
+
+
+class BatchedHierarchicalGenerativeModel(nn.Module):
+    """
+    Vectorized Hierarchical Predictive Processing for large-scale agent populations.
+    Implements multi-level generative model updates across a batch of agents.
+    """
+
+    def __init__(
+        self, batch_size: int, levels: List[Dict], learning_rate: float = 0.01
+    ):
+        super().__init__()
+        self.batch_size = batch_size
+        self.levels = levels
+        self.n_levels = len(levels)
+
+        self.level_networks = nn.ModuleList()
+        # Batched states: [Batch, Dim]
+        self.states = nn.ParameterList(
+            [nn.Parameter(torch.zeros(batch_size, level["dim"])) for level in levels]
+        )
+
+        for i in range(self.n_levels - 1):
+            top_dim = levels[i + 1]["dim"]
+            bottom_dim = levels[i]["dim"]
+            network = nn.Sequential(
+                nn.Linear(top_dim, top_dim * 2),
+                nn.Tanh(),
+                nn.Linear(top_dim * 2, bottom_dim),
+            )
+            self.level_networks.append(network)
+
+        self.taus = torch.tensor([level["tau"] for level in levels]).view(1, -1)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+
+    def forward(self, observations: torch.Tensor, dt: float = 0.05) -> torch.Tensor:
+        """Perform vectorized prediction-error update for all agents in the batch."""
+        # Predictions [Batch, Dim]
+        predictions = []
+        for i in range(self.n_levels - 1):
+            predictions.append(self.level_networks[i](self.states[i + 1]))
+
+        # Errors [Batch, Dim]
+        eps_0 = observations - predictions[0]
+
+        # Parallel state update: s = s + dt * (prediction_error) / tau
+        self.states[0].data += dt * eps_0 / self.taus[0, 0]
+
+        for i in range(1, self.n_levels - 1):
+            eps_i = self.states[i] - predictions[i]
+            self.states[i].data += dt * eps_i / self.taus[0, i]
+
+        # Training Step (Parameter Optimization)
+        loss = torch.sum(eps_0**2) / self.batch_size
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        return eps_0
+
+
+class BatchedAPGIActiveInferenceAgent(nn.Module):
+    """
+    Vectorized APGI Agent for million-agent simulations.
+    Uses GPU-accelerated tensor operations for information processing.
+    """
+
+    def __init__(self, batch_size: int, config: Dict):
+        super().__init__()
+        self.batch_size = batch_size
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Vectorized models
+        self.extero_model = BatchedHierarchicalGenerativeModel(
+            batch_size,
+            [
+                {"name": "sensory", "dim": 32, "tau": LEVEL_TIMESCALES.TAU_SENSORY},
+                {"name": "objects", "dim": 16, "tau": LEVEL_TIMESCALES.TAU_ORGAN},
+                {"name": "context", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
+            ],
+        ).to(self.device)
+
+        # Batched state variables [Batch]
+        self.S_t = torch.zeros(batch_size, device=self.device)
+        self.theta_t = torch.full(
+            (batch_size,), APGIConfig.theta_init, device=self.device
+        )
+
+        # Hyperparameters
+        self.alpha = APGIConfig.alpha_ignition
+        self.tau_S = APGIConfig.tau_S
+        self.Pi_e = APGIConfig.Pi_e_init
+
+    def step(
+        self, extero_obs: torch.Tensor, dt: float = 0.05
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Execute one parallelized step for all batch agents."""
+        extero_obs = extero_obs.to(self.device)
+
+        # 1. Update belief states in parallel
+        eps_e = self.extero_model(extero_obs, dt)
+
+        # 2. Accumulate surprise (input drive) in parallel
+        input_drive = self.Pi_e * torch.norm(eps_e, dim=1)
+        dS_dt = -self.S_t / self.tau_S + input_drive
+        self.S_t += dS_dt * dt
+
+        # 3. Parallel Ignition Logic (sigmoid-gated)
+        z = self.alpha * (self.S_t - self.theta_t)
+        p_ignition = torch.sigmoid(z)
+        ignited = torch.rand(self.batch_size, device=self.device) < p_ignition
+
+        return ignited, p_ignition
+
 
 if __name__ == "__main__":
     main()

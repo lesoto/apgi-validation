@@ -15,10 +15,19 @@ from click.testing import CliRunner
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import (APGIModuleLoader, _check_file_size, _create_signal_handler,
-                  _sanitize_error_message, _validate_file_path,
-                  _validate_output_file_path, cli, get_config_value,
-                  handle_file_error, handle_validation_error, set_config_value)
+from main import (
+    APGIModuleLoader,
+    _check_file_size,
+    _create_signal_handler,
+    _sanitize_error_message,
+    _validate_file_path,
+    _validate_output_file_path,
+    cli,
+    get_config_value,
+    handle_file_error,
+    handle_validation_error,
+    set_config_value,
+)
 
 
 class TestCLIArgumentParsing:

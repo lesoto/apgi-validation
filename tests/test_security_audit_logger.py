@@ -13,12 +13,17 @@ import pytest
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.security_audit_logger import (SecurityAuditLogger,
-                                         audit_file_operation,
-                                         audit_path_resolution,
-                                         audit_permission_check,
-                                         get_audit_logger, log_delete,
-                                         log_import, log_read, log_write)
+from utils.security_audit_logger import (
+    SecurityAuditLogger,
+    audit_file_operation,
+    audit_path_resolution,
+    audit_permission_check,
+    get_audit_logger,
+    log_delete,
+    log_import,
+    log_read,
+    log_write,
+)
 
 
 class TestSecurityAuditLoggerInit:

@@ -197,8 +197,10 @@ class IntegrationTestSuite:
         passed = True
         for constant_name, expected_value in consistency_checks:
             try:
-                from utils.constants import (TMS_MOTOR_THRESHOLD_ADJUST,
-                                             TMS_PULSE_WIDTH_MS)
+                from utils.constants import (
+                    TMS_MOTOR_THRESHOLD_ADJUST,
+                    TMS_PULSE_WIDTH_MS,
+                )
 
                 if constant_name == "TMS_PULSE_WIDTH_MS":
                     actual = TMS_PULSE_WIDTH_MS

@@ -46,6 +46,7 @@ This protocol implements:
 import json
 import logging
 import math
+
 # Import configuration management
 import sys
 from collections import Counter
@@ -69,11 +70,13 @@ if str(project_root) not in sys.path:
 
 from utils.config_manager import ConfigManager
 from utils.constants import DEFAULT_THERMO_CONFIG
-from utils.falsification_thresholds import (FMI_MIN_BITS_S,
-                                            TRANSFER_ENTROPY_THRESHOLD,
-                                            VP4_CALIBRATED_ALPHA,
-                                            VP4_CALIBRATED_TAU,
-                                            VP4_CALIBRATED_THETA_0)
+from utils.falsification_thresholds import (
+    FMI_MIN_BITS_S,
+    TRANSFER_ENTROPY_THRESHOLD,
+    VP4_CALIBRATED_ALPHA,
+    VP4_CALIBRATED_TAU,
+    VP4_CALIBRATED_THETA_0,
+)
 
 try:
     from utils.logging_config import apgi_logger as logger
@@ -3465,9 +3468,14 @@ class ClinicalDoCBiomarkerValidation:
             Dict with classification results and metrics
         """
         from sklearn.linear_model import LogisticRegression
-        from sklearn.metrics import (accuracy_score, confusion_matrix,
-                                     f1_score, precision_score, recall_score,
-                                     roc_auc_score)
+        from sklearn.metrics import (
+            accuracy_score,
+            confusion_matrix,
+            f1_score,
+            precision_score,
+            recall_score,
+            roc_auc_score,
+        )
 
         # Prepare data: VS vs MCS classification
         vs_mcs_data = cohort_data[cohort_data["group"].isin(["VS", "MCS"])].copy()
@@ -3625,8 +3633,12 @@ class ClinicalDoCBiomarkerValidation:
         Returns:
             Dict with metrics for each modality
         """
-        from sklearn.metrics import (accuracy_score, precision_score,
-                                     recall_score, roc_auc_score)
+        from sklearn.metrics import (
+            accuracy_score,
+            precision_score,
+            recall_score,
+            roc_auc_score,
+        )
 
         metrics = {}
 
@@ -3704,11 +3716,10 @@ def run_validation(**kwargs) -> Dict[str, Any]:
     # Ensure VP-04 uses identical threshold values as FP-04
     try:
         # Import thresholds from centralized source (source of truth)
-        from utils.falsification_thresholds import \
-            F4_MI_MAX_BITS_S as F4_MI_THRESHOLD
-        from utils.falsification_thresholds import \
-            F4_TE_THRESHOLD as \
-            F4_TE_THRESHOLD  # LEVEL2_TE_THRESHOLD as CENTRAL_TE_THRESHOLD,  # Currently unused; LEVEL2_MI_THRESHOLD as CENTRAL_MI_THRESHOLD,  # Currently unused
+        from utils.falsification_thresholds import F4_MI_MAX_BITS_S as F4_MI_THRESHOLD
+        from utils.falsification_thresholds import (
+            F4_TE_THRESHOLD as F4_TE_THRESHOLD,
+        )  # LEVEL2_TE_THRESHOLD as CENTRAL_TE_THRESHOLD,  # Currently unused; LEVEL2_MI_THRESHOLD as CENTRAL_MI_THRESHOLD,  # Currently unused
 
         # VP-04 uses TRANSFER_ENTROPY_THRESHOLD from centralized thresholds
         VP04_TE_THRESHOLD = TRANSFER_ENTROPY_THRESHOLD  # Imported at module level
@@ -3966,8 +3977,7 @@ def run_protocol():
 
 
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:

@@ -12,10 +12,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.toctou_mitigation import (FileLock, SecureFileOperations,
-                                     get_secure_file_operations, safe_delete,
-                                     safe_exists, safe_isdir, safe_isfile,
-                                     safe_read, safe_write)
+from utils.toctou_mitigation import (
+    FileLock,
+    SecureFileOperations,
+    get_secure_file_operations,
+    safe_delete,
+    safe_exists,
+    safe_isdir,
+    safe_isfile,
+    safe_read,
+    safe_write,
+)
 
 
 class TestFileLock:

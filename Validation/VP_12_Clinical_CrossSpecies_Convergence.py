@@ -23,8 +23,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import (classification_report, confusion_matrix,
-                             roc_auc_score)
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from tqdm import tqdm
 
 # Add parent directory to path so falsification_thresholds is importable
@@ -35,9 +34,11 @@ if str(_project_root) not in sys.path:
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
 try:
-    from utils.falsification_thresholds import (DEFAULT_ALPHA,
-                                                V12_1_MIN_COHENS_D,
-                                                V12_1_MIN_P3B_REDUCTION_PCT)
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        V12_1_MIN_COHENS_D,
+        V12_1_MIN_P3B_REDUCTION_PCT,
+    )
 except ImportError:
     V12_1_MIN_P3B_REDUCTION_PCT = 50.0
     V12_1_MIN_COHENS_D = 0.80
@@ -1044,9 +1045,11 @@ def run_protocol_main(config=None):
     if test_mode:
         # Return mock results for fast test execution
         try:
-            from utils.protocol_schema import (PredictionResult,
-                                               PredictionStatus,
-                                               ProtocolResult)
+            from utils.protocol_schema import (
+                PredictionResult,
+                PredictionStatus,
+                ProtocolResult,
+            )
 
             named = {
                 f"V12.{i}": PredictionResult(
@@ -1072,8 +1075,11 @@ def run_protocol_main(config=None):
 
     legacy = run_validation()
     try:
-        from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                           ProtocolResult)
+        from utils.protocol_schema import (
+            PredictionResult,
+            PredictionStatus,
+            ProtocolResult,
+        )
 
         named = {
             k: PredictionResult(

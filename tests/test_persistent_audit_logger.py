@@ -11,12 +11,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.persistent_audit_logger import (PersistentAuditLogger,
-                                           get_persistent_audit_logger,
-                                           log_delete_persistent,
-                                           log_import_persistent,
-                                           log_read_persistent,
-                                           log_write_persistent)
+from utils.persistent_audit_logger import (
+    PersistentAuditLogger,
+    get_persistent_audit_logger,
+    log_delete_persistent,
+    log_import_persistent,
+    log_read_persistent,
+    log_write_persistent,
+)
 
 
 class TestPersistentAuditLogger:

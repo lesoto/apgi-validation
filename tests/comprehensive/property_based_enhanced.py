@@ -19,8 +19,7 @@ import numpy as np
 import pytest
 from hypothesis import Phase, assume, given, settings, strategies
 from hypothesis.extra import numpy as np_st
-from hypothesis.stateful import (RuleBasedStateMachine, invariant,
-                                 precondition, rule)
+from hypothesis.stateful import RuleBasedStateMachine, invariant, precondition, rule
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))

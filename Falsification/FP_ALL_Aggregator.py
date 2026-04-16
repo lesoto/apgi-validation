@@ -24,8 +24,7 @@ import numpy as np
 
 # Import standardized protocol schema (FIX #1)
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 except ImportError:
     # Fallback if schema not available - use type: ignore to suppress redefinition errors
     ProtocolResult = None  # type: ignore[misc]

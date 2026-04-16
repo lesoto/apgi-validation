@@ -12,8 +12,12 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from utils.statistical_tests import (compute_cohens_d, safe_binomtest,
-                                     safe_ttest_1samp, safe_ttest_ind)
+from utils.statistical_tests import (
+    compute_cohens_d,
+    safe_binomtest,
+    safe_ttest_1samp,
+    safe_ttest_ind,
+)
 
 logger = logging.getLogger(__name__)
 

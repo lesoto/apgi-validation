@@ -144,12 +144,22 @@ def secure_load_module_from_path(
 
 
 try:
-    from utils.backup_manager import (cleanup_backups_cli, create_backup_cli,
-                                      delete_backup_cli, list_backups_cli,
-                                      restore_backup_cli)
+    from utils.backup_manager import (
+        cleanup_backups_cli,
+        create_backup_cli,
+        delete_backup_cli,
+        list_backups_cli,
+        restore_backup_cli,
+    )
     from utils.config_manager import config_manager
-    from utils.error_handler import (APGIError, ErrorCategory, ErrorSeverity,
-                                     error_handler, format_user_message)
+    from utils.error_handler import (
+        APGIError,
+        ErrorCategory,
+        ErrorSeverity,
+        error_handler,
+        format_user_message,
+    )
+
     # Import APGI framework components
     from utils.logging_config import apgi_logger
     from utils.validation_pipeline_connector import ValidationPipelineConnector
@@ -507,34 +517,34 @@ def formal_model(
     """Run formal model simulations."""
     console.print(Panel.fit("🧮 Formal Model Simulation", style="bold blue"))
 
-    # Validate inputs
-    if simulation_steps is not None and simulation_steps <= 0:
-        console.print(
-            f"[red]❌ Invalid simulation steps '{simulation_steps}'. Must be a positive integer[/red]"
-        )
-        raise click.ClickException("Invalid simulation steps")
+    # Validate inputs using centralized sanitizer
+    try:
+        from utils.input_sanitizer import InputSanitizer
 
-    if simulation_steps is not None and simulation_steps > 100000:
-        console.print(
-            f"[yellow]⚠️ Warning: Large number of simulation steps ({simulation_steps}) may take a long time[/yellow]"
-        )
+        if simulation_steps is not None:
+            simulation_steps = InputSanitizer.sanitize_numeric(
+                simulation_steps, min_val=1, max_val=1000000, expected_type=int
+            )
+        if dt is not None:
+            dt = InputSanitizer.sanitize_numeric(
+                dt, min_val=1e-6, max_val=5.0, expected_type=float
+            )
+            # Warn about large dt values that may affect simulation accuracy
+            if dt > 1.0:
+                console.print(
+                    f"[yellow]⚠ Warning: dt={dt} is large and may reduce simulation accuracy. "
+                    "Consider using dt ≤ 1.0 for better precision.[/yellow]"
+                )
+        if output_file:
+            # Basic suffix check already exists, but we can add path sanitization
+            output_path = InputSanitizer.sanitize_path(output_file)
+            if output_path.suffix not in [".csv", ".json", ".pkl"]:
+                raise ValueError(f"Invalid output file extension: {output_path.suffix}")
+    except ValueError as e:
+        console.print(f"[red]❌ Input Sanitization Error: {e}[/red]")
+        raise click.ClickException(str(e))
 
-    if dt is not None and dt <= 0:
-        console.print(
-            f"[red]❌ Invalid time step '{dt}'. Must be a positive number[/red]"
-        )
-        raise click.ClickException("Invalid time step")
-
-    if dt is not None and dt > 1.0:
-        console.print(
-            f"[yellow]⚠️ Warning: Large time step ({dt}) may reduce simulation accuracy[/yellow]"
-        )
-
-    if output_file and not output_file.endswith((".csv", ".json", ".pkl")):
-        console.print(
-            f"[red]❌ Invalid output file '{output_file}'. Must end with .csv, .json, or .pkl[/red]"
-        )
-        raise click.ClickException("Invalid output file extension")
+    # Get configuration values
 
     # Get configuration values
     sim_config = config_manager.get_config("simulation")
@@ -622,8 +632,7 @@ def formal_model(
                 # Validate and apply custom parameters if loaded successfully
                 if custom_params is not None:
                     try:
-                        from utils.parameter_validator import \
-                            validate_parameters
+                        from utils.parameter_validator import validate_parameters
 
                         validation_result = validate_parameters(custom_params)
 
@@ -1343,8 +1352,7 @@ def _process_csv_file(input_data: str, output_file: Optional[str]) -> None:
     # Run integration using process_subject
     try:
         # Import multimodal components
-        from APGI_Multimodal_Integration import (APGIBatchProcessor,
-                                                 APGICoreIntegration)
+        from APGI_Multimodal_Integration import APGIBatchProcessor, APGICoreIntegration
 
         # Create integration
         integration = APGICoreIntegration()
@@ -1428,8 +1436,7 @@ def _run_demo_mode() -> None:
 
     try:
         # Import multimodal components
-        from APGI_Multimodal_Integration import (APGIBatchProcessor,
-                                                 APGICoreIntegration)
+        from APGI_Multimodal_Integration import APGIBatchProcessor, APGICoreIntegration
 
         # Create integration
         integration = APGICoreIntegration()
@@ -2224,11 +2231,13 @@ def process_data(
     try:
         from pathlib import Path
 
-        from utils.preprocessing_pipelines import (EDAPreprocessor,
-                                                   EEGPreprocessor,
-                                                   HeartRatePreprocessor,
-                                                   PreprocessingConfig,
-                                                   PupilPreprocessor)
+        from utils.preprocessing_pipelines import (
+            EDAPreprocessor,
+            EEGPreprocessor,
+            HeartRatePreprocessor,
+            PreprocessingConfig,
+            PupilPreprocessor,
+        )
 
         # Set up paths
         project_root = Path(__file__).parent
@@ -5284,8 +5293,9 @@ def dashboard(output_dir, dashboard_type, open_browser):
             else:
                 # Generate specific dashboard type
                 try:
-                    from utils.static_dashboard_generator import \
-                        StaticDashboardGenerator
+                    from utils.static_dashboard_generator import (
+                        StaticDashboardGenerator,
+                    )
 
                     generator = StaticDashboardGenerator(str(output_dir))
 
@@ -5932,8 +5942,9 @@ def performance_dashboard(
     console.print(Panel.fit("📊 Performance Dashboard", style="bold magenta"))
 
     try:
-        from utils.comprehensive_performance_dashboard import \
-            ComprehensivePerformanceDashboard
+        from utils.comprehensive_performance_dashboard import (
+            ComprehensivePerformanceDashboard,
+        )
 
         dashboard = ComprehensivePerformanceDashboard(port=port, debug=debug)
         dashboard.run(host=host)

@@ -25,8 +25,7 @@ except ImportError:
         from data_validation import DataValidator as DataValidatorLocal
     except ImportError:
         try:
-            from .data_validation import \
-                DataPreprocessor as DataPreprocessorRelative
+            from .data_validation import DataPreprocessor as DataPreprocessorRelative
             from .data_validation import DataValidator as DataValidatorRelative
         except ImportError:
             # Fallback if utils.data_validation is available

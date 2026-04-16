@@ -20,8 +20,7 @@ from sklearn.metrics import r2_score, silhouette_score
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -41,9 +40,13 @@ except ImportError:
 try:
     from utils import DIM_CONSTANTS
     from utils.falsification_thresholds import (
-        F6_1_CLIFFS_DELTA_MIN, F6_1_LTCN_MAX_TRANSITION_MS,
-        F6_2_LTCN_MIN_WINDOW_MS, F6_2_MIN_INTEGRATION_RATIO, F6_2_MIN_R2,
-        LIQUID_IGNITION_DETECTION_THRESHOLD)
+        F6_1_CLIFFS_DELTA_MIN,
+        F6_1_LTCN_MAX_TRANSITION_MS,
+        F6_2_LTCN_MIN_WINDOW_MS,
+        F6_2_MIN_INTEGRATION_RATIO,
+        F6_2_MIN_R2,
+        LIQUID_IGNITION_DETECTION_THRESHOLD,
+    )
 
     APGI_TAU_S_MIN = getattr(DIM_CONSTANTS, "TAU_S_MIN", 0.3)  # 0.3-0.5s from paper
     APGI_TAU_S_MAX = getattr(DIM_CONSTANTS, "TAU_S_MAX", 0.5)
@@ -3439,8 +3442,7 @@ def run_esn_parameter_sensitivity_analysis(
     """
     # Import ESN parameter ranges from constants
     try:
-        from utils.constants import (ESN_LEAK_RATE_RANGE,
-                                     ESN_SPECTRAL_RADIUS_RANGE)
+        from utils.constants import ESN_LEAK_RATE_RANGE, ESN_SPECTRAL_RADIUS_RANGE
 
         spectral_radii = ESN_SPECTRAL_RADIUS_RANGE
         leak_rates = ESN_LEAK_RATE_RANGE
@@ -3535,8 +3537,10 @@ def run_esn_parameter_sensitivity_analysis(
                 # F6.6: Alternative architectures test (imported from falsification_thresholds)
                 try:
                     from utils.falsification_thresholds import (  # type: ignore[attr-defined]
-                        F6_6_MIN_ADD_ON_MODULES, F6_6_MIN_PERFORMANCE_GAP,
-                        test_f6_6_alternative_architectures)
+                        F6_6_MIN_ADD_ON_MODULES,
+                        F6_6_MIN_PERFORMANCE_GAP,
+                        test_f6_6_alternative_architectures,
+                    )
 
                     f6_6_result = test_f6_6_alternative_architectures(
                         alternative_modules_needed=F6_6_MIN_ADD_ON_MODULES,

@@ -15,8 +15,7 @@ _performance_profiler: Any = None
 
 try:
     from utils.logging_config import apgi_logger as actual_logger
-    from utils.performance_profiler import \
-        performance_profiler as actual_profiler
+    from utils.performance_profiler import performance_profiler as actual_profiler
 
     _apgi_logger = actual_logger
     _performance_profiler = actual_profiler

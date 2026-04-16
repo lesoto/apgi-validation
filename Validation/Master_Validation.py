@@ -30,7 +30,9 @@ except ImportError:
 # Import validation-falsification consistency checker
 try:
     from utils.validation_falsification_consistency import (
-        ConsistencyIssue, ValidationFalsificationConsistency)
+        ConsistencyIssue,
+        ValidationFalsificationConsistency,
+    )
 except ImportError:
     # Fallback placeholders when module is not available
     ValidationFalsificationConsistency = None  # type: ignore[misc]
@@ -665,9 +667,11 @@ def main():
         from Falsification.FP_ALL_Aggregator import (
             aggregate_prediction_results,
             check_framework_falsification_condition_a,
-            check_framework_falsification_condition_b)
-        from utils.validation_falsification_consistency import \
-            ValidationFalsificationConsistency
+            check_framework_falsification_condition_b,
+        )
+        from utils.validation_falsification_consistency import (
+            ValidationFalsificationConsistency,
+        )
 
         preds = aggregate_prediction_results(validator.protocol_results)
 

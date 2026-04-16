@@ -12,7 +12,7 @@ import pytest
 from utils.path_security import validate_file_path
 
 # Define PROJECT_ROOT locally to avoid main.py import issues
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = str(Path(__file__).parent.parent)
 
 
 class TestPathValidationSecurity:
@@ -88,8 +88,8 @@ class TestPathValidationSecurity:
         symlink_path = temp_dir / "race_link"
         symlink_path.symlink_to(safe_file)
 
-        # Should pass validation when pointing to safe location
-        result = validate_file_path(symlink_path, PROJECT_ROOT)
+        # Should pass validation when pointing to safe location (use temp_dir as base)
+        result = validate_file_path(symlink_path, str(temp_dir))
         assert result is not None
 
         # Create a file outside the allowed directory
@@ -114,7 +114,7 @@ class TestPathValidationSecurity:
 
         def validate_path():
             try:
-                validate_file_path(safe_file)
+                validate_file_path(safe_file, str(temp_dir))
                 results.append(True)
             except ValueError as e:
                 errors.append(e)
@@ -181,19 +181,20 @@ class TestPathValidationSecurity:
 
     def test_safe_path_acceptance(self, safe_file):
         """Test that safe paths are accepted."""
-        # Valid file should pass validation
-        validate_file_path(safe_file, PROJECT_ROOT)
+        # Valid file should pass validation (use parent dir as base)
+        validate_file_path(safe_file, str(safe_file.parent))
 
         # Valid directory should pass validation
-        validate_file_path(safe_file.parent)
+        validate_file_path(safe_file.parent, str(safe_file.parent))
 
     def test_path_normalization(self, temp_dir):
         """Test path normalization attacks."""
-        # Test various normalization attacks
+        # Test various normalization attacks using raw strings
+        # (pathlib.Path normalizes paths when using / operator)
         normalization_attacks = [
-            temp_dir / "test/../etc/passwd",  # Directory traversal
-            temp_dir / "test/./../../etc/passwd",  # Current directory
-            temp_dir / "test//etc/passwd",  # Double slash
+            str(temp_dir / "test") + "/../etc/passwd",  # Directory traversal
+            str(temp_dir / "test") + "/./../../etc/passwd",  # Current directory
+            str(temp_dir / "test") + "//etc/passwd",  # Double slash
         ]
 
         for attack_path in normalization_attacks:
@@ -206,8 +207,8 @@ class TestPathValidationEdgeCases:
 
     def test_empty_path(self):
         """Test empty path rejection."""
-        with pytest.raises(ValueError):
-            validate_file_path(Path(""))
+        with pytest.raises(ValueError, match="File path cannot be empty"):
+            validate_file_path(Path(""), PROJECT_ROOT)
 
     def test_none_path(self):
         """Test None path rejection."""
@@ -219,8 +220,8 @@ class TestPathValidationEdgeCases:
         spaced_file = temp_dir / "file with spaces.txt"
         spaced_file.write_text("content")
 
-        # Should accept valid paths with spaces
-        validate_file_path(spaced_file)
+        # Should accept valid paths with spaces (use temp_dir as base)
+        validate_file_path(spaced_file, str(temp_dir))
 
     def test_very_long_path(self, temp_dir):
         """Test very long path handling."""
@@ -230,4 +231,4 @@ class TestPathValidationEdgeCases:
 
         # Should handle long paths appropriately
         with pytest.raises(ValueError, match="Path traversal detected"):
-            validate_file_path(long_path)
+            validate_file_path(long_path, PROJECT_ROOT)

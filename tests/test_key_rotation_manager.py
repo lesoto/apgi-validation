@@ -11,10 +11,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.key_rotation_manager import (KeyRotationManager,
-                                        check_and_rotate_keys_if_needed,
-                                        get_key_rotation_manager,
-                                        get_key_status)
+from utils.key_rotation_manager import (
+    KeyRotationManager,
+    check_and_rotate_keys_if_needed,
+    get_key_rotation_manager,
+    get_key_status,
+)
 
 
 class TestKeyRotationManager:

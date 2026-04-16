@@ -12,11 +12,13 @@ import pytest
 
 def test_f5_1_constants():
     """Test F5.1 constants match paper specifications"""
-    from utils.falsification_thresholds import (F5_1_MIN_ALPHA,
-                                                F5_1_MIN_PROPORTION,
-                                                F5_4_MIN_PEAK_SEPARATION,
-                                                F5_5_PCA_MIN_LOADING,
-                                                F5_5_PCA_MIN_VARIANCE)
+    from utils.falsification_thresholds import (
+        F5_1_MIN_ALPHA,
+        F5_1_MIN_PROPORTION,
+        F5_4_MIN_PEAK_SEPARATION,
+        F5_5_PCA_MIN_LOADING,
+        F5_5_PCA_MIN_VARIANCE,
+    )
 
     # Test proportion threshold - should be 0.75 per paper spec
     assert (
@@ -56,8 +58,11 @@ def test_f6_1_constants():
 def test_v12_1_constants():
     """Test V12.1 constants match paper specifications"""
     from utils.falsification_thresholds import (
-        V12_1_MIN_COHENS_D, V12_1_MIN_IGNITION_REDUCTION_PCT,
-        V12_1_MIN_P3B_REDUCTION_PCT, V12_2_MIN_CORRELATION)
+        V12_1_MIN_COHENS_D,
+        V12_1_MIN_IGNITION_REDUCTION_PCT,
+        V12_1_MIN_P3B_REDUCTION_PCT,
+        V12_2_MIN_CORRELATION,
+    )
 
     # Test P3b reduction threshold - should be 50.0% per paper spec
     assert (
@@ -82,33 +87,43 @@ def test_v12_1_constants():
 
 def test_f1_f3_criteria_consistency():
     """Test that F1-F3 criteria are consistent across Protocols 1, 2, 3, 6, 9, and 12"""
-    from utils.falsification_thresholds import (F1_1_ALPHA,
-                                                F1_1_MIN_ADVANTAGE_PCT,
-                                                F1_1_MIN_COHENS_D, F2_1_ALPHA,
-                                                F2_1_MIN_ADVANTAGE_PCT,
-                                                F2_1_MIN_COHENS_H,
-                                                F2_1_MIN_PP_DIFF, F2_2_ALPHA,
-                                                F2_2_MIN_CORR,
-                                                F2_2_MIN_FISHER_Z, F2_3_ALPHA,
-                                                F2_3_MIN_BETA,
-                                                F2_3_MIN_RT_ADVANTAGE_MS,
-                                                F2_4_ALPHA,
-                                                F2_4_MIN_BETA_INTERACTION,
-                                                F2_4_MIN_CONFIDENCE_EFFECT_PCT,
-                                                F2_5_ALPHA, F2_5_MAX_TRIALS,
-                                                F2_5_MIN_HAZARD_RATIO,
-                                                F2_5_MIN_TRIAL_ADVANTAGE,
-                                                F3_1_ALPHA,
-                                                F3_1_MIN_ADVANTAGE_PCT,
-                                                F3_1_MIN_COHENS_D, F3_2_ALPHA,
-                                                F3_2_MIN_COHENS_D,
-                                                F3_2_MIN_INTERO_ADVANTAGE_PCT,
-                                                F3_3_ALPHA, F3_3_MIN_COHENS_D,
-                                                F3_3_MIN_REDUCTION_PCT,
-                                                F3_4_ALPHA, F3_4_MIN_COHENS_D,
-                                                F3_4_MIN_REDUCTION_PCT,
-                                                F3_6_ALPHA, F3_6_MAX_TRIALS,
-                                                F3_6_MIN_HAZARD_RATIO)
+    from utils.falsification_thresholds import (
+        F1_1_ALPHA,
+        F1_1_MIN_ADVANTAGE_PCT,
+        F1_1_MIN_COHENS_D,
+        F2_1_ALPHA,
+        F2_1_MIN_ADVANTAGE_PCT,
+        F2_1_MIN_COHENS_H,
+        F2_1_MIN_PP_DIFF,
+        F2_2_ALPHA,
+        F2_2_MIN_CORR,
+        F2_2_MIN_FISHER_Z,
+        F2_3_ALPHA,
+        F2_3_MIN_BETA,
+        F2_3_MIN_RT_ADVANTAGE_MS,
+        F2_4_ALPHA,
+        F2_4_MIN_BETA_INTERACTION,
+        F2_4_MIN_CONFIDENCE_EFFECT_PCT,
+        F2_5_ALPHA,
+        F2_5_MAX_TRIALS,
+        F2_5_MIN_HAZARD_RATIO,
+        F2_5_MIN_TRIAL_ADVANTAGE,
+        F3_1_ALPHA,
+        F3_1_MIN_ADVANTAGE_PCT,
+        F3_1_MIN_COHENS_D,
+        F3_2_ALPHA,
+        F3_2_MIN_COHENS_D,
+        F3_2_MIN_INTERO_ADVANTAGE_PCT,
+        F3_3_ALPHA,
+        F3_3_MIN_COHENS_D,
+        F3_3_MIN_REDUCTION_PCT,
+        F3_4_ALPHA,
+        F3_4_MIN_COHENS_D,
+        F3_4_MIN_REDUCTION_PCT,
+        F3_6_ALPHA,
+        F3_6_MAX_TRIALS,
+        F3_6_MIN_HAZARD_RATIO,
+    )
 
     # Test F1 family consistency
     assert F1_1_MIN_ADVANTAGE_PCT == 18.0, "F1.1_MIN_ADVANTAGE_PCT should be 18.0%"
@@ -166,8 +181,7 @@ def test_f1_f3_criteria_consistency():
 
 def test_f6_1_boundary_conditions():
     """Test F6.1 function handles boundary conditions correctly."""
-    from utils.falsification_thresholds import \
-        test_f6_1_intrinsic_threshold_behavior
+    from utils.falsification_thresholds import test_f6_1_intrinsic_threshold_behavior
 
     # Test with valid data (verify function runs and returns expected structure)
     ltcn_data = np.array([50.0, 50.0, 50.0, 50.0])
@@ -234,7 +248,8 @@ def test_threshold_function_input_validation():
     """Test threshold functions validate input correctly."""
     from utils.falsification_thresholds import (
         test_f6_1_intrinsic_threshold_behavior,
-        test_f6_3_metabolic_selectivity)
+        test_f6_3_metabolic_selectivity,
+    )
 
     # Test with arrays of different lengths (should handle gracefully or raise error)
     ltcn = np.array([40.0, 40.0, 40.0])

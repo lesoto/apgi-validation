@@ -21,7 +21,10 @@ import pytest
 
 # Import the protocol to test
 from Falsification.FP_09_NeuralSignatures_P3b_HEP import (
-    EEGData, FalsificationThresholds, NeuralSignatureValidator)
+    EEGData,
+    FalsificationThresholds,
+    NeuralSignatureValidator,
+)
 
 
 class TestNeuralSignaturesEEGProtocol8:

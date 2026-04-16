@@ -14,9 +14,17 @@ import pytest
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import (_list_protocols, _process_csv_file, _reset_config,
-                  _run_demo_mode, _run_parallel, _run_sequential, _set_config,
-                  _show_config, _validate_input_file)
+from main import (
+    _list_protocols,
+    _process_csv_file,
+    _reset_config,
+    _run_demo_mode,
+    _run_parallel,
+    _run_sequential,
+    _set_config,
+    _show_config,
+    _validate_input_file,
+)
 
 
 class TestProcessCsvFile:

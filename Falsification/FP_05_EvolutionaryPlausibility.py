@@ -8,8 +8,7 @@ from typing import Any, Dict, List, Tuple, Union
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -22,8 +21,7 @@ if str(project_root) not in sys.path:
 
 # FIX #2: Import VP-05 genome data loader for cross-protocol data dependency
 try:
-    from utils.interprotocol_schema import (load_vp5_genome_data,
-                                            requires_vp5_data)
+    from utils.interprotocol_schema import load_vp5_genome_data, requires_vp5_data
 
     HAS_VP5_LOADER = True
 except ImportError:
@@ -73,28 +71,31 @@ except ImportError:
 try:
     from utils.config_manager import ConfigManager
     from utils.constants import APGI_GLOBAL_SEED, DIM_CONSTANTS
-    from utils.falsification_thresholds import (F1_6_MIN_LOW_AROUSAL_SLOPE,
-                                                F2_3_ALPHA,
-                                                F2_3_MIN_RT_ADVANTAGE_MS,
-                                                F5_1_BINOMIAL_ALPHA,
-                                                F5_1_MIN_ALPHA,
-                                                F5_1_MIN_COHENS_D,
-                                                F5_1_MIN_PROPORTION,
-                                                F5_2_BINOMIAL_ALPHA,
-                                                F5_2_MIN_CORRELATION,
-                                                F5_2_MIN_PROPORTION,
-                                                F5_3_BINOMIAL_ALPHA,
-                                                F5_3_MIN_GAIN_RATIO,
-                                                F5_3_MIN_PROPORTION,
-                                                F5_4_MIN_PEAK_SEPARATION,
-                                                F5_4_MIN_PROPORTION,
-                                                F5_5_PCA_MIN_LOADING,
-                                                F5_5_PCA_MIN_VARIANCE,
-                                                F5_6_ALPHA, F5_6_MIN_COHENS_D,
-                                                F5_6_MIN_PERFORMANCE_DIFF_PCT,
-                                                F6_5_BIFURCATION_ERROR_MAX,
-                                                F6_5_HYSTERESIS_MAX,
-                                                F6_5_HYSTERESIS_MIN)
+    from utils.falsification_thresholds import (
+        F1_6_MIN_LOW_AROUSAL_SLOPE,
+        F2_3_ALPHA,
+        F2_3_MIN_RT_ADVANTAGE_MS,
+        F5_1_BINOMIAL_ALPHA,
+        F5_1_MIN_ALPHA,
+        F5_1_MIN_COHENS_D,
+        F5_1_MIN_PROPORTION,
+        F5_2_BINOMIAL_ALPHA,
+        F5_2_MIN_CORRELATION,
+        F5_2_MIN_PROPORTION,
+        F5_3_BINOMIAL_ALPHA,
+        F5_3_MIN_GAIN_RATIO,
+        F5_3_MIN_PROPORTION,
+        F5_4_MIN_PEAK_SEPARATION,
+        F5_4_MIN_PROPORTION,
+        F5_5_PCA_MIN_LOADING,
+        F5_5_PCA_MIN_VARIANCE,
+        F5_6_ALPHA,
+        F5_6_MIN_COHENS_D,
+        F5_6_MIN_PERFORMANCE_DIFF_PCT,
+        F6_5_BIFURCATION_ERROR_MAX,
+        F6_5_HYSTERESIS_MAX,
+        F6_5_HYSTERESIS_MIN,
+    )
 except ImportError:
     # Fallback if utils not available
     class MockDimConstants:
@@ -2843,7 +2844,9 @@ def check_falsification(
     cohens_d_alpha = (val_alpha - F5_1_MIN_ALPHA) / 1.0  # Simplified
 
     from utils.falsification_thresholds import (  # Use correct threshold: 4.0 (not F5_1_FALSIFICATION_ALPHA = 3.0)
-        F5_1_MIN_ALPHA, F5_1_MIN_PROPORTION)
+        F5_1_MIN_ALPHA,
+        F5_1_MIN_PROPORTION,
+    )
 
     # F5.1: Threshold Filtering Emergence - ≥75% proportion, α ≥ 4.0, separation ≥ 3.0
     # Use MIN_ALPHA (4.0) per specification, not FALSIFICATION_ALPHA (3.0)
@@ -2892,8 +2895,10 @@ def check_falsification(
         else mean_correlation
     )
 
-    from utils.falsification_thresholds import (F5_2_FALSIFICATION_CORR,
-                                                F5_2_MIN_PROPORTION)
+    from utils.falsification_thresholds import (
+        F5_2_FALSIFICATION_CORR,
+        F5_2_MIN_PROPORTION,
+    )
 
     f5_2_pass = (
         precision_emergence_proportion >= F5_2_MIN_PROPORTION
@@ -3001,8 +3006,10 @@ def check_falsification(
 
     # F5.5: APGI-Like Feature Clustering
     logger.info("Testing F5.5: APGI-Like Feature Clustering")
-    from utils.falsification_thresholds import (F5_5_PCA_MIN_LOADING,
-                                                F5_5_PCA_MIN_VARIANCE)
+    from utils.falsification_thresholds import (
+        F5_5_PCA_MIN_LOADING,
+        F5_5_PCA_MIN_VARIANCE,
+    )
 
     f5_5_pass = (
         pca_variance_explained >= F5_5_PCA_MIN_VARIANCE

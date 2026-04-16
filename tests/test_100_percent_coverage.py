@@ -183,8 +183,12 @@ class TestErrorHandlerCoverage:
 
     def test_all_error_categories(self):
         """Test instantiation of all error categories"""
-        from utils.error_handler import (APGIError, ErrorCategory, ErrorInfo,
-                                         ErrorSeverity)
+        from utils.error_handler import (
+            APGIError,
+            ErrorCategory,
+            ErrorInfo,
+            ErrorSeverity,
+        )
 
         for category in ErrorCategory:
             for severity in ErrorSeverity:

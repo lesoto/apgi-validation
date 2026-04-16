@@ -135,8 +135,9 @@ class ComprehensiveTestRunner:
         start = time.time()
 
         try:
-            from comprehensive.db_transaction_comprehensive import \
-                DatabaseTransactionTester
+            from comprehensive.db_transaction_comprehensive import (
+                DatabaseTransactionTester,
+            )
 
             tester = DatabaseTransactionTester()
             report = tester.run_all_tests()
@@ -162,8 +163,7 @@ class ComprehensiveTestRunner:
         start = time.time()
 
         try:
-            from comprehensive.mutation_enhanced import \
-                run_enhanced_mutation_testing
+            from comprehensive.mutation_enhanced import run_enhanced_mutation_testing
 
             report = run_enhanced_mutation_testing()
 
@@ -196,8 +196,7 @@ class ComprehensiveTestRunner:
         start = time.time()
 
         try:
-            from comprehensive.property_based_enhanced import \
-                run_property_based_tests
+            from comprehensive.property_based_enhanced import run_property_based_tests
 
             info = run_property_based_tests()
 
@@ -222,8 +221,9 @@ class ComprehensiveTestRunner:
         start = time.time()
 
         try:
-            from comprehensive.performance_regression import \
-                run_performance_regression_tests
+            from comprehensive.performance_regression import (
+                run_performance_regression_tests,
+            )
 
             report = run_performance_regression_tests()
 

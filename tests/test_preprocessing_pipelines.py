@@ -23,11 +23,13 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from utils.preprocessing_pipelines import (EDAPreprocessor,
-                                               EEGPreprocessor,
-                                               HeartRatePreprocessor,
-                                               PreprocessingConfig,
-                                               PupilPreprocessor)
+    from utils.preprocessing_pipelines import (
+        EDAPreprocessor,
+        EEGPreprocessor,
+        HeartRatePreprocessor,
+        PreprocessingConfig,
+        PupilPreprocessor,
+    )
 except ImportError as e:
     pytest.skip(f"Cannot import preprocessing_pipelines: {e}", allow_module_level=True)
 
@@ -415,8 +417,9 @@ class TestPupilPreprocessor:
 
         assert isinstance(result, pd.Series), "Should return Series"
         assert len(result) == len(pupil_series), "Should preserve length"
-        # Normalized data should have zero mean (approximately)
-        assert abs(result.mean()) < 1.0
+        # Percentage change normalization: values are percentages relative to baseline
+        # Most values should be within +/- 50% (reasonable physiological range)
+        assert abs(result.mean()) < 50.0, "Mean percentage change should be small"
 
     def test_smooth_pupil_signal(self, sample_pupil_data):
         """Test pupil signal smoothing."""

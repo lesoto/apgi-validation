@@ -26,8 +26,7 @@ from scipy.stats import wilcoxon
 try:
     from datetime import datetime
 
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -39,10 +38,12 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.constants import APGI_GLOBAL_SEED
-from utils.falsification_thresholds import (F6_1_LTCN_MAX_TRANSITION_MS,
-                                            F6_2_LTCN_MIN_WINDOW_MS,
-                                            F6_2_MIN_INTEGRATION_RATIO,
-                                            F6_2_WILCOXON_ALPHA)
+from utils.falsification_thresholds import (
+    F6_1_LTCN_MAX_TRANSITION_MS,
+    F6_2_LTCN_MIN_WINDOW_MS,
+    F6_2_MIN_INTEGRATION_RATIO,
+    F6_2_WILCOXON_ALPHA,
+)
 
 # Removed for GUI stability
 _logger = logging.getLogger(__name__)  # type: ignore[no-redef,assignment]

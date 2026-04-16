@@ -26,9 +26,11 @@ if str(_proj_root) not in sys.path:
     sys.path.insert(0, str(_proj_root))
 
 # Import the framework-level aggregator
-from Falsification.FP_ALL_Aggregator import (NAMED_PREDICTIONS,
-                                             FalsificationAggregator,
-                                             run_framework_falsification)
+from Falsification.FP_ALL_Aggregator import (
+    NAMED_PREDICTIONS,
+    FalsificationAggregator,
+    run_framework_falsification,
+)
 
 # Try to import logging config
 try:

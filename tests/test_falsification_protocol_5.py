@@ -20,7 +20,9 @@ import pytest
 
 # Import the protocol to test
 from Falsification.FP_05_EvolutionaryPlausibility import (
-    EvolutionaryAPGIEmergence, EvolvableAgent)
+    EvolutionaryAPGIEmergence,
+    EvolvableAgent,
+)
 
 
 class TestEvolutionaryPlausibilityProtocol5:

@@ -16,9 +16,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.metadata_standardizer import (PROTOCOL_DEPENDENCIES,
-                                         PROTOCOL_PREDICTIONS, DataSource,
-                                         ProtocolStatus, standardize_metadata)
+from utils.metadata_standardizer import (
+    PROTOCOL_DEPENDENCIES,
+    PROTOCOL_PREDICTIONS,
+    DataSource,
+    ProtocolStatus,
+    standardize_metadata,
+)
 from utils.protocol_schema import ProtocolResult
 
 

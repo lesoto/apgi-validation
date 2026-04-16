@@ -18,20 +18,24 @@ from typing import Dict
 import numpy as np
 
 try:
-    from .falsification_thresholds import (TRANSFER_ENTROPY_THRESHOLD,
-                                           VP4_CALIBRATED_ALPHA,
-                                           VP4_CALIBRATED_TAU,
-                                           VP4_CALIBRATED_THETA_0)
+    from .falsification_thresholds import (
+        TRANSFER_ENTROPY_THRESHOLD,
+        VP4_CALIBRATED_ALPHA,
+        VP4_CALIBRATED_TAU,
+        VP4_CALIBRATED_THETA_0,
+    )
 except ImportError:
     # Handle direct script execution
     import os
     import sys
 
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from utils.falsification_thresholds import (TRANSFER_ENTROPY_THRESHOLD,
-                                                VP4_CALIBRATED_ALPHA,
-                                                VP4_CALIBRATED_TAU,
-                                                VP4_CALIBRATED_THETA_0)
+    from utils.falsification_thresholds import (
+        TRANSFER_ENTROPY_THRESHOLD,
+        VP4_CALIBRATED_ALPHA,
+        VP4_CALIBRATED_TAU,
+        VP4_CALIBRATED_THETA_0,
+    )
 
 # VP-02 physiological arousal coupling defaults (Critchley et al. 2004-inspired)
 ALPHA_AROUSAL: float = 0.15

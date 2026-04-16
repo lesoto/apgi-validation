@@ -16,8 +16,7 @@ from scipy.stats import binomtest
 
 # FIX #1: Import standardized schema for protocol results
 try:
-    from utils.protocol_schema import (PredictionResult, PredictionStatus,
-                                       ProtocolResult)
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
     HAS_SCHEMA = True
 except ImportError:
@@ -77,10 +76,12 @@ try:
     # Import aggregator functions and constants
     try:
         from Falsification.FP_ALL_Aggregator import (
-            NAMED_PREDICTIONS, aggregate_prediction_results,
+            NAMED_PREDICTIONS,
+            aggregate_prediction_results,
             check_framework_falsification_condition_a,
             check_framework_falsification_condition_b,
-            run_framework_falsification)
+            run_framework_falsification,
+        )
 
         AGGREGATOR_AVAILABLE = True
     except ImportError as e:
@@ -141,8 +142,13 @@ except ImportError as e:
 logger = logging.getLogger(__name__)
 from utils.constants import DIM_CONSTANTS
 from utils.falsification_thresholds import (  # HIGH-01: Import from falsification_thresholds
-    DEFAULT_ALPHA, F1_1_ALPHA, F1_1_MIN_ADVANTAGE_PCT, F1_1_MIN_COHENS_D,
-    F1_6_MIN_LOW_AROUSAL_SLOPE, GENERIC_MEDIUM_COHENS_D)
+    DEFAULT_ALPHA,
+    F1_1_ALPHA,
+    F1_1_MIN_ADVANTAGE_PCT,
+    F1_1_MIN_COHENS_D,
+    F1_6_MIN_LOW_AROUSAL_SLOPE,
+    GENERIC_MEDIUM_COHENS_D,
+)
 
 # Suppress scipy deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -3579,14 +3585,16 @@ def check_falsification(
     }
 
     # Use thresholds from falsification_thresholds.py
-    from utils.falsification_thresholds import (F5_1_MIN_ALPHA,
-                                                F5_1_MIN_COHENS_D,
-                                                F5_1_MIN_PROPORTION,
-                                                F5_2_MIN_CORRELATION,
-                                                F5_2_MIN_PROPORTION,
-                                                F5_3_MIN_COHENS_D,
-                                                F5_3_MIN_GAIN_RATIO,
-                                                F5_3_MIN_PROPORTION)
+    from utils.falsification_thresholds import (
+        F5_1_MIN_ALPHA,
+        F5_1_MIN_COHENS_D,
+        F5_1_MIN_PROPORTION,
+        F5_2_MIN_CORRELATION,
+        F5_2_MIN_PROPORTION,
+        F5_3_MIN_COHENS_D,
+        F5_3_MIN_GAIN_RATIO,
+        F5_3_MIN_PROPORTION,
+    )
 
     f5_thresholds = {
         "F5_1_MIN_PROPORTION": F5_1_MIN_PROPORTION,

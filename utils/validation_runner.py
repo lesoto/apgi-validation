@@ -36,7 +36,9 @@ def validate_fp02_data_variance() -> Dict[str, Any]:
 
     try:
         from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import (
-            IowaGamblingTaskEnvironment, validate_input_variance)
+            IowaGamblingTaskEnvironment,
+            validate_input_variance,
+        )
 
         # Test environment with improved variance
         env = IowaGamblingTaskEnvironment(n_trials=100)
@@ -73,7 +75,9 @@ def validate_fp03_dependencies() -> Dict[str, Any]:
     try:
         # Test import resolution
         from Falsification.FP_03_FrameworkLevel_MultiProtocol import (
-            AGGREGATOR_AVAILABLE, SHARED_FALSEFICATION_AVAILABLE)
+            AGGREGATOR_AVAILABLE,
+            SHARED_FALSEFICATION_AVAILABLE,
+        )
 
         return {
             "status": "PASS",
@@ -93,7 +97,9 @@ def validate_fp04_te_computation() -> Dict[str, Any]:
 
     try:
         from Falsification.FP_04_PhaseTransition_EpistemicArchitecture import (
-            InformationTheoreticAnalysis, SurpriseIgnitionSystem)
+            InformationTheoreticAnalysis,
+            SurpriseIgnitionSystem,
+        )
 
         # Create analyzer with correct constructor parameters
         apgi_system = SurpriseIgnitionSystem(alpha=8.0, tau_S=0.3)
@@ -135,8 +141,9 @@ def validate_fp05_empirical_data() -> Dict[str, Any]:
 
     try:
         # Test the empirical validation function directly
-        from Falsification.FP_05_EvolutionaryPlausibility import \
-            validate_against_empirical_constraints
+        from Falsification.FP_05_EvolutionaryPlausibility import (
+            validate_against_empirical_constraints,
+        )
 
         # Create simple test genomes with all required fields
         test_genomes = []
@@ -194,13 +201,15 @@ def validate_parameter_consistency() -> Dict[str, Any]:
     logger.info("Validating parameter consistency...")
 
     try:
-        from utils.falsification_thresholds import (F1_1_ALPHA,
-                                                    F1_1_MIN_ADVANTAGE_PCT,
-                                                    F1_1_MIN_COHENS_D,
-                                                    F2_1_MIN_ADVANTAGE_PCT,
-                                                    F2_5_MIN_ADVANTAGE_PCT,
-                                                    F5_4_MIN_PEAK_SEPARATION,
-                                                    F5_5_PCA_MIN_VARIANCE)
+        from utils.falsification_thresholds import (
+            F1_1_ALPHA,
+            F1_1_MIN_ADVANTAGE_PCT,
+            F1_1_MIN_COHENS_D,
+            F2_1_MIN_ADVANTAGE_PCT,
+            F2_5_MIN_ADVANTAGE_PCT,
+            F5_4_MIN_PEAK_SEPARATION,
+            F5_5_PCA_MIN_VARIANCE,
+        )
 
         # Check for logical consistency
         consistency_checks = {

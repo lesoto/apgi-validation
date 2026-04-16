@@ -312,6 +312,27 @@ class SecurityAuditLogger:
 
         return results
 
+    def get_operations_by_time_range(self, start_time: float, end_time: float) -> list:
+        """
+        Get operations within a specific time range.
+
+        Args:
+            start_time: Start timestamp (Unix timestamp)
+            end_time: End timestamp (Unix timestamp)
+
+        Returns:
+            List of audit entries within the time range
+        """
+        results = []
+
+        for entry in self.audit_trail:
+            entry_time = datetime.fromisoformat(entry["timestamp"]).timestamp()
+
+            if start_time <= entry_time <= end_time:
+                results.append(entry)
+
+        return results
+
 
 # Global audit logger instance
 _audit_logger: Optional[SecurityAuditLogger] = None

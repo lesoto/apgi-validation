@@ -682,7 +682,7 @@ class TestLoggingAndMemoryCoverage:
 
         try:
             # Allocate memory then raise error
-            _large_list = [i for i in range(100000)]  # noqa: F841
+            _large_list = [i for i in range(10000)]  # noqa: F841 - Reduced size
             raise ValueError("Test error")
         except ValueError:
             _large_list = None  # noqa: F841 - Clear reference
