@@ -1487,7 +1487,14 @@ def run_validation(
                     [gate_v11_1, gate_v11_2, gate_v11_3, gate_v11_4, gate_v11_5]
                 ),
                 "gates_total": 5,
-                "note": f"Data source: {data_source}. {'Parameter recovery tests recover model\'s own synthetic data generation.' if data_source == 'synthetic' else 'Results validated on real cross-cultural EEG data.'}",
+                "note": (
+                    f"Data source: {data_source}. "
+                    + (
+                        "Parameter recovery tests recover model's own synthetic data generation."
+                        if data_source == "synthetic"
+                        else "Results validated on real cross-cultural EEG data."
+                    )
+                ),
             },
         }
 
