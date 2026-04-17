@@ -135,11 +135,15 @@ def cli():
 
 
 def pytest_sessionfinish(session, exitstatus):
-    """Clean up background threads and exit properly."""
-    # Force exit to avoid hanging on background threads
-    import sys
+    """Clean up background resources without forcing process exit.
 
-    sys.exit(exitstatus)
+    Pytest already controls process termination and exit codes. Calling
+    ``sys.exit`` from this hook can surface as an interrupted run during
+    collection on newer pytest versions, so we intentionally avoid doing that
+    here.
+    """
+    # Intentionally no explicit sys.exit(...) call.
+    return None
 
 
 @pytest.fixture
