@@ -198,12 +198,16 @@ class TestFuzzedEnvironmentVariables:
 
         # Valid keys match the pattern ^[A-Z_][A-Z0-9_]*$
         if is_valid:
-            assert (
-                fuzzed_key.isupper() or fuzzed_key == ""
-            ), f"Valid key must be uppercase: {fuzzed_key}"
+            # Valid keys: uppercase letters, digits, underscores
+            # First char can be uppercase or underscore
+            # Underscore-only keys like "_" are valid
             assert all(
                 c.isupper() or c.isdigit() or c == "_" for c in fuzzed_key
             ), f"Invalid chars in: {fuzzed_key}"
+            # First char must be uppercase letter or underscore
+            assert (
+                fuzzed_key[0].isupper() or fuzzed_key[0] == "_"
+            ), f"First char must be uppercase or underscore: {fuzzed_key}"
 
     @given(st.from_regex(r"^[A-Z_][A-Z0-9_]*$", fullmatch=True))
     @settings(max_examples=100, deadline=None)
