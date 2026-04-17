@@ -79,7 +79,9 @@ class ValidationPipelineConnector:
 
         try:
             if use_synthetic or not input_data:
-                data = self._generate_protocol_specific_data(validation_protocol, **kwargs)
+                data = self._generate_protocol_specific_data(
+                    validation_protocol, **kwargs
+                )
                 with self._log_lock:
                     self.connection_log.append(
                         f"Generated synthetic data for Protocol {validation_protocol}"
@@ -123,7 +125,11 @@ class ValidationPipelineConnector:
     def _generate_protocol_specific_data(self, protocol: int, **kwargs) -> pd.DataFrame:
         """Generate synthetic data specific to validation protocol requirements."""
         generation_map = {
-            1: {"n_samples": kwargs.get("n_samples", 1000), "sampling_rate": 100.0, "duration_minutes": 10},
+            1: {
+                "n_samples": kwargs.get("n_samples", 1000),
+                "sampling_rate": 100.0,
+                "duration_minutes": 10,
+            },
             2: {"n_samples": 2000, "sampling_rate": 200.0, "duration_minutes": 5},
             3: {"n_samples": 1500, "sampling_rate": 50.0, "duration_minutes": 15},
             4: {"n_samples": 800, "sampling_rate": 100.0, "duration_minutes": 8},
@@ -194,7 +200,9 @@ class ValidationPipelineConnector:
             12: ["EEG_Cz", "pupil_diameter"],
         }
 
-        required_cols = protocol_requirements.get(protocol, ["EEG_Cz", "pupil_diameter"])
+        required_cols = protocol_requirements.get(
+            protocol, ["EEG_Cz", "pupil_diameter"]
+        )
         compatibility["required_columns"] = required_cols
         data_columns = list(data.columns)
         missing_cols = [col for col in required_cols if col not in data_columns]
@@ -212,6 +220,45 @@ class ValidationPipelineConnector:
             compatibility["warnings"].append("Moderate dataset size (< 500 samples)")
 
         return compatibility
+
+    def run_validation_with_pipeline(
+        self,
+        validation_protocol: int,
+        input_data: Optional[Union[str, Path]] = None,
+        use_synthetic: bool = False,
+        n_samples: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Run validation with integrated preprocessing pipeline."""
+        logger.info(
+            "Running validation with pipeline for Protocol %s", validation_protocol
+        )
+
+        # Prepare data for validation
+        kwargs = {}
+        if n_samples:
+            kwargs["n_samples"] = n_samples
+
+        preparation_result = self.prepare_data_for_validation(
+            validation_protocol=validation_protocol,
+            input_data=input_data,
+            use_synthetic=use_synthetic,
+            **kwargs,
+        )
+
+        if preparation_result["status"] != "success":
+            return preparation_result
+
+        # Add pipeline metadata to result
+        preparation_result["pipeline_metadata"] = {
+            "data_shape": preparation_result["metadata"]["data_shape"],
+            "source": preparation_result["metadata"]["source"],
+            "compatibility": preparation_result["metadata"]["compatibility"],
+            "preprocessing_applied": preparation_result["metadata"][
+                "preprocessing_applied"
+            ],
+        }
+
+        return preparation_result
 
 
 if __name__ == "__main__":

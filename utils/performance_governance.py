@@ -50,8 +50,9 @@ class BenchmarkResult:
         return sorted_vals[idx]
 
 
-
-def benchmark_callable(protocol_id: str, fn: Callable[[], object], iterations: int = 25) -> BenchmarkResult:
+def benchmark_callable(
+    protocol_id: str, fn: Callable[[], object], iterations: int = 25
+) -> BenchmarkResult:
     latencies_ms: List[float] = []
     start = time.perf_counter()
     for _ in range(iterations):
@@ -60,8 +61,11 @@ def benchmark_callable(protocol_id: str, fn: Callable[[], object], iterations: i
         latencies_ms.append((time.perf_counter() - t0) * 1000)
     elapsed = time.perf_counter() - start
     throughput = iterations / elapsed if elapsed > 0 else 0.0
-    return BenchmarkResult(protocol_id=protocol_id, latencies_ms=latencies_ms, throughput_ops_per_sec=throughput)
-
+    return BenchmarkResult(
+        protocol_id=protocol_id,
+        latencies_ms=latencies_ms,
+        throughput_ops_per_sec=throughput,
+    )
 
 
 def assert_slo(result: BenchmarkResult, slo: ProtocolSLO) -> None:
@@ -75,14 +79,17 @@ def assert_slo(result: BenchmarkResult, slo: ProtocolSLO) -> None:
         )
 
 
-
-def export_benchmark_report(results: Iterable[BenchmarkResult], output_file: Path) -> None:
+def export_benchmark_report(
+    results: Iterable[BenchmarkResult], output_file: Path
+) -> None:
     payload = []
     for result in results:
         payload.append(
             {
                 "protocol_id": result.protocol_id,
-                "mean_latency_ms": mean(result.latencies_ms) if result.latencies_ms else 0.0,
+                "mean_latency_ms": (
+                    mean(result.latencies_ms) if result.latencies_ms else 0.0
+                ),
                 "p95_latency_ms": result.p95_latency_ms,
                 "throughput_ops_per_sec": result.throughput_ops_per_sec,
             }

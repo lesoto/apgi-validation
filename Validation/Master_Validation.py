@@ -283,7 +283,13 @@ class APGIMasterValidator:
                     f"{protocol_name} completed: {result.get('status', 'unknown')}"
                 )
 
-            except (ImportError, AttributeError, RuntimeError, ValueError, TypeError) as e:
+            except (
+                ImportError,
+                AttributeError,
+                RuntimeError,
+                ValueError,
+                TypeError,
+            ) as e:
                 logger.error(f"Error running {protocol_name}: {e}")
                 results[protocol_name] = {
                     "status": "error",

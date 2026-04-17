@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib.util
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional, Set
+from typing import Callable, Optional
 
 from utils.error_handler import APGIError, ErrorCategory, ErrorSeverity
 from utils.security_audit_logger import (
@@ -31,7 +31,7 @@ class SecurityContext:
     """Security context used by middleware to authorize operations."""
 
     user_id: str = "system"
-    roles: Set[str] = frozenset({"reader", "writer", "importer", "admin"})
+    roles: frozenset[str] = frozenset({"reader", "writer", "importer", "admin"})
 
 
 def _require_role(context: Optional[SecurityContext], required_role: str) -> None:
@@ -72,7 +72,9 @@ def secure_file_write(
 
 
 @audit_file_operation("delete")
-def secure_file_delete(file_path: str, context: Optional[SecurityContext] = None) -> None:
+def secure_file_delete(
+    file_path: str, context: Optional[SecurityContext] = None
+) -> None:
     """Delete file with mandatory authorization and audit logging."""
     _require_role(context, "writer")
     path = _validate_path(file_path)
