@@ -301,8 +301,9 @@ class APGIMasterValidator:
         return results
 
     def _run_single_protocol(self, protocol_info: Dict, **kwargs) -> Dict:
-        """Run a single validation protocol"""
+        """Run a single validation protocol with performance tracking and SLO enforcement"""
         file_path = Path(__file__).parent / protocol_info["file"]
+        protocol_id = protocol_info.get("protocol_id", protocol_info["file"])
 
         if not file_path.exists():
             return {
@@ -311,69 +312,87 @@ class APGIMasterValidator:
                 "passed": False,
             }
 
-        # Load the protocol module
-        spec = importlib.util.spec_from_file_location(protocol_info["file"], file_path)
-        if spec is None or spec.loader is None:
-            return {
-                "status": "error",
-                "message": "Could not load protocol module",
-                "passed": False,
-            }
-
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        # Get the validation function
-        func_name = protocol_info["function"]
-        if not hasattr(module, func_name):
-            return {
-                "status": "error",
-                "message": f"Validation function '{func_name}' not found in {protocol_info['file']}",
-                "passed": False,
-            }
-
-        validation_func = getattr(module, func_name)
-
-        # Run the validation
+        # Use performance governance to benchmark the protocol
         try:
-            result = validation_func(**kwargs)
+            from utils.performance_governance import (
+                benchmark_callable,
+                assert_slo,
+                DEFAULT_SLOS,
+                ProtocolSLO,
+            )
+
+            # Get SLO for this protocol or use default
+            slo = DEFAULT_SLOS.get(protocol_id, ProtocolSLO(protocol_id, 5000.0, 0.1))
+
+            def run_wrapper():
+                # Load the protocol module
+                spec = importlib.util.spec_from_file_location(
+                    protocol_info["file"], file_path
+                )
+                if spec is None or spec.loader is None:
+                    raise ImportError("Could not load protocol module")
+
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+
+                # Get the validation function
+                func_name = protocol_info["function"]
+                if not hasattr(module, func_name):
+                    raise AttributeError(
+                        f"Validation function '{func_name}' not found in {protocol_info['file']}"
+                    )
+
+                validation_func = getattr(module, func_name)
+                return validation_func(**kwargs)
+
+            # Benchmark the protocol execution
+            # Note: For heavy protocols, we might want to reduce iterations
+            benchmark_iterations = kwargs.get("benchmark_iterations", 1)
+            perf_result = benchmark_callable(
+                protocol_id, run_wrapper, iterations=benchmark_iterations
+            )
+
+            # Enforce SLO
+            try:
+                assert_slo(perf_result, slo)
+            except RuntimeError as e:
+                logger.warning(f"SLO Violation for {protocol_id}: {e}")
+                # We don't fail the protocol solely on SLO violation unless configured to do so
+                if kwargs.get("strict_performance", False):
+                    return {
+                        "status": "failed",
+                        "message": f"Performance SLO Violation: {e}",
+                        "passed": False,
+                        "performance": perf_result.__dict__,
+                    }
+
+            # Get the actual result from the last run (run_wrapper returns it)
+            # Since benchmark_callable calls it multiple times, we just need one result
+            result = run_wrapper()
+
             if isinstance(result, dict):
+                result["performance"] = {
+                    "p95_latency_ms": perf_result.p95_latency_ms,
+                    "throughput": perf_result.throughput_ops_per_sec,
+                }
                 return result
             else:
-                # Assume boolean result
                 return {
                     "status": "success" if result else "failed",
                     "passed": bool(result),
-                }
-        except NotImplementedError as e:
-            # Special handling for VP-15 and other stub protocols
-            if "VP-15" in protocol_info["file"] or "VP_15" in protocol_info["file"]:
-                logger.warning(f"VP-15 is a stub awaiting empirical data: {e}")
-                return {
-                    "status": "STUB",
-                    "passed": None,
-                    "protocol_id": "VP-15",
-                    "protocol_name": "fMRI vmPFC Anticipation Paradigm",
-                    "named_predictions": {
-                        "V15.1": {
-                            "passed": None,
-                            "reason": "Awaiting empirical fMRI data",
-                        },
-                        "V15.2": {
-                            "passed": None,
-                            "reason": "Awaiting empirical fMRI data",
-                        },
-                        "V15.3": {
-                            "passed": None,
-                            "reason": "Awaiting empirical fMRI data",
-                        },
+                    "performance": {
+                        "p95_latency_ms": perf_result.p95_latency_ms,
+                        "throughput": perf_result.throughput_ops_per_sec,
                     },
-                    "data_source": None,
-                    "reason": "Awaiting empirical fMRI data for vmPFC anticipation paradigm",
                 }
-            return {"status": "error", "message": str(e), "passed": False}
-        except (RuntimeError, ValueError, TypeError) as e:
-            return {"status": "error", "message": str(e), "passed": False}
+
+        except Exception as e:
+            logger.error(f"Error running {protocol_id}: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "passed": False,
+            }
 
     def generate_master_report(self) -> Dict:
         """Generate comprehensive validation report with weighted scoring."""

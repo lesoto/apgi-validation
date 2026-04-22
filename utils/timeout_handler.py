@@ -141,13 +141,13 @@ class TimeoutHandler:
                         # Remove the timed out operation
                         self.remove_timeout(operation_id)
 
-                    except Exception as e:
+                    except (RuntimeError, KeyError, AttributeError) as e:
                         print(f"Error in timeout callback for {operation_id}: {e}")
 
                 # Sleep for a short interval
                 time.sleep(0.5)
 
-            except Exception as e:
+            except (RuntimeError, KeyboardInterrupt, SystemExit) as e:
                 print(f"Error in timeout monitor: {e}")
                 time.sleep(1.0)
 
@@ -171,7 +171,13 @@ def with_timeout(timeout_seconds: float):
             def target():
                 try:
                     result.append(func(*args, **kwargs))
-                except Exception as e:
+                except (
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                    KeyError,
+                    AttributeError,
+                ) as e:
                     exception.append(e)
 
             process = multiprocessing.Process(target=target)

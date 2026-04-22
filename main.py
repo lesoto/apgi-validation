@@ -484,9 +484,24 @@ def cli(ctx, config_file, log_level, verbose, quiet):
         # set_parameter("logging", "level", log_level.upper())
         apgi_logger.logger.info(f"Log level overridden to: {log_level.upper()}")
 
-    # Log framework startup
-    apgi_logger.logger.info(f"APGI Framework v{get_config_value('version')} started")
-    apgi_logger.log_performance_metric("framework_startup", 0, "seconds")
+    # 4. Security Hardening Middleware
+    try:
+        from utils.security_logging_integration import enforce_security_audit
+
+        @cli.command()
+        @click.option(
+            "--simulation-steps",
+            default=None,
+            type=int,
+            help="Number of simulation steps",
+        )
+        @enforce_security_audit("execute_protocol")
+        @click.pass_context
+        def run_secure_protocol(ctx, simulation_steps):
+            ctx.invoke(formal_model, simulation_steps=simulation_steps)
+
+    except ImportError:
+        pass
 
 
 @cli.command()

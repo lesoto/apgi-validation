@@ -1,18 +1,5 @@
 # APGI Theory Framework - Troubleshooting Guide
 
-## Table of Contents
-
-1. [Installation Issues](#installation-issues)
-2. [Configuration Problems](#configuration-problems)
-3. [Runtime Errors](#runtime-errors)
-4. [Performance Issues](#performance-issues)
-5. [Data Issues](#data-issues)
-6. [GUI Problems](#gui-problems)
-7. [Validation Failures](#validation-failures)
-8. [Memory and Resource Issues](#memory-and-resource-issues)
-9. [Logging and Debugging](#logging-and-debugging)
-10. [Common Error Messages](#common-error-messages)
-
 ## Installation Issues
 
 ### Virtual Environment Problems
@@ -831,6 +818,42 @@ AssertionError: Validation failed
 ```
 
 **Solution:** Check validation logic and input data
+
+### CLI Command Errors
+
+```text
+Error: No such command 'formal_model'.
+```
+
+**Solution:** CLI commands use hyphens, not underscores:
+
+- ✓ `python main.py formal-model` (correct)
+- ✗ `python main.py formal_model` (incorrect)
+
+Common command corrections:
+
+| Incorrect | Correct |
+| ---------- | --------- |
+| `formal_model` | `formal-model` |
+| `estimate_params` | `estimate-params` |
+| `export_data` | `export-data` |
+| `import_data` | `import-data` |
+| `list_backups` | `list-backups` |
+| `restore_backup` | `restore-backup` |
+| `delete_backup` | `delete-backup` |
+| `cleanup_backups` | `cleanup-backups` |
+| `analyze_logs` | `analyze-logs` |
+| `process_data` | `process-data` |
+| `cross_species` | `cross-species` |
+
+```text
+Error: Invalid value for '--protocol': 15 is not in the valid range of 1 to 12.
+```
+
+**Solution:** Check protocol numbers:
+
+- Validation protocols: 1-15 (`python main.py validate --protocol N`)
+- Falsification protocols: 1-12 (`python main.py falsify --protocol N`)
 
 ## Getting Additional Help
 

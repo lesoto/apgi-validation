@@ -271,8 +271,9 @@ class TestSecureFileOperations:
 
         # All operations should have succeeded
         assert len(results) == 5
-        # Final content should be from last thread
-        assert test_file.read_text() == "modified by 4"
+        # Final content should be one of the thread modifications (not dependent on which thread finishes last)
+        final_content = test_file.read_text()
+        assert any(f"modified by {i}" == final_content for i in range(5))
 
     def test_toctou_mitigation(self, temp_dir):
         """Test TOCTOU mitigation prevents race conditions."""

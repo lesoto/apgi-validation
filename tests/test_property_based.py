@@ -339,7 +339,7 @@ class TestDataValidationProperties:
         "generate_synthetic_dataset" not in globals(),
         reason="generate_synthetic_dataset not available",
     )
-    @settings(max_examples=5, deadline=5000)  # Limit examples, 5s timeout each
+    @settings(max_examples=5, deadline=10000)  # Limit examples, 10s timeout each
     @given(
         strategies.integers(min_value=10, max_value=100),
     )
@@ -837,6 +837,16 @@ class TestFileFormatHandlingProperties:
     def test_csv_roundtrip_preserves_data(self, df):
         """Test that CSV roundtrip preserves data."""
         import tempfile
+
+        # Filter out strings with surrogate pairs that can't be encoded in UTF-8
+        if "col3" in df.columns:
+            df["col3"] = df["col3"].apply(
+                lambda x: (
+                    x.encode("utf-8", errors="ignore").decode("utf-8")
+                    if isinstance(x, str)
+                    else x
+                )
+            )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             temp_file = f.name

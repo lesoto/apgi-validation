@@ -1,6 +1,11 @@
 
 # APGI Protocol 3: Active Inference Agent Simulations
 
+> **Documentation Version**: 1.3.0 (Updated: April 2026)  
+> **Implementation**: `Validation/VP_03_ActiveInference_AgentSimulations.py`  
+> **Falsification Tests**: `Falsification/FP_01_ActiveInference.py`, `Falsification/FP_02_AgentComparison_ConvergenceBenchmark.py`  
+> **Master Orchestrator**: `Validation/Master_Validation.py`
+
 ## Overview
 
 Protocol 3 implements complete active inference agents to test whether APGI's integration of interoceptive precision weighting and global workspace ignition produces measurable adaptive advantages in decision-making tasks.
@@ -103,83 +108,75 @@ pip install numpy scipy torch matplotlib seaborn pandas tqdm
 ### Quick Start
 
 ```python
-from APGI_Protocol_3 import main
+from Validation.VP_03_ActiveInference_AgentSimulations import AgentComparisonExperiment
 
 # Run complete experiment (default: 20 agents × 4 types × 3 environments)
+experiment = AgentComparisonExperiment()
+results = experiment.run_full_experiment()
 
-results = main()
+# Or run via Master Validation:
+from Validation.Master_Validation import APGIMasterValidator
+validator = APGIMasterValidator()
+protocol_results = validator.run_single_protocol("Protocol-3")
 ```
 
 ### Custom Configuration
 
 ```python
-from APGI_Protocol_3 import AgentComparisonExperiment
-
+from Validation.VP_03_ActiveInference_AgentSimulations import AgentComparisonExperiment
 
 # Custom experiment setup
-
-
 experiment = AgentComparisonExperiment(
     n_agents=50,        # More agents for robustness
-    n_trials=200        # Longer episodes
+    n_trials=200,       # Longer episodes
+    environments=['IGT', 'Foraging', 'ThreatReward']
 )
 
-
 # Run experiment
-
-
 results = experiment.run_full_experiment()
 
-
 # Analyze specific predictions
-
-
 analysis = experiment.analyze_predictions(results)
 
-
 # Check falsification
-
-
 falsification = experiment.check_falsification(results, analysis)
-```text
-
+```
 
 ### Individual Agent Testing
 
-
 ```python
-from APGI_Protocol_3 import (
+# Agent classes are defined in the falsification module
+from Falsification.FP_01_ActiveInference import (
     APGIActiveInferenceAgent,
-    IowaGamblingTaskEnvironment
+    StandardPPAgent,
+    GWTOnlyAgent,
+    IowaGamblingTaskEnvironment,
+    VolatileForagingEnvironment,
+    ThreatRewardTradeoffEnvironment
 )
 
-
 # Create agent
-
-
 agent = APGIActiveInferenceAgent({
     'beta': 1.2,
     'theta_init': 0.5,
     'alpha': 8.0,
-    'n_actions': 4
+    'n_actions': 4,
+    'lr_extero': 0.01,
+    'lr_intero': 0.01
 })
 
-
 # Create environment
-
-
 env = IowaGamblingTaskEnvironment(n_trials=100)
 
-
 # Run episode
-
-
 observation = env.reset()
 for trial in range(100):
     action = agent.step(observation)
     reward, intero_cost, next_obs, done = env.step(action)
     agent.receive_outcome(reward, intero_cost, next_obs)
     observation = next_obs
+    if done:
+        break
 ```
 
 ## Metabolic Energy Budget Implementation
@@ -336,30 +333,37 @@ def select_policy_with_budget(policies, energy_budget, min_budget_threshold=50):
 
 ## Components
 
-### Agent Types
+### Agent Types (Located in `Falsification/FP_01_ActiveInference.py`)
 
-1. **APGIActiveInferenceAgent**
-   - Full APGI architecture
-   - Interoceptive precision weighting
-   - Global workspace ignition
-   - Somatic markers
+1. **APGIActiveInferenceAgent** - Full APGI architecture with:
+   - 3-level hierarchical exteroceptive model (sensory, objects, context)
+   - 3-level hierarchical interoceptive model (visceral, organ, homeostatic)
+   - Dynamic precision weighting (Pi_e, Pi_i)
+   - Somatic marker learning M(c,a)
+   - Global workspace ignition with adaptive threshold
+   - Working memory (capacity=7) and episodic memory systems
 
-2. **StandardPPAgent**
-   - Predictive processing without ignition
-   - Continuous conscious access
-   - No threshold mechanism
+2. **StandardPPAgent** - Standard predictive processing baseline:
+   - Same generative models but no ignition mechanism
+   - Continuous processing without threshold gating
+   - No explicit workspace broadcast
 
-3. **GWTOnlyAgent**
+3. **GWTOnlyAgent** - Global Workspace Theory baseline:
+   - Ignition mechanism without interoceptive precision weighting
+   - No somatic marker modulation
+   - Exteroceptive surprise only
 
-   - Ignition based only on external surprise
-   - No interoceptive precision weighting
-   - No somatic markers
+4. **ActorCriticAgent** - Reinforcement learning baseline:
+   - Standard policy gradient without predictive processing
+   - Simple value-based action selection
 
-4. **ActorCriticAgent**
+### Support Classes
 
-   - Standard reinforcement learning baseline
-   - No predictive processing
-   - Simple policy gradient
+- **HierarchicalGenerativeModel**: 3-level predictive coding hierarchy
+- **SomaticMarkerNetwork**: Learns context-action value associations
+- **PolicyNetwork**: Action selection with learned state values
+- **EpisodicMemory**: Emotional-tagging memory system
+- **WorkingMemory**: Limited-capacity buffer (7 items)
 
 ### Task Environments
 
@@ -531,28 +535,139 @@ Overall: ✅ MODEL VALIDATED
      - Action distribution preferences
      - Summary statistics
 
-2. **protocol3_results.json**
+2. **protocol3_results.json** - Standardized ProtocolResult format:
    ```json
    {
-     "config": {...},
-     "analysis": {
-       "P3a_convergence": {...},
-       "P3b_intero_dominance": {...},
-       "P3c_ignition_strategy": {...},
-       "P3d_adaptation": {...}
+     "protocol_id": "VP_03_ActiveInference_AgentSimulations",
+     "timestamp": "2026-04-22T19:11:00",
+     "named_predictions": {
+       "P3a": {
+         "passed": true,
+         "value": 65.3,
+         "threshold": "50-80 trials",
+         "status": "passed",
+         "evidence": ["Mean convergence: 65.3 trials", "SEM: 4.2"],
+         "sources": ["IGT simulation"],
+         "metadata": {"n_agents": 20, "effect_size": 0.72}
+       },
+       "P3b": {
+         "passed": true,
+         "value": 0.784,
+         "threshold": "0.70-0.85",
+         "status": "passed",
+         "evidence": ["Interoceptive dominance: 78.4%"]
+       }
      },
-     "falsification": {
-       "F3.1": false,
-       "F3.2": false,
-       "F3.3": false,
-       "overall_falsified": false
+     "completion_percentage": 100,
+     "data_sources": ["Iowa Gambling Task", "n=20 agents", "n=100 trials"],
+     "methodology": "agent_simulation",
+     "errors": [],
+     "metadata": {
+       "n_agents": 20,
+       "n_trials": 100,
+       "environments": ["IGT", "Foraging", "ThreatReward"],
+       "falsification_status": false
      }
    }
-   ```text
+   ```
 
+### ProtocolResult Schema
+
+All validation protocols now return standardized `ProtocolResult` objects:
+
+| Field | Type | Description |
+| ------- | ------ | ------------- |
+| `timestamp` | str | ISO 8601 datetime |
+| `named_predictions` | dict | Map of prediction IDs to PredictionResult objects |
+| `completion_percentage` | int | Implementation completeness (0-100) |
+| `data_sources` | list | Datasets/simulations used |
+| `methodology` | str | Approach (agent_simulation, clinical_data, etc.) |
+| `errors` | list | Any errors encountered |
+| `metadata` | dict | Protocol-specific context |
+
+**PredictionResult fields:**
+
+- `passed`: bool - Whether prediction passed
+- `value`: float/str - Observed value
+- `threshold`: float/str - Expected threshold
+- `status`: str - Evaluation status (passed/failed/not_evaluated)
+- `evidence`: list - Supporting data points
+- `sources`: list - Contributing protocols
+- `metadata`: dict - Effect sizes, confidence intervals, etc.
+
+## Framework Integration
+
+### Running via Master Validation Orchestrator
+
+```python
+from Validation.Master_Validation import APGIMasterValidator
+
+# Initialize validator
+validator = APGIMasterValidator()
+
+# Run Protocol-3 specifically
+result = validator.run_single_protocol("Protocol-3")
+
+# Run all protocols in tier order
+all_results = validator.run_all_protocols(
+    max_workers=4,
+    parallel=True,
+    include_falsification=True
+)
+
+# Generate weighted scoring report
+summary = validator.generate_summary_report(all_results)
+print(f"Weighted Score: {summary['weighted_score']:.3f}")
+print(f"Overall Status: {summary['overall_status']}")
+```
+
+### Protocol Tier System
+
+The APGI framework organizes protocols into tiers:
+
+| Tier | Protocols | Weight | Description |
+| ------ | ----------- | -------- | ------------- |
+| **Secondary** | Protocol-3, 4, 7, 8, 11, 12, 13, 16 | 1.5x | Extended validation - specific aspects |
+| **Tertiary** | Protocol-5, 6, 9, 10, 14, 15 | 1.0x | Specialized and experimental protocols |
+
+**Falsification Protocols** (FP_01-FP_12) run alongside validation protocols to test falsification criteria.
+
+### Using the GUI
+
+```bash
+# Launch Validation GUI
+python APGI_Validation_GUI.py
+
+# Launch Falsification Protocols GUI
+python APGI_Falsification_Protocols_GUI.py
+
+# Launch Theory/Equations GUI
+python APGI_Theory_GUI.py
+
+# Launch Test Runner GUI
+python Tests_GUI.py
+
+# Launch Utilities GUI
+python Utils_GUI.py
+```
+
+### Command Line Interface
+
+```bash
+# Run formal model simulation
+python main.py formal-model --simulation-steps 1000 --plot
+
+# Run validation protocols
+python main.py validation --protocol Protocol-3 --verbose
+
+# Run with custom config
+python main.py --config-file config/profiles/research-default.yaml formal-model
+
+# Check all available protocols
+python main.py list-protocols
+```
 
 ## Performance Benchmarks
-
 
 Expected performance metrics (based on specification):
 
@@ -563,26 +678,17 @@ Expected performance metrics (based on specification):
 | Volatile Foraging Adaptation | 20-30% faster | baseline | 10-15% faster | baseline | - |
 | Threat-Reward Avoidance | 85-92% | 60-70% | 70-80% | 65-75% | - |
 
-
 ## Advanced Usage
-
 
 ### Analyzing Ignition Patterns
 
-
 ```python
-
 # Extract ignition data from APGI agents
-
-
 ignition_data = []
 for agent_result in results['IGT']['APGI']:
     ignition_data.extend(agent_result['ignition_events'])
 
-
 # Analyze temporal patterns
-
-
 import matplotlib.pyplot as plt
 
 ignition_times = [event['trial'] for event in ignition_data]

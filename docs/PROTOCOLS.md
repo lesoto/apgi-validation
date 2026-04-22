@@ -52,39 +52,39 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | # | Filename | Folder | Protocol ID | Role | Completion |
 | --- | ---------- | -------- | ------------- | ------ | ------------ |
 | **Validation Files — Protocol Scripts (VP_01–VP_15)** | | | | | |
-| 1 | VP_01_SyntheticEEG_MLClassification.py | Validation | VP-1 | Synthetic EEG / ML Classification support | 62% |
-| 2 | VP_02_Behavioral_BayesianComparison.py | Validation | VP-2 | Behavioral Bayesian Comparison (P1.1–P1.3) | 71% |
-| 3 | VP_03_ActiveInference_AgentSimulations.py | Validation | VP-3 | Active Inference Agent Comparison | 82% |
-| 4 | VP_04_PhaseTransition_EpistemicLevel2.py | Validation | VP-4 | Phase Transition / Level 2 Epistemic | 74% |
-| 5 | VP_05_EvolutionaryEmergence.py | Validation | VP-5 | Evolutionary Emergence (simulation only) | 66% |
-| 6 | VP_06_LiquidNetwork_InductiveBias.py | Validation | VP-6 | Liquid Network Inductive Bias Benchmark | 68% |
-| 7 | VP_07_TMS_CausalInterventions.py | Validation | VP-7 | TMS / Pharmacological Causal Interventions | 79% |
-| 8 | VP_08_Psychophysical_ThresholdEstimation.py | Validation | VP-8 | Psychophysical Threshold Estimation | 77% |
-| 9 | VP_09_NeuralSignatures_EmpiricalPriority1.py | Validation | VP-9 | Convergent Neural Signatures (Roadmap P1) | 73% |
-| 10 | VP_10_CausalManipulations_Priority2.py | Validation | VP-10 | Causal Manipulations (Roadmap P2) | 70% |
-| 11 | VP_11_MCMC_CulturalNeuroscience_Priority3.py | Validation | VP-11 | MCMC Cultural Neuroscience (Roadmap P3) | 75% |
-| 12 | VP_12_Clinical_CrossSpecies_Convergence.py | Validation | VP-12 | Clinical / Cross-Species Convergence (P4) | 76% |
-| 13 | VP_13_Epistemic_Architecture.py | Validation | VP-13 | Epistemic Architecture Predictions (P5–P12) | 74% |
-| 14 | VP_14_fMRI_Anticipation_Experience.py | Validation | VP-14 | fMRI BOLD Simulation (Anticipation/Experience) | 70% |
-| 15 | VP_15_fMRI_Anticipation_vmPFC.py | Validation | VP-15 | fMRI vmPFC Anticipation (awaiting real data) | 5% |
+| 1 | VP_01_SyntheticEEG_MLClassification.py | Validation | VP-1 | Synthetic EEG / ML Classification support | 78% |
+| 2 | VP_02_Behavioral_BayesianComparison.py | Validation | VP-2 | Behavioral Bayesian Comparison (P1.1–P1.3) | 80% |
+| 3 | VP_03_ActiveInference_AgentSimulations.py | Validation | VP-3 | Active Inference Agent Comparison | 85% |
+| 4 | VP_04_PhaseTransition_EpistemicLevel2.py | Validation | VP-4 | Phase Transition / Level 2 Epistemic | 75% |
+| 5 | VP_05_EvolutionaryEmergence.py | Validation | VP-5 | Evolutionary Emergence (simulation only) | 72% |
+| 6 | VP_06_LiquidNetwork_InductiveBias.py | Validation | VP-6 | Liquid Network Inductive Bias Benchmark | 76% |
+| 7 | VP_07_TMS_CausalInterventions.py | Validation | VP-7 | TMS / Pharmacological Causal Interventions | 70% |
+| 8 | VP_08_Psychophysical_ThresholdEstimation.py | Validation | VP-8 | Psychophysical Threshold Estimation | 78% |
+| 9 | VP_09_NeuralSignatures_EmpiricalPriority1.py | Validation | VP-9 | Convergent Neural Signatures (Roadmap P1) | 75% |
+| 10 | VP_10_CausalManipulations_Priority2.py | Validation | VP-10 | Causal Manipulations (Roadmap P2) | 72% |
+| 11 | VP_11_MCMC_CulturalNeuroscience_Priority3.py | Validation | VP-11 | MCMC Cultural Neuroscience (Roadmap P3) | 68% |
+| 12 | VP_12_Clinical_CrossSpecies_Convergence.py | Validation | VP-12 | Clinical / Cross-Species Convergence (P4) | 71% |
+| 13 | VP_13_Epistemic_Architecture.py | Validation | VP-13 | Epistemic Architecture Predictions (P5–P12) | 76% |
+| 14 | VP_14_fMRI_Anticipation_Experience.py | Validation | VP-14 | fMRI BOLD Simulation (Anticipation/Experience) | 74% |
+| 15 | VP_15_fMRI_Anticipation_vmPFC.py | Validation | VP-15 | fMRI vmPFC Anticipation (awaiting real data) | 45% |
 | **Validation Files — Orchestrators & Infrastructure** | | | | | |
 | 16 | VP_ALL_Aggregator.py | Validation | — | Framework-level validation aggregator (V1.1–V14.x) | Active |
 | 17 | Master_Validation.py | Validation | — | Orchestrator (APGIMasterValidator) | Active |
 | 18 | APGI_Validation_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
 | 19 | **init**.py | Validation | — | Python package marker | — |
 | **Falsification Files — Protocol Scripts (FP_01–FP_12)** | | | | | |
-| 20 | FP_01_ActiveInference.py | Falsification | FP-1 | Active Inference & Hierarchical Dynamics | 74% |
-| 21 | FP_02_AgentComparison_ConvergenceBenchmark.py | Falsification | FP-2 | Agent Comparison & Convergence Benchmark | 72% |
-| 22 | FP_03_FrameworkLevel_MultiProtocol.py | Falsification | FP-3 | Framework-Level Multi-Protocol Synthesis | 65% |
-| 23 | FP_04_PhaseTransition_EpistemicArchitecture.py | Falsification | FP-4 | Phase Transition & Epistemic Architecture | 73% |
-| 24 | FP_05_EvolutionaryPlausibility.py | Falsification | FP-5 | Evolutionary Plausibility (Standard 6) | 70% |
-| 25 | FP_06_LiquidNetwork_EnergyBenchmark.py | Falsification | FP-6 | Liquid Network Energy Benchmark (ATP) | 68% |
-| 26 | FP_07_MathematicalConsistency.py | Falsification | FP-7 | Mathematical Consistency (Sympy, Eq. 1–4) | 63% |
-| 27 | FP_08_ParameterSensitivity_Identifiability.py | Falsification | FP-8 | Parameter Sensitivity & Identifiability | 60% |
-| 28 | FP_09_NeuralSignatures_EEG_P3b_HEP.py | Falsification | FP-9 | Neural Signatures — EEG / P3b / HEP | 62% |
-| 29 | FP_10_BayesianEstimation_MCMC.py | Falsification | FP-10 | Bayesian Model Evidence (NUTS/PyMC MCMC) | 55% |
-| 30 | FP_11_LiquidNetworkDynamics_EchoState.py | Falsification | FP-11 | Liquid Network Dynamics & Echo State (LTCN) | 67% |
-| 31 | FP_12_CrossSpeciesScaling.py | Falsification | FP-12 | Cross-Species Allometric Scaling (P12) | 55% |
+| 20 | FP_01_ActiveInference.py | Falsification | FP-1 | Active Inference & Hierarchical Dynamics | 82% |
+| 21 | FP_02_AgentComparison_ConvergenceBenchmark.py | Falsification | FP-2 | Agent Comparison & Convergence Benchmark | 80% |
+| 22 | FP_03_FrameworkLevel_MultiProtocol.py | Falsification | FP-3 | Framework-Level Multi-Protocol Synthesis | 76% |
+| 23 | FP_04_PhaseTransition_EpistemicArchitecture.py | Falsification | FP-4 | Phase Transition & Epistemic Architecture | 77% |
+| 24 | FP_05_EvolutionaryPlausibility.py | Falsification | FP-5 | Evolutionary Plausibility (Standard 6) | 74% |
+| 25 | FP_06_LiquidNetwork_EnergyBenchmark.py | Falsification | FP-6 | Liquid Network Energy Benchmark (ATP) | 76% |
+| 26 | FP_07_MathematicalConsistency.py | Falsification | FP-7 | Mathematical Consistency (Sympy, Eq. 1–4) | 81% |
+| 27 | FP_08_ParameterSensitivity_Identifiability.py | Falsification | FP-8 | Parameter Sensitivity & Identifiability | 70% |
+| 28 | FP_09_NeuralSignatures_EEG_P3b_HEP.py | Falsification | FP-9 | Neural Signatures — EEG / P3b / HEP | 75% |
+| 29 | FP_10_BayesianEstimation_MCMC.py | Falsification | FP-10 | Bayesian Model Evidence (NUTS/PyMC MCMC) | 79% |
+| 30 | FP_11_LiquidNetworkDynamics_EchoState.py | Falsification | FP-11 | Liquid Network Dynamics & Echo State (LTCN) | 77% |
+| 31 | FP_12_CrossSpeciesScaling.py | Falsification | FP-12 | Cross-Species Allometric Scaling (P12) | 73% |
 | **Falsification Files — Orchestrators & Infrastructure** | | | | | |
 | 32 | FP_ALL_Aggregator.py | Falsification | FP-AGG | Terminal framework falsification (Conditions A & B) | Active |
 | 33 | Master_Falsification.py | Falsification | — | Orchestrator for all 12 FP runs [NEW] | Active |

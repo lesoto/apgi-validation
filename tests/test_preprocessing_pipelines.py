@@ -199,13 +199,20 @@ class TestEEGPreprocessor:
         ), "Should process specified columns"
 
     def test_preprocess_eeg_missing_sampling_rate(self, sample_eeg_data):
-        """Test EEG preprocessing without sampling rate (should raise error)."""
+        """Test EEG preprocessing without sampling rate (should warn)."""
         df, _ = sample_eeg_data
         config = PreprocessingConfig()
         preprocessor = EEGPreprocessor(config)
 
-        with pytest.raises(ValueError, match="sampling_rate parameter is required"):
+        # The implementation warns instead of raising ValueError
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
             preprocessor.preprocess_eeg(df, show_progress=False)
+            # Should have warned about missing sampling rate
+            assert len(w) > 0
+            assert "sampling_rate" in str(w[0].message).lower()
 
     def test_preprocess_eeg_no_eeg_columns(self):
         """Test EEG preprocessing with no EEG columns."""

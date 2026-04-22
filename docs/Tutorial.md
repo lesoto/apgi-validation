@@ -40,8 +40,11 @@ python main.py info
 # Run a simple simulation
 python main.py formal-model --simulation-steps 100
 
-# Launch GUI
-python main.py gui --gui-type analysis
+# Launch validation GUI
+python main.py gui --gui-type validation
+
+# Launch theory GUI
+python main.py gui --gui-type theory
 ```
 
 ## Basic Usage
@@ -51,7 +54,7 @@ python main.py gui --gui-type analysis
 ```text
 ✓ python main.py --help
 ✓ python main.py info
-✗ python main.py formal-model --simulation-steps 10 --plot (CRITICAL BUG)
+✓ python main.py formal-model --help
 ✓ python main.py multimodal --help
 ✓ python main.py config --help
 ✓ python main.py validate --help
@@ -65,31 +68,29 @@ python main.py gui --gui-type analysis
 ✓ python main.py import-data --help
 ✓ python main.py performance --help
 ✓ python main.py backup --help
-✓ python main.py backups --help
-✓ python main.py restore --help
+✓ python main.py list-backups --help
+✓ python main.py restore-backup --help
 ✓ python main.py delete-backup --help
 ✓ python main.py errors --help
 ✓ python main.py test-errors --help
-✓ python main.py test-errors --test-config
-✓ python main.py config-diff --help
-✓ python main.py config-restore --help
-✓ python main.py config-version --help
-✓ python main.py config-versions --help
-✓ python Utils-GUI.py
+✓ python main.py cross-species --help
+✓ python main.py analyze-logs --help
+✓ python main.py process-data --help
+✓ python main.py monitor-performance --help
 ```
 
 ### Configuration Management
 
 ```python
 # Python API
-from config_manager import get_config, set_parameter
+from utils.config_manager import config_manager
 
 # View current configuration
-config = get_config()
-print(f"Default steps: {config.simulation.default_steps}")
+config = config_manager.get_config()
+print(f"Configuration loaded from: {config_manager.config_file}")
 
 # Modify configuration
-set_parameter('simulation', 'default_steps', 1000)
+config_manager.set_parameter('simulation', 'default_steps', 1000)
 
 # CLI
 python main.py config --show
@@ -100,7 +101,7 @@ python main.py config --set simulation.default_steps=1000
 
 ```python
 # Python API
-from logging_config import apgi_logger
+from utils.logging_config import apgi_logger
 
 # Basic logging
 apgi_logger.logger.info("Starting analysis")
@@ -112,6 +113,7 @@ apgi_logger.export_logs("analysis_logs.json", format_type="json")
 # CLI
 python main.py logs --tail 20 --level INFO
 python main.py logs --export logs.json
+python main.py analyze-logs --level ERROR --last-hours 24
 ```
 
 ## Common Misinterpretations
@@ -184,23 +186,23 @@ naive_threshold = estimate_threshold(detection_trials)  # θ₀ and Πᵉ confou
 
 ```python
 # Python API
-from APGI_Equations import SurpriseIgnitionSystem
+from Theory.APGI_Equations import SurpriseIgnitionSystem
+import numpy as np
 
 # Initialize model with default parameters
 system = SurpriseIgnitionSystem()
 
 # Run simulation
-import numpy as np
 dt = 0.01
 steps = 1000
 
 # Define input generator function
 def input_generator(t):
     return {
-        'Pi_e': np.random.normal(0, 0.1),  # Exteroceptive input
-        'Pi_i': 1.0,                       # Interoceptive metabolic
-        'eps_e': 1.0,                       # Exteroceptive precision
-        'eps_i': 0.5,                       # Interoceptive arousal
+        'Pi_e': np.random.normal(0, 0.1),  # Exteroceptive precision
+        'Pi_i': 1.0,                        # Interoceptive precision
+        'eps_e': 1.0,                       # Exteroceptive prediction error
+        'eps_i': 0.5,                       # Interoceptive prediction error
         'beta': 1.2                         # Somatic bias
     }
 
@@ -220,7 +222,7 @@ python main.py formal-model --simulation-steps 1000 --plot --output-file results
 ### Custom Parameters
 
 ```python
-# Custom model parameters
+# Custom model parameters - pass directly to constructor
 custom_params = {
     'tau_S': 0.05,      # Faster surprise dynamics
     'tau_theta': 0.1,   # Faster threshold adaptation
@@ -235,7 +237,7 @@ custom_params = {
 
 system = SurpriseIgnitionSystem(params=custom_params)
 
-# CLI with custom parameters
+# CLI with custom parameters (JSON file)
 python main.py formal-model --simulation-steps 1000 --params custom_params.json
 ```
 
@@ -294,7 +296,7 @@ pd.DataFrame(results).to_csv('simulation_results.csv', index=False)
 
 ```python
 # Python API
-from APGI_Multimodal_Integration import APGINormalizer, APGICoreIntegration
+from Theory.APGI_Multimodal_Integration import APGINormalizer, APGICoreIntegration
 
 # Sample multimodal data
 data = {
@@ -407,7 +409,7 @@ python main.py multimodal --input-data large_dataset.csv --output-file batch_res
 
 ```python
 # Python API
-from APGI_Parameter_Estimation-Protocol import NeuralSignalGenerator, APGIDynamics
+from Theory.APGI_Parameter_Estimation import ParameterEstimator, NeuralSignalGenerator
 import pymc as pm
 import arviz as az
 
@@ -513,7 +515,7 @@ python main.py validate --all-protocols --parallel
 def run_validation():
     """Custom validation protocol for specific hypothesis."""
     import numpy as np
-    from APGI_Equations import SurpriseIgnitionSystem
+    from Theory.APGI_Equations import SurpriseIgnitionSystem
 
     # Test hypothesis: Higher precision leads to faster ignition
     precision_values = [0.5, 1.0, 1.5, 2.0]

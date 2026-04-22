@@ -1,5 +1,36 @@
 # APGI FRAMEWORK FALSIFICATION CRITERIA SPECIFICATIONS
 
+> **Documentation Version**: 1.2.0 (Updated: April 2026)  
+> **Implementation Status**: 12 Falsification Protocols (FP_01-FP_12) implemented  
+> **Master Orchestrator**: `Falsification/Master_Falsification.py`  
+> **Aggregator**: `Falsification/FP_ALL_Aggregator.py`
+
+## IMPLEMENTATION QUICK REFERENCE
+
+| Falsification Protocol | File | Validation Partner | Status |
+| ------------------------ | ------ | ------------------- | -------- |
+| **FP-01**: Active Inference Agent Simulations | `Falsification/FP_01_ActiveInference.py` | VP-03 | ✅ Implemented |
+| **FP-02**: Agent Comparison Convergence | `Falsification/FP_02_AgentComparison_ConvergenceBenchmark.py` | VP-03 | ✅ Implemented |
+| **FP-03**: Framework-Level Multi-Protocol | `Falsification/FP_03_FrameworkLevel_MultiProtocol.py` | VP-05 | ✅ Implemented |
+| **FP-04**: Phase Transition / Epistemic Architecture | `Falsification/FP_04_PhaseTransition_EpistemicArchitecture.py` | VP-04 | ✅ Implemented |
+| **FP-05**: Evolutionary Plausibility | `Falsification/FP_05_EvolutionaryPlausibility.py` | VP-05 | ✅ Implemented |
+| **FP-06**: Liquid Network Energy Benchmark | `Falsification/FP_06_LiquidNetwork_EnergyBenchmark.py` | VP-06 | ✅ Implemented |
+| **FP-07**: Mathematical Consistency | `Falsification/FP_07_MathematicalConsistency.py` | VP-13 | ✅ Implemented |
+| **FP-08**: Parameter Sensitivity / Identifiability | `Falsification/FP_08_ParameterSensitivity_Identifiability.py` | VP-08 | ✅ Implemented |
+| **FP-09**: Neural Signatures (P3b, HEP) | `Falsification/FP_09_NeuralSignatures_P3b_HEP.py` | VP-09 | ✅ Implemented |
+| **FP-10**: Bayesian Estimation / MCMC | `Falsification/FP_10_BayesianEstimation_MCMC.py` | VP-11 | ✅ Implemented |
+| **FP-11**: Liquid Network Dynamics / Echo State | `Falsification/FP_11_LiquidNetworkDynamics_EchoState.py` | VP-06 | ✅ Implemented |
+| **FP-12**: Cross-Species Scaling | `Falsification/FP_12_CrossSpeciesScaling.py` | VP-12 | ✅ Implemented |
+
+### Framework Falsification Conditions
+
+The falsification aggregator (`FP_ALL_Aggregator.py`) evaluates two conditions:
+
+- **Condition A (FA)**: All 14 named predictions fail simultaneously
+- **Condition B (FB)**: Alternative models more parsimonious (ΔBIC > 10)
+
+If either condition is met, the APGI framework is considered falsified at the framework level.
+
 ## FALSIFICATION NOTATION STANDARD
 
 All criteria follow this mandatory format:
@@ -515,6 +546,53 @@ All criteria follow this mandatory format:
 - Non-parametric: 6 specifications
 - Model comparison: 8 specifications
 - Bayesian: 3 specifications
+
+---
+
+## NAMED PREDICTIONS REFERENCE
+
+The following named predictions are tracked by the falsification aggregator (`FP_ALL_Aggregator.py`):
+
+| Prediction ID | Description | Protocol | Threshold |
+| ------------- | ----------- | -------- | --------- |
+| **P1.1** | Interoceptive precision modulates detection threshold | FP-01 | d=0.40-0.60 |
+| **P1.2** | Arousal amplifies Πⁱ-threshold relationship | FP-01 | Significant interaction |
+| **P1.3** | High-IA individuals show stronger arousal benefit | FP-01 | Correlation > 0.30 |
+| **P2.a** | dlPFC TMS shifts threshold >0.1 log units | VP-10 | Δthreshold > 0.1 |
+| **P2.b** | Insula TMS reduces HEP ~30% AND PCI ~20% | VP-10 | Double dissociation |
+| **P2.c** | High-IA × insula TMS interaction | VP-10 | Significant interaction |
+| **P3.conv** | APGI converges in 50-80 trials | FP-02, FP-03 | Within range |
+| **P3.bic** | APGI BIC lower than alternatives | FP-02, FP-03 | ΔBIC > -10 |
+| **P4.a** | PCI+HEP joint AUC > 0.80 for DoC | FP-09 | AUC > 0.80 |
+| **P4.b** | DMN↔PCI r > 0.50; DMN↔HEP r < 0.20 | FP-09 | Correlation pattern |
+| **P4.c** | Cold pressor increases PCI >10% in MCS | FP-09 | ΔPCI > 10% |
+| **P4.d** | Baseline PCI+HEP predicts 6-month recovery | FP-09 | ΔR² > 0.10 |
+| **P5.a** | vmPFC-SCR anticipatory correlation r > 0.40 | FP-05 | r > 0.40 |
+| **P5.b** | vmPFC uncorrelated with posterior insula | FP-05 | r < 0.20 |
+| **fp10a_mcmc** | Gelman-Rubin R̂ ≤ 1.01 | FP-10 | R̂ ≤ 1.01 |
+| **fp10b_bf** | BF₁₀ ≥ 3 for APGI vs alternatives | FP-10 | BF₁₀ ≥ 3 |
+| **fp10c_mae** | ≥20% lower MAE than alternatives | FP-10 | ΔMAE ≥ 20% |
+| **fp10b_scaling** | Cross-species allometric exponents valid | FP-12 | Within ±2 SD |
+
+### Code Usage Example
+
+```python
+from Falsification.FP_ALL_Aggregator import (
+    aggregate_prediction_results,
+    check_framework_falsification_condition_a,
+    check_framework_falsification_condition_b,
+)
+
+# Aggregate results from all protocols
+results = aggregate_prediction_results(protocol_outputs)
+
+# Check falsification conditions
+fa = check_framework_falsification_condition_a(results)
+fb = check_framework_falsification_condition_b(results)
+
+print(f"Condition A (Simultaneous Failure): {'FAILED' if fa else 'PASSED'}")
+print(f"Condition B (Parsimony): {'FAILED' if fb else 'PASSED'}")
+```
 
 ### Statistical Test Distribution
 

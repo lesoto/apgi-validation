@@ -141,7 +141,7 @@ Output formats:
 - Pickle files for model checkpoints
 
 <!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+## GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **apgi-validation** (11410 symbols, 29713 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
@@ -178,7 +178,7 @@ This project is indexed by GitNexus as **apgi-validation** (11410 symbols, 29713
 ## Tools Quick Reference
 
 | Tool | When to use | Command |
-|------|-------------|---------|
+| ---- | ---------- | ------- |
 | `query` | Find code by concept | `gitnexus_query({query: "auth validation"})` |
 | `context` | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})` |
 | `impact` | Blast radius before editing | `gitnexus_impact({target: "X", direction: "upstream"})` |
@@ -189,7 +189,7 @@ This project is indexed by GitNexus as **apgi-validation** (11410 symbols, 29713
 ## Impact Risk Levels
 
 | Depth | Meaning | Action |
-|-------|---------|--------|
+| ----- | ------- | ------ |
 | d=1 | WILL BREAK — direct callers/importers | MUST update these |
 | d=2 | LIKELY AFFECTED — indirect deps | Should test |
 | d=3 | MAY NEED TESTING — transitive | Test if critical path |
@@ -197,7 +197,7 @@ This project is indexed by GitNexus as **apgi-validation** (11410 symbols, 29713
 ## Resources
 
 | Resource | Use for |
-|----------|---------|
+| -------- | ------- |
 | `gitnexus://repo/apgi-validation/context` | Codebase overview, check index freshness |
 | `gitnexus://repo/apgi-validation/clusters` | All functional areas |
 | `gitnexus://repo/apgi-validation/processes` | All execution flows |
@@ -206,6 +206,7 @@ This project is indexed by GitNexus as **apgi-validation** (11410 symbols, 29713
 ## Self-Check Before Finishing
 
 Before completing any code modification task, verify:
+
 1. `gitnexus_impact` was run for all modified symbols
 2. No HIGH/CRITICAL risk warnings were ignored
 3. `gitnexus_detect_changes()` confirms changes match expected scope
@@ -232,7 +233,7 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 ## CLI
 
 | Task | Read this skill file |
-|------|---------------------|
+| ---- | ------------------- |
 | Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
 | Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
 | Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |

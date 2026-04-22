@@ -460,6 +460,99 @@ def get_falsification_checklist() -> Dict[str, List[str]]:
     return checklist
 
 
+def enforce_standard_compliance(standard_id: str, validation_data: Dict) -> bool:
+    """Enforce compliance with a specific standard based on validation data.
+
+    Args:
+        standard_id: The standard ID (e.g., "S1", "S2")
+        validation_data: Dictionary containing validation metrics and results
+
+    Returns:
+        True if the standard passes compliance checks, False otherwise
+
+    Raises:
+        ValueError: If standard_id is not found or validation_data is invalid
+    """
+    standard = SevenStandardsRegistry.get_standard(standard_id)
+    if not standard:
+        raise ValueError(f"Standard {standard_id} not found in registry")
+
+    if not validation_data:
+        raise ValueError("validation_data cannot be empty")
+
+    passed_criteria = 0
+    failed_criteria = []
+
+    for criterion in standard.criteria:
+        # Check if criterion is implemented
+        if "Implemented" not in criterion.current_status:
+            failed_criteria.append(f"{criterion.name}: Not implemented")
+            continue
+
+        # Enforce critical criteria
+        if criterion.priority_level == "Critical":
+            metric_key = criterion.name.lower().replace(" ", "_")
+            if metric_key not in validation_data:
+                failed_criteria.append(f"{criterion.name}: Missing validation data")
+                continue
+
+            # Check if criterion passes its falsification threshold
+            if not _check_criterion_threshold(criterion, validation_data[metric_key]):
+                failed_criteria.append(
+                    f"{criterion.name}: Failed falsification threshold"
+                )
+            else:
+                passed_criteria += 1
+        else:
+            # Non-critical criteria are warnings
+            passed_criteria += 1
+
+    # Standard passes if no critical criteria fail
+    critical_failures = [f for f in failed_criteria if "Critical" in f]
+    if critical_failures:
+        logger = __import__("logging").getLogger(__name__)
+        logger.error(f"Standard {standard_id} compliance failed: {critical_failures}")
+        return False
+
+    logger = __import__("logging").getLogger(__name__)
+    if failed_criteria:
+        logger.warning(f"Standard {standard_id} warnings: {failed_criteria}")
+
+    return True
+
+
+def _check_criterion_threshold(criterion: ValidationCriterion, value: float) -> bool:
+    """Check if a value meets the criterion's falsification threshold.
+
+    Args:
+        criterion: The validation criterion to check
+        value: The measured value to validate
+
+    Returns:
+        True if value meets threshold, False otherwise
+    """
+    # Parse threshold and check against value
+    # This is a simplified implementation - actual logic would depend on threshold format
+    threshold = criterion.falsification_threshold
+
+    # Example implementations for common threshold patterns
+    if "<=" in threshold:
+        limit = float(threshold.split("<=")[1].strip())
+        return value <= limit
+    elif ">=" in threshold:
+        limit = float(threshold.split(">=")[1].strip())
+        return value >= limit
+    elif "<" in threshold:
+        limit = float(threshold.split("<")[1].strip())
+        return value < limit
+    elif ">" in threshold:
+        limit = float(threshold.split(">")[1].strip())
+        return value > limit
+
+    # Default: assume passes if value is non-zero
+    return value != 0
+
+
 def get_implementation_status() -> Dict[str, str]:
     """Get current implementation status for all standards."""
     return {

@@ -63,7 +63,19 @@ class ValidationPipelineConnector:
             self.config = config
 
         self.preprocessor = MultimodalPreprocessingPipeline(self.config)
-        self.data_generator = SampleDataGeneratorClass()
+
+        # Defensive initialization of data_generator - handle failure gracefully
+        try:
+            self.data_generator = SampleDataGeneratorClass()
+            self._data_generator_available = True
+        except (ImportError, RuntimeError, Exception) as exc:
+            logger.warning(
+                f"SampleDataGeneratorClass initialization failed: {exc}. "
+                "Synthetic data generation will be unavailable."
+            )
+            self.data_generator = None
+            self._data_generator_available = False
+
         self.connection_log: List[Union[str, Dict[str, Any]]] = []
         self._log_lock = threading.Lock()
 
@@ -79,6 +91,18 @@ class ValidationPipelineConnector:
 
         try:
             if use_synthetic or not input_data:
+                if not self._data_generator_available:
+                    error_msg = (
+                        "Synthetic data generation unavailable - "
+                        "SampleDataGeneratorClass failed to initialize"
+                    )
+                    logger.error(error_msg)
+                    return {
+                        "status": "error",
+                        "protocol": validation_protocol,
+                        "error": error_msg,
+                        "metadata": {"source": "synthetic_unavailable"},
+                    }
                 data = self._generate_protocol_specific_data(
                     validation_protocol, **kwargs
                 )

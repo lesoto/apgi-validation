@@ -1,9 +1,24 @@
 # APGI EMPIRICAL CREDIBILITY ROADMAP
 
+> **Documentation Version**: 1.2.0 (Updated: April 2026)  
+> **Implementation Status**: 16 Validation Protocols (VP_01-VP_16)  
+> **Master Orchestrator**: `Validation/Master_Validation.py`  
+> **Framework CLI**: `main.py`
+
 Establishing the Allostatic Precision-Gated Ignition (APGI) framework as a credible scientific theory demands a multi-layered empirical program that satisfies the methodological standards of top-tier consciousness science — convergent neural signatures, causal interventions, quantitative model fits, open science infrastructure, and explicit falsification commitments. This roadmap organizes that program into four foundational empirical priorities, followed by eleven strategic credibility pillars.
 
-APGI occupies a specific and deliberate position within the existing theoretical landscape. It is not a competitor to Friston's Free Energy Principle (FEP) and active inference framework — it is a constrained implementation of it. The FEP establishes that biological systems minimize variational free energy — the gap between predicted and actual sensory states — through hierarchical predictive processing, with precision-weighting (Π) as the mechanism by which the system modulates confidence in its own predictions (Friston, 2010). APGI accepts this machinery wholesale and adds two empirical commitments the FEP leaves underspecified: first, that conscious access corresponds specifically to the discrete event of suprathreshold ignition — the moment precision-weighted prediction error exceeds a dynamically adjusted threshold θₜ — rather than to free energy minimization per se; second, that θₜ is not a free parameter but is allosterically regulated by metabolic state, interoceptive afference, and circadian dynamics. In Fristonian terms, APGI is a theory of the conditions under which active inference crosses into global broadcast. This framing transforms Pillars 7 and 8 of this roadmap from departures into extensions: computational benchmarking tests whether APGI adds explanatory precision beyond the FEP's predictions, while pharmacological and metabolic dissections test the allostatic grounding of θₜ that the FEP itself does not specify.
-APGI's relationship to Integrated Information Theory (IIT) is structurally different. IIT (Tononi, 2004; Tononi et al., 2016) locates consciousness in the substrate — specifically in the degree of irreducible causal integration (Φ) of a physical system — rather than in the computational dynamics of ignition. APGI makes no claim about substrate-level Φ. The two frameworks are not competing answers to the same question; they operate at different levels of Marr's hierarchy. IIT is an implementational theory; APGI is an algorithmic one. The empirically productive question is not which framework is correct, but whether suprathreshold ignition events in APGI correspond to high-Φ network states in IIT — a testable, falsifiable question addressed directly in Pillar 7. If they do not co-occur, one or both frameworks require revision; if they do, the convergence constitutes evidence that the algorithmic and implementational descriptions pick out the same underlying phenomenon from complementary angles.
+APGI occupies a specific and deliberate position within the existing theoretical landscape. It is not a competitor to Friston's Free Energy Principle (FEP) and active inference framework — it is a constrained implementation of it.
+
+The FEP establishes that biological systems minimize variational free energy — the gap between predicted and actual sensory states — through hierarchical predictive processing, with precision-weighting (Π) as the mechanism by which the system modulates confidence in its own predictions (Friston, 2010).
+
+APGI accepts this machinery wholesale and adds two empirical commitments the FEP leaves underspecified: first, that conscious access corresponds specifically to the discrete event of suprathreshold ignition — the moment precision-weighted prediction error exceeds a dynamically adjusted threshold θₜ — rather than to free energy minimization per se; second, that θₜ is not a free parameter but is allosterically regulated by metabolic state, interoceptive afference, and circadian dynamics.
+
+In Fristonian terms, APGI is a theory of the conditions under which active inference crosses into global broadcast. This framing transforms Pillars 7 and 8 of this roadmap from departures into extensions: computational benchmarking tests whether APGI adds explanatory precision beyond the FEP's predictions, while pharmacological and metabolic dissections test the allostatic grounding of θₜ that the FEP itself does not specify.
+APGI's relationship to Integrated Information Theory (IIT) is structurally different. IIT (Tononi, 2004; Tononi et al., 2016) locates consciousness in the substrate — specifically in the degree of irreducible causal integration (Φ) of a physical system — rather than in the computational dynamics of ignition. APGI makes no claim about substrate-level Φ.
+
+The two frameworks are not competing answers to the same question; they operate at different levels of Marr's hierarchy. IIT is an implementational theory; APGI is an algorithmic one. The empirically productive question is not which framework is correct, but whether suprathreshold ignition events in APGI correspond to high-Φ network states in IIT — a testable, falsifiable question addressed directly in Pillar 7.
+
+If they do not co-occur, one or both frameworks require revision; if they do, the convergence constitutes evidence that the algorithmic and implementational descriptions pick out the same underlying phenomenon from complementary angles.
 
 ---
 
@@ -49,9 +64,15 @@ The core behavioral fit is the psychometric function:
 
 $$P(\text{seen}) = \frac{1}{1 + e^{-\beta(\Pi \cdot |\varepsilon| - \theta_t)}}$$
 
-where β ≥ 10 indicates phase-transition dynamics rather than graded accumulation. The framework makes three additional quantitative commitments:
+where β ≥ 10 indicates phase-transition dynamics rather than graded accumulation.
 
-First, individual differences in θₜ estimated from psychometric functions should correlate with resting-state frontoparietal excitability — measurable via GABA concentrations (magnetic resonance spectroscopy) or TMS motor threshold. Second, the sigmoid steepness parameter β should be higher in experienced meditators (predicted enhanced precision modulation) than controls. Third, a single spiking leaky neural network (LNN) model with fixed architecture but tunable Π and θₜ should reproduce attentional blink, backward masking, and binocular rivalry within the same parameter space — without paradigm-specific re-fitting.
+The framework makes three additional quantitative commitments:
+
+First, individual differences in θₜ estimated from psychometric functions should correlate with resting-state frontoparietal excitability — measurable via GABA concentrations (magnetic resonance spectroscopy) or TMS motor threshold.
+
+Second, the sigmoid steepness parameter β should be higher in experienced meditators (predicted enhanced precision modulation) than controls.
+
+Third, a single spiking leaky neural network (LNN) model with fixed architecture but tunable Π and θₜ should reproduce attentional blink, backward masking, and binocular rivalry within the same parameter space — without paradigm-specific re-fitting.
 
 **Actionable step:** Publish an open-source APGI-LNN simulator capable of reproducing at least five canonical consciousness paradigms with fewer than five free parameters, and demonstrate superior fit over additive linear models using Bayesian model comparison (target: BF > 100 for the full APGI model over GNW-equivalent).
 
@@ -61,7 +82,9 @@ First, individual differences in θₜ estimated from psychometric functions sho
 
 GNW draws validation from three convergent domains: loss of the P3b and frontoparietal activation in vegetative state patients, preserved local processing in blindsight and anesthesia, and evolutionary plausibility demonstrated through primate single-unit electrophysiology. APGI must match and extend this clinical-comparative profile.
 
-In disorders of consciousness (DoC), elevated θₜ or attenuated Π modulation — measurable as reduced trial-by-trial variability in late ERP amplitude — should distinguish vegetative state from minimally conscious state more sensitively than categorical P3b presence or absence. In anxiety disorders, hyperactive interoceptive precision weighting (reflected in insula hyperactivation) should manifest as a selectively lowered θₜ for somatic signals, producing measurable asymmetry in the psychometric functions for interoceptive versus exteroceptive stimuli.
+In disorders of consciousness (DoC), elevated θₜ or attenuated Π modulation — measurable as reduced trial-by-trial variability in late ERP amplitude — should distinguish vegetative state from minimally conscious state more sensitively than categorical P3b presence or absence.
+
+In anxiety disorders, hyperactive interoceptive precision weighting (reflected in insula hyperactivation) should manifest as a selectively lowered θₜ for somatic signals, producing measurable asymmetry in the psychometric functions for interoceptive versus exteroceptive stimuli.
 
 In non-human primates and corvids — species with demonstrated capacity for sustained frontoparietal firing on reportable stimuli — ignition-like activity should be modulated by arousal state in the manner APGI specifies: metabolic depletion raising threshold, precision enhancement lowering it.
 
@@ -77,7 +100,9 @@ This is the single most asymmetric credibility investment available to APGI. Con
 
 Before collecting data for any key prediction, submit the hypothesis, analysis pipeline, sample size with power calculation, and decision criteria to OSF or AsPredicted. The preregistration must specify the exact formula under test — e.g., P(seen) = 1/(1 + e^−β(Π·|ε|−θₜ)) — and the numerical thresholds that constitute confirmation versus disconfirmation. This converts APGI from a post-hoc fitting exercise into genuine predictive science.
 
-Submit papers as Registered Reports to journals including eLife, Cortex, or NeuroImage — formats in which peer review and in-principle acceptance occur before data collection, eliminating publication bias and ensuring that null results are publishable. Deposit all datasets, preprocessing pipelines, model-fitting scripts, and simulation code in public repositories (OSF, GitHub, Zenodo) with each publication, enabling independent replication and direct computational comparison with GNW and IIT on identical datasets.
+Submit papers as Registered Reports to journals including eLife, Cortex, or NeuroImage — formats in which peer review and in-principle acceptance occur before data collection, eliminating publication bias and ensuring that null results are publishable.
+
+Deposit all datasets, preprocessing pipelines, model-fitting scripts, and simulation code in public repositories (OSF, GitHub, Zenodo) with each publication, enabling independent replication and direct computational comparison with GNW and IIT on identical datasets.
 
 Preregistered null predictions carry exceptional credibility: specify conditions under which APGI explicitly predicts null effects — precision modulation should not affect early sensory ERPs (N1/P2) — and confirm them.
 
@@ -87,7 +112,9 @@ Preregistered null predictions carry exceptional credibility: specify conditions
 
 The 2020 Cogitate adversarial collaboration between GNW and IIT proponents is the current gold standard for consciousness theory testing. APGI requires an equivalent.
 
-Invite one or two skeptical researchers — ideally proponents of IIT or higher-order theories — to co-design a study in which each framework makes divergent, pre-agreed predictions. Data should be collected and analyzed by a neutral third party, and results published jointly regardless of outcome. Internally, before submitting any major APGI paper, convene a structured red-team session with the explicit mandate to falsify the framework. Assign team members to argue that every positive result is explainable by GNW without APGI's additional parameters. Document which objections could not be answered and publish them as a limitations section or companion commentary.
+Invite one or two skeptical researchers — ideally proponents of IIT or higher-order theories — to co-design a study in which each framework makes divergent, pre-agreed predictions. Data should be collected and analyzed by a neutral third party, and results published jointly regardless of outcome.
+
+Internally, before submitting any major APGI paper, convene a structured red-team session with the explicit mandate to falsify the framework. Assign team members to argue that every positive result is explainable by GNW without APGI's additional parameters. Document which objections could not be answered and publish them as a limitations section or companion commentary.
 
 The framework's most powerful credibility demonstration would be a set of crossover predictions — conditions under which APGI, GNW, IIT, higher-order theories, and recurrent processing theories make divergent numerical predictions about the same dependent variable, and only APGI's formalism yields the correct quantitative answer. These are the predictions that establish the framework's necessity rather than its compatibility with existing accounts.
 
@@ -127,9 +154,13 @@ Every APGI paper should include a formal nested model comparison: full APGI, APG
 
 Relying on any single measure renders APGI vulnerable to paradigm-specific confounds. Convergent evidence across independent modalities is required.
 
-Simultaneous EEG-fMRI allows APGI to demonstrate that P3b amplitude predicts frontoparietal BOLD on the same trial, and that both measures jointly track Π × |ε| − θₜ. Pupillometry provides a continuous, non-invasive proxy for Π on every trial via locus coeruleus–norepinephrine coupling, enabling trial-by-trial model fitting without relying on group-level precision manipulations.
+Simultaneous EEG-fMRI allows APGI to demonstrate that P3b amplitude predicts frontoparietal BOLD on the same trial, and that both measures jointly track Π × |ε| − θₜ.
 
-Given APGI's emphasis on interoceptive precision, the heartbeat-evoked potential (HEP) (the scalp electrical response time-locked to one's own heartbeat) and its attentional modulation should track θₜ dynamics — a prediction that distinguishes APGI from purely cortical theories and is testable with standard EEG. Near-infrared spectroscopy (NIRS) provides metabolic state indices independent of BOLD fMRI; APGI predicts that pre-stimulus NIRS signals in frontoparietal cortex predict subsequent ignition probability, testable in populations where fMRI is contraindicated.
+Pupillometry provides a continuous, non-invasive proxy for Π on every trial via locus coeruleus–norepinephrine coupling, enabling trial-by-trial model fitting without relying on group-level precision manipulations.
+
+Given APGI's emphasis on interoceptive precision, the heartbeat-evoked potential (HEP) (the scalp electrical response time-locked to one's own heartbeat) and its attentional modulation should track θₜ dynamics — a prediction that distinguishes APGI from purely cortical theories and is testable with standard EEG.
+
+Near-infrared spectroscopy (NIRS) provides metabolic state indices independent of BOLD fMRI; APGI predicts that pre-stimulus NIRS signals in frontoparietal cortex predict subsequent ignition probability, testable in populations where fMRI is contraindicated.
 
 EEG microstates — brief periods of quasi-stable scalp electrical topography lasting 60–120 ms — may correspond to attractor states in APGI's dynamical system. APGI should predict that the subthreshold-to-suprathreshold microstate transition precedes the P3b, and that this transition probability scales with Π × |ε|.
 
@@ -139,9 +170,13 @@ EEG microstates — brief periods of quasi-stable scalp electrical topography la
 
 Consciousness theories gain substantial credibility when they correctly predict the developmental trajectory of conscious access — a domain neither GNW nor IIT has addressed quantitatively.
 
-If θₜ is metabolically determined, neonates should show broad, graded ignition dynamics reflecting immature precision computation, transitioning to sharp sigmoidal ignition by late infancy as myelination and cortical development mature. This is testable with infant EEG adapted from the adult GNW literature. The protracted development of prefrontal cortex into the mid-twenties should produce measurably lower frontoparietal coupling efficiency and higher θₜ for emotionally neutral stimuli in adolescents versus adults.
+If θₜ is metabolically determined, neonates should show broad, graded ignition dynamics reflecting immature precision computation, transitioning to sharp sigmoidal ignition by late infancy as myelination and cortical development mature. This is testable with infant EEG adapted from the adult GNW literature.
 
-In healthy aging, locus coeruleus degeneration reduces norepinephrine signaling, which APGI predicts should manifest as elevated θₜ and reduced Π dynamic range — a measurable narrowing of conscious access bandwidth testable in lifespan datasets. In sleep, slow-wave stages should produce maximal θₜ elevation (consistent with the near-elimination of conscious report in deep sleep), while REM should restore Π-mediated ignition capacity (consistent with dream phenomenology), testable with polysomnography combined with EEG connectivity.
+The protracted development of prefrontal cortex into the mid-twenties should produce measurably lower frontoparietal coupling efficiency and higher θₜ for emotionally neutral stimuli in adolescents versus adults.
+
+In healthy aging, locus coeruleus degeneration reduces norepinephrine signaling, which APGI predicts should manifest as elevated θₜ and reduced Π dynamic range — a measurable narrowing of conscious access bandwidth testable in lifespan datasets.
+
+In sleep, slow-wave stages should produce maximal θₜ elevation (consistent with the near-elimination of conscious report in deep sleep), while REM should restore Π-mediated ignition capacity (consistent with dream phenomenology), testable with polysomnography combined with EEG connectivity.
 
 ---
 
@@ -149,9 +184,15 @@ In healthy aging, locus coeruleus degeneration reduces norepinephrine signaling,
 
 Because APGI inherits the precision-weighting architecture of the Free Energy Principle while adding the ignition threshold and allostatic dynamics the FEP leaves underspecified, its computational benchmarking program has a sharper mandate than simple model comparison: it must demonstrate that APGI adds quantitative predictive precision to the FEP baseline — not merely that it fits data the FEP also fits.
 
-The APGI-LNN simulator should be run against the same benchmark paradigms used to validate GNW (Shanahan's global workspace model), IIT (PyPhi), and recurrent processing theories (Lamme's models), with a systematic comparison table showing which paradigms each framework fits, at what parameter cost, and with what predictive precision. Implementation on neuromorphic hardware (Intel Loihi, SpiNNaker) would constrain APGI to biologically plausible computational primitives and provide proof of physical implementability.
+The APGI-LNN simulator should be run against the same benchmark paradigms used to validate GNW (Shanahan's global workspace model), IIT (PyPhi), and recurrent processing theories (Lamme's models), with a systematic comparison table showing which paradigms each framework fits, at what parameter cost, and with what predictive precision.
 
-Computing integrated information (Φ) for APGI network states during simulated ignition versus non-ignition — and showing that Φ tracks threshold crossing — would establish whether APGI and IIT are mathematically compatible or genuinely divergent. APGI's ignition dynamics imply operation near a phase transition, demonstrable via branching ratio approaching 1.0 (a measure of whether neural activity neither dies out nor explodes, but propagates at the edge of stability), power-law scaling in avalanche size distributions, and maximum perturbation susceptibility near θₜ. Whether analogous dynamics emerge in trained artificial neural networks under surprise-weighted gating conditions is a generativity question worth examining — provided functional analogy is carefully distinguished from mechanistic homology.
+Implementation on neuromorphic hardware (Intel Loihi, SpiNNaker) would constrain APGI to biologically plausible computational primitives and provide proof of physical implementability.
+
+Computing integrated information (Φ) for APGI network states during simulated ignition versus non-ignition — and showing that Φ tracks threshold crossing — would establish whether APGI and IIT are mathematically compatible or genuinely divergent.
+
+APGI's ignition dynamics imply operation near a phase transition, demonstrable via branching ratio approaching 1.0 (a measure of whether neural activity neither dies out nor explodes, but propagates at the edge of stability), power-law scaling in avalanche size distributions, and maximum perturbation susceptibility near θₜ.
+
+Whether analogous dynamics emerge in trained artificial neural networks under surprise-weighted gating conditions is a generativity question worth examining — provided functional analogy is carefully distinguished from mechanistic homology.
 
 ---
 
@@ -159,9 +200,13 @@ Computing integrated information (Φ) for APGI network states during simulated i
 
 No existing consciousness theory quantitatively links ignition to cellular metabolism. Pillar 8 is where APGI either earns or forfeits its most original claim.
 
-APGI must demonstrate that θₜ elevation following metabolic challenge reflects a central rather than peripheral mechanism — that equivalent metabolic perturbation not affecting cerebral glucose metabolism does not elevate θₜ, requiring pharmacological dissociation via insulin clamp protocols. A striking positive test: exogenous ketone supplementation (beta-hydroxybutyrate) should buffer against θₜ elevation during caloric restriction by providing an alternative cerebral fuel source.
+APGI must demonstrate that θₜ elevation following metabolic challenge reflects a central rather than peripheral mechanism — that equivalent metabolic perturbation not affecting cerebral glucose metabolism does not elevate θₜ, requiring pharmacological dissociation via insulin clamp protocols.
 
-Mechanistic independence of the two core parameters requires pharmacological dissociation: atomoxetine (norepinephrine transporter reuptake inhibitor) should raise exteroceptive Π without affecting θₜ; propranolol (beta-blocker) should reduce interoceptive Π specifically without affecting exteroceptive precision. Scopolamine (muscarinic antagonist) and physostigmine (cholinesterase inhibitor) should parametrically shift precision weighting in opposite directions, consistent with acetylcholine's established role in precision modulation (Yu & Dayan, 2005). Combining these with psychometric fitting from the behavioral validation program would provide direct pharmacological validation of Π's biological substrate.
+A striking positive test: exogenous ketone supplementation (beta-hydroxybutyrate) should buffer against θₜ elevation during caloric restriction by providing an alternative cerebral fuel source.
+
+Mechanistic independence of the two core parameters requires pharmacological dissociation: atomoxetine (norepinephrine transporter reuptake inhibitor) should raise exteroceptive Π without affecting θₜ; propranolol (beta-blocker) should reduce interoceptive Π specifically without affecting exteroceptive precision.
+
+Scopolamine (muscarinic antagonist) and physostigmine (cholinesterase inhibitor) should parametrically shift precision weighting in opposite directions, consistent with acetylcholine's established role in precision modulation (Yu & Dayan, 2005). Combining these with psychometric fitting from the behavioral validation program would provide direct pharmacological validation of Π's biological substrate.
 
 Psychedelics offer a particularly stringent cross-domain test. Psilocybin, LSD, and DMT differ in receptor binding profiles and phenomenological signature. APGI should generate specific predictions for how each compound shifts Π, θₜ, and the ignition sigmoid, derivable from receptor pharmacology without post-hoc parameter adjustment. Correctly predicting the direction and magnitude of these shifts would constitute striking convergent validation.
 
@@ -171,9 +216,15 @@ Psychedelics offer a particularly stringent cross-domain test. Psilocybin, LSD, 
 
 APGI's ignition mechanism implies testable network-level properties accessible through graph-theoretic analysis of functional and structural connectivity data.
 
-The frontoparietal network's anatomical rich-club structure (a network architecture in which the most highly connected hub nodes are disproportionately interconnected with each other) — its densely interconnected hub nodes — is the proposed structural scaffold for global ignition. APGI predicts that individual differences in θₜ should correlate inversely with rich-club connectivity strength measured by diffusion tractography: stronger hub organization predicting lower threshold and sharper ignition slope. This is a novel, currently untested prediction derived from APGI's architecture rather than from existing rich-club–cognition correlates, and should be understood as a prospective empirical commitment.
+The frontoparietal network's anatomical rich-club structure (a network architecture in which the most highly connected hub nodes are disproportionately interconnected with each other) — its densely interconnected hub nodes — is the proposed structural scaffold for global ignition.
 
-Dynamic functional connectivity should show a specific temporal sequence: subthreshold stimuli produce no change in frontoparietal synchrony, while suprathreshold stimuli produce rapid (<50 ms) hub-node synchronization, testable via sliding-window or point-process connectivity analyses in existing EEG-fMRI datasets. Default mode network (DMN) suppression onset, frontoparietal ignition, and the P3b should follow a specific temporal ordering predictable from Π × |ε| − θₜ — a three-way relationship testable with simultaneous EEG-fMRI. Across lifespan datasets, gray matter covariance within the frontoparietal ignition network should predict individual θₜ estimates derived from behavioral psychometric functions, providing structural neuroimaging validation of the behavioral parameter.
+APGI predicts that individual differences in θₜ should correlate inversely with rich-club connectivity strength measured by diffusion tractography: stronger hub organization predicting lower threshold and sharper ignition slope. This is a novel, currently untested prediction derived from APGI's architecture rather than from existing rich-club–cognition correlates, and should be understood as a prospective empirical commitment.
+
+Dynamic functional connectivity should show a specific temporal sequence: subthreshold stimuli produce no change in frontoparietal synchrony, while suprathreshold stimuli produce rapid (<50 ms) hub-node synchronization, testable via sliding-window or point-process connectivity analyses in existing EEG-fMRI datasets.
+
+Default mode network (DMN) suppression onset, frontoparietal ignition, and the P3b should follow a specific temporal ordering predictable from Π × |ε| − θₜ — a three-way relationship testable with simultaneous EEG-fMRI.
+
+Across lifespan datasets, gray matter covariance within the frontoparietal ignition network should predict individual θₜ estimates derived from behavioral psychometric functions, providing structural neuroimaging validation of the behavioral parameter.
 
 ---
 
@@ -181,9 +232,13 @@ Dynamic functional connectivity should show a specific temporal sequence: subthr
 
 Scientific credibility in consciousness research is inseparable from philosophical rigor, because the field's core concepts — phenomenal consciousness, access consciousness, reportability — are philosophically contested.
 
-APGI must state clearly whether it is a theory of access consciousness (the functional availability of information for reasoning and report), phenomenal consciousness (the qualitative character of experience), or the relationship between them. The current framework conflates these levels, inviting the standard objection that any functional account leaves the hard problem untouched. The appropriate response is not to claim that APGI solves the hard problem, but to delineate precisely what it explains and what it does not.
+APGI must state clearly whether it is a theory of access consciousness (the functional availability of information for reasoning and report), phenomenal consciousness (the qualitative character of experience), or the relationship between them.
 
-A concise section acknowledging that APGI provides a computational-level account that does not entail phenomenal properties — while arguing that computational precision is a necessary precondition for empirical progress — would preempt the most common philosophical objections. Explicitly positioning the framework at Marr's computational, algorithmic, and implementational levels, with clear statements about which predictions operate at which level, prevents the level-crossing confusions that have undermined previous frameworks.
+The current framework conflates these levels, inviting the standard objection that any functional account leaves the hard problem untouched. The appropriate response is not to claim that APGI solves the hard problem, but to delineate precisely what it explains and what it does not.
+
+A concise section acknowledging that APGI provides a computational-level account that does not entail phenomenal properties — while arguing that computational precision is a necessary precondition for empirical progress — would preempt the most common philosophical objections.
+
+Explicitly positioning the framework at Marr's computational, algorithmic, and implementational levels, with clear statements about which predictions operate at which level, prevents the level-crossing confusions that have undermined previous frameworks.
 
 Finally, APGI must engage the no-report paradigm debate: whether behavioral report paradigms measure consciousness or merely the access required for report. The framework must generate predictions for no-report paradigms — where neural signatures of conscious access are measured without verbal or motor response — and demonstrate that the predicted ignition dynamics occur independently of the report mechanism.
 
@@ -193,9 +248,67 @@ Finally, APGI must engage the no-report paradigm debate: whether behavioral repo
 
 Before data collection begins, specify a prospective meta-analysis protocol: the effect sizes, moderators, and sample sizes required for cumulative evidence to constitute a scientific consensus. This establishes a public benchmark that prevents post-hoc cherry-picking of positive results.
 
-Actively seek and support independent replication of APGI's core findings by groups with no stake in the framework. Provide analysis code, stimuli, and detailed protocols to replicating laboratories. Publish replication failures alongside successes — this single behavior most distinguishes credible from non-credible research programs in contemporary science. Maintain a publicly accessible, continuously updated systematic review of all evidence bearing on APGI's core predictions — positive, negative, and ambiguous — establishing the framework as a transparent, self-correcting scientific enterprise rather than an advocacy program.
+Actively seek and support independent replication of APGI's core findings by groups with no stake in the framework. Provide analysis code, stimuli, and detailed protocols to replicating laboratories.
+
+Publish replication failures alongside successes — this single behavior most distinguishes credible from non-credible research programs in contemporary science.
+
+Maintain a publicly accessible, continuously updated systematic review of all evidence bearing on APGI's core predictions — positive, negative, and ambiguous — establishing the framework as a transparent, self-correcting scientific enterprise rather than an advocacy program.
 
 Every APGI paper should report effect sizes with confidence intervals and, where Bayesian methods are used, Bayes factors alongside posterior distributions over key parameters. This enables meta-analysts to include APGI results in future syntheses without requesting raw data.
+
+## APPENDIX: VALIDATION PROTOCOL IMPLEMENTATION REFERENCE
+
+The APGI framework implements **16 validation protocols** organized by tier:
+
+| Protocol | File | Tier | Description | Dependencies | Status |
+| ---------- | ------ | ------ | ------------- | -------------- | -------- |
+| **VP-01** | `VP_01_SyntheticEEG_MLClassification.py` | Primary | Synthetic Neural Data Simulations | None | ✅ Active |
+| **VP-02** | `VP_02_Behavioral_BayesianComparison.py` | Primary | Behavioral Bayesian Comparison | None | ✅ Active |
+| **VP-03** | `VP_03_ActiveInference_AgentSimulations.py` | Secondary | Active Inference Agent Simulations | None | ✅ Active |
+| **VP-04** | `VP_04_PhaseTransition_EpistemicLevel2.py` | Secondary | Phase Transition / Epistemic Level 2 | None | ✅ Active |
+| **VP-05** | `VP_05_EvolutionaryEmergence.py` | Tertiary | Evolutionary Emergence of APGI | None | ✅ Active |
+| **VP-06** | `VP_06_LiquidNetwork_InductiveBias.py` | Tertiary | Liquid Network Inductive Bias | None | ✅ Active |
+| **VP-07** | `VP_07_TMS_CausalInterventions.py` | Secondary | TMS/Pharmacological Causal Interventions | None | ✅ Active |
+| **VP-08** | `VP_08_Psychophysical_ThresholdEstimation.py` | Secondary | Psychophysical Threshold Estimation | None | ✅ Active |
+| **VP-09** | `VP_09_NeuralSignatures_EmpiricalPriority1.py` | Tertiary | Convergent Neural Signatures | None | ✅ Active |
+| **VP-10** | `VP_10_CausalManipulations_Priority2.py` | Tertiary | Causal Manipulations TMS/Pharma | None | ✅ Active |
+| **VP-11** | `VP_11_MCMC_CulturalNeuroscience_Priority3.py` | Secondary | MCMC / Cultural Neuroscience | None | ✅ Active |
+| **VP-12** | `VP_12_Clinical_CrossSpecies_Convergence.py` | Secondary | Clinical Cross-Species Convergence | None | ✅ Active |
+| **VP-13** | `VP_13_Epistemic_Architecture.py` | Secondary | Epistemic Architecture Predictions | None | ✅ Active |
+| **VP-14** | `VP_14_fMRI_Anticipation_Experience.py` | Tertiary | fMRI Anticipation/Experience | None | ✅ Simulation-Only |
+| **VP-15** | `VP_15_fMRI_Anticipation_vmPFC.py` | Tertiary | fMRI Anticipation vmPFC | None | ⏳ Stub (Awaiting Data) |
+| **VP-16** (ALL) | `VP_ALL_Aggregator.py` | Secondary | Master Aggregator | VP-01 to VP-15 | ✅ Active |
+
+### Protocol Dependencies
+
+The Master Validation orchestrator enforces protocol dependencies:
+
+- **VP-05** (Evolutionary Emergence) must complete before FP-01, FP-02, FP-03, FP-05, FP-06
+- Protocols are executed in tier order: Primary → Secondary → Tertiary
+- Weighted scoring: Primary (2.0x), Secondary (1.5x), Tertiary (1.0x)
+
+### Running Protocols
+
+```python
+from Validation.Master_Validation import APGIMasterValidator
+
+validator = APGIMasterValidator()
+
+# Run single protocol
+result = validator.run_single_protocol("Protocol-3")
+
+# Run by tier
+primary_results = validator.run_protocol_tier("primary")
+
+# Run all with weighted scoring
+all_results = validator.run_all_protocols()
+summary = validator.generate_summary_report(all_results)
+
+print(f"Weighted Score: {summary['weighted_score']:.3f}")
+print(f"Success Rate: {summary['success_rate']:.1%}")
+```
+
+---
 
 ## Effect Size Benchmarks for Strategic Pillars
 
