@@ -9,7 +9,11 @@ import os
 import logging
 from pathlib import Path
 from typing import Optional
-from .config_schema import APGISystemConfig
+
+try:
+    from .config_schema import APGISystemConfig
+except (ImportError, ValueError):
+    from config_schema import APGISystemConfig  # type: ignore[no-redef]
 
 # Path to the default configuration file
 DEFAULT_CONFIG_PATH = (

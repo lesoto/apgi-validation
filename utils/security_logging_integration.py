@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
+
+# Add parent directory to path for standalone execution
+if str(Path(__file__).parent.parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.error_handler import APGIError, ErrorCategory, ErrorSeverity
 from utils.security_audit_logger import (

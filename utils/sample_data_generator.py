@@ -389,7 +389,8 @@ class SampleDataGenerator:
         }
 
         # Mark P300 events
-        for event_time in p300_events:
+        p300_event_list = p300_events.get("p300_events", [])
+        for event_time in p300_event_list:
             event_idx = int(event_time * self.sampling_rate)
             if event_idx < self.n_samples:
                 end_idx = min(event_idx + 10, self.n_samples)
@@ -686,7 +687,9 @@ def main() -> None:
         sampling_rate=250, duration=30
     )  # Lower sampling rate for demo
     demo_df, demo_metadata = demo_generator.create_multimodal_dataset("demo", "demo")
-    demo_generator.save_dataset(demo_df, demo_metadata, "data_repository/raw_data")
+    demo_output_dir = Path("data_repository/raw_data")
+    demo_output_dir.mkdir(parents=True, exist_ok=True)
+    demo_generator.save_dataset(demo_df, demo_metadata, str(demo_output_dir))
 
     print("\nSample datasets generated successfully!")
     print("Available files in data_repository/raw_data/ directory:")

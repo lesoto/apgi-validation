@@ -160,10 +160,10 @@ class TestFP07MathematicalConsistency:
         """Test FP_07 module import"""
         try:
             from Falsification.FP_07_MathematicalConsistency import (
-                MathematicalConsistencyTest,
+                MathematicalConsistencyChecker,
             )
 
-            assert MathematicalConsistencyTest is not None
+            assert MathematicalConsistencyChecker is not None
         except ImportError:
             pytest.skip("FP_07 module not available")
 
@@ -175,10 +175,10 @@ class TestFP08ParameterSensitivity:
         """Test FP_08 module import"""
         try:
             from Falsification.FP_08_ParameterSensitivity_Identifiability import (
-                ParameterSensitivityAnalysis,
+                ParameterSensitivityAnalyzer,
             )
 
-            assert ParameterSensitivityAnalysis is not None
+            assert ParameterSensitivityAnalyzer is not None
         except ImportError:
             pytest.skip("FP_08 module not available")
 
@@ -190,10 +190,10 @@ class TestFP09NeuralSignatures:
         """Test FP_09 module import"""
         try:
             from Falsification.FP_09_NeuralSignatures_P3b_HEP import (
-                NeuralSignatureExtractor,
+                NeuralSignatureValidator,
             )
 
-            assert NeuralSignatureExtractor is not None
+            assert NeuralSignatureValidator is not None
         except ImportError:
             pytest.skip("FP_09 module not available")
 
@@ -205,10 +205,10 @@ class TestFP10BayesianEstimation:
         """Test FP_10 module import"""
         try:
             from Falsification.FP_10_BayesianEstimation_MCMC import (
-                BayesianMCMCEstimation,
+                BayesianParameterRecovery,
             )
 
-            assert BayesianMCMCEstimation is not None
+            assert BayesianParameterRecovery is not None
         except ImportError:
             pytest.skip("FP_10 module not available")
 
@@ -220,10 +220,10 @@ class TestFP11LiquidNetwork:
         """Test FP_11 module import"""
         try:
             from Falsification.FP_11_LiquidNetworkDynamics_EchoState import (
-                LiquidNetworkDynamics,
+                LiquidNetworkDynamicsAnalyzer,
             )
 
-            assert LiquidNetworkDynamics is not None
+            assert LiquidNetworkDynamicsAnalyzer is not None
         except ImportError:
             pytest.skip("FP_11 module not available")
 
@@ -235,10 +235,10 @@ class TestFP12CrossSpecies:
         """Test FP_12 module import"""
         try:
             from Falsification.FP_12_CrossSpeciesScaling import (
-                CrossSpeciesFalsification,
+                CrossSpeciesScalingAnalyzer,
             )
 
-            assert CrossSpeciesFalsification is not None
+            assert CrossSpeciesScalingAnalyzer is not None
         except ImportError:
             pytest.skip("FP_12 module not available")
 

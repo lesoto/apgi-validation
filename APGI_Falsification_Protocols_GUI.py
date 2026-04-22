@@ -982,7 +982,7 @@ class ProtocolRunnerGUI:
             import json
 
             # Use absolute path based on project root
-            project_root = Path(__file__).parent.parent
+            project_root = Path(__file__).parent
             config_dir = project_root / "config"
             config_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1059,7 +1059,7 @@ class ProtocolRunnerGUI:
         """Run a single protocol synchronously (for use in run_all)."""
         try:
             # Ensure project root is in sys.path for imports
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            project_root = os.path.dirname(os.path.abspath(__file__))
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
 
@@ -1320,9 +1320,7 @@ class ProtocolRunnerGUI:
                 self.log_message(f"=== Running {protocol_info['file']} ===")
 
                 # Ensure project root is in sys.path for imports
-                project_root = os.path.dirname(
-                    os.path.dirname(os.path.abspath(__file__))
-                )
+                project_root = os.path.dirname(os.path.abspath(__file__))
                 if project_root not in sys.path:
                     sys.path.insert(0, project_root)
 
@@ -1457,7 +1455,7 @@ class ProtocolRunnerGUI:
 
     def _handle_framework_aggregator(self, module):
         """Handle FP_ALL_Aggregator: collect saved result files and run aggregation."""
-        project_root = Path(__file__).parent.parent
+        project_root = Path(__file__).parent
         validation_dir = project_root / "validation_results"
 
         result_files = []
@@ -1693,7 +1691,7 @@ class ProtocolRunnerGUI:
             from datetime import datetime
 
             # Create validation results directory if it doesn't exist
-            project_root = Path(__file__).parent.parent
+            project_root = Path(__file__).parent
             validation_dir = project_root / "validation_results"
             validation_dir.mkdir(parents=True, exist_ok=True)
 

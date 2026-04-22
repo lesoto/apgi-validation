@@ -298,7 +298,7 @@ def simulate_model_performance_with_agent(
         float: Performance metric (0-1 scale) or None if agent unavailable
     """
     # CRIT-04 FIX: Check for required APGIAgent instance
-    global _AGENT_FALLBACK_WARNED
+    global _AGENT_FALLBACK_WARNED, _current_agent_instance
 
     if agent_instance is None:
         agent_instance = _current_agent_instance  # Try global instance
@@ -343,9 +343,13 @@ def simulate_model_performance_with_agent(
             # Try to instantiate APGIAgent if no instance provided
             try:
                 agent_instance = APGIAgent(config={})
-                logger.warning(
-                    "CRIT-04 FIX: Created new APGIAgent instance - dependency injection recommended"
-                )
+                # Cache the instance to avoid re-creating it for every OAT sample
+                _current_agent_instance = agent_instance
+                if not _AGENT_FALLBACK_WARNED:
+                    logger.warning(
+                        "CRIT-04 FIX: Created new APGIAgent instance - dependency injection recommended"
+                    )
+                    _AGENT_FALLBACK_WARNED = True
             except Exception as e:
                 logger.error(f"CRIT-04 FIX: Failed to create APGIAgent: {e}")
                 return 0.5  # Neutral fallback instead of None
@@ -2222,7 +2226,9 @@ class FP08Runner:
             _current_agent_instance = effective_agent
 
             # Run comprehensive analysis with agent
-            results = run_comprehensive_parameter_sensitivity_analysis()
+            results = run_comprehensive_parameter_sensitivity_analysis(
+                agent_instance=effective_agent
+            )
 
             # Add dependency injection metadata
             results["dependency_injection"] = {
@@ -2251,13 +2257,20 @@ class FP08Runner:
 _current_agent_instance = None
 
 
-def run_comprehensive_parameter_sensitivity_analysis() -> Dict[str, Any]:
+def run_comprehensive_parameter_sensitivity_analysis(
+    agent_instance: Optional[Any] = None,
+) -> Dict[str, Any]:
     """
     Run comprehensive parameter sensitivity and identifiability analysis.
     Expanded to 1,500+ lines with systematic parameter space exploration.
     Per Step 1.5 - Complete FP-8 implementation with all required analyses.
     """
     logger.info("Running comprehensive parameter sensitivity analysis...")
+
+    # CRIT-04 FIX: Set global agent instance if provided
+    global _current_agent_instance
+    if agent_instance is not None:
+        _current_agent_instance = agent_instance
 
     # Base parameters
     base_params = {
@@ -3190,7 +3203,9 @@ def run_falsification(
             "F8.SA results will be marked as using fallback methodology."
         )
         # Run the comprehensive parameter sensitivity analysis (fallback mode)
-        results = run_comprehensive_parameter_sensitivity_analysis()
+        results = run_comprehensive_parameter_sensitivity_analysis(
+            agent_instance=agent_instance
+        )
 
     # Add falsification-specific metadata
     results["protocol_id"] = "FP-08"

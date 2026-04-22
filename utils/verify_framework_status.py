@@ -317,9 +317,9 @@ def main():
     print("=" * 80)
 
     try:
-        from Falsification.FP_ALL_Aggregator import FPAllAggregator
+        from Falsification.FP_ALL_Aggregator import FalsificationAggregator
 
-        FPAllAggregator()
+        FalsificationAggregator()
         print("✅ FP_ALL_Aggregator: Loaded successfully")
     except Exception as e:
         print(f"❌ FP_ALL_Aggregator: {str(e)[:60]}")

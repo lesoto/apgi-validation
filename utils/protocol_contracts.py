@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, Mapping
+
+# Add parent directory to path for standalone execution
+if str(Path(__file__).parent.parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.error_handler import ConfigurationError, ProtocolError
 

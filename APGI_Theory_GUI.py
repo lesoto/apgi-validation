@@ -1085,34 +1085,20 @@ class ScriptRunnerGUI:
                 self.log_message(f"=== Running {protocol_info['file']} ===")
 
                 # Ensure project root is in sys.path for imports
-                project_root = os.path.dirname(
-                    os.path.dirname(os.path.abspath(__file__))
-                )
+                project_root = os.path.dirname(os.path.abspath(__file__))
                 if project_root not in sys.path:
                     sys.path.insert(0, project_root)
 
-                # Load the protocol module
-                file_path = os.path.join(
-                    os.path.dirname(__file__), protocol_info["file"]
-                )
-
-                # Validate file path to prevent path traversal
-                if ".." in protocol_info["file"] or protocol_info["file"].startswith(
-                    "/"
-                ):
-                    raise ValueError(
-                        f"Invalid protocol path: {protocol_info['file']} (contains path traversal)"
+                # Use the stored file_path from discovery
+                file_path = protocol_info.get("file_path")
+                if not file_path or not os.path.exists(file_path):
+                    # Fallback for manual calls
+                    file_path = os.path.join(
+                        os.path.dirname(__file__), "Theory", protocol_info["file"]
                     )
 
-                # Resolve and validate it's within project directory
-                try:
-                    Path(file_path).resolve().relative_to(
-                        Path(os.path.dirname(__file__)).resolve()
-                    )
-                except ValueError:
-                    raise ValueError(
-                        f"Invalid protocol path: {protocol_info['file']} (outside project directory)"
-                    )
+                if not os.path.exists(file_path):
+                    raise FileNotFoundError(f"Script file not found: {file_path}")
 
                 spec = importlib.util.spec_from_file_location(
                     protocol_info["file"], file_path
@@ -1264,7 +1250,7 @@ class ScriptRunnerGUI:
 
     def _handle_framework_aggregator(self, module):
         """Handle FP_ALL_Aggregator: collect saved result files and run aggregation."""
-        project_root = Path(__file__).parent.parent
+        project_root = Path(__file__).parent
         validation_dir = project_root / "validation_results"
 
         result_files = []
@@ -1500,7 +1486,7 @@ class ScriptRunnerGUI:
             from datetime import datetime
 
             # Create validation results directory if it doesn't exist
-            project_root = Path(__file__).parent.parent
+            project_root = Path(__file__).parent
             validation_dir = project_root / "validation_results"
             validation_dir.mkdir(parents=True, exist_ok=True)
 
