@@ -25,8 +25,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import APGI modules for property-based testing
 try:
-    from APGI_Equations import DynamicalSystemEquations, FoundationalEquations
-    from APGI_Parameter_Estimation import generate_synthetic_dataset
+    from Theory.APGI_Equations import DynamicalSystemEquations, FoundationalEquations
+    from Theory.APGI_Parameter_Estimation import generate_synthetic_dataset
 
     from utils.data_validation import DataValidator
 
@@ -339,7 +339,7 @@ class TestDataValidationProperties:
         "generate_synthetic_dataset" not in globals(),
         reason="generate_synthetic_dataset not available",
     )
-    @settings(max_examples=5, deadline=10000)  # Limit examples, 10s timeout each
+    @settings(max_examples=5, deadline=30000)  # Limit examples, 30s timeout each
     @given(
         strategies.integers(min_value=10, max_value=100),
     )

@@ -6,20 +6,30 @@ The APGI Framework provides several graphical user interfaces (GUIs) for differe
 
 ## Available GUI Applications
 
-### 1. Validation GUI
+### 1. Validation Runner (VP)
 
-**Purpose:** Run validation protocols and analyze results visually
-**Launch Command:** `python main.py gui validation`
+**Purpose:** Comprehensive runner for all 15 Validation Protocols with real-time progress.
+**Launch Command:** `python main.py gui --gui-type validation` or `python APGI_Validation_GUI.py`
 
-### 2. Psychological States GUI
+### 2. Psychological States Modeler
 
-**Purpose:** Model and analyze psychological states dynamics
-**Launch Command:** `python main.py gui psychological`
+**Purpose:** Advanced dynamics modeling for psychiatric and cognitive profiles.
+**Launch Command:** `python main.py gui --gui-type psychological` or `python Theory/APGI_Psychological_States.py`
 
-### 3. Web-Based Analysis Interface
+### 3. Entropy & Analysis Interface
 
-**Purpose:** Browser-based analysis and visualization
-**Launch Command:** `python main.py gui analysis --host localhost --port 8080`
+**Purpose:** Information-theoretic analysis and liquid network dynamics visualization.
+**Launch Command:** `python main.py gui --gui-type analysis` or `python Theory/APGI_Entropy_Implementation.py`
+
+### 4. Theory Script Discovery GUI
+
+**Purpose:** Automatically discover and execute any script within the `Theory/` directory.
+**Launch Command:** `python APGI_Theory_GUI.py`
+
+### 5. Falsification Protocol Runner (FP)
+
+**Purpose:** Specialized runner for the 12 Falsification Protocols.
+**Launch Command:** `python APGI_Falsification_Protocols_GUI.py`
 
 ---
 

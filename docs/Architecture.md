@@ -105,10 +105,11 @@ CLI Interface (main.py)
 │   ├── gui → GUICommand
 │   ├── visualize → VisualizationCommand
 │   └── info → InfoCommand
-├── GUI Integration
-│   ├── Validation GUI
-│   ├── Psychological States GUI
-│   └── Web Analysis Interface
+├── GUI Integration (main.py gui [type])
+│   ├── validation    → APGI_Validation_GUI.py
+│   ├── psychological → Theory/APGI_Psychological_States.py
+│   └── analysis      → Theory/APGI_Entropy_Implementation.py
+│   └── (Additional: APGI_Theory_GUI.py, APGI_Falsification_Protocols_GUI.py)
 └── Module Loader
     ├── Dynamic Module Loading
     ├── Error Handling
@@ -281,14 +282,14 @@ main.py
 │   └── dotenv (Environment variables)
 ├── logging_config
 │   └── loguru (Logging)
-├── APGI_Equations
+├── Theory/APGI_Equations
 │   ├── numpy (Numerical computing)
 │   └── scipy (Scientific computing)
-├── APGI_Multimodal_Integration
+├── Theory/APGI_Multimodal_Integration
 │   ├── pandas (Data manipulation)
 │   ├── torch (Neural networks)
 │   └── sklearn (Machine learning)
-├── APGI_Parameter_Estimation-Protocol
+├── Theory/APGI_Parameter_Estimation
 │   ├── pymc (Bayesian modeling)
 │   ├── arviz (Visualization)
 │   └── matplotlib (Plotting)

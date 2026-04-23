@@ -85,23 +85,29 @@ python main.py formal-model --simulation-steps 100
 ## Project Structure After Installation
 
 ```text
-apgi-theory/
-├── README.md                    # Main documentation
-├── docs/Install.md              # This installation guide
+apgi-validation/
+├── main.py                      # Unified CLI interface (entry point)
+├── APGI_Validation_GUI.py       # Main Validation Runner GUI
+├── APGI_Theory_GUI.py           # Theory Script Discovery GUI
+├── APGI_Falsification_Protocols_GUI.py # Falsification Runner GUI
 ├── requirements.txt             # Dependencies list
 ├── setup.py                     # Automated setup script
-├── main.py                      # Unified CLI interface
-├── minimal_test.py              # Basic functionality test
-├── test_framework.py            # Comprehensive test suite
-├── config_manager.py            # Configuration system
-├── logging_config.py            # Logging framework
-├── config/
-│   └── default.yaml            # Default configuration
-├── logs/                        # Log files (created during runtime)
-├── data_repository/              # Data directory (raw_data/, processed_data/, metadata/, etc.)
-├── cache/                       # Cache directory
-├── venv/                        # Virtual environment (created)
-└── [existing APGI modules...]   # Original framework components
+├── Theory/                      # Core mathematical and logic modules
+│   ├── APGI_Equations.py
+│   ├── APGI_Multimodal_Integration.py
+│   ├── APGI_Full_Dynamic_Model.py
+│   └── [13 other theory modules]
+├── Validation/                  # 15 Validation Protocols (VP-01 to VP-15)
+│   ├── VP_ALL_Aggregator.py
+│   └── [15 protocol modules]
+├── Falsification/               # 12 Falsification Protocols (FP-01 to FP-12)
+│   ├── FP_ALL_Aggregator.py
+│   └── [12 protocol modules]
+├── utils/                       # 80+ helper modules and internal infrastructure
+├── tests/                       # Comprehensive test suite (Unit, Security, Stress)
+├── config/                      # Configuration files (default.yaml, etc.)
+├── data_repository/             # Datasets (raw, processed, metadata)
+└── logs/                        # Runtime logs
 ```
 
 ## Container Template (Conda/Docker)
