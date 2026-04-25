@@ -58,7 +58,7 @@ class ProtocolTransitionStatus:
 class EmpiricalTransitionReport:
     """Generate reports on VP-11/VP-15 empirical validation transition."""
 
-    def __init__(self):
+    def __init__(self) -> None:  # type: ignore[annotation-unchecked]
         self.protocols: Dict[str, ProtocolTransitionStatus] = {}
         self.report_date = datetime.now().isoformat()
 
@@ -118,6 +118,15 @@ class EmpiricalTransitionReport:
         total_public = len(vp11.available_datasets) + len(vp15.available_datasets)
         total_pending = len(vp11.pending_datasets) + len(vp15.pending_datasets)
 
+        # Convert ValidationMode enums to strings for JSON serialization
+        vp11_dict = asdict(vp11)
+        vp11_dict["current_mode"] = vp11.current_mode.value
+        vp11_dict["target_mode"] = vp11.target_mode.value
+
+        vp15_dict = asdict(vp15)
+        vp15_dict["current_mode"] = vp15.current_mode.value
+        vp15_dict["target_mode"] = vp15.target_mode.value
+
         return {
             "report_title": "VP-11/VP-15 Empirical Validation Transition Report",
             "report_date": self.report_date,
@@ -129,8 +138,8 @@ class EmpiricalTransitionReport:
                 "estimated_completion": "2026-Q4",
             },
             "protocols": {
-                "VP-11": asdict(vp11),
-                "VP-15": asdict(vp15),
+                "VP-11": vp11_dict,
+                "VP-15": vp15_dict,
             },
             "critical_path": {
                 "immediate_actions": [
@@ -264,6 +273,15 @@ class EmpiricalTransitionReport:
         print("For detailed dataset info: python -m utils.empirical_dataset_catalog")
 
 
+class EnumEncoder(json.JSONEncoder):
+    """JSON encoder that handles Enum types."""
+
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        return super().default(obj)
+
+
 def main():
     """Generate and print transition report."""
     report = EmpiricalTransitionReport()
@@ -272,7 +290,7 @@ def main():
     # Also save JSON version
     output_path = Path("empirical_transition_report.json")
     with open(output_path, "w") as f:
-        json.dump(report.generate_report(), f, indent=2)
+        json.dump(report.generate_report(), f, indent=2, cls=EnumEncoder)
     print(f"\nJSON report saved to: {output_path}")
 
 

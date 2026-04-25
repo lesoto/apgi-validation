@@ -2201,14 +2201,14 @@ def plot_intervention_results(
 
     baseline_params = psychometric.fit_curve(
         baseline_grouped.index.values,
-        baseline_grouped["n_trials"].values,
-        baseline_grouped["n_seen"].values,
+        baseline_grouped["n_trials"].values,  # type: ignore[arg-type]
+        baseline_grouped["n_seen"].values,  # type: ignore[arg-type]
     )
 
     intervention_params = psychometric.fit_curve(
         intervention_grouped.index.values,
-        intervention_grouped["n_trials"].values,
-        intervention_grouped["n_seen"].values,
+        intervention_grouped["n_trials"].values,  # type: ignore[arg-type]
+        intervention_grouped["n_seen"].values,  # type: ignore[arg-type]
     )
 
     # Plot data points

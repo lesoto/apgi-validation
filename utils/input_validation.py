@@ -424,61 +424,39 @@ class InputValidator:
         if not pattern:
             return ValidationResult(False, "Pattern not specified")
 
-        try:
-            # Use Python 3.11+ timeout parameter if available
-            import sys
+        # Python re module does not natively support timeouts
+        # Use threading with non-daemon thread to somewhat limit execution time
+        import threading
 
-            if sys.version_info >= (3, 11):
-                # Python 3.11+ has built-in regex timeout
-                match = re.match(pattern, value, timeout=1)
-                if match is None:
-                    message = params.get("message", "Pattern does not match")
-                    return ValidationResult(False, message)
-                return ValidationResult(True, "Valid")
-            else:
-                # Fallback for older Python versions: use threading with non-daemon thread
-                # Note: This still has limitations but is better than daemon threads
-                import threading
+        timeout_result = [None]
+        timeout_exception = [None]
 
-                timeout_result = [None]
-                timeout_exception = [None]
+        def run_regex():
+            try:
+                # Type ignore because mypy might struggle with list assignment type inference here
+                timeout_result[0] = re.match(pattern, value)  # type: ignore
+            except (re.error, ValueError, TypeError, OverflowError) as e:
+                timeout_exception[0] = e
 
-                def run_regex():
-                    try:
-                        timeout_result[0] = re.match(pattern, value)
-                    except (re.error, ValueError, TypeError, OverflowError) as e:
-                        timeout_exception[0] = e
+        thread = threading.Thread(target=run_regex, daemon=False)
+        thread.start()
+        thread.join(timeout=5)  # 5 second timeout
 
-                thread = threading.Thread(target=run_regex, daemon=False)
-                thread.start()
-                thread.join(timeout=1)  # 1 second timeout
+        if thread.is_alive():
+            # Thread is still running - regex took too long
+            return ValidationResult(
+                False, "Regex matching timed out (possible ReDoS attack)"
+            )
 
-                if thread.is_alive():
-                    # Thread is still running - regex took too long
-                    # We cannot kill the thread, but we can return timeout error
-                    # The thread will eventually complete or be terminated when Python exits
-                    return ValidationResult(
-                        False, "Regex matching timed out (possible ReDoS attack)"
-                    )
+        if timeout_exception[0]:
+            # Re-raise the caught exception if any
+            raise timeout_exception[0]  # type: ignore
 
-                if timeout_exception[0]:
-                    raise timeout_exception[0]
+        if timeout_result[0] is None:
+            message = params.get("message", "Pattern does not match")
+            return ValidationResult(False, message)
 
-                if timeout_result[0] is None:
-                    message = params.get("message", "Pattern does not match")
-                    return ValidationResult(False, message)
-
-                return ValidationResult(True, "Valid")
-
-            result = timeout_result[0]
-            if not result:
-                message = params.get("message", "Invalid format")
-                return ValidationResult(False, message)
-
-            return ValidationResult(True, "Valid")
-
-        except re.error:
-            return ValidationResult(False, "Invalid regex pattern")
+        return ValidationResult(True, "Valid")
 
     def _validate_custom(self, value: Any, params: Dict[str, Any]) -> ValidationResult:
         """Validate using a custom validator."""

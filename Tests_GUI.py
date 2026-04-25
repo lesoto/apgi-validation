@@ -18,6 +18,136 @@ from tkinter import scrolledtext, ttk
 from typing import Any, Dict
 
 
+def apply_apgi_theme(root):
+    """Apply unified APGI theme to tkinter application."""
+    style = ttk.Style()
+    style.theme_use("clam")
+
+    # Core Palette
+    bg_color = "#f8f9fa"
+    fg_color = "#212529"
+
+    # Configure Global Elements
+    style.configure("TFrame", background=bg_color)
+    style.configure(
+        "TLabel", background=bg_color, foreground=fg_color, font=("Noto Sans", 10)
+    )
+    style.configure("Header.TLabel", font=("Noto Sans", 12, "bold"))
+
+    # Custom Card Style
+    style.configure("Card.TFrame", background="#ffffff", borderwidth=1, relief="solid")
+
+    # Button Styling
+    style.configure("TButton", padding=6, background="#e9ecef")
+    style.map(
+        "TButton",
+        background=[("active", "#dee2e6"), ("disabled", "#f1f3f5")],
+        foreground=[("disabled", "#adb5bd")],
+    )
+
+    # Primary Button Styling
+    style.configure(
+        "Primary.TButton",
+        background="#155724",
+        foreground="white",
+        font=("Noto Sans", 10, "bold"),
+        padding=8,
+    )
+    style.map(
+        "Primary.TButton",
+        background=[("active", "#0f3d1a")],
+        foreground=[("active", "white")],
+    )
+
+    # Danger Button Styling
+    style.configure(
+        "Danger.TButton",
+        background="#721c24",
+        foreground="white",
+        font=("Noto Sans", 10, "bold"),
+        padding=8,
+    )
+    style.map(
+        "Danger.TButton",
+        background=[("active", "#5a161d")],
+        foreground=[("active", "white")],
+    )
+
+    # Secondary Button Styling
+    style.configure(
+        "Secondary.TButton",
+        background="#2874a6",
+        foreground="white",
+        font=("Noto Sans", 10),
+        padding=6,
+    )
+    style.map(
+        "Secondary.TButton",
+        background=[("active", "#1f5a82")],
+        foreground=[("active", "white")],
+    )
+
+    # Checkbutton Styling
+    style.configure("Card.TCheckbutton", background="#ffffff")
+
+    # Status styling
+    style.configure(
+        "Success.TLabel", foreground="#155724", font=("Noto Sans", 10, "bold")
+    )
+    style.configure(
+        "Error.TLabel", foreground="#721c24", font=("Noto Sans", 10, "bold")
+    )
+
+    # Configure root window
+    root.configure(background=bg_color)
+
+    return style
+
+
+class APGIButtons:
+    """Standard button configurations for APGI applications."""
+
+    @staticmethod
+    def primary(parent, text, command):
+        """Primary action button (green)."""
+        return ttk.Button(
+            parent, text=text, command=command, style="Primary.TButton", cursor="hand2"
+        )
+
+    @staticmethod
+    def danger(parent, text, command):
+        """Danger/Stop button (red)."""
+        return ttk.Button(
+            parent, text=text, command=command, style="Danger.TButton", cursor="hand2"
+        )
+
+    @staticmethod
+    def secondary(parent, text, command):
+        """Secondary action button (blue)."""
+        return ttk.Button(
+            parent,
+            text=text,
+            command=command,
+            style="Secondary.TButton",
+            cursor="hand2",
+        )
+
+
+class APGICard(ttk.Frame):
+    """Standardized information card for all APGI apps."""
+
+    def __init__(self, parent, title, **kwargs):
+        super().__init__(parent, style="Card.TFrame", **kwargs)
+        self.container = ttk.Frame(self, padding=15, style="Card.TFrame")
+        self.container.pack(fill="both", expand=True)
+
+        if title:
+            self.lbl_title = ttk.Label(
+                self.container, text=title.upper(), style="Header.TLabel"
+            )
+            self.lbl_title.pack(anchor="w", pady=(0, 10))
+
+
 class TestsGUI:
     """Simple GUI for running tests.
     ======================================
@@ -33,69 +163,98 @@ class TestsGUI:
         """
         self.root = root or tk.Tk()
         self.root.title("APGI Tests GUI")
-        self.root.geometry("800x600")
+        self.root.geometry("900x700")
+        apply_apgi_theme(self.root)
 
         self.setup_ui()
 
     def setup_ui(self):
         """Setup the user interface."""
-        # Main frame
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # Top metric bar / header
+        header_frame = ttk.Frame(self.root, padding="10")
+        header_frame.pack(fill="x")
+        ttk.Label(
+            header_frame, text="APGI TEST ENVIRONMENT", style="Header.TLabel"
+        ).pack(side="left")
 
-        # Test configuration frame
-        config_frame = ttk.LabelFrame(
-            main_frame, text="Test Configuration", padding="5"
+        # Main content
+        main_content = ttk.Frame(self.root, padding="10")
+        main_content.pack(fill="both", expand=True)
+
+        # Grid layout
+        main_content.columnconfigure(0, weight=0, minsize=250)
+        main_content.columnconfigure(1, weight=1)
+        main_content.rowconfigure(0, weight=1)
+
+        # Left Sidebar (Controls)
+        sidebar = ttk.Frame(main_content)
+        sidebar.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+
+        config_card = APGICard(sidebar, "Test Configuration")
+        config_card.pack(fill="x", pady=(0, 15))
+
+        ttk.Label(config_card.container, text="Test Type:").pack(
+            anchor="w", pady=(0, 5)
         )
-        config_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=5)
-
-        # Test type selection
-        ttk.Label(config_frame, text="Test Type:").grid(row=0, column=0, sticky=tk.W)
-        self.test_type_var = tk.StringVar(value="unit")
-        test_types = ["unit", "integration", "performance", "all"]
+        self.test_type_var = tk.StringVar(value="all")
         test_type_combo = ttk.Combobox(
-            config_frame, textvariable=self.test_type_var, values=test_types
+            config_card.container,
+            textvariable=self.test_type_var,
+            values=["unit", "integration", "performance", "all"],
+            state="readonly",
         )
-        test_type_combo.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=5)
+        test_type_combo.pack(fill="x", pady=(0, 15))
 
-        # Coverage checkbox
         self.coverage_var = tk.BooleanVar(value=True)
-        coverage_check = ttk.Checkbutton(
-            config_frame, text="Run with Coverage", variable=self.coverage_var
+        ttk.Checkbutton(
+            config_card.container,
+            text="Run with Coverage",
+            variable=self.coverage_var,
+            style="Card.TCheckbutton",
+        ).pack(anchor="w", pady=(0, 20))
+
+        # Buttons Frame for alignment
+        btn_frame = ttk.Frame(sidebar)
+        btn_frame.pack(fill="x")
+
+        APGIButtons.primary(btn_frame, "RUN TESTS", self.run_tests_gui).pack(
+            fill="x", pady=(0, 10)
         )
-        coverage_check.grid(row=0, column=2, padx=5)
-
-        # Control buttons
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=5)
-
-        self.run_button = ttk.Button(
-            button_frame, text="Run Tests", command=self.run_tests_gui
+        APGIButtons.secondary(btn_frame, "CLEAR OUTPUT", self.clear_output).pack(
+            fill="x"
         )
-        self.run_button.grid(row=0, column=0, padx=5)
 
-        self.clear_button = ttk.Button(
-            button_frame, text="Clear Output", command=self.clear_output
+        # Workspace (Output)
+        workspace = APGICard(main_content, "Test Output")
+        workspace.grid(row=0, column=1, sticky="nsew")
+
+        self.status_label = ttk.Label(workspace.container, text="Ready", style="TLabel")
+        self.status_label.pack(anchor="w", pady=(0, 5))
+
+        self.output_text = scrolledtext.ScrolledText(
+            workspace.container,
+            bg="#212529",
+            fg="#f8f9fa",
+            font=("Noto Sans Mono", 10),
+            borderwidth=0,
+            highlightthickness=0,
         )
-        self.clear_button.grid(row=0, column=1, padx=5)
+        self.output_text.pack(fill="both", expand=True)
 
-        # Output display
-        output_frame = ttk.LabelFrame(main_frame, text="Test Output", padding="5")
-        output_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
-
-        self.output_text = scrolledtext.ScrolledText(output_frame, height=20, width=80)
-        self.output_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-        # Configure grid weights
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(2, weight=1)
-        output_frame.columnconfigure(0, weight=1)
-        output_frame.rowconfigure(0, weight=1)
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
+    def show_status(self, status_type, message):
+        """Update status label."""
+        if status_type == "success":
+            self.status_label.config(text=f"✔ {message}", style="Success.TLabel")
+        elif status_type == "error":
+            self.status_label.config(text=f"✖ {message}", style="Error.TLabel")
+        else:
+            self.status_label.config(text=f"ℹ {message}", style="TLabel")
 
     def run_tests_gui(self):
         """Run tests from GUI."""
+        self.show_status("info", "Running tests...")
+        self.root.update()
+
         config = {
             "test_type": self.test_type_var.get(),
             "coverage": self.coverage_var.get(),
@@ -107,6 +266,7 @@ class TestsGUI:
     def clear_output(self):
         """Clear the output display."""
         self.output_text.delete(1.0, tk.END)
+        self.show_status("info", "Ready")
 
     def run_tests(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Run tests based on configuration.
@@ -117,16 +277,17 @@ class TestsGUI:
         Returns:
             Dictionary containing test results
         """
-        test_type = config.get("test_type", "unit")
+        test_type = config.get("test_type", "all")
         coverage = config.get("coverage", False)
 
         # Build pytest command
         cmd = [sys.executable, "-m", "pytest", "tests/"]
 
-        # Only filter by marker if tests have markers (currently they don't)
+        # If it's a specific type of test, add marker logic or path logic
+        # For APGI validation, usually we just run the tests
         if test_type != "all":
-            # TODO: Add markers to tests or remove this filtering
-            pass
+            # If tests have markers
+            cmd.extend(["-m", test_type])
 
         if coverage:
             cmd.append("--cov=.")
@@ -138,8 +299,7 @@ class TestsGUI:
         # Run tests
         try:
             cwd = Path(__file__).parent
-            self.output_text.insert(tk.END, f"Running: {' '.join(cmd)}\n")
-            self.output_text.insert(tk.END, f"Working directory: {cwd}\n")
+            self.output_text.insert(tk.END, f"> {' '.join(cmd)}\n\n")
             self.output_text.update()
 
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
@@ -175,45 +335,27 @@ class TestsGUI:
         self.output_text.delete(1.0, tk.END)
 
         test_results = results.get("test_results", {})
-        config = results.get("config", {})
 
-        # Display configuration
-        self.output_text.insert(tk.END, "Test Configuration:\n")
-        self.output_text.insert(
-            tk.END, f"Test Type: {config.get('test_type', 'unknown')}\n"
-        )
-        self.output_text.insert(
-            tk.END, f"  Coverage: {config.get('coverage', False)}\n"
-        )
-        self.output_text.insert(tk.END, "\n")
+        error = test_results.get("error")
+        if error:
+            self.show_status("error", "Tests Failed - Exception occurred")
+            self.output_text.insert(tk.END, f"Exception:\n{error}\n")
+            return
 
-        # Display results
         if test_results.get("success", False):
-            self.output_text.insert(tk.END, "✅ Tests PASSED\n", "success")
+            self.show_status("success", "Tests Passed Successfully")
         else:
-            self.output_text.insert(tk.END, "❌ Tests FAILED\n", "error")
+            self.show_status("error", "Tests Failed")
 
         # Display stdout
         stdout = test_results.get("stdout", "")
         if stdout:
-            self.output_text.insert(tk.END, "\nStandard Output:\n")
             self.output_text.insert(tk.END, stdout)
 
         # Display stderr
         stderr = test_results.get("stderr", "")
         if stderr:
-            self.output_text.insert(tk.END, "\nStandard Error:\n")
-            self.output_text.insert(tk.END, stderr)
-
-        # Display error if any
-        error = test_results.get("error")
-        if error:
-            self.output_text.insert(tk.END, "\nError:\n")
-            self.output_text.insert(tk.END, error, "error")
-
-        # Configure text tags for coloring
-        self.output_text.tag_configure("success", foreground="green")
-        self.output_text.tag_configure("error", foreground="red")
+            self.output_text.insert(tk.END, "\nErrors:\n" + stderr)
 
         # Scroll to bottom
         self.output_text.see(tk.END)

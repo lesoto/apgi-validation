@@ -2615,7 +2615,7 @@ def analyze_parameter_robustness(
 
         # Robustness score (higher is better)
         robustness_score = 1 - (mean_degradation + std_degradation)
-        robustness_score = float(max(0.0, float(robustness_score)))  # Clamp to [0, 1]
+        robustness_score = float(max(0.0, float(robustness_score)))  # type: ignore[assignment]  # Clamp to [0, 1]
 
         robustness_results[f"perturbation_{perturbation_level}"] = {
             "mean_degradation": float(mean_degradation),

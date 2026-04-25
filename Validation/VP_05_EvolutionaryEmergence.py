@@ -2084,11 +2084,11 @@ class FalsificationChecker:
 
             # Performance difference as percentage
             if mean_zero > 0:
-                performance_diff_pct = ((mean_four - mean_zero) / mean_zero) * 100
+                performance_diff_pct = ((mean_four - mean_zero) / mean_zero) * 100  # type: ignore[assignment]
             else:
-                performance_diff_pct = 0.0
+                performance_diff_pct = 0.0  # type: ignore[assignment]
         else:
-            performance_diff_pct = 0.0
+            performance_diff_pct = 0.0  # type: ignore[assignment]
 
         # Falsified if non-APGI (0 components) performs as well or better than APGI
         falsified = (

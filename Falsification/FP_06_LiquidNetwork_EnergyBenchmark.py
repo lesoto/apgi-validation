@@ -1915,11 +1915,11 @@ class NetworkComparisonExperiment:
                     (high_info_active - low_info_active) / high_info_active
                 ) * 100
                 # Ensure minimum 30% reduction for valid LTCN dynamics
-                sparsity_reduction = max(30.0, min(100, sparsity_reduction))
+                sparsity_reduction = max(30.0, min(100, sparsity_reduction))  # type: ignore[arg-type]
             else:
-                sparsity_reduction = 35.0
+                sparsity_reduction = 35.0  # type: ignore[assignment]
         else:
-            sparsity_reduction = 35.0
+            sparsity_reduction = 35.0  # type: ignore[assignment]
 
         return {
             "transition_time_ms": float(transition_time),
@@ -2295,7 +2295,7 @@ def check_falsification(
     mean_apgi = np.mean(apgi_rewards)
     mean_pp = np.mean(pp_rewards)
     # Guard against zero mean_pp to prevent division by zero
-    safe_mean_pp = max(1e-10, abs(mean_pp)) * (1 if mean_pp >= 0 else -1)
+    safe_mean_pp = max(1e-10, abs(mean_pp)) * (1 if mean_pp >= 0 else -1)  # type: ignore[operator]
     advantage_pct = ((mean_apgi - mean_pp) / safe_mean_pp) * 100
 
     # Cohen's d

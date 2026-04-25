@@ -6,6 +6,7 @@ Protocol execution speed improvements with caching,
 memoization, and parallel execution capabilities.
 """
 
+import atexit
 import functools
 import hashlib
 import json
@@ -153,6 +154,16 @@ class ProtocolOptimizer:
         self._thread_pool = ThreadPoolExecutor(max_workers=self.max_workers)
         self._process_pool: Optional[ProcessPoolExecutor] = None
         self._performance_log: List[Dict] = []
+        self._shutdown = False
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures cleanup."""
+        self.shutdown()
+        return False
 
     def optimize_numpy_operations(self, data: np.ndarray) -> np.ndarray:
         """
@@ -347,9 +358,18 @@ class ProtocolOptimizer:
 
     def shutdown(self):
         """Clean up resources."""
-        self._thread_pool.shutdown(wait=True)
+        if self._shutdown:
+            return
+        self._shutdown = True
+        try:
+            self._thread_pool.shutdown(wait=True)
+        except Exception:
+            pass
         if self._process_pool:
-            self._process_pool.shutdown(wait=True)
+            try:
+                self._process_pool.shutdown(wait=True)
+            except Exception:
+                pass
 
 
 class FastProtocolRunner:
@@ -358,6 +378,20 @@ class FastProtocolRunner:
     def __init__(self):
         self.optimizer = ProtocolOptimizer()
         self._warmup_complete = False
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures cleanup."""
+        self.shutdown()
+        return False
+
+    def shutdown(self):
+        """Clean up resources."""
+        if self.optimizer:
+            self.optimizer.shutdown()
 
     def warmup(self):
         """Warm up caches and JIT compilation where applicable."""
@@ -451,11 +485,49 @@ class FastProtocolRunner:
             raise
 
 
+# Module-level cleanup registry
+_optimizers: List[ProtocolOptimizer] = []
+_runners: List[FastProtocolRunner] = []
+
+
+def _register_optimizer(optimizer: ProtocolOptimizer):
+    """Register optimizer for cleanup."""
+    _optimizers.append(optimizer)
+
+
+def _register_runner(runner: FastProtocolRunner):
+    """Register runner for cleanup."""
+    _runners.append(runner)
+
+
+def _cleanup_all():
+    """Clean up all registered optimizers and runners at exit."""
+    for runner in _runners:
+        try:
+            runner.shutdown()
+        except Exception:
+            pass
+    for optimizer in _optimizers:
+        try:
+            optimizer.shutdown()
+        except Exception:
+            pass
+
+
+# Register cleanup on exit
+atexit.register(_cleanup_all)
+
+
 # Convenience functions
 def optimized_run(func: Callable, *args, **kwargs) -> Tuple[Any, PerformanceMetrics]:
     """Quick optimized execution of a function."""
     runner = FastProtocolRunner()
-    return runner.run_optimized_protocol(func, *args, **kwargs)
+    _register_runner(runner)
+    try:
+        result = runner.run_optimized_protocol(func, *args, **kwargs)
+        return result
+    finally:
+        runner.shutdown()
 
 
 def clear_performance_cache():

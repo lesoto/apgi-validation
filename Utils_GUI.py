@@ -8,6 +8,7 @@ with output display and error handling.
 """
 
 import logging
+import os
 import platform
 import queue
 import re
@@ -676,6 +677,10 @@ class UtilsRunnerGUI:
                 self._update_button_states()
                 return False
 
+            # Set environment variables for faster execution in validation mode
+            env = os.environ.copy()
+            env["APGI_TEST_MODE"] = "1"  # Enable test mode for faster sampling
+
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -684,6 +689,7 @@ class UtilsRunnerGUI:
                 bufsize=1,
                 universal_newlines=True,
                 cwd=cwd_path,
+                env=env,
             )
 
             self.running_processes[script_name] = process

@@ -3110,7 +3110,7 @@ def check_falsification(
             np.mean(apgi_advantageous_selection) - np.mean(no_somatic_selection)
             if len(apgi_advantageous_selection) > 0 and len(no_somatic_selection) > 0
             else 0.0
-        )
+        )  # type: ignore[assignment]
         t_stat, p_value, cohens_h = 0.0, 1.0, 0.0
         f2_1_pass = mean_advantage >= F2_1_MIN_ADVANTAGE_PCT
 
@@ -3415,7 +3415,7 @@ def check_falsification(
     else:
         mean_advantage = float(
             perf_data[0] if len(perf_data) > 0 else overall_performance_advantage
-        )
+        )  # type: ignore[assignment]
         t_stat, p_value_one_tailed, cohens_d = 0.0, 1.0, 0.0
 
     # Falsification: Advantage < 18% OR d < 0.60

@@ -3498,8 +3498,10 @@ class ClinicalDoCBiomarkerValidation:
         sensitivity = recall_score(y, y_pred)  # True Positive Rate
         specificity = recall_score(y, 1 - y_pred)  # True Negative Rate
         precision = precision_score(y, y_pred, zero_division=0)
-        npv = precision_score(
-            1 - y, 1 - y_pred, zero_division=0
+        y_array = np.asarray(y)
+        y_pred_array = np.asarray(y_pred)
+        npv = precision_score(  # type: ignore[arg-type]
+            1 - y_array, 1 - y_pred_array, zero_division=0
         )  # Negative Predictive Value
         roc_auc = roc_auc_score(y, y_pred_proba)
         f1 = f1_score(y, y_pred)

@@ -594,7 +594,7 @@ class ComputationalBenchmarker:
                 beliefs = simulation.get("beliefs", np.zeros(100))
                 free_energy = simulation.get("free_energy", np.zeros(100))
                 # Precision based on belief stability and free energy reduction
-                belief_stability = 1.0 - min(1.0, np.std(np.diff(beliefs)) * 2)
+                belief_stability = 1.0 - min(1.0, np.std(np.diff(beliefs)) * 2)  # type: ignore[operator]
                 fe_trend = (
                     np.mean(free_energy[:50]) - np.mean(free_energy[-50:])
                     if len(free_energy) >= 100
@@ -1182,6 +1182,32 @@ class AIBenchmarkingExtension:
 # =============================================================================
 # MAIN EXECUTION WITH ENHANCED FEATURES
 # =============================================================================
+
+
+# Module-level function for GUI/script runner integration
+def run_benchmark_suite(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    Run the computational benchmark suite.
+
+    This module-level function allows the benchmark to be run by external
+    scripts and GUI tools via importlib.
+
+    Args:
+        config: Optional configuration dictionary for the benchmark
+
+    Returns:
+        Dictionary containing benchmark results and comparison report
+    """
+    benchmarker = EnhancedBenchmarker()
+
+    # Create standard benchmark paradigms
+    paradigms = create_benchmark_paradigms()
+
+    # Run the enhanced benchmark
+    results = benchmarker.run_enhanced_benchmark(paradigms)
+
+    return results
+
 
 if __name__ == "__main__":
     # Initialize enhanced benchmarker

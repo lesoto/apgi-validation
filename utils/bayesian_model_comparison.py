@@ -860,17 +860,25 @@ class Protocol2TMSCausalIntervention:
         return results
 
 
-def validate_parameter_recovery(n_simulations: int = 100):
+def validate_parameter_recovery(n_simulations: int = 100, quick_mode: bool = False):
     """
     Mandatory pre-empirical validation: Can we recover known parameters?
     Generates synthetic data with known θ₀, Πᵢ, β_som and tests if
     Bayesian fitting recovers them with r > 0.85 (θ₀, β_som) and r > 0.75 (Πᵢ)
 
+    Args:
+        n_simulations: Number of simulations to run
+        quick_mode: If True, use reduced sampling for faster CI execution
     """
     true_params = []
     recovered_params = []
 
     generator = SyntheticConsciousnessDataGenerator(seed=42)
+
+    # Use reduced sampling in quick mode for CI/quick validation
+    n_samples = 500 if quick_mode else 2000
+    n_tune = 250 if quick_mode else 1000
+    n_chains = 2 if quick_mode else 4
 
     for sim in range(n_simulations):
         # Generate with known parameters
@@ -888,7 +896,9 @@ def validate_parameter_recovery(n_simulations: int = 100):
         model = APGIGenerativeModel()
         model_instance = model.build_model(dataset)
         with model_instance:
-            trace = pm.sample(2000, tune=1000, target_accept=0.95)
+            trace = pm.sample(
+                n_samples, tune=n_tune, chains=n_chains, target_accept=0.95
+            )
         theta_0_recovered = trace.posterior["theta_0"].mean().item()
         Pi_i_recovered = trace.posterior["Pi_i"].mean().item()
         beta_recovered = trace.posterior["beta"].mean().item()
@@ -1761,9 +1771,9 @@ class BayesianModelComparison:
             best_loo = df["loo"].min()
             best_bic = df["bic"].min()
 
-            df["delta_waic"] = df["waic"] - best_waic
-            df["delta_loo"] = df["loo"] - best_loo
-            df["delta_bic"] = df["bic"] - best_bic  # Secondary delta
+            df.loc[:, "delta_waic"] = df["waic"] - best_waic
+            df.loc[:, "delta_loo"] = df["loo"] - best_loo
+            df.loc[:, "delta_bic"] = df["bic"] - best_bic  # Secondary delta
 
             # PRIMARY: Bayes factors (from LOO - more accurate than BIC)
             # BF ≈ exp(-0.5 * ΔLOO)
@@ -1772,8 +1782,8 @@ class BayesianModelComparison:
                 if "APGI" in df["model"].values
                 else best_loo
             )
-            df["delta_loo_vs_apgi"] = df["loo"] - apgi_loo
-            df["BF_vs_apgi"] = np.exp(-0.5 * df["delta_loo_vs_apgi"])
+            df.loc[:, "delta_loo_vs_apgi"] = df["loo"] - apgi_loo
+            df.loc[:, "BF_vs_apgi"] = np.exp(-0.5 * df["delta_loo_vs_apgi"])
 
             # SECONDARY: BIC-based Bayes factors (for backwards compatibility)
             apgi_bic = (
@@ -1781,8 +1791,8 @@ class BayesianModelComparison:
                 if "APGI" in df["model"].values
                 else best_bic
             )
-            df["delta_bic_vs_apgi"] = df["bic"] - apgi_bic
-            df["BF_vs_apgi_bic"] = np.exp(-0.5 * df["delta_bic_vs_apgi"])
+            df.loc[:, "delta_bic_vs_apgi"] = df["bic"] - apgi_bic
+            df.loc[:, "BF_vs_apgi_bic"] = np.exp(-0.5 * df["delta_bic_vs_apgi"])
 
             df = df.sort_values("loo")  # Sort by primary criterion
 

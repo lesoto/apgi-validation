@@ -1096,7 +1096,7 @@ class MultimodalPreprocessingPipeline:
         if "eeg" in df.columns:
             df_processed = self.eeg_processor.preprocess_eeg(
                 df_processed, ["eeg"], sampling_rate=sampling_rate
-            )
+            )  # type: ignore[assignment]
 
         if "pupil_diameter" in df.columns:
             df_processed = self.pupil_processor.preprocess_pupil(

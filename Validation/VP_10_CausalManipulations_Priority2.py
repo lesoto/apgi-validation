@@ -148,12 +148,12 @@ class TMSIntervention:
         Returns:
             Dictionary with behavioral and neural results
         """
-        results: Dict[str, List[float]] = {
+        results: Dict[str, Any] = {
             "p3b_amplitudes": [],
             "detection_rates": [],
             "reaction_times": [],
             "timings": list(np.linspace(0.1, 0.5, n_trials)),
-            "target_region": [float(target_region)],
+            "target_region": target_region,
         }
 
         for timing in results["timings"]:
@@ -2555,31 +2555,31 @@ class ColdPressorTest:
                 breathlessness_rating = 0
 
             # Cardiovascular responses
-            hr_increase = 20 * pain_rating  # 20 bpm per pain unit
-            sbp_increase = 15 * pain_rating  # 15 mmHg per pain unit
+            hr_increase = 20 * pain_rating  # type: ignore[operator]  # 20 bpm per pain unit
+            sbp_increase = 15 * pain_rating  # type: ignore[operator]  # 15 mmHg per pain unit
 
             cardiovascular_response = {
                 "time_s": t,
                 "hr_bpm": 70 + hr_increase,
                 "sbp_mmhg": 120 + sbp_increase,
-                "spo2_percent": 98 - 2 * pain_rating,  # Mild desaturation
+                "spo2_percent": 98 - 2 * pain_rating,  # type: ignore[operator]  # Mild desaturation
             }
             results["cardiovascular_responses"].append(cardiovascular_response)  # type: ignore[attr-defined]
 
             # Check safety criteria
-            if cardiovascular_response["hr_bpm"] > self.safety_criteria["max_hr_bpm"]:
+            if cardiovascular_response["hr_bpm"] > self.safety_criteria["max_hr_bpm"]:  # type: ignore[operator]
                 results["safety_violations"].append(  # type: ignore[attr-defined]
                     f"HR exceeded: {cardiovascular_response['hr_bpm']}"
                 )
             if (
-                cardiovascular_response["sbp_mmhg"]
+                cardiovascular_response["sbp_mmhg"]  # type: ignore[operator]
                 > self.safety_criteria["max_sbp_mmhg"]
             ):
                 results["safety_violations"].append(  # type: ignore[attr-defined]
                     f"SBP exceeded: {cardiovascular_response['sbp_mmhg']}"
                 )
             if (
-                cardiovascular_response["spo2_percent"]
+                cardiovascular_response["spo2_percent"]  # type: ignore[operator]
                 < self.safety_criteria["min_spo2_percent"]
             ):
                 results["safety_violations"].append(  # type: ignore[attr-defined]

@@ -5,11 +5,6 @@ runner = "pytest -v"
 tests_dir = "tests/"
 dict_synonyms = ["Struct", "Bunch"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-addopts = "-v --tb=short"
-
 [tool.mypy]
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]

@@ -710,7 +710,7 @@ class BatchProcessor:
             for i in range(len(correlation_matrix.columns)):
                 for j in range(i + 1, len(correlation_matrix.columns)):
                     corr_val = correlation_matrix.iloc[i, j]
-                    if abs(corr_val) > 0.7:
+                    if abs(float(corr_val)) > 0.7:  # type: ignore[arg-type]
                         result["strong_correlations"].append(
                             {
                                 "var1": correlation_matrix.columns[i],

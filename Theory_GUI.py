@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-GUI for running APGI Theory scripts
+APGI Theory GUI - Redesigned with APGI Design Guide
+
+Scientific Instrument aesthetic with standardized APGI components.
 """
 
 import os
@@ -41,7 +43,7 @@ import tkinter as tk
 import warnings
 from pathlib import Path
 from tkinter import messagebox, scrolledtext, ttk
-from typing import Any, Callable, List
+from typing import List
 
 try:
     import torch
@@ -76,14 +78,326 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+# ============================================================================
+# APGI Design System - Theme and Components
+# ============================================================================
+
+# Color Palette (Lab System)
+COLORS = {
+    "primary": "#2874a6",
+    "success": "#155724",
+    "alert": "#721c24",
+    "background": "#f8f9fa",
+    "surface": "#ffffff",
+    "border": "#dee2e6",
+    "text_primary": "#212529",
+    "text_secondary": "#6c757d",
+    "text_muted": "#adb5bd",
+    "soft_gray": "#e9ecef",
+    "info": "#856404",
+}
+
+# Typography
+FONTS = {
+    "primary": "Noto Sans",
+    "monospace": "Noto Sans Mono",
+    "academic": "Noto Serif",
+}
+
+
+def apply_apgi_theme(root):
+    """Apply unified APGI theme to tkinter application."""
+    style = ttk.Style()
+    style.theme_use("clam")
+
+    # Core Palette
+    bg_color = COLORS["background"]
+    fg_color = COLORS["text_primary"]
+
+    # Configure Global Elements
+    style.configure("TFrame", background=bg_color)
+    style.configure(
+        "TLabel", background=bg_color, foreground=fg_color, font=(FONTS["primary"], 10)
+    )
+    style.configure("Header.TLabel", font=(FONTS["primary"], 12, "bold"))
+    style.configure("Title.TLabel", font=(FONTS["primary"], 16, "bold"))
+    style.configure(
+        "Subtitle.TLabel",
+        font=(FONTS["primary"], 10),
+        foreground=COLORS["text_secondary"],
+    )
+    style.configure(
+        "Monospace.TLabel",
+        font=(FONTS["monospace"], 11),
+        foreground=COLORS["text_primary"],
+    )
+
+    # Custom Card Style
+    style.configure(
+        "Card.TFrame",
+        background=COLORS["surface"],
+        borderwidth=1,
+        relief="solid",
+    )
+
+    # Labeled Frame (Metric Card Style)
+    style.configure(
+        "Metric.TLabelframe",
+        background=COLORS["surface"],
+        borderwidth=1,
+        relief="solid",
+    )
+    style.configure(
+        "Metric.TLabelframe.Label",
+        background=COLORS["surface"],
+        foreground=COLORS["text_secondary"],
+        font=(FONTS["primary"], 9),
+    )
+
+    # Button Styling
+    style.configure("TButton", padding=6, background=COLORS["soft_gray"])
+    style.map(
+        "TButton",
+        background=[("active", "#dee2e6"), ("disabled", "#f1f3f5")],
+        foreground=[("disabled", "#adb5bd")],
+    )
+
+    # Primary Button (Success - Green)
+    style.configure(
+        "Primary.TButton",
+        background=COLORS["success"],
+        foreground="white",
+        font=(FONTS["primary"], 10, "bold"),
+        padding=8,
+    )
+    style.map(
+        "Primary.TButton",
+        background=[("active", "#0f3d1a")],
+        foreground=[("active", "white")],
+    )
+
+    # Secondary Button (Primary Blue)
+    style.configure(
+        "Secondary.TButton",
+        background=COLORS["primary"],
+        foreground="white",
+        font=(FONTS["primary"], 10),
+        padding=6,
+    )
+    style.map(
+        "Secondary.TButton",
+        background=[("active", "#1f5a82")],
+        foreground=[("active", "white")],
+    )
+
+    # Danger Button (Alert - Red)
+    style.configure(
+        "Danger.TButton",
+        background=COLORS["alert"],
+        foreground="white",
+        font=(FONTS["primary"], 10, "bold"),
+        padding=8,
+    )
+    style.map(
+        "Danger.TButton",
+        background=[("active", "#5a161d")],
+        foreground=[("active", "white")],
+    )
+
+    # Checkbutton
+    style.configure("Card.TCheckbutton", background=COLORS["surface"])
+
+    # Notebook (Tab) Styling
+    style.configure(
+        "TNotebook",
+        background=bg_color,
+        tabmargins=[2, 5, 2, 0],
+    )
+    style.configure(
+        "TNotebook.Tab",
+        font=(FONTS["primary"], 10),
+        padding=[10, 5],
+    )
+    style.map(
+        "TNotebook.Tab",
+        background=[("selected", COLORS["surface"])],
+        expand=[("selected", [1, 1, 1, 0])],
+    )
+
+    # Progress Bar
+    style.configure(
+        "TProgressbar",
+        background=COLORS["primary"],
+        troughcolor=COLORS["soft_gray"],
+        borderwidth=0,
+    )
+
+    # Status Bar
+    style.configure(
+        "Status.TFrame",
+        background=COLORS["surface"],
+        borderwidth=1,
+        relief="solid",
+    )
+
+    # Configure root window
+    root.configure(background=bg_color)
+
+    return style
+
+
+class APGICard(ttk.Frame):
+    """Standardized information card for all APGI apps.
+
+    Features:
+    - Title with uppercase styling
+    - Monospace value display
+    - Optional intervention hint (The Intervention Rule)
+    - Consistent padding and borders
+    """
+
+    def __init__(self, parent, title, value, intervention="", **kwargs):
+        # Use custom style 'Card.TFrame' defined in apply_apgi_theme
+        super().__init__(parent, style="Card.TFrame", **kwargs)
+
+        # Internal padding via sub-frame
+        container = ttk.Frame(self, padding=15, style="Card.TFrame")
+        container.pack(fill="both", expand=True)
+
+        # Title (uppercase per lab convention)
+        self.lbl_title = ttk.Label(container, text=title.upper(), style="Header.TLabel")
+        self.lbl_title.pack(anchor="w")
+
+        # Value (monospace for scientific precision)
+        self.lbl_value = ttk.Label(container, text=value, font=(FONTS["monospace"], 14))
+        self.lbl_value.pack(anchor="w", pady=(5, 10))
+
+        # Intervention Rule (MANDATORY if displaying deficits)
+        if intervention:
+            separator = ttk.Separator(container, orient="horizontal")
+            separator.pack(fill="x", pady=5)
+
+            self.lbl_hint = ttk.Label(
+                container,
+                text=f"Intervention: {intervention}",
+                wraplength=250,
+                foreground="#495057",
+                font=(FONTS["primary"], 9, "italic"),
+            )
+            self.lbl_hint.pack(anchor="w")
+
+
+class APGIButtons:
+    """Standard button configurations for APGI applications."""
+
+    @staticmethod
+    def primary(parent, text, command):
+        """Primary action button (green)."""
+        return ttk.Button(
+            parent,
+            text=text,
+            command=command,
+            style="Primary.TButton",
+            cursor="hand2",
+        )
+
+    @staticmethod
+    def danger(parent, text, command):
+        """Danger/Stop button (red)."""
+        return ttk.Button(
+            parent,
+            text=text,
+            command=command,
+            style="Danger.TButton",
+            cursor="hand2",
+        )
+
+    @staticmethod
+    def secondary(parent, text, command):
+        """Secondary action button (blue)."""
+        return ttk.Button(
+            parent,
+            text=text,
+            command=command,
+            style="Secondary.TButton",
+            cursor="hand2",
+        )
+
+    @staticmethod
+    def standard(parent, text, command):
+        """Standard action button."""
+        return ttk.Button(parent, text=text, command=command, cursor="hand2")
+
+
+def show_status(parent, status_type, message):
+    """Create a status indicator with icon and color (WCAG compliant)."""
+    icons = {
+        "success": "[OK]",
+        "error": "[X]",
+        "warning": "[!]",
+        "info": "[i]",
+    }
+    colors = {
+        "success": COLORS["success"],
+        "error": COLORS["alert"],
+        "warning": COLORS["info"],
+        "info": COLORS["primary"],
+    }
+
+    label = ttk.Label(
+        parent,
+        text=f"{icons[status_type]} {message}",
+        foreground=colors[status_type],
+        font=(FONTS["primary"], 10, "bold"),
+    )
+    return label
+
+
+def create_empty_state(parent, message):
+    """Create empty state placeholder for data views."""
+    frame = ttk.Frame(parent, padding=40)
+    frame.pack(expand=True)
+
+    # Soft gray outline
+    canvas = tk.Canvas(
+        frame,
+        width=200,
+        height=120,
+        bg=COLORS["background"],
+        highlightbackground=COLORS["soft_gray"],
+        highlightthickness=2,
+    )
+    canvas.pack()
+
+    # Message
+    label = ttk.Label(
+        frame,
+        text=message,
+        wraplength=300,
+        font=(FONTS["primary"], 11),
+        foreground=COLORS["text_secondary"],
+    )
+    label.pack(pady=(20, 0))
+
+    return frame
+
+
+# ============================================================================
+# Main GUI Class
+# ============================================================================
+
+
 class ScriptRunnerGUI:
-    """GUI for running APGI Theory scripts with progress tracking."""
+    """APGI Theory Framework Runner - Scientific Instrument Interface."""
 
     def __init__(self, root):
         self.root = root
-        self.root.title("APGI Theory Framework Runner")
-        self.root.geometry("900x700")
-        self.root.minsize(640, 480)
+        self.root.title("APGI Theory Framework - Scientific Instrument Interface")
+        self.root.geometry("1200x850")
+        self.root.minsize(900, 650)
+
+        # Apply APGI Theme
+        self.style = apply_apgi_theme(root)
 
         # Add project root to Python path
         project_root = os.path.dirname(os.path.abspath(__file__))
@@ -108,8 +422,11 @@ class ScriptRunnerGUI:
         # Add window close handler
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 
+        # Build UI
         self.setup_ui()
-        self.log_message(f"Loaded {len(self.protocols)} scripts from Theory folder")
+        self.log_message(
+            f"Instrument initialized. Loaded {len(self.protocols)} theory scripts."
+        )
 
     def _discover_protocols(self, theory_dir):
         """Discover all Python scripts in Theory folder and introspect their capabilities."""
@@ -319,16 +636,6 @@ class ScriptRunnerGUI:
 
         return parameters
 
-    def _create_menu_bar(self):
-        """Create menu bar"""
-        menubar = tk.Menu(self.root)
-        self.root.config(menu=menubar)
-
-        # File menu
-        file_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Exit", command=self.root.quit)
-
     def _on_closing(self):
         """Handle window close event with proper thread cleanup."""
         # Stop the running thread if it exists
@@ -340,185 +647,295 @@ class ScriptRunnerGUI:
                 logging.warning("Thread did not stop cleanly on exit")
         self.root.destroy()
 
+    # ============================================================================
+    # UI Layout - Scientific Instrument Architecture
+    # ============================================================================
+
     def setup_ui(self):
-        """Setup the user interface."""
+        """Setup the scientific instrument interface."""
 
-        # Create menu bar
-        self._create_menu_bar()
+        # Configure grid weights for main layout
+        self.root.grid_columnconfigure(0, weight=0, minsize=220)  # Sidebar
+        self.root.grid_columnconfigure(1, weight=1)  # Workspace
+        self.root.grid_rowconfigure(0, weight=0)  # Top metric bar
+        self.root.grid_rowconfigure(1, weight=1)  # Main content
+        self.root.grid_rowconfigure(2, weight=0, minsize=180)  # Console
 
-        # Main container
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # Top Metric Bar ($B_t$, epoch, connection status)
+        self._create_metric_bar()
 
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(2, weight=1)
+        # Left Sidebar (Script Selection)
+        self._create_sidebar()
 
-        title_label = ttk.Label(
-            main_frame, text="APGI Theory Scripts", font=("Arial", 16, "bold")
-        )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        # Main Workspace (Tabs: Scripts, Parameters)
+        self._create_workspace()
 
-        self.notebook = ttk.Notebook(main_frame)
-        self.notebook.grid(
-            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
-        )
-
-        protocols_frame = ttk.Frame(self.notebook)
-        self.notebook.add(protocols_frame, text="Scripts")
-        self.setup_protocols_tab(protocols_frame)
-
-        params_frame = ttk.Frame(self.notebook)
-        self.notebook.add(params_frame, text="Parameters")
-        self.setup_parameters_tab(params_frame)
-
-        console_frame = ttk.LabelFrame(main_frame, text="Output Console", padding="10")
-        console_frame.grid(
-            row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S)
-        )
-
-        self.output_console = scrolledtext.ScrolledText(
-            console_frame, height=15, width=80
-        )
-        self.output_console.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-        console_frame.columnconfigure(0, weight=1)
-        console_frame.rowconfigure(0, weight=1)
-
-        # Status bar and clear console button frame
-        status_frame = ttk.LabelFrame(main_frame, text="Status", padding="10")
-        status_frame.grid(
-            row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0)
-        )
-        status_frame.columnconfigure(1, weight=1)
-
-        # Status bar
-        self.status_var = tk.StringVar(value="Ready")
-        status_bar = ttk.Label(
-            status_frame, textvariable=self.status_var, relief=tk.SUNKEN
-        )
-        status_bar.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 5))
-
-        # Progress bar
-        self.progress_var = tk.DoubleVar(value=0.0)
-        self.progress_bar = ttk.Progressbar(
-            status_frame,
-            variable=self.progress_var,
-            maximum=100.0,
-            mode="determinate",
-            length=300,
-        )
-        self.progress_bar.grid(
-            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
-        )
-
-        # Control buttons
-        button_frame = ttk.Frame(status_frame)
-        button_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E))
-
-        clear_btn = ttk.Button(
-            button_frame, text="Clear Console", command=self.clear_console
-        )
-        clear_btn.pack(side=tk.LEFT, padx=(0, 10))
-
-        self.stop_btn = ttk.Button(
-            button_frame, text="Stop", command=self.stop_protocol, state=tk.DISABLED
-        )
-        self.stop_btn.pack(side=tk.LEFT)
+        # Bottom Console (Log output)
+        self._create_console()
 
         # Configure tab order for keyboard navigation
         self._setup_tab_order()
 
-    def setup_protocols_tab(self, parent_frame):
-        """Setup the protocols selection tab."""
-        parent_frame.columnconfigure(0, weight=1)
-        parent_frame.rowconfigure(0, weight=1)
+    def _create_metric_bar(self):
+        """Create top metric bar with system status indicators."""
+        metric_bar = ttk.Frame(self.root, padding=(15, 8))
+        metric_bar.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E))
+        metric_bar.configure(style="TFrame")
 
-        # Script buttons frame
-        button_frame = ttk.LabelFrame(parent_frame, text="Select Script", padding="10")
-        button_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        # System Status Card
+        status_card = ttk.LabelFrame(
+            metric_bar,
+            text="SYSTEM STATUS",
+            padding=(10, 5),
+            style="Metric.TLabelframe",
+        )
+        status_card.pack(side=tk.LEFT, padx=(0, 15))
 
-        # Create buttons in 2-column grid (adapts to number of protocols)
-        n_cols = 2
+        self.system_status_label = ttk.Label(
+            status_card,
+            text="[OK] Ready",
+            font=(FONTS["monospace"], 11),
+            foreground=COLORS["success"],
+        )
+        self.system_status_label.pack(side=tk.LEFT)
+
+        # Scripts Loaded Card
+        scripts_card = ttk.LabelFrame(
+            metric_bar,
+            text="ACTIVE SCRIPTS",
+            padding=(10, 5),
+            style="Metric.TLabelframe",
+        )
+        scripts_card.pack(side=tk.LEFT, padx=(0, 15))
+
+        self.scripts_count_label = ttk.Label(
+            scripts_card,
+            text=str(len(self.protocols)),
+            font=(FONTS["monospace"], 11),
+            foreground=COLORS["primary"],
+        )
+        self.scripts_count_label.pack(side=tk.LEFT)
+
+        # Platform Card
+        platform_card = ttk.LabelFrame(
+            metric_bar, text="PLATFORM", padding=(10, 5), style="Metric.TLabelframe"
+        )
+        platform_card.pack(side=tk.LEFT)
+
+        import platform
+
+        platform_text = f"{platform.system()} {platform.machine()}"
+        platform_label = ttk.Label(
+            platform_card,
+            text=platform_text,
+            font=(FONTS["monospace"], 10),
+            foreground=COLORS["text_secondary"],
+        )
+        platform_label.pack(side=tk.LEFT)
+
+    def _create_sidebar(self):
+        """Create left sidebar with script selection."""
+        sidebar = ttk.Frame(self.root, padding=15)
+        sidebar.grid(row=1, column=0, sticky=(tk.N, tk.S, tk.W, tk.E))
+        sidebar.configure(style="TFrame")
+
+        # Sidebar Title
+        sidebar_title = ttk.Label(sidebar, text="SCRIPT LIBRARY", style="Header.TLabel")
+        sidebar_title.pack(anchor="w", pady=(0, 15))
+
+        # Script count subtitle
+        sidebar_subtitle = ttk.Label(
+            sidebar,
+            text=f"{len(self.protocols)} Theory Modules Available",
+            style="Subtitle.TLabel",
+        )
+        sidebar_subtitle.pack(anchor="w", pady=(0, 10))
+
+        # Scrollable script list
+        script_canvas = tk.Canvas(
+            sidebar, background=COLORS["background"], highlightthickness=0
+        )
+        scrollbar = ttk.Scrollbar(
+            sidebar, orient="vertical", command=script_canvas.yview
+        )
+        self.script_list_frame = ttk.Frame(script_canvas, style="TFrame")
+
+        self.script_list_frame.bind(
+            "<Configure>",
+            lambda e: script_canvas.configure(scrollregion=script_canvas.bbox("all")),
+        )
+
+        script_canvas.create_window((0, 0), window=self.script_list_frame, anchor="nw")
+        script_canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Populate script buttons
+        self.script_buttons = {}
         for i, (protocol_name, protocol_info) in enumerate(self.protocols.items()):
-            row = i // n_cols
-            col = i % n_cols
+            btn_frame = ttk.Frame(self.script_list_frame, style="Card.TFrame")
+            btn_frame.pack(fill="x", pady=(0, 8), padx=2)
 
             btn = ttk.Button(
-                button_frame,
+                btn_frame,
                 text=protocol_name,
                 command=lambda info=protocol_info, name=protocol_name: self.select_protocol(
                     name, info
                 ),
             )
-            btn.grid(row=row, column=col, padx=5, pady=5, sticky=(tk.W, tk.E))
+            btn.pack(fill="x", padx=8, pady=8)
+
+            self.script_buttons[protocol_name] = btn
 
             # Add tooltip
             self.create_tooltip(btn, protocol_info["description"])
 
-        # Configure button grid weights
-        for col in range(n_cols):
-            button_frame.columnconfigure(col, weight=1)
+        script_canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
-        # Selected protocol display
-        selected_frame = ttk.LabelFrame(
-            parent_frame, text="Selected Script", padding="10"
+    def _create_workspace(self):
+        """Create main workspace area with notebook tabs."""
+        workspace = ttk.Frame(self.root, padding=15)
+        workspace.grid(row=1, column=1, sticky=(tk.N, tk.S, tk.W, tk.E))
+        workspace.configure(style="TFrame")
+
+        # Notebook for tabs
+        self.notebook = ttk.Notebook(workspace)
+        self.notebook.pack(fill="both", expand=True)
+
+        # Scripts Tab
+        scripts_tab = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(scripts_tab, text="Protocols")
+        self._setup_protocols_tab(scripts_tab)
+
+        # Parameters Tab
+        params_tab = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(params_tab, text="Parameters")
+        self._setup_parameters_tab(params_tab)
+
+    def _setup_protocols_tab(self, parent_frame):
+        """Setup the protocols selection tab."""
+        parent_frame.columnconfigure(0, weight=1)
+        parent_frame.rowconfigure(1, weight=1)
+
+        # Selected Protocol Display Card
+        selected_card = ttk.LabelFrame(
+            parent_frame,
+            text="SELECTED PROTOCOL",
+            padding=15,
+            style="Metric.TLabelframe",
         )
-        selected_frame.grid(row=1, column=0, sticky=(tk.W, tk.E))
+        selected_card.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
 
         self.selected_protocol_label = ttk.Label(
-            selected_frame, text="No protocol selected", font=("Arial", 10, "bold")
+            selected_card,
+            text="No protocol selected",
+            font=(FONTS["primary"], 12, "bold"),
+            foreground=COLORS["text_secondary"],
         )
-        self.selected_protocol_label.pack()
+        self.selected_protocol_label.pack(anchor="w")
 
-        # Run buttons frame
-        run_buttons_frame = ttk.Frame(parent_frame)
-        run_buttons_frame.grid(row=2, column=0, pady=(10, 0))
+        # Script description label
+        self.selected_protocol_desc = ttk.Label(
+            selected_card,
+            text="Select a theory script from the sidebar to begin",
+            wraplength=500,
+            foreground=COLORS["text_secondary"],
+        )
+        self.selected_protocol_desc.pack(anchor="w", pady=(5, 0))
+
+        # Control Buttons Frame
+        control_frame = ttk.Frame(parent_frame)
+        control_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
 
         # Run selected button
-        self.run_selected_button = ttk.Button(
-            run_buttons_frame,
-            text="Run Selected Script",
-            command=self.run_selected_protocol,
-            state=tk.DISABLED,
+        self.run_selected_button = APGIButtons.primary(
+            control_frame, "Run Selected", self.run_selected_protocol
         )
-        self.run_selected_button.pack(side=tk.LEFT, padx=(0, 5))
+        self.run_selected_button.pack(side=tk.LEFT, padx=(0, 10))
+        self.run_selected_button.config(state=tk.DISABLED)
 
         # Run all button
-        self.run_all_button = ttk.Button(
-            run_buttons_frame,
-            text="Run All Scripts",
-            command=self.run_all_protocols,
+        self.run_all_button = APGIButtons.secondary(
+            control_frame, "Run All Scripts", self.run_all_protocols
         )
-        self.run_all_button.pack(side=tk.LEFT, padx=(5, 0))
+        self.run_all_button.pack(side=tk.LEFT)
 
-    def setup_parameters_tab(self, parent_frame):
+        # Quick Stats Frame
+        stats_frame = ttk.LabelFrame(
+            parent_frame,
+            text="QUICK STATISTICS",
+            padding=15,
+            style="Metric.TLabelframe",
+        )
+        stats_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Create stat cards in grid
+        stats_frame.columnconfigure(0, weight=1)
+        stats_frame.columnconfigure(1, weight=1)
+        stats_frame.columnconfigure(2, weight=1)
+
+        # Total Scripts
+        self.stat_total_card = APGICard(
+            stats_frame, "Total Scripts", str(len(self.protocols))
+        )
+        self.stat_total_card.grid(
+            row=0, column=0, padx=(0, 10), pady=(0, 10), sticky="nsew"
+        )
+
+        # Configurable Scripts (those with parameters)
+        configurable_count = sum(
+            1 for p in self.protocols.values() if p.get("parameters")
+        )
+        self.stat_config_card = APGICard(
+            stats_frame, "Configurable", str(configurable_count)
+        )
+        self.stat_config_card.grid(
+            row=0, column=1, padx=(0, 10), pady=(0, 10), sticky="nsew"
+        )
+
+        # Ready Status
+        self.stat_ready_card = APGICard(stats_frame, "Status", "Ready")
+        self.stat_ready_card.grid(row=0, column=2, pady=(0, 10), sticky="nsew")
+
+    def _setup_parameters_tab(self, parent_frame):
         """Setup the parameters configuration tab."""
         parent_frame.columnconfigure(0, weight=1)
         parent_frame.rowconfigure(1, weight=1)
 
-        # Script selector
-        selector_frame = ttk.Frame(parent_frame)
-        selector_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        # Protocol Selector
+        selector_card = ttk.LabelFrame(
+            parent_frame,
+            text="SCRIPT SELECTION",
+            padding=15,
+            style="Metric.TLabelframe",
+        )
+        selector_card.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
 
-        ttk.Label(selector_frame, text="Configure parameters for:").pack(side=tk.LEFT)
+        selector_inner = ttk.Frame(selector_card)
+        selector_inner.pack(fill="x")
+
+        ttk.Label(selector_inner, text="Configure parameters for:").pack(side=tk.LEFT)
         self.protocol_selector = ttk.Combobox(
-            selector_frame, values=list(self.protocols.keys()), state="readonly"
+            selector_inner,
+            values=list(self.protocols.keys()),
+            state="readonly",
+            width=40,
         )
         self.protocol_selector.pack(side=tk.LEFT, padx=(10, 0))
         self.protocol_selector.bind("<<ComboboxSelected>>", self.on_protocol_selected)
 
-        # Parameters frame
-        self.params_frame = ttk.LabelFrame(
-            parent_frame, text="Parameters", padding="10"
+        # Parameters Frame
+        params_card = ttk.LabelFrame(
+            parent_frame,
+            text="PARAMETER CONFIGURATION",
+            padding=15,
+            style="Metric.TLabelframe",
         )
-        self.params_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        params_card.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Scrollable frame for parameters
-        self.params_canvas = tk.Canvas(self.params_frame, height=300)
+        self.params_canvas = tk.Canvas(params_card, background=COLORS["surface"])
         self.params_scrollbar = ttk.Scrollbar(
-            self.params_frame, orient="vertical", command=self.params_canvas.yview
+            params_card, orient="vertical", command=self.params_canvas.yview
         )
         self.params_scrollable_frame = ttk.Frame(self.params_canvas)
 
@@ -537,23 +954,125 @@ class ScriptRunnerGUI:
         self.params_canvas.pack(side="left", fill="both", expand=True)
         self.params_scrollbar.pack(side="right", fill="y")
 
-        # Control buttons
+        # Control Buttons
         control_frame = ttk.Frame(parent_frame)
         control_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
 
-        ttk.Button(
-            control_frame, text="Load Defaults", command=self.load_default_parameters
+        APGIButtons.standard(
+            control_frame, "Load Defaults", self.load_default_parameters
         ).pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Button(
-            control_frame, text="Save Parameters", command=self.save_parameters
+        APGIButtons.standard(
+            control_frame, "Save Parameters", self.save_parameters
         ).pack(side=tk.LEFT)
+
+        # Empty state message
+        self._show_empty_params_state()
+
+    def _show_empty_params_state(self):
+        """Show empty state for parameters tab."""
+        for widget in self.params_scrollable_frame.winfo_children():
+            widget.destroy()
+
+        create_empty_state(
+            self.params_scrollable_frame,
+            "Select a script from the dropdown above to view configurable parameters",
+        )
+
+    def _create_console(self):
+        """Create bottom console (log output)."""
+        console_frame = ttk.LabelFrame(
+            self.root,
+            text="INSTRUMENT CONSOLE - Real-time Data Stream",
+            padding=10,
+            style="Metric.TLabelframe",
+        )
+        console_frame.grid(
+            row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S)
+        )
+
+        # Console toolbar
+        toolbar = ttk.Frame(console_frame)
+        toolbar.pack(fill="x", pady=(0, 5))
+
+        # Status indicator
+        self.console_status = ttk.Label(
+            toolbar,
+            text="Idle",
+            foreground=COLORS["text_secondary"],
+            font=(FONTS["monospace"], 9),
+        )
+        self.console_status.pack(side=tk.LEFT)
+
+        # Clear button
+        APGIButtons.standard(toolbar, "Clear Console", self.clear_console).pack(
+            side=tk.RIGHT, padx=(5, 0)
+        )
+
+        # Stop button
+        self.stop_btn = APGIButtons.danger(toolbar, "Stop", self.stop_protocol)
+        self.stop_btn.pack(side=tk.RIGHT)
+        self.stop_btn.config(state=tk.DISABLED)
+
+        # Output console
+        console_container = ttk.Frame(console_frame)
+        console_container.pack(fill="both", expand=True)
+
+        self.output_console = scrolledtext.ScrolledText(
+            console_container,
+            height=10,
+            font=(FONTS["monospace"], 10),
+            background=COLORS["surface"],
+            foreground=COLORS["text_primary"],
+            insertbackground=COLORS["primary"],
+            relief="solid",
+            borderwidth=1,
+        )
+        self.output_console.pack(fill="both", expand=True)
+
+        # Progress bar at bottom
+        progress_frame = ttk.Frame(console_frame)
+        progress_frame.pack(fill="x", pady=(5, 0))
+
+        ttk.Label(progress_frame, text="Progress:").pack(side=tk.LEFT)
+
+        self.progress_var = tk.DoubleVar(value=0.0)
+        self.progress_bar = ttk.Progressbar(
+            progress_frame,
+            variable=self.progress_var,
+            maximum=100.0,
+            mode="determinate",
+            length=400,
+        )
+        self.progress_bar.pack(side=tk.LEFT, padx=(10, 0), fill="x", expand=True)
+
+        self.progress_label = ttk.Label(
+            progress_frame, text="0%", font=(FONTS["monospace"], 9)
+        )
+        self.progress_label.pack(side=tk.LEFT, padx=(5, 0))
+
+    # ============================================================================
+    # Protocol Selection and Parameter Management
+    # ============================================================================
 
     def select_protocol(self, protocol_name, protocol_info):
         """Select a protocol for running."""
         self.selected_protocol = protocol_name
-        self.selected_protocol_label.config(text=f"Selected: {protocol_name}")
+        self.selected_protocol_label.config(
+            text=f"[OK] {protocol_name}",
+            foreground=COLORS["success"],
+        )
+        self.selected_protocol_desc.config(text=protocol_info["description"])
         self.run_selected_button.config(state=tk.NORMAL)
+
+        # Update status card
+        self.stat_ready_card.lbl_value.config(text="Selected")
+
+        # Also update combobox in parameters tab
+        self.protocol_selector.set(protocol_name)
+        self.display_protocol_parameters(protocol_name)
+
         self.log_message(f"Selected protocol: {protocol_name}")
+        self.log_message(f"  Description: {protocol_info['description']}")
 
     def on_protocol_selected(self, event):
         """Handle protocol selection for parameter configuration."""
@@ -572,17 +1091,32 @@ class ScriptRunnerGUI:
             ttk.Label(
                 self.params_scrollable_frame,
                 text="No configurable parameters for this protocol",
-            ).pack()
+                foreground=COLORS["text_secondary"],
+            ).pack(pady=20)
             return
 
         # Create parameter controls
         row = 0
         self.parameter_widgets = {}
 
+        # Parameter header
+        header = ttk.Label(
+            self.params_scrollable_frame,
+            text=f"Parameters for {protocol_name}",
+            font=(FONTS["primary"], 11, "bold"),
+        )
+        header.grid(row=row, column=0, columnspan=3, sticky=tk.W, pady=(0, 15))
+        row += 1
+
         for param_name, param_config in protocol_info["parameters"].items():
-            # Parameter label
-            label = ttk.Label(self.params_scrollable_frame, text=f"{param_name}:")
-            label.grid(row=row, column=0, sticky=tk.W, padx=(0, 10), pady=2)
+            # Parameter label with scientific notation styling
+            label_text = param_name.replace("_", " ").title()
+            label = ttk.Label(
+                self.params_scrollable_frame,
+                text=f"{label_text}:",
+                font=(FONTS["monospace"], 10),
+            )
+            label.grid(row=row, column=0, sticky=tk.W, padx=(0, 15), pady=5)
 
             # Create appropriate widget based on type
             if param_config["type"] == "float":
@@ -594,6 +1128,7 @@ class ScriptRunnerGUI:
                     increment=(param_config["max"] - param_config["min"]) / 100,
                     textvariable=var,
                     width=15,
+                    font=(FONTS["monospace"], 10),
                     validate="key",
                     validatecommand=(
                         self.root.register(self._validate_spinbox_float),
@@ -611,6 +1146,7 @@ class ScriptRunnerGUI:
                     increment=1,
                     textvariable=var,
                     width=15,
+                    font=(FONTS["monospace"], 10),
                     validate="key",
                     validatecommand=(
                         self.root.register(self._validate_spinbox_int),
@@ -622,13 +1158,23 @@ class ScriptRunnerGUI:
             else:  # string
                 var = tk.StringVar(value=param_config["default"])
                 widget = ttk.Entry(
-                    self.params_scrollable_frame, textvariable=var, width=17
+                    self.params_scrollable_frame,
+                    textvariable=var,
+                    width=17,
+                    font=(FONTS["monospace"], 10),
                 )
 
-            widget.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=2)
+            widget.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=5)
 
-            # Description tooltip
-            self.create_tooltip(widget, param_config.get("description", ""))
+            # Description tooltip label
+            desc_label = ttk.Label(
+                self.params_scrollable_frame,
+                text=param_config.get("description", ""),
+                foreground=COLORS["text_secondary"],
+                font=(FONTS["primary"], 9),
+                wraplength=300,
+            )
+            desc_label.grid(row=row, column=2, sticky=tk.W, padx=(10, 0), pady=5)
 
             # Store widget reference
             self.parameter_widgets[param_name] = {"var": var, "widget": widget}
@@ -636,7 +1182,8 @@ class ScriptRunnerGUI:
             row += 1
 
         # Configure grid weights
-        self.params_scrollable_frame.columnconfigure(1, weight=1)
+        self.params_scrollable_frame.columnconfigure(1, weight=0)
+        self.params_scrollable_frame.columnconfigure(2, weight=1)
 
     def load_default_parameters(self):
         """Load default parameter values."""
@@ -648,11 +1195,15 @@ class ScriptRunnerGUI:
                         "default"
                     ]
 
+        self.log_message("Default parameters loaded for all scripts")
+
     def save_parameters(self):
         """Save current parameter values with validation."""
         selected = self.protocol_selector.get()
         if not selected:
-            messagebox.showwarning("No Selection", "Please select a protocol first.")
+            messagebox.showwarning(
+                "No Selection", "Please select a protocol from the dropdown first."
+            )
             return
 
         # First, update parameter values from widgets if they exist
@@ -754,17 +1305,29 @@ class ScriptRunnerGUI:
         if selected:
             self.display_protocol_parameters(selected)
 
+    # ============================================================================
+    # Protocol Execution
+    # ============================================================================
+
     def run_all_protocols(self):
         """Run all protocols sequentially with default parameters."""
         # Confirm with user
         protocol_count = len(self.protocols)
         if not messagebox.askyesno(
             "Confirm Run All",
-            f"This will run all {protocol_count} protocols sequentially.\n\n"
+            f"This will execute all {protocol_count} theory scripts sequentially.\n\n"
             "This may take a significant amount of time.\n\n"
             "Continue?",
         ):
             return
+
+        # Force dialog dismissal and UI update before long-running operation
+        self.root.update()
+
+        # Update console status
+        self.console_status.config(text="Running", foreground=COLORS["primary"])
+        self.system_status_label.config(text="Processing", foreground=COLORS["primary"])
+        self.stat_ready_card.lbl_value.config(text="Running All")
 
         # On macOS, run synchronously; on other platforms use thread
         import platform
@@ -789,6 +1352,12 @@ class ScriptRunnerGUI:
                 self.log_message(f"Running {protocol_name} ({idx}/{total})")
                 self.log_message(f"{'=' * 60}")
 
+                # Update progress
+                progress = (idx / total) * 100
+                self.progress_var.set(progress)
+                self.progress_label.config(text=f"{progress:.0f}%")
+                self.root.update()
+
                 # Use default parameters
                 protocol_info_with_params = protocol_info.copy()
                 protocol_info_with_params["configured_params"] = {}
@@ -802,6 +1371,15 @@ class ScriptRunnerGUI:
             self.set_status("Ready")
             self.run_all_button.config(state=tk.NORMAL)
             self.stop_btn.config(state=tk.DISABLED)
+
+            # Reset status indicators
+            self.console_status.config(text="Idle", foreground=COLORS["text_secondary"])
+            self.system_status_label.config(
+                text="[OK] Ready", foreground=COLORS["success"]
+            )
+            self.stat_ready_card.lbl_value.config(text="Ready")
+            self.progress_var.set(0)
+            self.progress_label.config(text="0%")
             return
 
         # Run protocols in a separate thread on non-macOS platforms
@@ -818,6 +1396,13 @@ class ScriptRunnerGUI:
                 self.log_message(f"Running {protocol_name} ({idx}/{total})")
                 self.log_message(f"{'=' * 60}")
 
+                # Update progress
+                progress = (idx / total) * 100
+                self.root.after(0, lambda p=progress: self.progress_var.set(p))
+                self.root.after(
+                    0, lambda p=progress: self.progress_label.config(text=f"{p:.0f}%")
+                )
+
                 # Use default parameters
                 protocol_info_with_params = protocol_info.copy()
                 protocol_info_with_params["configured_params"] = {}
@@ -831,6 +1416,23 @@ class ScriptRunnerGUI:
             self.set_status("Ready")
             self.root.after(0, lambda: self.run_all_button.config(state=tk.NORMAL))
             self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
+            self.root.after(
+                0,
+                lambda: self.console_status.config(
+                    text="Idle", foreground=COLORS["text_secondary"]
+                ),
+            )
+            self.root.after(
+                0,
+                lambda: self.system_status_label.config(
+                    text="[OK] Ready", foreground=COLORS["success"]
+                ),
+            )
+            self.root.after(
+                0, lambda: self.stat_ready_card.lbl_value.config(text="Ready")
+            )
+            self.root.after(0, lambda: self.progress_var.set(0))
+            self.root.after(0, lambda: self.progress_label.config(text="0%"))
 
         self.stop_event.clear()
         self.run_all_button.config(state=tk.DISABLED)
@@ -953,124 +1555,9 @@ class ScriptRunnerGUI:
 
         self.run_protocol(protocol_info_with_params)
 
-    def create_tooltip(self, widget, text):
-        """Create tooltip for widget (macOS thread-safe)"""
-
-        def on_enter(event):
-            # Use after() to ensure GUI operations happen on main thread
-            def show_tooltip():
-                try:
-                    tooltip = tk.Toplevel()
-                    tooltip.wm_overrideredirect(True)
-                    tooltip.wm_geometry(f"+{event.x_root + 10}+{event.y_root + 10}")
-                    label = tk.Label(
-                        tooltip,
-                        text=text,
-                        background="lightyellow",
-                        relief=tk.SOLID,
-                        borderwidth=1,
-                    )
-                    label.pack()
-                    widget.tooltip = tooltip
-                except Exception:
-                    pass  # Silently fail if tooltip can't be created
-
-            self.root.after(0, show_tooltip)
-
-        def on_leave(event):
-            def hide_tooltip():
-                if hasattr(widget, "tooltip"):
-                    try:
-                        widget.tooltip.destroy()
-                        del widget.tooltip
-                    except Exception:
-                        pass
-
-            self.root.after(0, hide_tooltip)
-
-        widget.bind("<Enter>", on_enter)
-        widget.bind("<Leave>", on_leave)
-
-    def clear_console(self):
-        """Clear the console output."""
-        if hasattr(self, "output_console"):
-            self.output_console.delete(1.0, tk.END)
-
-    def _setup_tab_order(self) -> None:
-        """Configure tab order for consistent keyboard navigation."""
-        # This will be called after UI setup to configure tab navigation
-        # Store widgets that will be created during setup
-        self._tab_widgets: List[tk.Widget] = []  # type: ignore
-
-    def _finalize_tab_order(self) -> None:
-        """Finalize tab order after all widgets are created."""
-        if hasattr(self, "_tab_widgets"):
-            # Set up tab navigation for collected widgets
-            for i, widget in enumerate(self._tab_widgets):
-                if widget and hasattr(widget, "bind"):
-                    next_widget = self._tab_widgets[(i + 1) % len(self._tab_widgets)]
-                    prev_widget = self._tab_widgets[(i - 1) % len(self._tab_widgets)]
-
-                    # Bind Tab to move to next widget
-                    def make_tab_handler(nw: tk.Widget) -> Callable[[Any], None]:
-                        def handler(e: Any) -> None:
-                            self._focus_widget(nw)
-
-                        return handler
-
-                    widget.bind("<Tab>", make_tab_handler(next_widget))
-
-                    # Bind Shift+Tab to move to previous widget
-                    def make_shift_tab_handler(pw: tk.Widget) -> Callable[[Any], None]:
-                        def handler(e: Any) -> None:
-                            self._focus_widget(pw)
-
-                        return handler
-
-                    widget.bind("<Shift-Tab>", make_shift_tab_handler(prev_widget))
-
-    def _focus_widget(self, widget: tk.Widget) -> None:
-        """Focus on a specific widget and handle different widget types."""
-        try:
-            if hasattr(widget, "focus_set"):
-                widget.focus_set()
-            elif hasattr(widget, "select"):
-                widget.select()
-        except tk.TclError:
-            # Widget might be disabled or not focusable
-            pass
-
-    def stop_protocol(self):
-        """Stop the currently running protocol if any"""
-        if self.stop_event:
-            self.stop_event.set()
-            self.log_message("Stop signal sent to protocol...")
-            self.set_status("Stopping...")
-
-    def set_status(self, message):
-        """Set status bar message (thread-safe)"""
-
-        def _update():
-            self.status_var.set(message)
-
-        self.root.after(0, _update)
-
-    def log_message(self, message):
-        """Add message to output console (thread-safe)"""
-
-        def _update():
-            self.output_console.insert(tk.END, message + "\n")
-            self.output_console.see(tk.END)
-
-            # Limit the number of lines to prevent memory issues
-            max_lines = 1000
-            lines = self.output_console.get("1.0", tk.END).splitlines()
-            if len(lines) > max_lines:
-                # Keep only the last max_lines lines
-                self.output_console.delete("1.0", tk.END)
-                self.output_console.insert(tk.END, "\n".join(lines[-max_lines:]) + "\n")
-
-        self.root.after(0, _update)
+    # ============================================================================
+    # Core Protocol Execution
+    # ============================================================================
 
     def run_protocol(self, protocol_info):
         """Run selected protocol - on macOS run synchronously to avoid threading issues"""
@@ -1197,10 +1684,25 @@ class ScriptRunnerGUI:
 
                 self.log_message("=== Script completed successfully ===")
                 self.set_status("Ready")
+
+                # Update UI
                 if is_macos:
                     self.stop_btn.config(state=tk.DISABLED)
+                    self.console_status.config(
+                        text="Idle", foreground=COLORS["text_secondary"]
+                    )
+                    self.stat_ready_card.lbl_value.config(text="Ready")
                 else:
                     self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
+                    self.root.after(
+                        0,
+                        lambda: self.console_status.config(
+                            text="Idle", foreground=COLORS["text_secondary"]
+                        ),
+                    )
+                    self.root.after(
+                        0, lambda: self.stat_ready_card.lbl_value.config(text="Ready")
+                    )
 
             except (
                 ImportError,
@@ -1216,9 +1718,18 @@ class ScriptRunnerGUI:
                 if is_macos:
                     messagebox.showerror("Error", error_msg)
                     self.stop_btn.config(state=tk.DISABLED)
+                    self.console_status.config(
+                        text="[X] Error", foreground=COLORS["alert"]
+                    )
                 else:
                     self.root.after(0, lambda: messagebox.showerror("Error", error_msg))
                     self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
+                    self.root.after(
+                        0,
+                        lambda: self.console_status.config(
+                            text="[X] Error", foreground=COLORS["alert"]
+                        ),
+                    )
                 self.set_status("Error")
             except Exception as e:
                 logger.error(f"Unexpected error in {protocol_info['file']}: {str(e)}")
@@ -1226,17 +1737,28 @@ class ScriptRunnerGUI:
                 if is_macos:
                     messagebox.showerror("Error", error_message)
                     self.stop_btn.config(state=tk.DISABLED)
+                    self.console_status.config(
+                        text="[X] Error", foreground=COLORS["alert"]
+                    )
                 else:
                     self.root.after(
                         0, lambda: messagebox.showerror("Error", error_message)
                     )
                     self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
+                    self.root.after(
+                        0,
+                        lambda: self.console_status.config(
+                            text="[X] Error", foreground=COLORS["alert"]
+                        ),
+                    )
                 self.set_status("Error")
 
         # On macOS, run synchronously on main thread to avoid NSWindow threading issues
         if is_macos:
             self.stop_event.clear()
             self.stop_btn.config(state=tk.NORMAL)
+            self.console_status.config(text="Running", foreground=COLORS["primary"])
+            self.stat_ready_card.lbl_value.config(text="Running")
             protocol_execution()
         else:
             # Run in separate thread to avoid blocking GUI on other platforms
@@ -1246,7 +1768,20 @@ class ScriptRunnerGUI:
             thread.daemon = True
             self.running_thread = thread
             self.stop_btn.config(state=tk.NORMAL)
+            self.root.after(
+                0,
+                lambda: self.console_status.config(
+                    text="Running", foreground=COLORS["primary"]
+                ),
+            )
+            self.root.after(
+                0, lambda: self.stat_ready_card.lbl_value.config(text="Running")
+            )
             thread.start()
+
+    # ============================================================================
+    # Specialized Handlers
+    # ============================================================================
 
     def _handle_framework_aggregator(self, module):
         """Handle FP_ALL_Aggregator: collect saved result files and run aggregation."""
@@ -1478,6 +2013,10 @@ class ScriptRunnerGUI:
             self.log_message(f"No standard run method found for {cls.__name__}")
             return {"status": "Completed (No Test)", "instance": str(instance)}
 
+    # ============================================================================
+    # Utilities
+    # ============================================================================
+
     def _save_results(self, results, protocol_file):
         """Save validation results to a JSON file."""
         try:
@@ -1559,14 +2098,101 @@ class ScriptRunnerGUI:
         except ValueError:
             return False
 
+    def create_tooltip(self, widget, text):
+        """Create tooltip for widget (macOS thread-safe)"""
+
+        def on_enter(event):
+            # Use after() to ensure GUI operations happen on main thread
+            def show_tooltip():
+                try:
+                    tooltip = tk.Toplevel()
+                    tooltip.wm_overrideredirect(True)
+                    tooltip.wm_geometry(f"+{event.x_root + 10}+{event.y_root + 10}")
+                    label = tk.Label(
+                        tooltip,
+                        text=text,
+                        background=COLORS["soft_gray"],
+                        relief=tk.SOLID,
+                        borderwidth=1,
+                        font=(FONTS["primary"], 9),
+                        foreground=COLORS["text_primary"],
+                    )
+                    label.pack()
+                    widget.tooltip = tooltip
+                except Exception:
+                    pass  # Silently fail if tooltip can't be created
+
+            self.root.after(0, show_tooltip)
+
+        def on_leave(event):
+            def hide_tooltip():
+                if hasattr(widget, "tooltip"):
+                    try:
+                        widget.tooltip.destroy()
+                        del widget.tooltip
+                    except Exception:
+                        pass
+
+            self.root.after(0, hide_tooltip)
+
+        widget.bind("<Enter>", on_enter)
+        widget.bind("<Leave>", on_leave)
+
+    def clear_console(self):
+        """Clear the console output."""
+        if hasattr(self, "output_console"):
+            self.output_console.delete(1.0, tk.END)
+
+    def _setup_tab_order(self) -> None:
+        """Configure tab order for consistent keyboard navigation."""
+        self._tab_widgets: List[tk.Widget] = []
+
+    def stop_protocol(self):
+        """Stop the currently running protocol if any"""
+        if self.stop_event:
+            self.stop_event.set()
+            self.log_message("Stop signal sent to protocol...")
+            self.set_status("Stopping...")
+            self.console_status.config(text="Stopping", foreground=COLORS["info"])
+
+    def set_status(self, message):
+        """Set status bar message (thread-safe)"""
+
+        def _update():
+            self.system_status_label.config(
+                text=f"{message}", foreground=COLORS["primary"]
+            )
+
+        self.root.after(0, _update)
+
+    def log_message(self, message):
+        """Add message to output console (thread-safe)"""
+
+        def _update():
+            self.output_console.insert(tk.END, message + "\n")
+            self.output_console.see(tk.END)
+
+            # Limit the number of lines to prevent memory issues
+            max_lines = 1000
+            lines = self.output_console.get("1.0", tk.END).splitlines()
+            if len(lines) > max_lines:
+                # Keep only the last max_lines lines
+                self.output_console.delete("1.0", tk.END)
+                self.output_console.insert(tk.END, "\n".join(lines[-max_lines:]) + "\n")
+
+        self.root.after(0, _update)
+
+
+# ============================================================================
+# Main Entry Point
+# ============================================================================
+
 
 def main():
-    # On macOS, ensure tkinter runs on main thread
     import platform
 
     if platform.system() == "Darwin":
         # macOS requires tkinter on main thread
-        # Defer heavy imports until after GUI is initialized
         pass
 
     root = tk.Tk()

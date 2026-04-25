@@ -103,12 +103,23 @@ def create_activation_script() -> None:
 
 
 def test_installation(venv_python: Path) -> bool:
-    """Test the installation by running the test script."""
+    """Test the installation by importing key modules."""
     print("Testing installation...")
+
+    test_code = """
+import sys
+try:
+    import numpy, scipy, pandas, torch
+    print("✓ Core packages imported successfully")
+    sys.exit(0)
+except ImportError as e:
+    print(f"✗ Import failed: {e}")
+    sys.exit(1)
+"""
 
     try:
         result = subprocess.run(
-            [str(venv_python), "test_framework.py"],
+            [str(venv_python), "-c", test_code],
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,

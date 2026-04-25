@@ -27,10 +27,39 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 # Import logging configuration
+import logging
+
+# Set up standard logging as fallback
+_std_logger = logging.getLogger(__name__)
+
 try:
     from utils.logging_config import apgi_logger
 except ImportError:
     apgi_logger = None  # type: ignore
+
+
+def _log_warning(message: str) -> None:
+    """Log warning using available logger."""
+    if apgi_logger and hasattr(apgi_logger, "warning"):
+        apgi_logger.warning(message)
+    else:
+        _std_logger.warning(message)
+
+
+def _log_error(message: str) -> None:
+    """Log error using available logger."""
+    if apgi_logger and hasattr(apgi_logger, "error"):
+        apgi_logger.error(message)
+    else:
+        _std_logger.error(message)
+
+
+def _log_info(message: str) -> None:
+    """Log info using available logger."""
+    if apgi_logger and hasattr(apgi_logger, "info"):
+        apgi_logger.info(message)
+    else:
+        _std_logger.info(message)
 
 
 @dataclass
@@ -116,8 +145,7 @@ class LogAnalyzer:
 
             return entries
         except Exception as e:
-            if apgi_logger:
-                apgi_logger.error(f"Error parsing log file {log_file_path}: {e}")
+            _log_error(f"Error parsing log file {log_file_path}: {e}")
             return []
 
     def _parse_log_line(
@@ -183,8 +211,7 @@ class LogAnalyzer:
 
         for log_file in log_files:
             if not log_file.exists():
-                if apgi_logger:
-                    apgi_logger.warning(f"Log file not found: {log_file}")
+                _log_warning(f"Log file not found: {log_file}")
                 continue
 
             entries = self.parse_log_file(log_file)
@@ -361,8 +388,7 @@ class ChainIntegrityVerifier:
                     self.chain_hashes = data.get("chain_hashes", {})
                     self.entry_counters = data.get("entry_counters", {})
             except (json.JSONDecodeError, IOError) as e:
-                if apgi_logger:
-                    apgi_logger.warning(f"Could not load integrity data: {e}")
+                _log_warning(f"Could not load integrity data: {e}")
 
     def _save_integrity_data(self) -> None:
         """Save integrity data to disk."""
@@ -378,8 +404,7 @@ class ChainIntegrityVerifier:
                     indent=2,
                 )
         except IOError as e:
-            if apgi_logger:
-                apgi_logger.error(f"Could not save integrity data: {e}")
+            _log_error(f"Could not save integrity data: {e}")
 
     def _calculate_entry_hash(self, entry: LogEntry, previous_hash: str = "0") -> str:
         """
@@ -675,8 +700,7 @@ class LogAggregator:
         for source_name, source_path in self.log_sources.items():
             source_file = Path(source_path)
             if not source_file.exists():
-                if apgi_logger:
-                    apgi_logger.warning(f"Log source not found: {source_path}")
+                _log_warning(f"Log source not found: {source_path}")
                 continue
 
             # Read and parse recent entries
@@ -695,8 +719,7 @@ class LogAggregator:
                         ):
                             recent_entries.append(entry)
             except Exception as e:
-                if apgi_logger:
-                    apgi_logger.error(f"Error reading log source {source_path}: {e}")
+                _log_error(f"Error reading log source {source_path}: {e}")
 
             all_entries.extend(recent_entries)
 
@@ -1932,8 +1955,7 @@ class AutomatedLogAnalyzer:
         self._thread = threading.Thread(target=self._monitoring_loop, daemon=True)
         self._thread.start()
 
-        if apgi_logger:
-            apgi_logger.info("Automated log monitoring started")
+        _log_info("Automated log monitoring started")
 
     def stop_monitoring(self) -> None:
         """Stop continuous monitoring."""
@@ -1941,8 +1963,7 @@ class AutomatedLogAnalyzer:
         if self._thread:
             self._thread.join(timeout=5)
 
-        if apgi_logger:
-            apgi_logger.info("Automated log monitoring stopped")
+        _log_info("Automated log monitoring stopped")
 
     def _monitoring_loop(self) -> None:
         """Background monitoring loop."""
@@ -1950,8 +1971,7 @@ class AutomatedLogAnalyzer:
             try:
                 self.analyze_and_alert()
             except Exception as e:
-                if apgi_logger:
-                    apgi_logger.error(f"Monitoring loop error: {e}")
+                _log_error(f"Monitoring loop error: {e}")
 
             # Wait for next interval
             time.sleep(self.analysis_interval)
@@ -2040,13 +2060,28 @@ def run_automated_analysis(
 
 
 if __name__ == "__main__":
-    # Example usage
+    # Example usage with fallback for missing log files
     log_files = {
         "validation": "/path/to/validation.log",
         "falsification": "/path/to/falsification.log",
     }
 
-    # Generate comprehensive report
-    report = generate_comprehensive_report(log_files=log_files, output_dir="./reports")
+    # Check if log files exist, use empty dict if not
+    existing_log_files = {
+        name: path for name, path in log_files.items() if Path(path).exists()
+    }
 
-    print("Report generated successfully")
+    if not existing_log_files:
+        print("No log files found. Using empty analysis for demonstration.")
+        existing_log_files = {}  # Empty dict will generate minimal report
+
+    try:
+        # Generate comprehensive report
+        report = generate_comprehensive_report(
+            log_files=existing_log_files, output_dir="./reports"
+        )
+        print("Report generated successfully")
+        print(report)
+    except Exception as e:
+        print(f"Error generating report: {e}")
+        print("This is expected if log files don't exist at the specified paths.")

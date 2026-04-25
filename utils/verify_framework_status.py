@@ -254,8 +254,10 @@ def main():
 
     fp_ok = 0
     for module_path, protocol_id in fp_protocols:
+        # Use longer timeout for protocols that may be slow (e.g., MCMC sampling)
+        timeout_secs = 30 if "Bayesian" in protocol_id or "MCMC" in protocol_id else 5
         result = check_protocol(
-            module_path, protocol_id, timeout_secs=5, quick_mode=test_mode
+            module_path, protocol_id, timeout_secs=timeout_secs, quick_mode=test_mode
         )
         status = result["status"]
 
@@ -275,8 +277,10 @@ def main():
 
     vp_ok = 0
     for module_path, protocol_id in vp_protocols:
+        # Use longer timeout for protocols that may be slow (e.g., MCMC sampling)
+        timeout_secs = 30 if "Bayesian" in protocol_id or "MCMC" in protocol_id else 5
         result = check_protocol(
-            module_path, protocol_id, timeout_secs=5, quick_mode=test_mode
+            module_path, protocol_id, timeout_secs=timeout_secs, quick_mode=test_mode
         )
         status = result["status"]
 

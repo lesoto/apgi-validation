@@ -901,8 +901,8 @@ class APGIPsychophysicalEstimator:
         # TODO 2 — arousal × Πⁱ interaction using Πⁱ median split
         median_pi_i = df["pi_i"].median()
         df.loc[:, "pi_i_group"] = np.where(df["pi_i"] >= median_pi_i, "HIGH", "LOW")
-        high_pi_benefit = df[df["pi_i_group"] == "HIGH"]["arousal_benefit"].values
-        low_pi_benefit = df[df["pi_i_group"] == "LOW"]["arousal_benefit"].values
+        high_pi_benefit = np.asarray(df[df["pi_i_group"] == "HIGH"]["arousal_benefit"])
+        low_pi_benefit = np.asarray(df[df["pi_i_group"] == "LOW"]["arousal_benefit"])
         f_pi_interaction, p_pi_interaction = f_oneway(high_pi_benefit, low_pi_benefit)
         df_within_pi = len(high_pi_benefit) + len(low_pi_benefit) - 2
         eta_sq_pi = (
@@ -913,13 +913,13 @@ class APGIPsychophysicalEstimator:
 
         pooled_sd_pi = np.sqrt(
             (
-                (len(high_pi_benefit) - 1) * np.var(high_pi_benefit, ddof=1)
-                + (len(low_pi_benefit) - 1) * np.var(low_pi_benefit, ddof=1)
+                (len(high_pi_benefit) - 1) * np.var(high_pi_benefit, ddof=1)  # type: ignore[arg-type]
+                + (len(low_pi_benefit) - 1) * np.var(low_pi_benefit, ddof=1)  # type: ignore[arg-type]
             )
             / max(len(high_pi_benefit) + len(low_pi_benefit) - 2, 1)
         )
         cohens_d_interaction = (
-            float((np.mean(high_pi_benefit) - np.mean(low_pi_benefit)) / pooled_sd_pi)
+            float((np.mean(high_pi_benefit) - np.mean(low_pi_benefit)) / pooled_sd_pi)  # type: ignore[arg-type]
             if pooled_sd_pi > 0
             else 0.0
         )
@@ -938,7 +938,7 @@ class APGIPsychophysicalEstimator:
 
         if safe_mannwhitneyu is not None:
             u_stat, garfinkel_p, garfinkel_sig = safe_mannwhitneyu(
-                high_ia["pi_i"].values, low_ia["pi_i"].values, alpha=0.05
+                np.asarray(high_ia["pi_i"]), np.asarray(low_ia["pi_i"]), alpha=0.05  # type: ignore[arg-type]
             )
         else:
             u_stat, garfinkel_p = stats.mannwhitneyu(
@@ -996,8 +996,8 @@ class APGIPsychophysicalEstimator:
                 "passed": arousal_regression.slope > 0
                 and arousal_regression.pvalue < 0.05,
             },
-            "high_pi_arousal_benefit": float(np.mean(high_pi_benefit)),
-            "low_pi_arousal_benefit": float(np.mean(low_pi_benefit)),
+            "high_pi_arousal_benefit": float(np.mean(high_pi_benefit)),  # type: ignore[arg-type]
+            "low_pi_arousal_benefit": float(np.mean(low_pi_benefit)),  # type: ignore[arg-type]
             "cohens_d_interaction": cohens_d_interaction,
             "p_interaction": float(p_pi_interaction),
             "pi_group_interaction": {
@@ -1012,10 +1012,10 @@ class APGIPsychophysicalEstimator:
 
         # TODO 3 — IA × Arousal interaction using Garfinkel heartbeat groups
         high_ia_arousal = (
-            high_ia["arousal_benefit"].values if len(high_ia) > 0 else np.array([])
+            np.asarray(high_ia["arousal_benefit"]) if len(high_ia) > 0 else np.array([])
         )
         low_ia_arousal = (
-            low_ia["arousal_benefit"].values if len(low_ia) > 0 else np.array([])
+            np.asarray(low_ia["arousal_benefit"]) if len(low_ia) > 0 else np.array([])
         )
 
         if len(high_ia_arousal) > 0 and len(low_ia_arousal) > 0:
@@ -1028,21 +1028,21 @@ class APGIPsychophysicalEstimator:
             )
             pooled_sd_ia = np.sqrt(
                 (
-                    (len(high_ia_arousal) - 1) * np.var(high_ia_arousal, ddof=1)
-                    + (len(low_ia_arousal) - 1) * np.var(low_ia_arousal, ddof=1)
+                    (len(high_ia_arousal) - 1) * np.var(high_ia_arousal, ddof=1)  # type: ignore[arg-type]
+                    + (len(low_ia_arousal) - 1) * np.var(low_ia_arousal, ddof=1)  # type: ignore[arg-type]
                 )
                 / max(len(high_ia_arousal) + len(low_ia_arousal) - 2, 1)
             )
             cohens_d_ia = (
                 float(
-                    (np.mean(high_ia_arousal) - np.mean(low_ia_arousal)) / pooled_sd_ia
+                    (np.mean(high_ia_arousal) - np.mean(low_ia_arousal)) / pooled_sd_ia  # type: ignore[arg-type]
                 )
                 if pooled_sd_ia > 0
                 else 0.0
             )
             results["arousal_analysis"]["P1_3"] = {
-                "high_ia_arousal_benefit": float(np.mean(high_ia_arousal)),
-                "low_ia_arousal_benefit": float(np.mean(low_ia_arousal)),
+                "high_ia_arousal_benefit": float(np.mean(high_ia_arousal)),  # type: ignore[arg-type]
+                "low_ia_arousal_benefit": float(np.mean(low_ia_arousal)),  # type: ignore[arg-type]
                 "cohens_d": float(cohens_d_ia),
                 "f_statistic": float(f_ia_interaction),
                 "eta_squared": eta_sq_ia,
@@ -1111,7 +1111,7 @@ class APGIPsychophysicalEstimator:
             # We compare it against 0 via one-sample t-test, and verify the mean reduction
             # is in the paper range [0.25, 0.40].
             blocker_participants = df[df["beta_blocker_condition"] == "beta_blocker"]
-            beta_effects = blocker_participants["beta_blockade_effect"].values
+            beta_effects = np.asarray(blocker_participants["beta_blockade_effect"])
             # Each blocker participant contributes the actual fraction used in simulation
             mean_pi_i_reduction_pct = float(np.mean(beta_effects))
             t_beta_paired, p_beta_paired = stats.ttest_1samp(beta_effects, 0)
@@ -1121,12 +1121,12 @@ class APGIPsychophysicalEstimator:
             # For a within-subject design we compare the implied Π_i reduction.
             cf_participants = df[df["cardiac_feedback_condition"] == "perturbed"]
             # Reconstruct perturbed Π_i from the stored cardiac_feedback_effect
-            cf_pi_i_baseline = cf_participants["pi_i"].values
+            cf_pi_i_baseline = np.asarray(cf_participants["pi_i"])
             cf_pi_i_post = cf_pi_i_baseline * (
-                1.0 - cf_participants["cardiac_feedback_effect"].values
+                1.0 - np.asarray(cf_participants["cardiac_feedback_effect"])
             )
             t_cf_paired, p_cf_paired = stats.ttest_rel(cf_pi_i_baseline, cf_pi_i_post)
-            mean_pi_i_reduction_cf_pct = float(
+            mean_pi_i_reduction_cf_pct = float(  # type: ignore[operator]
                 np.mean((cf_pi_i_baseline - cf_pi_i_post) / cf_pi_i_baseline)
             )
             cf_pi_i_in_range = 0.15 <= mean_pi_i_reduction_cf_pct <= 0.25

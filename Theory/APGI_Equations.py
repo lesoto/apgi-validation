@@ -1,9 +1,26 @@
 from __future__ import annotations
 
+import sys
+import types
+
+# Fix for Python 3.14+ dataclass forward reference resolution
+# When loaded via importlib.util, the module is not yet in sys.modules at exec time,
+# so we register it using the current frame's globals (which IS the module object).
+if "APGI_Equations" not in sys.modules:
+    _self = sys.modules.get(__name__)
+    if _self is None:
+        # Loaded via importlib: build a temporary module reference from globals
+        _self = types.ModuleType("APGI_Equations")
+        _self.__dict__.update(
+            {k: v for k, v in globals().items() if not k.startswith("__")}
+        )
+    sys.modules["APGI_Equations"] = _self
+
 """
 ===============================================================================
 COMPLETE APGI SYSTEM
 ===============================================================================
+
 
 Implementation of the APGI framework including:
 
@@ -524,7 +541,7 @@ class DynamicalSystemEquations:
         else:
             interoceptive = 0.0
 
-        A_target = A_circ + 0.3 * g_stim + 0.2 * interoceptive
+        A_target = A_circ + 0.3 * g_stim + 0.2 * interoceptive  # type: ignore[operator]
         return np.clip(A_target, 0.0, 1.0)
 
     @staticmethod

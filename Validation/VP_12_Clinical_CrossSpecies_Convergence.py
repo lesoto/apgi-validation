@@ -178,7 +178,7 @@ class ClinicalDataAnalyzer:
                 hc_data = patient_data[patient_data["condition"] == "healthy_controls"][
                     measure
                 ]
-                cohens_d = self._cohens_d(vs_data, hc_data)
+                cohens_d = self._cohens_d(vs_data.values, hc_data.values)  # type: ignore[arg-type]
             else:
                 cohens_d = None
             results[measure] = {
@@ -791,11 +791,16 @@ class ClinicalConvergenceValidator:
         ]
         all_data = []
         for d in diagnoses:
-            all_data.append(
-                self.psychiatric_analyzer.simulate_psychiatric_data(d, n_subjects=40)
-            )
+            data = self.psychiatric_analyzer.simulate_psychiatric_data(d, n_subjects=40)
+            # Filter out empty or all-NA DataFrames to avoid FutureWarning
+            if not data.empty and not data.isna().all().all():
+                all_data.append(data)
 
-        merged_data = pd.concat(all_data)
+        # Use explicit dtype preservation to avoid FutureWarning
+        if all_data:
+            merged_data = pd.concat(all_data, ignore_index=True)
+        else:
+            merged_data = pd.DataFrame()
         accuracy_results = self.psychiatric_analyzer.validate_diagnostic_accuracy(
             merged_data
         )
@@ -843,7 +848,7 @@ class ClinicalConvergenceValidator:
             }
         )
         # Add correlation
-        data["crsr_outcome_6mo"] += data["pci_baseline"] * 10
+        data.loc[:, "crsr_outcome_6mo"] += data["pci_baseline"] * 10
 
         predictor = LongitudinalOutcomePredictor()
         results = predictor.fit_longitudinal_model(data)

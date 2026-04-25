@@ -917,7 +917,7 @@ class DataPreprocessor(DataValidator):
         df_normalized = df.copy()
 
         if columns is None:
-            columns = df_normalized.select_dtypes(include=[np.number]).columns
+            columns = list(df_normalized.select_dtypes(include=[np.number]).columns)  # type: ignore[assignment]
 
         for col in columns:
             if col in df_normalized.columns:
