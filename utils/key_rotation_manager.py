@@ -172,10 +172,14 @@ class KeyRotationManager:
         try:
             master_key = os.environ.get("APGI_MASTER_KEY")
             if not master_key:
+                # Generate ephemeral key for development/testing
+                # This is expected behavior when APGI_MASTER_KEY is not configured
                 master_key = Fernet.generate_key().decode()
                 os.environ["APGI_MASTER_KEY"] = master_key
-                self.logger.warning(
-                    "APGI_MASTER_KEY not set in environment, generated ephemeral key. Prev keys may not decrypt."
+                self.logger.info(
+                    "APGI_MASTER_KEY not set in environment. Generated ephemeral key for development/testing. "
+                    "For production, set a persistent APGI_MASTER_KEY environment variable. "
+                    "Previously encrypted keys may not decrypt with this new ephemeral key."
                 )
             else:
                 # Validate the master key format

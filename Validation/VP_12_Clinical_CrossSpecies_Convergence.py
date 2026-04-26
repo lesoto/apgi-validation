@@ -17,7 +17,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -251,6 +251,72 @@ class ClinicalDataAnalyzer:
 
 
 class PsychiatricProfileAnalyzer:
+    """Analyze psychiatric disorder profiles with empirical validation tracking.
+
+    Data Source Status:
+    - All psychiatric profiles use SYNTHETIC_PENDING_EMPIRICAL status
+    - Parameters are literature-derived from independent empirical studies
+    - Awaiting disorder-specific empirical datasets for full validation
+    """
+
+    # Data source classification for psychiatric profiles
+    DATA_SOURCE_METADATA = {
+        "generalized_anxiety_disorder": {
+            "status": "SYNTHETIC_PENDING_EMPIRICAL",
+            "data_source": "synthetic",
+            "parameter_origin": "literature_meta_analysis",
+            "pending_datasets": [
+                "gad_empirical_eeg",
+                "gad_interoceptive_precision",
+                "gad_threshold_dynamics",
+            ],
+        },
+        "major_depressive_disorder": {
+            "status": "SYNTHETIC_PENDING_EMPIRICAL",
+            "data_source": "synthetic",
+            "parameter_origin": "literature_meta_analysis",
+            "pending_datasets": [
+                "mdd_empirical_eeg",
+                "mdd_interoceptive_precision",
+                "mdd_threshold_dynamics",
+            ],
+        },
+        "panic_disorder": {
+            "status": "SYNTHETIC_PENDING_EMPIRICAL",
+            "data_source": "synthetic",
+            "parameter_origin": "literature_meta_analysis",
+            "pending_datasets": [
+                "panic_empirical_eeg",
+                "panic_interoceptive_precision",
+            ],
+        },
+        "adhd": {
+            "status": "SYNTHETIC_PENDING_EMPIRICAL",
+            "data_source": "synthetic",
+            "parameter_origin": "literature_meta_analysis",
+            "pending_datasets": [
+                "adhd_empirical_eeg",
+                "adhd_interoceptive_precision",
+                "adhd_threshold_dynamics",
+            ],
+        },
+        "psychosis": {
+            "status": "SYNTHETIC_PENDING_EMPIRICAL",
+            "data_source": "synthetic",
+            "parameter_origin": "literature_meta_analysis",
+            "pending_datasets": [
+                "psychosis_empirical_eeg",
+                "psychosis_interoceptive_precision",
+            ],
+        },
+        "healthy_controls": {
+            "status": "LITERATURE_DERIVED",
+            "data_source": "empirical",
+            "parameter_origin": "normative_meta_analysis",
+            "pending_datasets": [],
+        },
+    }
+
     CITATIONS = {
         "generalized_anxiety_disorder": {
             "precision_expectation_gap": "Grupe & Nitschke 2013, Nature Reviews Neuroscience",
@@ -386,6 +452,50 @@ class PsychiatricProfileAnalyzer:
             if disorder in multi_scale_params:
                 profile.update(multi_scale_params[disorder])
             self.psychiatric_profiles[disorder] = profile
+
+    def get_data_source_status(self, diagnosis: str) -> Dict[str, Any]:
+        """Get data source and validation status for a psychiatric profile.
+
+        Args:
+            diagnosis: Disorder identifier
+
+        Returns:
+            Dict with data_source, status, pending_datasets, and origin info
+        """
+        metadata = self.DATA_SOURCE_METADATA.get(
+            diagnosis,
+            {
+                "status": "UNKNOWN",
+                "data_source": "unknown",
+                "parameter_origin": "unknown",
+                "pending_datasets": [],
+            },
+        )
+
+        return {
+            "diagnosis": diagnosis,
+            "data_source": metadata["data_source"],
+            "validation_status": metadata["status"],
+            "parameter_origin": metadata["parameter_origin"],
+            "pending_datasets": metadata["pending_datasets"],
+            "citations": self.CITATIONS.get(diagnosis, {}),
+            "is_empirically_validated": metadata["data_source"] == "empirical"
+            and metadata["status"] == "COMPLETE",
+            "simulation_only": metadata["data_source"] == "synthetic",
+        }
+
+    def get_all_pending_empirical_profiles(self) -> List[Dict[str, Any]]:
+        """List all psychiatric profiles awaiting empirical validation.
+
+        Returns:
+            List of profiles with SYNTHETIC_PENDING_EMPIRICAL status
+        """
+        pending_profiles = []
+        for diagnosis in self.DATA_SOURCE_METADATA:
+            status_info = self.get_data_source_status(diagnosis)
+            if status_info["validation_status"] == "SYNTHETIC_PENDING_EMPIRICAL":
+                pending_profiles.append(status_info)
+        return pending_profiles
 
     def simulate_psychiatric_data(
         self, diagnosis: str, n_subjects: int = 30
@@ -789,6 +899,14 @@ class ClinicalConvergenceValidator:
             "psychosis",
             "healthy_controls",
         ]
+
+        # Collect data source status for all tested disorders
+        data_source_status = {}
+        for diagnosis in diagnoses:
+            data_source_status[diagnosis] = (
+                self.psychiatric_analyzer.get_data_source_status(diagnosis)
+            )
+
         all_data = []
         for d in diagnoses:
             data = self.psychiatric_analyzer.simulate_psychiatric_data(d, n_subjects=40)
@@ -805,12 +923,26 @@ class ClinicalConvergenceValidator:
             merged_data
         )
 
+        # Count disorders awaiting empirical validation
+        pending_empirical_count = sum(
+            1
+            for status in data_source_status.values()
+            if status["validation_status"] == "SYNTHETIC_PENDING_EMPIRICAL"
+        )
+
         return {
             "diagnostic_accuracy": accuracy_results["accuracy"],
             "roc_auc_md_depression": accuracy_results["roc_analysis"][
                 "major_depressive_disorder"
             ]["auc"],
             "validation_passed": accuracy_results["accuracy"] > 0.75,
+            # Data source tracking (NEW)
+            "data_source_status": data_source_status,
+            "overall_data_source": "synthetic",
+            "validation_status": "SYNTHETIC_PENDING_EMPIRICAL",
+            "pending_empirical_profiles": pending_empirical_count,
+            "simulation_only": True,
+            "note": "All psychiatric profiles use literature-derived parameters awaiting disorder-specific empirical validation",
         }
 
     def _validate_cross_species_homologies(self) -> Dict:

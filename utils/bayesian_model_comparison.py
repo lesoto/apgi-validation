@@ -15,6 +15,16 @@ Key public classes:
   ContinuousIntegrationModel     — continuous integration baseline
   BayesianModelComparison        — orchestrates multi-model comparison (MCMC/NUTS)
 
+Test Mode:
+  When APGI_TEST_MODE environment variable is set, the script runs with reduced
+  sampling for faster CI/execution:
+    - n_samples: 100 (vs 2000+ in production)
+    - n_tune: 50 (vs 1000+ in production)
+    - n_chains: 2 (vs 4+ in production)
+  This will produce MCMC convergence warnings (R-hat > 1.05, ESS < 100) which
+  are expected and acceptable for testing purposes. For production validation,
+  run without APGI_TEST_MODE to get proper convergence.
+
 NOTE: The actual Protocol 2 ("TMS Causal Intervention") lives in
 VP_07_TMS_CausalInterventions.py. This file provides computational
 Bayesian model comparison supporting Protocol 2 predictions.

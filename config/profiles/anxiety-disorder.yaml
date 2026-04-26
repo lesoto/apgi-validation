@@ -4,9 +4,25 @@ compatibility:
   max_version: '2.0'
   min_version: '1.0'
 created_at: '2026-01-17T10:08:55.174857'
+data_source: synthetic
 dependencies: []
 description: Optimized for anxiety disorder research
-metadata: {}
+empirical_validation:
+  citations:
+    - Grupe & Nitschke 2013, Nature Reviews Neuroscience (precision_expectation_gap)
+    - Paulus & Stein 2006 (beta)
+    - Dunn et al. 2010 (Pi_i_baseline)
+    - Etkin et al. 2010 (arousal)
+    - Aranha et al. 2020 (theta_t)
+  pending_datasets:
+    - gad_empirical_eeg
+    - gad_interoceptive_precision
+    - gad_threshold_dynamics
+    - gad_heartbeat_evoked_potential
+  status: SYNTHETIC_PENDING_EMPIRICAL
+metadata:
+  parameter_origin: theoretical_model
+  validation_level: literature_derived
 name: anxiety-disorder
 parameters:
   model:

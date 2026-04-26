@@ -4,9 +4,24 @@ compatibility:
   max_version: '2.0'
   min_version: '1.0'
 created_at: '2026-01-17T10:08:55.176307'
+data_source: synthetic
 dependencies: []
 description: Optimized for ADHD research
-metadata: {}
+empirical_validation:
+  citations:
+    - Sethi et al. 2018 (precision_expectation_gap)
+    - Hart et al. 2013 (theta_t)
+    - Shaw et al. 2020 (Pi_i_baseline)
+    - Satterfield et al. 1974 (arousal)
+    - Barkley 1997 (beta)
+  pending_datasets:
+    - adhd_empirical_eeg
+    - adhd_interoceptive_precision
+    - adhd_threshold_dynamics
+  status: SYNTHETIC_PENDING_EMPIRICAL
+metadata:
+  parameter_origin: theoretical_model
+  validation_level: literature_derived
 name: adhd
 parameters:
   model:

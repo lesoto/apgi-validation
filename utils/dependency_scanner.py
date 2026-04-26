@@ -1,6 +1,16 @@
 """
 Dependency vulnerability scanner.
 Regularly scans project dependencies for known security vulnerabilities.
+
+Optional Dependencies:
+    - pip-audit: Primary scanner for known vulnerabilities in PyPI packages
+    - safety: Alternative vulnerability scanner with additional checks
+    - bandit: Static analysis tool for finding common security issues in Python code
+
+Note: These tools are optional. The scanner will gracefully handle their absence
+and report which scanners are available. For comprehensive security scanning,
+install all optional tools:
+    pip install pip-audit safety bandit
 ============================================================================================
 """
 

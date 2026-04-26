@@ -178,7 +178,11 @@ def _validate_file_path(file_path: str, allowed_dirs: List[str] = None) -> Path:
 
 @dataclass
 class ConfigProfile:
-    """Enhanced configuration profile definition."""
+    """Enhanced configuration profile definition.
+
+    Supports empirical validation tracking for clinical and research profiles,
+    including data source classification and validation status.
+    """
 
     name: str
     description: str
@@ -191,6 +195,9 @@ class ConfigProfile:
     dependencies: List[str] = field(default_factory=list)
     compatibility: Dict[str, str] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    # Empirical validation tracking (NEW)
+    data_source: str = "synthetic"  # "empirical", "synthetic", "hybrid"
+    empirical_validation: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.tags:
@@ -203,6 +210,31 @@ class ConfigProfile:
             self.metadata = {}
         if not self.created_at:
             self.created_at = datetime.now().isoformat()
+        if not self.empirical_validation:
+            self.empirical_validation = {
+                "status": (
+                    "COMPLETE"
+                    if self.data_source == "empirical"
+                    else "SYNTHETIC_PENDING_EMPIRICAL"
+                ),
+                "citations": [],
+                "pending_datasets": [],
+            }
+
+    @property
+    def validation_status(self) -> str:
+        """Get the validation status of this profile."""
+        return self.empirical_validation.get("status", "UNKNOWN")
+
+    @property
+    def is_empirically_validated(self) -> bool:
+        """Check if profile has empirical validation."""
+        return self.data_source == "empirical" and self.validation_status == "COMPLETE"
+
+    @property
+    def pending_datasets(self) -> List[str]:
+        """Get list of pending datasets for empirical validation."""
+        return self.empirical_validation.get("pending_datasets", [])
 
 
 @dataclass
@@ -1491,6 +1523,8 @@ class ConfigManager:
                     profile_data = yaml.safe_load(f)
 
                 if category is None or profile_data.get("category") == category:
+                    # Extract validation status from empirical_validation field
+                    empirical_validation = profile_data.get("empirical_validation", {})
                     profiles.append(
                         {
                             "name": profile_data.get("name"),
@@ -1499,6 +1533,14 @@ class ConfigManager:
                             "created_at": profile_data.get("created_at"),
                             "version": profile_data.get("version"),
                             "tags": profile_data.get("tags", []),
+                            "data_source": profile_data.get("data_source", "synthetic"),
+                            "validation_status": empirical_validation.get(
+                                "status", "UNKNOWN"
+                            ),
+                            "is_empirically_validated": (
+                                profile_data.get("data_source") == "empirical"
+                                and empirical_validation.get("status") == "COMPLETE"
+                            ),
                         }
                     )
             except (
@@ -1521,6 +1563,70 @@ class ConfigManager:
             apgi_logger.info(f"Deleted configuration profile: {name}")
             return True
         return False
+
+    def get_profile_validation_status(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get detailed validation status for a clinical or research profile.
+
+        Args:
+            name: Profile name
+
+        Returns:
+            Dict with validation status details, or None if profile not found
+        """
+        profile_file = PROFILES_DIR / f"{name}.yaml"
+        if not profile_file.exists():
+            return None
+
+        try:
+            with open(profile_file, "r") as f:
+                profile_data = yaml.safe_load(f)
+
+            empirical_validation = profile_data.get("empirical_validation", {})
+            return {
+                "name": profile_data.get("name"),
+                "data_source": profile_data.get("data_source", "synthetic"),
+                "validation_status": empirical_validation.get("status", "UNKNOWN"),
+                "citations": empirical_validation.get("citations", []),
+                "pending_datasets": empirical_validation.get("pending_datasets", []),
+                "is_empirically_validated": (
+                    profile_data.get("data_source") == "empirical"
+                    and empirical_validation.get("status") == "COMPLETE"
+                ),
+                "parameter_origin": profile_data.get("metadata", {}).get(
+                    "parameter_origin", "unknown"
+                ),
+                "validation_level": profile_data.get("metadata", {}).get(
+                    "validation_level", "unknown"
+                ),
+            }
+        except (
+            FileNotFoundError,
+            PermissionError,
+            yaml.YAMLError,
+            KeyError,
+        ) as e:
+            apgi_logger.warning(f"Error reading profile {profile_file}: {e}")
+            return None
+
+    def list_pending_empirical_profiles(self) -> List[Dict[str, Any]]:
+        """List all profiles awaiting empirical validation.
+
+        Returns:
+            List of profiles with SYNTHETIC_PENDING_EMPIRICAL status
+        """
+        all_profiles = self.list_profiles()
+        pending_profiles = []
+
+        for profile_summary in all_profiles:
+            # Get full validation status
+            full_status = self.get_profile_validation_status(profile_summary["name"])
+            if (
+                full_status
+                and full_status["validation_status"] == "SYNTHETIC_PENDING_EMPIRICAL"
+            ):
+                pending_profiles.append(full_status)
+
+        return pending_profiles
 
     def create_version(self, description: str, author: str = "user") -> str:
         """Create a version snapshot of current configuration."""
