@@ -36,12 +36,13 @@ class SecurityContext:
     """Security context used by middleware to authorize operations."""
 
     user_id: str = "system"
-    roles: frozenset[str] = frozenset({"reader", "writer", "importer", "admin"})
+    roles: frozenset[str] = frozenset()
 
 
 def _require_role(context: Optional[SecurityContext], required_role: str) -> None:
+    """Require specific role - deny-by-default with no admin bypass."""
     ctx = context or SecurityContext()
-    if required_role not in ctx.roles and "admin" not in ctx.roles:
+    if required_role not in ctx.roles:
         raise SecurityAuthorizationError(
             f"User '{ctx.user_id}' lacks required role '{required_role}'"
         )

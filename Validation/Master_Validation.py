@@ -14,8 +14,8 @@ from typing import Dict, List, Optional, Set
 import numpy as np
 import pandas as pd
 
-from utils.protocol_contracts import ProtocolContract, ProtocolContractRegistry
 from utils.error_handler import ConfigurationError
+from utils.protocol_contracts import ProtocolContract, ProtocolContractRegistry
 
 # Add project root to sys.path for imports
 _proj_root = Path(__file__).parent.parent
@@ -315,10 +315,10 @@ class APGIMasterValidator:
         # Use performance governance to benchmark the protocol
         try:
             from utils.performance_governance import (
-                benchmark_callable,
-                assert_slo,
                 DEFAULT_SLOS,
                 ProtocolSLO,
+                assert_slo,
+                benchmark_callable,
             )
 
             # Get SLO for this protocol or use default

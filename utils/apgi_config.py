@@ -5,8 +5,8 @@ This module contains the single source of truth for APGI configuration parameter
 All other modules should import from here to avoid configuration divergence.
 """
 
-import os
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 

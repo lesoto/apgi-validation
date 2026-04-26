@@ -1,7 +1,8 @@
 import sys
 from pathlib import Path
-import numpy as np
 from typing import Any, Dict, List, Tuple
+
+import numpy as np
 
 # Add project root to sys.path to resolve absolute imports
 root_path = str(Path(__file__).parent.parent)
@@ -15,7 +16,15 @@ except (ImportError, ValueError):
     try:
         from .apgi_config import APGIConfig
     except (ImportError, ValueError):
-        from apgi_config import APGIConfig  # type: ignore[no-redef]
+        try:
+            from apgi_config import APGIConfig  # type: ignore[no-redef]
+        except ImportError:
+            # Define minimal fallback if config unavailable
+            from typing import Any, Dict
+
+            class APGIConfig:  # type: ignore[no-redef]
+                def __init__(self) -> None:
+                    self.config: Dict[str, Any] = {}
 
 
 class APGIPreProcessor:

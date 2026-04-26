@@ -25,11 +25,6 @@ try:
         VP4_CALIBRATED_THETA_0,
     )
 except ImportError:
-    # Handle direct script execution - suppress error output for clean validation
-    import os
-    import sys
-
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         from utils.falsification_thresholds import (
             TRANSFER_ENTROPY_THRESHOLD,

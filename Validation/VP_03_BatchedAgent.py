@@ -1,6 +1,8 @@
+from typing import Dict, List
+
 import torch
 import torch.nn as nn
-from typing import Dict, List
+
 from utils.apgi_config import APGIConfig
 from utils.constants import LEVEL_TIMESCALES
 from utils.falsification_thresholds import THRESHOLD_REGISTRY  # noqa: F401

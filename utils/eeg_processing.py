@@ -17,8 +17,6 @@ All spectral bands use centralized constants from utils.constants.py
 """
 
 import logging
-import os
-import sys
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union
 
@@ -28,16 +26,16 @@ import yaml
 from scipy import signal
 from scipy.integrate import trapezoid  # Use trapezoid instead of deprecated simps
 
-# Add parent directory to path for direct script execution
-if __name__ == "__main__":
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 # Import centralized spectral band constants
 try:
     from .constants import EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ
 except ImportError:
-    # Handle direct script execution
-    from utils.constants import EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ
+    try:
+        from utils.constants import EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ
+    except ImportError:
+        # Fallback values if constants unavailable
+        EEG_GAMMA_BAND_HZ = (30, 80)
+        EEG_THETA_BAND_HZ = (4, 8)
 
 # Removed for GUI stability
 logger = logging.getLogger(__name__)

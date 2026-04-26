@@ -1531,8 +1531,8 @@ def list_available_empirical_datasets() -> Dict[str, Any]:
     """
     try:
         from utils.empirical_dataset_catalog import (
-            get_datasets_for_protocol,
             get_accessible_datasets,
+            get_datasets_for_protocol,
         )
 
         all_datasets = get_datasets_for_protocol("VP-11")
@@ -1594,8 +1594,8 @@ def run_validation_with_dataset(
 
     try:
         from utils.bids_data_loaders import (
-            load_empirical_dataset,
             check_dataset_availability,
+            load_empirical_dataset,
         )
 
         # Check availability

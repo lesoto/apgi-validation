@@ -69,10 +69,13 @@ flake8 .                                          # Lint code (Config in .flake8
 
 - `Validation/` - Validation protocols (VP_3_ActiveInference_AgentSimulations_Protocol3.py, BayesianModelComparison_ParameterRecovery.py, etc.)
 - `Falsification/` - Falsification protocols (FP_12_Falsification_Aggregator.py, CausalManipulations_TMS_Pharmacological_Priority2.py, etc.)
-- `utils/` - Utility modules (dependency_scanner.py, security_audit_logger.py, backup_manager.py, batch_processor.py, etc.)
+- `Theory/` - Theory modules (APGI_Bayesian_Estimation_Framework.py, APGI_Computational_Benchmarking.py, etc.)
+- `utils/` - Utility modules (dependency_scanner.py, security_audit_logger.py, backup_manager.py, batch_processor.py, data_protection.py, errors.py, cache_manager.py, etc.)
 - `data_repository/` - Data directory for input/output files (organized: raw_data/, processed_data/, metadata/, codebooks/, dashboard_data/)
 - `tests/` - Comprehensive test suite with property-based testing (Hypothesis)
-- `docs/` - Documentation (APGI_Equations.md, APGI-Parameter-Specifications.md, etc.)
+- `docs/` - Documentation (APGI_Equations.md, APGI-Parameter-Specifications.md, Compliance-Matrix.md, etc.)
+- `config/` - Configuration files (default.yaml, config_schema.json, profiles/, versions/)
+- `.github/workflows/` - CI/CD workflows (security.yml for SAST/DAST automation)
 
 ### Security features
 
@@ -81,15 +84,45 @@ flake8 .                                          # Lint code (Config in .flake8
 - Environment variable validation for required keys (`PICKLE_SECRET_KEY`, `APGI_BACKUP_HMAC_KEY`)
 - Dependency vulnerability scanning via `DependencyScanner` (pip-audit)
 - Thread-safe configuration access with `_config_lock`
+- Deny-by-default security context with no admin bypass (`utils/security_logging_integration.py`)
+- Automated SAST/DAST in CI pipeline (`.github/workflows/security.yml`) with Bandit, Semgrep, Safety, pip-audit
+- Typed error taxonomy with domain-specific exceptions (`utils/errors.py`)
+- Data protection workflows with secure deletion and retention policies (`utils/data_protection.py`)
+- Cache governance with SLO monitoring and alerts (`utils/cache_manager.py`)
 
 ### Key Python modules
 
-- `APGI_Equations.py` - Core APGI equations (entropy, KL divergence, free energy, etc.)
-- `APGI_Entropy_Implementation.py` - Entropy implementation
-- `APGI_Full_Dynamic_Model.py` - Full dynamic model
-- `APGI_Liquid_Network_Implementation.py` - Liquid network implementation
-- `APGI_Multimodal_Classifier.py` - Multimodal classifier
-- `APGI_Multimodal_Integration.py` - Multimodal integration
+**Theory modules (Theory/):**
+
+- `APGI_Bayesian_Estimation_Framework.py` - Bayesian estimation framework
+- `APGI_Computational_Benchmarking.py` - Computational benchmarking
+- `APGI_Cross_Species_Scaling.py` - Cross-species scaling analysis
+- `APGI_Cultural_Neuroscience.py` - Cultural neuroscience integration
+
+**Validation protocols (Validation/):**
+
+- `Master_Validation.py` - Master validation orchestrator
+- `VP_01_SyntheticEEG_MLClassification.py` - Synthetic EEG ML classification
+- `VP_02_Behavioral_BayesianComparison.py` - Behavioral Bayesian comparison
+- `VP_03_ActiveInference_AgentSimulations.py` - Active inference agent simulations
+
+**Falsification protocols (Falsification/):**
+
+- `FP_01_ActiveInference.py` - Active inference falsification
+- `FP_02_AgentComparison_ConvergenceBenchmark.py` - Agent comparison and convergence
+- `FP_03_FrameworkLevel_MultiProtocol.py` - Framework-level multi-protocol testing
+- `FP_04_PhaseTransition_EpistemicArchitecture.py` - Phase transition epistemic architecture
+
+**Utility modules (utils/):**
+
+- `errors.py` - Typed error taxonomy (ErrorCategory, ErrorSeverity, domain exceptions)
+- `data_protection.py` - Data protection workflows (secure deletion, retention policies)
+- `cache_manager.py` - Cache governance with SLO monitoring and alerts
+- `security_logging_integration.py` - Security middleware with deny-by-default context
+- `security_audit_logger.py` - Audit logging for security events
+- `performance_optimizer.py` - Performance optimization with p50/p95/p99 latency tracking
+- `dependency_scanner.py` - Dependency vulnerability scanning
+- `backup_manager.py` - Backup management with HMAC validation
 
 ### Test setup
 

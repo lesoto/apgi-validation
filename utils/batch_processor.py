@@ -337,13 +337,16 @@ else:
     SurpriseIgnitionSystem = _SurpriseIgnitionSystemFallback
 
 
-# Import logging_config using importlib to avoid package init issues
-logging_config_spec = importlib.util.spec_from_file_location(
-    "logging_config", PROJECT_ROOT / "utils" / "logging_config.py"
-)
-logging_config = importlib.util.module_from_spec(logging_config_spec)
-logging_config_spec.loader.exec_module(logging_config)
-apgi_logger = logging_config.apgi_logger
+# Import logging_config with fallback
+try:
+    from .logging_config import apgi_logger
+except ImportError:
+    try:
+        from utils.logging_config import apgi_logger
+    except ImportError:
+        import logging
+
+        apgi_logger = logging.getLogger("batch_processor")  # type: ignore[assignment]
 
 
 # Global cache for loaded validation modules to prevent cycles and improve performance

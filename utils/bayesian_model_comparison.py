@@ -1811,7 +1811,7 @@ class BayesianModelComparison:
             k = len(trace.posterior.data_vars)
 
             # Get sample size (number of observations)
-            n = trace.posterior.dims["draw"]
+            n = trace.posterior.sizes["draw"]
 
             # Approximate log-likelihood from posterior samples
             # This is a simplified approximation - full BIC would need the actual likelihood

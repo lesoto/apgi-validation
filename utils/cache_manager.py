@@ -49,6 +49,71 @@ class CacheManager:
 
         # Statistics
         self.stats = {"hits": 0, "misses": 0, "evictions": 0, "total_requests": 0}
+        self.slos: Dict[str, float] = {}
+
+    def set_cache_slo(self, domain: str, max_miss_rate: float):
+        """Set cache SLO for a specific domain.
+
+        Args:
+            domain: Domain name (e.g., 'simulation', 'validation', 'preprocessing')
+            max_miss_rate: Maximum acceptable miss rate (0.0 to 1.0)
+        """
+        if not 0.0 <= max_miss_rate <= 1.0:
+            raise ValueError("max_miss_rate must be between 0.0 and 1.0")
+        self.slos[domain] = max_miss_rate
+
+    def check_slo_alerts(self) -> Dict[str, Any]:
+        """Check cache SLO compliance and return alerts.
+
+        Returns:
+            Dictionary with SLO compliance status and any alerts
+        """
+        alerts = []
+        compliance_status = "compliant"
+
+        if self.stats["total_requests"] == 0:
+            return {
+                "status": "no_data",
+                "alerts": [],
+                "domains": {},
+            }
+
+        hit_rate = self.stats["hits"] / self.stats["total_requests"]
+        miss_rate = 1.0 - hit_rate
+
+        for domain, max_miss_rate in self.slos.items():
+            domain_compliance = miss_rate <= max_miss_rate
+            if not domain_compliance:
+                alerts.append(
+                    {
+                        "domain": domain,
+                        "severity": (
+                            "warning" if miss_rate < max_miss_rate * 1.5 else "critical"
+                        ),
+                        "message": (
+                            f"Miss rate {miss_rate:.2%} exceeds "
+                            f"SLO {max_miss_rate:.2%}"
+                        ),
+                        "current_miss_rate": miss_rate,
+                        "slo_max_miss_rate": max_miss_rate,
+                    }
+                )
+                compliance_status = "non_compliant"
+
+        return {
+            "status": compliance_status,
+            "alerts": alerts,
+            "domains": {
+                domain: {
+                    "slo_max_miss_rate": max_miss_rate,
+                    "current_miss_rate": miss_rate,
+                    "compliant": miss_rate <= max_miss_rate,
+                }
+                for domain, max_miss_rate in self.slos.items()
+            },
+            "overall_hit_rate": hit_rate,
+            "overall_miss_rate": miss_rate,
+        }
 
     def _load_metadata(self) -> Dict:
         """Load cache metadata from file."""
@@ -470,6 +535,7 @@ class CacheManager:
 
             # Reset stats
             self.stats = {"hits": 0, "misses": 0, "evictions": 0, "total_requests": 0}
+            self.slos = {}
 
     def cleanup_expired(self):
         """Remove expired cache entries."""

@@ -341,7 +341,7 @@ def check_dataset_availability(
     Returns:
         Availability status dictionary
     """
-    from utils.empirical_dataset_catalog import get_dataset_by_id, AccessStatus
+    from utils.empirical_dataset_catalog import AccessStatus, get_dataset_by_id
 
     ds = get_dataset_by_id(dataset_id)
     if not ds:

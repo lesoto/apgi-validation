@@ -337,14 +337,25 @@ class ProtocolOptimizer:
         return result
 
     def get_performance_report(self) -> Dict[str, Any]:
-        """
-        Generate performance report from logged metrics.
-
-        Returns:
-            Dictionary with performance statistics
-        """
         if not self._performance_log:
             return {"status": "no_data"}
+        execution_times = sorted([p["execution_time"] for p in self._performance_log])
+        return {
+            "total_executions": len(execution_times),
+            "avg_execution_time": sum(execution_times) / len(execution_times),
+            "min_execution_time": min(execution_times),
+            "max_execution_time": max(execution_times),
+            "p50_latency": (
+                float(np.percentile(execution_times, 50)) if execution_times else 0.0
+            ),
+            "p95_latency": (
+                float(np.percentile(execution_times, 95)) if execution_times else 0.0
+            ),
+            "p99_latency": (
+                float(np.percentile(execution_times, 99)) if execution_times else 0.0
+            ),
+            "cache_stats": _global_cache.get_stats(),
+        }
 
         execution_times = [p["execution_time"] for p in self._performance_log]
 

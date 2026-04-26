@@ -17,6 +17,9 @@ Classes:
 
 import hashlib
 import json
+
+# Import logging configuration
+import logging
 import re
 import threading
 import time
@@ -25,9 +28,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-
-# Import logging configuration
-import logging
 
 # Set up standard logging as fallback
 _std_logger = logging.getLogger(__name__)

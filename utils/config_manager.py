@@ -39,17 +39,86 @@ import jsonschema
 import yaml
 from dotenv import load_dotenv
 
+# Import logging with fallback for different execution contexts
+_logger_source = "unknown"
+
+# First, try relative import (when imported as part of package)
 try:
     from .logging_config import apgi_logger, log_error
-except ImportError:
-    try:
-        from utils.logging_config import apgi_logger, log_error
-    except ImportError:
-        # When running directly from utils directory
-        import logging_config
 
-        apgi_logger = logging_config.apgi_logger
-        log_error = logging_config.log_error
+    _logger_source = "relative_import"
+except ImportError:
+    pass
+
+# If relative import failed, use importlib to load from the correct location
+if _logger_source == "unknown":
+    try:
+        import importlib.util
+        import sys
+
+        # Get the directory containing this file
+        this_file = Path(__file__).resolve()
+        utils_dir = this_file.parent
+        logging_config_path = utils_dir / "logging_config.py"
+
+        # Load the module explicitly from the correct path
+        spec = importlib.util.spec_from_file_location(
+            "logging_config_local", logging_config_path
+        )
+        if spec and spec.loader:
+            logging_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(logging_module)
+            apgi_logger = logging_module.apgi_logger
+            log_error = logging_module.log_error
+            _logger_source = "importlib_local"
+    except Exception:
+        pass
+
+# Final fallback: create a basic logger
+if _logger_source == "unknown":
+    import logging
+    import sys
+
+    logger: logging.Logger = logging.getLogger("apgi")
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+
+    # Create a type-compatible APGILogger wrapper
+    _FallbackLogger = Any  # Forward reference for type compatibility
+
+    class _FallbackAPGILogger:
+        """Wrapper class for logger to maintain compatibility."""
+
+        def __init__(self, logger_instance: logging.Logger) -> None:
+            self.logger = logger_instance
+
+        def __getattr__(self, name: str) -> Any:
+            """Delegate all attribute access to the underlying logger."""
+            return getattr(self.logger, name)
+
+        def info(self, msg: str) -> None:
+            self.logger.info(msg)
+
+        def error(self, msg: str) -> None:
+            self.logger.error(msg)
+
+        def warning(self, msg: str) -> None:
+            self.logger.warning(msg)
+
+        def debug(self, msg: str) -> None:
+            self.logger.debug(msg)
+
+    apgi_logger: Any = _FallbackAPGILogger(logger)  # type: ignore[no-redef]
+
+    def log_error(message: str) -> None:
+        logger.error(message)
+
+    _logger_source = "fallback_created"
 
 # Project root directory
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -362,12 +431,12 @@ class ConfigManager:
             >>> config_manager.enable_hot_reload(on_change=on_config_change)
         """
         if self._hot_reload_enabled:
-            apgi_logger.logger.warning("Hot-reload is already enabled")
+            apgi_logger.warning("Hot-reload is already enabled")
             return False
 
         # Validate config file exists
         if not self.config_file.exists():
-            apgi_logger.logger.error(
+            apgi_logger.error(
                 f"Cannot enable hot-reload: config file not found: {self.config_file}"
             )
             return False
@@ -391,7 +460,7 @@ class ConfigManager:
         self._hot_reload_thread.start()
         self._hot_reload_enabled = True
 
-        apgi_logger.logger.info(
+        apgi_logger.info(
             f"Configuration hot-reload enabled (interval: {self._hot_reload_check_interval}s)"
         )
         return True
@@ -412,7 +481,7 @@ class ConfigManager:
         self._hot_reload_enabled = False
         self._config_change_callbacks.clear()
 
-        apgi_logger.logger.info("Configuration hot-reload disabled")
+        apgi_logger.info("Configuration hot-reload disabled")
         return True
 
     def register_change_callback(
@@ -467,7 +536,7 @@ class ConfigManager:
                 self._hot_reload_stop_event.wait(self._hot_reload_check_interval)
 
             except Exception as e:
-                apgi_logger.logger.error(f"Error in hot-reload worker: {e}")
+                apgi_logger.error(f"Error in hot-reload worker: {e}")
                 self._hot_reload_stop_event.wait(self._hot_reload_check_interval)
 
     def _reload_config(self):
@@ -486,7 +555,7 @@ class ConfigManager:
             changes = self._compute_config_diff(old_config_dict, new_config_dict)
 
             if changes:
-                apgi_logger.logger.info(
+                apgi_logger.info(
                     f"Configuration hot-reloaded: {len(changes)} change(s) detected"
                 )
 
@@ -495,16 +564,12 @@ class ConfigManager:
                     try:
                         callback(changes)
                     except Exception as e:
-                        apgi_logger.logger.error(
-                            f"Error in config change callback: {e}"
-                        )
+                        apgi_logger.error(f"Error in config change callback: {e}")
             else:
-                apgi_logger.logger.debug(
-                    "Configuration file changed but no differences found"
-                )
+                apgi_logger.debug("Configuration file changed but no differences found")
 
         except Exception as e:
-            apgi_logger.logger.error(f"Failed to hot-reload configuration: {e}")
+            apgi_logger.error(f"Failed to hot-reload configuration: {e}")
 
     def _compute_config_diff(
         self, old: Dict[str, Any], new: Dict[str, Any], path: str = ""
@@ -561,7 +626,7 @@ class ConfigManager:
 
                 # Verify schema integrity before using it
                 if not self._verify_schema_integrity(schema_file, schema_data):
-                    apgi_logger.logger.error(
+                    apgi_logger.error(
                         f"Schema integrity verification failed for {schema_file}. "
                         "Using fallback schema for security."
                     )
@@ -569,12 +634,10 @@ class ConfigManager:
 
                 return schema_data
             except (json.JSONDecodeError, IOError) as e:
-                apgi_logger.logger.warning(
-                    f"Failed to load schema from {schema_file}: {e}"
-                )
+                apgi_logger.warning(f"Failed to load schema from {schema_file}: {e}")
                 return self._get_fallback_schema()
         else:
-            apgi_logger.logger.warning(f"Schema file not found: {schema_file}")
+            apgi_logger.warning(f"Schema file not found: {schema_file}")
             return self._get_fallback_schema()
 
     def _get_fallback_schema(self) -> Dict[str, Any]:
@@ -656,7 +719,7 @@ class ConfigManager:
             actual_hash = hashlib.sha256(schema_json.encode("utf-8")).hexdigest()
 
             if actual_hash != EXPECTED_SCHEMA_HASH:
-                apgi_logger.logger.error(
+                apgi_logger.error(
                     f"Schema integrity check failed for {schema_file}: "
                     f"expected {EXPECTED_SCHEMA_HASH}, got {actual_hash}"
                 )
@@ -666,13 +729,11 @@ class ConfigManager:
             global _config_loaded
             with _config_lock:
                 if not _config_loaded:
-                    apgi_logger.logger.info(
-                        f"Schema integrity verified for {schema_file}"
-                    )
+                    apgi_logger.info(f"Schema integrity verified for {schema_file}")
             return True
 
         except Exception as e:
-            apgi_logger.logger.error(
+            apgi_logger.error(
                 f"Error during schema integrity verification for {schema_file}: {e}"
             )
             return False
@@ -692,8 +753,8 @@ class ConfigManager:
             )
             self.config_file = validated_config_path
         except ValueError as e:
-            apgi_logger.logger.warning(f"Config file path validation failed: {e}")
-            apgi_logger.logger.warning("Using default configuration")
+            apgi_logger.warning(f"Config file path validation failed: {e}")
+            apgi_logger.warning("Using default configuration")
             self._save_default_config()
             return
 
@@ -719,12 +780,12 @@ class ConfigManager:
                 global _config_loaded
                 with _config_lock:
                     if not _config_loaded:
-                        apgi_logger.logger.info(
+                        apgi_logger.info(
                             f"Loaded configuration from {self.config_file}"
                         )
                         _config_loaded = True
                     else:
-                        apgi_logger.logger.debug(
+                        apgi_logger.debug(
                             f"Configuration reloaded from {self.config_file}"
                         )
 
@@ -740,9 +801,7 @@ class ConfigManager:
                         "file": str(self.config_file),
                     },
                 )
-                apgi_logger.logger.warning(
-                    f"Using default configuration due to error: {e}"
-                )
+                apgi_logger.warning(f"Using default configuration due to error: {e}")
             except (json.JSONDecodeError, ValueError, KeyError) as e:
                 # Re-raise JSON and validation errors for tests
                 apgi_logger.log_error_with_context(
@@ -755,9 +814,7 @@ class ConfigManager:
                 raise
         else:
             self._save_default_config()
-            apgi_logger.logger.info(
-                f"Created default configuration at {self.config_file}"
-            )
+            apgi_logger.info(f"Created default configuration at {self.config_file}")
 
     def _validate_config(self, config_data: Dict[str, Any]):
         """Validate configuration against schema."""
@@ -825,7 +882,7 @@ class ConfigManager:
                         f"Invalid value type for {key}: {value} (type: {type(value).__name__})"
                     )
             else:
-                apgi_logger.logger.warning(f"Unknown field {key} in configuration")
+                apgi_logger.warning(f"Unknown field {key} in configuration")
 
     def _validate_field_value(
         self, dataclass_instance, field_name: str, value: Any
@@ -896,7 +953,7 @@ class ConfigManager:
             return True
 
         except (KeyError, AttributeError, TypeError, ValueError) as e:
-            apgi_logger.logger.warning(f"Validation error for {field_name}: {e}")
+            apgi_logger.warning(f"Validation error for {field_name}: {e}")
             return False
 
     def _save_default_config(self):
@@ -938,7 +995,7 @@ class ConfigManager:
 
         setattr(section_obj, parameter, converted_value)
 
-        apgi_logger.logger.info(f"Updated {section}.{parameter} = {converted_value}")
+        apgi_logger.info(f"Updated {section}.{parameter} = {converted_value}")
         return True
 
     def _convert_parameter_value(self, section: str, parameter: str, value: Any) -> Any:
@@ -1267,7 +1324,7 @@ class ConfigManager:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(report_text)
-            apgi_logger.logger.info(f"Validation report saved to: {output_file}")
+            apgi_logger.info(f"Validation report saved to: {output_file}")
 
         return report_text
 
@@ -1324,9 +1381,9 @@ class ConfigManager:
                 )
 
         if fixes_applied:
-            apgi_logger.logger.info(f"Applied {len(fixes_applied)} automatic fixes:")
+            apgi_logger.info(f"Applied {len(fixes_applied)} automatic fixes:")
             for fix in fixes_applied:
-                apgi_logger.logger.info(f"  - {fix}")
+                apgi_logger.info(f"  - {fix}")
 
         return fixed
 
@@ -1334,12 +1391,12 @@ class ConfigManager:
         """Reset configuration to defaults."""
         if section is None:
             self.config = APGIConfig()
-            apgi_logger.logger.info("Reset all configuration to defaults")
+            apgi_logger.info("Reset all configuration to defaults")
         else:
             if hasattr(self.config, section):
                 default_section = getattr(APGIConfig(), section)
                 setattr(self.config, section, default_section)
-                apgi_logger.logger.info(f"Reset {section} configuration to defaults")
+                apgi_logger.info(f"Reset {section} configuration to defaults")
             else:
                 raise ValueError(f"Unknown configuration section: {section}")
 
@@ -1362,7 +1419,7 @@ class ConfigManager:
             else:
                 raise ValueError(f"Unsupported file format: {save_path.suffix}")
 
-        apgi_logger.logger.info(f"Configuration saved to {save_path}")
+        apgi_logger.info(f"Configuration saved to {save_path}")
 
     # Configuration Profiles and Versioning
     def create_profile(
@@ -1387,7 +1444,7 @@ class ConfigManager:
         with open(profile_file, "w") as f:
             yaml.dump(asdict(profile), f, default_flow_style=False, indent=2)
 
-        apgi_logger.logger.info(f"Created configuration profile: {name}")
+        apgi_logger.info(f"Created configuration profile: {name}")
         return str(profile_file)
 
     def load_profile(self, name: str) -> bool:
@@ -1396,7 +1453,7 @@ class ConfigManager:
             PROFILES_DIR.mkdir(parents=True, exist_ok=True)
         profile_file = PROFILES_DIR / f"{name}.yaml"
         if not profile_file.exists():
-            apgi_logger.logger.error(f"Profile not found: {name}")
+            apgi_logger.error(f"Profile not found: {name}")
             return False
 
         try:
@@ -1408,7 +1465,7 @@ class ConfigManager:
 
             # Apply profile parameters
             self._update_dataclass(self.config, profile_data["parameters"])
-            apgi_logger.logger.info(f"Loaded configuration profile: {name}")
+            apgi_logger.info(f"Loaded configuration profile: {name}")
             return True
 
         except (
@@ -1419,7 +1476,7 @@ class ConfigManager:
             KeyError,
             AttributeError,
         ) as e:
-            apgi_logger.logger.error(f"Error loading profile {name}: {e}")
+            apgi_logger.error(f"Error loading profile {name}: {e}")
             return False
 
     def list_profiles(self, category: str = None) -> List[Dict[str, Any]]:
@@ -1450,7 +1507,7 @@ class ConfigManager:
                 yaml.YAMLError,
                 KeyError,
             ) as e:
-                apgi_logger.logger.warning(f"Error reading profile {profile_file}: {e}")
+                apgi_logger.warning(f"Error reading profile {profile_file}: {e}")
 
         return profiles
 
@@ -1461,7 +1518,7 @@ class ConfigManager:
         profile_file = PROFILES_DIR / f"{name}.yaml"
         if profile_file.exists():
             profile_file.unlink()
-            apgi_logger.logger.info(f"Deleted configuration profile: {name}")
+            apgi_logger.info(f"Deleted configuration profile: {name}")
             return True
         return False
 
@@ -1486,7 +1543,7 @@ class ConfigManager:
         with open(version_file, "w") as f:
             json.dump(version_data, f, indent=2)
 
-        apgi_logger.logger.info(f"Created configuration version: {version.version_id}")
+        apgi_logger.info(f"Created configuration version: {version.version_id}")
         return version.version_id
 
     def list_versions(self) -> List[Dict[str, Any]]:
@@ -1516,7 +1573,7 @@ class ConfigManager:
                 json.JSONDecodeError,
                 KeyError,
             ) as e:
-                apgi_logger.logger.warning(f"Error reading version {version_file}: {e}")
+                apgi_logger.warning(f"Error reading version {version_file}: {e}")
 
         return versions
 
@@ -1526,7 +1583,7 @@ class ConfigManager:
             VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
         version_file = VERSIONS_DIR / f"{version_id}.json"
         if not version_file.exists():
-            apgi_logger.logger.error(f"Version not found: {version_id}")
+            apgi_logger.error(f"Version not found: {version_id}")
             return False
 
         try:
@@ -1538,7 +1595,7 @@ class ConfigManager:
 
             # Restore configuration
             self._update_dataclass(self.config, version_data["config"])
-            apgi_logger.logger.info(f"Restored configuration version: {version_id}")
+            apgi_logger.info(f"Restored configuration version: {version_id}")
             return True
 
         except (
@@ -1548,7 +1605,7 @@ class ConfigManager:
             ValueError,
             KeyError,
         ) as e:
-            apgi_logger.logger.error(f"Error restoring version {version_id}: {e}")
+            apgi_logger.error(f"Error restoring version {version_id}: {e}")
             return False
 
     def compare_configs(
@@ -1648,9 +1705,7 @@ class ConfigManager:
                 with open(profile_file, "w") as f:
                     yaml.dump(asdict(profile), f, default_flow_style=False, indent=2)
 
-                apgi_logger.logger.info(
-                    f"Created default profile: {profile_data['name']}"
-                )
+                apgi_logger.info(f"Created default profile: {profile_data['name']}")
 
     def export_config_template(self, file_path: str, format: str = "yaml"):
         """Export configuration template with comments."""
@@ -1735,7 +1790,7 @@ validation:
             with open(file_path, "w") as f:
                 json.dump(config_dict, f, indent=2)
 
-        apgi_logger.logger.info(f"Configuration template exported to {file_path}")
+        apgi_logger.info(f"Configuration template exported to {file_path}")
 
     def get_environment_override(self, parameter: str) -> Optional[str]:
         """Get environment variable override for configuration parameter."""
@@ -1795,7 +1850,7 @@ validation:
                                 pass
 
                         self.set_parameter(section, param, value)
-                        apgi_logger.logger.info(
+                        apgi_logger.info(
                             f"Applied environment override: {env_var} -> {section}.{param} = {value}"
                         )
             except (
@@ -1803,7 +1858,7 @@ validation:
                 PermissionError,
                 UnicodeDecodeError,
             ) as e:
-                apgi_logger.logger.warning(f"Could not read .env file: {e}")
+                apgi_logger.warning(f"Could not read .env file: {e}")
                 # Fall back to regular environment variables
                 self._apply_env_mappings_from_system()
 
@@ -1850,7 +1905,7 @@ class EnhancedConfigManager(ConfigManager):
         with open(profile_path, "w") as f:
             yaml.dump(asdict(profile), f, default_flow_style=False)
 
-        apgi_logger.logger.info(f"Created configuration profile: {name}")
+        apgi_logger.info(f"Created configuration profile: {name}")
         return str(profile_path)
 
     def load_profile(self, name: str) -> bool:
@@ -1858,7 +1913,7 @@ class EnhancedConfigManager(ConfigManager):
         profile_path = PROFILES_DIR / f"{name}.yaml"
 
         if not profile_path.exists():
-            apgi_logger.logger.error(f"Profile not found: {name}")
+            apgi_logger.error(f"Profile not found: {name}")
             return False
 
         try:
@@ -1877,7 +1932,7 @@ class EnhancedConfigManager(ConfigManager):
             self.config = self._dict_to_config(profile.parameters)
             self.current_profile = profile
 
-            apgi_logger.logger.info(f"Loaded configuration profile: {name}")
+            apgi_logger.info(f"Loaded configuration profile: {name}")
             return True
 
         except (
@@ -1888,7 +1943,7 @@ class EnhancedConfigManager(ConfigManager):
             KeyError,
             TypeError,
         ) as e:
-            apgi_logger.logger.error(f"Error loading profile {name}: {e}")
+            apgi_logger.error(f"Error loading profile {name}: {e}")
             return False
 
     def list_profiles(self, category: Optional[str] = None) -> list[dict[str, Any]]:
@@ -1919,7 +1974,7 @@ class EnhancedConfigManager(ConfigManager):
                 KeyError,
                 TypeError,
             ) as e:
-                apgi_logger.logger.warning(f"Error reading profile {profile_file}: {e}")
+                apgi_logger.warning(f"Error reading profile {profile_file}: {e}")
 
         return profiles
 
@@ -2033,7 +2088,7 @@ class EnhancedConfigManager(ConfigManager):
     def rollback_profile(self) -> bool:
         """Rollback to previous profile."""
         if not self.profile_history:
-            apgi_logger.logger.warning("No previous profile to rollback to")
+            apgi_logger.warning("No previous profile to rollback to")
             return False
 
         previous_profile = self.profile_history.pop()
@@ -2048,16 +2103,16 @@ class EnhancedConfigManager(ConfigManager):
         profile_path = PROFILES_DIR / f"{name}.yaml"
 
         if not profile_path.exists():
-            apgi_logger.logger.error(f"Profile not found: {name}")
+            apgi_logger.error(f"Profile not found: {name}")
             return False
 
         try:
             profile_path.unlink()
-            apgi_logger.logger.info(f"Deleted configuration profile: {name}")
+            apgi_logger.info(f"Deleted configuration profile: {name}")
             return True
 
         except (FileNotFoundError, PermissionError, OSError) as e:
-            apgi_logger.logger.error(f"Error deleting profile {name}: {e}")
+            apgi_logger.error(f"Error deleting profile {name}: {e}")
             return False
 
     def export_profile(self, name: str, format: str = "yaml") -> Optional[str]:
@@ -2065,7 +2120,7 @@ class EnhancedConfigManager(ConfigManager):
         profile_path = PROFILES_DIR / f"{name}.yaml"
 
         if not profile_path.exists():
-            apgi_logger.logger.error(f"Profile not found: {name}")
+            apgi_logger.error(f"Profile not found: {name}")
             return None
 
         try:
@@ -2080,7 +2135,7 @@ class EnhancedConfigManager(ConfigManager):
             elif format.lower() == "yaml":
                 return str(profile_path)
             else:
-                apgi_logger.logger.error(f"Unsupported export format: {format}")
+                apgi_logger.error(f"Unsupported export format: {format}")
                 return None
 
         except (
@@ -2091,7 +2146,7 @@ class EnhancedConfigManager(ConfigManager):
             ValueError,
             KeyError,
         ) as e:
-            apgi_logger.logger.error(f"Error exporting profile {name}: {e}")
+            apgi_logger.error(f"Error exporting profile {name}: {e}")
             return None
 
     def import_profile(self, file_path: str, name: Optional[str] = None) -> bool:
@@ -2099,7 +2154,7 @@ class EnhancedConfigManager(ConfigManager):
         file_path_obj = Path(file_path)
 
         if not file_path_obj.exists():
-            apgi_logger.logger.error(f"File not found: {file_path_obj}")
+            apgi_logger.error(f"File not found: {file_path_obj}")
             return False
 
         try:
@@ -2122,7 +2177,7 @@ class EnhancedConfigManager(ConfigManager):
             with open(profile_path, "w") as f:
                 yaml.dump(asdict(profile), f, default_flow_style=False)
 
-            apgi_logger.logger.info(f"Imported configuration profile: {profile.name}")
+            apgi_logger.info(f"Imported configuration profile: {profile.name}")
             return True
 
         except (
@@ -2134,7 +2189,7 @@ class EnhancedConfigManager(ConfigManager):
             KeyError,
             TypeError,
         ) as e:
-            apgi_logger.logger.error(f"Error importing profile from {file_path}: {e}")
+            apgi_logger.error(f"Error importing profile from {file_path}: {e}")
             return False
 
     def validate_profile(self, name: str) -> Dict[str, Any]:
@@ -2237,7 +2292,7 @@ def create_config_profile(
         enhanced_config_manager.create_profile(name, description, category)
         return True
     except (ValueError, KeyError, TypeError, RuntimeError) as e:
-        apgi_logger.logger.error(f"Error creating profile: {e}")
+        apgi_logger.error(f"Error creating profile: {e}")
         return False
 
 

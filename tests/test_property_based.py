@@ -27,7 +27,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
     from Theory.APGI_Equations import DynamicalSystemEquations, FoundationalEquations
     from Theory.APGI_Parameter_Estimation import generate_synthetic_dataset
-
     from utils.data_validation import DataValidator
 
     APGI_EQUATIONS_AVAILABLE = True

@@ -3719,9 +3719,7 @@ def run_validation(**kwargs) -> Dict[str, Any]:
     try:
         # Import thresholds from centralized source (source of truth)
         from utils.falsification_thresholds import F4_MI_MAX_BITS_S as F4_MI_THRESHOLD
-        from utils.falsification_thresholds import (
-            F4_TE_THRESHOLD as F4_TE_THRESHOLD,
-        )  # LEVEL2_TE_THRESHOLD as CENTRAL_TE_THRESHOLD,  # Currently unused; LEVEL2_MI_THRESHOLD as CENTRAL_MI_THRESHOLD,  # Currently unused
+        from utils.falsification_thresholds import F4_TE_THRESHOLD as F4_TE_THRESHOLD
 
         # VP-04 uses TRANSFER_ENTROPY_THRESHOLD from centralized thresholds
         VP04_TE_THRESHOLD = TRANSFER_ENTROPY_THRESHOLD  # Imported at module level

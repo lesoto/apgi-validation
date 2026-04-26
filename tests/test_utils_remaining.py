@@ -169,12 +169,12 @@ class TestGenomeDataExtractor:
 
     def test_extract_genomic_features(self):
         """Test genomic feature extraction"""
-        from utils.genome_data_extractor import extract_genome_data_from_vp5
-
         # Test with mock data structure
         import json
         import tempfile
         from pathlib import Path
+
+        from utils.genome_data_extractor import extract_genome_data_from_vp5
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             mock_data = {
@@ -211,9 +211,9 @@ class TestHRFUtils:
 
     def test_create_hrf_kernel(self):
         """Test HRF kernel creation"""
-        from utils.hrf_utils import double_gamma_hrf
-
         import numpy as np
+
+        from utils.hrf_utils import double_gamma_hrf
 
         t = np.arange(0, 25, 0.1)
         hrf = double_gamma_hrf(t)

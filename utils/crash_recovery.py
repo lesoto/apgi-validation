@@ -15,7 +15,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-apgi_logger: Any
 try:
     from utils.logging_config import apgi_logger
 except ImportError:
@@ -23,7 +22,16 @@ except ImportError:
     import logging
 
     logging.basicConfig(level=logging.INFO)
-    apgi_logger = logging.getLogger("crash_recovery")
+
+    # Create a simple wrapper for compatibility
+    class FallbackLogger:
+        def __init__(self, logger_instance: logging.Logger):
+            self.logger = logger_instance
+
+        def __getattr__(self, name: str):
+            return getattr(self.logger, name)
+
+    apgi_logger = FallbackLogger(logging.getLogger("crash_recovery"))  # type: ignore[assignment]
 
 
 @dataclass

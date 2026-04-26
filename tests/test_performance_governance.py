@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from utils.performance_governance import (
-    BenchmarkResult,
     DEFAULT_SLOS,
+    BenchmarkResult,
     PerformanceRegressionError,
     assert_slo,
     benchmark_callable,

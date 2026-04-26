@@ -27,7 +27,6 @@ try:
         build_apgi_model,
         generate_synthetic_dataset,
     )
-
     from utils.config_manager import ConfigManager
     from utils.data_validation import DataValidator
 
