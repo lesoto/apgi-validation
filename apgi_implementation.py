@@ -43,6 +43,8 @@ CONFIG = {
     "rho": 0.7,
     "alpha_mu": 0.01,
     "alpha_sigma": 0.005,
+    "c1": 0.1,  # Dynamic cost coefficient (signaling-related)
+    "c2": 0.02,  # Static cost coefficient (maintenance-related)
 }
 
 # =============================================================================
@@ -180,6 +182,7 @@ def update_threshold(
     dt: float,
     tau_theta: float,
     gamma_M: float = 0.0,
+    metabolic_cost: Optional[float] = None,
 ) -> float:
     """
     Stable threshold dynamics.
@@ -187,7 +190,7 @@ def update_threshold(
     dθ/dt = (θ0 - θ)/τ_θ - γ_M·S + η·(C - V_info)
 
     where:
-        - C is metabolic cost proxy (0.1 * S)
+        - C is metabolic cost (derived from c1, c2 or passed directly)
         - η is learning rate (0.05)
         - V_info is information value
 
@@ -199,11 +202,17 @@ def update_threshold(
         dt: Time step
         tau_theta: Threshold adaptation timescale
         gamma_M: Metabolic sensitivity
+        metabolic_cost: Optional explicit metabolic cost (C)
 
     Returns:
         Updated threshold
     """
-    C = 0.1 * S  # metabolic proxy
+    if metabolic_cost is not None:
+        C = metabolic_cost
+    else:
+        # Fallback to simplified metabolic proxy if not provided
+        C = 0.1 * S
+
     eta = 0.05
 
     dtheta = (theta0 - theta) / tau_theta - gamma_M * S + eta * (C - V_info)
@@ -598,7 +607,18 @@ class APGIModel:
         # 7. Compute information value (free-energy proxy)
         V = compute_information_value(z_e, z_i)
 
-        # 8. Update threshold (using hierarchical aggregate)
+        # 8. Ignition detection (using hierarchical aggregate)
+        # We compute this before threshold update and metabolic cost for temporal consistency
+        p = ignition_probability(S_hierarchical, self.theta, self.cfg["alpha"])
+        ignited = ignite(S_hierarchical, self.theta)
+
+        # 9. Compute metabolic cost C = c1 * p_ignition + c2
+        # Use ignition probability as a smooth proxy for "ignitions per unit time"
+        c1 = self.cfg.get("c1", 0.1)
+        c2 = self.cfg.get("c2", 0.02)
+        metabolic_cost = c1 * p + c2
+
+        # 10. Update threshold (using hierarchical aggregate and formal metabolic cost)
         self.theta = update_threshold(
             self.theta,
             self.cfg["theta0"],
@@ -607,11 +627,8 @@ class APGIModel:
             self.cfg["dt"],
             self.cfg["tau_theta"],
             self.gamma_M,
+            metabolic_cost=metabolic_cost,
         )
-
-        # 9. Ignition detection (using hierarchical aggregate)
-        p = ignition_probability(S_hierarchical, self.theta, self.cfg["alpha"])
-        ignited = ignite(S_hierarchical, self.theta)
 
         # 10. Stability enforcement
         state = {
@@ -645,6 +662,7 @@ class APGIModel:
             "hep_amplitude": hep,
             "reaction_time_ms": rt,
             "information_value": V,
+            "metabolic_cost": metabolic_cost,
             "pi_i_eff": pi_i_eff,
             "S_hierarchical": S_hierarchical,
             **hierarchical_summary,

@@ -91,6 +91,10 @@ NAMED_PREDICTIONS = {
     "V15.1": "Anticipatory insula activation onset < 500ms pre-stimulus",
     "V15.2": "vmPFC–posterior insula anticipatory connectivity r > 0.40",
     "V15.3": "Anterior/posterior insula dissociation (anticipation vs. experience)",
+    # VP-16: Metabolic ATP Ground-Truth
+    "V16.1": "APGI metabolic cost correlates with high-resolution ATP traces (r > 0.75)",
+    "V16.2": "c1/c2 ratio consistency across frequency bands (10–100 Hz)",
+    "V16.3": "Metabolic efficiency advantage >20% vs non-gating controls",
 }
 
 # BIC thresholds for empirical vs theoretical data
@@ -163,6 +167,10 @@ PREDICTION_TO_PROTOCOL = {
     "V15.1": "VP_15_fMRI_Anticipation_vmPFC",
     "V15.2": "VP_15_fMRI_Anticipation_vmPFC",
     "V15.3": "VP_15_fMRI_Anticipation_vmPFC",
+    # VP-16: Metabolic ATP Ground-Truth
+    "V16.1": "VP_16_Metabolic_ATP_GroundTruth",
+    "V16.2": "VP_16_Metabolic_ATP_GroundTruth",
+    "V16.3": "VP_16_Metabolic_ATP_GroundTruth",
 }
 
 # Protocol tier classification
@@ -182,6 +190,7 @@ PROTOCOL_TIERS = {
     "VP_13_Epistemic_Architecture": "secondary",
     "VP_14_fMRI_Anticipation_Experience": "tertiary",
     "VP_15_fMRI_Anticipation_vmPFC": "tertiary",
+    "VP_16_Metabolic_ATP_GroundTruth": "secondary",
 }
 
 # VP-07 / VP-10 Boundary Clarification

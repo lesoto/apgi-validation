@@ -99,6 +99,7 @@ protocol_files = [
     ("APGI_Protocol_13", "VP_13_Epistemic_Architecture.py"),
     ("APGI_Protocol_14", "VP_14_fMRI_Anticipation_Experience.py"),
     ("APGI_Protocol_15", "VP_15_fMRI_Anticipation_vmPFC.py"),
+    ("APGI_Protocol_16", "VP_16_Metabolic_ATP_GroundTruth.py"),
     ("APGI_Protocol_ALL", "VP_ALL_Aggregator.py"),
 ]
 
@@ -467,7 +468,8 @@ class APGIValidationGUI:
             13: "Protocol 13: P5-P12 Epistemic Architecture",
             14: "Protocol 14: Priority 1 (fMRI Anticipation Experience)",
             15: "Protocol 15: Priority 1 (fMRI Anticipation vmPFC)",
-            16: "Protocol ALL: Master Aggregator (All Protocols)",
+            16: "Protocol 16: Metabolic ATP Ground-Truth (iATPSnFR2)",
+            17: "Protocol ALL: Master Aggregator (All Protocols)",
         }
 
         for i, (num, desc) in enumerate(protocols_info.items()):

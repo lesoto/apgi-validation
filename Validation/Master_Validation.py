@@ -78,7 +78,8 @@ class APGIMasterValidator:
             13: "secondary",
             14: "tertiary",
             15: "tertiary",
-            16: "secondary",  # Protocol ALL (Aggregator)
+            16: "secondary",  # Protocol 16 (Metabolic Ground-Truth)
+            17: "secondary",  # Protocol ALL (Aggregator)
         }
         self.falsification_status = {
             "primary": [],
@@ -106,6 +107,7 @@ class APGIMasterValidator:
             "Protocol-13": {"dependencies": []},
             "Protocol-14": {"dependencies": []},
             "Protocol-15": {"dependencies": []},
+            "Protocol-16": {"dependencies": []},
         }
 
         # Falsification protocol dependencies: VP-05 must complete before certain falsification protocols
@@ -198,6 +200,11 @@ class APGIMasterValidator:
                 "file": "VP_15_fMRI_Anticipation_vmPFC.py",
                 "function": "run_validation",
                 "description": "fMRI Anticipation vmPFC (STUB — Awaiting Data)",
+            },
+            "Protocol-16": {
+                "file": "VP_16_Metabolic_ATP_GroundTruth.py",
+                "function": "run_validation",
+                "description": "Metabolic ATP Ground-Truth Calibration (iATPSnFR2 / P-fMRS)",
             },
         }
         self.protocol_contracts = ProtocolContractRegistry(
