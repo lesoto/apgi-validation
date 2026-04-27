@@ -35,10 +35,23 @@ def validate_fp02_data_variance() -> Dict[str, Any]:
     logger.info("Validating FP-02 data variance...")
 
     try:
-        from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import (
-            IowaGamblingTaskEnvironment,
-            validate_input_variance,
-        )
+        # Import with fallback for temp directory issues
+        try:
+            from Falsification.FP_02_AgentComparison_ConvergenceBenchmark import (
+                IowaGamblingTaskEnvironment,
+                validate_input_variance,
+            )
+        except ImportError as import_err:
+            if "No usable temporary directory" in str(import_err):
+                logger.warning(
+                    "Temp directory issue detected, using synthetic fallback"
+                )
+                return {
+                    "status": "ERROR",
+                    "error": f"Temp directory unavailable: {import_err}",
+                    "note": "System resource issue, not code issue",
+                }
+            raise
 
         # Test environment with improved variance
         env = IowaGamblingTaskEnvironment(n_trials=100)
@@ -73,11 +86,20 @@ def validate_fp03_dependencies() -> Dict[str, Any]:
     logger.info("Validating FP-03 dependency chain...")
 
     try:
-        # Test import resolution
-        from Falsification.FP_03_FrameworkLevel_MultiProtocol import (
-            AGGREGATOR_AVAILABLE,
-            SHARED_FALSEFICATION_AVAILABLE,
-        )
+        # Test import resolution with temp directory fallback
+        try:
+            from Falsification.FP_03_FrameworkLevel_MultiProtocol import (
+                AGGREGATOR_AVAILABLE,
+                SHARED_FALSEFICATION_AVAILABLE,
+            )
+        except ImportError as import_err:
+            if "No usable temporary directory" in str(import_err):
+                return {
+                    "status": "ERROR",
+                    "error": f"Temp directory unavailable: {import_err}",
+                    "note": "System resource issue, not code issue",
+                }
+            raise
 
         return {
             "status": "PASS",
@@ -96,10 +118,19 @@ def validate_fp04_te_computation() -> Dict[str, Any]:
     logger.info("Validating FP-04 TE computation...")
 
     try:
-        from Falsification.FP_04_PhaseTransition_EpistemicArchitecture import (
-            InformationTheoreticAnalysis,
-            SurpriseIgnitionSystem,
-        )
+        try:
+            from Falsification.FP_04_PhaseTransition_EpistemicArchitecture import (
+                InformationTheoreticAnalysis,
+                SurpriseIgnitionSystem,
+            )
+        except ImportError as import_err:
+            if "No usable temporary directory" in str(import_err):
+                return {
+                    "status": "ERROR",
+                    "error": f"Temp directory unavailable: {import_err}",
+                    "note": "System resource issue, not code issue",
+                }
+            raise
 
         # Create analyzer with correct constructor parameters
         apgi_system = SurpriseIgnitionSystem(alpha=8.0, tau_S=0.3)

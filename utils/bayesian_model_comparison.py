@@ -1849,7 +1849,7 @@ class BayesianModelComparison:
 
     def posterior_predictive_check(
         self, data: ConsciousnessDataset, n_samples: int = 1000
-    ) -> Dict[str, Dict]:
+    ) -> Dict[str, Dict[str, Any]]:
         """
         Posterior predictive checks
 
@@ -1868,38 +1868,60 @@ class BayesianModelComparison:
 
             print(f"\n{name}:")
 
-            # Get posterior samples
-            with self.models[name]().build_model(data):
-                # PyMC 5.x uses the trace's samples directly
-                ppc = pm.sample_posterior_predictive(trace, progressbar=False)
+            try:
+                # Get posterior samples
+                with self.models[name]().build_model(data):
+                    # PyMC 5.x uses the trace's samples directly
+                    ppc = pm.sample_posterior_predictive(trace, progressbar=False)
 
-            # Compare predictions to observations
-            pred_report = ppc.posterior_predictive["y_report"].values
-            obs_report = data.conscious_report
+                # Check if y_report exists in posterior predictive
+                if "y_report" not in ppc.posterior_predictive:
+                    print("  Skipped: y_report not in posterior predictive")
+                    results[name] = {
+                        "accuracy": None,
+                        "log_loss": None,
+                        "auc": None,
+                        "predictions": None,
+                    }
+                    continue
 
-            # Compute statistics
-            pred_mean = pred_report.mean(axis=(0, 1))
+                # Compare predictions to observations
+                pred_report = ppc.posterior_predictive["y_report"].values
+                obs_report = data.conscious_report
 
-            # Accuracy
-            pred_binary = (pred_mean > 0.5).astype(int)
-            accuracy = (pred_binary == obs_report).mean()
+                # Compute statistics
+                pred_mean = pred_report.mean(axis=(0, 1))
 
-            # Log-loss
-            logloss = log_loss(obs_report, pred_mean)
+                # Accuracy
+                pred_binary = (pred_mean > 0.5).astype(int)
+                accuracy = (pred_binary == obs_report).mean()
 
-            # AUC
-            auc = roc_auc_score(obs_report, pred_mean)
+                # Log-loss
+                logloss = log_loss(obs_report, pred_mean)
 
-            print(f"  Accuracy: {accuracy:.3f}")
-            print(f"  Log-loss: {logloss:.3f}")
-            print(f"  AUC: {auc:.3f}")
+                # AUC
+                auc = roc_auc_score(obs_report, pred_mean)
 
-            results[name] = {
-                "accuracy": accuracy,
-                "log_loss": logloss,
-                "auc": auc,
-                "predictions": pred_mean,
-            }
+                print(f"  Accuracy: {accuracy:.3f}")
+                print(f"  Log-loss: {logloss:.3f}")
+                print(f"  AUC: {auc:.3f}")
+
+                results[name] = {
+                    "accuracy": accuracy,
+                    "log_loss": logloss,
+                    "auc": auc,
+                    "predictions": pred_mean,
+                }
+            except Exception as e:
+                print(f"  Error during posterior predictive check: {e}")
+                error_dict: Dict[str, Any] = {
+                    "accuracy": None,
+                    "log_loss": None,
+                    "auc": None,
+                    "predictions": None,
+                    "error": str(e),
+                }
+                results[name] = error_dict
 
         return results
 

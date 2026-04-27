@@ -667,9 +667,14 @@ def main() -> None:
     print("APGI Framework - Sample Data Generator")
     print("=" * 50)
 
-    # Create data directory
-    data_dir = Path("data")
-    data_dir.mkdir(exist_ok=True)
+    # Create data directory with error handling
+    try:
+        data_dir = Path("data")
+        data_dir.mkdir(parents=True, exist_ok=True)
+    except (OSError, PermissionError) as e:
+        print(f"Warning: Could not create data directory: {e}")
+        # Fallback to current directory
+        data_dir = Path(".")
 
     # Generate multiple subjects
     generator = SampleDataGenerator(sampling_rate=1000, duration=60)
@@ -688,13 +693,21 @@ def main() -> None:
     )  # Lower sampling rate for demo
     demo_df, demo_metadata = demo_generator.create_multimodal_dataset("demo", "demo")
     demo_output_dir = Path("data_repository/raw_data")
-    demo_output_dir.mkdir(parents=True, exist_ok=True)
-    demo_generator.save_dataset(demo_df, demo_metadata, str(demo_output_dir))
+    try:
+        demo_output_dir.mkdir(parents=True, exist_ok=True)
+        demo_generator.save_dataset(demo_df, demo_metadata, str(demo_output_dir))
+    except (OSError, PermissionError) as e:
+        print(f"Warning: Could not create demo output directory: {e}")
+        # Save to current directory as fallback
+        demo_generator.save_dataset(demo_df, demo_metadata, ".")
 
     print("\nSample datasets generated successfully!")
     print("Available files in data_repository/raw_data/ directory:")
 
     data_path = Path("data_repository/raw_data")
+    if not data_path.exists():
+        print("  (Directory not created - using current directory)")
+        data_path = Path(".")
     for file_path in sorted(data_path.glob("*")):
         if file_path.is_file():
             size_kb = file_path.stat().st_size / 1024

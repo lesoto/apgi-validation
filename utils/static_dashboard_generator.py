@@ -5,6 +5,7 @@ APGI Static HTML Dashboard Generator
 Generates static HTML dashboards for APGI framework visualizations.
 """
 
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any, List, Optional
@@ -44,7 +45,14 @@ class StaticDashboardGenerator:
     def __init__(self, output_dir: Optional[str] = None):
         """Initialize the dashboard generator."""
         self.output_dir = Path(output_dir or "apgi_output/dashboards")
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError) as e:
+            # Fallback to current directory if we can't create the output dir
+            warnings.warn(
+                f"Could not create {self.output_dir}: {e}. Using current directory."
+            )
+            self.output_dir = Path(".")
 
     def generate_system_dashboard(self) -> str:
         """Generate a system monitoring dashboard."""
