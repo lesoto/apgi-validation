@@ -680,6 +680,8 @@ class UtilsRunnerGUI:
             # Set environment variables for faster execution in validation mode
             env = os.environ.copy()
             env["APGI_TEST_MODE"] = "1"  # Enable test mode for faster sampling
+            # Force UTF-8 encoding to handle emoji characters in output
+            env["PYTHONIOENCODING"] = "utf-8"
 
             process = subprocess.Popen(
                 cmd,
@@ -688,6 +690,7 @@ class UtilsRunnerGUI:
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
+                encoding="utf-8",
                 cwd=cwd_path,
                 env=env,
             )
@@ -802,21 +805,35 @@ class UtilsRunnerGUI:
                             ready = False
 
                 if ready and output:
-                    if isinstance(output, str) and output.startswith(
+                    # On Windows, output is a tuple (text, type) from the queue
+                    if platform.system() == "Windows" and isinstance(output, tuple):
+                        output_text, _output_type = output
+                    else:
+                        output_text = output
+
+                    if isinstance(output_text, str) and output_text.startswith(
                         ("READ_ERROR:", "THREAD_ERROR:")
                     ):
                         # Handle reader thread errors
                         self.log_output(
-                            f"Subprocess reader error: {output}", self.TAG_ERROR
+                            f"Subprocess reader error: {output_text}", self.TAG_ERROR
                         )
-                    elif not output and process.poll() is not None:
+                    elif not output_text and process.poll() is not None:
                         break
-                    elif output:
-                        # Strip ANSI codes for clean display in GUI
-                        clean_output = strip_ansi_codes(output.rstrip())
-                        # Filter out progress bars and empty lines
-                        if clean_output and not should_filter_line(clean_output):
-                            self.log_output(clean_output, self.TAG_INFO)
+                    elif output_text:
+                        # Ensure output_text is a string before calling rstrip()
+                        if isinstance(output_text, str):
+                            # Strip ANSI codes for clean display in GUI
+                            clean_output = strip_ansi_codes(output_text.rstrip())
+                            # Filter out progress bars and empty lines
+                            if clean_output and not should_filter_line(clean_output):
+                                self.log_output(clean_output, self.TAG_INFO)
+                        else:
+                            # Log unexpected type for debugging
+                            self.log_output(
+                                f"Unexpected output type: {type(output_text)}",
+                                self.TAG_WARNING,
+                            )
 
                 # Check timeout
                 if time.time() - start_time > script_timeout:
@@ -847,13 +864,38 @@ class UtilsRunnerGUI:
             if reader_thread and reader_thread.is_alive():
                 reader_thread.join(timeout=1.0)
 
-            # Get final return code and completion time
-            return_code = process.poll()
+            # Wait for process to fully terminate and get return code
+            try:
+                # First check if process already ended
+                return_code = process.poll()
+                if return_code is None:
+                    # Process still running, wait for it
+                    return_code = process.wait(timeout=5.0)
+            except subprocess.TimeoutExpired:
+                # If process doesn't terminate, try to get poll result
+                process.terminate()
+                try:
+                    return_code = process.wait(timeout=2.0)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    return_code = process.wait(timeout=2.0)
+            except Exception as e:
+                # If wait fails, try poll as fallback
+                logging.warning(f"Error waiting for process {script_name}: {e}")
+                return_code = process.poll()
+                if return_code is None:
+                    return_code = -1  # Indicate unknown status
+
             elapsed_time = time.time() - start_time
             if return_code == 0:
                 self.log_output(
                     f"✅ {script_name} completed successfully in {elapsed_time:.2f}s",
                     self.TAG_SUCCESS,
+                )
+            elif return_code is None:
+                self.log_output(
+                    f"⚠️ {script_name} completed but return code unknown",
+                    self.TAG_WARNING,
                 )
             else:
                 self.log_output(

@@ -140,6 +140,10 @@ class TestAPGIBayesianModel:
 
     def test_fit_dynamical_system(self):
         """Test that fit_dynamical_system method doesn't exist and redirects to fit_hierarchical_apgi."""
+        # Skip if PyMC is not available since we can't instantiate the model
+        if not BAYESIAN_AVAILABLE:
+            pytest.skip("PyMC not available")
+
         model = APGIBayesianModel()
 
         # Verify the method doesn't exist

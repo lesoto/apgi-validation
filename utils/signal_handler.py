@@ -97,8 +97,6 @@ def get_signal_handler() -> SignalHandler:
 
 def restore_signal_handlers():
     """Restore all signal handlers to their original state."""
-    global _global_handler
-
     with _handler_lock:
         if _global_handler is not None:
             _global_handler._restore_handlers()

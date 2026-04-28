@@ -204,8 +204,6 @@ def _safe_matmul(A: np.ndarray, B: np.ndarray, clip_val: float = 5.0) -> np.ndar
         np.ndarray if computation is stable, or zeros if NaN/Inf detected
         (errors are tracked via global _numerical_instability_detected flag)
     """
-    global _numerical_instability_detected
-
     # Check inputs for NaN/Inf before computation
     if np.any(np.isnan(A)) or np.any(np.isinf(A)):
         _mark_numerical_instability()

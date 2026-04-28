@@ -180,7 +180,8 @@ class HistoricalDashboard:
                 cursor = conn.cursor()
 
                 # System metrics table
-                cursor.execute("""
+                cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS system_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -191,10 +192,12 @@ class HistoricalDashboard:
                         network_connections INTEGER,
                         load_average REAL
                     )
-                """)
+                """
+                )
 
                 # Validation results table
-                cursor.execute("""
+                cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS validation_results (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -207,10 +210,12 @@ class HistoricalDashboard:
                         success_rate REAL,
                         error_message TEXT
                     )
-                """)
+                """
+                )
 
                 # Performance metrics table
-                cursor.execute("""
+                cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS performance_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -220,7 +225,8 @@ class HistoricalDashboard:
                         unit TEXT,
                         metadata TEXT
                     )
-                """)
+                """
+                )
 
                 # Create indexes for better query performance
                 cursor.execute(

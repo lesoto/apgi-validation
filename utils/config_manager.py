@@ -762,6 +762,7 @@ class ConfigManager:
             with _config_lock:
                 if not _config_loaded:
                     apgi_logger.info(f"Schema integrity verified for {schema_file}")
+                    _config_loaded = True
             return True
 
         except Exception as e:

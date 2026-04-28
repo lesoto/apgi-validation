@@ -1,13 +1,24 @@
 from __future__ import annotations
 
-import fcntl  # FP-02 Fix: Add fcntl for thread-safe file locking
 import json  # FP-02 Fix: Add json for JSON operations
 import logging
 import os  # FP-02 Fix: Add os for file operations
+import platform
 import sys
 import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+# Platform-specific import for file locking
+if platform.system() != "Windows":
+    try:
+        import fcntl  # type: ignore[import-not-found,import-untyped]
+
+        FCNTL_AVAILABLE = True
+    except ImportError:
+        FCNTL_AVAILABLE = False
+else:
+    FCNTL_AVAILABLE = False
 
 import numpy as np
 from scipy import stats
@@ -135,19 +146,22 @@ def save_results_with_lock(results: Dict[str, Any], filepath: str) -> None:
 
     FP-02 Fix: Uses fcntl.flock for process-safe file locking to prevent
     race conditions when multiple processes write to the same file.
+    On Windows, falls back to basic file operations without locking.
 
     Args:
         results: Dictionary of results to save
         filepath: Path to output JSON file
     """
     with open(filepath, "w") as f:
-        # Acquire exclusive lock
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        # Acquire exclusive lock (only on non-Windows platforms)
+        if FCNTL_AVAILABLE:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)  # type: ignore[attr-defined]
         try:
             json.dump(results, f, indent=2, default=str)
         finally:
-            # Release lock
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            # Release lock (only on non-Windows platforms)
+            if FCNTL_AVAILABLE:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # type: ignore[attr-defined]
 
 
 def load_results_with_lock(filepath: str) -> Optional[Dict[str, Any]]:
@@ -155,6 +169,7 @@ def load_results_with_lock(filepath: str) -> Optional[Dict[str, Any]]:
     Load results from JSON file with shared lock for thread-safe file operations.
 
     FP-02 Fix: Uses fcntl.flock for process-safe file locking.
+    On Windows, falls back to basic file operations without locking.
 
     Args:
         filepath: Path to JSON file to load
@@ -166,13 +181,15 @@ def load_results_with_lock(filepath: str) -> Optional[Dict[str, Any]]:
         return None
 
     with open(filepath, "r") as f:
-        # Acquire shared lock for reading
-        fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+        # Acquire shared lock for reading (only on non-Windows platforms)
+        if FCNTL_AVAILABLE:
+            fcntl.flock(f.fileno(), fcntl.LOCK_SH)  # type: ignore[attr-defined]
         try:
             return json.load(f)
         finally:
-            # Release lock
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            # Release lock (only on non-Windows platforms)
+            if FCNTL_AVAILABLE:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # type: ignore[attr-defined]
 
 
 # Removed for GUI stability
@@ -2263,7 +2280,7 @@ def check_falsification(
     _ = std_post_reward  # Used in potential future validation
 
     # Calculate performance maintained as percentage relative to peak
-    peak_performance = max(mean_apgi, 100.0)  # Avoid division by small values
+    peak_performance = max(float(mean_apgi), 100.0)  # Avoid division by small values
     performance_maintained = (mean_post_reward / peak_performance) * 100.0
     efficiency_gain = computational_efficiency * 100  # Convert to percentage
 

@@ -33,6 +33,8 @@ try:
     logger.info("PyMC and dependencies successfully imported")
 except (ImportError, AttributeError) as e:
     BAYESIAN_AVAILABLE = False
+    pm = None  # Placeholder for mocking in tests
+    az = None  # Placeholder for mocking in tests
     logger.warning(f"PyMC/ArviZ/xarray not available: {e}")
     logger.warning(
         "Bayesian functionality will be limited. Install with: pip install pymc arviz xarray"

@@ -77,6 +77,11 @@ class APGIBayesianInversion:
     """
 
     def __init__(self, dt: float = 0.001, draws: int = 2000, tune: int = 1000):
+        if not HAS_PYMC:
+            raise ImportError(
+                "PyMC is required for Bayesian inversion. "
+                "Install it with: pip install pymc"
+            )
         self.dt = dt
         self.draws = draws
         self.tune = tune
@@ -87,7 +92,7 @@ class APGIBayesianInversion:
         observed_B: np.ndarray,
         z_e: np.ndarray,
         z_i: np.ndarray,
-    ) -> pm.Model:
+    ) -> "pm.Model":
         """
         Extracts core parameters using hierarchical Bayesian model inversion.
         Uses non-centered parameterization and strong informative priors.
@@ -471,68 +476,77 @@ class APGIMechanisticStratifier:
 
 # Modified main demo to include new functionality
 if __name__ == "__main__":
-    # Original demo code is copied here...
+    # Check if PyMC is available before running the demo
+    if not HAS_PYMC:
+        print("WARNING: PyMC not available. Skipping Bayesian inversion demo.")
+        print("Install pymc to enable full functionality: pip install pymc")
+    else:
+        # Original demo code is copied here...
 
-    # At the end of the original demo, add:
+        # At the end of the original demo, add:
 
-    print("\n" + "=" * 70)
-    print("ENHANCED FEATURES: Bayesian Inversion & Mechanistic Stratification")
-    print("=" * 70)
+        print("\n" + "=" * 70)
+        print("ENHANCED FEATURES: Bayesian Inversion & Mechanistic Stratification")
+        print("=" * 70)
 
-    # Example: Generate synthetic time series for inversion
-    np.random.seed(42)
-    time_steps = 1000
-    true_theta_0 = 0.5
-    true_pi_e = 1.5
-    true_pi_i = 1.5
-    true_beta = 1.2
-    true_tau_s = 0.3
+        # Example: Generate synthetic time series for inversion
+        np.random.seed(42)
+        time_steps = 1000
+        true_theta_0 = 0.5
+        true_pi_e = 1.5
+        true_pi_i = 1.5
+        true_beta = 1.2
+        true_tau_s = 0.3
 
-    # Generate surprise time series
-    z_e_series = np.random.normal(0, 1, time_steps)
-    z_i_series = np.random.normal(0, 1, time_steps)
+        # Generate surprise time series
+        z_e_series = np.random.normal(0, 1, time_steps)
+        z_i_series = np.random.normal(0, 1, time_steps)
 
-    # Simulate S_t evolution using full APGI model
-    S_t = np.zeros(time_steps)
-    sigma_noise = 0.1
-    for t in range(1, time_steps):
-        surprise_input = true_pi_e * np.abs(
-            z_e_series[t]
-        ) + true_beta * true_pi_i * np.abs(z_i_series[t])
-        S_t[t] = S_t[t - 1] + 0.001 * (
-            -S_t[t - 1] / true_tau_s + surprise_input + np.random.normal(0, sigma_noise)
+        # Simulate S_t evolution using full APGI model
+        S_t = np.zeros(time_steps)
+        sigma_noise = 0.1
+        for t in range(1, time_steps):
+            surprise_input = true_pi_e * np.abs(
+                z_e_series[t]
+            ) + true_beta * true_pi_i * np.abs(z_i_series[t])
+            S_t[t] = S_t[t - 1] + 0.001 * (
+                -S_t[t - 1] / true_tau_s
+                + surprise_input
+                + np.random.normal(0, sigma_noise)
+            )
+
+        # Simulate ignition decisions
+        alpha = 5.0
+        p_ignite = 1 / (1 + np.exp(-alpha * (S_t - true_theta_0)))
+        ignition = np.random.binomial(1, p_ignite)
+
+        # Perform Bayesian inversion
+        inverter = APGIBayesianInversion()
+        params, trace = inverter.invert_parameters(
+            S_t, ignition, z_e_series, z_i_series
         )
 
-    # Simulate ignition decisions
-    alpha = 5.0
-    p_ignite = 1 / (1 + np.exp(-alpha * (S_t - true_theta_0)))
-    ignition = np.random.binomial(1, p_ignite)
+        print("Recovered Parameters:")
+        for param, value in params.items():
+            print(f"  {param}: {value:.3f}")
 
-    # Perform Bayesian inversion
-    inverter = APGIBayesianInversion()
-    params, trace = inverter.invert_parameters(S_t, ignition, z_e_series, z_i_series)
+        # Mechanistic stratification
+        stratifier = APGIMechanisticStratifier()
+        patient_params = {
+            "pi_i": params["pi_i"],
+            "theta_0": params["theta_0"],
+            "beta": params["beta"],
+        }
+        disorder = stratifier.stratify_patient(patient_params)
+        print(f"Predicted Disorder: {disorder}")
 
-    print("Recovered Parameters:")
-    for param, value in params.items():
-        print(f"  {param}: {value:.3f}")
-
-    # Mechanistic stratification
-    stratifier = APGIMechanisticStratifier()
-    patient_params = {
-        "pi_i": params["pi_i"],
-        "theta_0": params["theta_0"],
-        "beta": params["beta"],
-    }
-    disorder = stratifier.stratify_patient(patient_params)
-    print(f"Predicted Disorder: {disorder}")
-
-    # Feature importance
-    importance = stratifier.get_feature_importance()
-    if importance:
-        print("Feature Importance:")
-        for feat, imp in importance.items():
-            print(f"  {feat}: {imp:.3f}")
-    print(
-        "\nNote: β_som and Πᵢ are mathematically collinear; independent manipulations"
-    )
-    print("(e.g., interoceptive training) are needed for full identifiability.")
+        # Feature importance
+        importance = stratifier.get_feature_importance()
+        if importance:
+            print("Feature Importance:")
+            for feat, imp in importance.items():
+                print(f"  {feat}: {imp:.3f}")
+        print(
+            "\nNote: β_som and Πᵢ are mathematically collinear; independent manipulations"
+        )
+        print("(e.g., interoceptive training) are needed for full identifiability.")

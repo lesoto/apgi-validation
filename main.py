@@ -4039,9 +4039,7 @@ def _run_gui_module(gui_path, gui_name, debug):
                 gui_module.main()
                 console.print(f"[blue]✅ {gui_name} GUI closed normally[/blue]")
             except KeyboardInterrupt:
-                console.print(
-                    f"[yellow]⚠️  {gui_name} GUI interrupted by user[/yellow]"
-                )
+                console.print(f"[yellow]⚠️  {gui_name} GUI interrupted by user[/yellow]")
             except Exception as e:
                 console.print(f"[red]❌ Error in {gui_name} GUI: {e}[/red]")
                 if debug:

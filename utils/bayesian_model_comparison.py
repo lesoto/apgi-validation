@@ -430,7 +430,7 @@ class Protocol2TMSCausalIntervention:
 
     def simulate_baseline_interoceptive_awareness(
         self, participant_id: int
-    ) -> Dict[str, float]:
+    ) -> Dict[str, "float | str | None"]:
         """
         Measure baseline interoceptive awareness (heartbeat discrimination)
 
@@ -458,7 +458,7 @@ class Protocol2TMSCausalIntervention:
         participant_id: int,
         tms_condition: str = "sham",
         target_region: str = None,
-    ) -> Dict[str, float]:
+    ) -> Dict[str, "float | str | None"]:
         """
         Simulate near-threshold visual stimulus detection task with TMS
 
@@ -536,7 +536,7 @@ class Protocol2TMSCausalIntervention:
 
     def simulate_pci_measurement(
         self, participant_id: int, tms_condition: str = "sham"
-    ) -> Dict[str, float]:
+    ) -> Dict[str, "float | str | None"]:
         """
         Simulate Perturbational Complexity Index (PCI) measurement
 

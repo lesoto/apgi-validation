@@ -843,12 +843,12 @@ class APGIActiveInferenceAgent(AgentInterface):
         self._eps_i_buffer.append(torch.norm(eps_i).item())
 
         if len(self._eps_e_buffer) > 10 and len(self._eps_i_buffer) > 10:
-            var_e = np.var(list(self._eps_e_buffer)) + 0.01
-            var_i = np.var(list(self._eps_i_buffer)) + 0.01
+            var_e = float(np.var(list(self._eps_e_buffer)) + 0.01)
+            var_i = float(np.var(list(self._eps_i_buffer)) + 0.01)
 
             # Guard against numerical issues
-            var_e = max(var_e, 0.01)  # type: ignore[arg-type]
-            var_i = max(var_i, 0.01)  # type: ignore[arg-type]
+            var_e = max(var_e, 0.01)
+            var_i = max(var_i, 0.01)
 
             target_Pi_e = 1.0 / var_e
             target_Pi_i = 1.0 / var_i

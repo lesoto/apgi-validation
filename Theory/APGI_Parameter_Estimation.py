@@ -1576,6 +1576,10 @@ def conduct_prior_predictive_checks(n_samples: int = 1000, save_plots: bool = Tr
 
     This ensures priors are weakly informative but not overly constraining.
     """
+    if not HAS_PYMC:
+        print("WARNING: PyMC not available. Skipping prior predictive checks.")
+        return None
+
     print("\n" + "=" * 70)
     print("PRIOR PREDICTIVE CHECKS")
     print("=" * 70)
@@ -1648,7 +1652,7 @@ def conduct_prior_predictive_checks(n_samples: int = 1000, save_plots: bool = Tr
 # =============================================================================
 # 4. HIERARCHICAL BAYESIAN MODEL WITH INTEGRATED DYNAMICS
 # =============================================================================
-def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
+def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> Any:
     """
     Construct structurally identifiable APGI model with integrated dynamics.
 
@@ -1665,8 +1669,12 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
         estimate_dynamics: If True, estimate and validate auxiliary parameters
 
     Returns:
-        PyMC model object
+        PyMC model object or None if PyMC not available
     """
+    if not HAS_PYMC:
+        print("WARNING: PyMC not available. Cannot build APGI model.")
+        return None
+
     n_subjects = len(data)
     max_trials = max(
         len(data[subj]["detection"]["responses"]) for subj in range(n_subjects)
@@ -2035,7 +2043,7 @@ def build_apgi_model(data: Dict, estimate_dynamics: bool = True) -> pm.Model:
 # 5. FISHER INFORMATION MATRIX - FORMAL IDENTIFIABILITY ANALYSIS
 # =============================================================================
 def compute_fisher_information(
-    model: pm.Model, trace: az.InferenceData, n_samples: int = 500
+    model: "pm.Model", trace: "az.InferenceData", n_samples: int = 500
 ) -> Dict:
     """
     Compute Fisher Information Matrix to formally assess parameter identifiability.
@@ -2189,7 +2197,7 @@ def compute_fisher_information(
 # 6. PARAMETER RECOVERY VALIDATION
 # =============================================================================
 def validate_parameter_recovery(
-    true_params: Dict, trace: az.InferenceData, n_subjects: int = 100
+    true_params: Dict, trace: "az.InferenceData", n_subjects: int = 100
 ) -> Tuple[Dict, bool, List[str]]:
     """
     Comprehensive validation of all parameters with justified thresholds.
@@ -2320,7 +2328,7 @@ def validate_parameter_recovery(
 # 7. TEST-RETEST RELIABILITY
 # =============================================================================
 def assess_test_retest(
-    session1_trace: az.InferenceData, session2_trace: az.InferenceData
+    session1_trace: "az.InferenceData", session2_trace: "az.InferenceData"
 ) -> Dict:
     """
     Calculate ICC and reliability metrics with proper error handling.
@@ -2476,7 +2484,7 @@ def load_independent_datasets() -> Dict:
 
 
 def assess_predictive_validity(
-    data: Dict, trace: az.InferenceData, independent_data: Dict
+    data: Dict, trace: "az.InferenceData", independent_data: Dict
 ) -> Dict:
     """
     Comprehensive predictive validity on INDEPENDENT datasets.
@@ -2694,7 +2702,7 @@ def generate_comprehensive_visualizations(
     recovery_results: Dict,
     reliability: Dict,
     predictive_results: Dict,
-    trace: az.InferenceData,
+    trace: "az.InferenceData",
     fim_results: Dict,
     save_dir: str = ".",
 ):
@@ -3211,7 +3219,7 @@ def _step_artifact_rejection(sessions: List) -> List:
     return sessions
 
 
-def _step_build_model(sessions: List) -> pm.Model:
+def _step_build_model(sessions: List) -> "pm.Model":
     """Step 3: Build and fit model"""
     print("\n[3/8] BUILDING HIERARCHICAL BAYESIAN MODEL")
     print("-" * 80)
@@ -3997,6 +4005,18 @@ def main():
     9. ✓ Named constants
     10. ✓ Optimized computation
     """
+    if not HAS_PYMC:
+        print("=" * 80)
+        print("APGI PARAMETER ESTIMATION - VALIDATION SKIPPED")
+        print("=" * 80)
+        print("WARNING: PyMC is required for parameter estimation.")
+        print("Install it with: pip install pymc arviz")
+        print("\nSkipping validation pipeline...")
+        return {
+            "status": "SKIPPED",
+            "message": "PyMC not available. Install pymc to run parameter estimation.",
+        }
+
     print("=" * 80)
     print("APGI PARAMETER ESTIMATION - PUBLICATION-READY VALIDATION")
     print("Version 2.0 - Addressing All Critical Issues")

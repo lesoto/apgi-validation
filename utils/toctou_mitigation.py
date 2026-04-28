@@ -12,15 +12,14 @@ from pathlib import Path
 from typing import Any, Optional
 
 # Platform-specific imports
+FCNTL_AVAILABLE = False
 if platform.system() != "Windows":
     try:
-        import fcntl
+        import fcntl  # type: ignore[import-not-found,import-untyped]
 
         FCNTL_AVAILABLE = True
     except ImportError:
-        FCNTL_AVAILABLE = False
-else:
-    FCNTL_AVAILABLE = False
+        pass
 
 
 class FileLock:
@@ -58,7 +57,7 @@ class FileLock:
             self.lock_fd = os.open(self.lock_file, os.O_CREAT | os.O_WRONLY, 0o600)
 
             # Try to acquire lock (non-blocking)
-            fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)  # type: ignore[attr-defined]
 
             self.logger.debug(f"Acquired lock: {self.lock_file}")
             return True
@@ -90,7 +89,7 @@ class FileLock:
             self.lock_fd = os.open(self.lock_file, os.O_CREAT | os.O_WRONLY, 0o600)
 
             # Try to acquire lock (blocking)
-            fcntl.flock(self.lock_fd, fcntl.LOCK_EX)
+            fcntl.flock(self.lock_fd, fcntl.LOCK_EX)  # type: ignore[attr-defined]
 
             self.logger.debug(f"Acquired lock (blocking): {self.lock_file}")
             return True
@@ -114,7 +113,7 @@ class FileLock:
 
         if self.lock_fd is not None:
             try:
-                fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
+                fcntl.flock(self.lock_fd, fcntl.LOCK_UN)  # type: ignore[attr-defined]
                 os.close(self.lock_fd)
                 self.lock_fd = None
                 self.logger.debug(f"Released lock: {self.lock_file}")

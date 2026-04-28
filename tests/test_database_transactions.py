@@ -136,16 +136,19 @@ class DatabaseTransactionTester:
     def setup_test_tables(self) -> None:
         """Create test tables for transaction testing."""
         with self.transaction() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS test_accounts (
                     id INTEGER PRIMARY KEY,
                     account_number TEXT UNIQUE NOT NULL,
                     balance REAL NOT NULL DEFAULT 0.0,
                     version INTEGER DEFAULT 0
                 )
-            """)
+            """
+            )
 
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS test_transactions (
                     id INTEGER PRIMARY KEY,
                     from_account TEXT,
@@ -154,16 +157,19 @@ class DatabaseTransactionTester:
                     status TEXT DEFAULT 'pending',
                     timestamp REAL DEFAULT (julianday('now'))
                 )
-            """)
+            """
+            )
 
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS test_locks (
                     id INTEGER PRIMARY KEY,
                     resource_id TEXT UNIQUE NOT NULL,
                     locked_by TEXT,
                     locked_at REAL
                 )
-            """)
+            """
+            )
 
             # Insert test data
             for i in range(10):

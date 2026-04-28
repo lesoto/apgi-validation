@@ -28,7 +28,14 @@ Mathematical Formulation:
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple, Union
 
-import nolds
+try:
+    import nolds
+
+    HAS_NOLDS = True
+except ImportError:
+    HAS_NOLDS = False
+    nolds = None
+
 import numpy as np
 from scipy.special import expit
 
@@ -385,6 +392,8 @@ class APGIFullDynamicModel:
 
         try:
             # Use nolds.dfa for robust Hurst exponent estimation
+            if not HAS_NOLDS:
+                raise ImportError("nolds package not available")
             H = nolds.dfa(time_series)
             # Allow H > 1.0 for super-persistent correlations
             # H > 1.0 indicates strong deterministic trends (structured stimuli)
@@ -404,6 +413,8 @@ class APGIFullDynamicModel:
             Hurst exponent estimate using R/S method
         """
         try:
+            if not HAS_NOLDS:
+                raise ImportError("nolds package not available")
             H = nolds.hurst_rs(time_series)
             return float(np.clip(H, 0.0, 1.0))
         except Exception:

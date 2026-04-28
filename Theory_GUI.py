@@ -464,6 +464,7 @@ class ScriptRunnerGUI:
 
                 runnable_classes = []
                 module_level_runners = []
+                has_main_block = False
 
                 for node in ast.walk(tree):
                     if isinstance(node, ast.ClassDef):
@@ -489,7 +490,6 @@ class ScriptRunnerGUI:
                     elif isinstance(node, ast.FunctionDef) and node.name in [
                         "run_validation",
                         "run_falsification",
-                        "main",
                         "validate_cross_species_model",
                         "validate_cultural_modulation_effects",
                         "generate_cross_cultural_comparison",
@@ -498,16 +498,49 @@ class ScriptRunnerGUI:
                         "run_anxiety_comparison",
                     ]:
                         module_level_runners.append(node.name)
+                    elif isinstance(node, ast.FunctionDef) and node.name == "main":
+                        # Check if main() launches a GUI (tkinter) - if so, skip it
+                        func_source = ast.get_source_segment(source, node)
+                        if func_source and not (
+                            "tkinter" in func_source
+                            and ("Tk()" in func_source or "tk.Tk()" in func_source)
+                        ):
+                            module_level_runners.append(node.name)
                     elif isinstance(node, ast.FunctionDef):
                         # Catch any top-level run_* or validate_* function
+                        # EXCEPT those that require specific arguments that GUI can't provide
                         if node.name.startswith(
                             ("run_", "validate_")
                         ) and not node.name.startswith("_"):
-                            module_level_runners.append(node.name)
+                            # Skip functions that require specific data arguments
+                            skip_functions = [
+                                "validate_joint_biomarker_advantage",
+                                "validate_transition_plausibility",
+                                "validate_ode_integration",
+                            ]
+                            if node.name not in skip_functions:
+                                module_level_runners.append(node.name)
+                    elif isinstance(node, ast.If):
+                        # Detect if __name__ == "__main__" blocks
+                        test = node.test
+                        if isinstance(test, ast.Compare):
+                            if (
+                                isinstance(test.left, ast.Name)
+                                and test.left.id == "__name__"
+                            ):
+                                for comparator in test.comparators:
+                                    if (
+                                        isinstance(comparator, ast.Constant)
+                                        and comparator.value == "__main__"
+                                    ):
+                                        has_main_block = True
 
                 # Determine execution strategy
                 exec_info = self._determine_execution_strategy(
-                    protocol_name, runnable_classes, module_level_runners
+                    protocol_name,
+                    runnable_classes,
+                    module_level_runners,
+                    has_main_block,
                 )
 
                 if exec_info:
@@ -539,7 +572,11 @@ class ScriptRunnerGUI:
         return protocols
 
     def _determine_execution_strategy(
-        self, protocol_name, runnable_classes, module_level_runners
+        self,
+        protocol_name,
+        runnable_classes,
+        module_level_runners,
+        has_main_block=False,
     ):
         """Determine how to execute a protocol based on its structure."""
 
@@ -568,7 +605,8 @@ class ScriptRunnerGUI:
                     }
 
         # Default: just run the module (if it has executable code at module level)
-        return {"type": "exec_module"}
+        # Note: if __name__ == "__main__" blocks won't execute when loaded via importlib
+        return {"type": "exec_module", "has_main_block": has_main_block}
 
     def _format_display_name(self, protocol_name):
         """Convert filename to human-readable display name."""
@@ -1483,9 +1521,36 @@ class ScriptRunnerGUI:
                 if run_func:
                     self.log_message(f"  Running {func_name}()...")
                     try:
+                        # Try with configured parameters first
                         result = run_func(**configured_params)
-                    except TypeError:
-                        result = run_func()
+                    except TypeError as e:
+                        # If that fails, try without parameters
+                        if "required positional argument" in str(e):
+                            self.log_message(
+                                f"  Function {func_name} requires specific arguments - skipping execution"
+                            )
+                            result = {
+                                "status": "SKIPPED",
+                                "message": f"Function {func_name} requires data arguments not available in GUI",
+                            }
+                        else:
+                            # Try calling without arguments
+                            try:
+                                result = run_func()
+                            except Exception as e2:
+                                self.log_message(
+                                    f"  ERROR calling {func_name}: {str(e2)}"
+                                )
+                                result = {
+                                    "status": "ERROR",
+                                    "message": f"Function {func_name} failed: {str(e2)}",
+                                }
+                    except Exception as e:
+                        self.log_message(f"  ERROR calling {func_name}: {str(e)}")
+                        result = {
+                            "status": "ERROR",
+                            "message": f"Function {func_name} failed: {str(e)}",
+                        }
                 else:
                     self.log_message(f"  Function {func_name} not found")
                     result = {

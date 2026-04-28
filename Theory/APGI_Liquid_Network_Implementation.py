@@ -248,10 +248,10 @@ class GradientMonitor:
             return {}
 
         return {
-            "mean_grad_norm": np.mean(self.gradient_history),
-            "std_grad_norm": np.std(self.gradient_history),
-            "max_grad_norm": np.max(self.gradient_history),
-            "min_grad_norm": np.min(self.gradient_history),
+            "mean_grad_norm": float(np.mean(self.gradient_history)),
+            "std_grad_norm": float(np.std(self.gradient_history)),
+            "max_grad_norm": float(np.max(self.gradient_history)),
+            "min_grad_norm": float(np.min(self.gradient_history)),
         }
 
 

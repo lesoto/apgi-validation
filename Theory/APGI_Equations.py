@@ -537,7 +537,7 @@ class DynamicalSystemEquations:
                 if len(eps_i_history) >= int(tau_int)
                 else np.mean(eps_i_history)
             )
-            interoceptive = min(1.0, 0.3 * recent_eps_i)
+            interoceptive = min(1.0, float(0.3 * recent_eps_i))
         else:
             interoceptive = 0.0
 
@@ -1131,7 +1131,6 @@ class PsychologicalState:
             "A": self.arousal_level
             + OSCILLATION_AMPLITUDE_ERROR
             * np.sin(2 * np.pi * time / OSCILLATION_PERIOD_AROUSAL),
-            "content_domain": self.content_domain,
         }
 
 
