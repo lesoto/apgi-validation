@@ -421,15 +421,21 @@ class TestPermissionErrors:
 
     def test_write_permission_denied(self, tmp_path):
         """Test handling of write permission denied errors."""
-        from utils.security_logging_integration import secure_file_write
+        from utils.security_logging_integration import (
+            SecurityContext,
+            secure_file_write,
+        )
 
         # Create read-only file
         readonly_file = tmp_path / "readonly.txt"
         readonly_file.write_text("content")
         readonly_file.chmod(0o444)  # Read-only
 
+        # Provide writer role to pass authorization and trigger actual file permission error
+        context = SecurityContext(user_id="test_user", roles=frozenset(["writer"]))
+
         try:
-            secure_file_write(str(readonly_file), "new content")
+            secure_file_write(str(readonly_file), "new content", context=context)
             assert False, "Should have raised PermissionError"
         except PermissionError:
             # Expected - permission denied
@@ -440,18 +446,24 @@ class TestPermissionErrors:
 
     def test_delete_permission_denied(self, tmp_path):
         """Test handling of delete permission denied errors."""
-        from utils.security_logging_integration import secure_file_delete
+        from utils.security_logging_integration import (
+            SecurityContext,
+            secure_file_delete,
+        )
 
         # Create a file
         test_file = tmp_path / "testfile.txt"
         test_file.write_text("content")
+
+        # Provide writer role to pass authorization
+        context = SecurityContext(user_id="test_user", roles=frozenset(["writer"]))
 
         # Mock path.unlink to raise PermissionError for testing
         with patch.object(
             Path, "unlink", side_effect=PermissionError("Permission denied")
         ):
             try:
-                secure_file_delete(str(test_file))
+                secure_file_delete(str(test_file), context=context)
                 assert False, "Should have raised PermissionError"
             except PermissionError:
                 # Expected - permission denied

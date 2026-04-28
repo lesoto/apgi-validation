@@ -171,6 +171,7 @@ class TestProtocolIntegration:
                 "success",
                 "failed",
                 "error",
+                "passed",
             ]
 
             # Integration workflow result

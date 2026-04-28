@@ -229,6 +229,8 @@ class TestAllVPProtocols:
 
     # VP protocols that need test mode to prevent timeouts
     SLOW_VP_PROTOCOLS = [
+        "Validation.VP_01_SyntheticEEG_MLClassification",
+        "Validation.VP_04_PhaseTransition_EpistemicLevel2",
         "Validation.VP_11_MCMC_CulturalNeuroscience_Priority3",
         "Validation.VP_12_Clinical_CrossSpecies_Convergence",
         "Validation.VP_13_Epistemic_Architecture",

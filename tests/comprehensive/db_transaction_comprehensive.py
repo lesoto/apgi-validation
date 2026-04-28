@@ -97,25 +97,21 @@ class DatabaseTransactionTester:
     def _setup_test_tables(self) -> None:
         """Setup test tables."""
         conn = sqlite3.connect(self.db_path)
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS test_data (
                 id INTEGER PRIMARY KEY,
                 value TEXT,
                 counter INTEGER DEFAULT 0,
                 version INTEGER DEFAULT 1
             )
-        """
-        )
-        conn.execute(
-            """
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS accounts (
                 id INTEGER PRIMARY KEY,
                 balance REAL DEFAULT 0.0,
                 name TEXT
             )
-        """
-        )
+        """)
         conn.commit()
         conn.close()
 

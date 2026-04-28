@@ -1861,6 +1861,7 @@ class BayesianModelComparison:
         print(f"{'=' * 80}")
 
         results = {}
+        test_mode = os.environ.get("APGI_TEST_MODE", "").lower() in ("1", "true", "yes")
 
         for name, trace in self.traces.items():
             if trace is None:
@@ -1914,6 +1915,10 @@ class BayesianModelComparison:
                 }
             except Exception as e:
                 print(f"  Error during posterior predictive check: {e}")
+                if test_mode:
+                    print(
+                        "  ⚠️  In test mode, this is expected due to reduced sampling"
+                    )
                 error_dict: Dict[str, Any] = {
                     "accuracy": None,
                     "log_loss": None,

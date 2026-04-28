@@ -29,7 +29,7 @@ def test_falsification_files_exist():
         "FP_07_MathematicalConsistency.py",
         "FP_08_ParameterSensitivity_Identifiability.py",
         "FP_09_NeuralSignatures_P3b_HEP.py",
-        "FP_10_BayesianEstimation_MCMC.py",
+        "FP_10_Falsification_BayesianEstimation_ParameterRecovery.py",
         "FP_11_LiquidNetworkDynamics_EchoState.py",
         "FP_12_CrossSpeciesScaling.py",
         "FP_ALL_Aggregator.py",
@@ -54,11 +54,9 @@ def test_falsification_files_exist():
         except UnicodeDecodeError as e:
             assert False, f"Falsification file {file_name} has encoding error: {e}"
 
-    # Check APGI_Falsification_Protocols_GUI.py at root level (moved from Falsification/)
-    gui_path = Path(__file__).parent.parent / "APGI_Falsification_Protocols_GUI.py"
-    assert (
-        gui_path.exists()
-    ), "APGI_Falsification_Protocols_GUI.py not found at root level"
+    # Check Falsification_Protocols_GUI.py at root level
+    gui_path = Path(__file__).parent.parent / "Falsification_Protocols_GUI.py"
+    assert gui_path.exists(), "Falsification_Protocols_GUI.py not found at root level"
 
 
 def test_falsification_protocol_1_hierarchical_model():

@@ -11,7 +11,7 @@ import functools
 import signal
 import threading
 import traceback
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, Optional, Tuple, Type
@@ -65,8 +65,8 @@ class ErrorInfo:
     severity: ErrorSeverity
     code: str
     message: str
-    details: Optional[Dict[str, Any]] = None
-    suggestions: Optional[list] = None
+    details: Optional[Dict[str, Any]] = field(default_factory=dict)
+    suggestions: Optional[list] = field(default_factory=list)
     user_action: Optional[str] = None
 
 

@@ -1676,7 +1676,8 @@ def _print_summary_p11(results: Dict[str, Any]) -> None:
         print(f"  {p:8s}: mean={mu:.4f}  sd={sd:.4f}  95%CI=[{lo:.4f}, {hi:.4f}]")
 
     print(
-        f"\n— Convergence (R̂ ≤ {RHAT_GATE}) — " f"{_fmt_pass(conv['convergence_pass'])}"
+        f"\n— Convergence (R̂ ≤ {RHAT_GATE}) — "
+        f"{_fmt_pass(conv['convergence_pass'])}"
     )
     for p, diag in conv["parameter_diagnostics"].items():
         flag = "✓" if diag["converged"] else "✗"

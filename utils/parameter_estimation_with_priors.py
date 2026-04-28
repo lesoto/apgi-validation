@@ -45,6 +45,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 import numpy as np
 
 if TYPE_CHECKING:
+    from .apgi_engine import APGISystem
     from .physiological_priors import (
         AlphaGammaRatioPrior,
         CollinearityBreaker,
@@ -52,7 +53,6 @@ if TYPE_CHECKING:
         HEPCalibrationResult,
         PhysiologicalPriorResult,
     )
-    from .apgi_engine import APGISystem
 else:
     # Import physiological priors at runtime
     try:

@@ -346,9 +346,9 @@ class APGIModuleLoader:
         self.modules = {}
         self._module_configs = {
             "formal_model": {
-                "file": "Falsification/FP_04_PhaseTransition_EpistemicArchitecture.py",
+                "file": "Falsification/FP_ALL_Aggregator.py",
                 "class": "SurpriseIgnitionSystem",
-                "description": "Formal model simulations",
+                "description": "Sergent 2005 Attentional Blink (via Aggregator)",
             },
             "multimodal": {
                 "file": "Theory/APGI_Multimodal_Integration.py",
@@ -3374,9 +3374,7 @@ def quantitative_fits(
         # Import the quantitative fits validator
         spec = importlib.util.spec_from_file_location(
             "quantitative_fits",
-            PROJECT_ROOT
-            / "Validation"
-            / "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
+            PROJECT_ROOT / "Validation" / "DS_09_AllenVisualCoding_Fatigue.py",
         )
         quant_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(quant_module)
@@ -3857,9 +3855,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 3: Quantitative Model Fits...[/blue]")
             spec3 = importlib.util.spec_from_file_location(
                 "quant_val",
-                PROJECT_ROOT
-                / "Validation"
-                / "VP_11_MCMC_CulturalNeuroscience_Priority3.py",
+                PROJECT_ROOT / "Validation" / "DS_09_AllenVisualCoding_Fatigue.py",
             )
             quant_module = importlib.util.module_from_spec(spec3)
             spec3.loader.exec_module(quant_module)
@@ -4039,7 +4035,9 @@ def _run_gui_module(gui_path, gui_name, debug):
                 gui_module.main()
                 console.print(f"[blue]✅ {gui_name} GUI closed normally[/blue]")
             except KeyboardInterrupt:
-                console.print(f"[yellow]⚠️  {gui_name} GUI interrupted by user[/yellow]")
+                console.print(
+                    f"[yellow]⚠️  {gui_name} GUI interrupted by user[/yellow]"
+                )
             except Exception as e:
                 console.print(f"[red]❌ Error in {gui_name} GUI: {e}[/red]")
                 if debug:

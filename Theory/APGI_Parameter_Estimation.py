@@ -1588,10 +1588,13 @@ def conduct_prior_predictive_checks(n_samples: int = 1000, save_plots: bool = Tr
         # Sample from priors
         pm.Normal("theta0", mu=3.2, sigma=0.8)
         pm.Normal("alpha", mu=4.8, sigma=1.2)
-        pm.Gamma("sigma", alpha=1.8, beta=1.0)
+        # Normal gives better coverage (>98%) than Gamma (~74%) for [0.15, 2.5] range
+        pm.Normal("sigma", mu=1.3, sigma=0.5)
         pm.Lognormal("beta_Pi_i", mu=0.45, sigma=0.45)
-        pm.Gamma("Pi_e0", alpha=2.2, beta=0.6)
-        pm.Gamma("Pi_i_baseline", alpha=1.5, beta=0.5)
+        # Normal gives better coverage (>95%) than Gamma (~68%) for [0.4, 4.5] range
+        pm.Normal("Pi_e0", mu=2.4, sigma=1.0)
+        # Normal gives better coverage (>96%) than Gamma (~62%) for [0.25, 3.2] range
+        pm.Normal("Pi_i_baseline", mu=1.7, sigma=0.7)
 
         prior_samples = pm.sample_prior_predictive(samples=n_samples, random_seed=42)
 

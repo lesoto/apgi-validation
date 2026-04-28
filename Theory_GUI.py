@@ -473,6 +473,11 @@ class ScriptRunnerGUI:
                             n.name for n in node.body if isinstance(n, ast.FunctionDef)
                         ]
 
+                        # Skip GUI classes - they require tkinter root and can't be
+                        # instantiated by the Theory GUI
+                        if class_name.endswith("GUI"):
+                            continue
+
                         # Check for runnable methods
                         if any(
                             m in methods
@@ -517,6 +522,21 @@ class ScriptRunnerGUI:
                                 "validate_joint_biomarker_advantage",
                                 "validate_transition_plausibility",
                                 "validate_ode_integration",
+                                "validate_cross_level_consistency",
+                                "validate_precision_surprise_relationship",
+                                "validate_three_level_entropy",
+                                "validate_information_gain_positive",
+                                "validate_phase_transition",
+                                "validate_metabolic_cost_scales",
+                                "validate_cost_benefit_gating",
+                                "validate_gradient_flow",
+                                "validate_dataset_compliance",
+                                "validate_replication_attempt",
+                                "validate_open_science_compliance",
+                                "validate_measurement",
+                                "validate_implementation",
+                                "run_analysis",
+                                "stop_analysis",
                             ]
                             if node.name not in skip_functions:
                                 module_level_runners.append(node.name)
@@ -1495,17 +1515,19 @@ class ScriptRunnerGUI:
                 self.log_message(f"Error: Script file not found: {file_path}")
                 return {"status": "ERROR", "message": "Script file not found"}
 
-            spec = importlib.util.spec_from_file_location(
-                protocol_info["module_name"], file_path
+            # Use consistent module name (without .py extension) for both spec and sys.modules
+            _mod_key = protocol_info.get(
+                "module_name", protocol_info["file"].replace(".py", "")
             )
+            spec = importlib.util.spec_from_file_location(_mod_key, file_path)
             module = importlib.util.module_from_spec(spec)
             # Pre-register so modules that do sys.modules[__name__] self-reference work
-            sys.modules[protocol_info["module_name"]] = module
+            sys.modules[_mod_key] = module
             try:
                 spec.loader.exec_module(module)
             finally:
                 # Clean up temporary sys.modules entry to avoid stale state
-                sys.modules.pop(protocol_info["module_name"], None)
+                sys.modules.pop(_mod_key, None)
 
             # Get configured parameters and execution info
             configured_params = protocol_info.get("configured_params", {})
@@ -1652,12 +1674,13 @@ class ScriptRunnerGUI:
                 if not os.path.exists(file_path):
                     raise FileNotFoundError(f"Script file not found: {file_path}")
 
-                spec = importlib.util.spec_from_file_location(
-                    protocol_info["file"], file_path
+                # Use consistent module name (without .py extension) for both spec and sys.modules
+                _mod_key = protocol_info.get(
+                    "module_name", protocol_info["file"].replace(".py", "")
                 )
+                spec = importlib.util.spec_from_file_location(_mod_key, file_path)
                 module = importlib.util.module_from_spec(spec)
                 # Pre-register so modules that do sys.modules[__name__] self-reference work
-                _mod_key = protocol_info.get("module_name", protocol_info["file"])
                 sys.modules[_mod_key] = module
                 try:
                     spec.loader.exec_module(module)

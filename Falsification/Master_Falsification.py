@@ -224,36 +224,11 @@ class APGIMasterFalsifier:
                 "description": "APGI BIC advantage",
                 "threshold": "APGI BIC < alternatives",
             },
-            # FP-04: Phase Transition / Information-Theoretic
-            "F4.1": {
+            # FP-04: DS-01 Sergent 2005 Attentional Blink
+            "DS-01.1": {
                 "protocol": 4,
-                "description": "Ignition Threshold Sharpness",
-                "threshold": "d' ≥ 2.0 at threshold",
-            },
-            "F4.2": {
-                "protocol": 4,
-                "description": "Hysteresis Width",
-                "threshold": "0.08 ≤ H ≤ 0.25",
-            },
-            "F4.3": {
-                "protocol": 4,
-                "description": "Critical Slowing Down",
-                "threshold": "τ increases ≥40% near threshold",
-            },
-            "F4.4": {
-                "protocol": 4,
-                "description": "Metabolic Cost Ceiling",
-                "threshold": "≤20% above baseline ATP",
-            },
-            "F4.5": {
-                "protocol": 4,
-                "description": "Long-Range Correlations",
-                "threshold": "Hurst H = 0.6-0.8",
-            },
-            "F4.6": {
-                "protocol": 4,
-                "description": "Bandwidth Constraint",
-                "threshold": "≤40 bits/s (biological ceiling)",
+                "description": "Hill Coefficient β ≥ 10 (sharp sigmoid) on visibility ratings",
+                "threshold": "β ≥ 10",
             },
             # FP-05: Evolutionary Plausibility
             "F5.1": {
@@ -474,10 +449,10 @@ class APGIMasterFalsifier:
                 "tier": "secondary",
             },
             "FP-04": {
-                "file": "Falsification/FP_04_PhaseTransition_EpistemicArchitecture.py",
-                "function": "run_falsification",
-                "class": "None",
-                "description": "Phase Transition / Epistemic Architecture Level 2",
+                "file": "Falsification/DS_01_Sergent2005_AttentionalBlink.py",
+                "function": "run_validation",
+                "class": "Sergent2005Protocol",
+                "description": "DS-01: Sergent 2005 Attentional Blink (Hill Coefficient β fitting)",
                 "tier": "secondary",
             },
             "FP-05": {

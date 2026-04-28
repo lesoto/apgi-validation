@@ -19,7 +19,7 @@ FALSIFICATION_MODULES = {}
 # List of all falsification modules to test
 FALSIFICATION_MODULE_NAMES = [
     "FP_ALL_Aggregator",
-    "APGI_Falsification_Protocols_GUI",
+    "Falsification_Protocols_GUI",
     "FP_01_ActiveInference",
     "FP_02_AgentComparison_ConvergenceBenchmark",
     "FP_03_FrameworkLevel_MultiProtocol",
@@ -40,7 +40,7 @@ for module_name in FALSIFICATION_MODULE_NAMES:
     try:
         # Use module name directly for import (already underscored)
         # APGI_Falsification_Protocols_GUI is now at root level, others in Falsification/
-        if module_name == "APGI_Falsification_Protocols_GUI":
+        if module_name == "Falsification_Protocols_GUI":
             module = __import__(module_name, fromlist=[module_name])
         else:
             module = __import__(f"Falsification.{module_name}", fromlist=[module_name])
@@ -107,12 +107,12 @@ class TestFalsificationProtocolsGUI:
     """Test falsification protocols GUI."""
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["APGI_Falsification_Protocols_GUI"] is None,
-        reason="APGI_Falsification_Protocols_GUI module not available",
+        FALSIFICATION_MODULES["Falsification_Protocols_GUI"] is None,
+        reason="Falsification_Protocols_GUI module not available",
     )
     def test_gui_initialization(self):
         """Test GUI initialization."""
-        module = FALSIFICATION_MODULES["APGI_Falsification_Protocols_GUI"]
+        module = FALSIFICATION_MODULES["Falsification_Protocols_GUI"]
 
         try:
             gui = module.ProtocolRunnerGUI(MagicMock())
@@ -123,12 +123,12 @@ class TestFalsificationProtocolsGUI:
             assert True  # Expected if class doesn't exist
 
     @pytest.mark.skipif(
-        FALSIFICATION_MODULES["APGI_Falsification_Protocols_GUI"] is None,
-        reason="APGI_Falsification_Protocols_GUI module not available",
+        FALSIFICATION_MODULES["Falsification_Protocols_GUI"] is None,
+        reason="Falsification_Protocols_GUI module not available",
     )
     def test_gui_protocol_execution(self):
         """Test GUI protocol execution."""
-        module = FALSIFICATION_MODULES["APGI_Falsification_Protocols_GUI"]
+        module = FALSIFICATION_MODULES["Falsification_Protocols_GUI"]
 
         try:
             gui = module.ProtocolRunnerGUI(MagicMock())
