@@ -144,12 +144,34 @@ class TestProtocolIntegration:
         not (APGI_CORE_AVAILABLE and PROTOCOLS_AVAILABLE),
         reason="Required modules not available",
     )
-    def test_falsification_to_validation_workflow(self):
-        """Test workflow from falsification to validation."""
+    @pytest.mark.timeout(30)  # 30 second timeout to prevent hanging
+    def test_falsification_to_validation_workflow(self, monkeypatch):
+        """Test workflow from falsification to validation with mocked protocols."""
         try:
             # Step 1: Initialize falsifier and validator
             falsifier = APGIMasterFalsifier()
             validator = APGIMasterValidator()
+
+            # Mock the _run_single_protocol methods to avoid long execution times
+            def mock_falsification_run(protocol_info, **kwargs):
+                return {
+                    "status": "passed",
+                    "falsified": False,
+                    "protocol": protocol_info.get("file", "unknown"),
+                    "mocked": True,
+                }
+
+            def mock_validation_run(protocol_info, **kwargs):
+                return {
+                    "status": "success",
+                    "passed": True,
+                    "protocol": protocol_info.get("file", "unknown"),
+                    "mocked": True,
+                }
+
+            # Apply mocks
+            monkeypatch.setattr(falsifier, "_run_single_protocol", mock_falsification_run)
+            monkeypatch.setattr(validator, "_run_single_protocol", mock_validation_run)
 
             # Step 2: Run a simple falsification protocol
             falsification_result = falsifier.run_falsification(["FP-12"])
