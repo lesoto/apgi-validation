@@ -242,13 +242,13 @@ class TestAPGIValidationGUI:
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = Mock()
 
-        with patch("tkinter.filedialog.asksaveasfilename") as mock_dialog, patch(
-            "tkinter.messagebox.showinfo"
-        ), patch("builtins.open", create=True) as mock_open, patch(
-            "json.dump"
-        ) as mock_json, patch(
-            "pathlib.Path.exists"
-        ) as mock_exists:
+        with (
+            patch("tkinter.filedialog.asksaveasfilename") as mock_dialog,
+            patch("tkinter.messagebox.showinfo"),
+            patch("builtins.open", create=True) as mock_open,
+            patch("json.dump") as mock_json,
+            patch("pathlib.Path.exists") as mock_exists,
+        ):
             # Mock file doesn't exist to avoid loading settings
             mock_exists.return_value = False
 
@@ -488,9 +488,10 @@ class TestAPGIValidationGUI:
             "monitoring_threshold": Mock(),
         }
 
-        with patch("builtins.open", create=True) as mock_open, patch(
-            "yaml.dump"
-        ) as mock_yaml:
+        with (
+            patch("builtins.open", create=True) as mock_open,
+            patch("yaml.dump") as mock_yaml,
+        ):
             # Test save settings
             gui.save_settings()
 
@@ -522,9 +523,11 @@ class TestGUIIntegration:
         mock_safe_import.return_value = Mock()
         mock_validator_class.return_value = mock_validator
 
-        with patch("tkinter.messagebox.showwarning"), patch(
-            "tkinter.messagebox.showerror"
-        ), patch("threading.Thread") as mock_thread:
+        with (
+            patch("tkinter.messagebox.showwarning"),
+            patch("tkinter.messagebox.showerror"),
+            patch("threading.Thread") as mock_thread,
+        ):
             root = mock_tkinter_fixture["root"]
             gui = APGIValidationGUI(root)
 

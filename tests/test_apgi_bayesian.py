@@ -74,11 +74,11 @@ class TestAPGIBayesianModel:
                 return 2.718
 
         # Mock PyMC-dependent functionality
-        with patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True
-        ), patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm, patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.az"
-        ) as mock_az:
+        with (
+            patch("Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True),
+            patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm,
+            patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az,
+        ):
             # Mock the context manager for pm.Model
             mock_model = MagicMock()
             mock_pm.Model.return_value.__enter__ = MagicMock(return_value=mock_model)
@@ -166,11 +166,11 @@ class TestAPGIBayesianModel:
         )
 
         # Mock PyMC-dependent functionality
-        with patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True
-        ), patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm, patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.az"
-        ) as mock_az:
+        with (
+            patch("Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True),
+            patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm,
+            patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az,
+        ):
             # Mock the context manager for pm.Model
             mock_model = MagicMock()
             mock_pm.Model.return_value.__enter__ = MagicMock(return_value=mock_model)
@@ -220,10 +220,13 @@ class TestAPGIBayesianModel:
     def test_compute_model_evidence(self):
         """Test model evidence computation with mocked ArviZ."""
         # Mock PyMC-dependent functionality to test without actual PyMC
-        with patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE",
-            True,
-        ), patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az:
+        with (
+            patch(
+                "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE",
+                True,
+            ),
+            patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az,
+        ):
             mock_az.loo.return_value = MagicMock(estimates={"loo": -100.0})
 
             model = APGIBayesianModel()
@@ -239,11 +242,11 @@ class TestAPGIBayesianModel:
         import pandas as pd
 
         # Mock PyMC-dependent functionality including sample_posterior_predictive
-        with patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True
-        ), patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm, patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.az"
-        ) as mock_az:
+        with (
+            patch("Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True),
+            patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm,
+            patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az,
+        ):
             # Mock the context manager for pm.Model
             mock_model = MagicMock()
             mock_pm.Model.return_value.__enter__ = MagicMock(return_value=mock_model)
@@ -322,11 +325,11 @@ class TestModelComparisonFramework:
         import pandas as pd
 
         # Mock PyMC-dependent functionality
-        with patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True
-        ), patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm, patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.az"
-        ) as mock_az:
+        with (
+            patch("Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True),
+            patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm,
+            patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az,
+        ):
             # Mock the context manager for pm.Model
             mock_model = MagicMock()
             mock_pm.Model.return_value.__enter__ = MagicMock(return_value=mock_model)
@@ -391,11 +394,11 @@ class TestModelComparisonFramework:
         import pandas as pd
 
         # Mock PyMC-dependent functionality
-        with patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True
-        ), patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm, patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.az"
-        ) as mock_az:
+        with (
+            patch("Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True),
+            patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm,
+            patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az,
+        ):
             # Mock the context manager for pm.Model
             mock_model = MagicMock()
             mock_pm.Model.return_value.__enter__ = MagicMock(return_value=mock_model)
@@ -458,10 +461,13 @@ class TestModelComparisonFramework:
     def test_compute_model_evidence_simple(self):
         """Test simplified model evidence computation with mocked ArviZ."""
         # Mock PyMC-dependent functionality to test without actual PyMC
-        with patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE",
-            True,
-        ), patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az:
+        with (
+            patch(
+                "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE",
+                True,
+            ),
+            patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az,
+        ):
             mock_az.loo.return_value = MagicMock(estimates={"loo": -100.0})
 
             framework = ModelComparisonFramework()
@@ -512,11 +518,11 @@ class TestIITConvergenceBayesian:
         import pandas as pd
 
         # Mock PyMC-dependent functionality
-        with patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True
-        ), patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm, patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.az"
-        ) as mock_az:
+        with (
+            patch("Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True),
+            patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm,
+            patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az,
+        ):
             # Mock the context manager for pm.Model
             mock_model = MagicMock()
             mock_pm.Model.return_value.__enter__ = MagicMock(return_value=mock_model)
@@ -572,11 +578,11 @@ class TestIITConvergenceBayesian:
         import pandas as pd
 
         # Mock PyMC-dependent functionality
-        with patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True
-        ), patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm, patch(
-            "Theory.APGI_Bayesian_Estimation_Framework.az"
-        ) as mock_az:
+        with (
+            patch("Theory.APGI_Bayesian_Estimation_Framework.BAYESIAN_AVAILABLE", True),
+            patch("Theory.APGI_Bayesian_Estimation_Framework.pm") as mock_pm,
+            patch("Theory.APGI_Bayesian_Estimation_Framework.az") as mock_az,
+        ):
             # Mock the context manager for pm.Model
             mock_model = MagicMock()
             mock_pm.Model.return_value.__enter__ = MagicMock(return_value=mock_model)
@@ -734,14 +740,15 @@ class TestBayesianValidationFramework:
         mock_iit = MagicMock()
         mock_recovery = MagicMock()
 
-        with patch.object(
-            framework, "_get_apgi_model", return_value=mock_apgi
-        ), patch.object(
-            framework, "_get_comparison_framework", return_value=mock_compare
-        ), patch.object(
-            framework, "_get_iit_convergence", return_value=mock_iit
-        ), patch.object(
-            framework, "_get_parameter_recovery", return_value=mock_recovery
+        with (
+            patch.object(framework, "_get_apgi_model", return_value=mock_apgi),
+            patch.object(
+                framework, "_get_comparison_framework", return_value=mock_compare
+            ),
+            patch.object(framework, "_get_iit_convergence", return_value=mock_iit),
+            patch.object(
+                framework, "_get_parameter_recovery", return_value=mock_recovery
+            ),
         ):
             # Configure mock returns
             mock_apgi.fit_psychometric_function.return_value = {

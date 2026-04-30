@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, Mapping
+
+from pydantic import BaseModel
 
 # Add parent directory to path for standalone execution
 if str(Path(__file__).parent.parent) not in sys.path:
@@ -14,8 +15,7 @@ if str(Path(__file__).parent.parent) not in sys.path:
 from utils.error_handler import ConfigurationError, ProtocolError
 
 
-@dataclass(frozen=True)
-class ProtocolContract:
+class ProtocolContract(BaseModel):
     """Static contract for protocol registration."""
 
     protocol_id: str

@@ -378,9 +378,10 @@ class TestQuantitativeFitsCommand:
         from unittest.mock import patch
 
         mock_module, mock_spec = self._make_quant_mocks()
-        with patch(
-            "importlib.util.spec_from_file_location", return_value=mock_spec
-        ), patch("importlib.util.module_from_spec", return_value=mock_module):
+        with (
+            patch("importlib.util.spec_from_file_location", return_value=mock_spec),
+            patch("importlib.util.module_from_spec", return_value=mock_module),
+        ):
             runner = CliRunner()
             result = runner.invoke(cli, ["quantitative-fits"])
             assert result.exit_code == 0
@@ -390,9 +391,10 @@ class TestQuantitativeFitsCommand:
         from unittest.mock import patch
 
         mock_module, mock_spec = self._make_quant_mocks()
-        with patch(
-            "importlib.util.spec_from_file_location", return_value=mock_spec
-        ), patch("importlib.util.module_from_spec", return_value=mock_module):
+        with (
+            patch("importlib.util.spec_from_file_location", return_value=mock_spec),
+            patch("importlib.util.module_from_spec", return_value=mock_module),
+        ):
             runner = CliRunner()
             result = runner.invoke(cli, ["quantitative-fits", "--model", "bayesian"])
             assert result.exit_code == 0
@@ -404,9 +406,10 @@ class TestQuantitativeFitsCommand:
         data_file = tmp_path / "fit_data.json"
         data_file.write_text('{"data": [1, 2, 3]}')
         mock_module, mock_spec = self._make_quant_mocks()
-        with patch(
-            "importlib.util.spec_from_file_location", return_value=mock_spec
-        ), patch("importlib.util.module_from_spec", return_value=mock_module):
+        with (
+            patch("importlib.util.spec_from_file_location", return_value=mock_spec),
+            patch("importlib.util.module_from_spec", return_value=mock_module),
+        ):
             runner = CliRunner()
             result = runner.invoke(
                 cli, ["quantitative-fits", "--data-file", str(data_file)]
@@ -419,9 +422,10 @@ class TestQuantitativeFitsCommand:
 
         output_file = tmp_path / "fit_results.json"
         mock_module, mock_spec = self._make_quant_mocks()
-        with patch(
-            "importlib.util.spec_from_file_location", return_value=mock_spec
-        ), patch("importlib.util.module_from_spec", return_value=mock_module):
+        with (
+            patch("importlib.util.spec_from_file_location", return_value=mock_spec),
+            patch("importlib.util.module_from_spec", return_value=mock_module),
+        ):
             runner = CliRunner()
             result = runner.invoke(
                 cli, ["quantitative-fits", "--output-file", str(output_file)]
@@ -523,9 +527,10 @@ class TestBayesianEstimationCommand:
         }
         mock_framework.comprehensive_bayesian_validation.return_value = mock_results
 
-        with patch("main.importlib.util.spec_from_file_location") as mock_spec, patch(
-            "main.importlib.util.module_from_spec"
-        ) as mock_module_from_spec:
+        with (
+            patch("main.importlib.util.spec_from_file_location") as mock_spec,
+            patch("main.importlib.util.module_from_spec") as mock_module_from_spec,
+        ):
             mock_spec_instance = MagicMock()
             mock_spec.return_value = mock_spec_instance
             mock_module = MagicMock()
@@ -557,9 +562,10 @@ class TestBayesianEstimationCommand:
         }
         mock_framework.comprehensive_bayesian_validation.return_value = mock_results
 
-        with patch("main.importlib.util.spec_from_file_location") as mock_spec, patch(
-            "main.importlib.util.module_from_spec"
-        ) as mock_module_from_spec:
+        with (
+            patch("main.importlib.util.spec_from_file_location") as mock_spec,
+            patch("main.importlib.util.module_from_spec") as mock_module_from_spec,
+        ):
             mock_spec_instance = MagicMock()
             mock_spec.return_value = mock_spec_instance
             mock_module = MagicMock()
@@ -599,9 +605,10 @@ class TestBayesianEstimationCommand:
         }
         mock_framework.comprehensive_bayesian_validation.return_value = mock_results
 
-        with patch("main.importlib.util.spec_from_file_location") as mock_spec, patch(
-            "main.importlib.util.module_from_spec"
-        ) as mock_module_from_spec:
+        with (
+            patch("main.importlib.util.spec_from_file_location") as mock_spec,
+            patch("main.importlib.util.module_from_spec") as mock_module_from_spec,
+        ):
             mock_spec_instance = MagicMock()
             mock_spec.return_value = mock_spec_instance
             mock_module = MagicMock()
@@ -674,9 +681,11 @@ class TestGUICommand:
         """Test gui command with basic parameters (validation type, no options)."""
         from unittest.mock import patch
 
-        with patch("main._launch_validation_gui") as mock_launch, patch(
-            "main._launch_psychological_gui"
-        ), patch("main._launch_analysis_gui"):
+        with (
+            patch("main._launch_validation_gui") as mock_launch,
+            patch("main._launch_psychological_gui"),
+            patch("main._launch_analysis_gui"),
+        ):
             runner = CliRunner()
             result = runner.invoke(cli, ["gui"])
             assert result.exit_code == 0
@@ -686,9 +695,11 @@ class TestGUICommand:
         """Test gui command with GUI type parameter."""
         from unittest.mock import patch
 
-        with patch("main._launch_validation_gui"), patch(
-            "main._launch_psychological_gui"
-        ) as mock_psych, patch("main._launch_analysis_gui"):
+        with (
+            patch("main._launch_validation_gui"),
+            patch("main._launch_psychological_gui") as mock_psych,
+            patch("main._launch_analysis_gui"),
+        ):
             runner = CliRunner()
             result = runner.invoke(cli, ["gui", "--gui-type", "psychological"])
             assert result.exit_code == 0
@@ -698,9 +709,11 @@ class TestGUICommand:
         """Test gui command with custom port (port is accepted, passed to context)."""
         from unittest.mock import patch
 
-        with patch("main._launch_validation_gui") as mock_launch, patch(
-            "main._launch_psychological_gui"
-        ), patch("main._launch_analysis_gui"):
+        with (
+            patch("main._launch_validation_gui") as mock_launch,
+            patch("main._launch_psychological_gui"),
+            patch("main._launch_analysis_gui"),
+        ):
             runner = CliRunner()
             result = runner.invoke(cli, ["gui", "--port", "9090"])
             assert result.exit_code == 0
@@ -710,9 +723,11 @@ class TestGUICommand:
         """Test gui command with custom host."""
         from unittest.mock import patch
 
-        with patch("main._launch_validation_gui") as mock_launch, patch(
-            "main._launch_psychological_gui"
-        ), patch("main._launch_analysis_gui"):
+        with (
+            patch("main._launch_validation_gui") as mock_launch,
+            patch("main._launch_psychological_gui"),
+            patch("main._launch_analysis_gui"),
+        ):
             runner = CliRunner()
             result = runner.invoke(cli, ["gui", "--host", "0.0.0.0"])
             assert result.exit_code == 0
@@ -722,9 +737,11 @@ class TestGUICommand:
         """Test gui command with debug flag."""
         from unittest.mock import patch
 
-        with patch("main._launch_validation_gui") as mock_launch, patch(
-            "main._launch_psychological_gui"
-        ), patch("main._launch_analysis_gui"):
+        with (
+            patch("main._launch_validation_gui") as mock_launch,
+            patch("main._launch_psychological_gui"),
+            patch("main._launch_analysis_gui"),
+        ):
             runner = CliRunner()
             result = runner.invoke(cli, ["gui", "--debug"])
             assert result.exit_code == 0

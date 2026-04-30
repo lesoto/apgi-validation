@@ -20,7 +20,7 @@ try:
     from utils.config_manager import ConfigManager
     from utils.constants import DIM_CONSTANTS
     from utils.eeg_simulator import EEGSimulator
-    from utils.error_handler import APGIError
+    from utils.error_handler import APGIError, ErrorCode
     from utils.genome_data_extractor import extract_genome_data_from_vp5
     from utils.logging_config import apgi_logger
     from utils.ordinal_logistic_regression import OrdinalLogisticRegression
@@ -249,11 +249,12 @@ class TestErrorHandling:
         # APGIError now includes severity and category in string representation
         assert "Test error message" in str(error)
         assert "[MEDIUM]" in str(error)
-        assert "VALIDATION" in str(error)
+        assert "RUNTIME" in str(error)
 
-        # Test with error code
-        error_with_code = APGIError("Test error", error_code=123)
-        assert error_with_code.error_code == 123
+        # Test with error code - ErrorCode is a string enum, compare the value
+        error_with_code = APGIError("Test error", error_code=ErrorCode.GEN_UNKNOWN)
+        assert error_with_code.error_code == ErrorCode.GEN_UNKNOWN
+        assert error_with_code.error_code.value == "GEN_000"
 
 
 class TestLoggingConfig:
@@ -263,7 +264,7 @@ class TestLoggingConfig:
         """Test that APGI logger is properly configured."""
         assert apgi_logger is not None
         assert hasattr(apgi_logger, "logger")
-        assert hasattr(apgi_logger, "log_error_with_context")
+        assert hasattr(apgi_logger, "log_simulation_error")
 
 
 @pytest.fixture

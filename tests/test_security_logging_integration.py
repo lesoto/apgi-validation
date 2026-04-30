@@ -13,6 +13,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.security_logging_integration import (
+    SecurityContext,
     secure_file_delete,
     secure_file_read,
     secure_file_write,
@@ -29,7 +30,8 @@ class TestSecureFileRead:
         test_file = tmp_path / "test.txt"
         test_file.write_text("test content")
 
-        content = secure_file_read(str(test_file))
+        context = SecurityContext(user_id="test_user", roles=frozenset(["reader"]))
+        content = secure_file_read(str(test_file), context)
 
         assert content == "test content"
 
@@ -37,8 +39,9 @@ class TestSecureFileRead:
         """Test secure file read with non-existent file."""
         test_file = tmp_path / "nonexistent.txt"
 
+        context = SecurityContext(user_id="test_user", roles=frozenset(["reader"]))
         with pytest.raises(FileNotFoundError):
-            secure_file_read(str(test_file))
+            secure_file_read(str(test_file), context)
 
 
 class TestSecureFileWrite:
@@ -48,7 +51,8 @@ class TestSecureFileWrite:
         """Test successful secure file write."""
         test_file = tmp_path / "test.txt"
 
-        secure_file_write(str(test_file), "test content")
+        context = SecurityContext(user_id="test_user", roles=frozenset(["writer"]))
+        secure_file_write(str(test_file), "test content", context)
 
         assert test_file.exists()
         assert test_file.read_text() == "test content"
@@ -57,8 +61,9 @@ class TestSecureFileWrite:
         """Test secure file write to invalid path."""
         invalid_path = "/root/test.txt"  # Permission denied
 
+        context = SecurityContext(user_id="test_user", roles=frozenset(["writer"]))
         with pytest.raises((PermissionError, OSError)):
-            secure_file_write(invalid_path, "test content")
+            secure_file_write(invalid_path, "test content", context)
 
 
 class TestSecureFileDelete:
@@ -69,7 +74,8 @@ class TestSecureFileDelete:
         test_file = tmp_path / "test.txt"
         test_file.write_text("test content")
 
-        secure_file_delete(str(test_file))
+        context = SecurityContext(user_id="test_user", roles=frozenset(["writer"]))
+        secure_file_delete(str(test_file), context)
 
         assert not test_file.exists()
 
@@ -77,8 +83,9 @@ class TestSecureFileDelete:
         """Test secure file delete with non-existent file."""
         test_file = tmp_path / "nonexistent.txt"
 
+        context = SecurityContext(user_id="test_user", roles=frozenset(["writer"]))
         with pytest.raises(FileNotFoundError):
-            secure_file_delete(str(test_file))
+            secure_file_delete(str(test_file), context)
 
 
 class TestSecureImportModule:
@@ -89,7 +96,8 @@ class TestSecureImportModule:
         module_file = tmp_path / "test_module.py"
         module_file.write_text("test_value = 42\n")
 
-        module = secure_import_module("test_module", str(module_file))
+        context = SecurityContext(user_id="test_user", roles=frozenset(["importer"]))
+        module = secure_import_module("test_module", str(module_file), context)
 
         assert hasattr(module, "test_value")
         assert module.test_value == 42
@@ -99,8 +107,9 @@ class TestSecureImportModule:
         module_file = tmp_path / "invalid.py"
         module_file.write_text("invalid syntax here\n")
 
+        context = SecurityContext(user_id="test_user", roles=frozenset(["importer"]))
         with pytest.raises(SyntaxError):
-            secure_import_module("invalid", str(module_file))
+            secure_import_module("invalid", str(module_file), context)
 
 
 class TestSecureResolvePath:

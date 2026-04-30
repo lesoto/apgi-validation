@@ -4761,7 +4761,7 @@ def run_protocol_main(config=None):
                 "V11.3": PredictionResult(
                     passed=True,
                     value=1.15,
-                    threshold=(0.7, 1.8),
+                    threshold=1.25,  # Midpoint of (0.7, 1.8)
                     status=PredictionStatus.PASSED,
                     evidence=["Beta within universal range"],
                     sources=["VP_11"],
@@ -4776,13 +4776,18 @@ def run_protocol_main(config=None):
                 methodology="hierarchical_mcmc_bayesian_recovery",
                 errors=[],
                 metadata={"test_mode": True},
-            ).to_dict()
+            )
         else:
             return {"status": "success", "test_mode": True}
 
     # Handle config if provided
     legacy_result = run_validation()
     if not HAS_SCHEMA:
+        return legacy_result
+
+    # ProtocolResult is a Pydantic model, access attributes directly
+    if isinstance(legacy_result, ProtocolResult):
+        # Already a ProtocolResult, return as-is
         return legacy_result
 
     named_predictions = {}
@@ -4808,7 +4813,7 @@ def run_protocol_main(config=None):
         methodology="hierarchical_mcmc_bayesian_recovery",
         errors=[],
         metadata=legacy_result.get("results", {}).get("summary", {}),
-    ).to_dict()
+    )
 
 
 class NonAPGIComparisonValidator:

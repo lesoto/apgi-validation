@@ -24,6 +24,8 @@ class TestKeyRotationManager:
 
     def test_initialization(self, temp_dir):
         """Test key rotation manager initialization."""
+        # Unset APGI_MASTER_KEY to avoid invalid format errors
+        os.environ.pop("APGI_MASTER_KEY", None)
         manager = KeyRotationManager(
             keys_dir=str(temp_dir / ".keys"), rotation_interval_days=30
         )
@@ -35,6 +37,7 @@ class TestKeyRotationManager:
 
     def test_key_generation(self, temp_dir):
         """Test key generation."""
+        os.environ.pop("APGI_MASTER_KEY", None)
         manager = KeyRotationManager(keys_dir=str(temp_dir / ".keys"))
 
         # Keys should be generated during initialization
@@ -45,6 +48,7 @@ class TestKeyRotationManager:
 
     def test_key_persistence(self, temp_dir):
         """Test that keys are persisted to disk."""
+        os.environ.pop("APGI_MASTER_KEY", None)
         KeyRotationManager(keys_dir=str(temp_dir / ".keys"))
 
         pickle_key_file = temp_dir / ".keys" / "pickle_secret_key.enc"
@@ -59,6 +63,7 @@ class TestKeyRotationManager:
 
     def test_metadata_persistence(self, temp_dir):
         """Test that metadata is persisted."""
+        os.environ.pop("APGI_MASTER_KEY", None)
         KeyRotationManager(keys_dir=str(temp_dir / ".keys"))
 
         metadata_file = temp_dir / ".keys" / "key_metadata.json"
@@ -74,6 +79,7 @@ class TestKeyRotationManager:
 
     def test_key_rotation(self, temp_dir):
         """Test key rotation."""
+        os.environ.pop("APGI_MASTER_KEY", None)
         manager = KeyRotationManager(keys_dir=str(temp_dir / ".keys"))
 
         # Get original fingerprints
@@ -100,6 +106,7 @@ class TestKeyRotationManager:
 
     def test_rotation_history_limit(self, temp_dir):
         """Test that rotation history is limited."""
+        os.environ.pop("APGI_MASTER_KEY", None)
         manager = KeyRotationManager(keys_dir=str(temp_dir / ".keys"), backup_count=2)
 
         # Rotate multiple times
@@ -112,6 +119,7 @@ class TestKeyRotationManager:
 
     def test_check_rotation_needed(self, temp_dir):
         """Test rotation needed check."""
+        os.environ.pop("APGI_MASTER_KEY", None)
         manager = KeyRotationManager(
             keys_dir=str(temp_dir / ".keys"), rotation_interval_days=1
         )
@@ -127,7 +135,8 @@ class TestKeyRotationManager:
         assert manager.check_rotation_needed()
 
     def test_get_key_status(self, temp_dir):
-        """Test getting key status."""
+        """Test get_key_status."""
+        os.environ.pop("APGI_MASTER_KEY", None)
         manager = KeyRotationManager(keys_dir=str(temp_dir / ".keys"))
 
         status = manager.get_key_status()
@@ -139,7 +148,8 @@ class TestKeyRotationManager:
         assert "backup_key" in status["keys"]
 
     def test_force_rotation_single_key(self, temp_dir):
-        """Test forced rotation of single key."""
+        """Test forced rotation of a single key."""
+        os.environ.pop("APGI_MASTER_KEY", None)
         manager = KeyRotationManager(keys_dir=str(temp_dir / ".keys"))
 
         manager.metadata["pickle_key"]["current"]["fingerprint"]
@@ -152,6 +162,7 @@ class TestKeyRotationManager:
 
     def test_force_rotation_all_keys(self, temp_dir):
         """Test forced rotation of all keys."""
+        os.environ.pop("APGI_MASTER_KEY", None)
         manager = KeyRotationManager(keys_dir=str(temp_dir / ".keys"))
 
         results = manager.force_rotation()
@@ -164,6 +175,7 @@ class TestKeyRotationManager:
         """Test concurrent key rotation - ensures lock prevents race conditions."""
         import threading
 
+        os.environ.pop("APGI_MASTER_KEY", None)
         manager = KeyRotationManager(keys_dir=str(temp_dir / ".keys"))
 
         rotation_count = [0]
@@ -187,6 +199,7 @@ class TestKeyRotationManager:
 
     def test_environment_variables_set(self, temp_dir):
         """Test that environment variables are set."""
+        os.environ.pop("APGI_MASTER_KEY", None)
         KeyRotationManager(keys_dir=str(temp_dir / ".keys"))
 
         # Environment variables should be set
@@ -203,6 +216,7 @@ class TestConvenienceFunctions:
         """Test global key rotation manager instance."""
         import utils.key_rotation_manager as krm_module
 
+        os.environ.pop("APGI_MASTER_KEY", None)
         # Reset global instance
         krm_module._key_rotation_manager = None
 
@@ -214,6 +228,7 @@ class TestConvenienceFunctions:
         """Test check and rotate if needed function."""
         import utils.key_rotation_manager as krm_module
 
+        os.environ.pop("APGI_MASTER_KEY", None)
         krm_module._key_rotation_manager = KeyRotationManager(
             keys_dir=str(temp_dir / ".keys"), rotation_interval_days=1
         )
@@ -237,6 +252,7 @@ class TestConvenienceFunctions:
         """Test get_key_status function."""
         import utils.key_rotation_manager as krm_module
 
+        os.environ.pop("APGI_MASTER_KEY", None)
         krm_module._key_rotation_manager = KeyRotationManager(
             keys_dir=str(temp_dir / ".keys")
         )

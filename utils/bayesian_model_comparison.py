@@ -2151,6 +2151,14 @@ class FalsificationChecker:
         if data.P3b_amplitude is None:
             return False, {"message": "No P3b data"}
 
+        # Check if required variables exist in trace (may be missing with poor convergence)
+        if trace is None or not hasattr(trace, "posterior"):
+            return False, {"message": "Invalid or missing trace"}
+        if "S_t" not in trace.posterior or "theta_t" not in trace.posterior:
+            return False, {
+                "message": "Missing S_t or theta_t in trace - MCMC may not have converged"
+            }
+
         # Extract APGI predictions
         S_t_samples = trace.posterior["S_t"].values
         theta_t_samples = trace.posterior["theta_t"].values
@@ -2184,6 +2192,14 @@ class FalsificationChecker:
 
         if data.reaction_time is None:
             return False, {"message": "No RT data"}
+
+        # Check if required variables exist in trace (may be missing with poor convergence)
+        if trace is None or not hasattr(trace, "posterior"):
+            return False, {"message": "Invalid or missing trace"}
+        if "S_t" not in trace.posterior or "theta_t" not in trace.posterior:
+            return False, {
+                "message": "Missing S_t or theta_t in trace - MCMC may not have converged"
+            }
 
         S_t_mean = trace.posterior["S_t"].values.mean(axis=(0, 1))
         theta_t_mean = trace.posterior["theta_t"].values.mean(axis=(0, 1))
@@ -2980,13 +2996,13 @@ def main() -> Dict[str, Any]:
 
     # Configuration (Faster for validation, much faster for test mode)
     if test_mode:
-        config = {"n_samples": 100, "n_tune": 50, "n_chains": 2, "target_accept": 0.8}
+        config = {"n_samples": 200, "n_tune": 100, "n_chains": 2, "target_accept": 0.85}
     else:
         config = {
-            "n_samples": 1000,
-            "n_tune": 500,
+            "n_samples": 2000,
+            "n_tune": 1000,
             "n_chains": 4,
-            "target_accept": 0.85,
+            "target_accept": 0.95,
         }
 
     print("\nSampling Configuration:")
@@ -3779,4 +3795,11 @@ def check_falsification(
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\n❌ Error in bayesian_model_comparison: {e}")
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)

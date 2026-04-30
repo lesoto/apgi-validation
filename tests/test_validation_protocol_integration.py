@@ -217,18 +217,55 @@ class TestValidationProtocolExecution:
 
         # Validate result structure
         if validation_result is not None:
+            # Handle both dict and ProtocolResult (Pydantic model) returns
+            from utils.protocol_schema import ProtocolResult
+
+            if isinstance(validation_result, ProtocolResult):
+                # Convert to dict for compatibility with existing assertions
+                validation_result = validation_result.to_dict()
+
             assert isinstance(
                 validation_result, dict
             ), f"Protocol {protocol_name} should return dict"
 
-            # Check for common result fields
-            common_fields = ["passed", "status", "message", "results"]
+            # Check for common result fields - updated for ProtocolResult schema
+            common_fields = [
+                "passed",
+                "status",
+                "message",
+                "results",
+                "protocol_id",
+                "named_predictions",
+                "metadata",
+            ]
             found_fields = [
                 field for field in common_fields if field in validation_result
             ]
+            # ProtocolResult has protocol_id, named_predictions, metadata - check for those
+            has_protocol_schema = (
+                "protocol_id" in validation_result
+                and "named_predictions" in validation_result
+            )
+            has_legacy_fields = any(
+                f in validation_result
+                for f in ["passed", "status", "message", "results"]
+            )
+            # Also check if legacy fields are in metadata
+            has_legacy_in_metadata = (
+                "metadata" in validation_result
+                and isinstance(validation_result["metadata"], dict)
+                and any(
+                    f in validation_result["metadata"]
+                    for f in ["passed", "status", "message", "results"]
+                )
+            )
+
             assert (
-                len(found_fields) >= 2
-            ), f"Protocol {protocol_name} result missing common fields"
+                has_protocol_schema
+                or has_legacy_fields
+                or has_legacy_in_metadata
+                or len(found_fields) >= 2
+            ), f"Protocol {protocol_name} result missing common fields. Found: {found_fields}, Available: {list(validation_result.keys())}"
 
     @pytest.mark.parametrize("protocol_name", VALIDATION_PROTOCOLS)
     def test_protocol_error_handling(self, protocol_name):
@@ -299,6 +336,8 @@ class TestCrossProtocolCompatibility:
 
     def test_protocol_result_compatibility(self):
         """Test that protocol results have basic expected structure."""
+        from utils.protocol_schema import ProtocolResult
+
         sample_results = []
 
         # Collect results from available protocols
@@ -314,6 +353,9 @@ class TestCrossProtocolCompatibility:
                         result = module.run_validation(
                             n_participants=5, seed=42, verbose=False
                         )
+                        # Handle both dict and ProtocolResult returns
+                        if isinstance(result, ProtocolResult):
+                            result = result.to_dict()
                         if isinstance(result, dict):
                             sample_results.append((protocol_name, result))
             except Exception:
@@ -342,6 +384,8 @@ class TestCrossProtocolCompatibility:
                         "data",
                         "metrics",
                         "summary",
+                        "protocol_id",
+                        "named_predictions",
                     ]
                 )
                 assert (

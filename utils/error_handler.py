@@ -9,12 +9,20 @@ error handling with proper logging and user-friendly messages.
 
 import functools
 import signal
+import sys
 import threading
 import traceback
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Any, Callable, Dict, Optional, Tuple, Type
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
+
+# Add parent directory to path for standalone execution
+if str(Path(__file__).parent.parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.errors import APGIException, ErrorCategory, ErrorCode, ErrorSeverity
 
 try:
     from utils.logging_config import apgi_logger
@@ -29,98 +37,83 @@ except ImportError:
     apgi_logger: Any = MockAPGILogger()  # type: ignore
 
 
-class ErrorSeverity(Enum):
-    """Error severity levels."""
-
-    CRITICAL = "CRITICAL"
-    HIGH = "HIGH"
-    MEDIUM = "MEDIUM"
-    LOW = "LOW"
-    INFO = "INFO"
-
-
-class ErrorCategory(Enum):
-    """Error categories for better organization."""
-
-    CONFIGURATION = "CONFIGURATION"
-    VALIDATION = "VALIDATION"
-    SIMULATION = "SIMULATION"
-    DATA = "DATA"
-    IO = "IO"
-    NETWORK = "NETWORK"
-    MEMORY = "MEMORY"
-    PERMISSION = "PERMISSION"
-    IMPORT = "IMPORT"
-    RUNTIME = "RUNTIME"
-    USER_INPUT = "USER_INPUT"
-    BACKUP = "BACKUP"
-    CACHE = "CACHE"
-
-
 @dataclass
 class ErrorInfo:
-    """Structured error information."""
+    """Structured error information compatible with telemetry."""
 
     category: ErrorCategory
     severity: ErrorSeverity
-    code: str
+    code: ErrorCode
     message: str
     details: Optional[Dict[str, Any]] = field(default_factory=dict)
     suggestions: Optional[list] = field(default_factory=list)
     user_action: Optional[str] = None
+    correlation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
-class APGIError(Exception):
-    """Base exception class for APGI framework."""
+class APGIError(APGIException):
+    """Base exception class for APGI framework, wrapping APGIException."""
 
     def __init__(
         self,
         error_info: Optional[ErrorInfo] = None,
         message: Optional[str] = None,
         severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        category: ErrorCategory = ErrorCategory.VALIDATION,
+        category: ErrorCategory = ErrorCategory.RUNTIME,
         context: Optional[Dict[str, Any]] = None,
         suggestion: Optional[str] = None,
         original_error: Optional[Exception] = None,
-        error_code: Optional[str] = None,
+        error_code: Optional[ErrorCode] = ErrorCode.GEN_UNKNOWN,
         timestamp: Optional[datetime] = None,
     ):
-        # Handle case where first argument is a string (message) rather than ErrorInfo
         if isinstance(error_info, str):
-            # First argument is actually the message
             message = error_info
             error_info = None
 
         if error_info and isinstance(error_info, ErrorInfo):
-            self.error_info = error_info
-            self.message = error_info.message
-            self.severity = error_info.severity
-            self.category = error_info.category
-            self.context = error_info.details or {}
-            self.suggestion = error_info.user_action
-            self.original_error = original_error
-            self.error_code = error_info.code
-            self.timestamp = timestamp or datetime.now()
+            msg = error_info.message
+            code = error_info.code
+            cat = error_info.category
+            sev = error_info.severity
+            ctx = error_info.details or {}
+            corr_id = error_info.correlation_id
+            remediation = error_info.user_action
         else:
-            self.error_info = None
-            self.message = message or "Unknown error"
-            self.severity = severity
-            self.category = category
-            self.context = context or {}
-            self.suggestion = suggestion
-            self.original_error = original_error
-            self.error_code = error_code
-            self.timestamp = timestamp or datetime.now()
+            msg = message or "Unknown error"
+            code = (
+                error_code
+                if isinstance(error_code, ErrorCode)
+                else ErrorCode.GEN_UNKNOWN
+            )
+            cat = category
+            sev = severity
+            ctx = context or {}
+            corr_id = str(uuid.uuid4())
+            remediation = suggestion
 
-        self.traceback = traceback.format_exc() if original_error else None
-        super().__init__(self.message)
+        super().__init__(
+            message=msg,
+            code=code,
+            category=cat,
+            severity=sev,
+            remediation=remediation,
+            context=ctx,
+            correlation_id=corr_id,
+        )
+        self.error_info: Optional[ErrorInfo] = (
+            error_info if isinstance(error_info, ErrorInfo) else None
+        )
+        self.error_code: ErrorCode = code
+        self.suggestion: Optional[str] = remediation
+        self.timestamp: datetime = timestamp or datetime.now()
+        self.original_error: Optional[Exception] = original_error
+        self.traceback: Optional[str] = (
+            traceback.format_exc() if original_error else None
+        )
 
     def __str__(self) -> str:
-        if self.error_info:
-            return f"[{self.error_info.severity.value}] {self.error_info.category.value}: {self.error_info.message}"
-        else:
-            # Include severity and category for better error visibility
-            return f"[{self.severity.value}] {self.category.value}: {self.message}"
+        # Include severity and category for better error visibility
+        return f"[{self.severity.value}] {self.category.value}: {self.message}"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert error to dictionary for logging/serialization."""
@@ -366,7 +359,7 @@ class ErrorHandler:
         self,
         category: ErrorCategory,
         severity: ErrorSeverity,
-        code: str,
+        code: Union[ErrorCode, str],
         details: Optional[str] = None,
         suggestions: Optional[list] = None,
         user_action: Optional[str] = None,
@@ -378,10 +371,13 @@ class ErrorHandler:
         if details:
             format_kwargs["details"] = details
 
+        # Convert string code to ErrorCode enum if necessary
+        error_code = code if isinstance(code, ErrorCode) else ErrorCode.GEN_UNKNOWN
+
         return ErrorInfo(
             category=category,
             severity=severity,
-            code=code,
+            code=error_code,
             message=message,
             details=format_kwargs,
             suggestions=suggestions,
@@ -392,13 +388,25 @@ class ErrorHandler:
         self,
         category: ErrorCategory,
         severity: ErrorSeverity,
-        code: str,
+        code: Union[ErrorCode, str],
         details: Optional[str] = None,
         suggestions: Optional[list] = None,
         user_action: Optional[str] = None,
         **format_kwargs,
     ) -> APGIError:
         """Handle and log error with standard formatting."""
+        # Convert string code to ErrorCode if needed
+        if isinstance(code, str):
+            try:
+                code = ErrorCode(code)
+            except ValueError:
+                # Fallback if code string is not in enum
+                # Search by name or use GEN_UNKNOWN
+                try:
+                    code = ErrorCode[code]
+                except KeyError:
+                    code = ErrorCode.GEN_UNKNOWN
+
         # Create error info
         error_info = self.create_error(
             category, severity, code, details, suggestions, user_action, **format_kwargs
@@ -524,42 +532,42 @@ def config_error(code: str, **kwargs) -> APGIError:
     )
 
 
-def validation_error(code: str, **kwargs) -> APGIError:
+def validation_error(code: Union[ErrorCode, str], **kwargs) -> APGIError:
     """Create validation error."""
     return error_handler.handle_error(
         ErrorCategory.VALIDATION, ErrorSeverity.HIGH, code, **kwargs
     )
 
 
-def simulation_error(code: str, **kwargs) -> APGIError:
+def simulation_error(code: Union[ErrorCode, str], **kwargs) -> APGIError:
     """Create simulation error."""
     return error_handler.handle_error(
-        ErrorCategory.SIMULATION, ErrorSeverity.HIGH, code, **kwargs
+        ErrorCategory.PROTOCOL, ErrorSeverity.HIGH, code, **kwargs
     )
 
 
-def data_error(code: str, **kwargs) -> APGIError:
+def data_error(code: Union[ErrorCode, str], **kwargs) -> APGIError:
     """Create data error."""
     return error_handler.handle_error(
         ErrorCategory.DATA, ErrorSeverity.HIGH, code, **kwargs
     )
 
 
-def io_error(code: str, **kwargs) -> APGIError:
+def io_error(code: Union[ErrorCode, str], **kwargs) -> APGIError:
     """Create I/O error."""
     return error_handler.handle_error(
-        ErrorCategory.IO, ErrorSeverity.HIGH, code, **kwargs
+        ErrorCategory.INFRASTRUCTURE, ErrorSeverity.HIGH, code, **kwargs
     )
 
 
-def import_error(code: str, **kwargs) -> APGIError:
+def import_error(code: Union[ErrorCode, str], **kwargs) -> APGIError:
     """Create import/dependency error."""
     return error_handler.handle_error(
-        ErrorCategory.IMPORT, ErrorSeverity.HIGH, code, **kwargs
+        ErrorCategory.CONFIGURATION, ErrorSeverity.HIGH, code, **kwargs
     )
 
 
-def critical_error(code: str, **kwargs) -> APGIError:
+def critical_error(code: ErrorCode, **kwargs) -> APGIError:
     """Create critical error."""
     return error_handler.handle_error(
         ErrorCategory.RUNTIME, ErrorSeverity.CRITICAL, code, **kwargs
@@ -612,27 +620,16 @@ def handle_import_error(module_name: str, error: Exception, context: str = "") -
 
 
 def format_user_message(error: APGIError) -> str:
-    if error.error_info is None:
-        # Fallback when error_info is not available
-        message = f"❌ {error.message}"
-        if error.suggestion:
-            message += f"\n\n💡 Suggestion: {error.suggestion}"
-        return message
-
-    info = error.error_info
-
     # Base message
-    message = f"❌ {info.message}"
+    message = f"❌ {error.message}"
 
-    # Add suggestions if available
-    if info.suggestions:
-        message += "\n\n💡 Suggestions:"
-        for suggestion in info.suggestions:
-            message += f"\n   • {suggestion}"
+    # Add suggestion if available
+    if error.suggestion:
+        message += f"\n\n💡 Suggestion: {error.suggestion}"
 
-    # Add user action if available
-    if info.user_action:
-        message += f"\n\n🔧 Action: {info.user_action}"
+    # Add context if available
+    if error.context:
+        message += f"\n\n📋 Context: {error.context}"
 
     return message
 

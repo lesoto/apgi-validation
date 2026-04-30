@@ -26,6 +26,7 @@ def test_assert_slo_passes_for_fast_result():
         protocol_id="cache_get_set",
         latencies_ms=[1.0, 2.0, 2.5, 3.0],
         throughput_ops_per_sec=1000.0,
+        peak_memory_mb=10.0,
     )
     assert_slo(result, DEFAULT_SLOS["cache_get_set"])
 
@@ -35,6 +36,7 @@ def test_assert_slo_raises_for_regression():
         protocol_id="validation_pipeline_prepare",
         latencies_ms=[5000.0, 6000.0, 7000.0],
         throughput_ops_per_sec=0.2,
+        peak_memory_mb=500.0,
     )
     with pytest.raises(PerformanceRegressionError):
         assert_slo(result, DEFAULT_SLOS["validation_pipeline_prepare"])
@@ -46,6 +48,7 @@ def test_export_benchmark_report(tmp_path: Path):
         protocol_id="cache_get_set",
         latencies_ms=[1.0, 2.0, 3.0],
         throughput_ops_per_sec=200.0,
+        peak_memory_mb=64.0,
     )
     export_benchmark_report([result], output)
     assert output.exists()

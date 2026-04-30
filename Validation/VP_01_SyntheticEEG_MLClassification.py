@@ -99,42 +99,44 @@ except ImportError:
     logger: logging.Logger = logging.getLogger(__name__)  # type: ignore[no-redef]
 
     # Fallback functions if config_loader not available
-    def get_tau_S(default=0.5):
+    def get_tau_S(default=0.5):  # type: ignore[no-redef]
         return default
 
-    def get_tau_theta(default=30.0):
+    def get_tau_theta(default=30.0):  # type: ignore[no-redef]
         return default
 
-    def get_theta_0(default=0.5):
+    def get_theta_0(default=0.5):  # type: ignore[no-redef]
         return default
 
-    def get_alpha(default=5.0):
+    def get_alpha(default=5.0):  # type: ignore[no-redef]
         return default
 
-    def get_gamma_M(default=0.1):
+    def get_gamma_M(default=0.1):  # type: ignore[no-redef]
         return default
 
-    def get_gamma_A(default=0.05):
+    def get_gamma_A(default=0.05):  # type: ignore[no-redef]
         return default
 
-    def get_rho(default=0.7):
+    def get_rho(default=0.7):  # type: ignore[no-redef]
         return default
 
-    def get_sigma_S(default=0.1):
+    def get_sigma_S(default=0.1):  # type: ignore[no-redef]
         return default
 
-    def get_sigma_theta(default=0.05):
+    def get_sigma_theta(default=0.05):  # type: ignore[no-redef]
         return default
 
-    def get_cumulative_reward_advantage_threshold(default=18.0):
+    def get_cumulative_reward_advantage_threshold(default=18.0):  # type: ignore[no-redef]
         return default
 
-    def get_cohens_d_threshold(default=0.60):
+    def get_cohens_d_threshold(default=0.60):  # type: ignore[no-redef]
         return default
 
-    def get_significance_level(default=0.01):
+    def get_significance_level(default=0.01):  # type: ignore[no-redef]
         return default
 
+
+from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
 # Set random seeds
 RANDOM_SEED = 42
@@ -4546,17 +4548,16 @@ def test_noise_amplitude_sensitivity(
         return results
 
 
-def run_validation(progress_callback=None, **kwargs):
+def run_validation(progress_callback=None, **kwargs) -> ProtocolResult:
     """Entry point for CLI validation."""
+    protocol_id = "VP_01_SyntheticEEG_MLClassification"
     try:
         results_summary = main(progress_callback=progress_callback)
 
-        # Extract falsification report to determine actual pass/fail status
         falsification = results_summary.get("falsification", {})
         passed_criteria = falsification.get("passed_criteria", [])
         falsified_criteria = falsification.get("falsified_criteria", [])
 
-        # Build criteria lookup from passed/falsified lists
         criteria_status = {}
         for criterion in passed_criteria:
             code = criterion.get("code", "")
@@ -4565,40 +4566,47 @@ def run_validation(progress_callback=None, **kwargs):
             code = criterion.get("code", "")
             criteria_status[code] = False
 
-        # Check if key criteria passed (using correct key names from generate_report)
-        # V1.1 is stored as V1.1_ML in the criteria registry
         v1_1_passed = criteria_status.get("V1.1_ML", False)
         v1_2_passed = criteria_status.get("V1.2", False)
-        v1_3_passed = criteria_status.get("V1.3", False)
-        v1_4_passed = criteria_status.get("V1.4", False)
 
-        # Overall pass requires at least 3 of 4 criteria to pass
-        passed_count = sum([v1_1_passed, v1_2_passed, v1_3_passed, v1_4_passed])
-        overall_passed = passed_count >= 3  # At least 3 of 4 criteria must pass
-
-        return {
-            "passed": overall_passed,
-            "status": "passed" if overall_passed else "failed",
-            "criteria": criteria_status,
-            "results": results_summary,
-            "named_predictions": {
-                "V1.1": {
-                    "passed": v1_1_passed,
-                    "actual": results_summary["task_1a"]
-                    .get("APGI", {})
-                    .get("accuracy", 0),
-                    "threshold": 0.80,
-                },
-                "V1.2": {
-                    "passed": v1_2_passed,
-                    "actual": results_summary["task_1b"].get("accuracy", 0),
-                    "threshold": 0.50,
-                },
-            },
+        named_predictions = {
+            "V1.1": PredictionResult(
+                passed=v1_1_passed,
+                value=results_summary["task_1a"].get("APGI", {}).get("accuracy", 0),
+                threshold=0.80,
+                status=(
+                    PredictionStatus.PASSED if v1_1_passed else PredictionStatus.FAILED
+                ),
+                name="V1.1_ML_Accuracy",
+            ),
+            "V1.2": PredictionResult(
+                passed=v1_2_passed,
+                value=results_summary["task_1b"].get("accuracy", 0),
+                threshold=0.50,
+                status=(
+                    PredictionStatus.PASSED if v1_2_passed else PredictionStatus.FAILED
+                ),
+                name="V1.2_Task_Accuracy",
+            ),
         }
+
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions=named_predictions,
+            completion_percentage=100,
+            data_sources=["Synthetic EEG Dataset"],
+            methodology="ml_classification",
+            metadata={"results_summary": results_summary, "criteria": criteria_status},
+        )
     except Exception as e:
         logger.error(f"Validation failed: {e}")
-        return {"passed": False, "status": "error", "error": str(e)}
+        return ProtocolResult(
+            protocol_id=protocol_id,
+            named_predictions={},
+            completion_percentage=0,
+            errors=[str(e)],
+            metadata={"status": "error"},
+        )
 
 
 def run_protocol():

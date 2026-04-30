@@ -7,6 +7,7 @@ Coordinates execution of all validation protocols and aggregates results.
 """
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -14,8 +15,10 @@ from typing import Dict, List, Optional, Set
 import numpy as np
 import pandas as pd
 
+from utils.dto import MasterValidationReportDTO, ValidationTierSummaryDTO
 from utils.error_handler import ConfigurationError
 from utils.protocol_contracts import ProtocolContract, ProtocolContractRegistry
+from utils.protocol_schema import ProtocolResult
 
 # Add project root to sys.path for imports
 _proj_root = Path(__file__).parent.parent
@@ -44,6 +47,14 @@ except ImportError:
 
 class APGIMasterValidator:
     """Orchestrates execution of all APGI validation protocols"""
+
+    def _is_protocol_passed(self, res: ProtocolResult) -> bool:
+        """Check if a protocol result indicates a pass."""
+        if res.metadata.get("passed") is not None:
+            return bool(res.metadata.get("passed"))
+        if res.named_predictions:
+            return all(p.passed for p in res.named_predictions.values())
+        return False
 
     def __init__(self):
         self.protocol_results = {}
@@ -259,7 +270,9 @@ class APGIMasterValidator:
         for protocol in graph:
             dfs(protocol)
 
-    def run_validation(self, protocols: List[str], **kwargs) -> Dict[str, Dict]:
+    def run_validation(
+        self, protocols: List[str], **kwargs
+    ) -> Dict[str, ProtocolResult]:
         """
         Run specified validation protocols
 
@@ -270,15 +283,15 @@ class APGIMasterValidator:
         Returns:
             Dictionary of protocol results
         """
-        results = {}
+        results: Dict[str, ProtocolResult] = {}
 
         for protocol_name in protocols:
             if protocol_name not in self.available_protocols:
                 logger.warning(f"Unknown protocol: {protocol_name}")
-                results[protocol_name] = {
-                    "status": "error",
-                    "message": "Unknown protocol",
-                }
+                results[protocol_name] = ProtocolResult.from_legacy_format(
+                    protocol_name,
+                    {"status": "error", "message": "Unknown protocol", "passed": False},
+                )
                 continue
 
             try:
@@ -286,9 +299,10 @@ class APGIMasterValidator:
                 protocol_info = self.available_protocols[protocol_name]
                 result = self._run_single_protocol(protocol_info, **kwargs)
                 results[protocol_name] = result
-                logger.info(
-                    f"{protocol_name} completed: {result.get('status', 'unknown')}"
+                status_str = (
+                    "completed" if not result.errors else "completed with errors"
                 )
+                logger.info(f"{protocol_name} {status_str}")
 
             except (
                 ImportError,
@@ -298,26 +312,28 @@ class APGIMasterValidator:
                 TypeError,
             ) as e:
                 logger.error(f"Error running {protocol_name}: {e}")
-                results[protocol_name] = {
-                    "status": "error",
-                    "message": str(e),
-                    "passed": "false",  # String for type consistency
-                }
+                results[protocol_name] = ProtocolResult.from_legacy_format(
+                    protocol_name,
+                    {"status": "error", "message": str(e), "passed": False},
+                )
 
         self.protocol_results.update(results)
         return results
 
-    def _run_single_protocol(self, protocol_info: Dict, **kwargs) -> Dict:
+    def _run_single_protocol(self, protocol_info: Dict, **kwargs) -> ProtocolResult:
         """Run a single validation protocol with performance tracking and SLO enforcement"""
         file_path = Path(__file__).parent / protocol_info["file"]
         protocol_id = protocol_info.get("protocol_id", protocol_info["file"])
 
         if not file_path.exists():
-            return {
-                "status": "error",
-                "message": f"Protocol file not found: {file_path}",
-                "passed": False,
-            }
+            return ProtocolResult.from_legacy_format(
+                protocol_id,
+                {
+                    "status": "error",
+                    "message": f"Protocol file not found: {file_path}",
+                    "passed": False,
+                },
+            )
 
         # Use performance governance to benchmark the protocol
         try:
@@ -353,7 +369,6 @@ class APGIMasterValidator:
                 return validation_func(**kwargs)
 
             # Benchmark the protocol execution
-            # Note: For heavy protocols, we might want to reduce iterations
             benchmark_iterations = kwargs.get("benchmark_iterations", 1)
             perf_result = benchmark_callable(
                 protocol_id, run_wrapper, iterations=benchmark_iterations
@@ -364,67 +379,93 @@ class APGIMasterValidator:
                 assert_slo(perf_result, slo)
             except RuntimeError as e:
                 logger.warning(f"SLO Violation for {protocol_id}: {e}")
-                # We don't fail the protocol solely on SLO violation unless configured to do so
                 if kwargs.get("strict_performance", False):
-                    return {
-                        "status": "failed",
-                        "message": f"Performance SLO Violation: {e}",
-                        "passed": False,
-                        "performance": perf_result.__dict__,
-                    }
+                    return ProtocolResult.from_legacy_format(
+                        protocol_id,
+                        {
+                            "status": "failed",
+                            "message": f"Performance SLO Violation: {e}",
+                            "passed": False,
+                            "performance": perf_result.__dict__,
+                        },
+                    )
 
-            # Get the actual result from the last run (run_wrapper returns it)
-            # Since benchmark_callable calls it multiple times, we just need one result
+            # Get the actual result
             result = run_wrapper()
 
-            if isinstance(result, dict):
+            if isinstance(result, ProtocolResult):
+                # Enforce SLOs
+                try:
+                    assert_slo(perf_result)
+                except Exception as slo_err:
+                    logger.warning(f"SLO violation for {protocol_id}: {slo_err}")
+                    # Optionally mark as failed or just add to errors
+                    result.errors.append(f"SLO Violation: {str(slo_err)}")
+                    if os.environ.get("APGI_STRICT_SLO", "false").lower() == "true":
+                        result.metadata["passed"] = False
+
+                result.metadata["performance"] = {
+                    "p95_latency_ms": perf_result.p95_latency_ms,
+                    "throughput": perf_result.throughput_ops_per_sec,
+                    "peak_memory_mb": perf_result.peak_memory_mb,
+                }
+                return result
+            elif isinstance(result, dict):
                 result["performance"] = {
                     "p95_latency_ms": perf_result.p95_latency_ms,
                     "throughput": perf_result.throughput_ops_per_sec,
                 }
-                return result
+                return ProtocolResult.from_legacy_format(protocol_id, result)
             else:
-                return {
-                    "status": "success" if result else "failed",
-                    "passed": bool(result),
-                    "performance": {
-                        "p95_latency_ms": perf_result.p95_latency_ms,
-                        "throughput": perf_result.throughput_ops_per_sec,
+                return ProtocolResult.from_legacy_format(
+                    protocol_id,
+                    {
+                        "status": "success" if result else "failed",
+                        "passed": bool(result),
+                        "performance": {
+                            "p95_latency_ms": perf_result.p95_latency_ms,
+                            "throughput": perf_result.throughput_ops_per_sec,
+                        },
                     },
-                }
+                )
 
         except Exception as e:
             logger.error(f"Error running {protocol_id}: {e}")
-            return {
-                "status": "error",
-                "message": str(e),
-                "passed": False,
-            }
+            return ProtocolResult.from_legacy_format(
+                protocol_id,
+                {
+                    "status": "error",
+                    "message": str(e),
+                    "passed": False,
+                },
+            )
 
-    def generate_master_report(self) -> Dict:
+    def generate_master_report(self) -> MasterValidationReportDTO:
         """Generate comprehensive validation report with weighted scoring."""
         total_protocols = len(self.protocol_results)
         if total_protocols == 0:
-            return {
-                "overall_decision": "No protocols run",
-                "total_protocols": 0,
-                "passed_protocols": 0,
-                "pending_protocols": 0,
-                "success_rate": 0,
-                "weighted_score": 0,
-                "protocol_results": {},
-                "falsification_status": self.falsification_status,
-                "summary": "Run validation protocols first",
-            }
+            return MasterValidationReportDTO(
+                overall_decision="No protocols run",
+                total_protocols=0,
+                completed_protocols=0,
+                passed_protocols=0,
+                pending_protocols=0,
+                success_rate=0,
+                weighted_score=0,
+                tier_summary={},
+                protocol_results={},
+                summary="Run validation protocols first",
+            )
 
         # Count protocols by status: passed, failed, pending
         passed_protocols = sum(
-            1 for r in self.protocol_results.values() if r.get("passed", False)
+            1 for r in self.protocol_results.values() if self._is_protocol_passed(r)
         )
+
         pending_protocols = sum(
             1
             for r in self.protocol_results.values()
-            if r.get("passed") is None or r.get("status") == "STUB_AWAITING_DATA"
+            if r.metadata.get("status") == "STUB_AWAITING_DATA"
         )
         completed_protocols = total_protocols - pending_protocols
 
@@ -433,55 +474,47 @@ class APGIMasterValidator:
             passed_protocols / completed_protocols if completed_protocols > 0 else 0
         )
 
-        # Equal weighting across completed protocols (excluding pending)
         tier_weights = {"primary": 2.0, "secondary": 1.5, "tertiary": 1.0}
-        self.tier_weights = (
-            tier_weights  # Store as instance attribute for external access
-        )
+        self.tier_weights = tier_weights
         tier_stats = {
-            "primary": {"passed": 0, "total": 0, "pending": 0},
-            "secondary": {"passed": 0, "total": 0, "pending": 0},
-            "tertiary": {"passed": 0, "total": 0, "pending": 0},
+            "primary": ValidationTierSummaryDTO(),
+            "secondary": ValidationTierSummaryDTO(),
+            "tertiary": ValidationTierSummaryDTO(),
         }
 
         for p_name, result in self.protocol_results.items():
-            # Extract protocol number from "Protocol-X"
-            p_num = None  # Initialize to None to avoid UnboundLocalError
+            p_num = None
             try:
                 p_num = int(p_name.split("-")[-1])
                 tier = self.PROTOCOL_TIERS.get(p_num, "tertiary")
             except (ValueError, IndexError):
                 tier = "tertiary"
 
-            # Check if pending (awaiting data)
-            is_pending = (
-                result.get("passed") is None
-                or (
-                    p_num is not None
-                    and p_num in getattr(self, "PENDING_PROTOCOLS", [])
-                )
-                or result.get("status") == "STUB_AWAITING_DATA"
+            is_pending = result.metadata.get("status") == "STUB_AWAITING_DATA" or (
+                p_num is not None and p_num in getattr(self, "PENDING_PROTOCOLS", [])
             )
 
             if is_pending:
-                tier_stats[tier]["pending"] += 1
+                tier_stats[tier].pending += 1
             else:
-                tier_stats[tier]["total"] += 1
-                if result.get("passed", False):
-                    tier_stats[tier]["passed"] += 1
+                tier_stats[tier].total += 1
+                if self._is_protocol_passed(result):
+                    tier_stats[tier].passed += 1
+
+        # Calculate success rates for tiers
+        for tier in tier_stats:
+            if tier_stats[tier].total > 0:
+                tier_stats[tier].success_rate = (
+                    tier_stats[tier].passed / tier_stats[tier].total
+                )
 
         weighted_score = 0.0
         total_weight_used = 0.0
         for tier, stats in tier_stats.items():
-            # Exclude pending from tier calculations
-            completed = stats["total"]  # Already excludes pending
-            if completed > 0:
-                tier_success = stats["passed"] / completed
-                weight = tier_weights[tier]
-                weighted_score += tier_success * weight
-                total_weight_used += weight
+            if stats.total > 0:
+                weighted_score += stats.success_rate * tier_weights[tier]
+                total_weight_used += tier_weights[tier]
 
-        # Normalize if not all tiers were run
         if total_weight_used > 0:
             weighted_score /= total_weight_used
 
@@ -498,20 +531,19 @@ class APGIMasterValidator:
             f"({pending_protocols} pending) (Raw: {success_rate:.1%}, Weighted: {weighted_score:.2f})"
         )
 
-        return {
-            "overall_decision": overall_decision,
-            "total_protocols": total_protocols,
-            "completed_protocols": completed_protocols,
-            "passed_protocols": passed_protocols,
-            "pending_protocols": pending_protocols,
-            "success_rate": success_rate,
-            "weighted_score": weighted_score,
-            "tier_summary": tier_stats,
-            "pending_list": getattr(self, "PENDING_PROTOCOLS", []),
-            "protocol_results": self.protocol_results,
-            "falsification_status": self.falsification_status,
-            "summary": summary,
-        }
+        return MasterValidationReportDTO(
+            overall_decision=overall_decision,
+            total_protocols=total_protocols,
+            completed_protocols=completed_protocols,
+            passed_protocols=passed_protocols,
+            pending_protocols=pending_protocols,
+            success_rate=success_rate,
+            weighted_score=weighted_score,
+            tier_summary=tier_stats,
+            protocol_results=self.protocol_results,
+            falsification_status=self.falsification_status,
+            summary=summary,
+        )
 
     def get_available_protocols(self) -> Dict[str, Dict]:
         """Get list of available validation protocols"""
@@ -523,7 +555,7 @@ class APGIMasterValidator:
 
     def run_all_protocols(
         self, seed: Optional[int] = None, **kwargs
-    ) -> Dict[str, Dict]:
+    ) -> Dict[str, ProtocolResult]:
         """
         Run all validation protocols in dependency order
 
@@ -585,8 +617,8 @@ class APGIMasterValidator:
         all_protocols = queue
 
         # Run in dependency order
-        executed = set()
-        results = {}
+        executed: set = set()
+        results: Dict[str, ProtocolResult] = {}
 
         for protocol_name in all_protocols:
             if protocol_name in executed:
@@ -625,7 +657,9 @@ class APGIMasterValidator:
         # Generate reproducibility data
         reproducibility_data = {
             "timestamp": datetime.now().isoformat(),
-            "protocol_results": self.protocol_results,
+            "protocol_results": {
+                k: v.to_dict() for k, v in self.protocol_results.items()
+            },
             "tier_classification": self.PROTOCOL_TIERS,
             "tier_weights": {"primary": 2.0, "secondary": 1.5, "tertiary": 1.0},
             "instance_tier_weights": self.tier_weights,
@@ -667,9 +701,9 @@ class APGIMasterValidator:
         for protocol_name, result in self.protocol_results.items():
             row = {
                 "protocol": protocol_name,
-                "status": result.get("status", "unknown"),
-                "passed": result.get("passed", False),
-                "message": result.get("message", ""),
+                "status": result.metadata.get("status", "unknown"),
+                "passed": self._is_protocol_passed(result),
+                "message": result.metadata.get("message", ""),
             }
 
             # Extract identifier for tier classification
@@ -725,8 +759,18 @@ def main():
             tier = validator.PROTOCOL_TIERS.get(p_num, "unknown")
         except (ValueError, IndexError):
             tier = "unknown"
-        status = "✓ PASS" if res.get("passed") else "✗ FAIL"
-        msg = res.get("message", "No description provided")
+
+        # Check if passed
+        passed = res.metadata.get("passed")
+        if passed is None:
+            passed = (
+                all(p.passed for p in res.named_predictions.values())
+                if res.named_predictions
+                else False
+            )
+
+        status = "✓ PASS" if passed else "✗ FAIL"
+        msg = res.metadata.get("message", "No description provided")
         print(f"{p_name:<15} | {tier:<10} | {status:<10} | {msg}")
 
     print("-" * 80)

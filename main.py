@@ -438,6 +438,14 @@ class APGIModuleLoader:
 # Initialize module loader
 module_loader = APGIModuleLoader()
 
+# Enforce strict secret management policy at startup
+try:
+    from utils.secret_policy_enforcer import enforce_secret_policy
+
+    enforce_secret_policy()
+except ImportError:
+    pass
+
 
 @click.group()
 @click.version_option(
@@ -502,6 +510,46 @@ def cli(ctx, config_file, log_level, verbose, quiet):
 
     except ImportError:
         pass
+
+
+@cli.group(name="config-group")
+def config_group():
+    """Manage APGI configuration (group)."""
+    pass
+
+
+@config_group.command(name="explain")
+@click.pass_context
+def explain_config(ctx):
+    """Show resolved runtime configuration and precedence order."""
+    console.print(
+        Panel.fit("🔧 Configuration Precedence & Resolution", style="bold blue")
+    )
+
+    precedence = [
+        "1. CLI Arguments (--params, --config-file)",
+        "2. Environment Variables (APGI_CONFIG_*)",
+        "3. User Local Config (~/.apgi/config.yaml)",
+        "4. Project Config (config/validation_config.yaml)",
+        "5. Code-level Defaults",
+    ]
+
+    console.print("[bold cyan]Resolution Precedence Order:[/bold cyan]")
+    for p in precedence:
+        console.print(f"  {p}")
+
+    console.print("\n[bold cyan]Resolved Runtime Configuration:[/bold cyan]")
+    try:
+        from utils.config_manager import config_manager
+
+        sim_config = config_manager.get_config("simulation")
+        model_config = config_manager.get_config("model")
+
+        console.print(f"[green]Simulation Config:[/green] {sim_config.__dict__}")
+        console.print(f"[green]Model Config:[/green] {model_config.__dict__}")
+
+    except ImportError:
+        console.print("[red]❌ Could not load config_manager[/red]")
 
 
 @cli.command()

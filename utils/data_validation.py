@@ -768,20 +768,21 @@ class DataPreprocessor(DataValidator):
         numeric_cols = df_clean.select_dtypes(include=[np.number]).columns
 
         if strategy == "interpolate":
-            for col in numeric_cols:
-                df_clean.loc[:, col] = df_clean[col].interpolate()
+            df_clean[numeric_cols] = df_clean[numeric_cols].interpolate()
         elif strategy == "forward_fill":
             df_clean[numeric_cols] = df_clean[numeric_cols].ffill()
         elif strategy == "backward_fill":
             df_clean[numeric_cols] = df_clean[numeric_cols].bfill()
         elif strategy == "mean":
-            for col in numeric_cols:
-                df_clean[col] = df_clean[col].fillna(df_clean[col].mean())
+            df_clean[numeric_cols] = df_clean[numeric_cols].fillna(
+                df_clean[numeric_cols].mean()
+            )
         elif strategy == "median":
-            for col in numeric_cols:
-                df_clean[col] = df_clean[col].fillna(df_clean[col].median())
+            df_clean[numeric_cols] = df_clean[numeric_cols].fillna(
+                df_clean[numeric_cols].median()
+            )
         elif strategy == "drop":
-            df_clean = df_clean.dropna()
+            df_clean = df_clean.dropna(subset=numeric_cols)
 
         self.preprocessing_steps.append(
             f"Missing data cleaned using {strategy} strategy"
@@ -796,6 +797,9 @@ class DataPreprocessor(DataValidator):
         numeric_cols = df_clean.select_dtypes(include=[np.number]).columns
         outliers_removed = 0
 
+        # Build a single mask to filter the dataframe only once
+        combined_mask = pd.Series(False, index=df_clean.index)
+
         for col in numeric_cols:
             if method == "iqr":
                 Q1 = df_clean[col].quantile(0.25)
@@ -807,16 +811,18 @@ class DataPreprocessor(DataValidator):
                 outlier_mask = (df_clean[col] < lower_bound) | (
                     df_clean[col] > upper_bound
                 )
-                outliers_removed += outlier_mask.sum()
-                df_clean = df_clean[~outlier_mask]
+                combined_mask |= outlier_mask
 
             elif method == "zscore":
                 z_scores = np.abs(
                     (df_clean[col] - df_clean[col].mean()) / df_clean[col].std()
                 )
                 outlier_mask = z_scores > threshold
-                outliers_removed += outlier_mask.sum()
-                df_clean = df_clean[~outlier_mask]
+                combined_mask |= outlier_mask
+
+        outliers_removed = combined_mask.sum()
+        if outliers_removed > 0:
+            df_clean = df_clean[~combined_mask]
 
         self.preprocessing_steps.append(
             f"Removed {outliers_removed} outliers using {method} method"

@@ -27,7 +27,11 @@ from utils.security_audit_logger import (
     log_read,
     log_write,
 )
-from utils.security_logging_integration import secure_file_read, secure_file_write
+from utils.security_logging_integration import (
+    SecurityContext,
+    secure_file_read,
+    secure_file_write,
+)
 
 
 class TestDependencyScanner:
@@ -299,20 +303,23 @@ class TestSecurityLoggingIntegration:
         test_file = temp_dir / "test.txt"
         test_file.write_text("Test content")
 
-        content = secure_file_read(str(test_file))
+        context = SecurityContext(user_id="test_user", roles=frozenset(["reader"]))
+        content = secure_file_read(str(test_file), context)
         assert content == "Test content"
 
     def test_secure_file_read_failure(self, temp_dir):
         """Test secure file read with failure."""
         non_existent_file = temp_dir / "nonexistent.txt"
 
+        context = SecurityContext(user_id="test_user", roles=frozenset(["reader"]))
         with pytest.raises(FileNotFoundError):
-            secure_file_read(str(non_existent_file))
+            secure_file_read(str(non_existent_file), context)
 
     def test_secure_file_write_success(self, temp_dir):
         """Test secure file write with success."""
         test_file = temp_dir / "test.txt"
-        secure_file_write(str(test_file), "Test content")
+        context = SecurityContext(user_id="test_user", roles=frozenset(["writer"]))
+        secure_file_write(str(test_file), "Test content", context)
 
         assert test_file.exists()
         assert test_file.read_text() == "Test content"
@@ -323,8 +330,9 @@ class TestSecurityLoggingIntegration:
         test_dir = temp_dir / "test_dir"
         test_dir.mkdir()
 
+        context = SecurityContext(user_id="test_user", roles=frozenset(["writer"]))
         with pytest.raises((IsADirectoryError, PermissionError)):
-            secure_file_write(str(test_dir), "Test content")
+            secure_file_write(str(test_dir), "Test content", context)
 
     def test_log_read_function(self, temp_dir):
         """Test log_read convenience function."""

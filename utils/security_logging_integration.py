@@ -27,7 +27,7 @@ class SecurityAuthorizationError(APGIError):
         super().__init__(
             message=message,
             severity=ErrorSeverity.HIGH,
-            category=ErrorCategory.PERMISSION,
+            category=ErrorCategory.SECURITY,
         )
 
 

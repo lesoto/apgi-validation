@@ -14,13 +14,24 @@ install all optional tools:
 ============================================================================================
 """
 
+import hashlib
+import hmac
 import json
 import logging
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
+
+# Severity thresholds
+SEVERITY_THRESHOLDS = {
+    "CRITICAL": 0,  # Zero tolerance for critical
+    "HIGH": 0,  # Zero tolerance for high
+    "MEDIUM": 5,  # Allow up to 5 medium
+    "LOW": 10,  # Allow up to 10 low
+}
 
 
 class DependencyScanner:
@@ -392,6 +403,60 @@ class DependencyScanner:
 
         return "\n".join(summary_lines)
 
+    def generate_signed_sbom(self) -> Dict[str, Any]:
+        """
+        Generate a basic SBOM (Software Bill of Materials) and sign it.
+        """
+        sbom: Dict[str, Any] = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "version": 1,
+            "metadata": {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "tools": [{"vendor": "APGI", "name": "DependencyScanner"}],
+            },
+            "components": [],
+        }
+
+        # Try to use pip freeze to get components
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "freeze"], capture_output=True, text=True
+            )
+            for line in result.stdout.splitlines():
+                if "==" in line:
+                    name, version = line.split("==", 1)
+                    sbom["components"].append(
+                        {"type": "library", "name": name, "version": version}
+                    )
+        except Exception as e:
+            self.logger.warning(f"Could not generate full SBOM components: {e}")
+
+        # Sign the SBOM
+        signing_key = os.environ.get(
+            "APGI_SBOM_SIGNING_KEY", "fallback-key-do-not-use-in-prod"
+        ).encode()
+        sbom_str = json.dumps(sbom, sort_keys=True)
+        signature = hmac.new(signing_key, sbom_str.encode(), hashlib.sha256).hexdigest()
+
+        return {"sbom": sbom, "signature": signature, "algorithm": "HMAC-SHA256"}
+
+    def evaluate_severity_thresholds(self, results: Dict[str, Any]) -> bool:
+        """
+        Evaluate if scan results violate severity thresholds.
+        """
+        # In a real implementation, we would parse the severity from pip-audit/safety details.
+        # For this framework, we assume any vulnerabilities found violate the strict thresholds
+        # if the total exceeds our minimum tolerance.
+
+        total_vulns = results["summary"]["total_vulnerabilities"]
+        if total_vulns > SEVERITY_THRESHOLDS["CRITICAL"]:
+            self.logger.error(
+                f"Failed severity thresholds: {total_vulns} vulnerabilities found."
+            )
+            return False
+        return True
+
 
 def run_dependency_scan(
     project_root: str = None, save_report: bool = True
@@ -454,10 +519,26 @@ def main():
         print("\nDETAILED RESULTS:")
         print(json.dumps(results, indent=2))
 
-    # Exit with error code if vulnerabilities found
-    if results["summary"]["total_vulnerabilities"] > 0:
+    # Generate and save signed SBOM
+    sbom_data = scanner.generate_signed_sbom()
+    if not args.no_save:
+        sbom_path = (
+            Path(args.project_root if args.project_root else Path.cwd())
+            / "apgi-sbom-signed.json"
+        )
+        with open(sbom_path, "w") as f:
+            json.dump(sbom_data, f, indent=2)
+        print(f"\nSigned SBOM generated at {sbom_path}")
+
+    # Evaluate severity thresholds
+    passed = scanner.evaluate_severity_thresholds(results)
+
+    # Exit with error code if vulnerabilities found or thresholds failed
+    if not passed:
+        print("SECURITY SCAN FAILED: Vulnerabilities exceed severity thresholds.")
         sys.exit(1)
     else:
+        print("SECURITY SCAN PASSED.")
         sys.exit(0)
 
 

@@ -76,9 +76,11 @@ except ImportError:
     APGIGenerativeModel = None  # type: ignore[assignment,misc]
 
 try:
-    from utils.logging_config import apgi_logger as logger
-except ImportError:
     logger = logging.getLogger(__name__)  # type: ignore[assignment]
+except Exception:
+    logger = logging.getLogger(__name__)
+
+from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
 # Import shared multiple comparison correction
 try:
@@ -1888,44 +1890,60 @@ def run_validation(
         )
         logger.info(message)
 
-        return {
-            "passed": bool(overall_passed),
-            "status": status,
-            "message": message,
-            "results": results,
-            # Aggregator-facing named prediction outputs (Standardized to V2 series)
-            "named_predictions": {
-                "V2.1": {
-                    "passed": p1_1.get("passed", False),
-                    "actual": p1_1.get("cohens_d"),
-                    "threshold": "0.40-0.60",
-                },
-                "V2.2": {
-                    "passed": p1_2.get("passed", False),
-                    "actual": p1_2.get("arousal_x_pi_interaction", {}).get("cohens_d"),
-                    "threshold": "0.25-0.45",
-                },
-                "V2.3": {
-                    "passed": p1_3.get("passed", False),
-                    "actual": p1_3.get("cohens_d"),
-                    "threshold": "> 0.30",
-                },
-            },
+        named_predictions = {
+            "V2.1": PredictionResult(
+                passed=p1_1.get("passed", False),
+                value=p1_1.get("cohens_d"),
+                threshold=0.40,
+                status=(
+                    PredictionStatus.PASSED
+                    if p1_1.get("passed", False)
+                    else PredictionStatus.FAILED
+                ),
+                name="V2.1: Interoceptive precision modulates visual threshold",
+            ),
+            "V2.2": PredictionResult(
+                passed=p1_2.get("passed", False),
+                value=p1_2.get("arousal_x_pi_interaction", {}).get("cohens_d"),
+                threshold=0.25,
+                status=(
+                    PredictionStatus.PASSED
+                    if p1_2.get("passed", False)
+                    else PredictionStatus.FAILED
+                ),
+                name="V2.2: Arousal amplifies Pi-threshold relationship",
+            ),
+            "V2.3": PredictionResult(
+                passed=p1_3.get("passed", False),
+                value=p1_3.get("cohens_d"),
+                threshold=0.30,
+                status=(
+                    PredictionStatus.PASSED
+                    if p1_3.get("passed", False)
+                    else PredictionStatus.FAILED
+                ),
+                name="V2.3: High-IA individuals show greater arousal benefit",
+            ),
         }
+
+        return ProtocolResult(
+            protocol_id="VP_02_Behavioral_BayesianComparison",
+            named_predictions=named_predictions,
+            completion_percentage=100,
+            data_sources=["Synthetic Behavioral Dataset"],
+            methodology="bayesian_behavioral_simulation",
+            metadata={"status": status, "message": message, "results": results},
+        ).model_dump()
 
     except Exception as exc:
         logger.exception(f"Protocol 2 encountered an unexpected error: {exc}")
-        return {
-            "passed": False,
-            "status": "error",
-            "message": f"Protocol 2 failed with exception: {type(exc).__name__}: {exc}",
-            "results": {},
-            "named_predictions": {
-                "V2.1": {"passed": False, "error": str(exc)},
-                "V2.2": {"passed": False, "error": str(exc)},
-                "V2.3": {"passed": False, "error": str(exc)},
-            },
-        }
+        return ProtocolResult(
+            protocol_id="VP_02_Behavioral_BayesianComparison",
+            named_predictions={},
+            completion_percentage=0,
+            errors=[str(exc)],
+            metadata={"status": "error", "message": str(exc)},
+        ).model_dump()
 
 
 def run_protocol():
@@ -1945,6 +1963,11 @@ def run_protocol_main(config=None):
     """Execute and return standardized ProtocolResult."""
     legacy_result = run_validation()
     if not HAS_SCHEMA:
+        return legacy_result
+
+    # ProtocolResult is a Pydantic model, access attributes directly
+    if isinstance(legacy_result, ProtocolResult):
+        # Already a ProtocolResult, return as-is
         return legacy_result
 
     named_predictions = {}

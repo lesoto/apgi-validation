@@ -82,7 +82,7 @@ if APGI_Master_Validation:
 else:
     APGIMasterValidator = None
 
-# Try to import individual protocols
+# Protocol files for metadata
 protocol_files = [
     ("APGI_Protocol_1", "VP_01_SyntheticEEG_MLClassification.py"),
     ("APGI_Protocol_2", "VP_02_Behavioral_BayesianComparison.py"),
@@ -102,10 +102,6 @@ protocol_files = [
     ("APGI_Protocol_16", "VP_16_Metabolic_ATP_GroundTruth.py"),
     ("APGI_Protocol_ALL", "VP_ALL_Aggregator.py"),
 ]
-
-for protocol_name, filename in protocol_files:
-    protocol_path = Path(__file__).parent / "Validation" / filename
-    protocol_module = safe_import_module(protocol_name, protocol_path)
 
 
 class APGIValidationGUI:

@@ -30,6 +30,10 @@ from rich.console import Console
 
 console = Console()
 
+# Cache version string. Increment this when preprocessing logic changes
+# to automatically invalidate all old cache entries.
+CACHE_VERSION = "v1.0.0"
+
 
 class CacheManager:
     """Advanced caching system for APGI framework."""
@@ -223,15 +227,15 @@ class CacheManager:
 
     def _generate_key(self, key_data: Any) -> str:
         """Generate unique cache key from data."""
-        if isinstance(key_data, str):
-            key_string = key_data
-        elif isinstance(key_data, dict):
+        # Generate unique cache key from data.
+        # Add CACHE_VERSION to ensure deterministic invalidation when logic changes
+        versioned_data = {"version": CACHE_VERSION, "payload": key_data}
+
+        if isinstance(versioned_data, dict):
             # Sort dictionary for consistent key generation
-            key_string = json.dumps(key_data, sort_keys=True, default=str)
-        elif isinstance(key_data, (list, tuple)):
-            key_string = str(key_data)
+            key_string = json.dumps(versioned_data, sort_keys=True, default=str)
         else:
-            key_string = str(key_data)
+            key_string = str(versioned_data)
 
         # Generate hash
         return hashlib.sha256(key_string.encode()).hexdigest()
@@ -556,6 +560,39 @@ class CacheManager:
             if expired_keys:
                 self._save_metadata()
                 print(f"Cleaned up {len(expired_keys)} expired cache entries")
+
+    def invalidate_old_versions(self):
+        """Invalidate all cache entries from older cache versions."""
+        with self._lock:
+            # We can't strictly know the version of old keys just by the hash,
+            # but we can clear the entire cache when version bumps, or store version in metadata.
+            # Here we'll clear everything if we detect a version mismatch in a global metadata key.
+            version_key = "_global_cache_version"
+            stored_version = self.metadata.get(version_key, {}).get("version")
+
+            if stored_version != CACHE_VERSION:
+                print(
+                    f"Cache version changed from {stored_version} to {CACHE_VERSION}. Invalidating all caches."
+                )
+
+                # Unlink all cache files
+                for cache_file in self.cache_dir.glob("*.cache"):
+                    cache_file.unlink()
+                for json_file in self.cache_dir.glob("*.json"):
+                    json_file.unlink()
+
+                self.metadata = {
+                    version_key: {"version": CACHE_VERSION, "updated_at": time.time()}
+                }
+                self._save_metadata()
+                self.stats = {
+                    "hits": 0,
+                    "misses": 0,
+                    "evictions": 0,
+                    "total_requests": 0,
+                }
+                return True
+            return False
 
     def get_stats(self) -> Dict:
         """Get cache statistics."""

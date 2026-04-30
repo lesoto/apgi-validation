@@ -84,9 +84,9 @@ def test_validation_files_exist():
         file_path = validation_dir / file_name
         assert file_path.exists(), f"Validation file {file_name} missing"
 
-    # Check APGI_Validation_GUI.py at root level (moved from Validation/)
-    gui_path = Path(__file__).parent.parent / "APGI_Validation_GUI.py"
-    assert gui_path.exists(), "APGI_Validation_GUI.py not found at root level"
+    # Check Validation_GUI.py at root level (moved from Validation/)
+    gui_path = Path(__file__).parent.parent / "Validation_GUI.py"
+    assert gui_path.exists(), "Validation_GUI.py not found at root level"
 
 
 def test_validation_config_structure(sample_config):
@@ -1091,35 +1091,49 @@ def test_generate_master_report_decision_logic(
     passed_count, total_count, expected_decision
 ):
     """Test generate_master_report decision logic with different pass rates"""
+    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
     from Validation.Master_Validation import APGIMasterValidator
 
     validator = APGIMasterValidator()
 
-    # Create mock protocol results
+    # Create mock protocol results using ProtocolResult objects
     validator.protocol_results = {}
     for i in range(total_count):
         protocol_name = f"Protocol-{i + 1}"
         passed = i < passed_count  # First passed_count protocols pass
-        validator.protocol_results[protocol_name] = {
-            "status": "COMPLETED",
-            "passed": passed,
-            "timestamp": "2024-01-01T00:00:00",
-        }
+        validator.protocol_results[protocol_name] = ProtocolResult(
+            protocol_id=protocol_name,
+            named_predictions={
+                f"prediction_{i}": PredictionResult(
+                    passed=passed,
+                    value=0.5 if passed else 0.2,
+                    threshold=0.3,
+                    status=(
+                        PredictionStatus.PASSED if passed else PredictionStatus.FAILED
+                    ),
+                )
+            },
+            completion_percentage=100,
+            metadata={
+                "status": "COMPLETED",
+                "passed": passed,
+                "timestamp": "2024-01-01T00:00:00",
+            },
+        )
 
     # Generate report
     report = validator.generate_master_report()
 
     # Verify decision logic
-    assert report["overall_decision"] == expected_decision
-    assert report["total_protocols"] == total_count
-    assert report["passed_protocols"] == passed_count
-    assert report["success_rate"] == (
-        passed_count / total_count if total_count > 0 else 0
-    )
+    assert report.overall_decision == expected_decision
+    assert report.total_protocols == total_count
+    assert report.passed_protocols == passed_count
+    assert report.success_rate == (passed_count / total_count if total_count > 0 else 0)
 
 
 def test_generate_master_report_edge_cases():
     """Test generate_master_report with edge cases"""
+    from utils.protocol_schema import ProtocolResult
     from Validation.Master_Validation import APGIMasterValidator
 
     validator = APGIMasterValidator()
@@ -1127,14 +1141,21 @@ def test_generate_master_report_edge_cases():
     # Test with no protocols run
     validator.protocol_results = {}
     report = validator.generate_master_report()
-    assert report["overall_decision"] == "No protocols run"
-    assert report["total_protocols"] == 0
-    assert report["passed_protocols"] == 0
-    assert report["success_rate"] == 0
+    assert report.overall_decision == "No protocols run"
+    assert report.total_protocols == 0
+    assert report.passed_protocols == 0
+    assert report.success_rate == 0
 
     # Test with empty protocol_results
-    validator.protocol_results = {"Protocol-1": {}}
+    validator.protocol_results = {
+        "Protocol-1": ProtocolResult(
+            protocol_id="Protocol-1",
+            named_predictions={},
+            completion_percentage=0,
+            metadata={"status": "FAILED"},
+        )
+    }
     report = validator.generate_master_report()
-    assert report["overall_decision"] == "FAIL: Insufficient validation support"
-    assert report["total_protocols"] == 1
-    assert report["passed_protocols"] == 0  # Default to False when "passed" key missing
+    assert report.overall_decision == "FAIL: Insufficient validation support"
+    assert report.total_protocols == 1
+    assert report.passed_protocols == 0  # Default to False when "passed" key missing
