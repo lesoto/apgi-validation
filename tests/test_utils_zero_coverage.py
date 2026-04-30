@@ -30,8 +30,9 @@ class TestAuthAdapter:
 
     def test_auth_session_init(self):
         """Test AuthSession initialization."""
-        from utils.auth_adapter import AuthSession, Role
         import time
+
+        from utils.auth_adapter import AuthSession, Role
 
         session = AuthSession("user123", Role.ADMIN, "token123", time.time() + 3600)
         assert session.user_id == "user123"
@@ -40,8 +41,9 @@ class TestAuthAdapter:
 
     def test_auth_session_is_valid(self):
         """Test AuthSession validity check."""
-        from utils.auth_adapter import AuthSession, Role
         import time
+
+        from utils.auth_adapter import AuthSession, Role
 
         # Valid session
         expires_at = time.time() + 3600

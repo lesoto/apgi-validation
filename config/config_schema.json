@@ -59,7 +59,7 @@
         "F1_2_MIN_ADVANTAGE_PCT": {"type": "number", "minimum": 0, "description": "Minimum advantage for F1.2 (≥18%)"},
         "F6": {
           "type": "object",
-          "description": "Innovation 29 (LNN AUROC superiority) parameters",
+          "description": "LNN AUROC superiority parameters",
           "properties": {
             "delta_auroc_min": {"type": "number", "minimum": 0, "description": "Minimum ΔAUROC for LNN superiority (≥0.05)"}
           }

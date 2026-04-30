@@ -11,8 +11,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from apgi_implementation import (
-    APGIModel,
     CONFIG,
+    APGIModel,
     GenerativeModel,
     HierarchicalLevel,
     HierarchicalProcessor,
@@ -198,14 +198,26 @@ class TestUpdateThreshold:
     def test_update_threshold_with_metabolic_cost(self):
         """Test threshold update with explicit metabolic cost."""
         theta_new = update_threshold(
-            0.5, 0.5, 1.0, 1.0, 0.01, 20.0, metabolic_cost=0.1,
+            0.5,
+            0.5,
+            1.0,
+            1.0,
+            0.01,
+            20.0,
+            metabolic_cost=0.1,
         )  # noqa: E501
         assert isinstance(theta_new, float)
 
     def test_update_threshold_gamma_M(self):
         """Test threshold update with metabolic sensitivity."""
         theta_new = update_threshold(
-            0.5, 0.5, 1.0, 1.0, 0.01, 20.0, gamma_M=0.1,
+            0.5,
+            0.5,
+            1.0,
+            1.0,
+            0.01,
+            20.0,
+            gamma_M=0.1,
         )  # noqa: E501
         assert isinstance(theta_new, float)
 
@@ -358,7 +370,13 @@ class TestHierarchicalProcessor:
     def test_level_names(self):
         """Test level names are correct."""
         proc = HierarchicalProcessor()
-        expected = ["sensory", "feature_integration", "pattern_recognition", "semantic", "executive"]
+        expected = [
+            "sensory",
+            "feature_integration",
+            "pattern_recognition",
+            "semantic",
+            "executive",
+        ]
         assert proc.level_names == expected
 
     def test_process_level(self):
