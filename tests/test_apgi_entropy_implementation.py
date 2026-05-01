@@ -1226,7 +1226,7 @@ class TestLandauerConsistency:
 
     This is the falsifiable bridge principle between Level 1 (thermodynamic)
     and Level 2 (information-theoretic) entropy. Violations would invalidate
-    Innovation 1's F2 criterion for the three-level epistemic architecture.
+    F2 criterion for the three-level epistemic architecture.
     """
 
     def test_landauer_consistency_basic(self):

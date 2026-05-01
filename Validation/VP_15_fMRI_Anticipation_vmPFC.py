@@ -689,9 +689,7 @@ def _get_vp15_relevance(dataset_id: str) -> str:
         "DS-11": "HCP-EP functional connectivity matrices enable vmPFC network analysis.",
         "DS-16": "Largest consciousness dataset. fMRI+MEG forthcoming - will test V15.1-V15.3.",
     }
-    return relevance_map.get(
-        dataset_id, "See dataset catalog for APGI innovation mapping"
-    )
+    return relevance_map.get(dataset_id, "See dataset catalog for APGI mapping")
 
 
 def run_validation_with_dataset(

@@ -109,7 +109,7 @@ class APGIParameters:
         """
         Compute circadian modulation of threshold based on cortisol rhythm.
 
-        Innovation #31: Cortisol-θ_t relationship formalized as inverted-U function.
+        Cortisol-θ_t relationship formalized as inverted-U function.
 
         Theory:
             Δθ_circadian = -k_cort · [C(t) - C_optimal]²
@@ -155,7 +155,7 @@ class APGIParameters:
         self, time_since_task_start_min: float, task_load: float = 0.7
     ) -> float:
         """
-        Compute ultradian modulation of threshold (Innovation #32).
+        Compute ultradian modulation of threshold.
 
         Theory: ~90-minute oscillations in threshold due to neuromodulator depletion
         and metabolic accumulation under sustained cognitive load.
@@ -860,7 +860,7 @@ class APGIFullDynamicModel:
 
     def get_time_constants(self) -> Dict[str, Dict[str, Any]]:
         """
-        Return time constants for Innovation 27 verification.
+        Return time constants for verification.
 
         Returns:
             Dictionary with time constants and their two-orders-of-magnitude separation
@@ -912,7 +912,7 @@ def get_implementation_metadata() -> Dict[str, Any]:
         "name": "APGI Full Dynamic Model Implementation",
         "quality_rating": 100,
         "status": "Perfect",
-        "innovation_alignment": "Innovation #31 (Cortisol-theta) & #32 (Ultradian)",
+        "innovation_alignment": "Cortisol-theta & Ultradian",
         "last_updated": "2026-04-06",
         "verification": "Standardized dynamical system with cortisol rhythms and metabolic cost feedback implemented.",
     }

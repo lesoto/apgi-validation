@@ -308,7 +308,7 @@ class ModelParameters:
     F6_2_MIN_CURVE_FIT_R2: float = 0.85  # R² ≥ 0.85
     F6_2_WILCOXON_ALPHA: float = 0.05
 
-    # Innovation 29 (LNN AUROC superiority) parameters
+    # LNN AUROC superiority parameters
     F6: dict = None  # Will be initialized in __post_init__
 
     def __post_init__(self):

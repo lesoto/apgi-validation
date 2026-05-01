@@ -203,7 +203,7 @@ F6_6_MIN_ADD_ON_MODULES: float = 2.0  # ≥2 modules required
 F6_6_MIN_PERFORMANCE_GAP: float = 15.0  # ≥15% performance gap without add-ons
 
 # ---------------------------------------------------------------------------
-# Innovation 29 – LNN AUROC superiority threshold
+# LNN AUROC superiority threshold
 # ---------------------------------------------------------------------------
 F6_DELTA_AUROC_MIN: float = (
     0.05  # ΔAUROC ≥ 0.05 (pre-specified threshold for LNN superiority)

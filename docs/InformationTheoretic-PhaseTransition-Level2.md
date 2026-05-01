@@ -129,9 +129,9 @@ Multi-panel plots showing:
 - Prediction summary tables
 
 
-## Expected Baseline Values for Innovation #33 (Cross-Species)
+## Expected Baseline Values for Cross-Species Translation
 
-To support Innovation #33 (Cross-Species Translation), the following baseline values for Φ (Integrated Information) and Transfer Entropy are provided across different species:
+To support Cross-Species Translation, the following baseline values for Φ (Integrated Information) and Transfer Entropy are provided across different species:
 
 ### Integrated Information (Φ) Baselines
 
@@ -176,7 +176,7 @@ Approximate scaling:
 - Mouse (70M neurons): 0.11× human Φ
 - Rat (200M neurons): 0.18× human Φ
 
-### Falsification Criteria for Innovation #33
+### Falsification Criteria
 
 - **F33.1**: If Φ_human < 0.15 at conscious ignition → Φ underestimation hypothesis
 - **F33.2**: If TE divergence < 1.2× near threshold → No critical slowing; continuous dynamics

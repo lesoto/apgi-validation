@@ -16,52 +16,223 @@
       "type": "object",
       "description": "Model parameters for APGI formal model",
       "properties": {
-        "tau_S": {"type": "number", "minimum": 0.01, "description": "Signal integration time constant [seconds]"},
-        "tau_theta": {"type": "number", "minimum": 0.01, "description": "Threshold adaptation time constant [seconds]"},
-        "tau_M": {"type": "number", "minimum": 0.01, "description": "Somatic marker time constant [seconds]"},
-        "alpha": {"type": "number", "minimum": 0.1, "description": "Surprise accumulation gain"},
-        "gamma_M": {"type": "number", "description": "Metabolic cost weight"},
-        "gamma_A": {"type": "number", "description": "Arousal modulation weight"},
-        "beta": {"type": "number", "description": "Somatic bias weight"},
-        "Pi_e": {"type": "number", "minimum": 0, "description": "Exteroceptive precision (baseline)"},
-        "Pi_i_baseline": {"type": "number", "minimum": 0, "description": "Interoceptive precision (baseline)"},
-        "beta_Pi_i": {"type": "number", "minimum": 0, "description": "Composite interoceptive parameter"},
-        "theta_0": {"type": "number", "minimum": 0, "maximum": 1, "description": "Baseline ignition threshold"},
-        "rho": {"type": "number", "minimum": 0, "maximum": 1, "description": "Threshold adaptation rate"},
-        "sigma_S": {"type": "number", "minimum": 0, "description": "Surprise signal noise amplitude"},
-        "sigma_theta": {"type": "number", "minimum": 0, "description": "Threshold noise amplitude"},
-        "sigma_noise": {"type": "number", "minimum": 0, "description": "Sensory noise amplitude"},
-        "somatic_gain": {"type": "number", "description": "Somatic marker gain"},
-        "homeostatic_cost_weight": {"type": "number", "minimum": 0, "maximum": 1, "description": "Weight for homeostatic predictions"},
-        "hidden_dim": {"type": "integer", "minimum": 1, "description": "Default hidden dimension"},
-        "somatic_hidden_dim": {"type": "integer", "minimum": 1, "description": "Somatic marker hidden dimension"},
-        "learning_rate": {"type": "number", "minimum": 0, "maximum": 1, "description": "Network learning rate"},
-        "value_learning_rate": {"type": "number", "minimum": 0, "maximum": 1, "description": "Value network learning rate"},
-        "dt": {"type": "number", "minimum": 0.001, "description": "Simulation time step"},
-        "duration": {"type": "number", "minimum": 0.1, "description": "Simulation duration"},
-        "F6_2_MIN_INTEGRATION_RATIO": {"type": "number", "minimum": 0, "description": "Minimum integration ratio for F6.2 criterion (≥4× RNN)"},
-        "F6_2_FALSIFICATION_RATIO": {"type": "number", "minimum": 0, "description": "Falsification ratio threshold for F6.2 (<2.5×)"},
-        "F6_2_MIN_CURVE_FIT_R2": {"type": "number", "minimum": 0, "maximum": 1, "description": "Minimum R² for curve fitting in F6.2 (≥0.85)"},
-        "F6_2_WILCOXON_ALPHA": {"type": "number", "minimum": 0, "maximum": 1, "description": "Alpha level for Wilcoxon test in F6.2"},
-        "F6_2_LTCN_MIN_WINDOW_MS": {"type": "number", "minimum": 0, "description": "Minimum LTCN integration window for F6.2 (≥200ms)"},
-        "F6_2_MIN_R2": {"type": "number", "minimum": 0, "description": "Alias for F6.2.MIN_CURVE_FIT_R2"},
-        "F6_1_LTCN_MAX_TRANSITION_MS": {"type": "number", "minimum": 0, "description": "Maximum LTCN transition time for F6.1 (≤50ms)"},
-        "F6_1_CLIFFS_DELTA_MIN": {"type": "number", "minimum": 0, "description": "Minimum Cliff's delta for F6.1 (≥0.30)"},
-        "F6_1_MANN_WHITNEY_ALPHA": {"type": "number", "minimum": 0, "description": "Alpha level for Mann-Whitney test in F6.1"},
-        "F5_5_PCA_MIN_VARIANCE": {"type": "number", "minimum": 0, "description": "Minimum PCA variance for F5.5 (≥70%)"},
-        "F5_5_PCA_FALSIFICATION_THRESHOLD": {"type": "number", "minimum": 0, "description": "PCA variance threshold for F5.5 falsification (<60%)"},
-        "F5_5_MIN_LOADING": {"type": "number", "minimum": 0, "description": "Minimum PC loading for F5.5 analysis"},
-        "V6_1_MIN_P3B_REDUCTION_PCT": {"type": "number", "minimum": 0, "description": "Minimum P3b reduction for V6.1 (≥12%)"},
-        "V6_1_MIN_IGNITION_REDUCTION_PCT": {"type": "number", "minimum": 0, "description": "Minimum ignition reduction for V6.1 (≥30%)"},
-        "V6_1_MIN_COHENS_D": {"type": "number", "minimum": 0, "description": "Minimum coherence effect size for V6.1 (≥0.60)"},
-        "F1_1_MIN_ADVANTAGE_PCT": {"type": "number", "minimum": 0, "description": "Minimum advantage for F1.1 (≥18%)"},
-        "F1_1_MIN_COHENS_D": {"type": "number", "minimum": 0, "description": "Minimum coherence effect size for F1.1 (≥0.60)"},
-        "F1_2_MIN_ADVANTAGE_PCT": {"type": "number", "minimum": 0, "description": "Minimum advantage for F1.2 (≥18%)"},
+        "tau_S": {
+          "type": "number",
+          "minimum": 0.01,
+          "description": "Signal integration time constant [seconds]"
+        },
+        "tau_theta": {
+          "type": "number",
+          "minimum": 0.01,
+          "description": "Threshold adaptation time constant [seconds]"
+        },
+        "tau_M": {
+          "type": "number",
+          "minimum": 0.01,
+          "description": "Somatic marker time constant [seconds]"
+        },
+        "alpha": {
+          "type": "number",
+          "minimum": 0.1,
+          "description": "Surprise accumulation gain"
+        },
+        "gamma_M": {
+          "type": "number",
+          "description": "Metabolic cost weight"
+        },
+        "gamma_A": {
+          "type": "number",
+          "description": "Arousal modulation weight"
+        },
+        "beta": {
+          "type": "number",
+          "description": "Somatic bias weight"
+        },
+        "Pi_e": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Exteroceptive precision (baseline)"
+        },
+        "Pi_i_baseline": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Interoceptive precision (baseline)"
+        },
+        "beta_Pi_i": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Composite interoceptive parameter"
+        },
+        "theta_0": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Baseline ignition threshold"
+        },
+        "rho": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Threshold adaptation rate"
+        },
+        "sigma_S": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Surprise signal noise amplitude"
+        },
+        "sigma_theta": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Threshold noise amplitude"
+        },
+        "sigma_noise": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Sensory noise amplitude"
+        },
+        "somatic_gain": {
+          "type": "number",
+          "description": "Somatic marker gain"
+        },
+        "homeostatic_cost_weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Weight for homeostatic predictions"
+        },
+        "hidden_dim": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Default hidden dimension"
+        },
+        "somatic_hidden_dim": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Somatic marker hidden dimension"
+        },
+        "learning_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Network learning rate"
+        },
+        "value_learning_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Value network learning rate"
+        },
+        "dt": {
+          "type": "number",
+          "minimum": 0.001,
+          "description": "Simulation time step"
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 0.1,
+          "description": "Simulation duration"
+        },
+        "F6_2_MIN_INTEGRATION_RATIO": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum integration ratio for F6.2 criterion (≥4× RNN)"
+        },
+        "F6_2_FALSIFICATION_RATIO": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Falsification ratio threshold for F6.2 (<2.5×)"
+        },
+        "F6_2_MIN_CURVE_FIT_R2": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum R² for curve fitting in F6.2 (≥0.85)"
+        },
+        "F6_2_WILCOXON_ALPHA": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Alpha level for Wilcoxon test in F6.2"
+        },
+        "F6_2_LTCN_MIN_WINDOW_MS": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum LTCN integration window for F6.2 (≥200ms)"
+        },
+        "F6_2_MIN_R2": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Alias for F6.2.MIN_CURVE_FIT_R2"
+        },
+        "F6_1_LTCN_MAX_TRANSITION_MS": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum LTCN transition time for F6.1 (≤50ms)"
+        },
+        "F6_1_CLIFFS_DELTA_MIN": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum Cliff's delta for F6.1 (≥0.30)"
+        },
+        "F6_1_MANN_WHITNEY_ALPHA": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Alpha level for Mann-Whitney test in F6.1"
+        },
+        "F5_5_PCA_MIN_VARIANCE": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum PCA variance for F5.5 (≥70%)"
+        },
+        "F5_5_PCA_FALSIFICATION_THRESHOLD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "PCA variance threshold for F5.5 falsification (<60%)"
+        },
+        "F5_5_MIN_LOADING": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum PC loading for F5.5 analysis"
+        },
+        "V6_1_MIN_P3B_REDUCTION_PCT": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum P3b reduction for V6.1 (≥12%)"
+        },
+        "V6_1_MIN_IGNITION_REDUCTION_PCT": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum ignition reduction for V6.1 (≥30%)"
+        },
+        "V6_1_MIN_COHENS_D": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum coherence effect size for V6.1 (≥0.60)"
+        },
+        "F1_1_MIN_ADVANTAGE_PCT": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum advantage for F1.1 (≥18%)"
+        },
+        "F1_1_MIN_COHENS_D": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum coherence effect size for F1.1 (≥0.60)"
+        },
+        "F1_2_MIN_ADVANTAGE_PCT": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum advantage for F1.2 (≥18%)"
+        },
         "F6": {
           "type": "object",
           "description": "LNN AUROC superiority parameters",
           "properties": {
-            "delta_auroc_min": {"type": "number", "minimum": 0, "description": "Minimum ΔAUROC for LNN superiority (≥0.05)"}
+            "delta_auroc_min": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Minimum ΔAUROC for LNN superiority (≥0.05)"
+            }
           }
         }
       }
@@ -70,165 +241,538 @@
       "type": "object",
       "description": "Simulation configuration parameters",
       "properties": {
-        "default_steps": {"type": "integer", "minimum": 1, "description": "Default number of simulation steps"},
-        "default_dt": {"type": "number", "minimum": 0.001, "description": "Default time step"},
-        "enable_plots": {"type": "boolean", "description": "Enable plot generation"},
-        "enable_cross_validation": {"type": "boolean", "description": "Enable cross-validation"},
-        "cv_folds": {"type": "integer", "minimum": 2, "description": "Number of cross-validation folds"},
-        "enable_sensitivity_analysis": {"type": "boolean", "description": "Enable sensitivity analysis"},
-        "sensitivity_samples": {"type": "integer", "minimum": 1, "description": "Number of sensitivity samples"},
-        "enable_robustness_tests": {"type": "boolean", "description": "Enable robustness tests"},
-        "significance_level": {"type": "number", "minimum": 0, "maximum": 1, "description": "Statistical significance level"}
+        "default_steps": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Default number of simulation steps"
+        },
+        "default_dt": {
+          "type": "number",
+          "minimum": 0.001,
+          "description": "Default time step"
+        },
+        "enable_plots": {
+          "type": "boolean",
+          "description": "Enable plot generation"
+        },
+        "enable_cross_validation": {
+          "type": "boolean",
+          "description": "Enable cross-validation"
+        },
+        "cv_folds": {
+          "type": "integer",
+          "minimum": 2,
+          "description": "Number of cross-validation folds"
+        },
+        "enable_sensitivity_analysis": {
+          "type": "boolean",
+          "description": "Enable sensitivity analysis"
+        },
+        "sensitivity_samples": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of sensitivity samples"
+        },
+        "enable_robustness_tests": {
+          "type": "boolean",
+          "description": "Enable robustness tests"
+        },
+        "significance_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Statistical significance level"
+        }
       }
     },
     "validation": {
       "type": "object",
       "description": "Validation protocol configuration",
       "properties": {
-        "enable_cross_validation": {"type": "boolean"},
-        "cv_folds": {"type": "integer", "minimum": 2},
-        "enable_sensitivity_analysis": {"type": "boolean"},
-        "sensitivity_samples": {"type": "integer", "minimum": 1},
-        "enable_robustness_tests": {"type": "boolean"},
-        "significance_level": {"type": "number", "minimum": 0, "maximum": 1}
+        "enable_cross_validation": {
+          "type": "boolean"
+        },
+        "cv_folds": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "enable_sensitivity_analysis": {
+          "type": "boolean"
+        },
+        "sensitivity_samples": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "enable_robustness_tests": {
+          "type": "boolean"
+        },
+        "significance_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "logging": {
       "type": "object",
       "description": "Logging configuration",
       "properties": {
-        "level": {"type": "string", "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]},
-        "enable_performance_logging": {"type": "boolean"},
-        "log_directory": {"type": "string", "pattern": "^[a-zA-Z0-9_\\-/]+$"}
+        "level": {
+          "type": "string",
+          "enum": [
+            "DEBUG",
+            "INFO",
+            "WARNING",
+            "ERROR",
+            "CRITICAL"
+          ]
+        },
+        "enable_performance_logging": {
+          "type": "boolean"
+        },
+        "log_directory": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-/]+$"
+        }
       }
     },
     "data": {
       "type": "object",
       "description": "Data configuration parameters",
       "properties": {
-        "sample_size": {"type": "integer", "minimum": 1},
-        "time_series_length": {"type": "integer", "minimum": 1},
-        "eeg_channels": {"type": "integer", "minimum": 1},
-        "sampling_rate": {"type": "integer", "minimum": 1},
-        "max_load_size_mb": {"type": "integer", "minimum": 1}
+        "sample_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "time_series_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "eeg_channels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sampling_rate": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_load_size_mb": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
     "gui": {
       "type": "object",
       "description": "GUI configuration parameters",
       "properties": {
-        "window_width": {"type": "integer", "minimum": 400},
-        "window_height": {"type": "integer", "minimum": 300},
-        "enable_progress_bars": {"type": "boolean"},
-        "max_threads": {"type": "integer", "minimum": 1, "maximum": 16},
-        "auto_save_interval": {"type": "integer", "minimum": 1}
+        "window_width": {
+          "type": "integer",
+          "minimum": 400
+        },
+        "window_height": {
+          "type": "integer",
+          "minimum": 300
+        },
+        "enable_progress_bars": {
+          "type": "boolean"
+        },
+        "max_threads": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "auto_save_interval": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
     "falsification": {
       "type": "object",
       "description": "Falsification protocol thresholds",
       "properties": {
-        "cumulative_reward_advantage_threshold": {"type": "number", "minimum": 0, "maximum": 100},
-        "cohens_d_threshold": {"type": "number", "minimum": 0, "maximum": 2},
-        "significance_level": {"type": "number", "minimum": 0, "maximum": 1},
-        "threshold_reduction_min": {"type": "number", "minimum": 0, "maximum": 100},
-        "cohens_d_adaptation_threshold": {"type": "number", "minimum": 0, "maximum": 2},
-        "tau_theta_min": {"type": "number", "minimum": 0.01},
-        "tau_theta_max": {"type": "number", "minimum": 0.01},
-        "F6_2_MIN_INTEGRATION_RATIO": {"type": "number", "minimum": 0, "description": "Minimum integration ratio for F6.2 criterion (≥4× RNN)"},
-        "F6_2_FALSIFICATION_RATIO": {"type": "number", "minimum": 0, "description": "Minimum ratio for F6.2 falsification (<2.5×)"},
-        "F6_2_MIN_CURVE_FIT_R2": {"type": "number", "minimum": 0, "maximum": 1, "description": "Minimum R² for F6.2 curve fit (≥0.85)"},
-        "F6_2_WILCOXON_ALPHA": {"type": "number", "minimum": 0, "maximum": 1, "description": "Alpha level for Wilcoxon test in F6.2"},
+        "cumulative_reward_advantage_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "cohens_d_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "significance_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "threshold_reduction_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "cohens_d_adaptation_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "tau_theta_min": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "tau_theta_max": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "F6_2_MIN_INTEGRATION_RATIO": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum integration ratio for F6.2 criterion (≥4× RNN)"
+        },
+        "F6_2_FALSIFICATION_RATIO": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum ratio for F6.2 falsification (<2.5×)"
+        },
+        "F6_2_MIN_CURVE_FIT_R2": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum R² for F6.2 curve fit (≥0.85)"
+        },
+        "F6_2_WILCOXON_ALPHA": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Alpha level for Wilcoxon test in F6.2"
+        },
         "F6": {
           "type": "object",
-          "description": "Innovation 29 (LNN AUROC superiority) parameters",
+          "description": "LNN AUROC superiority parameters",
           "properties": {
-            "delta_auroc_min": {"type": "number", "minimum": 0, "description": "Minimum ΔAUROC for LNN superiority (≥0.05)"}
+            "delta_auroc_min": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Minimum ΔAUROC for LNN superiority (≥0.05)"
+            }
           }
         },
-        "F6_2_LTCN_MIN_WINDOW_MS": {"type": "number", "minimum": 0, "description": "Minimum LTCN integration window for F6.2 (≥200ms)"},
-        "F6_2_MIN_R2": {"type": "number", "minimum": 0, "description": "Alias for F6.2_MIN_CURVE_FIT_R2"},
-        "F6_1_LTCN_MAX_TRANSITION_MS": {"type": "number", "minimum": 0, "description": "Maximum LTCN transition time for F6.1 (≤50ms)"},
-        "F6_1_CLIFFS_DELTA_MIN": {"type": "number", "minimum": 0, "description": "Minimum Cliff's delta for F6.1 (≥0.30)"},
-        "F6_1_MANN_WHITNEY_ALPHA": {"type": "number", "minimum": 0, "description": "Alpha level for Mann-Whitney test in F6.1"},
-        "F5_5_PCA_MIN_VARIANCE": {"type": "number", "minimum": 0, "description": "Minimum PCA variance for F5.5 (≥70%)"},
-        "F5_5_PCA_FALSIFICATION_THRESHOLD": {"type": "number", "minimum": 0, "description": "PCA variance threshold for F5.5 falsification (<60%)"},
-        "F5_5_MIN_LOADING": {"type": "number", "minimum": 0, "description": "Minimum PC loading for F5.5 analysis"},
-        "V6_1_MIN_P3B_REDUCTION_PCT": {"type": "number", "minimum": 0, "description": "Minimum P3b reduction for V6.1 (≥12%)"},
-        "V6_1_MIN_IGNITION_REDUCTION_PCT": {"type": "number", "minimum": 0, "description": "Minimum ignition reduction for V6.1 (≥30%)"},
-        "V6_1_MIN_COHENS_D": {"type": "number", "minimum": 0, "description": "Minimum coherence effect size for V6.1 (≥0.60)"},
-        "F1_1_MIN_ADVANTAGE_PCT": {"type": "number", "minimum": 0, "description": "Minimum advantage for F1.1 (≥18%)"},
-        "F1_1_MIN_COHENS_D": {"type": "number", "minimum": 0, "description": "Minimum coherence effect size for F1.1 (≥0.60)"},
-        "F1_2_MIN_ADVANTAGE_PCT": {"type": "number", "minimum": 0, "description": "Minimum advantage for F1.2 (≥18%)"}
+        "F6_2_LTCN_MIN_WINDOW_MS": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum LTCN integration window for F6.2 (≥200ms)"
+        },
+        "F6_2_MIN_R2": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Alias for F6.2_MIN_CURVE_FIT_R2"
+        },
+        "F6_1_LTCN_MAX_TRANSITION_MS": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum LTCN transition time for F6.1 (≤50ms)"
+        },
+        "F6_1_CLIFFS_DELTA_MIN": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum Cliff's delta for F6.1 (≥0.30)"
+        },
+        "F6_1_MANN_WHITNEY_ALPHA": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Alpha level for Mann-Whitney test in F6.1"
+        },
+        "F5_5_PCA_MIN_VARIANCE": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum PCA variance for F5.5 (≥70%)"
+        },
+        "F5_5_PCA_FALSIFICATION_THRESHOLD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "PCA variance threshold for F5.5 falsification (<60%)"
+        },
+        "F5_5_MIN_LOADING": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum PC loading for F5.5 analysis"
+        },
+        "V6_1_MIN_P3B_REDUCTION_PCT": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum P3b reduction for V6.1 (≥12%)"
+        },
+        "V6_1_MIN_IGNITION_REDUCTION_PCT": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum ignition reduction for V6.1 (≥30%)"
+        },
+        "V6_1_MIN_COHENS_D": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum coherence effect size for V6.1 (≥0.60)"
+        },
+        "F1_1_MIN_ADVANTAGE_PCT": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum advantage for F1.1 (≥18%)"
+        },
+        "F1_1_MIN_COHENS_D": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum coherence effect size for F1.1 (≥0.60)"
+        },
+        "F1_2_MIN_ADVANTAGE_PCT": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum advantage for F1.2 (≥18%)"
+        }
       }
     },
     "F1": {
       "type": "object",
       "description": "F1 Cross-Level Bidirectional Coupling thresholds",
       "properties": {
-        "inter_intra_coupling_ratio": {"type": "number", "minimum": 0, "description": "Inter-level coupling must exceed intra-level by 50%"},
-        "pac_coherence_increase_min": {"type": "number", "minimum": 0, "description": "Minimum 20% PAC coherence increase on conscious trials"},
-        "pac_baseline_mi_min": {"type": "number", "minimum": 0, "description": "Minimum baseline PAC MI for theta-gamma coupling"},
-        "pac_delta_theta_baseline_min": {"type": "number", "minimum": 0, "description": "Minimum baseline PAC MI for delta-theta coupling"}
+        "inter_intra_coupling_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Inter-level coupling must exceed intra-level by 50%"
+        },
+        "pac_coherence_increase_min": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum 20% PAC coherence increase on conscious trials"
+        },
+        "pac_baseline_mi_min": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum baseline PAC MI for theta-gamma coupling"
+        },
+        "pac_delta_theta_baseline_min": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum baseline PAC MI for delta-theta coupling"
+        }
       }
     },
     "F2": {
       "type": "object",
       "description": "F2 Cardiac Phase-Dependent Detection thresholds",
       "properties": {
-        "cardiac_detection_advantage_min": {"type": "number", "minimum": 0, "description": "Minimum 12% higher detection during high-HEP vs low-HEP phases"}
+        "cardiac_detection_advantage_min": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum 12% higher detection during high-HEP vs low-HEP phases"
+        }
       }
     },
     "network": {
       "type": "object",
       "description": "Neural network architecture parameters",
       "properties": {
-        "extero_dim": {"type": "integer", "minimum": 1},
-        "intero_dim": {"type": "integer", "minimum": 1},
-        "context_dim": {"type": "integer", "minimum": 1},
-        "action_dim": {"type": "integer", "minimum": 1},
-        "hidden_dim": {"type": "integer", "minimum": 1},
-        "somatic_hidden_dim": {"type": "integer", "minimum": 1},
-        "workspace_dim": {"type": "integer", "minimum": 1},
-        "extero_encoder_layers": {"type": "array", "items": {"type": "integer", "minimum": 1}},
-        "intero_encoder_layers": {"type": "array", "items": {"type": "integer", "minimum": 1}},
-        "learning_rate": {"type": "number", "minimum": 0, "maximum": 1},
-        "lr_extero": {"type": "number", "minimum": 0, "maximum": 1},
-        "lr_intero": {"type": "number", "minimum": 0, "maximum": 1},
-        "lr_precision": {"type": "number", "minimum": 0, "maximum": 1},
-        "lr_somatic": {"type": "number", "minimum": 0, "maximum": 1},
-        "lr_value": {"type": "number", "minimum": 0, "maximum": 1},
-        "lr_policy": {"type": "number", "minimum": 0, "maximum": 1},
-        "dropout": {"type": "number", "minimum": 0, "maximum": 1},
-        "batch_size": {"type": "integer", "minimum": 1},
-        "epochs": {"type": "integer", "minimum": 1},
-        "n_trials_per_model": {"type": "integer", "minimum": 1},
-        "Pi_e_init": {"type": "number", "minimum": 0},
-        "Pi_i_init": {"type": "number", "minimum": 0},
-        "theta_init": {"type": "number", "minimum": 0, "maximum": 1},
-        "theta_baseline": {"type": "number", "minimum": 0, "maximum": 1},
-        "alpha": {"type": "number", "minimum": 0.1},
-        "tau_S": {"type": "number", "minimum": 0.01},
-        "tau_theta": {"type": "number", "minimum": 0.01},
-        "eta_theta": {"type": "number", "minimum": 0, "maximum": 1},
-        "beta": {"type": "number"},
-        "rho": {"type": "number", "minimum": 0, "maximum": 1},
-        "sensory_dim": {"type": "integer", "minimum": 1},
-        "objects_dim": {"type": "integer", "minimum": 1},
-        "context_dim_hier": {"type": "integer", "minimum": 1},
-        "visceral_dim": {"type": "integer", "minimum": 1},
-        "organ_dim": {"type": "integer", "minimum": 1},
-        "homeostatic_dim": {"type": "integer", "minimum": 1},
-        "tau_sensory": {"type": "number", "minimum": 0.01},
-        "tau_objects": {"type": "number", "minimum": 0.01},
-        "tau_context": {"type": "number", "minimum": 0.01},
-        "tau_visceral": {"type": "number", "minimum": 0.01},
-        "tau_organ": {"type": "number", "minimum": 0.01},
-        "tau_homeostatic": {"type": "number", "minimum": 0.01},
-        "working_memory_capacity": {"type": "integer", "minimum": 1},
-        "episodic_memory_capacity": {"type": "integer", "minimum": 1},
-        "mutation_rate": {"type": "number", "minimum": 0, "maximum": 1},
-        "ignition_cost": {"type": "number", "minimum": 0}
+        "extero_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "intero_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "context_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "action_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "hidden_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "somatic_hidden_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "workspace_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "extero_encoder_layers": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "intero_encoder_layers": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "learning_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lr_extero": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lr_intero": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lr_precision": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lr_somatic": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lr_value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lr_policy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "dropout": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "epochs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "n_trials_per_model": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "Pi_e_init": {
+          "type": "number",
+          "minimum": 0
+        },
+        "Pi_i_init": {
+          "type": "number",
+          "minimum": 0
+        },
+        "theta_init": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "theta_baseline": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "alpha": {
+          "type": "number",
+          "minimum": 0.1
+        },
+        "tau_S": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "tau_theta": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "eta_theta": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "beta": {
+          "type": "number"
+        },
+        "rho": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sensory_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "objects_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "context_dim_hier": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "visceral_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "organ_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "homeostatic_dim": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tau_sensory": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "tau_objects": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "tau_context": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "tau_visceral": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "tau_organ": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "tau_homeostatic": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "working_memory_capacity": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "episodic_memory_capacity": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mutation_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ignition_cost": {
+          "type": "number",
+          "minimum": 0
+        }
       }
     },
     "pac_bands": {
@@ -241,21 +785,33 @@
           "properties": {
             "phase": {
               "type": "array",
-              "items": {"type": "number", "minimum": 0},
+              "items": {
+                "type": "number",
+                "minimum": 0
+              },
               "minItems": 2,
               "maxItems": 2,
               "description": "Phase frequency band [low, high] in Hz"
             },
             "amplitude": {
-              "type": "array", 
-              "items": {"type": "number", "minimum": 0},
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0
+              },
               "minItems": 2,
               "maxItems": 2,
               "description": "Amplitude frequency band [low, high] in Hz"
             },
-            "description": {"type": "string", "description": "Description of this PAC configuration"}
+            "description": {
+              "type": "string",
+              "description": "Description of this PAC configuration"
+            }
           },
-          "required": ["phase", "amplitude"]
+          "required": [
+            "phase",
+            "amplitude"
+          ]
         },
         "L2_L3": {
           "type": "object",
@@ -263,21 +819,33 @@
           "properties": {
             "phase": {
               "type": "array",
-              "items": {"type": "number", "minimum": 0},
+              "items": {
+                "type": "number",
+                "minimum": 0
+              },
               "minItems": 2,
               "maxItems": 2,
               "description": "Phase frequency band [low, high] in Hz"
             },
             "amplitude": {
               "type": "array",
-              "items": {"type": "number", "minimum": 0},
+              "items": {
+                "type": "number",
+                "minimum": 0
+              },
               "minItems": 2,
               "maxItems": 2,
               "description": "Amplitude frequency band [low, high] in Hz"
             },
-            "description": {"type": "string", "description": "Description of this PAC configuration"}
+            "description": {
+              "type": "string",
+              "description": "Description of this PAC configuration"
+            }
           },
-          "required": ["phase", "amplitude"]
+          "required": [
+            "phase",
+            "amplitude"
+          ]
         },
         "L3_L4": {
           "type": "object",
@@ -285,21 +853,33 @@
           "properties": {
             "phase": {
               "type": "array",
-              "items": {"type": "number", "minimum": 0},
+              "items": {
+                "type": "number",
+                "minimum": 0
+              },
               "minItems": 2,
               "maxItems": 2,
               "description": "Phase frequency band [low, high] in Hz"
             },
             "amplitude": {
               "type": "array",
-              "items": {"type": "number", "minimum": 0},
+              "items": {
+                "type": "number",
+                "minimum": 0
+              },
               "minItems": 2,
               "maxItems": 2,
               "description": "Amplitude frequency band [low, high] in Hz"
             },
-            "description": {"type": "string", "description": "Description of this PAC configuration"}
+            "description": {
+              "type": "string",
+              "description": "Description of this PAC configuration"
+            }
           },
-          "required": ["phase", "amplitude"]
+          "required": [
+            "phase",
+            "amplitude"
+          ]
         }
       }
     }

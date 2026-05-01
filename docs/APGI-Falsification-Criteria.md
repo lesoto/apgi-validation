@@ -511,8 +511,6 @@ All criteria follow this mandatory format:
 
 **Tests:** Psychiatric disorders (#10), cross-species (#33), clinical assessment
 
-(Partial specifications exist in original document - see Innovation #17)
-
 #### V12.1: Cross-Species PCI Scaling
 
 - **Quantitative threshold:** PCI scales as predicted: mouse = 0.25-0.35, rat = 0.30-0.40, macaque = 0.42-0.55, human = 0.50-0.70

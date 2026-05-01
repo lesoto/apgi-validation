@@ -794,7 +794,7 @@ class LiquidTimeConstantChecker:
         n_nodes: int = 100,
     ) -> Dict:
         """
-        Validated implementation of Innovation #33: Liquid Time-Constant (LTC) Networks.
+        Validated implementation of Liquid Time-Constant (LTC) Networks.
 
         This simulation demonstrates the mathematical superiority of LTCs over standard RNNs
         in capturing long-range temporal dependencies (temporal integration window).

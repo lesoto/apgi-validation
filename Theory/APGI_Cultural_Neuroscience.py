@@ -118,7 +118,7 @@ class CulturalContext:
 
 """
 ═══════════════════════════════════════════════════════════════════════════
-INNOVATION #34: QUANTITATIVE CULTURAL NEUROSCIENCE PREDICTIONS
+QUANTITATIVE CULTURAL NEUROSCIENCE PREDICTIONS
 ═══════════════════════════════════════════════════════════════════════════
 
 Specific, falsifiable predictions for cultural modulation of APGI parameters:
@@ -360,7 +360,7 @@ FUTURE EXTENSIONS:
 
 if __name__ == "__main__":
     print("\n" + "=" * 70)
-    print("CULTURAL NEUROSCIENCE PREDICTIONS (INNOVATION #34)")
+    print("CULTURAL NEUROSCIENCE PREDICTIONS")
     print("=" * 70)
 
     print("\n1. MEDITATION PREDICTIONS:")

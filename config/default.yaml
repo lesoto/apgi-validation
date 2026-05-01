@@ -46,7 +46,7 @@ model:
   F6_2_MIN_CURVE_FIT_R2: 0.85  # R² ≥ 0.85
   F6_2_WILCOXON_ALPHA: 0.05
 
-  # Innovation 29 (LNN AUROC superiority) parameters
+  # LNN AUROC superiority parameters
   F6:
     delta_auroc_min: 0.05  # ΔAUROC ≥ 0.05 (pre-specified threshold for LNN superiority)
 

@@ -521,7 +521,7 @@ class APGICoreIntegration:
         Pi_i_eff = Pi_i_baseline * np.exp(beta * M_ca)
 
         # Enforce bounds on the multiplier as per document
-        # This ensures falsifiability of Innovation 1's F2 criterion
+        # This ensures falsifiability of F2 criterion
         Pi_i_eff = np.clip(
             Pi_i_eff, Pi_i_baseline * np.exp(-2.0), Pi_i_baseline * np.exp(2.0)
         )

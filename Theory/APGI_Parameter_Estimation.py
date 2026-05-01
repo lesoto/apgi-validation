@@ -217,7 +217,7 @@ class DriftDiffusionGenerator:
 
 """
 ═══════════════════════════════════════════════════════════════════════════
-INNOVATION #26: COMPREHENSIVE PARAMETER IDENTIFIABILITY ANALYSIS
+COMPREHENSIVE PARAMETER IDENTIFIABILITY ANALYSIS
 ═══════════════════════════════════════════════════════════════════════════
 
 This section extends basic parameter estimation with:
@@ -2719,7 +2719,9 @@ def generate_comprehensive_visualizations(
     # Debug: Show expected vs available params
     print(f"Expected params: {core_params}")
     print(f"Available in recovery_results: {list(recovery_results.keys())}")
-    print(f"Available in true_params: {list(true_params.keys()) if isinstance(true_params, dict) else 'N/A'}")
+    print(
+        f"Available in true_params: {list(true_params.keys()) if isinstance(true_params, dict) else 'N/A'}"
+    )
 
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
     axes = axes.ravel()
@@ -2765,10 +2767,20 @@ def generate_comprehensive_visualizations(
             ax.grid(True, alpha=0.3)
         else:
             # Show missing data message
-            ax.text(0.5, 0.5, f"No data for {param}",
-                    ha='center', va='center', transform=ax.transAxes,
-                    fontsize=12, color='red', fontweight='bold')
-            ax.set_title(f"{param} - MISSING", fontsize=12, fontweight="bold", color='red')
+            ax.text(
+                0.5,
+                0.5,
+                f"No data for {param}",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+                fontsize=12,
+                color="red",
+                fontweight="bold",
+            )
+            ax.set_title(
+                f"{param} - MISSING", fontsize=12, fontweight="bold", color="red"
+            )
             ax.set_xticks([])
             ax.set_yticks([])
 

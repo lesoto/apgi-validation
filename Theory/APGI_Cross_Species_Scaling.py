@@ -3,7 +3,7 @@
 APGI CROSS-SPECIES SCALING MODEL
 =============================================================================
 
-Implementation of Innovation #34: Allostatic Scaling Laws.
+Implementation of Allostatic Scaling Laws.
 This module provides:
 1. Brain weight to surface area scaling
 2. PCI to hierarchical level scaling
@@ -74,7 +74,7 @@ class CrossSpeciesScaling:
         }
 
     def generate_scaling_laws(self) -> Dict[str, Any]:
-        """Compute theoretical scaling exponents from Innovation #34."""
+        """Compute theoretical scaling exponents"""
         # Theory-derived exponents
         return {
             "pci_vs_brain_size": (0.32, "Power-law exponent for complexity scaling"),
@@ -109,7 +109,7 @@ class CrossSpeciesScaling:
 
         plt.xlabel("Brain Mass (g)")
         plt.ylabel("PCI Complexity")
-        plt.title("Innovation #34: Structural-Complexity Scaling")
+        plt.title("Structural-Complexity Scaling")
         plt.legend()
         plt.grid(True, which="both", ls="-", alpha=0.2)
         plt.savefig(save_path)
@@ -193,7 +193,7 @@ def get_implementation_metadata() -> Dict[str, Any]:
         "name": "APGI Cross-Species Scaling Implementation",
         "quality_rating": 100,
         "status": "Perfect",
-        "innovation_alignment": "Innovation #34 (Allostatic Scaling Laws)",
+        "innovation_alignment": "Allostatic Scaling Laws",
         "last_updated": "2026-04-06",
         "verification": "Standardized mathematical scaling across mammalian and avian species implemented with correct exponents.",
     }

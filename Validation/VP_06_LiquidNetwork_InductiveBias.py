@@ -2405,7 +2405,7 @@ class FalsificationChecker:
 
     def check_Innovation_29_AUROC_Superiority(self, results: Dict) -> Tuple[bool, Dict]:
         """
-        Innovation 29: LNN AUROC superiority by pre-specified ΔAUROC
+        LNN AUROC superiority by pre-specified ΔAUROC
 
         Tests that APGI (LNN) shows AUROC advantage over baseline networks
         by at least F6_DELTA_AUROC_MIN threshold.
@@ -2573,7 +2573,7 @@ class FalsificationChecker:
         else:
             report["passed_criteria"].append(criterion)
 
-        # Innovation 29: AUROC Superiority Check
+        # AUROC Superiority Check
         (
             innovation_29_result,
             innovation_29_details,

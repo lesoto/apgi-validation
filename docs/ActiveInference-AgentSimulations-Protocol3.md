@@ -323,7 +323,7 @@ def select_policy_with_budget(policies, energy_budget, min_budget_threshold=50):
 | **Precision Efficiency** | Task accuracy / Precision cost | Attention allocation efficiency |
 | **Exhaustion Rate** | ΔATP / Δtime | Sustainability of processing |
 
-### Falsification Criteria (Innovation 2)
+### Falsification Criteria
 
 | Prediction | Metabolic Cost Expectation | Falsification Threshold |
 | ---------- | -------------------------- | ------------------------ |
