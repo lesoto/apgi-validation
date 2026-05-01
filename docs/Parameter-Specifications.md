@@ -371,5 +371,3 @@
    - Elevated λ → metabolic constraint (depression, fatigue)
 
 3. **Monitor treatment response:** Re-test parameters after intervention; expect normalization correlates with symptom improvement
-
----

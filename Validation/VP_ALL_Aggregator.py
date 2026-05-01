@@ -95,10 +95,10 @@ NAMED_PREDICTIONS = {
     "V16.1": "APGI metabolic cost correlates with high-resolution ATP traces (r > 0.75)",
     "V16.2": "c1/c2 ratio consistency across frequency bands (10–100 Hz)",
     "V16.3": "Metabolic efficiency advantage >20% vs non-gating controls",
-    # DS-09: Allen Visual Coding Fatigue Analysis (Replaces VP-11)
-    "DS09.1": "Fatigue-induced θ_t/S(t) ratio increase in long sessions (slope > 0)",
-    "DS09.2": "High-gamma power stable mean (S(t) proxy)",
-    "DS09.3": "Alpha power drift correlates with session time (fatigue marker)",
+    # VP-17: Allen Visual Coding Fatigue Analysis
+    "V17.1": "P3b amplitude decay under fatigue (λ > 0.10, R² > 0.70)",
+    "V17.2": "Threshold elevation under fatigue (β > 0, p < 0.05)",
+    "V17.3": "Cross-measure fatigue correlations (negative P3b-alpha, positive theta-RT)",
 }
 
 # BIC thresholds for empirical vs theoretical data
@@ -175,10 +175,10 @@ PREDICTION_TO_PROTOCOL = {
     "V16.1": "VP_16_Metabolic_ATP_GroundTruth",
     "V16.2": "VP_16_Metabolic_ATP_GroundTruth",
     "V16.3": "VP_16_Metabolic_ATP_GroundTruth",
-    # DS-09: Allen Visual Coding Fatigue Analysis
-    "DS09.1": "DS_09_AllenVisualCoding_Fatigue",
-    "DS09.2": "DS_09_AllenVisualCoding_Fatigue",
-    "DS09.3": "DS_09_AllenVisualCoding_Fatigue",
+    # VP-17: Allen Visual Coding Fatigue Analysis
+    "V17.1": "VP_17_AllenVisualCoding_Fatigue",
+    "V17.2": "VP_17_AllenVisualCoding_Fatigue",
+    "V17.3": "VP_17_AllenVisualCoding_Fatigue",
 }
 
 # Protocol tier classification
@@ -199,7 +199,7 @@ PROTOCOL_TIERS = {
     "VP_14_fMRI_Anticipation_Experience": "tertiary",
     "VP_15_fMRI_Anticipation_vmPFC": "tertiary",
     "VP_16_Metabolic_ATP_GroundTruth": "secondary",
-    "DS_09_AllenVisualCoding_Fatigue": "secondary",
+    "VP_17_AllenVisualCoding_Fatigue": "secondary",
 }
 
 # VP-07 / VP-10 Boundary Clarification

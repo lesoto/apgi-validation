@@ -2310,9 +2310,11 @@ def process_data(
 
         if output_dir:
             output_path = Path(output_dir)
-            output_path.mkdir(exist_ok=True)
         else:
             output_path = processed_data_dir
+
+        # Ensure output directory exists
+        output_path.mkdir(exist_ok=True, parents=True)
 
         # Load configuration
         if config_file:
@@ -3422,7 +3424,7 @@ def quantitative_fits(
         # Import the quantitative fits validator
         spec = importlib.util.spec_from_file_location(
             "quantitative_fits",
-            PROJECT_ROOT / "Validation" / "DS_09_AllenVisualCoding_Fatigue.py",
+            PROJECT_ROOT / "Validation" / "VP_17_AllenVisualCoding_Fatigue.py",
         )
         quant_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(quant_module)
@@ -3903,7 +3905,7 @@ def comprehensive_validation(
             console.print("[blue]Running Priority 3: Quantitative Model Fits...[/blue]")
             spec3 = importlib.util.spec_from_file_location(
                 "quant_val",
-                PROJECT_ROOT / "Validation" / "DS_09_AllenVisualCoding_Fatigue.py",
+                PROJECT_ROOT / "Validation" / "VP_17_AllenVisualCoding_Fatigue.py",
             )
             quant_module = importlib.util.module_from_spec(spec3)
             spec3.loader.exec_module(quant_module)

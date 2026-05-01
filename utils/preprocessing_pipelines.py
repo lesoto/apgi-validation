@@ -100,6 +100,23 @@ class EEGPreprocessor:
         self.config = config
         self.preprocessing_log: List[str] = []
 
+    def preprocess(
+        self, data: Union[pd.DataFrame, np.ndarray], **kwargs
+    ) -> Union[pd.DataFrame, np.ndarray, Dict[str, Any]]:
+        """Generic preprocess method that delegates to preprocess_eeg.
+
+        Args:
+            data: Input data as DataFrame or numpy array
+            **kwargs: Additional arguments passed to preprocess_eeg
+
+        Returns:
+            Processed data in same format as input, or dict with 'processed_eeg' key
+        """
+        # Convert numpy array to DataFrame if needed
+        if isinstance(data, np.ndarray):
+            return self.preprocess_eeg(data, **kwargs)
+        return self.preprocess_eeg(data, **kwargs)
+
     def apply_filters(
         self,
         signal_data: pd.Series,
@@ -590,6 +607,30 @@ class PupilPreprocessor:
         self.config = config
         self.preprocessing_log: List[str] = []
 
+    def preprocess(
+        self, data: Union[pd.DataFrame, np.ndarray], **kwargs
+    ) -> Union[pd.DataFrame, np.ndarray]:
+        """Generic preprocess method that delegates to preprocess_pupil.
+
+        Args:
+            data: Input data as DataFrame or numpy array
+            **kwargs: Additional arguments passed to preprocess_pupil
+
+        Returns:
+            Processed data in same format as input
+        """
+        # Convert numpy array to DataFrame if needed
+        if isinstance(data, np.ndarray):
+            if data.ndim == 1:
+                df = pd.DataFrame({"pupil_diameter": data})
+            else:
+                df = pd.DataFrame(
+                    {f"pupil_diameter_{i}": data[:, i] for i in range(data.shape[1])}
+                )
+            result = self.preprocess_pupil(df, **kwargs)
+            return result.values if isinstance(result, pd.DataFrame) else result
+        return self.preprocess_pupil(data, **kwargs)
+
     def _execute_pupil_step(
         self,
         step_name: str,
@@ -762,6 +803,30 @@ class EDAPreprocessor:
         self.config = config
         self.preprocessing_log: List[str] = []
 
+    def preprocess(
+        self, data: Union[pd.DataFrame, np.ndarray], **kwargs
+    ) -> Union[pd.DataFrame, np.ndarray]:
+        """Generic preprocess method that delegates to preprocess_eda.
+
+        Args:
+            data: Input data as DataFrame or numpy array
+            **kwargs: Additional arguments passed to preprocess_eda
+
+        Returns:
+            Processed data in same format as input
+        """
+        # Convert numpy array to DataFrame if needed
+        if isinstance(data, np.ndarray):
+            if data.ndim == 1:
+                df = pd.DataFrame({"eda": data})
+            else:
+                df = pd.DataFrame(
+                    {f"eda_{i}": data[:, i] for i in range(data.shape[1])}
+                )
+            result = self.preprocess_eda(df, **kwargs)
+            return result.values if isinstance(result, pd.DataFrame) else result
+        return self.preprocess_eda(data, **kwargs)
+
     def preprocess_eda(
         self, df: pd.DataFrame, eda_column: str = "eda", show_progress: bool = True
     ) -> pd.DataFrame:
@@ -918,6 +983,30 @@ class HeartRatePreprocessor:
     def __init__(self, config: PreprocessingConfig):
         self.config = config
         self.preprocessing_log: List[str] = []
+
+    def preprocess(
+        self, data: Union[pd.DataFrame, np.ndarray], **kwargs
+    ) -> Union[pd.DataFrame, np.ndarray]:
+        """Generic preprocess method that delegates to preprocess_heart_rate.
+
+        Args:
+            data: Input data as DataFrame or numpy array
+            **kwargs: Additional arguments passed to preprocess_heart_rate
+
+        Returns:
+            Processed data in same format as input
+        """
+        # Convert numpy array to DataFrame if needed
+        if isinstance(data, np.ndarray):
+            if data.ndim == 1:
+                df = pd.DataFrame({"heart_rate": data})
+            else:
+                df = pd.DataFrame(
+                    {f"heart_rate_{i}": data[:, i] for i in range(data.shape[1])}
+                )
+            result = self.preprocess_heart_rate(df, **kwargs)
+            return result.values if isinstance(result, pd.DataFrame) else result
+        return self.preprocess_heart_rate(data, **kwargs)
 
     def preprocess_heart_rate(
         self,

@@ -1,6 +1,5 @@
 # APGI EMPIRICAL CREDIBILITY ROADMAP
 
-> **Documentation Version**: 1.2.0 (Updated: April 2026)  
 > **Implementation Status**: 16 Validation Protocols (VP_01-VP_16)  
 > **Master Orchestrator**: `Validation/Master_Validation.py`  
 > **Framework CLI**: `main.py`

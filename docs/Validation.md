@@ -2,8 +2,6 @@
 
 A comprehensive computational framework for implementing the **Adaptive Pattern Generation and Integration (APGI)** theory, which models psychological state dynamics through surprise accumulation, ignition cascades, and multimodal integration.
 
-## 🎯 Overview
-
 The APGI Theory Framework provides:
 
 - **Formal mathematical models** of surprise accumulation and ignition dynamics

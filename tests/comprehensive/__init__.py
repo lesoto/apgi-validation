@@ -277,7 +277,7 @@ class AdversarialTestFramework:
         for i, test_file in enumerate(test_files, 1):
             print(f"  [{i}/{len(test_files)}] {test_file}...", end=" ", flush=True)
             try:
-                # Run pytest without coverage for speed (coverage done separately)
+                # Run pytest without coverage for unit tests (coverage run separately)
                 cmd = [
                     sys.executable,
                     "-m",
@@ -285,6 +285,7 @@ class AdversarialTestFramework:
                     test_file,
                     "-v",
                     "--tb=short",
+                    "--no-cov",
                 ]
 
                 if not parallel:

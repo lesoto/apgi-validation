@@ -53,8 +53,8 @@ def convert_numpy_types(obj):
 from tests.comprehensive import AdversarialTestFramework, TestCategory
 from tests.comprehensive.integration_e2e import run_integration_tests
 from tests.comprehensive.mutation_tester import run_mutation_testing
+from tests.comprehensive.performance_regression import run_performance_regression_tests
 from tests.comprehensive.security_tester import run_security_tests
-from tests.comprehensive.stress_test import run_performance_tests
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -228,7 +228,7 @@ class TestRunner:
         print("RUNNING PERFORMANCE TESTS")
         print("=" * 80)
 
-        results = run_performance_tests()
+        results = run_performance_regression_tests()
         self.results["performance_tests"] = results
 
     def _run_security_tests(self) -> None:

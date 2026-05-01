@@ -19,6 +19,7 @@ This document maps APGI framework controls to formal compliance standards includ
 | **Data Integrity** | Dependency Scanning & SBOMs | `utils/dependency_scanner.py` | `tests/test_dependency_scanner.py` |
 
 ## Enforcement Strategy
+
 - **CI/CD Gates:** All mapped tests run sequentially in the `pytest` pipeline.
 - **Fail-on-Regression:** Any failing test linked to a compliance control blocks the deployment.
 - **Auditor Visibility:** The generated SBOM and test coverage reports serve as verifiable artifacts for external auditors.
@@ -55,26 +56,31 @@ This document maps APGI framework controls to formal compliance standards includ
 ### Access Control (AC)
 
 #### AC-01: Access Control Policy
+
 - Framework has defined security context with role-based access
 - `utils/security_logging_integration.py` and `utils/auth_adapter.py` implement SecurityContext and RBAC
 - Status: Implemented
 
 #### AC-02: User Access Management
+
 - Role-based authorization through SecurityContext
 - Deny-by-default with explicit role assignment
 - Status: Implemented
 
 #### AC-03: Privileged Access Control
+
 - No admin bypass mechanism
 - Explicit role requirements for sensitive operations
 - Status: Implemented
 
 #### AC-04: Authentication Mechanisms
+
 - Path validation and traversal protection
 - Module loading security checks
 - Status: Implemented
 
 #### AC-05: Deny-by-Default Security
+
 - Removed admin role bypass in `_require_role()`
 - Default SecurityContext has empty roles set or GUEST role
 - Status: Implemented
@@ -82,16 +88,19 @@ This document maps APGI framework controls to formal compliance standards includ
 ### Audit and Accountability (AU)
 
 #### AU-01: Audit Logging
+
 - Structured JSON logging with correlation IDs
 - `utils/logging_config.py` and `utils/persistent_audit_logger.py` implement JSON formatting and persistence
 - Status: Implemented
 
 #### AU-02: Audit Trail Protection
+
 - Secure audit logger in `utils/security_audit_logger.py`
 - Immutable audit trail for security events, exported via `utils/compliance_export.py`
 - Status: Implemented
 
 #### AU-03: Security Audit Automation
+
 - CI workflow `.github/workflows/security.yml` with automated SAST/DAST
 - Bandit, Safety, Semgrep, pip-audit integration
 - Status: Implemented
@@ -99,16 +108,19 @@ This document maps APGI framework controls to formal compliance standards includ
 ### Configuration Management (CM)
 
 #### CM-01: Configuration Management
+
 - `utils/config_manager.py` for centralized configuration
 - Schema validation in `config/config_schema.json`
 - Status: Partial - needs CI integration
 
 #### CM-02: Change Control
+
 - Git-based version control
 - Manual change review process
 - Status: Partial - needs automated change approval
 
 #### CM-03: Vulnerability Management
+
 - Automated dependency scanning in CI
 - pip-audit for known vulnerabilities
 - Status: Implemented
@@ -116,21 +128,25 @@ This document maps APGI framework controls to formal compliance standards includ
 ### Data Security (DS)
 
 #### DS-01: Data Classification
+
 - Data protection workflows in `utils/data_protection.py` with PII tagging logic
 - Status: Partial - needs full classification schema
 
 #### DS-02: Data Retention Policy
+
 - `apply_retention_policy()` function with configurable max age
 - Age distribution tracking
 - Status: Implemented
 
 #### DS-03: Secure Data Deletion
+
 - `secure_delete()` with multi-pass overwriting
 - SHA-256 hashing for verification
 - PII minimization operations
 - Status: Implemented
 
 #### DS-04: Data Access Logging
+
 - `log_data_access()` for audit trail
 - User ID, purpose, and access type tracking
 - Status: Implemented
@@ -138,11 +154,13 @@ This document maps APGI framework controls to formal compliance standards includ
 ### Disaster Recovery (DR)
 
 #### DR-01: Backup and Recovery
+
 - `utils/backup_manager.py` with HMAC validation
 - Automated backup CLI commands
 - Status: Implemented
 
 #### DR-02: Backup Encryption
+
 - Encrypted backup keys in `.keys/` directory
 - HMAC validation for integrity
 - Status: Implemented
@@ -150,27 +168,32 @@ This document maps APGI framework controls to formal compliance standards includ
 ### Incident Response (IR)
 
 #### IR-01: Incident Response Plan
+
 - `docs/Incident-response-playbook.md` exists
 - Status: Partial - needs testing and updates
 
 #### IR-02: Incident Reporting
+
 - Manual incident reporting process
 - Status: Partial - needs automated alerting
 
 ### System Security (SC)
 
 #### SC-01: System Hardening
+
 - Path security validation in `utils/path_security.py` and wrapped in `utils/file_ops.py`
 - TOCTOU mitigation
 - Secret policy enforcer integrated on startup
 - Status: Partial - needs full hardening checklist
 
 #### SC-02: Secure Development
+
 - SAST/DAST in CI pipeline
 - Static analysis with Bandit and Semgrep
 - Status: Implemented
 
 #### SC-03: Dependency Scanning
+
 - `utils/dependency_scanner.py` for dependency analysis with SBOM export
 - Automated vulnerability scanning with severity thresholds
 - Status: Implemented
@@ -180,6 +203,7 @@ This document maps APGI framework controls to formal compliance standards includ
 ### CI/CD Integration
 
 #### Security Workflow (`.github/workflows/security.yml`)
+
 - Runs on push and pull_request
 - SAST: Bandit, Semgrep
 - Dependency scanning: pip-audit, Safety
@@ -188,6 +212,7 @@ This document maps APGI framework controls to formal compliance standards includ
 ### Code Evidence
 
 #### Security Implementation
+
 - `utils/security_logging_integration.py` / `utils/auth_adapter.py` - Authorization middleware
 - `utils/security_audit_logger.py` / `utils/persistent_audit_logger.py` - Audit logging
 - `utils/path_security.py` / `utils/file_ops.py` - Path validation and safe IO
@@ -196,11 +221,13 @@ This document maps APGI framework controls to formal compliance standards includ
 - `utils/dependency_scanner.py` - SBOM generation
 
 #### Performance and Reliability
+
 - `utils/performance_optimizer.py` - p50/p95/p99 latency tracking
 - `utils/cache_manager.py` - Cache SLO monitoring & deterministic versioning
 - `scripts/profile_optimization.py` - Benchmark corpus
 
 #### Documentation Evidence
+
 - `docs/Incident-response-playbook.md` - Incident response procedures
 - `docs/Architecture.md` - System architecture
 - `docs/Testing-Coverage.md` - Testing procedures
@@ -209,28 +236,36 @@ This document maps APGI framework controls to formal compliance standards includ
 ## Gap Analysis
 
 ### High Priority Gaps
+
 #### Data Classification Schema (DS-01)
+
 - Need formal data classification levels
 - Implement classification labels in data_protection.py
 
 #### Change Control Automation (CM-02)
+
 - Need automated change approval workflow
 - Integrate with pull request process
 
 #### Incident Alerting (IR-02)
+
 - Need automated incident notification
 - Integrate with monitoring system
 
 ### Medium Priority Gaps
+
 #### System Hardening Checklist (SC-01)
+
 - Document and implement hardening procedures
 - Regular security audits
 
 #### Configuration CI Integration (CM-01)
+
 - Validate config changes in CI
 - Automated config testing
 
 #### Incident Response Testing (IR-01)
+
 - Regular incident response drills
 - Update playbook based on lessons learned
 
@@ -241,6 +276,7 @@ This document maps APGI framework controls to formal compliance standards includ
 - **Not Implemented**: 0 controls
 
 ### Overall Compliance
+
 ~75% (weighted by control priority)
 
 ## Next Steps

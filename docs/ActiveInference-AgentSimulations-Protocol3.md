@@ -1,12 +1,9 @@
 
-# APGI Protocol 3: Active Inference Agent Simulations
+# APGI Active Inference Agent Simulations
 
-> **Documentation Version**: 1.3.0 (Updated: April 2026)  
 > **Implementation**: `Validation/VP_03_ActiveInference_AgentSimulations.py`  
 > **Falsification Tests**: `Falsification/FP_01_ActiveInference.py`, `Falsification/FP_02_AgentComparison_ConvergenceBenchmark.py`  
 > **Master Orchestrator**: `Validation/Master_Validation.py`
-
-## Overview
 
 Protocol 3 implements complete active inference agents to test whether APGI's integration of interoceptive precision weighting and global workspace ignition produces measurable adaptive advantages in decision-making tasks.
 
@@ -57,11 +54,13 @@ The complete APGI agent implements:
 ### Key Features
 
 1. **Hierarchical Generative Models**
+
    - Exteroceptive: Sensory → Objects → Context
    - Interoceptive: Visceral → Organs → Homeostatic
    - 3-level predictive processing architecture
 
 2. **Dynamic Precision Weighting**
+
    - Πᵉ(t): Exteroceptive precision (learned from prediction error variance)
    - Πⁱ(t): Interoceptive precision (learned from interoceptive error variance)
    - Adaptive adjustment based on reliability

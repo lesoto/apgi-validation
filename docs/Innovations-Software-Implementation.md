@@ -1,9 +1,5 @@
 # APGI Innovations
 
-**Document Version:** 1.1  
-**Last Updated:** April 22, 2026  
-**Code Repository:** /Users/lesoto/Sites/PYTHON/apgi-validation
-
 ## Implementation Reference Guide
 
 This document maps APGI theoretical innovations to their software implementations. Files are organized in:

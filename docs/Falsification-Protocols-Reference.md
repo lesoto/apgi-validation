@@ -1,7 +1,5 @@
 # Falsification Protocols API Reference
 
-## Overview
-
 The falsification protocols package provides a comprehensive suite of testing protocols designed to potentially falsify APGI theory predictions. Each protocol targets specific aspects of the theory with rigorous empirical tests.
 
 ## Parameter Range Validation Table

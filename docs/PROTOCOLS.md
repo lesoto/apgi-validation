@@ -91,59 +91,100 @@ Verified against direct ls of Falsification/ (16 files) and Validation/ (19 file
 | 34 | APGI_Falsification_Protocols_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
 | 35 | **init**.py | Falsification | — | Python package marker | — |
 
-| GUI Protocol | Maps To |
-| ------------ | ------- |
-| Protocol 1: APGI Agent | FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py |
-| Protocol 2: Iowa Gambling | FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py |
-| Protocol 3: Agent Comparison | FP_3_FP_3_Falsification_FrameworkLevel_MultiProtocol.py |
-| Protocol 4: Phase Transition | FP_4_FP_4_Falsification_InformationTheoretic_PhaseTransition.py |
-| Protocol 5: Evolutionary | FP_5_FP_5_Falsification_EvolutionaryPlausibility_Standard6.py |
-| Protocol 6: Network Comparison | FP_6_FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py |
+## 1. File Inventory — All 35 Source Files (Falsification/ + Validation/)
 
-## 1. File Inventory
+Verified against direct ls of Falsification/ (16 files) and Validation/ (19 files) folders, April 2026. GUI runners, `__init__.py`, and orchestrators listed separately.
 
-### 1.1 Validation Files (16 total)
+### 1.1 Validation Files — Protocol Scripts (VP_01–VP_16)
 
-| # | Filename | VP ID | Paper Protocol |
-| --- | --------- | ------- | --------------- |
-| 1 | `VP_3_ActiveInference_AgentSimulations_Protocol3.py` | VP-3 | Paper Protocol 3 |
-| 2 | `BayesianModelComparison_ParameterRecovery.py` | VP-1 (support) | Paper Protocol 6 (partial) |
-| 3 | `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` | VP-10 | Roadmap Priority 2 |
-| 4 | `VP_12_Clinical_CrossSpecies_Convergence_Protocol4.py` | VP-12 | Paper Protocol 4 / Roadmap Priority 4 |
-| 5 | `VP_9_ConvergentNeuralSignatures_Priority1_EmpiricalRoadmap.py` | VP-9 | Roadmap Priority 1 |
-| 6 | `VP_5_EvolutionaryEmergence_AnalyticalValidation.py` | VP-5 | — (Paper Protocol 5 MISSING) |
-| 7 | `VP_4_InformationTheoretic_PhaseTransition_Level2.py` | VP-4 | Epistemic Paper P5–P8 (Level 2) |
-| 8 | `Master_Validation.py` | — | Orchestrator (not a protocol) |
-| 9 | `VP_6_NeuralNetwork_InductiveBias_ComputationalBenchmark.py` | VP-6 | Computational Architecture |
-| 10 | `VP_8_Psychophysical_ThresholdEstimation_Protocol1.py` | VP-8 | Paper Protocol 1 |
-| 11 | `VP_11_QuantitativeModelFits_SpikingLNN_Priority3.py` | VP-11 | Roadmap Priority 3 |
-| 12 | `VP_1_SyntheticEEG_MLClassification.py` | VP-1 (support) | Paper Protocol 6 (partial) |
-| 13 | `VP_7_TMS_Pharmacological_CausalIntervention_Protocol2.py` | VP-7 | Paper Protocol 2 |
-| 14 | `VP_2_Validation_Protocol_2.py` | VP-2 | Paper Protocol 6 (behavioral) |
-| 15 | `VP_11_Validation_Protocol_11.py` | VP-11 (canonical) | Roadmap Priority 3 / Cultural Neuro |
-| 16 | `Validation_Protocol_P4_Epistemic.py` | VP-4 (support) | Epistemic Paper P5–P12 |
+| # | Filename | Folder | Protocol ID | Role | Completion |
+| --- | ---------- | -------- | ------------- | ------ | ------------ |
+| 1 | VP_01_SyntheticEEG_MLClassification.py | Validation | VP-1 | Synthetic EEG / ML Classification support | 78% |
+| 2 | VP_02_Behavioral_BayesianComparison.py | Validation | VP-2 | Behavioral Bayesian Comparison (P1.1–P1.3) | 80% |
+| 3 | VP_03_ActiveInference_AgentSimulations.py | Validation | VP-3 | Active Inference Agent Comparison | 85% |
+| 4 | VP_04_PhaseTransition_EpistemicLevel2.py | Validation | VP-4 | Phase Transition / Level 2 Epistemic | 75% |
+| 5 | VP_05_EvolutionaryEmergence.py | Validation | VP-5 | Evolutionary Emergence (simulation only) | 72% |
+| 6 | VP_06_LiquidNetwork_InductiveBias.py | Validation | VP-6 | Liquid Network Inductive Bias Benchmark | 76% |
+| 7 | VP_07_TMS_CausalInterventions.py | Validation | VP-7 | TMS / Pharmacological Causal Interventions | 70% |
+| 8 | VP_08_Psychophysical_ThresholdEstimation.py | Validation | VP-8 | Psychophysical Threshold Estimation | 78% |
+| 9 | VP_09_NeuralSignatures_EmpiricalPriority1.py | Validation | VP-9 | Convergent Neural Signatures (Roadmap P1) | 75% |
+| 10 | VP_10_CausalManipulations_Priority2.py | Validation | VP-10 | Causal Manipulations (Roadmap P2) | 72% |
+| 11 | VP_11_MCMC_CulturalNeuroscience_Priority3.py | Validation | VP-11 | MCMC Cultural Neuroscience (Roadmap P3) | 68% |
+| 12 | VP_12_Clinical_CrossSpecies_Convergence.py | Validation | VP-12 | Clinical / Cross-Species Convergence (P4) | 71% |
+| 13 | VP_13_Epistemic_Architecture.py | Validation | VP-13 | Epistemic Architecture Predictions (P5–P12) | 76% |
+| 14 | VP_14_fMRI_Anticipation_Experience.py | Validation | VP-14 | fMRI BOLD Simulation (Anticipation/Experience) | 74% |
+| 15 | VP_15_fMRI_Anticipation_vmPFC.py | Validation | VP-15 | fMRI vmPFC Anticipation (awaiting real data) | 45% |
+| 16 | VP_16_Metabolic_ATP_GroundTruth.py | Validation | VP-16 | Metabolic ATP Ground-Truth Calibration | 68% |
+| **Validation Files — Orchestrators & Infrastructure** | | | | | |
+| 17 | VP_ALL_Aggregator.py | Validation | — | Framework-level validation aggregator (V1.1–V16.x) | Active |
+| 18 | Master_Validation.py | Validation | — | Orchestrator (APGIMasterValidator) | Active |
+| 19 | APGI_Validation_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
+| 20 | **init**.py | Validation | — | Python package marker | — |
 
-### 1.2 Falsification Files (22 total)
+### 1.2 Falsification Files — Protocol Scripts (FP_01–FP_12)
 
-| # | Filename | FP ID | Description |
-| --- | --------- | ------- | ----------- |
-| 1 | `FP_12_Falsification_Aggregator.py` | FP-AGG | Framework-level aggregator |
-| 2 | `APGI_Falsification_Protocols_GUI.py` (root) | — | GUI runner (not a protocol) |
-| 3 | `VP_10_Falsification_CausalManipulations_TMS_Pharmacological_Priority2.py` | FP-2 (support) | Causal manipulation engine |
-| 10 | `FP_1_FP_1_Falsification_ActiveInferenceAgents_F1F2.py` | FP-1 (full) | Primary F1/F2 engine |
-| 11 | `FP_2_FP_2_Falsification_AgentComparison_ConvergenceBenchmark.py` | FP-2 (full) | Convergence benchmark |
-| 12 | `FP_10_FP_10_Falsification_BayesianEstimation_MCMC.py` | FP-10 | NUTS/PyMC MCMC estimation |
-| 13 | `FP_10_FP_10_Falsification_BayesianEstimation_ParameterRecovery.py` | FP-11 | Parameter recovery |
-| 14 | `FP_12_CrossSpeciesScaling.py` | FP-12 | Allometric scaling |
-| 15 | `FP_5_FP_5_Falsification_EvolutionaryPlausibility_Standard6.py` | FP-5 (full) | Evolutionary analysis |
-| 16 | `FP_3_FP_3_Falsification_FrameworkLevel_MultiProtocol.py` | FP-3 (full) | Multi-protocol synthesis |
-| 17 | `FP_4_FP_4_Falsification_InformationTheoretic_PhaseTransition.py` | FP-4 (full) | Phase transition analysis |
-| 18 | `FP_11_FP_11_Falsification_LiquidNetworkDynamics_EchoState.py` | FP-11 | Echo-state / liquid network |
-| 19 | `FP_7_Falsification_MathematicalConsistency_Equations.py` | FP-7 | Sympy equation verification |
-| 20 | `FP_6_FP_6_Falsification_NeuralNetwork_EnergyBenchmark.py` | FP-6 (full) | Energy / ATP benchmark |
-| 21 | `FP_9_FP_9_Falsification_NeuralSignatures_EEG_P3b_HEP.py` | FP-9 | EEG / P3b / HEP neural sigs |
-| 22 | `FP_8_FP_8_Falsification_ParameterSensitivity_Identifiability.py` | FP-8 | Sobol / FIM / profile likelihood |
-| 23 | `FP_12_CrossSpeciesScaling.py` | FP-12 (scaling sub-protocol) | Allometric scaling |
+| # | Filename | Folder | FP ID | Description | Completion |
+| --- | ---------- | -------- | ------- | ----------- | ---------- |
+| 1 | FP_01_ActiveInference.py | Falsification | FP-1 | Active Inference & Hierarchical Dynamics | 82% |
+| 2 | FP_02_AgentComparison_ConvergenceBenchmark.py | Falsification | FP-2 | Agent Comparison & Convergence Benchmark | 80% |
+| 3 | FP_03_FrameworkLevel_MultiProtocol.py | Falsification | FP-3 | Framework-Level Multi-Protocol Synthesis | 76% |
+| 4 | FP_04_PhaseTransition_EpistemicArchitecture.py | Falsification | FP-4 | Phase Transition & Epistemic Architecture | 77% |
+| 5 | FP_05_EvolutionaryPlausibility.py | Falsification | FP-5 | Evolutionary Plausibility (Standard 6) | 74% |
+| 6 | FP_06_LiquidNetwork_EnergyBenchmark.py | Falsification | FP-6 | Liquid Network Energy Benchmark (ATP) | 76% |
+| 7 | FP_07_MathematicalConsistency.py | Falsification | FP-7 | Mathematical Consistency (Sympy, Eq. 1–4) | 81% |
+| 8 | FP_08_ParameterSensitivity_Identifiability.py | Falsification | FP-8 | Parameter Sensitivity & Identifiability | 70% |
+| 9 | FP_09_NeuralSignatures_P3b_HEP.py | Falsification | FP-9 | Neural Signatures — EEG / P3b / HEP | 75% |
+| 10 | FP_10_BayesianEstimation_MCMC.py | Falsification | FP-10 | Bayesian Model Evidence (NUTS/PyMC MCMC) | 79% |
+| 11 | FP_11_LiquidNetworkDynamics_EchoState.py | Falsification | FP-11 | Liquid Network Dynamics & Echo State (LTCN) | 77% |
+| 12 | FP_12_CrossSpeciesScaling.py | Falsification | FP-12 | Cross-Species Allometric Scaling (P12) | 73% |
+| **Falsification Files — Orchestrators & Infrastructure** | | | | | |
+| 13 | FP_ALL_Aggregator.py | Falsification | FP-AGG | Terminal framework falsification (Conditions A & B) | Active |
+| 14 | Master_Falsification.py | Falsification | — | Orchestrator for all 12 FP runs | Active |
+| 15 | APGI_Falsification_Protocols_GUI.py | Root | — | GUI runner (tkinter, not protocol logic) | Active |
+| 16 | **init**.py | Falsification | — | Python package marker | — |
+
+---
+
+## 2. Protocol Mapping Validation (April 2026)
+
+### 2.1 Key Findings from Codebase Audit
+
+**Status:** ✅ **All major mapping issues resolved**
+
+| Issue | Document Claim (Mar 28) | Actual State (Apr 30) | Verdict |
+| ----- | ------------------------- | ---------------------- | --------- |
+| V12.1 P3B threshold | 10% vs 80% required | 50% (Rosanova et al. 2018) | ✅ Correct |
+| V12.1 Ignition threshold | 15% vs 70% required | 50% (Casali et al. 2013) | ✅ Correct |
+| F1.1 Advantage | 18% vs 10% inline | 18% (both centralized) | ✅ Correct |
+| F1.5 PAC MI | 0.10 vs 0.008 spec | 0.15 (paper spec) | ✅ Correct |
+| Duplicate FP-1/FP-2 files | Underscore + hyphen variants | Only one file each | ✅ None exist |
+| FP-12 stub bodies | Ellipsis bodies, no routing | Complete implementation | ✅ Complete |
+| VP-5 fMRI coverage | Paper Protocol 5 MISSING | VP-14 implements fMRI | ✅ VP-14 exists |
+| VP-9 degenerate stats | Single-element arrays | Scalars compared | ✅ False alarm |
+
+### 2.2 Minor Discrepancy Identified
+
+| Criterion | Centralized Value | Document Spec | Status |
+| --------- | ----------------- | --------------- | -------- |
+| F2.3 RT Advantage | 50.0 ms | ≥35 ms | ⚠️ More conservative than spec |
+
+**Note:** All threshold consistency tests pass (8/8).
+
+### 2.3 Paper Protocol → VP/FP Mapping
+
+| Paper Protocol | VP/FP | Status | Notes |
+| ---------------- | ------- | -------- | ------- |
+| Paper Protocol 1 (Psychophysics) | VP-8 | ✅ Full | Bonferroni corrections applied |
+| Paper Protocol 2 (TMS Causal) | VP-7 | ✅ Full | Dual-file structure |
+| Paper Protocol 3 (Active Inference) | VP-3 | ✅ Full | BIC/AIC and Mann-Whitney U |
+| Paper Protocol 4 (DoC Clinical) | VP-12 | ✅ Full | Liquid network included |
+| Paper Protocol 5 (fMRI) | **VP-14** | ✅ Exists | 25,416 bytes, simulation-validated |
+| Paper Protocol 6 (Parameter Estimation) | VP-1 + VP-2 | ✅ Split | EEG/ML + Behavioral |
+| Epistemic Paper P5–P8 | VP-4 | ✅ Full | Metabolic cost driver patched |
+| Epistemic Roadmap Priority 1 | VP-9 | ✅ Full | Power-analysis gating |
+| Epistemic Roadmap Priority 2 | VP-10 | ✅ Full | Overlaps VP-7 |
+| Epistemic Roadmap Priority 3 | VP-11 | ✅ Full | Gelman-Rubin R̂ ≤ 1.01 |
+| Epistemic Roadmap Priority 4 | VP-12 | ✅ Shared | Same as Protocol 4 |
 
 ---
 

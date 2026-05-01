@@ -119,6 +119,7 @@ class APGIMasterValidator:
             "Protocol-14": {"dependencies": []},
             "Protocol-15": {"dependencies": []},
             "Protocol-16": {"dependencies": []},
+            "Protocol-17": {"dependencies": []},
         }
 
         # Falsification protocol dependencies: VP-05 must complete before certain falsification protocols
@@ -216,6 +217,11 @@ class APGIMasterValidator:
                 "file": "VP_16_Metabolic_ATP_GroundTruth.py",
                 "function": "run_validation",
                 "description": "Metabolic ATP Ground-Truth Calibration (iATPSnFR2 / P-fMRS)",
+            },
+            "Protocol-17": {
+                "file": "VP_17_AllenVisualCoding_Fatigue.py",
+                "function": "run_validation",
+                "description": "Allen Visual Coding Fatigue Analysis - Quantitative Model Fits",
             },
         }
         self.protocol_contracts = ProtocolContractRegistry(

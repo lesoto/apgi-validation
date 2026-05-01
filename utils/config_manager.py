@@ -742,7 +742,7 @@ class ConfigManager:
         # Expected SHA-256 hash of the legitimate schema
         # This hash should be updated when schema changes are made
         EXPECTED_SCHEMA_HASH = (
-            "13c1767e524b7ca5b709f8d25202ec084f5debdf97e84c1676975469816f9cc4"
+            "d06b754492fe8a47e84515611c8a7bea903da362b57a610d7e5b31f997e10a3f"
         )
 
         try:

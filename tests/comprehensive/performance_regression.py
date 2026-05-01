@@ -609,7 +609,7 @@ class PerformanceRegressionTester:
             <tr>
                 <td>{r['test_name']}</td>
                 <td>{r['execution_time_ms']:.2f}</td>
-                <td>{r['baseline_mean_ms']:.2f if r['baseline_mean_ms'] else 'N/A'}</td>
+                <td>{f"{r['baseline_mean_ms']:.2f}" if r['baseline_mean_ms'] is not None else 'N/A'}</td>
                 <td class="{deviation_color}">{r['deviation_percent']:+.1f}%</td>
                 <td class="{status_class}">{status_icon}</td>
             </tr>

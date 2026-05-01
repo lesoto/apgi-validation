@@ -1,6 +1,5 @@
 # APGI FRAMEWORK FALSIFICATION CRITERIA SPECIFICATIONS
 
-> **Documentation Version**: 1.2.0 (Updated: April 2026)  
 > **Implementation Status**: 12 Falsification Protocols (FP_01-FP_12) implemented  
 > **Master Orchestrator**: `Falsification/Master_Falsification.py`  
 > **Aggregator**: `Falsification/FP_ALL_Aggregator.py`

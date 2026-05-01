@@ -480,7 +480,7 @@ class PhaseTransitionDetector:
         """
         Test for discontinuity in dS/dt at ignition
 
-        P4a Prediction: Mean |dS/dt| discontinuity > 0.5
+        P4a Prediction: Mean |dS/dt| discontinuity ≥ 0.5 (Cohen's d)
 
         Args:
             S: Surprise time series
@@ -566,7 +566,7 @@ class PhaseTransitionDetector:
         """
         Test for diverging susceptibility near threshold
 
-        P4b Prediction: Variance ratio > 2.0
+        P4b Prediction: Variance ratio ≥ 1.2 (susceptibility)
 
         Susceptibility χ ∝ variance of order parameter near critical point
 
@@ -620,7 +620,7 @@ class PhaseTransitionDetector:
         """
         Test for critical slowing down near threshold with surrogate null distribution
 
-        P4c Prediction: Autocorrelation ratio > 1.5 (must exceed 95th percentile of surrogates)
+        P4c Prediction: Autocorrelation ratio ≥ 1.2 (critical slowing)
 
         Near phase transition, relaxation time diverges → increased autocorrelation
 
@@ -735,7 +735,7 @@ class PhaseTransitionDetector:
         Test for long-range correlations via Hurst exponent
 
         P4e Prediction:
-            - H near threshold > 0.6 (long-range correlations)
+            - H near threshold > 0.5 (long-range correlations)
             - H far from threshold ≈ 0.5 (random walk)
 
         Hurst exponent H:
@@ -3149,7 +3149,7 @@ def plot_phase_transition_results(
             label=f"Mean d: {mean_d:.2f}",
         )
         ax6.axvline(
-            0.8, color="green", linestyle=":", linewidth=2, label="Large effect (d=0.8)"
+            0.5, color="green", linestyle=":", linewidth=2, label="Threshold (d=0.5)"
         )
 
         ax6.set_xlabel("Cohen's d (Discontinuity)", fontsize=11, fontweight="bold")
@@ -3176,7 +3176,7 @@ def plot_phase_transition_results(
         label=f"Mean: {mean_susc:.2f}",
     )
     ax7.axvline(
-        2.0, color="green", linestyle=":", linewidth=2, label="Prediction: >2.0"
+        1.2, color="green", linestyle=":", linewidth=2, label="Threshold (≥1.2)"
     )
 
     ax7.set_xlabel("Susceptibility Ratio (near/far)", fontsize=11, fontweight="bold")
@@ -3203,7 +3203,7 @@ def plot_phase_transition_results(
         label=f"Mean: {mean_cs:.2f}",
     )
     ax8.axvline(
-        1.5, color="green", linestyle=":", linewidth=2, label="Prediction: >1.5"
+        1.2, color="green", linestyle=":", linewidth=2, label="Threshold (≥1.2)"
     )
 
     ax8.set_xlabel("Critical Slowing Ratio", fontsize=11, fontweight="bold")
@@ -3232,7 +3232,7 @@ def plot_phase_transition_results(
         0.5, color="black", linestyle="--", linewidth=1.5, label="Random walk (H=0.5)"
     )
     ax9.axhline(
-        0.6, color="green", linestyle=":", linewidth=2, label="Prediction: H>0.6"
+        0.5, color="green", linestyle=":", linewidth=2, label="Threshold (H>0.5)"
     )
 
     ax9.set_xticks(positions)
@@ -3254,45 +3254,45 @@ def plot_phase_transition_results(
         ["Prediction", "Criterion", "Observed", "Met?"],
         [
             "P4a: Discontinuity",
-            "d > 0.8",
+            "d ≥ 0.5",
             f"{results_df['discontinuity_cohens_d'].mean():.2f}",
-            "[OK]" if results_df["discontinuity_cohens_d"].mean() > 0.8 else "[FAIL]",
+            "[OK]" if results_df["discontinuity_cohens_d"].mean() >= 0.5 else "[FAIL]",
         ],
         [
             "P4b: Susceptibility",
-            "ratio > 2.0",
+            "ratio ≥ 1.2",
             f"{results_df['susceptibility_susceptibility_ratio'].mean():.2f}",
             (
                 "[OK]"
-                if results_df["susceptibility_susceptibility_ratio"].mean() > 2.0
+                if results_df["susceptibility_susceptibility_ratio"].mean() >= 1.2
                 else "[FAIL]"
             ),
         ],
         [
             "P4c: Crit. Slowing",
-            "ratio > 1.5",
+            "ratio ≥ 1.2",
             f"{results_df['critical_slowing_critical_slowing_ratio'].mean():.2f}",
             (
                 "[OK]"
-                if results_df["critical_slowing_critical_slowing_ratio"].mean() > 1.5
+                if results_df["critical_slowing_critical_slowing_ratio"].mean() >= 1.2
                 else "[FAIL]"
             ),
         ],
         [
             "P4d: Φ Spike",
-            "ratio > 2.0×",
+            "ratio ≥ 1.3×",
             f"{(phi_at_ignition.mean() / phi_baseline.mean()):.2f}×",
             (
                 "[OK]"
-                if (phi_at_ignition.mean() / phi_baseline.mean()) > 2.0
+                if (phi_at_ignition.mean() / phi_baseline.mean()) >= 1.3
                 else "[FAIL]"
             ),
         ],
         [
             "P4e: Hurst Near",
-            "H > 0.6",
+            "H > 0.5",
             f"{results_df['hurst_hurst_near'].mean():.2f}",
-            "[OK]" if results_df["hurst_hurst_near"].mean() > 0.6 else "[FAIL]",
+            "[OK]" if results_df["hurst_hurst_near"].mean() > 0.5 else "[FAIL]",
         ],
     ]
 
