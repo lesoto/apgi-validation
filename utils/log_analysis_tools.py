@@ -26,8 +26,9 @@ import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Set up standard logging as fallback
 _std_logger = logging.getLogger(__name__)
@@ -60,6 +61,16 @@ def _log_info(message: str) -> None:
         apgi_logger.info(message)
     else:
         _std_logger.info(message)
+
+
+class LogLevel(Enum):
+    """Log level enumeration for standard log levels."""
+
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
 
 
 @dataclass
@@ -131,21 +142,28 @@ class LogAnalyzer:
                 r"(?i)success|completed|passed|validated",
             ],
         }
+        self.entries: List[LogEntry] = []
+        self.anomalies: List[Dict] = []
 
-    def parse_log_file(self, log_file_path: Path) -> List[LogEntry]:
+    def parse_log_file(self, log_file_path: Union[str, Path]) -> List[LogEntry]:
         """Parse a single log file and extract structured data."""
+        path = Path(log_file_path)
         entries = []
 
+        if not path.exists():
+            return []
+
         try:
-            with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
                 for line_num, line in enumerate(f, 1):
-                    entry = self._parse_log_line(line, line_num, log_file_path)
+                    entry = self._parse_log_line(line, line_num, path)
                     if entry:
                         entries.append(entry)
 
+            self.entries = entries
             return entries
         except Exception as e:
-            _log_error(f"Error parsing log file {log_file_path}: {e}")
+            _log_error(f"Error parsing log file {path}: {e}")
             return []
 
     def _parse_log_line(
@@ -158,7 +176,7 @@ class LogAnalyzer:
 
         # Extract timestamp
         timestamp_match = re.search(
-            r"(\d{4}-\d{2}-\d{4}T\d{2}:\d{2}:\d{2}\.\d{6}", line
+            r"(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.,]?\d*)", line
         )
         timestamp = (
             timestamp_match.group(0) if timestamp_match else datetime.now().isoformat()
@@ -166,14 +184,14 @@ class LogAnalyzer:
 
         # Extract log level
         level_match = re.search(r"\b(ERROR|WARNING|INFO|DEBUG|CRITICAL)\b", line)
-        level = level_match.group(0).lower() if level_match else "info"
+        level = level_match.group(0) if level_match else "INFO"
 
         # Extract module
         module_match = re.search(r"\[(\w+)\.+\]", line)
         module = module_match.group(1) if module_match else "unknown"
 
         # Extract function
-        function_match = re.search(r"\b(\w+)\.\w+\([^)]+)\(", line)
+        function_match = re.search(r"\b(\w+)\.(\w+)\([^)]*\)", line)
         function = function_match.group(2) if function_match else None
 
         # Extract message
@@ -266,6 +284,71 @@ class LogAnalyzer:
             entry.anomalies.append(
                 {"type": "security", "description": "Security pattern detected"}
             )
+
+    def detect_anomalies(self) -> List[Dict]:
+        """Detect anomalies in the current entries."""
+        self.anomalies = []
+
+        if not self.entries:
+            return self.anomalies
+
+        # Detect error bursts
+        error_count = sum(1 for e in self.entries if e.level.upper() == "ERROR")
+        if error_count >= 5:
+            self.anomalies.append(
+                {
+                    "type": "error_burst",
+                    "description": f"High error count: {error_count}",
+                    "count": error_count,
+                }
+            )
+
+        # Detect warning bursts
+        warning_count = sum(1 for e in self.entries if e.level.upper() == "WARNING")
+        if warning_count >= 10:
+            self.anomalies.append(
+                {
+                    "type": "warning_burst",
+                    "description": f"High warning count: {warning_count}",
+                    "count": warning_count,
+                }
+            )
+
+        return self.anomalies
+
+    def analyze_levels(self) -> Dict[str, int]:
+        """Analyze and count entries by log level."""
+        level_stats: Dict[str, int] = Counter()
+        for entry in self.entries:
+            level = entry.level.upper() if entry.level else "UNKNOWN"
+            level_stats[level] = level_stats.get(level, 0) + 1
+        return dict(level_stats)
+
+    def filter_by_level(self, level: str) -> List[LogEntry]:
+        """Filter entries by log level (case-insensitive)."""
+        target_level = level.upper()
+        return [e for e in self.entries if e.level.upper() == target_level]
+
+    def filter_by_time_range(
+        self, start_time: datetime, end_time: datetime
+    ) -> List[LogEntry]:
+        """Filter entries within a time range."""
+        filtered = []
+        for entry in self.entries:
+            try:
+                # Handle comma as milliseconds separator (common in log formats)
+                ts = entry.timestamp.replace(",", ".").replace("Z", "+00:00")
+                entry_time = datetime.fromisoformat(ts)
+                if start_time <= entry_time <= end_time:
+                    filtered.append(entry)
+            except (ValueError, AttributeError):
+                continue
+        return filtered
+
+    def search_pattern(self, pattern: str) -> List[LogEntry]:
+        """Search for pattern in entry messages (case-insensitive)."""
+        pattern_lower = pattern.lower()
+        return [e for e in self.entries if pattern_lower in e.message.lower()]
 
     def _group_entries_by_level(
         self, entries: List[LogEntry]
@@ -538,7 +621,7 @@ class ChainIntegrityVerifier:
 
         # Extract log level
         level_match = re.search(r"\b(ERROR|WARNING|INFO|DEBUG|CRITICAL)\b", line)
-        level = level_match.group(0).lower() if level_match else "info"
+        level = level_match.group(0) if level_match else "INFO"
 
         # Extract message (rest of line after timestamp/level)
         message = line
@@ -643,6 +726,27 @@ class IntegrityVerifier:
         self.expected_hashes = expected_hashes or {}
         self.chain_verifier = ChainIntegrityVerifier()
 
+    def compute_file_hash(self, file_path: Union[str, Path]) -> str:
+        """Compute SHA-256 hash of a file."""
+        path = Path(file_path)
+        sha256_hash = hashlib.sha256()
+
+        try:
+            with open(path, "rb") as f:
+                for chunk in iter(lambda: f.read(8192), b""):
+                    sha256_hash.update(chunk)
+            return sha256_hash.hexdigest()
+        except Exception as e:
+            _log_error(f"Error computing hash for {path}: {e}")
+            return ""
+
+    def verify_file_integrity(
+        self, file_path: Union[str, Path], expected_hash: str
+    ) -> bool:
+        """Verify file integrity by comparing computed hash with expected hash."""
+        computed_hash = self.compute_file_hash(file_path)
+        return computed_hash == expected_hash and computed_hash != ""
+
     def _verify_file_integrity(self, analysis: Any) -> Dict[str, bool]:
         """Verify integrity of log files using chain verification."""
         integrity_results = {}
@@ -662,10 +766,16 @@ class IntegrityVerifier:
 class LogAggregator:
     """Aggregate log data from multiple sources for unified analysis."""
 
-    def __init__(self, log_sources: Dict[str, str]):
+    def __init__(self, log_sources: Optional[Dict[str, str]] = None):
         """Initialize aggregator with multiple log sources."""
-        self.log_sources = log_sources
+        self.log_sources: Dict[str, str] = log_sources or {}
         self.analysis_cache: Dict[str, LogAnalysis] = {}
+        self.sources: Dict[str, str] = self.log_sources  # Alias for compatibility
+
+    def add_log_source(self, name: str, path: str) -> None:
+        """Add a log source to the aggregator."""
+        self.log_sources[name] = path
+        self.sources[name] = path
 
     def aggregate_logs(
         self, time_range: Optional[Tuple[datetime, datetime]] = None
@@ -771,14 +881,14 @@ class LogAggregator:
 
         # Extract log level
         level_match = re.search(r"\b(ERROR|WARNING|INFO|DEBUG|CRITICAL)\b", line)
-        level = level_match.group(0).lower() if level_match else "info"
+        level = level_match.group(0) if level_match else "INFO"
 
         # Extract module
         module_match = re.search(r"\[(\w+)\.+\]", line)
         module = module_match.group(1) if module_match else "unknown"
 
         # Extract function
-        function_match = re.search(r"\b(\w+)\.\w+\([^)]+)\(", line)
+        function_match = re.search(r"\b(\w+)\.(\w+)\([^)]*\)", line)
         function = function_match.group(2) if function_match else None
 
         # Extract message
@@ -832,7 +942,7 @@ class LogAggregator:
 
     def _detect_patterns_batch(self, entries: List[LogEntry]) -> List[Dict[str, Any]]:
         """Detect patterns in a batch of entries."""
-        anomalies = []
+        anomalies: List[Dict[str, Any]] = []
         for entry in entries:
             # Simple pattern detection
             if "error" in entry.message.lower() or "exception" in entry.message.lower():
@@ -856,6 +966,75 @@ class LogAggregator:
     def _generate_summary(self, analysis: LogAnalysis) -> str:
         """Generate summary for analysis."""
         return f"Analyzed {analysis.total_entries} entries from {len(analysis.entries_by_module)} sources"
+
+
+class AnomalyDetector:
+    """Detect anomalies and patterns in log entries."""
+
+    def __init__(self) -> None:
+        """Initialize anomaly detector."""
+        self.anomalies: List[Dict[str, Any]] = []
+
+    def detect_burst_errors(
+        self, entries: List[LogEntry], threshold: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Detect burst error patterns in log entries.
+
+        Args:
+            entries: List of log entries to analyze
+            threshold: Minimum number of errors in a short time window to flag as burst
+
+        Returns:
+            List of detected anomaly dictionaries
+        """
+        anomalies: List[Dict[str, Any]] = []
+
+        if not entries:
+            return anomalies
+
+        # Group entries by time windows (1-minute buckets)
+        time_buckets: Dict[str, List[LogEntry]] = defaultdict(list)
+        for entry in entries:
+            try:
+                # Parse timestamp and bucket by minute
+                ts = datetime.fromisoformat(entry.timestamp.replace("Z", "+00:00"))
+                bucket_key = ts.strftime("%Y-%m-%d %H:%M")
+                time_buckets[bucket_key].append(entry)
+            except (ValueError, AttributeError):
+                continue
+
+        # Check each bucket for error bursts
+        for bucket_key, bucket_entries in time_buckets.items():
+            error_count = sum(1 for e in bucket_entries if e.level.upper() == "ERROR")
+
+            if error_count >= threshold:
+                anomalies.append(
+                    {
+                        "type": "burst_error",
+                        "description": f"Error burst detected: {error_count} errors in {bucket_key}",
+                        "timestamp": bucket_key,
+                        "count": error_count,
+                        "threshold": threshold,
+                    }
+                )
+
+        # Also check for overall high error rate
+        total_errors = sum(1 for e in entries if e.level.upper() == "ERROR")
+        if total_errors >= threshold and len(entries) > 0:
+            error_rate = total_errors / len(entries)
+            if error_rate > 0.5:  # More than 50% errors
+                anomalies.append(
+                    {
+                        "type": "high_error_rate",
+                        "description": f"High error rate: {error_rate:.1%} ({total_errors}/{len(entries)})",
+                        "count": total_errors,
+                        "rate": error_rate,
+                        "threshold": threshold,
+                    }
+                )
+
+        return anomalies
 
 
 class ReportGenerator:

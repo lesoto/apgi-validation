@@ -22,6 +22,15 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 from scipy import stats
+
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from tqdm import tqdm

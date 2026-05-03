@@ -38,6 +38,15 @@ from pathlib import Path
 import numpy as np
 from scipy import stats
 from scipy.optimize import curve_fit
+
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 from sklearn.feature_selection import mutual_info_regression
 from sklearn.metrics import roc_auc_score
 

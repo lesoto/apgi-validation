@@ -1,4 +1,5 @@
 # Import from other protocols
+import csv
 import importlib.util
 import json
 import logging
@@ -1062,6 +1063,36 @@ class AgentComparisonExperiment:
                     )
                     # Continue without saving - return results in memory
                     logger.warning("Continuing without saving results to file")
+
+            # Also save protocol3 CSV summary
+            csv_path = Path("protocol3_results.csv")
+            try:
+                with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["criterion", "passed", "value", "threshold"])
+                    # Write falsification criteria
+                    for criterion, data in falsification.get("criteria", {}).items():
+                        writer.writerow(
+                            [
+                                criterion,
+                                data.get("passed", False),
+                                str(data.get("actual", "")),
+                                str(data.get("threshold", "")),
+                            ]
+                        )
+                    # Write summary
+                    summary = falsification.get("summary", {})
+                    writer.writerow(
+                        [
+                            "summary",
+                            summary.get("passed", 0),
+                            summary.get("failed", 0),
+                            summary.get("total", 0),
+                        ]
+                    )
+                logger.info(f"CSV summary saved to {csv_path}")
+            except Exception as e:
+                logger.warning(f"Failed to save CSV: {e}")
 
             return falsification
         else:

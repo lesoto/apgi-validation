@@ -13,6 +13,8 @@ CRITICAL FEATURES:
 - Clinical/Pharmacological convergence models (Propofol, DoC)
 """
 
+import csv  # noqa: F401
+import json  # noqa: F401
 import logging
 import sys
 from pathlib import Path
@@ -855,18 +857,57 @@ if __name__ == "__main__":
         print(f"  [{pid}] {pdata.threshold}: {pass_str} (Actual: {evidence_str})")
 
 
-if __name__ == "__main__":
-    results = run_falsification()
-    print("\n=== FP-12 Cross-Species Scaling & LTC ===")
-    print(f"Status: {results['status']}")
-    for pred, data in results["named_predictions"].items():
-        print(
-            f"{pred}: {'PASS' if data['passed'] else 'FAIL'} - {data.get('actual', '')}"
-        )
+def _save_fp12_outputs(results: Dict[str, Any]) -> None:
+    """Save FP-12 results to JSON, CSV, and PNG formats."""
+    import csv
+    import json
 
-    # Generate PNG output
+    # Save JSON
+    json_path = "protocol12_results.json"
     try:
-        from utils.protocol_visualization import add_standard_png_output
+
+        def convert_to_serializable(obj):
+            if isinstance(obj, dict):
+                return {k: convert_to_serializable(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_to_serializable(item) for item in obj]
+            elif isinstance(obj, (int, float, bool, str)):
+                return obj
+            return str(obj)
+
+        serializable_results = convert_to_serializable(results)
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(serializable_results, f, indent=2, default=str)
+        print(f"✓ Saved JSON results to {json_path}")
+    except Exception as e:
+        print(f"⚠ Failed to save JSON: {e}")
+
+    # Save CSV - named predictions
+    csv_path = "protocol12_results.csv"
+    try:
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(
+                ["prediction_id", "passed", "actual", "threshold", "description"]
+            )
+
+            for pred_id, data in results.get("named_predictions", {}).items():
+                writer.writerow(
+                    [
+                        pred_id,
+                        data.get("passed", False),
+                        data.get("actual", ""),
+                        data.get("threshold", ""),
+                        data.get("description", ""),
+                    ]
+                )
+
+        print(f"✓ Saved CSV results to {csv_path}")
+    except Exception as e:
+        print(f"⚠ Failed to save CSV: {e}")
+
+    # Generate PNG visualization
+    try:
 
         def fp12_custom_plot(fig, ax):
             """Custom plot for FP-12 Cross-Species Scaling"""
@@ -904,17 +945,44 @@ if __name__ == "__main__":
                 return True
             return False
 
-        success = add_standard_png_output(
-            12, results, fp12_custom_plot, "Cross-Species Scaling"
+        # Create visualizer with correct output directory
+        from utils.protocol_visualization import ProtocolVisualizer
+        import os
+
+        visualizer = ProtocolVisualizer(
+            12, output_dir="validation_results/visualizations"
+        )
+        success = visualizer.create_custom_plot(
+            fp12_custom_plot, "Cross-Species Scaling"
         )
         if success:
-            print("✓ Generated protocol12.png visualization")
+            if os.path.exists("validation_results/visualizations/protocol12.png"):
+                os.rename(
+                    "validation_results/visualizations/protocol12.png",
+                    "validation_results/visualizations/protocol12_results.png",
+                )
+            print(
+                "✓ Generated validation_results/visualizations/protocol12_results.png"
+            )
         else:
-            print("⚠ Failed to generate protocol12.png visualization")
+            print("⚠ Failed to generate protocol12_results.png visualization")
     except ImportError:
         print("⚠ Visualization utilities not available")
     except Exception as e:
         print(f"⚠ Error generating visualization: {e}")
+
+
+if __name__ == "__main__":
+    results = run_falsification()
+    print("\n=== FP-12 Cross-Species Scaling & LTC ===")
+    print(f"Status: {results['status']}")
+    for pred, data in results["named_predictions"].items():
+        print(
+            f"{pred}: {'PASS' if data['passed'] else 'FAIL'} - {data.get('actual', '')}"
+        )
+
+    # Save all output formats
+    _save_fp12_outputs(results)
 
 
 # FIX #1: Add standardized ProtocolResult wrapper for FP-12

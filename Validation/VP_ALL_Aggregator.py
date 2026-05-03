@@ -19,6 +19,15 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 # Add parent directory to path for imports
 _project_root = Path(__file__).parent.parent
 if str(_project_root) not in sys.path:

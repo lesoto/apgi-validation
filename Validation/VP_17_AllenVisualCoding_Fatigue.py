@@ -37,6 +37,15 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 from scipy import stats
+
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from tqdm import tqdm
@@ -45,6 +54,24 @@ from tqdm import tqdm
 _project_root = Path(__file__).parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
+
+# Import falsification thresholds
+# ---------------------------------------------------------------------------
+try:
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        V17_ALPHA,
+        V17_MIN_CORRELATION_MAGNITUDE,
+        V17_MIN_R2_P3B_DECAY,
+        V17_MIN_R2_THETA_ELEVATION,
+    )
+except ImportError:
+    # Fallback values if import fails
+    DEFAULT_ALPHA = 0.05
+    V17_ALPHA = 0.05
+    V17_MIN_CORRELATION_MAGNITUDE = 0.10
+    V17_MIN_R2_P3B_DECAY = 0.70
+    V17_MIN_R2_THETA_ELEVATION = 0.60
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +188,7 @@ class QuantitativeModelValidator:
     - Model comparison (APGI vs. null models)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.simulator = FatigueDataSimulator()
         self.data: Optional[pd.DataFrame] = None
         self.validation_results: Dict[str, Any] = {}
@@ -449,16 +476,17 @@ class QuantitativeModelValidator:
         return results
 
 
-def run_validation(data_file: Optional[str] = None) -> Dict[str, Any]:
+def run_validation(data_file: Optional[str] = None, **kwargs) -> Dict[str, Any]:
     """
     Entry point for external validation runners.
 
     Args:
         data_file: Optional path to empirical data file
-
-    Returns:
-        Dictionary with validation results
+        **kwargs: Additional arguments (e.g., seed)
     """
+    if "seed" in kwargs:
+        np.random.seed(kwargs["seed"])
+
     validator = QuantitativeModelValidator()
     return validator.validate_quantitative_fits()
 

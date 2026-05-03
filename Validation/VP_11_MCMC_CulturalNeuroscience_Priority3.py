@@ -49,6 +49,15 @@ Dependencies:
     Preferred: pymc >= 5.0, arviz >= 0.17
     Fallback  : Metropolis-Hastings (MH) implemented here when PyMC unavailable.
 
+Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 Gelman-Rubin convergence criterion: R̂ ≤ 1.01 for all parameters.
 """
 

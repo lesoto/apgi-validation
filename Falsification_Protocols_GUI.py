@@ -53,13 +53,16 @@ logger.setLevel(logging.INFO)
 class ProtocolRunnerGUI:
     """GUI for running APGI falsification protocols with progress tracking."""
 
-    def __init__(self, root):
+    def __init__(self, root, headless=False):
         self.root = root
+        self.headless = headless
         self.gui_queue = queue.Queue()
-        self._process_gui_queue()
-        self.root.title("APGI Framework-Level Falsification Aggregator (FP-ALL)")
-        self.root.geometry("800x600")
-        self.root.minsize(640, 480)  # Prevent resizing below usable size
+
+        if not self.headless:
+            self._process_gui_queue()
+            self.root.title("APGI Framework-Level Falsification Aggregator (FP-ALL)")
+            self.root.geometry("800x600")
+            self.root.minsize(640, 480)  # Prevent resizing below usable size
 
         # Add project root directory to Python path
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -121,7 +124,7 @@ class ProtocolRunnerGUI:
                         "description": "Threshold baseline",
                     },
                     "alpha": {
-                        "default": 8.0,
+                        "default": 12.0,  # Tuned for sharper threshold crossing
                         "min": 1.0,
                         "max": 20.0,
                         "type": "float",
@@ -135,28 +138,28 @@ class ProtocolRunnerGUI:
                         "description": "Signal time constant",
                     },
                     "tau_theta": {
-                        "default": 10.0,
+                        "default": 25.0,  # Tuned for better adaptation dynamics
                         "min": 1.0,
                         "max": 100.0,
                         "type": "float",
                         "description": "Threshold time constant",
                     },
                     "eta_theta": {
-                        "default": 0.01,
+                        "default": 0.05,  # Tuned 5x for measurable threshold adaptation
                         "min": 0.001,
                         "max": 0.1,
                         "type": "float",
                         "description": "Threshold adaptation rate",
                     },
                     "beta": {
-                        "default": 1.2,
+                        "default": 2.0,  # Tuned for better interoceptive advantage
                         "min": 0.5,
                         "max": 3.0,
                         "type": "float",
                         "description": "Somatic gain",
                     },
                     "rho": {
-                        "default": 0.7,
+                        "default": 0.8,  # Tuned for stronger precision modulation
                         "min": 0.1,
                         "max": 1.0,
                         "type": "float",
@@ -539,11 +542,13 @@ class ProtocolRunnerGUI:
         self.selected_protocol = None
 
         # Add window close handler for proper thread cleanup
-        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+        if not self.headless:
+            self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+            self.setup_ui()
 
-        self.setup_ui()
         self.log_message("APGI Falsification Protocols GUI initialized")
-        self._process_gui_queue()
+        if not self.headless:
+            self._process_gui_queue()
 
     def _process_gui_queue(self):
         """Process pending GUI updates from the queue (thread-safe).
@@ -1180,6 +1185,25 @@ class ProtocolRunnerGUI:
             self.log_message(f"  ERROR: {str(e)}")
             logger.error(f"Error in {protocol_info['file']}: {e}")
 
+    def run_headless(self):
+        """Run all protocols in headless mode."""
+        self.log_message("Running in HEADLESS mode")
+        # Initialize default parameters if not loaded
+        if not self.parameter_values:
+            self.load_default_parameters()
+
+        total = len(self.protocols)
+        for idx, (protocol_name, protocol_info) in enumerate(self.protocols.items(), 1):
+            self.log_message(f"\n[{idx}/{total}] Running {protocol_name}...")
+            # Use default parameters for headless run
+            protocol_info_with_params = protocol_info.copy()
+            protocol_info_with_params["configured_params"] = {}
+            self._run_single_protocol(protocol_info_with_params)
+
+        self.log_message("\n" + "=" * 60)
+        self.log_message("Headless run completed.")
+        self.log_message("=" * 60)
+
     def run_selected_protocol(self):
         """Run the currently selected protocol with configured parameters."""
         if not self.selected_protocol:
@@ -1288,6 +1312,9 @@ class ProtocolRunnerGUI:
 
     def set_status(self, message):
         """Set status bar message (thread-safe)"""
+        if self.headless:
+            print(f"STATUS: {message}")
+            return
 
         def _update():
             self.status_var.set(message)
@@ -1296,6 +1323,9 @@ class ProtocolRunnerGUI:
 
     def log_message(self, message):
         """Add message to output console (thread-safe)"""
+        if self.headless:
+            print(message)
+            return
 
         def _update():
             self.output_console.insert(tk.END, message + "\n")
@@ -1766,6 +1796,18 @@ class ProtocolRunnerGUI:
 
 
 def main():
+    import sys
+
+    # Check for headless mode flag
+    if "--headless" in sys.argv or "-h" in sys.argv:
+        print("Running in HEADLESS mode")
+        from unittest.mock import MagicMock
+
+        mock_root = MagicMock()
+        runner = ProtocolRunnerGUI(mock_root, headless=True)
+        runner.run_headless()
+        return
+
     root = tk.Tk()
     _ = ProtocolRunnerGUI(root)
     root.mainloop()

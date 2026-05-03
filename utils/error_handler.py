@@ -346,12 +346,13 @@ class ErrorHandler:
     ) -> str:
         """Format error message using templates."""
         try:
-            import string
-
             template = self.ERROR_TEMPLATES[category][severity][code]
-            # Use string.Template for safer formatting with user input
-            safe_template = string.Template(template)
-            return safe_template.safe_substitute(**kwargs)
+            # Use safe substitution to handle missing placeholders gracefully
+            try:
+                return template.format(**kwargs)
+            except (KeyError, IndexError):
+                # If some placeholders are missing, return template with remaining placeholders
+                return template
         except KeyError:
             return f"Unknown error: {category.value}.{severity.value}.{code}: {kwargs}"
 
@@ -366,10 +367,11 @@ class ErrorHandler:
         **format_kwargs,
     ) -> ErrorInfo:
         """Create structured error information."""
-        message = self.format_error(category, severity, code, **format_kwargs)
-
+        # Add details to format_kwargs before formatting so it's included in message
         if details:
             format_kwargs["details"] = details
+
+        message = self.format_error(category, severity, code, **format_kwargs)
 
         # Convert string code to ErrorCode enum if necessary
         error_code = code if isinstance(code, ErrorCode) else ErrorCode.GEN_UNKNOWN

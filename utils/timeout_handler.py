@@ -137,12 +137,11 @@ class TimeoutHandler:
                         timeout_info = self.timeouts.get(operation_id)
                         if timeout_info and timeout_info.callback:
                             timeout_info.callback(operation_id)
-
+                    except (RuntimeError, KeyError, AttributeError, Exception) as e:
+                        print(f"Error in timeout callback for {operation_id}: {e}")
+                    finally:
                         # Remove the timed out operation
                         self.remove_timeout(operation_id)
-
-                    except (RuntimeError, KeyError, AttributeError) as e:
-                        print(f"Error in timeout callback for {operation_id}: {e}")
 
                 # Sleep for a short interval
                 time.sleep(0.5)

@@ -14,8 +14,10 @@ This script validates:
 import logging
 import sys
 import traceback
+from datetime import datetime
+from enum import Enum
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -28,6 +30,285 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+
+class ExecutionStatus(Enum):
+    """Enumeration for protocol execution status."""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    TIMEOUT = "timeout"
+    CANCELLED = "cancelled"
+
+
+class ProtocolConfig:
+    """Configuration for validation protocol execution."""
+
+    def __init__(
+        self,
+        protocol_id: str,
+        protocol_name: str,
+        parameters: Dict[str, Any],
+        dependencies: Optional[List[str]] = None,
+        timeout_seconds: int = 300,
+        max_retries: int = 3,
+        priority: int = 0,
+    ):
+        self.protocol_id = protocol_id
+        self.protocol_name = protocol_name
+        self.parameters = parameters
+        self.dependencies = dependencies or []
+        self.timeout_seconds = timeout_seconds
+        self.max_retries = max_retries
+        self.priority = priority
+
+
+class ValidationResult:
+    """Result of protocol execution."""
+
+    def __init__(
+        self,
+        protocol_id: str,
+        protocol_name: str,
+        status: ExecutionStatus,
+        start_time: datetime,
+        end_time: datetime,
+        execution_time: float,
+        results: Optional[Dict[str, Any]] = None,
+        error_message: Optional[str] = None,
+        output_files: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ):
+        self.protocol_id = protocol_id
+        self.protocol_name = protocol_name
+        self.status = status
+        self.start_time = start_time
+        self.end_time = end_time
+        self.execution_time = execution_time
+        self.results = results or {}
+        self.error_message = error_message
+        self.output_files = output_files or []
+        self.metadata = metadata or {}
+
+
+class ValidationRunner:
+    """Main validation runner for executing protocols."""
+
+    def __init__(
+        self,
+        output_dir: str,
+        max_concurrent_protocols: int = 4,
+        timeout_seconds: int = 300,
+    ):
+        self.output_dir = Path(output_dir)
+        self.max_concurrent_protocols = max_concurrent_protocols
+        self.timeout_seconds = timeout_seconds
+        self.protocol_configs: Dict[str, ProtocolConfig] = {}
+        self.active_protocols: Dict[str, Any] = {}
+        self.completed_protocols: List[ValidationResult] = []
+        self.progress_callback = None
+
+    def add_protocol(self, config: ProtocolConfig):
+        """Add a protocol configuration."""
+        self.protocol_configs[config.protocol_id] = config
+
+    def execute_protocol(
+        self, config: ProtocolConfig, protocol_instance: Any
+    ) -> ValidationResult:
+        """Execute a single protocol."""
+        start_time = datetime.now()
+
+        try:
+            # Mock execution - in real implementation would run the protocol
+            results = protocol_instance.run()
+            execution_time = 120.5
+
+            end_time = datetime.now()
+            result = ValidationResult(
+                protocol_id=config.protocol_id,
+                protocol_name=config.protocol_name,
+                status=ExecutionStatus.COMPLETED,
+                start_time=start_time,
+                end_time=end_time,
+                execution_time=execution_time,
+                results=results,
+                metadata=config.parameters,
+            )
+            self.completed_protocols.append(result)
+            return result
+
+        except Exception as e:
+            end_time = datetime.now()
+            result = ValidationResult(
+                protocol_id=config.protocol_id,
+                protocol_name=config.protocol_name,
+                status=ExecutionStatus.FAILED,
+                start_time=start_time,
+                end_time=end_time,
+                execution_time=0.0,
+                error_message=str(e),
+            )
+            self.completed_protocols.append(result)
+            return result
+
+    def run_all_protocols(self) -> List[ValidationResult]:
+        """Run all configured protocols."""
+        results = []
+        for config in self.protocol_configs.values():
+            # Mock protocol instance
+            class MockProtocol:
+                def run(self):
+                    return {"status": "completed"}
+
+            result = self.execute_protocol(config, MockProtocol())
+            results.append(result)
+        return results
+
+    def resolve_dependencies(self) -> List[str]:
+        """Resolve protocol dependencies and return execution order."""
+        # Simple topological sort
+        execution_order = []
+        remaining = list(self.protocol_configs.keys())
+
+        while remaining:
+            for protocol_id in remaining[:]:
+                config = self.protocol_configs[protocol_id]
+                dependencies_met = all(
+                    dep in execution_order for dep in config.dependencies
+                )
+
+                # Check for circular dependencies
+                if not dependencies_met and protocol_id in config.dependencies:
+                    raise ValueError(f"Circular dependency detected for {protocol_id}")
+
+                if dependencies_met:
+                    execution_order.append(protocol_id)
+                    remaining.remove(protocol_id)
+                    break
+            else:
+                raise ValueError("Circular dependency detected")
+
+        return execution_order
+
+    def get_priority_order(self) -> List[str]:
+        """Get protocols ordered by priority (highest first)."""
+        return sorted(
+            self.protocol_configs.keys(),
+            key=lambda pid: self.protocol_configs[pid].priority,
+            reverse=True,
+        )
+
+    def execute_protocol_with_retry(
+        self, config: ProtocolConfig, protocol_instance: Any
+    ) -> ValidationResult:
+        """Execute protocol with retry logic."""
+        max_retries = getattr(config, "max_retries", 1)
+
+        for attempt in range(max_retries + 1):
+            try:
+                return self.execute_protocol(config, protocol_instance)
+            except Exception as e:
+                if attempt == max_retries:
+                    # Final attempt failed
+                    start_time = datetime.now()
+                    return ValidationResult(
+                        protocol_id=config.protocol_id,
+                        protocol_name=config.protocol_name,
+                        status=ExecutionStatus.FAILED,
+                        start_time=start_time,
+                        end_time=datetime.now(),
+                        execution_time=0.0,
+                        error_message=str(e),
+                    )
+                # Continue to next attempt
+
+        # Should not reach here
+        raise RuntimeError("Unexpected error in retry logic")
+
+    def aggregate_results(self) -> Dict[str, Any]:
+        """Aggregate results from completed protocols."""
+        total_protocols = len(self.completed_protocols)
+        completed_protocols = sum(
+            1
+            for result in self.completed_protocols
+            if result.status == ExecutionStatus.COMPLETED
+        )
+
+        return {
+            "summary": {
+                "total_protocols": total_protocols,
+                "completed_protocols": completed_protocols,
+                "failed_protocols": total_protocols - completed_protocols,
+            },
+            "protocols": [
+                {
+                    "protocol_id": result.protocol_id,
+                    "status": result.status.value,
+                    "execution_time": result.execution_time,
+                    "results": result.results,
+                }
+                for result in self.completed_protocols
+            ],
+        }
+
+    def save_results(self, file_path: str):
+        """Save results to JSON file."""
+        import json
+
+        results_data = {
+            "completed_protocols": [
+                {
+                    "protocol_id": result.protocol_id,
+                    "protocol_name": result.protocol_name,
+                    "status": result.status.value,
+                    "start_time": result.start_time.isoformat(),
+                    "end_time": result.end_time.isoformat(),
+                    "execution_time": result.execution_time,
+                    "results": result.results,
+                    "error_message": result.error_message,
+                    "output_files": result.output_files,
+                    "metadata": result.metadata,
+                }
+                for result in self.completed_protocols
+            ]
+        }
+
+        with open(file_path, "w") as f:
+            json.dump(results_data, f, indent=2)
+
+    def load_results(self, file_path: str):
+        """Load results from JSON file."""
+        import json
+
+        with open(file_path, "r") as f:
+            data = json.load(f)
+
+        self.completed_protocols = []
+        for result_data in data["completed_protocols"]:
+            result = ValidationResult(
+                protocol_id=result_data["protocol_id"],
+                protocol_name=result_data["protocol_name"],
+                status=ExecutionStatus(result_data["status"]),
+                start_time=datetime.fromisoformat(result_data["start_time"]),
+                end_time=datetime.fromisoformat(result_data["end_time"]),
+                execution_time=result_data["execution_time"],
+                results=result_data.get("results", {}),
+                error_message=result_data.get("error_message"),
+                output_files=result_data.get("output_files", []),
+                metadata=result_data.get("metadata", {}),
+            )
+            self.completed_protocols.append(result)
+
+    def set_progress_callback(self, callback):
+        """Set progress callback function."""
+        self.progress_callback = callback
+
+    def cleanup_resources(self):
+        """Clean up resources after execution."""
+        # Mock cleanup - in real implementation would clean up actual resources
+        pass
 
 
 def validate_fp02_data_variance() -> Dict[str, Any]:

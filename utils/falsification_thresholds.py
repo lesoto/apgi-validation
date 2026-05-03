@@ -52,7 +52,9 @@ F6_SPARSITY_ACTIVATION_THRESHOLD: float = 0.7  # activation > 0.7 counts as spik
 # Spec: cumulative variance ≥70 % by first 3 PCs.
 # Falsification alternative: <60 % is a fail.
 # ---------------------------------------------------------------------------
-F5_5_PCA_MIN_VARIANCE: float = 0.70  # ≥70 %  (spec)
+F5_5_PCA_MIN_VARIANCE_PAPER_SPEC: float = 0.70  # ≥70 %  (spec)
+F5_5_PCA_MIN_VARIANCE_SIMULATION: float = 0.60  # Simulation variant
+F5_5_PCA_MIN_VARIANCE: float = F5_5_PCA_MIN_VARIANCE_PAPER_SPEC  # ≥70 %  (spec)
 F5_5_PCA_FALSIFICATION_THRESHOLD: float = 0.60  # falsified if <60 %
 F5_5_MIN_LOADING: float = 0.60  # minimum PC loading (alias for consistency)
 F5_5_PCA_MIN_LOADING: float = F5_5_MIN_LOADING  # backward compatibility alias
@@ -224,6 +226,8 @@ V7_1_MIN_THRESHOLD_REDUCTION_PCT: float = 15.0  # ≥15 % reduction
 V7_1_MIN_EFFECT_DURATION_MIN: float = 60.0  # ≥60 min
 V7_1_MIN_COHENS_D: float = 0.70  # d ≥ 0.70
 V7_1_ALPHA: float = 0.01
+V7_1_MAX_LATENCY_MS: float = 150.0  # Maximum acceptable latency in milliseconds
+V7_1_MIN_PROCESSING_RATE: float = 10.0  # Minimum processing rate (Hz)
 
 # ---------------------------------------------------------------------------
 # V7.2 – Pharmacological Precision Modulation
@@ -253,6 +257,21 @@ V12_1_MIN_IGNITION_REDUCTION_PCT: float = (
 V12_1_MIN_COHENS_D: float = 0.80  # d ≥ 0.80  (spec)
 V12_1_MIN_ETA_SQUARED: float = 0.30  # η² ≥ 0.30  (spec)
 V12_1_ALPHA: float = 0.05
+
+# ---------------------------------------------------------------------------
+# V17 – Allen Visual Coding Fatigue Analysis
+# ---------------------------------------------------------------------------
+V17_MIN_R2_P3B_DECAY: float = 0.70  # R² ≥ 0.70 for P3b decay model
+V17_MIN_R2_THETA_ELEVATION: float = 0.60  # R² ≥ 0.60 for threshold elevation
+V17_MIN_CORRELATION_MAGNITUDE: float = 0.10  # |r| ≥ 0.10 for cross-measure correlations
+V17_ALPHA: float = 0.05  # significance level
+
+# ---------------------------------------------------------------------------
+# V16 – Metabolic ATP Ground-Truth
+# ---------------------------------------------------------------------------
+V16_MIN_CORRELATION: float = 0.75  # r > 0.75 for ATP trace correlation
+V16_MIN_EFFICIENCY_GAIN: float = 0.20  # >20% efficiency advantage
+V16_C1_CONSISTENCY_CV: float = 0.20  # CV < 0.20 for c1 consistency
 
 # F8.x — Parameter Sensitivity (FP-08 thresholds)
 # Specification vs Simulation variants for parameter sensitivity analysis
@@ -412,6 +431,7 @@ V9_3_MIN_CORRELATION: float = 0.70
 P7_MIN_AUC: float = 0.85  # AUC ≥ 0.85 for APGI as optimal Bayesian detector
 
 # Generic validation thresholds (used across multiple protocols)
+GENERIC_ALPHA: float = 0.05  # Generic significance threshold (standard p < 0.05)
 GENERIC_MIN_R2: float = 0.70  # Clinical biomarker thresholds (FP-04)
 GENERIC_MIN_AUC: float = 0.70  # Generic AUC threshold (DOC range 0.75-0.85)
 DOC_AUC_MIN = 0.75  # AUC target 0.75–0.85 for DoC classification
@@ -486,6 +506,42 @@ LIQUID_IGNITION_DETECTION_THRESHOLD: float = 0.50
 P11_MIN_R2: float = 0.70  # R² ≥ 0.70 for fatigue threshold linear model
 
 # ---------------------------------------------------------------------------
+# ALPHA Configuration Keys - Model Dynamics
+# ---------------------------------------------------------------------------
+ALPHA_SIGMOID: float = (
+    5.0  # Sigmoid steepness; used ONLY in ignition probability P(B=1|S,θ)
+)
+ALPHA_EMA: float = 0.05  # EMA smoothing rate for variance estimation; must be in (0,1)
+ALPHA_FEP: float = (
+    None  # FEP bridge sensitivity [AU/nat]; unspecified — pending P4 calibration
+)
+
+# ---------------------------------------------------------------------------
+# BETA Parameters - Canonical Names (Manuscript-Aligned)
+# BETA_SM and BETA_SOMATIC are distinct parameters. See P1 §Somatic Bias,
+# P1 §Equation 1, and Notation Appendix §Model Parameters for canonical definitions.
+# ---------------------------------------------------------------------------
+BETA_SM: float = (
+    0.6  # somatic marker exponential gain; eq. Pi_eff = Pi_base * exp(BETA_SM * M)
+)
+BETA_SOMATIC: float = (
+    1.2  # somatic bias weighting; multiplies interoceptive branch in accumulation
+)
+
+# ---------------------------------------------------------------------------
+# Depression Hyperconnectivity Tiered Criteria
+# Evidence-anchored tiered criteria (replaces overspecified absolute threshold)
+# ---------------------------------------------------------------------------
+DEPRESSION_HYPERCONNECTIVITY_CONSISTENT: float = (
+    0.15  # d ≈ 0.4; minimum consistent with literature
+)
+DEPRESSION_HYPERCONNECTIVITY_MODERATE: float = 0.25  # d ≈ 0.6; moderate effect
+DEPRESSION_HYPERCONNECTIVITY_STRONG: float = (
+    0.40  # d ≈ 0.8; strong effect (upper range)
+)
+# Note: ≥50% threshold is 2-3× meta-analytic estimates; retain as "exceptional" tier only
+
+# ---------------------------------------------------------------------------
 DEFAULT_ALPHA: float = 0.05  # default significance level
 BONFERRONI_ALPHA_6: float = 0.008  # Bonferroni-corrected (6 tests)
 
@@ -542,6 +598,13 @@ THRESHOLD_REGISTRY = {
     "V7.1_COHENS_D": V7_1_MIN_COHENS_D,
     "V9.1_CORR": V9_1_MIN_CORRELATION,
     "V9.3_CORR": V9_3_MIN_CORRELATION,
+    "V17_MIN_R2_P3B": V17_MIN_R2_P3B_DECAY,
+    "V17_MIN_R2_THETA": V17_MIN_R2_THETA_ELEVATION,
+    "V17_MIN_CORR": V17_MIN_CORRELATION_MAGNITUDE,
+    "V17_ALPHA": V17_ALPHA,
+    "V16_MIN_CORR": V16_MIN_CORRELATION,
+    "V16_MIN_EFFICIENCY": V16_MIN_EFFICIENCY_GAIN,
+    "V16_C1_CONSISTENCY": V16_C1_CONSISTENCY_CV,
     # Missing keys added for threshold_lint.py compliance
     "F2.3_ALPHA": F2_3_ALPHA,
     "F2.3_RT_ADVANTAGE": F2_3_MIN_RT_ADVANTAGE_MS,
@@ -988,13 +1051,14 @@ def test_f6_6_alternative_architectures(
     Returns:
         Dictionary with pass/fail result and metrics
     """
-    f6_6_pass = (
-        alternative_modules_needed >= min_modules_needed
-        and performance_gap_without_addons >= min_performance_gap
-    )
+    modules_pass = alternative_modules_needed >= min_modules_needed
+    performance_pass = performance_gap_without_addons >= min_performance_gap
+    f6_6_pass = modules_pass and performance_pass
 
     return {
         "passed": f6_6_pass,
+        "modules_pass": modules_pass,
+        "performance_pass": performance_pass,
         "add_ons_needed": alternative_modules_needed,
         "performance_gap": performance_gap_without_addons,
         "threshold": f"≥{min_modules_needed} add-ons, gap ≥{min_performance_gap}%",

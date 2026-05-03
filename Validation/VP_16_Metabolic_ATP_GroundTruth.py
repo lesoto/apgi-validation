@@ -24,10 +24,35 @@ import numpy as np
 from scipy import stats
 from scipy.optimize import curve_fit
 
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 # Add parent directory to path for imports
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+# Import falsification thresholds
+# ---------------------------------------------------------------------------
+try:
+    from utils.falsification_thresholds import (
+        DEFAULT_ALPHA,
+        V16_C1_CONSISTENCY_CV,
+        V16_MIN_CORRELATION,
+        V16_MIN_EFFICIENCY_GAIN,
+    )
+except ImportError:
+    # Fallback values if import fails
+    DEFAULT_ALPHA = 0.05
+    V16_C1_CONSISTENCY_CV = 0.20
+    V16_MIN_CORRELATION = 0.75
+    V16_MIN_EFFICIENCY_GAIN = 0.20
 
 from apgi_implementation import CONFIG, APGIModel
 

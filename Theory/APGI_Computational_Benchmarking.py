@@ -14,6 +14,15 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 import numpy as np
 
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 
 class ComputationalBenchmarking:
     """Computational benchmarking implementation."""

@@ -1,3 +1,5 @@
+import csv
+import json
 import logging
 import warnings
 from dataclasses import dataclass
@@ -2840,10 +2842,62 @@ def run_falsification():
         return {"status": "error", "message": str(e)}
 
 
+def _convert_to_serializable(obj):
+    """Convert numpy types to Python native types for JSON serialization."""
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.integer, np.int64, np.int32)):
+        return int(obj)
+    if isinstance(obj, (np.floating, np.float64, np.float32)):
+        return float(obj)
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, dict):
+        return {k: _convert_to_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_convert_to_serializable(item) for item in obj]
+    return obj
+
+
+def _save_fp04_outputs(results: Dict[str, Any]) -> None:
+    """Save FP-04 results to JSON and CSV formats."""
+    # Save JSON
+    json_path = "protocol4_results.json"
+    try:
+        serializable_results = _convert_to_serializable(results)
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(serializable_results, f, indent=2, default=str)
+        print(f"✓ Saved JSON results to {json_path}")
+    except Exception as e:
+        print(f"⚠ Failed to save JSON: {e}")
+
+    # Save CSV - criteria summary
+    csv_path = "protocol4_results.csv"
+    try:
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["criterion", "passed", "value", "threshold"])
+            named_predictions = results.get("named_predictions", {})
+            for pred_id, pred_data in named_predictions.items():
+                writer.writerow(
+                    [
+                        pred_id,
+                        pred_data.get("passed", False),
+                        str(pred_data.get("actual", "")),
+                        str(pred_data.get("threshold", "")),
+                    ]
+                )
+        print(f"✓ Saved CSV results to {csv_path}")
+    except Exception as e:
+        print(f"⚠ Failed to save CSV: {e}")
+
+
 # FIX #1: Add standardized ProtocolResult wrapper for FP-04
 def run_protocol(config=None):
-    """Legacy compatibility entry point."""
-    return run_falsification()
+    """Legacy compatibility entry point with file export."""
+    results = run_falsification()
+    _save_fp04_outputs(results)
+    return results
 
 
 # FIX: Add standardized ProtocolResult wrapper for FP-04

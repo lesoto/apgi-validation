@@ -3148,7 +3148,7 @@ Interpretation:
                 if hasattr(self.validator, "generate_master_report"):
                     report = self.validator.generate_master_report()
                     summary = Paragraph(
-                        f"Overall Decision: {report.get('overall_decision', 'Unknown')}",
+                        f"Overall Decision: {report.overall_decision}",
                         styles["Heading2"],
                     )
                     story.append(summary)
@@ -3214,11 +3214,9 @@ def run_headless() -> None:
 
             # Generate master report
             report = validator.generate_master_report()
+            logger.info(f"Overall Decision: {report.overall_decision}")
             logger.info(
-                f"Overall Decision: {report.get('overall_decision', 'Unknown')}"
-            )
-            logger.info(
-                f"Protocols Passed: {report.get('protocols_passed', 0)}/{report.get('protocols_run', 0)}"
+                f"Protocols Passed: {report.passed_protocols}/{report.completed_protocols}"
             )
 
         except Exception as e:

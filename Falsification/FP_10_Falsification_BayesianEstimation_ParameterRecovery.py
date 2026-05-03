@@ -14,11 +14,25 @@ Implementation Strategy:
 4. Validate parameter identifiability and recovery accuracy
 """
 
+import csv
+import json
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 
 # Import canonical MCMC functionality
 from Falsification.FP_10_BayesianEstimation_MCMC import (
@@ -343,7 +357,142 @@ class FP10bParameterRecovery:
                 "Parameter recovery validation passed successfully."
             )
 
+        # Generate PNG visualization
+        self._generate_fp10b_visualization(summary)
+
         return summary
+
+    def _generate_fp10b_visualization(
+        self, summary: Dict[str, Any], output_path: str = "FP_10b_results.png"
+    ) -> None:
+        """Generate PNG visualization of parameter recovery results.
+
+        Args:
+            summary: Summary dictionary from run_validation
+            output_path: Path to save the PNG visualization
+        """
+        if not HAS_MATPLOTLIB:
+            logger.warning("Matplotlib not available for visualization")
+            return
+
+        try:
+            fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+            fig.suptitle(
+                "FP-10b Parameter Recovery Validation", fontsize=14, fontweight="bold"
+            )
+
+            # Plot 1: Overall validation status
+            ax1 = axes[0, 0]
+            passed = summary.get("validation_passed", False)
+            colors = ["#2ecc71" if passed else "#e74c3c"]
+            ax1.bar(["Validation"], [1 if passed else 0], color=colors)
+            ax1.set_title("Validation Status")
+            ax1.set_ylabel("Pass (1) / Fail (0)")
+            ax1.set_ylim(0, 1.2)
+            status_text = "PASSED" if passed else "FAILED"
+            ax1.text(0, 0.5, status_text, ha="center", fontweight="bold", fontsize=12)
+
+            # Plot 2: Parameter recovery summary
+            ax2 = axes[0, 1]
+            param_summary = summary.get("parameter_recovery_summary", {})
+            if param_summary:
+                param_names = list(param_summary.keys())[:6]
+                errors = [
+                    param_summary[p].get("mean_relative_error", 0) for p in param_names
+                ]
+                ax2.barh(param_names, errors, color="#3498db")
+                ax2.set_title("Parameter Recovery Errors")
+                ax2.set_xlabel("Mean Relative Error")
+                ax2.axvline(
+                    x=0.1, color="#e74c3c", linestyle="--", label="Threshold (0.1)"
+                )
+                ax2.legend()
+
+            # Plot 3: Overall metrics
+            ax3 = axes[1, 0]
+            metrics = summary.get("overall_recovery_metrics", {})
+            if metrics:
+                metric_names = [
+                    "Mean Relative Error",
+                    "Mean Identifiability",
+                    "Success Rate",
+                ]
+                metric_values = [
+                    metrics.get("mean_relative_error_all_params", 0),
+                    metrics.get("mean_identifiability_score_all_params", 0),
+                    metrics.get("overall_success_rate", 0),
+                ]
+                colors = ["#e67e22", "#9b59b6", "#16a085"]
+                ax3.bar(metric_names, metric_values, color=colors)
+                ax3.set_title("Overall Recovery Metrics")
+                ax3.set_ylabel("Score/Rate")
+                ax3.tick_params(axis="x", rotation=15)
+                ax3.set_ylim(0, 1.2)
+
+            # Plot 4: Success rate donut chart
+            ax4 = axes[1, 1]
+            total = metrics.get("total_parameters_tested", 0)
+            passing = metrics.get("parameters_passing_threshold", 0)
+            if total > 0:
+                sizes = [passing, total - passing]
+                labels = [f"Passing ({passing})", f"Failing ({total - passing})"]
+                colors = ["#2ecc71", "#e74c3c"]
+                ax4.pie(
+                    sizes,
+                    labels=labels,
+                    colors=colors,
+                    autopct="%1.1f%%",
+                    startangle=90,
+                )
+                ax4.set_title("Parameters Passing Threshold")
+
+            plt.tight_layout()
+            plt.savefig(output_path, dpi=150, bbox_inches="tight")
+            plt.close(fig)
+            logger.info(f"✓ PNG visualization saved to {output_path}")
+        except Exception as e:
+            logger.warning(f"Failed to generate PNG visualization: {e}")
+
+    def save_results(self, output_dir: str = ".") -> None:
+        """Save parameter recovery results to JSON and CSV files."""
+        summary = self._compute_recovery_summary()
+
+        # Save JSON
+        json_path = Path(output_dir) / "protocol10b_results.json"
+        try:
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(summary, f, indent=2, default=str)
+            logger.info(f"✓ Saved JSON results to {json_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save JSON: {e}")
+
+        # Save CSV
+        csv_path = Path(output_dir) / "protocol10b_results.csv"
+        try:
+            with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    [
+                        "parameter",
+                        "mean_relative_error",
+                        "success_rate",
+                        "identifiability_score",
+                    ]
+                )
+                for param_name, param_data in summary.get(
+                    "parameter_recovery_summary", {}
+                ).items():
+                    writer.writerow(
+                        [
+                            param_name,
+                            param_data.get("mean_relative_error", ""),
+                            param_data.get("success_rate", ""),
+                            param_data.get("mean_identifiability_score", ""),
+                        ]
+                    )
+            logger.info(f"✓ Saved CSV results to {csv_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save CSV: {e}")
 
 
 # Forward canonical class references

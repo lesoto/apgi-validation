@@ -2276,9 +2276,185 @@ class ScriptRunnerGUI:
 # ============================================================================
 
 
+# ============================================================================
+# Headless Runner (--headless mode)
+# ============================================================================
+
+
+class HeadlessRunner:
+    """Run all Theory scripts without GUI for CI/headless validation."""
+
+    def __init__(self):
+        self.project_root = os.path.dirname(os.path.abspath(__file__))
+        self.theory_dir = os.path.join(self.project_root, "Theory")
+        self._messages = []
+
+    def log_message(self, msg):
+        """Print and buffer log messages."""
+        print(msg)
+        self._messages.append(msg)
+
+    def _discover_protocols(self):
+        """Reuse the GUI discovery logic without tkinter."""
+        # Instantiate a minimal object that has only the methods we need.
+        # We delegate to the static/standalone functions already defined.
+        dummy = object.__new__(ScriptRunnerGUI)
+        # Patch log_message so discovery errors surface in stdout
+        dummy.log_message = self.log_message  # type: ignore[attr-defined]
+        return ScriptRunnerGUI._discover_protocols(dummy, self.theory_dir)
+
+    def _execute_protocol(self, display_name, protocol_info):
+        """Execute a single protocol and return (success, message)."""
+        try:
+            file_path = protocol_info.get("file_path", "")
+            if not os.path.exists(file_path):
+                return False, f"File not found: {file_path}"
+
+            _mod_key = protocol_info.get(
+                "module_name", protocol_info["file"].replace(".py", "")
+            )
+            spec = importlib.util.spec_from_file_location(_mod_key, file_path)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[_mod_key] = module
+            try:
+                spec.loader.exec_module(module)
+            finally:
+                sys.modules.pop(_mod_key, None)
+
+            exec_info = protocol_info.get("execution_info", {})
+            exec_type = exec_info.get("type", "exec_module")
+
+            if exec_type == "module_function":
+                func_name = exec_info.get("function", "main")
+                run_func = getattr(module, func_name, None)
+                if run_func is None:
+                    return False, f"Function '{func_name}' not found in module"
+                try:
+                    run_func()
+                except TypeError:
+                    run_func()
+
+            elif exec_type == "class_method":
+                class_name = exec_info.get("class")
+                method_name = exec_info.get("method", "run_validation")
+                if not class_name:
+                    return False, "No class specified for class_method execution"
+                cls = getattr(module, class_name)
+                try:
+                    instance = cls()
+                except TypeError:
+                    return False, f"Cannot instantiate {class_name} without arguments"
+                method = getattr(instance, method_name, None)
+                if method is None:
+                    return False, f"Method '{method_name}' not found on {class_name}"
+                method()
+
+            else:
+                # exec_module — just loading it is sufficient
+                pass
+
+            return True, "OK"
+
+        except Exception as exc:
+            return False, str(exc)
+
+    def run_all(self):
+        """Discover and execute all Theory scripts. Returns exit code (0=all pass)."""
+        self.log_message("=" * 70)
+        self.log_message("APGI Theory GUI — Headless Validation Run")
+        self.log_message("=" * 70)
+
+        protocols = self._discover_protocols()
+
+        if not protocols:
+            self.log_message("[WARN] No theory scripts discovered in Theory/")
+            return 1
+
+        self.log_message(f"Discovered {len(protocols)} script(s).\n")
+
+        passed, failed = [], []
+
+        for i, (display_name, protocol_info) in enumerate(protocols.items(), 1):
+            self.log_message(
+                f"[{i:02d}/{len(protocols):02d}] Running: {display_name} "
+                f"({protocol_info['file']})"
+            )
+            ok, msg = self._execute_protocol(display_name, protocol_info)
+            if ok:
+                self.log_message("  ✓ PASS")
+                passed.append(display_name)
+            else:
+                self.log_message(f"  ✗ FAIL: {msg}")
+                failed.append((display_name, msg))
+            self.log_message("")
+
+        # ── Summary ──────────────────────────────────────────────────────────
+        self.log_message("=" * 70)
+        self.log_message("HEADLESS VALIDATION SUMMARY")
+        self.log_message("=" * 70)
+        self.log_message(f"  Total   : {len(protocols)}")
+        self.log_message(f"  Passed  : {len(passed)}")
+        self.log_message(f"  Failed  : {len(failed)}")
+
+        if failed:
+            self.log_message("\nFailed scripts:")
+            for name, err in failed:
+                self.log_message(f"  - {name}: {err}")
+
+        self.log_message("=" * 70)
+        return 0 if not failed else 1
+
+
 def main():
+    import argparse
     import platform
 
+    parser = argparse.ArgumentParser(
+        description="APGI Theory Framework GUI / Headless Runner"
+    )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run all Theory scripts without launching the GUI",
+    )
+    parser.add_argument(
+        "--script",
+        metavar="NAME",
+        default=None,
+        help="(headless) Run only the script whose display name contains NAME",
+    )
+    args = parser.parse_args()
+
+    if args.headless:
+        runner = HeadlessRunner()
+        if args.script:
+            # Filter to only matching scripts
+            protocols = runner._discover_protocols()
+            filtered = {
+                k: v for k, v in protocols.items() if args.script.lower() in k.lower()
+            }
+            if not filtered:
+                print(f"No scripts matching '{args.script}' found.")
+                sys.exit(1)
+            runner.log_message(
+                f"Running {len(filtered)} script(s) matching '{args.script}'\n"
+            )
+            passed, failed = [], []
+            for display_name, protocol_info in filtered.items():
+                runner.log_message(f"Running: {display_name}")
+                ok, msg = runner._execute_protocol(display_name, protocol_info)
+                if ok:
+                    runner.log_message("  ✓ PASS")
+                    passed.append(display_name)
+                else:
+                    runner.log_message(f"  ✗ FAIL: {msg}")
+                    failed.append((display_name, msg))
+            sys.exit(0 if not failed else 1)
+        else:
+            exit_code = runner.run_all()
+            sys.exit(exit_code)
+
+    # GUI mode
     if platform.system() == "Darwin":
         # macOS requires tkinter on main thread
         pass

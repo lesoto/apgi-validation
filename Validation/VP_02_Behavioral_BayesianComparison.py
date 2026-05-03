@@ -43,6 +43,17 @@ import pandas as pd
 from scipy import optimize, stats
 from scipy.stats import f_oneway, norm
 
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 tqdm: Any = None  # type: ignore[var-annotated]
 try:
     from tqdm import tqdm as _tqdm
@@ -1926,6 +1937,9 @@ def run_validation(
             ),
         }
 
+        # Generate PNG visualization
+        _generate_vp02_visualization(results, named_predictions, status)
+
         return ProtocolResult(
             protocol_id="VP_02_Behavioral_BayesianComparison",
             named_predictions=named_predictions,
@@ -1944,6 +1958,94 @@ def run_validation(
             errors=[str(exc)],
             metadata={"status": "error", "message": str(exc)},
         ).model_dump()
+
+
+def _generate_vp02_visualization(
+    results: Dict[str, Any],
+    named_predictions: Dict[str, Any],
+    status: str,
+    output_path: str = "VP_02_results.png",
+) -> None:
+    """Generate PNG visualization of VP-02 behavioral validation results.
+
+    Args:
+        results: Results dictionary from validation
+        named_predictions: Named predictions dictionary
+        status: Overall validation status
+        output_path: Path to save the PNG visualization
+    """
+    if not HAS_MATPLOTLIB:
+        logger.warning("Matplotlib not available for visualization")
+        return
+
+    try:
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle(
+            "VP-02 Behavioral Bayesian Comparison", fontsize=14, fontweight="bold"
+        )
+
+        # Plot 1: Overall validation status
+        ax1 = axes[0, 0]
+        passed = status == "passed"
+        colors = ["#2ecc71" if passed else "#e74c3c"]
+        ax1.bar(["Validation"], [1 if passed else 0], color=colors)
+        ax1.set_title("Validation Status")
+        ax1.set_ylabel("Pass (1) / Fail (0)")
+        ax1.set_ylim(0, 1.2)
+        status_text = "PASSED" if passed else "FAILED"
+        ax1.text(0, 0.5, status_text, ha="center", fontweight="bold", fontsize=12)
+
+        # Plot 2: Named predictions
+        ax2 = axes[0, 1]
+        if named_predictions:
+            pred_names = list(named_predictions.keys())[:6]
+            pred_values = [1 if named_predictions[p].passed else 0 for p in pred_names]
+            colors = ["#2ecc71" if v else "#e74c3c" for v in pred_values]
+            ax2.barh(pred_names, pred_values, color=colors)
+            ax2.set_title("Named Predictions Status")
+            ax2.set_xlabel("Pass (1) / Fail (0)")
+            ax2.set_xlim(0, 1.2)
+
+        # Plot 3: Falsification status summary
+        ax3 = axes[1, 0]
+        falsification = results.get("falsification_status", {})
+        if falsification:
+            criteria = list(falsification.keys())[:8]
+            passed_criteria = [
+                1 if falsification[c].get("passed", False) else 0 for c in criteria
+            ]
+            colors = ["#2ecc71" if v else "#e74c3c" for v in passed_criteria]
+            ax3.barh(criteria, passed_criteria, color=colors)
+            ax3.set_title("Falsification Criteria Status")
+            ax3.set_xlabel("Pass (1) / Fail (0)")
+            ax3.set_xlim(0, 1.2)
+
+        # Plot 4: Primary predictions summary
+        ax4 = axes[1, 1]
+        primary = results.get("primary_predictions", {})
+        if primary:
+            p1_1 = primary.get("P1_1", {})
+            p1_2 = primary.get("P1_2", {})
+            p1_3 = primary.get("P1_3", {})
+            names = ["P1.1: Threshold", "P1.2: Arousal", "P1.3: Benefit"]
+            values = [
+                1 if p1_1.get("passed", False) else 0,
+                1 if p1_2.get("passed", False) else 0,
+                1 if p1_3.get("passed", False) else 0,
+            ]
+            colors = ["#2ecc71" if v else "#e74c3c" for v in values]
+            ax4.bar(names, values, color=colors)
+            ax4.set_title("Primary Predictions (P1.x)")
+            ax4.set_ylabel("Pass (1) / Fail (0)")
+            ax4.set_ylim(0, 1.2)
+            ax4.tick_params(axis="x", rotation=15)
+
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        logger.info(f"✓ PNG visualization saved to {output_path}")
+    except Exception as e:
+        logger.warning(f"Failed to generate PNG visualization: {e}")
 
 
 def run_protocol():

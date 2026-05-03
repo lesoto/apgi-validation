@@ -6,6 +6,8 @@ This protocol implements validation of neural signatures for consciousness marke
 Per Step 1.6 - Implement FP-9 real EEG signal processing.
 """
 
+import csv  # noqa: F401
+import json  # noqa: F401
 import logging
 import sys
 from pathlib import Path
@@ -3594,40 +3596,146 @@ if __name__ == "__main__":
     print("VALIDATION COMPLETE")
     print("=" * 80)
 
-    # Generate PNG output
-    try:
-        from utils.protocol_visualization import add_standard_png_output
+    # Save all output formats (JSON, CSV, PNG)
+    def _save_fp09_outputs(results: Dict[str, Any]) -> None:
+        """Save FP-09 results to JSON, CSV, and PNG formats."""
+        import csv
+        import json
 
-        def fp09_custom_plot(fig, ax):
-            """Custom plot for FP-09 Neural Signatures"""
-            passed = sum(
-                1 for r in results.get("results", []) if r.get("passed", False)
-            )
-            total = len(results.get("results", []))
+        # Save JSON
+        json_path = "protocol09_results.json"
+        try:
 
-            if total > 0:
-                metrics = ["Passed", "Failed"]
-                values = [passed, total - passed]
-                colors = ["#2ecc71", "#e74c3c"]
+            def convert_to_serializable(obj):
+                if hasattr(obj, "value"):  # NeuralSignatureResult dataclass
+                    return {
+                        "value": obj.value,
+                        "threshold": obj.threshold,
+                        "significant": obj.significant,
+                        "effect_size": obj.effect_size,
+                        "falsification_passed": obj.falsification_passed,
+                        "description": obj.description,
+                    }
+                elif isinstance(obj, dict):
+                    return {k: convert_to_serializable(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_to_serializable(item) for item in obj]
+                return obj
 
-                wedges, texts, autotexts = ax.pie(
-                    values, labels=metrics, colors=colors, autopct="%1.1f%%"
+            serializable_results = convert_to_serializable(results)
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(serializable_results, f, indent=2, default=str)
+            print(f"✓ Saved JSON results to {json_path}")
+        except Exception as e:
+            print(f"⚠ Failed to save JSON: {e}")
+
+        # Save CSV - predictions summary
+        csv_path = "protocol09_results.csv"
+        try:
+            with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    [
+                        "prediction_id",
+                        "status",
+                        "description",
+                        "passed",
+                        "value",
+                        "threshold",
+                    ]
                 )
-                ax.set_title(f"Neural Signature Validation\n{passed}/{total} Passed")
-                return True
-            return False
 
-        success = add_standard_png_output(
-            9, results, fp09_custom_plot, "Neural Signatures"
-        )
-        if success:
-            print("✓ Generated protocol09.png visualization")
-        else:
-            print("⚠ Failed to generate protocol09.png visualization")
-    except ImportError:
-        print("⚠ Visualization utilities not available")
-    except Exception as e:
-        print(f"⚠ Error generating visualization: {e}")
+                # Write paper predictions
+                for pred_id, pred_info in results.get(
+                    "paper_predictions_status", {}
+                ).items():
+                    writer.writerow(
+                        [
+                            pred_id,
+                            pred_info.get("status", ""),
+                            pred_info.get("description", ""),
+                            pred_info.get("status") == "PASS",
+                            "",
+                            "",
+                        ]
+                    )
+
+                # Write comprehensive validation results
+                for pred_id, result in (
+                    results.get("comprehensive_validation", {})
+                    .get("prediction_results", {})
+                    .items()
+                ):
+                    if hasattr(result, "value"):  # NeuralSignatureResult
+                        writer.writerow(
+                            [
+                                pred_id,
+                                "PASS" if result.falsification_passed else "FAIL",
+                                result.description,
+                                result.falsification_passed,
+                                result.value,
+                                result.threshold,
+                            ]
+                        )
+            print(f"✓ Saved CSV results to {csv_path}")
+        except Exception as e:
+            print(f"⚠ Failed to save CSV: {e}")
+
+        # Generate PNG visualization
+        try:
+            from utils.protocol_visualization import add_standard_png_output
+
+            def fp09_custom_plot(fig, ax):
+                """Custom plot for FP-09 Neural Signatures"""
+                # Get predictions from both sources
+                paper_preds = results.get("paper_predictions_status", {})
+                comp_preds = results.get("comprehensive_validation", {}).get(
+                    "prediction_results", {}
+                )
+
+                passed = 0
+                total = 0
+
+                # Count from paper predictions
+                for pred_info in paper_preds.values():
+                    total += 1
+                    if pred_info.get("status") == "PASS":
+                        passed += 1
+
+                # Count from comprehensive results
+                for result in comp_preds.values():
+                    if hasattr(result, "falsification_passed"):
+                        total += 1
+                        if result.falsification_passed:
+                            passed += 1
+
+                if total > 0:
+                    metrics = ["Passed", "Failed"]
+                    values = [passed, total - passed]
+                    colors = ["#2ecc71", "#e74c3c"]
+
+                    wedges, texts, autotexts = ax.pie(
+                        values, labels=metrics, colors=colors, autopct="%1.1f%%"
+                    )
+                    ax.set_title(
+                        f"Neural Signature Validation\n{passed}/{total} Passed"
+                    )
+                    return True
+                return False
+
+            success = add_standard_png_output(
+                9, results, fp09_custom_plot, "Neural Signatures"
+            )
+            if success:
+                print("✓ Generated protocol09.png visualization")
+            else:
+                print("⚠ Failed to generate protocol09.png visualization")
+        except ImportError:
+            print("⚠ Visualization utilities not available")
+        except Exception as e:
+            print(f"⚠ Error generating visualization: {e}")
+
+    _save_fp09_outputs(results)
 
 
 # FIX #2: Add standardized ProtocolResult wrapper for FP-09

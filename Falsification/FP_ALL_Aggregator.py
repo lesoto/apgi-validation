@@ -14,6 +14,7 @@ Usage:
     results = aggregator.run_full_analysis()
 """
 
+import csv  # noqa: F401
 import json
 import logging
 import math
@@ -25,6 +26,17 @@ from typing import Any, Dict, List, Optional, cast
 import numpy as np
 import scipy.io as sio
 from scipy.optimize import curve_fit
+
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -1373,7 +1385,98 @@ def run_falsification():
     results = run_framework_falsification(results_input)
 
     logger.info("Framework falsification aggregation completed")
+
+    # Generate PNG visualization
+    _generate_fp_all_visualization(results)
+
     return results
+
+
+def _generate_fp_all_visualization(
+    results: dict, output_path: str = "FP_ALL_results.png"
+) -> None:
+    """Generate PNG visualization of framework falsification results.
+
+    Args:
+        results: Results dictionary from run_framework_falsification
+        output_path: Path to save the PNG visualization
+    """
+    if not HAS_MATPLOTLIB:
+        logger.warning("Matplotlib not available for visualization")
+        return
+
+    try:
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle(
+            "FP-ALL Framework Falsification Aggregator", fontsize=14, fontweight="bold"
+        )
+
+        # Plot 1: Falsification conditions status
+        ax1 = axes[0, 0]
+        condition_a = results.get("condition_a_met", False)
+        condition_b = results.get("condition_b_met", False)
+        conditions = ["Condition A\n(All 14 fail)", "Condition B\n(ΔBIC > 10)"]
+        values = [1 if condition_a else 0, 1 if condition_b else 0]
+        colors = ["#e74c3c" if v else "#2ecc71" for v in values]
+        ax1.bar(conditions, values, color=colors)
+        ax1.set_title("Falsification Conditions")
+        ax1.set_ylabel("Triggered (1) / Safe (0)")
+        ax1.set_ylim(0, 1.2)
+
+        # Plot 2: Prediction status summary
+        ax2 = axes[0, 1]
+        predictions = results.get("predictions", {})
+        if predictions:
+            passed = sum(1 for p in predictions.values() if p.get("passed", False))
+            failed = len(predictions) - passed
+            ax2.pie(
+                [passed, failed],
+                labels=[f"Passed ({passed})", f"Failed ({failed})"],
+                colors=["#2ecc71", "#e74c3c"],
+                autopct="%1.1f%%",
+                startangle=90,
+            )
+            ax2.set_title("Named Predictions Status")
+
+        # Plot 3: Protocol results
+        ax3 = axes[1, 0]
+        protocol_results = results.get("protocol_results", {})
+        if protocol_results:
+            proto_names = list(protocol_results.keys())[:8]
+            proto_passed = [
+                1 if protocol_results[p].get("passed", False) else 0
+                for p in proto_names
+            ]
+            colors = ["#2ecc71" if v else "#e74c3c" for v in proto_passed]
+            ax3.barh(proto_names, proto_passed, color=colors)
+            ax3.set_title("Protocol Results (Sample)")
+            ax3.set_xlabel("Pass (1) / Fail (0)")
+            ax3.set_xlim(0, 1.2)
+
+        # Plot 4: Overall falsification summary
+        ax4 = axes[1, 1]
+        overall = results.get("overall", {})
+        if overall:
+            metrics = {
+                "Total Passed": overall.get("total_passed", 0),
+                "Total Failed": overall.get("total_failed", 0),
+                "Framework Safe": (
+                    1 if not overall.get("framework_falsified", False) else 0
+                ),
+            }
+            names = list(metrics.keys())
+            values = list(metrics.values())
+            colors = ["#2ecc71", "#e74c3c", "#3498db"]
+            ax4.bar(names, values, color=colors)
+            ax4.set_title("Overall Summary")
+            ax4.set_ylabel("Count / Status")
+
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        logger.info(f"✓ PNG visualization saved to {output_path}")
+    except Exception as e:
+        logger.warning(f"Failed to generate PNG visualization: {e}")
 
 
 def generate_recommendation(aggregated_results: dict) -> str:
@@ -1766,6 +1869,58 @@ class FalsificationAggregator:
             dict: Complete falsification report
         """
         return run_framework_falsification(results_input)
+
+    def save_results(self, results: Dict[str, Any], output_dir: str = ".") -> None:
+        """Save aggregated falsification results to JSON and CSV files.
+
+        Args:
+            results: Aggregated results from run_framework_falsification()
+            output_dir: Directory to save output files (default: current directory)
+        """
+        import csv
+
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        # Save JSON
+        json_file = output_path / "fp_all_results.json"
+        try:
+            with open(json_file, "w", encoding="utf-8") as f:
+                json.dump(results, f, indent=2, default=str)
+            print(f"✓ Saved JSON results to {json_file}")
+        except Exception as e:
+            print(f"⚠ Failed to save JSON: {e}")
+
+        # Save CSV summary
+        csv_file = output_path / "fp_all_results.csv"
+        try:
+            with open(csv_file, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["prediction_id", "passed", "value", "threshold"])
+                predictions = results.get("apgi_predictions", {})
+                for pred_id, pred_data in predictions.items():
+                    writer.writerow(
+                        [
+                            pred_id,
+                            pred_data.get("passed", False),
+                            str(pred_data.get("value", "")),
+                            str(pred_data.get("threshold", "")),
+                        ]
+                    )
+                # Add summary row
+                summary = results.get("summary", {})
+                writer.writerow(
+                    ["total_predictions", summary.get("total_predictions", 0), "", ""]
+                )
+                writer.writerow(
+                    ["apgi_passing", summary.get("apgi_passing", 0), "", ""]
+                )
+                writer.writerow(
+                    ["apgi_failing", summary.get("apgi_failing", 0), "", ""]
+                )
+            print(f"✓ Saved CSV results to {csv_file}")
+        except Exception as e:
+            print(f"⚠ Failed to save CSV: {e}")
 
 
 if __name__ == "__main__":

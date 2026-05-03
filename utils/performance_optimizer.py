@@ -64,6 +64,8 @@ class MemoizationCache:
                 value, timestamp = self._cache[key]
                 if time.time() - timestamp < self.ttl_seconds:
                     self._hits += 1
+                    # Update timestamp for LRU tracking
+                    self._cache[key] = (value, time.time())
                     return value
                 else:
                     # Expired
@@ -549,6 +551,67 @@ def clear_performance_cache():
 def get_cache_statistics() -> Dict[str, Any]:
     """Get current cache statistics."""
     return _global_cache.get_stats()
+
+
+def parallel_map(
+    func: Callable[[Any], Any],
+    inputs: List[Any],
+    max_workers: Optional[int] = None,
+    use_processes: bool = False,
+) -> List[Any]:
+    """
+    Execute function in parallel over a list of inputs.
+
+    Args:
+        func: Function to apply to each input
+        inputs: List of input values
+        max_workers: Maximum number of parallel workers (default: CPU count)
+        use_processes: Use process pool instead of thread pool (for CPU-bound tasks)
+
+    Returns:
+        List of results in the same order as inputs
+    """
+    if not inputs:
+        return []
+
+    if max_workers is None:
+        max_workers = min(32, multiprocessing.cpu_count() + 4)
+
+    executor_class = ProcessPoolExecutor if use_processes else ThreadPoolExecutor
+
+    with executor_class(max_workers=max_workers) as executor:
+        results = list(executor.map(func, inputs))
+
+    return results
+
+
+def timed_execution(func: Callable) -> Callable:
+    """
+    Decorator that times function execution and logs performance metrics.
+
+    Args:
+        func: Function to wrap with timing
+
+    Returns:
+        Wrapped function that tracks execution time
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        try:
+            result = func(*args, **kwargs)
+            return result
+        finally:
+            end_time = time.perf_counter()
+            execution_time = end_time - start_time
+            # Log timing info if logger available
+            if apgi_logger and hasattr(apgi_logger, "debug"):
+                apgi_logger.debug(
+                    f"Function '{func.__name__}' executed in {execution_time:.4f}s"
+                )
+
+    return wrapper
 
 
 if __name__ == "__main__":

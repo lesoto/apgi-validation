@@ -3095,36 +3095,85 @@ def check_falsification(
     return results
 
 
-if __name__ == "__main__":
-    print("Running FP-05 Evolutionary Plausibility Protocol...")
-    # Note: This would need proper data inputs to run fully
-    # For now, we create a placeholder to demonstrate PNG output
-    placeholder_results = {
-        "status": "placeholder",
-        "summary": {"passed": 0, "failed": 0, "total": 16},
-        "criteria": {},
-    }
+def _save_fp05_outputs(results: Dict[str, Any]) -> None:
+    """Save FP-05 results to JSON, CSV, and PNG formats."""
+    import csv
+    import json
 
-    # Generate PNG output
+    # Save JSON
+    json_path = "protocol5_results.json"
+    try:
+
+        def convert_to_serializable(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, (np.integer, np.floating)):
+                return float(obj)
+            elif isinstance(obj, dict):
+                return {k: convert_to_serializable(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_to_serializable(item) for item in obj]
+            return obj
+
+        serializable_results = convert_to_serializable(results)
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(serializable_results, f, indent=2, default=str)
+        print(f"✓ Saved JSON results to {json_path}")
+    except Exception as e:
+        print(f"⚠ Failed to save JSON: {e}")
+
+    # Save CSV - criteria summary
+    csv_path = "protocol5_results.csv"
+    try:
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(
+                ["criterion", "passed", "effect_size", "threshold", "description"]
+            )
+            for criterion, data in results.get("criteria", {}).items():
+                writer.writerow(
+                    [
+                        criterion,
+                        data.get("passed", False),
+                        data.get("effect_size", ""),
+                        data.get("threshold", ""),
+                        data.get("description", ""),
+                    ]
+                )
+        print(f"✓ Saved CSV results to {csv_path}")
+    except Exception as e:
+        print(f"⚠ Failed to save CSV: {e}")
+
+    # Generate PNG visualization
     try:
         from utils.protocol_visualization import add_standard_png_output
 
         def fp05_custom_plot(fig, ax):
             """Custom plot for FP-05 Evolutionary Plausibility"""
-            # Placeholder visualization
-            ax.text(
-                0.5,
-                0.5,
-                "FP-05 Evolutionary Plausibility\n(Requires simulation data)",
-                ha="center",
-                va="center",
-                fontsize=14,
-            )
-            ax.set_title("Evolutionary Plausibility Analysis")
+            criteria = results.get("criteria", {})
+            if criteria:
+                criteria_ids = list(criteria.keys())[:6]
+                passed = [
+                    criteria.get(c, {}).get("passed", False) for c in criteria_ids
+                ]
+                effect_sizes = [
+                    criteria.get(c, {}).get("effect_size", 0) for c in criteria_ids
+                ]
+
+                colors = ["#2ecc71" if p else "#e74c3c" for p in passed]
+                ax.bar(criteria_ids, effect_sizes, color=colors)
+                ax.axhline(y=0.5, color="black", linestyle="--", label="Threshold")
+                ax.set_title("Evolutionary Criteria Effect Sizes")
+                ax.set_ylabel("Effect Size")
+                ax.legend()
+            else:
+                ax.text(
+                    0.5, 0.5, "No criteria data available", ha="center", va="center"
+                )
             return True
 
         success = add_standard_png_output(
-            5, placeholder_results, fp05_custom_plot, "Evolutionary Plausibility"
+            5, results, fp05_custom_plot, "Evolutionary Plausibility"
         )
         if success:
             print("✓ Generated protocol05.png visualization")
@@ -3134,6 +3183,29 @@ if __name__ == "__main__":
         print("⚠ Visualization utilities not available")
     except Exception as e:
         print(f"⚠ Error generating visualization: {e}")
+
+
+if __name__ == "__main__":
+    print("Running FP-05 Evolutionary Plausibility Protocol...")
+
+    # Run actual falsification protocol
+    results = run_falsification()
+
+    # Save all output formats
+    _save_fp05_outputs(results)
+
+    print("\n" + "=" * 50)
+    print("FP-05 FALSIFICATION REPORT")
+    print("=" * 50)
+    summary = results.get("summary", {})
+    print(
+        f"Summary: {summary.get('passed', 0)}/{summary.get('total', 0)} criteria passed"
+    )
+    print("-" * 50)
+    for criterion, data in results.get("criteria", {}).items():
+        status = "PASS" if data.get("passed") else "FAIL"
+        print(f"{criterion}: {status}")
+    print("=" * 50)
 
 
 # FIX #1: Add standardized ProtocolResult wrapper for FP-05

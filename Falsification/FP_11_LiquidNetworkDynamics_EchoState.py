@@ -5,6 +5,8 @@ Falsification Protocol 12: Liquid Network Validation
 This protocol implements validation of liquid network properties for APGI models.
 """
 
+import csv  # noqa: F401
+import json  # noqa: F401
 import logging
 import sys
 from dataclasses import dataclass
@@ -3025,59 +3027,151 @@ if __name__ == "__main__":
     print(f"OVERALL VALIDATION STATUS: {overall_status}")
     print("=" * 80)
 
-    # Generate PNG output
-    try:
-        from utils.protocol_visualization import add_standard_png_output
+    # Save all output formats (JSON, CSV, PNG)
+    def _save_fp11_outputs(results: Dict[str, Any]) -> None:
+        """Save FP-11 results to JSON, CSV, and PNG formats."""
+        import csv
+        import json
 
-        def fp11_custom_plot(fig, ax):
-            """Custom plot for FP-11 Liquid Network Dynamics"""
-            property_scores = results.get("property_scores", {})
+        # Save JSON
+        json_path = "protocol11_results.json"
+        try:
 
-            if property_scores:
-                test_names = list(property_scores.keys())[:5]  # Limit to 5 tests
-                scores = []
-                for name in test_names:
-                    score = property_scores[name]
+            def convert_to_serializable(obj):
+                if isinstance(obj, dict):
+                    return {k: convert_to_serializable(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_to_serializable(item) for item in obj]
+                elif isinstance(obj, (int, float, bool, str)):
+                    return obj
+                return str(obj)
+
+            serializable_results = convert_to_serializable(results)
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(serializable_results, f, indent=2, default=str)
+            print(f"✓ Saved JSON results to {json_path}")
+        except Exception as e:
+            print(f"⚠ Failed to save JSON: {e}")
+
+        # Save CSV - property scores and falsification status
+        csv_path = "protocol11_results.csv"
+        try:
+            with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["test_name", "category", "score_or_status", "passed"])
+
+                # Write property scores
+                for test_name, score in results.get("property_scores", {}).items():
                     if isinstance(score, (int, float)):
-                        scores.append(score)
+                        writer.writerow(
+                            [test_name, "property_score", score, score > 0.5]
+                        )
                     else:
-                        scores.append(0.5)  # Default for non-numeric scores
+                        writer.writerow([test_name, "property_score", str(score), ""])
 
-                bars = ax.bar(
-                    range(len(test_names)), scores, color="#3498db", alpha=0.7
-                )
-                ax.set_title("Liquid Network Property Scores")
-                ax.set_ylabel("Score")
-                ax.set_ylim(0, 1.0)
-                ax.set_xticks(range(len(test_names)))
-                ax.set_xticklabels(test_names, rotation=45, ha="right")
-                ax.grid(True, alpha=0.3, axis="y")
+                # Write APGI compliance
+                for metric, score in results.get("apgi_compliance", {}).items():
+                    if isinstance(score, bool):
+                        writer.writerow([metric, "apgi_compliance", int(score), score])
+                    else:
+                        writer.writerow([metric, "apgi_compliance", score, score > 0.5])
 
-                # Add value labels
-                for bar, value in zip(bars, scores):
-                    height = bar.get_height()
-                    ax.text(
-                        bar.get_x() + bar.get_width() / 2,
-                        height + 0.02,
-                        f"{value:.2f}",
-                        ha="center",
-                        va="bottom",
+                # Write falsification status
+                for test_name, falsified in results.get(
+                    "falsification_status", {}
+                ).items():
+                    writer.writerow(
+                        [
+                            test_name,
+                            "falsification_status",
+                            "FALSIFIED" if falsified else "VALID",
+                            not falsified,
+                        ]
                     )
 
-                return True
-            return False
+                # Write topology validation
+                for test_name, passed in results.get("topology_validation", {}).items():
+                    writer.writerow(
+                        [
+                            test_name,
+                            "topology_validation",
+                            "PASS" if passed else "FAIL",
+                            passed,
+                        ]
+                    )
 
-        success = add_standard_png_output(
-            11, results, fp11_custom_plot, "Liquid Network Dynamics"
-        )
-        if success:
-            print("✓ Generated protocol11.png visualization")
-        else:
-            print("⚠ Failed to generate protocol11.png visualization")
-    except ImportError:
-        print("⚠ Visualization utilities not available")
-    except Exception as e:
-        print(f"⚠ Error generating visualization: {e}")
+            print(f"✓ Saved CSV results to {csv_path}")
+        except Exception as e:
+            print(f"⚠ Failed to save CSV: {e}")
+
+        # Generate PNG visualization
+        try:
+
+            def fp11_custom_plot(fig, ax):
+                """Custom plot for FP-11 Liquid Network Dynamics"""
+                property_scores = results.get("property_scores", {})
+
+                if property_scores:
+                    test_names = list(property_scores.keys())[:5]  # Limit to 5 tests
+                    scores = []
+                    for name in test_names:
+                        score = property_scores[name]
+                        if isinstance(score, (int, float)):
+                            scores.append(score)
+                        else:
+                            scores.append(0.5)  # Default for non-numeric scores
+
+                    bars = ax.bar(
+                        range(len(test_names)), scores, color="#3498db", alpha=0.7
+                    )
+                    ax.set_title("Liquid Network Property Scores")
+                    ax.set_ylabel("Score")
+                    ax.set_ylim(0, 1.0)
+                    ax.set_xticks(range(len(test_names)))
+                    ax.set_xticklabels(test_names, rotation=45, ha="right")
+                    ax.grid(True, alpha=0.3, axis="y")
+
+                    # Add value labels
+                    for bar, value in zip(bars, scores):
+                        height = bar.get_height()
+                        ax.text(
+                            bar.get_x() + bar.get_width() / 2,
+                            height + 0.02,
+                            f"{value:.2f}",
+                            ha="center",
+                            va="bottom",
+                        )
+
+                    return True
+                return False
+
+            # Create visualizer with correct output directory
+            from utils.protocol_visualization import ProtocolVisualizer
+            import os
+
+            visualizer = ProtocolVisualizer(
+                11, output_dir="validation_results/visualizations"
+            )
+            success = visualizer.create_custom_plot(
+                fp11_custom_plot, "Liquid Network Dynamics"
+            )
+            if success:
+                if os.path.exists("validation_results/visualizations/protocol11.png"):
+                    os.rename(
+                        "validation_results/visualizations/protocol11.png",
+                        "validation_results/visualizations/protocol11_results.png",
+                    )
+                print(
+                    "✓ Generated validation_results/visualizations/protocol11_results.png"
+                )
+            else:
+                print("⚠ Failed to generate protocol11_results.png visualization")
+        except ImportError:
+            print("⚠ Visualization utilities not available")
+        except Exception as e:
+            print(f"⚠ Error generating visualization: {e}")
+
+    _save_fp11_outputs(results)
 
 
 class LiquidNetworkDynamicsAnalyzer:

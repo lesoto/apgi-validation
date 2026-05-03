@@ -28,6 +28,8 @@ Tolerance Specification:
 Per V5.1 criteria_registry: numerical accuracy ε ≤ 1e-6
 """
 
+import csv
+import json
 import logging
 from typing import Any, Dict, List, Optional, cast
 
@@ -3489,10 +3491,65 @@ def run_protocol(config=None):
     return run_falsification()
 
 
+# FIX: Define output saving function before main block uses it
+def _save_fp07_outputs(results):
+    """Save FP-07 results to JSON and CSV formats."""
+    # Save JSON
+    json_path = "protocol7_results.json"
+    # Import numpy for serialization check
+    import numpy as np
+
+    def _convert_to_serializable(obj):
+        """Convert numpy types to Python native types for JSON serialization."""
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        if isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        if isinstance(obj, np.bool_):
+            return bool(obj)
+        if isinstance(obj, dict):
+            return {k: _convert_to_serializable(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [_convert_to_serializable(item) for item in obj]
+        return obj
+
+    serializable_results = _convert_to_serializable(results)
+    try:
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(serializable_results, f, indent=2, default=str)
+        print(f"✓ Saved JSON results to {json_path}")
+    except Exception as e:
+        print(f"⚠ Failed to save JSON: {e}")
+
+    # Save CSV
+    csv_path = "protocol7_results.csv"
+    try:
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["test_name", "passed", "value", "expected"])
+            for test_name, test_data in results.get("test_results", {}).items():
+                writer.writerow(
+                    [
+                        test_name,
+                        test_data.get("passed", False),
+                        test_data.get("value", ""),
+                        test_data.get("expected", ""),
+                    ]
+                )
+        print(f"✓ Saved CSV results to {csv_path}")
+    except Exception as e:
+        print(f"⚠ Failed to save CSV: {e}")
+
+
 if __name__ == "__main__":
     results = run_mathematical_consistency_check()
     print("Mathematical consistency check results:")
     print(results)
+
+    # Save JSON and CSV outputs
+    _save_fp07_outputs(results)
 
     # Generate PNG output
     try:

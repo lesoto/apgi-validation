@@ -7,8 +7,10 @@ Based on: "PUBLIC DATASET CATALOGUE" (Last updated: Apr 22, 2026
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 class DatasetTier(Enum):
@@ -26,6 +28,232 @@ class AccessStatus(Enum):
     AUTHOR_REQUEST = "yellow"  # Contact authors
     INSTITUTIONAL = "red"  # DUA required
     FORTHCOMING = "forthcoming"  # Not yet released
+
+
+class DatasetType(Enum):
+    """Dataset type classification."""
+
+    BEHAVIORAL = "behavioral"
+    NEUROIMAGING = "neuroimaging"
+    PHYSIOLOGICAL = "physiological"
+    GENETIC = "genetic"
+    MULTIMODAL = "multimodal"
+
+
+class DataQuality(Enum):
+    """Data quality rating."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    EXCELLENT = "excellent"
+
+
+@dataclass
+class DatasetMetadata:
+    """Metadata for a dataset in the catalog."""
+
+    name: str
+    dataset_type: DatasetType
+    description: str
+    source: str
+    date_created: datetime
+    file_path: str
+    file_size: int
+    format: str
+    quality: DataQuality
+    subjects: int
+    sessions: int
+    duration_minutes: int
+    tags: List[str] = field(default_factory=list)
+    notes: str = ""
+    doi: Optional[str] = None
+    license: Optional[str] = None
+
+
+@dataclass
+class SearchCriteria:
+    """Search criteria for filtering datasets."""
+
+    dataset_types: Optional[List[DatasetType]] = None
+    min_subjects: Optional[int] = None
+    max_subjects: Optional[int] = None
+    quality_levels: Optional[List[DataQuality]] = None
+    tags: Optional[List[str]] = None
+    keywords: Optional[List[str]] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+
+
+class EmpiricalDatasetCatalog:
+    """Catalog for managing empirical datasets."""
+
+    def __init__(self, data_dir: str):
+        self.data_dir = Path(data_dir)
+        self.datasets: Dict[str, DatasetMetadata] = {}
+        self.metadata_file = self.data_dir / "catalog_metadata.json"
+        self.metadata_file.touch(exist_ok=True)
+
+    def add_dataset(self, metadata: DatasetMetadata):
+        """Add a dataset to the catalog."""
+        if metadata.name in self.datasets:
+            raise ValueError(f"Dataset '{metadata.name}' already exists in catalog")
+        # Validate file exists
+        if not Path(metadata.file_path).exists():
+            raise FileNotFoundError(f"Dataset file not found: {metadata.file_path}")
+        self.datasets[metadata.name] = metadata
+
+    def remove_dataset(self, name: str) -> bool:
+        """Remove a dataset from the catalog."""
+        if name in self.datasets:
+            del self.datasets[name]
+            return True
+        return False
+
+    def search(self, criteria: SearchCriteria) -> List[DatasetMetadata]:
+        """Search datasets based on criteria."""
+        results = []
+        for dataset in self.datasets.values():
+            if self._matches_criteria(dataset, criteria):
+                results.append(dataset)
+        return results
+
+    def _matches_criteria(
+        self, dataset: DatasetMetadata, criteria: SearchCriteria
+    ) -> bool:
+        """Check if dataset matches search criteria."""
+        if (
+            criteria.dataset_types
+            and dataset.dataset_type not in criteria.dataset_types
+        ):
+            return False
+        if criteria.min_subjects and dataset.subjects < criteria.min_subjects:
+            return False
+        if criteria.max_subjects and dataset.subjects > criteria.max_subjects:
+            return False
+        if criteria.quality_levels and dataset.quality not in criteria.quality_levels:
+            return False
+        if criteria.tags and not any(tag in dataset.tags for tag in criteria.tags):
+            return False
+        if criteria.start_date and dataset.date_created < criteria.start_date:
+            return False
+        if criteria.end_date and dataset.date_created > criteria.end_date:
+            return False
+        return True
+
+    def export_catalog(self, file_path: str):
+        """Export catalog to JSON file."""
+        export_data = {
+            "datasets": [
+                {
+                    "name": metadata.name,
+                    "dataset_type": metadata.dataset_type.value,
+                    "description": metadata.description,
+                    "source": metadata.source,
+                    "date_created": metadata.date_created.isoformat(),
+                    "file_path": metadata.file_path,
+                    "file_size": metadata.file_size,
+                    "format": metadata.format,
+                    "quality": metadata.quality.value,
+                    "subjects": metadata.subjects,
+                    "sessions": metadata.sessions,
+                    "duration_minutes": metadata.duration_minutes,
+                    "tags": metadata.tags,
+                    "notes": metadata.notes,
+                    "doi": metadata.doi,
+                    "license": metadata.license,
+                }
+                for metadata in self.datasets.values()
+            ]
+        }
+
+        import json
+
+        with open(file_path, "w") as f:
+            json.dump(export_data, f, indent=2)
+
+    def import_catalog(self, file_path: str):
+        """Import catalog from JSON file."""
+        import json
+
+        with open(file_path, "r") as f:
+            data = json.load(f)
+
+        for dataset_data in data.get("datasets", []):
+            # Handle both enum names (BEHAVIORAL) and values (behavioral)
+            dataset_type_str = dataset_data["dataset_type"]
+            try:
+                dataset_type = DatasetType(dataset_type_str)
+            except ValueError:
+                # Try to lookup by name (uppercase)
+                dataset_type = DatasetType[dataset_type_str]
+
+            # Handle both enum names (HIGH) and values (high) for quality
+            quality_str = dataset_data["quality"]
+            try:
+                quality = DataQuality(quality_str)
+            except ValueError:
+                quality = DataQuality[quality_str]
+
+            metadata = DatasetMetadata(
+                name=dataset_data["name"],
+                dataset_type=dataset_type,
+                description=dataset_data["description"],
+                source=dataset_data["source"],
+                date_created=datetime.fromisoformat(dataset_data["date_created"]),
+                file_path=dataset_data["file_path"],
+                file_size=dataset_data["file_size"],
+                format=dataset_data["format"],
+                quality=quality,
+                subjects=dataset_data["subjects"],
+                sessions=dataset_data["sessions"],
+                duration_minutes=dataset_data["duration_minutes"],
+                tags=dataset_data.get("tags", []),
+                notes=dataset_data.get("notes", ""),
+                doi=dataset_data.get("doi"),
+                license=dataset_data.get("license"),
+            )
+            self.datasets[metadata.name] = metadata
+
+    def update_dataset(self, name: str, metadata: DatasetMetadata):
+        """Update existing dataset metadata."""
+        if name not in self.datasets:
+            raise ValueError(f"Dataset '{name}' not found in catalog")
+        self.datasets[name] = metadata
+
+    def validate_dataset(self, file_path: str) -> bool:
+        """Validate a dataset file."""
+        path = Path(file_path)
+        if not path.exists():
+            return False
+        if path.stat().st_size == 0:
+            return False
+        return True
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get catalog statistics."""
+        type_counts: Dict[str, int] = {}
+        quality_counts: Dict[str, int] = {}
+        total_subjects = 0
+
+        for dataset in self.datasets.values():
+            type_counts[dataset.dataset_type.name] = (
+                type_counts.get(dataset.dataset_type.name, 0) + 1
+            )
+            quality_counts[dataset.quality.value] = (
+                quality_counts.get(dataset.quality.value, 0) + 1
+            )
+            total_subjects += dataset.subjects
+
+        return {
+            "total_datasets": len(self.datasets),
+            "by_type": type_counts,
+            "quality_distribution": quality_counts,
+            "total_subjects": total_subjects,
+            "average_subjects": (
+                total_subjects / len(self.datasets) if self.datasets else 0
+            ),
+        }
 
 
 @dataclass

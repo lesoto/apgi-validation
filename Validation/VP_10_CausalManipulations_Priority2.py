@@ -21,6 +21,15 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 logger = logging.getLogger(__name__)
 
 # Import shared multiple comparison correction

@@ -559,13 +559,250 @@ class DashboardManager:
         if apgi_logger:
             apgi_logger.logger.info("Stopped real-time monitoring")
 
-    def add_monitoring_callback(self, callback: Callable):
+    def generate_static_dashboard(
+        self, data: Dict[str, Any], dashboard_name: str
+    ) -> Optional[str]:
+        """Generate a static dashboard with the provided data."""
+        if self.static_generator:
+            try:
+                # generate_all_dashboards returns List[str], take first or generate specific
+                output_paths = self.static_generator.generate_all_dashboards()
+                # Return the validation dashboard path if available
+                if output_paths:
+                    return output_paths[0]
+                return None
+            except Exception as e:
+                if apgi_logger:
+                    apgi_logger.logger.error(
+                        f"Failed to generate static dashboard: {e}"
+                    )
+                return None
+        else:
+            raise RuntimeError("Static dashboard generator not available")
+
+    def store_historical_data(self, data: Dict[str, Any]) -> bool:
+        """Store historical data in the database."""
+        if self.historical_dashboard:
+            try:
+                # Call the store_data method on the historical dashboard if it exists
+                if hasattr(self.historical_dashboard, "store_data"):
+                    self.historical_dashboard.store_data(data)
+                else:
+                    # Fallback: store it in the database directly
+                    import sqlite3
+
+                    db_path = self.historical_dashboard.db_path
+                    timestamp = data.get("timestamp", datetime.now().isoformat())
+
+                    with sqlite3.connect(db_path) as conn:
+                        cursor = conn.cursor()
+
+                        # Store in a generic historical_data table
+                        cursor.execute("""
+                            CREATE TABLE IF NOT EXISTS historical_data (
+                                timestamp TEXT PRIMARY KEY,
+                                data_json TEXT,
+                                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                            )
+                            """)
+
+                        cursor.execute(
+                            "INSERT OR REPLACE INTO historical_data (timestamp, data_json) VALUES (?, ?)",
+                            (timestamp, json.dumps(data, default=str)),
+                        )
+                        conn.commit()
+
+                if apgi_logger:
+                    apgi_logger.logger.info(
+                        f"Stored historical data for {data.get('timestamp', 'unknown')}"
+                    )
+
+                return True
+            except Exception as e:
+                if apgi_logger:
+                    apgi_logger.logger.error(f"Failed to store historical data: {e}")
+                return False
+        else:
+            raise RuntimeError("Historical dashboard not available")
+
+    def update_performance_metrics(self, metrics: Dict[str, Any]) -> bool:
+        """Update performance metrics."""
+        if self.performance_dashboard:
+            try:
+                # Call the update_metrics method on the performance dashboard if it exists
+                if hasattr(self.performance_dashboard, "update_metrics"):
+                    self.performance_dashboard.update_metrics(metrics)
+                else:
+                    # Fallback: store metrics in the database
+                    import sqlite3
+
+                    db_path = (
+                        self.historical_dashboard.db_path
+                        if self.historical_dashboard
+                        else str(self.data_dir / "historical_data.db")
+                    )
+                    timestamp = metrics.get("timestamp", datetime.now().isoformat())
+
+                    with sqlite3.connect(db_path) as conn:
+                        cursor = conn.cursor()
+
+                        # Create performance_metrics table if it doesn't exist
+                        cursor.execute("""
+                            CREATE TABLE IF NOT EXISTS performance_metrics (
+                                timestamp TEXT PRIMARY KEY,
+                                cpu_usage REAL,
+                                memory_usage INTEGER,
+                                response_time REAL,
+                                metrics_json TEXT,
+                                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                            )
+                            """)
+
+                        cursor.execute(
+                            "INSERT OR REPLACE INTO performance_metrics (timestamp, cpu_usage, memory_usage, response_time, metrics_json) VALUES (?, ?, ?, ?, ?)",
+                            (
+                                timestamp,
+                                metrics.get("cpu_usage", 0),
+                                metrics.get("memory_usage", 0),
+                                metrics.get("response_time", 0),
+                                json.dumps(metrics, default=str),
+                            ),
+                        )
+                        conn.commit()
+
+                if apgi_logger:
+                    apgi_logger.logger.info(
+                        f"Updated performance metrics for {timestamp}"
+                    )
+
+                return True
+            except Exception as e:
+                if apgi_logger:
+                    apgi_logger.logger.error(
+                        f"Failed to update performance metrics: {e}"
+                    )
+                return False
+        else:
+            raise RuntimeError("Performance dashboard not available")
+
+    def start_monitoring(self, interval: float = 30.0) -> None:
+        """Start monitoring with backward compatibility."""
+        if self._monitoring_active:
+            return
+
+        self._monitoring_active = True
+
+        def monitor_loop():
+            while self._monitoring_active:
+                try:
+                    self._collect_system_metrics()
+
+                    for callback in self._callbacks:
+                        try:
+                            callback()
+                        except Exception:
+                            pass
+
+                    time.sleep(interval)
+                except Exception as e:
+                    if apgi_logger:
+                        apgi_logger.logger.error(f"Monitoring error: {e}")
+                    time.sleep(interval)
+
+        self._monitoring_thread = threading.Thread(target=monitor_loop, daemon=True)
+        self._monitoring_thread.start()
+
+        if apgi_logger:
+            apgi_logger.logger.info(f"Started monitoring (interval: {interval}s)")
+
+    def stop_monitoring_thread(self) -> None:
+        """Stop monitoring thread with backward compatibility."""
+        self._monitoring_active = False
+        if apgi_logger:
+            apgi_logger.logger.info("Stopped monitoring thread")
+
+    def register_callback(self, callback: Callable) -> None:
+        """Register a callback with backward compatibility."""
+        self.add_monitoring_callback(callback)
+
+    def export_data(self, data: Dict[str, Any], format: str, filename: str) -> Path:
+        """Export data with backward compatibility."""
+        if format not in ["json", "csv"]:
+            raise ValueError(f"Unsupported format: {format}")
+
+        if not data:
+            raise ValueError("Data cannot be empty")
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"{filename}_{timestamp}.{format}"
+        output_path = self.data_dir / "exports" / output_filename
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if format == "json":
+            with open(output_path, "w") as f:
+                json.dump(data, f, indent=2, default=str)
+        elif format == "csv":
+            import csv
+
+            if data and isinstance(data, dict):
+                # Flatten nested dict for CSV
+                flattened_data = {}
+                for key, value in data.items():
+                    if isinstance(value, (str, int, float, bool)):
+                        flattened_data[key] = value
+                    elif (
+                        isinstance(value, list)
+                        and value
+                        and isinstance(value[0], (str, int, float, bool))
+                    ):
+                        flattened_data[key] = ", ".join(str(v) for v in value)
+                    else:
+                        flattened_data[key] = str(value)
+
+                with open(output_path, "w", newline="") as f:
+                    writer = csv.DictWriter(f, fieldnames=list(flattened_data.keys()))
+                    writer.writeheader()
+                    writer.writerow(flattened_data)
+            else:
+                raise ValueError("Data must be a dictionary for CSV export")
+
+        # Record in export history
+        self._export_history.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "format": format,
+                "filename": output_filename,
+                "path": str(output_path),
+            }
+        )
+
+        return output_path
+
+    def _trigger_callbacks(self, data: Dict[str, Any]) -> None:
+        """Trigger all registered callbacks."""
+        for callback in self._callbacks:
+            try:
+                callback(data)
+            except Exception as e:
+                if apgi_logger:
+                    apgi_logger.logger.error(f"Callback error: {e}")
+
+    def add_monitoring_callback(self, callback: Callable) -> None:
         """Add a callback function to be called during monitoring."""
         self._callbacks.append(callback)
 
     def get_export_history(self) -> List[Dict]:
         """Get history of all exports performed."""
         return self._export_history.copy()
+
+    def cleanup(self) -> None:
+        """Clean up resources."""
+        self.stop_monitoring()
+        self._callbacks = []
+        self._export_history = []
+
+        if apgi_logger:
+            apgi_logger.logger.info("DashboardManager cleaned up")
 
     def run_historical_dashboard(self, host: str = "127.0.0.1"):
         """Start the interactive historical dashboard server."""

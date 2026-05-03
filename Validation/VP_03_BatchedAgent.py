@@ -3,6 +3,15 @@ from typing import Dict, List
 import torch
 import torch.nn as nn
 
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 from utils.apgi_config import APGIConfig
 from utils.constants import LEVEL_TIMESCALES
 from utils.falsification_thresholds import THRESHOLD_REGISTRY  # noqa: F401

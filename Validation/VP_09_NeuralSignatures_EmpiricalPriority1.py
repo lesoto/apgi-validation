@@ -22,6 +22,15 @@ from typing import Any, Dict, List, Optional, cast
 import nibabel as nib
 import numpy as np
 
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 logger = logging.getLogger(__name__)
 import pandas as pd
 from scipy.optimize import curve_fit

@@ -39,6 +39,15 @@ except ImportError:
 import numpy as np
 from scipy.special import expit
 
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 
 @dataclass
 class APGIParameters:

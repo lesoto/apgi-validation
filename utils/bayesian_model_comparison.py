@@ -1775,6 +1775,12 @@ class BayesianModelComparison:
             if col not in df.columns:
                 df[col] = np.nan if col != "model" else "Unknown"
 
+        # Initialize delta columns with NaN in case no models succeed
+        # (delta_loo gets computed below if len(df) > 0)
+        df["delta_loo"] = np.nan
+        df["delta_waic"] = np.nan
+        df["delta_bic"] = np.nan
+
         if len(df) > 0:
             # Compute relative metrics (delta from best)
             best_waic = df["waic"].min()
@@ -2353,6 +2359,11 @@ def plot_model_comparison_results(
 ):
     """Generate comprehensive model comparison visualization"""
 
+    # Handle empty DataFrame case
+    if comparison_df.empty or len(comparison_df) == 0:
+        print("⚠️  Skipping plot generation: No valid comparison data available")
+        return None
+
     fig = plt.figure(figsize=(16, 10))
     gs = fig.add_gridspec(2, 3, hspace=0.3, wspace=0.3)
 
@@ -2544,6 +2555,11 @@ def plot_model_comparison_results(
 
 def plot_posterior_distributions(trace, save_path: str = "protocol2_posteriors.png"):
     """Plot posterior distributions for key APGI parameters"""
+
+    # Handle None trace case
+    if trace is None:
+        print("⚠️  Skipping posterior plot: No trace available")
+        return None
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 

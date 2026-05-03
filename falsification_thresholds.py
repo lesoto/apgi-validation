@@ -10,7 +10,15 @@ to maintain compatibility with code that imports from the root level.
 """
 
 # Re-export all constants from utils.falsification_thresholds
-from utils.falsification_thresholds import (  # F1 family - Neural signatures; F2 family - Behavioral comparison; F3 family - Intervention effects; F5 family - Evolutionary emergence; F6 family - Liquid network; V12 family - Clinical convergence; Threshold functions
+from utils.falsification_thresholds import (  # F1 family - Neural signatures; F2 family - Behavioral comparison; F3 family - Intervention effects; F5 family - Evolutionary emergence; F6 family - Liquid network; V12 family - Clinical convergence; Threshold functions; ALPHA configuration; BETA parameters; Depression hyperconnectivity tiers
+    ALPHA_EMA,
+    ALPHA_FEP,
+    ALPHA_SIGMOID,
+    BETA_SM,
+    BETA_SOMATIC,
+    DEPRESSION_HYPERCONNECTIVITY_CONSISTENT,
+    DEPRESSION_HYPERCONNECTIVITY_MODERATE,
+    DEPRESSION_HYPERCONNECTIVITY_STRONG,
     F1_1_ALPHA,
     F1_1_MIN_ADVANTAGE_PCT,
     F1_1_MIN_COHENS_D,
@@ -103,6 +111,17 @@ from utils.falsification_thresholds import (  # F1 family - Neural signatures; F
 )
 
 __all__ = [
+    # ALPHA configuration
+    "ALPHA_SIGMOID",
+    "ALPHA_EMA",
+    "ALPHA_FEP",
+    # BETA parameters
+    "BETA_SM",
+    "BETA_SOMATIC",
+    # Depression hyperconnectivity tiers
+    "DEPRESSION_HYPERCONNECTIVITY_CONSISTENT",
+    "DEPRESSION_HYPERCONNECTIVITY_MODERATE",
+    "DEPRESSION_HYPERCONNECTIVITY_STRONG",
     # F1 family
     "F1_1_MIN_ADVANTAGE_PCT",
     "F1_1_MIN_COHENS_D",

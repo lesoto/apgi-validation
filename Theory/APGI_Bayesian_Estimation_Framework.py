@@ -17,6 +17,15 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+# Matplotlib imports for PNG visualization
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,

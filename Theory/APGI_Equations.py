@@ -3,9 +3,6 @@ from __future__ import annotations
 import sys
 import types
 
-# Fix for Python 3.14+ dataclass forward reference resolution
-# When loaded via importlib.util, the module is not yet in sys.modules at exec time,
-# so we register it using the current frame's globals (which IS the module object).
 if "APGI_Equations" not in sys.modules:
     _self = sys.modules.get(__name__)
     if _self is None:
@@ -690,12 +687,12 @@ class DerivedQuantities:
         """
         I_tau_S = I * tau_S
 
+        if np.isclose(S_0 - I_tau_S, 0):
+            return 0.0  # Already at steady state
+
         # Check if solution exists
         if (S_0 - I_tau_S) * (theta - I_tau_S) <= 0:
             return float("inf")  # No ignition possible
-
-        if np.isclose(S_0 - I_tau_S, 0):
-            return 0.0  # Already at steady state
 
         t_star = tau_S * np.log((S_0 - I_tau_S) / (theta - I_tau_S))
         return max(0.0, t_star)
