@@ -2304,9 +2304,9 @@ def process_data(
 
         # Set up paths
         project_root = Path(__file__).parent
-        data_dir = project_root / "data"
-        raw_data_dir = data_dir / "raw_data"
-        processed_data_dir = data_dir / "processed_data"
+        data_repo = project_root / "data_repository"
+        raw_data_dir = data_repo / "raw_data"
+        processed_data_dir = data_repo / "processed"
 
         if output_dir:
             output_path = Path(output_dir)
@@ -4349,7 +4349,7 @@ def _load_visualization_data(input_file):
         console.print("[yellow]Available data files:[/yellow]")
 
         # List available CSV files in data directory
-        data_dir = PROJECT_ROOT / "data"
+        data_dir = PROJECT_ROOT / "data_repository"
         if data_dir.exists():
             csv_files = list(data_dir.glob("**/*.csv"))
             if csv_files:

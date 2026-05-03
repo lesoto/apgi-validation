@@ -8,7 +8,7 @@ Generates static HTML dashboards for APGI framework visualizations.
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 # APGI imports - make imports optional for testing
 _apgi_logger: Any = None
@@ -37,6 +37,11 @@ except ImportError:
 
 apgi_logger = _apgi_logger
 performance_profiler = _performance_profiler
+
+__all__ = [
+    "StaticDashboardGenerator",
+    "generate_dashboards",
+]
 
 
 class StaticDashboardGenerator:
@@ -393,6 +398,29 @@ class StaticDashboardGenerator:
 
         apgi_logger.logger.info(f"Generated validation dashboard: {output_file}")
         return str(output_file)
+
+    def generate_dashboard(self, data: Dict[str, Any], dashboard_name: str) -> str:
+        """Generate a dashboard with the provided data and name.
+
+        This is a flexible entry point that generates the appropriate dashboard type
+        based on the data content and dashboard_name parameter.
+
+        Args:
+            data: Dashboard data dictionary
+            dashboard_name: Name/type of dashboard to generate (e.g., 'system', 'validation')
+
+        Returns:
+            Path to generated dashboard file
+        """
+        dashboard_type = dashboard_name.lower()
+
+        if dashboard_type in ["system", "main", "default"]:
+            return self.generate_system_dashboard()
+        elif dashboard_type in ["validation", "results", "protocol"]:
+            return self.generate_validation_dashboard()
+        else:
+            # Default to system dashboard for unknown types
+            return self.generate_system_dashboard()
 
     def generate_all_dashboards(self) -> List[str]:
         """Generate all available dashboards."""

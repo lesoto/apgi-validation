@@ -77,6 +77,11 @@ class ProtocolResult(BaseModel):
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
     named_predictions: Dict[str, PredictionResult]
     completion_percentage: int = Field(ge=0, le=100)
+    status: str = Field(
+        default="success",
+        pattern=r"^(success|failed|error|partial)$",
+        description="Protocol execution status: success, failed, error, or partial",
+    )
     data_sources: List[str] = Field(default_factory=list)
     methodology: str = "unknown"
     errors: List[str] = Field(default_factory=list)

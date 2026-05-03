@@ -1944,6 +1944,7 @@ def run_validation(
             protocol_id="VP_02_Behavioral_BayesianComparison",
             named_predictions=named_predictions,
             completion_percentage=100,
+            status=status,
             data_sources=["Synthetic Behavioral Dataset"],
             methodology="bayesian_behavioral_simulation",
             metadata={"status": status, "message": message, "results": results},
@@ -1955,6 +1956,7 @@ def run_validation(
             protocol_id="VP_02_Behavioral_BayesianComparison",
             named_predictions={},
             completion_percentage=0,
+            status="error",
             errors=[str(exc)],
             metadata={"status": "error", "message": str(exc)},
         ).model_dump()

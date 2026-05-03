@@ -3146,8 +3146,9 @@ if __name__ == "__main__":
                 return False
 
             # Create visualizer with correct output directory
-            from utils.protocol_visualization import ProtocolVisualizer
             import os
+
+            from utils.protocol_visualization import ProtocolVisualizer
 
             visualizer = ProtocolVisualizer(
                 11, output_dir="validation_results/visualizations"

@@ -53,6 +53,7 @@ except ImportError:
     V12_1_MIN_COHENS_D = 0.80
     DEFAULT_ALPHA = 0.05
 
+from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 from utils.statistical_tests import safe_pearsonr
 
 logger = logging.getLogger(__name__)
@@ -1125,11 +1126,31 @@ def main(progress_callback=None):
 def run_validation(**kwargs):
     validator = ClinicalConvergenceValidator()
     results = validator.validate_clinical_convergence()
-    return {
-        "passed": True,
-        "results": results,
-        "named_predictions": results["falsification_report"]["named_predictions"],
-    }
+    named_preds = results["falsification_report"]["named_predictions"]
+    # Convert dict predictions to PredictionResult objects
+    converted_preds = {}
+    for k, v in named_preds.items():
+        if isinstance(v, dict):
+            converted_preds[k] = PredictionResult(
+                passed=v.get("passed", False),
+                value=v.get("value"),
+                threshold=v.get("threshold", 0.0),
+                status=(
+                    PredictionStatus.PASSED
+                    if v.get("passed", False)
+                    else PredictionStatus.FAILED
+                ),
+            )
+        else:
+            converted_preds[k] = PredictionResult(passed=bool(v))
+
+    return ProtocolResult(
+        protocol_id="VP_12_Clinical_CrossSpecies_Convergence",
+        named_predictions=converted_preds,
+        completion_percentage=100,
+        status="success",
+        metadata={"passed": True, "results": results},
+    ).model_dump()
 
 
 class APGIValidationProtocol12:

@@ -946,8 +946,9 @@ def _save_fp12_outputs(results: Dict[str, Any]) -> None:
             return False
 
         # Create visualizer with correct output directory
-        from utils.protocol_visualization import ProtocolVisualizer
         import os
+
+        from utils.protocol_visualization import ProtocolVisualizer
 
         visualizer = ProtocolVisualizer(
             12, output_dir="validation_results/visualizations"

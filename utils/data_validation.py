@@ -1025,7 +1025,7 @@ def main():
     validator = DataValidator(strict_mode=True)
 
     # Validate sample data files
-    data_dir = Path("data")
+    data_dir = Path("data_repository")
     if data_dir.exists():
         csv_files = list(data_dir.glob("*.csv"))
 

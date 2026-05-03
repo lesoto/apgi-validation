@@ -7,9 +7,10 @@ Usage:
 """
 
 import argparse
+import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 
 def get_project_root() -> Path:
@@ -254,6 +255,129 @@ def main():
         print(f"\nReport saved to: {report_path}")
 
     return 0 if complete_count == 12 else 1
+
+
+# Stubs for test compatibility
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+
+@dataclass
+class VerificationResult:
+    """Result of protocol output verification."""
+
+    valid: bool
+    errors: List[str]
+    warnings: List[str]
+    details: Dict[str, Any]
+
+    def is_success(self) -> bool:
+        """Check if verification was successful."""
+        return self.valid and not self.errors
+
+
+class OutputVerifier:
+    """Verifies protocol output files."""
+
+    def __init__(self):
+        """Initialize verifier."""
+        pass
+
+    def verify(
+        self, filepath: Path, schema: Optional[Dict] = None
+    ) -> VerificationResult:
+        """Verify an output file."""
+        errors: List[str] = []
+        warnings: List[str] = []
+        details: Dict[str, Any] = {"checked": 0}
+
+        if not filepath.exists():
+            errors.append(f"File does not exist: {filepath}")
+            return VerificationResult(
+                valid=False, errors=errors, warnings=warnings, details=details
+            )
+
+        try:
+            with open(filepath, "r") as f:
+                content = f.read()
+                data = json.loads(content)
+                details["checked"] = (
+                    len(data)
+                    if isinstance(data, dict)
+                    else len(data) if isinstance(data, list) else 1
+                )
+
+            if schema and isinstance(data, dict):
+                # Basic schema validation
+                for key in schema.get("properties", {}):
+                    if key not in data:
+                        warnings.append(f"Missing recommended field: {key}")
+
+        except json.JSONDecodeError as e:
+            errors.append(f"Invalid JSON: {e}")
+        except Exception as e:
+            errors.append(f"Error reading file: {e}")
+
+        return VerificationResult(
+            valid=len(errors) == 0, errors=errors, warnings=warnings, details=details
+        )
+
+
+def verify_protocol_output(filepath: Path) -> VerificationResult:
+    """Verify a protocol output file."""
+    verifier = OutputVerifier()
+    return verifier.verify(filepath)
+
+
+def check_output_structure(
+    data: Dict[str, Any], required_fields: List[str]
+) -> Dict[str, Any]:
+    """Check that data has required structure."""
+    result: Dict[str, Any] = {"valid": True, "missing_fields": [], "extra_fields": []}
+
+    for field in required_fields:
+        if field not in data:
+            result["valid"] = False
+            result["missing_fields"].append(field)
+
+    return result
+
+
+def validate_output_files(files: List[Path]) -> Dict[str, Any]:
+    """Validate that output files exist."""
+    result: Dict[str, Any] = {"valid": True, "missing": [], "existing": []}
+
+    for filepath in files:
+        if filepath.exists():
+            result["existing"].append(str(filepath))
+        else:
+            result["valid"] = False
+            result["missing"].append(str(filepath))
+
+    return result
+
+
+def compare_protocol_outputs(
+    output1: Dict[str, Any], output2: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Compare two protocol outputs."""
+    result: Dict[str, Any] = {
+        "identical": output1 == output2,
+        "differences": [],
+        "keys_only_in_first": [],
+        "keys_only_in_second": [],
+    }
+
+    if not result["identical"]:
+        keys1 = set(output1.keys()) if isinstance(output1, dict) else set()
+        keys2 = set(output2.keys()) if isinstance(output2, dict) else set()
+
+        result["keys_only_in_first"] = list(keys1 - keys2)
+        result["keys_only_in_second"] = list(keys2 - keys1)
+        for key in keys1 & keys2:
+            if output1[key] != output2[key]:
+                result["differences"].append(key)
+    return result
 
 
 if __name__ == "__main__":

@@ -565,12 +565,11 @@ class DashboardManager:
         """Generate a static dashboard with the provided data."""
         if self.static_generator:
             try:
-                # generate_all_dashboards returns List[str], take first or generate specific
-                output_paths = self.static_generator.generate_all_dashboards()
-                # Return the validation dashboard path if available
-                if output_paths:
-                    return output_paths[0]
-                return None
+                # Call generate_dashboard with the provided data and dashboard name
+                output_path = self.static_generator.generate_dashboard(
+                    data, dashboard_name
+                )
+                return output_path
             except Exception as e:
                 if apgi_logger:
                     apgi_logger.logger.error(

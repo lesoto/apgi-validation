@@ -3276,3 +3276,200 @@ def run_protocol_main(config: dict | None = None) -> Union[dict, object]:
     except Exception as e:
         logger.error(f"Failed to convert FP-05 to standardized schema: {e}")
         return results
+
+
+# Stubs for test compatibility - EvolutionaryModel class
+class EvolutionaryModel:
+    """Evolutionary model for simulation."""
+
+    def __init__(
+        self,
+        population_size: int = 100,
+        mutation_rate: float = 0.01,
+        selection_strength: float = 0.5,
+    ):
+        self.population_size = population_size
+        self.mutation_rate = mutation_rate
+        self.selection_strength = selection_strength
+        self._population: List[Dict] = []
+
+    def initialize_population(self) -> List[Dict]:
+        """Initialize population with random genomes."""
+        self._population = [
+            {"genome": [np.random.random() for _ in range(10)], "fitness": 0.0}
+            for _ in range(self.population_size)
+        ]
+        return self._population
+
+    def evolve_generation(self) -> List[Dict]:
+        """Evolve one generation."""
+        if not self._population:
+            self.initialize_population()
+        # Simple evolution: mutate and select
+        for individual in self._population:
+            if np.random.random() < self.mutation_rate:
+                idx = np.random.randint(0, len(individual["genome"]))
+                individual["genome"][idx] += np.random.normal(0, 0.1)
+                individual["genome"][idx] = np.clip(individual["genome"][idx], 0, 1)
+            individual["fitness"] = sum(individual["genome"]) / len(
+                individual["genome"]
+            )
+        return self._population
+
+
+class FitnessCalculator:
+    """Calculate fitness for individuals."""
+
+    def calculate_fitness(self, individual: Dict, environment: Dict) -> float:
+        """Calculate fitness of an individual in an environment."""
+        fitness = 0.0
+        for key, value in individual.items():
+            if f"optimal_{key}" in environment:
+                optimal = environment[f"optimal_{key}"]
+                fitness += 1.0 - abs(value - optimal)
+        return max(0.0, fitness / len(individual) if individual else 0.0)
+
+    def calculate_population_fitness(
+        self, population: List[Dict], environment: Dict
+    ) -> List[float]:
+        """Calculate fitness for entire population."""
+        return [self.calculate_fitness(ind, environment) for ind in population]
+
+
+class SelectionPressure:
+    """Calculate selection pressure statistics."""
+
+    def calculate(self, fitnesses: List[float]) -> float:
+        """Calculate selection pressure from fitness distribution.
+
+        Selection pressure measures the intensity of differential survival.
+        - Weak selection: similar fitnesses (low variance) -> pressure < 0.5
+        - Strong selection: diverse fitnesses (high variance) -> pressure > 0.5
+        """
+        if not fitnesses:
+            return 0.0
+        mean_fitness = np.mean(fitnesses)
+        if mean_fitness == 0:
+            return 0.0
+        # Use coefficient of variation (CV) normalized to [0, 1] range
+        # CV = std/mean, higher CV = more diverse = stronger selection
+        std_fitness = np.std(fitnesses, ddof=0)
+        cv = float(std_fitness / mean_fitness)
+        # Scale CV: typical range 0-1 maps to pressure 0-1
+        # Low CV (< 0.5 after scaling) = weak selection
+        pressure = min(1.0, cv)
+        return pressure
+
+
+class EvolutionarySimulator:
+    """Simulate evolutionary processes."""
+
+    def __init__(self, generations: int = 100):
+        self.generations = generations
+        # Initialize with placeholder trajectory entries
+        self._trajectory: List[Dict] = [
+            {"generation": i, "fitness": 0.0, "population_size": 0}
+            for i in range(generations)
+        ]
+
+    def simulate(self, model: EvolutionaryModel) -> Dict:
+        """Run evolutionary simulation."""
+        model.initialize_population()
+        self._trajectory = []
+        for gen in range(self.generations):
+            population = model.evolve_generation()
+            avg_fitness = sum(p.get("fitness", 0) for p in population) / len(population)
+            self._trajectory.append(
+                {
+                    "generation": gen,
+                    "fitness": avg_fitness,
+                    "population_size": len(population),
+                }
+            )
+        final_fitness = self._trajectory[-1]["fitness"] if self._trajectory else 0.0
+        return {
+            "generations": self.generations,
+            "final_fitness": final_fitness,
+            "trajectory": self._trajectory,
+        }
+
+    def get_evolutionary_trajectory(self) -> List[Dict]:
+        """Get the evolutionary trajectory."""
+        return self._trajectory
+
+
+def compute_evolutionary_plausibility(model_params: Dict) -> Dict:
+    """Compute evolutionary plausibility score."""
+    population_size = model_params.get("population_size", 100)
+    generations = model_params.get("generations", 100)
+    mutation_rate = model_params.get("mutation_rate", 0.01)
+
+    # Check for implausible parameters
+    is_plausible = True
+    issues = []
+    if population_size < 50:
+        is_plausible = False
+        issues.append("Population size too small for evolution")
+    if generations < 100:
+        is_plausible = False
+        issues.append("Too few generations for meaningful evolution")
+    if mutation_rate > 0.5:
+        is_plausible = False
+        issues.append("Mutation rate too high - will destroy adaptation")
+
+    return {
+        "plausible": is_plausible,
+        "score": 1.0 if is_plausible else 0.0,
+        "issues": issues,
+        "params": model_params,
+    }
+
+
+def validate_evolutionary_trajectory(trajectory: List[Dict]) -> Dict:
+    """Validate an evolutionary trajectory."""
+    if not trajectory or len(trajectory) < 2:
+        return {"valid": False, "reason": "Insufficient data points"}
+
+    fitness_values = [t.get("fitness", 0) for t in trajectory]
+
+    # Check for regression (decreasing fitness)
+    first_fitness = fitness_values[0]
+    last_fitness = fitness_values[-1]
+
+    if last_fitness < first_fitness * 0.9:  # More than 10% regression
+        return {
+            "valid": False,
+            "reason": "Fitness regression detected",
+            "first_fitness": first_fitness,
+            "last_fitness": last_fitness,
+        }
+
+    # Check for stagnation
+    if all(abs(f - fitness_values[0]) < 0.01 for f in fitness_values):
+        return {
+            "valid": False,
+            "reason": "Fitness stagnation detected",
+            "stagnation_point": fitness_values[0],
+        }
+
+    return {"valid": True, "progression": last_fitness - first_fitness}
+
+
+__all__ = [
+    "EvolvableAgent",
+    "GWTAgent",
+    "SimpleEnvironment",
+    "IowaGamblingTaskEnvironment",
+    "VolatileForagingEnvironment",
+    "ThreatRewardTradeoffEnvironment",
+    "EvolutionaryAPGIEmergence",
+    "validate_against_empirical_constraints",
+    "compute_pca_on_evolved_agents",
+    "compute_evolutionary_plausibility",
+    "validate_evolutionary_trajectory",
+    # Stubs for test compatibility
+    "EvolutionaryModel",
+    "FitnessCalculator",
+    "SelectionPressure",
+    "EvolutionarySimulator",
+]

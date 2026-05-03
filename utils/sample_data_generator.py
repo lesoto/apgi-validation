@@ -669,7 +669,7 @@ def main() -> None:
 
     # Create data directory with error handling
     try:
-        data_dir = Path("data")
+        data_dir = Path("data_repository")
         data_dir.mkdir(parents=True, exist_ok=True)
     except (OSError, PermissionError) as e:
         print(f"Warning: Could not create data directory: {e}")

@@ -2124,8 +2124,9 @@ def run_falsification():
                 return True
 
             # Create visualizer with correct output directory
-            from utils.protocol_visualization import ProtocolVisualizer
             import os
+
+            from utils.protocol_visualization import ProtocolVisualizer
 
             visualizer = ProtocolVisualizer(
                 6, output_dir="validation_results/visualizations"

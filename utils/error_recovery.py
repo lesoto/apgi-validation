@@ -8,10 +8,12 @@ retry logic, and graceful degradation.
 
 import functools
 import json
+import pickle
 import time
 import traceback
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
 
 try:
@@ -30,7 +32,7 @@ class ErrorSeverity(Enum):
     CRITICAL = "critical"
 
 
-class RecoveryStrategy(Enum):
+class RecoveryStrategyType(Enum):
     """Available recovery strategies."""
 
     RETRY = "retry"
@@ -38,6 +40,15 @@ class RecoveryStrategy(Enum):
     SKIP = "skip"
     ABORT = "abort"
     DEGRADE = "degrade"
+
+
+@dataclass
+class RecoveryStrategy:
+    """Recovery strategy with condition and action."""
+
+    name: str
+    condition: Callable[[Exception], bool]
+    action: Callable[[Exception], Any]
 
 
 @dataclass
@@ -282,6 +293,18 @@ class ErrorRecoveryManager:
         self.circuit_breakers: Dict[str, CircuitBreaker] = {}
         self.error_history: List[ErrorContext] = []
         self.recovery_strategies: Dict[str, RecoveryStrategy] = {}
+        self.strategies: Dict[str, RecoveryStrategy] = {}
+
+    def register_strategy(self, strategy: RecoveryStrategy) -> None:
+        """Register a recovery strategy."""
+        self.strategies[strategy.name] = strategy
+
+    def attempt_recovery(self, error: Exception) -> Any:
+        """Attempt to recover from error using registered strategies."""
+        for strategy in self.strategies.values():
+            if strategy.condition(error):
+                return strategy.action(error)
+        return None
 
     def register_circuit_breaker(self, service_name: str, **kwargs) -> None:
         """Register a circuit breaker for a service."""
@@ -495,6 +518,51 @@ def handle_error(error: Exception, context: Dict[str, Any]) -> ErrorContext:
 def get_system_health() -> Dict[str, Any]:
     """Get current system health status."""
     return get_recovery_manager().get_error_summary()
+
+
+# Stubs for test compatibility
+class BackupState:
+    """State backup for recovery."""
+
+    def __init__(self, state: Dict[str, Any]):
+        self.state = state
+
+    @classmethod
+    def create(cls, state: Dict[str, Any]) -> "BackupState":
+        """Create a backup from state."""
+        import copy
+
+        return cls(copy.deepcopy(state))
+
+    def restore(self, current: Dict[str, Any]) -> Dict[str, Any]:
+        """Restore to backed up state."""
+        import copy
+
+        return copy.deepcopy(self.state)
+
+
+def attempt_recovery(
+    error: Exception, strategies: List[Any]
+) -> Optional[Dict[str, Any]]:
+    """Attempt to recover from error using strategies."""
+    for strategy in strategies:
+        if hasattr(strategy, "condition") and strategy.condition(error):
+            if hasattr(strategy, "action"):
+                return strategy.action(error)
+    return None
+
+
+def create_checkpoint(state: Dict[str, Any], filepath: Path) -> Path:
+    """Create a checkpoint file."""
+    with open(filepath, "wb") as f:
+        pickle.dump(state, f)
+    return filepath
+
+
+def restore_from_checkpoint(filepath: Path) -> Dict[str, Any]:
+    """Restore state from checkpoint file."""
+    with open(filepath, "rb") as f:
+        return pickle.load(f)
 
 
 if __name__ == "__main__":

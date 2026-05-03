@@ -1116,8 +1116,14 @@ def run_mcmc_bayesian_estimation_np(
         # For simplicity, use conservative estimate
         ess[name] = n_samples * n_chains / 2.0  # Conservative estimate
 
+    # Calculate posterior means from samples
+    posterior_means = {
+        name: float(np.mean(posterior_samples[name])) for name in posterior_samples
+    }
+
     return {
         "posterior_samples": posterior_samples,
+        "posterior_means": posterior_means,
         "convergence_diagnostics": {
             "r_hat": r_hat,
             "ess": ess,
@@ -1316,9 +1322,15 @@ def run_mcmc_bayesian_estimation(
         r_hat_threshold = float(os.environ.get("APGI_RHAT_THRESHOLD", "1.01"))
         convergence_pass = max_r_hat <= r_hat_threshold and n_eff_pass
 
+        # Calculate posterior means from samples
+        posterior_means = {
+            name: float(np.mean(posterior_samples[name])) for name in posterior_samples
+        }
+
         # Prepare results
         results = {
             "posterior_samples": posterior_samples,
+            "posterior_means": posterior_means,
             "trace": trace,
             "convergence_diagnostics": {
                 "r_hat": {
@@ -3175,8 +3187,9 @@ if __name__ == "__main__":
         _save_fp10_outputs(results)
 
         # Generate PNG visualization with correct path
-        from utils.protocol_visualization import ProtocolVisualizer
         import os
+
+        from utils.protocol_visualization import ProtocolVisualizer
 
         visualizer = ProtocolVisualizer(
             10, output_dir="validation_results/visualizations"

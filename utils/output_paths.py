@@ -6,7 +6,7 @@ ensuring consistency across PNG, JSON, CSV, and other file formats.
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 
 def get_project_root() -> Path:
@@ -117,4 +117,67 @@ def get_legacy_csv_path(protocol_num: int) -> Path:
 
 def get_legacy_png_path(protocol_num: int) -> Path:
     """Get root-level PNG path (deprecated, use get_protocol_png_path)."""
-    return get_project_root() / f"protocol{protocol_num}_results.png"
+    return get_project_root() / f"protocol{protocol_num:02d}_results.png"
+
+
+# Stubs for test compatibility
+# Alias for get_output_dir with different naming
+get_output_directory = get_output_dir
+
+
+def create_output_path(base_dir: Path, filename: str) -> Path:
+    """Create output path by joining base dir with filename."""
+    return base_dir / filename
+
+
+def ensure_directory_exists(dir_path: Path) -> None:
+    """Ensure directory exists, creating if necessary."""
+    dir_path.mkdir(parents=True, exist_ok=True)
+
+
+def get_unique_filename(dir_path: Path, filename: str) -> Path:
+    """Get a unique filename in directory."""
+    target = dir_path / filename
+    if not target.exists():
+        return target
+    stem = Path(filename).stem
+    suffix = Path(filename).suffix
+    counter = 1
+    while True:
+        new_name = f"{stem}_{counter}{suffix}"
+        new_path = dir_path / new_name
+        if not new_path.exists():
+            return new_path
+        counter += 1
+
+
+def sanitize_filename(filename: str) -> str:
+    """Sanitize filename by removing/replacing special chars."""
+    import re
+
+    # Replace special chars with underscore
+    sanitized = re.sub(r'[<>:"/\\|?*]', "_", filename)
+    # Replace spaces with underscores
+    sanitized = sanitized.replace(" ", "_")
+    return sanitized
+
+
+class OutputPathManager:
+    """Manage output paths with registration."""
+
+    def __init__(self, base_dir: Path):
+        """Initialize path manager."""
+        self.base_dir = base_dir
+        self._registered: Dict[str, Path] = {}
+
+    def get_path(self, filename: str) -> Path:
+        """Get a managed path."""
+        return self.base_dir / filename
+
+    def register(self, name: str, filename: str) -> None:
+        """Register a named path."""
+        self._registered[name] = self.base_dir / filename
+
+    def get_registered(self, name: str) -> Optional[Path]:
+        """Get a registered path by name."""
+        return self._registered.get(name)

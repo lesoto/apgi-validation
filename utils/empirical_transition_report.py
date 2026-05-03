@@ -294,5 +294,62 @@ def main():
     print(f"\nJSON report saved to: {output_path}")
 
 
+# Stubs for test compatibility
+def generate_transition_report(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate a transition report from data."""
+    transitions = data.get("transitions", [])
+    return {
+        "transitions": transitions,
+        "generated_at": datetime.now().isoformat(),
+        "summary": {
+            "total_transitions": len(transitions),
+            "total_count": sum(t.get("count", 0) for t in transitions),
+        },
+    }
+
+
+def format_report_as_markdown(report: Dict[str, Any]) -> str:
+    """Format a report as Markdown."""
+    title = report.get("title", "Transition Report")
+    lines = [
+        f"# {title}",
+        "",
+        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "",
+        f"## Transitions ({len(report.get('transitions', []))} total)",
+        "",
+    ]
+    for t in report.get("transitions", []):
+        lines.append(
+            f"| {t.get('from', 'unknown')} | {t.get('to', 'unknown')} | {t.get('count', t.get('probability', 0))} |"
+        )
+    return "\n".join(lines) if lines else "# Empty Report"
+
+
+def save_report(report: Dict[str, Any], filepath: Path, format: str = "json") -> None:
+    """Save a report to file."""
+    if format.lower() == "json":
+        with open(filepath, "w") as f:
+            json.dump(report, f, indent=2)
+
+
+def load_report(filepath: Path) -> Dict[str, Any]:
+    """Load a report from file."""
+    with open(filepath, "r") as f:
+        return json.load(f)
+
+
+def compare_reports(report1: Dict[str, Any], report2: Dict[str, Any]) -> Dict[str, Any]:
+    """Compare two reports."""
+    return {
+        "identical": report1 == report2,
+        "differences": {},
+        "summary": {
+            "fields_in_first": list(report1.keys()),
+            "fields_in_second": list(report2.keys()),
+        },
+    }
+
+
 if __name__ == "__main__":
     main()

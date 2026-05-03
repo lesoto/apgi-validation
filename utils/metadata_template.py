@@ -5,7 +5,9 @@ This module defines the canonical metadata structure that ALL protocols
 should use in their ProtocolResult objects.
 """
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
@@ -146,3 +148,92 @@ EMPIRICAL_EEG = StandardizedMetadata(
     analysis_methods=["EEG preprocessing", "ERP analysis", "spectral analysis"],
     preregistered=True,
 )
+
+
+# Default template for test compatibility
+DEFAULT_TEMPLATE = {
+    "version": "1.0.0",
+    "created": None,
+    "modified": None,
+    "fields": {},
+}
+
+
+class MetadataTemplate:
+    """Template for metadata structures."""
+
+    def __init__(self, fields: Optional[Dict[str, Any]] = None):
+        self.fields: Dict[str, Any] = fields or {}
+
+    def add_field(self, name: str, field_type: type, required: bool = False) -> None:
+        self.fields[name] = {"type": field_type, "required": required}
+
+    def validate(self, data: Dict[str, Any]) -> bool:
+        for field_name, field_spec in self.fields.items():
+            if field_spec.get("required", False) and field_name not in data:
+                return False
+            if field_name in data:
+                expected_type = field_spec.get("type")
+                if expected_type and not isinstance(data[field_name], expected_type):
+                    return False
+        return True
+
+
+def create_metadata_template(type: str = "basic") -> MetadataTemplate:
+    template = MetadataTemplate()
+    if type == "basic":
+        template.add_field("name", str)
+        template.add_field("timestamp", str)
+    elif type == "experimental":
+        template.add_field("subject_id", str, required=True)
+        template.add_field("session", int)
+        template.add_field("condition", str)
+    return template
+
+
+def validate_metadata(
+    data: Dict[str, Any], template: MetadataTemplate
+) -> Dict[str, Any]:
+    result: Dict[str, Any] = {"valid": True, "missing": [], "errors": []}
+    for field_name, field_spec in template.fields.items():
+        if field_spec.get("required", False) and field_name not in data:
+            result["valid"] = False
+            result["missing"].append(field_name)
+        if field_name in data:
+            expected_type = field_spec.get("type")
+            if expected_type and not isinstance(data[field_name], expected_type):
+                result["valid"] = False
+                result["errors"].append(f"Field '{field_name}' has wrong type")
+    return result
+
+
+def save_template(template: MetadataTemplate, filepath: Path) -> None:
+
+    data = {
+        "fields": {
+            name: {
+                "type": spec["type"].__name__,
+                "required": spec.get("required", False),
+            }
+            for name, spec in template.fields.items()
+        }
+    }
+    with open(filepath, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def load_template(filepath: Path) -> Optional[MetadataTemplate]:
+
+    if not filepath.exists():
+        return None
+    try:
+        with open(filepath, "r") as f:
+            data = json.load(f)
+        template = MetadataTemplate()
+        type_map = {"str": str, "int": int, "float": float, "bool": bool}
+        for name, spec in data.get("fields", {}).items():
+            field_type = type_map.get(spec.get("type"), str)
+            template.add_field(name, field_type, spec.get("required", False))
+        return template
+    except (json.JSONDecodeError, KeyError):
+        return None

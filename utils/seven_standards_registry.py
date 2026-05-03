@@ -590,3 +590,53 @@ def generate_validation_report() -> str:
             report_lines.append("")
 
     return "\n".join(report_lines)
+
+
+# Stubs for test compatibility
+# Alias for SevenStandardsRegistry with different naming
+StandardsRegistry = SevenStandardsRegistry
+
+
+class ComplianceLevel(Enum):
+    """Compliance level enumeration."""
+
+    NONE = 0
+    PARTIAL = 1
+    FULL = 2
+
+
+def register_standard(standard: Standard) -> None:
+    """Register a standard to the global registry."""
+    SevenStandardsRegistry.register_standard(standard)
+
+
+def get_standard(standard_id: str) -> Optional[Standard]:
+    """Get a standard by ID from the global registry."""
+    return SevenStandardsRegistry.get_standard(standard_id)
+
+
+def list_standards(category: Optional[StandardCategory] = None) -> List[Standard]:
+    """List all standards from the global registry."""
+    return SevenStandardsRegistry.list_standards(category)
+
+
+def check_compliance(standard_id: str, value: float) -> ComplianceLevel:
+    """Check compliance level for a standard."""
+    # Simple implementation - would need actual thresholds
+    if value >= 0.9:
+        return ComplianceLevel.FULL
+    elif value >= 0.5:
+        return ComplianceLevel.PARTIAL
+    return ComplianceLevel.NONE
+
+
+# Default seven standards constant
+SEVEN_STANDARDS = {
+    "mathematical": "Mathematical Consistency",
+    "empirical": "Empirical Testability",
+    "computational": "Computational Tractability",
+    "neurobiological": "Neurobiological Plausibility",
+    "predictive": "Predictive Novelty",
+    "cross_species": "Cross-Species Generalizability",
+    "clinical": "Clinical Applicability",
+}

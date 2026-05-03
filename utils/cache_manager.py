@@ -492,7 +492,7 @@ class CacheManager:
     def get_cache_warm_suggestions(self) -> List[str]:
         """Get suggestions for cache warming based on common data files."""
         suggestions = []
-        data_dir = Path("data")
+        data_dir = Path("data_repository")
 
         if data_dir.exists():
             # Look for common data files
