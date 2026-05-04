@@ -66,8 +66,10 @@ except ImportError:
     F2_1_MIN_ADVANTAGE_PCT = 22.0
     F2_1_MIN_COHENS_H = 0.55
 
-# HIGH-06: Import APGIConfig for centralized hyperparameters
-from utils.apgi_config import APGIConfig
+# HIGH-06: Import canonical APGI settings (instance-based; no mutable class attrs)
+from utils.apgi_config import get_apgi_settings
+
+APGI = get_apgi_settings()
 
 try:
     from utils.logging_config import apgi_logger as logger
@@ -583,7 +585,7 @@ class APGIActiveInferenceAgent(AgentInterface):
                 {"name": "context", "dim": 8, "tau": LEVEL_TIMESCALES.TAU_COGNITIVE},
             ],
             learning_rate=config.get(
-                "lr_extero", APGIConfig.lr_extero
+                "lr_extero", APGI.lr_extero
             ),  # HIGH-06: Use APGIConfig
         )
 
@@ -598,22 +600,20 @@ class APGIActiveInferenceAgent(AgentInterface):
                 },
             ],
             learning_rate=config.get(
-                "lr_intero", APGIConfig.lr_intero
+                "lr_intero", APGI.lr_intero
             ),  # HIGH-06: Use APGIConfig
         )
 
         # Precision
-        self.Pi_e = config.get(
-            "Pi_e_init", APGIConfig.Pi_e_init
-        )  # HIGH-06: Use APGIConfig
+        self.Pi_e = config.get("Pi_e_init", APGI.Pi_e_init)  # HIGH-06: Use APGIConfig
         self.Pi_i = config.get(
-            "Pi_i_init", APGIConfig.Pi_i_init  # HIGH-06: Use APGIConfig
+            "Pi_i_init", APGI.Pi_i_init  # HIGH-06: Use APGI settings
         )  # Calibrated: Higher baseline interoceptive precision
         self.beta = config.get(
-            "beta", APGIConfig.beta_somatic  # HIGH-06: Use APGIConfig
+            "beta", APGI.beta_somatic  # HIGH-06: Use APGI settings
         )  # Calibrated: Stronger somatic bias for IGT dominance
         self.lr_precision = config.get(
-            "lr_precision", APGIConfig.lr_precision
+            "lr_precision", APGI.lr_precision
         )  # HIGH-06: Use APGIConfig
 
         # Somatic markers
@@ -622,27 +622,25 @@ class APGIActiveInferenceAgent(AgentInterface):
             + DIM_CONSTANTS.HOMEOSTATIC_DIM,  # 8 + 4
             action_dim=config.get("n_actions", DIM_CONSTANTS.ACTION_DIM),
             learning_rate=config.get(
-                "lr_somatic", APGIConfig.lr_somatic
+                "lr_somatic", APGI.lr_somatic
             ),  # HIGH-06: Use APGIConfig
         )
 
         # Ignition
         self.S_t = 0.0
         self.theta_t = config.get(
-            "theta_init", APGIConfig.theta_init
+            "theta_init", APGI.theta_init
         )  # HIGH-06: Use APGIConfig
         self.theta_0 = config.get(
-            "theta_baseline", APGIConfig.theta_baseline
+            "theta_baseline", APGI.theta_baseline
         )  # HIGH-06: Use APGIConfig
-        self.alpha = config.get(
-            "alpha", APGIConfig.alpha_ignition
-        )  # HIGH-06: Use APGIConfig
-        self.tau_S = config.get("tau_S", APGIConfig.tau_S)  # HIGH-06: Use APGIConfig
+        self.alpha = config.get("alpha", APGI.alpha_ignition)  # HIGH-06: Use APGIConfig
+        self.tau_S = config.get("tau_S", APGI.tau_S)  # HIGH-06: Use APGI settings
         self.tau_theta = config.get(
-            "tau_theta", APGIConfig.tau_theta
+            "tau_theta", APGI.tau_theta
         )  # HIGH-06: Use APGIConfig
         self.eta_theta = config.get(
-            "eta_theta", APGIConfig.eta_theta
+            "eta_theta", APGI.eta_theta
         )  # HIGH-06: Use APGIConfig
 
         # Global workspace
@@ -4889,14 +4887,12 @@ class BatchedAPGIActiveInferenceAgent(nn.Module):
 
         # Batched state variables [Batch]
         self.S_t = torch.zeros(batch_size, device=self.device)
-        self.theta_t = torch.full(
-            (batch_size,), APGIConfig.theta_init, device=self.device
-        )
+        self.theta_t = torch.full((batch_size,), APGI.theta_init, device=self.device)
 
         # Hyperparameters
-        self.alpha = APGIConfig.alpha_ignition
-        self.tau_S = APGIConfig.tau_S
-        self.Pi_e = APGIConfig.Pi_e_init
+        self.alpha = APGI.alpha_ignition
+        self.tau_S = APGI.tau_S
+        self.Pi_e = APGI.Pi_e_init
 
     def step(
         self, extero_obs: torch.Tensor, dt: float = 0.05

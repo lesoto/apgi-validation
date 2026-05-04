@@ -140,7 +140,7 @@ python main.py info
 
 ## 🔬 Core Components
 
-### 1. Formal Model (`Theory/APGI_Equations.py`)
+### 1. Formal Model (`apgi_core/equations.py`)
 
 Implements dynamical system for accumulated surprise and ignition:
 
@@ -151,7 +151,7 @@ Implements dynamical system for accumulated surprise and ignition:
   • 51 psychological states with domain-specific thresholds
   • Neuromodulator mapping (ACh, NE, DA, 5-HT)
 
-### 2. Full Dynamic Model (`Theory/APGI_Full_Dynamic_Model.py`)
+### 2. Full Dynamic Model (`apgi_core.full_model`)
 
 Extended dynamical system with complete implementations:
 
@@ -337,7 +337,7 @@ python main.py falsify --comprehensive
 ### 1. Basic Simulation
 
 ```python
-from Theory.APGI_Equations import SurpriseIgnitionSystem
+from apgi_core.equations import SurpriseIgnitionSystem
 
 # Initialize system
 system = SurpriseIgnitionSystem()

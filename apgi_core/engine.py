@@ -1,30 +1,29 @@
-import sys
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
+"""
+APGI Engine
+===========
+
+Canonical engine-level implementation of the APGI dynamical system.
+
+Provides fine-grained component classes covering all APGI equations sections:
+  - Section 1:  Signal Preprocessing
+  - Section 2:  Precision System
+  - Section 3:  Core APGI Signal
+  - Section 4:  Ignition Mechanism
+  - Sections 5 & 8: Continuous / SDE Dynamics
+  - Sections 6 & 7: Allostatic and Energy Layer
+  - Section 9:  Liquid Neural Network (Reservoir)
+  - Sections 10 & 11: Hierarchical and Oscillatory Layer
+  - Section 12: Post-Ignition Reset
+  - Section 13: Statistical Validation
+  - Section 14: Complete Pipeline Orchestrator (APGISystem)
+"""
+
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-# Add project root to sys.path to resolve absolute imports
-root_path = str(Path(__file__).parent.parent)
-if root_path not in sys.path:
-    sys.path.insert(0, root_path)
-
-# Runtime import with fallback
-try:
-    from utils.apgi_config import APGIConfig
-except (ImportError, ValueError):
-    try:
-        from .apgi_config import APGIConfig
-    except (ImportError, ValueError):
-        try:
-            from apgi_config import APGIConfig  # type: ignore[no-redef]
-        except ImportError:
-            # Define minimal fallback if config unavailable
-            from typing import Any, Dict
-
-            class APGIConfig:  # type: ignore[no-redef]
-                def __init__(self) -> None:
-                    self.config: Dict[str, Any] = {}
+from utils.apgi_config import get_apgi_settings
+from utils.apgi_settings import APGISettings
 
 
 class APGIPreProcessor:
@@ -56,7 +55,7 @@ class APGIPreProcessor:
 class APGIPrecisionSystem:
     """Section 2: Precision System"""
 
-    def __init__(self, cfg: APGIConfig):
+    def __init__(self, cfg: APGISettings):
         self.cfg = cfg
         self.precision = cfg.Pi_e_init
 
@@ -68,7 +67,7 @@ class APGIPrecisionSystem:
         self, pi_baseline: float, beta: float, m_ca: float
     ) -> float:
         """Eq 2.2: Pi_eff = Pi_baseline * exp(beta * M(c,a))"""
-        return pi_baseline * np.exp(beta * m_ca)
+        return float(pi_baseline * np.exp(beta * m_ca))
 
     def precision_ode(
         self,
@@ -108,7 +107,7 @@ class APGIIgnitionMechanism:
         """Eq 4.1: Bt = 1 / (1 + exp(-alpha * (St - theta_t)))"""
         # Use clip to avoid overflow in exp
         val = -alpha * (s_t - theta_t)
-        return 1.0 / (1.0 + np.exp(np.clip(val, -100, 100)))
+        return float(1.0 / (1.0 + np.exp(np.clip(val, -100, 100))))
 
     @staticmethod
     def hard_ignition(s_t: float, theta_t: float) -> bool:
@@ -124,7 +123,7 @@ class APGIIgnitionMechanism:
 class APGISystemDynamics:
     """Section 5 & 8: Continuous Dynamics and SDE"""
 
-    def __init__(self, cfg: APGIConfig):
+    def __init__(self, cfg: APGISettings):
         self.cfg = cfg
 
     def signal_dynamics(
@@ -140,9 +139,9 @@ class APGISystemDynamics:
     ) -> float:
         """Eq 5.1 & 8.1: Signal Dynamics (ODE/SDE)"""
         # dS/dt = -S/tau_s + Pi_e|ze| + beta * Pi_i|zi| + eta_s(t)
-        noise = np.random.normal(0, np.sqrt(dt))
+        noise = float(np.random.normal(0, np.sqrt(dt)))
         ds_dt = (-s_t / tau_s) + (pi_e * abs(ze)) + (beta * pi_i * abs(zi))
-        return s_t + ds_dt * dt + noise
+        return float(s_t + ds_dt * dt + noise)
 
     def threshold_dynamics(
         self,
@@ -181,7 +180,7 @@ class APGIAllostaticLayer:
     @staticmethod
     def landauer_limit(k: float, t: float) -> float:
         """Eq 7.2: Landauer Limit (E_min >= kT ln 2)"""
-        return k * t * np.log(2)
+        return float(k * t * np.log(2))
 
 
 class APGILiquidNeuralNetwork:
@@ -200,7 +199,8 @@ class APGILiquidNeuralNetwork:
         # x_dot = -x/tau(t) + f(W_res x + W_in u)
         # Using tanh as f
         dx_dt = (-x / tau_t) + np.tanh(self.W_res @ x + self.W_in.flatten() * u)
-        return x + dx_dt * dt
+        res: np.ndarray = x + dx_dt * dt
+        return res
 
     def signal_readout(self, x: np.ndarray) -> float:
         """Eq 9.2: Signal Readout (S = x^T x)"""
@@ -237,7 +237,7 @@ class APGIHierarchy:
         theta_0: float, pi_next: float, phi_next: float, kappa_down: float
     ) -> float:
         """Eq 10.2: Cross-Level Threshold Modulation"""
-        return theta_0 * (1 + kappa_down * pi_next * np.cos(phi_next))
+        return float(theta_0 * (1 + kappa_down * pi_next * np.cos(phi_next)))
 
     @staticmethod
     def bottom_up_cascade(
@@ -288,16 +288,16 @@ class APGIValidationMetrics:
 class APGISystem:
     """Section 14: Complete Pipeline Orchestrator"""
 
-    def __init__(self, cfg: APGIConfig):
-        self.cfg = cfg
+    def __init__(self, cfg: Optional[APGISettings] = None):
+        self.cfg = cfg or get_apgi_settings()
         self.prep_e = APGIPreProcessor()
         self.prep_i = APGIPreProcessor()
-        self.precision = APGIPrecisionSystem(cfg)
-        self.dynamics = APGISystemDynamics(cfg)
+        self.precision = APGIPrecisionSystem(self.cfg)
+        self.dynamics = APGISystemDynamics(self.cfg)
         self.recovery = APGIRecovery()
 
         self.s_t = 0.0
-        self.theta_t = cfg.theta_init
+        self.theta_t = self.cfg.theta_init
         self.b_t = 0.0
 
     def step(
@@ -384,8 +384,7 @@ class APGISystem:
 if __name__ == "__main__":
     # Smoke test for APGISystem
     print("Initializing APGI System...")
-    config = APGIConfig()
-    system = APGISystem(config)
+    system = APGISystem()
 
     # Pre-warm statistics to prevent Z-score explosion in small samples
     print("Pre-warming statistics...")
@@ -396,7 +395,6 @@ if __name__ == "__main__":
     print("\nStarting Simulation Loop (5 steps):")
     print("-" * 50)
     for i in range(5):
-        # Simulated sensory and interoceptive inputs (reduced intensity for stability)
         res = system.step(
             x=np.random.normal(0.2, 0.1),
             x_hat=0.0,

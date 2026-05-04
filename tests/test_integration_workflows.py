@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import modules for integration testing
 try:
-    from Theory.APGI_Equations import (
+    from apgi_core.equations import (
         CoreIgnitionSystem,
         DynamicalSystemEquations,
         FoundationalEquations,

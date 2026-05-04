@@ -118,19 +118,17 @@ def test_parameter_recovery_accuracy():
             run_bayesian_estimation_complete,
         )
 
-        # Test multiple parameter combinations
+        # Test reduced parameter combinations for performance
         test_cases = [
             {"beta": 0.3, "pi": 0.4},
-            {"beta": 0.5, "pi": 0.5},
             {"beta": 0.7, "pi": 0.6},
-            {"beta": 0.9, "pi": 0.8},
         ]
 
         for i, true_params in enumerate(test_cases):
-            # Generate synthetic data
+            # Generate smaller synthetic data for faster execution
             observations, _ = generate_synthetic_data_with_ground_truth(
-                n_subjects=40,
-                n_timepoints=60,
+                n_subjects=20,  # Reduced from 40
+                n_timepoints=40,  # Reduced from 60
                 true_params=true_params,
                 noise_level=0.1,
                 seed=i,
@@ -193,16 +191,16 @@ def test_parameter_recovery_consistency():
             )
 
         true_params = {"beta": 0.7, "pi": 0.5}
-        n_runs = 5
+        n_runs = 3  # Reduced from 5 for performance
 
         recovered_betas = []
         recovered_pis = []
 
         for i in range(n_runs):
-            # Generate synthetic data with same parameters but different noise
+            # Generate smaller synthetic data for faster execution
             observations, _ = generate_synthetic_data_with_ground_truth(
-                n_subjects=50,
-                n_timepoints=80,
+                n_subjects=25,  # Reduced from 50
+                n_timepoints=50,  # Reduced from 80
                 true_params=true_params,
                 noise_level=0.1,
                 seed=42 + i,

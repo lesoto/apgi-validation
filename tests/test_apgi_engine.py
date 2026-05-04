@@ -3,8 +3,7 @@
 import numpy as np
 import pytest
 
-from utils.apgi_config import APGIConfig
-from utils.apgi_engine import (
+from apgi_core import (
     APGIAllostaticLayer,
     APGICoreSignal,
     APGIHierarchy,
@@ -17,6 +16,7 @@ from utils.apgi_engine import (
     APGISystemDynamics,
     APGIValidationMetrics,
 )
+from utils.apgi_config import APGIConfig
 
 
 class TestAPGIPreProcessor:

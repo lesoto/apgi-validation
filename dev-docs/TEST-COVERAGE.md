@@ -96,7 +96,7 @@ pytest tests/ --cov=utils/timeout_handler --cov-report=term-missing
 
 | File | Lines | Coverage | Status | Gap |
 | ---- | ----- | -------- | ------ | ----- |
-| `APGI_Equations.py` | ~4000 | 🟢 85% | Near Complete | test_theory_equations_core.py |
+| `apgi_core/equations.py` | ~4000 | 🟢 85% | Near Complete | test_theory_equations_core.py |
 | `APGI_Entropy_Implementation.py` | 121165 | 🟡 45% | Partial | test_apgi_entropy_implementation.py |
 | `APGI_Multimodal_Integration.py` | 153638 | ⚪ 0% | Untested | +100% |
 | `APGI_Parameter_Estimation.py` | 157945 | 🟡 35% | Partial | test_apgi_parameter_estimation.py |
@@ -167,7 +167,7 @@ pytest tests/ --cov=utils/timeout_handler --cov-report=term-missing
 
 | Priority | Module | Tests Needed | Est. Effort |
 | -------- | ------ | ------------ | ----------- |
-| P0 | `Theory/APGI_Equations.py` | 50 | 4 days |
+| P0 | `apgi_core/equations.py` | 50 | 4 days |
 | P0 | `Theory/APGI_Entropy_Implementation.py` complete | 30 | 2 days |
 | P1 | `Theory/APGI_Parameter_Estimation.py` complete | 40 | 3 days |
 | P1 | `Theory/APGI_Bayesian_Estimation_Framework.py` complete | 25 | 2 days |
@@ -578,7 +578,7 @@ def test_cost_symmetry_property(self, surprise, threshold):
 | --------- | ------------- | ------------ | ---------- |
 | `test_timeout_handler_complete.py` | `utils/timeout_handler.py` | 14 | ~230 |
 | `test_main_protocol_execution.py` | `main.py` - protocol functions | 20 | ~350 |
-| `test_theory_equations_core.py` | `Theory/APGI_Equations.py` | 40 | ~600 |
+| `test_theory_equations_core.py` | `apgi_core/equations.py` | 40 | ~600 |
 | `test_validation_master_complete.py` | `Validation/Master_Validation.py` | 35 | ~500 |
 | `test_falsification_aggregator.py` | `Falsification/FP_ALL_Aggregator.py` | 25 | ~400 |
 

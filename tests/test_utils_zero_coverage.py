@@ -121,33 +121,36 @@ class TestAuthAdapter:
 
     def test_auth_manager_global(self):
         """Test global auth_manager instance."""
-        from utils.auth_adapter import auth_manager
+        from utils.auth_adapter import get_auth_manager
 
+        auth_manager = get_auth_manager()
         assert auth_manager is not None
         assert hasattr(auth_manager, "generate_token")
 
     def test_require_roles_decorator(self):
         """Test require_roles decorator."""
-        from utils.auth_adapter import Role, auth_manager, require_roles
+        from utils.auth_adapter import Role, get_auth_manager, require_roles
 
         @require_roles([Role.ADMIN])
         def protected_function(token):
             return "success"
 
         # Generate admin token
+        auth_manager = get_auth_manager()
         token = auth_manager.generate_token("user123", Role.ADMIN)
         result = protected_function(token)
         assert result == "success"
 
     def test_require_roles_decorator_denied(self):
         """Test require_roles decorator with insufficient role."""
-        from utils.auth_adapter import Role, auth_manager, require_roles
+        from utils.auth_adapter import Role, get_auth_manager, require_roles
 
         @require_roles([Role.ADMIN])
         def protected_function(token):
             return "success"
 
         # Generate guest token
+        auth_manager = get_auth_manager()
         token = auth_manager.generate_token("user123", Role.GUEST)
         try:
             protected_function(token)

@@ -1,18 +1,20 @@
 """
-APGI Implementation
-============================
+APGI Core Model
+===============
 
-Structured implementation of the APGI (Active Perception and Generative Inference)
-dynamical system based on ultimate_apgi_template.py.
+Canonical implementation of the APGI (Active Perception and Generative Inference)
+dynamical system.
 
-This template provides:
+Provides:
 - Core dynamical components (generative models, signal processing, threshold dynamics)
 - Stability enforcement and bounded dynamics
 - Empirical mapping functions for EEG/behavioral proxies
 - Full runner system integrating all components
+- Hierarchical 5-level processor
 
-Usage:
-    from apgi_implementation_template import APGIModel, CONFIG
+Usage::
+
+    from apgi_core import APGIModel, CONFIG
 
     model = APGIModel()
     for t in range(1000):
@@ -358,7 +360,6 @@ class HierarchicalProcessor:
         self.beta_cross: float = self.cfg.get("beta_cross", 0.2)
 
         # Initialize 5 hierarchical levels with timescales
-        # From ultimate_apgi_template.py: [0.1, 0.2, 0.4, 1.0, 5.0]
         default_taus = [0.1, 0.2, 0.4, 1.0, 5.0]
         self.levels: List[HierarchicalLevel] = [
             HierarchicalLevel(tau=default_taus[i]) for i in range(5)
@@ -528,7 +529,9 @@ class APGIModel:
         Args:
             config: Optional configuration dict (uses CONFIG default if None)
         """
-        self.cfg = config or CONFIG
+        self.config = config or CONFIG
+        # Keep cfg as an alias for backwards-compat
+        self.cfg = self.config
 
         # Generative model for exteroceptive predictions
         self.gen = GenerativeModel(lr=0.05)
@@ -608,12 +611,10 @@ class APGIModel:
         V = compute_information_value(z_e, z_i)
 
         # 8. Ignition detection (using hierarchical aggregate)
-        # We compute this before threshold update and metabolic cost for temporal consistency
         p = ignition_probability(S_hierarchical, self.theta, self.cfg["alpha"])
         ignited = ignite(S_hierarchical, self.theta)
 
         # 9. Compute metabolic cost C = c1 * p_ignition + c2
-        # Use ignition probability as a smooth proxy for "ignitions per unit time"
         c1 = self.cfg.get("c1", 0.1)
         c2 = self.cfg.get("c2", 0.02)
         metabolic_cost = c1 * p + c2
@@ -630,7 +631,7 @@ class APGIModel:
             metabolic_cost=metabolic_cost,
         )
 
-        # 10. Stability enforcement
+        # 11. Stability enforcement
         state = {
             "S": self.S,
             "theta": self.theta,
@@ -641,7 +642,7 @@ class APGIModel:
         self.S = state["S"]
         self.theta = state["theta"]
 
-        # 10. Empirical mapping
+        # 12. Empirical mapping
         p3b = map_to_p3b_latency(self.S)
         hep = map_to_hep_amplitude(z_i, pi_i)
         rt = map_to_reaction_time(self.S, self.theta)

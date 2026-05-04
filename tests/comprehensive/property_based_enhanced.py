@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import APGI modules
 try:
-    from APGI_Equations import FoundationalEquations
+    from apgi_core.equations import FoundationalEquations
 
     APGI_AVAILABLE = True
 except ImportError:

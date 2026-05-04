@@ -1,0 +1,111 @@
+{
+  "version": {
+    "version_id": "v20260504_172300",
+    "timestamp": "2026-05-04T17:23:00.084543",
+    "config_hash": "6152fb016959c15d65cfbef61939855a",
+    "description": "Loaded profile: pytest_4ef77e08",
+    "author": "user",
+    "changes": []
+  },
+  "config": {
+    "model": {
+      "tau_S": 0.5,
+      "tau_theta": 30.0,
+      "tau_M": 1.52,
+      "theta_0": 0.5,
+      "alpha": 5.0,
+      "gamma_M": 0.1,
+      "gamma_A": 0.05,
+      "beta": 1.2,
+      "Pi_e": 1.0,
+      "Pi_i_baseline": 1.0,
+      "beta_Pi_i": 1.0,
+      "rho": 0.7,
+      "sigma_S": 0.1,
+      "sigma_theta": 0.05,
+      "sigma_noise": 0.8,
+      "somatic_gain": 1.0,
+      "homeostatic_cost_weight": 0.2,
+      "hidden_dim": 64,
+      "somatic_hidden_dim": 32,
+      "learning_rate": 0.01,
+      "value_learning_rate": 0.001,
+      "dt": 0.05,
+      "duration": 1.0,
+      "F6_2_MIN_INTEGRATION_RATIO": 4.0,
+      "F6_2_FALSIFICATION_RATIO": 2.5,
+      "F6_2_MIN_CURVE_FIT_R2": 0.85,
+      "F6_2_WILCOXON_ALPHA": 0.05,
+      "F6": {
+        "delta_auroc_min": 0.05
+      }
+    },
+    "simulation": {
+      "default_steps": 1000,
+      "default_dt": 0.05,
+      "max_steps": 100000,
+      "enable_plots": true,
+      "plot_format": "png",
+      "plot_dpi": 150,
+      "save_results": true,
+      "results_format": "csv",
+      "enable_cross_validation": true,
+      "cv_folds": 5,
+      "enable_sensitivity_analysis": true,
+      "sensitivity_samples": 100,
+      "enable_robustness_tests": true,
+      "significance_level": 0.05
+    },
+    "logging": {
+      "level": "INFO",
+      "enable_console": true,
+      "log_rotation": "10 MB",
+      "log_retention": "30 days",
+      "enable_performance_logging": true,
+      "log_directory": "logs/",
+      "enable_structured_logging": true
+    },
+    "data": {
+      "default_data_dir": "data",
+      "supported_formats": [
+        "csv",
+        "json",
+        "xlsx",
+        "pkl"
+      ],
+      "max_file_size_mb": 100,
+      "enable_caching": true,
+      "cache_dir": "cache",
+      "sample_size": 1000,
+      "time_series_length": 100,
+      "eeg_channels": 32,
+      "sampling_rate": 1000,
+      "max_load_size_mb": 100
+    },
+    "validation": {
+      "enable_cross_validation": true,
+      "cv_folds": 5,
+      "enable_sensitivity_analysis": true,
+      "sensitivity_samples": 100,
+      "enable_robustness_tests": true,
+      "significance_level": 0.05,
+      "n_simulations": 100
+    },
+    "batch": {
+      "max_workers": 4,
+      "use_processes": false,
+      "chunk_size": 100,
+      "timeout": 300,
+      "auto_scale": true
+    },
+    "falsification": {
+      "cumulative_reward_advantage_threshold": 18.0,
+      "cohens_d_threshold": 0.6,
+      "significance_level": 0.01,
+      "threshold_reduction_min": 20.0,
+      "cohens_d_adaptation_threshold": 0.7,
+      "tau_theta_min": 10.0,
+      "tau_theta_max": 100.0
+    }
+  }
+}

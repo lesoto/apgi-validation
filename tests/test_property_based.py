@@ -25,14 +25,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import APGI modules for property-based testing
 try:
-    from Theory.APGI_Equations import DynamicalSystemEquations, FoundationalEquations
+    from apgi_core.equations import DynamicalSystemEquations, FoundationalEquations
     from Theory.APGI_Parameter_Estimation import generate_synthetic_dataset
     from utils.data_validation import DataValidator
 
     APGI_EQUATIONS_AVAILABLE = True
 except ImportError as e:
     APGI_EQUATIONS_AVAILABLE = False
-    print(f"Warning: APGI_Equations not available for property-based testing: {e}")
+    print(f"Warning: apgi_core.equations not available for property-based testing: {e}")
 
 
 # Wrapper functions to maintain the expected interface for property-based tests

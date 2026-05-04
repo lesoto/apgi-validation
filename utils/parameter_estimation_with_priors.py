@@ -45,7 +45,6 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 import numpy as np
 
 if TYPE_CHECKING:
-    from .apgi_engine import APGISystem
     from .physiological_priors import (
         AlphaGammaRatioPrior,
         CollinearityBreaker,
@@ -86,14 +85,7 @@ else:
             HEPCalibrationResult = None  # type: ignore
             PhysiologicalPriorResult = None  # type: ignore
 
-    # Import APGI core at runtime - APGISystem is the main class in apgi_engine
-    try:
-        from .apgi_engine import APGISystem
-    except ImportError:
-        try:
-            from utils.apgi_engine import APGISystem
-        except ImportError:
-            APGISystem = None  # type: ignore
+    # Single canonical import — no fallbacks needed
 
 logger = logging.getLogger(__name__)
 

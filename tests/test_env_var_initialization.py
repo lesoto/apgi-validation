@@ -22,6 +22,9 @@ def reset_key_manager_singleton():
     skm._secure_key_manager = None
     # Also clear any environment variables that might interfere
     original_environ = os.environ.copy()
+    # Tests run in ephemeral mode unless a test explicitly disables it.
+    os.environ["APGI_ALLOW_EPHEMERAL_MASTER_KEY"] = "1"
+
     for key in ["PICKLE_SECRET_KEY", "APGI_BACKUP_HMAC_KEY", "APGI_MASTER_KEY"]:
         if key in os.environ:
             del os.environ[key]

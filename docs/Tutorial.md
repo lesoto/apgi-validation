@@ -186,7 +186,7 @@ naive_threshold = estimate_threshold(detection_trials)  # θ₀ and Πᵉ confou
 
 ```python
 # Python API
-from Theory.APGI_Equations import SurpriseIgnitionSystem
+from apgi_core.equations import SurpriseIgnitionSystem
 import numpy as np
 
 # Initialize model with default parameters
@@ -515,7 +515,7 @@ python main.py validate --all-protocols --parallel
 def run_validation():
     """Custom validation protocol for specific hypothesis."""
     import numpy as np
-    from Theory.APGI_Equations import SurpriseIgnitionSystem
+    from apgi_core.equations import SurpriseIgnitionSystem
 
     # Test hypothesis: Higher precision leads to faster ignition
     precision_values = [0.5, 1.0, 1.5, 2.0]
@@ -677,7 +677,7 @@ python main.py visualize --input-file results.csv --interactive
 
 ```python
 # Create custom model extending SurpriseIgnitionSystem
-from APGI_Equations import SurpriseIgnitionSystem
+from apgi_core.equations import SurpriseIgnitionSystem
 
 class CustomSurpriseSystem(SurpriseIgnitionSystem):
     def __init__(self, params=None):

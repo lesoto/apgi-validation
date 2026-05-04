@@ -969,7 +969,7 @@ class APGINeuralSignaturesValidator:
 
         # Compute ignition probabilities using APGI model
         # Import APGI equations module
-        from APGI_Equations import CoreIgnitionSystem
+        from apgi_core.equations import CoreIgnitionSystem
 
         ignition_system = CoreIgnitionSystem()
 
@@ -1530,10 +1530,12 @@ class APGINeuralSignaturesValidator:
             Dictionary with clinical population comparison results
         """
         try:
-            from APGI_Equations import CoreIgnitionSystem
+            from apgi_core.equations import CoreIgnitionSystem
         except ImportError:
-            logger.debug("APGI_Equations not available - using simplified simulation")
-            CoreIgnitionSystem = None
+            logger.debug(
+                "apgi_core.equations not available - using simplified simulation"
+            )
+            CoreIgnitionSystem = None  # type: ignore[misc]
 
         # Define population parameters based on Paper 3 clinical translation table
         # Anxiety profile: elevated Πⁱ (hypervigilance) + reduced θ₀ (hyperarousal)
@@ -1560,7 +1562,7 @@ class APGINeuralSignaturesValidator:
             n_agents = n_healthy if pop_name == "healthy" else n_anxiety
 
             # Simulate agents
-            agents_data = []
+            agents_data: List[Dict[str, Any]] = []
             for agent_idx in range(n_agents):
                 # Sample agent parameters with explicit float casting
                 precision_i = float(

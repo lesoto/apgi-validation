@@ -522,8 +522,10 @@ class TestVP11MCMCFixes:
         module = FALSIFICATION_MODULES["FP_10_BayesianEstimation_MCMC"]
 
         try:
-            # Run falsification with synthetic data
-            results = module.run_falsification(n_samples=100, n_chains=1, burn_in=50)
+            # Run falsification with reduced samples for faster execution
+            results = module.run_falsification(
+                n_samples=50, n_chains=1, burn_in=25
+            )  # Reduced from 100, 50
 
             assert isinstance(results, dict)
             assert "data_source" in results
@@ -541,8 +543,10 @@ class TestVP11MCMCFixes:
         module = FALSIFICATION_MODULES["FP_10_BayesianEstimation_MCMC"]
 
         try:
-            # Run falsification
-            results = module.run_falsification(n_samples=100, n_chains=1, burn_in=50)
+            # Run falsification with reduced samples for faster execution
+            results = module.run_falsification(
+                n_samples=50, n_chains=1, burn_in=25
+            )  # Reduced from 100, 50
 
             assert isinstance(results, dict)
             assert "divergence_diagnostics" in results

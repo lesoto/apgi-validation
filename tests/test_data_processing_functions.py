@@ -112,14 +112,14 @@ class TestListProtocols:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
-        (validation_dir / "Validation-Protocol-2.py").write_text("# Protocol 2")
+        (validation_dir / "VP_01_Protocol.py").write_text("# Protocol 1")
+        (validation_dir / "VP_02_Protocol.py").write_text("# Protocol 2")
 
         protocols = _list_protocols(validation_dir)
 
         assert len(protocols) == 2
-        assert "Validation-Protocol-1.py" in protocols
-        assert "Validation-Protocol-2.py" in protocols
+        assert "VP_01_Protocol.py" in protocols
+        assert "VP_02_Protocol.py" in protocols
 
     def test_list_protocols_empty_dir(self, tmp_path):
         """Test listing protocols with empty directory."""
@@ -141,12 +141,12 @@ class TestRunParallel:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
-        (validation_dir / "Validation-Protocol-2.py").write_text("# Protocol 2")
+        (validation_dir / "VP_01_Protocol.py").write_text("# Protocol 1")
+        (validation_dir / "VP_02_Protocol.py").write_text("# Protocol 2")
 
-        protocols = ["Validation-Protocol-1.py", "Validation-Protocol-2.py"]
+        protocols = ["VP_01_Protocol.py", "VP_02_Protocol.py"]
 
-        mock_run_single.return_value = ("1", "Success", None)
+        mock_run_single.return_value = ("01", "Success", None)
 
         # Test with mocked concurrent.futures
         with patch("concurrent.futures.ThreadPoolExecutor") as mock_executor_class:
@@ -157,7 +157,7 @@ class TestRunParallel:
             mock_executor_class.return_value.__exit__ = MagicMock(return_value=False)
 
             mock_future = MagicMock()
-            mock_future.result.return_value = ("1", "Success", None)
+            mock_future.result.return_value = ("01", "Success", None)
             mock_executor_instance.submit.return_value = mock_future
 
             with patch("concurrent.futures.as_completed") as mock_as_completed:
@@ -165,7 +165,7 @@ class TestRunParallel:
 
                 results = _run_parallel(protocols, validation_dir)
 
-                assert "1" in results
+                assert "01" in results
 
     @pytest.mark.slow
     @patch("main._run_single_protocol")
@@ -174,11 +174,11 @@ class TestRunParallel:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
+        (validation_dir / "VP_01_Protocol.py").write_text("# Protocol 1")
 
-        protocols = ["Validation-Protocol-1.py"]
+        protocols = ["VP_01_Protocol.py"]
 
-        mock_run_single.return_value = ("1", None, "Error")
+        mock_run_single.return_value = ("01", None, "Error")
 
         # Test with mocked concurrent.futures
         with patch("concurrent.futures.ThreadPoolExecutor") as mock_executor_class:
@@ -189,7 +189,7 @@ class TestRunParallel:
             mock_executor_class.return_value.__exit__ = MagicMock(return_value=False)
 
             mock_future = MagicMock()
-            mock_future.result.return_value = ("1", None, "Error")
+            mock_future.result.return_value = ("01", None, "Error")
             mock_executor_instance.submit.return_value = mock_future
 
             with patch("concurrent.futures.as_completed") as mock_as_completed:
@@ -197,7 +197,7 @@ class TestRunParallel:
 
                 results = _run_parallel(protocols, validation_dir)
 
-                assert "1" in results
+                assert "01" in results
 
 
 class TestRunSequential:
@@ -209,16 +209,16 @@ class TestRunSequential:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
-        (validation_dir / "Validation-Protocol-2.py").write_text("# Protocol 2")
+        (validation_dir / "VP_01_Protocol.py").write_text("# Protocol 1")
+        (validation_dir / "VP_02_Protocol.py").write_text("# Protocol 2")
 
-        protocols = ["Validation-Protocol-1.py", "Validation-Protocol-2.py"]
+        protocols = ["VP_01_Protocol.py", "VP_02_Protocol.py"]
 
-        mock_run_single.return_value = ("1", "Success", None)
+        mock_run_single.return_value = ("01", "Success", None)
 
         results = _run_sequential(protocols, validation_dir)
 
-        assert "1" in results
+        assert "01" in results
 
     @patch("main._run_single_protocol")
     def test_run_sequential_with_errors(self, mock_run_single, tmp_path):
@@ -226,15 +226,15 @@ class TestRunSequential:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
-        (validation_dir / "Validation-Protocol-1.py").write_text("# Protocol 1")
+        (validation_dir / "VP_01_Protocol.py").write_text("# Protocol 1")
 
-        protocols = ["Validation-Protocol-1.py"]
+        protocols = ["VP_01_Protocol.py"]
 
-        mock_run_single.return_value = ("1", None, "Error")
+        mock_run_single.return_value = ("01", None, "Error")
 
         results = _run_sequential(protocols, validation_dir)
 
-        assert "1" in results
+        assert "01" in results
 
 
 class TestShowConfig:

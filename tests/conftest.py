@@ -102,6 +102,26 @@ def pickle_secret_key(monkeypatch):
     yield key
 
 
+@pytest.fixture(autouse=True)
+def apgi_jwt_secret(monkeypatch):
+    """Provide a default APGI_JWT_SECRET for all tests."""
+    secret = "test_jwt_secret_at_least_32_characters_long"
+    monkeypatch.setenv("APGI_JWT_SECRET", secret)
+    monkeypatch.setenv("APGI_SKIP_SECURITY", "true")
+    return secret
+
+
+@pytest.fixture(autouse=True)
+def allow_ephemeral_master_key(monkeypatch):
+    """Allow explicit ephemeral master keys in tests.
+
+    Production code should set a persistent `APGI_MASTER_KEY`. In tests we allow
+    ephemeral generation, but only when this explicit flag is present.
+    """
+    monkeypatch.setenv("APGI_ALLOW_EPHEMERAL_MASTER_KEY", "1")
+    yield
+
+
 @pytest.fixture
 def env_vars(monkeypatch):
     """Provide all required environment variables for tests.

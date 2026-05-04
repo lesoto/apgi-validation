@@ -54,7 +54,7 @@ except ImportError:
     V16_MIN_CORRELATION = 0.75
     V16_MIN_EFFICIENCY_GAIN = 0.20
 
-from apgi_implementation import CONFIG, APGIModel
+from apgi_core import APGIModel
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,20 @@ class APGIMetabolicValidator:
     """Validates APGI metabolic costs against ground-truth datasets."""
 
     def __init__(self, config: Optional[Dict] = None):
-        self.config = config or CONFIG
+        self.config = config or {
+            "dt": 0.01,
+            "tau_theta": 20.0,
+            "theta0": 0.5,
+            "alpha": 5.0,
+            "beta": 1.5,
+            "beta_M": 1.0,
+            "M_0": 0.0,
+            "gamma_M": -0.3,
+            "alpha_mu": 0.01,
+            "alpha_sigma": 0.005,
+            "c1": 0.1,
+            "c2": 0.02,
+        }
         self.simulator = MetabolicGroundTruthSimulator()
 
     def validate_c1_c2_ground_truth(self, n_trials: int = 20) -> Dict[str, Any]:

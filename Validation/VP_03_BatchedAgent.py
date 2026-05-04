@@ -12,7 +12,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from utils.apgi_config import APGIConfig
+from utils.apgi_config import get_apgi_settings
 from utils.constants import LEVEL_TIMESCALES
 from utils.falsification_thresholds import THRESHOLD_REGISTRY  # noqa: F401
 
@@ -88,6 +88,7 @@ class BatchedAPGIActiveInferenceAgent(nn.Module):
     def __init__(self, batch_size: int, config: Dict):
         super().__init__()
         self.batch_size = batch_size
+        apgi = get_apgi_settings()
 
         # Vectorized models
         self.extero_model = BatchedHierarchicalGenerativeModel(
@@ -101,13 +102,13 @@ class BatchedAPGIActiveInferenceAgent(nn.Module):
 
         # State vectors for ignition [Batch]
         self.S_t = torch.zeros(batch_size)
-        self.theta_t = torch.full((batch_size,), APGIConfig.theta_init)
+        self.theta_t = torch.full((batch_size,), apgi.theta_init)
 
         # Constants [1] or [Batch]
-        self.alpha = APGIConfig.alpha_ignition
-        self.tau_S = APGIConfig.tau_S
-        self.Pi_e = APGIConfig.Pi_e_init
-        self.Pi_i = APGIConfig.Pi_i_init
+        self.alpha = apgi.alpha_ignition
+        self.tau_S = apgi.tau_S
+        self.Pi_e = apgi.Pi_e_init
+        self.Pi_i = apgi.Pi_i_init
 
     def step(self, observations: Dict[str, torch.Tensor], dt: float = 0.05):
         """Execute parallel step for all agents"""

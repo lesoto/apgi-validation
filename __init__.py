@@ -11,10 +11,10 @@ testing APGI predictions against empirical data.
 __version__ = "1.0.0"
 __author__ = "APGI Framework"
 
-try:
-    from Validation.Master_Validation import APGIMasterValidator
+__all__ = []
 
-    __all__ = ["APGIMasterValidator"]
-
-except ImportError:
-    __all__ = []
+# NOTE:
+# Keep package import side-effect free. Importing the full validation stack can
+# pull in large optional scientific dependencies and may fail in minimal
+# environments (or during unit test collection). Consumers should import
+# `Validation.Master_Validation.APGIMasterValidator` directly when needed.

@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def test_threshold_dynamics_core():
     """Test threshold dynamics function directly."""
-    from Theory.APGI_Equations import DynamicalSystemEquations
+    from apgi_core.equations import DynamicalSystemEquations
 
     # Test basic functionality
     theta_new = DynamicalSystemEquations.threshold_dynamics(

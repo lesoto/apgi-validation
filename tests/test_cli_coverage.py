@@ -32,11 +32,17 @@ class TestValidateCommand:
         result = runner.invoke(cli, ["validate", "--protocol", "1"])
         assert result.exit_code == 0
 
+    @pytest.mark.timeout(60)  # 1 minute timeout
     def test_validate_all_protocols(self, cli):
         """Test validate command with all-protocols flag."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["validate", "--all-protocols"])
-        assert result.exit_code == 0
+        from unittest.mock import patch
+
+        # Mock _run_sequential to avoid long-running protocol execution
+        with patch("main._run_sequential", return_value={"1": "mocked"}):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["validate", "--all-protocols"])
+            assert result.exit_code == 0
+            assert "Running all validation protocols" in result.output
 
     def test_validate_with_output_dir(self, cli, tmp_path):
         """Test validate command with output directory."""
@@ -46,11 +52,17 @@ class TestValidateCommand:
         )
         assert result.exit_code == 0
 
+    @pytest.mark.timeout(60)  # 1 minute timeout
     def test_validate_parallel_mode(self, cli):
         """Test validate command in parallel mode."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["validate", "--all-protocols", "--parallel"])
-        assert result.exit_code == 0
+        from unittest.mock import patch
+
+        # Mock _run_parallel to avoid long-running protocol execution
+        with patch("main._run_parallel", return_value={"1": "mocked"}):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["validate", "--all-protocols", "--parallel"])
+            assert result.exit_code == 0
+            assert "Running protocols in parallel" in result.output
 
     def test_validate_invalid_protocol(self, cli):
         """Test validate command with invalid protocol."""

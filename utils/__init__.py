@@ -161,23 +161,15 @@ from .falsification_thresholds import (  # Validation Protocol 12 constants
     V12_2_MIN_PILLAIS_TRACE,
 )
 
-# Import key classes for easy access
+# Import lightweight utilities for easy access.
+# Keep this package import as side-effect free as possible: avoid importing large
+# protocol runners or scientific stacks at import time.
 from .sample_data_generator import SampleDataGenerator, generate_sample_multimodal_data
 
-try:
-    from .batch_processor import BatchProcessor
-
-    BATCH_PROCESSOR_AVAILABLE = True
-except ImportError as e:
-    if "tqdm" in str(e):
-        BATCH_PROCESSOR_AVAILABLE = False
-        BatchProcessor: Any = None  # type: ignore[misc,assignment,no-redef]
-        warnings.warn(
-            "Warning: BatchProcessor unavailable due to missing tqdm dependency. Install tqdm to enable batch processing.",
-            ImportWarning,
-        )
-    else:
-        raise
+# Batch processing is optional and may pull in large dependency graphs.
+# Provide it lazily via __getattr__ instead of importing here.
+BATCH_PROCESSOR_AVAILABLE = False
+BatchProcessor: Any = None  # type: ignore[misc,assignment]
 
 # Check optional protocol dependencies and emit an import-level warning if absent.
 _OPTIONAL_DEPS = {
@@ -213,6 +205,28 @@ if _MISSING_OPTIONAL_DEPS:
 
 from .cache_manager import CacheManager
 from .config_manager import ConfigManager
+
+
+def __getattr__(name: str) -> Any:
+    if name == "BatchProcessor":
+        try:
+            from .batch_processor import (
+                BatchProcessor as _BatchProcessor,
+            )  # type: ignore
+
+            globals()["BatchProcessor"] = _BatchProcessor
+            globals()["BATCH_PROCESSOR_AVAILABLE"] = True
+            return _BatchProcessor
+        except Exception as exc:  # pragma: no cover
+            warnings.warn(
+                f"BatchProcessor unavailable: {exc}",
+                ImportWarning,
+                stacklevel=2,
+            )
+            globals()["BATCH_PROCESSOR_AVAILABLE"] = False
+            return None
+    raise AttributeError(name)
+
 
 __all__ = [
     "SampleDataGenerator",

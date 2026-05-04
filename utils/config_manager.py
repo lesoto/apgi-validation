@@ -407,8 +407,12 @@ class FalsificationConfig:
 
 
 @dataclass
-class APGIConfig:
-    """Main configuration container."""
+class FrameworkConfig:
+    """Main framework configuration container.
+
+    Named `FrameworkConfig` to avoid confusion with the canonical APGI
+    dynamical-system settings (see `utils.apgi_config` / `apgi_core`).
+    """
 
     model: ModelParameters = field(default_factory=ModelParameters)
     simulation: SimulationConfig = field(default_factory=SimulationConfig)
@@ -424,7 +428,7 @@ class ConfigManager:
 
     def __init__(self, config_file: Optional[Union[str, Path]] = None):
         self.config_file = Path(config_file or CONFIG_DIR / "default.yaml")
-        self.config = APGIConfig()
+        self.config = FrameworkConfig()
         self.schema = self._load_schema()
         self._load_environment()
         self._load_config()
@@ -803,6 +807,38 @@ class ConfigManager:
                             f"Unsupported config file format: {self.config_file.suffix}"
                         )
 
+                # Apply schema version migration if needed
+                try:
+                    from .schema_version_manager import get_schema_manager
+
+                    schema_manager = get_schema_manager()
+
+                    # Check if migration is needed
+                    config_version = config_data.get("version", "1.0.0")
+                    if config_version != schema_manager.current_version:
+                        apgi_logger.info(
+                            f"Migrating config from version {config_version} to {schema_manager.current_version}"
+                        )
+                        config_data = schema_manager.migrate_config(config_data)
+
+                        # Save migrated config back to file
+                        with self.config_file.open("w", encoding="utf-8") as f:
+                            if self.config_file.suffix.lower() == ".yaml":
+                                yaml.dump(config_data, f, default_flow_style=False)
+                            else:
+                                json.dump(config_data, f, indent=2)
+
+                        apgi_logger.info(
+                            f"Configuration migrated and saved to {self.config_file}"
+                        )
+
+                except ImportError:
+                    apgi_logger.warning(
+                        "Schema version manager not available, skipping migration"
+                    )
+                except Exception as e:
+                    apgi_logger.warning(f"Schema migration failed: {e}")
+
                 # Validate configuration
                 self._validate_config(config_data)
 
@@ -856,9 +892,9 @@ class ConfigManager:
         except jsonschema.ValidationError as e:
             raise ValueError(f"Configuration validation failed: {e.message}")
 
-    def _dict_to_config(self, config_dict: Dict[str, Any]) -> APGIConfig:
-        """Convert dictionary to APGIConfig object."""
-        config = APGIConfig()
+    def _dict_to_config(self, config_dict: Dict[str, Any]) -> FrameworkConfig:
+        """Convert dictionary to FrameworkConfig object."""
+        config = FrameworkConfig()
 
         if "model" in config_dict:
             self._update_dataclass(config.model, config_dict["model"])
@@ -1000,7 +1036,7 @@ class ConfigManager:
             elif self.config_file.suffix.lower() == ".json":
                 json.dump(config_dict, f, indent=2)
 
-    def get_config(self, section: Optional[str] = None) -> Union[APGIConfig, Any]:
+    def get_config(self, section: Optional[str] = None) -> Union[FrameworkConfig, Any]:
         """Get configuration section or entire config."""
         if section is None:
             return self.config
@@ -1423,11 +1459,11 @@ class ConfigManager:
     def reset_to_defaults(self, section: Optional[str] = None):
         """Reset configuration to defaults."""
         if section is None:
-            self.config = APGIConfig()
+            self.config = FrameworkConfig()
             apgi_logger.info("Reset all configuration to defaults")
         else:
             if hasattr(self.config, section):
-                default_section = getattr(APGIConfig(), section)
+                default_section = getattr(FrameworkConfig(), section)
                 setattr(self.config, section, default_section)
                 apgi_logger.info(f"Reset {section} configuration to defaults")
             else:
@@ -1818,7 +1854,7 @@ class ConfigManager:
 
     def export_config_template(self, file_path: str, format: str = "yaml"):
         """Export configuration template with comments."""
-        template_config = APGIConfig()
+        template_config = FrameworkConfig()
         config_dict = asdict(template_config)
 
         # Add comments for YAML format

@@ -93,10 +93,11 @@ apgi-validation/
 ├── requirements.txt             # Dependencies list
 ├── setup.py                     # Automated setup script
 ├── Theory/                      # Core mathematical and logic modules
-│   ├── APGI_Equations.py
 │   ├── APGI_Multimodal_Integration.py
-│   ├── APGI_Full_Dynamic_Model.py
 │   └── [13 other theory modules]
+├── apgi_core/                    # Core APGI implementations
+│   ├── full_model.py            # Full Dynamic Model (migrated from Theory)
+│   └── [other core modules]
 ├── Validation/                  # 15 Validation Protocols (VP-01 to VP-15)
 │   ├── VP_ALL_Aggregator.py
 │   └── [15 protocol modules]

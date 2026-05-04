@@ -13,7 +13,7 @@ import os
 import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, cast
 
 from cryptography.fernet import Fernet
 
@@ -73,12 +73,12 @@ class KeyRotationManager:
         # Initialize keys
         self._initialize_keys()
 
-    def _load_metadata(self) -> Dict:
+    def _load_metadata(self) -> Dict[str, Any]:
         """Load key metadata from file."""
         if self.metadata_file.exists():
             try:
                 with open(self.metadata_file) as f:
-                    return json.load(f)
+                    return cast(Dict[str, Any], json.load(f))
             except Exception as e:
                 self.logger.warning(f"Could not load metadata: {e}")
         return {
@@ -130,6 +130,18 @@ class KeyRotationManager:
         # Save encrypted key
         master_key = os.environ.get("APGI_MASTER_KEY")
         if not master_key:
+            allow_ephemeral = os.environ.get(
+                "APGI_ALLOW_EPHEMERAL_MASTER_KEY", ""
+            ).strip().lower() in {
+                "1",
+                "true",
+                "yes",
+            }
+            if not allow_ephemeral:
+                raise RuntimeError(
+                    "APGI_MASTER_KEY is not set. Set APGI_MASTER_KEY, or (dev/tests only) "
+                    "set APGI_ALLOW_EPHEMERAL_MASTER_KEY=1 to allow an ephemeral master key."
+                )
             master_key = Fernet.generate_key().decode()
             os.environ["APGI_MASTER_KEY"] = master_key
         else:
@@ -167,19 +179,28 @@ class KeyRotationManager:
         self._save_metadata()
         self.logger.info(f"Generated new {key_type} with fingerprint {fingerprint}")
 
-    def _load_key_from_file(self, key_type: str, key_file: Path) -> Path:
+    def _load_key_from_file(self, key_type: str, key_file: Path) -> Optional[Path]:
         """Load key from file."""
         try:
             master_key = os.environ.get("APGI_MASTER_KEY")
             if not master_key:
-                # Generate ephemeral key for development/testing
-                # This is expected behavior when APGI_MASTER_KEY is not configured
+                allow_ephemeral = os.environ.get(
+                    "APGI_ALLOW_EPHEMERAL_MASTER_KEY", ""
+                ).strip().lower() in {
+                    "1",
+                    "true",
+                    "yes",
+                }
+                if not allow_ephemeral:
+                    raise RuntimeError(
+                        "APGI_MASTER_KEY is not set. Set APGI_MASTER_KEY, or (dev/tests only) "
+                        "set APGI_ALLOW_EPHEMERAL_MASTER_KEY=1 to allow an ephemeral master key."
+                    )
                 master_key = Fernet.generate_key().decode()
                 os.environ["APGI_MASTER_KEY"] = master_key
                 self.logger.info(
-                    "APGI_MASTER_KEY not set in environment. Generated ephemeral key for development/testing. "
-                    "For production, set a persistent APGI_MASTER_KEY environment variable. "
-                    "Previously encrypted keys may not decrypt with this new ephemeral key."
+                    "APGI_MASTER_KEY not set; generated ephemeral key because "
+                    "APGI_ALLOW_EPHEMERAL_MASTER_KEY is enabled. Previously encrypted keys may not decrypt."
                 )
             else:
                 # Validate the master key format

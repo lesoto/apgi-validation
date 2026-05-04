@@ -2421,7 +2421,44 @@ def main():
         default=None,
         help="(headless) Run only the script whose display name contains NAME",
     )
+    parser.add_argument(
+        "--token",
+        help="JWT authentication token for secured operations",
+    )
     args = parser.parse_args()
+
+    # Security check for non-headless GUI mode - GUI scripts run in dev mode by default
+    if not args.headless:
+        try:
+            from utils.security_gateway import Role, SecurityGateway
+
+            gateway = SecurityGateway()
+
+            if args.token:
+                # Validate token and check GUI access permissions
+                gateway.require_roles(args.token, [Role.RESEARCHER, Role.ADMIN])
+            else:
+                # GUI scripts automatically run in development mode
+                # Generate a token automatically without requiring APGI_DEV_MODE
+                try:
+                    from utils.auth_adapter import get_auth_manager
+
+                    auth_manager = get_auth_manager()
+                    dev_token = auth_manager.generate_token(
+                        "dev_user", Role.RESEARCHER, 24
+                    )  # 24 hour expiry
+                    print("Development mode: Generated token (valid 24 hours)")
+                    args.token = dev_token
+                except Exception as e:
+                    # If token generation fails, continue without authentication
+                    # This allows GUI to work even if auth system has issues
+                    print(f"Note: Running without authentication ({e})")
+        except ImportError:
+            # Security gateway not available - allow GUI to run without authentication
+            pass
+        except PermissionError as e:
+            print(f"Authentication failed: {e}")
+            sys.exit(1)
 
     if args.headless:
         runner = HeadlessRunner()

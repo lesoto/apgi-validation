@@ -167,7 +167,7 @@ class TestRunMultiProtocolFramework:
 
             result = run_multi_protocol_framework(configs)
             assert isinstance(result, dict)
-            assert result.get("success") is True
+            assert result.get("status") == "success"
 
 
 class TestValidateFrameworkConsistency:

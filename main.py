@@ -72,11 +72,11 @@ import pandas as pd
 from utils.timeout_handler import TimeoutError, run_with_timeout
 
 
-# Secure module loading function
+# Secure module loading function with caching optimization
 def secure_load_module(
     name: str, module_path: Path, allow_temp_dir: bool = False
 ) -> Any:
-    """Safely load a Python module with path validation.
+    """Safely load a Python module with path validation and caching.
 
     Args:
         name: Name to assign to the loaded module
@@ -117,7 +117,19 @@ def secure_load_module(
     if not resolved_path.suffix == ".py":
         raise ValueError(f"Module must be a .py file: {module_path}")
 
-    # Load the module
+    # Try to load from cache first (if available and not temp dir)
+    if not allow_temp_dir and module_cache is not None:
+        try:
+            from utils.module_cache import secure_cached_import
+
+            cached_module = secure_cached_import(resolved_path, name)
+            if cached_module is not None:
+                verbose_print(f"Loaded {name} from cache", "debug")
+                return cached_module
+        except ImportError:
+            pass  # Fall back to direct loading
+
+    # Load the module directly (fallback or for temp dirs)
     spec = importlib.util.spec_from_file_location(name, resolved_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Could not load module spec for {module_path}")
@@ -159,10 +171,7 @@ try:
         error_handler,
         format_user_message,
     )
-
-    # Import APGI framework components
     from utils.logging_config import apgi_logger
-    from utils.validation_pipeline_connector import ValidationPipelineConnector
 except ImportError as e:
     console.print(f"[red]❌ Error: Failed to import required utils modules: {e}[/red]")
     console.print(
@@ -172,6 +181,16 @@ except ImportError as e:
         "[blue]Please ensure you have the complete APGI framework installation.[/blue]"
     )
     sys.exit(1)
+
+# Optional: validation pipeline integration pulls heavy scientific deps (e.g. scipy).
+ValidationPipelineConnector: Any = None  # type: ignore[assignment]
+try:
+    from utils.validation_pipeline_connector import ValidationPipelineConnector
+except Exception as e:
+    ValidationPipelineConnector = None  # type: ignore[assignment]
+    apgi_logger.logger.warning(
+        f"ValidationPipelineConnector unavailable (optional dependency issue): {e}"
+    )
 
 # Import pandas configuration
 global_config = {
@@ -183,6 +202,18 @@ global_config = {
     "max_load_size_mb": 100,  # Configurable size limit for file loading
     "max_workers": 4,  # Default workers for parallel operations
 }
+
+# Initialize module cache for performance optimization
+try:
+    from utils.module_cache import get_module_cache, preload_apgi_modules
+
+    module_cache = get_module_cache()
+    # Preload common modules in background to reduce import overhead
+    preload_apgi_modules()
+    apgi_logger.logger.info("Module cache initialized with common modules preloaded")
+except ImportError:
+    apgi_logger.logger.warning("Module cache not available, imports will be slower")
+    module_cache = None
 
 
 import copy
@@ -456,8 +487,9 @@ except ImportError:
 @click.option("--log-level", help="Override logging level")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
+@click.option("--token", help="JWT authentication token for secured operations")
 @click.pass_context
-def cli(ctx, config_file, log_level, verbose, quiet):
+def cli(ctx, config_file, log_level, verbose, quiet, token):
     """
     APGI Theory Framework - Unified Command Line Interface
 
@@ -492,6 +524,28 @@ def cli(ctx, config_file, log_level, verbose, quiet):
         # set_parameter("logging", "level", log_level.upper())
         apgi_logger.logger.info(f"Log level overridden to: {log_level.upper()}")
 
+    # 4. Security Gateway Initialization
+    from utils.security_gateway import Role, SecurityGateway
+
+    gateway = SecurityGateway()
+    ctx.obj["security_gateway"] = gateway
+    ctx.obj["token"] = token
+
+    if token:
+        try:
+            # For general CLI access, we might just validate the token
+            # Specific commands will check for specific roles
+            session = gateway._auth_manager.validate_token(token)
+            if not session:
+                console.print("[red]❌ Error: Invalid or expired security token.[/red]")
+                ctx.exit(1)
+            console.print(
+                f"[green]✓ Authenticated as {session.user_id} ({session.role.value})[/green]"
+            )
+        except Exception as e:
+            console.print(f"[red]❌ Error: Security validation failed: {e}[/red]")
+            ctx.exit(1)
+
     # 4. Security Hardening Middleware
     try:
         from utils.security_logging_integration import enforce_security_audit
@@ -506,6 +560,15 @@ def cli(ctx, config_file, log_level, verbose, quiet):
         @enforce_security_audit("execute_protocol")
         @click.pass_context
         def run_secure_protocol(ctx, simulation_steps):
+            token = ctx.obj.get("token")
+            if not token:
+                console.print(
+                    "[red]❌ Error: This operation requires authentication (--token).[/red]"
+                )
+                ctx.exit(1)
+            ctx.obj["security_gateway"].require_roles(
+                token, [Role.RESEARCHER, Role.ADMIN]
+            )
             ctx.invoke(formal_model, simulation_steps=simulation_steps)
 
     except ImportError:
@@ -2892,9 +2955,20 @@ def _save_results(results: Dict[str, Any], output_dir: Optional[str]):
         default_output_dir.mkdir(exist_ok=True)
         results_file = default_output_dir / f"validation_results_{uuid.uuid4()}.json"
 
+    # Convert non-serializable objects to strings for JSON serialization
+    serializable_results = {}
+    for key, value in results.items():
+        try:
+            # Test if the value is JSON serializable
+            json.dumps(value)
+            serializable_results[key] = value
+        except (TypeError, ValueError):
+            # If not serializable, convert to string
+            serializable_results[key] = str(value)
+
     # BUG-047: Add explicit file encoding specification
     with open(results_file, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2)
+        json.dump(serializable_results, f, indent=2)
     console.print(f"[green]✓[/green] Results saved to {results_file}")
 
 
@@ -3003,9 +3077,75 @@ def falsify(
 
     # List available protocols
     protocols = []
-    for i in range(1, 8):  # P1-P7 protocols
-        protocol_file = falsification_dir / f"Falsification_Protocol_P{i}.py"
-        if protocol_file.exists():
+    # Updated mapping to reflect actual file naming (FP_01, FP_02, etc.)
+    for i in range(1, 14):  # FP_01-FP_13 protocols
+        protocol_file = (
+            falsification_dir / f"FP_{i:02d}_ActiveInference.py"
+            if i == 1
+            else (
+                falsification_dir
+                / f"FP_{i:02d}_AgentComparison_ConvergenceBenchmark.py"
+                if i == 2
+                else (
+                    falsification_dir / f"FP_{i:02d}_FrameworkLevel_MultiProtocol.py"
+                    if i == 3
+                    else (
+                        falsification_dir
+                        / f"FP_{i:02d}_PhaseTransition_EpistemicArchitecture.py"
+                        if i == 4
+                        else (
+                            falsification_dir
+                            / f"FP_{i:02d}_EvolutionaryPlausibility.py"
+                            if i == 5
+                            else (
+                                falsification_dir
+                                / f"FP_{i:02d}_LiquidNetwork_EnergyBenchmark.py"
+                                if i == 6
+                                else (
+                                    falsification_dir
+                                    / f"FP_{i:02d}_MathematicalConsistency.py"
+                                    if i == 7
+                                    else (
+                                        falsification_dir
+                                        / f"FP_{i:02d}_ParameterSensitivity_Identifiability.py"
+                                        if i == 8
+                                        else (
+                                            falsification_dir
+                                            / f"FP_{i:02d}_NeuralSignatures_P3b_HEP.py"
+                                            if i == 9
+                                            else (
+                                                falsification_dir
+                                                / f"FP_{i:02d}_BayesianEstimation_MCMC.py"
+                                                if i == 10
+                                                else (
+                                                    falsification_dir
+                                                    / f"FP_{i:02d}_LiquidNetworkDynamics_EchoState.py"
+                                                    if i == 11
+                                                    else (
+                                                        falsification_dir
+                                                        / f"FP_{i:02d}_CrossSpeciesScaling.py"
+                                                        if i == 12
+                                                        else None
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        # Fallback to general pattern FP_XX_*.py
+        if protocol_file is None or not protocol_file.exists():
+            matches = list(falsification_dir.glob(f"FP_{i:02d}_*.py"))
+            if matches:
+                protocol_file = matches[0]
+
+        if protocol_file and protocol_file.exists():
             protocols.append(i)
 
     if protocols:
@@ -3026,9 +3166,14 @@ def falsify(
         if protocol:
             if protocol in protocols:
                 console.print(f"[blue]Running falsification protocol {protocol}[/blue]")
-                protocol_file = (
-                    falsification_dir / f"Falsification_Protocol_P{protocol}.py"
-                )
+                # Corrected logic to find actual protocol file
+                matches = list(falsification_dir.glob(f"FP_{protocol:02d}_*.py"))
+                if not matches:
+                    console.print(
+                        f"[red]Error: Protocol {protocol} file not found[/red]"
+                    )
+                    return
+                protocol_file = matches[0]
 
                 try:
                     # Import and run falsification protocol
@@ -4090,6 +4235,9 @@ def _run_gui_module(gui_path, gui_name, debug):
             if debug:
                 console.print("[blue]🐛 Debug mode enabled[/blue]")
             try:
+                # Clear sys.argv to prevent argument parsing conflicts in GUI modules
+                original_argv = sys.argv.copy()
+                sys.argv = [str(gui_path)]  # Set to GUI script path
                 gui_module.main()
                 console.print(f"[blue]✅ {gui_name} GUI closed normally[/blue]")
             except KeyboardInterrupt:
@@ -4109,6 +4257,9 @@ def _run_gui_module(gui_path, gui_name, debug):
                         )
                         f.write(f"{traceback.format_exc()}\n")
                     console.print("[red]See logs/error.log for details.[/red]")
+            finally:
+                # Restore original argv
+                sys.argv = original_argv
         else:
             console.print(
                 f"[red]❌ {gui_name} GUI does not have a main() function[/red]"
@@ -4131,7 +4282,7 @@ def _run_gui_module(gui_path, gui_name, debug):
 
 def _launch_validation_gui(debug):
     """Launch validation GUI."""
-    gui_path = PROJECT_ROOT / "APGI_Validation_GUI.py"
+    gui_path = PROJECT_ROOT / "Validation_GUI.py"
 
     if not gui_path.exists():
         console.print(f"[red]❌ Validation GUI not found at: {gui_path}[/red]")
@@ -6011,9 +6162,7 @@ def performance_dashboard(
     console.print(Panel.fit("📊 Performance Dashboard", style="bold magenta"))
 
     try:
-        from utils.comprehensive_performance_dashboard import (
-            ComprehensivePerformanceDashboard,
-        )
+        from utils.performance_dashboard import ComprehensivePerformanceDashboard
 
         dashboard = ComprehensivePerformanceDashboard(port=port, debug=debug)
         dashboard.run(host=host)

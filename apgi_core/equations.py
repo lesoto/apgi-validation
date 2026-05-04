@@ -1,23 +1,17 @@
 from __future__ import annotations
 
-import sys
-import types
-
-if "APGI_Equations" not in sys.modules:
-    _self = sys.modules.get(__name__)
-    if _self is None:
-        # Loaded via importlib: build a temporary module reference from globals
-        _self = types.ModuleType("APGI_Equations")
-        _self.__dict__.update(
-            {k: v for k, v in globals().items() if not k.startswith("__")}
-        )
-    sys.modules["APGI_Equations"] = _self
+import json
+import warnings
+from collections import defaultdict
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 """
 ===============================================================================
 COMPLETE APGI SYSTEM
 ===============================================================================
-
 
 Implementation of the APGI framework including:
 

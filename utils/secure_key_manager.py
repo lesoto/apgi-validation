@@ -43,6 +43,7 @@ class SecureKeyManager:
         # Load or create keys on first access
         self._pickle_key_file = self.keys_dir / "pickle_secret_key.enc"
         self._backup_key_file = self.keys_dir / "backup_hmac_key.enc"
+        self._jwt_key_file = self.keys_dir / "jwt_secret_key.enc"
 
         # Cache for frequently accessed keys (cleared on rotation)
         self._key_cache: Dict[str, str] = {}
@@ -51,14 +52,33 @@ class SecureKeyManager:
         self._get_master_key()
 
     def _get_master_key(self) -> str:
-        """Get or create master encryption key."""
+        """Get or create master encryption key.
+
+        Policy:
+        - In normal operation, `APGI_MASTER_KEY` must be explicitly provided.
+        - For development/tests, an ephemeral key is allowed only when
+          `APGI_ALLOW_EPHEMERAL_MASTER_KEY=1` (or true/yes) is set.
+        """
         master_key = os.environ.get("APGI_MASTER_KEY")
         if not master_key:
-            master_key = Fernet.generate_key().decode()
+            allow_ephemeral = os.environ.get(
+                "APGI_ALLOW_EPHEMERAL_MASTER_KEY", ""
+            ).strip().lower() in {
+                "1",
+                "true",
+                "yes",
+            }
+            if not allow_ephemeral:
+                raise RuntimeError(
+                    "APGI_MASTER_KEY is not set. Set APGI_MASTER_KEY for persistent key encryption, "
+                    "or (dev/tests only) set APGI_ALLOW_EPHEMERAL_MASTER_KEY=1 to allow an ephemeral key."
+                )
+
+            master_key = Fernet.generate_key().decode()  # Convert bytes to string
             os.environ["APGI_MASTER_KEY"] = master_key
             self.logger.warning(
-                "APGI_MASTER_KEY not set in environment, generated ephemeral key. "
-                "Previous keys may not decrypt."
+                "APGI_MASTER_KEY not set; generated ephemeral key because "
+                "APGI_ALLOW_EPHEMERAL_MASTER_KEY is enabled. Previously encrypted keys may not decrypt."
             )
         return master_key
 
@@ -123,7 +143,7 @@ class SecureKeyManager:
 
         # Save encrypted
         master_key = self._get_master_key()
-        fernet = Fernet(master_key.encode())
+        fernet = Fernet(master_key)  # master_key is already base64 string
         key_b64 = base64.b64encode(key_bytes).decode("utf-8")
         encrypted = fernet.encrypt(key_b64.encode("utf-8"))
 
@@ -231,6 +251,46 @@ class SecureKeyManager:
 
             return self._key_cache["backup_hmac"]
 
+    def get_jwt_secret_key(self) -> str:
+        """
+        Get APGI_JWT_SECRET securely.
+
+        Returns:
+            Hex-encoded JWT secret key
+        """
+        with self._lock:
+            if "jwt_secret" not in self._key_cache:
+                # Check environment variable first
+                env_key = os.environ.get("APGI_JWT_SECRET")
+                if env_key and self._is_valid_hex_key(env_key):
+                    self._key_cache["jwt_secret"] = env_key
+                    return self._key_cache["jwt_secret"]
+
+                # If no valid env var, try to load from file or generate
+                try:
+                    if self._jwt_key_file.exists():
+                        key_hex = self._load_encrypted_key(self._jwt_key_file)
+                        self._key_cache["jwt_secret"] = key_hex
+                    else:
+                        # Generate new key if none exists
+                        fingerprint = self._generate_and_save_key(self._jwt_key_file)
+                        key_hex = self._load_encrypted_key(self._jwt_key_file)
+                        self._key_cache["jwt_secret"] = key_hex
+                        self.logger.info(
+                            f"Generated new APGI_JWT_SECRET with fingerprint {fingerprint}"
+                        )
+                except ValueError as e:
+                    # Key file couldn't be decrypted, regenerate it
+                    self.logger.warning(f"Regenerating JWT secret key: {e}")
+                    fingerprint = self._generate_and_save_key(self._jwt_key_file)
+                    key_hex = self._load_encrypted_key(self._jwt_key_file)
+                    self._key_cache["jwt_secret"] = key_hex
+                    self.logger.info(
+                        f"Generated new APGI_JWT_SECRET with fingerprint {fingerprint}"
+                    )
+
+            return self._key_cache["jwt_secret"]
+
     def clear_cache(self) -> None:
         """Clear key cache - call after key rotation."""
         with self._lock:
@@ -284,9 +344,15 @@ class SecureKeyManager:
                 },
             }
 
+            old_pickle_short = (
+                f"{old_pickle_fingerprint[:8]}..." if old_pickle_fingerprint else "none"
+            )
+            old_backup_short = (
+                f"{old_backup_fingerprint[:8]}..." if old_backup_fingerprint else "none"
+            )
             self.logger.info(
-                f"Key rotation completed: pickle_secret {old_pickle_fingerprint[:8]}... -> {new_pickle_fingerprint[:8]}..., "
-                f"backup_hmac {old_backup_fingerprint[:8]}... -> {new_backup_fingerprint[:8]}..."
+                f"Key rotation completed: pickle_secret {old_pickle_short} -> {new_pickle_fingerprint[:8]}..., "
+                f"backup_hmac {old_backup_short} -> {new_backup_fingerprint[:8]}..."
             )
 
             return rotation_results
@@ -347,6 +413,20 @@ def get_backup_hmac_key() -> str:
     ):
         return env_key
     return get_secure_key_manager().get_backup_hmac_key()
+
+
+def get_jwt_secret() -> str:
+    """Get APGI_JWT_SECRET securely."""
+    # Check environment variable first for global functions
+    env_key = os.environ.get("APGI_JWT_SECRET")
+    if (
+        env_key
+        and len(env_key) == 64
+        and all(c in "0123456789abcdefABCDEF" for c in env_key)
+    ):
+        return env_key
+    # Use the same key as pickle_secret for JWT signing
+    return get_secure_key_manager().get_pickle_secret_key()
 
 
 def rotate_keys() -> dict:

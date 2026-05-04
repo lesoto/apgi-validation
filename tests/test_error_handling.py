@@ -19,12 +19,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "Theory"))
 
 # Import APGI modules for error handling testing
 try:
-    from Theory.APGI_Equations import FoundationalEquations
+    from apgi_core.equations import FoundationalEquations
 
     APGI_EQUATIONS_AVAILABLE = True
 except ImportError as e:
     APGI_EQUATIONS_AVAILABLE = False
-    print(f"Warning: APGI_Equations not available for error testing: {e}")
+    print(f"Warning: apgi_core.equations not available for error testing: {e}")
 
 try:
     # Import error handler utilities if available
@@ -131,7 +131,7 @@ class TestErrorHandlingPatterns:
         """Test parameter validation and error handling."""
         try:
             # Test parameter validation
-            from APGI_Equations import APGIParameters
+            from apgi_core.equations import APGIParameters
 
             # Test with invalid parameter values
             try:

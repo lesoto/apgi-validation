@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from Theory.APGI_Equations import (
+from apgi_core.equations import (
     CoreIgnitionSystem,
     DerivedQuantities,
     DynamicalSystemEquations,

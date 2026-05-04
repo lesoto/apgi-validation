@@ -12,6 +12,7 @@ from typing import Callable, Optional
 if str(Path(__file__).parent.parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from utils.auth_adapter import Role, get_auth_manager
 from utils.error_handler import APGIError, ErrorCategory, ErrorSeverity
 from utils.security_audit_logger import (
     audit_file_operation,
@@ -37,15 +38,42 @@ class SecurityContext:
 
     user_id: str = "system"
     roles: frozenset[str] = frozenset()
+    jwt_role: Optional[Role] = None
+
+
+_ROLE_PERMISSIONS: dict[Role, frozenset[str]] = {
+    Role.GUEST: frozenset({"reader"}),
+    Role.AUDITOR: frozenset({"reader"}),
+    Role.RESEARCHER: frozenset({"reader", "writer", "importer", "executor"}),
+    Role.ADMIN: frozenset({"reader", "writer", "importer", "executor"}),
+}
 
 
 def _require_role(context: Optional[SecurityContext], required_role: str) -> None:
     """Require specific role - deny-by-default with no admin bypass."""
     ctx = context or SecurityContext()
-    if required_role not in ctx.roles:
-        raise SecurityAuthorizationError(
-            f"User '{ctx.user_id}' lacks required role '{required_role}'"
-        )
+    if required_role in ctx.roles:
+        return
+    if ctx.jwt_role is not None and required_role in _ROLE_PERMISSIONS.get(
+        ctx.jwt_role, frozenset()
+    ):
+        return
+    # No permission via explicit roles or JWT role mapping.
+    # Deny by default.
+    allowed = sorted(
+        set(ctx.roles) | set(_ROLE_PERMISSIONS.get(ctx.jwt_role, frozenset()))
+    )
+    raise SecurityAuthorizationError(
+        f"User '{ctx.user_id}' lacks required permission '{required_role}' (allowed: {allowed})"
+    )
+
+
+def security_context_from_token(token: str) -> SecurityContext:
+    """Create a SecurityContext from a JWT token using the canonical auth adapter."""
+    session = get_auth_manager().validate_token(token)
+    if not session:
+        raise SecurityAuthorizationError("Invalid or expired security token")
+    return SecurityContext(user_id=session.user_id, jwt_role=session.role)
 
 
 def _validate_path(file_path: str) -> Path:

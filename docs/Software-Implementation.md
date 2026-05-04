@@ -10,7 +10,7 @@ Output: Π_eff with bounds checking
 Validation: Unit tests confirming exponential growth bounds  
 
 **Implemented in:**
-apgi-validation/APGI_Equations.py and apgi-validation/APGI_Multimodal_Integration.py
+apgi_core/equations.py and Theory/APGI_Multimodal_Integration.py
 
 1. Allostatic Ignition Threshold  
 Implementation: Discrete-time recurrence relation
@@ -20,7 +20,7 @@ Requires: Cost/value estimation functions with physiological anchoring
 Output: Threshold trajectory over time  
 
 **Implemented in:**
-apgi-validation/APGI_Equations.py and apgi-validation/APGI_Full_Dynamic_Model.py
+apgi_core/equations.py and Theory/APGI_Full_Dynamic_Model.py
 
 1. Three-Level Epistemic Architecture  
 Implementation: Scoring rubric as structured evaluation framework
@@ -70,7 +70,7 @@ Bottom-up: dε_higher/dt as function of lower-level threshold breaches
 Solver: Adaptive RK45 with event detection  
 
 **Implemented in:**
-apgi-validation/APGI_Equations.py
+apgi_core/equations.py
 
 1. Continuous-Time ODEs  
 Implementation: Separate differential equations for S_t and θ_t
@@ -80,7 +80,7 @@ dθ_t/dt with λ_θ ≈ 0.01-0.1 s^-1 (slow threshold adaptation)
 Integration: Stiff solver if needed (LSODA)  
 
 **Implemented in:**
-apgi-validation/APGI_Equations.py and apgi-validation/APGI_Liquid_Network_Implementation.py
+apgi_core/equations.py and Theory/APGI_Liquid_Network_Implementation.py
 
 ## II. Computational Modeling & Substrate Innovations (Simulation-Driven)
 
@@ -262,7 +262,7 @@ Melatonin: Evening rise → θ_t elevation (sensory filtering)
 Model: Sinusoidal modulation with ~24h period  
 
 **Implemented in:**
-apgi-validation/APGI_Equations.py
+apgi_core/equations.py
 
 1. Ultradian BRAC Reinterpretation  
 Implementation: Neuromodulator depletion simulation
@@ -346,7 +346,7 @@ NE → θ_t (threshold regulation)
 Model: Differential equations with neuromodulator concentrations  
 
 **Implemented in:**
-apgi-validation/APGI_Equations.py
+apgi_core/equations.py
 
 1. APGI Multimodal Classifier  
 Implementation: ML stratification system

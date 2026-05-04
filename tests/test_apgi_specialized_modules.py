@@ -27,7 +27,6 @@ SPECIALIZED_MODULE_NAMES = [
     "APGI_Cross_Species_Scaling",
     "APGI_Cultural_Neuroscience",
     "APGI_Falsification_Framework",
-    "APGI_Full_Dynamic_Model",
     "APGI_Liquid_Network_Implementation",
     "APGI_Multimodal_Classifier",
     "APGI_Open_Science_Framework",
