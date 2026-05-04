@@ -167,19 +167,9 @@ def with_timeout(timeout_seconds: float):
             result = manager.list()
             exception = manager.list()
 
-            def target():
-                try:
-                    result.append(func(*args, **kwargs))
-                except (
-                    RuntimeError,
-                    ValueError,
-                    TypeError,
-                    KeyError,
-                    AttributeError,
-                ) as e:
-                    exception.append(e)
-
-            process = multiprocessing.Process(target=target)
+            process = multiprocessing.Process(
+                target=_timeout_target, args=(func, args, kwargs, result, exception)
+            )
             process.start()
             process.join(timeout=timeout_seconds)
 
@@ -216,6 +206,15 @@ def with_timeout(timeout_seconds: float):
     return decorator
 
 
+# Module-level function to avoid pickling issues with local functions
+def _timeout_target(func, args, kwargs, result_list, exception_list):
+    """Target function for multiprocessing - must be module-level to be picklable."""
+    try:
+        result_list.append(func(*args, **kwargs))
+    except Exception as e:
+        exception_list.append(e)
+
+
 def run_with_timeout(
     func: Callable, args: tuple = (), kwargs: dict = None, timeout_seconds: float = 30.0
 ) -> Any:
@@ -228,13 +227,9 @@ def run_with_timeout(
     result = manager.list()
     exception = manager.list()
 
-    def target():
-        try:
-            result.append(func(*args, **kwargs))
-        except Exception as e:
-            exception.append(e)
-
-    process = multiprocessing.Process(target=target)
+    process = multiprocessing.Process(
+        target=_timeout_target, args=(func, args, kwargs, result, exception)
+    )
     process.start()
     process.join(timeout=timeout_seconds)
 

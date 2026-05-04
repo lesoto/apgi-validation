@@ -1019,7 +1019,13 @@ class BackupManager:
                             for f in zipf.namelist()
                             if not f.endswith("backup_info.json")
                         ]
-                        zipf.extractall(temp_path, members=file_list)
+                        # Validate and extract only safe members
+                        safe_list = [
+                            f
+                            for f in file_list
+                            if not f.startswith(("/", "\\", "..")) and ".." not in f
+                        ]
+                        zipf.extractall(temp_path, members=safe_list)
                 else:
                     with tarfile.open(backup_file, "r") as tarf:
                         # Get TarInfo objects instead of just names
@@ -1028,7 +1034,14 @@ class BackupManager:
                             for f in tarf.getnames()
                             if not f.endswith("backup_info.json")
                         ]
-                        tarf.extractall(temp_path, members=members)
+                        # Validate and extract only safe members
+                        safe_tar_members = [
+                            m
+                            for m in members
+                            if not m.name.startswith(("/", "\\", ".."))
+                            and ".." not in m.name
+                        ]
+                        tarf.extractall(temp_path, members=safe_tar_members)
 
                 # Calculate checksum of extracted files
                 extracted_files = []
@@ -1106,7 +1119,13 @@ class BackupManager:
                                 for f in zipf.namelist()
                                 if not f.endswith("backup_info.json")
                             ]
-                            zipf.extractall(temp_path)
+                            # Validate and extract only safe members
+                            safe_list = [
+                                f
+                                for f in file_list
+                                if not f.startswith(("/", "\\", "..")) and ".." not in f
+                            ]
+                            zipf.extractall(temp_path, members=safe_list)
                     else:
                         with tarfile.open(backup_file, "r") as tarf:
                             file_list = [
@@ -1114,7 +1133,14 @@ class BackupManager:
                                 for f in tarf.getnames()
                                 if not f.endswith("backup_info.json")
                             ]
-                            tarf.extractall(temp_path)
+                            # Validate and extract only safe members
+                            safe_list = [
+                                f
+                                for f in file_list
+                                if not f.startswith(("/", "\\", "..")) and ".." not in f
+                            ]
+                            safe_tar_members = [tarf.getmember(f) for f in safe_list]
+                            tarf.extractall(temp_path, members=safe_tar_members)
 
                     # Calculate checksum of extracted content
                     actual_checksum = self._calculate_restored_checksum(

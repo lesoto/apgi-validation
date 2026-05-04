@@ -282,29 +282,19 @@ class APGISyntheticSignalGenerator:
         # Fix 1: Use empirical baseline amplitude from centralized citation
         # NOT the measurement equation c_0 + c_1 * max(S_t - theta_t, 0)
         # This breaks the circular dependency
-        baseline_amplitude = np.random.normal(
-            0.8, 0.25
-        )  # From CITATIONS["P3b_baseline"] empirical data
-        baseline_amplitude = np.clip(baseline_amplitude, 0.3, 1.5)  # Realistic range
+        from utils.empirical_interfaces import PublicDatasetCatalogue
 
-        if ignition:
-            # Modulation by surprise (empirical correlation, NOT measurement equation)
-            # From CITATIONS["P3b_baseline"]: P3b amplitude increases with target/oddball probability
-            # This is a modulation factor, not the measurement equation itself
-            surprise_modulation = (
-                0.5 + 0.3 * min(S_t - theta_t, 1.0) if S_t > theta_t else 0.0
-            )
-            amplitude = baseline_amplitude + surprise_modulation
-            amplitude = np.clip(amplitude, 0.5, 3.0)  # Realistic P3b range
-            peak_time = 0.45  # 450ms
-            sigma = 0.08
-        else:
-            amplitude = baseline_amplitude * 0.3
-            peak_time = 0.45
-            sigma = 0.08
+        dataset_catalogue = PublicDatasetCatalogue()
+        empirical_data = dataset_catalogue.load_cogitate_dataset()
+        # Randomly select a waveform from empirical data to replace synthetic stub
+        idx = np.random.randint(0, len(empirical_data["labels"]))
+        waveform = empirical_data["eeg_data"][idx, 31, :n_samples]  # Pz channel (31)
 
-        # Gaussian peak for P3b
-        waveform = amplitude * np.exp(-((t - peak_time) ** 2) / (2 * sigma**2))
+        # Scale to match original expected amplitude for downstream compatibility
+        waveform = waveform / np.std(waveform) * 1.5
+
+        # Calculate amplitude from empirical data for P2/N2 components
+        amplitude = np.std(waveform) * 1.5  # Use scaled waveform amplitude as reference
 
         # Add earlier P2 component (200ms)
         if ignition:

@@ -2718,12 +2718,45 @@ def _list_protocols(validation_dir: Path) -> List[str]:
         validation_dir: Directory containing validation protocol files
 
     Returns:
-        List of protocol filenames matching Validation-Protocol-*.py pattern
+        List of protocol filenames matching VP_*.py pattern
     """
     protocols = []
-    for file_path in validation_dir.glob("Validation-Protocol-*.py"):
+    for file_path in validation_dir.glob("VP_*.py"):
         protocols.append(file_path.name)
-    return protocols
+    return sorted(protocols)
+
+
+# Module-level function to avoid pickling issues with local functions
+def _run_validation_function(
+    protocol_file: str, validation_dir: Path
+) -> Tuple[str, Any, str]:
+    """Run validation protocol - must be module-level to be picklable."""
+    protocol_path = validation_dir / protocol_file
+    protocol_num = protocol_file.split("_")[1]
+
+    try:
+        spec = importlib.util.spec_from_file_location(protocol_num, protocol_path)
+        if spec is None or spec.loader is None:
+            return (
+                protocol_num,
+                f"Error: Could not load module spec for {protocol_num}",
+                "Module load error",
+            )
+
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        if hasattr(module, "validate"):
+            result = module.validate()
+            return protocol_num, str(result), None
+        elif hasattr(module, "APGIValidator"):
+            validator = module.APGIValidator()
+            result = validator.validate()
+            return protocol_num, str(result), None
+        else:
+            return protocol_num, "No validation function", None
+    except Exception as e:
+        return protocol_num, f"Error: {e}", str(e)
 
 
 def _run_single_protocol(
@@ -2739,39 +2772,14 @@ def _run_single_protocol(
     Returns:
         Tuple of (protocol_number, result, status)
     """
-    protocol_path = validation_dir / protocol_file
-    protocol_num = protocol_file.split("-")[-1].replace(".py", "")
-
+    protocol_num = protocol_file.split("_")[1]
     console.print(f"[blue]Running Protocol {protocol_num}...[/blue]")
-
-    def run_validation():
-        try:
-            spec = importlib.util.spec_from_file_location(protocol_num, protocol_path)
-            if spec is None or spec.loader is None:
-                return (
-                    protocol_num,
-                    f"Error: Could not load module spec for {protocol_num}",
-                    "Module load error",
-                )
-
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-
-            if hasattr(module, "validate"):
-                result = module.validate()
-                return protocol_num, str(result), None
-            elif hasattr(module, "APGIValidator"):
-                validator = module.APGIValidator()
-                result = validator.validate()
-                return protocol_num, str(result), None
-            else:
-                return protocol_num, "No validation function", None
-        except Exception as e:
-            return protocol_num, f"Error: {e}", str(e)
 
     try:
         protocol_num, result, error = run_with_timeout(
-            run_validation, timeout_seconds=timeout_seconds
+            _run_validation_function,
+            args=(protocol_file, validation_dir),
+            timeout_seconds=timeout_seconds,
         )
         return protocol_num, result, error
     except TimeoutError as e:
@@ -2840,7 +2848,7 @@ def _run_sequential(protocols: List[str], validation_dir: Path) -> Dict[str, Any
 
     for protocol_file in protocols:
         protocol_path = validation_dir / protocol_file
-        protocol_num = protocol_file.split("-")[-1].replace(".py", "")
+        protocol_num = protocol_file.split("_")[1]
 
         console.print(f"[blue]Running Protocol {protocol_num}...[/blue]")
 
@@ -2923,7 +2931,7 @@ def validate(
         table.add_column("Description", style="white", width=50)
 
         for protocol_file in protocols:
-            protocol_num = protocol_file.split("-")[-1].replace(".py", "")
+            protocol_num = protocol_file.split("_")[1]
             table.add_row(protocol_file, f"Validation Protocol {protocol_num}")
 
         console.print(table)
@@ -2942,9 +2950,9 @@ def validate(
                 console.print("[blue]Running all validation protocols...[/blue]")
                 results = _run_sequential(protocols, validation_dir)
                 _save_results(results, output_dir)
-            elif protocol in [p.split("-")[-1].replace(".py", "") for p in protocols]:
+            elif protocol in [p.split("_")[1] for p in protocols]:
                 console.print(f"[blue]Running protocol: {protocol}[/blue]")
-                protocol_file = f"Validation-Protocol-{protocol}.py"
+                protocol_file = [p for p in protocols if p.split("_")[1] == protocol][0]
                 protocol_num, result, error = _run_single_protocol(
                     protocol_file, validation_dir
                 )
@@ -2958,7 +2966,7 @@ def validate(
             else:
                 console.print(f"[red]Error: Protocol {protocol} not found[/red]")
                 console.print(
-                    f"[yellow]Available protocols: {[p.split('-')[-1].replace('.py', '') for p in protocols]}[/yellow]"
+                    f"[yellow]Available protocols: {[p.split('_')[1] for p in protocols]}[/yellow]"
                 )
                 console.print(
                     "[yellow]Use 'all' to run all protocols or --all-protocols flag[/yellow]"

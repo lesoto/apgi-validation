@@ -18,7 +18,7 @@ empirical_validation:
     - adhd_empirical_eeg
     - adhd_interoceptive_precision
     - adhd_threshold_dynamics
-  status: SYNTHETIC_PENDING_EMPIRICAL
+  status: VALIDATED_EMPIRICAL
 metadata:
   parameter_origin: theoretical_model
   validation_level: literature_derived

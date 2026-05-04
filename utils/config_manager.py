@@ -545,7 +545,7 @@ class ConfigManager:
         """Compute MD5 hash of current config file contents."""
         try:
             with open(self.config_file, "rb") as f:
-                return hashlib.md5(f.read()).hexdigest()
+                return hashlib.md5(f.read(), usedforsecurity=False).hexdigest()
         except (OSError, FileNotFoundError):
             return ""
 
@@ -1633,7 +1633,9 @@ class ConfigManager:
         """Create a version snapshot of current configuration."""
         config_dict = asdict(self.config)
         config_str = json.dumps(config_dict, sort_keys=True)
-        config_hash = hashlib.md5(config_str.encode()).hexdigest()
+        config_hash = hashlib.md5(
+            config_str.encode(), usedforsecurity=False
+        ).hexdigest()
 
         version = ConfigVersion(
             version_id=f"v{datetime.now().strftime('%Y%m%d_%H%M%S')}",

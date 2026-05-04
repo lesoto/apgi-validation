@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-APGI Theory GUI - Redesigned with APGI Design Guide
-
-Scientific Instrument aesthetic with standardized APGI components.
+APGI Theory GUI
 """
 
 import os

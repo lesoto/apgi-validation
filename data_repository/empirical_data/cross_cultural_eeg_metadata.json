@@ -1,0 +1,17 @@
+{
+  "n_subjects_total": 30,
+  "n_subjects_per_culture": 10,
+  "cultures": 3,
+  "culture_names": [
+    "Chinese_urban",
+    "Indian_rural",
+    "Brazilian_urban"
+  ],
+  "n_trials_per_subject": 100,
+  "n_channels": 64,
+  "sampling_rate": 500.0,
+  "trial_duration_s": 2.0,
+  "data_source": "synthetic_realistic",
+  "preprocessing": "ICA, artifact removal, bandpass 1-50Hz",
+  "empirical_simulation": true
+}

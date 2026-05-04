@@ -2,14 +2,10 @@
 Falsification Thresholds - Root Module
 ======================================
 
-This module re-exports all falsification threshold constants from utils.falsification_thresholds
-for backward compatibility and convenience imports.
-
 All threshold constants are defined in utils/falsification_thresholds.py and re-exported here
 to maintain compatibility with code that imports from the root level.
 """
 
-# Re-export all constants from utils.falsification_thresholds
 from utils.falsification_thresholds import (  # F1 family - Neural signatures; F2 family - Behavioral comparison; F3 family - Intervention effects; F5 family - Evolutionary emergence; F6 family - Liquid network; V12 family - Clinical convergence; Threshold functions; ALPHA configuration; BETA parameters; Depression hyperconnectivity tiers
     ALPHA_EMA,
     ALPHA_FEP,

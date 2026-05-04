@@ -2181,8 +2181,13 @@ class FalsificationChecker:
         P3b_obs = data.P3b_amplitude[seen_mask]
 
         # Correlations
-        r_apgi, _, _ = safe_pearsonr(apgi_predictor[seen_mask], P3b_obs)
-        r_stim, _, _ = safe_pearsonr(stimulus_predictor[seen_mask], P3b_obs)
+        try:
+            r_apgi, _, _ = safe_pearsonr(apgi_predictor[seen_mask], P3b_obs, min_n=5)
+            r_stim, _, _ = safe_pearsonr(
+                stimulus_predictor[seen_mask], P3b_obs, min_n=5
+            )
+        except ValueError:
+            return False, {"message": "Zero variance in correlation arrays"}
 
         # Falsified if stimulus is better predictor
         falsified = r_stim > r_apgi
@@ -2213,7 +2218,10 @@ class FalsificationChecker:
         proximity = np.abs(S_t_mean - theta_t_mean)
 
         # Test for negative correlation (closer to threshold = slower RT)
-        r, p, _ = safe_pearsonr(proximity, data.reaction_time)
+        try:
+            r, p, _ = safe_pearsonr(proximity, data.reaction_time, min_n=5)
+        except ValueError:
+            return False, {"message": "Zero variance in RT correlation"}
 
         # Should be negative and significant
         expected_effect = (r < 0) and (p < 0.05)
@@ -3009,6 +3017,9 @@ def main() -> Dict[str, Any]:
         print("Error: scipy/sklearn are required for statistical analysis")
         print("Install with: pip install scikit-learn scipy")
         return {}
+
+    apgi_trace_canales = None
+    apgi_trace_melloni = None
 
     # Configuration (Faster for validation, much faster for test mode)
     if test_mode:

@@ -3431,6 +3431,22 @@ def run_falsification(
         # Determine overall falsification
         overall_falsified = falsification_status.get("overall_falsified", False)
 
+        # Validate Level 1 (Thermodynamic) claims using empirical P-MRS/Calorimetry data
+        from utils.empirical_interfaces import PMRSCalorimetryInterface
+
+        calorimetry = PMRSCalorimetryInterface()
+        thermo_data = calorimetry.measure_metabolic_spike()
+
+        # Check if the empirical energy spike is between 5-10% as predicted
+        thermo_passed = 5.0 <= thermo_data["spike_percentage"] <= 10.0
+        criteria_results["L1_Thermodynamic_Cost"] = {
+            "score": float(thermo_data["spike_percentage"]),
+            "threshold": 5.0,
+            "passed": thermo_passed,
+        }
+        if not thermo_passed:
+            overall_falsified = True
+
         results = {
             "protocol_id": "FP-11",
             "protocol_name": "Liquid Network Dynamics & Echo State",
@@ -3440,14 +3456,16 @@ def run_falsification(
                 "overall_compliance": apgi_compliance.get("overall_compliance", 0.0),
                 "critical_tests_passed": sum(
                     1 for v in falsification_status.values() if not v
-                ),
-                "critical_tests_total": len(falsification_status),
+                )
+                + (1 if thermo_passed else 0),
+                "critical_tests_total": len(falsification_status) + 1,
             },
             "details": {
                 "property_scores": property_scores,
                 "falsification_status": falsification_status,
                 "apgi_compliance": apgi_compliance,
                 "liquid_parameters": liquid_params,
+                "thermodynamic_validation": thermo_data,
             },
         }
 

@@ -733,10 +733,10 @@ def main():
     print("-" * 50)
 
     for check_name, result in results.items():
-        if check_name == "summary":
+        if check_name in ["summary", "protocol_results", "overall_status"]:
             continue
 
-        status = result["status"]
+        status = result.get("status", "UNKNOWN")
         status_symbol = "✓" if status == "PASS" else "✗" if status == "FAIL" else "⚠"
 
         print(f"{status_symbol} {check_name}: {status}")
@@ -766,7 +766,7 @@ def main():
 
     print(f"\nDetailed results saved to: {output_file}")
 
-    return summary["overall_status"] == "PASS"
+    return summary["overall_status"] in ("PASS", "PASSED")
 
 
 if __name__ == "__main__":

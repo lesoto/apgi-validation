@@ -1,0 +1,24 @@
+[
+  {
+    "timestamp": "2026-05-03T18:35:51.126329",
+    "protocol_number": 1,
+    "protocol_name": "Basic Validation",
+    "status": "pass",
+    "execution_time": 2.5,
+    "tests_passed": 45,
+    "tests_failed": 5,
+    "error_message": null,
+    "metadata": {}
+  },
+  {
+    "timestamp": "2026-05-03T19:22:15.609987",
+    "protocol_number": 1,
+    "protocol_name": "Basic Validation",
+    "status": "pass",
+    "execution_time": 2.5,
+    "tests_passed": 45,
+    "tests_failed": 5,
+    "error_message": null,
+    "metadata": {}
+  }
+]

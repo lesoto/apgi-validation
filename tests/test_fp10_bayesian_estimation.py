@@ -5,9 +5,15 @@ import numpy as np
 from Falsification.FP_10_BayesianEstimation_MCMC import (
     DataSource,
     compute_posterior_distributions,
+)
+from Falsification.FP_10_BayesianEstimation_MCMC import (
     generate_synthetic_data as generate_synthetic_data_mcmc,
+)
+from Falsification.FP_10_BayesianEstimation_MCMC import (
     run_bayesian_estimation,
     set_data_source,
+)
+from Falsification.FP_10_BayesianEstimation_MCMC import (
     test_parameter_identifiability as check_parameter_identifiability,
 )
 from Falsification.FP_10_Falsification_BayesianEstimation_ParameterRecovery import (

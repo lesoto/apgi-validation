@@ -24,7 +24,7 @@ class TestGetOutputDirectory:
     def test_get_custom_output_dir(self, tmp_path):
         """Test getting custom output directory."""
         custom_dir = tmp_path / "custom_output"
-        result = get_output_directory(base_dir=custom_dir)
+        result = get_output_directory(subdir=custom_dir)
         assert result == custom_dir
 
 

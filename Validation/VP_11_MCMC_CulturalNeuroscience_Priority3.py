@@ -805,7 +805,7 @@ def test_parameter_recovery(
     We test recovery of {θ₀, Πⁱ, α} only.
     """
     # local_rng = np.random.default_rng(seed)  # Not used
-    param_names = ["theta_0", "pi_i", "alpha"]  # β fixed, not recoverable
+    param_names = ["theta_0", "pi_i", "beta", "alpha"]
     subject_ids = [s.subject_id for s in subjects[:n_subjects_subsample]]
 
     true_vals: Dict[str, List[float]] = {p: [] for p in param_names}
@@ -815,47 +815,49 @@ def test_parameter_recovery(
         sub_df = df[df["subject_id"] == sid]
         true_params = next(s for s in subjects if s.subject_id == sid)
 
-        # MAP via optimization (3 params: theta_0, pi_i, alpha; beta fixed)
-        def neg_ll(params_3):
-            theta_0, pi_i, alpha = params_3
-            # Fixed beta at population mean for identifiability
-            BETA_FIXED = 1.15
+        # Two-stage estimation sequence to break β/Πi collinearity
+        # Stage 1: Fix pi_i at prior mean, estimate theta_0, beta, alpha
+        def neg_ll_stage1(params_3):
+            theta_0, beta, alpha = params_3
+            PI_I_FIXED = 1.20
             ll = _log_likelihood_apgi(
-                np.array([theta_0, pi_i, BETA_FIXED, alpha]), sub_df
+                np.array([theta_0, PI_I_FIXED, beta, alpha]), sub_df
             )
-            lp = _log_prior_apgi(np.array([theta_0, pi_i, BETA_FIXED, alpha]))
+            lp = _log_prior_apgi(np.array([theta_0, PI_I_FIXED, beta, alpha]))
             return -(ll + lp)
 
-        x0 = np.array([0.50, 1.20, 6.0])
-        bounds = [(0.10, 0.95), (0.05, 3.5), (0.5, 20.0)]
-        try:
-            res = optimize.minimize(
-                neg_ll,
-                x0,
-                method="Nelder-Mead",
-                bounds=bounds,
-                options={"maxiter": 2000, "xatol": 1e-4, "fatol": 1e-4},
+        x0_s1 = np.array([0.50, 1.15, 6.0])
+        bounds_s1 = [(0.10, 0.95), (0.20, 2.5), (0.5, 20.0)]
+        res_s1 = optimize.minimize(
+            neg_ll_stage1, x0_s1, method="L-BFGS-B", bounds=bounds_s1
+        )
+        est_theta0, est_beta, est_alpha = res_s1.x
+
+        # Stage 2: Fix beta at est_beta, estimate pi_i
+        def neg_ll_stage2(pi_i_arr):
+            pi_i = pi_i_arr[0]
+            ll = _log_likelihood_apgi(
+                np.array([est_theta0, pi_i, est_beta, est_alpha]), sub_df
             )
-            est = res.x
-        except Exception:
-            # Try with different method if L-BFGS-B fails
-            try:
-                res = optimize.minimize(
-                    neg_ll,
-                    x0,
-                    method="SLSQP",
-                    bounds=bounds,
-                    options={"maxiter": 1000, "ftol": 1e-6},
-                )
-                est = res.x
-            except Exception:
-                est = x0
+            lp = _log_prior_apgi(np.array([est_theta0, pi_i, est_beta, est_alpha]))
+            return -(ll + lp)
+
+        x0_s2 = np.array([1.20])
+        bounds_s2 = [(0.05, 3.5)]
+        res_s2 = optimize.minimize(
+            neg_ll_stage2, x0_s2, method="L-BFGS-B", bounds=bounds_s2
+        )
+        est_pi_i = res_s2.x[0]
+
+        est = [est_theta0, est_pi_i, est_beta, est_alpha]
 
         for j, p in enumerate(param_names):
             if p == "theta_0":
                 true_vals[p].append(true_params.theta_0)
             elif p == "pi_i":
                 true_vals[p].append(true_params.pi_i)
+            elif p == "beta":
+                true_vals[p].append(true_params.beta)
             elif p == "alpha":
                 true_vals[p].append(true_params.alpha)
             recov_vals[p].append(float(est[j]))
@@ -882,10 +884,10 @@ def test_parameter_recovery(
 
     return {
         "passed": bool(all_pass),
-        "description": "MAP parameter recovery correlation ≥ 0.65 for {θ₀, Πⁱ, α}; β fixed at 1.15",
+        "description": "MAP parameter recovery correlation ≥ 0.65 with two-stage estimation",
         "parameter_recovery": recovery_stats,
         "n_subjects_tested": len(subject_ids),
-        "note": "β fixed at population mean (1.15) due to β·Πⁱ identifiability confound",
+        "note": "Two-stage estimation sequence applied to break β/Πⁱ identifiability confound",
     }
 
 

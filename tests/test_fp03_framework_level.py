@@ -76,7 +76,10 @@ class TestMultiProtocolRunner:
 
         with patch.object(runner, "_execute_protocol") as mock_exec:
             mock_exec.return_value = ProtocolResult(
-                "test_proto", True, {"result": "ok"}, []
+                protocol_name="test_proto",
+                success=True,
+                data={"result": "ok"},
+                errors=[],
             )
             results = runner.run_all()
             assert len(results) == 1
@@ -147,8 +150,18 @@ class TestRunMultiProtocolFramework:
         ) as MockRunner:
             mock_runner = MagicMock()
             mock_runner.run_all.return_value = [
-                ProtocolResult("proto1", True, {}, []),
-                ProtocolResult("proto2", True, {}, []),
+                ProtocolResult(
+                    protocol_name="proto1",
+                    success=True,
+                    data={},
+                    errors=[],
+                ),
+                ProtocolResult(
+                    protocol_name="proto2",
+                    success=True,
+                    data={},
+                    errors=[],
+                ),
             ]
             MockRunner.return_value = mock_runner
 
@@ -167,7 +180,7 @@ class TestValidateFrameworkConsistency:
             "proto2": {"status": "success", "metric": 0.51},
         }
         result = validate_framework_consistency(results, tolerance=0.1)
-        assert result["valid"] is True
+        assert result["consistent"] is True
 
     def test_invalid_consistency(self):
         """Test validating inconsistent framework."""
@@ -176,4 +189,4 @@ class TestValidateFrameworkConsistency:
             "proto2": {"status": "success", "metric": 0.9},
         }
         result = validate_framework_consistency(results, tolerance=0.1)
-        assert result["valid"] is False
+        assert result["consistent"] is False

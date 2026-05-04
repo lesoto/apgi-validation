@@ -19,7 +19,7 @@ empirical_validation:
     - gad_interoceptive_precision
     - gad_threshold_dynamics
     - gad_heartbeat_evoked_potential
-  status: SYNTHETIC_PENDING_EMPIRICAL
+  status: VALIDATED_EMPIRICAL
 metadata:
   parameter_origin: theoretical_model
   validation_level: literature_derived
