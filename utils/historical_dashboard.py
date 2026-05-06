@@ -105,9 +105,6 @@ except ImportError:
                 self.label = kwargs.get("label")
                 self.children = args
 
-    html = _HtmlStub()
-    dcc = _DccStub()
-
     class _DashStub:
         def __init__(self):
             pass
@@ -115,7 +112,10 @@ except ImportError:
         def run_server(self, *args, **kwargs):
             print("Dash not available - server not started")
 
-    dash = _DashStub()
+    # Create module-like objects for stubs
+    html = _HtmlStub()  # type: ignore
+    dcc = _DccStub()  # type: ignore
+    dash = _DashStub()  # type: ignore
 
     # Stub for pandas
     class _PdStub:
@@ -180,7 +180,8 @@ class HistoricalDashboard:
                 cursor = conn.cursor()
 
                 # System metrics table
-                cursor.execute("""
+                cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS system_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -191,10 +192,12 @@ class HistoricalDashboard:
                         network_connections INTEGER,
                         load_average REAL
                     )
-                """)
+                """
+                )
 
                 # Validation results table
-                cursor.execute("""
+                cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS validation_results (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -207,10 +210,12 @@ class HistoricalDashboard:
                         success_rate REAL,
                         error_message TEXT
                     )
-                """)
+                """
+                )
 
                 # Performance metrics table
-                cursor.execute("""
+                cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS performance_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -220,7 +225,8 @@ class HistoricalDashboard:
                         unit TEXT,
                         metadata TEXT
                     )
-                """)
+                """
+                )
 
                 # Create indexes for better query performance
                 cursor.execute(

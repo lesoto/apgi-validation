@@ -103,9 +103,6 @@ except ImportError:
                 self.label = kwargs.get("label")
                 self.children = args
 
-    html = _HtmlStub()
-    dcc = _DccStub()
-
     class _DashStub:
         def __init__(self):
             pass
@@ -113,7 +110,10 @@ except ImportError:
         def run_server(self, *args, **kwargs):
             print("Dash not available - server not started")
 
-    dash = _DashStub()
+    # Create module-like objects for stubs
+    html = _HtmlStub()  # type: ignore
+    dcc = _DccStub()  # type: ignore
+    dash = _DashStub()  # type: ignore
 
     # Stub for plotly
     class _PlotlyStub:

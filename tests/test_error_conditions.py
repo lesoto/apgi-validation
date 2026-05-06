@@ -934,8 +934,17 @@ class TestThreadSafetyVerification:
 
     def test_concurrent_file_operations_with_locks(self, tmp_path):
         """Test concurrent file operations with proper locking."""
-        import fcntl
+        import platform
         import threading
+
+        # Skip on Windows as fcntl is not available
+        if platform.system() == "Windows":
+            pytest.skip("fcntl module not available on Windows")
+
+        try:
+            import fcntl
+        except ImportError:
+            pytest.skip("fcntl module not available on this system")
 
         test_file = tmp_path / "locked_file.txt"
         test_file.write_text("initial\n")

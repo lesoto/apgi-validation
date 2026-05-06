@@ -291,8 +291,15 @@ F8_IDENTIFIABILITY_MIN_R2_PAPER_SPEC = 0.90
 F8_IDENTIFIABILITY_MIN_R2_SIMULATION = 0.85
 F8_IDENTIFIABILITY_MIN_R2 = F8_IDENTIFIABILITY_MIN_R2_PAPER_SPEC
 
-# P1.x — Primary Detection Predictions (VP-01 thresholds)
+# V2.x — Behavioral validation benchmarks (VP-02 thresholds)
 # Specification vs Simulation variants for detection predictions
+V2_2_MIN_DETECTION_ADVANTAGE_PCT = 12.0  # ≥12% higher detection during high-HEP
+V2_2_ALPHA = 0.05  # Standard significance level
+
+V2_3_MIN_SOMATIC_EFFECT_D = 0.20  # Minimum Cohen's d for somatic marker effect
+V2_3_MIN_CONTRIBUTION_PCT = 15.0  # Minimum % contribution to detection
+V2_3_ALPHA = 0.05  # Standard significance level
+
 P1_1_MIN_D_PRIME_PAPER_SPEC = 0.50
 P1_1_MIN_D_PRIME_SIMULATION = 0.40
 P1_1_MIN_D_PRIME = P1_1_MIN_D_PRIME_PAPER_SPEC
@@ -486,7 +493,7 @@ VP2_DELTA_PI_COUPLING: float = 0.055  # Calibrated for d≈0.4-0.6 for P1.1
 # Supporting interoceptive awareness with stronger arousal coupling
 # Citation: Critchley HD, Wiens S, Rotshtein P, Ohman A, Dolan RJ. Neural systems
 # supporting interoceptive awareness. Nat Neurosci. 2004;7(2):189-195.
-VP2_AROUSAL_COUPLING_SCALE: float = 0.35
+VP2_AROUSAL_COUPLING_SCALE: float = 0.50
 VP2_AROUSAL_BOOST_MAX: float = 0.60
 
 # VP-04 suite-calibrated phase transition parameters
@@ -544,6 +551,14 @@ DEPRESSION_HYPERCONNECTIVITY_STRONG: float = (
 # ---------------------------------------------------------------------------
 DEFAULT_ALPHA: float = 0.05  # default significance level
 BONFERRONI_ALPHA_6: float = 0.008  # Bonferroni-corrected (6 tests)
+ALPHA_PER_TEST_BONFERRONI: float = 0.008  # Bonferroni-corrected alpha per test
+
+# Additional constants for VP_02 Behavioral Bayesian Comparison
+N_PARTICIPANTS: int = 40  # Default number of participants for behavioral studies
+N_STATISTICAL_TESTS: int = (
+    6  # Number of statistical tests for multiple comparison correction
+)
+RANDOM_SEED: int = 42  # Random seed for reproducibility
 
 # =============================================================================
 # THRESHOLD REGISTRY
@@ -611,6 +626,11 @@ THRESHOLD_REGISTRY = {
     "F5.5_PCA_LOADING": F5_5_MIN_LOADING,
     "F5.5_PCA_VARIANCE": F5_5_PCA_MIN_VARIANCE,
     "F5.6_PERF_DIFF": F5_6_MIN_PERFORMANCE_DIFF_PCT,
+    "V2.2_CARDIAC_DETECTION": F2_CARDIAC_DETECTION_ADVANTAGE_MIN,
+    "V2.2_ALPHA": V2_2_ALPHA,
+    "V2.3_SOMATIC_EFFECT_D": V2_3_MIN_SOMATIC_EFFECT_D,
+    "V2.3_CONTRIBUTION_PCT": V2_3_MIN_CONTRIBUTION_PCT,
+    "V2.3_ALPHA": V2_3_ALPHA,
 }
 
 

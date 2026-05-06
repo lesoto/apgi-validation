@@ -291,7 +291,7 @@ def cache_imports(func):
 class ModuleBatchLoader:
     """Context manager for batch loading modules."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.cache = get_module_cache()
         self.modules_to_load: Dict[str, Path] = {}
 

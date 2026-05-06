@@ -1378,7 +1378,7 @@ class Protocol1Psychophysics:
         participant_id: int,
         interoceptive_precision: float,
         arousal_level: str = "normal",
-    ) -> Dict[str, float]:
+    ) -> Dict[str, Union[float, str]]:
         """
         Simulate near-threshold visual stimulus detection task
 
@@ -1415,7 +1415,7 @@ class Protocol1Psychophysics:
             "detection_threshold": threshold,
             "detection_accuracy": detection_accuracy,
             "interoceptive_precision": interoceptive_precision,
-            "arousal_level": arousal_level,  # type: ignore[assignment]
+            "arousal_level": arousal_level,
         }
 
     def classify_sd_split_groups(

@@ -431,6 +431,31 @@ def compute_cliffs_delta(
     """
     Compute Cliff's delta effect size for non-parametric data.
 
+    Cliff's delta is a robust effect size measure that quantifies the degree
+    of dominance between two independent samples. It represents the probability
+    that a randomly selected observation from group x exceeds a randomly
+    selected observation from group y, minus the reverse probability.
+
+    Mathematical formula:
+        δ = (n_greater - n_less) / (n_x * n_y)
+
+    Where:
+    - n_greater: count of pairs where x_i > y_j
+    - n_less: count of pairs where x_i < y_j
+    - n_x, n_y: sample sizes of groups x and y
+
+    Interpretation:
+    - δ = 0: No effect (distributions identical)
+    - δ > 0: Observations in x tend to be larger than in y
+    - δ < 0: Observations in x tend to be smaller than in y
+    - |δ| = 1: Complete separation (all x > all y or vice versa)
+
+    This measure is particularly useful for:
+    - Non-normal distributions
+    - Ordinal data
+    - Small sample sizes
+    - Robust effect size estimation
+
     Args:
         x: First sample data
         y: Second sample data
@@ -662,16 +687,42 @@ def bootstrap_one_sample_test(
     alpha: float = 0.05,
 ) -> Tuple[float, float]:
     """
-    Perform one-sample test using bootstrap.
+    Perform one-sample test using bootstrap resampling.
+
+    Bootstrap testing provides a non-parametric alternative to traditional
+    parametric tests by resampling the observed data with replacement.
+    This method is particularly valuable when:
+    - Data violates normality assumptions
+    - Sample sizes are small
+    - Distribution shape is unknown or complex
+
+    Method:
+    1. Generate B bootstrap samples by resampling with replacement
+    2. Compute statistic (mean) for each bootstrap sample
+    3. Create empirical null distribution around observed statistic
+    4. Calculate two-sided p-value using reflection method
+
+    The reflection method for two-sided p-values:
+    - If observed ≥ null: p = P(bootstrap ≥ 2×null - observed)
+    - If observed < null: p = P(bootstrap ≤ 2×null - observed)
+
+    This creates a symmetric confidence interval around the null hypothesis value.
 
     Args:
-        data: Sample data
-        null_value: Null hypothesis value
-        n_bootstrap: Number of bootstrap samples
-        alpha: Significance level
+        data: Sample data to test against null hypothesis
+        null_value: Null hypothesis value (default: 0.0)
+        n_bootstrap: Number of bootstrap resamples (default: 1000)
+        alpha: Significance level for hypothesis test (default: 0.05)
 
     Returns:
-        Tuple of (test_statistic, p_value)
+        Tuple of (test_statistic, p_value):
+        - test_statistic: Standardized difference from null (t-like statistic)
+        - p_value: Two-sided bootstrap p-value
+
+    Note:
+        - Bootstrap provides valid inference under minimal assumptions
+        - P-value accuracy improves with more bootstrap samples
+        - For very small samples (n < 10), consider exact tests
     """
     data_arr = validate_sample_array(data, min_n=2, name="data")
 

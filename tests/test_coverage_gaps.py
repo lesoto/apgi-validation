@@ -563,6 +563,12 @@ class TestConfigurationEdgeCases:
 
     def test_config_file_permissions(self, tmp_path):
         """Test configuration file permission handling."""
+        import platform
+
+        # Skip on Windows as it doesn't support Unix-style permissions
+        if platform.system() == "Windows":
+            pytest.skip("Unix-style file permissions not supported on Windows")
+
         config_file = tmp_path / "secret.yaml"
         config_file.write_text("api_key: secret123")
 

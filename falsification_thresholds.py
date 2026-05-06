@@ -96,6 +96,11 @@ from utils.falsification_thresholds import (  # F1 family - Neural signatures; F
     F6_5_HYSTERESIS_MAX,
     F6_5_HYSTERESIS_MIN,
     F6_6_MIN_PERFORMANCE_GAP,
+    V2_2_ALPHA,
+    V2_2_MIN_DETECTION_ADVANTAGE_PCT,
+    V2_3_ALPHA,
+    V2_3_MIN_CONTRIBUTION_PCT,
+    V2_3_MIN_SOMATIC_EFFECT_D,
     V12_1_ALPHA,
     V12_1_MIN_COHENS_D,
     V12_1_MIN_ETA_SQUARED,
@@ -107,18 +112,14 @@ from utils.falsification_thresholds import (  # F1 family - Neural signatures; F
 )
 
 __all__ = [
-    # ALPHA configuration
     "ALPHA_SIGMOID",
     "ALPHA_EMA",
     "ALPHA_FEP",
-    # BETA parameters
     "BETA_SM",
     "BETA_SOMATIC",
-    # Depression hyperconnectivity tiers
     "DEPRESSION_HYPERCONNECTIVITY_CONSISTENT",
     "DEPRESSION_HYPERCONNECTIVITY_MODERATE",
     "DEPRESSION_HYPERCONNECTIVITY_STRONG",
-    # F1 family
     "F1_1_MIN_ADVANTAGE_PCT",
     "F1_1_MIN_COHENS_D",
     "F1_1_ALPHA",
@@ -127,7 +128,6 @@ __all__ = [
     "F1_5_COHENS_D_MIN",
     "F1_5_PERMUTATION_ALPHA",
     "F1_6_MIN_LOW_AROUSAL_SLOPE",
-    # F2 family
     "F2_1_MIN_ADVANTAGE_PCT",
     "F2_1_MIN_PP_DIFF",
     "F2_1_MIN_COHENS_H",
@@ -148,7 +148,11 @@ __all__ = [
     "F2_5_MIN_TRIAL_ADVANTAGE",
     "F2_5_MIN_ADVANTAGE_PCT",
     "F2_5_ALPHA",
-    # F3 family
+    "V2_2_MIN_DETECTION_ADVANTAGE_PCT",
+    "V2_2_ALPHA",
+    "V2_3_MIN_SOMATIC_EFFECT_D",
+    "V2_3_MIN_CONTRIBUTION_PCT",
+    "V2_3_ALPHA",
     "F3_1_MIN_ADVANTAGE_PCT",
     "F3_1_MIN_COHENS_D",
     "F3_1_ALPHA",
@@ -164,7 +168,6 @@ __all__ = [
     "F3_6_MAX_TRIALS",
     "F3_6_MIN_HAZARD_RATIO",
     "F3_6_ALPHA",
-    # F5 family
     "F5_1_MIN_PROPORTION",
     "F5_1_MIN_PROPORTION_PAPER_SPEC",
     "F5_1_MIN_PROPORTION_SIMULATION",
@@ -192,7 +195,6 @@ __all__ = [
     "F5_6_MIN_PERFORMANCE_DIFF_PCT",
     "F5_6_MIN_COHENS_D",
     "F5_6_ALPHA",
-    # F6 family
     "F6_1_LTCN_MAX_TRANSITION_MS",
     "F6_1_CLIFFS_DELTA_MIN",
     "F6_1_MANN_WHITNEY_ALPHA",
@@ -204,13 +206,11 @@ __all__ = [
     "F6_5_HYSTERESIS_MIN",
     "F6_5_HYSTERESIS_MAX",
     "F6_6_MIN_PERFORMANCE_GAP",
-    # V12 family
     "V12_1_MIN_P3B_REDUCTION_PCT",
     "V12_1_MIN_IGNITION_REDUCTION_PCT",
     "V12_1_MIN_COHENS_D",
     "V12_1_MIN_ETA_SQUARED",
     "V12_1_ALPHA",
-    # Functions
     "test_f6_1_intrinsic_threshold_behavior",
     "test_f6_2_intrinsic_temporal_integration",
     "test_f6_3_metabolic_selectivity",

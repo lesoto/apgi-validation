@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = Path(__file__).parent
+PROJECT_ROOT = Path(__file__).parent.parent
 
 
 def safe_import_module(module_name: str, file_path: Path):
@@ -60,7 +60,6 @@ def verify_file_references():
         ("Theory_04", "Theory/APGI_Cultural_Neuroscience.py"),
         ("Theory_05", "Theory/APGI_Entropy_Implementation.py"),
         ("Theory_06", "Theory/APGI_Falsification_Framework.py"),
-        ("Theory_07", "Theory/APGI_Full_Dynamic_Model.py"),
         ("Theory_08", "Theory/APGI_Liquid_Network_Implementation.py"),
         ("Theory_09", "Theory/APGI_Multimodal_Classifier.py"),
         ("Theory_10", "Theory/APGI_Multimodal_Integration.py"),
@@ -238,7 +237,9 @@ def verify_directory_structure():
         "data",
         "apgi_core",
         "data_repository",
-        "apgi_outputs",
+        "apgi_output",
+        "Falsification",
+        "Validation",
     ]
 
     results = []

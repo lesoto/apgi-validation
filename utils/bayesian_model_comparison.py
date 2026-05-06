@@ -3,8 +3,7 @@ APGI Bayesian Model Comparison Utilities
 =========================================
 
 Reusable infrastructure for Bayesian model comparison across APGI validation
-protocols. Extracted from BayesianModelComparison_ParameterRecovery.py and
-consumed primarily by VP_02_Behavioral_BayesianComparison.py.
+protocols.
 
 Key public classes:
   ConsciousnessDataset           — container for consciousness experiment data
@@ -1922,9 +1921,7 @@ class BayesianModelComparison:
             except Exception as e:
                 print(f"  Error during posterior predictive check: {e}")
                 if test_mode:
-                    print(
-                        "  ⚠️  In test mode, this is expected due to reduced sampling"
-                    )
+                    print("  ⚠️  In test mode, this is expected due to reduced sampling")
                 error_dict: Dict[str, Any] = {
                     "accuracy": None,
                     "log_loss": None,
@@ -3023,7 +3020,7 @@ def main() -> Dict[str, Any]:
 
     # Configuration (Faster for validation, much faster for test mode)
     if test_mode:
-        config = {"n_samples": 200, "n_tune": 100, "n_chains": 2, "target_accept": 0.85}
+        config = {"n_samples": 50, "n_tune": 25, "n_chains": 2, "target_accept": 0.80}
     else:
         config = {
             "n_samples": 2000,

@@ -12,7 +12,7 @@ import threading
 import tkinter as tk
 import warnings
 from pathlib import Path
-from tkinter import messagebox, scrolledtext, ttk
+from tkinter import TclError, messagebox, scrolledtext, ttk
 from typing import Any, Callable, List
 
 # Pre-import torch to prevent circular import issues with dynamically loaded protocols
@@ -567,7 +567,13 @@ class ProtocolRunnerGUI:
         except queue.Empty:
             pass
         # Schedule next check in 100ms
-        self.root.after(100, self._process_gui_queue)
+        try:
+            self.root.after(100, self._process_gui_queue)
+        except (KeyboardInterrupt, TclError):
+            # Gracefully handle shutdown during GUI processing
+            logger.info("GUI processing interrupted, shutting down...")
+            if hasattr(self, "stop_event"):
+                self.stop_event.set()
 
     def _on_closing(self):
         """Handle window close event with proper thread cleanup."""

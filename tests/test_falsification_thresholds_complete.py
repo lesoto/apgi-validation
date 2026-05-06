@@ -245,7 +245,7 @@ class TestThresholdConstants:
     def test_vp2_coupling_thresholds(self):
         """Test VP2 coupling parameters"""
         assert VP2_DELTA_PI_COUPLING == 0.055
-        assert VP2_AROUSAL_COUPLING_SCALE == 0.35
+        assert VP2_AROUSAL_COUPLING_SCALE == 0.50
         assert VP2_AROUSAL_BOOST_MAX == 0.60
 
     def test_vp4_calibrated_parameters(self):

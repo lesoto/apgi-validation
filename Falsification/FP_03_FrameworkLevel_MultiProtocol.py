@@ -3933,7 +3933,7 @@ _LocalProtocolResult = ProtocolResult
 class MultiProtocolRunner:
     """Run multiple protocols."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.protocols: List[ProtocolConfig] = []
         self._results: List[_LocalProtocolResult] = []
 

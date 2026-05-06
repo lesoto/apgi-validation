@@ -11,7 +11,7 @@ testing APGI predictions against empirical data.
 __version__ = "1.0.0"
 __author__ = "APGI Framework"
 
-__all__ = []
+__all__: list[str] = []
 
 # NOTE:
 # Keep package import side-effect free. Importing the full validation stack can

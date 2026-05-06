@@ -85,7 +85,7 @@ class TestDashboardManagerComplete:
     )
     def test_monitoring_functionality(self):
         """Test monitoring functionality."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
             manager = DashboardManager(data_dir=temp_dir)
 
             # Test start monitoring
@@ -100,6 +100,9 @@ class TestDashboardManagerComplete:
             # Wait for thread to finish
             if manager._monitoring_thread:
                 manager._monitoring_thread.join(timeout=1.0)
+
+            # Explicit cleanup to prevent resource locking
+            manager.cleanup()
 
     @pytest.mark.skipif(
         not DASHBOARD_INTEGRATION_AVAILABLE,
@@ -318,7 +321,7 @@ class TestDashboardManagerComplete:
     )
     def test_cleanup_and_resource_management(self):
         """Test cleanup and resource management."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
             manager = DashboardManager(data_dir=temp_dir)
 
             # Start monitoring with longer interval to avoid thread issues
@@ -327,6 +330,10 @@ class TestDashboardManagerComplete:
 
             # Cleanup
             manager.cleanup()
+
+            # Wait for monitoring thread to finish
+            if manager._monitoring_thread:
+                manager._monitoring_thread.join(timeout=2.0)
 
             # Should stop monitoring and clean resources
             assert manager._monitoring_active is False

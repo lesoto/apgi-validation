@@ -622,7 +622,7 @@ class CrossSpeciesHomologyAnalyzer:
                 "Pi_e_range": (0.3, 0.6),
                 "ignition_latency": 0.15,
             },
-            "zebrafish": {
+            "Fish": {
                 "cortical_thickness": 0.1,
                 "frontal_lobe_ratio": 0.2,
                 "theta_t_range": (0.8, 1.5),
@@ -655,7 +655,7 @@ class CrossSpeciesHomologyAnalyzer:
             "human": (1.0, 1.0),
             "macaque": (0.8, 0.9),
             "mouse": (0.4, 0.5),
-            "zebrafish": (0.2, 0.3),
+            "Fish": (0.2, 0.3),
         }
         p3b_scale, conn_scale = scales[species]
         theta_t, Pi_e = subject_data["theta_t"], subject_data["Pi_e"]
@@ -956,7 +956,7 @@ class ClinicalConvergenceValidator:
         }
 
     def _validate_cross_species_homologies(self) -> Dict:
-        species = ["human", "macaque", "mouse", "zebrafish"]
+        species = ["human", "macaque", "mouse", "Fish"]
         all_species_data = []
         for s in species:
             all_species_data.append(

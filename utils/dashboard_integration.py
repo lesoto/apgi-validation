@@ -597,13 +597,15 @@ class DashboardManager:
                         cursor = conn.cursor()
 
                         # Store in a generic historical_data table
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             CREATE TABLE IF NOT EXISTS historical_data (
                                 timestamp TEXT PRIMARY KEY,
                                 data_json TEXT,
                                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
                             )
-                            """)
+                            """
+                        )
 
                         cursor.execute(
                             "INSERT OR REPLACE INTO historical_data (timestamp, data_json) VALUES (?, ?)",
@@ -646,7 +648,8 @@ class DashboardManager:
                         cursor = conn.cursor()
 
                         # Create performance_metrics table if it doesn't exist
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             CREATE TABLE IF NOT EXISTS performance_metrics (
                                 timestamp TEXT PRIMARY KEY,
                                 cpu_usage REAL,
@@ -655,7 +658,8 @@ class DashboardManager:
                                 metrics_json TEXT,
                                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
                             )
-                            """)
+                            """
+                        )
 
                         cursor.execute(
                             "INSERT OR REPLACE INTO performance_metrics (timestamp, cpu_usage, memory_usage, response_time, metrics_json) VALUES (?, ?, ?, ?, ?)",
@@ -799,6 +803,28 @@ class DashboardManager:
         self.stop_monitoring()
         self._callbacks = []
         self._export_history = []
+
+        # Close database connections to prevent resource locking
+        if self.historical_dashboard:
+            try:
+                # Force close any SQLite connections
+                import sqlite3
+
+                if hasattr(self.historical_dashboard, "db_path"):
+                    db_path = self.historical_dashboard.db_path
+                    # Connect and disconnect to ensure clean closure
+                    conn = sqlite3.connect(db_path)
+                    conn.close()
+            except Exception:
+                pass  # Ignore cleanup errors
+
+        if self.performance_dashboard:
+            try:
+                # Close any performance dashboard connections
+                if hasattr(self.performance_dashboard, "close"):
+                    self.performance_dashboard.close()
+            except Exception:
+                pass  # Ignore cleanup errors
 
         if apgi_logger:
             apgi_logger.logger.info("DashboardManager cleaned up")

@@ -65,7 +65,7 @@ class CrossSpeciesScaling:
                 "pci_empirical": 0.38,
                 "tau_empirical": 0.15,
             },
-            "Zebrafish": {
+            "Fish": {
                 "brain_mass": 0.002,
                 "neurons": 0.1,
                 "pci_empirical": 0.15,

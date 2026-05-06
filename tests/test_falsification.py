@@ -46,7 +46,7 @@ def test_falsification_files_exist():
 
         # Check file has valid Python syntax
         try:
-            with open(file_path, "r") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
                 compile(content, str(file_path), "exec")
         except SyntaxError as e:

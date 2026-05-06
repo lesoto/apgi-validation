@@ -1,211 +1,158 @@
-model:
-  # Time constant parameters
-  tau_S: 0.5        # Signal integration time constant [seconds]
-  tau_theta: 30.0   # Threshold adaptation time constant [seconds]
-  tau_M: 1.52       # Somatic marker time constant [seconds]
-
-  # Gain/amplitude parameters
-  alpha: 5.0        # Surprise accumulation gain
-  gamma_M: 0.1      # Metabolic cost weight
-  gamma_A: 0.05     # Arousal modulation weight
-  beta: 1.2         # Somatic bias weight
-
-  # Precision parameters
-  Pi_e: 1.0         # Exteroceptive precision (baseline)
-  Pi_i_baseline: 1.0  # Interoceptive precision (baseline)
-  beta_Pi_i: 1.0    # Composite interoceptive parameter
-
-  # Threshold and baseline parameters
-  theta_0: 0.5      # Baseline ignition threshold
-  rho: 0.7          # Threshold adaptation rate
-
-  # Noise parameters
-  sigma_S: 0.1      # Surprise signal noise amplitude
-  sigma_theta: 0.05 # Threshold noise amplitude
-  sigma_noise: 0.8  # Sensory noise amplitude
-
-  # Interoceptive parameters
-  somatic_gain: 1.0 # Somatic marker gain
-  homeostatic_cost_weight: 0.2  # Weight for homeostatic predictions
-
-  # Network architecture parameters
-  hidden_dim: 64    # Default hidden dimension
-  somatic_hidden_dim: 32  # Somatic marker hidden dimension
-
-  # Learning parameters
-  learning_rate: 0.01  # Network learning rate
-  value_learning_rate: 0.001  # Value network learning rate
-
-  # Simulation parameters
-  dt: 0.05          # Simulation time step
-  duration: 1.0     # Simulation duration
-
-  # F6.2 parameters
-  F6_2_MIN_INTEGRATION_RATIO: 4.0  # ≥4× RNN  (spec criterion)
-  F6_2_FALSIFICATION_RATIO: 2.5  # falsified if ratio < 2.5×
-  F6_2_MIN_CURVE_FIT_R2: 0.85  # R² ≥ 0.85
-  F6_2_WILCOXON_ALPHA: 0.05
-
-  # LNN AUROC superiority parameters
-  F6:
-    delta_auroc_min: 0.05  # ΔAUROC ≥ 0.05 (pre-specified threshold for LNN superiority)
-
-simulation:
-  default_steps: 1000
-  default_dt: 0.05
-  enable_plots: true
-  enable_cross_validation: true
-  cv_folds: 5
-  enable_sensitivity_analysis: true
-  sensitivity_samples: 100
-  enable_robustness_tests: true
-  significance_level: 0.05
-
-validation:
-  enable_cross_validation: true
-  cv_folds: 5
-  enable_sensitivity_analysis: true
-  sensitivity_samples: 100
-  enable_robustness_tests: true
-  significance_level: 0.05
-
-logging:
-  level: INFO
-  enable_performance_logging: true
-  log_directory: logs/
-
 data:
-  sample_size: 1000
-  time_series_length: 100
   eeg_channels: 32
+  max_load_size_mb: 100
+  sample_size: 1000
   sampling_rate: 1000
-  max_load_size_mb: 100  # Maximum file size for loading (in MB)
-
+  time_series_length: 100
+falsification:
+  F1:
+    inter_intra_coupling_ratio: 1.5
+    pac_baseline_mi_min: 0.012
+    pac_coherence_increase_min: 0.2
+    pac_delta_theta_baseline_min: 0.008
+    pac_ignition_increase_min: 30
+  F2:
+    cardiac_detection_advantage_min: 0.12
+  cohens_d_adaptation_threshold: 0.7
+  cohens_d_threshold: 0.6
+  cumulative_reward_advantage_threshold: 18
+  significance_level: 0.01
+  tau_theta_max: 100
+  tau_theta_min: 10
+  threshold_reduction_min: 20
 gui:
-  window_width: 1200
-  window_height: 800
+  auto_save_interval: 30
   enable_progress_bars: true
   max_threads: 4
-  auto_save_interval: 30
-
-falsification:
-  # Falsification criterion thresholds
-  cumulative_reward_advantage_threshold: 18  # Minimum % advantage for F1.1
-  cohens_d_threshold: 0.60  # Minimum effect size for F1.1
-  significance_level: 0.01  # Alpha level for statistical tests
-  threshold_reduction_min: 20  # Minimum % threshold reduction for F1.4
-  cohens_d_adaptation_threshold: 0.70  # Minimum effect size for adaptation (F1.4)
-  tau_theta_min: 10  # Minimum threshold adaptation time constant (seconds)
-  tau_theta_max: 100  # Maximum threshold adaptation time constant (seconds)
-  
-  # F1 Cross-Level Bidirectional Coupling thresholds
-  F1:
-    inter_intra_coupling_ratio: 1.5  # inter must exceed intra by 50%
-    pac_coherence_increase_min: 0.20  # 20% increase on conscious trials
-    pac_baseline_mi_min: 0.012  # Minimum baseline PAC MI for theta-gamma coupling
-    pac_ignition_increase_min: 30  # Minimum % increase during ignition vs baseline
-    pac_delta_theta_baseline_min: 0.008  # Minimum baseline PAC MI for delta-theta coupling
-  
-  # F2 Cardiac Phase-Dependent Detection thresholds
-  F2:
-    cardiac_detection_advantage_min: 0.12  # Minimum 12% higher detection during high-HEP vs low-HEP phases
-
+  window_height: 800
+  window_width: 1200
+logging:
+  enable_performance_logging: true
+  level: INFO
+  log_directory: logs/
+model:
+  F6:
+    delta_auroc_min: 0.05
+  F6_2_FALSIFICATION_RATIO: 2.5
+  F6_2_MIN_CURVE_FIT_R2: 0.85
+  F6_2_MIN_INTEGRATION_RATIO: 4.0
+  F6_2_WILCOXON_ALPHA: 0.05
+  Pi_e: 1.0
+  Pi_i_baseline: 1.0
+  alpha: 5.0
+  beta: 1.2
+  beta_Pi_i: 1.0
+  dt: 0.05
+  duration: 1.0
+  gamma_A: 0.05
+  gamma_M: 0.1
+  hidden_dim: 64
+  homeostatic_cost_weight: 0.2
+  learning_rate: 0.01
+  rho: 0.7
+  sigma_S: 0.1
+  sigma_noise: 0.8
+  sigma_theta: 0.05
+  somatic_gain: 1.0
+  somatic_hidden_dim: 32
+  tau_M: 1.52
+  tau_S: 0.5
+  tau_theta: 30.0
+  theta_0: 0.5
+  value_learning_rate: 0.001
 network:
-  # Neural network architecture dimensions
-  extero_dim: 32  # Exteroceptive input dimension
-  intero_dim: 16  # Interoceptive input dimension
-  context_dim: 8  # Context input dimension
-  action_dim: 4  # Action space dimension
-  hidden_dim: 64  # Default hidden layer dimension
-  somatic_hidden_dim: 32  # Somatic marker hidden dimension
-  workspace_dim: 4  # Global workspace dimension
-
-  # Layer dimensions for exteroceptive pathway
-  extero_encoder_layers: [128, 64, 32]  # Layer sizes
-  # Layer dimensions for interoceptive pathway
-  intero_encoder_layers: [64, 32, 16]  # Layer sizes
-
-  # Learning rates
-  learning_rate: 0.001  # Default learning rate
-  lr_extero: 0.01  # Exteroceptive model learning rate
-  lr_intero: 0.01  # Interoceptive model learning rate
-  lr_precision: 0.05  # Precision learning rate
-  lr_somatic: 0.1  # Somatic marker learning rate
-  lr_value: 0.001  # Value network learning rate
-  lr_policy: 0.001  # Policy network learning rate
-
-  # Network parameters
-  dropout: 0.5  # Dropout rate
-  batch_size: 32  # Training batch size
-  epochs: 10  # Number of training epochs
-
-  # Model selection
-  n_trials_per_model: 100  # Number of trials per model in validation
-
-  # Precision parameters
-  Pi_e_init: 1.0  # Initial exteroceptive precision
-  Pi_i_init: 1.0  # Initial interoceptive precision
-
-  # Threshold parameters
-  theta_init: 0.5  # Initial ignition threshold
-  theta_baseline: 0.5  # Baseline threshold
-
-  # Sigmoid parameters
-  alpha: 8.0  # Sigmoid steepness (clipped to prevent overflow)
-
-  # Surprise accumulator
-  tau_S: 0.3  # Surprise accumulation time constant
-
-  # Threshold adaptation
-  tau_theta: 10.0  # Threshold adaptation time constant
-  eta_theta: 0.01  # Threshold adaptation rate
-
-  # Somatic bias
-  beta: 1.2  # Somatic bias weight
-
-  # Reset dynamics
-  rho: 0.7  # Threshold reset fraction
-
-  # Hierarchical level dimensions
-  sensory_dim: 32
-  objects_dim: 16
+  Pi_e_init: 1.0
+  Pi_i_init: 1.0
+  action_dim: 4
+  alpha: 8.0
+  batch_size: 32
+  beta: 1.2
+  context_dim: 8
   context_dim_hier: 8
-  visceral_dim: 16
-  organ_dim: 8
-  homeostatic_dim: 4
-
-  # Hierarchical time constants
-  tau_sensory: 0.05
-  tau_objects: 0.2
-  tau_context: 1.0
-  tau_visceral: 0.1
-  tau_organ: 0.5
-  tau_homeostatic: 2.0
-
-  # Memory capacities
-  working_memory_capacity: 7
+  dropout: 0.5
   episodic_memory_capacity: 1000
-
-  # Genetic algorithm parameters
-  mutation_rate: 0.1
+  epochs: 10
+  eta_theta: 0.01
+  extero_dim: 32
+  extero_encoder_layers:
+  - 128
+  - 64
+  - 32
+  hidden_dim: 64
+  homeostatic_dim: 4
   ignition_cost: 0.1
-
-# Phase-Amplitude Coupling (PAC) frequency band specifications
+  intero_dim: 16
+  intero_encoder_layers:
+  - 64
+  - 32
+  - 16
+  learning_rate: 0.001
+  lr_extero: 0.01
+  lr_intero: 0.01
+  lr_policy: 0.001
+  lr_precision: 0.05
+  lr_somatic: 0.1
+  lr_value: 0.001
+  mutation_rate: 0.1
+  n_trials_per_model: 100
+  objects_dim: 16
+  organ_dim: 8
+  rho: 0.7
+  sensory_dim: 32
+  somatic_hidden_dim: 32
+  tau_S: 0.3
+  tau_context: 1.0
+  tau_homeostatic: 2.0
+  tau_objects: 0.2
+  tau_organ: 0.5
+  tau_sensory: 0.05
+  tau_theta: 10.0
+  tau_visceral: 0.1
+  theta_baseline: 0.5
+  theta_init: 0.5
+  visceral_dim: 16
+  working_memory_capacity: 7
+  workspace_dim: 4
 pac_bands:
-  # Level 1-2 coupling: theta-gamma PAC
   L1_L2:
-    phase: [4, 8]      # theta band (4-8 Hz)
-    amplitude: [30, 80] # gamma band (30-80 Hz)
-    description: "theta-gamma coupling for Level 1-2"
-  
-  # Level 2-3 coupling: delta-theta PAC  
+    amplitude:
+    - 30
+    - 80
+    description: theta-gamma coupling for Level 1-2
+    phase:
+    - 4
+    - 8
   L2_L3:
-    phase: [1, 4]      # delta band (1-4 Hz)
-    amplitude: [4, 8]  # theta band (4-8 Hz)
-    description: "delta-theta coupling for Level 2-3"
-  
-  # Level 3-4 coupling: delta-theta PAC (same as L2_L3)
+    amplitude:
+    - 4
+    - 8
+    description: delta-theta coupling for Level 2-3
+    phase:
+    - 1
+    - 4
   L3_L4:
-    phase: [1, 4]      # delta band (1-4 Hz) 
-    amplitude: [4, 8]  # theta band (4-8 Hz)
-    description: "delta-theta coupling for Level 3-4"
+    amplitude:
+    - 4
+    - 8
+    description: delta-theta coupling for Level 3-4
+    phase:
+    - 1
+    - 4
+simulation:
+  cv_folds: 5
+  default_dt: 0.05
+  default_steps: 1000
+  enable_cross_validation: true
+  enable_plots: true
+  enable_robustness_tests: true
+  enable_sensitivity_analysis: true
+  sensitivity_samples: 100
+  significance_level: 0.05
+validation:
+  cv_folds: 5
+  enable_cross_validation: true
+  enable_robustness_tests: true
+  enable_sensitivity_analysis: true
+  sensitivity_samples: 100
+  significance_level: 0.05
+version: 1.3.0

@@ -2094,7 +2094,7 @@ def run_falsification():
                 f6_1 = results.get("F6.1", {})
                 speedup_ratio = f6_1.get("speedup_ratio", 2.9)
                 # Normalize to percentage (max 5x = 100%)
-                efficiency = min(100.0, (speedup_ratio / 5.0) * 100.0)
+                efficiency = round(min(100.0, (speedup_ratio / 5.0) * 100.0), 1)
 
                 metrics = [
                     "Energy Efficiency\n(speedup ratio)",

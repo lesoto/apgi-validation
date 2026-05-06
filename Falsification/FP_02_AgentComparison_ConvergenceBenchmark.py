@@ -1137,16 +1137,16 @@ def run_falsification() -> Dict[str, Any]:
     ).tolist()  # Increased variance from 4 to 8
 
     # PAC modulation indices with biological variance
-    # FIX: Increased variance to avoid "near-constant input" warnings
+    # FIX: Further increased variance to eliminate "near-constant input" warnings
     pac_baseline = np.random.normal(
-        0.008, 0.008, n_samples
-    )  # Increased variance from 0.003 to 0.008
+        0.008, 0.015, n_samples
+    )  # Increased variance from 0.008 to 0.015
     pac_baseline = np.clip(
-        pac_baseline, 0.001, 0.02
-    )  # Ensure positive values with range
+        pac_baseline, 0.001, 0.03
+    )  # Ensure positive values with wider range
     pac_ignition = pac_baseline * np.random.normal(
-        1.8, 0.6, n_samples
-    )  # Increased variance from 0.4 to 0.6
+        1.8, 0.8, n_samples
+    )  # Increased variance from 0.6 to 0.8
     pac_ignition = np.clip(pac_ignition, 0.002, 0.05)  # Ensure valid range
     pac_mi = list(zip(pac_baseline, pac_ignition))
 
@@ -2902,23 +2902,60 @@ def _generate_fp02_visualization(
             ax2.set_title("Named Predictions Status")
             ax2.set_xlabel("Pass (1) / Fail (0)")
             ax2.set_xlim(0, 1.2)
+            # Add value labels on bars
+            for i, (name, passed) in enumerate(zip(pred_names, pred_values)):
+                ax2.text(
+                    1.0 if passed else 0.1,
+                    i,
+                    "PASS" if passed else "FAIL",
+                    va="center",
+                    fontweight="bold",
+                    color="white" if passed else "black",
+                )
+        else:
+            ax2.text(
+                0.5,
+                0.5,
+                "No Named Predictions Available",
+                ha="center",
+                va="center",
+                transform=ax2.transAxes,
+                fontsize=12,
+                color="gray",
+            )
+            ax2.set_title("Named Predictions Status")
 
         # Plot 3: Agent comparison metrics
         ax3 = axes[1, 0]
         f6_5 = criteria_data.get("F6.5", {})
         if f6_5:
+            # F6.5 in FP-02 is about bifurcation structure, not convergence rates
+            # Display the actual bifurcation metrics instead
             metrics = {
-                "APGI Convergence": f6_5.get("apgi_convergence_rate", 0),
-                "RNN Convergence": f6_5.get("rnn_convergence_rate", 0),
-                "Convergence Ratio": f6_5.get("convergence_ratio", 0),
+                "Bifurcation Point": f6_5.get("bifurcation_point", 0),
+                "Hysteresis Width": f6_5.get("hysteresis_width", 0),
             }
             names = list(metrics.keys())
             values = list(metrics.values())
-            colors = ["#3498db", "#e67e22", "#9b59b6"]
+            colors = ["#e74c3c", "#f39c12"]
             ax3.bar(names, values, color=colors)
+            ax3.set_title("Bifurcation Structure Metrics (F6.5)")
+            ax3.set_ylabel("Value")
+            ax3.tick_params(axis="x", rotation=15)
+        else:
+            # If no F6.5 data, show empty plot with message
+            ax3.text(
+                0.5,
+                0.5,
+                "No F6.5 Data Available",
+                ha="center",
+                va="center",
+                transform=ax3.transAxes,
+                fontsize=12,
+                color="gray",
+            )
             ax3.set_title("Agent Convergence Metrics (F6.5)")
             ax3.set_ylabel("Rate/Ratio")
-            ax3.tick_params(axis="x", rotation=15)
 
         # Plot 4: Add-ons required comparison
         ax4 = axes[1, 1]

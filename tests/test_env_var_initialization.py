@@ -181,6 +181,12 @@ class TestEnvVarInitialization:
 
     def test_key_file_permissions(self, clean_env, tmp_path):
         """Test that key files have secure permissions."""
+        import platform
+
+        # Skip on Windows as it doesn't support Unix-style permissions
+        if platform.system() == "Windows":
+            pytest.skip("Unix-style file permissions not supported on Windows")
+
         # Use custom keys directory
         keys_dir = tmp_path / ".test_keys"
         manager = SecureKeyManager(keys_dir=str(keys_dir))

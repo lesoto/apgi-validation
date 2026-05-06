@@ -6,7 +6,7 @@ import numpy as np
 class PublicDatasetCatalogue:
     """Interface for large-scale public datasets (e.g., Cogitate, Sergent 2005)"""
 
-    def __init__(self, cache_dir="./data/public"):
+    def __init__(self, cache_dir="./data_repository/raw_data/public"):
         self.cache_dir = cache_dir
         os.makedirs(self.cache_dir, exist_ok=True)
 
@@ -47,7 +47,7 @@ class PMRSCalorimetryInterface:
 class AllenBrainNWBInterface:
     """Interface for loading raw .nwb files from the Allen Brain Map."""
 
-    def __init__(self, data_path="./data/allen_brain"):
+    def __init__(self, data_path="./data_repository/raw_data/allen_brain"):
         self.data_path = data_path
 
     def load_fatigue_nwb(self, subject_id):

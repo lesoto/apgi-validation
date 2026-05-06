@@ -53,7 +53,7 @@ def check_protocol_metadata(filepath: str) -> Tuple[bool, str]:
     if not path.exists():
         return False, f"File not found: {filepath}"
 
-    content = path.read_text()
+    content = path.read_text(encoding="utf-8", errors="ignore")
 
     # Check if it imports metadata_standardizer
     if "from utils.metadata_standardizer import" in content:

@@ -7,9 +7,13 @@ Avoid importing settings as mutable globals or relying on class-level attributes
 
 from __future__ import annotations
 
+import sys
 import threading
 from pathlib import Path
 from typing import Optional
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.apgi_settings import APGISettings, resolve_apgi_config_path
 

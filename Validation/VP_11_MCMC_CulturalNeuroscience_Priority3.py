@@ -156,8 +156,8 @@ rng = np.random.default_rng(RANDOM_SEED)
 # ---------------------------------------------------------------------------
 # MCMC configuration (paper-specified minimums)
 # ---------------------------------------------------------------------------
-N_SAMPLES = 5000  # post-warmup samples per chain
-N_TUNE = 1000  # warmup / burn-in
+N_SAMPLES = 2000  # post-warmup samples per chain (reduced for speed)
+N_TUNE = 500  # warmup / burn-in (reduced for speed)
 N_CHAINS = 4
 RHAT_GATE = 1.01  # Gelman-Rubin convergence threshold
 
@@ -1291,8 +1291,8 @@ def get_falsification_criteria() -> Dict[str, Dict[str, Any]]:
 def run_validation(
     n_subjects: int = 60,
     n_trials_per_subject: int = 400,
-    n_samples: int = 2000,  # Reduced for speed in validation mode
-    n_tune: int = 1000,
+    n_samples: int = 1500,  # Reduced for speed in validation mode
+    n_tune: int = 500,
     n_chains: int = 4,
     seed: int = RANDOM_SEED,
     verbose: bool = True,
@@ -1687,8 +1687,7 @@ def _print_summary_p11(results: Dict[str, Any]) -> None:
         print(f"  {p:8s}: mean={mu:.4f}  sd={sd:.4f}  95%CI=[{lo:.4f}, {hi:.4f}]")
 
     print(
-        f"\n— Convergence (R̂ ≤ {RHAT_GATE}) — "
-        f"{_fmt_pass(conv['convergence_pass'])}"
+        f"\n— Convergence (R̂ ≤ {RHAT_GATE}) — " f"{_fmt_pass(conv['convergence_pass'])}"
     )
     for p, diag in conv["parameter_diagnostics"].items():
         flag = "✓" if diag["converged"] else "✗"

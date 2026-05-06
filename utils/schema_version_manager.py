@@ -169,9 +169,9 @@ class SchemaVersionManager:
     def validate_version(self, version: str) -> bool:
         """Check if a version is supported."""
         try:
-            parsed = semver.Version.parse(version)
-            min_parsed = semver.Version.parse(self.min_supported_version)
-            current_parsed = semver.Version.parse(self.current_version)
+            parsed = semver.VersionInfo.parse(version)
+            min_parsed = semver.VersionInfo.parse(self.min_supported_version)
+            current_parsed = semver.VersionInfo.parse(self.current_version)
 
             return min_parsed <= parsed <= current_parsed
         except ValueError:
@@ -182,8 +182,8 @@ class SchemaVersionManager:
     ) -> CompatibilityLevel:
         """Determine compatibility level between versions."""
         try:
-            from_v = semver.Version.parse(from_version)
-            to_v = semver.Version.parse(to_version)
+            from_v = semver.VersionInfo.parse(from_version)
+            to_v = semver.VersionInfo.parse(to_version)
 
             if from_v.major != to_v.major:
                 return CompatibilityLevel.BREAKING
@@ -242,8 +242,8 @@ class SchemaVersionManager:
     def _find_migration_path(self, from_version: str, to_version: str) -> List[str]:
         """Find a migration path from source to target version."""
         try:
-            from_v = semver.Version.parse(from_version)
-            to_v = semver.Version.parse(to_version)
+            from_v = semver.VersionInfo.parse(from_version)
+            to_v = semver.VersionInfo.parse(to_version)
         except ValueError:
             return []
 
@@ -256,21 +256,23 @@ class SchemaVersionManager:
 
         while current < to_v:
             # Try to increment patch version first
-            next_patch = semver.Version(current.major, current.minor, current.patch + 1)
+            next_patch = semver.VersionInfo(
+                current.major, current.minor, current.patch + 1
+            )
             if self._has_migration(str(current), str(next_patch)):
                 path.append(str(next_patch))
                 current = next_patch
                 continue
 
             # Try to increment minor version
-            next_minor = semver.Version(current.major, current.minor + 1, 0)
+            next_minor = semver.VersionInfo(current.major, current.minor + 1, 0)
             if self._has_migration(str(current), str(next_minor)):
                 path.append(str(next_minor))
                 current = next_minor
                 continue
 
             # Try to increment major version
-            next_major = semver.Version(current.major + 1, 0, 0)
+            next_major = semver.VersionInfo(current.major + 1, 0, 0)
             if self._has_migration(str(current), str(next_major)):
                 path.append(str(next_major))
                 current = next_major

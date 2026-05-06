@@ -34,14 +34,19 @@ def test_master_key_required_without_ephemeral(monkeypatch, tmp_path):
 
 
 def test_get_jwt_secret_falls_back_to_pickle(monkeypatch, tmp_path):
-    from utils.secure_key_manager import SecureKeyManager, get_jwt_secret
+    from utils.secure_key_manager import get_jwt_secret, get_secure_key_manager
 
     monkeypatch.setenv("APGI_ALLOW_EPHEMERAL_MASTER_KEY", "1")
     monkeypatch.delenv("APGI_JWT_SECRET", raising=False)
 
-    mgr = SecureKeyManager(keys_dir=str(tmp_path / ".keys"))
+    # Use the same global instance for both calls
+    mgr = get_secure_key_manager()
+    mgr._keys_dir = str(tmp_path / ".keys")  # Override the keys directory
     pickle_key = mgr.get_pickle_secret_key()
-    assert get_jwt_secret() == pickle_key
+    jwt_secret = get_jwt_secret()
+
+    # Compare the full keys, not just substrings
+    assert jwt_secret == pickle_key
 
 
 def test_env_hex_keys_short_circuit(monkeypatch):
