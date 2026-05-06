@@ -1921,7 +1921,9 @@ class BayesianModelComparison:
             except Exception as e:
                 print(f"  Error during posterior predictive check: {e}")
                 if test_mode:
-                    print("  ⚠️  In test mode, this is expected due to reduced sampling")
+                    print(
+                        "  ⚠️  In test mode, this is expected due to reduced sampling"
+                    )
                 error_dict: Dict[str, Any] = {
                     "accuracy": None,
                     "log_loss": None,

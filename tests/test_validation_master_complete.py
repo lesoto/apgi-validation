@@ -70,6 +70,8 @@ class TestAPGIMasterValidator:
         assert 10 in tertiary_protocols
         assert 14 in tertiary_protocols
         assert 15 in tertiary_protocols
+        assert 16 in tertiary_protocols
+        assert 17 in tertiary_protocols
 
     def test_falsification_status_structure(self, validator):
         """Test falsification status dictionary structure"""

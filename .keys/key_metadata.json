@@ -1,8 +1,8 @@
 {
   "pickle_key": {
     "current": {
-      "fingerprint": "e656309d6190eb37",
-      "file": ".keys\\pickle_secret_key.enc"
+      "fingerprint": "4c5d4f9730861184",
+      "file": ".keys/pickle_secret_key.enc"
     },
     "rotation_history": []
   },
@@ -14,5 +14,5 @@
     "rotation_history": []
   },
   "last_rotation": null,
-  "next_rotation": "2026-06-04T22:58:55.081256+00:00"
+  "next_rotation": "2026-06-05T03:45:21.037882+00:00"
 }

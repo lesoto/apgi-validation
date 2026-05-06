@@ -597,15 +597,13 @@ class DashboardManager:
                         cursor = conn.cursor()
 
                         # Store in a generic historical_data table
-                        cursor.execute(
-                            """
+                        cursor.execute("""
                             CREATE TABLE IF NOT EXISTS historical_data (
                                 timestamp TEXT PRIMARY KEY,
                                 data_json TEXT,
                                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
                             )
-                            """
-                        )
+                            """)
 
                         cursor.execute(
                             "INSERT OR REPLACE INTO historical_data (timestamp, data_json) VALUES (?, ?)",
@@ -648,8 +646,7 @@ class DashboardManager:
                         cursor = conn.cursor()
 
                         # Create performance_metrics table if it doesn't exist
-                        cursor.execute(
-                            """
+                        cursor.execute("""
                             CREATE TABLE IF NOT EXISTS performance_metrics (
                                 timestamp TEXT PRIMARY KEY,
                                 cpu_usage REAL,
@@ -658,8 +655,7 @@ class DashboardManager:
                                 metrics_json TEXT,
                                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
                             )
-                            """
-                        )
+                            """)
 
                         cursor.execute(
                             "INSERT OR REPLACE INTO performance_metrics (timestamp, cpu_usage, memory_usage, response_time, metrics_json) VALUES (?, ?, ?, ?, ?)",

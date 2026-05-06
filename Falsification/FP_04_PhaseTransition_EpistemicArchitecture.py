@@ -841,8 +841,10 @@ class InformationTheoreticAnalysis:
                 )
             else:
                 # When variance is too small, set ratio to indicate measurement limitation
-                results["susceptibility_ratio"] = float('nan')
-                results["susceptibility_error"] = "Far variance too small for reliable ratio calculation"
+                results["susceptibility_ratio"] = float("nan")
+                results["susceptibility_error"] = (
+                    "Far variance too small for reliable ratio calculation"
+                )
 
         # 3. Critical slowing down with enhanced dynamics
         # Simulate proper phase transition behavior with increased autocorrelation

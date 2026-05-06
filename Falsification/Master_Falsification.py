@@ -106,6 +106,11 @@ class APGIMasterFalsifier:
     def __init__(self) -> None:
         self.protocol_results: Dict[str, Any] = {}
         self.falsification_aggregator = FalsificationAggregator()
+        self.falsification_status: Dict[str, List[Any]] = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": []
+        }
 
         # Protocol tier classification
         self.PROTOCOL_TIERS: Dict[int, str] = {
@@ -121,6 +126,9 @@ class APGIMasterFalsifier:
             10: "tertiary",  # Bayesian Estimation / Cross-Species
             11: "secondary",  # Liquid Network Dynamics
             12: "secondary",  # Framework Aggregator
+            13: "tertiary",  # Clinical Cross-Species Convergence
+            14: "tertiary",  # fMRI Anticipation: vmPFC-like
+            15: "tertiary",  # Allen Visual Coding: Fatigue
         }
 
         # Centralized falsification criteria registry
@@ -518,6 +526,27 @@ class APGIMasterFalsifier:
                 "description": "Liquid Network Dynamics / Echo State",
                 "tier": "secondary",
             },
+            "FP-13": {
+                "file": "Falsification/FP_13_Clinical_CrossSpecies_Convergence.py",
+                "function": "run_validation",
+                "class": "ClinicalCrossSpeciesProtocol",
+                "description": "Clinical Cross-Species Convergence",
+                "tier": "tertiary",
+            },
+            "FP-14": {
+                "file": "Falsification/FP_14_fMRI_Anticipation_vmPFC.py",
+                "function": "run_validation",
+                "class": "None",
+                "description": "fMRI Anticipation: vmPFC-like",
+                "tier": "tertiary",
+            },
+            "FP-15": {
+                "file": "Falsification/FP_15_AllenVisualCoding_Fatigue.py",
+                "function": "run_validation",
+                "class": "None",
+                "description": "Allen Visual Coding: Fatigue",
+                "tier": "tertiary",
+            },
             "FP-12": {
                 "file": "Falsification/FP_ALL_Aggregator.py",
                 "function": "run_framework_falsification",
@@ -726,6 +755,10 @@ class APGIMasterFalsifier:
                 }
 
         self.protocol_results.update(results)
+        
+        # Update falsification_status based on protocol results
+        self._update_falsification_status(results)
+        
         return results
 
     def _run_single_protocol(
@@ -842,6 +875,32 @@ class APGIMasterFalsifier:
             "framework_falsification": framework_results,
             "summary": self._generate_summary(results, framework_results),
         }
+
+    def _update_falsification_status(self, protocol_results: Dict[str, Any]) -> None:
+        """Update falsification_status based on protocol results.
+        
+        Args:
+            protocol_results: Dictionary of protocol execution results
+        """
+        # Clear current status
+        self.falsification_status = {
+            "primary": [],
+            "secondary": [],
+            "tertiary": []
+        }
+        
+        # Categorize each protocol result by tier
+        for protocol_name, result in protocol_results.items():
+            if protocol_name in self.available_protocols:
+                protocol_num = self.available_protocols[protocol_name].get("protocol", 0)
+                tier = self.PROTOCOL_TIERS.get(protocol_num, "unknown")
+                
+                # Add result to appropriate tier list
+                if tier in self.falsification_status:
+                    self.falsification_status[tier].append({
+                        "protocol": protocol_name,
+                        "result": result
+                    })
 
     def aggregate_framework_falsification(
         self, protocol_results: Dict[str, Any]

@@ -916,14 +916,16 @@ class APGIPsychophysicalEstimator:
         df.loc[:, "pi_i_group"] = np.where(df["pi_i"] >= median_pi_i, "HIGH", "LOW")
         high_pi_benefit = np.asarray(df[df["pi_i_group"] == "HIGH"]["arousal_benefit"])
         low_pi_benefit = np.asarray(df[df["pi_i_group"] == "LOW"]["arousal_benefit"])
-        
+
         # Fix: Check for valid groups before running statistical test
         if len(high_pi_benefit) > 1 and len(low_pi_benefit) > 1:
-            f_pi_interaction, p_pi_interaction = f_oneway(high_pi_benefit, low_pi_benefit)
+            f_pi_interaction, p_pi_interaction = f_oneway(
+                high_pi_benefit, low_pi_benefit
+            )
         else:
             f_pi_interaction = np.nan
             p_pi_interaction = np.nan
-            
+
         df_within_pi = len(high_pi_benefit) + len(low_pi_benefit) - 2
         eta_sq_pi = (
             float(compute_eta_squared(f_pi_interaction, 1, df_within_pi))
@@ -941,7 +943,9 @@ class APGIPsychophysicalEstimator:
                 / (len(high_pi_benefit) + len(low_pi_benefit) - 2)
             )
             cohens_d_pi_interaction = (
-                float((np.mean(high_pi_benefit) - np.mean(low_pi_benefit)) / pooled_sd_pi)
+                float(
+                    (np.mean(high_pi_benefit) - np.mean(low_pi_benefit)) / pooled_sd_pi
+                )
                 if pooled_sd_pi > 0
                 else 0.0
             )
@@ -1058,7 +1062,9 @@ class APGIPsychophysicalEstimator:
             },
             "high_pi_arousal_benefit": float(np.mean(high_pi_benefit)),  # type: ignore[arg-type]
             "low_pi_arousal_benefit": float(np.mean(low_pi_benefit)),  # type: ignore[arg-type]
-            "cohens_d_interaction": results.get("arousal_analysis", {}).get("cohens_d_interaction", 0.0),
+            "cohens_d_interaction": results.get("arousal_analysis", {}).get(
+                "cohens_d_interaction", 0.0
+            ),
             "p_interaction": float(p_pi_interaction),
             "pi_group_interaction": {
                 "f_statistic": float(f_pi_interaction),
