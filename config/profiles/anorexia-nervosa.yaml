@@ -1,0 +1,90 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Anorexia Nervosa - Distorted body model with reduced interoceptive precision 
+  for hunger signals (↓Πᵢ). High precision on control priors.
+  Body image distortion; hunger signals ignored despite severe emaciation.
+  Level 1-2 dissociation - interoceptive signals decoupled from body model.
+empirical_validation:
+  citations:
+    - Garfinkel et al. 2016 (misattribution in anorexia)
+    - Kerr et al. 2016 (interoceptive deficits)
+    - Zucker et al. 2017 (brain structure in AN)
+    - Schulte-Rüther et al. 2012 (self-reference)
+    - Fassino et al. 2004 (alexithymia)
+  pending_datasets:
+    - an_empirical_eeg
+    - an_interoceptive_hunger
+    - an_body_representation_fmri
+    - an_insula_connectivity
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: '1-2'
+  level_description: 'Level 1-2 dissociation - interoceptive signals decoupled from body model'
+  cross_level_coupling:
+    L1_L2: 0.30
+    L2_L3: 0.65
+    L3_L4: 0.55
+  mechanism: 'Distorted body model; ↓Πᵢ for hunger; body image distortion overrides interoceptive reality'
+metadata:
+  disorder_category: feeding_eating_disorders
+  dsm5_code: F50.01
+  primary_dysregulation: distorted_body_model
+  neural_signatures:
+    - insula hypometabolism
+    - altered body representation in parietal cortex
+    - increased white matter in medial temporal lobe
+    - reduced gray matter in anterior cingulate
+    - altered reward processing in striatum
+    - heightened visual processing of body-related stimuli
+  parameter_origin: theoretical_model
+  phenomenology: Body image distortion; hunger ignored; control fixation; fear of weight gain
+  treatment_implications:
+    - Maudsley family therapy
+    - CBT-E (enhanced cognitive behavioral therapy)
+    - Interoceptive retraining
+    - SSRI for comorbid anxiety
+    - Psychodynamic approaches
+  validation_level: literature_derived
+name: anorexia-nervosa
+parameters:
+  model:
+    alpha: 12.0
+    beta: 0.7
+    gamma_A: 0.10
+    gamma_M: 0.3
+    tau_S: 0.6
+    tau_theta: 45.0
+    theta_0: 0.60
+  network:
+    Pi_e_init: 1.2
+    Pi_i_init: 0.3
+    beta: 0.7
+    theta_baseline: 0.60
+    theta_init: 0.60
+precision_profile:
+  prediction_error_epsilon: 4.0
+  prediction_error_sigma: 6.0
+  precision_pi_dominant_channels:
+    - visual_body
+    - control
+    - low_interoceptive
+  precision_pi_values:
+    Pi_e: 1.2
+    Pi_i: 0.3
+  somatic_bias_beta: 0.7
+  threshold_theta_t_pct: -40
+tags:
+  - anorexia
+  - eating-disorder
+  - body-image
+  - interoceptive-deficit
+  - clinical
+  - level-1-2-dissociation
+version: '1.0'

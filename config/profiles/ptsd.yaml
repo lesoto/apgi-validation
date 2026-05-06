@@ -1,0 +1,91 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Post-Traumatic Stress Disorder (PTSD) - Hyper-precise traumatic somatic markers.
+  Elevated interoceptive precision (Πᵢ↑) for trauma-related signals.
+  Trauma content bypasses narrative integration (Level 2-3 coupling disruption).
+  Hypervigilance with intrusive vivid flashbacks.
+empirical_validation:
+  citations:
+    - Lanius et al. 2010 (dissociation vs hyperarousal subtypes)
+    - Pitman et al. 2012 (conditioned responses)
+    - Garfinkel et al. 2014 (interoceptive accuracy in PTSD)
+    - Rabinak et al. 2013 (amygdala reactivity)
+    - Koenigs & Grafman 2009 (vmPFC dysfunction)
+    - Admon et al. 2009 (hippocampus-amygdala connectivity)
+  pending_datasets:
+    - ptsd_empirical_eeg
+    - ptsd_interoceptive_precision
+    - ptsd_heartbeat_evoked_potential
+    - ptsd_amygdala_vmPFC_fmri
+    - ptsd_hippocampus_volume
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: '2-3_coupling'
+  level_description: 'Level 2-3 coupling disruption - trauma content bypasses narrative integration'
+  cross_level_coupling:
+    L1_L2: 0.75
+    L2_L3: 0.25
+    L3_L4: 0.50
+  mechanism: 'Hyper-precise somatic trauma markers; decoupled from contextual modulation'
+metadata:
+  disorder_category: trauma_stress_disorders
+  dsm5_code: F43.10
+  primary_dysregulation: elevated_pi_i_trauma
+  neural_signatures:
+    - hyperactive amygdala to trauma cues
+    - reduced vmPFC-amygdala connectivity
+    - hippocampal volume reduction
+    - heightened startle response
+    - elevated skin conductance to reminders
+    - flashback-related posterior cortical activation
+  parameter_origin: theoretical_model
+  phenomenology: Intrusive vivid flashbacks; hypervigilance; emotional dysregulation; fragmented memory
+  treatment_implications:
+    - EMDR (desensitizes traumatic memories)
+    - MDMA-assisted therapy (reduces Πᵢ for trauma cues)
+    - Prolonged exposure
+    - Cognitive processing therapy
+    - Stellate ganglion block (modulates sympathetic tone)
+  validation_level: literature_derived
+name: ptsd
+parameters:
+  model:
+    alpha: 14.0
+    beta: 2.8
+    gamma_A: 0.30
+    gamma_M: -0.25
+    tau_S: 0.2
+    tau_theta: 18.0
+    theta_0: 0.30
+  network:
+    Pi_e_init: 0.9
+    Pi_i_init: 2.2
+    beta: 2.8
+    theta_baseline: 0.30
+    theta_init: 0.30
+precision_profile:
+  prediction_error_epsilon: 4.0
+  prediction_error_sigma: 7.0
+  precision_pi_dominant_channels:
+    - interoceptive_trauma
+    - threat_memory
+  precision_pi_values:
+    Pi_e: 0.9
+    Pi_i: 2.2
+  somatic_bias_beta: 2.8
+  threshold_theta_t_pct: -50
+tags:
+  - ptsd
+  - trauma
+  - stress
+  - hypervigilance
+  - clinical
+  - level-2-3-decoupling
+version: '1.0'

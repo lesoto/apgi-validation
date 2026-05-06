@@ -1,0 +1,93 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Insomnia Disorder - Failure to raise threshold for sleep (θₜ↓).
+  Elevated arousal precision prevents transition to unconsciousness.
+  Conscious awareness when unconsciousness is needed.
+  Level 4 dysfunction - failure to elevate threshold for sleep state transition.
+empirical_validation:
+  citations:
+    - Harvey 2002 (cognitive model of insomnia)
+    - Morin et al. 2006 (psychological factors)
+    - Drake et al. 2011 (hyperarousal)
+    - Fernandez-Mendoza et al. 2010 (cortisol)
+    - Bonnet & Arand 2010 (hyperarousal model)
+  pending_datasets:
+    - insomnia_empirical_eeg
+    - insomnia_hyperarousal_psg
+    - insomnia_threshold_dynamics
+    - insomnia_hpa_axis
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 4
+  level_description: 'Level 4 dysfunction - failure to elevate threshold for sleep state transition'
+  cross_level_coupling:
+    L1_L2: 0.70
+    L2_L3: 0.65
+    L3_L4: 0.25
+  mechanism: 'Arousal ↑ prevents threshold elevation; sleep prediction errors persist into wakefulness'
+metadata:
+  disorder_category: sleep_wake_disorders
+  dsm5_code: F51.01
+  primary_dysregulation: failed_threshold_elevation
+  neural_signatures:
+    - increased high-frequency EEG during sleep
+    - hyperactive HPA axis
+    - elevated cortisol
+    - reduced sleep spindle activity
+    - altered thalamocortical connectivity during NREM
+    - increased metabolic rate during sleep
+  parameter_origin: theoretical_model
+  phenomenology: Racing thoughts at bedtime; hypervigilance to sleep environment; daytime fatigue
+  treatment_implications:
+    - CBT-I (cognitive behavioral therapy for insomnia)
+    - Stimulus control
+    - Sleep restriction
+    - Relaxation training
+    - Mindfulness-based sleep interventions
+  validation_level: literature_derived
+name: insomnia-disorder
+parameters:
+  model:
+    alpha: 10.0
+    beta: 2.0
+    gamma_A: 0.30
+    gamma_M: -0.2
+    tau_S: 0.5
+    tau_theta: 120.0
+    theta_0: 0.65
+  network:
+    Pi_e_init: 0.8
+    Pi_i_init: 0.6
+    beta: 2.0
+    theta_baseline: 0.65
+    theta_init: 0.65
+  sleep_specific:
+    sleep_onset_threshold: 0.85
+    arousal_detection_sensitivity: 1.5
+    circadian_threshold_modulation: 0.3
+precision_profile:
+  prediction_error_epsilon: 2.0
+  prediction_error_sigma: 4.0
+  precision_pi_dominant_channels:
+    - arousal
+    - sleep_prediction
+  precision_pi_values:
+    Pi_e: 0.8
+    Pi_i: 0.6
+  somatic_bias_beta: 2.0
+  threshold_theta_t_pct: 30
+tags:
+  - insomnia
+  - sleep-disorder
+  - hyperarousal
+  - sleep-onset
+  - clinical
+  - level-4-dysfunction
+version: '1.0'

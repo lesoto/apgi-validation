@@ -1,0 +1,85 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Specific Phobia - Object-specific threat precision elevation with acute 
+  threshold reduction during phobic encounters. High precision for specific 
+  threat objects with immediate bodily response.
+  Level 1 elevation - sensory-perceptual threat processing dominates.
+empirical_validation:
+  citations:
+    - LeBeau et al. 2010 (specific phobia features)
+    - Lipka et al. 2014 (fear conditioning)
+    - Haaker et al. 2017 (extinction learning)
+    - Schienle et al. 2005 (phobia-specific neural responses)
+  pending_datasets:
+    - specific_phobia_empirical_eeg
+    - specific_phobia_fear_conditioning_fmri
+    - specific_phobia_scr
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 1
+  level_description: 'Level 1 elevation - sensory-perceptual threat processing dominates'
+  cross_level_coupling:
+    L1_L2: 0.70
+    L2_L3: 0.40
+    L3_L4: 0.30
+  mechanism: 'Object-specific threat precision; immediate perceptual-motor threat response'
+metadata:
+  disorder_category: anxiety_disorders
+  dsm5_code: F40.x
+  primary_dysregulation: object_threat_elevation
+  neural_signatures:
+    - amygdala hyperactivation to phobic objects
+    - enhanced early visual processing (P1 enhancement)
+    - elevated skin conductance response
+    - rapid heart rate acceleration
+    - avoidance-related motor cortex activation
+  parameter_origin: theoretical_model
+  phenomenology: Immediate fear response to specific objects/situations; avoidance behavior
+  treatment_implications:
+    - In-vivo exposure therapy
+    - Virtual reality exposure
+    - Systematic desensitization
+    - Applied muscle relaxation
+  validation_level: literature_derived
+name: specific-phobia
+parameters:
+  model:
+    alpha: 13.0
+    beta: 2.8
+    gamma_A: 0.35
+    gamma_M: -0.1
+    tau_S: 0.2
+    tau_theta: 12.0
+    theta_0: 0.22
+  network:
+    Pi_e_init: 1.6
+    Pi_i_init: 1.2
+    beta: 2.8
+    theta_baseline: 0.22
+    theta_init: 0.22
+precision_profile:
+  prediction_error_epsilon: 4.0
+  prediction_error_sigma: 6.0
+  precision_pi_dominant_channels:
+    - object_threat
+    - specific
+  precision_pi_values:
+    Pi_e: 1.6
+    Pi_i: 1.2
+  somatic_bias_beta: 2.8
+  threshold_theta_t_pct: -50
+tags:
+  - phobia
+  - specific-phobia
+  - fear
+  - avoidance
+  - clinical
+  - level-1-elevation
+version: '1.0'

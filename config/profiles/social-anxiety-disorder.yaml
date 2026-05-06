@@ -1,0 +1,86 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Social Anxiety Disorder (SAD) - Context-specific elevation of Πᵢ and Πₑ 
+  during social evaluation. Hypervigilance to social cues with high precision 
+  for facial expressions and interoceptive monitoring of visible symptoms.
+  Level 2 elevation - social-evaluative context drives precision allocation.
+empirical_validation:
+  citations:
+    - Hirsch & Clark 2004 (negative self-imagery)
+    - Gilbert 2001 (social rank theory)
+    - Schofield et al. 2017 (attention biases)
+    - Schulz et al. 2013 (social rejection sensitivity)
+    - Sylvers et al. 2011 (interoceptive sensitivity)
+  pending_datasets:
+    - sad_empirical_eeg
+    - sad_social_evaluation_fmri
+    - sad_interoceptive_precision
+    - sad_facial_processing_eeg
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 2
+  level_description: 'Level 2 elevation - social-evaluative context drives precision allocation'
+  cross_level_coupling:
+    L1_L2: 0.80
+    L2_L3: 0.70
+    L3_L4: 0.45
+  mechanism: 'Social contexts activate M_social_threat; high Πₑ for facial expressions, Πᵢ for visible symptoms'
+metadata:
+  disorder_category: anxiety_disorders
+  dsm5_code: F40.10
+  primary_dysregulation: context_elevated_pi_social
+  neural_signatures:
+    - context-dependent AI-LC hyperconnectivity
+    - enhanced P3b to social-evaluative faces
+    - amygdala hyperreactivity to social threat
+    - heightened self-referential processing (mPFC)
+    - increased interoceptive monitoring during evaluation
+  parameter_origin: theoretical_model
+  phenomenology: Fear of negative evaluation; self-consciousness; avoidance of social situations
+  treatment_implications:
+    - Exposure therapy (updates M_social_threat)
+    - CBT (reduces precision for negative interpretations)
+    - β-blockers (reduce visible symptoms)
+    - Attention training
+  validation_level: literature_derived
+name: social-anxiety-disorder
+parameters:
+  model:
+    alpha: 11.0
+    beta: 2.0
+    gamma_A: 0.20
+    gamma_M: -0.3
+    tau_S: 0.35
+    tau_theta: 22.0
+    theta_0: 0.32
+  network:
+    Pi_e_init: 1.4
+    Pi_i_init: 1.0
+    beta: 2.0
+    theta_baseline: 0.32
+    theta_init: 0.32
+precision_profile:
+  prediction_error_epsilon: 3.0
+  prediction_error_sigma: 5.0
+  precision_pi_dominant_channels:
+    - social_exteroceptive
+    - social_interoceptive
+  precision_pi_values:
+    Pi_e: 1.4
+    Pi_i: 1.0
+  somatic_bias_beta: 2.0
+  threshold_theta_t_pct: -32
+tags:
+  - sad
+  - social-anxiety
+  - social-phobia
+  - clinical
+  - level-2-elevation
+version: '1.0'

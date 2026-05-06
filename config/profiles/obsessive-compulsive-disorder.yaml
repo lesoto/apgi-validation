@@ -1,0 +1,88 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Obsessive-Compulsive Disorder (OCD) - Elevated precision on maladaptive priors.
+  High precision on error-monitoring signals with inflated sense of responsibility.
+  Conscious domination by obsessions; rigid compulsions.
+  Level 3-4 elevation - hyper-precise error signals and fixed priors.
+empirical_validation:
+  citations:
+    - Stern et al. 2011 (error monitoring in OCD)
+    - Apergis-Schoute et al. 2017 (fear conditioning)
+    - Cavedini et al. 2002 (decision making)
+    - Borgomaneri et al. 2017 (inhibitory control)
+    - Fineberg et al. 2013 (precision in OCD)
+  pending_datasets:
+    - ocd_empirical_eeg
+    - ocd_error_monitoring_erp
+    - ocd_striatal_connectivity_fmri
+    - ocd_interoceptive_precision
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: '3-4'
+  level_description: 'Level 3-4 elevation - hyper-precise error signals and fixed priors'
+  cross_level_coupling:
+    L1_L2: 0.60
+    L2_L3: 0.85
+    L3_L4: 0.90
+  mechanism: '↑ Precision on error-monitoring; compulsions reduce prediction error but perpetuate priors'
+metadata:
+  disorder_category: obsessive_compulsive_disorders
+  dsm5_code: F42.x
+  primary_dysregulation: elevated_error_precision
+  neural_signatures:
+    - elevated error-related negativity (ERN)
+    - hyperactive anterior cingulate cortex
+    - increased connectivity striatum-cortex
+    - caudate nucleus abnormalities
+    - reduced OFC gray matter volume
+    - altered functional connectivity in CSTC circuits
+  parameter_origin: theoretical_model
+  phenomenology: Intrusive obsessions; rigid compulsions; inflated responsibility; thought-action fusion
+  treatment_implications:
+    - ERP (exposure and response prevention)
+    - SSRIs (reduce precision weighting)
+    - Deep brain stimulation (modulate CSTC circuits)
+    - CBT with inference-based approach
+  validation_level: literature_derived
+name: obsessive-compulsive-disorder
+parameters:
+  model:
+    alpha: 13.0
+    beta: 2.0
+    gamma_A: 0.25
+    gamma_M: -0.35
+    tau_S: 0.25
+    tau_theta: 18.0
+    theta_0: 0.35
+  network:
+    Pi_e_init: 0.7
+    Pi_i_init: 1.5
+    beta: 2.0
+    theta_baseline: 0.35
+    theta_init: 0.35
+precision_profile:
+  prediction_error_epsilon: 3.0
+  prediction_error_sigma: 5.0
+  precision_pi_dominant_channels:
+    - error_monitoring
+    - intrusive
+  precision_pi_values:
+    Pi_e: 0.7
+    Pi_i: 1.5
+  somatic_bias_beta: 2.0
+  threshold_theta_t_pct: -38
+tags:
+  - ocd
+  - obsessive
+  - compulsive
+  - error-monitoring
+  - clinical
+  - level-3-4-elevation
+version: '1.0'

@@ -1,0 +1,85 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Body Dysmorphic Disorder (BDD) - Hyper-precise visual self-representation 
+  with appearance-focused prediction errors. Elevated precision on perceived 
+  physical flaws and excessive self-monitoring.
+  Level 1 elevation - visual-perceptual processing dominates.
+empirical_validation:
+  citations:
+    - Buhlmann & Winter 2011 (BDD models)
+    - Feusner et al. 2010 (visual processing)
+    - Li et al. 2015 (fMRI findings)
+    - Jefferies et al. 2016 (neurocognitive)
+  pending_datasets:
+    - bdd_empirical_eeg
+    - bdd_visual_processing_fmri
+    - bdd_face_perception
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 1
+  level_description: 'Level 1 elevation - visual-perceptual processing dominates'
+  cross_level_coupling:
+    L1_L2: 0.75
+    L2_L3: 0.50
+    L3_L4: 0.40
+  mechanism: 'Visual-self ↑; Hyper-precise visual self-representation with appearance focus'
+metadata:
+  disorder_category: obsessive_compulsive_disorders
+  dsm5_code: F45.22
+  primary_dysregulation: elevated_visual_self_precision
+  neural_signatures:
+    - enhanced early visual processing of own face
+    - FFA hyperactivation to appearance details
+    - reduced connectivity visual cortex-parietal
+    - excessive detail-focused visual scanning
+    - altered body representation in parietal cortex
+  parameter_origin: theoretical_model
+  phenomenology: Preoccupation with perceived flaws; mirror checking; camouflaging
+  treatment_implications:
+    - CBT for BDD
+    - SSRIs (high doses)
+    - Exposure and response prevention
+    - Perceptual retraining
+  validation_level: literature_derived
+name: body-dysmorphic-disorder
+parameters:
+  model:
+    alpha: 14.0
+    beta: 2.4
+    gamma_A: 0.25
+    gamma_M: -0.2
+    tau_S: 0.25
+    tau_theta: 16.0
+    theta_0: 0.28
+  network:
+    Pi_e_init: 1.7
+    Pi_i_init: 1.4
+    beta: 2.4
+    theta_baseline: 0.28
+    theta_init: 0.28
+precision_profile:
+  prediction_error_epsilon: 4.0
+  prediction_error_sigma: 6.0
+  precision_pi_dominant_channels:
+    - visual_self
+    - appearance
+  precision_pi_values:
+    Pi_e: 1.7
+    Pi_i: 1.4
+  somatic_bias_beta: 2.4
+  threshold_theta_t_pct: -38
+tags:
+  - bdd
+  - body-dysmorphic
+  - appearance
+  - visual-processing
+  - clinical
+  - level-1-elevation
+version: '1.0'

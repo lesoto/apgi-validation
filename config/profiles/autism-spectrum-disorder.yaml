@@ -1,0 +1,89 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Autism Spectrum Disorder (ASD) - Inflexible precision allocation.
+  High Πₑ for detail, low Πₑ for social cues. Inflexible hierarchy with
+  difficulty updating priors. Sensory precision dominates social precision.
+  Multi-level rigidity affecting integration across all levels.
+empirical_validation:
+  citations:
+    - Pellicano & Burr 2012 (weak central coherence)
+    - Lawson et al. 2014 (precision in autism)
+    - Palmer et al. 2017 (sensory over-responsivity)
+    - Cascio et al. 2014 (tactile processing)
+    - Green et al. 2015 (social prediction errors)
+    - Sinha et al. 2014 (attenuated priors)
+  pending_datasets:
+    - asd_empirical_eeg
+    - asd_interoceptive_precision
+    - asd_sensory_processing_fMRI
+    - asd_social_prediction_eeg
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 'multi-level'
+  level_description: 'Multi-level rigidity - inflexible precision allocation across hierarchy'
+  cross_level_coupling:
+    L1_L2: 0.95
+    L2_L3: 0.30
+    L3_L4: 0.35
+  mechanism: 'High Πₑ for detail, low Πₑ for social; difficulty attenuating sensory precision'
+metadata:
+  disorder_category: neurodevelopmental_disorders
+  dsm5_code: F84.x
+  primary_dysregulation: inflexible_pi_detail
+  neural_signatures:
+    - enhanced low-level sensory processing
+    - reduced long-range functional connectivity
+    - altered face processing (FFA hypoactivation)
+    - elevated V1/V2 activation to visual stimuli
+    - atypical predictive coding in temporal cortex
+    - increased local connectivity, decreased global connectivity
+  parameter_origin: theoretical_model
+  phenomenology: Sensory overload; difficulty with social priors; detail-focused processing; rigid patterns
+  treatment_implications:
+    - Sensory integration training
+    - Social skills training (scaffolded prediction)
+    - Environmental modifications (reduce sensory load)
+    - Cognitive flexibility training
+  validation_level: literature_derived
+name: autism-spectrum-disorder
+parameters:
+  model:
+    alpha: 10.0
+    beta: 0.9
+    gamma_A: 0.05
+    gamma_M: 0.1
+    tau_S: 0.15
+    tau_theta: 80.0
+    theta_0: 0.75
+  network:
+    Pi_e_init: 1.5
+    Pi_i_init: 0.7
+    beta: 0.9
+    theta_baseline: 0.75
+    theta_init: 0.75
+precision_profile:
+  prediction_error_epsilon: 3.0
+  prediction_error_sigma: 6.0
+  precision_pi_dominant_channels:
+    - sensory_detail
+    - low_social
+  precision_pi_values:
+    Pi_e: 1.5
+    Pi_i: 0.7
+  somatic_bias_beta: 0.9
+  threshold_theta_t_pct: 25
+tags:
+  - asd
+  - autism
+  - neurodevelopmental
+  - sensory-processing
+  - clinical
+  - multi-level-rigidity
+version: '1.0'

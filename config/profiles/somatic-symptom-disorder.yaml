@@ -1,0 +1,89 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Somatic Symptom Disorder - Elevated interoceptive precision with amplified 
+  somatic signals. Body-related prediction errors are given excessive precision 
+  weighting, leading to distress and disproportionate concern.
+  Level 1 elevation - interoceptive signals dominate consciousness.
+empirical_validation:
+  citations:
+    - Kirmayer & Taillefer 1997 (SSD models)
+    - Löwe et al. 2008 (somatosensory amplification)
+    - Gündel et al. 2008 (interoception)
+    - Henningsen & Priebe 2003 (neurobiology)
+  pending_datasets:
+    - ssd_empirical_eeg
+    - ssd_interoceptive_accuracy
+    - ssd_somatosensory_processing
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 1
+  level_description: 'Level 1 elevation - interoceptive signals dominate consciousness'
+  cross_level_coupling:
+    L1_L2: 0.75
+    L2_L3: 0.50
+    L3_L4: 0.40
+  mechanism: 'Body +3-5; Interoceptive ↑; amplified somatic signals with distress'
+metadata:
+  disorder_category: somatic_symptom_disorders
+  dsm5_code: F45.1
+  primary_dysregulation: elevated_interoceptive_amplification
+  neural_signatures:
+    - enhanced somatosensory cortex activation
+    - altered insula interoceptive processing
+    - amygdala hyperreactivity to bodily sensations
+    - altered pain processing networks
+    - excessive error-related negativity to symptoms
+  parameter_origin: theoretical_model
+  phenomenology: Distressing somatic symptoms; excessive thoughts/feelings about symptoms
+  treatment_implications:
+    - CBT for somatic symptoms
+    - Mindfulness-based therapy
+    - SSRIs for comorbid anxiety/depression
+    - Regular physician visits (reassurance)
+  validation_level: literature_derived
+name: somatic-symptom-disorder
+parameters:
+  model:
+    alpha: 11.0
+    beta: 2.5
+    gamma_A: 0.20
+    gamma_M: -0.3
+    tau_S: 0.25
+    tau_theta: 25.0
+    theta_0: 0.35
+  network:
+    Pi_e_init: 0.8
+    Pi_i_init: 2.0
+    beta: 2.5
+    theta_baseline: 0.35
+    theta_init: 0.35
+  interoceptive_amplification:
+    somatic_signal_gain: 1.8
+    distress_coupling: 0.7
+precision_profile:
+  prediction_error_epsilon: 3.0
+  prediction_error_sigma: 5.0
+  precision_pi_dominant_channels:
+    - interoceptive
+    - body
+    - somatic
+  precision_pi_values:
+    Pi_e: 0.8
+    Pi_i: 2.0
+  somatic_bias_beta: 2.5
+  threshold_theta_t_pct: -28
+tags:
+  - somatic-symptom
+  - ssd
+  - somatization
+  - interoceptive-amplification
+  - clinical
+  - level-1-elevation
+version: '1.0'

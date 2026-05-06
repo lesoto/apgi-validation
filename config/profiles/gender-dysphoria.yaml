@@ -1,0 +1,89 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Gender Dysphoria - Mismatched body model vs. interoception creating 
+  persistent incongruence between experienced/expressed gender and assigned 
+  gender. High-precision self-model conflicts with bodily feedback.
+  Level 1-4 integration disruption - body model incongruence across hierarchy.
+empirical_validation:
+  citations:
+    - Kreukels & Guillamon 2016 (neurobiology)
+    - Garcia-Falgueras & Swaab 2008 (brain sex)
+    - Schöning et al. 2010 (neuroimaging)
+    - Rametti et al. 2011 (white matter)
+  pending_datasets:
+    - gender_dysphoria_body_representation_fmri
+    - gender_dysphoria_insula_connectivity
+    - gender_dysphoria_self_processing
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: '1-4_integration'
+  level_description: 'Level 1-4 integration disruption - body model incongruence across hierarchy'
+  cross_level_coupling:
+    L1_L2: 0.40
+    L2_L3: 0.45
+    L3_L4: 0.35
+  mechanism: 'Self-body mismatch +3-5; Self-model ↑; incongruent body representation'
+metadata:
+  disorder_category: gender_dysphoria
+  dsm5_code: F64.x
+  primary_dysregulation: body_model_incongruence
+  neural_signatures:
+    - altered body representation networks
+    - insula hyperactivation to gendered body parts
+    - self-referential processing differences
+    - white matter microstructure variations
+    - reduced connectivity in body networks
+  parameter_origin: theoretical_model
+  phenomenology: Incongruence between experienced and assigned gender; body discomfort
+  treatment_implications:
+    - Gender-affirming hormone therapy
+    - Gender-affirming surgeries
+    - Psychotherapy (supportive)
+    - Voice and communication therapy
+  validation_level: literature_derived
+name: gender-dysphoria
+parameters:
+  model:
+    alpha: 10.0
+    beta: 1.8
+    gamma_A: 0.15
+    gamma_M: -0.2
+    tau_S: 0.4
+    tau_theta: 35.0
+    theta_0: 0.42
+  network:
+    Pi_e_init: 1.0
+    Pi_i_init: 1.2
+    beta: 1.8
+    theta_baseline: 0.42
+    theta_init: 0.42
+  body_model:
+    model_incongruence_magnitude: 0.7
+    self_model_precision: 1.5
+    body_model_flexibility: 0.3
+precision_profile:
+  prediction_error_epsilon: 3.0
+  prediction_error_sigma: 5.0
+  precision_pi_dominant_channels:
+    - self_model
+    - body
+  precision_pi_values:
+    Pi_e: 1.0
+    Pi_i: 1.2
+  somatic_bias_beta: 1.8
+  threshold_theta_t_pct: -22
+tags:
+  - gender-dysphoria
+  - gender-incongruence
+  - body-model
+  - self-representation
+  - clinical
+  - multi-level-integration
+version: '1.0'

@@ -1,0 +1,86 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Panic Disorder - Pathologically elevated interoceptive precision (Πᵢ) with 
+  collapsed threshold (θₜ). Somatic markers predict catastrophe creating 
+  positive feedback loop. Level 1 threshold collapse - bodily signals preempt 
+  perceptual processing.
+empirical_validation:
+  citations:
+    - Domschke et al. 2010 (precision_expectation_gap)
+    - Meuret et al. 2011 (theta_t)
+    - Domschke et al. 2010 (Pi_i_baseline)
+    - Pfaltz et al. 2010 (arousal)
+    - Craske et al. 2014 (beta)
+    - Gorka et al. 2014 (insula-amygdala connectivity)
+  pending_datasets:
+    - panic_empirical_eeg
+    - panic_interoceptive_precision
+    - panic_heartbeat_evoked_potential
+    - panic_insula_amygdala_fmri
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 1
+  level_description: 'Level 1 threshold collapse - bodily signals preempt perceptual processing'
+  cross_level_coupling:
+    L1_L2: 0.85
+    L2_L3: 0.45
+    L3_L4: 0.35
+  mechanism: 'Somatic priors → catastrophe; interoceptive signals dominate exteroceptive processing'
+metadata:
+  disorder_category: anxiety_disorders
+  dsm5_code: F41.0
+  primary_dysregulation: elevated_pi_i
+  neural_signatures:
+    - exaggerated P3b to bodily perturbations
+    - hyperconnectivity insula-amygdala-LC
+    - heightened heartbeat-evoked potentials
+    - right anterior insula hyperactivation
+  parameter_origin: theoretical_model
+  phenomenology: Overwhelming, sudden conscious panic; catastrophic interpretation of bodily signals
+  treatment_implications:
+    - Interoceptive exposure (updates M_c,a to predict safety)
+    - β-blockers (break feedback loop)
+    - SSRIs (reduce interoceptive gain)
+  validation_level: literature_derived
+name: panic-disorder
+parameters:
+  model:
+    alpha: 15.0
+    beta: 3.2
+    gamma_A: 0.35
+    gamma_M: -0.15
+    tau_S: 0.25
+    tau_theta: 15.0
+    theta_0: 0.25
+  network:
+    Pi_e_init: 1.0
+    Pi_i_init: 2.5
+    beta: 3.2
+    theta_baseline: 0.25
+    theta_init: 0.25
+precision_profile:
+  prediction_error_epsilon: 4.0
+  prediction_error_sigma: 7.0
+  precision_pi_dominant_channels:
+    - interoceptive
+    - somatic
+  precision_pi_values:
+    Pi_e: 1.0
+    Pi_i: 2.5
+  somatic_bias_beta: 3.2
+  threshold_theta_t_pct: -50
+tags:
+  - panic
+  - anxiety
+  - interoceptive
+  - somatic
+  - clinical
+  - level-1-collapse
+version: '1.0'

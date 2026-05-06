@@ -1,0 +1,86 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Major Depressive Disorder (MDD) - Blunted interoception with high threshold.
+  Reduced interoceptive precision (↓Πᵢ), elevated threshold (↑θₜ). 
+  Diminished prediction error signaling from body to brain.
+  Level 2-3 dampening - reduced narrative integration of bodily signals.
+empirical_validation:
+  citations:
+    - Seth & Friston 2016 (precision_expectation_gap)
+    - Kaiser et al. 2015 (theta_t)
+    - Farb et al. 2007 (Pi_i_baseline)
+    - Berger et al. 2016 (arousal)
+    - Huang et al. 2017 (beta)
+    - Avery et al. 2014 (insula hypometabolism)
+  pending_datasets:
+    - mdd_empirical_eeg
+    - mdd_interoceptive_precision
+    - mdd_threshold_dynamics
+    - mdd_insula_pet
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 2
+  level_description: 'Level 2-3 dampening - reduced narrative integration of bodily signals'
+  cross_level_coupling:
+    L1_L2: 0.35
+    L2_L3: 0.25
+    L3_L4: 0.40
+  mechanism: 'Blunted interoception; high threshold blocks bodily prediction errors from reaching awareness'
+metadata:
+  disorder_category: depressive_disorders
+  dsm5_code: F33.x
+  primary_dysregulation: reduced_pi_i_elevated_theta_t
+  neural_signatures:
+    - reduced P3b to emotional stimuli
+    - insula hypometabolism
+    - decreased heartbeat-evoked potentials
+    - elevated subgenual ACC activity
+  parameter_origin: theoretical_model
+  phenomenology: Anhedonia, emotional numbing, lack of motivation; muted conscious experience
+  treatment_implications:
+    - Behavioral activation (increases sensory prediction errors)
+    - DA modulation (boosts reward precision)
+    - SSRIs/SNRIs (gradually restore interoceptive sensitivity)
+    - Interoceptive training
+  validation_level: literature_derived
+name: major-depressive-disorder
+parameters:
+  model:
+    alpha: 4.0
+    beta: 0.8
+    gamma_A: -0.1
+    gamma_M: -0.5
+    tau_S: 0.8
+    tau_theta: 60.0
+    theta_0: 0.85
+  network:
+    Pi_e_init: 0.3
+    Pi_i_init: 0.2
+    beta: 0.8
+    theta_baseline: 0.85
+    theta_init: 0.85
+precision_profile:
+  prediction_error_epsilon: -5.0
+  prediction_error_sigma: -3.0
+  precision_pi_dominant_channels:
+    - reward
+  precision_pi_values:
+    Pi_e: 0.3
+    Pi_i: 0.2
+  somatic_bias_beta: 0.8
+  threshold_theta_t_pct: 40
+tags:
+  - depression
+  - mdd
+  - anhedonia
+  - blunted-interoception
+  - clinical
+  - level-2-dampening
+version: '1.0'

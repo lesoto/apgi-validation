@@ -1,0 +1,89 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Generalized Anxiety Disorder (GAD) - Elevated exteroceptive precision for threat (Πₑ↑).
+  Hyperactive prefrontal threat priors with mild somatic involvement.
+  Prefrontal cortex generates high-confidence catastrophic predictions.
+  Level 3 elevation - cognitive-semantic threat predictions dominate.
+empirical_validation:
+  citations:
+    - Grupe & Nitschke 2013, Nature Reviews Neuroscience (precision_expectation_gap)
+    - Aranha et al. 2020 (theta_t)
+    - Dunn et al. 2010 (Pi_i_baseline)
+    - Etkin et al. 2010 (arousal)
+    - Paulus & Stein 2006 (beta)
+    - Bishop 2007 (prefrontal threat bias)
+  pending_datasets:
+    - gad_empirical_eeg
+    - gad_interoceptive_precision
+    - gad_threshold_dynamics
+    - gad_heartbeat_evoked_potential
+    - gad_amygdala_fmri
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 3
+  level_description: 'Level 3 elevation - cognitive-semantic threat predictions dominate'
+  cross_level_coupling:
+    L1_L2: 0.65
+    L2_L3: 0.90
+    L3_L4: 0.55
+  mechanism: 'High-confidence threat priors; ambiguous stimuli confirm priors; worry as cognitive avoidance'
+metadata:
+  disorder_category: anxiety_disorders
+  dsm5_code: F41.1
+  primary_dysregulation: elevated_pi_e_threat
+  neural_signatures:
+    - hyperactive P3b to cognitive-semantic threat words
+    - elevated frontal alpha asymmetry (right > left)
+    - hyperconnectivity dlPFC-amygdala
+    - amygdala hyperreactivity to uncertain threats
+    - elevated error-related negativity (ERN)
+  parameter_origin: theoretical_model
+  phenomenology: Constant conscious worry; persistent apprehension; catastrophic interpretation of uncertainty
+  treatment_implications:
+    - CBT (recalibrates threat priors)
+    - SSRIs (stabilizes priors, elevates θₜ)
+    - Mindfulness (weakens prior confidence)
+    - Attention bias modification
+  validation_level: literature_derived
+name: generalized-anxiety-disorder
+parameters:
+  model:
+    alpha: 12.0
+    beta: 2.2
+    gamma_A: 0.15
+    gamma_M: -0.4
+    tau_S: 0.3
+    tau_theta: 25.0
+    theta_0: 0.35
+  network:
+    Pi_e_init: 1.8
+    Pi_i_init: 0.4
+    beta: 2.2
+    theta_baseline: 0.35
+    theta_init: 0.35
+precision_profile:
+  prediction_error_epsilon: 3.0
+  prediction_error_sigma: 6.0
+  precision_pi_dominant_channels:
+    - exteroceptive_threat
+    - cognitive
+  precision_pi_values:
+    Pi_e: 1.8
+    Pi_i: 0.4
+  somatic_bias_beta: 2.2
+  threshold_theta_t_pct: -35
+tags:
+  - gad
+  - anxiety
+  - generalized-anxiety
+  - threat-priors
+  - clinical
+  - level-3-elevation
+version: '1.0'

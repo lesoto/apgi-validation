@@ -1,0 +1,89 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Borderline Personality Disorder (BPD) - Labile interoceptive precision and 
+  threshold dynamics. Unstable Πᵢ and θₜ leading to intense, unstable emotional
+  consciousness. Attachment-related precision dysregulation.
+  Level 2 instability - fluctuating social-interoceptive integration.
+empirical_validation:
+  citations:
+    - Linehan 1993 (biosocial theory)
+    - Schulze et al. 2016 (emotional dysregulation)
+    - Koenigsberg et al. 2009 (emotional processing)
+    - Ruocco et al. 2010 (amygdala reactivity)
+    - Hazlett et al. 2012 (pain processing)
+  pending_datasets:
+    - bpd_empirical_eeg
+    - bpd_emotional_regulation_fmri
+    - bpd_interoceptive_variability
+    - bpd_attachment_processing
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 2
+  level_description: 'Level 2 instability - fluctuating social-interoceptive integration'
+  cross_level_coupling:
+    L1_L2: 0.90
+    L2_L3: 0.40
+    L3_L4: 0.50
+  mechanism: 'Labile Πᵢ & θₜ; attachment-related precision dysregulation; unstable emotional states'
+metadata:
+  disorder_category: personality_disorders
+  dsm5_code: F60.3
+  primary_dysregulation: labile_pi_theta
+  neural_signatures:
+    - amygdala hyperreactivity to emotional stimuli
+    - reduced vmPFC-amygdala regulation
+    - altered pain processing (insula)
+    - hyperactive error monitoring
+    - unstable autonomic responses
+    - attachment cue hypervigilance
+  parameter_origin: theoretical_model
+  phenomenology: Intense unstable emotions; fear of abandonment; identity disturbance; impulsivity
+  treatment_implications:
+    - DBT (Dialectical Behavior Therapy)
+    - Mentalization-based therapy
+    - Schema therapy
+    - Transference-focused psychotherapy
+    - Mindfulness skills training
+  validation_level: literature_derived
+name: borderline-personality-disorder
+parameters:
+  model:
+    alpha: 14.0
+    beta: 2.5
+    gamma_A: 0.40
+    gamma_M: -0.20
+    tau_S: 0.2
+    tau_theta: 8.0
+    theta_0: 0.30
+  network:
+    Pi_e_init: 1.0
+    Pi_i_init: 1.8
+    beta: 2.5
+    theta_baseline: 0.30
+    theta_init: 0.30
+precision_profile:
+  prediction_error_epsilon: 4.0
+  prediction_error_sigma: 6.0
+  precision_pi_dominant_channels:
+    - social_attachment
+    - emotional
+  precision_pi_values:
+    Pi_e: 1.0
+    Pi_i: 1.8
+  somatic_bias_beta: 2.5
+  threshold_theta_t_pct: -50
+tags:
+  - bpd
+  - borderline
+  - personality-disorder
+  - emotional-dysregulation
+  - clinical
+  - level-2-instability
+version: '1.0'

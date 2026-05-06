@@ -1,0 +1,97 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Bulimia Nervosa - Oscillating control precision with alternating binge and 
+  purge phases. Reward precision elevated during binges, control precision 
+  elevated during restriction periods.
+  Level 1-2 oscillation - alternating interoceptive-body model states.
+empirical_validation:
+  citations:
+    - Schulte-Rüther et al. 2012 (self-reference in BN)
+    - Wagner et al. 2008 (neuroimaging)
+    - Bohon & Stice 2011 (reward processing)
+    - Brooks et al. 2011 (interoception)
+  pending_datasets:
+    - bulimia_empirical_eeg
+    - bulimia_reward_processing_fmri
+    - bulimia_interoceptive_states
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: '1-2'
+  level_description: 'Level 1-2 oscillation - alternating interoceptive-body model states'
+  cross_level_coupling:
+    L1_L2: variable
+    L2_L3: 0.55
+    L3_L4: 0.50
+  mechanism: 'Control oscillation; Reward ↑ during binges; alternating precision states'
+metadata:
+  disorder_category: feeding_eating_disorders
+  dsm5_code: F50.2
+  primary_dysregulation: oscillating_control_precision
+  neural_signatures:
+    - elevated striatal reward response to food
+    - altered insula taste processing
+    - prefrontal control network dysfunction
+    - anterior cingulate conflict monitoring deficits
+    - altered self-reference processing
+  parameter_origin: theoretical_model
+  phenomenology: Binge-purge cycles; loss of control during binges; compensatory behaviors
+  treatment_implications:
+    - CBT-E
+    - Interpersonal psychotherapy
+    - SSRIs (fluoxetine)
+    - Nutritional rehabilitation
+  validation_level: literature_derived
+name: bulimia-nervosa
+parameters:
+  model:
+    alpha: 12.0
+    beta: 2.0
+    gamma_A: 0.20
+    gamma_M: -0.15
+    tau_S: 0.35
+    tau_theta: 20.0
+    theta_0: 0.32
+  network:
+    Pi_e_init: 1.2
+    Pi_i_init: 0.9
+    beta: 2.0
+    theta_baseline: 0.32
+    theta_init: 0.32
+  state_modifiers:
+    binge_phase:
+      Pi_e_init: 1.5
+      Pi_i_init: 0.6
+      theta_0: 0.25
+      alpha: 15.0
+    purge_restriction_phase:
+      Pi_e_init: 0.9
+      Pi_i_init: 1.2
+      theta_0: 0.45
+      alpha: 8.0
+precision_profile:
+  prediction_error_epsilon: 1.0
+  prediction_error_sigma: 4.0
+  precision_pi_dominant_channels:
+    - reward
+    - control
+    - oscillating
+  precision_pi_values:
+    Pi_e: 1.2
+    Pi_i: 0.9
+  somatic_bias_beta: 2.0
+  threshold_theta_t_pct: -32
+tags:
+  - bulimia
+  - eating-disorder
+  - binge-purge
+  - oscillating
+  - clinical
+  - level-1-2-oscillation
+version: '1.0'

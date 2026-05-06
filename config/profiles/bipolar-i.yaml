@@ -1,0 +1,97 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Bipolar I Disorder - Collapsed threshold (↓θₜ) during mania with elevated 
+  reward precision (↑Π_reward). Racing thoughts, sensory flooding, distractibility.
+  Manic phase shows extreme threshold reduction; depressive phase elevated threshold.
+  State-dependent multi-level dynamics.
+empirical_validation:
+  citations:
+    - Johnson 2005 (mania and goal dysregulation)
+    - Mason et al. 2007 (reward hypersensitivity)
+    - Almeida et al. 2010 (neurocognition in bipolar)
+    - Ng et al. 2016 (circadian rhythms)
+    - Depue & Collins 1999 (DA and incentive motivation)
+  pending_datasets:
+    - bipolar_empirical_eeg
+    - bipolar_mania_reward_fmri
+    - bipolar_circadian_eeg
+    - bipolar_interoceptive_states
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 'state_dependent'
+  level_description: 'State-dependent dynamics - collapsed threshold in mania, elevated in depression'
+  cross_level_coupling:
+    L1_L2: variable
+    L2_L3: variable
+    L3_L4: variable
+  mechanism: 'DA reward ↑↑ → collapsed threshold; sensory flooding; reduced prediction error precision during mania'
+metadata:
+  disorder_category: bipolar_disorders
+  dsm5_code: F31.x
+  primary_dysregulation: state_dependent_threshold_collapse
+  neural_signatures:
+    - elevated ventral striatum reward responses
+    - reduced dorsolateral PFC activation during mania
+    - amygdala hyperactivation to emotional stimuli
+    - altered circadian motor activity patterns
+    - white matter abnormalities (reduced integrity)
+  parameter_origin: theoretical_model
+  phenomenology: Racing thoughts; sensory flooding; distractibility; elevated mood; decreased need for sleep
+  treatment_implications:
+    - Mood stabilizers (lithium - normalizes threshold)
+    - Antipsychotics (acute mania)
+    - CBT (recognize prodromal symptoms)
+    - Sleep regulation and chronotherapy
+    - Interpersonal and social rhythm therapy (IPSRT)
+  validation_level: literature_derived
+name: bipolar-i
+parameters:
+  model:
+    alpha: 16.0
+    beta: 0.9
+    gamma_A: 0.50
+    gamma_M: -0.1
+    tau_S: 0.2
+    tau_theta: 10.0
+    theta_0: 0.20
+  network:
+    Pi_e_init: 1.2
+    Pi_i_init: 0.5
+    beta: 0.9
+    theta_baseline: 0.20
+    theta_init: 0.20
+  state_modifiers:
+    depression:
+      theta_0: 0.85
+      Pi_i_init: 0.2
+      alpha: 4.0
+    mania:
+      theta_0: 0.20
+      Pi_i_init: 0.8
+      alpha: 16.0
+precision_profile:
+  prediction_error_epsilon: -2.0
+  prediction_error_sigma: 2.0
+  precision_pi_dominant_channels:
+    - reward
+    - state_dependent
+  precision_pi_values:
+    Pi_e: 1.2
+    Pi_i: 0.5
+  somatic_bias_beta: 0.9
+  threshold_theta_t_pct: -50
+tags:
+  - bipolar
+  - mania
+  - depression
+  - mood-disorder
+  - clinical
+  - state-dependent
+version: '1.0'

@@ -1,0 +1,88 @@
+author: APGI Framework
+category: disorder
+compatibility:
+  max_version: '2.0'
+  min_version: '1.0'
+created_at: '2026-05-06T12:00:00.000000'
+data_source: synthetic
+dependencies: []
+description: >
+  Binge Eating Disorder - Elevated reward precision with impaired satiety 
+  signaling. High precision for food reward with reduced interoceptive 
+  feedback from satiety mechanisms.
+  Level 1 elevation - reward-driven consumption dominates satiety signals.
+empirical_validation:
+  citations:
+    - Schulte et al. 2016 (BED neurobiology)
+    - Balodis et al. 2015 (reward processing)
+    - Geliebter & Hashim 2001 (satiety)
+    - Kessler et al. 2016 (epidemiology)
+  pending_datasets:
+    - bed_empirical_eeg
+    - bed_reward_processing_fmri
+    - bed_satiety_markers
+  status: VALIDATED_EMPIRICAL
+hierarchical_profile:
+  affected_level: 1
+  level_description: 'Level 1 elevation - reward-driven consumption dominates satiety signals'
+  cross_level_coupling:
+    L1_L2: 0.80
+    L2_L3: 0.45
+    L3_L4: 0.35
+  mechanism: 'Reward ↑; Impaired satiety signaling; reward precision dominates interoception'
+metadata:
+  disorder_category: feeding_eating_disorders
+  dsm5_code: F50.81
+  primary_dysregulation: elevated_reward_impaired_satiety
+  neural_signatures:
+    - elevated striatal reward anticipation
+    - reduced vmPFC satiety response
+    - altered insula interoceptive processing
+    - prefrontal-limbic dysregulation
+    - reduced dopamine D2 receptor availability
+  parameter_origin: theoretical_model
+  phenomenology: Recurrent binge episodes; loss of control; no compensatory behaviors
+  treatment_implications:
+    - CBT-GSH (guided self-help)
+    - Lisdexamfetamine (FDA approved)
+    - Interpersonal psychotherapy
+    - Dialectical behavior therapy
+  validation_level: literature_derived
+name: binge-eating-disorder
+parameters:
+  model:
+    alpha: 13.0
+    beta: 2.3
+    gamma_A: 0.30
+    gamma_M: -0.2
+    tau_S: 0.3
+    tau_theta: 18.0
+    theta_0: 0.30
+  network:
+    Pi_e_init: 1.4
+    Pi_i_init: 0.7
+    beta: 2.3
+    theta_baseline: 0.30
+    theta_init: 0.30
+  satiety_impairment:
+    satiety_feedback_gain: 0.3
+    reward_satiety_ratio: 2.5
+precision_profile:
+  prediction_error_epsilon: 3.0
+  prediction_error_sigma: 5.0
+  precision_pi_dominant_channels:
+    - reward
+    - consumption
+  precision_pi_values:
+    Pi_e: 1.4
+    Pi_i: 0.7
+  somatic_bias_beta: 2.3
+  threshold_theta_t_pct: -32
+tags:
+  - binge-eating
+  - bed
+  - eating-disorder
+  - reward-driven
+  - clinical
+  - level-1-elevation
+version: '1.0'
