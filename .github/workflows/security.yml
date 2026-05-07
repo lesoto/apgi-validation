@@ -26,7 +26,7 @@ jobs:
           semgrep --config=auto --json --output=semgrep-report.json . || true
           semgrep --config=auto . || true
       - name: Upload security reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-reports
           path: |
@@ -52,7 +52,7 @@ jobs:
           pip-audit --format json --output pip-audit-report.json || true
           pip-audit || true
       - name: Upload dependency report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-reports
           path: pip-audit-report.json
