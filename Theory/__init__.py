@@ -26,6 +26,16 @@ from .APGI_Multimodal_Integration import APGINormalizer
 from .APGI_Open_Science_Framework import OpenScienceValidator
 from .APGI_Parameter_Estimation import ParameterIdentifiabilityAnalyzer
 from .APGI_Psychological_States import PsychologicalState as PsychState
+from .APGI_Thermodynamic_Program_Aggregator import (
+    AggregatorConfig,
+    AggregatorReport,
+    CrossSpeciesScalingValidator,
+    DoubleBridgeCalculator,
+    LandauerMinimum,
+    NeuralMetabolicCost,
+    ThermodynamicProgramAggregator,
+    run_aggregator,
+)
 from .APGI_Turing_Machine import APGITuringMachine
 
 __version__ = "1.0.0"
