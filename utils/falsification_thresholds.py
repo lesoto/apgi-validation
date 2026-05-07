@@ -272,6 +272,13 @@ V17_MIN_CORRELATION_MAGNITUDE: float = 0.10  # |r| ≥ 0.10 for cross-measure co
 V17_ALPHA: float = 0.05  # significance level
 
 # ---------------------------------------------------------------------------
+# V18 – EEG Microstate Energy Analysis (GFP / P3b)
+# ---------------------------------------------------------------------------
+V18_GFP_AUC_IGNITION_ADVANTAGE: float = 0.20  # ≥20 % larger GFP-AUC on ignition trials
+V18_AUC_COHENS_D_MIN: float = 0.50            # Cohen's d ≥ 0.50 (medium effect)
+V18_ST_CORRELATION_MIN: float = 0.30          # r ≥ 0.30 between GFP-AUC and Sₜ
+
+# ---------------------------------------------------------------------------
 # V16 – Metabolic ATP Ground-Truth
 # ---------------------------------------------------------------------------
 V16_MIN_CORRELATION: float = 0.75  # r > 0.75 for ATP trace correlation
@@ -622,6 +629,9 @@ THRESHOLD_REGISTRY = {
     "V17_MIN_R2_THETA": V17_MIN_R2_THETA_ELEVATION,
     "V17_MIN_CORR": V17_MIN_CORRELATION_MAGNITUDE,
     "V17_ALPHA": V17_ALPHA,
+    "V18_GFP_AUC_ADVANTAGE": V18_GFP_AUC_IGNITION_ADVANTAGE,
+    "V18_AUC_COHENS_D": V18_AUC_COHENS_D_MIN,
+    "V18_ST_CORRELATION": V18_ST_CORRELATION_MIN,
     "V16_MIN_CORR": V16_MIN_CORRELATION,
     "V16_MIN_EFFICIENCY": V16_MIN_EFFICIENCY_GAIN,
     "V16_C1_CONSISTENCY": V16_C1_CONSISTENCY_CV,

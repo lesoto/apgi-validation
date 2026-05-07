@@ -108,6 +108,10 @@ NAMED_PREDICTIONS = {
     "V17.1": "P3b amplitude decay under fatigue (λ > 0.10, R² > 0.70)",
     "V17.2": "Threshold elevation under fatigue (β > 0, p < 0.05)",
     "V17.3": "Cross-measure fatigue correlations (negative P3b-alpha, positive theta-RT)",
+    # VP-18: EEG Microstate Energy Analysis (GFP / P3b)
+    "V18.1": "GFP-AUC significantly larger on ignition vs. no-ignition trials (d ≥ 0.50)",
+    "V18.2": "Proportional GFP-AUC advantage on ignition trials ≥ 20%",
+    "V18.3": "Single-trial GFP-AUC correlates with Sₜ (r ≥ 0.30, p < 0.05)",
 }
 
 # BIC thresholds for empirical vs theoretical data
@@ -188,6 +192,9 @@ PREDICTION_TO_PROTOCOL = {
     "V17.1": "VP_17_AllenVisualCoding_Fatigue",
     "V17.2": "VP_17_AllenVisualCoding_Fatigue",
     "V17.3": "VP_17_AllenVisualCoding_Fatigue",
+    "V18.1": "VP_18_EEG_Microstate_GFP_P3b",
+    "V18.2": "VP_18_EEG_Microstate_GFP_P3b",
+    "V18.3": "VP_18_EEG_Microstate_GFP_P3b",
 }
 
 # Protocol tier classification
@@ -209,6 +216,7 @@ PROTOCOL_TIERS = {
     "VP_15_fMRI_Anticipation_vmPFC": "tertiary",
     "VP_16_Metabolic_ATP_GroundTruth": "secondary",
     "VP_17_AllenVisualCoding_Fatigue": "secondary",
+    "VP_18_EEG_Microstate_GFP_P3b": "secondary",
 }
 
 # VP-07 / VP-10 Boundary Clarification
