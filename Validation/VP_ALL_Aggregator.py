@@ -120,6 +120,10 @@ NAMED_PREDICTIONS = {
     "V20.1": "P6a — HG bimodal occupancy higher on conscious trials (d ≥ 0.50, BC ≥ 0.55)",
     "V20.2": "P6c — AC1 higher on hits-near-threshold vs. misses (critical slowing, p < 0.05)",
     "V20.3": "P6c — Variance higher on hits-near-threshold vs. misses (critical slowing, p < 0.05)",
+    # VP-21: Free Energy Proxy — MMN + HEP PE tracking (Level 3 → Level 2 only)
+    "V21.1": "MMN amplitude declines monotonically over 30-min task (R² ≥ 0.60, slope < 0)",
+    "V21.2": "HEP deviation declines monotonically over 30-min task (R² ≥ 0.50, slope < 0)",
+    "V21.3": "Ignition events spike PE ≥ 1.20× and resolve below pre-ignition baseline",
 }
 
 # BIC thresholds for empirical vs theoretical data
@@ -210,6 +214,10 @@ PREDICTION_TO_PROTOCOL = {
     "V20.1": "VP_01_empirical",
     "V20.2": "VP_01_empirical",
     "V20.3": "VP_01_empirical",
+    # VP-21: Free Energy Proxy (PE tracking)
+    "V21.1": "VP_FE_proxy",
+    "V21.2": "VP_FE_proxy",
+    "V21.3": "VP_FE_proxy",
 }
 
 # Protocol tier classification
@@ -234,6 +242,7 @@ PROTOCOL_TIERS = {
     "VP_18_EEG_Microstate_GFP_P3b": "secondary",
     "VP_19_InformationErasure_MVPA": "secondary",
     "VP_01_empirical": "secondary",
+    "VP_FE_proxy": "secondary",
 }
 
 # VP-07 / VP-10 Boundary Clarification

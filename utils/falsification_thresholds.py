@@ -272,6 +272,17 @@ V17_MIN_CORRELATION_MAGNITUDE: float = 0.10  # |r| ≥ 0.10 for cross-measure co
 V17_ALPHA: float = 0.05  # significance level
 
 # ---------------------------------------------------------------------------
+# V21 – Free Energy Proxy: PE Tracking (MMN + HEP)
+# ---------------------------------------------------------------------------
+# Epistemological note: these thresholds govern Level 3 → Level 2 inference.
+# MMN amplitude and HEP deviation are neural PE proxies, NOT direct measures
+# of variational free energy F(t).  The thermodynamic bridge (L2 → L1)
+# requires PET/fMRS and is out of scope for this protocol.
+V21_MMN_MIN_R2: float = 0.60      # R² for exteroceptive PE (MMN) monotone decline
+V21_HEP_MIN_R2: float = 0.50      # R² for interoceptive PE (HEP) monotone decline
+V21_IGNITION_TRANSIENT_RATIO: float = 1.20  # ignition-window PE ≥ 1.20× pre-ignition mean
+
+# ---------------------------------------------------------------------------
 # V20 – Empirical iEEG Pipeline (BIDS-iEEG, P6a + P6c)
 # ---------------------------------------------------------------------------
 # P6a: GMM bimodality — high-gamma mode occupancy advantage (conscious > unconscious)
@@ -649,6 +660,9 @@ THRESHOLD_REGISTRY = {
     "V17_MIN_R2_THETA": V17_MIN_R2_THETA_ELEVATION,
     "V17_MIN_CORR": V17_MIN_CORRELATION_MAGNITUDE,
     "V17_ALPHA": V17_ALPHA,
+    "V21_MMN_MIN_R2": V21_MMN_MIN_R2,
+    "V21_HEP_MIN_R2": V21_HEP_MIN_R2,
+    "V21_IGNITION_TRANSIENT_RATIO": V21_IGNITION_TRANSIENT_RATIO,
     "V20_HG_BIMODALITY_COEFF": V20_HG_BIMODALITY_COEFF_MIN,
     "V20_HG_OCCUPANCY_COHENS_D": V20_HG_OCCUPANCY_COHENS_D_MIN,
     "V20_AC1_ADVANTAGE": V20_AC1_ADVANTAGE_MIN,
