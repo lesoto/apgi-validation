@@ -96,7 +96,8 @@ class SecureKeyManager:
             raise FileNotFoundError(f"Key file {key_file} does not exist")
 
         master_key = self._get_master_key()
-        fernet = Fernet(master_key.encode())
+        # master_key is already a base64-encoded string from Fernet.generate_key()
+        fernet = Fernet(master_key if isinstance(master_key, str) else master_key)
 
         encrypted = key_file.read_bytes()
         try:
@@ -143,7 +144,8 @@ class SecureKeyManager:
 
         # Save encrypted
         master_key = self._get_master_key()
-        fernet = Fernet(master_key)  # master_key is already base64 string
+        # master_key is already a base64-encoded string from Fernet.generate_key()
+        fernet = Fernet(master_key if isinstance(master_key, str) else master_key)
         key_b64 = base64.b64encode(key_bytes).decode("utf-8")
         encrypted = fernet.encrypt(key_b64.encode("utf-8"))
 

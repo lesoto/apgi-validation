@@ -28,6 +28,22 @@ Based on:
 - Shannon (1948) - Mathematical Theory of Communication
 - Jaynes (1957) - Information Theory and Statistical Mechanics
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the three-level entropy framework fails to maintain cross-level consistency
+(entropy conservation violation > 5%), or if the variational free energy
+minimization does not converge to stable solutions within 1000 iterations,
+or if the thermodynamic-entropy to Shannon-entropy mapping deviates from
+theoretical predictions by >10%, then the APGI entropy framework claim is
+falsified. This would indicate that the proposed multi-level entropy
+treatment is not mathematically consistent or computationally tractable.
+
 """
 
 import math

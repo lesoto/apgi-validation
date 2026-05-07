@@ -22,6 +22,22 @@ Alternative Script Names:
 3. neural_precision_framework.py     - Highlights the neural computational framework
 4. apgi_clinical_analyzer.py       - Stresses clinical applications
 5. conscious_integration_framework.py - Most comprehensive descriptive name
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the multimodal classifier does NOT achieve cross-modal integration gains
+of at least 15% over unimodal baselines, or if precision-weighted integration
+fails to improve conscious access prediction accuracy by ≥10% compared to
+simple averaging, then the APGI multimodal integration claim is falsified.
+This would indicate that precision-weighted multimodal integration does not
+provide computational advantages for conscious access prediction.
+
 =============================================================================
 """
 

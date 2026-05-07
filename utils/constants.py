@@ -290,6 +290,52 @@ class DimensionConstants:
     CONTEXT_DIM_EXTENDED: int = 8  # Same as CONTEXT_DIM
 
 
+@dataclass
+class VisualConstants:
+    """
+    Standardized visual identity for APGI framework figures.
+
+    Ensures consistency across submission package as per Standard 4 requirement.
+    """
+
+    # Core Palette
+    ST_BLUE: str = "#2166AC"
+    THETA_RED: str = "#D6604D"
+    INTERO_AMBER: str = "#F4A582"
+    IGNITION_GREEN: str = "#41AB5D"
+    ALLOSTATIC_PURPLE: str = "#762A83"
+
+    # Clinical/Group Colors
+    HC_GREY: str = "#999999"
+    MDD_BLUE: str = "#2166AC"
+    ANX_ORANGE: str = "#F4A582"
+    ADHD_PURPLE: str = "#762A83"
+
+    # Status Colors (for ProtocolVisualizer)
+    STATUS_PASS: str = "#2ecc71"
+    STATUS_FAIL: str = "#e74c3c"
+    STATUS_ERROR: str = "#f39c12"
+    STATUS_UNKNOWN: str = "#95a5a6"
+
+    # Level Colors (used in hierarchical models)
+    LEVEL_COLORS: Dict[int, str] = None
+
+    def __post_init__(self):
+        if self.LEVEL_COLORS is None:
+            self.LEVEL_COLORS = {
+                0: self.HC_GREY,
+                1: self.ST_BLUE,
+                2: self.INTERO_AMBER,
+                3: self.IGNITION_GREEN,
+                4: self.ALLOSTATIC_PURPLE,
+            }
+
+    # Line Styles
+    STYLE_ST: str = "-"
+    STYLE_THETA: str = "--"
+    STYLE_ALLOSTATIC: str = "--"
+
+
 # F4 - Phase Transition & Epistemic Architecture thresholds
 F4_CRITICAL_SLOWING_MIN_RATIO: float = 1.2  # 20% increase threshold for τ_auto
 F4_CRITICAL_SLOWING_P_VALUE: float = 0.05  # p < 0.05 for surrogate test
@@ -309,6 +355,7 @@ PARAMETER_BOUNDS = ParameterBounds()
 PCI_NORMALIZATION = PCINormalization()
 DIM_CONSTANTS = DimensionConstants()
 LEVEL_TIMESCALES = LevelTimescales()
+VISUAL_CONSTANTS = VisualConstants()
 
 # Global random seed for reproducibility across all protocols
 APGI_GLOBAL_SEED = 42

@@ -1,3 +1,18 @@
+"""
+Falsification Protocol 2: Agent Comparison Convergence Benchmark
+================================================================
+
+Implements F3.1-F3.6 falsification criteria for APGI framework.
+Tests performance convergence and computational efficiency of APGI agents
+compared to non-APGI baselines.
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+"""
+
 from __future__ import annotations
 
 import csv
@@ -59,6 +74,17 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="pandas")
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+# Import visual constants for standardized colors
+try:
+    from utils.constants import VISUAL_CONSTANTS
+except ImportError:
+    # Fallback if VISUAL_CONSTANTS not available
+    class MockVISUAL_CONSTANTS:
+        STATUS_PASS = "green"
+        STATUS_FAIL = "red"
+
+    VISUAL_CONSTANTS = MockVISUAL_CONSTANTS()  # type: ignore
 
 try:
     from utils.shared_falsification import check_F5_family
@@ -2890,7 +2916,11 @@ def _generate_fp02_visualization(
         criteria_data = results.get("criteria", {})
         passed = sum(1 for c in criteria_data.values() if c.get("passed", False))
         failed = len(criteria_data) - passed
-        ax1.bar(["Passed", "Failed"], [passed, failed], color=["#2ecc71", "#e74c3c"])
+        ax1.bar(
+            ["Passed", "Failed"],
+            [passed, failed],
+            color=[VISUAL_CONSTANTS.STATUS_PASS, VISUAL_CONSTANTS.STATUS_FAIL],
+        )
         ax1.set_title("Falsification Criteria Results")
         ax1.set_ylabel("Count")
         for i, v in enumerate([passed, failed]):
@@ -2902,7 +2932,10 @@ def _generate_fp02_visualization(
         if predictions:
             pred_names = list(predictions.keys())[:6]
             pred_values = [predictions[p].get("passed", False) for p in pred_names]
-            colors = ["#2ecc71" if v else "#e74c3c" for v in pred_values]
+            colors = [
+                VISUAL_CONSTANTS.STATUS_PASS if v else VISUAL_CONSTANTS.STATUS_FAIL
+                for v in pred_values
+            ]
             ax2.barh(pred_names, [1 if v else 0 for v in pred_values], color=colors)
             ax2.set_title("Named Predictions Status")
             ax2.set_xlabel("Pass (1) / Fail (0)")
@@ -2942,7 +2975,7 @@ def _generate_fp02_visualization(
             }
             names = list(metrics.keys())
             values = list(metrics.values())
-            colors = ["#e74c3c", "#f39c12"]
+            colors = [VISUAL_CONSTANTS.STATUS_FAIL, VISUAL_CONSTANTS.STATUS_ERROR]
             ax3.bar(names, values, color=colors)
             ax3.set_title("Bifurcation Structure Metrics (F6.5)")
             ax3.set_ylabel("Value")

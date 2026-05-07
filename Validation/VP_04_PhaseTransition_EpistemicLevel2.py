@@ -28,6 +28,19 @@ manifest as information-theoretic discontinuities (Level 2). Specifically:
    in both neural firing patterns and information-theoretic measures.
 
 This bridge ensures that Level 3 neural implementations are not mere epiphenomena
+
+LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic implications without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If information-theoretic phase transitions are not observable (mutual information
+increase < 30% across predicted boundaries), or if transfer entropy does not diverge
+at the phase boundary (divergence test p > 0.05), or if critical phenomena are absent
+(susceptibility χ² test p > 0.05), then the APGI Level 2 phase transition claim is
+falsified. This would indicate that APGI phase transitions do not manifest at the
+information-theoretic level.
 but correspond to genuine computational phase transitions at the information level.
 
 This protocol implements:
@@ -69,7 +82,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.config_manager import ConfigManager
-from utils.constants import DEFAULT_THERMO_CONFIG
+from utils.constants import DEFAULT_THERMO_CONFIG, VISUAL_CONSTANTS
 from utils.falsification_thresholds import (
     FMI_MIN_BITS_S,
     TRANSFER_ENTROPY_THRESHOLD,
@@ -2956,14 +2969,23 @@ def plot_phase_transition_results(
         ax1.plot(time, S, "b-", linewidth=2, label="Surprise (S)", alpha=0.8)
         ax1.plot(time, theta, "r--", linewidth=2, label="Threshold (θ)", alpha=0.8)
         ax1.fill_between(
-            time, 0, B * 10, color="green", alpha=0.2, label="Ignition (B)"
+            time,
+            0,
+            B * 10,
+            color=VISUAL_CONSTANTS.IGNITION_GREEN,
+            alpha=0.2,
+            label="Ignition (B)",
         )
 
         # Mark ignition events
         for idx in ignition_events:
             if idx < len(time):
                 ax1.axvline(
-                    time[idx], color="orange", linestyle=":", linewidth=1.5, alpha=0.6
+                    time[idx],
+                    color=VISUAL_CONSTANTS.INTERO_AMBER,
+                    linestyle=":",
+                    linewidth=1.5,
+                    alpha=0.6,
                 )
 
         ax1.set_xlabel("Time (s)", fontsize=12, fontweight="bold")
@@ -2994,7 +3016,10 @@ def plot_phase_transition_results(
                 linewidth=2,
             )
             ax1_inset.axvline(
-                time[zoom_idx], color="orange", linestyle=":", linewidth=2
+                time[zoom_idx],
+                color=VISUAL_CONSTANTS.INTERO_AMBER,
+                linestyle=":",
+                linewidth=2,
             )
             ax1_inset.set_title(
                 "Ignition Event (Zoomed)", fontsize=10, fontweight="bold"
@@ -3054,14 +3079,14 @@ def plot_phase_transition_results(
             bins=30,
             density=True,
             alpha=0.7,
-            color="purple",
+            color=VISUAL_CONSTANTS.ALLOSTATIC_PURPLE,
             edgecolor="black",
         )
 
         mean_te = te_values.mean()
         ax3.axvline(
             mean_te,
-            color="red",
+            color=VISUAL_CONSTANTS.THETA_RED,
             linestyle="--",
             linewidth=2,
             label=f"Mean: {mean_te:.3f}",
@@ -3088,7 +3113,7 @@ def plot_phase_transition_results(
         mean_mi = mi_values.mean()
         ax4.axvline(
             mean_mi,
-            color="red",
+            color=VISUAL_CONSTANTS.THETA_RED,
             linestyle="--",
             linewidth=2,
             label=f"Mean: {mean_mi:.3f}",
@@ -3140,19 +3165,28 @@ def plot_phase_transition_results(
         disc_d = results_df["discontinuity_cohens_d"].dropna()
 
         ax6.hist(
-            disc_d, bins=30, density=True, alpha=0.7, color="orange", edgecolor="black"
+            disc_d,
+            bins=30,
+            density=True,
+            alpha=0.7,
+            color=VISUAL_CONSTANTS.INTERO_AMBER,
+            edgecolor="black",
         )
 
         mean_d = disc_d.mean()
         ax6.axvline(
             mean_d,
-            color="red",
+            color=VISUAL_CONSTANTS.THETA_RED,
             linestyle="--",
             linewidth=2,
             label=f"Mean d: {mean_d:.2f}",
         )
         ax6.axvline(
-            0.5, color="green", linestyle=":", linewidth=2, label="Threshold (d=0.5)"
+            0.5,
+            color=VISUAL_CONSTANTS.IGNITION_GREEN,
+            linestyle=":",
+            linewidth=2,
+            label="Threshold (d=0.5)",
         )
 
         ax6.set_xlabel("Cohen's d (Discontinuity)", fontsize=11, fontweight="bold")
@@ -3167,7 +3201,12 @@ def plot_phase_transition_results(
     susc_ratio = results_df["susceptibility_susceptibility_ratio"].dropna()
 
     ax7.hist(
-        susc_ratio, bins=30, density=True, alpha=0.7, color="red", edgecolor="black"
+        susc_ratio,
+        bins=30,
+        density=True,
+        alpha=0.7,
+        color=VISUAL_CONSTANTS.THETA_RED,
+        edgecolor="black",
     )
 
     mean_susc = susc_ratio.mean()
@@ -3179,7 +3218,11 @@ def plot_phase_transition_results(
         label=f"Mean: {mean_susc:.2f}",
     )
     ax7.axvline(
-        1.2, color="green", linestyle=":", linewidth=2, label="Threshold (≥1.2)"
+        1.2,
+        color=VISUAL_CONSTANTS.IGNITION_GREEN,
+        linestyle=":",
+        linewidth=2,
+        label="Threshold (≥1.2)",
     )
 
     ax7.set_xlabel("Susceptibility Ratio (near/far)", fontsize=11, fontweight="bold")
@@ -3194,7 +3237,12 @@ def plot_phase_transition_results(
     crit_slow = results_df["critical_slowing_critical_slowing_ratio"].dropna()
 
     ax8.hist(
-        crit_slow, bins=30, density=True, alpha=0.7, color="blue", edgecolor="black"
+        crit_slow,
+        bins=30,
+        density=True,
+        alpha=0.7,
+        color=VISUAL_CONSTANTS.ST_BLUE,
+        edgecolor="black",
     )
 
     mean_cs = crit_slow.mean()
@@ -3206,7 +3254,11 @@ def plot_phase_transition_results(
         label=f"Mean: {mean_cs:.2f}",
     )
     ax8.axvline(
-        1.2, color="green", linestyle=":", linewidth=2, label="Threshold (≥1.2)"
+        1.2,
+        color=VISUAL_CONSTANTS.IGNITION_GREEN,
+        linestyle=":",
+        linewidth=2,
+        label="Threshold (≥1.2)",
     )
 
     ax8.set_xlabel("Critical Slowing Ratio", fontsize=11, fontweight="bold")
@@ -3235,7 +3287,11 @@ def plot_phase_transition_results(
         0.5, color="black", linestyle="--", linewidth=1.5, label="Random walk (H=0.5)"
     )
     ax9.axhline(
-        0.5, color="green", linestyle=":", linewidth=2, label="Threshold (H>0.5)"
+        0.5,
+        color=VISUAL_CONSTANTS.IGNITION_GREEN,
+        linestyle=":",
+        linewidth=2,
+        label="Threshold (H>0.5)",
     )
 
     ax9.set_xticks(positions)

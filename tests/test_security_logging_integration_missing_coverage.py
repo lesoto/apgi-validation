@@ -352,8 +352,9 @@ class TestSecurityLoggingIntegrationMissingCoverage:
 
     def test_security_logger_concurrent_access(self):
         """Test security logger with concurrent access."""
-        from utils.security_logging_integration import SecurityAuditLogger
         import threading
+
+        from utils.security_logging_integration import SecurityAuditLogger
 
         with tempfile.TemporaryDirectory() as temp_dir:
             log_file = Path(temp_dir) / "concurrent.log"

@@ -28,6 +28,22 @@ Protocol specification:
 MEASUREMENT GAPS (required hedging per Paper 4):
     This protocol tests REPRESENTATIONAL erasure at Level 3 (neural pattern
     decoding).  The thermodynamic cost of that erasure — Landauer's principle
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If decoding accuracy for non-selected stimuli does not significantly decrease
+below chance levels post-ignition (p > 0.05, corrected), or if the suppression
+effect is not specific to ignition trials (no difference from no-ignition controls),
+or if the temporal dynamics of suppression do not match APGI predictions
+(onset delay > 100ms from P3b peak), then the APGI information erasure claim
+is falsified. This would indicate that conscious access does not actively
+suppress non-selected representations.
     applied to bit erasure (Level 1) — is NOT directly measured here.  The link
     requires the Landauer bridge and remains in Gap 1 territory.  Program 3 (PET)
     is required for thermodynamic ground-truth.  This distinction must appear

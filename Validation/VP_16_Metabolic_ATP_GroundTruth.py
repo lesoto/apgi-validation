@@ -13,6 +13,20 @@ Predictions:
 - V16.1: APGI metabolic cost correlates with high-resolution ATP traces (r > 0.75)
 - V16.2: c1/c2 ratio consistency across frequency bands (10–100 Hz)
 - V16.3: Metabolic efficiency advantage >20% vs non-gating controls
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If APGI metabolic cost does not correlate with ATP traces (r < 0.75), or if the
+c1/c2 ratio varies >30% across frequency bands, or if the metabolic efficiency
+advantage is <20% compared to non-gating controls, then the APGI metabolic
+ground-truth claim is falsified. This would indicate that APGI does not accurately
+model the thermodynamic costs of conscious processing.
 """
 
 import logging

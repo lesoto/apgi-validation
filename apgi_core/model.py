@@ -47,6 +47,13 @@ CONFIG = {
     "alpha_sigma": 0.005,
     "c1": 0.1,  # Dynamic cost coefficient (signaling-related)
     "c2": 0.02,  # Static cost coefficient (maintenance-related)
+    # Additional keys for hierarchical processing
+    "hierarchical": {
+        "enabled": False,
+        "num_levels": 5,
+        "tau_max": 10.0,
+        "tau_min": 0.1,
+    },
 }
 
 # =============================================================================
@@ -529,7 +536,18 @@ class APGIModel:
         Args:
             config: Optional configuration dict (uses CONFIG default if None)
         """
-        self.config = config or CONFIG
+        # Merge custom config with defaults
+        if config is None:
+            self.config = CONFIG.copy()
+        else:
+            # Deep merge for nested dictionaries
+            self.config = CONFIG.copy()
+            for key, value in config.items():
+                if key in self.config and isinstance(self.config[key], dict) and isinstance(value, dict):
+                    self.config[key].update(value)
+                else:
+                    self.config[key] = value
+        
         # Keep cfg as an alias for backwards-compat
         self.cfg = self.config
 
@@ -653,12 +671,14 @@ class APGIModel:
         # Compile output
         output = {
             **state,
+            "M": self.M,  # Include somatic marker
             "z_e": z_e,
             "z_i": z_i,
             "x_hat": x_hat,
             "epsilon": eps,
             "ignition_prob": p,
             "ignited": ignited,
+            "ignition": ignited,  # Add alias for compatibility
             "p3b_latency_ms": p3b,
             "hep_amplitude": hep,
             "reaction_time_ms": rt,

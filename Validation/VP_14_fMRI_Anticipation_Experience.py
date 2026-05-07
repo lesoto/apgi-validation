@@ -17,6 +17,20 @@ VP-14 FIXES IMPLEMENTED:
 Simulates blood-oxygen-level-dependent (BOLD) tracking of APGI's
 internal variables S(t) [Salience/AI] and M(t) [vmPFC] during a threat
 anticipation paradigm.
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If BOLD signals do not correlate with predicted S(t) and M(t) dynamics (r < 0.7),
+or if the vmPFC-SCR connectivity falls below predicted thresholds (r < 0.40),
+or if the anticipation-experience dissociation is not observed (p > 0.05, corrected),
+then the APGI fMRI anticipation-experience claim is falsified. This would indicate
+that APGI does not accurately predict neural dynamics in anticipation paradigms.
 """
 
 import json
@@ -34,7 +48,7 @@ from scipy import stats
 from scipy.signal import convolve
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from utils.constants import BOLD_TSNR_MIN
+from utils.constants import BOLD_TSNR_MIN, VISUAL_CONSTANTS
 
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
@@ -456,8 +470,18 @@ def plot_fmri_results(results: Dict[str, Any]):
     idx = int(display_t / results["dt"])
 
     plt.figure(figsize=(12, 6))
-    plt.plot(t[:idx], S_bold[:idx], label="AI (Salience) BOLD", color="red")
-    plt.plot(t[:idx], M_bold[:idx], label="vmPFC (Anticipation) BOLD", color="blue")
+    plt.plot(
+        t[:idx],
+        S_bold[:idx],
+        label="AI (Salience) BOLD",
+        color=VISUAL_CONSTANTS.THETA_RED,
+    )
+    plt.plot(
+        t[:idx],
+        M_bold[:idx],
+        label="vmPFC (Anticipation) BOLD",
+        color=VISUAL_CONSTANTS.ST_BLUE,
+    )
     plt.axhline(0, color="black", linestyle="--", linewidth=0.5)
     plt.title("Simulated APGI fMRI BOLD Timeseries (First 5 Trials)")
     plt.xlabel("Time (s)")

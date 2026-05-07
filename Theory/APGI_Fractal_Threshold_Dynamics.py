@@ -14,6 +14,21 @@ Modules
 2. SpectralAnalyzer    – PSD, DFA, breakpoint detection
 3. MarkovianNullModel  – single-OU null model and comparison
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If nested threshold dynamics do NOT produce 1/f spectral signatures with
+breakpoints at predicted timescales (α ≠ 0.8-1.2, R² < 0.70 for 1/f fit,
+breakpoint deviation > 25% from 1/τ_ℓ predictions), then the APGI
+fractal threshold hypothesis is falsified. This would indicate that
+multi-level threshold regulation does not generate the characteristic
+scale-free dynamics predicted by the framework.
+
 """
 
 import logging
@@ -43,18 +58,14 @@ logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
+from utils.constants import VISUAL_CONSTANTS
+
 # ---------------------------------------------------------------------------
 # Module-level constants  (Paper 3 values)
 # ---------------------------------------------------------------------------
 
 TAU_ARRAY = np.array([0.01, 1.0, 600.0, 43200.0, 3.15e7])  # Paper 3 values
-LEVEL_COLORS = {
-    0: "#999999",
-    1: "#2166AC",
-    2: "#F4A582",
-    3: "#41AB5D",
-    4: "#762A83",
-}
+LEVEL_COLORS = VISUAL_CONSTANTS.LEVEL_COLORS
 
 
 # ---------------------------------------------------------------------------
@@ -237,7 +248,7 @@ class SpectralAnalyzer:
 
         result = scipy.stats.linregress(log_f, log_s)
         beta = float(-result.slope)
-        r_squared = float(result.rvalue ** 2)
+        r_squared = float(result.rvalue**2)
         return beta, r_squared
 
     # ------------------------------------------------------------------
@@ -287,7 +298,7 @@ class SpectralAnalyzer:
             x_c = x - x.mean()
 
             # Vectorised least-squares detrending over all segments at once
-            slopes = (segs * x_c).sum(axis=1) / (x_c ** 2).sum()
+            slopes = (segs * x_c).sum(axis=1) / (x_c**2).sum()
             intercepts = segs.mean(axis=1) - slopes * x.mean()
             trends = slopes[:, None] * x + intercepts[:, None]
 
@@ -507,9 +518,7 @@ class MarkovianNullModel:
         if pooled_std < 1e-10:
             cohens_d = 0.0
         else:
-            cohens_d = float(
-                (H_apgi_arr.mean() - H_null_arr.mean()) / pooled_std
-            )
+            cohens_d = float((H_apgi_arr.mean() - H_null_arr.mean()) / pooled_std)
 
         H_null_mean = float(H_null_arr.mean())
 
@@ -584,7 +593,13 @@ def generate_figure(
     # ------------------------------------------------------------------
     ax = axes[0, 0]
     mask_100 = time_s <= 100.0
-    ax.plot(time_s[mask_100], theta_total[mask_100], color="#2166AC", lw=0.8, label="θ_total")
+    ax.plot(
+        time_s[mask_100],
+        theta_total[mask_100],
+        color=VISUAL_CONSTANTS.ST_BLUE,
+        lw=0.8,
+        label="θ_total",
+    )
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("θ_total")
     ax.set_title("Nested OU Composite Signal (first 100 s)")
@@ -597,7 +612,13 @@ def generate_figure(
     f_arr = np.array(spectral_result.psd_f)
     S_arr = np.array(spectral_result.psd_S)
     mask_pos = f_arr > 0
-    ax.loglog(f_arr[mask_pos], S_arr[mask_pos], color="#555555", lw=0.7, label="PSD")
+    ax.loglog(
+        f_arr[mask_pos],
+        S_arr[mask_pos],
+        color=VISUAL_CONSTANTS.HC_GREY,
+        lw=0.7,
+        label="PSD",
+    )
 
     # Fitted power-law overlay
     f_fit = f_arr[mask_pos]
@@ -611,20 +632,22 @@ def generate_figure(
             f_line,
             S_line,
             "--",
-            color="#D6604D",
+            color=VISUAL_CONSTANTS.THETA_RED,
             lw=1.5,
             label=f"β={spectral_result.beta_spectral:.2f}",
         )
 
     # Detected breakpoints
     for bp in spectral_result.breakpoint_freqs_Hz:
-        ax.axvline(bp, color="#41AB5D", lw=1.0, ls="--", alpha=0.8)
+        ax.axvline(
+            bp, color=VISUAL_CONSTANTS.IGNITION_GREEN, lw=1.0, ls="--", alpha=0.8
+        )
 
     # Theoretical τ_l^{-1} markers
-    for l, tau_l in enumerate(tau_array):
-        f_tau = 1.0 / tau_l
-        color = LEVEL_COLORS.get(l, "#333333")
-        ax.axvline(f_tau, color=color, lw=0.8, ls=":", alpha=0.7, label=f"1/τ_{l}")
+    for idx, tau_level in enumerate(tau_array):
+        f_tau = 1.0 / tau_level
+        color = LEVEL_COLORS.get(idx, VISUAL_CONSTANTS.HC_GREY)
+        ax.axvline(f_tau, color=color, lw=0.8, ls=":", alpha=0.7, label=f"1/τ_{idx}")
 
     ax.set_xlabel("Frequency (Hz)")
     ax.set_ylabel("PSD")
@@ -638,7 +661,15 @@ def generate_figure(
     scales_arr = np.array(spectral_result.scales, dtype=float)
     F_arr = np.array(spectral_result.F_n)
     if len(scales_arr) > 1:
-        ax.loglog(scales_arr, F_arr, "o-", color="#2166AC", ms=3, lw=1.0, label="APGI")
+        ax.loglog(
+            scales_arr,
+            F_arr,
+            "o-",
+            color=VISUAL_CONSTANTS.ST_BLUE,
+            ms=3,
+            lw=1.0,
+            label="APGI",
+        )
 
         # Slope guide
         sc_mid = np.sqrt(scales_arr[0] * scales_arr[-1])
@@ -649,7 +680,7 @@ def generate_figure(
             sc_line,
             F_line,
             "--",
-            color="#D6604D",
+            color=VISUAL_CONSTANTS.THETA_RED,
             lw=1.5,
             label=f"H={spectral_result.H_dfa:.3f}",
         )
@@ -681,15 +712,26 @@ def generate_figure(
         n_vals = sorted(sensitivity_H.keys())
         h_vals = [sensitivity_H[n] for n in n_vals]
         colors_bar = [LEVEL_COLORS.get(i % 5, "#555555") for i in range(len(n_vals))]
-        ax.bar([str(n) for n in n_vals], h_vals, color=colors_bar, edgecolor="k", lw=0.7)
-        ax.axhline(0.7, color="#D6604D", lw=1.5, ls="--", label="H=0.7 (APGI threshold)")
+        ax.bar(
+            [str(n) for n in n_vals], h_vals, color=colors_bar, edgecolor="k", lw=0.7
+        )
+        ax.axhline(
+            0.7, color="#D6604D", lw=1.5, ls="--", label="H=0.7 (APGI threshold)"
+        )
         ax.set_xlabel("Number of OU levels (N)")
         ax.set_ylabel("Hurst exponent H")
         ax.set_title("N-level Sensitivity: H vs N")
         ax.set_ylim(0, 1.2)
         ax.legend(fontsize=8)
     else:
-        ax.text(0.5, 0.5, "No sensitivity data", ha="center", va="center", transform=ax.transAxes)
+        ax.text(
+            0.5,
+            0.5,
+            "No sensitivity data",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+        )
         ax.set_title("N-level Sensitivity")
 
     plt.tight_layout()

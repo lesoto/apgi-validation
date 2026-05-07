@@ -230,6 +230,9 @@ class APGIHierarchy:
         """Eq 10.1: Level Count"""
         if overlap <= 1:
             return 1
+        # Handle edge case where tau_max == tau_min (log(1) = 0)
+        if tau_max <= tau_min:
+            return 1
         return int(np.ceil(np.log(tau_max / tau_min) / np.log(overlap)))
 
     @staticmethod
@@ -283,6 +286,39 @@ class APGIValidationMetrics:
     def hurst_exponent(beta_spec: float) -> float:
         """Eq 13.2: Hurst Exponent (H = (beta + 1) / 2)"""
         return (beta_spec + 1) / 2.0
+
+    @staticmethod
+    def bayesian_evidence(data: np.ndarray, model_pred: np.ndarray) -> float:
+        """Compute Bayesian evidence approximation."""
+        if len(data) == 0 or len(model_pred) == 0:
+            raise ValueError("Data and model predictions cannot be empty")
+        
+        # Simple evidence approximation based on likelihood
+        # E = exp(-0.5 * sum((data - model_pred)^2 / sigma^2))
+        # Assuming unit variance for simplicity
+        mse = np.mean((data - model_pred) ** 2)
+        evidence = np.exp(-0.5 * len(data) * mse)
+        return float(evidence)
+
+    @staticmethod
+    def kl_divergence(p: np.ndarray, q: np.ndarray) -> float:
+        """Compute Kullback-Leibler divergence D_KL(P||Q)."""
+        if len(p) == 0 or len(q) == 0:
+            raise ValueError("Probability distributions cannot be empty")
+        
+        if np.any(p < 0) or np.any(q < 0):
+            raise ValueError("Probabilities must be non-negative")
+        
+        # Normalize to ensure they sum to 1
+        p_norm = p / np.sum(p)
+        q_norm = q / np.sum(q)
+        
+        # Avoid division by zero
+        q_norm = np.where(q_norm == 0, 1e-10, q_norm)
+        
+        # Compute KL divergence: D_KL(P||Q) = sum(P * log(P/Q))
+        kl_div = np.sum(p_norm * np.log(p_norm / q_norm))
+        return float(kl_div)
 
 
 class APGISystem:

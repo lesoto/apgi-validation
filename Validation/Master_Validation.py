@@ -5,6 +5,20 @@ APGI Master Validation Module
 
 Provides APGIMasterValidator class for validation protocol management.
 This is a compatibility layer that wraps the APGIMasterFalsifier.
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the master validation system fails to coordinate validation protocols effectively,
+or if the compatibility layer introduces errors >5% compared to direct falsifier usage,
+or if the validation management system cannot handle all protocol types,
+then the APGI master validation system claim is falsified. This would indicate that
+the validation coordination framework is not robust.
 """
 
 import sys

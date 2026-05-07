@@ -21,6 +21,8 @@ except ImportError:
     HAS_MATPLOTLIB = False
     plt = None
 
+from utils.constants import VISUAL_CONSTANTS
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,13 +94,13 @@ class ProtocolVisualizer:
 
         # Color based on status
         colors = {
-            "PASS": "#2ecc71",  # Green
-            "FAIL": "#e74c3c",  # Red
-            "ERROR": "#f39c12",  # Orange
-            "UNKNOWN": "#95a5a6",  # Gray
+            "PASS": VISUAL_CONSTANTS.STATUS_PASS,
+            "FAIL": VISUAL_CONSTANTS.STATUS_FAIL,
+            "ERROR": VISUAL_CONSTANTS.STATUS_ERROR,
+            "UNKNOWN": VISUAL_CONSTANTS.STATUS_UNKNOWN,
         }
 
-        color = colors.get(status, "#95a5a6")
+        color = colors.get(status, VISUAL_CONSTANTS.STATUS_UNKNOWN)
 
         # Create status indicator
         ax.bar(1, 1, color=color, width=0.5)
@@ -135,7 +137,7 @@ class ProtocolVisualizer:
         if total > 0:
             sizes = [passed, failed]
             labels = ["Passed", "Failed"]
-            colors = ["#2ecc71", "#e74c3c"]
+            colors = [VISUAL_CONSTANTS.STATUS_PASS, VISUAL_CONSTANTS.STATUS_FAIL]
 
             wedges, texts, autotexts = ax.pie(
                 sizes, labels=labels, colors=colors, autopct="%d%%"

@@ -28,6 +28,20 @@ MEASUREMENT GAPS (required hedging per APGI Paper 4)
     population spiking density (Ray & Maunsell 2011) but is NOT a direct
     single-unit firing-rate measure.  The stronger bimodality prediction
     (P6a) requires Utah-array or tetrode recordings not available in
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If high-gamma power does not show bimodal distribution (GMM fit AIC < single Gaussian),
+or if conscious trials do not show higher high-gamma mode occupancy (Cohen's d < 0.50),
+or if critical slowing signatures are absent near threshold (AC1 difference p > 0.05),
+then the APGI iEEG neural signature claim is falsified. This would indicate that
+intracranial EEG does not support APGI predictions about neural dynamics.
     standard clinical iEEG.  Results here constitute Level 3 (neural
     correlate) evidence, not Level 1 (single-neuron) ground-truth.
 
@@ -104,11 +118,17 @@ V20_VARIANCE_ADVANTAGE_MIN: float = 0.10
 
 # Try to override with centralized values if available
 try:
+    from utils.falsification_thresholds import DEFAULT_ALPHA as _DEFAULT_ALPHA
     from utils.falsification_thresholds import (
-        DEFAULT_ALPHA as _DEFAULT_ALPHA,
         V20_AC1_ADVANTAGE_MIN as _V20_AC1_ADVANTAGE_MIN,
+    )
+    from utils.falsification_thresholds import (
         V20_HG_BIMODALITY_COEFF_MIN as _V20_HG_BIMODALITY_COEFF_MIN,
+    )
+    from utils.falsification_thresholds import (
         V20_HG_OCCUPANCY_COHENS_D_MIN as _V20_HG_OCCUPANCY_COHENS_D_MIN,
+    )
+    from utils.falsification_thresholds import (
         V20_VARIANCE_ADVANTAGE_MIN as _V20_VARIANCE_ADVANTAGE_MIN,
     )
 
@@ -119,6 +139,8 @@ try:
     V20_VARIANCE_ADVANTAGE_MIN = _V20_VARIANCE_ADVANTAGE_MIN
 except ImportError:
     pass
+
+from utils.constants import VISUAL_CONSTANTS
 
 logger = logging.getLogger(__name__)
 
@@ -984,7 +1006,7 @@ def generate_p6a_figure(
     ax2.bar(
         ["Conscious", "Unconscious"],
         [bc_val, gmm_result.get("bimodality_unconscious", 0)],
-        color=["steelblue", "salmon"],
+        color=[VISUAL_CONSTANTS.ST_BLUE, VISUAL_CONSTANTS.THETA_RED],
     )
     ax2.axhline(
         bc_threshold, color="red", linestyle="--", label=f"Threshold ({bc_threshold})"

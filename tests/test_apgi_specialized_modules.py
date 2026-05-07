@@ -44,8 +44,6 @@ for module_name in SPECIALIZED_MODULE_NAMES:
     try:
         # Convert hyphenated name to underscore for import
         import_name = module_name.replace("-", "_").replace(".py", "")
-        if module_name == "main.py":
-            import_name = "main"
 
         # Use importlib for better import handling
         import importlib.util

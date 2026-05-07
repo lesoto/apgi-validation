@@ -84,6 +84,10 @@ class APGILogger:
         # Return empty dict for now - in production this would aggregate metrics
         return {}
 
+    def log_error_with_context(self, error: Exception, context: dict) -> None:
+        """Log an error with context information."""
+        self.logger.error(f"Error: {str(error)}, Context: {context}")
+
 
 # Export aliases for compatibility
 apgi_logger = APGILogger(logger)
@@ -92,3 +96,8 @@ apgi_logger = APGILogger(logger)
 def log_error(message: str) -> None:
     """Log an error message."""
     logger.error(message)
+
+
+def log_error_with_context(error: Exception, context: dict) -> None:
+    """Log an error with context information."""
+    logger.error(f"Error: {str(error)}, Context: {context}")

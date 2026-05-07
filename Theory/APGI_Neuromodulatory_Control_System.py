@@ -18,14 +18,37 @@ Neuromodulator mappings:
   5-HT   → ↑θₜ stability (5-HT2A cortical; Celada et al. 2013)
   Hist   → arousal floor, Πᵉ floor (H1; Haas & Panula 2003)
   Orexin → global ignition steepness α (Sakurai 2007)
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If neuromodulatory effects do NOT follow the predicted exponential mapping
+(parameter modulation error > 40% from predicted values, directionality
+violations > 25% of mappings, or cross-modulatory interactions > 30% from
+additive predictions), then the APGI neuromodulatory control system is
+falsified. This would indicate that neuromodulators do not systematically
+modulate APGI parameters as predicted by the framework.
+
 """
 
 import logging
 import warnings
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
+
+# Add parent directory to path for utils imports
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent))
+from utils.constants import VISUAL_CONSTANTS
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -48,38 +71,78 @@ logger = logging.getLogger(__name__)
 # κ parameter registry (literature-grounded)
 # ---------------------------------------------------------------------------
 
-KAPPA_ACh = 0.5       # M1 muscarinic τ-shortening; Hasselmo & McGaughy 2004
-KAPPA_NE = 0.8        # α2A adrenergic θ-lowering; Arnsten 2011
-KAPPA_DA = 0.6        # D1 vmPFC value amplification; Frank & Claus 2006
-KAPPA_5HT = 0.4       # 5-HT2A cortical gain stabilization; Celada et al. 2013
-KAPPA_HIST = 0.3      # H1 arousal floor; Haas & Panula 2003
-KAPPA_OREXIN = 0.7    # Global gain on α; Sakurai 2007
+KAPPA_ACh = 0.5  # M1 muscarinic τ-shortening; Hasselmo & McGaughy 2004
+KAPPA_NE = 0.8  # α2A adrenergic θ-lowering; Arnsten 2011
+KAPPA_DA = 0.6  # D1 vmPFC value amplification; Frank & Claus 2006
+KAPPA_5HT = 0.4  # 5-HT2A cortical gain stabilization; Celada et al. 2013
+KAPPA_HIST = 0.3  # H1 arousal floor; Haas & Panula 2003
+KAPPA_OREXIN = 0.7  # Global gain on α; Sakurai 2007
 
 # Canonical neuromodulator profiles (normalized concentrations 0–1)
 CANONICAL_PROFILES: Dict[str, Dict[str, float]] = {
     "baseline": {
-        "NE": 0.3, "ACh": 0.3, "DA": 0.3, "5HT": 0.3, "hist": 0.3, "orexin": 0.3
+        "NE": 0.3,
+        "ACh": 0.3,
+        "DA": 0.3,
+        "5HT": 0.3,
+        "hist": 0.3,
+        "orexin": 0.3,
     },
     "high_ACh_vigilance": {
-        "NE": 0.4, "ACh": 0.8, "DA": 0.3, "5HT": 0.3, "hist": 0.5, "orexin": 0.5
+        "NE": 0.4,
+        "ACh": 0.8,
+        "DA": 0.3,
+        "5HT": 0.3,
+        "hist": 0.5,
+        "orexin": 0.5,
     },
     "high_NE_stress": {
-        "NE": 0.9, "ACh": 0.4, "DA": 0.4, "5HT": 0.2, "hist": 0.4, "orexin": 0.6
+        "NE": 0.9,
+        "ACh": 0.4,
+        "DA": 0.4,
+        "5HT": 0.2,
+        "hist": 0.4,
+        "orexin": 0.6,
     },
     "high_DA_reward": {
-        "NE": 0.3, "ACh": 0.4, "DA": 0.9, "5HT": 0.4, "hist": 0.4, "orexin": 0.4
+        "NE": 0.3,
+        "ACh": 0.4,
+        "DA": 0.9,
+        "5HT": 0.4,
+        "hist": 0.4,
+        "orexin": 0.4,
     },
     "low_5HT_depression": {
-        "NE": 0.3, "ACh": 0.3, "DA": 0.2, "5HT": 0.05, "hist": 0.3, "orexin": 0.3
+        "NE": 0.3,
+        "ACh": 0.3,
+        "DA": 0.2,
+        "5HT": 0.05,
+        "hist": 0.3,
+        "orexin": 0.3,
     },
     "low_ACh_cognitive_decline": {
-        "NE": 0.3, "ACh": 0.05, "DA": 0.3, "5HT": 0.3, "hist": 0.3, "orexin": 0.3
+        "NE": 0.3,
+        "ACh": 0.05,
+        "DA": 0.3,
+        "5HT": 0.3,
+        "hist": 0.3,
+        "orexin": 0.3,
     },
     "psychedelic_5HT2A": {
-        "NE": 0.4, "ACh": 0.3, "DA": 0.5, "5HT": 0.9, "hist": 0.3, "orexin": 0.5
+        "NE": 0.4,
+        "ACh": 0.3,
+        "DA": 0.5,
+        "5HT": 0.9,
+        "hist": 0.3,
+        "orexin": 0.5,
     },
     "sleep": {
-        "NE": 0.05, "ACh": 0.05, "DA": 0.2, "5HT": 0.4, "hist": 0.9, "orexin": 0.05
+        "NE": 0.05,
+        "ACh": 0.05,
+        "DA": 0.2,
+        "5HT": 0.4,
+        "hist": 0.9,
+        "orexin": 0.05,
     },
 }
 
@@ -96,7 +159,7 @@ class NeuromodProfile:
     NE: float = 0.3
     ACh: float = 0.3
     DA: float = 0.3
-    serotonin: float = 0.3   # 5-HT
+    serotonin: float = 0.3  # 5-HT
     hist: float = 0.3
     orexin: float = 0.3
 
@@ -110,12 +173,12 @@ class NeuromodProfile:
 class APGIParameterSet:
     """APGI parameters derived from a neuromodulator profile."""
 
-    theta_eff: float = 0.5      # effective ignition threshold
-    Pi_e: float = 1.0           # exteroceptive precision multiplier
-    Pi_i: float = 1.0           # interoceptive precision multiplier
-    alpha_eff: float = 8.0      # ignition steepness
-    gamma_V: float = 1.0        # somatic-marker valence weight
-    tau_e_eff: float = 0.3      # effective exteroceptive time constant
+    theta_eff: float = 0.5  # effective ignition threshold
+    Pi_e: float = 1.0  # exteroceptive precision multiplier
+    Pi_i: float = 1.0  # interoceptive precision multiplier
+    alpha_eff: float = 8.0  # ignition steepness
+    gamma_V: float = 1.0  # somatic-marker valence weight
+    tau_e_eff: float = 0.3  # effective exteroceptive time constant
 
 
 @dataclass
@@ -277,9 +340,9 @@ class APGINeuromodulatorSystem:
 
         if stimulus_stream is None:
             # Default: ramp stimulus with noise
-            stimulus_stream = (
-                0.3 * np.linspace(0, 1, n_steps) + 0.1 * rng.standard_normal(n_steps)
-            )
+            stimulus_stream = 0.3 * np.linspace(
+                0, 1, n_steps
+            ) + 0.1 * rng.standard_normal(n_steps)
 
         tau_e = params.tau_e_eff
         alpha = params.alpha_eff
@@ -306,7 +369,9 @@ class APGINeuromodulatorSystem:
 
         n_ignitions = len(ignition_times)
         ignition_prob = n_ignitions / max(1.0, duration_s)
-        mean_latency = float(np.mean(ignition_times)) if ignition_times else float("nan")
+        mean_latency = (
+            float(np.mean(ignition_times)) if ignition_times else float("nan")
+        )
         bandwidth = float(np.std(S[S > theta])) if np.any(S > theta) else 0.0
 
         return SimulationResult(
@@ -325,9 +390,7 @@ class APGINeuromodulatorSystem:
     # Profile sweep
     # ------------------------------------------------------------------
 
-    def run_profile_sweep(
-        self, duration_s: float = 2.0
-    ) -> Dict[str, SimulationResult]:
+    def run_profile_sweep(self, duration_s: float = 2.0) -> Dict[str, SimulationResult]:
         """Run simulation for all 8 canonical neuromodulator profiles."""
         results = {}
         for name, concs in CANONICAL_PROFILES.items():
@@ -383,9 +446,7 @@ class APGINeuromodulatorSystem:
             )
 
         if baseline and low_ach:
-            checks["low_ACh_reduces_Pi_e"] = (
-                low_ach.params.Pi_e < baseline.params.Pi_e
-            )
+            checks["low_ACh_reduces_Pi_e"] = low_ach.params.Pi_e < baseline.params.Pi_e
 
         if baseline and psychedelic:
             checks["psychedelic_increases_alpha"] = (
@@ -464,9 +525,18 @@ class APGINeuromodulatorSystem:
         for ax, vals, title, color in zip(
             axes.flat,
             [theta_vals, alpha_vals, pie_vals, ignition_vals],
-            ["θₜ_eff (ignition threshold)", "α_eff (ignition steepness)",
-             "Πᵉ_eff (extero precision)", "P(ignition) per second"],
-            ["#2874a6", "#155724", "#856404", "#721c24"],
+            [
+                "θₜ_eff (ignition threshold)",
+                "α_eff (ignition steepness)",
+                "Πᵉ_eff (extero precision)",
+                "P(ignition) per second",
+            ],
+            [
+                VISUAL_CONSTANTS.ST_BLUE,
+                VISUAL_CONSTANTS.IGNITION_GREEN,
+                VISUAL_CONSTANTS.INTERO_AMBER,
+                VISUAL_CONSTANTS.THETA_RED,
+            ],
         ):
             bars = ax.bar(x, vals, color=color, alpha=0.8)
             ax.set_xticks(x)
@@ -487,6 +557,7 @@ class APGINeuromodulatorSystem:
 
         if save_path is None:
             import tempfile
+
             save_path = tempfile.mktemp(suffix="_neuromod_profiles.png")
 
         plt.savefig(save_path, dpi=100, bbox_inches="tight")

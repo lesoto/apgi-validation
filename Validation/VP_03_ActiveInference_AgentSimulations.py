@@ -12,6 +12,21 @@ This protocol implements:
 - Three task environments (IGT, Foraging, Threat-Reward)
 - Comprehensive analysis and falsification framework
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If APGI agents do NOT show adaptive advantages over baselines (performance
+improvement < 18% across tasks, interoceptive precision contribution < 25%,
+or ignition events do not correlate with optimal decisions > 70% of the time),
+then the APGI active inference advantage claim is falsified. This would indicate
+that precision-weighted hierarchical inference does not provide the adaptive
+benefits predicted by the framework.
+
 """
 
 import json
@@ -51,7 +66,7 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from utils.constants import DIM_CONSTANTS, LEVEL_TIMESCALES
+from utils.constants import DIM_CONSTANTS, LEVEL_TIMESCALES, VISUAL_CONSTANTS
 
 # Import falsification thresholds
 # ---------------------------------------------------------------------------
@@ -2776,10 +2791,10 @@ def plot_experiment_results(
     gs = fig.add_gridspec(3, 4, hspace=0.3, wspace=0.3)
 
     colors = {
-        "APGI": "#2E86AB",
-        "StandardPP": "#A23B72",
-        "GWTOnly": "#F18F01",
-        "ActorCritic": "#06A77D",
+        "APGI": VISUAL_CONSTANTS.ST_BLUE,
+        "StandardPP": VISUAL_CONSTANTS.ALLOSTATIC_PURPLE,
+        "GWTOnly": VISUAL_CONSTANTS.INTERO_AMBER,
+        "ActorCritic": VISUAL_CONSTANTS.IGNITION_GREEN,
     }
 
     # Row 1: Cumulative rewards
@@ -2842,7 +2857,13 @@ def plot_experiment_results(
 
     ax.set_ylabel("Convergence Trial", fontsize=11, fontweight="bold")
     ax.set_title("IGT Convergence Speed", fontsize=12, fontweight="bold")
-    ax.axhline(y=80, color="red", linestyle="--", linewidth=2, label="Human benchmark")
+    ax.axhline(
+        y=80,
+        color=VISUAL_CONSTANTS.THETA_RED,
+        linestyle="--",
+        linewidth=2,
+        label="Human benchmark",
+    )
     ax.legend(fontsize=9)
     ax.grid(axis="y", alpha=0.3)
 
@@ -2864,9 +2885,15 @@ def plot_experiment_results(
         ax.set_ylabel("Proportion of Ignitions", fontsize=11, fontweight="bold")
         ax.set_title("APGI Ignition Sources (IGT)", fontsize=12, fontweight="bold")
         ax.axhline(
-            y=0.70, color="green", linestyle="--", linewidth=2, label="Prediction range"
+            y=0.70,
+            color=VISUAL_CONSTANTS.IGNITION_GREEN,
+            linestyle="--",
+            linewidth=2,
+            label="Prediction range",
         )
-        ax.axhline(y=0.85, color="green", linestyle="--", linewidth=2)
+        ax.axhline(
+            y=0.85, color=VISUAL_CONSTANTS.IGNITION_GREEN, linestyle="--", linewidth=2
+        )
         ax.legend(fontsize=9)
         ax.grid(axis="y", alpha=0.3)
 
@@ -2883,7 +2910,7 @@ def plot_experiment_results(
                 ["Ignition\nCoefficient"],
                 [coef],
                 xerr=[[coef - ci[0]], [ci[1] - coef]],
-                color="purple",
+                color=VISUAL_CONSTANTS.ALLOSTATIC_PURPLE,
                 alpha=0.7,
                 edgecolor="black",
                 linewidth=2,

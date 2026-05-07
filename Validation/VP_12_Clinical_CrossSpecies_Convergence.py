@@ -11,6 +11,22 @@ This protocol validates:
 - Cross-species homologies in ignition signatures
 - Convergence between APGI (algorithmic) and IIT (implementational) descriptions
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If clinical populations do not show the predicted APGI parameter deviations
+(effect size < 0.5 Cohen's d from healthy controls), or if cross-species
+homologies fail to align with predicted scaling relationships (R² < 0.7),
+or if convergence between APGI and IIT descriptions cannot be demonstrated
+(correlation < 0.6 between frameworks), then the APGI clinical and cross-species
+convergence claim is falsified. This would indicate that APGI does not generalize
+across clinical populations and species.
+
 """
 
 import logging

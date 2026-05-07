@@ -17,7 +17,7 @@ class TestStandard:
 
     def test_standard_creation(self):
         """Test creating a standard."""
-        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+        from utils.seven_standards_registry import StandardCategory, ValidationCriterion
 
         standard = Standard(
             standard_id="TEST-001",
@@ -63,7 +63,7 @@ class TestStandardsRegistry:
 
     def test_register_standard(self):
         """Test registering a standard."""
-        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+        from utils.seven_standards_registry import StandardCategory, ValidationCriterion
 
         registry = StandardsRegistry()
         standard = Standard(
@@ -91,7 +91,7 @@ class TestStandardsRegistry:
 
     def test_get_standard(self):
         """Test retrieving a standard."""
-        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+        from utils.seven_standards_registry import StandardCategory, ValidationCriterion
 
         registry = StandardsRegistry()
         standard = Standard(
@@ -131,7 +131,7 @@ class TestRegisterStandard:
 
     def test_register_global_standard(self):
         """Test registering to global registry."""
-        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+        from utils.seven_standards_registry import StandardCategory, ValidationCriterion
 
         standard = Standard(
             standard_id="GLOBAL-001",
@@ -164,7 +164,7 @@ class TestGetStandard:
 
     def test_get_existing_standard(self):
         """Test getting an existing standard."""
-        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+        from utils.seven_standards_registry import StandardCategory, ValidationCriterion
 
         # Register first
         standard = Standard(
@@ -218,7 +218,7 @@ class TestCheckCompliance:
 
     def test_check_full_compliance(self):
         """Test checking full compliance."""
-        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+        from utils.seven_standards_registry import StandardCategory, ValidationCriterion
 
         standard = Standard(
             standard_id="COMP-001",
@@ -257,7 +257,7 @@ class TestCheckCompliance:
 
     def test_check_partial_compliance(self):
         """Test checking partial compliance."""
-        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+        from utils.seven_standards_registry import StandardCategory, ValidationCriterion
 
         standard = Standard(
             standard_id="PART-001",

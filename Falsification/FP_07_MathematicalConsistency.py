@@ -26,6 +26,20 @@ Four Canonical APGI Equations Tested:
 Tolerance Specification:
 -----------------------
 Per V5.1 criteria_registry: numerical accuracy ε ≤ 1e-6
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If mathematical consistency checks fail (dimensional homogeneity violations,
+derivative sign errors, or asymptotic behavior deviations > 5%), or if numerical
+accuracy falls below ε ≤ 1e-6, or if the equations do not satisfy theoretical
+constraints (stability violations), then the APGI mathematical consistency claim
+is falsified. This would indicate that APGI equations are not mathematically sound.
 """
 
 import csv
@@ -50,6 +64,9 @@ from enum import Enum
 
 from scipy import linalg
 from scipy.integrate import solve_ivp
+
+# Add VISUAL_CONSTANTS import for color palette compliance
+from utils.constants import VISUAL_CONSTANTS
 
 # Removed for GUI stability
 logger = logging.getLogger(__name__)
@@ -3565,7 +3582,7 @@ if __name__ == "__main__":
 
             metrics = ["Passed", "Failed"]
             values = [passed, total - passed]
-            colors = ["#2ecc71", "#e74c3c"]
+            colors = [VISUAL_CONSTANTS.STATUS_PASS, VISUAL_CONSTANTS.STATUS_FAIL]
 
             wedges, texts, autotexts = ax.pie(
                 values, labels=metrics, colors=colors, autopct="%1.1f%%"

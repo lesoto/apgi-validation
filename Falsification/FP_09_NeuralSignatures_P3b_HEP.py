@@ -4,6 +4,20 @@ Falsification Protocol 9: Neural Signatures Validation
 
 This protocol implements validation of neural signatures for consciousness markers.
 Per Step 1.6 - Implement FP-9 real EEG signal processing.
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If neural signatures do not show predicted P3b amplitude scaling with precision
+(R² < 0.7), or if HEP deviation does not correlate with interoceptive precision
+(r < 0.5), or if the P3b-HEP coupling does not match theoretical predictions
+(coupling strength deviation > 30%), then the APGI neural signature claim is falsified.
+This would indicate that EEG markers do not support APGI predictions about conscious access.
 """
 
 import csv  # noqa: F401
@@ -221,6 +235,7 @@ def detect_ecg_r_peaks(
 
 from dataclasses import dataclass
 from enum import Enum
+from utils.constants import VISUAL_CONSTANTS
 
 # MNE compatibility (conditional import)
 try:
@@ -3712,7 +3727,10 @@ if __name__ == "__main__":
                 if total > 0:
                     metrics = ["Passed", "Failed"]
                     values = [passed, total - passed]
-                    colors = ["#2ecc71", "#e74c3c"]
+                    colors = [
+                        VISUAL_CONSTANTS.STATUS_PASS,
+                        VISUAL_CONSTANTS.STATUS_FAIL,
+                    ]
 
                     wedges, texts, autotexts = ax.pie(
                         values, labels=metrics, colors=colors, autopct="%1.1f%%"

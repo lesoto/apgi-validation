@@ -17,6 +17,20 @@ Falsification Criteria:
 - F8.SA: Sobol indices show β, Πⁱ account for >50% total sensitivity
 - F8.PL: Profile likelihood confidence intervals are finite
 - F8.FIM: Fisher Information Matrix is positive definite
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If Sobol indices do not show β and Πⁱ accounting for >50% total sensitivity,
+or if profile likelihood confidence intervals are infinite, or if the Fisher
+Information Matrix is not positive definite (negative eigenvalues), then the
+APGI parameter identifiability claim is falsified. This would indicate that
+APGI parameters are not identifiable from behavioral data.
 """
 
 import logging
@@ -26,6 +40,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+from utils.constants import VISUAL_CONSTANTS
 
 warnings.filterwarnings("ignore")
 
@@ -3304,7 +3319,7 @@ if __name__ == "__main__":
             if total > 0:
                 metrics = ["Passed", "Failed"]
                 values = [passed, total - passed]
-                colors = ["#2ecc71", "#e74c3c"]
+                colors = [VISUAL_CONSTANTS.STATUS_PASS, VISUAL_CONSTANTS.STATUS_FAIL]
 
                 wedges, texts, autotexts = ax.pie(
                     values, labels=metrics, colors=colors, autopct="%1.1f%%"

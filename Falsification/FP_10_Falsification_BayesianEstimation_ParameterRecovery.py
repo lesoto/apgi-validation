@@ -12,6 +12,21 @@ Implementation Strategy:
 2. Run MCMC Bayesian estimation to recover parameters
 3. Compare recovered vs. true parameters with statistical tests
 4. Validate parameter identifiability and recovery accuracy
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If parameter recovery accuracy falls below r > 0.8 correlation between true
+and recovered parameters, or if the recovery process shows systematic bias
+(mean error > 10% of parameter range), or if the confidence intervals
+do not contain true parameters >90% of the time, then the APGI parameter
+recovery falsification claim is falsified. This would indicate that
+APGI parameters cannot be reliably recovered from data.
 """
 
 import csv
@@ -35,6 +50,7 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 # Import canonical MCMC functionality
+from utils.constants import VISUAL_CONSTANTS
 from Falsification.FP_10_BayesianEstimation_MCMC import (
     BayesianParameterRecovery,
     generate_synthetic_data,
@@ -384,7 +400,9 @@ class FP10bParameterRecovery:
             # Plot 1: Overall validation status
             ax1 = axes[0, 0]
             passed = summary.get("validation_passed", False)
-            colors = ["#2ecc71" if passed else "#e74c3c"]
+            colors = [
+                VISUAL_CONSTANTS.STATUS_PASS if passed else VISUAL_CONSTANTS.STATUS_FAIL
+            ]
             ax1.bar(["Validation"], [1 if passed else 0], color=colors)
             ax1.set_title("Validation Status")
             ax1.set_ylabel("Pass (1) / Fail (0)")
@@ -404,7 +422,10 @@ class FP10bParameterRecovery:
                 ax2.set_title("Parameter Recovery Errors")
                 ax2.set_xlabel("Mean Relative Error")
                 ax2.axvline(
-                    x=0.1, color="#e74c3c", linestyle="--", label="Threshold (0.1)"
+                    x=0.1,
+                    color=VISUAL_CONSTANTS.STATUS_FAIL,
+                    linestyle="--",
+                    label="Threshold (0.1)",
                 )
                 ax2.legend()
 
@@ -436,7 +457,7 @@ class FP10bParameterRecovery:
             if total > 0:
                 sizes = [passing, total - passing]
                 labels = [f"Passing ({passing})", f"Failing ({total - passing})"]
-                colors = ["#2ecc71", "#e74c3c"]
+                colors = [VISUAL_CONSTANTS.STATUS_PASS, VISUAL_CONSTANTS.STATUS_FAIL]
                 ax4.pie(
                     sizes,
                     labels=labels,

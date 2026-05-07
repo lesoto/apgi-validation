@@ -11,6 +11,20 @@ CRITICAL FEATURES:
 - Allometric scaling exponents for {Πⁱ, θₜ, τS} vs. brain mass
 - Standardized statistical tests: paired t-tests, sign-flipping permutation, Wilcoxon
 - Clinical/Pharmacological convergence models (Propofol, DoC)
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If allometric scaling exponents deviate >30% from predicted values, or if clinical
+convergence models fail to match empirical pharmacological data (R² < 0.6), or if
+the LTC analysis does not reproduce predicted scaling relationships (prediction error > 25%),
+then the APGI cross-species scaling claim is falsified. This would indicate that
+APGI does not follow conserved biological scaling laws.
 """
 
 import csv  # noqa: F401
@@ -39,7 +53,7 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from utils.constants import APGI_GLOBAL_SEED
+from utils.constants import APGI_GLOBAL_SEED, VISUAL_CONSTANTS
 from utils.falsification_thresholds import (
     F6_1_LTCN_MAX_TRANSITION_MS,
     F6_2_LTCN_MIN_WINDOW_MS,
@@ -919,9 +933,9 @@ def _save_fp12_outputs(results: Dict[str, Any]) -> None:
                 for pred in pred_names:
                     passed = named_predictions.get(pred, {}).get("passed", False)
                     if passed:
-                        status_colors.append("#2ecc71")
+                        status_colors.append(VISUAL_CONSTANTS.STATUS_PASS)
                     else:
-                        status_colors.append("#e74c3c")
+                        status_colors.append(VISUAL_CONSTANTS.STATUS_FAIL)
 
                 bars = ax.bar(pred_names, [1] * len(pred_names), color=status_colors)
                 ax.set_title("Cross-Species Scaling Predictions")

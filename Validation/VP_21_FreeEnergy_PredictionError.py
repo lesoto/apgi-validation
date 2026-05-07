@@ -29,6 +29,21 @@ Exteroceptive PE proxy — Mismatch Negativity (MMN):
     window after deviant onset.  Amplitude tracks exteroceptive PE
     magnitude (larger MMN → higher surprise / free energy).
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If prediction-error proxies do not correlate with free energy approximations
+(r < 0.7), or if the dual-channel PE tracking fails to capture expected
+deviation patterns (prediction accuracy < 80%), or if the PE-to-F mapping
+does not follow theoretical predictions (error > 20%), then the APGI
+free energy approximation claim is falsified. This would indicate that
+PE tracking cannot serve as a reliable proxy for variational free energy.
+
 Interoceptive PE proxy — Heartbeat-Evoked Potential (HEP) deviation:
     EEG epochs time-locked to ECG R-peaks.  HEP deviation = mean
     amplitude in the 200–500 ms post-R-peak window relative to a
@@ -112,12 +127,12 @@ V21_IGNITION_TRANSIENT_RATIO: float = 1.20  # spike must be ≥1.20× pre-igniti
 
 # Try to override with centralized values if available
 try:
+    from utils.falsification_thresholds import DEFAULT_ALPHA as _DEFAULT_ALPHA
+    from utils.falsification_thresholds import V21_HEP_MIN_R2 as _V21_HEP_MIN_R2
     from utils.falsification_thresholds import (
-        DEFAULT_ALPHA as _DEFAULT_ALPHA,
-        V21_HEP_MIN_R2 as _V21_HEP_MIN_R2,
         V21_IGNITION_TRANSIENT_RATIO as _V21_IGNITION_TRANSIENT_RATIO,
-        V21_MMN_MIN_R2 as _V21_MMN_MIN_R2,
     )
+    from utils.falsification_thresholds import V21_MMN_MIN_R2 as _V21_MMN_MIN_R2
 
     DEFAULT_ALPHA = _DEFAULT_ALPHA
     V21_MMN_MIN_R2 = _V21_MMN_MIN_R2

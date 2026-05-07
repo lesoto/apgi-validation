@@ -1,3 +1,24 @@
+"""
+Falsification Protocol 5: Evolutionary Plausibility
+==================================================
+
+Evolutionary simulation validation for APGI architectural emergence.
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If evolutionary simulations fail to produce APGI-like architectures with
+fitness advantage >2 points, or if the Standard 6 compliance score falls below
+12/15, or if mathematical solutions do not match numerical simulations (error > 15%),
+then the APGI evolutionary plausibility claim is falsified. This would indicate
+that APGI architectures are not evolutionarily plausible.
+"""
+
 import logging
 import os
 import sys
@@ -70,7 +91,7 @@ except ImportError:
 
 try:
     from utils.config_manager import ConfigManager
-    from utils.constants import APGI_GLOBAL_SEED, DIM_CONSTANTS
+    from utils.constants import APGI_GLOBAL_SEED, DIM_CONSTANTS, VISUAL_CONSTANTS
     from utils.falsification_thresholds import (
         F1_6_MIN_LOW_AROUSAL_SLOPE,
         F2_3_ALPHA,
@@ -169,7 +190,7 @@ import numpy as np
 import scipy.stats as stats
 
 # Import spectral band constants from centralized location
-from utils.constants import EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ
+from utils.constants import EEG_GAMMA_BAND_HZ, EEG_THETA_BAND_HZ, VISUAL_CONSTANTS
 from utils.statistical_tests import safe_ttest_1samp
 
 THETA_BAND_HZ = EEG_THETA_BAND_HZ
@@ -1692,7 +1713,7 @@ if __name__ == "__main__":
 
 import numpy as np
 
-from utils.constants import APGI_GLOBAL_SEED
+from utils.constants import APGI_GLOBAL_SEED, VISUAL_CONSTANTS
 
 np.random.seed(APGI_GLOBAL_SEED)
 
@@ -3184,7 +3205,10 @@ def _save_fp05_outputs(results: Dict[str, Any]) -> None:
                     criteria.get(c, {}).get("effect_size", 0) for c in criteria_ids
                 ]
 
-                colors = ["#2ecc71" if p else "#e74c3c" for p in passed]
+                colors = [
+                    VISUAL_CONSTANTS.STATUS_PASS if p else VISUAL_CONSTANTS.STATUS_FAIL
+                    for p in passed
+                ]
                 ax.bar(criteria_ids, effect_sizes, color=colors)
                 ax.axhline(y=0.5, color="black", linestyle="--", label="Threshold")
                 ax.set_title("Evolutionary Criteria Effect Sizes")

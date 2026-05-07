@@ -28,6 +28,20 @@ Protocol specification:
     APGI prediction: GFP-AUC is significantly larger on ignition trials, and
               the effect magnitude correlates with Sₜ (ignition strength).
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If GFP-AUC does not differ significantly between ignition and no-ignition trials
+(p > 0.05, corrected), or if the GFP effect does not correlate with ignition
+strength (r < 0.5), or if the GFP dynamics do not match APGI predictions
+(temporal deviation > 100ms), then the APGI microstate energy claim is falsified.
+This would indicate that global field power does not reflect ignition dynamics.
+
 Tier: SECONDARY
 
 Master_Validation.py registration:

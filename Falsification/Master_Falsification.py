@@ -12,6 +12,20 @@ This module provides:
 - Tier-based protocol classification
 - Framework-level falsification aggregation
 - Named prediction tracking across all protocols
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the master falsification orchestrator fails to coordinate protocols effectively,
+or if the falsification criteria registry is incomplete (missing criteria > 5%),
+or if the framework-level aggregation produces inconsistent results across protocols
+(variability > 15%), then the APGI master falsification system claim is falsified.
+This would indicate that the falsification coordination framework is not robust.
 """
 
 import importlib.util

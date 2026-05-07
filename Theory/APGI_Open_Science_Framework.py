@@ -9,6 +9,21 @@ Complete open science framework for APGI theory validation including:
 - Open access publication templates
 - Collaborative validation framework
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the open science framework fails to enable successful replication of APGI
+findings across independent laboratories (replication rate < 70%), or if
+preregistered APGI predictions fail to match published results with >80%
+concordance, then the APGI reproducibility claim is falsified. This would
+indicate that APGI findings are not robust to open science practices and
+independent validation.
+
 """
 
 import json

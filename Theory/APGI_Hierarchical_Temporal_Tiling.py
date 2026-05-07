@@ -16,12 +16,28 @@ This module provides:
 4. run_validation – top-level entry point returning a JSON-serialisable
    result dict.
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the parsimony derivation does NOT converge on N=5 levels (optimal N ≠ 5,
+coverage efficiency < 85%, or geometric ratio deviation > 15% from √10),
+then the APGI hierarchical architecture claim is falsified. Additionally,
+if cross-level coupling shows no resonance (coupling strength < 0.2,
+phase coherence < 0.3), the hierarchical integration hypothesis is falsified.
+This would indicate that the five-level architecture is not theoretically
+necessitated by coverage parsimony constraints.
+
 =============================================================================
 """
 
 import logging
 import warnings
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -77,8 +93,8 @@ class SimulationResult:
     """Result of the cross-level coupling simulation."""
 
     time_s: np.ndarray
-    S: np.ndarray                      # shape (N, T)
-    theta: np.ndarray                  # shape (N, T)
+    S: np.ndarray  # shape (N, T)
+    theta: np.ndarray  # shape (N, T)
     ignition_times: List[List[float]]  # per level
     synchrony_index: float
     n_resonance_events: int
@@ -143,7 +159,7 @@ class GeometricTilingDerivation:
 
         # Tau values in linear space
         exponents = np.arange(N)
-        tau_array = self.tau_min_s * (scaling_ratio ** exponents)
+        tau_array = self.tau_min_s * (scaling_ratio**exponents)
 
         # Spacings in log10 space
         log_tau = np.log10(tau_array)
@@ -201,7 +217,9 @@ class GeometricTilingDerivation:
         return optimal, all_results
 
     # ------------------------------------------------------------------
-    def validate_against_paper3(self, result: Optional[TilingResult] = None) -> Dict[str, Any]:
+    def validate_against_paper3(
+        self, result: Optional[TilingResult] = None
+    ) -> Dict[str, Any]:
         """Compare derived tau_array to Paper 3 published values.
 
         Paper 3 values: [0.01, 1.0, 600.0, 43200.0, 3.15e7] seconds.
@@ -288,9 +306,7 @@ class CrossLevelCouplingSimulator:
             # Default thresholds increase with level
             self.theta_0 = 0.3 + 0.1 * np.arange(self.N)
 
-        logger.debug(
-            f"CrossLevelCouplingSimulator: N={self.N}, T={T_sim}s, dt={dt}s"
-        )
+        logger.debug(f"CrossLevelCouplingSimulator: N={self.N}, T={T_sim}s, dt={dt}s")
 
     # ------------------------------------------------------------------
     def run_simulation(self) -> SimulationResult:
@@ -339,10 +355,9 @@ class CrossLevelCouplingSimulator:
 
             # --- Top-down threshold modulation ---
             theta_new = self.theta_0.copy()
-            for l in range(self.N - 1):
-                theta_new[l] = (
-                    self.theta_0[l]
-                    + self.kappa_down * (S_prev[l + 1] - theta_prev[l + 1])
+            for level_idx in range(self.N - 1):
+                theta_new[level_idx] = self.theta_0[level_idx] + self.kappa_down * (
+                    S_prev[level_idx + 1] - theta_prev[level_idx + 1]
                 )
 
             theta[:, t] = theta_new
@@ -354,18 +369,18 @@ class CrossLevelCouplingSimulator:
 
             # --- Bottom-up coupling: firing at l drives l+1 ---
             firing = S_prev > theta_prev
-            for l in range(self.N - 1):
-                if firing[l]:
-                    S_new[l + 1] += self.kappa_up
+            for level_idx in range(self.N - 1):
+                if firing[level_idx]:
+                    S_new[level_idx + 1] += self.kappa_up
 
             S[:, t] = S_new
 
             # --- Detect leading-edge ignitions ---
             now_firing = S_new > theta_new
             leading_edge = now_firing & (~was_firing)
-            for l in range(self.N):
-                if leading_edge[l]:
-                    ignition_times[l].append(float(time_s[t]))
+            for level_idx in range(self.N):
+                if leading_edge[level_idx]:
+                    ignition_times[level_idx].append(float(time_s[t]))
             was_firing = now_firing
 
         # ----------------------------------------------------------------
@@ -380,13 +395,15 @@ class CrossLevelCouplingSimulator:
 
         for w in range(n_windows):
             t_start = w * window_steps
-            t_end = t_start + window_steps
             t_center = time_s[t_start]
 
             levels_firing = 0
-            for l in range(self.N):
+            for level_idx in range(self.N):
                 # Any ignition in this window?
-                fired = any(t_center <= ig < t_center + window_s for ig in ignition_times[l])
+                fired = any(
+                    t_center <= ig < t_center + window_s
+                    for ig in ignition_times[level_idx]
+                )
                 if fired:
                     levels_firing += 1
 
@@ -409,15 +426,11 @@ class CrossLevelCouplingSimulator:
 
 # ---------------------------------------------------------------------------
 # Visualization
+from utils.constants import VISUAL_CONSTANTS
+
 # ---------------------------------------------------------------------------
 
-LEVEL_COLORS = {
-    0: "#999999",
-    1: "#2166AC",
-    2: "#F4A582",
-    3: "#41AB5D",
-    4: "#762A83",
-}
+LEVEL_COLORS = VISUAL_CONSTANTS.LEVEL_COLORS
 
 
 def generate_figure(
@@ -464,13 +477,11 @@ def generate_figure(
         y = y_positions[N]
         log_tau = np.log10(res.tau_array)
 
-        color = "#2166AC" if N == optimal_result.N else "#AAAAAA"
+        color = VISUAL_CONSTANTS.ST_BLUE if N == optimal_result.N else "#AAAAAA"
         lw = 2.0 if N == optimal_result.N else 1.0
 
         # Horizontal line spanning coverage range
-        ax_a.hlines(
-            y, log_tau[0], log_tau[-1], colors=color, linewidths=lw, alpha=0.6
-        )
+        ax_a.hlines(y, log_tau[0], log_tau[-1], colors=color, linewidths=lw, alpha=0.6)
 
         # Dots at each level
         ax_a.scatter(log_tau, [y] * len(log_tau), color=color, zorder=5, s=40)
@@ -490,7 +501,6 @@ def generate_figure(
         # Mark the largest gap
         if len(res.log_spacings) > 0:
             gap_idx = int(np.argmax(res.log_spacings))
-            gap_center = (log_tau[gap_idx] + log_tau[gap_idx + 1]) / 2.0
             ax_a.annotate(
                 "",
                 xy=(log_tau[gap_idx + 1], y),
@@ -512,12 +522,18 @@ def generate_figure(
     N_sim = sim_result.S.shape[0]
     time_s = sim_result.time_s
 
-    for l in range(N_sim):
-        color = LEVEL_COLORS.get(l, "#000000")
-        ax_b.plot(time_s, sim_result.S[l], color=color, lw=0.8, label=f"S[{l}]")
+    for level_idx in range(N_sim):
+        color = LEVEL_COLORS.get(level_idx, "#000000")
         ax_b.plot(
             time_s,
-            sim_result.theta[l],
+            sim_result.S[level_idx],
+            color=color,
+            lw=0.8,
+            label=f"S[{level_idx}]",
+        )
+        ax_b.plot(
+            time_s,
+            sim_result.theta[level_idx],
             color=color,
             lw=0.8,
             linestyle="--",
@@ -525,7 +541,7 @@ def generate_figure(
         )
 
         # Vertical tick marks at ignition events
-        for ig_t in sim_result.ignition_times[l]:
+        for ig_t in sim_result.ignition_times[level_idx]:
             ax_b.axvline(ig_t, color=color, lw=0.5, alpha=0.3, ymin=0.0, ymax=0.07)
 
     ax_b.set_xlabel("Time (s)")
@@ -538,7 +554,7 @@ def generate_figure(
     ax_b.legend(loc="upper right", fontsize=7, ncol=N_sim)
     ax_b.grid(linestyle="--", alpha=0.3)
 
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.tight_layout(rect=(0, 0, 1, 0.96))
     plt.savefig(output_path, dpi=120, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"Figure saved to {output_path}")
@@ -596,7 +612,7 @@ def run_validation() -> Dict[str, Any]:
         f"   Meets criterion: {optimal_result.meets_criterion}  "
         f"(max_log_gap={optimal_result.max_log_gap:.3f})"
     )
-    print(f"\nPaper 3 comparison (N=5):")
+    print("\nPaper 3 comparison (N=5):")
     print(f"   match={paper3_validation['match']}")
     print(
         f"   mean_log10_diff={paper3_validation['mean_log10_diff_decades']:.4f} decades"

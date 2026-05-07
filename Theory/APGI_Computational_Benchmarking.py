@@ -2,6 +2,21 @@
 APGI Computational Benchmarking Module
 
 This module provides computational benchmarking capabilities for APGI validation.
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If computational benchmarking fails to distinguish APGI from alternative models
+with statistical significance (p < 0.05, corrected for multiple comparisons),
+or if benchmark results show >20% overlap between APGI and null model performance
+distributions, then the APGI computational distinguishability claim is falsified.
+This would indicate that APGI cannot be computationally differentiated from
+alternative theoretical frameworks.
 """
 
 import json

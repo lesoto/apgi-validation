@@ -28,6 +28,19 @@ to validate that:
 
   (c) Individual-difference structure in the posterior is consistent with
       paper predictions:
+
+LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic implications without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If APGI parameters are not recoverable with correlation r > 0.8, or if the
+APGI model does not achieve decisive Bayes factors (BF₁₀ > 10) over reduced
+models, or if individual differences do not follow predicted cultural
+patterns (cross-cultural consistency < 70%), then the APGI cultural
+neuroscience claim is falsified. This would indicate that APGI does not
+capture cultural and individual differences in conscious processing.
         - r(posterior Πⁱ, heartbeat accuracy) = 0.30–0.50
         - High-IA posterior θ₀ < Low-IA posterior θ₀ (d = 0.35–0.65)
         - Cultural/developmental priors shift group-level Πⁱ (tested via

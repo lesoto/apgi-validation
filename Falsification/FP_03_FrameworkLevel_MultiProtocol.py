@@ -1,3 +1,25 @@
+"""
+Falsification Protocol 3: Framework-Level Multi-Protocol Testing
+==============================================================
+
+Framework-level falsification testing across multiple protocols simultaneously.
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If framework-level multi-protocol testing reveals inconsistent results across
+protocols (inter-protocol variability > 20%), or if the aggregated evidence
+does not support APGI over alternatives (Bayes factor BF₁₀ < 3), or if the
+framework-level predictions are falsified by >50% of protocols, then the APGI
+framework-level claim is falsified. This would indicate that APGI does not
+provide consistent framework-level predictions.
+"""
+
 # Import from other protocols
 import csv
 import importlib.util
@@ -58,7 +80,7 @@ if str(project_root) not in sys.path:
 
 # Import centralized falsification aggregator
 try:
-    from utils.constants import DIM_CONSTANTS
+    from utils.constants import DIM_CONSTANTS, VISUAL_CONSTANTS
     from utils.error_handler import handle_import_error
     from utils.falsification_thresholds import F1_1_MIN_ADVANTAGE_PCT
 
@@ -144,7 +166,7 @@ except ImportError as e:
 
 # Removed top-level logging.basicConfig and aggregator import to prevent noise
 logger = logging.getLogger(__name__)
-from utils.constants import DIM_CONSTANTS
+from utils.constants import DIM_CONSTANTS, VISUAL_CONSTANTS
 from utils.falsification_thresholds import (  # HIGH-01: Import from falsification_thresholds
     DEFAULT_ALPHA,
     F1_1_ALPHA,
@@ -2362,13 +2384,13 @@ if __name__ == "__main__":
                     for name in protocol_names:
                         status = protocols.get(name, {}).get("status", "UNKNOWN")
                         if status == "PASS":
-                            status_colors.append("#2ecc71")
+                            status_colors.append(VISUAL_CONSTANTS.STATUS_PASS)
                         elif status == "FAIL":
-                            status_colors.append("#e74c3c")
+                            status_colors.append(VISUAL_CONSTANTS.STATUS_FAIL)
                         elif status == "ERROR":
-                            status_colors.append("#f39c12")
+                            status_colors.append(VISUAL_CONSTANTS.STATUS_ERROR)
                         else:
-                            status_colors.append("#95a5a6")
+                            status_colors.append(VISUAL_CONSTANTS.STATUS_UNKNOWN)
 
                     bars = ax.bar(
                         protocol_names, [1] * len(protocol_names), color=status_colors

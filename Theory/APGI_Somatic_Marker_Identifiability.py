@@ -23,6 +23,20 @@ block-diagonal because:
 Therefore d²log_L_joint / (dγ · dΠⁱ) = 0 analytically; verified numerically.
 Condition number < 100 for resolved formulation; > 10,000 for free-β.
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the somatic marker parameters cannot be recovered with correlation coefficient
+r > 0.75 across simulated subjects, or if the Fisher Information Matrix
+condition number exceeds 100 for the reparameterized formulation, then the APGI
+somatic marker identifiability claim is falsified. This would indicate that the
+proposed reparameterization does not resolve the β/Πⁱ collinearity problem.
+
 References:
     Damasio (1994) — Somatic Marker Hypothesis
     Critchley et al. (2001) — vmPFC and anticipatory SCR
@@ -32,12 +46,11 @@ References:
 import logging
 import sys
 import warnings
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
-from scipy import linalg, optimize, stats
+from scipy import optimize, stats
 
 try:
     import matplotlib
@@ -64,7 +77,7 @@ except Exception:
     ProtocolResult = None  # type: ignore[assignment,misc]
 
 try:
-    from utils.falsification_thresholds import ALPHA_SIGMOID, BETA_SM
+    from utils.falsification_thresholds import ALPHA_SIGMOID
 
     DEFAULT_ALPHA_SIGMOID = ALPHA_SIGMOID
 except Exception:
@@ -73,20 +86,20 @@ except Exception:
 try:
     from utils.logging_config import apgi_logger as logger  # type: ignore[assignment]
 except Exception:
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)  # type: ignore[assignment]
 
 # ---------------------------------------------------------------------------
 # Design constants
 # ---------------------------------------------------------------------------
 RANDOM_SEED = 42
 N_CONTEXT_ACTION_PAIRS = 40
-N_IGNITION_TRIALS = 400   # per subject; 400 gives reliable Pi_e and theta recovery
+N_IGNITION_TRIALS = 400  # per subject; 400 gives reliable Pi_e and theta recovery
 N_BOLD_OBSERVATIONS = 40  # Session 1: one BOLD/SCR observation per context-action pair
 
 # Thresholds
-RECOVERY_R_THRESHOLD = 0.75       # r > 0.75 for resolved formulation
-PATHOLOGICAL_R_THRESHOLD = 0.40   # at least one param r < 0.40 in free-β
-FIM_OFFDIAG_RATIO_MAX = 0.10      # |FIM[γ, Πⁱ]| / diag < 0.10
+RECOVERY_R_THRESHOLD = 0.75  # r > 0.75 for resolved formulation
+PATHOLOGICAL_R_THRESHOLD = 0.40  # at least one param r < 0.40 in free-β
+FIM_OFFDIAG_RATIO_MAX = 0.10  # |FIM[γ, Πⁱ]| / diag < 0.10
 CONDITION_NUMBER_RESOLVED_MAX = 100.0
 CONDITION_NUMBER_PATHOLOGICAL_MIN = 10_000.0
 
@@ -109,7 +122,7 @@ REF_PARAMS = {
     "Pi_e": 0.80,
     "theta_baseline": 0.50,
     "alpha": DEFAULT_ALPHA_SIGMOID,
-    "sigma_bold": 0.30,   # Session 1 BOLD noise
+    "sigma_bold": 0.30,  # Session 1 BOLD noise
     "V_A_correlation": 0.60,
     "A_noise_sd": 0.80,
 }
@@ -129,6 +142,7 @@ def _draw_subject_params(rng: np.random.RandomState) -> Dict[str, float]:
 # =============================================================================
 # Generative model helpers
 # =============================================================================
+
 
 def _sigmoid(x: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-np.clip(x, -30.0, 30.0)))
@@ -215,6 +229,7 @@ def _generate_session2(
 # =============================================================================
 # Likelihood functions
 # =============================================================================
+
 
 def _ll_session1(
     params_s1: np.ndarray,
@@ -320,6 +335,7 @@ def _ll_joint(
 # FIM computation utilities
 # =============================================================================
 
+
 def _numerical_fim(
     ll_fn: Any,
     params: np.ndarray,
@@ -335,10 +351,18 @@ def _numerical_fim(
     hess = np.zeros((n, n))
     for i in range(n):
         for j in range(n):
-            p_pp = params.copy(); p_pp[i] += h; p_pp[j] += h
-            p_pm = params.copy(); p_pm[i] += h; p_pm[j] -= h
-            p_mp = params.copy(); p_mp[i] -= h; p_mp[j] += h
-            p_mm = params.copy(); p_mm[i] -= h; p_mm[j] -= h
+            p_pp = params.copy()
+            p_pp[i] += h
+            p_pp[j] += h
+            p_pm = params.copy()
+            p_pm[i] += h
+            p_pm[j] -= h
+            p_mp = params.copy()
+            p_mp[i] -= h
+            p_mp[j] += h
+            p_mm = params.copy()
+            p_mm[i] -= h
+            p_mm[j] -= h
             hess[i, j] = (
                 ll_fn(p_pp, *fn_args)
                 - ll_fn(p_pm, *fn_args)
@@ -393,7 +417,7 @@ def _expected_fim_free_beta(
 
     S_t = Pi_e * np.abs(ze) + Pi_i_eff_t * np.abs(zi)
     p_t = _sigmoid(alpha * (S_t - theta))
-    w_t = p_t * (1.0 - p_t) * (alpha ** 2)  # Bernoulli score weight
+    w_t = p_t * (1.0 - p_t) * (alpha**2)  # Bernoulli score weight
 
     # Jacobians ∂S_t/∂θ, parameters ordered [log_Pi_i, gamma_V, gamma_A, beta, log_Pi_e, theta]
     # ∂S_t/∂log_Pi_i = Pi_i_eff[t] * |zi[t]|  (chain rule: ∂Πⁱ_eff/∂log_Πⁱ = Πⁱ_eff)
@@ -409,12 +433,12 @@ def _expected_fim_free_beta(
     base = Pi_i_eff_t * zi_abs
 
     J = np.zeros((n_trials, 6))
-    J[:, 0] = base                        # d/d log_Pi_i
-    J[:, 1] = base * beta * V_t           # d/d gamma_V
-    J[:, 2] = base * beta * A_t           # d/d gamma_A
-    J[:, 3] = base * M_hat_t              # d/d beta
-    J[:, 4] = Pi_e * ze_abs               # d/d log_Pi_e
-    J[:, 5] = -1.0                        # d(S-theta)/d theta = -1 in the score
+    J[:, 0] = base  # d/d log_Pi_i
+    J[:, 1] = base * beta * V_t  # d/d gamma_V
+    J[:, 2] = base * beta * A_t  # d/d gamma_A
+    J[:, 3] = base * M_hat_t  # d/d beta
+    J[:, 4] = Pi_e * ze_abs  # d/d log_Pi_e
+    J[:, 5] = -1.0  # d(S-theta)/d theta = -1 in the score
 
     # FIM = Σ_t w_t * J_t J_t^T
     fim = (J * w_t[:, None]).T @ J  # shape (6, 6)
@@ -424,6 +448,7 @@ def _expected_fim_free_beta(
 # =============================================================================
 # MODULE 1: Two-session parameter estimation pipeline
 # =============================================================================
+
 
 def run_module1(
     n_subjects: int = 30,
@@ -478,8 +503,12 @@ def run_module1(
 
         # --- Session 2 data generation ---
         s2 = _generate_session2(
-            tp["Pi_i_baseline"], tp["Pi_e"], tp["theta_baseline"],
-            alpha, s1["M_hat_true"], rng
+            tp["Pi_i_baseline"],
+            tp["Pi_e"],
+            tp["theta_baseline"],
+            alpha,
+            s1["M_hat_true"],
+            rng,
         )
 
         # --- Session 2 estimation: Πⁱ, Πᵉ, θ with M̂ treated as fixed covariate ---
@@ -554,6 +583,7 @@ def run_module1(
 # MODULE 2: FIM orthogonality verification
 # =============================================================================
 
+
 def run_module2(
     seed: int = RANDOM_SEED,
     verbose: bool = True,
@@ -593,8 +623,16 @@ def run_module2(
     fim = _numerical_fim(
         _ll_joint,
         true_joint,
-        (s1["V"], s1["A"], s1["BOLD_obs"],
-         s2["B"], s2["ze"], s2["zi"], M_hat_fixed, alpha),
+        (
+            s1["V"],
+            s1["A"],
+            s1["BOLD_obs"],
+            s2["B"],
+            s2["ze"],
+            s2["zi"],
+            M_hat_fixed,
+            alpha,
+        ),
     )
 
     # Parameter groups:
@@ -627,18 +665,25 @@ def run_module2(
     condition_pass = cond < CONDITION_NUMBER_RESOLVED_MAX
 
     if verbose:
-        logger.info(f"  FIM condition number : {cond:.2f}  "
-                    f"(threshold < {CONDITION_NUMBER_RESOLVED_MAX})")
-        logger.info(f"  Max off-diag ratio   : {max_offdiag_ratio:.4f}  "
-                    f"(threshold < {FIM_OFFDIAG_RATIO_MAX})")
-        logger.info(f"  Block-diagonal test  : {'PASS' if block_diagonal_pass else 'FAIL'}")
+        logger.info(
+            f"  FIM condition number : {cond:.2f}  "
+            f"(threshold < {CONDITION_NUMBER_RESOLVED_MAX})"
+        )
+        logger.info(
+            f"  Max off-diag ratio   : {max_offdiag_ratio:.4f}  "
+            f"(threshold < {FIM_OFFDIAG_RATIO_MAX})"
+        )
+        logger.info(
+            f"  Block-diagonal test  : {'PASS' if block_diagonal_pass else 'FAIL'}"
+        )
         logger.info(f"  Condition number test: {'PASS' if condition_pass else 'FAIL'}")
         for k, v in offdiag_ratios.items():
             logger.info(f"    {k}: {v:.6f}")
 
     fim_dict = {
         f"{param_labels[i]},{param_labels[j]}": float(fim[i, j])
-        for i in range(6) for j in range(6)
+        for i in range(6)
+        for j in range(6)
     }
 
     return {
@@ -656,6 +701,7 @@ def run_module2(
 # =============================================================================
 # MODULE 3: Pathological case (free β) demonstration
 # =============================================================================
+
 
 def run_module3(
     n_subjects: int = 30,
@@ -681,8 +727,14 @@ def run_module3(
     rng = np.random.RandomState(seed)
     alpha = REF_PARAMS["alpha"]
 
-    param_names_free = ["Pi_i_baseline", "beta", "gamma_V", "gamma_A",
-                        "Pi_e", "theta_baseline"]
+    param_names_free = [
+        "Pi_i_baseline",
+        "beta",
+        "gamma_V",
+        "gamma_A",
+        "Pi_e",
+        "theta_baseline",
+    ]
     # True beta = 1.0 (since M̂ already carries γ weights; β should be 1)
     true_vals_free: Dict[str, List[float]] = {p: [] for p in param_names_free}
     est_vals_free: Dict[str, List[float]] = {p: [] for p in param_names_free}
@@ -691,9 +743,17 @@ def run_module3(
     for _ in range(n_subjects):
         tp = _draw_subject_params(rng)
         tp["beta"] = 1.0  # True β = 1 in this parameterization
-        s1 = _generate_session1(tp["gamma_V"], tp["gamma_A"], REF_PARAMS["sigma_bold"], rng)
-        s2 = _generate_session2(tp["Pi_i_baseline"], tp["Pi_e"], tp["theta_baseline"],
-                                 alpha, s1["M_hat_true"], rng)
+        s1 = _generate_session1(
+            tp["gamma_V"], tp["gamma_A"], REF_PARAMS["sigma_bold"], rng
+        )
+        s2 = _generate_session2(
+            tp["Pi_i_baseline"],
+            tp["Pi_e"],
+            tp["theta_baseline"],
+            alpha,
+            s1["M_hat_true"],
+            rng,
+        )
 
         # Free-β estimation: all 6 parameters simultaneously
         x0 = np.array([np.log(1.0), 1.0, 0.5, 0.3, np.log(0.7), 0.4])
@@ -703,8 +763,15 @@ def run_module3(
             res = optimize.minimize(
                 _ll_free_beta,
                 x0,
-                args=(s2["B"], s2["ze"], s2["zi"], s1["V"], s1["A"],
-                      s2["pair_idx"], alpha),
+                args=(
+                    s2["B"],
+                    s2["ze"],
+                    s2["zi"],
+                    s1["V"],
+                    s1["A"],
+                    s2["pair_idx"],
+                    alpha,
+                ),
                 method="L-BFGS-B",
                 bounds=bounds,
                 options={"maxiter": 2000, "ftol": 1e-12},
@@ -780,19 +847,27 @@ def run_module3(
     se_free = {p: float(np.std(est_vals_free[p])) for p in param_names_free}
 
     if verbose:
-        logger.info(f"  FIM condition number (free-β): {cond_free:.1f}  "
-                    f"(pathological threshold > {CONDITION_NUMBER_PATHOLOGICAL_MIN:.0f})")
+        logger.info(
+            f"  FIM condition number (free-β): {cond_free:.1f}  "
+            f"(pathological threshold > {CONDITION_NUMBER_PATHOLOGICAL_MIN:.0f})"
+        )
         logger.info(f"  β↔log_Πⁱ off-diag ratio     : {beta_pi_ratio:.4f}")
         logger.info(f"  Convergence rate             : {convergence_rate:.2%}")
         logger.info("  Recovery correlations (free-β):")
         for name, r in recovery_r_free.items():
             poor = abs(r) < PATHOLOGICAL_R_THRESHOLD
-            logger.info(f"    {name:20s}: r = {r:.3f}  "
-                        f"{'<-- POOR RECOVERY' if poor else ''}")
-        logger.info(f"  Has poor recovery (r < {PATHOLOGICAL_R_THRESHOLD}): "
-                    f"{has_poor_recovery}")
-        logger.info(f"  Condition pathological (> {CONDITION_NUMBER_PATHOLOGICAL_MIN:.0f}): "
-                    f"{condition_pathological}")
+            logger.info(
+                f"    {name:20s}: r = {r:.3f}  "
+                f"{'<-- POOR RECOVERY' if poor else ''}"
+            )
+        logger.info(
+            f"  Has poor recovery (r < {PATHOLOGICAL_R_THRESHOLD}): "
+            f"{has_poor_recovery}"
+        )
+        logger.info(
+            f"  Condition pathological (> {CONDITION_NUMBER_PATHOLOGICAL_MIN:.0f}): "
+            f"{condition_pathological}"
+        )
 
     return {
         "passed": has_poor_recovery and condition_pathological,
@@ -811,6 +886,7 @@ def run_module3(
 # =============================================================================
 # Comparative summary table
 # =============================================================================
+
 
 def build_comparison_table(
     m1: Dict[str, Any],
@@ -833,7 +909,9 @@ def build_comparison_table(
 
     max_off_res = m2["max_offdiag_ratio"]
     beta_pi_ratio = m3["beta_pi_offdiag_ratio"]
-    lines.append(f"  {'Max cross-block off-diag ratio':<44} {max_off_res:>12.4f} {'—':>12}")
+    lines.append(
+        f"  {'Max cross-block off-diag ratio':<44} {max_off_res:>12.4f} {'—':>12}"
+    )
     lines.append(f"  {'β↔Πⁱ off-diag ratio':<44} {'—':>12} {beta_pi_ratio:>12.4f}")
 
     conv_res = m1["convergence_rate"]
@@ -877,6 +955,7 @@ def build_comparison_table(
 # Optional visualization
 # =============================================================================
 
+
 def _save_figure(
     m1: Dict[str, Any],
     m2: Dict[str, Any],
@@ -897,10 +976,20 @@ def _save_figure(
     x = np.arange(len(params))
     ax.bar(x - 0.2, r_res, 0.35, label="Resolved", color="steelblue", alpha=0.85)
     ax.bar(x + 0.2, r_free, 0.35, label="Free-β", color="tomato", alpha=0.85)
-    ax.axhline(RECOVERY_R_THRESHOLD, ls="--", color="steelblue", lw=1.5,
-               label=f"r={RECOVERY_R_THRESHOLD} (resolved threshold)")
-    ax.axhline(PATHOLOGICAL_R_THRESHOLD, ls=":", color="tomato", lw=1.5,
-               label=f"r={PATHOLOGICAL_R_THRESHOLD} (pathological)")
+    ax.axhline(
+        RECOVERY_R_THRESHOLD,
+        ls="--",
+        color="steelblue",
+        lw=1.5,
+        label=f"r={RECOVERY_R_THRESHOLD} (resolved threshold)",
+    )
+    ax.axhline(
+        PATHOLOGICAL_R_THRESHOLD,
+        ls=":",
+        color="tomato",
+        lw=1.5,
+        label=f"r={PATHOLOGICAL_R_THRESHOLD} (pathological)",
+    )
     ax.set_xticks(x)
     ax.set_xticklabels([p.replace("_", "\n") for p in params], fontsize=8)
     ax.set_ylabel("Recovery correlation r")
@@ -911,12 +1000,21 @@ def _save_figure(
     # Panel 2: FIM condition numbers (log scale)
     ax = axes[1]
     cond_vals = [m2["condition_number"], m3["condition_number"]]
-    bars = ax.bar(["Resolved", "Free-β"], cond_vals, color=["steelblue", "tomato"],
-                  alpha=0.85)
-    ax.axhline(CONDITION_NUMBER_RESOLVED_MAX, ls="--", color="steelblue", lw=1.5,
-               label=f"Max resolved ({CONDITION_NUMBER_RESOLVED_MAX:.0f})")
-    ax.axhline(CONDITION_NUMBER_PATHOLOGICAL_MIN, ls=":", color="tomato", lw=1.5,
-               label=f"Min pathological ({CONDITION_NUMBER_PATHOLOGICAL_MIN:.0f})")
+    ax.bar(["Resolved", "Free-β"], cond_vals, color=["steelblue", "tomato"], alpha=0.85)
+    ax.axhline(
+        CONDITION_NUMBER_RESOLVED_MAX,
+        ls="--",
+        color="steelblue",
+        lw=1.5,
+        label=f"Max resolved ({CONDITION_NUMBER_RESOLVED_MAX:.0f})",
+    )
+    ax.axhline(
+        CONDITION_NUMBER_PATHOLOGICAL_MIN,
+        ls=":",
+        color="tomato",
+        lw=1.5,
+        label=f"Min pathological ({CONDITION_NUMBER_PATHOLOGICAL_MIN:.0f})",
+    )
     ax.set_yscale("log")
     ax.set_ylabel("FIM Condition Number (log scale)")
     ax.set_title("FIM Condition Numbers")
@@ -928,8 +1026,13 @@ def _save_figure(
     off_vals = list(m2["offdiag_ratios"].values()) + [m3["beta_pi_offdiag_ratio"]]
     bar_colors = ["steelblue"] * len(m2["offdiag_ratios"]) + ["tomato"]
     ax.barh(off_labels, off_vals, color=bar_colors, alpha=0.85)
-    ax.axvline(FIM_OFFDIAG_RATIO_MAX, ls="--", color="black", lw=1.5,
-               label=f"Block-diag threshold ({FIM_OFFDIAG_RATIO_MAX})")
+    ax.axvline(
+        FIM_OFFDIAG_RATIO_MAX,
+        ls="--",
+        color="black",
+        lw=1.5,
+        label=f"Block-diag threshold ({FIM_OFFDIAG_RATIO_MAX})",
+    )
     ax.set_xlabel("|off-diag| / min(diag)")
     ax.set_title("FIM Off-Diagonal Ratios (cross-block)")
     ax.legend(fontsize=8)
@@ -949,6 +1052,7 @@ def _save_figure(
 # =============================================================================
 # Top-level entry point
 # =============================================================================
+
 
 def run_validation(
     n_subjects: int = 30,
@@ -994,10 +1098,7 @@ def run_validation(
         for line in table.splitlines():
             logger.info(line)
 
-    smi1_r_gV = m1["recovery_r"].get("gamma_V", 0.0)
-    smi1_r_pi = m1["recovery_r"].get("Pi_i_baseline", 0.0)
     smi1_pass = m1["passed"]
-
     smi2_pass = m2["passed"]
     smi3_pass = m3["passed"]
     all_passed = smi1_pass and smi2_pass and smi3_pass
@@ -1078,7 +1179,9 @@ def run_validation(
                     value=v.get("value"),
                     threshold=v.get("threshold"),
                     status=(
-                        PredictionStatus.PASSED if v["passed"] else PredictionStatus.FAILED
+                        PredictionStatus.PASSED
+                        if v["passed"]
+                        else PredictionStatus.FAILED
                     ),
                     name=k,
                 )
@@ -1089,7 +1192,6 @@ def run_validation(
                 named_predictions=named_pred_schema,
                 completion_percentage=100,
                 status="success" if all_passed else "failed",
-                passed=all_passed,
             )
         except Exception:
             pass
@@ -1120,13 +1222,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="APGI Somatic Marker Identifiability — two-session estimation"
     )
-    parser.add_argument("--n", type=int, default=30,
-                        help="Number of simulated subjects (default 30)")
-    parser.add_argument("--seed", type=int, default=RANDOM_SEED,
-                        help=f"Random seed (default {RANDOM_SEED})")
+    parser.add_argument(
+        "--n", type=int, default=30, help="Number of simulated subjects (default 30)"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=RANDOM_SEED,
+        help=f"Random seed (default {RANDOM_SEED})",
+    )
     parser.add_argument("--quiet", action="store_true", help="Suppress output")
-    parser.add_argument("--output-dir", type=str, default=None,
-                        help="Directory for PNG figure output")
+    parser.add_argument(
+        "--output-dir", type=str, default=None, help="Directory for PNG figure output"
+    )
     args = parser.parse_args()
 
     logging.basicConfig(

@@ -28,6 +28,20 @@ Expected Result Schema:
       "V15.2": {"passed": bool, "actual": str, "threshold": str},
       "V15.3": {"passed": bool, "actual": str, "threshold": str}
     },
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If anticipatory insula activation does not occur within predicted timing windows
+(onset deviation > 200ms), or if vmPFC-insula connectivity falls below predicted
+thresholds (r < 0.40), or if anterior/posterior insula dissociation is not
+observed (p > 0.05, corrected), then the APGI vmPFC anticipation claim is falsified.
+This would indicate that APGI does not accurately predict anticipatory neural dynamics.
     "criteria": {
       "V15.1_Anticipatory_Insula_Onset": {"passed": bool, ...},
       "V15.2_vmPFC_Insula_Connectivity": {"passed": bool, ...},

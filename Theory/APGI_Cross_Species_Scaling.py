@@ -10,6 +10,20 @@ This module provides:
 3. Cross-species parameter homology maps
 4. Mammalian vs Avian scaling differences
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If cross-species scaling laws do not hold with R² > 0.85 across mammalian
+species, or if the predicted scaling exponents deviate by >20% from empirical
+values, then the APGI cross-species scaling claim is falsified. This would
+indicate that APGI parameters do not follow conserved biological scaling
+relationships across species.
+
 =============================================================================
 """
 

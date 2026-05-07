@@ -14,17 +14,35 @@ import pytest
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import (
-    _list_protocols,
-    _process_csv_file,
-    _reset_config,
-    _run_demo_mode,
-    _run_parallel,
-    _run_sequential,
-    _set_config,
-    _show_config,
-    _validate_input_file,
-)
+
+def get_main_functions():
+    """Safely import main functions without triggering policy enforcement."""
+    import unittest.mock
+
+    with unittest.mock.patch("utils.secret_policy_enforcer.enforce_secret_policy"):
+        from main import (
+            _list_protocols,
+            _process_csv_file,
+            _reset_config,
+            _run_demo_mode,
+            _run_parallel,
+            _run_sequential,
+            _set_config,
+            _show_config,
+            _validate_input_file,
+        )
+
+        return {
+            "_list_protocols": _list_protocols,
+            "_process_csv_file": _process_csv_file,
+            "_reset_config": _reset_config,
+            "_run_demo_mode": _run_demo_mode,
+            "_run_parallel": _run_parallel,
+            "_run_sequential": _run_sequential,
+            "_set_config": _set_config,
+            "_show_config": _show_config,
+            "_validate_input_file": _validate_input_file,
+        }
 
 
 class TestProcessCsvFile:
@@ -34,6 +52,7 @@ class TestProcessCsvFile:
     @patch("builtins.open", new_callable=mock_open)
     def test_process_csv_file_success(self, mock_file, mock_read_csv, tmp_path):
         """Test successful CSV file processing."""
+        functions = get_main_functions()
         input_file = tmp_path / "input.csv"
         input_file.write_text("col1,col2\n1,2\n3,4\n")
 
@@ -41,7 +60,7 @@ class TestProcessCsvFile:
         mock_df = pd.DataFrame({"col1": [1, 3], "col2": [2, 4]})
         mock_read_csv.return_value = mock_df
 
-        _process_csv_file(str(input_file), str(output_file))
+        functions["_process_csv_file"](str(input_file), str(output_file))
 
         mock_read_csv.assert_called_once()
 
@@ -54,7 +73,8 @@ class TestProcessCsvFile:
         output_file = tmp_path / "output.json"
         mock_read_csv.side_effect = pd.errors.ParserError("Invalid CSV")
 
-        _process_csv_file(str(input_file), str(output_file))
+        functions = get_main_functions()
+        functions["_process_csv_file"](str(input_file), str(output_file))
 
         # Should handle error gracefully
 
@@ -65,6 +85,8 @@ class TestRunDemoMode:
     @patch("main.console")
     def test_run_demo_mode(self, mock_console):
         """Test running demo mode."""
+        functions = get_main_functions()
+        _run_demo_mode = functions["_run_demo_mode"]
         _run_demo_mode()
 
         # Should execute without errors
@@ -76,6 +98,8 @@ class TestValidateInputFile:
 
     def test_validate_input_file_none(self):
         """Test validating None input file."""
+        functions = get_main_functions()
+        _validate_input_file = functions["_validate_input_file"]
         result = _validate_input_file(None)
         assert result is None
 
@@ -93,6 +117,8 @@ class TestValidateInputFile:
         mock_secure_open.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_secure_open.return_value.__exit__ = MagicMock(return_value=False)
 
+        functions = get_main_functions()
+        _validate_input_file = functions["_validate_input_file"]
         result = _validate_input_file(str(test_file))
         assert result == str(test_file)
 
@@ -100,6 +126,8 @@ class TestValidateInputFile:
         """Test validating non-existent input file."""
         test_file = tmp_path / "nonexistent.csv"
 
+        functions = get_main_functions()
+        _validate_input_file = functions["_validate_input_file"]
         result = _validate_input_file(str(test_file))
         assert result is None
 
@@ -115,6 +143,8 @@ class TestListProtocols:
         (validation_dir / "VP_01_Protocol.py").write_text("# Protocol 1")
         (validation_dir / "VP_02_Protocol.py").write_text("# Protocol 2")
 
+        functions = get_main_functions()
+        _list_protocols = functions["_list_protocols"]
         protocols = _list_protocols(validation_dir)
 
         assert len(protocols) == 2
@@ -126,6 +156,8 @@ class TestListProtocols:
         validation_dir = tmp_path / "Validation"
         validation_dir.mkdir()
 
+        functions = get_main_functions()
+        _list_protocols = functions["_list_protocols"]
         protocols = _list_protocols(validation_dir)
 
         assert len(protocols) == 0
@@ -163,6 +195,8 @@ class TestRunParallel:
             with patch("concurrent.futures.as_completed") as mock_as_completed:
                 mock_as_completed.return_value = [mock_future]
 
+                functions = get_main_functions()
+                _run_parallel = functions["_run_parallel"]
                 results = _run_parallel(protocols, validation_dir)
 
                 assert "01" in results
@@ -195,6 +229,8 @@ class TestRunParallel:
             with patch("concurrent.futures.as_completed") as mock_as_completed:
                 mock_as_completed.return_value = [mock_future]
 
+                functions = get_main_functions()
+                _run_parallel = functions["_run_parallel"]
                 results = _run_parallel(protocols, validation_dir)
 
                 assert "01" in results
@@ -216,6 +252,8 @@ class TestRunSequential:
 
         mock_run_single.return_value = ("01", "Success", None)
 
+        functions = get_main_functions()
+        _run_sequential = functions["_run_sequential"]
         results = _run_sequential(protocols, validation_dir)
 
         assert "01" in results
@@ -232,6 +270,8 @@ class TestRunSequential:
 
         mock_run_single.return_value = ("01", None, "Error")
 
+        functions = get_main_functions()
+        _run_sequential = functions["_run_sequential"]
         results = _run_sequential(protocols, validation_dir)
 
         assert "01" in results
@@ -250,6 +290,8 @@ class TestShowConfig:
             "description": "Test Description",
         }.get(key, "")
 
+        functions = get_main_functions()
+        _show_config = functions["_show_config"]
         _show_config()
 
         assert mock_console.print.called
@@ -263,7 +305,8 @@ class TestSetConfig:
     def test_set_config_simple(self, mock_console, mock_set_config):
         """Test setting simple configuration value."""
         mock_set_config.return_value = True
-        _set_config("model.tau_S", "0.5")
+        functions = get_main_functions()
+        functions["_set_config"]("model.tau_S", "0.5")
 
         mock_set_config.assert_called_once_with("model", "tau_S", "0.5")
 
@@ -272,7 +315,8 @@ class TestSetConfig:
     def test_set_config_dict_value(self, mock_console, mock_set_config):
         """Test setting dictionary configuration value."""
         mock_set_config.return_value = True
-        _set_config("simulation.default_steps", "1000")
+        functions = get_main_functions()
+        functions["_set_config"]("simulation.default_steps", "1000")
 
         mock_set_config.assert_called_once_with("simulation", "default_steps", "1000")
 
@@ -291,6 +335,7 @@ class TestResetConfig:
             "description": "Test Description",
         }.get(key, "")
 
-        _reset_config()
+        functions = get_main_functions()
+        functions["_reset_config"]()
 
         assert mock_console.print.called

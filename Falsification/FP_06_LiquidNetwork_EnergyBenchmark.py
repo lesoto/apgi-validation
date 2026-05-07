@@ -1,3 +1,24 @@
+"""
+Falsification Protocol 6: Liquid Network Energy Benchmark
+APGI Master Falsification Orchestrator
+=====================================================
+
+Energy benchmarking for APGI liquid network architectures compared to baseline architectures.
+
+LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic implications without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If liquid network energy benchmarks fail to achieve >20% efficiency advantage
+over baseline architectures while maintaining performance, or if the energy
+consumption does not scale predictably with network size (deviation > 25% from theory),
+or if the thermodynamic constraints are violated (energy > 20% above biological limits),
+then the APGI liquid network energy claim is falsified. This would indicate that
+APGI architectures are not energetically feasible.
+"""
+
 import csv
 import json
 import logging
@@ -6,7 +27,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-# from utils.constants import ThermodynamicConfig  # Import only if needed
+# from utils.constants import ThermodynamicConfig  # Import only if needed, VISUAL_CONSTANTS
 
 try:
     from datetime import datetime
@@ -70,7 +91,7 @@ except ImportError:
 
 # Import APGI_GLOBAL_SEED for reproducibility
 try:
-    from utils.constants import APGI_GLOBAL_SEED
+    from utils.constants import APGI_GLOBAL_SEED, VISUAL_CONSTANTS
 except ImportError:
     APGI_GLOBAL_SEED = 42  # Fallback default
 
@@ -132,7 +153,7 @@ except ImportError:
     F = None  # type: ignore
 
 try:
-    from utils.constants import DIM_CONSTANTS
+    from utils.constants import DIM_CONSTANTS, VISUAL_CONSTANTS
 
     # Fix 2: Import BIC thresholds from falsification_thresholds
     from utils.falsification_thresholds import (
@@ -2130,7 +2151,12 @@ def run_falsification():
                 ]
                 values = [efficiency, sparsity_reduction]
 
-                bars = ax.bar(metrics, values, color=["#2ecc71", "#3498db"], alpha=0.7)
+                bars = ax.bar(
+                    metrics,
+                    values,
+                    color=[VISUAL_CONSTANTS.STATUS_PASS, "#3498db"],
+                    alpha=0.7,
+                )
                 ax.set_ylim(0, 100.0)
                 ax.set_ylabel("Percentage (%)")
                 ax.set_title("Liquid Network Energy Benchmark (FP-06)")

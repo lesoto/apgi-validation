@@ -10,6 +10,21 @@ Detection Threshold" - a psychophysics paradigm with human participants using he
 discrimination and near-threshold visual stimuli. This file implements computational
 simulations that support Protocol 1 predictions.
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If synthetic APGI data does NOT show improved ML classification compared to
+non-APGI baselines (classification accuracy improvement < 15%, feature importance
+for precision-weighting < 0.2, or cross-validation performance not significantly
+better than chance, p > 0.05), then the APGI computational advantage claim is
+falsified. This would indicate that precision-weighted integration does not
+produce discriminable neural signatures as predicted by the framework.
+
 """
 
 import gc

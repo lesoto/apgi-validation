@@ -112,6 +112,11 @@ protocol_files = [
     ("APGI_Protocol_14", "VP_14_fMRI_Anticipation_Experience.py"),
     ("APGI_Protocol_15", "VP_15_fMRI_Anticipation_vmPFC.py"),
     ("APGI_Protocol_16", "VP_16_Metabolic_ATP_GroundTruth.py"),
+    ("APGI_Protocol_17", "VP_17_AllenVisualCoding_Fatigue.py"),
+    ("APGI_Protocol_18", "VP_18_EEG_Microstate_GFP_P3b.py"),
+    ("APGI_Protocol_19", "VP_19_InformationErasure_MVPA.py"),
+    ("APGI_Protocol_20", "VP_20_Empirical_iEEG.py"),
+    ("APGI_Protocol_21", "VP_21_FreeEnergy_PredictionError.py"),
     ("APGI_Protocol_ALL", "VP_ALL_Aggregator.py"),
 ]
 
@@ -2190,7 +2195,13 @@ Interpretation:
                 (13, "VP_13_Epistemic_Architecture.py"),
                 (14, "VP_14_fMRI_Anticipation_Experience.py"),
                 (15, "VP_15_fMRI_Anticipation_vmPFC.py"),
-                (16, "VP_ALL_Aggregator.py"),
+                (16, "VP_16_Metabolic_ATP_GroundTruth.py"),
+                (17, "VP_17_AllenVisualCoding_Fatigue.py"),
+                (18, "VP_18_EEG_Microstate_GFP_P3b.py"),
+                (19, "VP_19_InformationErasure_MVPA.py"),
+                (20, "VP_20_Empirical_iEEG.py"),
+                (21, "VP_21_FreeEnergy_PredictionError.py"),
+                (22, "VP_ALL_Aggregator.py"),
             ]
 
             if protocol_num < 1 or protocol_num > len(protocol_files):

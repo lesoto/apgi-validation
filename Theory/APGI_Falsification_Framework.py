@@ -8,6 +8,21 @@ Complete falsification testing framework for APGI theory including:
 - Popperian falsification protocols
 - Robustness testing against alternative explanations
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the falsification framework fails to generate testable predictions for
+any APGI claim, or if the statistical criteria are too lenient (false positive
+rate > 10%), or if the framework cannot distinguish APGI from alternatives
+(statistical power < 0.8), then the APGI falsification methodology claim is
+falsified. This would indicate that the framework cannot properly test
+APGI theoretical claims.
+
 """
 
 import logging
@@ -18,7 +33,6 @@ from typing import Any, Dict, List
 import numpy as np
 import scipy.stats as stats
 
-# Matplotlib imports for PNG visualization
 try:
     import matplotlib
 

@@ -28,6 +28,20 @@ CRITICAL FEATURES:
 - GUI compatibility class (BayesianParameterRecovery)
 
 VP-11 FIXES IMPLEMENTED:
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If MCMC chains fail to converge (R̂ > 1.01), or if parameter recovery accuracy
+falls below r > 0.8, or if Bayes factors do not decisively favor the APGI model
+(BF₁₀ < 10), then the APGI Bayesian estimation falsification claim is falsified.
+This would indicate that APGI parameters cannot be reliably estimated from
+behavioral data using Bayesian methods.
 - Fix 1: Data source flag and validation gate (SYNTHETIC_PENDING_EMPIRICAL)
 - Fix 2: Bayes factor via bridge sampling (requires bridgesampling package)
 - Fix 3: Posterior predictive checks with Bayesian p-value

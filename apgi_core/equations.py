@@ -1133,18 +1133,18 @@ class PsychologicalState:
 class StateCategory(Enum):
     """Enhanced state categories with psychiatric associations"""
 
-    OPTIMAL_FUNCTIONING = ("#2E86AB", "Optimal Functioning", "Normal range")
-    POSITIVE_AFFECTIVE = ("#48BF84", "Positive Affective", "Positive valence")
+    OPTIMAL_FUNCTIONING = ("#2166AC", "Optimal Functioning", "Normal range")
+    POSITIVE_AFFECTIVE = ("#41AB5D", "Positive Affective", "Positive valence")
     COGNITIVE_ATTENTIONAL = (
-        "#FF9F1C",
+        "#F4A582",
         "Cognitive/Attentional",
         "Information processing",
     )
-    AVERSIVE_AFFECTIVE = ("#E63946", "Aversive Affective", "Negative valence")
-    PATHOLOGICAL_EXTREME = ("#7209B7", "Pathological/Extreme", "Clinical range")
-    ALTERED_BOUNDARY = ("#8338EC", "Altered/Boundary", "Altered consciousness")
+    AVERSIVE_AFFECTIVE = ("#D6604D", "Aversive Affective", "Negative valence")
+    PATHOLOGICAL_EXTREME = ("#762A83", "Pathological/Extreme", "Clinical range")
+    ALTERED_BOUNDARY = ("#762A83", "Altered/Boundary", "Altered consciousness")
     TRANSITIONAL_CONTEXTUAL = (
-        "#06D6A0",
+        "#F4A582",
         "Transitional/Contextual",
         "Context-dependent",
     )

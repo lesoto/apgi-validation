@@ -22,6 +22,18 @@ Implementation Flags:
 Critical Fixes:
 ✅ Same PyTorch guard fix as FP-04
 ✅ Cross-paper consistency check: run VP-13 Level 2 predictions through FP-04's criteria
+
+LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic implications without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If mutual information does not increase with precision cueing (effect size < 0.5),
+or if bandwidth does not asymptote near 40 bits/s (deviation > 30%), or if Bayesian
+detector performance does not exceed alternative models (accuracy gain < 10%),
+then the APGI epistemic architecture claim is falsified. This would indicate that
+APGI does not achieve the predicted information-theoretic advantages.
 """
 
 import logging

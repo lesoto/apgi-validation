@@ -15,7 +15,14 @@ from click.testing import CliRunner
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import cli
+
+def get_cli():
+    """Safely import cli without triggering policy enforcement."""
+    import unittest.mock
+
+    with unittest.mock.patch("utils.secret_policy_enforcer.enforce_secret_policy"):
+        from main import cli
+    return cli
 
 
 class TestValidateCommand:
@@ -23,12 +30,14 @@ class TestValidateCommand:
 
     def test_validate_with_valid_protocol(self, temp_dir):
         """Test validate command with a valid protocol."""
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["validate", "--protocol", "1"])
         assert result.exit_code == 0
 
     def test_validate_with_invalid_protocol(self):
         """Test validate command with invalid protocol."""
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["validate", "--protocol", "999"])
         assert result.exit_code == 0
@@ -36,6 +45,7 @@ class TestValidateCommand:
 
     def test_validate_with_missing_file(self):
         """Test validate command handles missing data gracefully."""
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["validate", "--protocol", "1"])
         # Should not crash, may show error message
@@ -47,12 +57,14 @@ class TestFalsifyCommand:
 
     def test_falsify_with_valid_protocol(self, temp_dir):
         """Test falsify command with a valid protocol."""
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["falsify", "--protocol", "1"])
         assert result.exit_code == 0
 
     def test_falsify_with_invalid_protocol(self):
         """Test falsify command with invalid protocol."""
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["falsify", "--protocol", "999"])
         assert result.exit_code == 0
@@ -63,8 +75,11 @@ class TestEstimateParamsCommand:
 
     def test_estimate_params_basic(self, temp_dir):
         """Test parameter estimation command structure using help."""
+        cli = get_cli()
         runner = CliRunner()
         # Use --help to validate command structure without running expensive estimation
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["estimate-params", "--help"])
         assert result.exit_code == 0
         assert "--method" in result.output
@@ -72,10 +87,13 @@ class TestEstimateParamsCommand:
 
     def test_estimate_params_with_bounds(self, temp_dir):
         """Test parameter estimation CLI command structure - no actual estimation."""
+        cli = get_cli()
         runner = CliRunner()
 
         # Test that the CLI command exists and accepts the expected arguments
         # We'll use --help to validate the command structure without running estimation
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["estimate-params", "--help"])
 
         # The help command should succeed and show the available options
@@ -84,6 +102,8 @@ class TestEstimateParamsCommand:
         assert "--iterations" in result.output
 
         # Test that invalid method shows error message (strip ANSI codes)
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["estimate-params", "--method", "invalid"])
         # Remove ANSI color codes for comparison
         import re
@@ -98,6 +118,8 @@ class TestCrossSpeciesCommand:
 
     def test_cross_species_basic(self, temp_dir):
         """Test cross-species analysis."""
+        runner = CliRunner()
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["cross-species"])
         assert result.exit_code == 0
@@ -117,6 +139,8 @@ class TestAnalyzeLogsCommand:
         log_file.write_text(log_content)
 
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["analyze-logs", "--log-file", str(log_file)])
         assert result.exit_code == 0
 
@@ -130,6 +154,7 @@ class TestAnalyzeLogsCommand:
         log_file.write_text(log_content)
 
         runner = CliRunner()
+        cli = get_cli()
         result = runner.invoke(
             cli, ["analyze-logs", "--log-file", str(log_file), "--level", "ERROR"]
         )
@@ -152,6 +177,8 @@ class TestProcessDataCommand:
         test_data.to_csv(csv_file, index=False)
 
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["process-data", "--input-file", str(csv_file)])
         assert result.exit_code == 0
 
@@ -163,6 +190,8 @@ class TestProcessDataCommand:
             json.dump(test_data, f)
 
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["process-data", "--input-file", str(json_file)])
         assert result.exit_code == 0
 
@@ -173,11 +202,15 @@ class TestMonitorPerformanceCommand:
     def test_monitor_performance_basic(self, temp_dir):
         """Test performance monitoring."""
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["monitor-performance"])
         assert result.exit_code == 0
 
     def test_monitor_performance_with_metrics(self, temp_dir):
         """Test performance monitoring with specific metrics."""
+        runner = CliRunner()
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["monitor-performance", "--cpu", "--memory"])
         assert result.exit_code == 0
@@ -189,6 +222,8 @@ class TestNeuralSignaturesCommand:
     def test_neural_signatures_basic(self, temp_dir):
         """Test neural signature analysis."""
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["neural-signatures"])
         assert result.exit_code == 0
 
@@ -198,6 +233,8 @@ class TestCausalManipulationsCommand:
 
     def test_causal_manipulations_basic(self, temp_dir):
         """Test causal manipulation analysis."""
+        runner = CliRunner()
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["causal-manipulations"])
         assert result.exit_code == 0
@@ -209,6 +246,8 @@ class TestQuantitativeFitsCommand:
     def test_quantitative_fits_basic(self, temp_dir):
         """Test quantitative fitting."""
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["quantitative-fits"])
         assert result.exit_code == 0
 
@@ -218,6 +257,8 @@ class TestClinicalConvergenceCommand:
 
     def test_clinical_convergence_basic(self, temp_dir):
         """Test clinical convergence analysis."""
+        runner = CliRunner()
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["clinical-convergence"])
         assert result.exit_code == 0
@@ -229,11 +270,15 @@ class TestOpenScienceCommand:
     def test_open_science_export(self, temp_dir):
         """Test open science data export."""
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["open-science"])
         assert result.exit_code == 0
 
     def test_open_science_metadata(self, temp_dir):
         """Test open science metadata generation."""
+        runner = CliRunner()
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["open-science", "--component", "preregistration"])
         assert result.exit_code == 0
@@ -246,6 +291,8 @@ class TestBayesianEstimationCommand:
         """Test Bayesian parameter estimation command structure using help."""
         runner = CliRunner()
         # Use --help to validate command structure without running expensive estimation
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["bayesian-estimation", "--help"])
         assert result.exit_code == 0
 
@@ -255,6 +302,8 @@ class TestComprehensiveValidationCommand:
 
     def test_comprehensive_validation_basic(self, temp_dir):
         """Test comprehensive validation suite."""
+        runner = CliRunner()
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["comprehensive-validation"])
         assert result.exit_code == 0
@@ -266,11 +315,15 @@ class TestGUICommand:
     def test_gui_launch(self):
         """Test GUI launch command."""
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["gui"])
         assert result.exit_code == 0
 
     def test_gui_with_config(self, temp_dir):
         """Test GUI launch with custom config."""
+        runner = CliRunner()
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["gui", "--gui-type", "tkinter"])
         assert result.exit_code == 0
@@ -286,6 +339,8 @@ class TestLogsCommand:
         log_file.write_text(log_content)
 
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["logs", "--export", str(temp_dir / "logs.txt")])
         assert result.exit_code == 0
 
@@ -299,6 +354,8 @@ class TestLogsCommand:
         log_file.write_text(log_content)
 
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["logs", "--level", "ERROR"])
         assert result.exit_code == 0
 
@@ -309,11 +366,15 @@ class TestPerformanceCommand:
     def test_performance_dashboard(self, temp_dir):
         """Test performance dashboard command."""
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["performance"])
         assert result.exit_code == 0
 
     def test_performance_with_benchmark(self, temp_dir):
         """Test performance with benchmark comparison."""
+        runner = CliRunner()
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["performance", "--detailed"])
         assert result.exit_code == 0
@@ -330,6 +391,8 @@ class TestMultimodalCommand:
             json.dump(test_data, f)
 
         runner = CliRunner()
+        cli = get_cli()
+        runner = CliRunner()
         result = runner.invoke(cli, ["multimodal", "--input-data", str(data_file)])
         assert result.exit_code == 0
 
@@ -343,6 +406,8 @@ class TestMultimodalCommand:
         with open(data_file, "w", encoding="utf-8") as f:
             json.dump(test_data, f)
 
+        runner = CliRunner()
+        cli = get_cli()
         runner = CliRunner()
         result = runner.invoke(cli, ["multimodal", "--input-data", str(data_file)])
         assert result.exit_code in [0, 1]  # May fail gracefully

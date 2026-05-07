@@ -7,13 +7,13 @@ Complete parameter mappings for 54 psychological states based on the
 Active Posterior Global Integration (APGI) framework.
 
 Each state is defined with:
-- Pi_e: Exteroceptive precision ∈ [0.1, 15]
-- Pi_i_baseline: Baseline interoceptive precision ∈ [0.1, 15]
+- Pi_e: Exteroceptive precision  [0.1, 15]
+- Pi_i_baseline: Baseline interoceptive precision  [0.1, 15]
 - Pi_i_eff: Effective interoceptive precision (after somatic modulation)
 - theta_t: Ignition threshold (z-score units; negative = lowered, positive = elevated)
-- S_t: Accumulated surprise signal (computed: Π_e·|z_e| + Π_i_eff·|z_i|)
-- M_ca: Somatic marker value ∈ [-2, +2]
-- beta: Somatic influence gain (β_som) ∈ [0.3, 0.8]
+- S_t: Accumulated surprise signal (computed: _e|z_e| + _i_eff|z_i|)
+- M_ca: Somatic marker value  [-2, +2]
+- beta: Somatic influence gain (_som)  [0.3, 0.8]
 - z_e: Exteroceptive prediction error magnitude
 - z_i: Interoceptive prediction error magnitude
 
@@ -28,10 +28,25 @@ Usage:
     aversive_states = get_states_by_category(StateCategory.AVERSIVE_AFFECTIVE)
 
     # Compare two states
-    diff = compare_states('fear', 'anxiety')
 
-=============================================================================
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the psychological state parameter mappings fail to produce consistent
+state-to-state transitions (transition prediction accuracy < 70%) or if the
+parameter ranges do not align with empirical findings from clinical studies
+(deviation > 30% from published values), then the APGI psychological state
+parameterization claim is falsified. This would indicate that the proposed
+parameter mappings do not accurately capture psychological state dynamics.
+
 """
+
+# =============================================================================
 
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -53,13 +68,13 @@ except ImportError:
 class APGIParameters:
     """APGI parameter set with proper type safety"""
 
-    Pi_e: float  # Exteroceptive precision ∈ [0.1, 10]
-    Pi_i_baseline: float  # Baseline interoceptive precision ∈ [0.1, 10]
+    Pi_e: float  # Exteroceptive precision  [0.1, 10]
+    Pi_i_baseline: float  # Baseline interoceptive precision  [0.1, 10]
     Pi_i_eff: float  # Effective interoceptive precision (modulated)
     theta_t: float  # Ignition threshold (z-score)
     S_t: float  # Accumulated surprise signal
-    M_ca: float  # Somatic marker value ∈ [-2, +2]
-    beta: float  # Somatic influence gain (β_som) ∈ [0.3, 0.8]
+    M_ca: float  # Somatic marker value  [-2, +2]
+    beta: float  # Somatic influence gain (_som)  [0.3, 0.8]
     z_e: float  # Exteroceptive z-score
     z_i: float  # Interoceptive z-score
 
@@ -76,10 +91,10 @@ class APGIParameters:
         if not -2.0 <= self.M_ca <= 2.0:
             raise ValueError(f"M_ca must be in [-2, 2], got {self.M_ca}")
         if not (0.3 <= self.beta <= 0.8):
-            raise ValueError(f"β_som={self.beta} outside valid range [0.3, 0.8]")
+            raise ValueError(f"_som={self.beta} outside valid range [0.3, 0.8]")
 
     def compute_ignition_probability(self) -> float:
-        """Compute P(ignite) = σ(S_t - θ_t) with overflow protection"""
+        """Compute P(ignite) = (S_t - _t) with overflow protection"""
         z = self.S_t - self.theta_t
         if z >= 0:
             return 1.0 / (1.0 + np.exp(-z))
@@ -88,12 +103,12 @@ class APGIParameters:
             return z_exp / (1.0 + z_exp)
 
     def verify_S_t(self) -> bool:
-        """Verify S_t matches the formula: S_t = Π_e·|z_e| + Π_i_eff·|z_i|"""
+        """Verify S_t matches the formula: S_t = _e*|z_e| + _i_eff*|z_i|"""
         computed = self.Pi_e * abs(self.z_e) + self.Pi_i_eff * abs(self.z_i)
         return bool(np.isclose(self.S_t, computed, rtol=0.001))
 
     def verify_Pi_i_eff(self) -> bool:
-        """Verify Π_i_eff matches the formula: Π_i_eff = Π_i_baseline · exp(β·M)"""
+        """Verify _i_eff matches the formula: _i_eff = _i_baseline * exp(*M)"""
         computed = self.Pi_i_baseline * np.exp(self.beta * self.M_ca)
         computed = np.clip(computed, 0.1, 15.0)
         return bool(np.isclose(self.Pi_i_eff, computed, rtol=0.001))
@@ -139,8 +154,8 @@ def create_apgi_params(
     Factory function that computes derived parameters automatically.
 
     Computes:
-    - Pi_i_eff = Pi_i_baseline · exp(β·M_ca)
-    - S_t = Π_e·|z_e| + Π_i_eff·|z_i|
+    - Pi_i_eff = Pi_i_baseline * exp(*M_ca)
+    - S_t = _e*|z_e| + _i_eff*|z_i|
     """
     # Compute effective interoceptive precision with somatic modulation (exponential form)
     Pi_i_eff = Pi_i_baseline * np.exp(beta * M_ca)
@@ -1042,30 +1057,30 @@ def validate_transition_plausibility(
 
         # Check for extreme parameter jumps
         param_changes = {
-            "Π_e": abs(p_next.Pi_e - p_current.Pi_e),
-            "θ_t": abs(p_next.theta_t - p_current.theta_t),
+            "_e": abs(p_next.Pi_e - p_current.Pi_e),
+            "_t": abs(p_next.theta_t - p_current.theta_t),
             "M_ca": abs(p_next.M_ca - p_current.M_ca),
         }
 
-        if param_changes["Π_e"] > 4.0:
+        if param_changes["_e"] > 4.0:
             issues.append(
-                f"Large Π_e jump: {current} → {next_state} (Δ={param_changes['Π_e']:.1f})"
+                f"Large _e jump: {current}  {next_state} (={param_changes['_e']:.1f})"
             )
             score -= 15
-        elif param_changes["Π_e"] > 2.5:
+        elif param_changes["_e"] > 2.5:
             warnings.append(
-                f"Moderate Π_e jump: {current} → {next_state} (Δ={param_changes['Π_e']:.1f})"
+                f"Moderate _e jump: {current}  {next_state} (={param_changes['_e']:.1f})"
             )
             score -= 5
 
-        if param_changes["θ_t"] > 2.0:
+        if param_changes["_t"] > 2.0:
             issues.append(
-                f"Large θ_t jump: {current} → {next_state} (Δ={param_changes['θ_t']:.1f})"
+                f"Large _t jump: {current}  {next_state} (={param_changes['_t']:.1f})"
             )
             score -= 10
-        elif param_changes["θ_t"] > 1.5:
+        elif param_changes["_t"] > 1.5:
             warnings.append(
-                f"Moderate θ_t jump: {current} → {next_state} (Δ={param_changes['θ_t']:.1f})"
+                f"Moderate _t jump: {current}  {next_state} (={param_changes['_t']:.1f})"
             )
             score -= 3
 
@@ -1082,7 +1097,7 @@ def validate_transition_plausibility(
         for cat1, cat2 in incompatible_transitions:
             if current_cat == cat1 and next_cat == cat2:
                 warnings.append(
-                    f"Direct aversive→optimal transition: {current} → {next_state}"
+                    f"Direct aversiveoptimal transition: {current}  {next_state}"
                 )
                 score -= 8
 
@@ -1143,37 +1158,36 @@ def get_state_summary(name: str) -> str:
     ignition_prob = params.compute_ignition_probability()
 
     summary = f"""
-═══════════════════════════════════════════════════════════════════
 State: {name.upper().replace('_', ' ')}
 Category: {category.name.replace('_', ' ')}
-═══════════════════════════════════════════════════════════════════
+
 
 PRECISION PARAMETERS
-────────────────────────────────────────────────────────────────────
-  Exteroceptive (Π_e):        {params.Pi_e:5.2f}  {"█" * int(params.Pi_e)}
-  Interoceptive baseline:     {params.Pi_i_baseline:5.2f}  {"█" * int(params.Pi_i_baseline)}
-  Interoceptive effective:    {params.Pi_i_eff:5.2f}  {"█" * int(params.Pi_i_eff)}
 
-PREDICTION ERROR
-────────────────────────────────────────────────────────────────────
-  Exteroceptive (z_e):        {params.z_e:5.2f}  {"▓" * int(params.z_e * 3)}
-  Interoceptive (z_i):        {params.z_i:5.2f}  {"▓" * int(params.z_i * 3)}
+  Exteroceptive (_e):        {params.Pi_e:5.2f}  {"" * int(params.Pi_e)}
+  Interoceptive baseline:     {params.Pi_i_baseline:5.2f}  {"" * int(params.Pi_i_baseline)}
+  Interoceptive effective:    {params.Pi_i_eff:5.2f}  {"" * int(params.Pi_i_eff)}
+
+PRECISION PARAMETERS
+
+  Exteroceptive (z_e):        {params.z_e:5.2f}  {"" * int(params.z_e * 3)}
+  Interoceptive (z_i):        {params.z_i:5.2f}  {"" * int(params.z_i * 3)}
 
 THRESHOLD & SOMATIC
-────────────────────────────────────────────────────────────────────
-  Ignition threshold (θ_t):   {params.theta_t:+5.2f}  {"↑" if params.theta_t > 0 else "↓"} {"▒" * abs(int(params.theta_t * 2))}
-  Somatic marker (M_ca):      {params.M_ca:+5.2f}  {"+" if params.M_ca > 0 else "-"} {"░" * abs(int(params.M_ca * 2))}
-  Somatic gain (β):           {params.beta:5.2f}
+
+  Ignition threshold (_t):   {params.theta_t:+5.2f}  {"" if params.theta_t > 0 else ""} {"" * abs(int(params.theta_t * 2))}
+  Somatic marker (M_ca):      {params.M_ca:+5.2f}  {"+" if params.M_ca > 0 else "-"} {"" * abs(int(params.M_ca * 2))}
+  Somatic gain ():           {params.beta:5.2f}
 
 DERIVED VALUES
-────────────────────────────────────────────────────────────────────
+
   Accumulated surprise (S_t): {params.S_t:6.2f}
   Ignition probability:       {ignition_prob:6.2%}
 
 Formula verification:
-  Π_i_eff = Π_i_baseline · exp(β_som·M):  {"✓" if params.verify_Pi_i_eff() else "✗"}
-  S_t = Π_e·|z_e| + Π_i_eff·|z_i|:    {"✓" if params.verify_S_t() else "✗"}
-═══════════════════════════════════════════════════════════════════
+  _i_eff = _i_baseline  exp(_somM):  {"" if params.verify_Pi_i_eff() else ""}
+  S_t = _e|z_e| + _i_eff|z_i|:    {"" if params.verify_S_t() else ""}
+
 """
     return summary
 
@@ -1182,12 +1196,12 @@ def generate_state_comparison_table(states: List[str]) -> str:
     """Generate a formatted comparison table for multiple states"""
     headers = [
         "State",
-        "Π_e",
-        "Π_i_eff",
-        "θ_t",
+        "_e",
+        "_i_eff",
+        "_t",
         "S_t",
         "M_ca",
-        "β",
+        "",
         "z_e",
         "z_i",
         "P(ign)",
@@ -1215,22 +1229,18 @@ def generate_state_comparison_table(states: List[str]) -> str:
     col_widths = [12, 6, 8, 6, 6, 6, 6, 6, 6, 6]  # Fixed widths for stability
 
     lines = []
-    lines.append("┌" + "┬".join("─" * w for w in col_widths) + "┐")
+    lines.append("" + "".join("" * w for w in col_widths) + "")
     lines.append(
-        "│"
-        + "│".join(headers[i].ljust(col_widths[i]) for i in range(len(headers)))
-        + "│"
+        "" + "".join(headers[i].ljust(col_widths[i]) for i in range(len(headers))) + ""
     )
-    lines.append("├" + "┼".join("─" * w for w in col_widths) + "┤")
+    lines.append("" + "".join("" * w for w in col_widths) + "")
 
     for row in rows:
         lines.append(
-            "│"
-            + "│".join(str(row[i]).ljust(col_widths[i]) for i in range(len(row)))
-            + "│"
+            "" + "".join(str(row[i]).ljust(col_widths[i]) for i in range(len(row))) + ""
         )
 
-    lines.append("└" + "┴".join("─" * w for w in col_widths) + "┘")
+    lines.append("" + "".join("" * w for w in col_widths) + "")
 
     return "\n".join(lines)
 
@@ -1258,13 +1268,13 @@ def validate_all_states() -> Tuple[
         # Check for edge cases
         edge_case_checks = []
         if params.Pi_e < 0.5 or params.Pi_e > 14.5:
-            edge_case_checks.append(f"Π_e={params.Pi_e:.1f} near boundary")
+            edge_case_checks.append(f"_e={params.Pi_e:.1f} near boundary")
         if params.theta_t < -2.8 or params.theta_t > 2.3:
-            edge_case_checks.append(f"θ_t={params.theta_t:+.1f} near boundary")
+            edge_case_checks.append(f"_t={params.theta_t:+.1f} near boundary")
         if params.M_ca < -1.8 or params.M_ca > 1.8:
             edge_case_checks.append(f"M_ca={params.M_ca:+.1f} near boundary")
         if params.compute_ignition_probability() > 0.99:
-            edge_case_checks.append("P(ignition) ≈ 100% (saturated)")
+            edge_case_checks.append("P(ignition)  100% (saturated)")
         if params.compute_ignition_probability() < 0.25:
             edge_case_checks.append("P(ignition) < 25% (suppressed)")
 
@@ -1286,7 +1296,7 @@ def print_validation_report():
 
     all_valid = True
     for name, checks in results.items():
-        status = "✓" if all(checks.values()) else "✗"
+        status = "" if all(checks.values()) else ""
         if not all(checks.values()):
             all_valid = False
 
@@ -1298,7 +1308,7 @@ def print_validation_report():
 
     print("-" * 70)
     print(f"Total states: {len(results)}")
-    print(f"Overall status: {'ALL VALID ✓' if all_valid else 'SOME FAILURES ✗'}")
+    print(f"Overall status: {'ALL VALID ' if all_valid else 'SOME FAILURES '}")
 
     # Edge case reporting
     if edge_cases:
@@ -1309,9 +1319,9 @@ def print_validation_report():
             for name, warnings in case.items():
                 print(f"\n{name}:")
                 for warning in warnings:
-                    print(f"  ⚠ {warning}")
+                    print(f"   {warning}")
     else:
-        print("\n✓ No edge cases or boundary violations detected")
+        print("\n No edge cases or boundary violations detected")
 
     print("=" * 70)
 
@@ -1330,9 +1340,9 @@ if __name__ == "__main__":
     print("-" * 40)
     fear_params = get_state("fear")
     print("Fear parameters:")
-    print(f"  Π_e = {fear_params.Pi_e}")
-    print(f"  Π_i_eff = {fear_params.Pi_i_eff}")
-    print(f"  θ_t = {fear_params.theta_t}")
+    print(f"  _e = {fear_params.Pi_e}")
+    print(f"  _i_eff = {fear_params.Pi_i_eff}")
+    print(f"  _t = {fear_params.theta_t}")
     print(f"  M_ca = {fear_params.M_ca}")
     print(f"  P(ignition) = {fear_params.compute_ignition_probability():.2%}")
 
@@ -1346,7 +1356,7 @@ if __name__ == "__main__":
     print("\n3. STATE COMPARISON: Fear vs Anxiety")
     print("-" * 40)
     comparison = compare_states("fear", "anxiety")
-    print(f"{'Parameter':<15} {'Fear':>8} {'Anxiety':>8} {'Δ':>8}")
+    print(f"{'Parameter':<15} {'Fear':>8} {'Anxiety':>8} {'':>8}")
     print("-" * 40)
     for param, (v1, v2, diff) in comparison.items():
         print(f"{param:<15} {v1:>8.2f} {v2:>8.2f} {diff:>+8.2f}")
@@ -1377,24 +1387,24 @@ if __name__ == "__main__":
     print("-" * 40)
     pathway, validation = get_transition_pathway("anxiety", "calm", validate=True)
     print("Suggested pathway from 'anxiety' to 'calm':")
-    print(f"  {' → '.join(pathway)}")
+    print(f"  {'  '.join(pathway)}")
 
     # Display validation results
     if validation:
         print(f"\n  Plausibility Score: {validation['score']:.0f}/100")
         print(
-            f"  Status: {'✓ PLAUSIBLE' if validation['plausible'] else '✗ QUESTIONABLE'}"
+            f"  Status: {' PLAUSIBLE' if validation['plausible'] else ' QUESTIONABLE'}"
         )
 
         if validation["issues"]:
             print("\n  Issues:")
             for issue in validation["issues"]:
-                print(f"    ✗ {issue}")
+                print(f"     {issue}")
 
         if validation["warnings"]:
             print("\n  Warnings:")
             for warning in validation["warnings"]:
-                print(f"    ⚠ {warning}")
+                print(f"     {warning}")
 
     # 8. Transition cost
     print("\n8. TRANSITION COST ANALYSIS")
@@ -1425,10 +1435,10 @@ if __name__ == "__main__":
 
     print(f"Total states: {len(PSYCHOLOGICAL_STATES)}")
     print(
-        f"\nΠ_e range: {min(all_pi_e):.1f} - {max(all_pi_e):.1f} (mean: {np.mean(all_pi_e):.2f})"
+        f"\n_e range: {min(all_pi_e):.1f} - {max(all_pi_e):.1f} (mean: {np.mean(all_pi_e):.2f})"
     )
     print(
-        f"θ_t range: {min(all_theta):+.1f} - {max(all_theta):+.1f} (mean: {np.mean(all_theta):+.2f})"
+        f"_t range: {min(all_theta):+.1f} - {max(all_theta):+.1f} (mean: {np.mean(all_theta):+.2f})"
     )
     print(
         f"M_ca range: {min(all_m_ca):+.1f} - {max(all_m_ca):+.1f} (mean: {np.mean(all_m_ca):+.2f})"

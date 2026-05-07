@@ -12,6 +12,19 @@ Validation Criteria:
 
 Aggregates named predictions across all validation protocols for framework
 validation status reporting.
+
+LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic implications without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the aggregated validation results do not achieve >70% success rate across primary
+validations, or if the framework-level consistency score falls below 0.6, or if
+the aggregated evidence does not support APGI over alternative theories
+(Bayes factor BF₁₀ < 3), then the APGI framework validation claim is falsified.
+This would indicate that APGI does not receive sufficient empirical support
+across the validation battery.
 """
 
 import json
@@ -211,13 +224,13 @@ PREDICTION_TO_PROTOCOL = {
     "V19.2": "VP_19_InformationErasure_MVPA",
     "V19.3": "VP_19_InformationErasure_MVPA",
     # VP-20: Empirical iEEG Pipeline
-    "V20.1": "VP_01_empirical",
-    "V20.2": "VP_01_empirical",
-    "V20.3": "VP_01_empirical",
+    "V20.1": "VP_20_Empirical_iEEG",
+    "V20.2": "VP_20_Empirical_iEEG",
+    "V20.3": "VP_20_Empirical_iEEG",
     # VP-21: Free Energy Proxy (PE tracking)
-    "V21.1": "VP_20_FreeEnergy_PredictionError",
-    "V21.2": "VP_20_FreeEnergy_PredictionError",
-    "V21.3": "VP_20_FreeEnergy_PredictionError",
+    "V21.1": "VP_21_FreeEnergy_PredictionError",
+    "V21.2": "VP_21_FreeEnergy_PredictionError",
+    "V21.3": "VP_21_FreeEnergy_PredictionError",
 }
 
 # Protocol tier classification
@@ -241,8 +254,8 @@ PROTOCOL_TIERS = {
     "VP_17_AllenVisualCoding_Fatigue": "secondary",
     "VP_18_EEG_Microstate_GFP_P3b": "secondary",
     "VP_19_InformationErasure_MVPA": "secondary",
-    "VP_01_empirical": "secondary",
-    "VP_20_FreeEnergy_PredictionError": "secondary",
+    "VP_20_Empirical_iEEG": "secondary",
+    "VP_21_FreeEnergy_PredictionError": "secondary",
 }
 
 # VP-07 / VP-10 Boundary Clarification

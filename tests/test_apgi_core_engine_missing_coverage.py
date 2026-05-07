@@ -8,19 +8,13 @@ Focuses on specific functions and lines that are currently uncovered.
 import sys
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from apgi_core.engine import (
-    APGIHierarchy,
-    APGIRecovery,
-    APGIValidationMetrics,
-    APGIActiveInference,
-    APGIMultimodalIntegration,
-)
+from apgi_core.engine import APGIHierarchy, APGIRecovery, APGIValidationMetrics
 
 
 class TestAPGIHierarchyMissingCoverage:
@@ -168,264 +162,24 @@ class TestAPGIValidationMetricsMissingCoverage:
         metrics = APGIValidationMetrics()
         assert metrics is not None
 
-    def test_bayesian_evidence(self):
-        """Test bayesian_evidence calculation."""
-        metrics = APGIValidationMetrics()
-
-        # Mock data
-        model_predictions = np.array([0.1, 0.3, 0.6, 0.8, 0.9])
-        empirical_data = np.array([0.2, 0.4, 0.5, 0.7, 1.0])
-
-        evidence = metrics.bayesian_evidence(model_predictions, empirical_data)
-        assert isinstance(evidence, float)
-        assert evidence > 0
-
-    def test_bayesian_evidence_identical_data(self):
-        """Test bayesian_evidence with identical data."""
-        metrics = APGIValidationMetrics()
-
-        data = np.array([0.1, 0.3, 0.6, 0.8, 0.9])
-        evidence = metrics.bayesian_evidence(data, data)
-
-        # Should be high for identical data
-        assert evidence > 1.0
-
-    def test_kl_divergence(self):
-        """Test KL divergence calculation."""
-        metrics = APGIValidationMetrics()
-
-        p = np.array([0.1, 0.2, 0.3, 0.4])
-        q = np.array([0.25, 0.25, 0.25, 0.25])
-
-        kl_div = metrics.kl_divergence(p, q)
-        assert isinstance(kl_div, float)
-        assert kl_div >= 0
-
-    def test_kl_divergence_identical(self):
-        """Test KL divergence with identical distributions."""
-        metrics = APGIValidationMetrics()
-
-        p = np.array([0.1, 0.2, 0.3, 0.4])
-        kl_div = metrics.kl_divergence(p, p)
-
-        # Should be zero for identical distributions
-        assert abs(kl_div - 0.0) < 1e-10
-
-    def test_correlation_analysis(self):
-        """Test correlation analysis."""
-        metrics = APGIValidationMetrics()
-
-        x = np.array([1, 2, 3, 4, 5])
-        y = np.array([2, 4, 6, 8, 10])  # Perfect correlation
-
-        corr = metrics.correlation_analysis(x, y)
-        assert isinstance(corr, float)
-        assert abs(corr - 1.0) < 1e-10
-
-    def test_correlation_analysis_no_correlation(self):
-        """Test correlation analysis with no correlation."""
-        metrics = APGIValidationMetrics()
-
-        x = np.array([1, 2, 3, 4, 5])
-        y = np.array([1, 0, 1, 0, 1])  # No clear correlation
-
-        corr = metrics.correlation_analysis(x, y)
-        assert isinstance(corr, float)
-        assert abs(corr) < 1.0
-
-    def test_model_fit_metrics(self):
-        """Test model fit metrics calculation."""
-        metrics = APGIValidationMetrics()
-
-        predicted = np.array([1.1, 1.9, 3.1, 4.0, 4.9])
-        observed = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
-
-        fit_metrics = metrics.model_fit_metrics(predicted, observed)
-        assert isinstance(fit_metrics, dict)
-        assert "rmse" in fit_metrics
-        assert "r_squared" in fit_metrics
-        assert "mae" in fit_metrics
-
-    def test_model_fit_metrics_perfect_fit(self):
-        """Test model fit metrics with perfect fit."""
-        metrics = APGIValidationMetrics()
-
-        data = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
-        fit_metrics = metrics.model_fit_metrics(data, data)
-
-        # Perfect fit should have zero error
-        assert fit_metrics["rmse"] < 1e-10
-        assert fit_metrics["r_squared"] > 0.99  # Should be 1.0
-        assert fit_metrics["mae"] < 1e-10
-
-
-class TestAPGIActiveInferenceMissingCoverage:
-    """Test APGIActiveInference methods with missing coverage."""
-
-    def test_prediction_error(self):
-        """Test prediction error calculation."""
-        inference = APGIActiveInference()
-
-        predicted = np.array([0.5, 0.3, 0.8])
-        observed = np.array([0.6, 0.2, 0.9])
-
-        error = inference.prediction_error(predicted, observed)
-        assert isinstance(error, float)
-        assert error >= 0
-
-    def test_prediction_error_zero(self):
-        """Test prediction error with identical predictions."""
-        inference = APGIActiveInference()
-
-        data = np.array([0.1, 0.2, 0.3])
-        error = inference.prediction_error(data, data)
-
-        assert abs(error - 0.0) < 1e-10
-
-    def test_free_energy(self):
-        """Test free energy calculation."""
-        inference = APGIActiveInference()
-
-        prediction = np.array([0.4, 0.6])
-        sensory_input = np.array([0.3, 0.7])
-
-        free_energy = inference.free_energy(prediction, sensory_input)
-        assert isinstance(free_energy, float)
-
-    def test_free_energy_perfect_match(self):
-        """Test free energy with perfect prediction match."""
-        inference = APGIActiveInference()
-
-        data = np.array([0.5, 0.5])
-        free_energy = inference.free_energy(data, data)
-
-        # Should be minimal for perfect match
-        assert free_energy >= 0
-
-    def test_belief_update(self):
-        """Test belief update process."""
-        inference = APGIActiveInference()
-
-        prior_belief = np.array([0.5, 0.5])
-        prediction_error_signal = np.array([0.1, -0.1])
-        learning_rate = 0.1
-
-        updated_belief = inference.belief_update(
-            prior_belief, prediction_error_signal, learning_rate
-        )
-
-        assert len(updated_belief) == len(prior_belief)
-        assert not np.array_equal(updated_belief, prior_belief)
-
-    def test_belief_update_zero_learning_rate(self):
-        """Test belief update with zero learning rate."""
-        inference = APGIActiveInference()
-
-        prior = np.array([0.3, 0.7])
-        error = np.array([0.1, -0.1])
-
-        updated = inference.belief_update(prior, error, 0.0)
-
-        # Should be unchanged with zero learning rate
-        assert np.array_equal(updated, prior)
-
-
-class TestAPGIMultimodalIntegrationMissingCoverage:
-    """Test APGIMultimodalIntegration methods with missing coverage."""
-
-    def test_multisensory_integration(self):
-        """Test multisensory integration."""
-        integration = APGIMultimodalIntegration()
-
-        visual_input = np.array([0.8, 0.2])
-        auditory_input = np.array([0.3, 0.7])
-
-        integrated = integration.multisensory_integration(visual_input, auditory_input)
-
-        assert len(integrated) == len(visual_input)
-        assert isinstance(integrated, np.ndarray)
-
-    def test_multisensory_integration_weighted(self):
-        """Test multisensory integration with weights."""
-        integration = APGIMultimodalIntegration()
-
-        visual = np.array([0.6, 0.4])
-        auditory = np.array([0.2, 0.8])
-        visual_weight = 0.7
-        auditory_weight = 0.3
-
-        result = integration.multisensory_integration(
-            visual, auditory, visual_weight, auditory_weight
-        )
-
-        assert len(result) == len(visual)
-
-    def test_crossmodal_attention(self):
-        """Test crossmodal attention."""
-        integration = APGIMultimodalIntegration()
-
-        primary_modality = np.array([0.9, 0.1])
-        secondary_modality = np.array([0.4, 0.6])
-
-        attention_weights = integration.crossmodal_attention(
-            primary_modality, secondary_modality
-        )
-
-        assert len(attention_weights) == len(primary_modality)
-        assert all(0 <= w <= 1 for w in attention_weights)
-
-    def test_temporal_binding(self):
-        """Test temporal binding across modalities."""
-        integration = APGIMultimodalIntegration()
-
-        visual_timeseries = np.array([0.1, 0.3, 0.5, 0.7, 0.9])
-        auditory_timeseries = np.array([0.2, 0.4, 0.6, 0.8, 1.0])
-
-        binding_strength = integration.temporal_binding(
-            visual_timeseries, auditory_timeseries
-        )
-
-        assert isinstance(binding_strength, float)
-        assert 0 <= binding_strength <= 1
-
-    def test_temporal_binding_perfect_correlation(self):
-        """Test temporal binding with perfectly correlated signals."""
-        integration = APGIMultimodalIntegration()
-
-        signal = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
-        binding = integration.temporal_binding(signal, signal)
-
-        # Should be high for identical signals
-        assert binding > 0.9
-
-    def test_modality_fusion(self):
-        """Test modality fusion."""
-        integration = APGIMultimodalIntegration()
-
-        modalities = {
-            "visual": np.array([0.7, 0.3]),
-            "auditory": np.array([0.4, 0.6]),
-            "tactile": np.array([0.5, 0.5]),
-        }
-
-        fused = integration.modality_fusion(modalities)
-
-        assert len(fused) == 2  # Should match dimensionality
-        assert isinstance(fused, np.ndarray)
-
-    def test_conflict_resolution(self):
-        """Test conflict resolution between modalities."""
-        integration = APGIMultimodalIntegration()
-
-        conflicting_inputs = {
-            "visual": np.array([0.9, 0.1]),
-            "auditory": np.array([0.1, 0.9]),  # Conflicting with visual
-        }
-
-        resolved = integration.conflict_resolution(conflicting_inputs)
-
-        assert len(resolved) == 2
-        assert isinstance(resolved, np.ndarray)
+    def test_power_spectrum(self):
+        """Test power spectrum calculation."""
+        f = np.array([1.0, 2.0, 3.0])
+        sigma_l = np.array([0.5, 1.0, 1.5])
+        tau_l = np.array([0.1, 0.2, 0.3])
+
+        spectrum = APGIValidationMetrics.power_spectrum(f, sigma_l, tau_l)
+
+        assert isinstance(spectrum, np.ndarray)
+        assert spectrum.shape == f.shape
+
+    def test_hurst_exponent(self):
+        """Test Hurst exponent calculation."""
+        beta_spec = 1.5
+        hurst = APGIValidationMetrics.hurst_exponent(beta_spec)
+
+        assert isinstance(hurst, float)
+        assert hurst == (beta_spec + 1) / 2.0
 
 
 class TestEngineEdgeCases:

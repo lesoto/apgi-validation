@@ -17,6 +17,22 @@ Integrates:
 - Metabolic cost regulation
 - Global workspace broadcast theory
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the APGI Turing Machine does NOT demonstrate computational universality
+(fails to implement universal computation primitives, shows < 80% success
+rate on standard Turing machine benchmarks, or ignition events do NOT
+correlate with computational state transitions > 70% of the time), then
+the APGI computational theory is falsified. This would indicate that
+precision-gated ignition does not provide the computational substrate
+claimed by the framework.
+
 =============================================================================
 """
 
@@ -27,6 +43,8 @@ from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+from utils.constants import VISUAL_CONSTANTS
 
 # =============================================================================
 # ENUMERATIONS - Discrete State Space
@@ -877,14 +895,18 @@ class APGIVisualizer:
         # Plot 1: Surprise and Threshold
         ax0 = axes[0]
         ax0.plot(
-            df["time"], df["S"], label="$S_t$ (Surprise)", color="blue", linewidth=1.5
+            df["time"],
+            df["S"],
+            label="$S_t$ (Surprise)",
+            color=VISUAL_CONSTANTS.ST_BLUE,
+            linewidth=1.5,
         )
         ax0.plot(
             df["time"],
             df["theta"],
             label=r"$\theta_t$ (Threshold)",
-            color="orange",
-            linestyle="--",
+            color=VISUAL_CONSTANTS.THETA_RED,
+            linestyle=VISUAL_CONSTANTS.STYLE_THETA,
             linewidth=1.5,
         )
 

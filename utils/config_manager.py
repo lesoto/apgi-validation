@@ -45,10 +45,25 @@ except ImportError as e:
     load_dotenv = None
     print(f"Warning: jsonschema/yaml/dotenv not available in config_manager.py: {e}")
 
+# Create a dummy YAMLError class for exception handling when yaml is not available
+class DummyYAMLError(Exception):
+    """Dummy YAML error class for when yaml module is not available."""
+    pass
+
+# Use actual YAMLError if available, otherwise use dummy
+if yaml is not None:
+    YAMLError = yaml.YAMLError
+else:
+    YAMLError = DummyYAMLError
+
 
 # Fallback functions when dependencies are not available
 def _load_yaml_safe(file_path: str) -> Optional[Dict[str, Any]]:
     """Load YAML file safely when yaml is not available"""
+    if yaml is None:
+        print(f"Warning: YAML module not available, cannot load {file_path}")
+        return None
+    
     try:
         with open(file_path, "r") as f:
             content = f.read()
@@ -156,10 +171,18 @@ if _logger_source == "unknown":
         def debug(self, msg: str) -> None:
             self.logger.debug(msg)
 
+        def log_error_with_context(self, error: Exception, context: dict) -> None:
+            """Log an error with context information."""
+            self.logger.error(f"Error: {str(error)}, Context: {context}")
+
     apgi_logger: Any = _FallbackAPGILogger(logger)  # type: ignore[no-redef]
 
     def log_error(message: str) -> None:
         logger.error(message)
+
+    def log_error_with_context(error: Exception, context: dict) -> None:
+        """Log an error with context information."""
+        logger.error(f"Error: {str(error)}, Context: {context}")
 
     _logger_source = "fallback_created"
 
@@ -789,7 +812,7 @@ class ConfigManager:
         # Expected SHA-256 hash of legitimate schema
         # This hash should be updated when schema changes are made
         EXPECTED_SCHEMA_HASH = (
-            "90e9020fabf6243cdcc88ecc90b08bc97b214da0e77cfa3297937f9c88f6ae40"
+            "4376ad45fd488561f1fd864d359051f0fb438d59c89b7ac36dc833ef2baa10fa"
         )
 
         try:
@@ -853,27 +876,28 @@ class ConfigManager:
                         )
 
                 # Apply schema version migration if needed
-                try:
-                    # Try to import schema version manager with better error handling
+                if config_data is not None:
                     try:
-                        from .schema_version_manager import get_schema_manager
+                        # Try to import schema version manager with better error handling
+                        try:
+                            from .schema_version_manager import get_schema_manager
 
-                        schema_manager = get_schema_manager()
-                    except ImportError as import_error:
-                        apgi_logger.warning(
-                            f"Schema version manager not available: {import_error}"
-                        )
-                        # Continue without schema version manager
-                        schema_manager = None
-
-                    # Check if migration is needed only if schema_manager is available
-                    if schema_manager is not None:
-                        config_version = config_data.get("version", "1.0.0")
-                        if config_version != schema_manager.current_version:
-                            apgi_logger.info(
-                                f"Migrating config from version {config_version} to {schema_manager.current_version}"
+                            schema_manager = get_schema_manager()
+                        except ImportError as import_error:
+                            apgi_logger.warning(
+                                f"Schema version manager not available: {import_error}"
                             )
-                            config_data = schema_manager.migrate_config(config_data)
+                            # Continue without schema version manager
+                            schema_manager = None
+
+                        # Check if migration is needed only if schema_manager is available
+                        if schema_manager is not None:
+                            config_version = config_data.get("version", "1.0.0")
+                            if config_version != schema_manager.current_version:
+                                apgi_logger.info(
+                                    f"Migrating config from version {config_version} to {schema_manager.current_version}"
+                                )
+                                config_data = schema_manager.migrate_config(config_data)
 
                             # Save migrated config back to file
                             with self.config_file.open("w", encoding="utf-8") as f:
@@ -886,18 +910,18 @@ class ConfigManager:
                                 f"Configuration migrated and saved to {self.config_file}"
                             )
 
-                except ImportError:
-                    apgi_logger.warning(
-                        "Schema version manager not available, skipping migration"
-                    )
-                except Exception as e:
-                    apgi_logger.warning(f"Schema migration failed: {e}")
+                    except ImportError:
+                        apgi_logger.warning(
+                            "Schema version manager not available, skipping migration"
+                        )
+                    except Exception as e:
+                        apgi_logger.warning(f"Schema migration failed: {e}")
 
-                # Validate configuration
-                self._validate_config(config_data)
-
-                # Update configuration
-                self._update_config(config_data)
+                # Validate configuration only if data is not None
+                if config_data is not None:
+                    self._validate_config(config_data)
+                    # Update configuration
+                    self._update_config(config_data)
 
                 # Only log config loading once per process
                 global _config_loaded
@@ -915,7 +939,7 @@ class ConfigManager:
             except (
                 FileNotFoundError,
                 PermissionError,
-                yaml.YAMLError,
+                YAMLError,
             ) as e:
                 apgi_logger.log_error_with_context(
                     e,
@@ -941,6 +965,10 @@ class ConfigManager:
 
     def _validate_config(self, config_data: Dict[str, Any]):
         """Validate configuration against schema."""
+        if config_data is None:
+            apgi_logger.warning("Configuration data is None, skipping validation")
+            return
+            
         try:
             jsonschema.validate(config_data, self.schema)
         except jsonschema.ValidationError as e:
@@ -1594,7 +1622,7 @@ class ConfigManager:
         except (
             FileNotFoundError,
             PermissionError,
-            yaml.YAMLError,
+            YAMLError,
             ValueError,
             KeyError,
             AttributeError,
@@ -1637,7 +1665,7 @@ class ConfigManager:
             except (
                 FileNotFoundError,
                 PermissionError,
-                yaml.YAMLError,
+                YAMLError,
                 KeyError,
             ) as e:
                 apgi_logger.warning(f"Error reading profile {profile_file}: {e}")
@@ -1693,7 +1721,7 @@ class ConfigManager:
         except (
             FileNotFoundError,
             PermissionError,
-            yaml.YAMLError,
+            YAMLError,
             KeyError,
         ) as e:
             apgi_logger.warning(f"Error reading profile {profile_file}: {e}")
@@ -2137,7 +2165,7 @@ class EnhancedConfigManager(ConfigManager):
         except (
             FileNotFoundError,
             PermissionError,
-            yaml.YAMLError,
+            YAMLError,
             ValueError,
             KeyError,
             TypeError,
@@ -2169,7 +2197,7 @@ class EnhancedConfigManager(ConfigManager):
             except (
                 FileNotFoundError,
                 PermissionError,
-                yaml.YAMLError,
+                YAMLError,
                 KeyError,
                 TypeError,
             ) as e:
@@ -2210,7 +2238,7 @@ class EnhancedConfigManager(ConfigManager):
         except (
             FileNotFoundError,
             PermissionError,
-            yaml.YAMLError,
+            YAMLError,
             json.JSONDecodeError,
             KeyError,
             ValueError,
@@ -2340,7 +2368,7 @@ class EnhancedConfigManager(ConfigManager):
         except (
             FileNotFoundError,
             PermissionError,
-            yaml.YAMLError,
+            YAMLError,
             json.JSONDecodeError,
             ValueError,
             KeyError,
@@ -2382,7 +2410,7 @@ class EnhancedConfigManager(ConfigManager):
         except (
             FileNotFoundError,
             PermissionError,
-            yaml.YAMLError,
+            YAMLError,
             json.JSONDecodeError,
             ValueError,
             KeyError,
@@ -2448,7 +2476,7 @@ class EnhancedConfigManager(ConfigManager):
         except (
             FileNotFoundError,
             PermissionError,
-            yaml.YAMLError,
+            YAMLError,
             ValueError,
             KeyError,
             TypeError,

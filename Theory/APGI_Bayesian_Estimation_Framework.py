@@ -8,6 +8,21 @@ Complete Bayesian parameter estimation for APGI model validation including:
 - Parameter recovery and uncertainty quantification
 - Cross-validation and posterior predictive checks
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the Bayesian framework fails to achieve model selection accuracy > 80%
+in simulation studies, or if Bayes factors consistently favor incorrect models
+(log BF < 3 for true model), or if posterior predictive checks fail
+(p > 0.05 for key test statistics), then the APGI Bayesian estimation
+framework claim is falsified. This would indicate that the proposed Bayesian
+methods cannot reliably distinguish APGI from alternative theories.
+
 """
 
 import logging

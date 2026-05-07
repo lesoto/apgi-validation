@@ -26,9 +26,23 @@ Modules
   2. PrecisionWeightingGain   — ΔI from precision-on vs. precision-off conditions
   3. ClinicalBandwidthMap     — bandwidth under MDD, ADHD, Schizophrenia profiles
 
-LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
-Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.py (Module 3).
-This script does NOT claim thermodynamic implications.
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+This script does NOT claim thermodynamic implications without explicit bridge invocation.
+Cross-level outputs require explicit bridge invocation (e.g., calling APGI_Thermodynamic_Program_Aggregator
+from within this module to bridge L2 → L1).
+
+FALSIFICATION_CRITERIA
+----------------------
+If APGI precision-gating does NOT predict the ~40 bits/s bandwidth constraint
+(bandwidth prediction error > 50% from 35-55 bits/s range, precision weighting
+gain < 15%, or clinical bandwidth deviations < 20% from empirical findings),
+then the APGI information-theoretic bandwidth claim is falsified. This would
+indicate that precision-weighted threshold architecture does not constrain
+conscious information processing as predicted by the framework.
 
 References
 ----------
@@ -48,18 +62,19 @@ from __future__ import annotations
 
 import logging
 import warnings
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, Optional, Tuple
 
 import numpy as np
-import scipy.stats as stats
+
+# import scipy.stats as stats  # Available if needed for future extensions
 
 try:
     import matplotlib
 
     matplotlib.use("Agg")
+    # import matplotlib.cm as cm  # Available if needed for future colormaps
     import matplotlib.pyplot as plt
-    import matplotlib.cm as cm
 
     HAS_MATPLOTLIB = True
 except ImportError:  # pragma: no cover
@@ -73,6 +88,8 @@ except ImportError:
     HAS_SKLEARN = False
 
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+from utils.constants import VISUAL_CONSTANTS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -105,8 +122,8 @@ _DEFAULT_TRIAL_S: float = 0.5
 _GAMMA_RATE_HZ: float = 40.0
 
 # Noise standard deviations (normalized units)
-_SIGMA_E: float = 0.5   # Exteroceptive channel noise
-_SIGMA_I: float = 0.5   # Interoceptive channel noise
+_SIGMA_E: float = 0.5  # Exteroceptive channel noise
+_SIGMA_I: float = 0.5  # Interoceptive channel noise
 
 # Stimulus discretization bins for MI computation (Quiroga & Panzeri 2009)
 _N_STIMULUS_BINS: int = 32
@@ -165,18 +182,18 @@ def _ignition_prob_per_level(
     if rng is None:
         rng = np.random.default_rng(0)
     K = len(stimulus_levels)
-    n_i = rng.normal(0.0, sigma_i, size=(n_noise, K))   # (n_noise, K)
+    n_i = rng.normal(0.0, sigma_i, size=(n_noise, K))  # (n_noise, K)
     # Optional threshold jitter (shared per noise sample across stimulus levels)
     if sigma_theta > 0.0:
         delta_theta = rng.normal(0.0, sigma_theta, size=(n_noise, 1))  # (n_noise, 1)
     else:
-        delta_theta = 0.0
+        delta_theta = np.zeros((n_noise, 1))
     # S_eff[noise, k] = Pi_e * s[k] - Pi_i * n_i[noise, k] - theta - delta_theta
     S_eff = (
         Pi_e * stimulus_levels[np.newaxis, :] - Pi_i * n_i - theta - delta_theta
     )  # (n_noise, K)
-    p_ign = _sigmoid(S_eff, alpha=alpha)   # (n_noise, K)
-    return np.mean(p_ign, axis=0)          # (K,)
+    p_ign = _sigmoid(S_eff, alpha=alpha)  # (n_noise, K)
+    return np.mean(p_ign, axis=0)  # (K,)
 
 
 def _mutual_info_bits(
@@ -214,19 +231,19 @@ class BandwidthResult:
     """Output of Module 1: per-trial mutual information and bandwidth."""
 
     # Core information-theoretic quantities
-    I_bits_per_trial: float   # I(S; B) = H(B) − H(B|S)  [bits]
-    H_B: float                # H(B): entropy of marginal ignition  [bits]
-    H_B_given_S: float        # H(B|S): conditional entropy         [bits]
-    P_ignition: float         # Overall P(B=1) across stimulus distribution
+    I_bits_per_trial: float  # I(S; B) = H(B) − H(B|S)  [bits]
+    H_B: float  # H(B): entropy of marginal ignition  [bits]
+    H_B_given_S: float  # H(B|S): conditional entropy         [bits]
+    P_ignition: float  # Overall P(B=1) across stimulus distribution
 
     # Key APGI formula: I_conscious = I_total × P(ignition)
-    I_total: float            # I(S; R) before threshold gating      [bits]
+    I_total: float  # I(S; R) before threshold gating      [bits]
     I_conscious_formula: float  # I_total × P(ignition)              [bits]
 
     # Bandwidth
     stimulus_rate_Hz: float
-    bandwidth_bits_per_second: float     # I_bits_per_trial × rate
-    gamma_rate_bandwidth: float          # bandwidth at gamma anchor rate
+    bandwidth_bits_per_second: float  # I_bits_per_trial × rate
+    gamma_rate_bandwidth: float  # bandwidth at gamma anchor rate
     bandwidth_in_gamma_prediction: bool  # True iff gamma bandwidth ∈ [35, 55]
 
     # Parameter echo
@@ -361,9 +378,11 @@ class BandwidthDerivation:
 
         # Per-trial threshold jitter (non-zero for ADHD profile)
         if sigma_theta > 0.0:
-            theta_trial = theta_baseline + self.rng.normal(0.0, sigma_theta, size=self.N_trials)
+            theta_trial = theta_baseline + self.rng.normal(
+                0.0, sigma_theta, size=self.N_trials
+            )
         else:
-            theta_trial = theta_baseline
+            theta_trial = np.full(self.N_trials, theta_baseline)
 
         # Precision-weighted effective signal
         S_eff = Pi_e * (s_vals + noise_e) - Pi_i * noise_i
@@ -383,9 +402,15 @@ class BandwidthDerivation:
         # --- H(B|S): conditional entropy via analytical MC over noise ---
         # P(B=1 | S=s_k) integrated over interoceptive noise
         p_ign_given_s = _ignition_prob_per_level(
-            stimulus_levels, Pi_e, Pi_i, theta_baseline, alpha,
-            sigma_i=self.sigma_i, sigma_theta=sigma_theta,
-            n_noise=500, rng=self.rng,
+            stimulus_levels,
+            Pi_e,
+            Pi_i,
+            theta_baseline,
+            alpha,
+            sigma_i=self.sigma_i,
+            sigma_theta=sigma_theta,
+            n_noise=500,
+            rng=self.rng,
         )
         H_B_given_S = float(np.mean(_binary_entropy(p_ign_given_s)))
 
@@ -451,8 +476,8 @@ class BandwidthDerivation:
         stimulus_levels = np.linspace(-3.0, 3.0, self.N_stimulus_bins)
         K = self.N_stimulus_bins
 
-        Pi_e_v = rng_sw.uniform(*Pi_e_range, n_samples)   # (N,)
-        Pi_i_v = rng_sw.uniform(*Pi_i_range, n_samples)   # (N,)
+        Pi_e_v = rng_sw.uniform(*Pi_e_range, n_samples)  # (N,)
+        Pi_i_v = rng_sw.uniform(*Pi_i_range, n_samples)  # (N,)
         theta_v = rng_sw.uniform(*theta_range, n_samples)  # (N,)
         alpha_v = rng_sw.uniform(*alpha_range, n_samples)  # (N,)
 
@@ -468,18 +493,20 @@ class BandwidthDerivation:
         )  # (N, n_noise, K)
 
         # Per-parameter-set sigmoid ignition probabilities
-        p_raw = 1.0 / (1.0 + np.exp(-np.clip(alpha_v[:, None, None] * S_eff, -500, 500)))
-        p_ign_per_level = np.mean(p_raw, axis=1)   # (N, K): P(B=1|s_k) per param set
+        p_raw = 1.0 / (
+            1.0 + np.exp(-np.clip(alpha_v[:, None, None] * S_eff, -500, 500))
+        )
+        p_ign_per_level = np.mean(p_raw, axis=1)  # (N, K): P(B=1|s_k) per param set
 
         # H(B) = h_b(mean_k P(B=1|s_k))
         p_b_v = np.mean(p_ign_per_level, axis=1)  # (N,)
-        H_B_v = _binary_entropy(p_b_v)             # (N,)
+        H_B_v = _binary_entropy(p_b_v)  # (N,)
 
         # H(B|S) = mean_k h_b(P(B=1|s_k))
         H_BS_v = np.mean(_binary_entropy(p_ign_per_level), axis=1)  # (N,)
 
-        I_v = np.maximum(H_B_v - H_BS_v, 0.0)   # (N,)
-        bw_gamma = I_v * _GAMMA_RATE_HZ           # (N,)
+        I_v = np.maximum(H_B_v - H_BS_v, 0.0)  # (N,)
+        bw_gamma = I_v * _GAMMA_RATE_HZ  # (N,)
 
         in_range_mask = (bw_gamma >= 35.0) & (bw_gamma <= 55.0)
 
@@ -511,27 +538,27 @@ class PrecisionGainResult:
     """Output of Module 2: MI gain from precision-weighted vs. flat conditions."""
 
     # Precision-OFF condition (Πᵉ = Πⁱ = 1.0)
-    I_precision_off: float        # Mean I(S;B) bits/trial
+    I_precision_off: float  # Mean I(S;B) bits/trial
     I_off_std: float
-    bandwidth_off_bps: float      # At gamma rate
+    bandwidth_off_bps: float  # At gamma rate
 
     # Precision-ON condition (physiologically calibrated distributions)
-    I_precision_on: float         # Mean I(S;B) bits/trial
+    I_precision_on: float  # Mean I(S;B) bits/trial
     I_on_std: float
     bandwidth_on_bps: float
 
     # Gain
-    delta_I: float                # I_on − I_off  [bits]
-    delta_I_pct_capacity: float   # delta_I / 1 bit × 100  [% of binary capacity]
+    delta_I: float  # I_on − I_off  [bits]
+    delta_I_pct_capacity: float  # delta_I / 1 bit × 100  [% of binary capacity]
     delta_I_pct_over_flat: float  # (I_on − I_off) / I_off × 100  [% gain over flat]
 
     # Precision distributions (physiological calibration)
-    Pi_e_samples: np.ndarray      # shape (N,)
-    Pi_i_samples: np.ndarray      # shape (N,)
-    I_on_samples: np.ndarray      # I(S;B) per precision sample
+    Pi_e_samples: np.ndarray  # shape (N,)
+    Pi_i_samples: np.ndarray  # shape (N,)
+    I_on_samples: np.ndarray  # I(S;B) per precision sample
     I_off_samples: np.ndarray
 
-    prediction_in_range: bool     # True iff delta_I_pct_over_flat ∈ [15, 40]
+    prediction_in_range: bool  # True iff delta_I_pct_over_flat ∈ [15, 40]
 
     def summary(self) -> str:
         pred = "IN RANGE" if self.prediction_in_range else "OUT OF RANGE"
@@ -568,10 +595,10 @@ class PrecisionWeightingAnalyzer:
     # Physiological precision distributions
     # Pi_e ~ Gamma(25, 0.10): mean = 2.5, std = 0.5 (ACh-amplified alert state)
     # Pi_i ~ Gamma(6.4, 0.125): mean = 0.8, std = 0.316 (sub-dominant interoceptive)
-    PI_E_SHAPE: float = 25.0    # Gamma shape for exteroceptive precision
-    PI_E_SCALE: float = 0.100   # Gamma scale; mean = shape × scale = 2.5
-    PI_I_SHAPE: float = 6.4     # Gamma shape for interoceptive precision
-    PI_I_SCALE: float = 0.125   # Gamma scale; mean = shape × scale = 0.8
+    PI_E_SHAPE: float = 25.0  # Gamma shape for exteroceptive precision
+    PI_E_SCALE: float = 0.100  # Gamma scale; mean = shape × scale = 2.5
+    PI_I_SHAPE: float = 6.4  # Gamma shape for interoceptive precision
+    PI_I_SCALE: float = 0.125  # Gamma scale; mean = shape × scale = 0.8
 
     def __init__(
         self,
@@ -611,7 +638,6 @@ class PrecisionWeightingAnalyzer:
             Pi_i_arr: np.ndarray,
         ) -> np.ndarray:
             """Vectorised I(S;B) across n_samples parameter sets."""
-            N = len(Pi_e_arr)
             noise_i = rng_p.normal(0.0, self.bw.sigma_i, (n_noise, K))  # (n_noise, K)
             S_eff = (
                 Pi_e_arr[:, None, None] * stimulus_levels[None, None, :]
@@ -619,9 +645,9 @@ class PrecisionWeightingAnalyzer:
                 - theta_baseline
             )  # (N, n_noise, K)
             p_raw = 1.0 / (1.0 + np.exp(-np.clip(alpha * S_eff, -500, 500)))
-            p_ign = np.mean(p_raw, axis=1)   # (N, K)
-            p_b = np.mean(p_ign, axis=1)     # (N,)
-            H_B = _binary_entropy(p_b)        # (N,)
+            p_ign = np.mean(p_raw, axis=1)  # (N, K)
+            p_b = np.mean(p_ign, axis=1)  # (N,)
+            H_B = _binary_entropy(p_b)  # (N,)
             H_BS = np.mean(_binary_entropy(p_ign), axis=1)  # (N,)
             return np.maximum(H_B - H_BS, 0.0)
 
@@ -638,9 +664,7 @@ class PrecisionWeightingAnalyzer:
         delta_I = I_on_mean - I_off_mean
 
         delta_pct_capacity = (delta_I / _BINARY_CHANNEL_CAPACITY) * 100.0
-        delta_pct_flat = (
-            (delta_I / max(I_off_mean, 1e-9)) * 100.0
-        )
+        delta_pct_flat = (delta_I / max(I_off_mean, 1e-9)) * 100.0
         in_range = 15.0 <= delta_pct_flat <= 40.0
 
         return PrecisionGainResult(
@@ -675,30 +699,46 @@ class ClinicalProfile:
     Pi_i: float
     theta_baseline: float
     alpha: float
-    sigma_theta: float          # Trial-to-trial threshold variance (ADHD proxy)
-    description: str            # Clinical mechanism
+    sigma_theta: float  # Trial-to-trial threshold variance (ADHD proxy)
+    description: str  # Clinical mechanism
 
 
 # Canonical profiles (physiologically calibrated to literature)
 CLINICAL_PROFILES: Dict[str, ClinicalProfile] = {
     "HC": ClinicalProfile(
         label="Healthy Control",
-        Pi_e=2.5, Pi_i=0.8, theta_baseline=0.3, alpha=5.0, sigma_theta=0.05,
+        Pi_e=2.5,
+        Pi_i=0.8,
+        theta_baseline=0.3,
+        alpha=5.0,
+        sigma_theta=0.05,
         description="Calibrated APGI default (alert, ACh-amplified state)",
     ),
     "MDD": ClinicalProfile(
         label="Major Depressive Disorder",
-        Pi_e=1.8, Pi_i=0.8, theta_baseline=1.6, alpha=5.0, sigma_theta=0.05,
+        Pi_e=1.8,
+        Pi_i=0.8,
+        theta_baseline=1.6,
+        alpha=5.0,
+        sigma_theta=0.05,
         description="Elevated θ (anhedonic blunting; Pizzagalli 2014); reduced Πᵉ",
     ),
     "ADHD": ClinicalProfile(
         label="ADHD",
-        Pi_e=2.5, Pi_i=0.8, theta_baseline=0.4, alpha=5.0, sigma_theta=0.55,
+        Pi_e=2.5,
+        Pi_i=0.8,
+        theta_baseline=0.4,
+        alpha=5.0,
+        sigma_theta=0.55,
         description="High σ_θ (volatile threshold; Castellanos & Tannock 2002)",
     ),
     "SCZ": ClinicalProfile(
         label="Schizophrenia",
-        Pi_e=2.5, Pi_i=3.5, theta_baseline=0.3, alpha=5.0, sigma_theta=0.05,
+        Pi_e=2.5,
+        Pi_i=3.5,
+        theta_baseline=0.3,
+        alpha=5.0,
+        sigma_theta=0.05,
         description="Dysregulated Πⁱ (interoceptive noise excess; Adams et al. 2013)",
     ),
 }
@@ -708,15 +748,15 @@ CLINICAL_PROFILES: Dict[str, ClinicalProfile] = {
 class ClinicalBandwidthResult:
     """Output of Module 3: bandwidth comparison across clinical profiles."""
 
-    bandwidth_bps: Dict[str, float]         # disorder → bandwidth at gamma rate
-    I_bits: Dict[str, float]                # disorder → I(S;B) per trial
-    P_ignition: Dict[str, float]            # disorder → P(ignition)
-    bandwidth_HC: float                     # reference HC bandwidth [bits/s]
-    bandwidth_deficit: Dict[str, float]     # HC − disorder  [bits/s]
-    deficit_pct: Dict[str, float]           # (HC − disorder) / HC × 100
-    heatmap_theta: np.ndarray               # θ grid for heatmap figure
-    heatmap_pi_i: np.ndarray               # Πⁱ grid for heatmap figure
-    heatmap_bandwidth: np.ndarray           # bandwidth[i_theta, j_pi_i]
+    bandwidth_bps: Dict[str, float]  # disorder → bandwidth at gamma rate
+    I_bits: Dict[str, float]  # disorder → I(S;B) per trial
+    P_ignition: Dict[str, float]  # disorder → P(ignition)
+    bandwidth_HC: float  # reference HC bandwidth [bits/s]
+    bandwidth_deficit: Dict[str, float]  # HC − disorder  [bits/s]
+    deficit_pct: Dict[str, float]  # (HC − disorder) / HC × 100
+    heatmap_theta: np.ndarray  # θ grid for heatmap figure
+    heatmap_pi_i: np.ndarray  # Πⁱ grid for heatmap figure
+    heatmap_bandwidth: np.ndarray  # bandwidth[i_theta, j_pi_i]
     clinical_markers: Dict[str, Tuple[float, float]]  # (theta, Pi_i) per disorder
 
     def summary(self) -> str:
@@ -730,9 +770,7 @@ class ClinicalBandwidthResult:
             deficit = self.bandwidth_deficit.get(key, 0.0)
             pct = self.deficit_pct.get(key, 0.0)
             label = CLINICAL_PROFILES[key].label
-            lines.append(
-                f"  {label:<30} {bw:>12.2f} {-deficit:>+10.2f} {pct:>9.1f}%"
-            )
+            lines.append(f"  {label:<30} {bw:>12.2f} {-deficit:>+10.2f} {pct:>9.1f}%")
         return "\n".join(lines)
 
 
@@ -792,22 +830,20 @@ class ClinicalBandwidthMapper:
 
         bw_hc = bandwidth_bps.get("HC", float("nan"))
         deficit = {k: bw_hc - v for k, v in bandwidth_bps.items()}
-        deficit_pct = {
-            k: (d / max(bw_hc, 1e-9)) * 100.0 for k, d in deficit.items()
-        }
+        deficit_pct = {k: (d / max(bw_hc, 1e-9)) * 100.0 for k, d in deficit.items()}
 
         # 2D heatmap: bandwidth(θₜ, Πⁱ) at fixed Πᵉ=2.0, α=5.0
         theta_grid = np.linspace(0.0, 2.5, 30)
         pi_i_grid = np.linspace(0.1, 4.0, 30)
         heatmap_bw = self._compute_heatmap(
-            theta_grid, pi_i_grid,
+            theta_grid,
+            pi_i_grid,
             Pi_e=profiles["HC"].Pi_e,
             alpha=profiles["HC"].alpha,
         )
 
         clinical_markers = {
-            k: (profiles[k].theta_baseline, profiles[k].Pi_i)
-            for k in profiles
+            k: (profiles[k].theta_baseline, profiles[k].Pi_i) for k in profiles
         }
 
         return ClinicalBandwidthResult(
@@ -844,8 +880,8 @@ class ClinicalBandwidthMapper:
         N = n_th * n_pi
 
         # Flatten grid
-        theta_flat = np.repeat(theta_grid, n_pi)   # (N,)
-        pi_i_flat = np.tile(pi_i_grid, n_th)        # (N,)
+        theta_flat = np.repeat(theta_grid, n_pi)  # (N,)
+        pi_i_flat = np.tile(pi_i_grid, n_th)  # (N,)
         Pi_e_flat = np.full(N, Pi_e)
 
         noise_i = rng_h.normal(0.0, self.bw.sigma_i, (self.n_noise, K))  # (n_noise, K)
@@ -855,9 +891,9 @@ class ClinicalBandwidthMapper:
             - theta_flat[:, None, None]
         )  # (N, n_noise, K)
         p_raw = 1.0 / (1.0 + np.exp(-np.clip(alpha * S_eff, -500, 500)))
-        p_ign = np.mean(p_raw, axis=1)   # (N, K)
-        p_b = np.mean(p_ign, axis=1)     # (N,)
-        H_B = _binary_entropy(p_b)        # (N,)
+        p_ign = np.mean(p_raw, axis=1)  # (N, K)
+        p_b = np.mean(p_ign, axis=1)  # (N,)
+        H_B = _binary_entropy(p_b)  # (N,)
         H_BS = np.mean(_binary_entropy(p_ign), axis=1)  # (N,)
         I_flat = np.maximum(H_B - H_BS, 0.0) * _GAMMA_RATE_HZ  # (N,) bandwidth
 
@@ -921,35 +957,41 @@ class BandwidthReport:
         print("The ~40 bits/s bandwidth constraint is derived from APGI parameters,")
         print("not imposed as an assumption.")
         print()
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print("MODULE 1 — BANDWIDTH DERIVATION FROM APGI PARAMETERS")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(self.nominal.summary())
 
         if self.sweep is not None:
             sw = self.sweep
             print(f"\n  Parameter sweep (N={sw['n_samples']} random draws):")
-            print(f"    BW @ γ: mean={sw['bandwidth_mean']:.1f}, "
-                  f"median={sw['bandwidth_median']:.1f}, "
-                  f"std={sw['bandwidth_std']:.1f} bits/s")
-            print(f"    BW [P5, P95] = [{sw['bandwidth_p5']:.1f}, "
-                  f"{sw['bandwidth_p95']:.1f}] bits/s")
-            print(f"    Fraction in [35, 55] bits/s = "
-                  f"{sw['fraction_in_35_55']*100:.1f}%")
+            print(
+                f"    BW @ γ: mean={sw['bandwidth_mean']:.1f}, "
+                f"median={sw['bandwidth_median']:.1f}, "
+                f"std={sw['bandwidth_std']:.1f} bits/s"
+            )
+            print(
+                f"    BW [P5, P95] = [{sw['bandwidth_p5']:.1f}, "
+                f"{sw['bandwidth_p95']:.1f}] bits/s"
+            )
+            print(
+                f"    Fraction in [35, 55] bits/s = "
+                f"{sw['fraction_in_35_55'] * 100:.1f}%"
+            )
 
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print("MODULE 2 — MUTUAL INFORMATION GAIN FROM PRECISION-WEIGHTING")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(self.precision_gain.summary())
 
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print("MODULE 3 — BANDWIDTH UNDER CLINICAL PERTURBATIONS")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(self.clinical.summary())
 
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print("LEVEL 2 SUMMARY")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         pred_m1 = self.nominal.bandwidth_in_gamma_prediction
         pred_m2 = self.precision_gain.prediction_in_range
         hc_bw = self.clinical.bandwidth_HC
@@ -1066,25 +1108,64 @@ class BandwidthAnalyzer:
         ax = axes[0]
         if sweep is not None:
             bw_arr = sweep["bandwidths_gamma"]
-            ax.hist(bw_arr, bins=30, color="steelblue", alpha=0.75,
-                    edgecolor="white", linewidth=0.4)
-            ax.axvspan(35, 55, alpha=0.18, color="forestgreen",
-                       label="Prediction band [35, 55]")
-            ax.axvline(sweep["bandwidth_mean"], color="tomato", lw=2.0,
-                       label=f"Mean = {sweep['bandwidth_mean']:.1f} bits/s")
-            ax.axvline(nominal.gamma_rate_bandwidth, color="navy", lw=1.5,
-                       linestyle="--",
-                       label=f"Nominal = {nominal.gamma_rate_bandwidth:.1f} bits/s")
+            ax.hist(
+                bw_arr,
+                bins=30,
+                color="steelblue",
+                alpha=0.75,
+                edgecolor="white",
+                linewidth=0.4,
+            )
+            ax.axvspan(
+                35,
+                55,
+                alpha=0.18,
+                color="forestgreen",
+                label="Prediction band [35, 55]",
+            )
+            ax.hist(
+                sweep["bootstrap_means"],
+                bins=40,
+                color=VISUAL_CONSTANTS.ST_BLUE,
+                alpha=0.7,
+                label="Bootstrap means",
+            )
+            ax.axvline(
+                sweep["bandwidth_mean"],
+                color="tomato",
+                lw=2.0,
+                label=f"Mean = {sweep['bandwidth_mean']:.1f} bits/s",
+            )
+            ax.axvline(
+                nominal.gamma_rate_bandwidth,
+                color=VISUAL_CONSTANTS.THETA_RED,
+                lw=1.5,
+                linestyle=VISUAL_CONSTANTS.STYLE_THETA,
+                label=f"Nominal = {nominal.gamma_rate_bandwidth:.1f} bits/s",
+            )
             ax.set_xlabel("Bandwidth at γ rate [bits/s]", fontsize=10)
             ax.set_ylabel("Count", fontsize=10)
             ax.legend(fontsize=8, loc="upper right")
             frac = sweep["fraction_in_35_55"] * 100
-            ax.text(0.04, 0.96, f"{frac:.0f}% in [35,55]",
-                    transform=ax.transAxes, va="top", fontsize=9,
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8))
+            ax.text(
+                0.04,
+                0.96,
+                f"{frac:.0f}% in [35,55]",
+                transform=ax.transAxes,
+                va="top",
+                fontsize=9,
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8),
+            )
         else:
-            ax.text(0.5, 0.5, "Sweep disabled", ha="center", va="center",
-                    transform=ax.transAxes, fontsize=11)
+            ax.text(
+                0.5,
+                0.5,
+                "Sweep disabled",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+                fontsize=11,
+            )
         ax.set_title(PANEL_TITLES[0], fontsize=10)
 
         # ── Panel B: precision-weighting MI comparison ───────────────────
@@ -1093,22 +1174,49 @@ class BandwidthAnalyzer:
         I_vals = [precision_gain.I_precision_off, precision_gain.I_precision_on]
         I_stds = [precision_gain.I_off_std, precision_gain.I_on_std]
         colors = ["#7fbfff", "#2166ac"]
-        bars = ax2.bar(labels, I_vals, yerr=I_stds, capsize=5, color=colors,
-                       edgecolor="white", linewidth=0.8, width=0.45)
+        bars = ax2.bar(
+            labels,
+            I_vals,
+            yerr=I_stds,
+            capsize=5,
+            color=colors,
+            edgecolor="white",
+            linewidth=0.8,
+            width=0.45,
+        )
         ax2.set_ylabel("I(S; B)  [bits/trial]", fontsize=10)
         ax2.set_ylim(0, min(_BINARY_CHANNEL_CAPACITY * 1.2, 1.1))
-        ax2.axhline(_BINARY_CHANNEL_CAPACITY, color="gray", lw=1, linestyle=":",
-                    label="Channel capacity = 1 bit")
+        ax2.axhline(
+            _BINARY_CHANNEL_CAPACITY,
+            color="gray",
+            lw=1,
+            linestyle=":",
+            label="Channel capacity = 1 bit",
+        )
         for bar, val in zip(bars, I_vals):
-            ax2.text(bar.get_x() + bar.get_width() / 2.0, val + 0.01,
-                     f"{val:.3f}", ha="center", va="bottom", fontsize=9, fontweight="bold")
+            ax2.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                val + 0.01,
+                f"{val:.3f}",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+                fontweight="bold",
+            )
         delta_str = (
             f"ΔI = {precision_gain.delta_I:.3f} bits\n"
             f"{precision_gain.delta_I_pct_over_flat:.1f}% gain over flat"
         )
-        ax2.text(0.97, 0.96, delta_str, transform=ax2.transAxes,
-                 ha="right", va="top", fontsize=9,
-                 bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8))
+        ax2.text(
+            0.97,
+            0.96,
+            delta_str,
+            transform=ax2.transAxes,
+            ha="right",
+            va="top",
+            fontsize=9,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8),
+        )
         ax2.legend(fontsize=8)
         ax2.set_title(PANEL_TITLES[1], fontsize=10)
 
@@ -1119,26 +1227,41 @@ class BandwidthAnalyzer:
         pi_i_g = clinical.heatmap_pi_i
 
         im = ax3.pcolormesh(
-            theta_g, pi_i_g, hm.T,
-            cmap="RdYlGn", vmin=0, vmax=float(np.nanmax(hm)),
+            theta_g,
+            pi_i_g,
+            hm.T,
+            cmap="RdYlGn",
+            vmin=0,
+            vmax=float(np.nanmax(hm)),
             shading="auto",
         )
         cbar = fig.colorbar(im, ax=ax3, shrink=0.85)
         cbar.set_label("Bandwidth [bits/s @ 40 Hz]", fontsize=9)
 
-        marker_styles = {"HC": ("*", "white", 14), "MDD": ("v", "#1f78b4", 11),
-                         "ADHD": ("^", "#ff7f00", 11), "SCZ": ("D", "#e31a1c", 11)}
+        marker_styles = {
+            "HC": ("*", "white", 14),
+            "MDD": ("v", "#1f78b4", 11),
+            "ADHD": ("^", "#ff7f00", 11),
+            "SCZ": ("D", "#e31a1c", 11),
+        }
         for key, (theta_m, pi_i_m) in clinical.clinical_markers.items():
             mstyle, mcolor, msize = marker_styles.get(key, ("o", "white", 10))
             bw_m = clinical.bandwidth_bps.get(key, 0.0)
-            ax3.plot(theta_m, pi_i_m, marker=mstyle, color=mcolor,
-                     markersize=msize, markeredgecolor="black", markeredgewidth=0.7,
-                     label=f"{key} ({bw_m:.1f} b/s)", zorder=5)
+            ax3.plot(
+                theta_m,
+                pi_i_m,
+                marker=mstyle,
+                color=mcolor,
+                markersize=msize,
+                markeredgecolor="black",
+                markeredgewidth=0.7,
+                label=f"{key} ({bw_m:.1f} b/s)",
+                zorder=5,
+            )
 
         ax3.set_xlabel("Ignition threshold θₜ", fontsize=10)
         ax3.set_ylabel("Interoceptive precision Πⁱ", fontsize=10)
-        ax3.legend(fontsize=8, loc="upper right",
-                   framealpha=0.85, edgecolor="gray")
+        ax3.legend(fontsize=8, loc="upper right", framealpha=0.85, edgecolor="gray")
         ax3.set_title(PANEL_TITLES[2], fontsize=10)
 
         plt.tight_layout()

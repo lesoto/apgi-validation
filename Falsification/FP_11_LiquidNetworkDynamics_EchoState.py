@@ -3,6 +3,21 @@ Falsification Protocol 12: Liquid Network Validation
 ======================================================
 
 This protocol implements validation of liquid network properties for APGI models.
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If liquid network dynamics do not reproduce APGI-predicted phase transitions
+(phase transition detection accuracy < 80%), or if the echo state network
+cannot capture the required temporal dependencies (prediction error > 25%),
+or if the network properties do not match biological constraints (deviation > 30%),
+then the APGI liquid network dynamics claim is falsified. This would indicate that
+liquid network architectures cannot properly implement APGI dynamics.
 """
 
 import csv  # noqa: F401
@@ -3553,7 +3568,10 @@ def run_esn_parameter_sensitivity_analysis(
     """
     # Import ESN parameter ranges from constants
     try:
-        from utils.constants import ESN_LEAK_RATE_RANGE, ESN_SPECTRAL_RADIUS_RANGE
+        from utils.constants import (
+            ESN_LEAK_RATE_RANGE,
+            ESN_SPECTRAL_RADIUS_RANGE,
+        )
 
         spectral_radii = ESN_SPECTRAL_RADIUS_RANGE
         leak_rates = ESN_LEAK_RATE_RANGE

@@ -28,6 +28,20 @@ Tier: PRIMARY.
 
 Master_Validation.py registration:
     "Protocol-2": {"file": "VP_02_Behavioral_BayesianComparison.py",
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If interoceptive precision does not modulate detection thresholds as predicted
+(Cohen's d < 0.40), or if arousal effects are not significant (p > 0.05, corrected),
+or if the APGI model does not achieve decisive Bayes factors over alternative models
+(BF₁₀ < 10), then the APGI behavioral prediction claim is falsified. This would
+indicate that interoceptive precision does not affect conscious perception.
                    "function": "run_validation"}
 """
 
@@ -107,7 +121,7 @@ except ImportError:
     )
 
 try:
-    from utils.constants import ALPHA_AROUSAL, SIGMA_AROUSAL
+    from utils.constants import ALPHA_AROUSAL, SIGMA_AROUSAL, VISUAL_CONSTANTS
 except ImportError:
     ALPHA_AROUSAL = 0.15
     SIGMA_AROUSAL = 2.5
@@ -2251,7 +2265,9 @@ def _generate_vp02_visualization(
         # Plot 1: Overall validation status
         ax1 = axes[0, 0]
         passed = status in ["passed", "success"]
-        colors = ["#2ecc71" if passed else "#e74c3c"]
+        colors = [
+            VISUAL_CONSTANTS.STATUS_PASS if passed else VISUAL_CONSTANTS.STATUS_FAIL
+        ]
         ax1.bar(["Validation"], [1 if passed else 0], color=colors)
         ax1.set_title("Validation Status")
         ax1.set_ylabel("Pass (1) / Fail (0)")
@@ -2264,7 +2280,10 @@ def _generate_vp02_visualization(
         if named_predictions:
             pred_names = list(named_predictions.keys())[:6]
             pred_values = [1 if named_predictions[p].passed else 0 for p in pred_names]
-            colors = ["#2ecc71" if v else "#e74c3c" for v in pred_values]
+            colors = [
+                VISUAL_CONSTANTS.STATUS_PASS if v else VISUAL_CONSTANTS.STATUS_FAIL
+                for v in pred_values
+            ]
             ax2.barh(pred_names, pred_values, color=colors)
             ax2.set_title("Named Predictions Status")
             ax2.set_xlabel("Pass (1) / Fail (0)")
@@ -2278,7 +2297,10 @@ def _generate_vp02_visualization(
             passed_criteria = [
                 1 if falsification[c].get("passed", False) else 0 for c in criteria
             ]
-            colors = ["#2ecc71" if v else "#e74c3c" for v in passed_criteria]
+            colors = [
+                VISUAL_CONSTANTS.STATUS_PASS if v else VISUAL_CONSTANTS.STATUS_FAIL
+                for v in passed_criteria
+            ]
             ax3.barh(criteria, passed_criteria, color=colors)
             ax3.set_title("Falsification Criteria Status")
             ax3.set_xlabel("Pass (1) / Fail (0)")
@@ -2297,7 +2319,10 @@ def _generate_vp02_visualization(
                 1 if p1_2.get("passed", False) else 0,
                 1 if p1_3.get("passed", False) else 0,
             ]
-            colors = ["#2ecc71" if v else "#e74c3c" for v in values]
+            colors = [
+                VISUAL_CONSTANTS.STATUS_PASS if v else VISUAL_CONSTANTS.STATUS_FAIL
+                for v in values
+            ]
             ax4.bar(names, values, color=colors)
             ax4.set_title("Primary Predictions (P1.x)")
             ax4.set_ylabel("Pass (1) / Fail (0)")

@@ -13,6 +13,19 @@ Key Features:
 5. Factor analysis of parameter structure
 6. Falsifiable predictions about parameter relationships
 
+LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic implications without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If psychophysical thresholds cannot be reliably estimated (test-retest reliability
+r < 0.7), or if APGI parameters derived from psychophysical data do not predict
+individual differences (R² < 0.3), or if the factor structure does not match
+theoretical predictions (variance explained < 40%), then the APGI psychophysical
+validation claim is falsified. This would indicate that APGI cannot capture individual
+differences in conscious perception.
+
 """
 
 import json

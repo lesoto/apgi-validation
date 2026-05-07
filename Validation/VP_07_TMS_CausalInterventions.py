@@ -9,6 +9,21 @@ interventions) causally affects conscious access.
 This protocol generates falsifiable predictions about intervention effects and
 provides tools for analyzing intervention studies.
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If interventions do not produce the predicted directional changes in APGI
+parameters (effect size < 0.5 Cohen's d), or if the causal effects on conscious
+access are not significant (p > 0.05, corrected), or if the intervention
+effects cannot be explained by the proposed parameter perturbations (model fit
+R² < 0.3), then the APGI intervention prediction claim is falsified. This would
+indicate that APGI parameter perturbations do not causally affect conscious access.
+
 """
 
 import json

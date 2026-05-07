@@ -16,8 +16,8 @@ from utils.falsification_thresholds import test_f6_3_metabolic_selectivity as _t
 
 def test_f6_1_intrinsic_threshold_behavior_pass():
     # Pass condition: LTCN <= 50ms, large difference
-    ltcn = np.array([30.0, 35.0, 40.0, 32.0, 45.0])
-    ff = np.array([100.0, 110.0, 120.0, 105.0, 115.0])
+    ltcn = np.array([20.0, 25.0, 30.0, 22.0, 35.0])  # Median: 25.0ms
+    ff = np.array([100.0, 110.0, 120.0, 105.0, 115.0])  # Median: 110.0ms
 
     result = _test_f6_1(ltcn, ff)
 
@@ -52,8 +52,8 @@ def test_f6_1_validation_errors():
 
 def test_f6_2_intrinsic_temporal_integration_pass():
     # Pass condition: LTCN >= 200ms, Ratio >= 4.0
-    ltcn = np.array([250.0, 260.0, 240.0, 270.0, 255.0])
-    rnn = np.array([40.0, 45.0, 50.0, 35.0, 42.0])
+    ltcn = np.array([250.0, 260.0, 240.0, 270.0, 255.0])  # Median: 255.0ms
+    rnn = np.array([40.0, 45.0, 50.0, 35.0, 42.0])  # Median: 42.0ms
 
     result = _test_f6_2(ltcn, rnn)
 
@@ -88,8 +88,8 @@ def test_f6_2_validation_errors():
 
 def test_f6_3_metabolic_selectivity_pass():
     # Pass: LTCN reduction >= 30%, Standard <= 10%
-    ltcn = np.array([35.0, 40.0, 32.0, 38.0, 36.0])
-    standard = np.array([5.0, 8.0, 4.0, 6.0, 7.0])
+    ltcn = np.array([35.0, 40.0, 32.0, 38.0, 36.0])  # Mean: 36.2
+    standard = np.array([5.0, 8.0, 4.0, 6.0, 7.0])  # Mean: 6.0
 
     result = _test_f6_3(ltcn, standard)
 

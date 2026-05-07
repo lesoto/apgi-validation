@@ -29,6 +29,21 @@ Integration layer runs all four modules, generates a unified text report,
 and produces a log-log figure of ATP cost per bit vs. brain mass with the
 APGI prediction band overlaid on empirical species data.
 
+LEVEL DESIGNATION: All outputs are Level 1 (thermodynamic).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 3 requires standard algorithmic implementations.
+This script does NOT claim algorithmic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the κ ≈ 100 ATP/bit claim is NOT supported by empirical data (κ deviation
+> 50% from 100 ATP/bit prediction, efficiency ratio < 0.1 of Landauer limit,
+or cross-species scaling exponent deviation > 0.2 from b = 0.65-0.75), then
+the APGI thermodynamic self-application claim is falsified. This would indicate
+that conscious processing does not have the distinctive thermodynamic signature
+predicted by the framework.
+
 References
 ----------
   Attwell & Laughlin (2001) J Cereb Blood Flow Metab 21:1133–1145
@@ -44,7 +59,7 @@ from __future__ import annotations
 
 import logging
 import warnings
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -54,8 +69,8 @@ try:
     import matplotlib
 
     matplotlib.use("Agg")
+    # import matplotlib.patches as mpatches  # Available if needed for future patches
     import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
 
     HAS_MATPLOTLIB = True
 except ImportError:  # pragma: no cover
@@ -73,10 +88,10 @@ logger = logging.getLogger(__name__)
 # Physical constants
 # ---------------------------------------------------------------------------
 
-K_B: float = 1.380649e-23          # Boltzmann constant  [J/K]
-T_BODY_K: float = 310.15           # 37 °C in Kelvin
+K_B: float = 1.380649e-23  # Boltzmann constant  [J/K]
+T_BODY_K: float = 310.15  # 37 °C in Kelvin
 ATP_HYDROLYSIS_KJ_MOL: float = 30.6  # Free energy of ATP hydrolysis [kJ/mol]
-AVOGADRO: float = 6.02214076e23    # [mol⁻¹]
+AVOGADRO: float = 6.02214076e23  # [mol⁻¹]
 ATP_ENERGY_J: float = (ATP_HYDROLYSIS_KJ_MOL * 1e3) / AVOGADRO  # J per ATP molecule
 
 # Attwell & Laughlin (2001) — energy cost of one cortical action potential
@@ -94,10 +109,10 @@ class LandauerResult:
 
     temperature_K: float
     n_bits: float
-    E_min_J: float           # Minimum energy to erase n_bits  [J]
-    E_min_per_bit_J: float   # E_min / n_bits                  [J/bit]
-    E_min_ATP: float         # Total erasure cost               [ATP molecules]
-    E_min_per_bit_ATP: float # Per-bit erasure cost             [ATP/bit]
+    E_min_J: float  # Minimum energy to erase n_bits  [J]
+    E_min_per_bit_J: float  # E_min / n_bits                  [J/bit]
+    E_min_ATP: float  # Total erasure cost               [ATP molecules]
+    E_min_per_bit_ATP: float  # Per-bit erasure cost             [ATP/bit]
 
     def summary(self) -> str:
         return (
@@ -224,7 +239,9 @@ class NeuralMetabolicCost:
             raise ValueError(f"duration_ms must be positive; got {duration_ms}")
 
         duration_s = duration_ms / 1000.0
-        metabolic_cost_J = firing_rate_Hz * n_neurons * duration_s * self.cost_per_spike_J
+        metabolic_cost_J = (
+            firing_rate_Hz * n_neurons * duration_s * self.cost_per_spike_J
+        )
         metabolic_cost_ATP = metabolic_cost_J / ATP_ENERGY_J
 
         return MetabolicCostResult(
@@ -246,13 +263,13 @@ class NeuralMetabolicCost:
 class DoubleBridgeResult:
     """Outputs of Module 3 — the κ derivation (quantity c / bit)."""
 
-    I_bits: float                   # Information gained at ignition [bits]
-    metabolic_cost_ATP: float       # From Module 2 [ATP]
-    kappa: float                    # ATP/bit (central APGI claim)
-    landauer_per_bit_ATP: float     # Landauer floor for same I_bits [ATP/bit]
-    efficiency_ratio: float         # kappa / landauer_per_bit_ATP  (biological overhead)
-    kappa_in_range: bool            # True if kappa ∈ [50, 200] ATP/bit
-    falsification_note: str         # Human-readable falsification criterion
+    I_bits: float  # Information gained at ignition [bits]
+    metabolic_cost_ATP: float  # From Module 2 [ATP]
+    kappa: float  # ATP/bit (central APGI claim)
+    landauer_per_bit_ATP: float  # Landauer floor for same I_bits [ATP/bit]
+    efficiency_ratio: float  # kappa / landauer_per_bit_ATP  (biological overhead)
+    kappa_in_range: bool  # True if kappa ∈ [50, 200] ATP/bit
+    falsification_note: str  # Human-readable falsification criterion
 
     def summary(self) -> str:
         range_str = "IN RANGE" if self.kappa_in_range else "OUT OF RANGE"
@@ -263,7 +280,7 @@ class DoubleBridgeResult:
             f"  κ = {self.kappa:.3e} ATP/bit  [{range_str}]",
             f"  Landauer floor = {self.landauer_per_bit_ATP:.6f} ATP/bit",
             f"  Neural overhead factor = {self.efficiency_ratio:.2e}×",
-            f"  (literature range: ~10⁴–10⁶× Landauer minimum)",
+            "  (literature range: ~10⁴–10⁶× Landauer minimum)",
         ]
         if not self.kappa_in_range:
             expected_atp = 100.0 * self.I_bits
@@ -391,15 +408,15 @@ class ScalingResult:
     """Outputs of Module 4 — cross-species metabolic scaling."""
 
     brain_masses_g: np.ndarray
-    CMR_glucose: np.ndarray             # μmol / 100 g / min
-    atp_cost_per_bit: np.ndarray        # Derived ATP/bit per species
+    CMR_glucose: np.ndarray  # μmol / 100 g / min
+    atp_cost_per_bit: np.ndarray  # Derived ATP/bit per species
     log_mass: np.ndarray
     log_atp: np.ndarray
-    scaling_exponent: float             # slope of log-log regression
+    scaling_exponent: float  # slope of log-log regression
     intercept: float
     r_squared: float
     p_value: float
-    apgi_predicted_exponent: float      # APGI prediction: ≈ 0.75
+    apgi_predicted_exponent: float  # APGI prediction: ≈ 0.75
     exponent_matches_apgi: bool
     species_labels: List[str]
 
@@ -432,12 +449,32 @@ class CrossSpeciesScalingValidator:
     # Empirical species data (Karbowski 2024 / Street 2020 combined)
     # brain_mass [g], CMR_glucose [μmol/100g/min], approx neuron count [millions]
     DEFAULT_SPECIES_DATA: List[Dict] = [
-        {"name": "Mouse",    "brain_mass_g": 0.42,   "CMR_glucose": 65.0,  "neurons_M": 71},
-        {"name": "Rat",      "brain_mass_g": 1.8,    "CMR_glucose": 60.0,  "neurons_M": 200},
-        {"name": "Marmoset", "brain_mass_g": 7.8,    "CMR_glucose": 52.0,  "neurons_M": 635},
-        {"name": "Macaque",  "brain_mass_g": 95.0,   "CMR_glucose": 35.0,  "neurons_M": 6376},
-        {"name": "Chimp",    "brain_mass_g": 420.0,  "CMR_glucose": 25.0,  "neurons_M": 28000},
-        {"name": "Human",    "brain_mass_g": 1400.0, "CMR_glucose": 22.0,  "neurons_M": 86000},
+        {"name": "Mouse", "brain_mass_g": 0.42, "CMR_glucose": 65.0, "neurons_M": 71},
+        {"name": "Rat", "brain_mass_g": 1.8, "CMR_glucose": 60.0, "neurons_M": 200},
+        {
+            "name": "Marmoset",
+            "brain_mass_g": 7.8,
+            "CMR_glucose": 52.0,
+            "neurons_M": 635,
+        },
+        {
+            "name": "Macaque",
+            "brain_mass_g": 95.0,
+            "CMR_glucose": 35.0,
+            "neurons_M": 6376,
+        },
+        {
+            "name": "Chimp",
+            "brain_mass_g": 420.0,
+            "CMR_glucose": 25.0,
+            "neurons_M": 28000,
+        },
+        {
+            "name": "Human",
+            "brain_mass_g": 1400.0,
+            "CMR_glucose": 22.0,
+            "neurons_M": 86000,
+        },
     ]
 
     APGI_PREDICTED_EXPONENT: float = 0.75
@@ -519,7 +556,9 @@ class CrossSpeciesScalingValidator:
         slope, intercept, r_value, p_value, _ = stats.linregress(log_mass, log_atp)
         r_squared = r_value**2
 
-        exponent_matches = abs(slope - self.apgi_predicted_exponent) <= self.EXPONENT_TOLERANCE
+        exponent_matches = (
+            abs(slope - self.apgi_predicted_exponent) <= self.EXPONENT_TOLERANCE
+        )
 
         return ScalingResult(
             brain_masses_g=masses,
@@ -556,13 +595,13 @@ class AggregatorConfig:
     # any physiologically realistic ignition event produces κ >> 100 ATP/bit.
     # The κ ≈ 100 claim is instead supported by the Landauer-floor argument
     # (Module 3 efficiency_ratio check).  Module 2 makes this gap explicit.
-    firing_rate_Hz: float = 40.0       # Gamma-band rate [Hz]
-    n_neurons: int = 50_000            # Cortical ignition ensemble size
-    duration_ms: float = 100.0         # ~100 ms ignition window
+    firing_rate_Hz: float = 40.0  # Gamma-band rate [Hz]
+    n_neurons: int = 50_000  # Cortical ignition ensemble size
+    duration_ms: float = 100.0  # ~100 ms ignition window
     cost_per_spike_J: float = COST_PER_SPIKE_J
 
     # Module 3 — Double Bridge
-    I_bits: float = 4.0                # Bits gained at ignition (from Level 2 MI)
+    I_bits: float = 4.0  # Bits gained at ignition (from Level 2 MI)
     # Sensitivity analysis ranges
     I_bits_min: float = 1.0
     I_bits_max: float = 10.0
@@ -604,48 +643,52 @@ class AggregatorReport:
             "  (c) Neural metabolic cost   — actual ATP / ignition (Module 2+3)"
         )
 
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print("MODULE 1 — LANDAUER MINIMUM (thermodynamic floor)")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(self.landauer.summary())
 
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print("MODULE 2 — NEURAL METABOLIC COST (empirical firing cost)")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(self.metabolic.summary())
 
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print("MODULE 3 — DOUBLE BRIDGE κ DERIVATION")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(self.double_bridge.summary())
 
         if self.sensitivity is not None:
             s = self.sensitivity
             print(f"\n  Sensitivity analysis (Monte Carlo, n={s.get('n', '?')}):")
-            print(f"    κ mean ± std  = {s['kappa_mean']:.1f} ± {s['kappa_std']:.1f} ATP/bit")
+            print(
+                f"    κ mean ± std  = {s['kappa_mean']:.1f} ± {s['kappa_std']:.1f} ATP/bit"
+            )
             print(f"    κ median      = {s['kappa_median']:.1f} ATP/bit")
             print(f"    κ [P5, P95]   = [{s['kappa_p5']:.1f}, {s['kappa_p95']:.1f}]")
-            print(f"    Fraction in [50,200] = {s['fraction_in_range']*100:.1f}%")
+            print(f"    Fraction in [50,200] = {s['fraction_in_range'] * 100:.1f}%")
 
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print("MODULE 4 — CROSS-SPECIES SCALING VALIDATION")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(self.scaling.summary())
 
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print("LEVEL 1 AUDITABILITY CHECK")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         kappa_ok = self.double_bridge.kappa_in_range
         exponent_ok = self.scaling.exponent_matches_apgi
-        print(f"  κ ≈ 100 ATP/bit in [50, 200] range : {'PASS' if kappa_ok else 'FAIL'}")
-        print(f"  Scaling exponent ≈ 0.75            : {'PASS' if exponent_ok else 'FAIL'}")
+        print(
+            f"  κ ≈ 100 ATP/bit in [50, 200] range : {'PASS' if kappa_ok else 'FAIL'}"
+        )
+        print(
+            f"  Scaling exponent ≈ 0.75            : {'PASS' if exponent_ok else 'FAIL'}"
+        )
         print(
             f"  Neural overhead factor             : "
             f"{self.double_bridge.efficiency_ratio:.2e}× Landauer minimum"
         )
-        print(
-            f"  (expected 10⁴–10⁶×; reflects noise, redundancy, metabolic overhead)"
-        )
+        print("  (expected 10⁴–10⁶×; reflects noise, redundancy, metabolic overhead)")
 
         if self.figure_path:
             print(f"\n  Figure saved: {self.figure_path}")
@@ -785,27 +828,48 @@ class ThermodynamicProgramAggregator:
         # Regression line
         x_fit = np.linspace(sr.log_mass.min() - 0.2, sr.log_mass.max() + 0.2, 100)
         y_fit = sr.intercept + sr.scaling_exponent * x_fit
-        ax.plot(x_fit, y_fit, "steelblue", lw=1.5, linestyle="--",
-                label=f"Empirical fit (exp={sr.scaling_exponent:.2f})")
+        ax.plot(
+            x_fit,
+            y_fit,
+            "steelblue",
+            lw=1.5,
+            linestyle="--",
+            label=f"Empirical fit (exp={sr.scaling_exponent:.2f})",
+        )
 
         # APGI prediction band (± 0.05 around exponent 0.75)
         y_apgi_mid = sr.intercept + sr.apgi_predicted_exponent * x_fit
         y_apgi_lo = sr.intercept + (sr.apgi_predicted_exponent - 0.15) * x_fit
         y_apgi_hi = sr.intercept + (sr.apgi_predicted_exponent + 0.15) * x_fit
-        ax.fill_between(x_fit, y_apgi_lo, y_apgi_hi, alpha=0.15, color="tomato",
-                        label="APGI prediction band (0.75 ± 0.15)")
-        ax.plot(x_fit, y_apgi_mid, "tomato", lw=1.5, linestyle=":",
-                label=f"APGI predicted (exp={sr.apgi_predicted_exponent:.2f})")
+        ax.fill_between(
+            x_fit,
+            y_apgi_lo,
+            y_apgi_hi,
+            alpha=0.15,
+            color="tomato",
+            label="APGI prediction band (0.75 ± 0.15)",
+        )
+        ax.plot(
+            x_fit,
+            y_apgi_mid,
+            "tomato",
+            lw=1.5,
+            linestyle=":",
+            label=f"APGI predicted (exp={sr.apgi_predicted_exponent:.2f})",
+        )
 
         ax.set_xlabel("log₁₀(Brain mass [g])", fontsize=11)
         ax.set_ylabel("log₁₀(ATP cost per bit [a.u.])", fontsize=11)
         ax.set_title("Cross-Species Metabolic Scaling\n(Module 4)", fontsize=11)
         ax.legend(fontsize=7, loc="upper left")
         ax.text(
-            0.97, 0.05,
+            0.97,
+            0.05,
             f"R²={sr.r_squared:.3f}  p={sr.p_value:.4f}",
             transform=ax.transAxes,
-            ha="right", va="bottom", fontsize=8,
+            ha="right",
+            va="bottom",
+            fontsize=8,
             bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7),
         )
 
@@ -821,12 +885,22 @@ class ThermodynamicProgramAggregator:
                 edgecolor="white",
                 linewidth=0.4,
             )
-            ax2.axvspan(50, 200, alpha=0.15, color="green",
-                        label="APGI range [50, 200]")
-            ax2.axvline(double_bridge_result.kappa, color="tomato", lw=2,
-                        label=f"κ (nominal) = {double_bridge_result.kappa:.1f}")
-            ax2.axvline(sensitivity["kappa_median"], color="navy", lw=1.5,
-                        linestyle="--", label=f"κ median = {sensitivity['kappa_median']:.1f}")
+            ax2.axvspan(
+                50, 200, alpha=0.15, color="green", label="APGI range [50, 200]"
+            )
+            ax2.axvline(
+                double_bridge_result.kappa,
+                color="tomato",
+                lw=2,
+                label=f"κ (nominal) = {double_bridge_result.kappa:.1f}",
+            )
+            ax2.axvline(
+                sensitivity["kappa_median"],
+                color="navy",
+                lw=1.5,
+                linestyle="--",
+                label=f"κ median = {sensitivity['kappa_median']:.1f}",
+            )
 
             ax2.set_xlabel("κ [ATP / bit]", fontsize=11)
             ax2.set_ylabel("Count", fontsize=11)
@@ -835,10 +909,13 @@ class ThermodynamicProgramAggregator:
             )
             ax2.legend(fontsize=8)
             ax2.text(
-                0.97, 0.95,
-                f"{sensitivity['fraction_in_range']*100:.1f}% in range",
+                0.97,
+                0.95,
+                f"{sensitivity['fraction_in_range'] * 100:.1f}% in range",
                 transform=ax2.transAxes,
-                ha="right", va="top", fontsize=8,
+                ha="right",
+                va="top",
+                fontsize=8,
                 bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7),
             )
 

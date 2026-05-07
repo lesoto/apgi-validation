@@ -17,13 +17,27 @@ Key Features:
 - Gradient monitoring and stability checks
 - Performance benchmarking utilities
 - Full precision learning from prediction accuracy
-- Full precision learning from prediction accuracy
 
 Based on:
 - Hasani et al. (2021) - Liquid Time-Constant Networks
 - APGI Framework - Allostatic Precision-Gated Ignition theory
 - Friston (2010) - Free Energy Principle
 - Dehaene & Changeux (2011) - Global Workspace Theory
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the liquid network implementation fails to achieve stable convergence
+within 1000 training epochs across different initial conditions, or if the
+network does not demonstrate phase transition dynamics consistent with APGI
+predictions (ignition probability deviation > 15% from theoretical values),
+then the APGI liquid network implementation claim is falsified. This would
+indicate that the LTC framework cannot properly implement APGI dynamics.
 
 """
 

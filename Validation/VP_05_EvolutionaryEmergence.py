@@ -19,6 +19,19 @@ Standard 6 Compliance Scoring:
 
 Total Standard 6 Score: Target ≥12/15 points for evolutionary plausibility validation.
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If evolutionary simulations fail to produce APGI-like architectures with fitness
+advantage >2 points, or if the Standard 6 compliance score falls below 12/15,
+or if mathematical solutions do not match numerical simulations (error > 15%),
+then the APGI evolutionary plausibility claim is falsified. This would indicate
+that APGI architectures are not evolutionarily plausible or mathematically consistent.
 """
 
 import copy
@@ -119,6 +132,7 @@ except ImportError:
         return wrapper
 
 
+from utils.constants import VISUAL_CONSTANTS
 from utils.statistical_tests import safe_pearsonr
 
 logger = logging.getLogger(__name__)
@@ -2467,9 +2481,9 @@ def plot_evolutionary_results(
 
     # Style headers
     for i in range(2):
-        table[(0, i)].set_facecolor("#4CAF50")
+        table[(0, i)].set_facecolor(VISUAL_CONSTANTS.IGNITION_GREEN)
         table[(0, i)].set_text_props(weight="bold", color="white")
-        table[(6, i)].set_facecolor("#4CAF50")
+        table[(6, i)].set_facecolor(VISUAL_CONSTANTS.IGNITION_GREEN)
         table[(6, i)].set_text_props(weight="bold", color="white")
 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")

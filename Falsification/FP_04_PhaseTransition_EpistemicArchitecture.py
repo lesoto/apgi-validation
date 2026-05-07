@@ -1,3 +1,25 @@
+"""
+Falsification Protocol 4: Phase Transition Epistemic Architecture
+==============================================================
+
+Phase transition validation at the epistemic architecture level.
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If phase transition detection fails to identify critical slowing signatures
+(sensitivity < 0.8, specificity < 0.8), or if the power analysis shows insufficient
+statistical power (power < 0.8), or if the phase boundary predictions deviate
+>20% from theoretical expectations, then the APGI phase transition epistemic
+architecture claim is falsified. This would indicate that APGI does not
+exhibit predicted phase transition dynamics.
+"""
+
 import csv
 import json
 import logging
@@ -21,11 +43,14 @@ except ImportError:
     HAS_SCHEMA = False
 
 # Import constants from centralized location
-from utils.constants import FP3_DOC_SIGNAL_MULTIPLIERS  # HIGH-02: Import from constants
-from utils.constants import (  # HIGH-02: Import from constants
+from utils.constants import (
+    FP3_DOC_SIGNAL_MULTIPLIERS,
+)  # HIGH-02: Import from constants, VISUAL_CONSTANTS
+from utils.constants import (  # HIGH-02: Import from constants, VISUAL_CONSTANTS
     F4_CRITICAL_SLOWING_MIN_RATIO,
     F4_CRITICAL_SLOWING_P_VALUE,
     F4_MIN_POWER,
+    VISUAL_CONSTANTS,
     F4_MIN_SENSITIVITY,
     F4_MIN_SPECIFICITY,
     FP3_DOC_SYNTHETIC_FEATURE_WEIGHTS,
@@ -2874,7 +2899,7 @@ def run_falsification():
                     values,
                     yerr=stds,
                     capsize=5,
-                    color=["#3498db", "#e74c3c"],
+                    color=["#3498db", VISUAL_CONSTANTS.STATUS_FAIL],
                     alpha=0.7,
                 )
                 ax.set_title("Phase Transition: Information-Theoretic Metrics")

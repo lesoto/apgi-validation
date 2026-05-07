@@ -11,6 +11,18 @@ This protocol implements and validates:
 - Metabolic challenge (glucose depletion) elevating θ_t predictably
 - Null predictions: early ERPs invariant to precision/metabolic manipulations
 
+LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic implications without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If causal manipulations do not produce the predicted directional changes in APGI
+parameters (effect size < 0.5 Cohen's d), or if the manipulation effects are not
+specific to ignition trials (no difference from control conditions), or if the
+parameter changes do not translate to predicted behavioral effects (p > 0.05, corrected),
+then the APGI causal manipulation claim is falsified. This would indicate that
+APGI parameters are not causally involved in conscious access.
 """
 
 import json

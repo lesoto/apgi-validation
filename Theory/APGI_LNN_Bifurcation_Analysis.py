@@ -17,16 +17,27 @@ Modules
 2. BifurcationSignatures   – eigenvalue sweep, stochastic signatures
 3. EmpiricalPredictions    – EEG/MEG-observable predictions (Appendix C.3)
 
-Falsification criterion (Paper 2 Appendix C.3):
-    If AC1 does NOT increase in the pre-ignition window across N≥20
-    participants, the bifurcation interpretation is falsified and APGI
-    reduces to threshold-crossing GWT.
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If ignition does NOT show saddle-node bifurcation signatures (AC1 does NOT
+increase in pre-ignition window across N≥20 participants, eigenvalue
+real parts remain negative throughout transition, or critical slowing down
+ratio < 1.2), then the APGI bifurcation claim is falsified. This would
+reduce APGI to threshold-crossing GWT and invalidate the key theoretical
+differentiator between the frameworks.
+
 """
 
 import logging
 import warnings
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 import numpy as np
 import scipy.linalg
@@ -44,6 +55,8 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
+from utils.constants import VISUAL_CONSTANTS
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
@@ -59,19 +72,21 @@ logger = logging.getLogger(__name__)
 class ODEParameters:
     """Parameters for the minimal 2D APGI-LNN ODE system."""
 
-    tau_S: float = 0.3          # signal time constant (s)
-    eta: float = 0.1            # threshold adaptation rate
-    C_metabolic: float = 0.5    # metabolic cost term
+    tau_S: float = 0.3  # signal time constant (s)
+    eta: float = 0.1  # threshold adaptation rate
+    C_metabolic: float = 0.5  # metabolic cost term
     V_information: float = 0.4  # information value term
     # LNN reservoir ignition steepness: α_LNN > 4/tau_S is required for a
     # saddle-node bifurcation (α_LNN > 4/0.3 ≈ 13.3). The LNN uses a steeper
     # sigmoid than the system-level α≈8 because it represents fast synaptic
     # nonlinearities in the reservoir, not the global ignition gate.
-    alpha: float = 15.0         # LNN ignition steepness (bifurcation requires α > 4/τ_S)
-    theta_base: float = 0.5     # baseline threshold
-    sigma_S: float = 0.02       # signal noise amplitude
+    alpha: float = 15.0  # LNN ignition steepness (bifurcation requires α > 4/τ_S)
+    theta_base: float = 0.5  # baseline threshold
+    sigma_S: float = 0.02  # signal noise amplitude
     sigma_theta: float = 0.005  # threshold noise amplitude
-    kappa_theta: float = 0.5    # homeostatic theta restoring rate (prevents unbounded drift)
+    kappa_theta: float = (
+        0.5  # homeostatic theta restoring rate (prevents unbounded drift)
+    )
 
 
 class APGILNNODESystem:
@@ -113,10 +128,9 @@ class APGILNNODESystem:
         B = self.ignition_prob(S, theta)
         dBdS = self.p.alpha * B * (1.0 - B)
         dS = -(S - S_input) / self.p.tau_S + dBdS * (S - theta)
-        dtheta = (
-            self.p.eta * (self.p.C_metabolic - self.p.V_information)
-            - self.p.kappa_theta * (theta - self.p.theta_base)
-        )
+        dtheta = self.p.eta * (
+            self.p.C_metabolic - self.p.V_information
+        ) - self.p.kappa_theta * (theta - self.p.theta_base)
         return np.array([dS, dtheta])
 
     def jacobian_analytic(self, x: np.ndarray, S_input: float) -> np.ndarray:
@@ -135,14 +149,15 @@ class APGILNNODESystem:
         B = self.ignition_prob(S, theta)
         dBdS = self.p.alpha * B * (1.0 - B)
         # Second-order term: d(dBdS)/dS = alpha² * B*(1-B)*(1-2B)
-        d2BdS2 = (self.p.alpha ** 2) * B * (1.0 - B) * (1.0 - 2.0 * B)
+        d2BdS2 = (self.p.alpha**2) * B * (1.0 - B) * (1.0 - 2.0 * B)
         delta = S - theta
 
-        J = np.array([
-            [-1.0 / self.p.tau_S + dBdS + d2BdS2 * delta,
-             -dBdS - d2BdS2 * delta],
-            [0.0, -self.p.kappa_theta],
-        ])
+        J = np.array(
+            [
+                [-1.0 / self.p.tau_S + dBdS + d2BdS2 * delta, -dBdS - d2BdS2 * delta],
+                [0.0, -self.p.kappa_theta],
+            ]
+        )
         return J
 
     def jacobian_numerical(
@@ -158,9 +173,7 @@ class APGILNNODESystem:
             J[:, i] = (self.f(x_plus, S_input) - f0) / eps
         return J
 
-    def verify_jacobian(
-        self, x: np.ndarray, S_input: float, tol: float = 1e-4
-    ) -> bool:
+    def verify_jacobian(self, x: np.ndarray, S_input: float, tol: float = 1e-4) -> bool:
         """
         Verify analytic Jacobian against numerical finite-difference of f.
         Returns True if max absolute difference across all elements < tol.
@@ -204,11 +217,11 @@ class BifurcationSweepResult:
     """Results of sweeping S through the bifurcation point."""
 
     S_values: np.ndarray
-    lambda1_trace: np.ndarray       # dominant eigenvalue trace
-    variance_trace: np.ndarray      # signal variance trace
-    ac1_trace: np.ndarray           # lag-1 autocorrelation trace
-    bimodality_index: np.ndarray    # Sarle's b statistic
-    bifurcation_idx: int = -1       # index where λ₁ crosses 0
+    lambda1_trace: np.ndarray  # dominant eigenvalue trace
+    variance_trace: np.ndarray  # signal variance trace
+    ac1_trace: np.ndarray  # lag-1 autocorrelation trace
+    bimodality_index: np.ndarray  # Sarle's b statistic
+    bifurcation_idx: int = -1  # index where λ₁ crosses 0
 
 
 @dataclass
@@ -264,9 +277,9 @@ class BifurcationSignatures:
             # Theoretical variance from fluctuation-dissipation: σ² ~ σ_noise²/|2λ₁|
             lam = abs(lambda1_trace[i])
             if lam > 1e-6:
-                variance_trace[i] = (self.ode.p.sigma_S ** 2) / (2.0 * lam)
+                variance_trace[i] = (self.ode.p.sigma_S**2) / (2.0 * lam)
             else:
-                variance_trace[i] = (self.ode.p.sigma_S ** 2) / 1e-6  # cap at large value
+                variance_trace[i] = (self.ode.p.sigma_S**2) / 1e-6  # cap at large value
 
             # AC1 from AR(1) process: ρ = exp(λ₁ · dt_eff)
             dt_eff = self.ode.p.tau_S / 10.0
@@ -300,7 +313,7 @@ class BifurcationSignatures:
         denom = kurt + 3.0 * ((n - 1.0) ** 2) / ((n - 2.0) * (n - 3.0))
         if abs(denom) < 1e-10:
             return float("nan")
-        return (skew ** 2 + 1.0) / denom
+        return (skew**2 + 1.0) / denom
 
     def run_stochastic_trials(
         self,
@@ -316,7 +329,6 @@ class BifurcationSignatures:
         """
         rng = np.random.default_rng(rng_seed)
         n_steps = int(duration_s / dt)
-        theta = self.ode.p.theta_base
         tau_S = self.ode.p.tau_S
         sigma_S = self.ode.p.sigma_S
 
@@ -407,9 +419,7 @@ class EmpiricalPredictions:
     PREDICTIONS = [
         EmpiricalPrediction(
             prediction_id="BP1_critical_slowing",
-            observable=(
-                "Lag-1 autocorrelation (AC1) of high-gamma power (70–150 Hz)"
-            ),
+            observable=("Lag-1 autocorrelation (AC1) of high-gamma power (70–150 Hz)"),
             measurement_window="100–300 ms before ignition event (P3b onset)",
             test_statistic=(
                 "Kendall τ of AC1 vs. time-to-ignition across trials; "
@@ -536,8 +546,7 @@ def plot_bifurcation_signatures(
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 9))
     fig.suptitle(
-        "APGI-LNN Bifurcation Signatures\n"
-        "(Saddle-node bifurcation at S = θₜ)",
+        "APGI-LNN Bifurcation Signatures\n" "(Saddle-node bifurcation at S = θₜ)",
         fontsize=13,
     )
 
@@ -557,7 +566,9 @@ def plot_bifurcation_signatures(
     )
 
     # 2. Variance inflation
-    var_clipped = np.clip(sweep.variance_trace, 0, np.percentile(sweep.variance_trace, 95) * 1.5)
+    var_clipped = np.clip(
+        sweep.variance_trace, 0, np.percentile(sweep.variance_trace, 95) * 1.5
+    )
     ax2.plot(S_vals, var_clipped, color="#155724", linewidth=2)
     ax2.axvline(theta, color="#721c24", linestyle="--", linewidth=1, label="S = θₜ")
     ax2.set_xlabel("S_input")
@@ -576,10 +587,20 @@ def plot_bifurcation_signatures(
     ax3.set_ylim(-1.1, 1.1)
 
     # 4. Bimodality index
-    ax4.plot(S_vals, sweep.bimodality_index, color="#762A83", linewidth=2)
+    ax4.plot(
+        S_vals,
+        sweep.bimodality_index,
+        color=VISUAL_CONSTANTS.ALLOSTATIC_PURPLE,
+        linewidth=2,
+    )
     ax4.axvline(theta, color="#721c24", linestyle="--", linewidth=1, label="S = θₜ")
-    ax4.axhline(0.555, color="gray", linestyle=":", linewidth=1,
-                label="Sarle's threshold (0.555)")
+    ax4.axhline(
+        0.555,
+        color="gray",
+        linestyle=":",
+        linewidth=1,
+        label="Sarle's threshold (0.555)",
+    )
     ax4.set_xlabel("S_input")
     ax4.set_ylabel("Sarle's b (bimodality)")
     ax4.set_title("Flickering: Bimodality peaks near bifurcation")
@@ -589,6 +610,7 @@ def plot_bifurcation_signatures(
 
     if save_path is None:
         import tempfile
+
         save_path = tempfile.mktemp(suffix="_bifurcation_signatures.png")
 
     plt.savefig(save_path, dpi=100, bbox_inches="tight")
@@ -641,8 +663,8 @@ class APGILNNBifurcationAnalysis:
         logger.info(f"  λ_S (supra-threshold S=0.7): {lam_supra:.4f}")
         logger.info(
             f"  Bifurcation condition α > 4/τ_S: "
-            f"{self.ode.p.alpha:.1f} > {4.0/self.ode.p.tau_S:.2f} "
-            f"({'YES' if self.ode.p.alpha > 4.0/self.ode.p.tau_S else 'NO'})"
+            f"{self.ode.p.alpha:.1f} > {4.0 / self.ode.p.tau_S:.2f} "
+            f"({'YES' if self.ode.p.alpha > 4.0 / self.ode.p.tau_S else 'NO'})"
         )
 
         # MODULE 2: Bifurcation signatures
@@ -653,13 +675,23 @@ class APGILNNBifurcationAnalysis:
 
         bif_idx = sweep.bifurcation_idx
         lambda1_at_bif = float(sweep.lambda1_trace[bif_idx])
-        pre_slice = sweep.lambda1_trace[:bif_idx] if bif_idx > 0 else sweep.lambda1_trace[:1]
-        post_slice = sweep.lambda1_trace[bif_idx + 1:] if bif_idx < len(sweep.lambda1_trace) - 1 else sweep.lambda1_trace[-1:]
+        pre_slice = (
+            sweep.lambda1_trace[:bif_idx] if bif_idx > 0 else sweep.lambda1_trace[:1]
+        )
+        post_slice = (
+            sweep.lambda1_trace[bif_idx + 1 :]
+            if bif_idx < len(sweep.lambda1_trace) - 1
+            else sweep.lambda1_trace[-1:]
+        )
         lambda1_pre = float(np.mean(pre_slice))
         lambda1_post = float(np.mean(post_slice))
         ac1_at_bif = float(sweep.ac1_trace[bif_idx])
         pre_ac1_start = max(0, bif_idx - 20)
-        ac1_pre_slice = sweep.ac1_trace[pre_ac1_start:bif_idx] if bif_idx > 0 else sweep.ac1_trace[:1]
+        ac1_pre_slice = (
+            sweep.ac1_trace[pre_ac1_start:bif_idx]
+            if bif_idx > 0
+            else sweep.ac1_trace[:1]
+        )
         ac1_pre = float(np.mean(ac1_pre_slice))
         var_at_bif = float(sweep.variance_trace[bif_idx])
 

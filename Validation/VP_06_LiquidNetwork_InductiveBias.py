@@ -20,6 +20,19 @@ This protocol implements:
 - Comprehensive evaluation with energy falsification criteria
 - Formal model comparison (BIC/AIC) and spike-based energy logging
 
+LEVEL DESIGNATION: All outputs are Level 2 (information-theoretic).
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic implications without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If APGI-inspired networks do NOT achieve better performance than baseline
+architectures while maintaining energy efficiency within 20% of biological
+constraints, or if the performance advantage disappears under metabolic
+constraints, then the APGI inductive bias claim is falsified. This would
+indicate that APGI architectural principles do not provide computational
+advantages compatible with biological energy budgets.
+
 """
 
 import logging
@@ -65,7 +78,7 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from utils.constants import DIM_CONSTANTS
+from utils.constants import DIM_CONSTANTS, VISUAL_CONSTANTS
 from utils.falsification_thresholds import (
     F1_1_MIN_ADVANTAGE_PCT,
     F1_1_MIN_COHENS_D,
@@ -2614,10 +2627,10 @@ def plot_comprehensive_results(
     gs = fig.add_gridspec(5, 4, hspace=0.35, wspace=0.35)
 
     colors = {
-        "APGI": "#2E86AB",
-        "MLP": "#A23B72",
-        "LSTM": "#F18F01",
-        "Transformer": "#06A77D",
+        "APGI": VISUAL_CONSTANTS.ST_BLUE,
+        "MLP": VISUAL_CONSTANTS.ALLOSTATIC_PURPLE,
+        "LSTM": VISUAL_CONSTANTS.INTERO_AMBER,
+        "Transformer": VISUAL_CONSTANTS.IGNITION_GREEN,
     }
 
     networks = ["APGI", "MLP", "LSTM", "Transformer"]
@@ -2798,7 +2811,7 @@ def plot_comprehensive_results(
     bars = ax5.bar(
         param_names,
         param_values,
-        color=["purple", "orange"],
+        color=[VISUAL_CONSTANTS.ALLOSTATIC_PURPLE, VISUAL_CONSTANTS.INTERO_AMBER],
         alpha=0.7,
         edgecolor="black",
         linewidth=2,
@@ -2829,8 +2842,22 @@ def plot_comprehensive_results(
     x = np.arange(len(networks))
     width = 0.35
 
-    bars1 = ax6.bar(x - width / 2, bics, width, label="BIC", alpha=0.7, color="blue")
-    bars2 = ax6.bar(x + width / 2, aics, width, label="AIC", alpha=0.7, color="green")
+    bars1 = ax6.bar(
+        x - width / 2,
+        bics,
+        width,
+        label="BIC",
+        alpha=0.7,
+        color=VISUAL_CONSTANTS.ST_BLUE,
+    )
+    bars2 = ax6.bar(
+        x + width / 2,
+        aics,
+        width,
+        label="AIC",
+        alpha=0.7,
+        color=VISUAL_CONSTANTS.IGNITION_GREEN,
+    )
 
     ax6.set_ylabel("Information Criterion", fontsize=11, fontweight="bold")
     ax6.set_title("Model Comparison (BIC/AIC)", fontsize=12, fontweight="bold")

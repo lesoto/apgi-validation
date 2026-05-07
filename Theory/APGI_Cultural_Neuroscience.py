@@ -12,6 +12,21 @@ This module provides:
 3. Cross-cultural prediction maps
 4. Cultural modulation of APGI parameters
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If cultural modulation effects do not produce significant parameter changes
+(effect size < 0.3 Cohen's d), or if cross-cultural predictions fail to align
+with empirical findings (prediction accuracy < 60%), or if linguistic and
+contemplative effects cannot be distinguished from noise (p > 0.05, corrected),
+then the APGI cultural neuroscience claim is falsified. This would indicate that
+cultural factors do not systematically modulate conscious processing parameters.
+
 """
 
 from __future__ import annotations

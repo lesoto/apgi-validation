@@ -12,6 +12,21 @@ Citations for measurement relationships:
 - HEP-accuracy: Park et al. (2014) Cortex; Pollatos et al. (2007) Psychophysiology
 - RT-threshold: Ratcliff & McKoon (2008) Neural Comp; Palmer et al. (2005) Nature
 - P3b-precision: Nieuwenhuis et al. (2005) Psychophysiology; Polich (2007) Clin Neurophysiol
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If parameter estimation fails to achieve convergence (R-hat > 1.1) or if
+parameter recovery accuracy falls below r > 0.8 across simulation studies,
+or if the effective sample size (ESS) falls below 400 for key parameters,
+then the APGI parameter estimation framework claim is falsified. This would
+indicate that the proposed estimation methods cannot reliably recover APGI
+parameters from empirical data.
 """
 
 import json

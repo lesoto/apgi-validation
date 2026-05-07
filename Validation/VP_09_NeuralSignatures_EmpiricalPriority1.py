@@ -11,6 +11,20 @@ This protocol analyzes real neural data to demonstrate:
 - Theta-gamma phase-amplitude coupling emerges at threshold crossing
 - Subthreshold trials activate sensory cortex without engaging frontoparietal networks
 
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If P3b amplitude does not scale sigmoidally with predicted parameters (R² < 0.7),
+or if frontoparietal coactivation is not contingent on threshold crossing (p > 0.05, corrected),
+or if theta-gamma coupling does not emerge at predicted thresholds (onset deviation > 100ms),
+or if subthreshold trials engage frontoparietal networks (false positive rate > 10%),
+then the APGI neural signature convergence claim is falsified. This would indicate
+that APGI does not predict consistent neural signatures across paradigms.
 """
 
 import logging

@@ -36,16 +36,19 @@ class TestDataPipelineEndToEnd:
         assert list(df.columns) == ["timestamp", "surprise", "threshold", "metabolic"]
 
         # Process data (normalize)
-        df["surprise_normalized"] = (df["surprise"] - df["surprise"].mean()) / df[
+        df.loc[:, "surprise_normalized"] = (df["surprise"] - df["surprise"].mean()) / df[
             "surprise"
         ].std()
-        df["threshold_normalized"] = (df["threshold"] - df["threshold"].mean()) / df[
+        df.loc[:, "threshold_normalized"] = (df["threshold"] - df["threshold"].mean()) / df[
             "threshold"
         ].std()
 
         # Write to JSON
         json_file = temp_dir / "output.json"
-        df.to_json(json_file, orient="records")
+        # Convert to dict first to avoid recursion issues
+        data_to_write = df.to_dict(orient="records")
+        with open(json_file, "w") as f:
+            json.dump(data_to_write, f)
 
         # Verify JSON output
         with open(json_file) as f:
@@ -280,7 +283,9 @@ class TestDataPipelineEndToEnd:
 
         # Export to JSON
         json_file = temp_dir / "output.json"
-        df.to_json(json_file, orient="records")
+        data_to_write = df.to_dict(orient="records")
+        with open(json_file, "w") as f:
+            json.dump(data_to_write, f)
         assert json_file.exists()
 
         # Export to CSV
@@ -294,7 +299,7 @@ class TestDataPipelineEndToEnd:
         assert excel_file.exists()
 
         # Verify all exports
-        df_json = pd.read_json(json_file)
+        df_json = pd.DataFrame(data_to_write)
         df_csv = pd.read_csv(csv_out)
         df_excel = pd.read_excel(excel_file)
 

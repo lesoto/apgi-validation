@@ -12,6 +12,19 @@ Usage:
     from Falsification.FP_ALL_Aggregator import FalsificationAggregator
     aggregator = FalsificationAggregator()
     results = aggregator.run_full_analysis()
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If the framework-level falsification conditions A or B are met (all predictions fail
+or alternative models are more parsimonious), then the APGI framework-level claim
+is falsified. This would indicate that APGI as a theoretical framework does not
+provide sufficient explanatory power compared to alternatives.
 """
 
 import csv  # noqa: F401
@@ -26,6 +39,7 @@ from typing import Any, Dict, List, Optional, cast
 import numpy as np
 import scipy.io as sio
 from scipy.optimize import curve_fit
+from utils.constants import VISUAL_CONSTANTS
 
 # Matplotlib imports for PNG visualization
 try:
@@ -1417,7 +1431,10 @@ def _generate_fp_all_visualization(
         condition_b = results.get("condition_b_met", False)
         conditions = ["Condition A\n(All 14 fail)", "Condition B\n(ΔBIC > 10)"]
         values = [1 if condition_a else 0, 1 if condition_b else 0]
-        colors = ["#e74c3c" if v else "#2ecc71" for v in values]
+        colors = [
+            VISUAL_CONSTANTS.STATUS_FAIL if v else VISUAL_CONSTANTS.STATUS_PASS
+            for v in values
+        ]
         ax1.bar(conditions, values, color=colors)
         ax1.set_title("Falsification Conditions")
         ax1.set_ylabel("Triggered (1) / Safe (0)")
@@ -1432,7 +1449,7 @@ def _generate_fp_all_visualization(
             ax2.pie(
                 [passed, failed],
                 labels=[f"Passed ({passed})", f"Failed ({failed})"],
-                colors=["#2ecc71", "#e74c3c"],
+                colors=[VISUAL_CONSTANTS.STATUS_PASS, VISUAL_CONSTANTS.STATUS_FAIL],
                 autopct="%1.1f%%",
                 startangle=90,
             )
@@ -1447,7 +1464,10 @@ def _generate_fp_all_visualization(
                 1 if protocol_results[p].get("passed", False) else 0
                 for p in proto_names
             ]
-            colors = ["#2ecc71" if v else "#e74c3c" for v in proto_passed]
+            colors = [
+                VISUAL_CONSTANTS.STATUS_PASS if v else VISUAL_CONSTANTS.STATUS_FAIL
+                for v in proto_passed
+            ]
             ax3.barh(proto_names, proto_passed, color=colors)
             ax3.set_title("Protocol Results (Sample)")
             ax3.set_xlabel("Pass (1) / Fail (0)")
@@ -1466,7 +1486,11 @@ def _generate_fp_all_visualization(
             }
             names = list(metrics.keys())
             values = list(metrics.values())
-            colors = ["#2ecc71", "#e74c3c", "#3498db"]
+            colors = [
+                VISUAL_CONSTANTS.STATUS_PASS,
+                VISUAL_CONSTANTS.STATUS_FAIL,
+                "#3498db",
+            ]
             ax4.bar(names, values, color=colors)
             ax4.set_title("Overall Summary")
             ax4.set_ylabel("Count / Status")

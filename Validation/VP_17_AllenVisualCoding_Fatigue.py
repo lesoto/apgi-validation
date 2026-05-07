@@ -25,6 +25,21 @@ VP_ALL_Aggregator.py registration:
     "V17.1": "VP_17_AllenVisualCoding_Fatigue",
     "V17.2": "VP_17_AllenVisualCoding_Fatigue",
     "V17.3": "VP_17_AllenVisualCoding_Fatigue",
+
+LEVEL DESIGNATION: All outputs are Level 3 (algorithmic/mathematical).
+Bridge to Level 2 requires APGI_Information_Theoretic_Bandwidth.
+Bridge to Level 1 requires APGI_Thermodynamic_Program_Aggregator.
+This script does NOT claim thermodynamic or information-theoretic implications
+without explicit bridge invocation.
+This script does NOT claim thermodynamic implications without explicit bridge invocation.
+
+FALSIFICATION_CRITERIA
+----------------------
+If fatigue effects do not produce the predicted threshold elevation (>10% increase)
+or P3b amplitude reduction (>15% decrease) compared to baseline, or if the APGI
+fatigue model does not fit the data significantly better than null models
+(Bayes factor BF₁₀ < 3), then the APGI fatigue prediction claim is falsified.
+This would indicate that APGI does not accurately model neural fatigue dynamics.
 """
 
 import logging
