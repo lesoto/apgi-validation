@@ -272,6 +272,15 @@ V17_MIN_CORRELATION_MAGNITUDE: float = 0.10  # |r| ≥ 0.10 for cross-measure co
 V17_ALPHA: float = 0.05  # significance level
 
 # ---------------------------------------------------------------------------
+# V19 – Information Erasure Protocol (MVPA)
+# ---------------------------------------------------------------------------
+V19_BELOW_CHANCE_THRESHOLD: float = 0.48      # post-ignition accuracy must drop below this
+V19_MIN_PRE_IGNITION_ACCURACY: float = 0.60  # losing stimulus decodable pre-ignition
+V19_CONTROL_DECODABILITY_MIN: float = 0.60   # both stims decodable on subliminal trials
+V19_N_PERMUTATIONS: int = 500                # permutations for chance distribution
+V19_POST_IGNITION_SUPPRESSION_BINS: int = 3  # consecutive below-chance bins required
+
+# ---------------------------------------------------------------------------
 # V18 – EEG Microstate Energy Analysis (GFP / P3b)
 # ---------------------------------------------------------------------------
 V18_GFP_AUC_IGNITION_ADVANTAGE: float = 0.20  # ≥20 % larger GFP-AUC on ignition trials
@@ -629,6 +638,11 @@ THRESHOLD_REGISTRY = {
     "V17_MIN_R2_THETA": V17_MIN_R2_THETA_ELEVATION,
     "V17_MIN_CORR": V17_MIN_CORRELATION_MAGNITUDE,
     "V17_ALPHA": V17_ALPHA,
+    "V19_BELOW_CHANCE": V19_BELOW_CHANCE_THRESHOLD,
+    "V19_PRE_IGNITION_ACC": V19_MIN_PRE_IGNITION_ACCURACY,
+    "V19_CONTROL_DECODABILITY": V19_CONTROL_DECODABILITY_MIN,
+    "V19_N_PERMS": V19_N_PERMUTATIONS,
+    "V19_SUPPRESSION_BINS": V19_POST_IGNITION_SUPPRESSION_BINS,
     "V18_GFP_AUC_ADVANTAGE": V18_GFP_AUC_IGNITION_ADVANTAGE,
     "V18_AUC_COHENS_D": V18_AUC_COHENS_D_MIN,
     "V18_ST_CORRELATION": V18_ST_CORRELATION_MIN,

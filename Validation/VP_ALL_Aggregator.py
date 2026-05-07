@@ -112,6 +112,10 @@ NAMED_PREDICTIONS = {
     "V18.1": "GFP-AUC significantly larger on ignition vs. no-ignition trials (d ≥ 0.50)",
     "V18.2": "Proportional GFP-AUC advantage on ignition trials ≥ 20%",
     "V18.3": "Single-trial GFP-AUC correlates with Sₜ (r ≥ 0.30, p < 0.05)",
+    # VP-19: Information Erasure Protocol (MVPA)
+    "V19.1": "Losing stimulus decodable pre-ignition (accuracy ≥ 0.60)",
+    "V19.2": "Post-ignition losing-stimulus decoding drops below permutation chance (≥ 3 bins)",
+    "V19.3": "Both categories remain decodable on no-ignition trials (accuracy ≥ 0.60)",
 }
 
 # BIC thresholds for empirical vs theoretical data
@@ -195,6 +199,9 @@ PREDICTION_TO_PROTOCOL = {
     "V18.1": "VP_18_EEG_Microstate_GFP_P3b",
     "V18.2": "VP_18_EEG_Microstate_GFP_P3b",
     "V18.3": "VP_18_EEG_Microstate_GFP_P3b",
+    "V19.1": "VP_19_InformationErasure_MVPA",
+    "V19.2": "VP_19_InformationErasure_MVPA",
+    "V19.3": "VP_19_InformationErasure_MVPA",
 }
 
 # Protocol tier classification
@@ -217,6 +224,7 @@ PROTOCOL_TIERS = {
     "VP_16_Metabolic_ATP_GroundTruth": "secondary",
     "VP_17_AllenVisualCoding_Fatigue": "secondary",
     "VP_18_EEG_Microstate_GFP_P3b": "secondary",
+    "VP_19_InformationErasure_MVPA": "secondary",
 }
 
 # VP-07 / VP-10 Boundary Clarification
