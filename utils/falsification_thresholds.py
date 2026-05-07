@@ -272,6 +272,17 @@ V17_MIN_CORRELATION_MAGNITUDE: float = 0.10  # |r| ≥ 0.10 for cross-measure co
 V17_ALPHA: float = 0.05  # significance level
 
 # ---------------------------------------------------------------------------
+# V20 – Empirical iEEG Pipeline (BIDS-iEEG, P6a + P6c)
+# ---------------------------------------------------------------------------
+# P6a: GMM bimodality — high-gamma mode occupancy advantage (conscious > unconscious)
+V20_HG_BIMODALITY_COEFF_MIN: float = 0.55  # bimodality coefficient ≥ 0.55 (mode separation)
+V20_HG_OCCUPANCY_COHENS_D_MIN: float = 0.50  # Cohen's d ≥ 0.50 (medium effect)
+
+# P6c: Critical slowing — AC1 and variance advantage (hits-near-threshold > misses)
+V20_AC1_ADVANTAGE_MIN: float = 0.05   # raw AC1 difference (hits − misses) ≥ 0.05
+V20_VARIANCE_ADVANTAGE_MIN: float = 0.10  # raw variance difference (hits − misses) ≥ 0.10
+
+# ---------------------------------------------------------------------------
 # V19 – Information Erasure Protocol (MVPA)
 # ---------------------------------------------------------------------------
 V19_BELOW_CHANCE_THRESHOLD: float = 0.48      # post-ignition accuracy must drop below this
@@ -638,6 +649,10 @@ THRESHOLD_REGISTRY = {
     "V17_MIN_R2_THETA": V17_MIN_R2_THETA_ELEVATION,
     "V17_MIN_CORR": V17_MIN_CORRELATION_MAGNITUDE,
     "V17_ALPHA": V17_ALPHA,
+    "V20_HG_BIMODALITY_COEFF": V20_HG_BIMODALITY_COEFF_MIN,
+    "V20_HG_OCCUPANCY_COHENS_D": V20_HG_OCCUPANCY_COHENS_D_MIN,
+    "V20_AC1_ADVANTAGE": V20_AC1_ADVANTAGE_MIN,
+    "V20_VARIANCE_ADVANTAGE": V20_VARIANCE_ADVANTAGE_MIN,
     "V19_BELOW_CHANCE": V19_BELOW_CHANCE_THRESHOLD,
     "V19_PRE_IGNITION_ACC": V19_MIN_PRE_IGNITION_ACCURACY,
     "V19_CONTROL_DECODABILITY": V19_CONTROL_DECODABILITY_MIN,
