@@ -36,6 +36,15 @@ from .APGI_Thermodynamic_Program_Aggregator import (
     ThermodynamicProgramAggregator,
     run_aggregator,
 )
+from .APGI_Fractal_Threshold_Dynamics import (
+    MarkovianNullModel,
+    NestedOUProcess,
+    SpectralAnalyzer,
+)
+from .APGI_Hierarchical_Temporal_Tiling import (
+    CrossLevelCouplingSimulator,
+    GeometricTilingDerivation,
+)
 from .APGI_Turing_Machine import APGITuringMachine
 
 __version__ = "1.0.0"
