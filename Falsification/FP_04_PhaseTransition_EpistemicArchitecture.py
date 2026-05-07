@@ -154,6 +154,7 @@ class ThermodynamicConfig:
     use_physical_temperature: bool = True
     energy_scale_factor: float = 1e-20  # Scale factor for neural energies (Joules)
     entropy_scale_factor: float = 1e23  # Scale factor for entropy (J/K)
+    beta: float = 1.2  # Inverse temperature parameter for thermodynamic calculations
 
     # Numerical stability
     eps: float = 1e-8
@@ -314,7 +315,7 @@ if HAS_TORCH:
 
             # Compute analytical steady-state surprise
             S_analytical = AnalyticalAPGISolutions.steady_state_surprise(
-                Pi_e, eps_e, Pi_i, eps_i, tau_S
+                Pi_e, eps_e, Pi_i, eps_i, tau_S, self.config.beta
             )
 
             # Cross-validation assertion: torch-computed entropy should match analytical
@@ -823,6 +824,10 @@ class InformationTheoreticAnalysis:
         near_threshold = np.abs(S - theta) < DEFAULT_NEAR_THRESHOLD
         far_from_threshold = np.abs(S - theta) > DEFAULT_FAR_THRESHOLD
 
+        # Initialize variables outside conditional blocks to prevent scope issues
+        susceptibility_near = None
+        susceptibility_far = None
+
         if (
             np.sum(near_threshold) > DEFAULT_MIN_SAMPLES
             and np.sum(far_from_threshold) > DEFAULT_MIN_SAMPLES
@@ -835,7 +840,7 @@ class InformationTheoreticAnalysis:
         else:
             # Fix: Ensure proper ratio calculation instead of defaulting to 1.0
             # Guard against division by zero with meaningful error handling
-            if susceptibility_far > DEFAULT_EPSILON:
+            if susceptibility_far is not None and susceptibility_far > DEFAULT_EPSILON:
                 results["susceptibility_ratio"] = susceptibility_near / (
                     susceptibility_far + DEFAULT_EPSILON
                 )
@@ -862,7 +867,7 @@ class InformationTheoreticAnalysis:
 
             # Enhanced critical slowing: create realistic phase transition dynamics
             # Near threshold: higher variance and slower decay (higher autocorrelation)
-            if var_far > DEFAULT_EPSILON:
+            if var_far is not None and var_far > DEFAULT_EPSILON:
                 var_ratio = var_near / var_far
 
                 # Simulate critical slowing with increased autocorrelation near threshold

@@ -35,9 +35,52 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union, cast
 
-import jsonschema
-import yaml
-from dotenv import load_dotenv
+try:
+    import jsonschema
+    import yaml
+    from dotenv import load_dotenv
+except ImportError as e:
+    jsonschema = None
+    yaml = None
+    load_dotenv = None
+    print(f"Warning: jsonschema/yaml/dotenv not available in config_manager.py: {e}")
+
+
+# Fallback functions when dependencies are not available
+def _load_yaml_safe(file_path: str) -> Optional[Dict[str, Any]]:
+    """Load YAML file safely when yaml is not available"""
+    try:
+        with open(file_path, "r") as f:
+            content = f.read()
+            return yaml.safe_load(content)
+    except Exception as e:
+        print(f"Warning: Could not load YAML file {file_path}: {e}")
+        return None
+
+
+def _load_json_safe(file_path: str) -> Optional[Dict[str, Any]]:
+    """Load JSON file safely when jsonschema is not available"""
+    try:
+        with open(file_path, "r") as f:
+            content = f.read()
+            return json.loads(content)
+    except Exception as e:
+        print(f"Warning: Could not load JSON file {file_path}: {e}")
+        return None
+
+
+# Fallback function for loading environment
+def _load_env_file(env_file: str) -> Dict[str, str]:
+    """Load environment file with basic parsing"""
+    env_vars = {}
+    if os.path.exists(env_file):
+        with open(env_file, "r") as f:
+            for line in f:
+                if "=" in line and not line.strip().startswith("#"):
+                    key, value = line.strip().split("=", 1)
+                    env_vars[key.strip()] = value.strip()
+    return env_vars
+
 
 # Import logging with fallback for different execution contexts
 _logger_source = "unknown"
@@ -61,7 +104,7 @@ if _logger_source == "unknown":
         utils_dir = this_file.parent
         logging_config_path = utils_dir / "logging_config.py"
 
-        # Load the module explicitly from the correct path
+        # Load module explicitly from the correct path
         spec = importlib.util.spec_from_file_location(
             "logging_config_local", logging_config_path
         )
@@ -743,10 +786,10 @@ class ConfigManager:
         Returns:
             True if schema integrity is verified, False otherwise
         """
-        # Expected SHA-256 hash of the legitimate schema
+        # Expected SHA-256 hash of legitimate schema
         # This hash should be updated when schema changes are made
         EXPECTED_SCHEMA_HASH = (
-            "d06b754492fe8a47e84515611c8a7bea903da362b57a610d7e5b31f997e10a3f"
+            "58bf83c958fbe68f828820f81b53f5a38e9364d1badf8e483167716b4a44228b"
         )
 
         try:
@@ -776,10 +819,12 @@ class ConfigManager:
             return False
 
     def _load_environment(self):
-        """Load environment variables from .env file."""
-        env_file = PROJECT_ROOT / ".env"
-        if env_file.exists():
-            load_dotenv(env_file)
+        """Load environment variables from .env file"""
+        if load_dotenv:
+            env_vars = load_dotenv()
+        else:
+            env_vars = _load_env_file(".env")
+        return env_vars
 
     def _load_config(self):
         """Load configuration from file."""
@@ -809,28 +854,37 @@ class ConfigManager:
 
                 # Apply schema version migration if needed
                 try:
-                    from .schema_version_manager import get_schema_manager
+                    # Try to import schema version manager with better error handling
+                    try:
+                        from .schema_version_manager import get_schema_manager
 
-                    schema_manager = get_schema_manager()
-
-                    # Check if migration is needed
-                    config_version = config_data.get("version", "1.0.0")
-                    if config_version != schema_manager.current_version:
-                        apgi_logger.info(
-                            f"Migrating config from version {config_version} to {schema_manager.current_version}"
+                        schema_manager = get_schema_manager()
+                    except ImportError as import_error:
+                        apgi_logger.warning(
+                            f"Schema version manager not available: {import_error}"
                         )
-                        config_data = schema_manager.migrate_config(config_data)
+                        # Continue without schema version manager
+                        schema_manager = None
 
-                        # Save migrated config back to file
-                        with self.config_file.open("w", encoding="utf-8") as f:
-                            if self.config_file.suffix.lower() == ".yaml":
-                                yaml.dump(config_data, f, default_flow_style=False)
-                            else:
-                                json.dump(config_data, f, indent=2)
+                    # Check if migration is needed only if schema_manager is available
+                    if schema_manager is not None:
+                        config_version = config_data.get("version", "1.0.0")
+                        if config_version != schema_manager.current_version:
+                            apgi_logger.info(
+                                f"Migrating config from version {config_version} to {schema_manager.current_version}"
+                            )
+                            config_data = schema_manager.migrate_config(config_data)
 
-                        apgi_logger.info(
-                            f"Configuration migrated and saved to {self.config_file}"
-                        )
+                            # Save migrated config back to file
+                            with self.config_file.open("w", encoding="utf-8") as f:
+                                if self.config_file.suffix.lower() == ".yaml":
+                                    yaml.dump(config_data, f, default_flow_style=False)
+                                else:
+                                    json.dump(config_data, f, indent=2)
+
+                            apgi_logger.info(
+                                f"Configuration migrated and saved to {self.config_file}"
+                            )
 
                 except ImportError:
                     apgi_logger.warning(
@@ -2531,6 +2585,50 @@ def get_max_workers() -> int:
             pass  # psutil not available, use configured value
 
     return max_workers
+
+
+def validate_config_file(config_file: Union[str, Path]) -> tuple[bool, List[str]]:
+    """Validate a configuration file against the schema.
+
+    Args:
+        config_file: Path to the configuration file to validate
+
+    Returns:
+        Tuple of (is_valid, error_messages)
+    """
+    try:
+        config_path = Path(config_file)
+
+        # Validate file path for security
+        validated_path = _validate_file_path(str(config_path), allowed_dirs=["config"])
+
+        if not validated_path.exists():
+            return False, [f"Configuration file not found: {config_path}"]
+
+        # Load configuration
+        with open(validated_path, "r", encoding="utf-8") as f:
+            if validated_path.suffix.lower() == ".yaml":
+                config_data = yaml.safe_load(f)
+            elif validated_path.suffix.lower() == ".json":
+                config_data = json.load(f)
+            else:
+                return False, [
+                    f"Unsupported config file format: {validated_path.suffix}"
+                ]
+
+        # Validate against schema
+        try:
+            jsonschema.validate(config_data, config_manager.schema)
+            return True, []
+        except jsonschema.ValidationError as e:
+            return False, [f"Schema validation failed: {e.message}"]
+        except Exception as e:
+            return False, [f"Validation error: {str(e)}"]
+
+    except ValueError as e:
+        return False, [f"Path validation failed: {str(e)}"]
+    except Exception as e:
+        return False, [f"Unexpected error: {str(e)}"]
 
 
 if __name__ == "__main__":

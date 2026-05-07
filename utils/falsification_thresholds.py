@@ -17,8 +17,13 @@ Usage::
     )
 """
 
-import numpy as np
-from scipy.optimize import curve_fit
+try:
+    import numpy as np
+    from scipy.optimize import curve_fit
+except ImportError as e:
+    np = None
+    curve_fit = None
+    print(f"Warning: NumPy/SciPy not available in falsification_thresholds.py: {e}")
 
 # ---------------------------------------------------------------------------
 # F6.1 – Intrinsic Threshold Behaviour (LTCN transition time)

@@ -224,7 +224,15 @@ def safe_pearsonr(
             "Cannot compute correlation with zero variance in one or both arrays"
         )
 
-    corr, p_value = stats.pearsonr(x_arr, y_arr)
+    # Convert to simple numpy arrays if needed to handle structured dtypes
+    if hasattr(x_arr, "dtype") and x_arr.dtype.names:
+        # Handle structured arrays by converting to simple float arrays
+        x_simple = np.asarray(x_arr, dtype=float).flatten()
+        y_simple = np.asarray(y_arr, dtype=float).flatten()
+        corr, p_value = stats.pearsonr(x_simple, y_simple)
+    else:
+        # Use arrays as-is for simple dtypes
+        corr, p_value = stats.pearsonr(x_arr, y_arr)
     significant = p_value < alpha
 
     return corr, p_value, significant

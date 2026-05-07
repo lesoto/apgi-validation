@@ -24,11 +24,23 @@ try:
 except ImportError:
     HAS_MSGPACK = False
 
-import numpy as np
-import pandas as pd
-from rich.console import Console
+try:
+    import numpy as np
+    import pandas as pd
+except ImportError as e:
+    np = None
+    pd = None
+    print(f"Warning: NumPy/Pandas not available in cache_manager.py: {e}")
 
-console = Console()
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rich.console import Console
+else:
+    Console = None
+
+# Use fallback console if rich not available
+console: Optional[Console] = Console() if Console is not None else None
 
 # Cache version string. Increment this when preprocessing logic changes
 # to automatically invalidate all old cache entries.
@@ -55,7 +67,7 @@ class CacheManager:
         self.stats = {"hits": 0, "misses": 0, "evictions": 0, "total_requests": 0}
         self.slos: Dict[str, float] = {}
 
-    def set_cache_slo(self, domain: str, max_miss_rate: float):
+    def set_cache_slo(self, domain: str, max_miss_rate: float) -> None:
         """Set cache SLO for a specific domain.
 
         Args:
@@ -119,18 +131,21 @@ class CacheManager:
             "overall_miss_rate": miss_rate,
         }
 
-    def _load_metadata(self) -> Dict:
+    def _load_metadata(self) -> Dict[str, Any]:
         """Load cache metadata from file."""
         if self.metadata_file.exists():
             try:
                 with open(self.metadata_file, "r", encoding="utf-8") as f:
                     return json.load(f)
             except (json.JSONDecodeError, FileNotFoundError, PermissionError) as e:
-                print(f"Error loading cache metadata: {type(e).__name__}: {e}")
+                if console:
+                    console.print(
+                        f"Error loading cache metadata: {type(e).__name__}: {e}"
+                    )
                 return {}
         return {}
 
-    def _save_metadata(self):
+    def _save_metadata(self) -> None:
         """Save cache metadata to file atomically."""
         try:
             # Write to temporary file first
@@ -142,7 +157,8 @@ class CacheManager:
             os.replace(temp_file, self.metadata_file)
 
         except (json.JSONDecodeError, FileNotFoundError, PermissionError, OSError) as e:
-            print(f"Error saving cache metadata: {type(e).__name__}: {e}")
+            if console:
+                console.print(f"Error saving cache metadata: {type(e).__name__}: {e}")
             # Clean up temp file if it exists
             if temp_file.exists():
                 try:
@@ -158,7 +174,7 @@ class CacheManager:
         except (TypeError, ValueError):
             return False
 
-    def _json_default(self, obj):
+    def _json_default(self, obj) -> Any:
         """JSON serializer default function for common data types."""
         if isinstance(obj, pd.DataFrame):
             return {
@@ -188,7 +204,7 @@ class CacheManager:
         else:
             return str(obj)
 
-    def _save_json(self, path: Path, data: Any):
+    def _save_json(self, path: Path, data: Any) -> None:
         """Save data as JSON if possible."""
         with open(path, "w", encoding="utf-8") as f:
             json.dump(
@@ -205,7 +221,7 @@ class CacheManager:
             data = json.load(f)
             return self._reconstruct_objects(data)
 
-    def _reconstruct_objects(self, obj):
+    def _reconstruct_objects(self, obj) -> Any:
         """Reconstruct objects from JSON-serialized format."""
         if isinstance(obj, dict):
             if "_type" in obj:
@@ -271,7 +287,7 @@ class CacheManager:
                 self.metadata[key]["accessed"] = time.time()
                 self._save_metadata()
 
-    def _evict_if_needed(self):
+    def _evict_if_needed(self) -> None:
         """Evict cache entries if size limit exceeded."""
         total_size = sum(info.get("size", 0) for info in self.metadata.values())
 
@@ -291,7 +307,10 @@ class CacheManager:
                     try:
                         cache_path.unlink()
                     except OSError as e:
-                        print(f"Error deleting cache file {cache_path}: {e}")
+                        if console:
+                            console.print(
+                                f"Error deleting cache file {cache_path}: {e}"
+                            )
                     total_size -= info.get("size", 0)
                     del self.metadata[key]
                     self.stats["evictions"] += 1
@@ -350,9 +369,10 @@ class CacheManager:
                     EOFError,
                     Exception,
                 ) as e:
-                    print(
-                        f"Error loading cache entry {cache_key}: {type(e).__name__}: {e}"
-                    )
+                    if console:
+                        console.print(
+                            f"Error loading cache entry {cache_key}: {type(e).__name__}: {e}"
+                        )
                     # Remove corrupted entry
                     cache_path.unlink(missing_ok=True)
                     json_path.unlink(missing_ok=True)
@@ -363,7 +383,7 @@ class CacheManager:
             self.stats["misses"] += 1
             return default
 
-    def set(self, key: Any, value: Any, ttl: Optional[int] = None):
+    def set(self, key: Any, value: Any, ttl: Optional[int] = None) -> None:
         """Set value in cache with optional TTL (seconds)."""
         with self._lock:
             cache_key = self._generate_key(key)
@@ -406,16 +426,21 @@ class CacheManager:
                 OSError,
                 Exception,
             ) as e:
-                print(f"Error saving cache entry {cache_key}: {type(e).__name__}: {e}")
+                if console:
+                    console.print(
+                        f"Error saving cache entry {cache_key}: {type(e).__name__}: {e}"
+                    )
 
     def warm_cache(self, data_sources: List[Union[str, Path]], max_workers: int = 4):
         """Warm up cache with common data sources."""
         import time
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        console.print(
-            f"[blue]Warming up cache with {len(data_sources)} data sources...[/blue]"
-        )
+        if console:
+            if console:
+                console.print(
+                    f"Warming up cache with {len(data_sources)} data sources...[/blue]"
+                )
         start_time = time.time()
 
         def warm_single_source(source_path):
@@ -475,15 +500,22 @@ class CacheManager:
                 result = future.result()
                 completed += 1
                 if "Error" in result:
-                    console.print(f"[red]{result}[/red]")
+                    if console:
+                        console.print(f"[red]{result}[/red]")
                 else:
-                    console.print(f"[green]{result}[/green]")
-                console.print(f"[blue]Progress: {completed}/{len(data_sources)}[/blue]")
+                    if console:
+                        console.print(f"[green]{result}[/green]")
+
+                if console:
+                    console.print(
+                        f"[blue]Progress: {completed}/{len(data_sources)}[/blue]"
+                    )
 
         elapsed_time = time.time() - start_time
-        console.print(
-            f"[green]✓[/green] Cache warming completed in {elapsed_time:.1f}s"
-        )
+        if console:
+            console.print(
+                f"[green]✓[/green] Cache warming completed in {elapsed_time:.1f}s"
+            )
 
         # Update stats
         self.stats["cache_warms"] = self.stats.get("cache_warms", 0) + 1
@@ -525,7 +557,7 @@ class CacheManager:
                 self._save_metadata()
             return deleted
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all cache entries."""
         with self._lock:
             # Clear both JSON and msgpack cache files
@@ -541,7 +573,7 @@ class CacheManager:
             self.stats = {"hits": 0, "misses": 0, "evictions": 0, "total_requests": 0}
             self.slos = {}
 
-    def cleanup_expired(self):
+    def cleanup_expired(self) -> None:
         """Remove expired cache entries."""
         with self._lock:
             current_time = time.time()
@@ -561,7 +593,7 @@ class CacheManager:
                 self._save_metadata()
                 print(f"Cleaned up {len(expired_keys)} expired cache entries")
 
-    def invalidate_old_versions(self):
+    def invalidate_old_versions(self) -> bool:
         """Invalidate all cache entries from older cache versions."""
         with self._lock:
             # We can't strictly know the version of old keys just by the hash,
@@ -594,7 +626,7 @@ class CacheManager:
                 return True
             return False
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
         with self._lock:
             hit_rate = (
@@ -617,7 +649,7 @@ class CacheManager:
                 "max_size_mb": self.max_size_mb,
             }
 
-    def list_entries(self) -> List[Dict]:
+    def list_entries(self) -> List[Dict[str, Any]]:
         """List all cache entries."""
         with self._lock:
             entries = []
@@ -689,10 +721,10 @@ class DataCache:
     def cache_preprocessed_data(
         self,
         file_path: Union[str, Path],
-        preprocessing_config: Dict,
+        preprocessing_config: Dict[str, Any],
         processed_data: pd.DataFrame,
         ttl: int = 3600,
-    ):  # 1 hour default
+    ) -> None:  # 1 hour default
         """Cache preprocessed data."""
         file_path = Path(file_path)
         file_mtime = file_path.stat().st_mtime if file_path.exists() else 0
@@ -707,7 +739,7 @@ class DataCache:
         self.cache.set(cache_key, processed_data, ttl)
 
     def get_preprocessed_data(
-        self, file_path: Union[str, Path], preprocessing_config: Dict
+        self, file_path: Union[str, Path], preprocessing_config: Dict[str, Any]
     ) -> Optional[pd.DataFrame]:
         """Get cached preprocessed data."""
         file_path = Path(file_path)
@@ -724,11 +756,11 @@ class DataCache:
 
     def cache_simulation_results(
         self,
-        model_params: Dict,
-        simulation_config: Dict,
-        results: Dict,
+        model_params: Dict[str, Any],
+        simulation_config: Dict[str, Any],
+        results: Dict[str, Any],
         ttl: int = 7200,
-    ):  # 2 hours default
+    ) -> None:  # 2 hours default
         """Cache simulation results."""
         cache_key = {
             "type": "simulation_results",
@@ -739,8 +771,8 @@ class DataCache:
         self.cache.set(cache_key, results, ttl)
 
     def get_simulation_results(
-        self, model_params: Dict, simulation_config: Dict
-    ) -> Optional[Dict]:
+        self, model_params: Dict[str, Any], simulation_config: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Get cached simulation results."""
         cache_key = {
             "type": "simulation_results",
@@ -753,10 +785,10 @@ class DataCache:
     def cache_validation_results(
         self,
         protocol_name: str,
-        validation_config: Dict,
-        results: Dict,
+        validation_config: Dict[str, Any],
+        results: Dict[str, Any],
         ttl: int = 86400,
-    ):  # 24 hours default
+    ) -> None:  # 24 hours default
         """Cache validation results."""
         cache_key = {
             "type": "validation_results",
@@ -767,8 +799,8 @@ class DataCache:
         self.cache.set(cache_key, results, ttl)
 
     def get_validation_results(
-        self, protocol_name: str, validation_config: Dict
-    ) -> Optional[Dict]:
+        self, protocol_name: str, validation_config: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Get cached validation results."""
         cache_key = {
             "type": "validation_results",
@@ -779,7 +811,7 @@ class DataCache:
         return self.cache.get(cache_key)
 
 
-def main():
+def main() -> None:
     """Demonstrate cache management system."""
     print("APGI Framework - Cache Management System")
     print("=" * 50)

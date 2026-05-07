@@ -1123,11 +1123,13 @@ def main(progress_callback=None):
     return results
 
 
-def run_validation(**kwargs):
+def run_validation():
+    """Main validation entry point for Protocol 12."""
     validator = ClinicalConvergenceValidator()
     results = validator.validate_clinical_convergence()
-    named_preds = results["falsification_report"]["named_predictions"]
-    # Convert dict predictions to PredictionResult objects
+
+    # Convert results to ProtocolResult format
+    named_preds = results.get("falsification_report", {}).get("named_predictions", {})
     converted_preds = {}
     for k, v in named_preds.items():
         if isinstance(v, dict):

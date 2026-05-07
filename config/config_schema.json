@@ -18,7 +18,8 @@
       "properties": {
         "tau_S": {
           "type": "number",
-          "minimum": 0.01,
+          "minimum": 0.1,
+          "maximum": 2.0,
           "description": "Signal integration time constant [seconds]"
         },
         "tau_theta": {
@@ -632,146 +633,6 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
-        },
-        "lr_somatic": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "lr_value": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "lr_policy": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "dropout": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "batch_size": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "epochs": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "n_trials_per_model": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "Pi_e_init": {
-          "type": "number",
-          "minimum": 0
-        },
-        "Pi_i_init": {
-          "type": "number",
-          "minimum": 0
-        },
-        "theta_init": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "theta_baseline": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "alpha": {
-          "type": "number",
-          "minimum": 0.1
-        },
-        "tau_S": {
-          "type": "number",
-          "minimum": 0.01
-        },
-        "tau_theta": {
-          "type": "number",
-          "minimum": 0.01
-        },
-        "eta_theta": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "beta": {
-          "type": "number"
-        },
-        "rho": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "sensory_dim": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "objects_dim": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "context_dim_hier": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "visceral_dim": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "organ_dim": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "homeostatic_dim": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "tau_sensory": {
-          "type": "number",
-          "minimum": 0.01
-        },
-        "tau_objects": {
-          "type": "number",
-          "minimum": 0.01
-        },
-        "tau_context": {
-          "type": "number",
-          "minimum": 0.01
-        },
-        "tau_visceral": {
-          "type": "number",
-          "minimum": 0.01
-        },
-        "tau_organ": {
-          "type": "number",
-          "minimum": 0.01
-        },
-        "tau_homeostatic": {
-          "type": "number",
-          "minimum": 0.01
-        },
-        "working_memory_capacity": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "episodic_memory_capacity": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "mutation_rate": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "ignition_cost": {
-          "type": "number",
-          "minimum": 0
         }
       }
     },

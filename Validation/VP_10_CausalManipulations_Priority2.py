@@ -2776,3 +2776,36 @@ def validate_p2c_high_ia_interaction(
     return validator.validate_p2c_interaction_eta_squared(
         tms_drug_a, tms_drug_b, pharm_drug_a, pharm_drug_b
     )
+
+
+def validate() -> Dict[str, Any]:
+    """
+    Main validation function for VP-10 Causal Manipulations protocol.
+
+    This function serves as the entry point for the main validation system.
+    It runs the complete causal manipulation validation pipeline.
+
+    Returns:
+        Dictionary containing all validation results
+    """
+    try:
+        validator = CausalManipulationsValidator()
+        results = validator.validate_causal_predictions()
+
+        # Add metadata
+        results["protocol_name"] = "VP_10_CausalManipulations_Priority2"
+        results["protocol_description"] = (
+            "Causal manipulations that selectively disrupt ignition parameters"
+        )
+        results["validation_timestamp"] = str(pd.Timestamp.now())
+
+        return results
+
+    except Exception as e:
+        logger.error(f"Validation failed: {e}")
+        return {
+            "error": str(e),
+            "protocol_name": "VP_10_CausalManipulations_Priority2",
+            "validation_timestamp": str(pd.Timestamp.now()),
+            "validation_passed": False,
+        }

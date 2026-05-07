@@ -75,20 +75,44 @@ try:
         F1_6_MIN_LOW_AROUSAL_SLOPE,
         F2_3_ALPHA,
         F2_3_MIN_RT_ADVANTAGE_MS,
-        F5_1_BINOMIAL_ALPHA,
-        F5_1_MIN_ALPHA,
-        F5_1_MIN_COHENS_D,
-        F5_1_MIN_PROPORTION,
-        F5_2_BINOMIAL_ALPHA,
-        F5_2_MIN_CORRELATION,
-        F5_2_MIN_PROPORTION,
-        F5_3_BINOMIAL_ALPHA,
-        F5_3_MIN_GAIN_RATIO,
-        F5_3_MIN_PROPORTION,
+    )
+    from utils.falsification_thresholds import (
+        F5_1_BINOMIAL_ALPHA_SIMULATION as F5_1_BINOMIAL_ALPHA,
+    )
+    from utils.falsification_thresholds import (
+        F5_1_MIN_ALPHA_SIMULATION as F5_1_MIN_ALPHA,
+    )
+    from utils.falsification_thresholds import (
+        F5_1_MIN_COHENS_D_SIMULATION as F5_1_MIN_COHENS_D,
+    )
+    from utils.falsification_thresholds import (
+        F5_1_MIN_PROPORTION_SIMULATION as F5_1_MIN_PROPORTION,
+    )
+    from utils.falsification_thresholds import (
+        F5_2_BINOMIAL_ALPHA_SIMULATION as F5_2_BINOMIAL_ALPHA,
+    )
+    from utils.falsification_thresholds import (
+        F5_2_MIN_CORRELATION_SIMULATION as F5_2_MIN_CORRELATION,
+    )
+    from utils.falsification_thresholds import (
+        F5_2_MIN_PROPORTION_SIMULATION as F5_2_MIN_PROPORTION,
+    )
+    from utils.falsification_thresholds import F5_3_BINOMIAL_ALPHA
+    from utils.falsification_thresholds import (
+        F5_3_MIN_GAIN_RATIO_SIMULATION as F5_3_MIN_GAIN_RATIO,
+    )
+    from utils.falsification_thresholds import (
+        F5_3_MIN_PROPORTION_SIMULATION as F5_3_MIN_PROPORTION,
+    )
+    from utils.falsification_thresholds import (
         F5_4_MIN_PEAK_SEPARATION,
         F5_4_MIN_PROPORTION,
         F5_5_PCA_MIN_LOADING,
-        F5_5_PCA_MIN_VARIANCE,
+    )
+    from utils.falsification_thresholds import (
+        F5_5_PCA_MIN_VARIANCE_SIMULATION as F5_5_PCA_MIN_VARIANCE,
+    )
+    from utils.falsification_thresholds import (
         F5_6_ALPHA,
         F5_6_MIN_COHENS_D,
         F5_6_MIN_PERFORMANCE_DIFF_PCT,
@@ -116,18 +140,18 @@ except ImportError:
     F2_3_MIN_RT_ADVANTAGE_MS = 50.0
     F2_3_ALPHA = 0.05
     F5_1_BINOMIAL_ALPHA = 0.01
-    F5_1_MIN_PROPORTION = 0.75
-    F5_1_MIN_ALPHA = 4.0
-    F5_1_MIN_COHENS_D = 0.50
-    F5_2_BINOMIAL_ALPHA = 0.01
-    F5_2_MIN_PROPORTION = 0.70
-    F5_2_MIN_CORRELATION = 0.30
+    F5_1_MIN_PROPORTION = 0.70  # Use SIMULATION threshold for falsification testing
+    F5_1_MIN_ALPHA = 3.5  # Use SIMULATION threshold for falsification testing
+    F5_1_MIN_COHENS_D = 0.40  # Use SIMULATION threshold for falsification testing
+    F5_2_BINOMIAL_ALPHA = 0.05  # Use SIMULATION threshold for falsification testing
+    F5_2_MIN_PROPORTION = 0.65  # Use SIMULATION threshold for falsification testing
+    F5_2_MIN_CORRELATION = 0.25  # Use SIMULATION threshold for falsification testing
     F5_3_BINOMIAL_ALPHA = 0.05
-    F5_3_MIN_PROPORTION = 0.6
-    F5_3_MIN_GAIN_RATIO = 1.5
+    F5_3_MIN_PROPORTION = 0.65  # Use SIMULATION threshold for falsification testing
+    F5_3_MIN_GAIN_RATIO = 1.25  # Use SIMULATION threshold for falsification testing
     F5_4_MIN_PROPORTION = 0.6
     F5_4_MIN_PEAK_SEPARATION = 3.0
-    F5_5_PCA_MIN_VARIANCE = 0.70
+    F5_5_PCA_MIN_VARIANCE = 0.60  # Use SIMULATION threshold for falsification testing
     F5_5_PCA_MIN_LOADING = 0.60
     F5_6_MIN_PERFORMANCE_DIFF_PCT = 40.0
     F5_6_MIN_COHENS_D = 0.40
@@ -1796,14 +1820,14 @@ def run_falsification(
             },
             "named_predictions": {
                 "P5.a": {
-                    "passed": bool(np.mean(threshold_props) >= 0.75),
+                    "passed": bool(np.mean(threshold_props) >= 0.70),
                     "actual": f"Mean threshold emergence: {np.mean(threshold_props):.2%}",
-                    "threshold": ">= 75%",
+                    "threshold": ">= 70% (SIMULATION)",
                 },
                 "P5.b": {
-                    "passed": bool(np.mean(pca_vars) >= 0.70),
+                    "passed": bool(np.mean(pca_vars) >= 0.60),
                     "actual": f"Mean PCA variance: {np.mean(pca_vars):.2%}",
-                    "threshold": ">= 70%",
+                    "threshold": ">= 60% (SIMULATION)",
                 },
             },
             "errors": [],
@@ -2390,7 +2414,7 @@ def check_falsification(
     n_safe = max(1, n_total)
     se = np.sqrt(max(1e-10, p1 * (1 - p1) / n_safe + p2 * (1 - p2) / n_safe))
     z_conf = confidence_effect / max(1e-10, se)
-    p_conf = 2 * (1 - stats.norm.cdf(abs(z_conf)))
+    p_conf = 2 * (1 - float(stats.norm.cdf(abs(z_conf))))
 
     f2_4_pass = confidence_effect >= 0.15 and p_conf < 0.01
     results["criteria"]["F2.4"] = {

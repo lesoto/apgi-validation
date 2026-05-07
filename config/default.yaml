@@ -1,3 +1,4 @@
+version: 1.3.0
 data:
   eeg_channels: 32
   max_load_size_mb: 100
@@ -56,7 +57,7 @@ model:
   somatic_gain: 1.0
   somatic_hidden_dim: 32
   tau_M: 1.52
-  tau_S: 0.5
+  tau_S: 0.5      # Must be between 0.1-2.0 seconds
   tau_theta: 30.0
   theta_0: 0.5
   value_learning_rate: 0.001

@@ -555,30 +555,30 @@ class IowaGamblingTaskEnvironment:
         self.decks = {
             "A": {
                 "reward_mean": 100,
-                "reward_std": 60,  # Increased from 50 for better variance
+                "reward_std": 80,  # Further increased from 60 for better variance
                 "loss_prob": 0.5,
-                "loss_mean": 275,  # Increased from 250 for more variance
+                "loss_mean": 300,  # Further increased from 275 for more variance
                 "intero_cost": 0.8,
             },
             "B": {
                 "reward_mean": 100,
-                "reward_std": 60,  # Increased from 50
+                "reward_std": 80,  # Further increased from 60 for better variance
                 "loss_prob": 0.1,
-                "loss_mean": 1375,  # Increased from 1250
+                "loss_mean": 300,  # Further increased from 1375 for more variance
                 "intero_cost": 0.5,
             },
             "C": {
                 "reward_mean": 50,
-                "reward_std": 35,  # Increased from 25
+                "reward_std": 45,  # Further increased from 35 for better variance
                 "loss_prob": 0.5,
-                "loss_mean": 60,  # Increased from 50
+                "loss_mean": 80,  # Further increased from 60 for more variance
                 "intero_cost": 0.1,
             },
             "D": {
                 "reward_mean": 50,
-                "reward_std": 35,  # Increased from 25
+                "reward_std": 45,  # Further increased from 35 for better variance
                 "loss_prob": 0.1,
-                "loss_mean": 275,  # Increased from 250
+                "loss_mean": 300,  # Further increased from 275 for more variance
                 "intero_cost": 0.05,
             },
         }
@@ -2873,6 +2873,11 @@ def _generate_fp02_visualization(
         return
 
     try:
+        # Ensure output directory exists
+        output_dir = os.path.dirname(output_path)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+
         fig, axes = plt.subplots(2, 2, figsize=(12, 10))
         fig.suptitle(
             "FP-02 Agent Comparison Convergence Benchmark",

@@ -26,15 +26,15 @@ Disorder Hierarchy Mapping:
 Usage::
 
     from utils.clinical_phenotype_mapper import ClinicalPhenotypeMapper
-    
+
     mapper = ClinicalPhenotypeMapper()
-    
+
     # Get complete profile for a disorder
     profile = mapper.get_disorder_profile('panic-disorder')
-    
+
     # Simulate phenotype for a specific disorder
     simulation = mapper.simulate_phenotype('generalized-anxiety-disorder', n_trials=100)
-    
+
     # Compare disorders at specific hierarchical levels
     comparison = mapper.compare_level_profiles(level=2)
 
@@ -51,6 +51,7 @@ import yaml
 
 try:
     import pandas as pd
+
     HAS_PANDAS = True
 except ImportError:
     HAS_PANDAS = False
@@ -59,6 +60,7 @@ except ImportError:
 
 class HierarchicalLevel(Enum):
     """APGI Hierarchical Processing Levels"""
+
     LEVEL_1 = 1  # Sensory/perceptual processing
     LEVEL_2 = 2  # Social/emotional processing
     LEVEL_3 = 3  # Cognitive/semantic processing
@@ -70,22 +72,23 @@ class HierarchicalLevel(Enum):
 @dataclass
 class APGIParameterProfile:
     """APGI quantitative parameter profile for a disorder"""
+
     # Prediction error magnitude (ε)
     epsilon_mean: float = 0.0
     epsilon_sigma_range: Tuple[float, float] = (0.0, 0.0)
-    
+
     # Precision weighting (Π)
     pi_exteroceptive: float = 1.0  # Πₑ - external precision
     pi_interoceptive: float = 1.0  # Πᵢ - internal precision
     pi_dominant_channels: List[str] = field(default_factory=list)
-    
+
     # Threshold deviation (θₜ)
     theta_t_percent: float = 0.0  # Percentage deviation from healthy
     theta_t_absolute: float = 0.5
-    
+
     # Somatic bias (β)
     somatic_bias: float = 1.0
-    
+
     # Hierarchical specificity
     primary_affected_level: Union[int, str] = 1
     cross_level_coupling: Dict[str, float] = field(default_factory=dict)
@@ -94,6 +97,7 @@ class APGIParameterProfile:
 @dataclass
 class NeuralSignature:
     """Neural signature profile for empirical validation"""
+
     eeg_markers: List[str] = field(default_factory=list)
     fmri_connectivity: List[str] = field(default_factory=list)
     structural_changes: List[str] = field(default_factory=list)
@@ -103,6 +107,7 @@ class NeuralSignature:
 @dataclass
 class TreatmentImplication:
     """Treatment implications based on APGI profile"""
+
     first_line: List[str] = field(default_factory=list)
     mechanism_targets: Dict[str, str] = field(default_factory=dict)
     precision_modulation: Dict[str, float] = field(default_factory=dict)
@@ -111,12 +116,15 @@ class TreatmentImplication:
 @dataclass
 class DisorderPhenotype:
     """Complete phenotype specification for a disorder"""
+
     dsm5_code: str = ""
     category: str = ""
     description: str = ""
     apgi_profile: APGIParameterProfile = field(default_factory=APGIParameterProfile)
     neural_signatures: NeuralSignature = field(default_factory=NeuralSignature)
-    treatment_implications: TreatmentImplication = field(default_factory=TreatmentImplication)
+    treatment_implications: TreatmentImplication = field(
+        default_factory=TreatmentImplication
+    )
     mechanism: str = ""
     phenomenology: str = ""
     citations: List[str] = field(default_factory=list)
@@ -125,14 +133,14 @@ class DisorderPhenotype:
 class ClinicalPhenotypeMapper:
     """
     Maps clinical disorders to APGI phenotype simulations.
-    
+
     Provides comprehensive mappings for 60+ DSM-5 disorders with:
     - Disorder-specific precision profiles
     - Hierarchical level-specific predictions
     - Neural signature mappings
     - Treatment targeting
     """
-    
+
     # Core APGI parameter table - Disorders & Conditions
     # Based on empirical literature and theoretical predictions
     DISORDER_PARAMETER_TABLE: Dict[str, Dict[str, Any]] = {
@@ -258,7 +266,6 @@ class ClinicalPhenotypeMapper:
             "level": 3,
             "mechanism": "Domain-specific precision reduction with elevated threshold",
         },
-        
         # === SCHIZOPHRENIA SPECTRUM ===
         "brief-psychotic-disorder": {
             "dsm5_code": "F23",
@@ -315,7 +322,6 @@ class ClinicalPhenotypeMapper:
             "level": 3,
             "mechanism": "Elevated associative precision with magical ideation",
         },
-        
         # === BIPOLAR DISORDERS ===
         "bipolar-i": {
             "dsm5_code": "F31.x",
@@ -350,7 +356,6 @@ class ClinicalPhenotypeMapper:
             "level": "state_dependent",
             "mechanism": "Chronic oscillation with unstable reward precision",
         },
-        
         # === DEPRESSIVE DISORDERS ===
         "major-depressive-disorder": {
             "dsm5_code": "F33.x",
@@ -385,7 +390,6 @@ class ClinicalPhenotypeMapper:
             "level": 2,
             "mechanism": "Cyclic threat precision elevation with hormonal modulation",
         },
-        
         # === ANXIETY DISORDERS ===
         "generalized-anxiety-disorder": {
             "dsm5_code": "F41.1",
@@ -431,7 +435,6 @@ class ClinicalPhenotypeMapper:
             "level": 1,
             "mechanism": "Object-specific threat precision with acute threshold reduction",
         },
-        
         # === OBSESSIVE-COMPULSIVE ===
         "obsessive-compulsive-disorder": {
             "dsm5_code": "F42.x",
@@ -477,7 +480,6 @@ class ClinicalPhenotypeMapper:
             "level": 1,
             "mechanism": "Elevated motor precision with urge-driven motor patterns",
         },
-        
         # === TRAUMA/STRESS ===
         "ptsd": {
             "dsm5_code": "F43.10",
@@ -501,7 +503,6 @@ class ClinicalPhenotypeMapper:
             "level": "2-3_coupling",
             "mechanism": "Acute threat precision elevation with partial coupling disruption",
         },
-        
         # === DISSOCIATIVE ===
         "dissociative-identity-disorder": {
             "dsm5_code": "F44.81",
@@ -536,7 +537,6 @@ class ClinicalPhenotypeMapper:
             "level": 4,
             "mechanism": "Reduced autobiographical precision with memory access blockage",
         },
-        
         # === SOMATIC SYMPTOM ===
         "somatic-symptom-disorder": {
             "dsm5_code": "F45.1",
@@ -571,7 +571,6 @@ class ClinicalPhenotypeMapper:
             "level": 1,
             "mechanism": "Motor-sensory mismatch with elevated motor precision on conversion symptoms",
         },
-        
         # === FEEDING/EATING ===
         "anorexia-nervosa": {
             "dsm5_code": "F50.01",
@@ -617,7 +616,6 @@ class ClinicalPhenotypeMapper:
             "level": 1,
             "mechanism": "Food-related threat precision elevation with sensory aversion",
         },
-        
         # === SLEEP-WAKE ===
         "insomnia-disorder": {
             "dsm5_code": "F51.01",
@@ -663,7 +661,6 @@ class ClinicalPhenotypeMapper:
             "level": 4,
             "mechanism": "Threat replay during REM with elevated threat precision",
         },
-        
         # === PERSONALITY DISORDERS ===
         "antisocial-personality-disorder": {
             "dsm5_code": "F60.2",
@@ -720,7 +717,6 @@ class ClinicalPhenotypeMapper:
             "level": 3,
             "mechanism": "Elevated control precision with order violation sensitivity",
         },
-        
         # === SUBSTANCE-RELATED ===
         "substance-use-disorder": {
             "dsm5_code": "F1x.x",
@@ -744,7 +740,6 @@ class ClinicalPhenotypeMapper:
             "level": 1,
             "mechanism": "Elevated reward precision for uncertainty; near-miss effects",
         },
-        
         # === NEUROCOGNITIVE ===
         "delirium": {
             "dsm5_code": "F05",
@@ -779,7 +774,6 @@ class ClinicalPhenotypeMapper:
             "level": 3,
             "mechanism": "Executive precision reduction with mild threshold elevation",
         },
-        
         # === DISORDERS OF CONSCIOUSNESS ===
         "coma": {
             "dsm5_code": "R40.20",
@@ -815,18 +809,28 @@ class ClinicalPhenotypeMapper:
             "mechanism": "Fluctuating thalamocortical connectivity; intermittent P3b; PCI 0.3-0.5",
         },
     }
-    
+
     # Hierarchical level-specific clinical predictions
     LEVEL_PREDICTIONS: Dict[Union[int, str], Dict[str, Any]] = {
         1: {
             "name": "Sensory/Perceptual Processing",
             "disorders": [
-                "panic-disorder", "specific-phobia", "stereotypic-movement-disorder",
-                "tic-disorders", "speech-sound-disorder", "childhood-onset-fluency-disorder",
-                "developmental-coordination-disorder", "conversion-disorder",
-                "somatic-symptom-disorder", "substance-use-disorder",
-                "body-dysmorphic-disorder", "trichotillomania", "depersonalization-disorder",
-                "binge-eating-disorder", "arfid", "nightmare-disorder"
+                "panic-disorder",
+                "specific-phobia",
+                "stereotypic-movement-disorder",
+                "tic-disorders",
+                "speech-sound-disorder",
+                "childhood-onset-fluency-disorder",
+                "developmental-coordination-disorder",
+                "conversion-disorder",
+                "somatic-symptom-disorder",
+                "substance-use-disorder",
+                "body-dysmorphic-disorder",
+                "trichotillomania",
+                "depersonalization-disorder",
+                "binge-eating-disorder",
+                "arfid",
+                "nightmare-disorder",
             ],
             "consciousness_implication": "Bodily signals dominate conscious experience",
             "neural_signature": "Early sensory components (P1, N1), gamma band",
@@ -835,10 +839,16 @@ class ClinicalPhenotypeMapper:
         2: {
             "name": "Social/Emotional Processing",
             "disorders": [
-                "social-anxiety-disorder", "major-depressive-disorder", "persistent-depressive-disorder",
-                "pmdd", "ptsd", "acute-stress-disorder", "borderline-personality-disorder",
-                "antisocial-personality-disorder", "avoidant-personality-disorder",
-                "social-pragmatic-communication-disorder"
+                "social-anxiety-disorder",
+                "major-depressive-disorder",
+                "persistent-depressive-disorder",
+                "pmdd",
+                "ptsd",
+                "acute-stress-disorder",
+                "borderline-personality-disorder",
+                "antisocial-personality-disorder",
+                "avoidant-personality-disorder",
+                "social-pragmatic-communication-disorder",
             ],
             "consciousness_implication": "Emotional and social content shapes conscious field",
             "neural_signature": "P2, early posterior negativity, theta-alpha coupling",
@@ -847,10 +857,15 @@ class ClinicalPhenotypeMapper:
         3: {
             "name": "Cognitive/Semantic Processing",
             "disorders": [
-                "generalized-anxiety-disorder", "obsessive-compulsive-disorder", "hoarding-disorder",
-                "delusional-disorder", "schizotypal-personality-disorder",
-                "obsessive-compulsive-personality-disorder", "language-disorder",
-                "specific-learning-disorder", "illness-anxiety-disorder"
+                "generalized-anxiety-disorder",
+                "obsessive-compulsive-disorder",
+                "hoarding-disorder",
+                "delusional-disorder",
+                "schizotypal-personality-disorder",
+                "obsessive-compulsive-personality-disorder",
+                "language-disorder",
+                "specific-learning-disorder",
+                "illness-anxiety-disorder",
             ],
             "consciousness_implication": "Thought content dominates; rumination, worry",
             "neural_signature": "N400, P3b, semantic theta power",
@@ -859,9 +874,13 @@ class ClinicalPhenotypeMapper:
         4: {
             "name": "Narrative/State Processing",
             "disorders": [
-                "insomnia-disorder", "hypersomnolence", "narcolepsy", "nightmare-disorder",
-                "dissociative-identity-disorder", "dissociative-amnesia",
-                "narcissistic-personality-disorder"
+                "insomnia-disorder",
+                "hypersomnolence",
+                "narcolepsy",
+                "nightmare-disorder",
+                "dissociative-identity-disorder",
+                "dissociative-amnesia",
+                "narcissistic-personality-disorder",
             ],
             "consciousness_implication": "State transitions, narrative continuity disrupted",
             "neural_signature": "Slow oscillations, DMN connectivity, delta power",
@@ -870,11 +889,21 @@ class ClinicalPhenotypeMapper:
         "global": {
             "name": "Global/System-Wide Dysregulation",
             "disorders": [
-                "schizophrenia", "bipolar-i", "bipolar-ii", "cyclothymia",
-                "schizoaffective-disorder", "brief-psychotic-disorder",
-                "autism-spectrum-disorder", "adhd", "intellectual-disability",
-                "global-developmental-delay", "major-neurocognitive-disorder",
-                "delirium", "vegetative-state", "minimally-conscious-state", "coma"
+                "schizophrenia",
+                "bipolar-i",
+                "bipolar-ii",
+                "cyclothymia",
+                "schizoaffective-disorder",
+                "brief-psychotic-disorder",
+                "autism-spectrum-disorder",
+                "adhd",
+                "intellectual-disability",
+                "global-developmental-delay",
+                "major-neurocognitive-disorder",
+                "delirium",
+                "vegetative-state",
+                "minimally-conscious-state",
+                "coma",
             ],
             "consciousness_implication": "Global changes in conscious state; all content affected",
             "neural_signature": "Wide-band coherence, PCI, global workspace metrics",
@@ -882,19 +911,17 @@ class ClinicalPhenotypeMapper:
         },
         "coupling": {
             "name": "Cross-Level Coupling Disruption",
-            "disorders": [
-                "ptsd", "acute-stress-disorder"
-            ],
+            "disorders": ["ptsd", "acute-stress-disorder"],
             "consciousness_implication": "Specific decoupling between hierarchical levels",
             "neural_signature": "Reduced cross-frequency coupling, L2-L3 decoupling",
             "treatment_target": "Level reintegration, coupling restoration",
         },
     }
-    
+
     def __init__(self, profiles_dir: Optional[Path] = None):
         """
         Initialize the Clinical Phenotype Mapper.
-        
+
         Args:
             profiles_dir: Directory containing YAML profile files
         """
@@ -902,14 +929,14 @@ class ClinicalPhenotypeMapper:
             profiles_dir = Path(__file__).parent.parent / "config" / "profiles"
         self.profiles_dir = profiles_dir
         self._loaded_profiles: Dict[str, Dict[str, Any]] = {}
-        
+
     def get_disorder_profile(self, disorder_key: str) -> Optional[DisorderPhenotype]:
         """
         Get complete phenotype profile for a disorder.
-        
+
         Args:
             disorder_key: Disorder identifier (e.g., 'panic-disorder', 'adhd')
-            
+
         Returns:
             DisorderPhenotype with complete APGI parameterization
         """
@@ -917,150 +944,146 @@ class ClinicalPhenotypeMapper:
         yaml_profile = self._load_yaml_profile(disorder_key)
         if yaml_profile:
             return self._yaml_to_phenotype(yaml_profile)
-        
+
         # Fall back to parameter table
         if disorder_key in self.DISORDER_PARAMETER_TABLE:
             return self._table_to_phenotype(disorder_key)
-        
+
         return None
-    
+
     def _load_yaml_profile(self, disorder_key: str) -> Optional[Dict[str, Any]]:
         """Load profile from YAML file if available"""
         if disorder_key in self._loaded_profiles:
             return self._loaded_profiles[disorder_key]
-        
+
         yaml_path = self.profiles_dir / f"{disorder_key}.yaml"
         if yaml_path.exists():
-            with open(yaml_path, 'r') as f:
+            with open(yaml_path, "r") as f:
                 profile = yaml.safe_load(f)
                 self._loaded_profiles[disorder_key] = profile
                 return profile
         return None
-    
+
     def _yaml_to_phenotype(self, yaml_profile: Dict[str, Any]) -> DisorderPhenotype:
         """Convert YAML profile to DisorderPhenotype"""
-        params = yaml_profile.get('parameters', {}).get('model', {})
-        precision = yaml_profile.get('precision_profile', {})
-        hierarchical = yaml_profile.get('hierarchical_profile', {})
-        
+        params = yaml_profile.get("parameters", {}).get("model", {})
+        precision = yaml_profile.get("precision_profile", {})
+        hierarchical = yaml_profile.get("hierarchical_profile", {})
+
         apgi_profile = APGIParameterProfile(
-            epsilon_mean=precision.get('prediction_error_epsilon', 0),
+            epsilon_mean=precision.get("prediction_error_epsilon", 0),
             epsilon_sigma_range=(
-                precision.get('prediction_error_sigma', 0),
-                precision.get('prediction_error_sigma', 0)
+                precision.get("prediction_error_sigma", 0),
+                precision.get("prediction_error_sigma", 0),
             ),
-            pi_exteroceptive=precision.get('precision_pi_values', {}).get('Pi_e', 1.0),
-            pi_interoceptive=precision.get('precision_pi_values', {}).get('Pi_i', 1.0),
-            pi_dominant_channels=precision.get('precision_pi_dominant_channels', []),
-            theta_t_percent=precision.get('threshold_theta_t_pct', 0),
-            theta_t_absolute=params.get('theta_0', 0.5),
-            somatic_bias=precision.get('somatic_bias_beta', 1.0),
-            primary_affected_level=hierarchical.get('affected_level', 1),
-            cross_level_coupling=hierarchical.get('cross_level_coupling', {})
+            pi_exteroceptive=precision.get("precision_pi_values", {}).get("Pi_e", 1.0),
+            pi_interoceptive=precision.get("precision_pi_values", {}).get("Pi_i", 1.0),
+            pi_dominant_channels=precision.get("precision_pi_dominant_channels", []),
+            theta_t_percent=precision.get("threshold_theta_t_pct", 0),
+            theta_t_absolute=params.get("theta_0", 0.5),
+            somatic_bias=precision.get("somatic_bias_beta", 1.0),
+            primary_affected_level=hierarchical.get("affected_level", 1),
+            cross_level_coupling=hierarchical.get("cross_level_coupling", {}),
         )
-        
-        metadata = yaml_profile.get('metadata', {})
-        
+
+        metadata = yaml_profile.get("metadata", {})
+
         return DisorderPhenotype(
-            dsm5_code=metadata.get('dsm5_code', ''),
-            category=yaml_profile.get('category', ''),
-            description=yaml_profile.get('description', ''),
+            dsm5_code=metadata.get("dsm5_code", ""),
+            category=yaml_profile.get("category", ""),
+            description=yaml_profile.get("description", ""),
             apgi_profile=apgi_profile,
             neural_signatures=NeuralSignature(
-                eeg_markers=metadata.get('neural_signatures', [])
+                eeg_markers=metadata.get("neural_signatures", [])
             ),
             treatment_implications=TreatmentImplication(
-                first_line=metadata.get('treatment_implications', [])
+                first_line=metadata.get("treatment_implications", [])
             ),
-            mechanism=yaml_profile.get('hierarchical_profile', {}).get('mechanism', ''),
-            phenomenology=metadata.get('phenomenology', ''),
-            citations=yaml_profile.get('empirical_validation', {}).get('citations', [])
+            mechanism=yaml_profile.get("hierarchical_profile", {}).get("mechanism", ""),
+            phenomenology=metadata.get("phenomenology", ""),
+            citations=yaml_profile.get("empirical_validation", {}).get("citations", []),
         )
-    
+
     def _table_to_phenotype(self, disorder_key: str) -> DisorderPhenotype:
         """Convert parameter table entry to DisorderPhenotype"""
         table_entry = self.DISORDER_PARAMETER_TABLE[disorder_key]
-        
-        theta_range = table_entry['theta_t_range']
-        beta_range = table_entry['somatic_bias_range']
-        eps_range = table_entry['prediction_error']
-        
+
+        theta_range = table_entry["theta_t_range"]
+        beta_range = table_entry["somatic_bias_range"]
+        eps_range = table_entry["prediction_error"]
+
         apgi_profile = APGIParameterProfile(
             epsilon_mean=np.mean(eps_range),
             epsilon_sigma_range=eps_range,
             pi_exteroceptive=1.0,
             pi_interoceptive=1.0,
-            pi_dominant_channels=list(table_entry['precision_profile'].keys()),
+            pi_dominant_channels=list(table_entry["precision_profile"].keys()),
             theta_t_percent=int(np.mean(theta_range)),
             theta_t_absolute=0.5 + np.mean(theta_range) / 200,  # Convert to 0-1 scale
             somatic_bias=np.mean(beta_range),
-            primary_affected_level=table_entry['level']
+            primary_affected_level=table_entry["level"],
         )
-        
+
         return DisorderPhenotype(
-            dsm5_code=table_entry['dsm5_code'],
-            category=table_entry['category'],
-            description=table_entry['mechanism'],
+            dsm5_code=table_entry["dsm5_code"],
+            category=table_entry["category"],
+            description=table_entry["mechanism"],
             apgi_profile=apgi_profile,
-            mechanism=table_entry['mechanism'],
+            mechanism=table_entry["mechanism"],
             phenomenology="See APGI Empirical Credibility Roadmap",
-            citations=[]
+            citations=[],
         )
-    
+
     def simulate_phenotype(
         self,
         disorder_key: str,
         n_trials: int = 100,
         duration: float = 10.0,
-        dt: float = 0.01
+        dt: float = 0.01,
     ) -> Dict[str, Any]:
         """
         Simulate phenotype dynamics for a disorder.
-        
+
         Args:
             disorder_key: Disorder identifier
             n_trials: Number of simulation trials
             duration: Simulation duration in seconds
             dt: Time step
-            
+
         Returns:
             Simulation results with time series and summary statistics
         """
         profile = self.get_disorder_profile(disorder_key)
         if profile is None:
             raise ValueError(f"Unknown disorder: {disorder_key}")
-        
+
         apgi = profile.apgi_profile
         n_steps = int(duration / dt)
-        
+
         # Initialize simulation variables
         S = np.zeros((n_trials, n_steps))  # Surprise accumulation
         theta = np.zeros((n_trials, n_steps))  # Threshold
         ignition = np.zeros((n_trials, n_steps))  # Ignition
-        
+
         # Initial conditions based on disorder profile
         theta[:, 0] = apgi.theta_t_absolute
-        
+
         # Simulation parameters
         tau = 0.2  # Signal decay time constant
         k = 3.0  # Sigmoid steepness
-        
+
         for t in range(1, n_steps):
             # Generate prediction errors based on disorder profile
             epsilon_e = np.random.normal(
-                apgi.epsilon_mean * 0.1,
-                0.5 + abs(apgi.epsilon_mean) * 0.1,
-                n_trials
+                apgi.epsilon_mean * 0.1, 0.5 + abs(apgi.epsilon_mean) * 0.1, n_trials
             )
             epsilon_i = np.random.normal(
-                apgi.epsilon_mean * 0.05,
-                0.3 + abs(apgi.epsilon_mean) * 0.05,
-                n_trials
+                apgi.epsilon_mean * 0.05, 0.3 + abs(apgi.epsilon_mean) * 0.05, n_trials
             )
-            
+
             # Effective interoceptive precision with somatic bias
             pi_i_eff = apgi.pi_interoceptive * (1 + apgi.somatic_bias * 0.5)
-            
+
             # Signal accumulation
             we, wi = 0.5, 0.5
             dS = (
@@ -1075,17 +1098,17 @@ class ClinicalPhenotypeMapper:
             theta_0 = apgi.theta_t_absolute
             d_theta = alpha * (theta_0 - theta[:, t - 1]) * dt
             theta[:, t] = theta[:, t - 1] + d_theta
-            
+
             # Ignition probability
             ignition[:, t] = 1 / (1 + np.exp(-k * (S[:, t] - theta[:, t])))
-        
+
         return {
             "disorder": disorder_key,
             "n_trials": n_trials,
             "duration": duration,
             "dt": dt,
             "apgi_profile": apgi,
-            "ignition_rate": np.mean(ignition[:, -int(1 / dt):]),  # Last second
+            "ignition_rate": np.mean(ignition[:, -int(1 / dt) :]),  # Last second
             "ignition_variability": np.std(np.mean(ignition, axis=1)),
             "mean_threshold": np.mean(theta[:, -1]),
             "threshold_stability": np.std(theta[:, -1]),
@@ -1094,112 +1117,126 @@ class ClinicalPhenotypeMapper:
                 "S": S,
                 "theta": theta,
                 "ignition": ignition,
-            }
+            },
         }
-    
+
     def compare_level_profiles(self, level: Union[int, str]) -> Dict[str, Any]:
         """
         Compare all disorders at a specific hierarchical level.
-        
+
         Args:
             level: Hierarchical level (1-4, 'global', or 'coupling')
-            
+
         Returns:
             Comparison of disorders at the specified level
         """
         level_info = self.LEVEL_PREDICTIONS.get(level, {})
-        disorders = level_info.get('disorders', [])
-        
+        disorders = level_info.get("disorders", [])
+
         profiles = {}
         for disorder_key in disorders:
             profile = self.get_disorder_profile(disorder_key)
             if profile:
                 profiles[disorder_key] = profile
-        
+
         return {
             "level": level,
-            "level_name": level_info.get('name', ''),
-            "consciousness_implication": level_info.get('consciousness_implication', ''),
-            "neural_signature": level_info.get('neural_signature', ''),
-            "treatment_target": level_info.get('treatment_target', ''),
+            "level_name": level_info.get("name", ""),
+            "consciousness_implication": level_info.get(
+                "consciousness_implication", ""
+            ),
+            "neural_signature": level_info.get("neural_signature", ""),
+            "treatment_target": level_info.get("treatment_target", ""),
             "n_disorders": len(profiles),
             "disorders": profiles,
-            "mean_theta_t": np.mean([
-                p.apgi_profile.theta_t_percent for p in profiles.values()
-            ]) if profiles else 0,
-            "mean_somatic_bias": np.mean([
-                p.apgi_profile.somatic_bias for p in profiles.values()
-            ]) if profiles else 1.0,
+            "mean_theta_t": (
+                np.mean([p.apgi_profile.theta_t_percent for p in profiles.values()])
+                if profiles
+                else 0
+            ),
+            "mean_somatic_bias": (
+                np.mean([p.apgi_profile.somatic_bias for p in profiles.values()])
+                if profiles
+                else 1.0
+            ),
         }
-    
+
     def get_disorders_by_category(self, category: str) -> List[str]:
         """Get all disorders in a specific category"""
         return [
-            key for key, params in self.DISORDER_PARAMETER_TABLE.items()
-            if params['category'] == category
+            key
+            for key, params in self.DISORDER_PARAMETER_TABLE.items()
+            if params["category"] == category
         ]
-    
+
     def list_all_disorders(self) -> List[str]:
         """List all available disorders"""
         yaml_disorders = [
-            p.stem for p in self.profiles_dir.glob('*.yaml')
-            if p.stem not in ['research-default']
+            p.stem
+            for p in self.profiles_dir.glob("*.yaml")
+            if p.stem not in ["research-default"]
         ]
         table_disorders = list(self.DISORDER_PARAMETER_TABLE.keys())
         return sorted(set(yaml_disorders + table_disorders))
-    
+
     def get_precision_summary_table(self) -> pd.DataFrame:
         """Generate comprehensive precision summary table for all disorders"""
         try:
             import pandas as pd
         except ImportError:
             raise ImportError("pandas required for table generation")
-        
+
         data = []
         for disorder_key in self.list_all_disorders():
             profile = self.get_disorder_profile(disorder_key)
             if profile:
                 apgi = profile.apgi_profile
-                data.append({
-                    "Disorder": disorder_key,
-                    "DSM-5 Code": profile.dsm5_code,
-                    "Category": profile.category,
-                    "ε (σ)": f"{apgi.epsilon_mean:.1f}",
-                    "Πₑ": f"{apgi.pi_exteroceptive:.1f}",
-                    "Πᵢ": f"{apgi.pi_interoceptive:.1f}",
-                    "θₜ (%)": f"{apgi.theta_t_percent:.0f}",
-                    "β": f"{apgi.somatic_bias:.1f}",
-                    "Level": apgi.primary_affected_level,
-                    "Mechanism": profile.mechanism[:60] + "..." if len(profile.mechanism) > 60 else profile.mechanism,
-                })
-        
+                data.append(
+                    {
+                        "Disorder": disorder_key,
+                        "DSM-5 Code": profile.dsm5_code,
+                        "Category": profile.category,
+                        "ε (σ)": f"{apgi.epsilon_mean:.1f}",
+                        "Πₑ": f"{apgi.pi_exteroceptive:.1f}",
+                        "Πᵢ": f"{apgi.pi_interoceptive:.1f}",
+                        "θₜ (%)": f"{apgi.theta_t_percent:.0f}",
+                        "β": f"{apgi.somatic_bias:.1f}",
+                        "Level": apgi.primary_affected_level,
+                        "Mechanism": (
+                            profile.mechanism[:60] + "..."
+                            if len(profile.mechanism) > 60
+                            else profile.mechanism
+                        ),
+                    }
+                )
+
         return pd.DataFrame(data)
 
 
 def create_clinical_profile_summary() -> str:
     """Create markdown summary of all clinical profiles"""
     mapper = ClinicalPhenotypeMapper()
-    
+
     lines = [
         "# APGI Clinical Phenotype Summary\n",
         "## Disorder-Specific Precision Profiles\n",
         "### Core Anxiety/Depression/Psychosis Profiles\n",
     ]
-    
+
     # Core disorders from user's request
     core_disorders = [
-        'generalized-anxiety-disorder',
-        'panic-disorder',
-        'social-anxiety-disorder',
-        'major-depressive-disorder',
-        'bipolar-i',
-        'schizophrenia',
-        'ptsd',
-        'obsessive-compulsive-disorder',
-        'adhd',
-        'autism-spectrum-disorder',
+        "generalized-anxiety-disorder",
+        "panic-disorder",
+        "social-anxiety-disorder",
+        "major-depressive-disorder",
+        "bipolar-i",
+        "schizophrenia",
+        "ptsd",
+        "obsessive-compulsive-disorder",
+        "adhd",
+        "autism-spectrum-disorder",
     ]
-    
+
     for disorder_key in core_disorders:
         profile = mapper.get_disorder_profile(disorder_key)
         if profile:
@@ -1208,26 +1245,28 @@ def create_clinical_profile_summary() -> str:
             lines.append(f"- **DSM-5**: {profile.dsm5_code}\n")
             lines.append(f"- **Primary Dysregulation**: {profile.category}\n")
             lines.append(f"- **Affected Level**: {apgi.primary_affected_level}\n")
-            lines.append(f"- **Πₑ**: {apgi.pi_exteroceptive:.1f}, **Πᵢ**: {apgi.pi_interoceptive:.1f}\n")
+            lines.append(
+                f"- **Πₑ**: {apgi.pi_exteroceptive:.1f}, **Πᵢ**: {apgi.pi_interoceptive:.1f}\n"
+            )
             lines.append(f"- **θₜ**: {apgi.theta_t_percent:+.0f}%\n")
             lines.append(f"- **β**: {apgi.somatic_bias:.1f}\n")
             lines.append(f"- **Mechanism**: {profile.mechanism}\n")
-    
+
     return "".join(lines)
 
 
 if __name__ == "__main__":
     # Demo usage
     mapper = ClinicalPhenotypeMapper()
-    
+
     print("=" * 70)
     print("APGI Clinical Phenotype Mapper - Demo")
     print("=" * 70)
-    
+
     # List all available disorders
     disorders = mapper.list_all_disorders()
     print(f"\nTotal disorders mapped: {len(disorders)}")
-    
+
     # Get and display a specific profile
     disorder = "panic-disorder"
     profile = mapper.get_disorder_profile(disorder)
@@ -1246,7 +1285,7 @@ if __name__ == "__main__":
         print(f"  θₜ (threshold): {profile.apgi_profile.theta_t_percent:+.0f}%")
         print(f"  β (somatic bias): {profile.apgi_profile.somatic_bias:.1f}")
         print(f"  Affected Level: {profile.apgi_profile.primary_affected_level}")
-    
+
     # Simulate phenotype
     sim_separator = "=" * 70
     print(f"\n{sim_separator}")
@@ -1256,7 +1295,7 @@ if __name__ == "__main__":
     print(f"Ignition rate: {sim['ignition_rate']:.3f} ")
     print(f"Mean threshold: {sim['mean_threshold']:.3f} ")
     print(f"Surprise accumulation: {sim['surprise_accumulation']:.3f} ")
-    
+
     # Compare level profiles
     print(f"\n{separator}")
     print("Level 1 Disorders (Sensory/Perceptual)")
@@ -1265,4 +1304,6 @@ if __name__ == "__main__":
     print(f"Level: {level_comparison['level_name']} ")
     print(f"Disorders: {level_comparison['n_disorders']} ")
     print(f"Mean θₜ: {level_comparison['mean_theta_t']:.1f}% ")
-    print(f"Consciousness implication: {level_comparison['consciousness_implication']} ")
+    print(
+        f"Consciousness implication: {level_comparison['consciousness_implication']} "
+    )

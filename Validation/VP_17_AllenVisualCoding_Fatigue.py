@@ -210,7 +210,7 @@ class QuantitativeModelValidator:
             pci_value = 0.5 + 0.5 * (
                 1.0 - self.data["time_hours"] / max(self.data["time_hours"] + 1)
             )  # approximation of PCI
-            self.data["joint_hep_pci"] = compute_joint_hep_pci_index(
+            self.data.loc[:, "joint_hep_pci"] = compute_joint_hep_pci_index(
                 hep_amplitude, pci_value
             )
 
@@ -520,6 +520,11 @@ def main():
             print(f"  {test_results['test_name']}: {status}")
 
     return results
+
+
+def validate():
+    """Main validation entry point for main.py compatibility."""
+    return run_validation()
 
 
 if __name__ == "__main__":

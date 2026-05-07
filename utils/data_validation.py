@@ -13,8 +13,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
-import pandas as pd
+try:
+    import numpy as np
+    import pandas as pd
+except ImportError as e:
+    np = None
+    pd = None
+    print(f"Warning: NumPy/Pandas not available in data_validation.py: {e}")
 
 try:
     import h5py
@@ -88,12 +93,12 @@ class DataValidator:
             "file_extension": file_path.suffix.lower(),
             "is_readable": False,
             "format_valid": False,
-            "errors": [],  # type: ignore[assignment]
-            "warnings": [],  # type: ignore[assignment]
+            "errors": [],
+            "warnings": [],
         }
 
         if not file_path.exists():
-            results["errors"].append(f"File does not exist: {file_path}")  # type: ignore[assignment]
+            results["errors"].append(f"File does not exist: {file_path}")
             return results
 
         try:
@@ -297,9 +302,9 @@ class DataValidator:
                         f"Heart rate: Unusual range ({hr_min:.1f} to {hr_max:.1f} BPM)"
                     )
 
-    def validate_data_quality(self, df: pd.DataFrame) -> Dict:
+    def validate_data_quality(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Assess data quality metrics."""
-        quality_metrics = {
+        quality_metrics: Dict[str, Any] = {
             "total_samples": len(df),
             "missing_data": {},
             "outliers": {},
@@ -313,7 +318,7 @@ class DataValidator:
             if df[col].dtype in ["float64", "int64"]:
                 missing_count = df[col].isnull().sum()
                 missing_percent = (missing_count / len(df)) * 100
-                quality_metrics["missing_data"][col] = {  # type: ignore[index]
+                quality_metrics["missing_data"][col] = {
                     "count": int(missing_count),
                     "percentage": float(missing_percent),
                 }
@@ -331,24 +336,24 @@ class DataValidator:
                     upper_bound = Q3 + self.config.outlier_zscore_threshold * IQR
 
                     outliers = data[(data < lower_bound) | (data > upper_bound)]
-                    quality_metrics["outliers"][col] = {  # type: ignore[index]
+                    quality_metrics["outliers"][col] = {
                         "count": len(outliers),
                         "percentage": (len(outliers) / len(data)) * 100,
                     }
 
         # Signal quality metrics
         if "EEG_Cz" in df.columns:
-            quality_metrics["signal_quality"]["EEG_Cz"] = (  # type: ignore[index]
-                self._assess_signal_quality(df["EEG_Cz"])
+            quality_metrics["signal_quality"]["EEG_Cz"] = self._assess_signal_quality(
+                df["EEG_Cz"]
             )
 
         if "pupil_diameter" in df.columns:
-            quality_metrics["signal_quality"]["pupil_diameter"] = (  # type: ignore[index]
+            quality_metrics["signal_quality"]["pupil_diameter"] = (
                 self._assess_signal_quality(df["pupil_diameter"])
             )
 
         if "eda" in df.columns:
-            quality_metrics["signal_quality"]["eda"] = self._assess_signal_quality(  # type: ignore[index]
+            quality_metrics["signal_quality"]["eda"] = self._assess_signal_quality(
                 df["eda"]
             )
 
@@ -365,7 +370,7 @@ class DataValidator:
 
         return quality_metrics
 
-    def _assess_signal_quality(self, signal: pd.Series) -> Dict:
+    def _assess_signal_quality(self, signal: pd.Series) -> Dict[str, Any]:
         """Assess quality of a physiological signal."""
         signal_clean = signal.dropna()
         if len(signal_clean) == 0:
@@ -416,7 +421,7 @@ class DataValidator:
             "samples": len(signal_clean),
         }
 
-    def _assess_temporal_consistency(self, df: pd.DataFrame) -> Dict:
+    def _assess_temporal_consistency(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Assess temporal consistency of the data."""
         if "timestamp" not in df.columns:
             return {"score": 0.0, "issues": ["No timestamp column"]}
@@ -473,7 +478,7 @@ class DataValidator:
                 "issues": [f"Error processing timestamps: {type(e).__name__}: {e}"],
             }
 
-    def _calculate_quality_score(self, metrics: Dict) -> float:
+    def _calculate_quality_score(self, metrics: Dict[str, Any]) -> float:
         """Calculate overall data quality score."""
         score = 100.0
 
@@ -506,11 +511,11 @@ class DataValidator:
 
         return max(0, score)
 
-    def generate_validation_report(self, file_path: Union[str, Path]) -> Dict:
+    def generate_validation_report(self, file_path: Union[str, Path]) -> Dict[str, Any]:
         """Generate comprehensive validation report."""
         file_path = Path(file_path)
 
-        report = {
+        report: Dict[str, Any] = {
             "file_info": self.validate_file_format(file_path),
             "data_quality": {},
             "recommendations": [],
@@ -529,7 +534,7 @@ class DataValidator:
                     file_size_mb = file_path.stat().st_size / (1024 * 1024)
                     if file_size_mb > 10:  # For files > 10MB, limit rows
                         df = pd.read_csv(file_path, nrows=max_rows_for_validation)
-                        report["data_quality"][  # type: ignore[index]
+                        report["data_quality"][
                             "warning"
                         ] = f"Large file detected ({file_size_mb:.1f}MB). Validation performed on first {max_rows_for_validation} rows only."
                     else:
@@ -538,7 +543,7 @@ class DataValidator:
                     # For JSON, check file size and warn if large
                     file_size_mb = file_path.stat().st_size / (1024 * 1024)
                     if file_size_mb > 50:  # JSON files are typically smaller
-                        report["data_quality"][  # type: ignore[index]
+                        report["data_quality"][
                             "warning"
                         ] = f"Large JSON file detected ({file_size_mb:.1f}MB). Memory usage may be high."
                     with open(file_path, "r", encoding="utf-8") as f:
@@ -561,7 +566,7 @@ class DataValidator:
                 TypeError,
                 MemoryError,
             ) as e:
-                report["data_quality"]["error"] = f"{type(e).__name__}: {e}"  # type: ignore[index]
+                report["data_quality"]["error"] = f"{type(e).__name__}: {e}"
 
         return report
 

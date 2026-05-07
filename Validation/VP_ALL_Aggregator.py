@@ -1030,6 +1030,26 @@ def run_cross_protocol_consistency_checks(
     return consistency_report
 
 
+def run_validation(**kwargs) -> Dict[str, Any]:
+    """Entry point for validation protocol."""
+    aggregator = ValidationAggregator()
+    results_dir = Path(__file__).parent.parent / "data_repository" / "processed_data"
+
+    if results_dir.exists():
+        json_files = list(results_dir.glob("*.json"))
+        print(f"\nFound {len(json_files)} result files in {results_dir}")
+        if json_files:
+            results = aggregator.aggregate_results([str(f) for f in json_files])
+            print(
+                "\nAggregation complete. Use aggregator.run_full_analysis() for full report."
+            )
+            return results
+    else:
+        print(f"\nNo results directory found at {results_dir}")
+        print("Run individual validation protocols first to generate JSON results.")
+        return {"status": "error", "message": "No results found"}
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("APGI Framework Validation Aggregator (VP-ALL)")

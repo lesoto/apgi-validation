@@ -109,7 +109,7 @@ class APGIMasterFalsifier:
         self.falsification_status: Dict[str, List[Any]] = {
             "primary": [],
             "secondary": [],
-            "tertiary": []
+            "tertiary": [],
         }
 
         # Protocol tier classification
@@ -755,10 +755,10 @@ class APGIMasterFalsifier:
                 }
 
         self.protocol_results.update(results)
-        
+
         # Update falsification_status based on protocol results
         self._update_falsification_status(results)
-        
+
         return results
 
     def _run_single_protocol(
@@ -878,29 +878,24 @@ class APGIMasterFalsifier:
 
     def _update_falsification_status(self, protocol_results: Dict[str, Any]) -> None:
         """Update falsification_status based on protocol results.
-        
+
         Args:
             protocol_results: Dictionary of protocol execution results
         """
         # Clear current status
-        self.falsification_status = {
-            "primary": [],
-            "secondary": [],
-            "tertiary": []
-        }
-        
+        self.falsification_status = {"primary": [], "secondary": [], "tertiary": []}
+
         # Categorize each protocol result by tier
         for protocol_name, result in protocol_results.items():
             if protocol_name in self.available_protocols:
-                protocol_num = self.available_protocols[protocol_name].get("protocol", 0)
-                tier = self.PROTOCOL_TIERS.get(protocol_num, "unknown")
-                
+                protocol_info = self.available_protocols[protocol_name]
+                tier = protocol_info.get("tier", "unknown")
+
                 # Add result to appropriate tier list
                 if tier in self.falsification_status:
-                    self.falsification_status[tier].append({
-                        "protocol": protocol_name,
-                        "result": result
-                    })
+                    self.falsification_status[tier].append(
+                        {"protocol": protocol_name, "result": result}
+                    )
 
     def aggregate_framework_falsification(
         self, protocol_results: Dict[str, Any]

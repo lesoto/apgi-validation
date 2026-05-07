@@ -28,8 +28,8 @@ parameters:
     alpha: 8.0
     gamma_A: 0.2
     gamma_M: -0.2
-    tau_S: 0.7
-    tau_theta: 40.0
+    tau_S: 0.7      # Must be between 0.1-2.0 seconds
+    tau_theta: 40.0      # Must be >= 0.01 seconds
     theta_0: 0.6
 tags:
 - adhd

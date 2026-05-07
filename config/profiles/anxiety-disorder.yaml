@@ -29,8 +29,8 @@ parameters:
     alpha: 12.0
     gamma_A: 0.15
     gamma_M: -0.4
-    tau_S: 0.3
-    tau_theta: 20.0
+    tau_S: 0.3      # Must be between 0.1-2.0 seconds
+    tau_theta: 20.0      # Must be >= 0.01 seconds
     theta_0: 0.4
 tags:
 - anxiety

@@ -2123,9 +2123,10 @@ def test_surprise_ode_comprehensive(
                     params["Pi_i"],
                     params["eps_i"],
                     params["tau_S"],
+                    params["beta"],
                 )
 
-                # Numerical steady-state (when dS/dt = 0)
+                # Numerical steady-state (when dS/dt = 0): S* = τ_S · (Πᵉ|εᵉ| + β·Πⁱ|εⁱ|)
                 S_steady_numerical = params["tau_S"] * (term2 + term3)
 
                 # Compare with tolerance 1e-6
@@ -2521,6 +2522,7 @@ def test_analytical_cross_validation(
             "tau_S": np.random.uniform(
                 bounds["tau_S"].min_val, bounds["tau_S"].max_val
             ),
+            "beta": np.random.uniform(bounds["beta"].min_val, bounds["beta"].max_val),
         }
 
         # Validation 1: Steady-state surprise
@@ -2531,14 +2533,14 @@ def test_analytical_cross_validation(
                 params["Pi_i_eff"],
                 params["eps_i"],
                 params["tau_S"],
+                params.get("beta", 1.0),
             )
 
-            # Steady-state of the *linear* ODE  dS/dt = -S/τ_S + Πᵉ|εᵉ| + Πⁱ_eff|εⁱ|
-            # At equilibrium dS/dt = 0  →  S* = τ_S · (Πᵉ|εᵉ| + Πⁱ_eff|εⁱ|)
-            # (Note: the free-energy uses ½Π·ε² but the ODE accumulates |weighted PE|.)
+            # Steady-state of the *linear* ODE  dS/dt = -S/τ_S + Πᵉ|εᵉ| + β·Πⁱ_eff|εⁱ|
+            # At equilibrium dS/dt = 0  →  S* = τ_S · (Πᵉ|εᵉ| + β·Πⁱ_eff|εⁱ|)
             S_numerical = params["tau_S"] * (
                 params["Pi_e"] * abs(params["eps_e"])
-                + params["Pi_i_eff"] * abs(params["eps_i"])
+                + params.get("beta", 1.0) * params["Pi_i_eff"] * abs(params["eps_i"])
             )
 
             steady_state_diff = abs(S_analytical - S_numerical)

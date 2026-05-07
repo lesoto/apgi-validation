@@ -806,6 +806,9 @@ class APGINeuralSignaturesValidator:
         3. Theta-gamma coupling at threshold crossing
         4. Subthreshold trials show local-only activation
         """
+        print(
+            f"[DEBUG] validate_convergent_signatures called with: eeg={eeg_data_path}, fmri={fmri_data_path}, behavioral={behavioral_data_path}"
+        )
 
         results = {
             "p3b_sigmoidal_fit": {},

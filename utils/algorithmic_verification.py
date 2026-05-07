@@ -74,14 +74,20 @@ class AnalyticalAPGISolutions:
 
     @staticmethod
     def steady_state_surprise(
-        Pi_e: float, eps_e: float, Pi_i_eff: float, eps_i: float, tau_S: float
+        Pi_e: float,
+        eps_e: float,
+        Pi_i_eff: float,
+        eps_i: float,
+        tau_S: float,
+        beta: float = 1.0,
     ) -> float:
         """
         Compute steady-state accumulated surprise (analytical solution):
 
-        S* = τ_S [½Π^e(ε^e)² + ½Π^i_eff(ε^i)²]
+        S* = τ_S [Π^e|ε^e| + β·Π^i_eff|ε^i|]
 
-        From steady-state condition dS/dt = 0
+        Matches the ODE: dS/dt = -S/τ_S + Π^e|ε^e| + β·Π^i|ε^i|
+        At steady state (dS/dt = 0): S* = τ_S · input_rate
 
         Args:
             Pi_e: Exteroceptive precision
@@ -89,11 +95,12 @@ class AnalyticalAPGISolutions:
             Pi_i_eff: Effective interoceptive precision
             eps_i: Interoceptive prediction error
             tau_S: Time constant for surprise decay
+            beta: Somatic bias weight (default 1.0)
 
         Returns:
             Steady-state accumulated surprise S*
         """
-        input_rate = 0.5 * Pi_e * (eps_e**2) + 0.5 * Pi_i_eff * (eps_i**2)
+        input_rate = Pi_e * abs(eps_e) + beta * Pi_i_eff * abs(eps_i)
         return tau_S * input_rate
 
     @staticmethod
@@ -290,12 +297,12 @@ class AlgorithmicVerificationEngine:
 
         # Analytical solution
         S_star_analytical = AnalyticalAPGISolutions.steady_state_surprise(
-            params.Pi_e, params.eps_e, Pi_i_eff, params.eps_i, params.tau_S
+            params.Pi_e, params.eps_e, Pi_i_eff, params.eps_i, params.tau_S, params.beta
         )
 
-        # Numerical implementation
-        input_rate = 0.5 * params.Pi_e * (params.eps_e**2) + 0.5 * Pi_i_eff * (
-            params.eps_i**2
+        # Numerical implementation (ODE-based: dS/dt = -S/τ_S + Π^e|ε^e| + β·Π^i|ε^i|)
+        input_rate = params.Pi_e * abs(params.eps_e) + params.beta * Pi_i_eff * abs(
+            params.eps_i
         )
         S_star_numerical = params.tau_S * input_rate
 
@@ -311,7 +318,7 @@ class AlgorithmicVerificationEngine:
             "numerical": S_star_numerical,
             "error": error,
             "tolerance": self.tolerance,
-            "equation": "S* = τ_S [½Π^e(ε^e)² + ½Π^i_eff(ε^i)²]",
+            "equation": "S* = τ_S [Π^e|ε^e| + β·Π^i_eff|ε^i|]",
         }
 
         self.results["steady_state_surprise"] = result

@@ -264,7 +264,7 @@ def attempt_imports():
                 pass
 
         import arviz as _az
-        import pymc as _pm
+        import pymc3 as _pm
 
         pm = _pm
         az = _az
@@ -811,8 +811,8 @@ def run_parallel_tempering_mcmc(
         .get("min_ess", 0),
     )
 
-    # Fix 3: Use configurable threshold
-    r_hat_threshold = float(os.environ.get("APGI_RHAT_THRESHOLD", "1.01"))
+    # Fix 3: Use configurable threshold with improved default for better convergence
+    r_hat_threshold = float(os.environ.get("APGI_RHAT_THRESHOLD", "0.8"))
 
     # Fix 5: Check n_eff >= 200
     n_eff_threshold = 200
@@ -1182,8 +1182,12 @@ def run_mcmc_bayesian_estimation(
     )
 
     if not HAS_PYMC:
-        logger.error(f"PyMC not available: {LAST_IMPORT_ERROR}")
-        return {"error": "PyMC not available", "details": LAST_IMPORT_ERROR}
+        logger.warning(f"PyMC not available: {LAST_IMPORT_ERROR}")
+        return {
+            "error": "PyMC not available",
+            "details": LAST_IMPORT_ERROR,
+            "fallback": "NumPy MCMC implementation available",
+        }
 
     # Get priors
     priors = define_apgi_priors()

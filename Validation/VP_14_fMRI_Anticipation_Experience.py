@@ -585,11 +585,6 @@ def main(fmri_data_path: Optional[str] = None):
     }
 
 
-def run_protocol():
-    """Legacy compatibility entry point."""
-    return run_validation()
-
-
 try:
     from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
 
@@ -627,8 +622,9 @@ def run_protocol_main(config=None):
                 errors=[],
                 metadata={"test_mode": True},
             ).to_dict()
-        else:
-            return {"status": "success", "test_mode": True}
+    else:
+        # Run full validation simulation
+        return run_validation()
 
     legacy_result = run_validation()
     if not HAS_SCHEMA:
@@ -677,7 +673,10 @@ def run_validation(fmri_data_path: Optional[str] = None, **kwargs) -> Dict[str, 
             If None, falls back to synthetic simulation.
         **kwargs: Additional keyword arguments (for compatibility)
     """
-    return main(fmri_data_path=fmri_data_path)
+    logger.info(f"VP_14 run_validation called with fmri_data_path: {fmri_data_path}")
+    result = main(fmri_data_path=fmri_data_path)
+    logger.info(f"VP_14 main() returned: {type(result)} - {result}")
+    return result
 
 
 if __name__ == "__main__":

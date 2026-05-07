@@ -10,11 +10,16 @@ import secrets
 import sys
 import types
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError as e:
+    # Handle numpy import errors gracefully
+    np = None
+    print(f"Warning: NumPy not available: {e}")
 
 # Fix for missing numpy.lib.array_utils in some NumPy versions (e.g. 1.26.4 with Python 3.14)
 # This module is expected by PyMC 5.27.0 and ArviZ.
-if not hasattr(np.lib, "array_utils"):
+if np is not None and not hasattr(np.lib, "array_utils"):
     try:
         # Create module
         array_utils = types.ModuleType("numpy.lib.array_utils")
@@ -27,14 +32,14 @@ if not hasattr(np.lib, "array_utils"):
         try:
             from numpy.core.multiarray import normalize_axis_index
 
-            array_utils.normalize_axis_index = normalize_axis_index  # type: ignore[attr-defined]
+            array_utils.normalize_axis_index = normalize_axis_index
         except (ImportError, AttributeError):
             pass
 
         try:
             from numpy.core.numeric import normalize_axis_tuple
 
-            array_utils.normalize_axis_tuple = normalize_axis_tuple  # type: ignore[attr-defined]
+            array_utils.normalize_axis_tuple = normalize_axis_tuple
         except (ImportError, AttributeError):
             pass
     except Exception:
@@ -56,7 +61,7 @@ except ImportError:
 
 
 # Security: Check for required environment variables at import time
-def _check_required_env_vars():
+def _check_required_env_vars() -> None:
     """Check for required security environment variables and raise error if missing."""
     missing_vars = []
 

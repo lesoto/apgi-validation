@@ -19,12 +19,16 @@ class AnalyticalAPGISolutions:
         Pi_i_eff: float,
         eps_i: float,
         tau_S: float,
+        beta: float = 1.0,
     ) -> float:
         """
         Compute steady-state accumulated surprise (analytical solution):
-        S* = τ_S [½Π^e(ε^e)² + ½Π^i_eff(ε^i)²]
+        S* = τ_S [Π^e|ε^e| + β·Π^i_eff|ε^i|]
+
+        Matches the ODE: dS/dt = -S/τ_S + Π^e|ε^e| + β·Π^i|ε^i|
+        At steady state (dS/dt = 0): S* = τ_S · input_rate
         """
-        input_rate = 0.5 * Pi_e * (eps_e**2) + 0.5 * Pi_i_eff * (eps_i**2)
+        input_rate = Pi_e * abs(eps_e) + beta * Pi_i_eff * abs(eps_i)
         return tau_S * input_rate
 
     @staticmethod
@@ -50,8 +54,7 @@ class AnalyticalAPGISolutions:
         if S_0 >= theta:
             return 0.0
 
-        t_star = tau_S * np.log((S_star - S_0) / (S_star - theta))
-        return max(0.0, t_star)
+        return max(0.0, tau_S * np.log((S_star - S_0) / (S_star - theta)))
 
     @staticmethod
     def ignition_threshold_critical_point(

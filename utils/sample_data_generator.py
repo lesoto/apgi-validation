@@ -27,8 +27,13 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
-import numpy as np
-import pandas as pd
+try:
+    import numpy as np
+    import pandas as pd
+except ImportError as e:
+    np = None
+    pd = None
+    print(f"Warning: NumPy/Pandas not available in sample_data_generator.py: {e}")
 
 
 class SampleDataGenerator:

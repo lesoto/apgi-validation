@@ -67,7 +67,16 @@ def create_computational_benchmarking(
 
 import torch
 import torch.nn as nn
-from sklearn.metrics import f1_score
+
+# Optional sklearn import with fallback
+try:
+    from sklearn.metrics import f1_score
+
+    SKLEARN_AVAILABLE = True
+except ImportError as e:
+    f1_score = None
+    SKLEARN_AVAILABLE = False
+    print(f"Warning: sklearn not available: {e}")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -672,9 +681,12 @@ class ComputationalBenchmarker:
                 correlation = 0.0
         else:
             correlation = 0.0
-        f1 = f1_score(target_binary, predicted, zero_division=0)
-
-        return {"mse": mse, "correlation": correlation, "f1_score": f1}
+        # Handle sklearn availability
+        if SKLEARN_AVAILABLE:
+            f1 = f1_score(target_binary, predicted, zero_division=0)
+            return {"mse": mse, "correlation": correlation, "f1_score": f1}
+        else:
+            return {"mse": mse, "correlation": correlation, "f1_score": None}
 
     def generate_comparison_table(
         self, results: Dict[str, List[BenchmarkResult]]
@@ -692,7 +704,13 @@ class ComputationalBenchmarker:
             avg_corr = np.mean(
                 [r.fit_metrics["correlation"] for r in framework_results]
             )
-            avg_f1 = np.mean([r.fit_metrics["f1_score"] for r in framework_results])
+            avg_f1 = np.mean(
+                [
+                    r.fit_metrics["f1_score"]
+                    for r in framework_results
+                    if r.fit_metrics.get("f1_score") is not None
+                ]
+            )
             avg_time = np.mean([r.computational_cost for r in framework_results])
             param_count = framework_results[0].parameter_count
 

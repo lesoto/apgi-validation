@@ -758,9 +758,12 @@ def formal_model(
                 # Validate and apply custom parameters if loaded successfully
                 if custom_params is not None:
                     try:
-                        from utils.parameter_validator import validate_parameters
+                        from Validation.VP_07_TMS_CausalInterventions import (
+                            HierarchicalProcessingValidator,
+                        )
 
-                        validation_result = validate_parameters(custom_params)
+                        validator = HierarchicalProcessingValidator()
+                        validation_result = validator.validate()
 
                         if not validation_result["valid"]:
                             console.print("[red]❌ Parameter validation failed:[/red]")
@@ -2816,6 +2819,10 @@ def _run_validation_function(
             validator = module.APGIValidator()
             result = validator.validate()
             return protocol_num, str(result), None
+        elif hasattr(module, "APGINeuralSignaturesValidator"):
+            validator = module.APGINeuralSignaturesValidator()
+            result = validator.validate_convergent_signatures()
+            return protocol_num, str(result), None
         else:
             return protocol_num, "No validation function", None
     except Exception as e:
@@ -3020,13 +3027,17 @@ def validate(
                 results = _run_sequential(protocols, validation_dir)
             _save_results(results, output_dir)
         elif protocol:
+            # Normalize protocol number to handle both "1" and "01" formats
+            protocol_normalized = protocol.zfill(2) if protocol.isdigit() else protocol
             if protocol == "all":
                 console.print("[blue]Running all validation protocols...[/blue]")
                 results = _run_sequential(protocols, validation_dir)
                 _save_results(results, output_dir)
-            elif protocol in [p.split("_")[1] for p in protocols]:
+            elif protocol_normalized in [p.split("_")[1] for p in protocols]:
                 console.print(f"[blue]Running protocol: {protocol}[/blue]")
-                protocol_file = [p for p in protocols if p.split("_")[1] == protocol][0]
+                protocol_file = [
+                    p for p in protocols if p.split("_")[1] == protocol_normalized
+                ][0]
                 protocol_num, result, error = _run_single_protocol(
                     protocol_file, validation_dir
                 )
@@ -3043,7 +3054,7 @@ def validate(
                     f"[yellow]Available protocols: {[p.split('_')[1] for p in protocols]}[/yellow]"
                 )
                 console.print(
-                    "[yellow]Use 'all' to run all protocols or --all-protocols flag[/yellow]"
+                    "[yellow]Use protocol number (e.g., 1 or 01), 'all', or --all-protocols flag[/yellow]"
                 )
         else:
             console.print("[yellow]Specify a protocol or use --all-protocols[/yellow]")
@@ -3059,12 +3070,14 @@ def validate(
 
 
 @cli.command()
-@click.option("--protocol", type=int, help="Falsification protocol number (1-6)")
+@click.option(
+    "--protocol", type=str, help="Falsification protocol number (1-12) or 'all'"
+)
 @click.option("--output-file", help="Output file for falsification results")
 @click.pass_context
 def falsify(
     ctx: click.Context,
-    protocol: Optional[int],
+    protocol: Optional[str],
     output_file: Optional[str],
 ) -> None:
     """Execute falsification testing protocols."""
@@ -3076,7 +3089,7 @@ def falsify(
         return
 
     # List available protocols
-    protocols = []
+    available_protocols = []
     # Updated mapping to reflect actual file naming (FP_01, FP_02, etc.)
     for i in range(1, 14):  # FP_01-FP_13 protocols
         protocol_file = (
@@ -3146,9 +3159,9 @@ def falsify(
                 protocol_file = matches[0]
 
         if protocol_file and protocol_file.exists():
-            protocols.append(i)
+            available_protocols.append(i)
 
-    if protocols:
+    if available_protocols:
         table = Table(
             title="Available Falsification Protocols",
             show_header=True,
@@ -3157,80 +3170,83 @@ def falsify(
         table.add_column("Protocol", style="red", width=20)
         table.add_column("Description", style="white", width=50)
 
-        for protocol_num in protocols:
+        for protocol_num in available_protocols:
             table.add_row(str(protocol_num), f"Falsification Protocol {protocol_num}")
+        table.add_row("all", "Run all available protocols")
 
         console.print(table)
 
     try:
         if protocol:
-            if protocol in protocols:
-                console.print(f"[blue]Running falsification protocol {protocol}[/blue]")
-                # Corrected logic to find actual protocol file
-                matches = list(falsification_dir.glob(f"FP_{protocol:02d}_*.py"))
-                if not matches:
+            protocols_to_run = []
+            if protocol.lower() == "all":
+                protocols_to_run = available_protocols
+            else:
+                try:
+                    p_num = int(protocol)
+                    if p_num in available_protocols:
+                        protocols_to_run = [p_num]
+                    else:
+                        console.print(f"[red]Error: Protocol {p_num} not found[/red]")
+                        return
+                except ValueError:
                     console.print(
-                        f"[red]Error: Protocol {protocol} file not found[/red]"
+                        f"[red]Error: Invalid protocol value: {protocol}[/red]"
                     )
                     return
+
+            all_results = {}
+            for p_num in protocols_to_run:
+                console.print(f"[blue]Running falsification protocol {p_num}[/blue]")
+                matches = list(falsification_dir.glob(f"FP_{p_num:02d}_*.py"))
+                if not matches:
+                    console.print(f"[red]Error: Protocol {p_num} file not found[/red]")
+                    continue
                 protocol_file = matches[0]
 
                 try:
-                    # Import and run falsification protocol
                     falsification_module = secure_load_module(
-                        f"falsification_protocol_{protocol}", protocol_file
+                        f"falsification_protocol_{p_num}", protocol_file
                     )
 
-                    # Look for main falsification function
+                    result = None
                     if hasattr(falsification_module, "run_falsification"):
-                        console.print("[blue]Executing falsification tests...[/blue]")
-                        result = falsification_module.run_falsification()
-                        console.print(f"[green]✓[/green] Protocol {protocol} completed")
-                        console.print(f"Result: {result}")
-
-                        # Save results
-                        if output_file:
-                            with open(output_file, "w", encoding="utf-8") as f:
-                                json.dump(result, f, indent=2, default=str)
-                            console.print(
-                                f"[green]✓[/green] Results saved to {output_file}"
-                            )
-
-                    elif hasattr(falsification_module, "main"):
                         console.print(
-                            "[blue]Running main falsification function...[/blue]"
+                            f"[blue]Executing falsification tests for P{p_num}...[/blue]"
                         )
+                        result = falsification_module.run_falsification()
+                        console.print(f"[green]✓[/green] Protocol {p_num} completed")
+                    elif hasattr(falsification_module, "main"):
+                        console.print(f"[blue]Running main for P{p_num}...[/blue]")
                         falsification_module.main()
-                        console.print(f"[green]✓[/green] Protocol {protocol} completed")
+                        result = {"status": "completed", "protocol": p_num}
+                        console.print(f"[green]✓[/green] Protocol {p_num} completed")
                     else:
                         console.print(
-                            f"[yellow]Protocol {protocol} has no standard entry function[/yellow]"
-                        )
-                        # List available functions
-                        functions = [
-                            attr
-                            for attr in dir(falsification_module)
-                            if callable(getattr(falsification_module, attr))
-                            and not attr.startswith("_")
-                        ]
-                        console.print(
-                            f"[yellow]Available functions: {functions}[/yellow]"
+                            f"[yellow]Protocol {p_num} has no standard entry function[/yellow]"
                         )
 
-                except (
-                    ImportError,
-                    ModuleNotFoundError,
-                    AttributeError,
-                    RuntimeError,
-                ) as e:
-                    console.print(f"[red]Error in Protocol {protocol}: {e}[/red]")
+                    if result:
+                        all_results[f"protocol_{p_num}"] = result
+
+                except Exception as e:
+                    console.print(f"[red]Error in Protocol {p_num}: {e}[/red]")
                     apgi_logger.logger.error(
-                        f"Falsification protocol {protocol} error: {e}"
+                        f"Falsification protocol {p_num} error: {e}"
                     )
-            else:
-                console.print(f"[red]Error: Protocol {protocol} not found[/red]")
+
+            # Save results if multiple protocols were run or if output_file specified
+            if output_file and all_results:
+                with open(output_file, "w", encoding="utf-8") as f:
+                    json.dump(all_results, f, indent=2, default=str)
+                console.print(f"[green]✓[/green] All results saved to {output_file}")
+            elif all_results:
+                console.print(
+                    f"[green]✓[/green] Completed {len(all_results)} protocols"
+                )
+
         else:
-            console.print("[yellow]Specify a protocol number (1-6)[/yellow]")
+            console.print("[yellow]Specify a protocol number or 'all'[/yellow]")
             # Run a quick demo of falsification concept
             console.print("[blue]Demo: APGI Falsification Testing Concept[/blue]")
             console.print(
@@ -3459,12 +3475,9 @@ def neural_signatures(
     )
 
     try:
-        # Import the neural signatures validator
+        # Import neural signatures validator
         spec = importlib.util.spec_from_file_location(
-            "neural_signatures",
-            PROJECT_ROOT
-            / "Validation"
-            / "VP_09_NeuralSignatures_EmpiricalPriority1.py",
+            "Validation/VP_09_NeuralSignatures_EmpiricalPriority1.py",
         )
         neural_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(neural_module)

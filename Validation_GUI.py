@@ -82,6 +82,18 @@ if APGI_Master_Validation:
 else:
     APGIMasterValidator = None
 
+# Try to import ScriptRunnerGUI
+try:
+    from .ScriptRunner_GUI import ScriptRunnerGUI
+except ImportError:
+    ScriptRunnerGUI = None
+
+# Try to import HeadlessRunner
+try:
+    from .HeadlessRunner import HeadlessRunner
+except ImportError:
+    HeadlessRunner = None
+
 # Protocol files for metadata
 protocol_files = [
     ("APGI_Protocol_1", "VP_01_SyntheticEEG_MLClassification.py"),

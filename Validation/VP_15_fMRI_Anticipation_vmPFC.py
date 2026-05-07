@@ -778,6 +778,11 @@ def main(**kwargs) -> Dict[str, Any]:
         }
 
 
+def validate():
+    """Main validation entry point for main.py compatibility."""
+    return run_validation(allow_synthetic=True)
+
+
 def run_protocol():
     """Legacy compatibility entry point."""
     return run_validation(allow_synthetic=True)

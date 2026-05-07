@@ -235,6 +235,11 @@ class APGIMetabolicValidator:
         return results
 
 
+def validate() -> Dict[str, Any]:
+    """Entry point for the validation protocol."""
+    return run_validation()
+
+
 def run_validation(**kwargs) -> Dict[str, Any]:
     """Entry point for the validation protocol."""
     validator = APGIMetabolicValidator()

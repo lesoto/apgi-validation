@@ -5300,3 +5300,38 @@ if __name__ == "__main__":
         verbose=not args.quiet,
     )
     sys.exit(0 if result.get("passed", False) else 1)
+
+
+def validate() -> Dict[str, Any]:
+    """
+    Main validation function for VP-11 MCMC Cultural Neuroscience protocol.
+
+    This function serves as the entry point for the main validation system.
+    It runs Bayesian parameter estimation and individual differences validation.
+
+    Returns:
+        Dictionary containing all validation results
+    """
+    try:
+        # Use default parameters for validation
+        validator = APGIValidationProtocol11()
+        results = validator.run_validation()
+
+        # Add metadata
+        results["protocol_name"] = "VP_11_MCMC_CulturalNeuroscience_Priority3"
+        results["protocol_description"] = (
+            "Bayesian Estimation & Individual Differences - Cultural Neuroscience Priority 3"
+        )
+        results["validation_timestamp"] = str(pd.Timestamp.now())
+
+        return results
+
+    except Exception as e:
+        logger.error(f"Validation failed: {e}")
+        return {
+            "error": str(e),
+            "protocol_name": "VP_11_MCMC_CulturalNeuroscience_Priority3",
+            "protocol_description": "Bayesian Estimation & Individual Differences - Cultural Neuroscience Priority 3",
+            "validation_timestamp": str(pd.Timestamp.now()),
+            "validation_passed": False,
+        }
