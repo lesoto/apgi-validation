@@ -215,9 +215,9 @@ PREDICTION_TO_PROTOCOL = {
     "V20.2": "VP_01_empirical",
     "V20.3": "VP_01_empirical",
     # VP-21: Free Energy Proxy (PE tracking)
-    "V21.1": "VP_FE_proxy",
-    "V21.2": "VP_FE_proxy",
-    "V21.3": "VP_FE_proxy",
+    "V21.1": "VP_20_FreeEnergy_PredictionError",
+    "V21.2": "VP_20_FreeEnergy_PredictionError",
+    "V21.3": "VP_20_FreeEnergy_PredictionError",
 }
 
 # Protocol tier classification
@@ -242,7 +242,7 @@ PROTOCOL_TIERS = {
     "VP_18_EEG_Microstate_GFP_P3b": "secondary",
     "VP_19_InformationErasure_MVPA": "secondary",
     "VP_01_empirical": "secondary",
-    "VP_FE_proxy": "secondary",
+    "VP_20_FreeEnergy_PredictionError": "secondary",
 }
 
 # VP-07 / VP-10 Boundary Clarification

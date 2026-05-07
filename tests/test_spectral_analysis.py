@@ -2,6 +2,7 @@
 
 try:
     import numpy as np
+
     from utils.spectral_analysis import (
         batch_compute_spectral_slopes,
         compute_power_spectrum,
@@ -112,8 +113,17 @@ class TestGenerateSyntheticSpectra:
     def test_generate_with_peaks(self):
         """Test generating spectrum with peaks."""
         freqs = np.linspace(1, 40, 100)
-        peaks = [(10, 1.0, 2.0)]  # (center_freq, amplitude, std)
-        spectrum = generate_synthetic_spectra(freqs, exponent=-1.5, peaks=peaks)
+        peak_freqs = [10.0]  # center frequency
+        peak_amplitudes = [1.0]  # amplitude
+        peak_widths = [2.0]  # width (std)
+        spectrum = generate_synthetic_spectra(
+            freqs,
+            exponent=-1.5,
+            offset=1.0,
+            peak_freqs=peak_freqs,
+            peak_amplitudes=peak_amplitudes,
+            peak_widths=peak_widths,
+        )
 
         assert len(spectrum) == len(freqs)
 

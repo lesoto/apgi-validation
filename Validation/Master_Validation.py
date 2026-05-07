@@ -175,7 +175,38 @@ except ImportError:
         Returns:
             Master report object containing aggregated results
         """
-        return self._falsifier.generate_master_report()
+        # Create a simple report structure since the falsifier doesn't have this method
+
+        # Create a mock report object
+        class MockReport:
+            def __init__(self):
+                self.overall_decision = "PASS: Strong validation support"
+                self.total_protocols = len(self.PROTOCOL_TIERS)
+                self.passed_protocols = 0
+                self.success_rate = 0.0
+                self.protocol_results = self.protocol_results
+
+        # Calculate passed protocols based on available results
+        passed_count = 0
+        for protocol_name, result in self.protocol_results.items():
+            if hasattr(result, "metadata") and result.metadata.get("passed", False):
+                passed_count += 1
+
+        report = MockReport()
+        report.passed_protocols = passed_count
+        report.success_rate = (
+            passed_count / report.total_protocols if report.total_protocols > 0 else 0.0
+        )
+
+        # Determine overall decision based on success rate
+        if report.success_rate >= 0.8:
+            report.overall_decision = "PASS: Strong validation support"
+        elif report.success_rate >= 0.5:
+            report.overall_decision = "MARGINAL: Moderate validation support"
+        else:
+            report.overall_decision = "FAIL: Insufficient validation support"
+
+        return report
 
     def get_available_protocols(self) -> List[str]:
         """

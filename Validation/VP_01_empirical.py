@@ -96,20 +96,29 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 # Falsification thresholds
+DEFAULT_ALPHA: float = 0.05
+V20_HG_BIMODALITY_COEFF_MIN: float = 0.55
+V20_HG_OCCUPANCY_COHENS_D_MIN: float = 0.50
+V20_AC1_ADVANTAGE_MIN: float = 0.05
+V20_VARIANCE_ADVANTAGE_MIN: float = 0.10
+
+# Try to override with centralized values if available
 try:
     from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        V20_AC1_ADVANTAGE_MIN,
-        V20_HG_BIMODALITY_COEFF_MIN,
-        V20_HG_OCCUPANCY_COHENS_D_MIN,
-        V20_VARIANCE_ADVANTAGE_MIN,
+        DEFAULT_ALPHA as _DEFAULT_ALPHA,
+        V20_AC1_ADVANTAGE_MIN as _V20_AC1_ADVANTAGE_MIN,
+        V20_HG_BIMODALITY_COEFF_MIN as _V20_HG_BIMODALITY_COEFF_MIN,
+        V20_HG_OCCUPANCY_COHENS_D_MIN as _V20_HG_OCCUPANCY_COHENS_D_MIN,
+        V20_VARIANCE_ADVANTAGE_MIN as _V20_VARIANCE_ADVANTAGE_MIN,
     )
+
+    DEFAULT_ALPHA = _DEFAULT_ALPHA
+    V20_HG_BIMODALITY_COEFF_MIN = _V20_HG_BIMODALITY_COEFF_MIN
+    V20_HG_OCCUPANCY_COHENS_D_MIN = _V20_HG_OCCUPANCY_COHENS_D_MIN
+    V20_AC1_ADVANTAGE_MIN = _V20_AC1_ADVANTAGE_MIN
+    V20_VARIANCE_ADVANTAGE_MIN = _V20_VARIANCE_ADVANTAGE_MIN
 except ImportError:
-    DEFAULT_ALPHA: float = 0.05
-    V20_HG_BIMODALITY_COEFF_MIN: float = 0.55
-    V20_HG_OCCUPANCY_COHENS_D_MIN: float = 0.50
-    V20_AC1_ADVANTAGE_MIN: float = 0.05
-    V20_VARIANCE_ADVANTAGE_MIN: float = 0.10
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -122,8 +131,8 @@ RANDOM_SEED: int = 42
 HIGH_GAMMA_LOW_HZ: float = 70.0
 HIGH_GAMMA_HIGH_HZ: float = 150.0
 
-SLIDING_WINDOW_MS: float = 200.0   # window for AC1 / variance computation
-SLIDING_STEP_MS: float = 50.0      # step size for sliding windows
+SLIDING_WINDOW_MS: float = 200.0  # window for AC1 / variance computation
+SLIDING_STEP_MS: float = 50.0  # step size for sliding windows
 
 # Near-threshold band: trials within ±15 % of psychophysical threshold
 NEAR_THRESHOLD_BAND: float = 0.15
@@ -145,10 +154,10 @@ class ChannelEpoch:
     subject_id: str
     channel: str
     trial_id: int
-    condition: str        # "hit" | "miss" | "hit_near_threshold" | "miss_near_threshold"
+    condition: str  # "hit" | "miss" | "hit_near_threshold" | "miss_near_threshold"
     stimulus_contrast: float  # normalised contrast ∈ [0, 1]
-    lfp: np.ndarray       # raw/filtered LFP (n_samples,)
-    sfreq: float          # sampling frequency (Hz)
+    lfp: np.ndarray  # raw/filtered LFP (n_samples,)
+    sfreq: float  # sampling frequency (Hz)
 
 
 @dataclass
@@ -158,11 +167,11 @@ class GMMFitResult:
     channel: str
     condition: str
     n_epochs: int
-    bimodality_coefficient: float   # (μ₂ − μ₁) / (σ₁ + σ₂) normalised separation
+    bimodality_coefficient: float  # (μ₂ − μ₁) / (σ₁ + σ₂) normalised separation
     high_gamma_mode_occupancy: float  # weight of higher-mean component
-    means: np.ndarray     # shape (2,)
-    stds: np.ndarray      # shape (2,)
-    weights: np.ndarray   # shape (2,)
+    means: np.ndarray  # shape (2,)
+    stds: np.ndarray  # shape (2,)
+    weights: np.ndarray  # shape (2,)
     power_values: np.ndarray  # full high-gamma power array used for fitting
 
 
@@ -174,7 +183,7 @@ class CriticalSlowingResult:
     channel: str
     trial_id: int
     condition: str
-    ac1_timeseries: np.ndarray    # AC1 in each window
+    ac1_timeseries: np.ndarray  # AC1 in each window
     variance_timeseries: np.ndarray  # variance in each window
     window_centres_ms: np.ndarray
 
@@ -273,10 +282,13 @@ class BIDSiEEGLoader:
 
     def _load_events_tsv(self, ieeg_path: Path) -> Optional[np.ndarray]:
         """Load *_events.tsv sidecar and return MNE events array."""
-        events_path = Path(str(ieeg_path).replace("_ieeg.edf", "_events.tsv")
-                          .replace("_ieeg.vhdr", "_events.tsv")
-                          .replace("_ieeg.set", "_events.tsv")
-                          .replace("_ieeg.fif", "_events.tsv"))
+        events_path = Path(
+            str(ieeg_path)
+            .replace("_ieeg.edf", "_events.tsv")
+            .replace("_ieeg.vhdr", "_events.tsv")
+            .replace("_ieeg.set", "_events.tsv")
+            .replace("_ieeg.fif", "_events.tsv")
+        )
         if not events_path.exists():
             logger.warning("No events TSV found for %s", ieeg_path)
             return None
@@ -289,21 +301,28 @@ class BIDSiEEGLoader:
             return None
 
         # Map trial_type to integer event codes
-        trial_map = {"hit": 1, "miss": 2, "hit_near_threshold": 3, "miss_near_threshold": 4}
+        trial_map = {
+            "hit": 1,
+            "miss": 2,
+            "hit_near_threshold": 3,
+            "miss_near_threshold": 4,
+        }
         if "trial_type" in df.columns:
-            df["event_id"] = df["trial_type"].map(trial_map).fillna(0).astype(int)
+            mapped_values = df["trial_type"].map(trial_map).fillna(0)
+            df["event_id"] = mapped_values.astype(int)
         else:
             df["event_id"] = 1
 
         # Build MNE events array (sample, 0, event_id)
         sfreq = self.sfreq_target
-        samples = (df["onset"].values * sfreq).astype(int)
-        events = np.column_stack([samples, np.zeros(len(df), int), df["event_id"].values])
+        onset_values = np.asarray(df["onset"].values)
+        samples = (onset_values * sfreq).astype(int)
+        events = np.column_stack(
+            [samples, np.zeros(len(df), dtype=int), np.asarray(df["event_id"].values)]
+        )
         return events
 
-    def load_epochs(
-        self, max_subjects: Optional[int] = None
-    ) -> List[ChannelEpoch]:
+    def load_epochs(self, max_subjects: Optional[int] = None) -> List[ChannelEpoch]:
         """
         Load all iEEG epochs from the BIDS root.
 
@@ -314,7 +333,9 @@ class BIDSiEEGLoader:
             # Group by subject prefix and limit
             subjects_seen: Dict[str, List[Path]] = {}
             for f in ieeg_files:
-                sub = f.parts[f.parts.index(next(p for p in f.parts if p.startswith("sub-")))]
+                sub = f.parts[
+                    f.parts.index(next(p for p in f.parts if p.startswith("sub-")))
+                ]
                 subjects_seen.setdefault(sub, []).append(f)
             selected = list(subjects_seen.values())[:max_subjects]
             ieeg_files = [f for files in selected for f in files]
@@ -342,7 +363,12 @@ class BIDSiEEGLoader:
                 )
                 data = epochs.get_data()  # (n_epochs, n_ch, n_times)
                 event_ids = events[:, 2]
-                id_to_cond = {1: "hit", 2: "miss", 3: "hit_near_threshold", 4: "miss_near_threshold"}
+                id_to_cond = {
+                    1: "hit",
+                    2: "miss",
+                    3: "hit_near_threshold",
+                    4: "miss_near_threshold",
+                }
 
                 for ep_idx in range(data.shape[0]):
                     cond = id_to_cond.get(int(event_ids[ep_idx]), "unknown")
@@ -363,7 +389,11 @@ class BIDSiEEGLoader:
                 logger.warning("Could not load %s: %s", ieeg_path.name, exc)
                 continue
 
-        logger.info("Loaded %d channel-epochs from %d iEEG files.", len(all_epochs), len(ieeg_files))
+        logger.info(
+            "Loaded %d channel-epochs from %d iEEG files.",
+            len(all_epochs),
+            len(ieeg_files),
+        )
         return all_epochs
 
     def _read_raw(self, path: Path) -> "mne.io.BaseRaw":
@@ -373,7 +403,9 @@ class BIDSiEEGLoader:
             if suffix == ".edf":
                 raw = mne.io.read_raw_edf(str(path), preload=True, verbose=False)
             elif suffix == ".vhdr":
-                raw = mne.io.read_raw_brainvision(str(path), preload=True, verbose=False)
+                raw = mne.io.read_raw_brainvision(
+                    str(path), preload=True, verbose=False
+                )
             elif suffix == ".set":
                 raw = mne.io.read_raw_eeglab(str(path), preload=True, verbose=False)
             elif suffix == ".fif":
@@ -390,7 +422,9 @@ class BIDSiEEGLoader:
 # ---------------------------------------------------------------------------
 
 
-def _bandpass_butter(data: np.ndarray, low: float, high: float, sfreq: float, order: int = 4) -> np.ndarray:
+def _bandpass_butter(
+    data: np.ndarray, low: float, high: float, sfreq: float, order: int = 4
+) -> np.ndarray:
     """Zero-phase Butterworth bandpass filter."""
     nyq = sfreq / 2.0
     b, a = butter(order, [low / nyq, high / nyq], btype="band")
@@ -511,7 +545,12 @@ class HighGammaGMMAnalyzer:
         # Group epoch-mean powers by channel × condition
         by_channel: Dict[str, Dict[str, List[float]]] = {}
         for ep in self.epochs:
-            if ep.condition not in ("hit", "miss", "hit_near_threshold", "miss_near_threshold"):
+            if ep.condition not in (
+                "hit",
+                "miss",
+                "hit_near_threshold",
+                "miss_near_threshold",
+            ):
                 continue
             broad_cond = "hit" if ep.condition.startswith("hit") else "miss"
             by_channel.setdefault(ep.channel, {"hit": [], "miss": []})
@@ -561,7 +600,11 @@ class HighGammaGMMAnalyzer:
         pooled_std = np.sqrt(
             (np.std(arr_h, ddof=1) ** 2 + np.std(arr_m, ddof=1) ** 2) / 2.0
         )
-        cohens_d = float((np.mean(arr_h) - np.mean(arr_m)) / pooled_std) if pooled_std > 0 else 0.0
+        cohens_d = (
+            float((np.mean(arr_h) - np.mean(arr_m)) / pooled_std)
+            if pooled_std > 0
+            else 0.0
+        )
 
         bc_conscious = float(np.mean(bc_hits)) if bc_hits else 0.0
         bc_unconscious = float(np.mean(bc_misses)) if bc_misses else 0.0
@@ -574,7 +617,10 @@ class HighGammaGMMAnalyzer:
 
         logger.info(
             "P6a: d=%.3f, p=%.4f, BC_conscious=%.3f — %s",
-            cohens_d, pvalue, bc_conscious, "PASS" if passed else "FAIL",
+            cohens_d,
+            pvalue,
+            bc_conscious,
+            "PASS" if passed else "FAIL",
         )
         return {
             "fits": fits,
@@ -731,7 +777,11 @@ class CriticalSlowingAnalyzer:
 
         logger.info(
             "P6c: AC1 advantage=%.4f (p=%.4f), Var advantage=%.4f (p=%.4f) — %s",
-            ac1_advantage, p_ac1, var_advantage, p_var, "PASS" if passed else "FAIL",
+            ac1_advantage,
+            p_ac1,
+            var_advantage,
+            p_var,
+            "PASS" if passed else "FAIL",
         )
         return {
             "ac1_hits": arr_ah.tolist(),
@@ -817,7 +867,9 @@ class SyntheticiEEGSimulator:
         burst = amplitude * np.sin(2 * np.pi * 100.0 * t)
         # Gaussian envelope centred at middle of epoch
         centre = self.n_samples // 2
-        envelope = np.exp(-0.5 * ((np.arange(self.n_samples) - centre) / (0.1 * self.n_samples)) ** 2)
+        envelope = np.exp(
+            -0.5 * ((np.arange(self.n_samples) - centre) / (0.1 * self.n_samples)) ** 2
+        )
         return lfp + burst * envelope
 
     # ------------------------------------------------------------------ #
@@ -837,7 +889,7 @@ class SyntheticiEEGSimulator:
         phi_map = {
             "hit": 0.4,
             "miss": 0.3,
-            "hit_near_threshold": 0.75,   # close to bifurcation → high AC1
+            "hit_near_threshold": 0.75,  # close to bifurcation → high AC1
             "miss_near_threshold": 0.35,
         }
         # High-gamma burst amplitude (higher for conscious = hit)
@@ -859,7 +911,9 @@ class SyntheticiEEGSimulator:
                         lfp = self._ar1_process(self.n_samples, phi, sigma=1.0)
                         lfp += self._pink_noise(self.n_samples) * 0.3
                         amp = hg_amp_map[cond] * (1.0 + self.rng.normal(0, 0.1))
-                        lfp = self._inject_high_gamma_burst(lfp, amplitude=max(0.0, amp))
+                        lfp = self._inject_high_gamma_burst(
+                            lfp, amplitude=max(0.0, amp)
+                        )
 
                         epochs.append(
                             ChannelEpoch(
@@ -875,7 +929,11 @@ class SyntheticiEEGSimulator:
 
         logger.info(
             "Synthetic simulator: %d epochs (%d subjects × %d channels × %d conditions × %d trials)",
-            len(epochs), self.n_subjects, self.n_channels, len(conditions), self.n_trials,
+            len(epochs),
+            self.n_subjects,
+            self.n_channels,
+            len(conditions),
+            self.n_trials,
         )
         return epochs
 
@@ -923,10 +981,14 @@ def generate_p6a_figure(
     ax2 = axes[1]
     bc_val = gmm_result.get("bimodality_conscious", 0)
     bc_threshold = V20_HG_BIMODALITY_COEFF_MIN
-    ax2.bar(["Conscious", "Unconscious"],
-            [bc_val, gmm_result.get("bimodality_unconscious", 0)],
-            color=["steelblue", "salmon"])
-    ax2.axhline(bc_threshold, color="red", linestyle="--", label=f"Threshold ({bc_threshold})")
+    ax2.bar(
+        ["Conscious", "Unconscious"],
+        [bc_val, gmm_result.get("bimodality_unconscious", 0)],
+        color=["steelblue", "salmon"],
+    )
+    ax2.axhline(
+        bc_threshold, color="red", linestyle="--", label=f"Threshold ({bc_threshold})"
+    )
     ax2.set_ylabel("Bimodality coefficient")
     ax2.set_title("P6a — Bimodality Coefficient (GMM mode separation)")
     ax2.legend(fontsize=8)
@@ -1027,9 +1089,13 @@ class EmpiricalIEEGValidator:
                     self._epochs = epochs
                     return epochs
             except FileNotFoundError as exc:
-                logger.warning("BIDS load failed (%s); falling back to synthetic data.", exc)
+                logger.warning(
+                    "BIDS load failed (%s); falling back to synthetic data.", exc
+                )
             except Exception as exc:
-                logger.warning("BIDS load error (%s); falling back to synthetic data.", exc)
+                logger.warning(
+                    "BIDS load error (%s); falling back to synthetic data.", exc
+                )
         elif self.bids_root is not None and not HAS_MNE:
             logger.warning("MNE-Python not available; falling back to synthetic data.")
 
@@ -1137,7 +1203,10 @@ class EmpiricalIEEGValidator:
 
         logger.info(
             "VP-01-Empirical complete: %d/%d passed (%.0f%%) [%s data]",
-            tests_passed, tests_total, overall_score * 100, self.data_source,
+            tests_passed,
+            tests_total,
+            overall_score * 100,
+            self.data_source,
         )
         return results
 

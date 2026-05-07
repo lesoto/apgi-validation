@@ -66,16 +66,15 @@ Tier: SECONDARY
 
 VP_ALL_Aggregator.py registration
 ----------------------------------
-    "V21.1": "VP_FE_proxy",
-    "V21.2": "VP_FE_proxy",
-    "V21.3": "VP_FE_proxy",
+    "V21.1": "VP_20_FreeEnergy_PredictionError",
+    "V21.2": "VP_20_FreeEnergy_PredictionError",
+    "V21.3": "VP_20_FreeEnergy_PredictionError",
 """
 
 import logging
 import sys
 import warnings
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -106,18 +105,26 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 # Falsification thresholds
+DEFAULT_ALPHA: float = 0.05
+V21_MMN_MIN_R2: float = 0.60  # R² for exteroceptive PE decline
+V21_HEP_MIN_R2: float = 0.50  # R² for interoceptive PE decline
+V21_IGNITION_TRANSIENT_RATIO: float = 1.20  # spike must be ≥1.20× pre-ignition mean
+
+# Try to override with centralized values if available
 try:
     from utils.falsification_thresholds import (
-        DEFAULT_ALPHA,
-        V21_HEP_MIN_R2,
-        V21_IGNITION_TRANSIENT_RATIO,
-        V21_MMN_MIN_R2,
+        DEFAULT_ALPHA as _DEFAULT_ALPHA,
+        V21_HEP_MIN_R2 as _V21_HEP_MIN_R2,
+        V21_IGNITION_TRANSIENT_RATIO as _V21_IGNITION_TRANSIENT_RATIO,
+        V21_MMN_MIN_R2 as _V21_MMN_MIN_R2,
     )
+
+    DEFAULT_ALPHA = _DEFAULT_ALPHA
+    V21_MMN_MIN_R2 = _V21_MMN_MIN_R2
+    V21_HEP_MIN_R2 = _V21_HEP_MIN_R2
+    V21_IGNITION_TRANSIENT_RATIO = _V21_IGNITION_TRANSIENT_RATIO
 except ImportError:
-    DEFAULT_ALPHA: float = 0.05
-    V21_MMN_MIN_R2: float = 0.60      # R² for exteroceptive PE decline
-    V21_HEP_MIN_R2: float = 0.50      # R² for interoceptive PE decline
-    V21_IGNITION_TRANSIENT_RATIO: float = 1.20  # spike must be ≥1.20× pre-ignition mean
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +133,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 RANDOM_SEED: int = 42
-SFREQ: float = 1000.0         # Hz
-N_BLOCKS: int = 6             # 5-minute blocks in a 30-minute task
+SFREQ: float = 1000.0  # Hz
+N_BLOCKS: int = 6  # 5-minute blocks in a 30-minute task
 BLOCK_DURATION_S: float = 300.0
 N_SUBJECTS: int = 24
 
@@ -142,7 +149,7 @@ HEP_WIN_MS: Tuple[float, float] = (200.0, 500.0)
 # Oddball ratio
 STANDARD_PROB: float = 0.80
 DEVIANT_PROB: float = 0.20
-TONE_SOA_MS: float = 600.0    # stimulus onset asynchrony
+TONE_SOA_MS: float = 600.0  # stimulus onset asynchrony
 
 # Ignition probe: P3b threshold (µV)
 P3B_IGNITION_THRESHOLD_UV: float = 2.0
@@ -165,13 +172,13 @@ class BlockPE:
     """Block-level prediction-error summary for one subject."""
 
     subject_id: str
-    block_idx: int        # 0-based, 0 = first 5 min
-    mmn_amplitude_uv: float   # mean MMN peak amplitude (µV; negative = larger PE)
-    hep_deviation_uv: float   # HEP deviation from pre-task baseline (µV)
+    block_idx: int  # 0-based, 0 = first 5 min
+    mmn_amplitude_uv: float  # mean MMN peak amplitude (µV; negative = larger PE)
+    hep_deviation_uv: float  # HEP deviation from pre-task baseline (µV)
     n_deviants: int
     n_heartbeats: int
-    has_ignition: bool        # whether an ignition probe fell in this block
-    ignition_mmn_uv: Optional[float] = None   # PE amplitude at ignition onset
+    has_ignition: bool  # whether an ignition probe fell in this block
+    ignition_mmn_uv: Optional[float] = None  # PE amplitude at ignition onset
     ignition_hep_uv: Optional[float] = None
 
 
@@ -194,13 +201,17 @@ class SubjectTrajectory:
 # ---------------------------------------------------------------------------
 
 
-def _bandpass(data: np.ndarray, low: float, high: float, fs: float, order: int = 4) -> np.ndarray:
+def _bandpass(
+    data: np.ndarray, low: float, high: float, fs: float, order: int = 4
+) -> np.ndarray:
     nyq = fs / 2.0
     b, a = butter(order, [low / nyq, high / nyq], btype="band")
     return filtfilt(b, a, data)
 
 
-def _epoch_mean(data: np.ndarray, fs: float, t_start_ms: float, t_end_ms: float) -> float:
+def _epoch_mean(
+    data: np.ndarray, fs: float, t_start_ms: float, t_end_ms: float
+) -> float:
     """Mean amplitude in a time window of a 1-D ERP (t=0 at epoch centre)."""
     n = len(data)
     epoch_start_ms = -n / (2.0 * fs) * 1000.0
@@ -228,7 +239,9 @@ class MMNExtractor:
     MMN = deviant ERP − standard ERP, amplitude read in the 100–200 ms window.
     """
 
-    def __init__(self, fs: float = SFREQ, rng: Optional[np.random.Generator] = None) -> None:
+    def __init__(
+        self, fs: float = SFREQ, rng: Optional[np.random.Generator] = None
+    ) -> None:
         self.fs = fs
         self.rng = rng if rng is not None else np.random.default_rng(RANDOM_SEED)
         self._dt = 1.0 / fs
@@ -266,13 +279,18 @@ class MMNExtractor:
         """
         template = self._mmn_template(mmn_amplitude)
         # Simulate trial-level noise then average
-        trials = np.stack([
-            template + self.rng.normal(0.0, noise_level * mmn_amplitude, self.n_samples)
-            for _ in range(n_deviants)
-        ])
+        trials = np.stack(
+            [
+                template
+                + self.rng.normal(0.0, noise_level * mmn_amplitude, self.n_samples)
+                for _ in range(n_deviants)
+            ]
+        )
         erp = np.mean(trials, axis=0)
         # MMN peak = most negative point in 100–200 ms window
-        peak_idx = (self.t_ms >= MMN_PEAK_WINDOW_MS[0]) & (self.t_ms <= MMN_PEAK_WINDOW_MS[1])
+        peak_idx = (self.t_ms >= MMN_PEAK_WINDOW_MS[0]) & (
+            self.t_ms <= MMN_PEAK_WINDOW_MS[1]
+        )
         return float(np.min(erp[peak_idx]))
 
     def extract_from_epochs(
@@ -309,7 +327,9 @@ class HEPExtractor:
     Larger positive deviation → higher interoceptive PE.
     """
 
-    def __init__(self, fs: float = SFREQ, rng: Optional[np.random.Generator] = None) -> None:
+    def __init__(
+        self, fs: float = SFREQ, rng: Optional[np.random.Generator] = None
+    ) -> None:
         self.fs = fs
         self.rng = rng if rng is not None else np.random.default_rng(RANDOM_SEED)
         # Epoch: −200 to +700 ms around R-peak
@@ -335,10 +355,15 @@ class HEPExtractor:
         Simulate trial-averaged HEP and return window-mean amplitude (µV).
         """
         template = self._hep_template(hep_amplitude)
-        trials = np.stack([
-            template + self.rng.normal(0.0, noise_level * abs(hep_amplitude) + 0.1, self.n_samples)
-            for _ in range(n_heartbeats)
-        ])
+        trials = np.stack(
+            [
+                template
+                + self.rng.normal(
+                    0.0, noise_level * abs(hep_amplitude) + 0.1, self.n_samples
+                )
+                for _ in range(n_heartbeats)
+            ]
+        )
         erp = np.mean(trials, axis=0)
         mask = (self.t_ms >= HEP_WIN_MS[0]) & (self.t_ms <= HEP_WIN_MS[1])
         return float(np.mean(erp[mask]))
@@ -349,7 +374,7 @@ class HEPExtractor:
 
         Returns mean amplitude in 200–500 ms window (µV).
         """
-        data = r_peak_epochs.get_data(units="uV")   # (n_epochs, n_ch, n_times)
+        data = r_peak_epochs.get_data(units="uV")  # (n_epochs, n_ch, n_times)
         mean_wave = np.mean(np.mean(data, axis=0), axis=0)  # channel+epoch average
         times_ms = r_peak_epochs.times * 1000.0
         mask = (times_ms >= HEP_WIN_MS[0]) & (times_ms <= HEP_WIN_MS[1])
@@ -425,7 +450,9 @@ class FEProxySimulator:
 
             traj = SubjectTrajectory(subject_id=subject_id)
             for b in range(N_BLOCKS):
-                n_deviants = int(DEVIANT_PROB * (BLOCK_DURATION_S * 1000.0 / TONE_SOA_MS))
+                n_deviants = int(
+                    DEVIANT_PROB * (BLOCK_DURATION_S * 1000.0 / TONE_SOA_MS)
+                )
                 n_heartbeats = int(BLOCK_DURATION_S * 1.1)  # ~66 bpm
 
                 has_ignition = b in ignition_blocks
@@ -436,30 +463,40 @@ class FEProxySimulator:
                 ig_mmn: Optional[float] = None
                 ig_hep: Optional[float] = None
                 if has_ignition:
-                    ig_mmn = mmn_amp * V21_IGNITION_TRANSIENT_RATIO * (
-                        1.0 + self.rng.normal(0.0, 0.05)
+                    ig_mmn = (
+                        mmn_amp
+                        * V21_IGNITION_TRANSIENT_RATIO
+                        * (1.0 + self.rng.normal(0.0, 0.05))
                     )
-                    ig_hep = hep_amp * V21_IGNITION_TRANSIENT_RATIO * (
-                        1.0 + self.rng.normal(0.0, 0.05)
+                    ig_hep = (
+                        hep_amp
+                        * V21_IGNITION_TRANSIENT_RATIO
+                        * (1.0 + self.rng.normal(0.0, 0.05))
                     )
 
                 measured_mmn = self._mmn_ext.simulate_block_mmn(n_deviants, mmn_amp)
                 measured_hep = self._hep_ext.simulate_block_hep(n_heartbeats, hep_amp)
 
-                traj.blocks.append(BlockPE(
-                    subject_id=subject_id,
-                    block_idx=b,
-                    mmn_amplitude_uv=measured_mmn,
-                    hep_deviation_uv=measured_hep,
-                    n_deviants=n_deviants,
-                    n_heartbeats=n_heartbeats,
-                    has_ignition=has_ignition,
-                    ignition_mmn_uv=ig_mmn,
-                    ignition_hep_uv=ig_hep,
-                ))
+                traj.blocks.append(
+                    BlockPE(
+                        subject_id=subject_id,
+                        block_idx=b,
+                        mmn_amplitude_uv=measured_mmn,
+                        hep_deviation_uv=measured_hep,
+                        n_deviants=n_deviants,
+                        n_heartbeats=n_heartbeats,
+                        has_ignition=has_ignition,
+                        ignition_mmn_uv=ig_mmn,
+                        ignition_hep_uv=ig_hep,
+                    )
+                )
             trajectories.append(traj)
 
-        logger.info("Simulated %d subject trajectories (%d blocks each).", self.n_subjects, N_BLOCKS)
+        logger.info(
+            "Simulated %d subject trajectories (%d blocks each).",
+            self.n_subjects,
+            N_BLOCKS,
+        )
         return trajectories
 
 
@@ -508,7 +545,9 @@ class BIDSFELoader:
             raw.resample(self.sfreq_target, verbose=False)
         return raw
 
-    def _load_events(self, raw: "mne.io.BaseRaw", events_path: Path) -> Tuple[np.ndarray, Dict[str, int]]:
+    def _load_events(
+        self, raw: "mne.io.BaseRaw", events_path: Path
+    ) -> Tuple[np.ndarray, Dict[str, int]]:
         import pandas as pd
 
         if not events_path.exists():
@@ -527,10 +566,13 @@ class BIDSFELoader:
         return events, event_id
 
     def load(self, max_subjects: Optional[int] = None) -> List[SubjectTrajectory]:
-        import pandas as pd
 
-        patterns = ["**/*_task-oddball_eeg.edf", "**/*_task-oddball_eeg.set",
-                    "**/*_task-oddball_eeg.fif", "**/*_task-oddball_eeg.vhdr"]
+        patterns = [
+            "**/*_task-oddball_eeg.edf",
+            "**/*_task-oddball_eeg.set",
+            "**/*_task-oddball_eeg.fif",
+            "**/*_task-oddball_eeg.vhdr",
+        ]
         files: List[Path] = []
         for pat in patterns:
             files.extend(sorted(self.bids_root.glob(pat)))
@@ -563,8 +605,9 @@ class BIDSFELoader:
                     for b in range(N_BLOCKS):
                         t_start = b * block_s
                         t_end = (b + 1) * block_s
-                        block_mask = (events[:, 0] / raw.info["sfreq"] >= t_start) & \
-                                     (events[:, 0] / raw.info["sfreq"] < t_end)
+                        block_mask = (events[:, 0] / raw.info["sfreq"] >= t_start) & (
+                            events[:, 0] / raw.info["sfreq"] < t_end
+                        )
                         block_events = events[block_mask]
 
                         std_ev = block_events[block_events[:, 2] == 1]
@@ -573,27 +616,50 @@ class BIDSFELoader:
 
                         mmn_val = 0.0
                         if len(std_ev) >= 5 and len(dev_ev) >= 5:
-                            ep_std = mne.Epochs(raw, std_ev, tmin=-0.1, tmax=0.25,
-                                               baseline=(-0.1, 0), preload=True, verbose=False)
-                            ep_dev = mne.Epochs(raw, dev_ev, tmin=-0.1, tmax=0.25,
-                                               baseline=(-0.1, 0), preload=True, verbose=False)
+                            ep_std = mne.Epochs(
+                                raw,
+                                std_ev,
+                                tmin=-0.1,
+                                tmax=0.25,
+                                baseline=(-0.1, 0),
+                                preload=True,
+                                verbose=False,
+                            )
+                            ep_dev = mne.Epochs(
+                                raw,
+                                dev_ev,
+                                tmin=-0.1,
+                                tmax=0.25,
+                                baseline=(-0.1, 0),
+                                preload=True,
+                                verbose=False,
+                            )
                             mmn_val = mmn_ext.extract_from_epochs(ep_std, ep_dev)
 
                         hep_val = 0.0
                         if len(rp_ev) >= 5:
-                            ep_rp = mne.Epochs(raw, rp_ev, tmin=-0.2, tmax=0.7,
-                                              baseline=(-0.2, 0), preload=True, verbose=False)
+                            ep_rp = mne.Epochs(
+                                raw,
+                                rp_ev,
+                                tmin=-0.2,
+                                tmax=0.7,
+                                baseline=(-0.2, 0),
+                                preload=True,
+                                verbose=False,
+                            )
                             hep_val = hep_ext.extract_from_epochs(ep_rp)
 
-                        traj.blocks.append(BlockPE(
-                            subject_id=sub_id,
-                            block_idx=b,
-                            mmn_amplitude_uv=mmn_val,
-                            hep_deviation_uv=hep_val,
-                            n_deviants=len(dev_ev),
-                            n_heartbeats=len(rp_ev),
-                            has_ignition=False,
-                        ))
+                        traj.blocks.append(
+                            BlockPE(
+                                subject_id=sub_id,
+                                block_idx=b,
+                                mmn_amplitude_uv=mmn_val,
+                                hep_deviation_uv=hep_val,
+                                n_deviants=len(dev_ev),
+                                n_heartbeats=len(rp_ev),
+                                has_ignition=False,
+                            )
+                        )
                 except Exception as exc:
                     logger.warning("Could not process %s block %d: %s", sub_id, b, exc)
             if traj.blocks:
@@ -622,7 +688,7 @@ def _linear_regression_stats(
     result = stats.linregress(x, y)
     slope = float(result.slope)
     intercept = float(result.intercept)
-    r2 = float(result.rvalue ** 2)
+    r2 = float(result.rvalue**2)
     # One-sided p-value: slope < 0
     p_one = float(result.pvalue / 2.0) if slope < 0 else 1.0
     return slope, intercept, r2, p_one
@@ -630,7 +696,7 @@ def _linear_regression_stats(
 
 def test_monotone_decline(
     trajectories: List[SubjectTrajectory],
-    signal: str,                  # "mmn" | "hep"
+    signal: str,  # "mmn" | "hep"
     min_r2: float,
 ) -> Dict[str, Any]:
     """
@@ -657,11 +723,17 @@ def test_monotone_decline(
         per_subject.append(vals)
 
     if not per_subject:
-        return {"signal": signal, "slope": 0.0, "r2": 0.0, "pvalue": 1.0,
-                "subject_slopes": [], "passed": False}
+        return {
+            "signal": signal,
+            "slope": 0.0,
+            "r2": 0.0,
+            "pvalue": 1.0,
+            "subject_slopes": [],
+            "passed": False,
+        }
 
-    mat = np.vstack(per_subject)             # (n_subjects, N_BLOCKS)
-    group_mean = np.mean(mat, axis=0)        # (N_BLOCKS,)
+    mat = np.vstack(per_subject)  # (n_subjects, N_BLOCKS)
+    group_mean = np.mean(mat, axis=0)  # (N_BLOCKS,)
 
     slope, intercept, r2, p_group = _linear_regression_stats(group_mean)
 
@@ -675,12 +747,22 @@ def test_monotone_decline(
     p_t_one = float(p_t / 2.0) if t_stat < 0 else 1.0
 
     # Pass if group regression meets R² and both group + subject tests significant
-    passed = slope < 0 and r2 >= min_r2 and p_group < DEFAULT_ALPHA and p_t_one < DEFAULT_ALPHA
+    passed = (
+        slope < 0
+        and r2 >= min_r2
+        and p_group < DEFAULT_ALPHA
+        and p_t_one < DEFAULT_ALPHA
+    )
 
     label = "V21.1 (MMN)" if signal == "mmn" else "V21.2 (HEP)"
     logger.info(
         "%s: slope=%.4f, R²=%.3f, p_group=%.4f, p_subj=%.4f — %s",
-        label, slope, r2, p_group, p_t_one, "PASS" if passed else "FAIL",
+        label,
+        slope,
+        r2,
+        p_group,
+        p_t_one,
+        "PASS" if passed else "FAIL",
     )
     return {
         "signal": signal,
@@ -730,10 +812,16 @@ def test_ignition_transient(
             pre_mmn = abs(blocks[b_idx - 1].mmn_amplitude_uv)
             pre_hep = abs(blocks[b_idx - 1].hep_deviation_uv)
 
-            ig_mmn = abs(block.ignition_mmn_uv) if block.ignition_mmn_uv is not None \
+            ig_mmn = (
+                abs(block.ignition_mmn_uv)
+                if block.ignition_mmn_uv is not None
                 else abs(block.mmn_amplitude_uv)
-            ig_hep = abs(block.ignition_hep_uv) if block.ignition_hep_uv is not None \
+            )
+            ig_hep = (
+                abs(block.ignition_hep_uv)
+                if block.ignition_hep_uv is not None
                 else abs(block.hep_deviation_uv)
+            )
 
             post_mmn = abs(blocks[b_idx + 1].mmn_amplitude_uv)
             post_hep = abs(blocks[b_idx + 1].hep_deviation_uv)
@@ -775,8 +863,10 @@ def test_ignition_transient(
 
     logger.info(
         "V21.3: MMN spike=%.2f× (res=%.0f%%), HEP spike=%.2f× (res=%.0f%%) — %s",
-        mmn_ratio_mean, mmn_res_rate * 100,
-        hep_ratio_mean, hep_res_rate * 100,
+        mmn_ratio_mean,
+        mmn_res_rate * 100,
+        hep_ratio_mean,
+        hep_res_rate * 100,
         "PASS" if passed else "FAIL",
     )
     return {
@@ -818,8 +908,14 @@ def generate_figures(
         slope = mmn_result["slope"]
         interc = mmn_result["intercept"]
         fit_x = np.array([0, N_BLOCKS - 1], dtype=float)
-        ax.plot(block_x[[0, -1]], slope * fit_x + interc, "--", color="steelblue",
-                alpha=0.6, label=f"OLS slope={slope:.3f}")
+        ax.plot(
+            block_x[[0, -1]],
+            slope * fit_x + interc,
+            "--",
+            color="steelblue",
+            alpha=0.6,
+            label=f"OLS slope={slope:.3f}",
+        )
     ax.set_xlabel("Block (5 min each)")
     ax.set_ylabel("MMN amplitude (µV)")
     ax.set_title(
@@ -838,8 +934,14 @@ def generate_figures(
         ax2.plot(block_x, hep_traj, "o-", color="tomato", label="Group mean")
         slope2 = hep_result["slope"]
         interc2 = hep_result["intercept"]
-        ax2.plot(block_x[[0, -1]], slope2 * fit_x + interc2, "--", color="tomato",
-                 alpha=0.6, label=f"OLS slope={slope2:.3f}")
+        ax2.plot(
+            block_x[[0, -1]],
+            slope2 * fit_x + interc2,
+            "--",
+            color="tomato",
+            alpha=0.6,
+            label=f"OLS slope={slope2:.3f}",
+        )
     ax2.set_xlabel("Block (5 min each)")
     ax2.set_ylabel("HEP deviation (µV)")
     ax2.set_title(
@@ -855,10 +957,13 @@ def generate_figures(
     ax3 = axes[2]
     mmn_r = ig_result.get("mmn_spike_ratio_mean", 0)
     hep_r = ig_result.get("hep_spike_ratio_mean", 0)
-    bars = ax3.bar(["MMN spike", "HEP spike"], [mmn_r, hep_r],
-                   color=["steelblue", "tomato"])
-    ax3.axhline(V21_IGNITION_TRANSIENT_RATIO, color="red", linestyle="--",
-                label=f"Threshold ({V21_IGNITION_TRANSIENT_RATIO:.2f}×)")
+    ax3.bar(["MMN spike", "HEP spike"], [mmn_r, hep_r], color=["steelblue", "tomato"])
+    ax3.axhline(
+        V21_IGNITION_TRANSIENT_RATIO,
+        color="red",
+        linestyle="--",
+        label=f"Threshold ({V21_IGNITION_TRANSIENT_RATIO:.2f}×)",
+    )
     ax3.set_ylabel("Spike ratio (ignition / pre-ignition)")
     ax3.set_title(
         f"V21.3 — Ignition PE transient\n"
@@ -875,7 +980,7 @@ def generate_figures(
         fontsize=10,
     )
     fig.tight_layout()
-    path = out_dir / "VP_FE_proxy.png"
+    path = out_dir / "VP_20_FreeEnergy_PredictionError.png"
     fig.savefig(path, dpi=100, bbox_inches="tight")
     plt.close(fig)
     logger.info("Saved figure: %s", path)
@@ -979,7 +1084,7 @@ class FEProxyValidator:
         )
 
         results: Dict[str, Any] = {
-            "protocol": "VP_FE_proxy",
+            "protocol": "VP_20_FreeEnergy_PredictionError",
             "data_source": self.data_source,
             "n_subjects": n_subjects,
             "n_blocks": N_BLOCKS,
@@ -1022,7 +1127,10 @@ class FEProxyValidator:
 
         logger.info(
             "VP-FE-Proxy complete: %d/%d passed (%.0f%%) [%s data]",
-            tests_passed, tests_total, results["overall_score"] * 100, self.data_source,
+            tests_passed,
+            tests_total,
+            results["overall_score"] * 100,
+            self.data_source,
         )
         return results
 
@@ -1048,7 +1156,9 @@ def run_validation(
     max_subjects : cap subjects (useful for fast CI tests)
     """
     _seed = seed if seed is not None else RANDOM_SEED
-    validator = FEProxyValidator(bids_root=bids_root, seed=_seed, max_subjects=max_subjects)
+    validator = FEProxyValidator(
+        bids_root=bids_root, seed=_seed, max_subjects=max_subjects
+    )
     return validator.run_full_validation()
 
 
@@ -1061,7 +1171,9 @@ def main() -> None:
     """CLI entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="VP-FE-Proxy: PE tracking as F(t) approximation")
+    parser = argparse.ArgumentParser(
+        description="VP-FE-Proxy: PE tracking as F(t) approximation"
+    )
     parser.add_argument("--bids-root", default=None, help="BIDS EEG dataset root")
     parser.add_argument("--seed", type=int, default=RANDOM_SEED)
     parser.add_argument("--max-subjects", type=int, default=None)

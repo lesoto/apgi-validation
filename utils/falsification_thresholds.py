@@ -278,36 +278,42 @@ V17_ALPHA: float = 0.05  # significance level
 # MMN amplitude and HEP deviation are neural PE proxies, NOT direct measures
 # of variational free energy F(t).  The thermodynamic bridge (L2 → L1)
 # requires PET/fMRS and is out of scope for this protocol.
-V21_MMN_MIN_R2: float = 0.60      # R² for exteroceptive PE (MMN) monotone decline
-V21_HEP_MIN_R2: float = 0.50      # R² for interoceptive PE (HEP) monotone decline
-V21_IGNITION_TRANSIENT_RATIO: float = 1.20  # ignition-window PE ≥ 1.20× pre-ignition mean
+V21_MMN_MIN_R2: float = 0.60  # R² for exteroceptive PE (MMN) monotone decline
+V21_HEP_MIN_R2: float = 0.50  # R² for interoceptive PE (HEP) monotone decline
+V21_IGNITION_TRANSIENT_RATIO: float = (
+    1.20  # ignition-window PE ≥ 1.20× pre-ignition mean
+)
 
 # ---------------------------------------------------------------------------
 # V20 – Empirical iEEG Pipeline (BIDS-iEEG, P6a + P6c)
 # ---------------------------------------------------------------------------
 # P6a: GMM bimodality — high-gamma mode occupancy advantage (conscious > unconscious)
-V20_HG_BIMODALITY_COEFF_MIN: float = 0.55  # bimodality coefficient ≥ 0.55 (mode separation)
+V20_HG_BIMODALITY_COEFF_MIN: float = (
+    0.55  # bimodality coefficient ≥ 0.55 (mode separation)
+)
 V20_HG_OCCUPANCY_COHENS_D_MIN: float = 0.50  # Cohen's d ≥ 0.50 (medium effect)
 
 # P6c: Critical slowing — AC1 and variance advantage (hits-near-threshold > misses)
-V20_AC1_ADVANTAGE_MIN: float = 0.05   # raw AC1 difference (hits − misses) ≥ 0.05
-V20_VARIANCE_ADVANTAGE_MIN: float = 0.10  # raw variance difference (hits − misses) ≥ 0.10
+V20_AC1_ADVANTAGE_MIN: float = 0.05  # raw AC1 difference (hits − misses) ≥ 0.05
+V20_VARIANCE_ADVANTAGE_MIN: float = (
+    0.10  # raw variance difference (hits − misses) ≥ 0.10
+)
 
 # ---------------------------------------------------------------------------
 # V19 – Information Erasure Protocol (MVPA)
 # ---------------------------------------------------------------------------
-V19_BELOW_CHANCE_THRESHOLD: float = 0.48      # post-ignition accuracy must drop below this
+V19_BELOW_CHANCE_THRESHOLD: float = 0.48  # post-ignition accuracy must drop below this
 V19_MIN_PRE_IGNITION_ACCURACY: float = 0.60  # losing stimulus decodable pre-ignition
-V19_CONTROL_DECODABILITY_MIN: float = 0.60   # both stims decodable on subliminal trials
-V19_N_PERMUTATIONS: int = 500                # permutations for chance distribution
+V19_CONTROL_DECODABILITY_MIN: float = 0.60  # both stims decodable on subliminal trials
+V19_N_PERMUTATIONS: int = 500  # permutations for chance distribution
 V19_POST_IGNITION_SUPPRESSION_BINS: int = 3  # consecutive below-chance bins required
 
 # ---------------------------------------------------------------------------
 # V18 – EEG Microstate Energy Analysis (GFP / P3b)
 # ---------------------------------------------------------------------------
 V18_GFP_AUC_IGNITION_ADVANTAGE: float = 0.20  # ≥20 % larger GFP-AUC on ignition trials
-V18_AUC_COHENS_D_MIN: float = 0.50            # Cohen's d ≥ 0.50 (medium effect)
-V18_ST_CORRELATION_MIN: float = 0.30          # r ≥ 0.30 between GFP-AUC and Sₜ
+V18_AUC_COHENS_D_MIN: float = 0.50  # Cohen's d ≥ 0.50 (medium effect)
+V18_ST_CORRELATION_MIN: float = 0.30  # r ≥ 0.30 between GFP-AUC and Sₜ
 
 # ---------------------------------------------------------------------------
 # V16 – Metabolic ATP Ground-Truth

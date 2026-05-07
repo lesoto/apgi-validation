@@ -4,7 +4,7 @@ Tests for VP_18_EEG_Microstate_GFP_P3b.py
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -16,15 +16,14 @@ from Validation.VP_18_EEG_Microstate_GFP_P3b import (
     GFPMicrostateValidator,
     GFPResult,
     OddballEEGSimulator,
-    EpochMetadata,
     run_validation,
     validate,
 )
 
-
 # ---------------------------------------------------------------------------
 # OddballEEGSimulator tests
 # ---------------------------------------------------------------------------
+
 
 class TestOddballEEGSimulator:
 
@@ -103,6 +102,7 @@ class TestOddballEEGSimulator:
 # GFPMicrostateValidator tests
 # ---------------------------------------------------------------------------
 
+
 class TestGFPMicrostateValidator:
 
     @pytest.fixture
@@ -129,22 +129,39 @@ class TestGFPMicrostateValidator:
 
     def test_validate_gfp_auc_ignition_effect_keys(self, small_validator):
         result = small_validator.validate_gfp_auc_ignition_effect()
-        for key in ("test_name", "prediction_id", "t_statistic", "p_value",
-                    "cohens_d", "passed"):
+        for key in (
+            "test_name",
+            "prediction_id",
+            "t_statistic",
+            "p_value",
+            "cohens_d",
+            "passed",
+        ):
             assert key in result
         assert result["prediction_id"] == "V18.1"
 
     def test_validate_proportional_advantage_keys(self, small_validator):
         result = small_validator.validate_proportional_advantage()
-        for key in ("test_name", "prediction_id", "proportional_advantage",
-                    "threshold", "passed"):
+        for key in (
+            "test_name",
+            "prediction_id",
+            "proportional_advantage",
+            "threshold",
+            "passed",
+        ):
             assert key in result
         assert result["prediction_id"] == "V18.2"
 
     def test_validate_st_correlation_keys(self, small_validator):
         result = small_validator.validate_st_correlation()
-        for key in ("test_name", "prediction_id", "pearson_r", "p_value",
-                    "threshold_r", "passed"):
+        for key in (
+            "test_name",
+            "prediction_id",
+            "pearson_r",
+            "p_value",
+            "threshold_r",
+            "passed",
+        ):
             assert key in result
         assert result["prediction_id"] == "V18.3"
 
@@ -214,6 +231,7 @@ class TestGFPMicrostateValidator:
 # ---------------------------------------------------------------------------
 # Public entry-point tests
 # ---------------------------------------------------------------------------
+
 
 class TestRunValidation:
 

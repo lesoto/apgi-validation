@@ -17,13 +17,29 @@ class TestStandard:
 
     def test_standard_creation(self):
         """Test creating a standard."""
+        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+
         standard = Standard(
-            id="TEST-001",
+            standard_id="TEST-001",
             name="Test Standard",
+            category=StandardCategory.MATHEMATICAL,
             description="A test standard",
-            requirements=["req1", "req2"],
+            rationale="Test rationale",
+            criteria=[
+                ValidationCriterion(
+                    name="Test Criterion",
+                    description="Test description",
+                    falsification_threshold="Test threshold",
+                    test_method="Test method",
+                    effect_size_requirement="Test effect",
+                    alternative_criterion="Test alternative",
+                    priority_level="Medium",
+                    current_status="Proposed",
+                )
+            ],
+            overall_status="Proposed",
         )
-        assert standard.id == "TEST-001"
+        assert standard.standard_id == "TEST-001"
         assert standard.name == "Test Standard"
 
 
@@ -47,34 +63,66 @@ class TestStandardsRegistry:
 
     def test_register_standard(self):
         """Test registering a standard."""
+        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+
         registry = StandardsRegistry()
         standard = Standard(
-            id="REG-001",
+            standard_id="REG-001",
             name="Registration Test",
+            category=StandardCategory.EMPIRICAL,
             description="Test registration",
-            requirements=["req1"],
+            rationale="Test rationale",
+            criteria=[
+                ValidationCriterion(
+                    name="Test Criterion",
+                    description="Test description",
+                    falsification_threshold="Test threshold",
+                    test_method="Test method",
+                    effect_size_requirement="Test effect",
+                    alternative_criterion="Test alternative",
+                    priority_level="Medium",
+                    current_status="Proposed",
+                )
+            ],
+            overall_status="Proposed",
         )
-        registry.register(standard)
-        assert "REG-001" in registry
+        registry.register_standard(standard)
+        assert "REG-001" in registry._standards
 
     def test_get_standard(self):
         """Test retrieving a standard."""
+        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+
         registry = StandardsRegistry()
         standard = Standard(
-            id="GET-001",
+            standard_id="GET-001",
             name="Get Test",
+            category=StandardCategory.COMPUTATIONAL,
             description="Test get",
-            requirements=["req1"],
+            rationale="Test rationale",
+            criteria=[
+                ValidationCriterion(
+                    name="Test Criterion",
+                    description="Test description",
+                    falsification_threshold="Test threshold",
+                    test_method="Test method",
+                    effect_size_requirement="Test effect",
+                    alternative_criterion="Test alternative",
+                    priority_level="Medium",
+                    current_status="Proposed",
+                )
+            ],
+            overall_status="Proposed",
         )
-        registry.register(standard)
+        registry.register_standard(standard)
 
-        retrieved = registry.get("GET-001")
+        retrieved = registry.get_standard("GET-001")
         assert retrieved == standard
 
     def test_list_standards(self):
         """Test listing all standards."""
         registry = StandardsRegistry()
-        standards = registry.list_all()
+        standards = registry.list_standards()
         assert isinstance(standards, list)
 
 
@@ -83,11 +131,27 @@ class TestRegisterStandard:
 
     def test_register_global_standard(self):
         """Test registering to global registry."""
+        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+
         standard = Standard(
-            id="GLOBAL-001",
+            standard_id="GLOBAL-001",
             name="Global Test",
+            category=StandardCategory.NEUROBIOLOGICAL,
             description="Test global registration",
-            requirements=["req1"],
+            rationale="Test rationale",
+            criteria=[
+                ValidationCriterion(
+                    name="Test Criterion",
+                    description="Test description",
+                    falsification_threshold="Test threshold",
+                    test_method="Test method",
+                    effect_size_requirement="Test effect",
+                    alternative_criterion="Test alternative",
+                    priority_level="Medium",
+                    current_status="Proposed",
+                )
+            ],
+            overall_status="Proposed",
         )
         register_standard(standard)
         # Should be accessible via get_standard
@@ -100,12 +164,28 @@ class TestGetStandard:
 
     def test_get_existing_standard(self):
         """Test getting an existing standard."""
+        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+
         # Register first
         standard = Standard(
-            id="EXIST-001",
+            standard_id="EXIST-001",
             name="Existing",
+            category=StandardCategory.PREDICTIVE,
             description="Test existing",
-            requirements=["req1"],
+            rationale="Test rationale",
+            criteria=[
+                ValidationCriterion(
+                    name="Test Criterion",
+                    description="Test description",
+                    falsification_threshold="Test threshold",
+                    test_method="Test method",
+                    effect_size_requirement="Test effect",
+                    alternative_criterion="Test alternative",
+                    priority_level="Medium",
+                    current_status="Proposed",
+                )
+            ],
+            overall_status="Proposed",
         )
         register_standard(standard)
 
@@ -138,30 +218,90 @@ class TestCheckCompliance:
 
     def test_check_full_compliance(self):
         """Test checking full compliance."""
+        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+
         standard = Standard(
-            id="COMP-001",
+            standard_id="COMP-001",
             name="Compliance Test",
+            category=StandardCategory.CROSS_SPECIES,
             description="Test compliance",
-            requirements=["req1", "req2"],
+            rationale="Test rationale",
+            criteria=[
+                ValidationCriterion(
+                    name="Test Criterion 1",
+                    description="Test description",
+                    falsification_threshold="Test threshold",
+                    test_method="Test method",
+                    effect_size_requirement="Test effect",
+                    alternative_criterion="Test alternative",
+                    priority_level="Medium",
+                    current_status="Implemented",
+                ),
+                ValidationCriterion(
+                    name="Test Criterion 2",
+                    description="Test description",
+                    falsification_threshold="Test threshold",
+                    test_method="Test method",
+                    effect_size_requirement="Test effect",
+                    alternative_criterion="Test alternative",
+                    priority_level="Medium",
+                    current_status="Implemented",
+                ),
+            ],
+            overall_status="Implemented",
         )
         register_standard(standard)
 
-        implementation = {"req1": True, "req2": True}
-        result = check_compliance("COMP-001", implementation)
+        result = check_compliance("COMP-001", 0.95)
         assert result.level == ComplianceLevel.FULL
 
     def test_check_partial_compliance(self):
         """Test checking partial compliance."""
+        from utils.seven_standards_registry import ValidationCriterion, StandardCategory
+
         standard = Standard(
-            id="PART-001",
+            standard_id="PART-001",
             name="Partial Test",
+            category=StandardCategory.CLINICAL,
             description="Test partial",
-            requirements=["req1", "req2", "req3"],
+            rationale="Test rationale",
+            criteria=[
+                ValidationCriterion(
+                    name="Test Criterion 1",
+                    description="Test description",
+                    falsification_threshold="Test threshold",
+                    test_method="Test method",
+                    effect_size_requirement="Test effect",
+                    alternative_criterion="Test alternative",
+                    priority_level="Medium",
+                    current_status="Implemented",
+                ),
+                ValidationCriterion(
+                    name="Test Criterion 2",
+                    description="Test description",
+                    falsification_threshold="Test threshold",
+                    test_method="Test method",
+                    effect_size_requirement="Test effect",
+                    alternative_criterion="Test alternative",
+                    priority_level="Medium",
+                    current_status="Implemented",
+                ),
+                ValidationCriterion(
+                    name="Test Criterion 3",
+                    description="Test description",
+                    falsification_threshold="Test threshold",
+                    test_method="Test method",
+                    effect_size_requirement="Test effect",
+                    alternative_criterion="Test alternative",
+                    priority_level="Medium",
+                    current_status="Implemented",
+                ),
+            ],
+            overall_status="Partial",
         )
         register_standard(standard)
 
-        implementation = {"req1": True, "req2": False, "req3": True}
-        result = check_compliance("PART-001", implementation)
+        result = check_compliance("PART-001", 0.7)
         assert result.level == ComplianceLevel.PARTIAL
 
 
@@ -175,7 +315,20 @@ class TestSevenStandards:
 
     def test_seven_standards_are_valid(self):
         """Test that all seven standards are valid."""
-        for standard in SEVEN_STANDARDS:
-            assert isinstance(standard, Standard)
-            assert standard.id is not None
-            assert standard.name is not None
+        # SEVEN_STANDARDS is a dictionary, not a list of Standard objects
+        assert isinstance(SEVEN_STANDARDS, dict)
+        assert len(SEVEN_STANDARDS) == 7
+
+        # Check that all keys are present
+        expected_keys = [
+            "mathematical",
+            "empirical",
+            "computational",
+            "neurobiological",
+            "predictive",
+            "cross_species",
+            "clinical",
+        ]
+        for key in expected_keys:
+            assert key in SEVEN_STANDARDS
+            assert isinstance(SEVEN_STANDARDS[key], str)

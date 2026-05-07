@@ -45,7 +45,7 @@ VP_ALL_Aggregator.py registration:
 
 import logging
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -80,8 +80,8 @@ try:
 except ImportError:
     DEFAULT_ALPHA = 0.05
     V18_GFP_AUC_IGNITION_ADVANTAGE = 0.20  # ≥20 % larger GFP-AUC on ignition trials
-    V18_AUC_COHENS_D_MIN = 0.50            # Cohen's d ≥ 0.50 (medium effect)
-    V18_ST_CORRELATION_MIN = 0.30          # r ≥ 0.30 between GFP-AUC and Sₜ
+    V18_AUC_COHENS_D_MIN = 0.50  # Cohen's d ≥ 0.50 (medium effect)
+    V18_ST_CORRELATION_MIN = 0.30  # r ≥ 0.30 between GFP-AUC and Sₜ
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +94,8 @@ GFP_WINDOW_MS: Tuple[float, float] = (250.0, 600.0)
 
 # Simulated EEG parameters
 N_ELECTRODES: int = 64
-SAMPLING_RATE_HZ: float = 1000.0   # 1 ms resolution
-EPOCH_DURATION_MS: float = 800.0   # –200 to +600 ms
+SAMPLING_RATE_HZ: float = 1000.0  # 1 ms resolution
+EPOCH_DURATION_MS: float = 800.0  # –200 to +600 ms
 
 RANDOM_SEED: int = 42
 
@@ -104,7 +104,7 @@ RANDOM_SEED: int = 42
 class EpochMetadata:
     subject_id: int
     trial_id: int
-    condition: str          # "ignition" | "no_ignition"
+    condition: str  # "ignition" | "no_ignition"
     ignition_strength: float  # Sₜ ∈ [0, 1]
 
 
@@ -112,13 +112,14 @@ class EpochMetadata:
 class GFPResult:
     epoch_meta: EpochMetadata
     gfp_timeseries: np.ndarray  # shape (n_timepoints,)
-    gfp_auc: float              # area under GFP curve in 250–600 ms window
-    timepoints_ms: np.ndarray   # shape (n_timepoints,)
+    gfp_auc: float  # area under GFP curve in 250–600 ms window
+    timepoints_ms: np.ndarray  # shape (n_timepoints,)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Simulator
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class OddballEEGSimulator:
     """
@@ -150,9 +151,9 @@ class OddballEEGSimulator:
         self.timepoints_ms = np.linspace(-200.0, 600.0, self.n_timepoints)
 
         # Indices for GFP-AUC window
-        self.window_idx = (
-            self.timepoints_ms >= GFP_WINDOW_MS[0]
-        ) & (self.timepoints_ms <= GFP_WINDOW_MS[1])
+        self.window_idx = (self.timepoints_ms >= GFP_WINDOW_MS[0]) & (
+            self.timepoints_ms <= GFP_WINDOW_MS[1]
+        )
 
         # Spatial covariance matrix (simple 1/distance kernel)
         self._spatial_cov = self._build_spatial_cov()
@@ -169,9 +170,7 @@ class OddballEEGSimulator:
         """Gaussian P3b bump centred at 380 ms (σ = 60 ms)."""
         mu = 380.0
         sigma = 60.0
-        template = amplitude * np.exp(
-            -0.5 * ((self.timepoints_ms - mu) / sigma) ** 2
-        )
+        template = amplitude * np.exp(-0.5 * ((self.timepoints_ms - mu) / sigma) ** 2)
         # Zero before stimulus onset
         template[self.timepoints_ms < 0] = 0.0
         return template
@@ -222,7 +221,9 @@ class OddballEEGSimulator:
         gfp_auc = float(trapz(window_gfp, window_t))
 
         return GFPResult(
-            epoch_meta=EpochMetadata(subject_id, trial_id, condition, ignition_strength),
+            epoch_meta=EpochMetadata(
+                subject_id, trial_id, condition, ignition_strength
+            ),
             gfp_timeseries=gfp,
             gfp_auc=gfp_auc,
             timepoints_ms=self.timepoints_ms,
@@ -243,9 +244,7 @@ class OddballEEGSimulator:
 
                 # No-ignition trials: Sₜ drawn from Beta(1.5, 3) → skewed toward 0
                 st_no = float(self.rng.beta(1.5, 3.0))
-                dataset.append(
-                    self._simulate_epoch(subj, trial, "no_ignition", st_no)
-                )
+                dataset.append(self._simulate_epoch(subj, trial, "no_ignition", st_no))
 
         return dataset
 
@@ -253,6 +252,7 @@ class OddballEEGSimulator:
 # ──────────────────────────────────────────────────────────────────────────────
 # Validator
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class GFPMicrostateValidator:
     """
@@ -308,12 +308,16 @@ class GFPMicrostateValidator:
 
         t_stat, p_value = stats.ttest_ind(ig_aucs, no_aucs, equal_var=False)
 
-        pooled_sd = np.sqrt(
-            (np.var(ig_aucs, ddof=1) + np.var(no_aucs, ddof=1)) / 2.0
+        pooled_sd = np.sqrt((np.var(ig_aucs, ddof=1) + np.var(no_aucs, ddof=1)) / 2.0)
+        cohens_d = (
+            (np.mean(ig_aucs) - np.mean(no_aucs)) / pooled_sd if pooled_sd > 0 else 0.0
         )
-        cohens_d = (np.mean(ig_aucs) - np.mean(no_aucs)) / pooled_sd if pooled_sd > 0 else 0.0
 
-        passed = (p_value < DEFAULT_ALPHA) and (t_stat > 0) and (cohens_d >= V18_AUC_COHENS_D_MIN)
+        passed = (
+            (p_value < DEFAULT_ALPHA)
+            and (t_stat > 0)
+            and (cohens_d >= V18_AUC_COHENS_D_MIN)
+        )
 
         return {
             "test_name": "V18.1 GFP-AUC Ignition Effect",
@@ -373,7 +377,9 @@ class GFPMicrostateValidator:
         }
 
     # ------------------------------------------------------------------
-    def generate_summary_figure(self, output_path: Optional[Path] = None) -> Optional[Path]:
+    def generate_summary_figure(
+        self, output_path: Optional[Path] = None
+    ) -> Optional[Path]:
         """Save a three-panel summary figure if matplotlib is available."""
         if not HAS_MATPLOTLIB:
             return None
@@ -392,8 +398,13 @@ class GFPMicrostateValidator:
         no_mean = np.mean([r.gfp_timeseries for r in no_epochs], axis=0)
         ax.plot(t, ig_mean, label="Ignition", color="steelblue")
         ax.plot(t, no_mean, label="No-ignition", color="salmon")
-        ax.axvspan(GFP_WINDOW_MS[0], GFP_WINDOW_MS[1], alpha=0.15, color="grey",
-                   label="AUC window")
+        ax.axvspan(
+            GFP_WINDOW_MS[0],
+            GFP_WINDOW_MS[1],
+            alpha=0.15,
+            color="grey",
+            label="AUC window",
+        )
         ax.axvline(0, color="black", linewidth=0.8, linestyle="--")
         ax.set_xlabel("Time (ms)")
         ax.set_ylabel("GFP (μV)")
@@ -476,6 +487,7 @@ class GFPMicrostateValidator:
 # ──────────────────────────────────────────────────────────────────────────────
 # Public entry points
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def run_validation(seed: Optional[int] = None, **kwargs) -> Dict[str, Any]:
     """

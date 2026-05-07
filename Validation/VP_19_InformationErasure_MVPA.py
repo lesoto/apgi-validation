@@ -43,13 +43,12 @@ VP_ALL_Aggregator.py registration:
 
 import logging
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from scipy import stats
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -83,11 +82,13 @@ try:
     )
 except ImportError:
     DEFAULT_ALPHA = 0.05
-    V19_BELOW_CHANCE_THRESHOLD = 0.48        # post-ignition accuracy must drop below this
-    V19_MIN_PRE_IGNITION_ACCURACY = 0.60     # losing stimulus must be decodable pre-ignition
-    V19_CONTROL_DECODABILITY_MIN = 0.60      # both stims decodable on subliminal trials
-    V19_N_PERMUTATIONS = 500                 # permutations for chance distribution
-    V19_POST_IGNITION_SUPPRESSION_BINS = 3   # consecutive below-chance bins required
+    V19_BELOW_CHANCE_THRESHOLD = 0.48  # post-ignition accuracy must drop below this
+    V19_MIN_PRE_IGNITION_ACCURACY = (
+        0.60  # losing stimulus must be decodable pre-ignition
+    )
+    V19_CONTROL_DECODABILITY_MIN = 0.60  # both stims decodable on subliminal trials
+    V19_N_PERMUTATIONS = 500  # permutations for chance distribution
+    V19_POST_IGNITION_SUPPRESSION_BINS = 3  # consecutive below-chance bins required
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,7 @@ RANDOM_SEED = 42
 BIN_WIDTH_MS: float = 50.0
 T_START_MS: float = -500.0
 T_END_MS: float = 1000.0
-N_BINS: int = int((T_END_MS - T_START_MS) / BIN_WIDTH_MS)   # 30 bins
+N_BINS: int = int((T_END_MS - T_START_MS) / BIN_WIDTH_MS)  # 30 bins
 BIN_CENTRES_MS: np.ndarray = np.arange(
     T_START_MS + BIN_WIDTH_MS / 2,
     T_END_MS,
@@ -121,27 +122,30 @@ CATEGORIES = ("faces", "houses")
 # Data structures
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class TrialMetadata:
     subject_id: int
     trial_id: int
-    condition: str          # "ignition" | "no_ignition"
+    condition: str  # "ignition" | "no_ignition"
     reported_category: str  # "faces" | "houses"
-    losing_category: str    # the other one
+    losing_category: str  # the other one
     ignition_strength: float  # Sₜ ∈ [0, 1]
 
 
 @dataclass
 class DecodingResult:
     """Per-trial MVPA result — binned accuracy time-series decoded for losing category."""
+
     trial_meta: TrialMetadata
-    accuracy_timeseries: np.ndarray   # shape (N_BINS,)  accuracy in each 50 ms bin
-    permutation_threshold: float      # 95th percentile of permuted distribution
+    accuracy_timeseries: np.ndarray  # shape (N_BINS,)  accuracy in each 50 ms bin
+    permutation_threshold: float  # 95th percentile of permuted distribution
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Simulator
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class StimulusPairEEGSimulator:
     """
@@ -280,6 +284,7 @@ class StimulusPairEEGSimulator:
 # MVPA decoding pipeline
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TimeResolvedMVPADecoder:
     """
     Temporal-generalisation MVPA decoder (50 ms bins, King & Dehaene 2014).
@@ -338,7 +343,7 @@ class TimeResolvedMVPADecoder:
     def decode_timeseries(
         self,
         features: np.ndarray,  # (n_trials, N_BINS, n_sensors)
-        labels: np.ndarray,    # (n_trials,) binary
+        labels: np.ndarray,  # (n_trials,) binary
     ) -> Tuple[np.ndarray, float]:
         """
         Train on pre-ignition patterns; test at each time bin.
@@ -369,8 +374,11 @@ class TimeResolvedMVPADecoder:
         n_folds = min(self.N_CV_FOLDS, int(np.min(np.bincount(y.astype(int)))))
         if n_folds < 2:
             return 0.5
-        cv = StratifiedKFold(n_splits=n_folds, shuffle=True,
-                             random_state=int(self.rng.integers(0, 2**31)))
+        cv = StratifiedKFold(
+            n_splits=n_folds,
+            shuffle=True,
+            random_state=int(self.rng.integers(0, 2**31)),
+        )
         scores = cross_val_score(self._make_clf(), X, y, cv=cv, scoring="accuracy")
         return float(scores.mean())
 
@@ -404,6 +412,7 @@ class TimeResolvedMVPADecoder:
 # ──────────────────────────────────────────────────────────────────────────────
 # Validator
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class InformationErasureValidator:
     """
@@ -488,8 +497,11 @@ class InformationErasureValidator:
 
         logger.info("Running MVPA on no-ignition losing-stimulus trials …")
         no_ig_labels = np.array(
-            [1 if m.losing_category == "faces" else 0
-             for m, _, _ in self.dataset if m.condition == "no_ignition"]
+            [
+                1 if m.losing_category == "faces" else 0
+                for m, _, _ in self.dataset
+                if m.condition == "no_ignition"
+            ]
         )
         self._no_ig_losing_accuracy_ts, _ = self.decoder.decode_timeseries(
             no_ig_losing, no_ig_labels
@@ -497,8 +509,11 @@ class InformationErasureValidator:
 
         logger.info("Running MVPA on no-ignition winning-stimulus trials …")
         win_labels = np.array(
-            [1 if m.reported_category == "faces" else 0
-             for m, _, _ in self.dataset if m.condition == "no_ignition"]
+            [
+                1 if m.reported_category == "faces" else 0
+                for m, _, _ in self.dataset
+                if m.condition == "no_ignition"
+            ]
         )
         self._no_ig_winning_accuracy_ts, _ = self.decoder.decode_timeseries(
             no_ig_winning, win_labels
@@ -590,14 +605,28 @@ class InformationErasureValidator:
 
         # Panel 1: Ignition-trial losing-stimulus decoding
         ax = axes[0]
-        ax.plot(BIN_CENTRES_MS, self._ig_accuracy_ts, color="steelblue", linewidth=2,
-                label="Losing stimulus (ignition)")
-        ax.axhline(self._perm_threshold, color="grey", linestyle="--",
-                   label=f"Permutation threshold ({self._perm_threshold:.2f})")
-        ax.axhline(V19_BELOW_CHANCE_THRESHOLD, color="salmon", linestyle=":",
-                   label=f"Below-chance criterion ({V19_BELOW_CHANCE_THRESHOLD})")
-        ax.axvline(0, color="black", linewidth=0.8, linestyle="--",
-                   label="Ignition onset")
+        ax.plot(
+            BIN_CENTRES_MS,
+            self._ig_accuracy_ts,
+            color="steelblue",
+            linewidth=2,
+            label="Losing stimulus (ignition)",
+        )
+        ax.axhline(
+            self._perm_threshold,
+            color="grey",
+            linestyle="--",
+            label=f"Permutation threshold ({self._perm_threshold:.2f})",
+        )
+        ax.axhline(
+            V19_BELOW_CHANCE_THRESHOLD,
+            color="salmon",
+            linestyle=":",
+            label=f"Below-chance criterion ({V19_BELOW_CHANCE_THRESHOLD})",
+        )
+        ax.axvline(
+            0, color="black", linewidth=0.8, linestyle="--", label="Ignition onset"
+        )
         ax.set_xlabel("Time re. ignition (ms)")
         ax.set_ylabel("Decoding accuracy")
         ax.set_title("Losing stimulus — ignition trials")
@@ -606,12 +635,26 @@ class InformationErasureValidator:
 
         # Panel 2: No-ignition comparison
         ax = axes[1]
-        ax.plot(BIN_CENTRES_MS, self._no_ig_losing_accuracy_ts, color="steelblue",
-                linewidth=2, label="Losing (no-ignition)")
-        ax.plot(BIN_CENTRES_MS, self._no_ig_winning_accuracy_ts, color="darkorange",
-                linewidth=2, label="Winning (no-ignition)")
-        ax.axhline(V19_CONTROL_DECODABILITY_MIN, color="grey", linestyle="--",
-                   label=f"Decodability threshold ({V19_CONTROL_DECODABILITY_MIN})")
+        ax.plot(
+            BIN_CENTRES_MS,
+            self._no_ig_losing_accuracy_ts,
+            color="steelblue",
+            linewidth=2,
+            label="Losing (no-ignition)",
+        )
+        ax.plot(
+            BIN_CENTRES_MS,
+            self._no_ig_winning_accuracy_ts,
+            color="darkorange",
+            linewidth=2,
+            label="Winning (no-ignition)",
+        )
+        ax.axhline(
+            V19_CONTROL_DECODABILITY_MIN,
+            color="grey",
+            linestyle="--",
+            label=f"Decodability threshold ({V19_CONTROL_DECODABILITY_MIN})",
+        )
         ax.axvline(0, color="black", linewidth=0.8, linestyle="--")
         ax.set_xlabel("Time re. ignition (ms)")
         ax.set_ylabel("Decoding accuracy")
@@ -621,11 +664,21 @@ class InformationErasureValidator:
 
         # Panel 3: Ignition vs. no-ignition overlay (losing category only)
         ax = axes[2]
-        ax.plot(BIN_CENTRES_MS, self._ig_accuracy_ts, color="steelblue", linewidth=2,
-                label="Losing — ignition")
-        ax.plot(BIN_CENTRES_MS, self._no_ig_losing_accuracy_ts,
-                color="steelblue", linewidth=2, linestyle="--",
-                label="Losing — no-ignition")
+        ax.plot(
+            BIN_CENTRES_MS,
+            self._ig_accuracy_ts,
+            color="steelblue",
+            linewidth=2,
+            label="Losing — ignition",
+        )
+        ax.plot(
+            BIN_CENTRES_MS,
+            self._no_ig_losing_accuracy_ts,
+            color="steelblue",
+            linewidth=2,
+            linestyle="--",
+            label="Losing — no-ignition",
+        )
         ax.axhline(0.5, color="grey", linestyle=":")
         ax.axvline(0, color="black", linewidth=0.8, linestyle="--")
         ax.set_xlabel("Time re. ignition (ms)")
@@ -693,6 +746,7 @@ class InformationErasureValidator:
 # ──────────────────────────────────────────────────────────────────────────────
 # Public entry points
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def run_validation(
     seed: Optional[int] = None,

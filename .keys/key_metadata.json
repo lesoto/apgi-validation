@@ -8,11 +8,11 @@
   },
   "backup_key": {
     "current": {
-      "fingerprint": "8e06705eebc338a6",
+      "fingerprint": "c3665227330cdfcd",
       "file": ".keys/backup_hmac_key.enc"
     },
     "rotation_history": []
   },
   "last_rotation": null,
-  "next_rotation": "2026-06-06T03:57:12.726847+00:00"
+  "next_rotation": "2026-06-06T07:32:32.091665+00:00"
 }

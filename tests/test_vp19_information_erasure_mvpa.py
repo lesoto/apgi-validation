@@ -5,7 +5,7 @@ Tests for VP_19_InformationErasure_MVPA.py
 import sys
 from pathlib import Path
 from typing import Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -21,9 +21,7 @@ from Validation.VP_19_InformationErasure_MVPA import (
     InformationErasureValidator,
     StimulusPairEEGSimulator,
     TimeResolvedMVPADecoder,
-    TrialMetadata,
     run_validation,
-    validate,
 )
 
 FAST_N_PERM = 10  # small for speed in unit tests
@@ -32,6 +30,7 @@ FAST_N_PERM = 10  # small for speed in unit tests
 # ---------------------------------------------------------------------------
 # StimulusPairEEGSimulator tests
 # ---------------------------------------------------------------------------
+
 
 class TestStimulusPairEEGSimulator:
 
@@ -113,6 +112,7 @@ class TestStimulusPairEEGSimulator:
 # TimeResolvedMVPADecoder tests
 # ---------------------------------------------------------------------------
 
+
 class TestTimeResolvedMVPADecoder:
 
     def _make_decodable_data(
@@ -133,8 +133,10 @@ class TestTimeResolvedMVPADecoder:
         dec = TimeResolvedMVPADecoder(n_permutations=FAST_N_PERM, rng=rng)
         n = 20
         X = np.vstack(
-            [rng.standard_normal((n // 2, N_SENSORS)),
-             rng.standard_normal((n // 2, N_SENSORS)) + 5.0]
+            [
+                rng.standard_normal((n // 2, N_SENSORS)),
+                rng.standard_normal((n // 2, N_SENSORS)) + 5.0,
+            ]
         )
         y = np.array([0] * (n // 2) + [1] * (n // 2))
         acc = dec._cv_accuracy(X, y)
@@ -193,6 +195,7 @@ class TestTimeResolvedMVPADecoder:
 # InformationErasureValidator tests
 # ---------------------------------------------------------------------------
 
+
 class TestInformationErasureValidator:
 
     @pytest.fixture
@@ -242,24 +245,38 @@ class TestInformationErasureValidator:
 
     def test_v19_1_result_keys(self, fast_validator):
         result = fast_validator.validate_pre_ignition_decodability()
-        for key in ("test_name", "prediction_id", "mean_pre_ignition_accuracy",
-                    "threshold", "passed"):
+        for key in (
+            "test_name",
+            "prediction_id",
+            "mean_pre_ignition_accuracy",
+            "threshold",
+            "passed",
+        ):
             assert key in result
         assert result["prediction_id"] == "V19.1"
 
     def test_v19_2_result_keys(self, fast_validator):
         result = fast_validator.validate_post_ignition_suppression()
-        for key in ("test_name", "prediction_id", "permutation_threshold",
-                    "below_chance_threshold",
-                    "max_consecutive_below_chance_bins", "passed"):
+        for key in (
+            "test_name",
+            "prediction_id",
+            "permutation_threshold",
+            "below_chance_threshold",
+            "max_consecutive_below_chance_bins",
+            "passed",
+        ):
             assert key in result
         assert result["prediction_id"] == "V19.2"
 
     def test_v19_3_result_keys(self, fast_validator):
         result = fast_validator.validate_control_decodability()
-        for key in ("test_name", "prediction_id",
-                    "mean_no_ignition_losing_accuracy",
-                    "mean_no_ignition_winning_accuracy", "passed"):
+        for key in (
+            "test_name",
+            "prediction_id",
+            "mean_no_ignition_losing_accuracy",
+            "mean_no_ignition_winning_accuracy",
+            "passed",
+        ):
             assert key in result
         assert result["prediction_id"] == "V19.3"
 
@@ -328,6 +345,7 @@ class TestInformationErasureValidator:
 # Public entry-point tests
 # ---------------------------------------------------------------------------
 
+
 class TestRunValidation:
 
     def test_returns_dict(self):
@@ -361,14 +379,16 @@ class TestRunValidation:
 
     def test_three_sub_results(self):
         result = run_validation(seed=6, n_permutations=FAST_N_PERM)
-        sub_keys = [k for k, v in result.items()
-                    if isinstance(v, dict) and "prediction_id" in v]
+        sub_keys = [
+            k for k, v in result.items() if isinstance(v, dict) and "prediction_id" in v
+        ]
         assert len(sub_keys) == 3
 
 
 # ---------------------------------------------------------------------------
 # BIN_CENTRES_MS sanity tests
 # ---------------------------------------------------------------------------
+
 
 class TestBinConstants:
 

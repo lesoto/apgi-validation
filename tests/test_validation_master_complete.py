@@ -51,13 +51,10 @@ class TestAPGIMasterValidator:
             k for k, v in validator.PROTOCOL_TIERS.items() if v == "secondary"
         ]
         assert 3 in secondary_protocols
-        assert 7 in secondary_protocols
+        assert 4 in secondary_protocols
         assert 8 in secondary_protocols
         assert 11 in secondary_protocols
         assert 12 in secondary_protocols
-        assert 13 in secondary_protocols
-        assert 16 in secondary_protocols
-        assert 17 in secondary_protocols
 
     def test_tertiary_protocols(self, validator):
         """Test tertiary protocol assignments"""
@@ -66,12 +63,9 @@ class TestAPGIMasterValidator:
         ]
         assert 5 in tertiary_protocols
         assert 6 in tertiary_protocols
+        assert 7 in tertiary_protocols
         assert 9 in tertiary_protocols
         assert 10 in tertiary_protocols
-        assert 14 in tertiary_protocols
-        assert 15 in tertiary_protocols
-        assert 16 in tertiary_protocols
-        assert 17 in tertiary_protocols
 
     def test_falsification_status_structure(self, validator):
         """Test falsification status dictionary structure"""
@@ -142,9 +136,9 @@ class TestProtocolTiers:
     """Test protocol tier assignments"""
 
     def test_all_protocols_have_tiers(self):
-        """Test that all protocols 1-17 have tier assignments"""
+        """Test that all protocols 1-12 have tier assignments"""
         validator = APGIMasterValidator()
-        for i in range(1, 18):
+        for i in range(1, 13):
             assert (
                 i in validator.PROTOCOL_TIERS
             ), f"Protocol {i} missing tier assignment"

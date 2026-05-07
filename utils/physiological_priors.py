@@ -37,7 +37,47 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
-from scipy import signal
+
+
+# Create a minimal signal module fallback for scipy compatibility issues
+class SignalFallback:
+    @staticmethod
+    def welch(x, fs, nperseg=None, window="hann"):
+        """Fallback Welch method implementation."""
+        if nperseg is None:
+            nperseg = min(
+                1024, len(x) // 2
+            )  # Use larger nperseg for better frequency resolution
+
+        # Simple FFT-based PSD
+        nfft = nperseg
+        if len(x) < nfft:
+            x = np.pad(x, (0, nfft - len(x)), "constant")
+
+        # Apply window
+        if window == "hann":
+            w = np.hanning(nfft)
+        else:
+            w = np.ones(nfft)
+
+        x_windowed = x[:nfft] * w
+        fft = np.fft.fft(x_windowed)
+        psd = np.abs(fft) ** 2 / (np.sum(w**2) * fs)
+
+        freqs = np.fft.fftfreq(nfft, 1 / fs)
+        # Return only positive frequencies
+        pos_freq_idx = freqs >= 0
+        return freqs[pos_freq_idx], psd[pos_freq_idx]
+
+
+# Try to import scipy, but use fallback if it fails
+try:
+    from scipy import signal
+except (ImportError, TypeError, AttributeError) as e:
+    signal = SignalFallback()
+    print(
+        f"Warning: Using fallback signal implementation due to scipy compatibility issues: {e}"
+    )
 
 # Import centralized spectral band constants
 try:
@@ -204,13 +244,8 @@ class AlphaGammaRatioPrior:
             freq_mask = (f >= freq_range[0]) & (f <= freq_range[1])
             if np.any(freq_mask):
                 # Integrate using trapezoid rule
-                # Use trapezoid (np.trapz is deprecated in newer NumPy)
-                try:
-                    from numpy import trapezoid  # type: ignore[attr-defined]
-
-                    band_power = trapezoid(psd[freq_mask], f[freq_mask])
-                except ImportError:
-                    band_power = np.trapz(psd[freq_mask], f[freq_mask])  # type: ignore[attr-defined]
+                # Use numpy.trapezoid (modern equivalent)
+                band_power = np.trapezoid(psd[freq_mask], f[freq_mask])
                 total_power += band_power
 
         # Average across channels
