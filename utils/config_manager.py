@@ -45,10 +45,13 @@ except ImportError as e:
     load_dotenv = None
     print(f"Warning: jsonschema/yaml/dotenv not available in config_manager.py: {e}")
 
+
 # Create a dummy YAMLError class for exception handling when yaml is not available
 class DummyYAMLError(Exception):
     """Dummy YAML error class for when yaml module is not available."""
+
     pass
+
 
 # Use actual YAMLError if available, otherwise use dummy
 if yaml is not None:
@@ -63,7 +66,7 @@ def _load_yaml_safe(file_path: str) -> Optional[Dict[str, Any]]:
     if yaml is None:
         print(f"Warning: YAML module not available, cannot load {file_path}")
         return None
-    
+
     try:
         with open(file_path, "r") as f:
             content = f.read()
@@ -968,7 +971,7 @@ class ConfigManager:
         if config_data is None:
             apgi_logger.warning("Configuration data is None, skipping validation")
             return
-            
+
         try:
             jsonschema.validate(config_data, self.schema)
         except jsonschema.ValidationError as e:

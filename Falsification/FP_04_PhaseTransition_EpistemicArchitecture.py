@@ -43,19 +43,17 @@ except ImportError:
     HAS_SCHEMA = False
 
 # Import constants from centralized location
-from utils.constants import (
-    FP3_DOC_SIGNAL_MULTIPLIERS,
-)  # HIGH-02: Import from constants, VISUAL_CONSTANTS
 from utils.constants import (  # HIGH-02: Import from constants, VISUAL_CONSTANTS
     F4_CRITICAL_SLOWING_MIN_RATIO,
     F4_CRITICAL_SLOWING_P_VALUE,
     F4_MIN_POWER,
-    VISUAL_CONSTANTS,
     F4_MIN_SENSITIVITY,
     F4_MIN_SPECIFICITY,
+    FP3_DOC_SIGNAL_MULTIPLIERS,
     FP3_DOC_SYNTHETIC_FEATURE_WEIGHTS,
     MODEL_PARAMS,
     SHUFFLE_SEED_OFFSET,
+    VISUAL_CONSTANTS,
 )
 from utils.falsification_thresholds import (
     LEVEL2_MI_FALSIFICATION_THRESHOLD,

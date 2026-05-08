@@ -98,10 +98,11 @@ if sys.version_info >= (3, 14):
 
         # Fix 4: Handle zero-size array reduction operations at ufunc level
         _original_wrapreduction = None
-        if hasattr(np, '_core') and hasattr(np._core, 'fromnumeric'):
+        if hasattr(np, "_core") and hasattr(np._core, "fromnumeric"):
             from numpy._core.fromnumeric import _wrapreduction as original_wrapreduction
+
             _original_wrapreduction = original_wrapreduction
-            
+
             def _safe_wrapreduction(obj, ufunc, method, *args, **kwargs):
                 """Safe _wrapreduction that handles zero-size arrays."""
                 try:
@@ -109,17 +110,17 @@ if sys.version_info >= (3, 14):
                 except ValueError as e:
                     if "zero-size array to reduction operation" in str(e):
                         # Handle zero-size arrays by returning appropriate result
-                        if hasattr(obj, 'size') and obj.size == 0:
-                            if method == 'prod':
-                                return np.array([], dtype=getattr(obj, 'dtype', float))
-                            elif method == 'sum':
-                                return np.array([], dtype=getattr(obj, 'dtype', float))
-                            elif method == 'multiply':
-                                return np.array([], dtype=getattr(obj, 'dtype', float))
+                        if hasattr(obj, "size") and obj.size == 0:
+                            if method == "prod":
+                                return np.array([], dtype=getattr(obj, "dtype", float))
+                            elif method == "sum":
+                                return np.array([], dtype=getattr(obj, "dtype", float))
+                            elif method == "multiply":
+                                return np.array([], dtype=getattr(obj, "dtype", float))
                             else:
-                                return np.array([], dtype=getattr(obj, 'dtype', float))
+                                return np.array([], dtype=getattr(obj, "dtype", float))
                     raise
-            
+
             # Patch the _wrapreduction function
             np._core.fromnumeric._wrapreduction = _safe_wrapreduction
 
@@ -132,18 +133,18 @@ if sys.version_info >= (3, 14):
                 if "zero-size array to reduction operation" in str(e):
                     # Handle zero-size arrays by returning appropriate result
                     for arg in args:
-                        if hasattr(arg, 'size') and arg.size == 0:
-                            return np.array([], dtype=getattr(arg, 'dtype', float))
+                        if hasattr(arg, "size") and arg.size == 0:
+                            return np.array([], dtype=getattr(arg, "dtype", float))
                 raise
 
         # Create a wrapper for ufunc reduction operations
         class SafeUFunc:
             def __init__(self, ufunc):
                 self.ufunc = ufunc
-            
+
             def reduce(self, *args, **kwargs):
                 return _safe_ufunc_reduction(self.ufunc, *args, **kwargs)
-        
+
         # Wrap the multiply ufunc
         np.multiply = SafeUFunc(np.multiply)
 
@@ -194,7 +195,13 @@ if sys.version_info >= (3, 14):
             ):
                 initial = None
             return _original_prod(
-                a, axis=axis, dtype=dtype, out=out, keepdims=keepdims, initial=initial, where=where
+                a,
+                axis=axis,
+                dtype=dtype,
+                out=out,
+                keepdims=keepdims,
+                initial=initial,
+                where=where,
             )
 
         def _safe_multiply(x1, x2, *args, **kwargs):
@@ -204,16 +211,20 @@ if sys.version_info >= (3, 14):
             except ValueError as e:
                 if "zero-size array to reduction operation" in str(e):
                     # Handle zero-size arrays by returning appropriate result
-                    if hasattr(x1, 'size') and x1.size == 0:
-                        return np.array([], dtype=x1.dtype if hasattr(x1, 'dtype') else float)
-                    elif hasattr(x2, 'size') and x2.size == 0:
-                        return np.array([], dtype=x2.dtype if hasattr(x2, 'dtype') else float)
+                    if hasattr(x1, "size") and x1.size == 0:
+                        return np.array(
+                            [], dtype=x1.dtype if hasattr(x1, "dtype") else float
+                        )
+                    elif hasattr(x2, "size") and x2.size == 0:
+                        return np.array(
+                            [], dtype=x2.dtype if hasattr(x2, "dtype") else float
+                        )
                 raise
-        
+
         # Copy the ufunc methods to preserve behavior
         _safe_multiply.__name__ = _original_multiply.__name__
         _safe_multiply.__doc__ = _original_multiply.__doc__
-        for attr in ['reduce', 'accumulate', 'reduceat', 'outer', 'at']:
+        for attr in ["reduce", "accumulate", "reduceat", "outer", "at"]:
             if hasattr(_original_multiply, attr):
                 setattr(_safe_multiply, attr, getattr(_original_multiply, attr))
 

@@ -53,6 +53,12 @@ except ImportError:
     torch = None  # type: ignore
     nn = None  # type: ignore
     F = None  # type: ignore
+
+if not HAS_TORCH:
+    raise ImportError(
+        "Protocol VP-03 requires PyTorch. Install with: pip install torch"
+    )
+
 from abc import ABC, abstractmethod
 
 from sklearn.linear_model import LogisticRegression
@@ -94,9 +100,10 @@ except ImportError:
 # Set random seeds
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
-torch.manual_seed(RANDOM_SEED)
-if torch.cuda.is_available():
-    torch.cuda.manual_seed(RANDOM_SEED)
+if HAS_TORCH and torch is not None:
+    torch.manual_seed(RANDOM_SEED)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(RANDOM_SEED)
 
 # =============================================================================
 # AGENT INTERFACE ABSTRACTION (ABC)

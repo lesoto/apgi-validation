@@ -235,6 +235,7 @@ def detect_ecg_r_peaks(
 
 from dataclasses import dataclass
 from enum import Enum
+
 from utils.constants import VISUAL_CONSTANTS
 
 # MNE compatibility (conditional import)

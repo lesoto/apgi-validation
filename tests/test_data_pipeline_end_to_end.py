@@ -36,12 +36,12 @@ class TestDataPipelineEndToEnd:
         assert list(df.columns) == ["timestamp", "surprise", "threshold", "metabolic"]
 
         # Process data (normalize)
-        df.loc[:, "surprise_normalized"] = (df["surprise"] - df["surprise"].mean()) / df[
-            "surprise"
-        ].std()
-        df.loc[:, "threshold_normalized"] = (df["threshold"] - df["threshold"].mean()) / df[
-            "threshold"
-        ].std()
+        df.loc[:, "surprise_normalized"] = (
+            df["surprise"] - df["surprise"].mean()
+        ) / df["surprise"].std()
+        df.loc[:, "threshold_normalized"] = (
+            df["threshold"] - df["threshold"].mean()
+        ) / df["threshold"].std()
 
         # Write to JSON
         json_file = temp_dir / "output.json"

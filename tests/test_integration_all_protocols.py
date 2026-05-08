@@ -10,7 +10,6 @@ Verifies that:
 """
 
 import importlib
-import os
 import sys
 from pathlib import Path
 
@@ -20,12 +19,12 @@ import pytest
 if sys.version_info >= (3, 14):
     try:
         import numpy as np
-        
+
         # Store original functions to avoid recursion
         _original_wrapreduction = None
-        if hasattr(np, '_core') and hasattr(np._core, 'fromnumeric'):
+        if hasattr(np, "_core") and hasattr(np._core, "fromnumeric"):
             _original_wrapreduction = np._core.fromnumeric._wrapreduction
-        
+
         # Fix zero-size array reduction operations
         def _safe_wrapreduction(obj, ufunc, method, *args, **kwargs):
             """Safe _wrapreduction that handles zero-size arrays."""
@@ -38,26 +37,26 @@ if sys.version_info >= (3, 14):
             except ValueError as e:
                 if "zero-size array to reduction operation" in str(e):
                     # Handle zero-size arrays by returning appropriate result
-                    if hasattr(obj, 'size') and obj.size == 0:
-                        if method == 'prod':
-                            return np.array([], dtype=getattr(obj, 'dtype', float))
-                        elif method == 'sum':
-                            return np.array([], dtype=getattr(obj, 'dtype', float))
-                        elif method == 'multiply':
-                            return np.array([], dtype=getattr(obj, 'dtype', float))
+                    if hasattr(obj, "size") and obj.size == 0:
+                        if method == "prod":
+                            return np.array([], dtype=getattr(obj, "dtype", float))
+                        elif method == "sum":
+                            return np.array([], dtype=getattr(obj, "dtype", float))
+                        elif method == "multiply":
+                            return np.array([], dtype=getattr(obj, "dtype", float))
                         else:
-                            return np.array([], dtype=getattr(obj, 'dtype', float))
+                            return np.array([], dtype=getattr(obj, "dtype", float))
                 raise
-        
+
         # Patch the _wrapreduction function
-        if hasattr(np, '_core') and hasattr(np._core, 'fromnumeric'):
+        if hasattr(np, "_core") and hasattr(np._core, "fromnumeric"):
             np._core.fromnumeric._wrapreduction = _safe_wrapreduction
-        
+
         # Wrap the multiply ufunc
         class SafeUFunc:
             def __init__(self, ufunc):
                 self.ufunc = ufunc
-            
+
             def __call__(self, *args, **kwargs):
                 try:
                     return self.ufunc(*args, **kwargs)
@@ -65,10 +64,10 @@ if sys.version_info >= (3, 14):
                     if "zero-size array to reduction operation" in str(e):
                         # Handle zero-size arrays by returning appropriate result
                         for arg in args:
-                            if hasattr(arg, 'size') and arg.size == 0:
-                                return np.array([], dtype=getattr(arg, 'dtype', float))
+                            if hasattr(arg, "size") and arg.size == 0:
+                                return np.array([], dtype=getattr(arg, "dtype", float))
                     raise
-            
+
             def reduce(self, *args, **kwargs):
                 try:
                     return self.ufunc.reduce(*args, **kwargs)
@@ -76,14 +75,14 @@ if sys.version_info >= (3, 14):
                     if "zero-size array to reduction operation" in str(e):
                         # Handle zero-size arrays by returning appropriate result
                         for arg in args:
-                            if hasattr(arg, 'size') and arg.size == 0:
-                                return np.array([], dtype=getattr(arg, 'dtype', float))
+                            if hasattr(arg, "size") and arg.size == 0:
+                                return np.array([], dtype=getattr(arg, "dtype", float))
                     raise
-        
+
         # Wrap the multiply ufunc
         _original_multiply = np.multiply
         np.multiply = SafeUFunc(_original_multiply)
-        
+
     except ImportError:
         pass  # NumPy not available
 
@@ -167,7 +166,9 @@ class TestAllFPProtocols:
                 result = mod.run_protocol_main()
             except Exception as e:
                 if "zero-size array to reduction operation" in str(e):
-                    pytest.skip(f"{module_name}: Skipping due to NumPy compatibility issue: {str(e)}")
+                    pytest.skip(
+                        f"{module_name}: Skipping due to NumPy compatibility issue: {str(e)}"
+                    )
                 else:
                     pytest.fail(f"{module_name}: {str(e)}")
 

@@ -543,11 +543,15 @@ class APGIModel:
             # Deep merge for nested dictionaries
             self.config = CONFIG.copy()
             for key, value in config.items():
-                if key in self.config and isinstance(self.config[key], dict) and isinstance(value, dict):
+                if (
+                    key in self.config
+                    and isinstance(self.config[key], dict)
+                    and isinstance(value, dict)
+                ):
                     self.config[key].update(value)
                 else:
                     self.config[key] = value
-        
+
         # Keep cfg as an alias for backwards-compat
         self.cfg = self.config
 

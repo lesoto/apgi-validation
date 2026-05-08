@@ -55,6 +55,17 @@ try:
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
+    torch = None  # type: ignore[assignment]
+    nn = None  # type: ignore[assignment]
+    F = None  # type: ignore[assignment]
+    DataLoader = None  # type: ignore[assignment]
+    Dataset = None  # type: ignore[assignment]
+    random_split = None  # type: ignore[assignment]
+
+if not HAS_TORCH:
+    raise ImportError(
+        "Protocol VP-01 requires PyTorch. Install with: pip install torch"
+    )
 
 import sys
 from pathlib import Path
@@ -86,7 +97,6 @@ from sklearn.metrics import (
     f1_score,
     roc_auc_score,
 )
-from torch.utils.data import DataLoader, Dataset, random_split
 from tqdm import tqdm
 
 from utils.statistical_tests import safe_pearsonr

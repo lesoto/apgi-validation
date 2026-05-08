@@ -49,13 +49,14 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-# Import canonical MCMC functionality
-from utils.constants import VISUAL_CONSTANTS
 from Falsification.FP_10_BayesianEstimation_MCMC import (
     BayesianParameterRecovery,
     generate_synthetic_data,
     run_mcmc_bayesian_estimation,
 )
+
+# Import canonical MCMC functionality
+from utils.constants import VISUAL_CONSTANTS
 
 # Removed for GUI stability
 logger = logging.getLogger(__name__)

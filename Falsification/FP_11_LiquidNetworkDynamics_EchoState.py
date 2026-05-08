@@ -3568,10 +3568,7 @@ def run_esn_parameter_sensitivity_analysis(
     """
     # Import ESN parameter ranges from constants
     try:
-        from utils.constants import (
-            ESN_LEAK_RATE_RANGE,
-            ESN_SPECTRAL_RADIUS_RANGE,
-        )
+        from utils.constants import ESN_LEAK_RATE_RANGE, ESN_SPECTRAL_RADIUS_RANGE
 
         spectral_radii = ESN_SPECTRAL_RADIUS_RANGE
         leak_rates = ESN_LEAK_RATE_RANGE

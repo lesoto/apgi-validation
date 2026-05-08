@@ -292,7 +292,7 @@ class APGIValidationMetrics:
         """Compute Bayesian evidence approximation."""
         if len(data) == 0 or len(model_pred) == 0:
             raise ValueError("Data and model predictions cannot be empty")
-        
+
         # Simple evidence approximation based on likelihood
         # E = exp(-0.5 * sum((data - model_pred)^2 / sigma^2))
         # Assuming unit variance for simplicity
@@ -305,17 +305,17 @@ class APGIValidationMetrics:
         """Compute Kullback-Leibler divergence D_KL(P||Q)."""
         if len(p) == 0 or len(q) == 0:
             raise ValueError("Probability distributions cannot be empty")
-        
+
         if np.any(p < 0) or np.any(q < 0):
             raise ValueError("Probabilities must be non-negative")
-        
+
         # Normalize to ensure they sum to 1
         p_norm = p / np.sum(p)
         q_norm = q / np.sum(q)
-        
+
         # Avoid division by zero
         q_norm = np.where(q_norm == 0, 1e-10, q_norm)
-        
+
         # Compute KL divergence: D_KL(P||Q) = sum(P * log(P/Q))
         kl_div = np.sum(p_norm * np.log(p_norm / q_norm))
         return float(kl_div)

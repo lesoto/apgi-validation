@@ -57,6 +57,16 @@ try:
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
+    torch = None  # type: ignore[assignment]
+    nn = None  # type: ignore[assignment]
+    DataLoader = None  # type: ignore[assignment]
+    Dataset = None  # type: ignore[assignment]
+    random_split = None  # type: ignore[assignment]
+
+if not HAS_TORCH:
+    raise ImportError(
+        "Protocol VP-06 requires PyTorch. Install with: pip install torch"
+    )
 
 try:
     from sklearn.metrics import accuracy_score, roc_auc_score
@@ -127,9 +137,10 @@ except ImportError:
 # Set random seeds for reproducibility
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
-torch.manual_seed(RANDOM_SEED)
-if torch.cuda.is_available():
-    torch.cuda.manual_seed(RANDOM_SEED)
+if HAS_TORCH and torch is not None:
+    torch.manual_seed(RANDOM_SEED)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(RANDOM_SEED)
 
 # =============================================================================
 # ENERGY CONSTANTS (Program 4: Computational Architecture Energy Comparison)

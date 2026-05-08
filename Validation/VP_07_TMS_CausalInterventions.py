@@ -41,7 +41,14 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import torch
+
+try:
+    import torch
+
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    torch = None  # type: ignore[assignment]
 
 # Set font to handle Unicode characters properly
 matplotlib.rcParams["font.family"] = "DejaVu Sans"
@@ -88,9 +95,10 @@ from statsmodels.stats.power import tt_ind_solve_power
 # Set random seeds
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
-torch.manual_seed(RANDOM_SEED)
-if torch.cuda.is_available():
-    torch.cuda.manual_seed(RANDOM_SEED)
+if HAS_TORCH and torch is not None:
+    torch.manual_seed(RANDOM_SEED)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(RANDOM_SEED)
 
 # =============================================================================
 # Fix 1: Verify fallback thresholds match imported values

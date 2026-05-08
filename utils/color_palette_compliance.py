@@ -14,7 +14,7 @@ Usage:
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 # Standard APGI color palette
 APGI_COLORS = {
