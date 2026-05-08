@@ -129,7 +129,9 @@ from utils.falsification_thresholds import (
 from utils.falsification_thresholds import (
     test_f6_3_metabolic_selectivity as f6_3_validator,
 )
-from utils.falsification_thresholds import test_f6_4_fading_memory as f6_4_validator
+from utils.falsification_thresholds import (
+    test_f6_4_fading_memory as f6_4_validator,
+)
 from utils.falsification_thresholds import (
     test_f6_5_bifurcation_structure as f6_5_validator,
 )

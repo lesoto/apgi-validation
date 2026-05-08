@@ -7,7 +7,8 @@ import pytest
 if str(Path(__file__).parent.parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                   ProtocolResult)
 
 
 # Mock implementation of test logic for entry point contracts

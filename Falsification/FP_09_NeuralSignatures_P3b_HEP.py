@@ -245,7 +245,7 @@ try:
     from mne.time_frequency import psd_welch, tfr_morlet
 
     MNE_AVAILABLE = True
-except ImportError:
+except Exception:
     MNE_AVAILABLE = False
     mne = None
 

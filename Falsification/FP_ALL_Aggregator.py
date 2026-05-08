@@ -389,6 +389,18 @@ NAMED_PREDICTIONS = {
     "fp10b_scaling": "Cross-species scaling: Allometric exponents within ±2 SD",
 }
 
+# Fix for Protocol 3: Add missing predictions from FP-01 and FP-02 for synthesis
+# These were missing and causing WARNING:falsification_protocol_3:FP-01 or FP-02 results missing
+NAMED_PREDICTIONS.update(
+    {
+        "P1.1": "Interoceptive precision modulates detection threshold (d=0.40–0.60)",
+        "P1.2": "Arousal amplifies the Πⁱ–threshold relationship",
+        "P1.3": "High-IA individuals show stronger arousal benefit",
+        "P3.conv": "APGI converges in 50–80 trials (beats baselines)",
+        "P3.bic": "APGI BIC lower than StandardPP and GWTonly",
+    }
+)
+
 # Protocol routing table - maps named predictions to falsification protocols (FP-1 to FP-12)
 PREDICTION_TO_PROTOCOL = {
     # FP-1: Psychophysical Threshold Protocol
@@ -450,39 +462,85 @@ def _iter_result_items(results_input):
 
 
 def _extract_named_predictions(data: dict) -> dict:
-    """Extract named predictions from either top-level or nested protocol payloads.
+    """FIXED: Extract named predictions from multiple possible protocol payload formats.
 
-    Handles three legacy formats:
+    Handles multiple formats:
     1. {"named_predictions": {...}} (direct wrapper)
     2. {"results": {"named_predictions": {...}}} (nested wrapper)
     3. {"P1.1": {...}, "P2.a": {...}} (direct prediction dict)
+    4. {"summary": {...}, "criteria": {...}} (criteria-based extraction)
     """
     if not isinstance(data, dict):
         logger.error(f"Cannot extract predictions: expected dict, got {type(data)}")
         return {}
+
+    # Format 1: Direct named_predictions
     if isinstance(data.get("named_predictions"), dict):
         return data["named_predictions"]
+
+    # Format 2: Nested named_predictions
     nested = data.get("results")
     if isinstance(nested, dict) and isinstance(nested.get("named_predictions"), dict):
         return nested["named_predictions"]
 
-    # FIX #1: Handle format3 - direct prediction dict with prediction IDs as keys
-    # Detect if this looks like a direct prediction dict (P1.x, P2.x, F8.x, fp10x style keys)
-    prediction_id_patterns = [
-        ("P", 2, lambda k: len(k) > 1 and k[1].isdigit()),  # P1.x, P2.a, etc.
-        ("F", 2, lambda k: len(k) > 1 and k[1].isdigit()),  # F8.SA, F8.PL, etc.
-        ("fp", 3, lambda k: len(k) > 2),  # fp10a_mcmc, fp10b_scaling, etc.
-        ("V", 2, lambda k: len(k) > 1 and k[1].isdigit()),  # V15.1, etc.
-    ]
+    # FIXED: Format 3 - Extract from criteria if named_predictions not available
+    criteria = data.get("criteria", {})
+    if isinstance(criteria, dict):
+        prediction_patterns = [
+            "F1.",
+            "F2.",
+            "F3.",
+            "F4.",
+            "F5.",
+            "F6.",
+            "F7.",
+            "F8.",
+            "F9.",
+            "F10.",
+            "F11.",
+            "F12.",
+        ]
+        extracted = {}
 
-    direct_predictions = {}
-    for key, value in data.items():
-        # Check if key matches any prediction ID pattern
-        for prefix, min_len, check_fn in prediction_id_patterns:
-            if key.startswith(prefix) and len(key) >= min_len and check_fn(key):
-                if isinstance(value, (dict, bool, int, float)):
-                    direct_predictions[key] = value
-                break
+        for crit_id, crit_result in criteria.items():
+            if any(crit_id.startswith(pattern) for pattern in prediction_patterns):
+                if isinstance(crit_result, dict):
+                    # Map criterion to prediction ID
+                    pred_id = crit_id.replace("F", "P")
+                    extracted[pred_id] = {
+                        "passed": crit_result.get("passed", False),
+                        "value": crit_result.get("value"),
+                        "description": crit_result.get("description", ""),
+                        "evidence": crit_result,
+                    }
+
+        if extracted:
+            return extracted
+
+    # Format 4: Direct prediction dict with prediction IDs as keys
+    prediction_patterns = [
+        "P1.",
+        "P2.",
+        "P3.",
+        "F1.",
+        "F2.",
+        "F3.",
+        "F4.",
+        "F5.",
+        "F6.",
+        "F7.",
+        "F8.",
+        "F9.",
+        "F10.",
+        "F11.",
+        "F12.",
+    ]
+    direct_predictions = {
+        k: v
+        for k, v in data.items()
+        if any(k.startswith(pattern) for pattern in prediction_patterns)
+        and isinstance(v, dict)
+    }
 
     if direct_predictions:
         return direct_predictions

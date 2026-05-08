@@ -5,7 +5,6 @@ Tests complete workflows that span multiple modules and components.
 """
 
 import json
-
 # Add project root to path
 import sys
 import tempfile
@@ -18,15 +17,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import modules for integration testing
 try:
-    from apgi_core.equations import (
-        CoreIgnitionSystem,
-        DynamicalSystemEquations,
-        FoundationalEquations,
-    )
-    from Theory.APGI_Parameter_Estimation import (
-        build_apgi_model,
-        generate_synthetic_dataset,
-    )
+    from apgi_core.equations import (CoreIgnitionSystem,
+                                     DynamicalSystemEquations,
+                                     FoundationalEquations)
+    from Theory.APGI_Parameter_Estimation import (build_apgi_model,
+                                                  generate_synthetic_dataset)
     from utils.config_manager import ConfigManager
     from utils.data_validation import DataValidator
 

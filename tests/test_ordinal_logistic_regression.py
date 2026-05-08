@@ -22,10 +22,8 @@ if str(project_root) not in sys.path:
 
 try:
     from utils.ordinal_logistic_regression import (
-        OrdinalLogisticRegression,
-        analyze_clinical_gradient_ordinal,
-        compare_ordinal_vs_anova,
-    )
+        OrdinalLogisticRegression, analyze_clinical_gradient_ordinal,
+        compare_ordinal_vs_anova)
 except ImportError as e:
     pytest.skip(
         f"Cannot import ordinal_logistic_regression: {e}", allow_module_level=True

@@ -29,7 +29,7 @@ def test_falsification_files_exist():
         "FP_07_MathematicalConsistency.py",
         "FP_08_ParameterSensitivity_Identifiability.py",
         "FP_09_NeuralSignatures_P3b_HEP.py",
-        "FP_10_Falsification_BayesianEstimation_ParameterRecovery.py",
+        "FP_10_BayesianEstimation_MCMC.py",
         "FP_11_LiquidNetworkDynamics_EchoState.py",
         "FP_12_CrossSpeciesScaling.py",
         "FP_ALL_Aggregator.py",

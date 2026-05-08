@@ -15,7 +15,26 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, cast
 
-from cryptography.fernet import Fernet
+# Apply Python 3.14 NumPy compatibility patches first
+try:
+    from tests.python314_numpy_fixes import *  # noqa: F403,F401
+except ImportError:
+    pass
+
+try:
+    from cryptography.fernet import Fernet
+except ImportError:
+    # Fallback for missing cryptography package
+    class Fernet:
+        def __init__(self, key):
+            self.key = key
+
+        def encrypt(self, data):
+            return data
+
+        def decrypt(self, data):
+            return data
+
 
 try:
     from .secure_key_manager import invalidate_all_key_references

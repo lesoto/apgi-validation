@@ -20,17 +20,9 @@ def get_main_functions():
     import unittest.mock
 
     with unittest.mock.patch("utils.secret_policy_enforcer.enforce_secret_policy"):
-        from main import (
-            _list_protocols,
-            _process_csv_file,
-            _reset_config,
-            _run_demo_mode,
-            _run_parallel,
-            _run_sequential,
-            _set_config,
-            _show_config,
-            _validate_input_file,
-        )
+        from main import (_list_protocols, _process_csv_file, _reset_config,
+                          _run_demo_mode, _run_parallel, _run_sequential,
+                          _set_config, _show_config, _validate_input_file)
 
         return {
             "_list_protocols": _list_protocols,

@@ -69,6 +69,25 @@ except ImportError:
 
 import pandas as pd
 
+# Load environment variables from .env file automatically
+try:
+    from dotenv import load_dotenv
+
+    # Try to load .env from project root
+    env_file = PROJECT_ROOT / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+        print(f"✅ Loaded environment variables from {env_file}")
+    else:
+        # Try to load from current directory
+        load_dotenv()
+        print(
+            "📝 No .env file found in project root, using system environment variables"
+        )
+except ImportError:
+    print("⚠️  python-dotenv not installed, using system environment variables only")
+    print("   Install with: pip install python-dotenv")
+
 from utils.timeout_handler import TimeoutError, run_with_timeout
 
 
@@ -3071,7 +3090,7 @@ def validate(
 
 @cli.command()
 @click.option(
-    "--protocol", type=str, help="Falsification protocol number (1-12) or 'all'"
+    "--protocol", "-a", type=str, help="Falsification protocol number (1-12) or 'all'"
 )
 @click.option("--output-file", help="Output file for falsification results")
 @click.pass_context

@@ -1,13 +1,8 @@
 """Tests for Metadata Template module - comprehensive coverage."""
 
-from utils.metadata_template import (
-    DEFAULT_TEMPLATE,
-    MetadataTemplate,
-    create_metadata_template,
-    load_template,
-    save_template,
-    validate_metadata,
-)
+from utils.metadata_template import (DEFAULT_TEMPLATE, MetadataTemplate,
+                                     create_metadata_template, load_template,
+                                     save_template, validate_metadata)
 
 
 class TestMetadataTemplate:

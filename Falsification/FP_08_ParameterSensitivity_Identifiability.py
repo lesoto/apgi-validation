@@ -61,11 +61,35 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from Validation.VP_03_ActiveInference_AgentSimulations import (
-        APGIActiveInferenceAgent as APGIAgent,
-    )
+    try:
+        from Validation.VP_03_ActiveInference_AgentSimulations import (
+            APGIActiveInferenceAgent as APGIAgent,
+        )
+    except ImportError:
+        from Validation.VP_03_ActiveInference_AgentSimulations import APGIAgent
 
     HAS_APPI_AGENT = True
+
+    # FIXED: Create a proper agent factory for dependency injection
+    def create_apgi_agent(config: Optional[Dict] = None) -> APGIAgent:
+        """Factory function to create APGI agent with proper configuration"""
+        if config is None:
+            config = {
+                "n_states": 48,  # Standard state dimension
+                "n_actions": 4,  # Standard action space
+                "learning_rate": 0.01,
+                "precision_beta": 1.0,
+                "precision_pi_i": 1.0,
+                "ignition_threshold": 0.5,
+            }
+        try:
+            return APGIAgent(config)
+        except Exception as e:
+            logger.warning(f"Failed to create APGI agent with config {config}: {e}")
+            # Try with minimal config
+            minimal_config = {"n_states": 48, "n_actions": 4}
+            return APGIAgent(minimal_config)
+
 except ImportError as e:
     warnings.warn(
         f"CRIT-04 FIX: Could not import APGIAgent from VP_03: {e}. "
@@ -75,6 +99,11 @@ except ImportError as e:
     )
     HAS_APPI_AGENT = False
     APGIAgent = None  # type: ignore
+
+    def create_apgi_agent(config: Optional[Dict] = None) -> None:
+        """Fallback factory when APGI agent is not available"""
+        return None
+
 
 try:
     from SALib.analyze import sobol
@@ -356,14 +385,14 @@ def simulate_model_performance_with_agent(
             except Exception:
                 return 0.5  # Neutral fallback
         else:
-            # Try to instantiate APGIAgent if no instance provided
+            # FIXED: Use the proper agent factory for instantiation
             try:
-                agent_instance = APGIAgent(config={})
+                agent_instance = create_apgi_agent(config={})
                 # Cache the instance to avoid re-creating it for every OAT sample
                 _current_agent_instance = agent_instance
                 if not _AGENT_FALLBACK_WARNED:
-                    logger.warning(
-                        "CRIT-04 FIX: Created new APGIAgent instance - dependency injection recommended"
+                    logger.info(
+                        "CRIT-04 FIX: Successfully created APGIAgent instance using factory"
                     )
                     _AGENT_FALLBACK_WARNED = True
             except Exception as e:

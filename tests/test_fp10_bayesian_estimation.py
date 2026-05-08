@@ -10,18 +10,16 @@ from Falsification.FP_10_BayesianEstimation_MCMC import (
     generate_synthetic_data as generate_synthetic_data_mcmc,
 )
 from Falsification.FP_10_BayesianEstimation_MCMC import (
-    run_bayesian_estimation,
-    set_data_source,
-)
-from Falsification.FP_10_BayesianEstimation_MCMC import (
-    test_parameter_identifiability as check_parameter_identifiability,
-)
-from Falsification.FP_10_Falsification_BayesianEstimation_ParameterRecovery import (
     BayesianParameterRecovery,
     FP10bParameterRecovery,
     ParameterRecoveryResult,
     generate_synthetic_data,
+    run_bayesian_estimation,
     run_mcmc_bayesian_estimation,
+    set_data_source,
+)
+from Falsification.FP_10_BayesianEstimation_MCMC import (
+    test_parameter_identifiability as check_parameter_identifiability,
 )
 
 

@@ -111,7 +111,7 @@ try:
     import mne
 
     HAS_MNE = True
-except ImportError:
+except Exception:
     HAS_MNE = False
     mne = None  # type: ignore[assignment]
 

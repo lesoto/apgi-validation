@@ -28,12 +28,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
     from utils.dashboard_integration import DashboardManager
-    from utils.data_protection import (
-        apply_retention_policy,
-        minimize_data,
-        secure_delete,
-        tag_pii_in_data,
-    )
+    from utils.data_protection import (apply_retention_policy, minimize_data,
+                                       secure_delete, tag_pii_in_data)
 
     DASHBOARD_INTEGRATION_AVAILABLE = True
 except ImportError as e:

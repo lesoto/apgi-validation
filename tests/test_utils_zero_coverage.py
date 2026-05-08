@@ -266,7 +266,10 @@ class TestDTO:
 
     def test_master_validation_report_dto(self):
         """Test MasterValidationReportDTO."""
-        from utils.dto import MasterValidationReportDTO, ValidationTierSummaryDTO
+        from utils.dto import (
+            MasterValidationReportDTO,
+            ValidationTierSummaryDTO,
+        )
 
         tier_summary = {"tier1": ValidationTierSummaryDTO(passed=5, total=10)}
         dto = MasterValidationReportDTO(

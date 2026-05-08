@@ -23,13 +23,11 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from utils.preprocessing_pipelines import (
-        EDAPreprocessor,
-        EEGPreprocessor,
-        HeartRatePreprocessor,
-        PreprocessingConfig,
-        PupilPreprocessor,
-    )
+    from utils.preprocessing_pipelines import (EDAPreprocessor,
+                                               EEGPreprocessor,
+                                               HeartRatePreprocessor,
+                                               PreprocessingConfig,
+                                               PupilPreprocessor)
 except ImportError as e:
     pytest.skip(f"Cannot import preprocessing_pipelines: {e}", allow_module_level=True)
 

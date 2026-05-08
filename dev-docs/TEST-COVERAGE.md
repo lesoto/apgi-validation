@@ -73,7 +73,7 @@ pytest tests/ --cov=utils/timeout_handler --cov-report=term-missing
 | ---- | ----- | -------- | ------ | ----- |
 | `protocol_registry.py` | 321 | 🟢 95% | Near Complete | test_protocol_registry.py |
 | `data_validation.py` | 1530 | 🟢 90% | Near Complete | test_data_validation_complete.py |
-| `falsification_thresholds.py` | 1073 | 🟢 98% | Near Complete | test_falsification_thresholds_complete.py |
+| `utils/falsification_thresholds.py` | 1073 | 🟢 98% | Near Complete | test_falsification_thresholds_complete.py |
 | `monitoring_system.py` | 579 | 🟢 92% | Near Complete | test_monitoring_system.py |
 | `log_analysis_tools.py` | 2088 | 🟢 85% | Near Complete | test_log_analysis_tools.py |
 | `performance_optimizer.py` | 591 | 🟢 88% | Near Complete | test_performance_optimizer.py |
@@ -699,7 +699,7 @@ def test_cost_symmetry_property(self, surprise, threshold):
 | ------ | ----------------- | ---------------- | ------ |
 | protocol_registry.py | 0% | 55% | � Partial |
 | data_validation.py | 0% | 37% | � Critical Gap |
-| falsification_thresholds.py | 0% | 14% | � Critical Gap |
+| utils/falsification_thresholds.py | 0% | 14% | � Critical Gap |
 | monitoring_system.py | 0% | 42% | � Partial |
 | log_analysis_tools.py | 0% | 4% | � Critical Gap |
 | performance_optimizer.py | 0% | 8% | � Critical Gap |

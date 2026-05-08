@@ -4,14 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from utils.performance_governance import (
-    DEFAULT_SLOS,
-    BenchmarkResult,
-    PerformanceRegressionError,
-    assert_slo,
-    benchmark_callable,
-    export_benchmark_report,
-)
+from utils.performance_governance import (DEFAULT_SLOS, BenchmarkResult,
+                                          PerformanceRegressionError,
+                                          assert_slo, benchmark_callable,
+                                          export_benchmark_report)
 
 
 def test_benchmark_callable_produces_metrics():

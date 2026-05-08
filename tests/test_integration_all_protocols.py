@@ -89,7 +89,11 @@ if sys.version_info >= (3, 14):
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+from utils.protocol_schema import (
+    PredictionResult,
+    PredictionStatus,
+    ProtocolResult,
+)
 
 
 class TestAllFPProtocols:

@@ -1,12 +1,9 @@
 """Tests for Empirical Transition Report module - comprehensive coverage."""
 
-from utils.empirical_transition_report import (
-    compare_reports,
-    format_report_as_markdown,
-    generate_transition_report,
-    load_report,
-    save_report,
-)
+from utils.empirical_transition_report import (compare_reports,
+                                               format_report_as_markdown,
+                                               generate_transition_report,
+                                               load_report, save_report)
 
 
 class TestGenerateTransitionReport:

@@ -68,9 +68,9 @@ try:
     from mne.io import read_raw_fif  # type: ignore
 
     MNE_AVAILABLE = True
-except ImportError:
+except Exception as e:
     MNE_AVAILABLE = False
-    warnings.warn("MNE not available. Install with: pip install mne")
+    warnings.warn(f"MNE not available/failed to import: {e}")
 
 # Import FP-09 theta-gamma PAC function (Tort et al. 2010 Modulation Index)
 try:

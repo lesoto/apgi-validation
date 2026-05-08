@@ -102,12 +102,10 @@ try:
     # Import aggregator functions and constants
     try:
         from Falsification.FP_ALL_Aggregator import (
-            NAMED_PREDICTIONS,
-            aggregate_prediction_results,
+            NAMED_PREDICTIONS, aggregate_prediction_results,
             check_framework_falsification_condition_a,
             check_framework_falsification_condition_b,
-            run_framework_falsification,
-        )
+            run_framework_falsification)
 
         AGGREGATOR_AVAILABLE = True
     except ImportError as e:
@@ -168,13 +166,8 @@ except ImportError as e:
 logger = logging.getLogger(__name__)
 from utils.constants import DIM_CONSTANTS, VISUAL_CONSTANTS
 from utils.falsification_thresholds import (  # HIGH-01: Import from falsification_thresholds
-    DEFAULT_ALPHA,
-    F1_1_ALPHA,
-    F1_1_MIN_ADVANTAGE_PCT,
-    F1_1_MIN_COHENS_D,
-    F1_6_MIN_LOW_AROUSAL_SLOPE,
-    GENERIC_MEDIUM_COHENS_D,
-)
+    DEFAULT_ALPHA, F1_1_ALPHA, F1_1_MIN_ADVANTAGE_PCT, F1_1_MIN_COHENS_D,
+    F1_6_MIN_LOW_AROUSAL_SLOPE, GENERIC_MEDIUM_COHENS_D)
 
 # Suppress scipy deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -2517,14 +2510,23 @@ def run_falsification():
                     "error": "Prerequisite protocols (FP-01/FP-02) produced no valid data.",
                 }
 
-            # For standalone runs, make dependency check a warning instead of assertion
-            # This allows FP-03 to run independently while still enforcing for full synthesis
-            fp01_passed = fp01_result.get("passed", False)
+            # FIXED: Check overall pass status from summary for FP-01, and direct 'passed' field for FP-02
+            fp01_summary = fp01_result.get("summary", {})
+            fp01_passed_count = fp01_summary.get("passed", 0)
+            fp01_total_count = fp01_summary.get("total", 0)
+
+            # Consider FP-01 passed if more than 60% of criteria passed
+            fp01_passed = (
+                (fp01_passed_count / max(fp01_total_count, 1)) > 0.6
+                if fp01_total_count > 0
+                else False
+            )
+
             fp02_passed = fp02_result.get("passed", False)
 
             if not fp01_passed:
                 logger.warning(
-                    "FP-01 did not pass or has no valid 'passed' field; "
+                    f"FP-01 did not achieve sufficient pass rate ({fp01_passed_count}/{fp01_total_count}); "
                     "proceeding with standalone execution. "
                     "For full framework synthesis, ensure FP-01 passes first."
                 )

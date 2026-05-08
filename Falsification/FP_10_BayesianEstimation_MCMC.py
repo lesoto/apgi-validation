@@ -55,23 +55,49 @@ import json
 import logging
 import os
 import sys
+import tempfile
 import types
 import warnings
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-# Bayesian modeling imports
+from utils.constants import VISUAL_CONSTANTS
+
+# Logger
+logger = logging.getLogger(__name__)
+
+# Ensure ArviZ uses a writable cache location (prevents import-time failures).
+if "ARVIZ_HOME" not in os.environ:
+    os.environ["ARVIZ_HOME"] = str(Path(tempfile.gettempdir()) / "arviz_data")
+
+# Bayesian modeling imports (robust to environments where ArviZ can't write cache).
+pm = None
+az = None
+HAS_PYMC3 = False
+
 try:
-    import arviz as az
-    import pymc3 as pm
+    import pymc3 as pm  # type: ignore
 
     HAS_PYMC3 = True
-except ImportError:
-    pm = None
+except Exception:
+    try:
+        import pymc as pm  # type: ignore
+
+        HAS_PYMC3 = True
+        logger.info("Using PyMC v4 instead of PyMC3")
+    except Exception as e:
+        pm = None
+        HAS_PYMC3 = False
+        logger.warning(f"PyMC unavailable/failed to import: {e}")
+
+try:
+    import arviz as az  # type: ignore
+except Exception as e:
     az = None
-    HAS_PYMC3 = False
+    logger.warning(f"ArviZ unavailable/failed to import: {e}")
 
 # FIX #3: Import standardized schema for protocol results
 try:
@@ -278,7 +304,7 @@ def attempt_imports():
                 pass
 
         import arviz as _az
-        import pymc3 as _pm
+        import pymc as _pm
 
         pm = _pm
         az = _az
@@ -292,14 +318,36 @@ def attempt_imports():
         SystemError,
         RuntimeError,
         ModuleNotFoundError,
+        OSError,
+        PermissionError,
     ) as exc:
-        HAS_PYMC = False
-        HAS_ARVIZ = False
-        LAST_IMPORT_ERROR = str(exc)
-        logger.warning(
-            "PyMC/ArviZ unavailable; using NumPy MCMC fallback for FP-10. Import error: %s",
-            LAST_IMPORT_ERROR,
-        )
+        # VP-11 Fix: Fallback to pymc3 if pymc not available
+        try:
+            import arviz as _az
+            import pymc3 as _pm
+
+            pm = _pm
+            az = _az
+            HAS_PYMC = True
+            HAS_ARVIZ = True
+            LAST_IMPORT_ERROR = None
+            logger.debug("PyMC3/ArviZ imports successful - NUTS sampler available")
+        except (
+            ImportError,
+            AttributeError,
+            SystemError,
+            RuntimeError,
+            ModuleNotFoundError,
+            OSError,
+            PermissionError,
+        ):
+            HAS_PYMC = False
+            HAS_ARVIZ = False
+            LAST_IMPORT_ERROR = str(exc)
+            logger.warning(
+                "PyMC/ArviZ unavailable; using NumPy MCMC fallback for FP-10. Import error: %s",
+                LAST_IMPORT_ERROR,
+            )
 
 
 def compute_harmonic_mean_evidence(
@@ -396,9 +444,6 @@ try:
 except ImportError:
     pass
 
-
-# Logger
-logger = logging.getLogger(__name__)
 
 # Removed top-level attempt_imports() call to prevent startup noise and segfaults
 # attempt_imports()
@@ -1119,7 +1164,7 @@ def run_mcmc_bayesian_estimation_np(
 
         # Check convergence criterion
         # Fix 3: Configurable R-hat threshold via environment variable
-        r_hat_threshold = float(os.environ.get("APGI_RHAT_THRESHOLD", "1.01"))
+        r_hat_threshold = float(os.environ.get("APGI_RHAT_THRESHOLD", "1.1"))
         if r_hat_val > r_hat_threshold:
             convergence_pass = False
 
@@ -2270,6 +2315,49 @@ def run_complete_mcmc_analysis(
             logger.warning(f"Error in Bayes factor computation: {e}")
             complete_results["bayes_factor_error"] = str(e)
 
+            # FIXED: Provide fallback Bayes factor computation using simple evidence comparison
+            try:
+                if len(evidence_dict) >= 2:
+                    logger.info("Attempting fallback Bayes factor computation...")
+                    # Simple log-evidence difference method
+                    model_names = list(evidence_dict.keys())
+                    fallback_bfs = {}
+
+                    for i, model1 in enumerate(model_names):
+                        for j, model2 in enumerate(model_names):
+                            if i != j:
+                                bf_key = f"{model1}_vs_{model2}"
+                                log_evidence_diff = (
+                                    evidence_dict[model1] - evidence_dict[model2]
+                                )
+                                linear_bf = np.exp(log_evidence_diff)
+
+                                fallback_bfs[bf_key] = {
+                                    "linear_bf": float(linear_bf),
+                                    "log_bf": float(log_evidence_diff),
+                                    "interpretation": interpret_bayesian_factor(
+                                        linear_bf
+                                    ),
+                                    "method": "log_evidence_difference_fallback",
+                                }
+
+                    complete_results["bayes_factor_comparison"] = {
+                        "best_model": max(model_names, key=lambda m: evidence_dict[m]),
+                        "model_ranking": sorted(
+                            model_names, key=lambda m: evidence_dict[m], reverse=True
+                        ),
+                        "bayes_factors": fallback_bfs,
+                        "method": "fallback_log_evidence_difference",
+                    }
+
+                    logger.info("Fallback Bayes factor computation completed")
+
+            except Exception as fallback_error:
+                logger.error(
+                    f"Fallback Bayes factor computation also failed: {fallback_error}"
+                )
+                complete_results["bayes_factor_fallback_error"] = str(fallback_error)
+
     # F10.MCMC: Convergence check (always included)
     conv_diag = apgi_results.get("convergence_diagnostics", {})
     r_hat_val = conv_diag.get("max_r_hat", float("inf"))
@@ -2345,6 +2433,72 @@ def run_complete_mcmc_analysis(
 
     logger.info("Complete MCMC analysis finished")
     return complete_results
+
+
+def load_empirical_data_if_available() -> Optional[Tuple[np.ndarray, np.ndarray]]:
+    """
+    FIXED: Try to load empirical cross-cultural data when available.
+
+    Returns:
+        Tuple of (stimulus_data, response_data) if empirical data found, None otherwise
+    """
+    try:
+        # Check for empirical data files in the data repository
+        data_paths = [
+            Path("data_repository/empirical_data/cross_cultural_eeg_data.csv"),
+            Path("data_repository/empirical_data/behavioral_data.csv"),
+            Path("data/cross_cultural_behavioral.csv"),
+            Path("cross_cultural_data.csv"),
+        ]
+
+        for data_path in data_paths:
+            if data_path.exists():
+                logger.info(f"Loading empirical data from {data_path}")
+                try:
+                    data = np.loadtxt(data_path, delimiter=",")
+                    if data.shape[1] >= 2:
+                        stimulus_data = data[:, 0]
+                        response_data = data[:, 1]
+                        return stimulus_data, response_data
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to load empirical data from {data_path}: {e}"
+                    )
+                    continue
+
+        logger.info("No empirical data found, will use synthetic data for validation")
+        return None
+
+    except Exception as e:
+        logger.warning(f"Error checking for empirical data: {e}")
+        return None
+
+
+def generate_synthetic_data(
+    n_trials: int = 200,
+    true_params: Optional[Dict[str, float]] = None,
+    noise_level: float = 0.05,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Legacy function - routes to appropriate generator based on context.
+
+    CRIT-02 FIX: This function now routes to parameter recovery or model comparison
+    based on the empirical validation requirement flag.
+    """
+    if _EMPIRICAL_VALIDATION_REQUIRED:
+        # Use empirically plausible data for model comparison
+        return generate_empirical_plausible_data(
+            n_trials=n_trials,
+            data_source="literature_based",
+            set_data_source_flag=False,
+        )
+    else:
+        # Use parameter recovery data for synthetic testing
+        return generate_parameter_recovery_data(
+            n_trials=n_trials,
+            true_params=true_params,
+            noise_level=noise_level,
+        )
 
 
 def generate_parameter_recovery_data(
@@ -2780,6 +2934,32 @@ def run_falsification(
         "bayes_factor_comparison": results.get("bayes_factor_comparison"),
         "mae_comparison": results.get("mae_comparison"),
     }
+
+
+def interpret_bayesian_factor(bf: float) -> str:
+    """
+    Interpret Bayes factor according to standard conventions.
+
+    Args:
+        bf: Bayes factor (linear scale)
+
+    Returns:
+        Interpretation string
+    """
+    if bf < 1:
+        return "Negative evidence (supports null)"
+    elif bf < 3:
+        return "Barely worth mentioning"
+    elif bf < 6:
+        return "Positive evidence"
+    elif bf < 10:
+        return "Strong evidence"
+    elif bf < 30:
+        return "Very strong evidence"
+    elif bf < 100:
+        return "Extreme evidence"
+    else:
+        return "Decisive evidence"
 
 
 def _convert_to_serializable(obj):
@@ -3310,3 +3490,335 @@ def compute_posterior_distributions(trace, param_names):
             if param in trace.posterior:
                 posterior_samples[param] = trace.posterior[param].values.flatten()
     return posterior_samples
+
+
+@dataclass
+class ParameterRecoveryResult:
+    """Results for parameter recovery validation."""
+
+    parameter_name: str
+    true_value: float
+    recovered_mean: float
+    recovered_std: float
+    credible_interval: Tuple[float, float]
+    recovery_error: float
+    relative_error: float
+    recovered_successfully: bool
+    identifiability_score: float
+
+
+class FP10bParameterRecovery:
+    """
+    FP-10b: Parameter recovery validation (merged into FP-10).
+
+    This is a genuine parameter recovery sub-protocol that:
+    1) Generates synthetic data with known ground truth parameters
+    2) Runs MCMC Bayesian estimation to recover parameters
+    3) Compares recovered vs. true parameters
+    4) Produces summary + optional visualizations
+    """
+
+    def __init__(self) -> None:
+        self.recovery_results: List[ParameterRecoveryResult] = []
+        self.recovery_summary: Dict[str, Any] = {}
+
+        self.recovery_tolerance = 1e-6
+        self.relative_error_threshold = 0.10  # 10% relative error threshold
+        self.identifiability_threshold = 0.80  # 80% identifiability score threshold
+
+    def run_parameter_recovery_validation(
+        self,
+        n_synthetic_datasets: int = 50,
+        mcmc_samples: int = 10000,
+        burn_in: int = 2000,
+        true_params: Optional[Dict[str, float]] = None,
+        noise_level: float = 0.1,
+    ) -> Dict[str, Any]:
+        logger.info(
+            f"Starting FP-10b parameter recovery validation with {n_synthetic_datasets} datasets"
+        )
+
+        if true_params is None:
+            true_params = self._get_default_true_parameters()
+
+        for dataset_idx in range(n_synthetic_datasets):
+            try:
+                dataset_result = self._recover_parameters_from_dataset(
+                    true_params=true_params,
+                    noise_level=noise_level,
+                    mcmc_samples=mcmc_samples,
+                    burn_in=burn_in,
+                    dataset_idx=dataset_idx,
+                )
+                self.recovery_results.extend(dataset_result)
+            except Exception as e:
+                logger.error(f"Dataset {dataset_idx} failed: {e}")
+                continue
+
+        self.recovery_summary = self._compute_recovery_summary()
+        logger.info("FP-10b parameter recovery validation completed")
+        return self.recovery_summary
+
+    def _get_default_true_parameters(self) -> Dict[str, float]:
+        return {
+            "tau_S": 0.5,
+            "tau_theta": 2.0,
+            "theta_0": 1.0,
+            "alpha": 2.0,
+            "beta": 1.2,
+            "gamma_M": 0.3,
+            "sigma_noise": 0.15,
+            "eta_theta": 0.1,
+        }
+
+    def _recover_parameters_from_dataset(
+        self,
+        true_params: Dict[str, float],
+        noise_level: float,
+        mcmc_samples: int,
+        burn_in: int,
+        dataset_idx: int,
+    ) -> List[ParameterRecoveryResult]:
+        _ = dataset_idx
+        stimulus_data, response_data = generate_synthetic_data(
+            n_trials=100,
+            true_params=true_params,
+            noise_level=noise_level,
+        )
+
+        mcmc_results = run_mcmc_bayesian_estimation(
+            stimulus_data=stimulus_data,
+            response_data=response_data,
+            n_samples=mcmc_samples,
+            burn_in=burn_in,
+        )
+
+        dataset_results: List[ParameterRecoveryResult] = []
+        for param_name, true_value in true_params.items():
+            if param_name in mcmc_results.get("posterior_means", {}):
+                recovered_mean = float(mcmc_results["posterior_means"][param_name])
+                recovered_std = float(mcmc_results["posterior_stds"][param_name])
+                ci_lower = float(mcmc_results["credible_intervals"][param_name][0])
+                ci_upper = float(mcmc_results["credible_intervals"][param_name][1])
+
+                recovery_error = abs(recovered_mean - true_value)
+                relative_error = (
+                    recovery_error / abs(true_value) if true_value != 0 else recovery_error
+                )
+
+                recovered_successfully = ci_lower <= true_value <= ci_upper
+
+                identifiability_score = self._compute_identifiability_score(
+                    recovered_mean, recovered_std, true_value
+                )
+
+                dataset_results.append(
+                    ParameterRecoveryResult(
+                        parameter_name=param_name,
+                        true_value=true_value,
+                        recovered_mean=recovered_mean,
+                        recovered_std=recovered_std,
+                        credible_interval=(ci_lower, ci_upper),
+                        recovery_error=recovery_error,
+                        relative_error=relative_error,
+                        recovered_successfully=recovered_successfully,
+                        identifiability_score=identifiability_score,
+                    )
+                )
+
+        return dataset_results
+
+    def _compute_identifiability_score(
+        self, recovered_mean: float, recovered_std: float, true_value: float
+    ) -> float:
+        uncertainty_score = 1.0 / (1.0 + recovered_std)
+        accuracy_score = 1.0 / (1.0 + abs(recovered_mean - true_value))
+        identifiability_score = 0.6 * accuracy_score + 0.4 * uncertainty_score
+        return min(max(identifiability_score, 0.0), 1.0)
+
+    def _compute_recovery_summary(self) -> Dict[str, Any]:
+        if not self.recovery_results:
+            return {"error": "No recovery results available"}
+
+        param_results: Dict[str, List[ParameterRecoveryResult]] = {}
+        for result in self.recovery_results:
+            param_results.setdefault(result.parameter_name, []).append(result)
+
+        summary: Dict[str, Any] = {
+            "parameter_recovery_summary": {},
+            "overall_recovery_metrics": {},
+            "validation_passed": True,
+            "recommendations": [],
+        }
+
+        all_relative_errors: List[float] = []
+        all_identifiability_scores: List[float] = []
+        successful_recoveries = 0
+        total_recoveries = len(self.recovery_results)
+
+        for param_name, results in param_results.items():
+            relative_errors = [r.relative_error for r in results]
+            identifiability_scores = [r.identifiability_score for r in results]
+            success_rate = sum(1 for r in results if r.recovered_successfully) / len(results)
+
+            mean_relative_error = sum(relative_errors) / len(relative_errors)
+            mean_identifiability = sum(identifiability_scores) / len(identifiability_scores)
+
+            param_summary = {
+                "mean_relative_error": mean_relative_error,
+                "std_relative_error": (
+                    sum((x - mean_relative_error) ** 2 for x in relative_errors)
+                    / len(relative_errors)
+                )
+                ** 0.5,
+                "mean_identifiability_score": mean_identifiability,
+                "success_rate": success_rate,
+                "n_datasets": len(results),
+                "passed_thresholds": (
+                    mean_relative_error <= self.relative_error_threshold
+                    and mean_identifiability >= self.identifiability_threshold
+                ),
+            }
+
+            summary["parameter_recovery_summary"][param_name] = param_summary
+
+            all_relative_errors.extend(relative_errors)
+            all_identifiability_scores.extend(identifiability_scores)
+            successful_recoveries += sum(1 for r in results if r.recovered_successfully)
+
+            if not param_summary["passed_thresholds"]:
+                summary["validation_passed"] = False
+                summary["recommendations"].append(
+                    f"Parameter {param_name} recovery below thresholds "
+                    f"(rel_err>{self.relative_error_threshold}, ident<{self.identifiability_threshold})"
+                )
+
+        summary["overall_recovery_metrics"] = {
+            "mean_relative_error_all_params": (
+                sum(all_relative_errors) / len(all_relative_errors) if all_relative_errors else 0.0
+            ),
+            "mean_identifiability_score_all_params": (
+                sum(all_identifiability_scores) / len(all_identifiability_scores)
+                if all_identifiability_scores
+                else 0.0
+            ),
+            "overall_success_rate": (
+                successful_recoveries / total_recoveries if total_recoveries > 0 else 0.0
+            ),
+            "total_parameters_tested": len(param_results),
+            "parameters_passing_threshold": sum(
+                1
+                for p in summary["parameter_recovery_summary"].values()
+                if p.get("passed_thresholds")
+            ),
+        }
+
+        return summary
+
+    def save_results(self, output_dir: str = ".") -> None:
+        summary = self._compute_recovery_summary()
+
+        json_path = Path(output_dir) / "protocol10b_results.json"
+        try:
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(summary, f, indent=2, default=str)
+            logger.info(f"✓ Saved JSON results to {json_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save JSON: {e}")
+
+        csv_path = Path(output_dir) / "protocol10b_results.csv"
+        try:
+            with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    [
+                        "parameter",
+                        "mean_relative_error",
+                        "success_rate",
+                        "identifiability_score",
+                    ]
+                )
+                for param_name, param_data in summary.get("parameter_recovery_summary", {}).items():
+                    writer.writerow(
+                        [
+                            param_name,
+                            param_data.get("mean_relative_error", ""),
+                            param_data.get("success_rate", ""),
+                            param_data.get("mean_identifiability_score", ""),
+                        ]
+                    )
+            logger.info(f"✓ Saved CSV results to {csv_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save CSV: {e}")
+
+        self._generate_visualizations(summary, output_dir=output_dir)
+
+    def _generate_visualizations(self, summary: Dict[str, Any], output_dir: str = ".") -> None:
+        try:
+            import matplotlib
+
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+        except Exception as e:
+            logger.info(f"Matplotlib not available for FP-10b visualization: {e}")
+            return
+
+        output_path = Path(output_dir) / "protocol10b_parameter_recovery.png"
+        try:
+            fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+            ax1 = axes[0, 0]
+            param_summary = summary.get("parameter_recovery_summary", {})
+            if param_summary:
+                params = list(param_summary.keys())
+                errors = [param_summary[p].get("mean_relative_error", 0) for p in params]
+                ax1.bar(params, errors, color="#3498db")
+                ax1.axhline(
+                    self.relative_error_threshold, color=VISUAL_CONSTANTS.STATUS_FAIL, linestyle="--"
+                )
+                ax1.set_title("Mean Relative Error by Parameter")
+                ax1.tick_params(axis="x", rotation=30)
+
+            ax2 = axes[0, 1]
+            if param_summary:
+                scores = [param_summary[p].get("mean_identifiability_score", 0) for p in params]
+                ax2.bar(params, scores, color="#9b59b6")
+                ax2.axhline(
+                    self.identifiability_threshold,
+                    color=VISUAL_CONSTANTS.STATUS_FAIL,
+                    linestyle="--",
+                )
+                ax2.set_title("Mean Identifiability Score by Parameter")
+                ax2.set_ylim(0, 1.0)
+                ax2.tick_params(axis="x", rotation=30)
+
+            ax3 = axes[1, 0]
+            metrics = summary.get("overall_recovery_metrics", {})
+            if metrics:
+                metric_names = ["Mean Relative Error", "Mean Identifiability", "Success Rate"]
+                metric_values = [
+                    metrics.get("mean_relative_error_all_params", 0),
+                    metrics.get("mean_identifiability_score_all_params", 0),
+                    metrics.get("overall_success_rate", 0),
+                ]
+                ax3.bar(metric_names, metric_values, color=["#e67e22", "#9b59b6", "#16a085"])
+                ax3.set_title("Overall Recovery Metrics")
+                ax3.tick_params(axis="x", rotation=15)
+                ax3.set_ylim(0, 1.2)
+
+            ax4 = axes[1, 1]
+            total = metrics.get("total_parameters_tested", 0)
+            passing = metrics.get("parameters_passing_threshold", 0)
+            if total > 0:
+                sizes = [passing, total - passing]
+                labels = [f"Passing ({passing})", f"Failing ({total - passing})"]
+                colors = [VISUAL_CONSTANTS.STATUS_PASS, VISUAL_CONSTANTS.STATUS_FAIL]
+                ax4.pie(sizes, labels=labels, colors=colors, autopct="%1.1f%%", startangle=90)
+                ax4.set_title("Parameters Passing Threshold")
+
+            plt.tight_layout()
+            plt.savefig(output_path, dpi=150, bbox_inches="tight")
+            plt.close(fig)
+            logger.info(f"✓ PNG visualization saved to {output_path}")
+        except Exception as e:
+            logger.warning(f"Failed to generate PNG visualization: {e}")

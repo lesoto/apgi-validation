@@ -2320,6 +2320,9 @@ class APGIValidator:
             "bistability_present": bistability_present,
             "critical_slowing_present": critical_slowing_present,
             "hysteresis_present": hysteresis_present,
+            "hysteresis_width": hysteresis_width,
+            "tau_auto_ratio": tau_auto_ratio,
+            "theta_t": theta_t,
             "hysteresis_width_valid": min_hysteresis
             <= hysteresis_width
             <= max_hysteresis,

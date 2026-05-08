@@ -23,15 +23,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 APGI_CORE_AVAILABLE = False
 
 try:
-    from apgi_core.equations import (
-        CoreIgnitionSystem,
-        DynamicalSystemEquations,
-        FoundationalEquations,
-    )
-    from Theory.APGI_Parameter_Estimation import (
-        build_apgi_model,
-        generate_synthetic_dataset,
-    )
+    from apgi_core.equations import (CoreIgnitionSystem,
+                                     DynamicalSystemEquations,
+                                     FoundationalEquations)
+    from Theory.APGI_Parameter_Estimation import (build_apgi_model,
+                                                  generate_synthetic_dataset)
     from utils.data_validation import DataValidator
 
     APGI_CORE_AVAILABLE = True

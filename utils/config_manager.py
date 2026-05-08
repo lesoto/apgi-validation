@@ -1130,6 +1130,17 @@ class ConfigManager:
         else:
             raise ValueError(f"Unknown configuration section: {section}")
 
+    def get_parameter(self, section: str, parameter: str) -> Any:
+        """Get a specific configuration parameter."""
+        if not hasattr(self.config, section):
+            raise ValueError(f"Unknown configuration section: {section}")
+
+        section_obj = getattr(self.config, section)
+        if not hasattr(section_obj, parameter):
+            raise ValueError(f"Unknown parameter: {parameter} in section: {section}")
+
+        return getattr(section_obj, parameter)
+
     def set_parameter(self, section: str, parameter: str, value: Any) -> bool:
         """Set a specific configuration parameter."""
 

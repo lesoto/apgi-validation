@@ -13,15 +13,11 @@ import pytest
 # Ensure utils is in path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.protocol_registry import (
-    PROTOCOL_REGISTRY,
-    ProtocolInfo,
-    _initialize_registry,
-    get_protocol_info,
-    get_protocol_registry,
-    list_available_protocols,
-    resolve_protocol,
-)
+from utils.protocol_registry import (PROTOCOL_REGISTRY, ProtocolInfo,
+                                     _initialize_registry, get_protocol_info,
+                                     get_protocol_registry,
+                                     list_available_protocols,
+                                     resolve_protocol)
 
 
 class TestProtocolInfo:

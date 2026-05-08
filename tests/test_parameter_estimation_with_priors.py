@@ -2,11 +2,9 @@
 
 import numpy as np
 
-from utils.parameter_estimation_with_priors import (
-    APGIPhysiologicalEstimator,
-    CalibratedAPGIEstimate,
-    HybridCalibrator,
-)
+from utils.parameter_estimation_with_priors import (APGIPhysiologicalEstimator,
+                                                    CalibratedAPGIEstimate,
+                                                    HybridCalibrator)
 
 
 class TestCalibratedAPGIEstimate:

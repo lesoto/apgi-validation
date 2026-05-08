@@ -1,64 +1,20 @@
 """
-Test that falsification_thresholds.py (root) and utils/falsification_thresholds.py
-define identical values for the same constant names.
+Threshold module consolidation tests.
+
+Project convention:
+- Single source of truth lives at `utils/falsification_thresholds.py`
+- The former root-level `falsification_thresholds.py` shim is intentionally removed
 """
+
+from pathlib import Path
 
 import pytest
 
 
-def test_cross_file_threshold_consistency():
-    """
-    Test that root falsification_thresholds.py and utils/falsification_thresholds.py
-    define identical values for the same constant names.
-    """
-    # Import both threshold files
-    import falsification_thresholds as root_thresholds
-    from utils import falsification_thresholds as utils_thresholds
-
-    # Get all constants from root file (excluding private/internal ones)
-    root_constants = {
-        name: value
-        for name, value in vars(root_thresholds).items()
-        if not name.startswith("_")
-        and isinstance(value, (int, float, str))
-        and not callable(value)
-    }
-
-    # Get all constants from utils file
-    utils_constants = {
-        name: value
-        for name, value in vars(utils_thresholds).items()
-        if not name.startswith("_")
-        and isinstance(value, (int, float, str))
-        and not callable(value)
-    }
-
-    # Find common constants between both files
-    common_constants = set(root_constants.keys()) & set(utils_constants.keys())
-
-    # Assert that all common constants have identical values
-    mismatches = []
-    for const_name in common_constants:
-        root_value = root_constants[const_name]
-        utils_value = utils_constants[const_name]
-
-        if root_value != utils_value:
-            mismatches.append(
-                const_name + ": root=" + str(root_value) + ", utils=" + str(utils_value)
-            )
-
-    if mismatches:
-        pytest.fail(
-            "Threshold value mismatches between root and utils files:\n"
-            + "\n".join(mismatches)
-        )
-
-    # Report number of common constants verified
-    print(
-        "Verified "
-        + str(len(common_constants))
-        + " common threshold constants are consistent"
-    )  # noqa: E501
+def test_root_threshold_shim_removed():
+    """Root shim was removed as part of consolidation into utils/."""
+    project_root = Path(__file__).parent.parent
+    assert not (project_root / "falsification_thresholds.py").exists()
 
 
 def test_all_threshold_constants_exported_from_utils():
@@ -78,14 +34,14 @@ def test_all_threshold_constants_exported_from_utils():
     assert isinstance(F6_2_MIN_R2, float)
     assert isinstance(F5_3_FALSIFICATION_RATIO, float)
 
-    # Verify key values match root file
+    # Verify key values match canonical file
     from utils.falsification_thresholds import (
-        F5_3_FALSIFICATION_RATIO as root_F5_3_FALSIFICATION_RATIO,
+        F5_3_FALSIFICATION_RATIO as canonical_F5_3_FALSIFICATION_RATIO,
     )
-    from utils.falsification_thresholds import F6_2_MIN_R2 as root_F6_2_MIN_R2
+    from utils.falsification_thresholds import F6_2_MIN_R2 as canonical_F6_2_MIN_R2
 
-    assert F6_2_MIN_R2 == root_F6_2_MIN_R2
-    assert F5_3_FALSIFICATION_RATIO == root_F5_3_FALSIFICATION_RATIO
+    assert F6_2_MIN_R2 == canonical_F6_2_MIN_R2
+    assert F5_3_FALSIFICATION_RATIO == canonical_F5_3_FALSIFICATION_RATIO
 
 
 if __name__ == "__main__":

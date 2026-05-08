@@ -25,7 +25,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import APGI modules for property-based testing
 try:
-    from apgi_core.equations import DynamicalSystemEquations, FoundationalEquations
+    from apgi_core.equations import (DynamicalSystemEquations,
+                                     FoundationalEquations)
     from Theory.APGI_Parameter_Estimation import generate_synthetic_dataset
     from utils.data_validation import DataValidator
 

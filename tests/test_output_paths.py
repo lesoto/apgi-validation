@@ -2,14 +2,9 @@
 
 from pathlib import Path
 
-from utils.output_paths import (
-    OutputPathManager,
-    create_output_path,
-    ensure_directory_exists,
-    get_output_directory,
-    get_unique_filename,
-    sanitize_filename,
-)
+from utils.output_paths import (OutputPathManager, create_output_path,
+                                ensure_directory_exists, get_output_directory,
+                                get_unique_filename, sanitize_filename)
 
 
 class TestGetOutputDirectory:

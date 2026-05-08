@@ -53,7 +53,8 @@ def convert_numpy_types(obj):
 from tests.comprehensive import AdversarialTestFramework, TestCategory
 from tests.comprehensive.integration_e2e import run_integration_tests
 from tests.comprehensive.mutation_tester import run_mutation_testing
-from tests.comprehensive.performance_regression import run_performance_regression_tests
+from tests.comprehensive.performance_regression import \
+    run_performance_regression_tests
 from tests.comprehensive.security_tester import run_security_tests
 
 

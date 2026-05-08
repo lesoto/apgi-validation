@@ -36,6 +36,8 @@ necessitated by coverage parsimony constraints.
 """
 
 import logging
+import os
+import sys
 import warnings
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -426,7 +428,22 @@ class CrossLevelCouplingSimulator:
 
 # ---------------------------------------------------------------------------
 # Visualization
-from utils.constants import VISUAL_CONSTANTS
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+try:
+    from utils.constants import VISUAL_CONSTANTS
+except ImportError:
+    # Fallback if utils.constants is not available
+    class VISUAL_CONSTANTS:
+        LEVEL_COLORS = [
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+        ]
+        ST_BLUE = "#1f77b4"
+
 
 # ---------------------------------------------------------------------------
 

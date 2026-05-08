@@ -74,7 +74,9 @@ class SecureKeyManager:
                     "or (dev/tests only) set APGI_ALLOW_EPHEMERAL_MASTER_KEY=1 to allow an ephemeral key."
                 )
 
-            master_key = Fernet.generate_key().decode()  # Convert bytes to string
+            master_key = (
+                Fernet.generate_key().decode()
+            )  # Convert bytes to base64 string
             os.environ["APGI_MASTER_KEY"] = master_key
             self.logger.warning(
                 "APGI_MASTER_KEY not set; generated ephemeral key because "
@@ -96,8 +98,11 @@ class SecureKeyManager:
             raise FileNotFoundError(f"Key file {key_file} does not exist")
 
         master_key = self._get_master_key()
-        # master_key is already a base64-encoded string from Fernet.generate_key()
-        fernet = Fernet(master_key if isinstance(master_key, str) else master_key)
+        # master_key is a base64-encoded string, convert to bytes for Fernet
+        master_key_bytes = (
+            master_key.encode() if isinstance(master_key, str) else master_key
+        )
+        fernet = Fernet(master_key_bytes)
 
         encrypted = key_file.read_bytes()
         try:
@@ -144,8 +149,11 @@ class SecureKeyManager:
 
         # Save encrypted
         master_key = self._get_master_key()
-        # master_key is already a base64-encoded string from Fernet.generate_key()
-        fernet = Fernet(master_key if isinstance(master_key, str) else master_key)
+        # master_key is a base64-encoded string, convert to bytes for Fernet
+        master_key_bytes = (
+            master_key.encode() if isinstance(master_key, str) else master_key
+        )
+        fernet = Fernet(master_key_bytes)
         key_b64 = base64.b64encode(key_bytes).decode("utf-8")
         encrypted = fernet.encrypt(key_b64.encode("utf-8"))
 

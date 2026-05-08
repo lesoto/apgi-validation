@@ -13,19 +13,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.monitoring_system import (
-    Alert,
-    AlertChannel,
-    AlertRule,
-    AlertSeverity,
-    HealthCheck,
-    MonitoringSystem,
-    NotificationManager,
-    get_monitoring_system,
-    get_status,
-    start_monitoring,
-    stop_monitoring,
-)
+from utils.monitoring_system import (Alert, AlertChannel, AlertRule,
+                                     AlertSeverity, HealthCheck,
+                                     MonitoringSystem, NotificationManager,
+                                     get_monitoring_system, get_status,
+                                     start_monitoring, stop_monitoring)
 
 
 class TestAlertSeverity:

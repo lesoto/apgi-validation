@@ -8,17 +8,6 @@ APGI parameters Πi (interoceptive precision) and β (somatic influence gain).
 Key Features:
 1. Alpha/Gamma Power Ratio as Πi Physiological Prior
 2. Resting-State HEP Calibration for Baseline Πi Fixation
-3. Collinearity-Breaking via Biological Constraint
-
-Theory:
--------
-The alpha/gamma power ratio (8-12 Hz / 30-80 Hz) serves as a proxy for
-cortical excitation/inhibition balance, which correlates with interoceptive
-precision. Higher alpha relative to gamma indicates heightened interoceptive
-processing (higher Πi), providing a biological anchor independent of β.
-
-By anchoring Πi to a physiological proxy:
-- Breaks statistical collinearity: cor(Πi, β) → 0
 - Enables independent estimation of β during task
 - Provides falsifiable biological constraint
 
@@ -243,9 +232,20 @@ class AlphaGammaRatioPrior:
             # Extract frequency band
             freq_mask = (f >= freq_range[0]) & (f <= freq_range[1])
             if np.any(freq_mask):
-                # Integrate using trapezoid rule
-                # Use numpy.trapezoid (modern equivalent)
-                band_power = np.trapezoid(psd[freq_mask], f[freq_mask])
+                band_freqs = f[freq_mask]
+                band_psd = psd[freq_mask]
+
+                # Integrate PSD over frequency.
+                # If the mask captures a single FFT bin (common with short nperseg),
+                # trapezoid integration returns 0. Approximate area using Δf.
+                if band_freqs.size >= 2:
+                    band_power = np.trapezoid(band_psd, band_freqs)
+                else:
+                    if f.size >= 2:
+                        df = float(f[1] - f[0])
+                    else:
+                        df = float(freq_range[1] - freq_range[0])
+                    band_power = float(band_psd[0]) * df
                 total_power += band_power
 
         # Average across channels

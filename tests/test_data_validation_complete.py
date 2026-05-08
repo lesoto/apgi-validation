@@ -15,15 +15,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.data_validation import (
-    DataPreprocessor,
-    DataValidator,
-    ValidationConfig,
-    load_real_data_stub,
-    main,
-    validate_doc_eeg_dataset,
-    validate_fmri_dataset,
-)
+from utils.data_validation import (DataPreprocessor, DataValidator,
+                                   ValidationConfig, load_real_data_stub, main,
+                                   validate_doc_eeg_dataset,
+                                   validate_fmri_dataset)
 
 
 class TestValidationConfig:

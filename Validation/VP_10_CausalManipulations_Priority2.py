@@ -364,6 +364,7 @@ class CausalManipulationsValidator:
     """Complete validation of causal manipulation predictions"""
 
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         self.tms_intervention = TMSIntervention()
         self.tacs_intervention = TACSIntervention()
         self.pharmacological_intervention = None

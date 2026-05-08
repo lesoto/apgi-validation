@@ -1,13 +1,8 @@
 """Tests for Error Recovery module - comprehensive coverage."""
 
-from utils.error_recovery import (
-    BackupState,
-    ErrorRecoveryManager,
-    RecoveryStrategy,
-    attempt_recovery,
-    create_checkpoint,
-    restore_from_checkpoint,
-)
+from utils.error_recovery import (BackupState, ErrorRecoveryManager,
+                                  RecoveryStrategy, attempt_recovery,
+                                  create_checkpoint, restore_from_checkpoint)
 
 
 class TestErrorRecoveryManager:

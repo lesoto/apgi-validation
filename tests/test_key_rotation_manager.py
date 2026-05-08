@@ -15,12 +15,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # provides a persistent APGI_MASTER_KEY.
 os.environ.setdefault("APGI_ALLOW_EPHEMERAL_MASTER_KEY", "1")
 
-from utils.key_rotation_manager import (
-    KeyRotationManager,
-    check_and_rotate_keys_if_needed,
-    get_key_rotation_manager,
-    get_key_status,
-)
+from utils.key_rotation_manager import (KeyRotationManager,
+                                        check_and_rotate_keys_if_needed,
+                                        get_key_rotation_manager,
+                                        get_key_status)
 
 
 class TestKeyRotationManager:

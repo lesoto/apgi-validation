@@ -682,19 +682,23 @@ class APGIMasterFalsifier:
         spec.loader.exec_module(module)
 
         # Get APGIAgent class from module
-        if not hasattr(module, "APGIAgent"):
-            raise RuntimeError("VP-03 module does not export APGIAgent class")
-
-        APGIAgent = module.APGIAgent
+        if hasattr(module, "APGIActiveInferenceAgent"):
+            APGIAgentClass = module.APGIActiveInferenceAgent
+        elif hasattr(module, "APGIAgent"):
+            APGIAgentClass = module.APGIAgent
+        else:
+            raise RuntimeError(
+                "VP-03 module does not export APGIActiveInferenceAgent or APGIAgent class"
+            )
 
         # Instantiate agent with default config for sensitivity analysis
         try:
             # Try to get APGIConfig if available
             if hasattr(module, "APGIConfig"):
                 config = module.APGIConfig()
-                agent = APGIAgent(config=config)
+                agent = APGIAgentClass(config=config)
             else:
-                agent = APGIAgent()
+                agent = APGIAgentClass()
 
             logger.info(
                 f"CRIT-04 FIX: Successfully instantiated APGIAgent ({type(agent).__name__})"

@@ -22,13 +22,10 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from utils.empirical_dataset_catalog import (
-        DataQuality,
-        DatasetMetadata,
-        DatasetType,
-        EmpiricalDatasetCatalog,
-        SearchCriteria,
-    )
+    from utils.empirical_dataset_catalog import (DataQuality, DatasetMetadata,
+                                                 DatasetType,
+                                                 EmpiricalDatasetCatalog,
+                                                 SearchCriteria)
 
     EMPIRICAL_CATALOG_AVAILABLE = True
 except ImportError as e:

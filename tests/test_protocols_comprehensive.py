@@ -32,9 +32,8 @@ class TestFalsificationProtocol5(unittest.TestCase):
     def test_evolutionary_emergence_initialization(self):
         """Test FP-5 protocol initialization."""
         try:
-            from Falsification.FP_05_EvolutionaryPlausibility import (
-                EvolutionaryAPGIEmergence as FP5,
-            )
+            from Falsification.FP_05_EvolutionaryPlausibility import \
+                EvolutionaryAPGIEmergence as FP5
 
             protocol = FP5()
             self.assertIsNotNone(protocol)

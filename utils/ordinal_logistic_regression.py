@@ -10,6 +10,12 @@ This is the preferred method over ANOVA/Cohen's d for ordinal outcomes as specif
 import logging
 from typing import Any, Dict, List, Optional
 
+# Apply Python 3.14 NumPy compatibility patches first
+try:
+    from tests.python314_numpy_fixes import *  # noqa: F403,F401
+except ImportError:
+    pass
+
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize

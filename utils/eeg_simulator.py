@@ -9,6 +9,12 @@ and P3b amplitude/latency (300–600ms). This is essential for the core mechanis
 import logging
 from typing import Any, Dict, Optional
 
+# Apply Python 3.14 NumPy compatibility patches first
+try:
+    from tests.python314_numpy_fixes import *  # noqa: F403,F401
+except ImportError:
+    pass
+
 import numpy as np
 
 logger = logging.getLogger(__name__)

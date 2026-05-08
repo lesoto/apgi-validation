@@ -36,6 +36,8 @@ claimed by the framework.
 =============================================================================
 """
 
+import os
+import sys
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
@@ -44,6 +46,7 @@ from typing import Any, Dict, List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.constants import VISUAL_CONSTANTS
 
 # =============================================================================

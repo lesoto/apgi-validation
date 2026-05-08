@@ -37,18 +37,19 @@ modulate APGI parameters as predicted by the framework.
 """
 
 import logging
-
-# Add parent directory to path for utils imports
+import os
 import sys
 import warnings
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
 
-sys.path.append(str(Path(__file__).parent.parent))
-from utils.constants import VISUAL_CONSTANTS
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+try:
+    from utils.constants import VISUAL_CONSTANTS
+except ImportError:
+    from constants import VISUAL_CONSTANTS
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 

@@ -3,19 +3,10 @@
 import numpy as np
 import pytest
 
-from apgi_core import (
-    APGIAllostaticLayer,
-    APGICoreSignal,
-    APGIHierarchy,
-    APGIIgnitionMechanism,
-    APGILiquidNeuralNetwork,
-    APGIPrecisionSystem,
-    APGIPreProcessor,
-    APGIRecovery,
-    APGISystem,
-    APGISystemDynamics,
-    APGIValidationMetrics,
-)
+from apgi_core import (APGIAllostaticLayer, APGICoreSignal, APGIHierarchy,
+                       APGIIgnitionMechanism, APGILiquidNeuralNetwork,
+                       APGIPrecisionSystem, APGIPreProcessor, APGIRecovery,
+                       APGISystem, APGISystemDynamics, APGIValidationMetrics)
 from utils.apgi_config import APGIConfig
 
 

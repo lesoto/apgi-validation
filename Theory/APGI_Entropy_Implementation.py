@@ -1367,23 +1367,16 @@ class PrecisionEstimator(nn.Module):
         batch_size = intero_input.shape[0]
 
         # Pack context into tensor
-        context_vec = torch.stack(
-            [
-                context.get(
-                    "metabolic", torch.zeros(batch_size, device=intero_input.device)
-                ),
-                context.get(
-                    "cognitive", torch.zeros(batch_size, device=intero_input.device)
-                ),
-                context.get(
-                    "affective", torch.zeros(batch_size, device=intero_input.device)
-                ),
-                context.get(
-                    "arousal", torch.zeros(batch_size, device=intero_input.device)
-                ),
-            ],
-            dim=-1,
-        )
+        context_tensors = []
+        for context_key in ["metabolic", "cognitive", "affective", "arousal"]:
+            val = context.get(
+                context_key, torch.zeros(batch_size, device=intero_input.device)
+            )
+            # Ensure tensor is 1D (batch_size,)
+            if val.dim() > 1:
+                val = val.view(batch_size)
+            context_tensors.append(val)
+        context_vec = torch.stack(context_tensors, dim=-1)
 
         # Combine inputs
         combined = torch.cat([intero_input, extero_input, state, context_vec], dim=-1)

@@ -50,7 +50,8 @@ def test_get_jwt_secret_falls_back_to_pickle(monkeypatch, tmp_path):
 
 
 def test_env_hex_keys_short_circuit(monkeypatch):
-    from utils.secure_key_manager import get_backup_hmac_key, get_pickle_secret_key
+    from utils.secure_key_manager import (get_backup_hmac_key,
+                                          get_pickle_secret_key)
 
     hex_key = "a1" * 32
     monkeypatch.setenv("PICKLE_SECRET_KEY", hex_key)
@@ -61,7 +62,8 @@ def test_env_hex_keys_short_circuit(monkeypatch):
 
 
 def test_rotate_keys_and_invalidate(monkeypatch, tmp_path):
-    from utils.secure_key_manager import SecureKeyManager, invalidate_all_key_references
+    from utils.secure_key_manager import (SecureKeyManager,
+                                          invalidate_all_key_references)
 
     monkeypatch.setenv("APGI_ALLOW_EPHEMERAL_MASTER_KEY", "1")
     # Clear env vars that would bypass key file rotation

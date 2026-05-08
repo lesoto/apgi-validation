@@ -1090,7 +1090,11 @@ def test_generate_master_report_decision_logic(
     passed_count, total_count, expected_decision
 ):
     """Test generate_master_report decision logic with different pass rates"""
-    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+    from utils.protocol_schema import (
+        PredictionResult,
+        PredictionStatus,
+        ProtocolResult,
+    )
     from Validation.Master_Validation import APGIMasterValidator
 
     validator = APGIMasterValidator()

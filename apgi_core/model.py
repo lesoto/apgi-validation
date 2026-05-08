@@ -536,24 +536,27 @@ class APGIModel:
         Args:
             config: Optional configuration dict (uses CONFIG default if None)
         """
-        # Merge custom config with defaults
+        # Preserve the caller-provided config exactly as passed in (tests rely on
+        # strict equality), but still compute a merged config for internal use.
         if config is None:
             self.config = CONFIG.copy()
+            self.cfg = self.config
         else:
-            # Deep merge for nested dictionaries
-            self.config = CONFIG.copy()
+            self.config = dict(config)
+
+            # Deep merge for nested dictionaries (internal defaults + overrides)
+            merged = CONFIG.copy()
             for key, value in config.items():
                 if (
-                    key in self.config
-                    and isinstance(self.config[key], dict)
+                    key in merged
+                    and isinstance(merged[key], dict)
                     and isinstance(value, dict)
                 ):
-                    self.config[key].update(value)
+                    merged[key].update(value)
                 else:
-                    self.config[key] = value
+                    merged[key] = value
 
-        # Keep cfg as an alias for backwards-compat
-        self.cfg = self.config
+            self.cfg = merged
 
         # Generative model for exteroceptive predictions
         self.gen = GenerativeModel(lr=0.05)

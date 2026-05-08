@@ -24,8 +24,14 @@ try:
     from utils.genome_data_extractor import extract_genome_data_from_vp5
     from utils.logging_config import apgi_logger
     from utils.ordinal_logistic_regression import OrdinalLogisticRegression
-    from utils.preprocessing_pipelines import EEGPreprocessor, PreprocessingConfig
-    from utils.threshold_registry import FalsificationThresholds, ThresholdRegistry
+    from utils.preprocessing_pipelines import (
+        EEGPreprocessor,
+        PreprocessingConfig,
+    )
+    from utils.threshold_registry import (
+        FalsificationThresholds,
+        ThresholdRegistry,
+    )
 except ImportError as e:
     pytest.skip(f"Cannot import utility modules: {e}", allow_module_level=True)
 

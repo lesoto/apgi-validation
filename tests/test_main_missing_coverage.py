@@ -18,28 +18,14 @@ from click.testing import CliRunner
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import (
-    APGIModuleLoader,
-    _check_file_size,
-    _create_signal_handler,
-    _process_csv_file,
-    _run_demo_mode,
-    _sanitize_error_message,
-    _validate_file_path,
-    _validate_input_file,
-    _validate_output_file_path,
-    _validate_output_path,
-    cli,
-    get_config_value,
-    handle_file_error,
-    handle_validation_error,
-    quiet_print,
-    secure_load_module,
-    secure_load_module_from_path,
-    secure_open_file,
-    set_config_value,
-    verbose_print,
-)
+from main import (APGIModuleLoader, _check_file_size, _create_signal_handler,
+                  _process_csv_file, _run_demo_mode, _sanitize_error_message,
+                  _validate_file_path, _validate_input_file,
+                  _validate_output_file_path, _validate_output_path, cli,
+                  get_config_value, handle_file_error, handle_validation_error,
+                  quiet_print, secure_load_module,
+                  secure_load_module_from_path, secure_open_file,
+                  set_config_value, verbose_print)
 
 
 class TestMissingCoverageFunctions:

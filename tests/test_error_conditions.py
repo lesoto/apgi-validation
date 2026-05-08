@@ -421,10 +421,8 @@ class TestPermissionErrors:
 
     def test_write_permission_denied(self, tmp_path):
         """Test handling of write permission denied errors."""
-        from utils.security_logging_integration import (
-            SecurityContext,
-            secure_file_write,
-        )
+        from utils.security_logging_integration import (SecurityContext,
+                                                        secure_file_write)
 
         # Create read-only file
         readonly_file = tmp_path / "readonly.txt"
@@ -446,10 +444,8 @@ class TestPermissionErrors:
 
     def test_delete_permission_denied(self, tmp_path):
         """Test handling of delete permission denied errors."""
-        from utils.security_logging_integration import (
-            SecurityContext,
-            secure_file_delete,
-        )
+        from utils.security_logging_integration import (SecurityContext,
+                                                        secure_file_delete)
 
         # Create a file
         test_file = tmp_path / "testfile.txt"
@@ -677,7 +673,8 @@ class TestErrorHandlerCoverage:
 
     def test_custom_error_handler_exception(self):
         """Test error handler when custom handler raises exception."""
-        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
 
@@ -799,7 +796,8 @@ class TestErrorHandlerCoverage:
 
     def test_error_handler_count_cap(self):
         """Test that error counts are capped to prevent unbounded growth."""
-        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
 
@@ -851,7 +849,8 @@ class TestErrorHandlerCoverage:
 
     def test_error_templates_unknown_code(self):
         """Test error template formatting with unknown code."""
-        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
         result = handler.format_error(
@@ -871,7 +870,8 @@ class TestThreadSafetyVerification:
         import threading
         import time
 
-        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
         errors_per_thread = 100
@@ -1082,7 +1082,8 @@ class TestPerformanceBaseline:
         """Baseline performance for error handler operations."""
         import time
 
-        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
         iterations = 1000
@@ -1103,7 +1104,8 @@ class TestPerformanceBaseline:
         import threading
         import time
 
-        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
         errors_per_thread = 100
@@ -1157,7 +1159,8 @@ class TestPerformanceBaseline:
         """Performance baseline for error template formatting."""
         import time
 
-        from utils.error_handler import ErrorCategory, ErrorHandler, ErrorSeverity
+        from utils.error_handler import (ErrorCategory, ErrorHandler,
+                                         ErrorSeverity)
 
         handler = ErrorHandler()
         iterations = 10000

@@ -2,13 +2,11 @@
 
 import numpy as np
 
-from utils.physiological_priors import (
-    AlphaGammaRatioPrior,
-    CollinearityBreaker,
-    HEPCalibrationPhase,
-    HEPCalibrationResult,
-    PhysiologicalPriorResult,
-)
+from utils.physiological_priors import (AlphaGammaRatioPrior,
+                                        CollinearityBreaker,
+                                        HEPCalibrationPhase,
+                                        HEPCalibrationResult,
+                                        PhysiologicalPriorResult)
 
 
 class TestPhysiologicalPriorResult:

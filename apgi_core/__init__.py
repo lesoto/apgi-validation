@@ -35,53 +35,31 @@ From :mod:`apgi_core.equations`:
 # ---------------------------------------------------------------------------
 # engine.py exports
 # ---------------------------------------------------------------------------
-from apgi_core.engine import (
-    APGIAllostaticLayer,
-    APGICoreSignal,
-    APGIHierarchy,
-    APGIIgnitionMechanism,
-    APGILiquidNeuralNetwork,
-    APGIPrecisionSystem,
-    APGIPreProcessor,
-    APGIRecovery,
-    APGISystem,
-    APGISystemDynamics,
-    APGIValidationMetrics,
-)
-
+from apgi_core.engine import (APGIAllostaticLayer, APGICoreSignal,
+                              APGIHierarchy, APGIIgnitionMechanism,
+                              APGILiquidNeuralNetwork, APGIPrecisionSystem,
+                              APGIPreProcessor, APGIRecovery, APGISystem,
+                              APGISystemDynamics, APGIValidationMetrics)
 # ---------------------------------------------------------------------------
 # equations.py exports
 # ---------------------------------------------------------------------------
 from apgi_core.equations import verify_all_equations
-
 # ---------------------------------------------------------------------------
 # full_model.py exports
 # ---------------------------------------------------------------------------
-from apgi_core.full_model import APGIFullDynamicModel, APGIParameters, APGIState
-
+from apgi_core.full_model import (APGIFullDynamicModel, APGIParameters,
+                                  APGIState)
 # ---------------------------------------------------------------------------
 # model.py exports
 # ---------------------------------------------------------------------------
-from apgi_core.model import (
-    CONFIG,
-    APGIModel,
-    GenerativeModel,
-    HierarchicalLevel,
-    HierarchicalProcessor,
-    RunningStatsEMA,
-    clip,
-    compute_information_value,
-    compute_precision,
-    compute_signal,
-    effective_interoceptive_precision,
-    enforce_stability,
-    ignite,
-    ignition_probability,
-    map_to_hep_amplitude,
-    map_to_p3b_latency,
-    map_to_reaction_time,
-    update_threshold,
-)
+from apgi_core.model import (CONFIG, APGIModel, GenerativeModel,
+                             HierarchicalLevel, HierarchicalProcessor,
+                             RunningStatsEMA, clip, compute_information_value,
+                             compute_precision, compute_signal,
+                             effective_interoceptive_precision,
+                             enforce_stability, ignite, ignition_probability,
+                             map_to_hep_amplitude, map_to_p3b_latency,
+                             map_to_reaction_time, update_threshold)
 
 __all__ = [
     # --- model ---

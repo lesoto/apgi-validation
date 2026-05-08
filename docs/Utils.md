@@ -41,7 +41,7 @@
 
 ## Falsification & Validation
 
-- `falsification_thresholds.py` - Falsification criteria constants, defines threshold values for model falsification tests
+- `utils/falsification_thresholds.py` - Falsification criteria constants, defines threshold values for model falsification tests
 - `criteria_registry.py` - Falsification criteria definitions, manages registration and execution of falsification criteria
 - `meta_falsification.py` - Framework-level falsification, orchestrates falsification across multiple model components
 - `shared_falsification.py` - Common falsification logic, provides reusable falsification utilities and helper functions

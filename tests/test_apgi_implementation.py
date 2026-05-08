@@ -10,26 +10,13 @@ import numpy as np
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from apgi_core import (
-    CONFIG,
-    APGIModel,
-    GenerativeModel,
-    HierarchicalLevel,
-    HierarchicalProcessor,
-    RunningStatsEMA,
-    clip,
-    compute_information_value,
-    compute_precision,
-    compute_signal,
-    effective_interoceptive_precision,
-    enforce_stability,
-    ignite,
-    ignition_probability,
-    map_to_hep_amplitude,
-    map_to_p3b_latency,
-    map_to_reaction_time,
-    update_threshold,
-)
+from apgi_core import (CONFIG, APGIModel, GenerativeModel, HierarchicalLevel,
+                       HierarchicalProcessor, RunningStatsEMA, clip,
+                       compute_information_value, compute_precision,
+                       compute_signal, effective_interoceptive_precision,
+                       enforce_stability, ignite, ignition_probability,
+                       map_to_hep_amplitude, map_to_p3b_latency,
+                       map_to_reaction_time, update_threshold)
 
 
 class TestGenerativeModel:

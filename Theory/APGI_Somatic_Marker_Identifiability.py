@@ -67,7 +67,8 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 try:
-    from utils.protocol_schema import PredictionResult, PredictionStatus, ProtocolResult
+    from utils.protocol_schema import (PredictionResult, PredictionStatus,
+                                       ProtocolResult)
 
     HAS_SCHEMA = True
 except Exception:
@@ -84,7 +85,8 @@ except Exception:
     DEFAULT_ALPHA_SIGMOID = 5.0
 
 try:
-    from utils.logging_config import apgi_logger as logger  # type: ignore[assignment]
+    from utils.logging_config import \
+        apgi_logger as logger  # type: ignore[assignment]
 except Exception:
     logger = logging.getLogger(__name__)  # type: ignore[assignment]
 

@@ -100,7 +100,7 @@ try:
     import mne
 
     HAS_MNE = True
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     HAS_MNE = False
     mne = None  # type: ignore[assignment]
 

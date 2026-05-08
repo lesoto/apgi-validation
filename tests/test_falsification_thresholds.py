@@ -11,7 +11,9 @@ from utils.falsification_thresholds import (
 from utils.falsification_thresholds import (
     test_f6_2_intrinsic_temporal_integration as _test_f6_2,
 )
-from utils.falsification_thresholds import test_f6_3_metabolic_selectivity as _test_f6_3
+from utils.falsification_thresholds import (
+    test_f6_3_metabolic_selectivity as _test_f6_3,
+)
 
 
 def test_f6_1_intrinsic_threshold_behavior_pass():

@@ -12,14 +12,12 @@ import pytest
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.security_logging_integration import (
-    SecurityContext,
-    secure_file_delete,
-    secure_file_read,
-    secure_file_write,
-    secure_import_module,
-    secure_resolve_path,
-)
+from utils.security_logging_integration import (SecurityContext,
+                                                secure_file_delete,
+                                                secure_file_read,
+                                                secure_file_write,
+                                                secure_import_module,
+                                                secure_resolve_path)
 
 
 class TestSecureFileRead:

@@ -13,6 +13,12 @@ import json
 from pathlib import Path
 from typing import Any, Dict
 
+# Apply Python 3.14 NumPy compatibility patches first
+try:
+    from tests.python314_numpy_fixes import *  # noqa: F403,F401
+except ImportError:
+    pass
+
 import numpy as np
 
 

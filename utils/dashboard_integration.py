@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
 """
-APGI Dashboard Integration Module
-=================================
+APGI Dashboard Integration Module - Updated with Output File Pattern Detection
+================================
 
 Integrates historical analysis, export features, and monitoring
 capabilities into the APGI Validation Framework.
@@ -40,6 +41,14 @@ try:
 except ImportError:
     PERFORMANCE_AVAILABLE = False
 
+# Import the new output file pattern matcher
+try:
+    from utils.output_file_patterns import OutputFilePatternMatcher
+
+    PATTERN_MATCHER_AVAILABLE = True
+except ImportError:
+    PATTERN_MATCHER_AVAILABLE = False
+
 
 class DashboardManager:
     """
@@ -48,19 +57,58 @@ class DashboardManager:
     Provides unified interface for:
     - Historical data analysis
     - Data export (JSON, CSV, Excel, PDF)
-    - Real-time monitoring
-    - Static dashboard generation
+    - Performance monitoring
+    - Real-time status updates
+    - Output file pattern detection
     """
 
-    def __init__(self, data_dir: str = "data_repository/dashboard_data"):
-        """Initialize the dashboard manager."""
-        self.data_dir = Path(data_dir)
+    def __init__(
+        self, project_root: Optional[Path] = None, data_dir: Optional[str] = None
+    ):
+        """Initialize the dashboard manager.
+
+        Args:
+            project_root: Root directory of the APGI project
+            data_dir: Alternative data directory path (for testing)
+        """
+        self.project_root = project_root or Path(__file__).parent.parent
+
+        # Handle data_dir parameter for backward compatibility with tests
+        if data_dir:
+            self.data_dir = Path(data_dir)
+        else:
+            self.data_dir = self.project_root / "data_repository/dashboard_data"
+
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
-        # Dashboard instances
-        self.historical_dashboard: Optional[HistoricalDashboard] = None
-        self.performance_dashboard: Optional[Any] = None
-        self.static_generator: Optional[StaticDashboardGenerator] = None
+        # Initialize pattern matcher if available
+        if PATTERN_MATCHER_AVAILABLE:
+            self.pattern_matcher = OutputFilePatternMatcher(self.project_root)
+        else:
+            self.pattern_matcher = None
+
+        # Initialize other components if available
+        if HISTORICAL_AVAILABLE:
+            self.historical_dashboard = HistoricalDashboard(self.project_root)
+        else:
+            self.historical_dashboard = None
+
+        if STATIC_AVAILABLE:
+            self.static_generator = StaticDashboardGenerator(self.project_root)
+        else:
+            self.static_generator = None
+
+        if PERFORMANCE_AVAILABLE:
+            self.performance_dashboard = ComprehensivePerformanceDashboard(
+                self.project_root
+            )
+        else:
+            self.performance_dashboard = False
+
+        # Thread-safe data collection
+        self.collection_lock = threading.Lock()
+        self.collection_thread = None
+        self.is_collecting = False
 
         # Monitoring state
         self._monitoring_active = False
@@ -70,23 +118,8 @@ class DashboardManager:
         # Export history
         self._export_history: List[Dict] = []
 
-        # Initialize available components
-        self._init_components()
-
         if apgi_logger:
             apgi_logger.logger.info("DashboardManager initialized")
-
-    def _init_components(self):
-        """Initialize available dashboard components."""
-        # Static dashboard generator
-        if STATIC_AVAILABLE:
-            try:
-                self.static_generator = StaticDashboardGenerator(
-                    output_dir=str(self.data_dir / "static_dashboards")
-                )
-            except Exception as e:
-                if apgi_logger:
-                    apgi_logger.logger.warning(f"Failed to init static generator: {e}")
 
         # Historical dashboard
         if HISTORICAL_AVAILABLE:
@@ -150,30 +183,40 @@ class DashboardManager:
 
                 # Store in database via historical dashboard
                 import sqlite3
+                import os
 
                 db_path = self.historical_dashboard.db_path
 
-                with sqlite3.connect(db_path) as conn:
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        """
-                        INSERT INTO validation_results 
-                        (protocol_number, protocol_name, status, execution_time,
-                         tests_passed, tests_failed, success_rate, error_message)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            protocol_number,
-                            protocol_name,
-                            status,
-                            execution_time,
-                            tests_passed,
-                            tests_failed,
-                            success_rate,
-                            error_message,
-                        ),
-                    )
-                    conn.commit()
+                # Ensure database directory exists
+                os.makedirs(os.path.dirname(db_path), exist_ok=True)
+
+                try:
+                    with sqlite3.connect(db_path) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            """
+                            INSERT INTO validation_results 
+                            (protocol_number, protocol_name, status, execution_time,
+                             tests_passed, tests_failed, success_rate, error_message)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                protocol_number,
+                                protocol_name,
+                                status,
+                                execution_time,
+                                tests_passed,
+                                tests_failed,
+                                success_rate,
+                                error_message,
+                            ),
+                        )
+                except Exception as db_error:
+                    if apgi_logger:
+                        apgi_logger.error(f"Failed to initialize database: {db_error}")
+                    else:
+                        print(f"Failed to initialize database: {db_error}")
+                    return False
 
                 if apgi_logger:
                     apgi_logger.logger.info(
@@ -421,35 +464,96 @@ class DashboardManager:
                     "protocol_breakdown": {},
                 }
 
-            total = len(data)
-            passed = sum(
-                1
-                for d in data
-                if d.get("status", "").lower() in ["pass", "passed", "success"]
-            )
-            exec_times = [
-                d.get("execution_time", 0) for d in data if d.get("execution_time")
-            ]
+            total_runs = len(data)
+            passed_runs = sum(1 for d in data if d.get("status") == "pass")
+            pass_rate = passed_runs / total_runs if total_runs > 0 else 0
+
+            exec_times = [d.get("execution_time", 0) for d in data]
+            avg_execution_time = sum(exec_times) / len(exec_times) if exec_times else 0
 
             # Protocol breakdown
-            by_protocol: Dict[int, Dict] = {}
+            by_protocol = {}
             for d in data:
-                pnum = d.get("protocol_number", 0)
-                if pnum not in by_protocol:
-                    by_protocol[pnum] = {"runs": 0, "passed": 0, "failed": 0}
-                by_protocol[pnum]["runs"] += 1
-                if d.get("status", "").lower() in ["pass", "passed", "success"]:
-                    by_protocol[pnum]["passed"] += 1
-                else:
-                    by_protocol[pnum]["failed"] += 1
+                protocol_num = d.get("protocol_number", "unknown")
+                if protocol_num not in by_protocol:
+                    by_protocol[protocol_num] = {"total": 0, "passed": 0}
+                by_protocol[protocol_num]["total"] += 1
+                if d.get("status") == "pass":
+                    by_protocol[protocol_num]["passed"] += 1
 
             return {
                 "period_days": days,
-                "total_runs": total,
-                "pass_rate": (passed / total * 100) if total > 0 else 0,
-                "avg_execution_time": (
-                    sum(exec_times) / len(exec_times) if exec_times else 0
-                ),
+                "total_runs": total_runs,
+                "pass_rate": pass_rate,
+                "avg_execution_time": avg_execution_time,
+                "protocol_breakdown": {
+                    f"Protocol {k}": v for k, v in by_protocol.items()
+                },
+            }
+
+        except Exception as e:
+            if apgi_logger:
+                apgi_logger.logger.error(f"Export failed: {e}")
+            return None
+
+    def get_historical_summary(
+        self, days: int = 30, protocol_filter: Optional[List[int]] = None
+    ) -> Dict[str, Any]:
+        """Get summary of historical validation data."""
+        try:
+            cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
+
+            if self.historical_dashboard:
+                data = self.historical_dashboard.get_historical_data(
+                    "validation_results", start_date=cutoff_date
+                )
+            else:
+                fallback_file = self.data_dir / "validation_history.json"
+                if fallback_file.exists():
+                    with open(fallback_file, "r") as f:
+                        all_data = json.load(f)
+                    data = [
+                        d for d in all_data if d.get("timestamp", "") >= cutoff_date
+                    ]
+                else:
+                    data = []
+
+            # Apply protocol filter
+            if protocol_filter:
+                data = [d for d in data if d.get("protocol_number") in protocol_filter]
+
+            # Calculate statistics
+            if not data:
+                return {
+                    "period_days": days,
+                    "total_runs": 0,
+                    "pass_rate": 0,
+                    "avg_execution_time": 0,
+                    "protocol_breakdown": {},
+                }
+
+            total_runs = len(data)
+            passed_runs = sum(1 for d in data if d.get("status") == "pass")
+            pass_rate = passed_runs / total_runs if total_runs > 0 else 0
+
+            exec_times = [d.get("execution_time", 0) for d in data]
+            avg_execution_time = sum(exec_times) / len(exec_times) if exec_times else 0
+
+            # Protocol breakdown
+            by_protocol = {}
+            for d in data:
+                protocol_num = d.get("protocol_number", "unknown")
+                if protocol_num not in by_protocol:
+                    by_protocol[protocol_num] = {"total": 0, "passed": 0}
+                by_protocol[protocol_num]["total"] += 1
+                if d.get("status") == "pass":
+                    by_protocol[protocol_num]["passed"] += 1
+
+            return {
+                "period_days": days,
+                "total_runs": total_runs,
+                "pass_rate": pass_rate,
+                "avg_execution_time": avg_execution_time,
                 "protocol_breakdown": {
                     f"Protocol {k}": v for k, v in by_protocol.items()
                 },

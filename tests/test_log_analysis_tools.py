@@ -13,14 +13,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.log_analysis_tools import (
-    AnomalyDetector,
-    IntegrityVerifier,
-    LogAggregator,
-    LogAnalyzer,
-    LogEntry,
-    LogLevel,
-)
+from utils.log_analysis_tools import (AnomalyDetector, IntegrityVerifier,
+                                      LogAggregator, LogAnalyzer, LogEntry,
+                                      LogLevel)
 
 
 class TestLogLevel:
