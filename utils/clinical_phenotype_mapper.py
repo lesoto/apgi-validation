@@ -1,44 +1,7 @@
 """
-================================================================================
-APGI Clinical Phenotype Simulation Mapper
-================================================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Comprehensive mapping of DSM-5 disorders to APGI precision profiles with
-hierarchical level-specific clinical predictions.
-
-This module operationalizes the Disorder-Specific Precision Profiles described
-in the APGI Empirical Credibility Roadmap, providing:
-
-- Phenotype simulation for 60+ DSM-5 disorders
-- Hierarchical level-specific clinical predictions
-- APGI parameter profiles (prediction error, precision, threshold, somatic bias)
-- Neural signature mappings
-- Treatment implication frameworks
-
-Disorder Hierarchy Mapping:
-- Level 1: Sensory/perceptual (Panic, Tic disorders, Stereotypic movement)
-- Level 2: Social/emotional (Social Anxiety, BPD, Attachment disorders)
-- Level 3: Cognitive/semantic (GAD, OCD, Delusional disorder)
-- Level 4: Narrative/state (Insomnia, Dissociative disorders, Consciousness)
-- Multi-level: Global dysregulation (Schizophrenia, ASD, ADHD)
-- Level coupling: Specific cross-level disruptions (PTSD)
-
-Usage::
-
-    from utils.clinical_phenotype_mapper import ClinicalPhenotypeMapper
-
-    mapper = ClinicalPhenotypeMapper()
-
-    # Get complete profile for a disorder
-    profile = mapper.get_disorder_profile('panic-disorder')
-
-    # Simulate phenotype for a specific disorder
-    simulation = mapper.simulate_phenotype('generalized-anxiety-disorder', n_trials=100)
-
-    # Compare disorders at specific hierarchical levels
-    comparison = mapper.compare_level_profiles(level=2)
-
-================================================================================
+Bridge to Level 1
 """
 
 from dataclasses import dataclass, field

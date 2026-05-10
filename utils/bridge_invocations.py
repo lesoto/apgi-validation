@@ -1,26 +1,8 @@
 #!/usr/bin/env python3
 """
-Bridge Invocations for Cross-Level APGI Communications
-===================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides explicit bridge functions for cross-level outputs between APGI analytical levels.
-These functions implement the required bridge invocation pattern where
-lower-level modules must explicitly call higher-level modules to make cross-level
-claims.
-
-Bridge Pattern:
-- Level 3 (algorithmic/mathematical) → Level 2 (information-theoretic) → Level 1 (thermodynamic)
-- Each bridge function validates level constraints and provides proper error handling
-- Cross-level outputs require explicit bridge invocation, not implicit claims
-
-Usage Example:
-    from utils.bridge_invocations import bridge_to_thermodynamic
-
-    # In a Level 2 module making thermodynamic claims
-    thermodynamic_results = bridge_to_thermodynamic(
-        bandwidth_data=bandwidth_results,
-        module_name="APGI_Information_Theoretic_Bandwidth"
-    )
+Bridge to Level 1
 """
 
 import logging

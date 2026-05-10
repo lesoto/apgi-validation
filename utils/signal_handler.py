@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Signal Handler Utility
-====================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides signal handling functionality for graceful shutdown and cleanup.
+Bridge to Level 1
 """
 
 import logging

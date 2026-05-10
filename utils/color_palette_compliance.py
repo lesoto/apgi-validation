@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 """
-Color Palette Compliance Checker
-===============================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Automated compliance checker for APGI color palette enforcement.
-Scans Python files for hardcoded colors and ensures proper usage of
-VISUAL_CONSTANTS palette.
-
-Usage:
-    python utils/color_palette_compliance.py
+Bridge to Level 1
 """
 
 import re
@@ -18,25 +12,25 @@ from typing import Any, Dict, List
 
 # Standard APGI color palette
 APGI_COLORS = {
-    "#2166AC": "ST_BLUE",
-    "#D6604D": "THETA_RED",
-    "#F4A582": "INTERO_AMBER",
-    "#41AB5D": "IGNITION_GREEN",
-    "#762A83": "ALLOSTATIC_PURPLE",
-    "#999999": "HC_GREY",
-    "#2ecc71": "STATUS_PASS",
-    "#e74c3c": "STATUS_FAIL",
-    "#f39c12": "STATUS_ERROR",
-    "#95a5a6": "STATUS_UNKNOWN",
+    "VISUAL_CONSTANTS.ST_BLUE": "ST_BLUE",
+    "VISUAL_CONSTANTS.THETA_RED": "THETA_RED",
+    "VISUAL_CONSTANTS.INTERO_AMBER": "INTERO_AMBER",
+    "VISUAL_CONSTANTS.IGNITION_GREEN": "IGNITION_GREEN",
+    "VISUAL_CONSTANTS.ALLOSTATIC_PURPLE": "ALLOSTATIC_PURPLE",
+    "VISUAL_CONSTANTS.HC_GREY": "HC_GREY",
+    "VISUAL_CONSTANTS.STATUS_PASS": "STATUS_PASS",
+    "VISUAL_CONSTANTS.STATUS_FAIL": "STATUS_FAIL",
+    "VISUAL_CONSTANTS.STATUS_ERROR": "STATUS_ERROR",
+    "VISUAL_CONSTANTS.STATUS_UNKNOWN": "STATUS_UNKNOWN",
 }
 
 # Clinical colors (same values as APGI colors)
 CLINICAL_COLORS = {
-    "#2166AC": "MDD_BLUE",  # Same as ST_BLUE
-    "#F4A582": "ANX_ORANGE",  # Same as INTERO_AMBER
-    "#762A83": "ADHD_PURPLE",  # Same as ALLOSTATIC_PURPLE
-    "#41AB5D": "IGNITION_GREEN_CLINICAL",  # Same as IGNITION_GREEN
-    "#999999": "HC_GREY_CLINICAL",  # Same as HC_GREY
+    "VISUAL_CONSTANTS.ST_BLUE": "MDD_BLUE",  # Same as ST_BLUE
+    "VISUAL_CONSTANTS.INTERO_AMBER": "ANX_ORANGE",  # Same as INTERO_AMBER
+    "VISUAL_CONSTANTS.ALLOSTATIC_PURPLE": "ADHD_PURPLE",  # Same as ALLOSTATIC_PURPLE
+    "VISUAL_CONSTANTS.IGNITION_GREEN": "IGNITION_GREEN_CLINICAL",  # Same as IGNITION_GREEN
+    "VISUAL_CONSTANTS.HC_GREY": "HC_GREY_CLINICAL",  # Same as HC_GREY
 }
 
 

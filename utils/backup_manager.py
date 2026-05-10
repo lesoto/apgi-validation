@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """
-Backup and Restore System for APGI Framework
-==========================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Comprehensive backup and restore functionality for:
-- Configuration files
-- Cache data
-- Log files
-- User data and results
-- Model checkpoints
-- Experiment data
+Bridge to Level 1
 """
 
 import base64

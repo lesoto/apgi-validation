@@ -1,7 +1,7 @@
 """
-TOCTOU mitigation with file locking.
-Implements Time-OfCheck-TimeOfUse race condition mitigation with file locking.
-=================================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
 """
 
 import logging

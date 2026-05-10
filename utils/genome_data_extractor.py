@@ -1,12 +1,7 @@
 """
-Genome Data Extractor
-=====================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Utility to extract evolved genome data from VP-5 evolutionary simulation
-and format it for use in FP-1/FP-2/FP-3 falsification protocols.
-
-This bridges the gap between VP-5's evolutionary simulation and the
-falsification protocols that need genome_data to validate evolutionary emergence.
+Bridge to Level 1
 """
 
 import json

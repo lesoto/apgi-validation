@@ -1,7 +1,7 @@
-"""Data Transfer Objects (DTOs) for APGI services.
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module defines standardized Pydantic models for service inputs/outputs,
-ensuring stable contracts between layers and removing ad-hoc dict drift.
+Bridge to Level 1
 """
 
 import sys

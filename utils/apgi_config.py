@@ -1,10 +1,7 @@
 """
-Canonical APGI config accessors.
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Use `get_apgi_settings()` and pass the returned settings object
-around.
-Avoid importing settings as mutable globals or relying on
-class-level attributes.
+Bridge to Level 1
 """
 
 from __future__ import annotations

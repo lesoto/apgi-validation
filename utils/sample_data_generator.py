@@ -1,25 +1,8 @@
 #!/usr/bin/env python3
 """
-Sample Data Generator for APGI Framework
-======================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Generates realistic sample datasets for testing and demonstration purposes.
-Includes EEG, pupil, EDA, and other physiological signals with proper
-APGI parameter integration.
-
-This module provides:
-- Realistic EEG signals with P300 components and artifacts
-- Pupil diameter data with task-related dilation
-- Electrodermal activity (EDA) with phasic responses
-- Multimodal data generation with synchronized events
-- APGI parameter integration for validation protocols
-
-Example:
-    >>> generator = SampleDataGenerator(sampling_rate=1000, duration=60)
-    >>> eeg_signal, p300_events = generator.generate_eeg_data()
-    >>> pupil_data = generator.generate_pupil_data()
-    >>> multimodal_df = generate_sample_multimodal_data(n_samples=1000)
-
+Bridge to Level 1
 """
 
 import json

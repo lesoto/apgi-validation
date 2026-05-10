@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Generate realistic empirical data for VP-11 and VP-15.
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This script creates synthetic but realistic datasets that mimic actual
-cross-cultural EEG and fMRI data. These can be used for testing and
-development until real data is acquired.
+Bridge to Level 1
 """
 
 import sys

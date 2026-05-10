@@ -1,4 +1,8 @@
-"""Performance gates for CI/CD pipeline to enforce SLA requirements."""
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
+"""
 
 import logging
 from dataclasses import dataclass

@@ -1,25 +1,6 @@
 """
-APGI Core Model
-===============
+LEVEL DESIGNATION: Level 1 (thermodynamic)
 
-Canonical implementation of the APGI (Active Perception and Generative Inference)
-dynamical system.
-
-Provides:
-- Core dynamical components (generative models, signal processing, threshold dynamics)
-- Stability enforcement and bounded dynamics
-- Empirical mapping functions for EEG/behavioral proxies
-- Full runner system integrating all components
-- Hierarchical 5-level processor
-
-Usage::
-
-    from apgi_core import APGIModel, CONFIG
-
-    model = APGIModel()
-    for t in range(1000):
-        x = np.sin(t * 0.01) + np.random.randn() * 0.1
-        out = model.step(x)
 """
 
 from dataclasses import dataclass

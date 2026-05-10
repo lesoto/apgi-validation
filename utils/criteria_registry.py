@@ -1,18 +1,7 @@
 """
-criteria_registry.py
-======================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Single source of truth for all APGI falsification criteria definitions.
-
-This module eliminates code duplication across Validation Protocols 6, 7, 8, 9, 11, and 12.
-Every protocol MUST import criteria from here rather than hard-coding them locally.
-
-Usage::
-
-    from utils.criteria_registry import (
-        get_falsification_criteria,
-        get_protocol_specific_criteria,
-    )
+Bridge to Level 1
 """
 
 from typing import Any, Dict

@@ -1,21 +1,6 @@
 """
-APGI Engine
-===========
+LEVEL DESIGNATION: Level 1 (thermodynamic)
 
-Canonical engine-level implementation of the APGI dynamical system.
-
-Provides fine-grained component classes covering all APGI equations sections:
-  - Section 1:  Signal Preprocessing
-  - Section 2:  Precision System
-  - Section 3:  Core APGI Signal
-  - Section 4:  Ignition Mechanism
-  - Sections 5 & 8: Continuous / SDE Dynamics
-  - Sections 6 & 7: Allostatic and Energy Layer
-  - Section 9:  Liquid Neural Network (Reservoir)
-  - Sections 10 & 11: Hierarchical and Oscillatory Layer
-  - Section 12: Post-Ignition Reset
-  - Section 13: Statistical Validation
-  - Section 14: Complete Pipeline Orchestrator (APGISystem)
 """
 
 from typing import Any, Dict, List, Optional, Tuple

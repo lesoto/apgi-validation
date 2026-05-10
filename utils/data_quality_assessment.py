@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-APGI Data Quality Assessment Module
-===================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Assesses quality and integrity of experimental data.
+Bridge to Level 1
 """
 
 from typing import Dict

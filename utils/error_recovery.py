@@ -1,9 +1,7 @@
 """
-APGI Error Handler - Graceful Failure Recovery
-===============================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Comprehensive error handling with automatic recovery,
-retry logic, and graceful degradation.
+Bridge to Level 1
 """
 
 import functools

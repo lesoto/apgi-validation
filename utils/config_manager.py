@@ -1,29 +1,7 @@
 """
-APGI Theory Framework - Configuration Management
-================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Comprehensive configuration system for the APGI validation framework.
-Provides flexible configuration management with validation, profiling,
-and runtime updates for all APGI parameters and settings.
-
-Features:
-- YAML and JSON configuration file support
-- Environment variable integration
-- Parameter validation with schemas
-- Default configuration management
-- Runtime configuration updates
-- Named configuration profiles with easy switching
-- Configuration comparison and diff functionality
-- Configuration versioning and rollback capabilities
-- Hierarchical configuration inheritance
-- Configuration templates and presets
-
-Example:
-    >>> config_manager = ConfigManager()
-    >>> config = config_manager.get_config("validation")
-    >>> config_manager.set_parameter("validation", "threshold", "0.5")
-    >>> profile_path = config_manager.create_profile("research", "Research settings")
-
+Bridge to Level 1
 """
 
 import hashlib
@@ -410,7 +388,7 @@ class LoggingConfig:
     log_rotation: str = "10 MB"
     log_retention: str = "30 days"
     enable_performance_logging: bool = True
-    log_directory: str = "logs/"
+    log_directory: str = "apgi_outputs/logs/"
     enable_structured_logging: bool = True
 
 

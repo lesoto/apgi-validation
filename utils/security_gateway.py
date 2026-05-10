@@ -1,10 +1,7 @@
 """
-Security Gateway
-=================
-A minimal security gateway that centralizes authentication and authorization checks
-for all CLI/GUI/protocol entry points.
-It leverages the existing `utils.auth_adapter` to validate JWT tokens and role
-permissions.
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
 """
 
 from typing import List

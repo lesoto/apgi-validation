@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Comprehensive Theory GUI Verification Script
-Tests all options, imports, file references, and script execution
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
 """
 
 import importlib

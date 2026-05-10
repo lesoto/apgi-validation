@@ -1,6 +1,7 @@
-"""BIDS-compliant data loaders for public neuroscience datasets.
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Supports DS-09 (Cogitate iEEG), DS-12 (OpenNeuro EEG Depression), and DS-07 (Carhart-Harris fMRI).
+Bridge to Level 1
 """
 
 import json

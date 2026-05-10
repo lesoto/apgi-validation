@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """
-Audit validation/falsification protocols for leaked hardcoded thresholds.
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This script flags assignments and keyword arguments in protocol files where
-criterion-carrying literals appear to bypass `utils.falsification_thresholds`.
-It is intentionally conservative: findings are candidates for review, not all
-of them are guaranteed bugs.
+Bridge to Level 1
 """
 
 import ast

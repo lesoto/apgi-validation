@@ -1,24 +1,7 @@
 """
-Physiological Priors for APGI Parameter Estimation
-==================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Implements EEG-based physiological priors for breaking collinearity between
-APGI parameters Πi (interoceptive precision) and β (somatic influence gain).
-
-Key Features:
-1. Alpha/Gamma Power Ratio as Πi Physiological Prior
-2. Resting-State HEP Calibration for Baseline Πi Fixation
-- Enables independent estimation of β during task
-- Provides falsifiable biological constraint
-
-References:
------------
-- Jones, S.R. et al. (2010). Quantified neurophysiologic evidence for
-  cortical thalamocortical resonance in the alpha/gamma ratio.
-- Allen, E.A. et al. (2011). Baseline power alterations in resting-state
-  EEG correlate with personality dimensions.
-- Park, H.D. et al. (2014). Spontaneous fluctuations in neural responses
-  to heartbeats predict visual detection. Nature Neuroscience.
+Bridge to Level 1
 """
 
 import logging

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Verification script to check that ALL protocols output .png, .json, and .csv results.
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Usage:
-    python verify_protocol_outputs.py [--report]
+Bridge to Level 1
 """
 
 import argparse

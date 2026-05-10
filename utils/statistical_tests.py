@@ -1,22 +1,7 @@
 """
-statistical_tests.py
-=====================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Shared statistical test implementations to eliminate code duplication.
-
-This module provides validated, non-degenerate statistical tests that properly
-handle sample arrays (not single-value lists) and include input validation.
-
-Usage::
-
-    from utils.statistical_tests import (
-        safe_ttest_1samp,
-        safe_pearsonr,
-        safe_binomtest,
-        safe_mannwhitneyu,
-        compute_cohens_d,
-        compute_power_analysis,
-    )
+Bridge to Level 1
 """
 
 from typing import Optional, Tuple, Union
@@ -944,3 +929,67 @@ def apply_multiple_comparison_correction(
         "alpha": alpha,
         "n_tests": n_tests,
     }
+
+
+class StatisticalAnalyzer:
+    """Comprehensive statistical analysis toolkit for APGI validation."""
+
+    def __init__(self):
+        """Initialize the statistical analyzer."""
+        pass
+
+    def analyze_classification_results(self, y_true, y_pred, class_names=None) -> dict:
+        """Analyze classification results with comprehensive metrics."""
+        from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, roc_auc_score
+
+        # Basic metrics
+        accuracy = accuracy_score(y_true, y_pred)
+        f1 = f1_score(y_true, y_pred, average="weighted")
+        auc = roc_auc_score(y_true, y_pred) if len(np.unique(y_true)) == 2 else None
+
+        # Confusion matrix
+        cm = confusion_matrix(y_true, y_pred)
+        tn, fp, fn, tp = cm.ravel()
+
+        # Calculate additional metrics
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+
+        # Statistical tests
+        try:
+            from scipy import stats
+
+            # McNemar's test for overall accuracy
+            n_total = len(y_true)
+            n_correct = int(accuracy * n_total)
+            k = 2  # binary classification
+            mcnemar_stat = ((n_correct * k) - n_total) / (n_total * (k - 1))
+            mcnemar_p = stats.binomtest(n_correct, n_total, p=0.5, alternative="greater")
+
+            # Chi-square test for classification (only if sample size is adequate)
+            try:
+                chi2_stat = stats.chi2_contingency(cm, correction=True)
+                chi2_p = chi2_stat.pvalue
+            except ValueError:
+                # Fall back to Fisher's exact test for small samples
+                chi2_stat = None
+                chi2_p = None
+
+        except ImportError:
+            mcnemar_stat = mcnemar_p = chi2_stat = None
+
+        return {
+            "accuracy": accuracy,
+            "f1_score": f1,
+            "auc_roc": auc,
+            "precision": precision,
+            "recall": recall,
+            "specificity": specificity,
+            "confusion_matrix": cm,
+            "mcnemar_test": {"statistic": mcnemar_stat, "p_value": mcnemar_p} if mcnemar_stat is not None else None,
+            "chi2_test": {"statistic": chi2_stat, "p_value": chi2_p} if chi2_stat is not None else None,
+            "class_names": class_names,
+            "n_samples": len(y_true),
+            "n_features": y_pred.shape[1] if len(y_pred.shape) > 1 else 1,
+        }

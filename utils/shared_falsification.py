@@ -1,3 +1,9 @@
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
+"""
+
 import logging
 import sys
 from dataclasses import dataclass

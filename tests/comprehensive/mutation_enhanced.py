@@ -143,7 +143,7 @@ class HTMLReportGenerator:
             border-radius: 20px;
             font-weight: bold;
             margin-left: 1rem;
-            background: {'#27ae60' if target_met else '#e74c3c'};
+            background: {'#27ae60' if target_met else 'VISUAL_CONSTANTS.STATUS_FAIL'};
             color: white;
         }}
         

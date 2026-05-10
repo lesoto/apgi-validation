@@ -1,9 +1,7 @@
 """
-Falsification Protocol Registry
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module provides a centralized registry mapping canonical protocol IDs
-to their actual implementation filenames, resolving naming mismatches and providing
-a unified interface for protocol discovery and loading.
+Bridge to Level 1
 """
 
 from dataclasses import dataclass

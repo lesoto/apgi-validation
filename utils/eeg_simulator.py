@@ -1,9 +1,7 @@
 """
-EEG Waveform Simulator for APGI Validation
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Implements cardiac-phase aligned epochs, computes HEP amplitude (200–600ms post-R-wave),
-and P3b amplitude/latency (300–600ms). This is essential for the core mechanism test
-(Πⁱ → HEP → P3b coupling) to be testable in silico.
+Bridge to Level 1
 """
 
 import logging

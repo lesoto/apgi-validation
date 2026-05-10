@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-Validation Pipeline Connector
-==========================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Connects preprocessing pipelines with validation protocols to enable end-to-end
-workflow automation for APGI framework.
+Bridge to Level 1
 """
 
 import json

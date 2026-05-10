@@ -1,4 +1,8 @@
-"""Performance SLO governance and regression checks for APGI protocols."""
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
+"""
 
 from __future__ import annotations
 

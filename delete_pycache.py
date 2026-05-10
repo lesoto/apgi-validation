@@ -45,26 +45,25 @@ DEFAULT_DIR_NAMES = {
     ".coverage",
     "site-packages",
     "cache",
-    # NOTE: "logs" removed - handled separately by clear_log_files()
+    "logs",
+    "compliance_exports",
+    "validation_results",
+    "reports",
+    "recovery" "results",
 }
 
 DEFAULT_DIR_PATTERNS = ["*.egg-info", "pip-wheel-metadata"]
 
 DEFAULT_FILE_PATTERNS = [
-    # Python cache/compiled
     "*.pyc",
     "*.pyo",
     "*.pyd",
-    # Coverage/testing
     ".coverage",
     "coverage.xml",
     ".coverage.*",
-    # Logs and system files
     "*.log",
     ".DS_Store",
     "Thumbs.db",
-    # NOTE: Visualization files removed from default - use --keep-visualizations to preserve
-    # Serialized data formats (temporary/cache)
     "*.pkl",
     "*.pickle",
     "*.npz",

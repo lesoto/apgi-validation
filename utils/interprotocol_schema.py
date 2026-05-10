@@ -1,14 +1,7 @@
 """
-Inter-Protocol Data Schema
-===========================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Standard schema for protocol outputs that feed downstream protocols.
-Defines the data formats and export paths for cross-protocol dependencies.
-
-This module implements the following dependencies:
-- VP-05 → FP-01, FP-02, FP-05, FP-06 (genome_data, network_topology)
-- FP-07 → FP-01, FP-04 (validated_parameter_bounds)
-- FP-09 → FP-04, FP-12 (neural_signatures)
+Bridge to Level 1
 """
 
 import json

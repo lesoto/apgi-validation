@@ -1,4 +1,8 @@
-"""Unified error taxonomy and exception hierarchy for APGI framework."""
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
+"""
 
 import uuid
 from datetime import datetime

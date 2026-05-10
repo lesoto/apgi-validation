@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
-"""Verify the current status of the APGI framework implementation.
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This script checks:
-1. All 27 protocols have run_protocol_main()
-2. All protocols return ProtocolResult objects
-3. All predictions are wrapped
-4. Aggregators are functional
-5. Metadata standardization is available
+Bridge to Level 1
 """
 
 import os

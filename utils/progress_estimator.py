@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Progress Estimation Utility
-========================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides progress estimation and time tracking for long-running operations.
+Bridge to Level 1
 """
 
 import threading

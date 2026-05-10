@@ -1,3 +1,8 @@
+"""
+LEVEL DESIGNATION: Level 1 (thermodynamic)
+
+"""
+
 from __future__ import annotations
 
 import json
@@ -1098,18 +1103,18 @@ class PsychologicalState:
 class StateCategory(Enum):
     """Enhanced state categories with psychiatric associations"""
 
-    OPTIMAL_FUNCTIONING = ("#2166AC", "Optimal Functioning", "Normal range")
-    POSITIVE_AFFECTIVE = ("#41AB5D", "Positive Affective", "Positive valence")
+    OPTIMAL_FUNCTIONING = ("VISUAL_CONSTANTS.ST_BLUE", "Optimal Functioning", "Normal range")
+    POSITIVE_AFFECTIVE = ("VISUAL_CONSTANTS.IGNITION_GREEN", "Positive Affective", "Positive valence")
     COGNITIVE_ATTENTIONAL = (
-        "#F4A582",
+        "VISUAL_CONSTANTS.INTERO_AMBER",
         "Cognitive/Attentional",
         "Information processing",
     )
-    AVERSIVE_AFFECTIVE = ("#D6604D", "Aversive Affective", "Negative valence")
-    PATHOLOGICAL_EXTREME = ("#762A83", "Pathological/Extreme", "Clinical range")
-    ALTERED_BOUNDARY = ("#762A83", "Altered/Boundary", "Altered consciousness")
+    AVERSIVE_AFFECTIVE = ("VISUAL_CONSTANTS.THETA_RED", "Aversive Affective", "Negative valence")
+    PATHOLOGICAL_EXTREME = ("VISUAL_CONSTANTS.ALLOSTATIC_PURPLE", "Pathological/Extreme", "Clinical range")
+    ALTERED_BOUNDARY = ("VISUAL_CONSTANTS.ALLOSTATIC_PURPLE", "Altered/Boundary", "Altered consciousness")
     TRANSITIONAL_CONTEXTUAL = (
-        "#F4A582",
+        "VISUAL_CONSTANTS.INTERO_AMBER",
         "Transitional/Contextual",
         "Context-dependent",
     )

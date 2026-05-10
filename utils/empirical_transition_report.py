@@ -1,10 +1,7 @@
-"""Empirical Validation Transition Report for VP-11 and VP-15.
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Tracks the status of validation protocols transitioning from "Simulation Only"
-to "Empirical Validation" using public neuroscience datasets.
-
-Usage:
-    python -m utils.empirical_transition_report
+Bridge to Level 1
 """
 
 import json

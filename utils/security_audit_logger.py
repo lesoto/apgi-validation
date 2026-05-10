@@ -1,7 +1,7 @@
 """
-Security audit logger for file operations.
-Logs all file access, path resolution, and permission checks for security auditing.
-============================================================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
 """
 
 import json

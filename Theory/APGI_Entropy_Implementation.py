@@ -60,16 +60,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# Disable anomaly detection for better performance
-# torch.autograd.set_detect_anomaly(True)
-
-
 # ============================================================================
 # Configuration and Constants
 # ============================================================================
 
-
-# Add parent directory to path for utils imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.apgi_config import APGIConfig
@@ -118,8 +112,6 @@ class PrecisionOutput:
     tau_extero: torch.Tensor  # Exteroceptive time constant
     volatility: torch.Tensor  # Estimated environmental volatility
     context_modulation: torch.Tensor  # Context-dependent modulation
-
-    # NEW: Probabilistic representations
     intero_variance: torch.Tensor  # 1/Pi_intero
     extero_variance: torch.Tensor  # 1/Pi_extero
 
@@ -133,8 +125,6 @@ class PredictionOutput:
     pred_intero: torch.Tensor  # Interoceptive prediction
     pred_extero: torch.Tensor  # Exteroceptive prediction
     hierarchical_errors: List[torch.Tensor]  # Errors at each hierarchy level
-
-    # NEW: Probabilistic representations
     intero_likelihood_var: torch.Tensor  # Observation noise variance
     extero_likelihood_var: torch.Tensor  # Observation noise variance
 
@@ -143,17 +133,12 @@ class PredictionOutput:
 class MetabolicOutput:
     """Metabolic cost and benefit computations"""
 
-    # Simplified (engineering)
     broadcast_cost_simplified: torch.Tensor  # Quadratic activity cost
     maintenance_cost: torch.Tensor  # Sustained activity cost
     prediction_benefit: torch.Tensor  # Error reduction benefit
     free_energy_simplified: torch.Tensor  # Cost - Benefit
-
-    # Rigorous (physics)
     metabolic_dissipation: torch.Tensor  # True thermodynamic dissipation
     entropy_production_rate: torch.Tensor  # dS/dt (always ≥ 0)
-
-    # NEW: ATP-inspired energetics
     atp_cost: torch.Tensor  # Estimated ATP molecules (normalized)
     heat_dissipation: torch.Tensor  # Waste heat (entropy increase)
 

@@ -101,29 +101,10 @@ def test_with_timeout_success():
     def fast_func():
         return "success"
 
-    with patch("multiprocessing.Process") as mock_process:
-        mock_p = Mock()
-        mock_p.is_alive.return_value = False
-        mock_process.return_value = mock_p
-
-        # We need to simulate the target running and setting result
-        def side_effect(*args, **kwargs):
-            target = kwargs.get("target")
-            # The target is _timeout_target with its arguments already bound
-            if target:
-                # But we need to extract the actual function and its arguments from the kwargs
-                # For simplicity, we'll mock the result by accessing the manager lists
-                func = args[0] if args else fast_func
-                func_args = args[1] if len(args) > 1 else ()
-                func_kwargs = args[2] if len(args) > 2 else {}
-                result_list = args[3] if len(args) > 3 else None
-                if result_list is not None:
-                    result_list.append(func(*func_args, **func_kwargs))
-            return mock_p
-
-        mock_process.side_effect = side_effect
-
-        assert fast_func() == "success"
+    # Test the decorated function directly without mocking multiprocessing
+    # The with_timeout decorator should work normally for fast functions
+    result = fast_func()
+    assert result == "success"
 
 
 def test_with_timeout_exception():
@@ -131,99 +112,51 @@ def test_with_timeout_exception():
     def failing_func():
         raise ValueError("Failed inside")
 
-    with patch("multiprocessing.Process") as mock_process:
-        mock_p = Mock()
-        mock_p.is_alive.return_value = False
-        mock_process.return_value = mock_p
-
-        def side_effect(*args, **kwargs):
-            target = kwargs.get("target")
-            if target:
-                exception_list = args[4] if len(args) > 4 else None
-                if exception_list is not None:
-                    exception_list.append(ValueError("Failed inside"))
-            return mock_p
-
-        mock_process.side_effect = side_effect
-
-        with pytest.raises(ValueError, match="Failed inside"):
-            failing_func()
+    # Test the decorated function directly - should raise the exception
+    with pytest.raises(ValueError, match="Failed inside"):
+        failing_func()
 
 
 def test_with_timeout_expired():
     @with_timeout(0.1)
     def slow_func():
+        import time
+
+        time.sleep(0.2)  # Sleep longer than timeout
         return "done"
 
-    with patch("multiprocessing.Process") as mock_process:
-        mock_p = Mock()
-        mock_p.is_alive.return_value = True
-        mock_process.return_value = mock_p
-
-        with pytest.raises(TimeoutError, match="Operation timed out"):
-            slow_func()
-
-        mock_p.terminate.assert_called_once()
+    # Test the decorator directly - should raise TimeoutError for slow function
+    with pytest.raises(TimeoutError, match="Operation timed out"):
+        slow_func()
 
 
 def test_run_with_timeout_success():
     def fast_func(a, b=2):
         return a + b
 
-    with patch("multiprocessing.Process") as mock_process:
-        mock_p = Mock()
-        mock_p.is_alive.return_value = False
-        mock_process.return_value = mock_p
-
-        def side_effect(*args, **kwargs):
-            target = kwargs.get("target")
-            if target:
-                result_list = args[3] if len(args) > 3 else None
-                if result_list is not None:
-                    result_list.append(7)  # fast_func(3, b=4) = 7
-            return mock_p
-
-        mock_process.side_effect = side_effect
-
-        assert run_with_timeout(fast_func, args=(3,), kwargs={"b": 4}, timeout_seconds=1.0) == 7
+    # Test the run_with_timeout function directly
+    assert run_with_timeout(fast_func, args=(3,), kwargs={"b": 4}, timeout_seconds=1.0) == 7
 
 
 def test_run_with_timeout_exception():
     def failing_func():
         raise KeyError("Missing key")
 
-    with patch("multiprocessing.Process") as mock_process:
-        mock_p = Mock()
-        mock_p.is_alive.return_value = False
-        mock_process.return_value = mock_p
-
-        def side_effect(*args, **kwargs):
-            target = kwargs.get("target")
-            if target:
-                exception_list = args[4] if len(args) > 4 else None
-                if exception_list is not None:
-                    exception_list.append(KeyError("Missing key"))
-            return mock_p
-
-        mock_process.side_effect = side_effect
-
-        with pytest.raises(KeyError, match="Missing key"):
-            run_with_timeout(failing_func, timeout_seconds=1.0)
+    # Test the run_with_timeout function directly
+    with pytest.raises(KeyError, match="Missing key"):
+        run_with_timeout(failing_func, timeout_seconds=1.0)
 
 
 def test_run_with_timeout_expired():
     def slow_func():
+        import time
+
+        time.sleep(0.2)  # Sleep longer than timeout
         return "done"
 
-    with patch("multiprocessing.Process") as mock_process:
-        mock_p = Mock()
-        mock_p.is_alive.return_value = True
-        mock_process.return_value = mock_p
-
-        with pytest.raises(TimeoutError, match="Operation timed out"):
-            run_with_timeout(slow_func, timeout_seconds=0.1)
-
-        mock_p.terminate.assert_called_once()
+    # Test the run_with_timeout function directly - should raise TimeoutError for slow function
+    with pytest.raises(TimeoutError, match="Operation timed out"):
+        run_with_timeout(slow_func, timeout_seconds=0.1)
 
 
 @patch("subprocess.Popen")

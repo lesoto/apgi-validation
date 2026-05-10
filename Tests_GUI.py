@@ -24,8 +24,8 @@ def apply_apgi_theme(root):
     style.theme_use("clam")
 
     # Core Palette
-    bg_color = "#f8f9fa"
-    fg_color = "#212529"
+    bg_color = "VISUAL_CONSTANTS.HC_GREY"
+    fg_color = "VISUAL_CONSTANTS.ALLOSTATIC_PURPLE"
 
     # Configure Global Elements
     style.configure("TFrame", background=bg_color)
@@ -46,7 +46,7 @@ def apply_apgi_theme(root):
     # Primary Button Styling
     style.configure(
         "Primary.TButton",
-        background="#155724",
+        background="VISUAL_CONSTANTS.IGNITION_GREEN",
         foreground="white",
         font=("Noto Sans", 10, "bold"),
         padding=8,
@@ -60,7 +60,7 @@ def apply_apgi_theme(root):
     # Danger Button Styling
     style.configure(
         "Danger.TButton",
-        background="#721c24",
+        background="VISUAL_CONSTANTS.THETA_RED",
         foreground="white",
         font=("Noto Sans", 10, "bold"),
         padding=8,
@@ -74,7 +74,7 @@ def apply_apgi_theme(root):
     # Secondary Button Styling
     style.configure(
         "Secondary.TButton",
-        background="#2874a6",
+        background="VISUAL_CONSTANTS.ST_BLUE",
         foreground="white",
         font=("Noto Sans", 10),
         padding=6,
@@ -89,8 +89,8 @@ def apply_apgi_theme(root):
     style.configure("Card.TCheckbutton", background="#ffffff")
 
     # Status styling
-    style.configure("Success.TLabel", foreground="#155724", font=("Noto Sans", 10, "bold"))
-    style.configure("Error.TLabel", foreground="#721c24", font=("Noto Sans", 10, "bold"))
+    style.configure("Success.TLabel", foreground="VISUAL_CONSTANTS.IGNITION_GREEN", font=("Noto Sans", 10, "bold"))
+    style.configure("Error.TLabel", foreground="VISUAL_CONSTANTS.THETA_RED", font=("Noto Sans", 10, "bold"))
 
     # Configure root window
     root.configure(background=bg_color)
@@ -213,8 +213,8 @@ class TestsGUI:
 
         self.output_text = scrolledtext.ScrolledText(
             workspace.container,
-            bg="#212529",
-            fg="#f8f9fa",
+            bg="VISUAL_CONSTANTS.ALLOSTATIC_PURPLE",
+            fg="VISUAL_CONSTANTS.HC_GREY",
             font=("Noto Sans Mono", 10),
             borderwidth=0,
             highlightthickness=0,

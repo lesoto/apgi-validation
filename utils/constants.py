@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """
-APGI Framework Constants
-========================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Centralized constants for the APGI framework to avoid magic numbers
-and ensure consistency across all modules.
-
-Arousal coupling defaults follow the behavioral validation calibration used in
-VP-02 and are anchored to interoceptive gain estimates discussed in:
-Critchley HD, Wiens S, Rotshtein P, Ohman A, Dolan RJ. Neural systems
-supporting interoceptive awareness. Nat Neurosci. 2004;7(2):189-195.
+Bridge to Level 1
 """
 
 from dataclasses import dataclass
@@ -299,23 +292,23 @@ class VisualConstants:
     """
 
     # Core Palette
-    ST_BLUE: str = "#2166AC"
-    THETA_RED: str = "#D6604D"
-    INTERO_AMBER: str = "#F4A582"
-    IGNITION_GREEN: str = "#41AB5D"
-    ALLOSTATIC_PURPLE: str = "#762A83"
+    ST_BLUE: str = "VISUAL_CONSTANTS.ST_BLUE"
+    THETA_RED: str = "VISUAL_CONSTANTS.THETA_RED"
+    INTERO_AMBER: str = "VISUAL_CONSTANTS.INTERO_AMBER"
+    IGNITION_GREEN: str = "VISUAL_CONSTANTS.IGNITION_GREEN"
+    ALLOSTATIC_PURPLE: str = "VISUAL_CONSTANTS.ALLOSTATIC_PURPLE"
 
     # Clinical/Group Colors
-    HC_GREY: str = "#999999"
-    MDD_BLUE: str = "#2166AC"
-    ANX_ORANGE: str = "#F4A582"
-    ADHD_PURPLE: str = "#762A83"
+    HC_GREY: str = "VISUAL_CONSTANTS.HC_GREY"
+    MDD_BLUE: str = "VISUAL_CONSTANTS.ST_BLUE"
+    ANX_ORANGE: str = "VISUAL_CONSTANTS.INTERO_AMBER"
+    ADHD_PURPLE: str = "VISUAL_CONSTANTS.ALLOSTATIC_PURPLE"
 
     # Status Colors (for ProtocolVisualizer)
-    STATUS_PASS: str = "#2ecc71"
-    STATUS_FAIL: str = "#e74c3c"
-    STATUS_ERROR: str = "#f39c12"
-    STATUS_UNKNOWN: str = "#95a5a6"
+    STATUS_PASS: str = "VISUAL_CONSTANTS.STATUS_PASS"
+    STATUS_FAIL: str = "VISUAL_CONSTANTS.STATUS_FAIL"
+    STATUS_ERROR: str = "VISUAL_CONSTANTS.STATUS_ERROR"
+    STATUS_UNKNOWN: str = "VISUAL_CONSTANTS.STATUS_UNKNOWN"
 
     # Level Colors (used in hierarchical models)
     LEVEL_COLORS: Dict[int, str] = None

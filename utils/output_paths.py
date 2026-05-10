@@ -1,8 +1,46 @@
 """
-Centralized output path management for APGI protocols.
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module provides standardized paths for all protocol outputs,
-ensuring consistency across PNG, JSON, CSV, and other file formats.
+Bridge to Level 1
+
+Unified Output Path Management
+==============================
+
+All outputs are consolidated into apgi_outputs/ directory with the following structure:
+
+    apgi_outputs/
+    ├── validation/
+    │   ├── VP_01/
+    │   │   ├── results.json
+    │   │   ├── metadata.json
+    │   │   └── visualizations/
+    │   ├── VP_02/
+    │   └── ...
+    ├── falsification/
+    │   ├── FP_01/
+    │   │   ├── results.json
+    │   │   ├── metadata.json
+    │   │   └── visualizations/
+    │   ├── FP_02/
+    │   └── ...
+    ├── theory/
+    │   ├── module_name/
+    │   │   ├── results.json
+    │   │   ├── metadata.json
+    │   │   └── visualizations/
+    │   └── ...
+    ├── dashboards/
+    │   ├── system_dashboard.html
+    │   ├── validation_dashboard.html
+    │   └── ...
+    ├── logs/
+    │   ├── error.log
+    │   ├── alerts.jsonl
+    │   └── ...
+    └── reports/
+        ├── batch_report.json
+        ├── performance_report.json
+        └── ...
 """
 
 from pathlib import Path
@@ -14,23 +52,30 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent
 
 
+def get_apgi_outputs_root() -> Path:
+    """Get the unified APGI outputs root directory."""
+    root = get_project_root()
+    output_root = root / "apgi_outputs"
+    output_root.mkdir(parents=True, exist_ok=True)
+    return output_root
+
+
 def get_output_dir(subdir: Optional[str] = None) -> Path:
     """
     Get the standardized output directory.
 
     Args:
-        subdir: Optional subdirectory (e.g., 'visualizations', 'data', 'results')
+        subdir: Optional subdirectory (e.g., 'validation', 'falsification', 'theory', 'dashboards', 'logs', 'reports')
 
     Returns:
         Path to the output directory
     """
-    root = get_project_root()
-
-    # Primary output directory is validation_results/
-    output_dir = root / "validation_results"
+    root = get_apgi_outputs_root()
 
     if subdir:
-        output_dir = output_dir / subdir
+        output_dir = root / subdir
+    else:
+        output_dir = root
 
     # Ensure directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -38,16 +83,183 @@ def get_output_dir(subdir: Optional[str] = None) -> Path:
     return output_dir
 
 
-def get_protocol_json_path(protocol_num: int) -> Path:
-    """Get standardized JSON output path for a protocol (saved in root)."""
-    root = get_project_root()
-    return root / f"protocol{protocol_num:02d}_results.json"
+def get_validation_output_dir(protocol_num: Optional[int] = None) -> Path:
+    """Get output directory for validation protocols."""
+    root = get_apgi_outputs_root()
+    validation_dir = root / "validation"
+
+    if protocol_num is not None:
+        validation_dir = validation_dir / f"VP_{protocol_num:02d}"
+
+    validation_dir.mkdir(parents=True, exist_ok=True)
+    return validation_dir
 
 
-def get_protocol_csv_path(protocol_num: int) -> Path:
-    """Get standardized CSV output path for a protocol (saved in root)."""
+def get_falsification_output_dir(protocol_num: Optional[int] = None) -> Path:
+    """Get output directory for falsification protocols."""
+    root = get_apgi_outputs_root()
+    falsification_dir = root / "falsification"
+
+    if protocol_num is not None:
+        falsification_dir = falsification_dir / f"FP_{protocol_num:02d}"
+
+    falsification_dir.mkdir(parents=True, exist_ok=True)
+    return falsification_dir
+
+
+def get_theory_output_dir(module_name: Optional[str] = None) -> Path:
+    """Get output directory for theory modules."""
+    root = get_apgi_outputs_root()
+    theory_dir = root / "theory"
+
+    if module_name:
+        theory_dir = theory_dir / module_name
+
+    theory_dir.mkdir(parents=True, exist_ok=True)
+    return theory_dir
+
+
+def get_dashboard_output_dir() -> Path:
+    """Get output directory for dashboards."""
+    return get_output_dir("dashboards")
+
+
+def get_logs_output_dir() -> Path:
+    """Get output directory for logs."""
+    return get_output_dir("logs")
+
+
+def get_reports_output_dir() -> Path:
+    """Get output directory for reports."""
+    return get_output_dir("reports")
+
+
+def get_protocol_json_path(protocol_num: int, protocol_type: str = "validation") -> Path:
+    """
+    Get standardized JSON output path for a protocol.
+
+    Args:
+        protocol_num: Protocol number (1-21 for validation, 1-12 for falsification)
+        protocol_type: 'validation', 'falsification', or 'theory'
+
+    Returns:
+        Path to the JSON results file
+    """
+    if protocol_type == "validation":
+        output_dir = get_validation_output_dir(protocol_num)
+    elif protocol_type == "falsification":
+        output_dir = get_falsification_output_dir(protocol_num)
+    else:
+        output_dir = get_theory_output_dir(protocol_type)
+
+    return output_dir / "results.json"
+
+
+def get_protocol_csv_path(protocol_num: int, protocol_type: str = "validation") -> Path:
+    """
+    Get standardized CSV output path for a protocol.
+
+    Args:
+        protocol_num: Protocol number
+        protocol_type: 'validation', 'falsification', or 'theory'
+
+    Returns:
+        Path to the CSV results file
+    """
+    if protocol_type == "validation":
+        output_dir = get_validation_output_dir(protocol_num)
+    elif protocol_type == "falsification":
+        output_dir = get_falsification_output_dir(protocol_num)
+    else:
+        output_dir = get_theory_output_dir(protocol_type)
+
+    return output_dir / "results.csv"
+
+
+def get_protocol_png_path(protocol_num: int, protocol_type: str = "validation", suffix: Optional[str] = None) -> Path:
+    """
+    Get standardized PNG output path for a protocol.
+
+    Args:
+        protocol_num: Protocol number
+        protocol_type: 'validation', 'falsification', or 'theory'
+        suffix: Optional suffix for the filename (e.g., 'comparison', 'analysis')
+
+    Returns:
+        Path to the PNG visualization file
+    """
+    if protocol_type == "validation":
+        output_dir = get_validation_output_dir(protocol_num)
+    elif protocol_type == "falsification":
+        output_dir = get_falsification_output_dir(protocol_num)
+    else:
+        output_dir = get_theory_output_dir(protocol_type)
+
+    viz_dir = output_dir / "visualizations"
+    viz_dir.mkdir(parents=True, exist_ok=True)
+
+    if suffix:
+        filename = f"results_{suffix}.png"
+    else:
+        filename = "results.png"
+
+    return viz_dir / filename
+
+
+def get_metadata_path(protocol_num: int, protocol_type: str = "validation") -> Path:
+    """Get standardized metadata JSON path for a protocol."""
+    if protocol_type == "validation":
+        output_dir = get_validation_output_dir(protocol_num)
+    elif protocol_type == "falsification":
+        output_dir = get_falsification_output_dir(protocol_num)
+    else:
+        output_dir = get_theory_output_dir(protocol_type)
+
+    return output_dir / "metadata.json"
+
+
+def migrate_legacy_outputs() -> dict:
+    """
+    Migrate legacy output files from old locations to apgi_outputs/.
+
+    Returns:
+        Dictionary with migration statistics
+    """
     root = get_project_root()
-    return root / f"protocol{protocol_num:02d}_results.csv"
+    stats = {"migrated": 0, "errors": 0, "skipped": 0}
+
+    # Legacy output directories to migrate
+    legacy_dirs = [
+        ("outputs", "legacy"),
+        ("validation_results", "legacy"),
+        ("results", "legacy"),
+        ("reports", "reports"),
+        ("logs", "logs"),
+    ]
+
+    for legacy_dir_name, target_subdir in legacy_dirs:
+        legacy_dir = root / legacy_dir_name
+        if not legacy_dir.exists():
+            continue
+
+        target_dir = get_output_dir(target_subdir)
+
+        try:
+            # Move all files from legacy directory to target
+            for file_path in legacy_dir.rglob("*"):
+                if file_path.is_file():
+                    relative_path = file_path.relative_to(legacy_dir)
+                    target_file = target_dir / relative_path
+                    target_file.parent.mkdir(parents=True, exist_ok=True)
+
+                    # Copy file
+                    target_file.write_bytes(file_path.read_bytes())
+                    stats["migrated"] += 1
+        except Exception as e:
+            print(f"Error migrating {legacy_dir_name}: {e}")
+            stats["errors"] += 1
+
+    return stats
 
 
 def get_protocol_png_path(protocol_num: int, suffix: Optional[str] = None) -> Path:

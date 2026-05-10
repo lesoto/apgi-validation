@@ -1,9 +1,7 @@
 """
-APGI Analytical Solutions Utility
-=================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides exact analytical solutions for core APGI equations used for
-mathematical consistency verification and protocol validation.
+Bridge to Level 1
 """
 
 import numpy as np

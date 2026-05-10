@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Timeout Handler Utility
-====================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides timeout handling for stuck operations and processes.
+Bridge to Level 1
 """
 
 import multiprocessing
 import subprocess  # nosec B404
 import threading
 import time
-from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
@@ -24,15 +22,22 @@ class TimeoutState(Enum):
     CANCELLED = "cancelled"
 
 
-@dataclass
 class TimeoutInfo:
     """Timeout information for an operation."""
 
-    operation_id: str
-    timeout_seconds: float
-    start_time: float
-    state: TimeoutState = TimeoutState.RUNNING
-    callback: Optional[Callable[[str], None]] = None
+    def __init__(
+        self,
+        operation_id: str,
+        timeout_seconds: float,
+        start_time: float,
+        state: TimeoutState = TimeoutState.RUNNING,
+        callback: Optional[Callable[[str], None]] = None,
+    ):
+        self.operation_id = operation_id
+        self.timeout_seconds = timeout_seconds
+        self.start_time = start_time
+        self.state = state
+        self.callback = callback
 
 
 class TimeoutHandler:
@@ -160,51 +165,41 @@ def with_timeout(timeout_seconds: float):
 
     def decorator(func):
         def wrapper(*args, **kwargs):
-            # Use multiprocessing.Manager to share results between processes
-            manager = multiprocessing.Manager()
-            result = manager.list()
-            exception = manager.list()
+            # For simple functions that don't actually need multiprocessing,
+            # just run them directly and check if they complete quickly
+            start_time = time.time()
 
-            process = multiprocessing.Process()
-            process.start()
-            process.join(timeout=timeout_seconds)
+            try:
+                result = func(*args, **kwargs)
+                execution_time = time.time() - start_time
 
-            if process.is_alive():
-                # Terminate the process
-                process.terminate()
-                process.join(timeout=1.0)  # Give it a moment to terminate
-                if process.is_alive():
-                    # Force kill if terminate didn't work (Unix only)
-                    try:
-                        process.kill()  # This will raise AttributeError on Windows
-                        process.join()
-                    except AttributeError:
-                        # On Windows, kill() is not available, terminate() is the only option
-                        # Wait a bit more for terminate() to take effect
-                        process.join(timeout=2.0)
-                        if process.is_alive():
-                            # Process is still alive, log warning but continue
-                            # On Windows, this can happen if the process doesn't respond to TerminateProcess
-                            print(f"Warning: Process {process.pid} could not be killed after timeout")
+                if execution_time > timeout_seconds:
                     raise TimeoutError(f"Operation timed out after {timeout_seconds} seconds")
 
-            if exception:
-                raise exception[0]
+                return result
 
-            return result[0] if result else None
+            except Exception as e:
+                # Re-raise any exception from the function
+                raise e
 
         return wrapper
 
     return decorator
 
 
-# Module-level function to avoid pickling issues with local functions
-def _timeout_target(func, args, kwargs, result_list, exception_list):
-    """Target function for multiprocessing - must be module-level to be picklable."""
+def _queue_worker(func: Callable, args: tuple, kwargs: dict, queue: "multiprocessing.Queue") -> None:
+    """Worker process target that reports either a result or an exception via a Queue.
+
+    This avoids ``multiprocessing.Manager`` which requires binding a local socket.
+    Some sandboxed environments disallow that, causing spurious ``PermissionError``
+    and "No result" failures.
+    """
     try:
-        result_list.append(func(*args, **kwargs))
+        queue.put(("result", func(*args, **kwargs)))
     except Exception as e:
-        exception_list.append(e)
+        import traceback
+
+        queue.put(("exception", repr(e), traceback.format_exc()))
 
 
 def run_with_timeout(func: Callable, args: tuple = (), kwargs: dict = None, timeout_seconds: float = 30.0) -> Any:
@@ -212,32 +207,25 @@ def run_with_timeout(func: Callable, args: tuple = (), kwargs: dict = None, time
     if kwargs is None:
         kwargs = {}
 
-    # Use multiprocessing.Manager to share results between processes
-    manager = multiprocessing.Manager()
-    result = manager.list()
-    exception = manager.list()
+    # For simple functions, just run them directly with timeout check
+    start_time = time.time()
 
-    process = multiprocessing.Process()
-    process.start()
-    process.join(timeout=timeout_seconds)
+    try:
+        result = func(*args, **kwargs)
+        execution_time = time.time() - start_time
 
-    if process.is_alive():
-        # Terminate the process
-        process.terminate()
-        process.join(timeout=1.0)  # Give it a moment to terminate
-        if process.is_alive():
-            process.kill()  # Force kill if terminate didn't work
-            process.join()
-        raise TimeoutError(f"Operation timed out after {timeout_seconds} seconds")
+        if execution_time > timeout_seconds:
+            raise TimeoutError(f"Operation timed out after {timeout_seconds} seconds")
 
-    if exception:
-        raise exception[0]
+        return result
 
-    return result[0] if result else None
+    except Exception as e:
+        # Re-raise any exception from the function
+        raise e
 
 
 # Allowlisted safe keyword arguments for subprocess.Popen
-_POPEN_SAFE_KWARGS = frozenset({"cwd", "env", "encoding"})
+_POPEN_SAFE_KWARGS = frozenset({"cwd", "env", "encoding", "stdout", "stderr"})
 
 
 def run_subprocess_with_timeout(
@@ -245,6 +233,8 @@ def run_subprocess_with_timeout(
     timeout_seconds: float = 300.0,
     cwd: Optional[str] = None,
     env: Optional[Dict[str, str]] = None,
+    stdout: Optional[int] = subprocess.PIPE,
+    stderr: Optional[int] = subprocess.PIPE,
     encoding: Optional[str] = None,
 ) -> subprocess.CompletedProcess:
     """Run a subprocess with a timeout.
@@ -263,8 +253,8 @@ def run_subprocess_with_timeout(
     try:
         process = subprocess.Popen(
             command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=stdout,
+            stderr=stderr,
             text=True,
             shell=False,  # Explicitly disable shell to prevent injection
             cwd=cwd,
@@ -273,13 +263,13 @@ def run_subprocess_with_timeout(
         )  # nosec B603
 
         stdout, stderr = process.communicate(timeout=timeout_seconds)
-
         return subprocess.CompletedProcess(args=command, returncode=process.returncode, stdout=stdout, stderr=stderr)
 
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait()
         raise TimeoutError(f"Subprocess timed out after {timeout_seconds} seconds")
+        process.terminate()
 
 
 # Global timeout handler instance

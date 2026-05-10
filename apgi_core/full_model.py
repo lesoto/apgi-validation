@@ -1,28 +1,6 @@
 """
-=============================================================================
-APGI APGI Full Dynamic Model Implementation
-=============================================================================
+LEVEL DESIGNATION: Level 1 (thermodynamic)
 
-Core Ignition Criterion:
-
-    (Πe · |εe| + β_som · Πi · |εi|) > θt
-
-Mathematical Formulation:
-
-    1. Signal Accumulation: S(t+Δt) = exp(−Δt/τ)·S(t) + we·Πe(t)·|εe(t)| + wi·β_som(t)·Πi(t)·|εi(t)|
-    ...
-        S(t+Δt) = exp(−Δt/τ)·S(t) + we·Πe(t)·|εe(t)| + wi·β_som(t)·Πi(t)·|εi(t)|
-    2. Threshold Dynamics: θt(t+Δt) = θt0 + ηm(t) + α·[θt(t) − (θt0 + ηm(t))] + φ·I(t)
-    3. Ignition Probability: P(ignition|t) = 1 / (1 + exp(−k·(S(t)−θt(t))))
-    4. Metabolic State: ηm(t+Δt) = ηm(t) + γc·I(t) − γr·(1−I(t))
-    5. Signal Standardization: εnormalized = (εraw−µbaseline)/σbaseline
-
-    where:
-    - Δt: Timestep duration (typically 50-100ms)
-    - τ: Signal decay time constant
-    - φ: Post-ignition facilitation (positive increment)
-
-=============================================================================
 """
 
 from dataclasses import dataclass

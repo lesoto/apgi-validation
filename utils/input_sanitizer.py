@@ -1,3 +1,9 @@
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
+"""
+
 import re
 from pathlib import Path
 from typing import Any, Dict, Optional, TypeVar, cast

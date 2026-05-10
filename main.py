@@ -1,28 +1,35 @@
 #!/usr/bin/env python3
 """
-APGI Theory Framework - Unified CLI Entry Point.
-================================================
+LEVEL DESIGNATION: Level 3 (algorithmic/mathematical)
 
-Provides command-line interface to all APGI framework components including:
-    - Formal model simulations
-- Multimodal integration
-- Parameter estimation
-- Validation protocols
-- Falsification testing
-- Configuration management
+Bridge to Level 2
+Bridge to Level 1
 """
+
+# CRITICAL: Import NumPy bootstrap FIRST before any other imports
+# This applies Python 3.14+ compatibility patches for numpy.prod/sum
+import sys
+from pathlib import Path
+
+# Apply bootstrap BEFORE any other imports
+_bootstrap_path = Path(__file__).parent / "utils" / "_numpy_bootstrap.py"
+if _bootstrap_path.exists():
+    import importlib.util
+
+    _spec = importlib.util.spec_from_file_location("_numpy_bootstrap", _bootstrap_path)
+    if _spec and _spec.loader:
+        _bootstrap = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_bootstrap)
 
 import contextlib
 import importlib.util
 import json
 import os
-import sys
 import threading
 import time
 import types
 import uuid
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Rich imports for UI
@@ -2620,6 +2627,9 @@ def _run_validation_function(protocol_file: str, validation_dir: Path) -> Tuple[
             validator = module.APGINeuralSignaturesValidator()
             result = validator.validate_convergent_signatures()
             return protocol_num, str(result), None
+        elif hasattr(module, "run_validation"):
+            result = module.run_validation()
+            return protocol_num, str(result), None
         else:
             return protocol_num, "No validation function", None
     except Exception as e:
@@ -2637,17 +2647,37 @@ def _run_single_protocol(
         timeout_seconds: Maximum time to allow protocol to run
 
     Returns:
+        Tuple of (protocol_num, result, status) where status is "Success" or "Error"
     """
     protocol_num = protocol_file.split("_")[1]
     console.print(f"[blue]Running Protocol {protocol_num}...[/blue]")
 
     try:
-        result = run_with_timeout(
+        # run_with_timeout returns the result from _run_validation_function
+        # which is (protocol_num, result_str, error_str_or_none)
+        result_tuple = run_with_timeout(
             _run_validation_function,
             args=(protocol_file, validation_dir),
             timeout_seconds=timeout_seconds,
         )
-        return protocol_num, result, "Success"
+
+        # Handle case where run_with_timeout returns None
+        if result_tuple is None:
+            return protocol_num, "No result returned", "Error: No result"
+
+        # result_tuple is (protocol_num, result_str, error_str_or_none)
+        if len(result_tuple) == 3:
+            _, result_str, error_str = result_tuple
+            if error_str is None:
+                # Success case
+                return protocol_num, result_str, "Success"
+            else:
+                # Error case from _run_validation_function
+                return protocol_num, result_str, f"Error: {error_str}"
+        else:
+            # Unexpected return format
+            return protocol_num, str(result_tuple), "Error: Unexpected return format"
+
     except TimeoutError as e:
         console.print(f"[red]✗[/red] Protocol {protocol_num} timed out after {timeout_seconds} seconds")
         return protocol_num, f"Timeout: {str(e)}", "Timeout"
@@ -2678,11 +2708,11 @@ def _run_parallel(protocols: List[str], validation_dir: Path) -> Dict[str, Any]:
 
         for future in concurrent.futures.as_completed(future_to_protocol):
             try:
-                protocol_num, result, error = future.result()
+                protocol_num, result, status = future.result()
                 with results_lock:
                     results[protocol_num] = result
-                    if error:
-                        console.print(f"[red]✗[/red] Protocol {protocol_num} failed: {error}")
+                    if status != "Success":
+                        console.print(f"[red]✗[/red] Protocol {protocol_num} failed: {status}")
                     else:
                         console.print(f"[green]✓[/green] Protocol {protocol_num} completed")
             except Exception as e:
@@ -2714,12 +2744,26 @@ def _run_sequential(protocols: List[str], validation_dir: Path) -> Dict[str, Any
             protocol_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(protocol_module)
 
-            if hasattr(protocol_module, "run_validation"):
+            if hasattr(protocol_module, "validate"):
+                result = protocol_module.validate()
+                results[protocol_num] = str(result)
+                console.print(f"[green]✓[/green] Protocol {protocol_num} completed")
+            elif hasattr(protocol_module, "APGIValidator"):
+                validator = protocol_module.APGIValidator()
+                result = validator.validate()
+                results[protocol_num] = str(result)
+                console.print(f"[green]✓[/green] Protocol {protocol_num} completed")
+            elif hasattr(protocol_module, "APGINeuralSignaturesValidator"):
+                validator = protocol_module.APGINeuralSignaturesValidator()
+                result = validator.validate_convergent_signatures()
+                results[protocol_num] = str(result)
+                console.print(f"[green]✓[/green] Protocol {protocol_num} completed")
+            elif hasattr(protocol_module, "run_validation"):
                 result = protocol_module.run_validation()
-                results[protocol_num] = result
+                results[protocol_num] = str(result)
                 console.print(f"[green]✓[/green] Protocol {protocol_num} completed")
             else:
-                console.print(f"[yellow]Protocol {protocol_num} has no run_validation function[/yellow]")
+                console.print(f"[yellow]Protocol {protocol_num} has no validation function[/yellow]")
                 results[protocol_num] = "No validation function"
 
         except Exception as e:
@@ -5057,7 +5101,7 @@ def cache_cmd(ctx, action, sources, max_workers):
 @cli.command()
 @click.option(
     "--output-dir",
-    help="Output directory for dashboards (default: apgi_output/dashboards)",
+    help="Output directory for dashboards (default: apgi_outputs/dashboards)",
 )
 @click.option(
     "--dashboard-type",
@@ -5078,10 +5122,13 @@ def dashboard(output_dir, dashboard_type, open_browser):
         from pathlib import Path
 
         from utils.static_dashboard_generator import generate_dashboards
+        from utils.output_paths import get_dashboard_output_dir
 
         # Set default values
         if not output_dir:
-            output_dir = PROJECT_ROOT / "apgi_output" / "dashboards"
+            output_dir = get_dashboard_output_dir()
+        else:
+            output_dir = Path(output_dir)
 
         if not dashboard_type:
             dashboard_type = "all"

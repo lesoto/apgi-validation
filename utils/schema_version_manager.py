@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Schema Version Manager
-=====================
-Provides versioned backward-compatibility strategy with schema evolution contracts.
-Handles configuration schema migration, data format compatibility, and API versioning.
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
 """
 
 import json

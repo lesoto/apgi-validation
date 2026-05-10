@@ -1,18 +1,7 @@
 """
-Automated log analysis and integrity verification tools for APGI Framework.
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module provides comprehensive log analysis capabilities including:
-- Log parsing and aggregation
-- Anomaly detection and alerting
-- Integrity verification through cryptographic hashes
-- Performance metric extraction
-- Report generation
-
-Classes:
-- LogAnalyzer: Comprehensive log analysis with pattern matching
-- IntegrityVerifier: Cryptographic integrity verification for log files
-- LogAggregator: Unified log data collection and analysis
-- ReportGenerator: Automated report generation from log data
+Bridge to Level 1
 """
 
 import hashlib
@@ -1758,7 +1747,7 @@ class AutomatedLogAnalyzer:
         log_sources: Dict[str, str],
         analysis_interval: int = 3600,  # Default 1 hour
         alert_thresholds: Optional[Dict[str, int]] = None,
-        output_dir: str = "reports/automated",
+        output_dir: str = "apgi_outputs/reports/automated",
     ):
         """
         Initialize automated log analyzer.
@@ -2044,7 +2033,7 @@ def run_automated_analysis(
     log_sources: Dict[str, str],
     analysis_interval: int = 3600,
     alert_thresholds: Optional[Dict[str, int]] = None,
-    output_dir: str = "reports/automated",
+    output_dir: str = "apgi_outputs/reports/automated",
 ) -> AutomatedLogAnalyzer:
     """
     Create and configure automated log analyzer.

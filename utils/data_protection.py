@@ -1,4 +1,8 @@
-"""Data protection workflows: retention, deletion, consent."""
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
+"""
 
 import hashlib
 import os

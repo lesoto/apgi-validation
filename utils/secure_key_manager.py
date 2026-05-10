@@ -1,7 +1,7 @@
 """
-Secure key management with SecretStr-style wrappers and point-of-use retrieval.
-Replaces global mutable state with secure, on-demand key access.
-========================================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
 """
 
 import base64

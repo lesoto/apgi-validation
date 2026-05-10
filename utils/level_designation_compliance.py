@@ -48,7 +48,22 @@ class LevelDesignationComplianceChecker:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Parse AST to find docstring
+            # Check for LEVEL DESIGNATION in raw content first (more reliable)
+            if "LEVEL DESIGNATION:" not in content:
+                violations.append(
+                    {
+                        "type": "missing_level_designation",
+                        "message": "No LEVEL DESIGNATION declaration found",
+                        "line": 1,
+                    }
+                )
+                return {
+                    "file": str(file_path),
+                    "violations": violations,
+                    "compliant": len(violations) == 0,
+                }
+
+            # Parse AST to find docstring for additional validation
             try:
                 tree = ast.parse(content)
                 docstring = ast.get_docstring(tree)
@@ -66,32 +81,8 @@ class LevelDesignationComplianceChecker:
                     "compliant": len(violations) == 0,
                 }
 
-            if not docstring:
-                violations.append(
-                    {
-                        "type": "missing_level_designation",
-                        "message": "No LEVEL DESIGNATION declaration found",
-                        "line": 1,
-                    }
-                )
-                return {
-                    "file": str(file_path),
-                    "violations": violations,
-                    "compliant": len(violations) == 0,
-                }
-
-            # Check for LEVEL DESIGNATION in docstring
-            if "LEVEL DESIGNATION:" not in docstring:
-                violations.append(
-                    {
-                        "type": "missing_level_designation",
-                        "message": "LEVEL DESIGNATION declaration not found in docstring",
-                        "line": 1,
-                    }
-                )
-
-            # Extract declared level
-            level_match = re.search(r"LEVEL DESIGNATION:.*?Level (\d+)", docstring)
+            # Extract declared level from raw content
+            level_match = re.search(r"LEVEL DESIGNATION:.*?Level (\d+)", content, re.DOTALL)
             if not level_match:
                 violations.append(
                     {
@@ -119,9 +110,9 @@ class LevelDesignationComplianceChecker:
                 )
 
             # Check for bridge requirements
-            bridge_pattern = re.search(r"Bridge to Level (\d+)", docstring)
+            bridge_pattern = re.search(r"Bridge to Level (\d+)", content)
             if bridge_pattern:
-                bridge_levels = [int(m.group(1)) for m in re.finditer(r"Bridge to Level (\d+)", docstring)]
+                bridge_levels = [int(m.group(1)) for m in re.finditer(r"Bridge to Level (\d+)", content)]
                 required_bridges = BRIDGE_REQUIREMENTS.get(declared_level, [])
 
                 for bridge_level in bridge_levels:
@@ -172,13 +163,13 @@ class LevelDesignationComplianceChecker:
             (r"\bmetabolic.*?\bcost\b", "thermodynamic"),
         ]
 
-        for pattern, target_level in cross_level_patterns:
-            if target_level != declared_level and pattern.search(content):
+        for pattern_str, target_level in cross_level_patterns:
+            if target_level != declared_level and re.search(pattern_str, content, re.IGNORECASE):
                 violations.append(
                     {
                         "type": "cross_level_claim_without_bridge",
                         "message": f"Cross-level claim to {target_level} found without bridge invocation",
-                        "line": self._find_line_number(content, pattern),
+                        "line": self._find_line_number(content, pattern_str),
                     }
                 )
 

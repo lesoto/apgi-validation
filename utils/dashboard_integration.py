@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-APGI Dashboard Integration Module - Updated with Output File Pattern Detection
-================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Integrates historical analysis, export features, and monitoring
-capabilities into the APGI Validation Framework.
+Bridge to Level 1
 """
 
 import json
