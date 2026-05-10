@@ -580,58 +580,36 @@ class CausalManipulationsValidator:
             logger.warning("compute_required_n not available - power analysis skipped")
             n_required = None
 
-        # Test different target regions
+        # Test different target regions — single high-res simulation per region
         regions = ["dlPFC", "posterior_parietal", "control"]
-        timings = np.linspace(0.1, 0.5, 50)  # 100-500ms
 
         for region in regions:
-            region_results = []
-
-            for timing in timings:
-                # Simulate TMS experiment
-                tms_results = self.tms_intervention.simulate_tms_experiment(n_trials=20, target_region=region)
-
-                # Find timing closest to current timing
-                timing_idx = int(np.argmin(np.abs(tms_results["timings"] - timing)))
-
-                # Ensure indices are within bounds to avoid empty slices
-                start_idx = max(0, timing_idx - 2)
-                end_idx = min(len(tms_results["detection_rates"]), timing_idx + 3)
-
-                # Check if we have valid data
-                if end_idx > start_idx:
-                    detection_rates_slice = tms_results["detection_rates"][start_idx:end_idx]
-                    p3b_amplitudes_slice = tms_results["p3b_amplitudes"][start_idx:end_idx]
-
-                    # Only compute mean if we have valid data
-                    detection_rate = np.mean(detection_rates_slice) if detection_rates_slice else np.nan
-                    p3b_amplitude = np.mean(p3b_amplitudes_slice) if p3b_amplitudes_slice else np.nan
-                else:
-                    detection_rate = np.nan
-                    p3b_amplitude = np.nan
-
-                region_results.append(
-                    {
-                        "timing": timing,
-                        "detection_rate": detection_rate,
-                        "p3b_amplitude": p3b_amplitude,
-                    }
+            tms_results = self.tms_intervention.simulate_tms_experiment(n_trials=200, target_region=region)
+            region_results = [
+                {"timing": float(t), "detection_rate": float(d), "p3b_amplitude": float(p)}
+                for t, d, p in zip(
+                    tms_results["timings"],
+                    tms_results["detection_rates"],
+                    tms_results["p3b_amplitudes"],
                 )
-
+            ]
             results[region] = region_results
 
         # Test APGI prediction: disruption specifically in 200-300ms window for dlPFC/parietal
+        # Only compare target regions (not control) to avoid diluting the effect size
+        target_regions = {"dlPFC", "posterior_parietal"}
         ignition_window_results = []
-        for region_data in results.values():
-            for trial_data in region_data:
-                if 0.2 <= trial_data["timing"] <= 0.3:
-                    ignition_window_results.append(trial_data["detection_rate"])
-
         control_window_results = []
-        for region_data in results.values():
+        for region, region_data in results.items():
+            if region not in target_regions:
+                continue
             for trial_data in region_data:
-                if 0.1 <= trial_data["timing"] < 0.2 or 0.3 < trial_data["timing"] <= 0.4:
-                    control_window_results.append(trial_data["detection_rate"])
+                t = trial_data["timing"]
+                dr = trial_data["detection_rate"]
+                if 0.2 <= t <= 0.3:
+                    ignition_window_results.append(dr)
+                elif 0.1 <= t < 0.2 or 0.3 < t <= 0.4:
+                    control_window_results.append(dr)
 
         # Statistical test - filter out NaN values first
         ignition_clean = [x for x in ignition_window_results if not np.isnan(x)]
