@@ -289,7 +289,7 @@ def _persist_protocol_result(protocol_label: str, result: Dict[str, Any]) -> Pat
     with tmp_path.open("w", encoding="utf-8") as handle:
         import json
 
-        json.dump(result, handle, indent=2)
+        json.dump(result, handle, indent=2, default=_json_default)
     os.replace(tmp_path, output_path)
     return output_path
 

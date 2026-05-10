@@ -2682,16 +2682,18 @@ def _evaluate_apgi_compliance(property_scores: Dict) -> Dict[str, float]:
 
     # Separation capacity compliance
     sep_result = property_scores.get("separation_capacity")
-    if sep_result is not None:
-        if hasattr(sep_result, "consciousness_separation_score"):
-            compliance_scores["separation_compliance"] = sep_result.consciousness_separation_score
-            compliance_scores["consciousness_falsified"] = float(sep_result.falsified)
-        else:
-            compliance_scores["separation_compliance"] = sep_result.get("consciousness_separation_score", 0.0)
-            compliance_scores["consciousness_falsified"] = float(sep_result.get("falsified", False))
-    else:
+    if sep_result is None:
         compliance_scores["separation_compliance"] = 0.0
         compliance_scores["consciousness_falsified"] = 0.0
+    elif isinstance(sep_result, (int, float)):
+        compliance_scores["separation_compliance"] = float(sep_result)
+        compliance_scores["consciousness_falsified"] = 0.0
+    elif hasattr(sep_result, "consciousness_separation_score"):
+        compliance_scores["separation_compliance"] = sep_result.consciousness_separation_score
+        compliance_scores["consciousness_falsified"] = float(sep_result.falsified)
+    else:
+        compliance_scores["separation_compliance"] = sep_result.get("consciousness_separation_score", 0.0)
+        compliance_scores["consciousness_falsified"] = float(sep_result.get("falsified", False))
 
     # LTC dynamics compliance
     ltc_score = property_scores.get("ltc_dynamics", 0.0)
@@ -2699,12 +2701,18 @@ def _evaluate_apgi_compliance(property_scores: Dict) -> Dict[str, float]:
 
     # Phase transition compliance
     phase_result = property_scores.get("phase_transition")
-    if phase_result is not None:
-        compliance_scores["phase_transition_compliance"] = float(phase_result.is_critical)
-        compliance_scores["ignition_strength"] = phase_result.ignition_strength
-    else:
+    if phase_result is None:
         compliance_scores["phase_transition_compliance"] = 0.0
         compliance_scores["ignition_strength"] = 0.0
+    elif isinstance(phase_result, (int, float)):
+        compliance_scores["phase_transition_compliance"] = float(phase_result)
+        compliance_scores["ignition_strength"] = 0.0
+    elif isinstance(phase_result, dict):
+        compliance_scores["phase_transition_compliance"] = float(phase_result.get("is_critical", False))
+        compliance_scores["ignition_strength"] = phase_result.get("ignition_strength", 0.0)
+    else:
+        compliance_scores["phase_transition_compliance"] = float(phase_result.is_critical)
+        compliance_scores["ignition_strength"] = phase_result.ignition_strength
 
     # Connectivity density compliance
     conn_score = property_scores.get("connectivity_density", 0.0)
@@ -2741,21 +2749,27 @@ def _determine_falsification_status(property_scores: Dict) -> Dict[str, bool]:
 
     # Special handling for separation capacity
     sep_result = property_scores.get("separation_capacity")
-    if sep_result is not None:
-        falsification_status["separation_falsified"] = sep_result.get("falsified", False)
-    elif sep_result is None:
+    if sep_result is None:
         # No trial data provided: separation capacity cannot be evaluated,
         # so we do NOT falsify on this criterion (absence of data ≠ failure).
         falsification_status["separation_falsified"] = False
-    else:
+    elif isinstance(sep_result, (int, float)):
         falsification_status["separation_falsified"] = float(sep_result) < 0.6
+    elif isinstance(sep_result, dict):
+        falsification_status["separation_falsified"] = sep_result.get("falsified", False)
+    else:
+        falsification_status["separation_falsified"] = sep_result.falsified if hasattr(sep_result, "falsified") else False
 
     # Special handling for phase transition
     phase_result = property_scores.get("phase_transition")
-    if phase_result is not None:
-        falsification_status["phase_transition_falsified"] = not phase_result.is_critical
-    else:
+    if phase_result is None:
         falsification_status["phase_transition_falsified"] = True
+    elif isinstance(phase_result, (int, float)):
+        falsification_status["phase_transition_falsified"] = float(phase_result) < 0.5
+    elif isinstance(phase_result, dict):
+        falsification_status["phase_transition_falsified"] = not phase_result.get("is_critical", False)
+    else:
+        falsification_status["phase_transition_falsified"] = not phase_result.is_critical
 
     # Overall falsification: only echo_state is a hard gate in standalone mode.
     # separation_capacity requires conscious/unconscious trial data to be meaningful;

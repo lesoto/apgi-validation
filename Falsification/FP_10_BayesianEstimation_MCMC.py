@@ -2079,6 +2079,7 @@ def run_complete_mcmc_analysis(
 
     # Run alternative models and compute Bayes factors
     if run_alternatives:
+        evidence_dict: Dict[str, float] = {}
         try:
             alternative_results = run_alternative_models(
                 stimulus_data, response_data, n_samples // 2, n_chains, burn_in
