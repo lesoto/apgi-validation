@@ -2080,8 +2080,9 @@ def run_complete_mcmc_analysis(
     # Run alternative models and compute Bayes factors
     if run_alternatives:
         # Initialize evidence_dict outside try block to avoid scope issues
-        evidence_dict = {}
-        alternative_results = {}
+        evidence_dict: Dict[str, float] = {}
+        alternative_results: Dict[str, Any] = {}
+
 
         try:
             alternative_results = run_alternative_models(

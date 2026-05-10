@@ -2890,11 +2890,13 @@ def validate(
 
 @cli.command()
 @click.option("--protocol", "-a", type=str, help="Falsification protocol number (1-12) or 'all'")
+@click.option("--all-protocols", is_flag=True, help="Run all falsification protocols")
 @click.option("--output-file", help="Output file for falsification results")
 @click.pass_context
 def falsify(
     ctx: click.Context,
     protocol: Optional[str],
+    all_protocols: bool,
     output_file: Optional[str],
 ) -> None:
     """Execute falsification testing protocols."""
@@ -2984,6 +2986,8 @@ def falsify(
         console.print(table)
 
     try:
+        if all_protocols:
+            protocol = "all"
         if protocol:
             protocols_to_run = []
             if protocol.lower() == "all":

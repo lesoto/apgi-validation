@@ -2687,7 +2687,7 @@ def _evaluate_apgi_compliance(property_scores: Dict) -> Dict[str, float]:
             compliance_scores["separation_compliance"] = sep_result.consciousness_separation_score
             compliance_scores["consciousness_falsified"] = float(sep_result.falsified)
         elif isinstance(sep_result, (int, float)):
-            # sep_result is a numeric score
+            # sep_result is a numeric score (e.g. separation_distance float)
             compliance_scores["separation_compliance"] = float(sep_result)
             compliance_scores["consciousness_falsified"] = float(sep_result) < 0.6
         elif hasattr(sep_result, "get"):
@@ -2708,12 +2708,18 @@ def _evaluate_apgi_compliance(property_scores: Dict) -> Dict[str, float]:
 
     # Phase transition compliance
     phase_result = property_scores.get("phase_transition")
-    if phase_result is not None:
-        compliance_scores["phase_transition_compliance"] = float(phase_result.is_critical)
-        compliance_scores["ignition_strength"] = phase_result.ignition_strength
-    else:
+    if phase_result is None:
         compliance_scores["phase_transition_compliance"] = 0.0
         compliance_scores["ignition_strength"] = 0.0
+    elif isinstance(phase_result, (int, float)):
+        compliance_scores["phase_transition_compliance"] = float(phase_result)
+        compliance_scores["ignition_strength"] = 0.0
+    elif isinstance(phase_result, dict):
+        compliance_scores["phase_transition_compliance"] = float(phase_result.get("is_critical", False))
+        compliance_scores["ignition_strength"] = phase_result.get("ignition_strength", 0.0)
+    else:
+        compliance_scores["phase_transition_compliance"] = float(phase_result.is_critical)
+        compliance_scores["ignition_strength"] = phase_result.ignition_strength
 
     # Connectivity density compliance
     conn_score = property_scores.get("connectivity_density", 0.0)
@@ -2750,12 +2756,14 @@ def _determine_falsification_status(property_scores: Dict) -> Dict[str, bool]:
 
     # Special handling for separation capacity
     sep_result = property_scores.get("separation_capacity")
-    if sep_result is not None and hasattr(sep_result, "get"):
+    if sep_result is not None and isinstance(sep_result, (int, float)):
+        # sep_result is a numeric score (e.g. separation_distance float)
+        falsification_status["separation_falsified"] = float(sep_result) < 0.6
+    elif sep_result is not None and hasattr(sep_result, "get"):
         # sep_result is a dictionary/object with get method
         falsification_status["separation_falsified"] = sep_result.get("falsified", False)
-    elif sep_result is not None and isinstance(sep_result, (int, float)):
-        # sep_result is a numeric score
-        falsification_status["separation_falsified"] = float(sep_result) < 0.6
+    elif sep_result is not None and hasattr(sep_result, "falsified"):
+        falsification_status["separation_falsified"] = sep_result.falsified
     else:
         # No trial data provided: separation capacity cannot be evaluated,
         # so we do NOT falsify on this criterion (absence of data ≠ failure).
@@ -2763,10 +2771,14 @@ def _determine_falsification_status(property_scores: Dict) -> Dict[str, bool]:
 
     # Special handling for phase transition
     phase_result = property_scores.get("phase_transition")
-    if phase_result is not None:
-        falsification_status["phase_transition_falsified"] = not phase_result.is_critical
-    else:
+    if phase_result is None:
         falsification_status["phase_transition_falsified"] = True
+    elif isinstance(phase_result, (int, float)):
+        falsification_status["phase_transition_falsified"] = float(phase_result) < 0.5
+    elif isinstance(phase_result, dict):
+        falsification_status["phase_transition_falsified"] = not phase_result.get("is_critical", False)
+    else:
+        falsification_status["phase_transition_falsified"] = not phase_result.is_critical
 
     # Overall falsification: only echo_state is a hard gate in standalone mode.
     # separation_capacity requires conscious/unconscious trial data to be meaningful;
