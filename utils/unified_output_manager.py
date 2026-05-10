@@ -1,33 +1,8 @@
 #!/usr/bin/env python3
 """
-Unified Output Manager for APGI Validation Framework
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Standardizes output file organization across all scripts:
-- Validation Protocols (VP_01-VP_21)
-- Falsification Protocols (FP_01-FP_12)
-- Theory Modules (APGI_*.py)
-
-All outputs are organized in a single unified directory structure:
-    outputs/
-    ├── validation/
-    │   ├── VP_01/
-    │   │   ├── results.json
-    │   │   ├── metadata.json
-    │   │   └── logs/
-    │   ├── VP_02/
-    │   └── ...
-    ├── falsification/
-    │   ├── FP_01/
-    │   │   ├── results.json
-    │   │   ├── metadata.json
-    │   │   └── logs/
-    │   └── ...
-    └── theory/
-        ├── APGI_Thermodynamic_Program_Aggregator/
-        │   ├── results.json
-        │   ├── metadata.json
-        │   └── logs/
-        └── ...
+Bridge to Level 1
 """
 
 import json

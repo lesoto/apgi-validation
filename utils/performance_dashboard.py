@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-APGI Theory Framework - Comprehensive Performance Dashboard
-========================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Interactive web-based dashboard for real-time performance monitoring,
-validation results tracking, and system metrics visualization using Dash.
+Bridge to Level 1
 """
 
 import json
@@ -798,7 +796,7 @@ class ComprehensivePerformanceDashboard:
                     try:
                         import glob
 
-                        validation_files = glob.glob("validation_results/*.json")
+                        validation_files = glob.glob("apgi_outputs/validation/*.json")
                         for vf in validation_files[-3:]:  # Check last 3 files
                             try:
                                 with open(vf, "r", encoding="utf-8") as f:

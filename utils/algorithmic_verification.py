@@ -1,25 +1,7 @@
 """
-algorithmic_verification.py
-===========================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-V5.1 Algorithmic Verification Engine
-
-This module implements numerical verification of APGI core equations with
-tolerance ε ≤ 1e-6 as specified in the paper.
-
-The APGI framework must produce correct numerical predictions for:
-1. Effective interoceptive precision: Πⁱ_eff = Πⁱ_baseline · exp(β·M(c,a))
-2. Ignition condition: Sₜ > θₜ
-3. Threshold adaptation: θₜ₊₁ = θₜ + η(C_metabolic - V_information)
-4. Phase transition boundaries
-5. Steady-state surprise accumulation
-
-Usage::
-
-    from utils.algorithmic_verification import (
-        AlgorithmicVerificationEngine,
-        verify_apgi_equations,
-    )
+Bridge to Level 1
 """
 
 from dataclasses import dataclass

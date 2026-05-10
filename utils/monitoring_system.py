@@ -1,9 +1,7 @@
 """
-APGI Monitoring and Alerting System
-====================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Real-time system monitoring with configurable alerts,
-notification channels, and health checks.
+Bridge to Level 1
 """
 
 import json
@@ -262,7 +260,7 @@ class NotificationManager:
     def _send_file(self, alert: Alert):
         """Write alert to file."""
         file_config = self.config.get("file", {})
-        log_file = file_config.get("path", "logs/alerts.jsonl")
+        log_file = file_config.get("path", "apgi_outputs/logs/alerts.jsonl")
 
         Path(log_file).parent.mkdir(parents=True, exist_ok=True)
 

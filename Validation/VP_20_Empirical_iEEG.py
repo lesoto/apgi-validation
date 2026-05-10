@@ -932,10 +932,12 @@ class SyntheticiEEGSimulator:
 
 
 def _save_figure(fig: "plt.Figure", name: str) -> Optional[Path]:
-    """Save figure to outputs/ directory and return path."""
-    out_dir = _project_root / "outputs"
-    out_dir.mkdir(exist_ok=True)
-    path = out_dir / name
+    """Save figure to apgi_outputs/validation/VP_20/visualizations/ directory and return path."""
+    from utils.output_paths import get_validation_output_dir
+
+    viz_dir = get_validation_output_dir(20) / "visualizations"
+    viz_dir.mkdir(parents=True, exist_ok=True)
+    path = viz_dir / name
     fig.savefig(path, dpi=100, bbox_inches="tight")
     plt.close(fig)
     logger.info("Saved figure: %s", path)

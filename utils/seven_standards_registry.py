@@ -1,21 +1,7 @@
 """
-Seven Standards Registry for APGI Validation
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module provides a centralized registry for the seven standards that APGI must meet
-for empirical validation and falsification criteria. These standards define the
-requirements for APGI to be considered a scientifically valid theory of consciousness.
-
-The seven standards are:
-1. Mathematical Consistency
-2. Empirical Testability
-3. Computational Tractability
-4. Neurobiological Plausibility
-5. Predictive Novelty
-6. Cross-Species Generalizability
-7. Clinical Applicability
-
-This registry provides detailed criteria, falsification thresholds, and validation
-methods for each standard.
+Bridge to Level 1
 """
 
 from dataclasses import dataclass

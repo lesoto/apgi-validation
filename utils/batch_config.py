@@ -1,8 +1,7 @@
 """
-batch_config.py
-===============
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Configuration management for the batch processing system.
+Bridge to Level 1
 """
 
 import os

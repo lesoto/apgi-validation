@@ -1,12 +1,7 @@
 """
-APGI Settings (Pydantic)
-=======================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Canonical configuration object for APGI dynamical-system parameters.
-
-This replaces the previous pattern of *mutable class attributes* in
-`utils.apgi_config.APGIConfig`. Call sites should obtain an instance via
-`utils.apgi_config.get_apgi_settings()` and read values from that instance.
+Bridge to Level 1
 """
 
 from __future__ import annotations

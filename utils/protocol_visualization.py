@@ -1,8 +1,7 @@
 """
-Protocol Visualization Utility
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Standardized PNG output generation for all APGI falsification protocols.
-Each protocol should output protocolNUMBER.png when run.
+Bridge to Level 1
 """
 
 import logging
@@ -169,7 +168,7 @@ class ProtocolVisualizer:
         names = list(metrics.keys())[:5]  # Limit to 5 metrics
         values = [metrics[name] for name in names]
 
-        bars = ax.bar(range(len(names)), values, color="#3498db")
+        bars = ax.bar(range(len(names)), values, color="VISUAL_CONSTANTS.ST_BLUE")
         ax.set_title("Key Metrics")
         ax.set_xticks(range(len(names)))
         ax.set_xticklabels(names, rotation=45, ha="right")

@@ -1,8 +1,7 @@
 """
-Standardized Metadata Template for APGI Protocols
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module defines the canonical metadata structure that ALL protocols
-should use in their ProtocolResult objects.
+Bridge to Level 1
 """
 
 import json

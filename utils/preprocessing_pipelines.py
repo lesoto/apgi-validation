@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-Data Preprocessing Pipelines for APGI Framework
-==============================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Standardized preprocessing pipelines for different types of multimodal data.
-Includes EEG preprocessing, physiological signal processing, and data integration.
+Bridge to Level 1
 """
 
 import json

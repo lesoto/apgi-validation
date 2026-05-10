@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-Path Security Utility
-=====================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides secure file path validation to prevent path traversal attacks,
-symlink escapes, and other path-related security vulnerabilities.
+Bridge to Level 1
 """
 
 import os

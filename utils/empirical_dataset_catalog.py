@@ -1,9 +1,7 @@
-"""Empirical Dataset Catalogue for APGI Validation Protocols.
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module maps public neuroscience datasets to specific validation protocols (VP-11, VP-15)
-to enable empirical validation transitioning from simulation-only mode.
-
-Based on: "PUBLIC DATASET CATALOGUE" (Last updated: Apr 22, 2026
+Bridge to Level 1
 """
 
 from dataclasses import dataclass, field

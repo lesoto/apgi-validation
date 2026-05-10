@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-APGI Historical Dashboard - Enhanced Analytics and Export Features
-================================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Advanced dashboard with historical data analysis, trend detection,
-and comprehensive export capabilities for the APGI Validation Framework.
+Bridge to Level 1
 """
 
 import json

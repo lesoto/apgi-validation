@@ -152,6 +152,20 @@ class APGIMetabolicValidator:
             "c1": 0.1,
             "c2": 0.02,
         }
+        self.config = config or {
+            "dt": 0.01,
+            "tau_theta": 20.0,
+            "theta0": 0.5,
+            "alpha": 5.0,
+            "beta": 1.5,
+            "beta_M": 1.0,
+            "M_0": 0.0,
+            "gamma_M": -0.3,
+            "alpha_mu": 0.01,
+            "alpha_sigma": 0.005,
+            "c1": 0.1,
+            "c2": 0.02,
+        }
         self.simulator = MetabolicGroundTruthSimulator()
 
     def validate_c1_c2_ground_truth(self, n_trials: int = 20) -> Dict[str, Any]:
@@ -179,7 +193,15 @@ class APGIMetabolicValidator:
         fitted_params = []
 
         for intensity in intensities:
-            model = APGIModel(config=cast(Optional[Dict[str, Any]], self.config.__dict__ if self.config else None))
+            # Handle both dict and object configs
+            config_dict = (
+                self.config
+                if isinstance(self.config, dict)
+                else (
+                    self.config.__dict__ if hasattr(self.config, "__dict__") else (self.config if self.config else None)
+                )
+            )
+            model = APGIModel(config=cast(Optional[Dict[str, Any]], config_dict))
             # Use constant inputs to get stable ignition rates
             inputs = intensity + np.random.randn(len(t)) * 0.2
             outputs = model.run(inputs)

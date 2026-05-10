@@ -1,19 +1,7 @@
 """
-Real EEG Signal Processing
-=========================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Utility functions for EEG processing and analysis.
-
-Implements standardized EEG preprocessing, spectral analysis, and
-component detection following the specifications in TODO.md.
-
-Functions:
-- detect_gamma_band_power: Welch PSD with Simpson integration over canonical gamma band
-- compute_theta_gamma_pac: Modulation Index (Tort et al., 2010) for theta-gamma coupling
-- detect_p3_amplitude: Bandpass filtering and peak detection for P3b component
-- get_pac_bands: Load PAC band configuration from config file
-
-All spectral bands use centralized constants from utils.constants.py
+Bridge to Level 1
 """
 
 import logging

@@ -1,13 +1,7 @@
-"""Standardized protocol result schema for unified aggregation across all FP/VP protocols.
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module defines the canonical data structures that ALL falsification and validation
-protocols MUST return. Enforces consistent JSON structure regardless of protocol type or
-implementation approach using Pydantic for validation.
-
-Classes:
-    PredictionStatus: Enum for prediction evaluation state
-    PredictionResult: Individual prediction with evidence and threshold
-    ProtocolResult: Complete protocol execution result (standardized schema)
+Bridge to Level 1
 """
 
 from datetime import datetime

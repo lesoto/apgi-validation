@@ -21,7 +21,6 @@ if sys.version_info >= (3, 14):
             # Store original functions
             _original_sum = np.sum
             _original_prod = np.prod
-            _original_multiply = np.multiply
             _original_reshape = np.reshape
 
             # Safe sum that handles zero-size arrays and broadcasting issues
@@ -30,21 +29,23 @@ if sys.version_info >= (3, 14):
                 axis=None,
                 dtype=None,
                 out=None,
-                keepdims=False,
-                initial=None,
-                where=True,
+                keepdims=np._NoValue,
+                initial=np._NoValue,
+                where=np._NoValue,
             ):
                 """Safe sum that handles zero-size arrays and broadcasting issues."""
                 try:
-                    return _original_sum(
-                        a,
-                        axis=axis,
-                        dtype=dtype,
-                        out=out,
-                        keepdims=keepdims,
-                        initial=initial,
-                        where=where,
-                    )
+                    sum_kwargs = {"axis": axis, "dtype": dtype, "out": out}
+                    # Only pass keepdims if it's not _NoValue
+                    if keepdims is not np._NoValue:
+                        sum_kwargs["keepdims"] = keepdims
+                    # Only pass initial if it's not _NoValue
+                    if initial is not np._NoValue:
+                        sum_kwargs["initial"] = initial
+                    # Only pass where if it's not _NoValue
+                    if where is not np._NoValue:
+                        sum_kwargs["where"] = where
+                    return _original_sum(a, **sum_kwargs)
                 except (ValueError, TypeError) as e:
                     if "zero-size array" in str(e) or "broadcast together" in str(e):
                         # Match NumPy semantics: sum([]) == 0.
@@ -62,40 +63,28 @@ if sys.version_info >= (3, 14):
                 axis=None,
                 dtype=None,
                 out=None,
-                keepdims=False,
-                initial=None,
-                where=True,
+                keepdims=np._NoValue,
+                initial=np._NoValue,
+                where=np._NoValue,
             ):
                 """Safe prod that handles zero-size arrays."""
                 try:
-                    return _original_prod(
-                        a,
-                        axis=axis,
-                        dtype=dtype,
-                        out=out,
-                        keepdims=keepdims,
-                        initial=initial,
-                        where=where,
-                    )
+                    prod_kwargs = {"axis": axis, "dtype": dtype, "out": out}
+                    # Only pass keepdims if it's not _NoValue
+                    if keepdims is not np._NoValue:
+                        prod_kwargs["keepdims"] = keepdims
+                    # Only pass initial if it's not _NoValue
+                    if initial is not np._NoValue:
+                        prod_kwargs["initial"] = initial
+                    # Only pass where if it's not _NoValue
+                    if where is not np._NoValue:
+                        prod_kwargs["where"] = where
+                    return _original_prod(a, **prod_kwargs)
                 except ValueError as e:
                     if "zero-size array to reduction operation" in str(e):
                         # Match NumPy semantics: prod([]) == 1.
                         if hasattr(a, "size") and a.size == 0:
                             return np.array(1, dtype=getattr(a, "dtype", float))
-                    raise
-
-            # Safe multiply that handles zero-size arrays
-            def _safe_multiply(x1, x2, *args, **kwargs):
-                """Safe multiply that handles zero-size arrays."""
-                try:
-                    return _original_multiply(x1, x2, *args, **kwargs)
-                except ValueError as e:
-                    if "zero-size array to reduction operation" in str(e):
-                        # Handle zero-size arrays by returning appropriate result
-                        if hasattr(x1, "size") and x1.size == 0:
-                            return np.array([], dtype=x1.dtype if hasattr(x1, "dtype") else float)
-                        elif hasattr(x2, "size") and x2.size == 0:
-                            return np.array([], dtype=x2.dtype if hasattr(x2, "dtype") else float)
                     raise
 
             # Safe reshape that handles zero-size arrays
@@ -176,7 +165,6 @@ if sys.version_info >= (3, 14):
             # Apply patches immediately with reduce methods
             np.sum = _add_reduce_method(_safe_sum, _original_sum)
             np.prod = _add_reduce_method(_safe_prod, _original_prod)
-            np.multiply = _add_reduce_method(_safe_multiply, _original_multiply)
             np.reshape = cast(Any, _safe_reshape)  # type: ignore[assignment]
 
     except ImportError:

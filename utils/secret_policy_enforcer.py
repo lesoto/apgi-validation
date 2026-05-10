@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 """
-Secret Management Policy Enforcer
-=================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Enforces strict secret management rules at startup:
-- Mandatory check for APGI_MASTER_KEY in environment
-- Ensures keys exist and are valid
-- Prevents plaintext secret fallbacks
+Bridge to Level 1
 """
 
 import logging

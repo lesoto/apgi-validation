@@ -1,6 +1,8 @@
 """
-Tests for main.py - CLI argument parsing and main execution flow.
-=========================================================
+LEVEL DESIGNATION: Level 3 (algorithmic/mathematical)
+
+Bridge to Level 2
+Bridge to Level 1
 """
 
 import json

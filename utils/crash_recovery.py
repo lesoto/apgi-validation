@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Crash Recovery Utility
-====================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides automatic crash recovery and state restoration for applications.
+Bridge to Level 1
 """
 
 import json

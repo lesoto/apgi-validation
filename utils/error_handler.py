@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-Centralized Error Handling System for APGI Framework
-================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides standardized error messages, error categories, and centralized
-error handling with proper logging and user-friendly messages.
+Bridge to Level 1
 """
 
 import functools

@@ -1,9 +1,7 @@
 """
-JSON Schema Validation for APGI Parameters
-======================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides schema validation for APGI model parameters to ensure
-proper structure and value ranges.
+Bridge to Level 1
 """
 
 from typing import Any, Dict, List, Optional

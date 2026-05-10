@@ -1,8 +1,7 @@
-"""Standardize metadata across all protocols.
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module provides utilities to normalize metadata fields across all FP and VP
-protocols, ensuring consistent status values, data source tracking, and dependency
-management.
+Bridge to Level 1
 """
 
 from dataclasses import dataclass

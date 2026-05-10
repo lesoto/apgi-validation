@@ -1,8 +1,7 @@
 """
-APGI Framework Utils Package
-============================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Utility modules for the APGI framework.
+Bridge to Level 1
 """
 
 import os

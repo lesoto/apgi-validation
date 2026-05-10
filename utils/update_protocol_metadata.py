@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """
-Protocol Metadata Synchronization
-================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Updates and standardizes metadata across all protocols to ensure consistency.
-This module provides functions to check, update, and synchronize protocol metadata
-according to the standardized schema defined in metadata_standardizer.py.
+Bridge to Level 1
 """
 
 import json

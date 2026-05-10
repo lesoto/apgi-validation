@@ -1,10 +1,7 @@
 """
-Ordinal Logistic Regression for Clinical Gradient Prediction
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Implements ordinal logistic regression for predicting clinical consciousness states:
-VS (Vegetative State) → MCS (Minimally Conscious State) → EMCS (Emerging MCS) → Healthy
-
-This is the preferred method over ANOVA/Cohen's d for ordinal outcomes as specified in the paper.
+Bridge to Level 1
 """
 
 import logging

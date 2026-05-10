@@ -1,12 +1,7 @@
 """
-Validation-Falsification Bidirectional Consistency Checks
-===============================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module implements cross-checks between validation and falsification results
-to ensure mutual coherence and identify contradictions before framework evaluation.
-
-Classes:
-    ValidationFalsificationConsistency: Main class for consistency checking
+Bridge to Level 1
 """
 
 import logging

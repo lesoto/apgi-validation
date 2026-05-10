@@ -1228,7 +1228,7 @@ class InformationTheoreticAnalysis:
             prob_matrix[: y_past + 1, y_past] *= 2
 
         # Normalize each column
-        prob_matrix = prob_matrix / prob_matrix.sum(axis=0, keepdims=True)
+        prob_matrix = prob_matrix / prob_matrix.sum(axis=0)
 
         return prob_matrix[:, y_past]
 
@@ -2671,7 +2671,7 @@ def run_falsification():
                     values,
                     yerr=stds,
                     capsize=5,
-                    color=["#3498db", VISUAL_CONSTANTS.STATUS_FAIL],
+                    color=["VISUAL_CONSTANTS.ST_BLUE", VISUAL_CONSTANTS.STATUS_FAIL],
                     alpha=0.7,
                 )
                 ax.set_title("Phase Transition: Information-Theoretic Metrics")

@@ -1113,6 +1113,20 @@ class StatisticalAnalyzer:
 
         return abs(cohens_d)  # Return absolute effect size
 
+    def analyze_classification_results(
+        self, eeg_data: np.ndarray, labels: np.ndarray, accuracy: float
+    ) -> Dict[str, Any]:
+        """Analyze classification results and compute statistical metrics"""
+        try:
+            # Compute effect size
+            data = {"eeg": eeg_data, "labels": labels}
+            effect_size = self.compute_effect_size(data)
+
+            # Return analysis results
+            return {"accuracy": accuracy, "effect_size": effect_size, "status": "completed"}
+        except Exception as e:
+            return {"accuracy": accuracy, "effect_size": 0.0, "status": f"error: {str(e)}"}
+
 
 # =============================================================================
 # PART 4: DATASET GENERATION

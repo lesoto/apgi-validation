@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-APGI Theory Framework - Batch Processing Utility
-============================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Advanced batch processing system for running multiple simulations,
-validation protocols, and analyses in parallel with progress tracking.
+Bridge to Level 1
 """
 
 import binascii
@@ -982,7 +980,7 @@ def main():
         params={"tau_S": 0.5, "alpha": 10.0, "theta_0": 0.5},
         steps=50,  # Very reduced steps for testing
         dt=0.01,
-        output_file="results/sim_001.json",
+        output_file="apgi_outputs/reports/sim_001.json",
     )
 
     # Example 2: Skip validation for now to make it faster
@@ -996,7 +994,7 @@ def main():
     processor.run_batch(show_progress=True)
 
     # Save report
-    processor.save_batch_report("results/batch_report.json")
+    processor.save_batch_report("apgi_outputs/reports/batch_report.json")
     print("[OK] Batch processing completed successfully!")
 
 

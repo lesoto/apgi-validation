@@ -2686,9 +2686,18 @@ def _evaluate_apgi_compliance(property_scores: Dict) -> Dict[str, float]:
         if hasattr(sep_result, "consciousness_separation_score"):
             compliance_scores["separation_compliance"] = sep_result.consciousness_separation_score
             compliance_scores["consciousness_falsified"] = float(sep_result.falsified)
-        else:
+        elif isinstance(sep_result, (int, float)):
+            # sep_result is a numeric score
+            compliance_scores["separation_compliance"] = float(sep_result)
+            compliance_scores["consciousness_falsified"] = float(sep_result) < 0.6
+        elif hasattr(sep_result, "get"):
+            # sep_result is a dictionary/object with get method
             compliance_scores["separation_compliance"] = sep_result.get("consciousness_separation_score", 0.0)
             compliance_scores["consciousness_falsified"] = float(sep_result.get("falsified", False))
+        else:
+            # Unknown type, use defaults
+            compliance_scores["separation_compliance"] = 0.0
+            compliance_scores["consciousness_falsified"] = 0.0
     else:
         compliance_scores["separation_compliance"] = 0.0
         compliance_scores["consciousness_falsified"] = 0.0
@@ -2741,14 +2750,16 @@ def _determine_falsification_status(property_scores: Dict) -> Dict[str, bool]:
 
     # Special handling for separation capacity
     sep_result = property_scores.get("separation_capacity")
-    if sep_result is not None:
+    if sep_result is not None and hasattr(sep_result, "get"):
+        # sep_result is a dictionary/object with get method
         falsification_status["separation_falsified"] = sep_result.get("falsified", False)
-    elif sep_result is None:
+    elif sep_result is not None and isinstance(sep_result, (int, float)):
+        # sep_result is a numeric score
+        falsification_status["separation_falsified"] = float(sep_result) < 0.6
+    else:
         # No trial data provided: separation capacity cannot be evaluated,
         # so we do NOT falsify on this criterion (absence of data ≠ failure).
         falsification_status["separation_falsified"] = False
-    else:
-        falsification_status["separation_falsified"] = float(sep_result) < 0.6
 
     # Special handling for phase transition
     phase_result = property_scores.get("phase_transition")
@@ -2901,7 +2912,7 @@ if __name__ == "__main__":
                         else:
                             scores.append(0.5)  # Default for non-numeric scores
 
-                    bars = ax.bar(range(len(test_names)), scores, color="#3498db", alpha=0.7)
+                    bars = ax.bar(range(len(test_names)), scores, color="VISUAL_CONSTANTS.ST_BLUE", alpha=0.7)
                     ax.set_title("Liquid Network Property Scores")
                     ax.set_ylabel("Score")
                     ax.set_ylim(0, 1.0)

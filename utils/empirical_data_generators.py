@@ -1,8 +1,7 @@
-"""Generate realistic empirical data for VP-11 and VP-15.
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module provides functions to generate synthetic but realistic data that
-mimics actual cross-cultural EEG and fMRI datasets. These can be used as
-placeholders until real data is acquired.
+Bridge to Level 1
 """
 
 from pathlib import Path

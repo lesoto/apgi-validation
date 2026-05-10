@@ -81,13 +81,13 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="pandas")
 
 # Color Palette (Lab System)
 COLORS = {
-    "primary": "#2874a6",
-    "success": "#155724",
-    "alert": "#721c24",
-    "background": "#f8f9fa",
+    "primary": "VISUAL_CONSTANTS.ST_BLUE",
+    "success": "VISUAL_CONSTANTS.IGNITION_GREEN",
+    "alert": "VISUAL_CONSTANTS.THETA_RED",
+    "background": "VISUAL_CONSTANTS.HC_GREY",
     "surface": "#ffffff",
     "border": "#dee2e6",
-    "text_primary": "#212529",
+    "text_primary": "VISUAL_CONSTANTS.ALLOSTATIC_PURPLE",
     "text_secondary": "#6c757d",
     "text_muted": "#adb5bd",
     "soft_gray": "#e9ecef",

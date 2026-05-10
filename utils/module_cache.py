@@ -1,19 +1,105 @@
 #!/usr/bin/env python3
 """
-Module Cache System
-==================
-Optimizes dynamic imports in hot paths with intelligent caching and preloading.
-Reduces import overhead for frequently accessed modules.
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
 """
 
 import hashlib
 import importlib.util
 import logging
+import sys
 import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
+
+# ============================================================================
+# PYTHON 3.14+ NUMPY COMPATIBILITY PATCHES (MUST BE BEFORE ANY NUMPY IMPORTS)
+# ============================================================================
+# Apply NumPy patches for Python 3.14+ compatibility before any imports
+if sys.version_info >= (3, 14):
+    try:
+        import numpy as np
+
+        # Global flag to prevent multiple patching
+        if not hasattr(np, "_apgi_patching_applied"):
+            np._apgi_patching_applied = True
+
+            # Store original functions
+            _original_prod = np.prod
+            _original_sum = np.sum
+
+            # Safe prod that handles _NoValueType initial parameter
+            def _safe_prod(
+                a,
+                axis=None,
+                dtype=None,
+                out=None,
+                keepdims=np._NoValue,
+                initial=np._NoValue,
+                where=np._NoValue,
+            ):
+                """Safe prod that handles _NoValueType initial parameter."""
+                if initial is not None and hasattr(initial, "__class__") and "_NoValueType" in str(type(initial)):
+                    initial = 1  # Preserve NumPy identity behavior for empty products
+                try:
+                    return _original_prod(
+                        a,
+                        axis=axis,
+                        dtype=dtype,
+                        out=out,
+                        keepdims=keepdims,
+                        initial=initial,
+                        where=where,
+                    )
+                except (ValueError, TypeError) as e:
+                    if "zero-size array" in str(e) or "no identity" in str(e):
+                        # Handle zero-size arrays by returning identity element
+                        if hasattr(a, "size") and a.size == 0:
+                            return np.array(1, dtype=getattr(a, "dtype", float))
+                    raise
+
+            # Safe sum that handles zero-size arrays
+            def _safe_sum(
+                a,
+                axis=None,
+                dtype=None,
+                out=None,
+                keepdims=np._NoValue,
+                initial=np._NoValue,
+                where=np._NoValue,
+            ):
+                """Safe sum that handles zero-size arrays and broadcasting issues."""
+                if initial is not None and hasattr(initial, "__class__") and "_NoValueType" in str(type(initial)):
+                    initial = 0  # Preserve NumPy identity behavior for empty sums
+                try:
+                    return _original_sum(
+                        a,
+                        axis=axis,
+                        dtype=dtype,
+                        out=out,
+                        keepdims=keepdims,
+                        initial=initial,
+                        where=where,
+                    )
+                except (ValueError, TypeError) as e:
+                    if "zero-size array" in str(e) or "broadcast together" in str(e):
+                        if hasattr(a, "size") and a.size == 0:
+                            return np.array(0, dtype=getattr(a, "dtype", float))
+                    raise
+
+            # Apply patches
+            np.prod = _safe_prod  # type: ignore[assignment]
+            np.sum = _safe_sum  # type: ignore[assignment]
+
+            # Also patch in _core._methods where the actual implementations are
+            if hasattr(np, "_core") and hasattr(np._core, "_methods"):
+                np._core._methods._prod = _safe_prod
+                np._core._methods._sum = _safe_sum
+    except ImportError:
+        pass  # NumPy not available yet
 
 logger = logging.getLogger("module_cache")
 

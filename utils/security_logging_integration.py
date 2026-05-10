@@ -1,4 +1,8 @@
-"""Mandatory security audit middleware for APGI file and module operations."""
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
+"""
 
 from __future__ import annotations
 

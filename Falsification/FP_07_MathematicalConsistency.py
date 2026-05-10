@@ -66,7 +66,7 @@ from scipy import linalg
 from scipy.integrate import solve_ivp
 
 # Add VISUAL_CONSTANTS import for color palette compliance
-from .utils.constants import VISUAL_CONSTANTS
+from utils.constants import VISUAL_CONSTANTS
 
 # Removed for GUI stability
 logger = logging.getLogger(__name__)

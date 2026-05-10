@@ -1,8 +1,7 @@
 """
-APGI Static HTML Dashboard Generator
-====================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Generates static HTML dashboards for APGI framework visualizations.
+Bridge to Level 1
 """
 
 import warnings
@@ -49,7 +48,12 @@ class StaticDashboardGenerator:
 
     def __init__(self, output_dir: Optional[str] = None):
         """Initialize the dashboard generator."""
-        self.output_dir = Path(output_dir or "apgi_output/dashboards")
+        if output_dir:
+            self.output_dir = Path(output_dir)
+        else:
+            from utils.output_paths import get_dashboard_output_dir
+
+            self.output_dir = get_dashboard_output_dir()
         try:
             self.output_dir.mkdir(parents=True, exist_ok=True)
         except (OSError, PermissionError) as e:
@@ -168,13 +172,13 @@ class StaticDashboardGenerator:
                 datasets: [{{
                     label: 'Protocol Execution Time',
                     data: [0.8, 1.2, 0.9, 1.1, 0.7, 0.9],
-                    borderColor: '#3498db',
+                    borderColor: 'VISUAL_CONSTANTS.ST_BLUE',
                     backgroundColor: 'rgba(52, 152, 219, 0.1)',
                     tension: 0.4
                 }}, {{
                     label: 'Memory Usage (GB)',
                     data: [3.2, 3.5, 3.8, 4.1, 4.0, 4.2],
-                    borderColor: '#e74c3c',
+                    borderColor: 'VISUAL_CONSTANTS.STATUS_FAIL',
                     backgroundColor: 'rgba(231, 76, 60, 0.1)',
                     tension: 0.4
                 }}]
@@ -200,11 +204,11 @@ class StaticDashboardGenerator:
                 datasets: [{{
                     label: 'Passed',
                     data: [45, 38, 42, 40, 35],
-                    backgroundColor: '#2ecc71'
+                    backgroundColor: 'VISUAL_CONSTANTS.STATUS_PASS'
                 }}, {{
                     label: 'Failed',
                     data: [5, 12, 8, 10, 15],
-                    backgroundColor: '#e74c3c'
+                    backgroundColor: 'VISUAL_CONSTANTS.STATUS_FAIL'
                 }}]
             }},
             options: {{
@@ -354,17 +358,17 @@ class StaticDashboardGenerator:
                 datasets: [{{
                     label: 'Protocol 1',
                     data: [90, 85, 88, 82, 90],
-                    borderColor: '#3498db',
+                    borderColor: 'VISUAL_CONSTANTS.ST_BLUE',
                     backgroundColor: 'rgba(52, 152, 219, 0.2)'
                 }}, {{
                     label: 'Protocol 2',
                     data: [76, 70, 85, 88, 80],
-                    borderColor: '#e74c3c',
+                    borderColor: 'VISUAL_CONSTANTS.STATUS_FAIL',
                     backgroundColor: 'rgba(231, 76, 60, 0.2)'
                 }}, {{
                     label: 'Protocol 3',
                     data: [84, 88, 78, 85, 82],
-                    borderColor: '#2ecc71',
+                    borderColor: 'VISUAL_CONSTANTS.STATUS_PASS',
                     backgroundColor: 'rgba(46, 204, 113, 0.2)'
                 }}]
             }},

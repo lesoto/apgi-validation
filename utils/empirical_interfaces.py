@@ -1,3 +1,9 @@
+"""
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
+"""
+
 import os
 
 # Apply Python 3.14 NumPy compatibility patches first

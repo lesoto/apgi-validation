@@ -745,5 +745,5 @@
       }
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

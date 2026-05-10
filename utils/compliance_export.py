@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-Immutable Audit Export and Compliance Reporting
-=============================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Generates periodic compliance reports and securely exports audit trails
-with cryptographic signatures for immutability verification.
+Bridge to Level 1
 """
 
 import hashlib

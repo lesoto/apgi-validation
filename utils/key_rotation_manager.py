@@ -1,7 +1,7 @@
 """
-Periodic key rotation for PICKLE_SECRET_KEY and APGI_BACKUP_HMAC_KEY.
-Implements secure key rotation with persistence and notification.
-===========================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
 """
 
 import base64

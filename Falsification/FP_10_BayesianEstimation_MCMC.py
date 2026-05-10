@@ -2079,13 +2079,14 @@ def run_complete_mcmc_analysis(
 
     # Run alternative models and compute Bayes factors
     if run_alternatives:
+        # Initialize evidence_dict outside try block to avoid scope issues
+        evidence_dict = {}
+        alternative_results = {}
+
         try:
             alternative_results = run_alternative_models(
                 stimulus_data, response_data, n_samples // 2, n_chains, burn_in
             )
-
-            # Collect evidence values
-            evidence_dict = {}
 
             # APGI model evidence
             apgi_evidence = apgi_results["model_evidence"]["log_evidence"]
@@ -3480,7 +3481,7 @@ class FP10bParameterRecovery:
             if param_summary:
                 params = list(param_summary.keys())
                 errors = [param_summary[p].get("mean_relative_error", 0) for p in params]
-                ax1.bar(params, errors, color="#3498db")
+                ax1.bar(params, errors, color="VISUAL_CONSTANTS.ST_BLUE")
                 ax1.axhline(
                     self.relative_error_threshold,
                     color=VISUAL_CONSTANTS.STATUS_FAIL,
@@ -3492,7 +3493,7 @@ class FP10bParameterRecovery:
             ax2 = axes[0, 1]
             if param_summary:
                 scores = [param_summary[p].get("mean_identifiability_score", 0) for p in params]
-                ax2.bar(params, scores, color="#9b59b6")
+                ax2.bar(params, scores, color="VISUAL_CONSTANTS.ALLOSTATIC_PURPLE")
                 ax2.axhline(
                     self.identifiability_threshold,
                     color=VISUAL_CONSTANTS.STATUS_FAIL,
@@ -3515,7 +3516,11 @@ class FP10bParameterRecovery:
                     metrics.get("mean_identifiability_score_all_params", 0),
                     metrics.get("overall_success_rate", 0),
                 ]
-                ax3.bar(metric_names, metric_values, color=["#e67e22", "#9b59b6", "#16a085"])
+                ax3.bar(
+                    metric_names,
+                    metric_values,
+                    color=["VISUAL_CONSTANTS.INTERO_AMBER", "VISUAL_CONSTANTS.ALLOSTATIC_PURPLE", "#16a085"],
+                )
                 ax3.set_title("Overall Recovery Metrics")
                 ax3.tick_params(axis="x", rotation=15)
                 ax3.set_ylim(0, 1.2)

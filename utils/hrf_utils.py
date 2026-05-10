@@ -1,17 +1,7 @@
 """
-hrf_utils.py
-============
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Shared hemodynamic response function (HRF) utilities for fMRI protocols.
-
-This module provides the canonical double-gamma HRF function used across
-VP-14 (fMRI Anticipation/Experience) and VP-15 (fMRI vmPFC Anticipation)
-to ensure consistency and avoid code duplication.
-
-The double-gamma HRF follows SPM/FSL canonical implementation based on:
-Friston, K. J., Fletcher, P., Josephs, O., Holmes, A., Rugg, M. D.,
-& Turner, R. (1998). Event-related fMRI: characterizing differential
-responses. NeuroImage, 7(1), 30-40.
+Bridge to Level 1
 """
 
 import math

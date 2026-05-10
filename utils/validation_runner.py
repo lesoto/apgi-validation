@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 """
-Comprehensive validation script for APGI falsification protocols
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This script validates:
-1. Data quality and variance issues
-2. Statistical power analysis
-3. Dependency chain resolution
-4. Computational accuracy (TE, information theory)
-5. Parameter consistency across protocols
-6. Empirical data validation
+Bridge to Level 1
 """
 
 import logging

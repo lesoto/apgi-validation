@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-Data Validation Utilities for APGI Framework
-============================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Comprehensive data validation and quality assessment tools
-for multimodal physiological data.
+Bridge to Level 1
 """
 
 import json

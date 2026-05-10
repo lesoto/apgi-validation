@@ -1,9 +1,7 @@
 """
-Cross-Protocol Consistency Verification
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-This module implements verification that results from different validation protocols
-are internally consistent. It checks that the same falsification criteria produce
-consistent results across protocols that share them.
+Bridge to Level 1
 """
 
 import logging

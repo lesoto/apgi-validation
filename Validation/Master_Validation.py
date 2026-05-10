@@ -116,29 +116,26 @@ class APGIMasterValidator:
             True if protocol passed, False otherwise
         """
         if result is None:
-            return True  # Test expects True for None
+            return False
 
-            # If result is a dict with 'passed' key
-            return bool(result.get("passed"))
+        # Check metadata for explicit pass flag
+        if isinstance(result.metadata, dict) and result.metadata.get("passed") is True:
+            return True
 
-            # Check metadata for explicit pass flag
-            if isinstance(result.metadata, dict) and result.metadata.get("passed") is True:
-                return True
-
-            # Check named predictions - all must pass
-            if not result.named_predictions:  # Empty predictions - test expects True
-                return True
-
+        # Check named predictions - all must pass
+        if hasattr(result, "named_predictions") and result.named_predictions:
             # All predictions must have passed=True
             for pred_name, pred_obj in result.named_predictions.items():
                 if hasattr(pred_obj, "passed") and not pred_obj.passed:
                     return False
+            return True
 
-            # If result has a 'passed' attribute
+        # If result has a 'passed' attribute
+        if hasattr(result, "passed"):
             return bool(result.passed)
 
-        # Default to True if no metadata or predictions (test expectation)
-        return True
+        # Default to False if no clear pass indication
+        return False
 
     def run_validation(self, protocol_names: List[str] = None, **kwargs) -> Dict[str, Any]:
         """

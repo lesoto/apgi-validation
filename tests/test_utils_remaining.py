@@ -299,9 +299,9 @@ class TestUpdateProtocolMetadata:
         protocol_file = tmp_path / "test_protocol.py"
         protocol_file.write_text("def run_protocol_main(): pass\n")
 
-        has_std, msg = check_protocol_metadata(str(protocol_file))
+        has_std, msg = check_protocol_metadata(str(protocol_file), metadata={})
         assert isinstance(has_std, bool)
-        assert isinstance(msg, str)
+        assert isinstance(msg, list)
 
 
 class TestVerifyFrameworkStatus:

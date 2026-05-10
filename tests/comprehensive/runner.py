@@ -384,7 +384,7 @@ class TestRunner:
     <style>
         body {{ font-family: system-ui, -apple-system, sans-serif; margin: 2rem; background: #f5f5f5; }}
         .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
-        .header {{ background: {'#27ae60' if summary['overall_status'] == 'PASSED' else '#e74c3c'}; color: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; }}
+        .header {{ background: {'#27ae60' if summary['overall_status'] == 'PASSED' else 'VISUAL_CONSTANTS.STATUS_FAIL'}; color: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; }}
         .summary {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }}
         .metric {{ background: #f8f9fa; padding: 1rem; border-radius: 6px; text-align: center; }}
         .metric-value {{ font-size: 2rem; font-weight: bold; color: #2c3e50; }}

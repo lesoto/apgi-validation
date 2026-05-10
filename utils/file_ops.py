@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """
-Unified File Operations Wrapper
-===============================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Combines path validation, TOCTOU mitigation, and secure file handling
-into a single hardened interface. This module should be the ONLY way
-files are accessed in the APGI framework.
+Bridge to Level 1
 """
 
 import json

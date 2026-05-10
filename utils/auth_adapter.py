@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Centralized Authentication & Authorization Adapter
-================================================
-Handles role binding, token validation, session abstractions,
-and enforces least-privilege defaults for non-local deployments.
+LEVEL DESIGNATION: Level 2 (information-theoretic)
+
+Bridge to Level 1
 """
 
 import logging

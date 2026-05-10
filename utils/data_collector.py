@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-APGI Data Collector - Historical Data Collection Module
-====================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Collects and stores historical data from validation protocols,
-system metrics, and performance data for the historical dashboard.
+Bridge to Level 1
 """
 
 import json

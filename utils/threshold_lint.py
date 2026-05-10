@@ -1,22 +1,8 @@
 #!/usr/bin/env python3
 """
-threshold_lint.py
-=================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Cross-file threshold consistency checker for APGI falsification thresholds.
-
-This script verifies that:
-1. All threshold constants are defined in utils/falsification_thresholds.py
-2. All imports use the canonical path (utils.falsification_thresholds)
-3. No hard-coded threshold values exist in protocol files
-4. The THRESHOLD_REGISTRY contains all expected constants
-
-Usage:
-    python scripts/threshold_lint.py
-
-Exit codes:
-    0 - All checks passed
-    1 - Threshold inconsistencies found
+Bridge to Level 1
 """
 
 import ast
@@ -25,7 +11,6 @@ import sys
 from pathlib import Path
 from typing import List, Set, Tuple
 
-# Add parent directory to path for importing utils
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Core thresholds that should be defined in the canonical file

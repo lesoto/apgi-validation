@@ -1,20 +1,7 @@
 """
-falsification_thresholds.py
-============================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Source of truth for all APGI falsification thresholds.
-
-Every protocol (VP-*, FP-*) MUST import thresholds from here rather than
-hard-coding them locally.  Changes to the specification propagate
-automatically to every protocol.
-
-Usage::
-
-    from utils.falsification_thresholds import (
-        F6_1_LTCN_MAX_TRANSITION_MS,
-        F6_2_MIN_INTEGRATION_RATIO,
-        F5_6_PCA_MIN_VARIANCE,
-    )
+Bridge to Level 1
 """
 
 from typing import Any

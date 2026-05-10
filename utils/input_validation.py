@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Input Validation Utility
-======================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides comprehensive input validation for user inputs across the application.
+Bridge to Level 1
 """
 
 import re

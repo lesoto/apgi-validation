@@ -1,41 +1,7 @@
 """
-APGI Parameter Estimation with Physiological Priors
-===================================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Integration of physiological priors (alpha/gamma ratio, HEP calibration) into
-the APGI parameter estimation pipeline. This enables breaking collinearity
-between Πi and β via biological constraints.
-
-Key Features:
-- Prior-constrained MCMC: Πi fixed or tightly bounded by physiology
-- Beta-only estimation during task with fixed Πi
-- Collinearity diagnostics and correction
-- Hybrid calibration: combine AG ratio + HEP for robust Πi estimate
-
-Usage:
-    estimator = APGIPhysiologicalEstimator()
-
-    # Step 1: Calibration phase (resting-state)
-    estimator.calibrate(
-        resting_eeg=eeg_rest,
-        resting_ecg=ecg_rest,
-        fs=1000.0
-    )
-
-    # Step 2: Task estimation with fixed Πi
-    result = estimator.estimate_task_parameters(
-        task_eeg=eeg_task,
-        task_ecg=ecg_task,
-        behavioral_data=behavior,
-        fs=1000.0
-    )
-    # result.pi_i is fixed from calibration
-    # result.beta is estimated independently
-
-References:
------------
-- Jones, S.R. et al. (2010). Alpha/gamma ratio and thalamocortical resonance.
-- Park, H.D. et al. (2014). HEP predicts visual detection. Nature Neurosci.
+Bridge to Level 1
 """
 
 import logging

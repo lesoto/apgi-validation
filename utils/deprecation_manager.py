@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-Centralized Deprecation Manager
-==============================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Provides decorators and utilities to mark modules, classes, and functions
-as deprecated with clear removal timelines and replacement suggestions.
+Bridge to Level 1
 """
 
 import functools

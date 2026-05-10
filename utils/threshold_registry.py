@@ -1,23 +1,7 @@
 """
-APGI Theory Framework - Centralized Threshold Registry
-===============================================
+LEVEL DESIGNATION: Level 2 (information-theoretic)
 
-Centralized registry for managing falsification thresholds across all validation protocols.
-Provides a single source of truth for threshold values that can be easily
-maintained and updated without requiring changes across multiple protocol files.
-
-Features:
-- Centralized threshold definitions using constants from utils.constants
-- Dynamic threshold loading from configuration with fallback to defaults
-- Type-safe threshold access with validation
-- Support for both individual thresholds and threshold sets
-- Easy integration with existing validation protocols
-
-Example:
-    >>> from utils.threshold_registry import ThresholdRegistry
-    >>> registry = ThresholdRegistry()
-    >>> thresholds = registry.get_falsification_thresholds()
-    >>> print(f"Cumulative reward advantage threshold: {thresholds.cumulative_reward_advantage_threshold}")
+Bridge to Level 1
 """
 
 import logging
